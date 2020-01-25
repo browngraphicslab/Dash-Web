@@ -33,11 +33,11 @@ export class CurrentUserUtils {
     // a default set of note types .. not being used yet...
     static setupNoteTypes(doc: Doc) {
         return [
-            Docs.Create.TextDocument({ title: "Note", backgroundColor: "yellow", isTemplateDoc: true }),
-            Docs.Create.TextDocument({ title: "Idea", backgroundColor: "pink", isTemplateDoc: true }),
-            Docs.Create.TextDocument({ title: "Topic", backgroundColor: "lightBlue", isTemplateDoc: true }),
-            Docs.Create.TextDocument({ title: "Person", backgroundColor: "lightGreen", isTemplateDoc: true }),
-            Docs.Create.TextDocument({ title: "Todo", backgroundColor: "orange", isTemplateDoc: true })
+            Docs.Create.TextDocument("", { title: "Note", backgroundColor: "yellow", isTemplateDoc: true }),
+            Docs.Create.TextDocument("", { title: "Idea", backgroundColor: "pink", isTemplateDoc: true }),
+            Docs.Create.TextDocument("", { title: "Topic", backgroundColor: "lightBlue", isTemplateDoc: true }),
+            Docs.Create.TextDocument("", { title: "Person", backgroundColor: "lightGreen", isTemplateDoc: true }),
+            Docs.Create.TextDocument("", { title: "Todo", backgroundColor: "orange", isTemplateDoc: true })
         ];
     }
 

@@ -33,6 +33,7 @@ import { CollectionSubView } from "./CollectionSubView";
 import "./CollectionTreeView.scss";
 import React = require("react");
 import { CollectionViewType } from './CollectionView';
+import { RichTextField } from '../../../new_fields/RichTextField';
 
 
 export interface TreeViewProps {
@@ -634,18 +635,18 @@ export class CollectionTreeView extends CollectionSubView(Document) {
                 const { TextDocument, ImageDocument, MulticolumnDocument, TreeDocument } = Docs.Create;
                 const { Document } = this.props;
                 const fallbackImg = "http://www.cs.brown.edu/~bcz/face.gif";
+                const detailedTemplate = `{ "doc": { "type": "doc", "content": [ { "type": "paragraph", "content": [ { "type": "dashField", "attrs": { "fieldKey": "short_description" } } ] }, { "type": "paragraph", "content": [ { "type": "dashField", "attrs": { "fieldKey": "year" } } ] },  { "type": "paragraph", "content": [ { "type": "dashField", "attrs": { "fieldKey": "company" } } ] }  ] }, "selection":{"type":"text","anchor":1,"head":1},"storedMarks":[] }`;
 
                 const detailedLayout = Docs.Create.StackingDocument([
                     ImageDocument(fallbackImg, { title: "activeHero" }),
                     MulticolumnDocument([], {
                         title: "data", _height: 100, onChildClick: ScriptField.MakeFunction(
                             `containingCollection.resolvedDataDoc.activeHero = copyField(this.data);
-                        containingCollection.resolvedDataDoc.activeHero["activeHero-nativeWidth"] = copyField(this.data["data-nativeWidth"]);
-                        containingCollection.resolvedDataDoc.activeHero["activeHero-nativeHeight"] = copyField(this.data["data-nativeHeight"]);
+                            containingCollection.resolvedDataDoc.activeHero["activeHero-nativeWidth"] = copyField(this.data["data-nativeWidth"]);
+                            containingCollection.resolvedDataDoc.activeHero["activeHero-nativeHeight"] = copyField(this.data["data-nativeHeight"]);
                         `, { containingCollection: Doc.name })
                     }),
-                    TextDocument({ title: "short_description", _autoHeight: true }),
-                    ...["year", "company", "degrees_of_freedom"].map(key => TextDocument({ title: key, _height: 30 }))
+                    TextDocument("", { title: "details", _autoHeight: true, _textTemplate: new RichTextField(detailedTemplate, "short_description year company") })
                 ], { _chromeStatus: "disabled", title: "detailed layout stack" });
                 detailedLayout.isTemplateDoc = makeTemplate(detailedLayout);
 
@@ -733,7 +734,7 @@ Scripting.addGlobal(function readFacetData(layoutDoc: Doc, dataDoc: Doc, dataKey
     };
     const capturedVariables = { layoutDoc, facetHeader };
     return new List<Doc>(Array.from(facetValues).sort().map(facetValue => {
-        const value = Docs.Create.TextDocument({ title: facetValue.toString() });
+        const value = Docs.Create.TextDocument("", { title: facetValue.toString() });
         value.treeViewChecked = ComputedField.MakeFunction(text, params, { ...capturedVariables, facetValue });
         return value;
     }));

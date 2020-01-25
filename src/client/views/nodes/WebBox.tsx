@@ -83,13 +83,12 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
         const field = Cast(this.props.Document[this.props.fieldKey], WebField);
         if (field) url = field.url.href;
 
-        const newBox = Docs.Create.TextDocument({
+        const newBox = Docs.Create.TextDocument(url, {
             x: NumCast(this.props.Document.x),
             y: NumCast(this.props.Document.y),
             title: url,
             _width: 200,
             _height: 70,
-            documentText: "@@@" + url
         });
 
         SelectionManager.SelectedDocuments().map(dv => {

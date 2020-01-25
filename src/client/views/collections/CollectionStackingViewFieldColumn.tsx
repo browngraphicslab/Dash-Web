@@ -152,7 +152,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         }
         this._createAliasSelected = false;
         const key = StrCast(this.props.parent.props.Document.sectionFilter);
-        const newDoc = Docs.Create.TextDocument({ _height: 18, _width: 200, documentText: "@@@" + value, title: value, _autoHeight: true });
+        const newDoc = Docs.Create.TextDocument(value, { _height: 18, _width: 200, title: value, _autoHeight: true });
         newDoc[key] = this.getValue(this.props.heading);
         const maxHeading = this.props.docList.reduce((maxHeading, doc) => NumCast(doc.heading) > maxHeading ? NumCast(doc.heading) : maxHeading, 0);
         const heading = maxHeading === 0 || this.props.docList.length === 0 ? 1 : maxHeading === 1 ? 2 : 3;

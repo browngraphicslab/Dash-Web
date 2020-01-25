@@ -210,7 +210,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
     inferType = async (data: FieldResult, metaKey: string) => {
         const options = { _width: 300, _height: 300, title: metaKey };
         if (data instanceof RichTextField || typeof data === "string" || typeof data === "number") {
-            return Docs.Create.TextDocument(options);
+            return Docs.Create.TextDocument("", options);
         } else if (data instanceof List) {
             if (data.length === 0) {
                 return Docs.Create.StackingDocument([], options);

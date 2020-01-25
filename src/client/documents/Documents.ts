@@ -52,6 +52,7 @@ import { DocumentBox } from "../views/nodes/DocumentBox";
 import { InkingStroke } from "../views/InkingStroke";
 import { InkField } from "../../new_fields/InkField";
 import { InkingControl } from "../views/InkingControl";
+import { RichTextField } from "../../new_fields/RichTextField";
 const requestImageSize = require('../util/request-image-size');
 const path = require('path');
 
@@ -72,6 +73,7 @@ export interface DocumentOptions {
     _gridGap?: number; // gap between items in masonry view
     _xMargin?: number; // gap between left edge of document and start of masonry/stacking layouts
     _yMargin?: number; // gap between top edge of dcoument and start of masonry/stacking layouts
+    _textTemplate?: RichTextField; // template used by a formattedTextBox to create a text box to render
     x?: number;
     y?: number;
     z?: number;
@@ -441,8 +443,8 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.COLOR), "", options);
         }
 
-        export function TextDocument(options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.TEXT), "", options);
+        export function TextDocument(text: string, options: DocumentOptions = {}) {
+            return InstanceFromProto(Prototypes.get(DocumentType.TEXT), text, options);
         }
 
         export function InkDocument(color: string, tool: number, strokeWidth: number, points: { X: number, Y: number }[], options: DocumentOptions = {}) {
@@ -703,7 +705,7 @@ export namespace Docs {
                 created = Docs.Create.StackingDocument(DocListCast(field), resolved);
                 layout = CollectionView.LayoutString;
             } else {
-                created = Docs.Create.TextDocument({ ...{ _width: 200, _height: 25, _autoHeight: true }, ...resolved });
+                created = Docs.Create.TextDocument("", { ...{ _width: 200, _height: 25, _autoHeight: true }, ...resolved });
                 layout = FormattedTextBox.LayoutString;
             }
             created.layout = layout?.(fieldKey);

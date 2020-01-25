@@ -49,7 +49,7 @@ export class PreviewCursor extends React.Component<{}> {
                 }
 
                 // creates text document
-                return PreviewCursor._addLiveTextDoc(Docs.Create.TextDocument({
+                return PreviewCursor._addLiveTextDoc(Docs.Create.TextDocument("", {
                     _width: 500,
                     limitHeight: 400,
                     _autoHeight: true,

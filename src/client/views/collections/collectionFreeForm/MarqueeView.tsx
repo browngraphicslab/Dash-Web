@@ -84,7 +84,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
                 }
                 ns.map(line => {
                     const indent = line.search(/\S|$/);
-                    const newBox = Docs.Create.TextDocument({ _width: 200, _height: 35, x: x + indent / 3 * 10, y: y, documentText: "@@@" + line, title: line });
+                    const newBox = Docs.Create.TextDocument(line, { _width: 200, _height: 35, x: x + indent / 3 * 10, y: y, title: line });
                     this.props.addDocument(newBox);
                     y += 40 * this.props.getTransform().Scale;
                 });
@@ -101,10 +101,10 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             });
         } else if (!e.ctrlKey) {
             this.props.addLiveTextDocument(
-                Docs.Create.TextDocument({ _width: 200, _height: 100, x: x, y: y, _autoHeight: true, title: "-typed text-" }));
+                Docs.Create.TextDocument("", { _width: 200, _height: 100, x: x, y: y, _autoHeight: true, title: "-typed text-" }));
         } else if (e.keyCode > 48 && e.keyCode <= 57) {
             const notes = DocListCast((CurrentUserUtils.UserDocument.noteTypes as Doc).data);
-            const text = Docs.Create.TextDocument({ _width: 200, _height: 100, x: x, y: y, _autoHeight: true, title: "-typed text-" });
+            const text = Docs.Create.TextDocument("", { _width: 200, _height: 100, x: x, y: y, _autoHeight: true, title: "-typed text-" });
             text.layout = notes[(e.keyCode - 49) % notes.length];
             this.props.addLiveTextDocument(text);
         }
@@ -374,7 +374,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             return d;
         });
         newCollection._chromeStatus = "disabled";
-        const summary = Docs.Create.TextDocument({ x: bounds.left, y: bounds.top, _width: 300, _height: 100, _autoHeight: true, backgroundColor: "#e2ad32" /* yellow */, title: "-summary-" });
+        const summary = Docs.Create.TextDocument("", { x: bounds.left, y: bounds.top, _width: 300, _height: 100, _autoHeight: true, backgroundColor: "#e2ad32" /* yellow */, title: "-summary-" });
         Doc.GetProto(summary).summarizedDocs = new List<Doc>([newCollection]);
         newCollection.x = bounds.left + bounds.width;
         Doc.GetProto(newCollection).summaryDoc = summary;

@@ -531,7 +531,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             let fieldTemplate: Doc;
             switch (doc.type) {
                 case DocumentType.TEXT:
-                    fieldTemplate = Docs.Create.TextDocument(options);
+                    fieldTemplate = Docs.Create.TextDocument("", options);
                     break;
                 case DocumentType.PDF:
                     fieldTemplate = Docs.Create.PdfDocument("http://www.msn.com", options);

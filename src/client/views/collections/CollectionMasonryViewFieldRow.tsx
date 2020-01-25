@@ -136,7 +136,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
     addDocument = (value: string, shiftDown?: boolean) => {
         this._createAliasSelected = false;
         const key = StrCast(this.props.parent.props.Document.sectionFilter);
-        const newDoc = Docs.Create.TextDocument({ _height: 18, _width: 200, title: value });
+        const newDoc = Docs.Create.TextDocument("", { _height: 18, _width: 200, title: value });
         newDoc[key] = this.getValue(this.props.heading);
         return this.props.parent.props.addDocument(newDoc);
     }

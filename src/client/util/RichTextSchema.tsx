@@ -8,7 +8,7 @@ import { EditorState, NodeSelection, TextSelection, Plugin } from "prosemirror-s
 import { StepMap } from "prosemirror-transform";
 import { EditorView } from "prosemirror-view";
 import * as ReactDOM from 'react-dom';
-import { Doc, WidthSym, HeightSym } from "../../new_fields/Doc";
+import { Doc, WidthSym, HeightSym, DataSym, Field } from "../../new_fields/Doc";
 import { emptyFunction, returnEmptyString, returnFalse, returnOne, Utils } from "../../Utils";
 import { DocServer } from "../DocServer";
 import { DocumentView } from "../views/nodes/DocumentView";
@@ -16,7 +16,7 @@ import { DocumentManager } from "./DocumentManager";
 import ParagraphNodeSpec from "./ParagraphNodeSpec";
 import { Transform } from "./Transform";
 import React = require("react");
-import { BoolCast, NumCast, Cast } from "../../new_fields/Types";
+import { BoolCast, NumCast, StrCast } from "../../new_fields/Types";
 import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
 
 const blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
@@ -166,6 +166,19 @@ export const nodes: { [index: string]: NodeSpec } = {
             location: { default: "onRight" },
             hidden: { default: false },
             docid: { default: "" },
+        },
+        group: "inline",
+        draggable: false,
+        toDOM(node) {
+            const attrs = { style: `width: ${node.attrs.width}, height: ${node.attrs.height}` };
+            return ["div", { ...node.attrs, ...attrs }];
+        }
+    },
+
+    dashField: {
+        inline: true,
+        attrs: {
+            fieldKey: { default: "" },
         },
         group: "inline",
         draggable: false,
@@ -793,6 +806,42 @@ export class DashDocView {
         this._dashSpan.onkeyup = function (e: any) { e.stopPropagation(); };
         this._outer.appendChild(this._dashSpan);
         (this as any).dom = this._outer;
+    }
+    destroy() {
+        this._reactionDisposer && this._reactionDisposer();
+    }
+}
+
+export class DashFieldView {
+    _fieldWrapper: HTMLDivElement;
+    _labelSpan: HTMLSpanElement;
+    _fieldSpan: HTMLSpanElement;
+    _reactionDisposer: IReactionDisposer | undefined;
+    _textBoxDoc: Doc;
+
+    constructor(node: any, view: any, getPos: any, tbox: FormattedTextBox) {
+        this._textBoxDoc = tbox.props.Document;
+        this._fieldWrapper = document.createElement("div");
+        this._fieldWrapper.style.width = node.attrs.width;
+        this._fieldWrapper.style.height = node.attrs.height;
+        this._fieldWrapper.style.position = "relative";
+        this._fieldWrapper.style.display = "inline";
+
+        this._fieldSpan = document.createElement("span");
+        this._fieldSpan.style.position = "relative";
+        this._fieldSpan.style.display = "inline";
+
+        this._labelSpan = document.createElement("span");
+        this._labelSpan.style.position = "relative";
+        this._labelSpan.style.display = "inline";
+        this._labelSpan.style.fontWeight = "bold";
+        this._labelSpan.style.fontSize = "larger";
+        this._labelSpan.innerHTML = `${node.attrs.fieldKey}: `;
+        this._reactionDisposer && this._reactionDisposer();
+        this._reactionDisposer = reaction(() => this._textBoxDoc[DataSym][node.attrs.fieldKey], fval => this._fieldSpan.innerHTML = Field.toString(fval as Field), { fireImmediately: true });
+        this._fieldWrapper.appendChild(this._labelSpan);
+        this._fieldWrapper.appendChild(this._fieldSpan);
+        (this as any).dom = this._fieldWrapper;
     }
     destroy() {
         this._reactionDisposer && this._reactionDisposer();

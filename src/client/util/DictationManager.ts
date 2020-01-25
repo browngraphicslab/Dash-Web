@@ -332,7 +332,7 @@ export namespace DictationManager {
 
             ["new outline", {
                 action: (target: DocumentView) => {
-                    const newBox = Docs.Create.TextDocument({ _width: 400, _height: 200, title: "My Outline", _autoHeight: true });
+                    const newBox = Docs.Create.TextDocument("", { _width: 400, _height: 200, title: "My Outline", _autoHeight: true });
                     const proto = newBox.proto!;
                     const prompt = "Press alt + r to start dictating here...";
                     const head = 3;

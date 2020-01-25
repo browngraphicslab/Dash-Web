@@ -2,7 +2,7 @@ import { textblockTypeInputRule, smartQuotes, emDash, ellipsis, InputRule } from
 import { schema } from "./RichTextSchema";
 import { wrappingInputRule } from "./prosemirrorPatches";
 import { NodeSelection, TextSelection } from "prosemirror-state";
-import { NumCast, Cast } from "../../new_fields/Types";
+import { StrCast, Cast } from "../../new_fields/Types";
 import { Doc } from "../../new_fields/Doc";
 import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
 import { Docs, DocUtils } from "../documents/Documents";
@@ -70,6 +70,19 @@ export const inpRules = {
                 return state.tr.deleteRange(start, end).addStoredMark(schema.marks.pFontSize.create({ fontSize: size }));
             }),
 
+        // make current selection a hyperlink portal (assumes % was used to initiate an EnteringStyle mode)
+        new InputRule(
+            new RegExp(/!$/),
+            (state, match, start, end) => {
+                if (state.selection.to === state.selection.from || !(schema as any).EnteringStyle) return null;
+                const value = state.doc.textBetween(start, end);
+
+                const node = (state.doc.resolve(start) as any).nodeAfter;
+                const sm = state.storedMarks || undefined;
+                const fieldView = state.schema.nodes.dashField.create({ fieldKey: StrCast(value) });
+                const replaced = node ? state.tr.replaceRangeWith(start, end, fieldView).setStoredMarks([...node.marks, ...(sm ? sm : [])]) : state.tr;
+                return replaced.doc.nodeSize > end - 2 ? replaced.setSelection(new TextSelection(replaced.doc.resolve(end - 2))) : replaced;
+            }),
         // make current selection a hyperlink portal (assumes % was used to initiate an EnteringStyle mode)
         new InputRule(
             new RegExp(/@$/),
@@ -196,7 +209,7 @@ export const inpRules = {
         new InputRule(
             new RegExp(/%#$/),
             (state, match, start, end) => {
-                const target = Docs.Create.TextDocument({ _width: 75, _height: 35, backgroundColor: "yellow", annotationOn: FormattedTextBox.FocusedBox!.dataDoc, _autoHeight: true, fontSize: 9, title: "inline comment" });
+                const target = Docs.Create.TextDocument("", { _width: 75, _height: 35, backgroundColor: "yellow", annotationOn: FormattedTextBox.FocusedBox!.dataDoc, _autoHeight: true, fontSize: 9, title: "inline comment" });
                 const node = (state.doc.resolve(start) as any).nodeAfter;
                 const newNode = schema.nodes.dashComment.create({ docid: target[Id] });
                 const dashDoc = schema.nodes.dashDoc.create({ width: 75, height: 35, title: "dashDoc", docid: target[Id], float: "right" });

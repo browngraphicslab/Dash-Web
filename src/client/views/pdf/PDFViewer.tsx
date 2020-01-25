@@ -558,7 +558,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
     startDrag = (e: PointerEvent, ele: HTMLElement): void => {
         e.preventDefault();
         e.stopPropagation();
-        const targetDoc = Docs.Create.TextDocument({ _width: 200, _height: 200, title: "Note linked to " + this.props.Document.title });
+        const targetDoc = Docs.Create.TextDocument("", { _width: 200, _height: 200, title: "Note linked to " + this.props.Document.title });
         const annotationDoc = this.highlight("rgba(146, 245, 95, 0.467)"); // yellowish highlight color when dragging out a text selection
         if (annotationDoc) {
             DragManager.StartPdfAnnoDrag([ele], new DragManager.PdfAnnoDragData(this.props.Document, annotationDoc, targetDoc), e.pageX, e.pageY, {

@@ -224,7 +224,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                         this.props.addDocument && this.props.addDocument(Docs.Create.WebDocument(href, { ...options, title: href }));
                     }
                 } else if (text) {
-                    this.props.addDocument && this.props.addDocument(Docs.Create.TextDocument({ ...options, _width: 100, _height: 25, documentText: "@@@" + text }));
+                    this.props.addDocument && this.props.addDocument(Docs.Create.TextDocument(text, { ...options, _width: 100, _height: 25 }));
                 }
                 return;
             }
@@ -262,7 +262,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             }
             let matches: RegExpExecArray | null;
             if ((matches = /(https:\/\/)?docs\.google\.com\/document\/d\/([^\\]+)\/edit/g.exec(text)) !== null) {
-                const newBox = Docs.Create.TextDocument({ ...options, _width: 400, _height: 200, title: "Awaiting title from Google Docs..." });
+                const newBox = Docs.Create.TextDocument("", { ...options, _width: 400, _height: 200, title: "Awaiting title from Google Docs..." });
                 const proto = newBox.proto!;
                 const documentId = matches[2];
                 proto[GoogleRef] = documentId;
@@ -333,7 +333,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 Promise.all(promises).finally(() => { completed && completed(); batch.end(); });
             } else {
                 if (text && !text.includes("https://")) {
-                    this.props.addDocument(Docs.Create.TextDocument({ ...options, documentText: "@@@" + text, _width: 400, _height: 315 }));
+                    this.props.addDocument(Docs.Create.TextDocument(text, { ...options, _width: 400, _height: 315 }));
                 }
                 batch.end();
             }

@@ -12,7 +12,7 @@ import { EditorState, NodeSelection, Plugin, TextSelection, Transaction } from "
 import { ReplaceStep } from 'prosemirror-transform';
 import { EditorView } from "prosemirror-view";
 import { DateField } from '../../../new_fields/DateField';
-import { Doc, DocListCastAsync, Opt, WidthSym, HeightSym, DataSym } from "../../../new_fields/Doc";
+import { Doc, DocListCastAsync, Opt, WidthSym, HeightSym, DataSym, Field } from "../../../new_fields/Doc";
 import { Copy, Id } from '../../../new_fields/FieldSymbols';
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { RichTextUtils } from '../../../new_fields/RichTextUtils';
@@ -27,7 +27,7 @@ import { DictationManager } from '../../util/DictationManager';
 import { DragManager } from "../../util/DragManager";
 import buildKeymap from "../../util/ProsemirrorExampleTransfer";
 import { inpRules } from "../../util/RichTextRules";
-import { DashDocCommentView, FootnoteView, ImageResizeView, DashDocView, OrderedListView, schema, SummaryView } from "../../util/RichTextSchema";
+import { DashDocCommentView, FootnoteView, ImageResizeView, DashDocView, OrderedListView, schema, SummaryView, DashFieldView } from "../../util/RichTextSchema";
 import { SelectionManager } from "../../util/SelectionManager";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { DocAnnotatableComponent, DocAnnotatableProps } from "../DocComponent";
@@ -534,7 +534,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
             () => this.tryUpdateHeight()
         );
 
-        this.setupEditor(this.config, this.dataDoc, this.props.fieldKey);
+        this.setupEditor(this.config, this.props.fieldKey);
 
         this._searchReactionDisposer = reaction(() => this.layoutDoc.searchMatch,
             search => search ? this.highlightSearchTerms([Doc.SearchQuery()]) : this.unhighlightSearchTerms(),
@@ -736,28 +736,18 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         }
     }
 
-    private setupEditor(config: any, doc: Doc, fieldKey: string) {
-        const field = doc ? Cast(doc[fieldKey], RichTextField) : undefined;
-        let startup = StrCast(doc.documentText);
-        startup = startup.startsWith("@@@") ? startup.replace("@@@", "") : "";
-        if (!field && doc) {
-            const text = StrCast(doc[fieldKey]);
-            if (text) {
-                startup = text;
-            } else if (Cast(doc[fieldKey], "number")) {
-                startup = NumCast(doc[fieldKey], 99).toString();
-            }
-        }
+    private setupEditor(config: any, fieldKey: string) {
+        const rtfField = Cast(this.props.Document._textTemplate || this.dataDoc[fieldKey], RichTextField);
         if (this.ProseRef) {
             const self = this;
-            this._editorView && this._editorView.destroy();
+            this._editorView?.destroy();
             this._editorView = new EditorView(this.ProseRef, {
-                state: field && field.Data ? EditorState.fromJSON(config, JSON.parse(field.Data)) : EditorState.create(config),
+                state: rtfField?.Data ? EditorState.fromJSON(config, JSON.parse(rtfField.Data)) : EditorState.create(config),
                 handleScrollToSelection: (editorView) => {
                     const ref = editorView.domAtPos(editorView.state.selection.from);
                     let refNode = ref.node as any;
                     while (refNode && !("getBoundingClientRect" in refNode)) refNode = refNode.parentElement;
-                    const r1 = refNode && refNode.getBoundingClientRect();
+                    const r1 = refNode?.getBoundingClientRect();
                     const r3 = self._ref.current!.getBoundingClientRect();
                     if (r1.top < r3.top || r1.top > r3.bottom) {
                         r1 && (self._scrollRef.current!.scrollTop += (r1.top - r3.top) * self.props.ScreenToLocalTransform().Scale);
@@ -767,6 +757,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                 dispatchTransaction: this.dispatchTransaction,
                 nodeViews: {
                     dashComment(node, view, getPos) { return new DashDocCommentView(node, view, getPos); },
+                    dashField(node, view, getPos) { return new DashFieldView(node, view, getPos, self); },
                     dashDoc(node, view, getPos) { return new DashDocView(node, view, getPos, self); },
                     image(node, view, getPos) { return new ImageResizeView(node, view, getPos, self.props.addDocTab); },
                     summary(node, view, getPos) { return new SummaryView(node, view, getPos); },
@@ -777,9 +768,9 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                 handlePaste: this.handlePaste,
             });
             this._editorView.state.schema.Document = this.props.Document;
-            if (startup && this._editorView) {
-                Doc.GetProto(doc).documentText = undefined;
-                this._editorView.dispatch(this._editorView.state.tr.insertText(startup));
+            const startupText = !rtfField && this._editorView && Field.toString(this.dataDoc[fieldKey] as Field);
+            if (startupText) {
+                this._editorView.dispatch(this._editorView.state.tr.insertText(startupText));
             }
         }
 
@@ -788,8 +779,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
             FormattedTextBox.SelectOnLoad = "";
             this.props.select(false);
         }
-        const rtf = doc ? Cast(doc[fieldKey], RichTextField) : undefined;
-        (selectOnLoad || (rtf && !rtf.Text)) && this._editorView!.focus();
+        (selectOnLoad /* || !rtfField?.Text*/) && this._editorView!.focus();
         // add user mark for any first character that was typed since the user mark that gets set in KeyPress won't have been called yet.
         this._editorView!.state.storedMarks = [...(this._editorView!.state.storedMarks ? this._editorView!.state.storedMarks : []), schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: Math.round(Date.now() / 1000 / 5) })];
     }
