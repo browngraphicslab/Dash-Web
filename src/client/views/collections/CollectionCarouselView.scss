@@ -1,0 +1,28 @@
+
+.collectionCarouselView-outer {
+    background: gray;
+}
+.carouselView-back  {
+    position: absolute;
+    display: flex;
+    left: 0; 
+    top: 50%;
+    width: 30;
+    height: 30;
+    background: lightgray;
+    align-items: center;
+    border-radius: 5px;
+    justify-content: center;
+}
+.carouselView-fwd  {
+    position: absolute;
+    display: flex;
+    right: 0; 
+    top: 50%;
+    width: 30;
+    height: 30;
+    background: lightgray;
+    align-items: center;
+    border-radius: 5px;
+    justify-content: center;
+}

@@ -632,20 +632,13 @@ export class CollectionTreeView extends CollectionSubView(Document) {
         }
         ContextMenu.Instance.addItem({
             description: "Buxton Layout", icon: "eye", event: () => {
-                const { TextDocument, ImageDocument, MulticolumnDocument, TreeDocument } = Docs.Create;
+                const { TextDocument, ImageDocument, MulticolumnDocument, TreeDocument, CarouselDocument } = Docs.Create;
                 const { Document } = this.props;
                 const fallbackImg = "http://www.cs.brown.edu/~bcz/face.gif";
                 const detailedTemplate = `{ "doc": { "type": "doc", "content": [ { "type": "paragraph", "content": [ { "type": "dashField", "attrs": { "fieldKey": "short_description" } } ] }, { "type": "paragraph", "content": [ { "type": "dashField", "attrs": { "fieldKey": "year" } } ] },  { "type": "paragraph", "content": [ { "type": "dashField", "attrs": { "fieldKey": "company" } } ] }  ] }, "selection":{"type":"text","anchor":1,"head":1},"storedMarks":[] }`;
 
                 const detailedLayout = Docs.Create.StackingDocument([
-                    ImageDocument(fallbackImg, { title: "activeHero" }),
-                    MulticolumnDocument([], {
-                        title: "data", _height: 100, onChildClick: ScriptField.MakeFunction(
-                            `containingCollection.resolvedDataDoc.activeHero = copyField(this.data);
-                            containingCollection.resolvedDataDoc.activeHero["activeHero-nativeWidth"] = copyField(this.data["data-nativeWidth"]);
-                            containingCollection.resolvedDataDoc.activeHero["activeHero-nativeHeight"] = copyField(this.data["data-nativeHeight"]);
-                        `, { containingCollection: Doc.name })
-                    }),
+                    CarouselDocument([], { title: "data", _height: 350, _itemIndex: 0 }),
                     TextDocument("", { title: "details", _autoHeight: true, _textTemplate: new RichTextField(detailedTemplate, "short_description year company") })
                 ], { _chromeStatus: "disabled", title: "detailed layout stack" });
                 detailedLayout.isTemplateDoc = makeTemplate(detailedLayout);

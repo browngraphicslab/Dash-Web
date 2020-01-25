@@ -26,6 +26,7 @@ import { Touchable } from '../Touchable';
 import { CollectionDockingView } from "./CollectionDockingView";
 import { AddCustomFreeFormLayout } from './collectionFreeForm/CollectionFreeFormLayoutEngines';
 import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormView';
+import { CollectionCarouselView } from './CollectionCarouselView';
 import { CollectionLinearView } from './CollectionLinearView';
 import { CollectionMulticolumnView } from './collectionMulticolumn/CollectionMulticolumnView';
 import { CollectionPivotView } from './CollectionPivotView';
@@ -49,6 +50,7 @@ export enum CollectionViewType {
     Masonry,
     Pivot,
     Linear,
+    Carousel,
     Staff,
     Multicolumn,
     Timeline
@@ -64,6 +66,7 @@ export namespace CollectionViewType {
         ["stacking", CollectionViewType.Stacking],
         ["masonry", CollectionViewType.Masonry],
         ["pivot", CollectionViewType.Pivot],
+        ["carousel", CollectionViewType.Carousel],
         ["linear", CollectionViewType.Linear],
         ["multicolumn", CollectionViewType.Multicolumn]
     ]);
@@ -178,6 +181,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
             case CollectionViewType.Staff: return (<CollectionStaffView chromeCollapsed={true} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} />);
             case CollectionViewType.Multicolumn: return (<CollectionMulticolumnView chromeCollapsed={true} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} />);
             case CollectionViewType.Linear: { return (<CollectionLinearView key="collview" {...props} />); }
+            case CollectionViewType.Carousel: { return (<CollectionCarouselView key="collview" {...props} />); }
             case CollectionViewType.Stacking: { this.props.Document.singleColumn = true; return (<CollectionStackingView key="collview" {...props} />); }
             case CollectionViewType.Masonry: { this.props.Document.singleColumn = false; return (<CollectionStackingView key="collview" {...props} />); }
             case CollectionViewType.Pivot: { return (<CollectionPivotView key="collview" {...props} />); }
@@ -220,6 +224,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
             subItems.push({ description: "Staff", event: () => this.props.Document._viewType = CollectionViewType.Staff, icon: "music" });
             subItems.push({ description: "Multicolumn", event: () => this.props.Document._viewType = CollectionViewType.Multicolumn, icon: "columns" });
             subItems.push({ description: "Masonry", event: () => this.props.Document._viewType = CollectionViewType.Masonry, icon: "columns" });
+            subItems.push({ description: "Carousel", event: () => this.props.Document._viewType = CollectionViewType.Carousel, icon: "columns" });
             subItems.push({ description: "Pivot", event: () => this.props.Document._viewType = CollectionViewType.Pivot, icon: "columns" });
             switch (this.props.Document._viewType) {
                 case CollectionViewType.Freeform: {
