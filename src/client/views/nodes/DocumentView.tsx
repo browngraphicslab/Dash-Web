@@ -860,7 +860,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const fallback = Cast(this.props.Document.layoutKey, "string");
         return typeof fallback === "string" ? fallback : "layout";
     }
-    childScaling = () => (this.layoutDoc._fitWidth ? this.props.PanelWidth() / this._nativeWidth : this.props.ContentScaling());
+    childScaling = () => (this.layoutDoc._fitWidth ? this.props.PanelWidth() / this.nativeWidth : this.props.ContentScaling());
     @computed get contents() {
         TraceMobx();
         return (<DocumentContentsView ContainingCollectionView={this.props.ContainingCollectionView}
