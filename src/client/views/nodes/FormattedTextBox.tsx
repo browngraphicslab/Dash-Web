@@ -12,7 +12,7 @@ import { EditorState, NodeSelection, Plugin, TextSelection, Transaction } from "
 import { ReplaceStep } from 'prosemirror-transform';
 import { EditorView } from "prosemirror-view";
 import { DateField } from '../../../new_fields/DateField';
-import { Doc, DocListCastAsync, Opt, WidthSym, HeightSym } from "../../../new_fields/Doc";
+import { Doc, DocListCastAsync, Opt, WidthSym, HeightSym, DataSym } from "../../../new_fields/Doc";
 import { Copy, Id } from '../../../new_fields/FieldSymbols';
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { RichTextUtils } from '../../../new_fields/RichTextUtils';
@@ -696,8 +696,9 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                 DocServer.GetRefField(pdfRegionId).then(pdfRegion => {
                     if ((pdfDoc instanceof Doc) && (pdfRegion instanceof Doc)) {
                         setTimeout(async () => {
-                            const targetAnnotations = await DocListCastAsync(pdfDoc["data-annotations"]);// bcz: NO... this assumes the pdf is using its 'data' field.  need to have the PDF's view handle updating its own annotations
-                            targetAnnotations && targetAnnotations.push(pdfRegion);
+                            const targetField = Doc.LayoutFieldKey(pdfDoc);
+                            const targetAnnotations = await DocListCastAsync(pdfDoc[DataSym][targetField + "-annotations"]);// bcz: better to have the PDF's view handle updating its own annotations
+                            targetAnnotations?.push(pdfRegion);
                         });
 
                         const link = DocUtils.MakeLink({ doc: this.props.Document, ctx: this.props.ContainingCollectionDoc }, { doc: pdfRegion, ctx: pdfDoc }, "note on " + pdfDoc.title, "pasted PDF link");

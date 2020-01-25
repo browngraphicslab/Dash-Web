@@ -637,13 +637,19 @@ export class CollectionTreeView extends CollectionSubView(Document) {
 
                 const detailedLayout = Docs.Create.StackingDocument([
                     ImageDocument(fallbackImg, { title: "activeHero" }),
-                    MulticolumnDocument([], { title: "data", _height: 100, onChildClick: ScriptField.MakeFunction(`containingCollection.resolvedDataDoc.activeHero = copyField(this.data)`, { containingCollection: Doc.name }) }),
+                    MulticolumnDocument([], {
+                        title: "data", _height: 100, onChildClick: ScriptField.MakeFunction(
+                            `containingCollection.resolvedDataDoc.activeHero = copyField(this.data);
+                        containingCollection.resolvedDataDoc.activeHero["activeHero-nativeWidth"] = copyField(this.data["data-nativeWidth"]);
+                        containingCollection.resolvedDataDoc.activeHero["activeHero-nativeHeight"] = copyField(this.data["data-nativeHeight"]);
+                        `, { containingCollection: Doc.name })
+                    }),
                     TextDocument({ title: "short_description", _autoHeight: true }),
                     ...["year", "company", "degrees_of_freedom"].map(key => TextDocument({ title: key, _height: 30 }))
                 ], { _chromeStatus: "disabled", title: "detailed layout stack" });
                 detailedLayout.isTemplateDoc = makeTemplate(detailedLayout);
 
-                const cardLayout = ImageDocument(fallbackImg, { isTemplateDoc: true, isTemplateForField: "hero", }); // this acts like a template doc and a template field ... a little weird, but seems to work?
+                const cardLayout = ImageDocument(fallbackImg, { title: "cardLayout", isTemplateDoc: true, isTemplateForField: "hero", }); // this acts like a template doc and a template field ... a little weird, but seems to work?
                 cardLayout.proto!.layout = ImageBox.LayoutString("hero");
                 cardLayout.showTitle = "title";
                 cardLayout.showTitleHover = "titlehover";

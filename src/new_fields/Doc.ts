@@ -87,6 +87,7 @@ export function DocListCast(field: FieldResult): Doc[] {
 
 export const WidthSym = Symbol("Width");
 export const HeightSym = Symbol("Height");
+export const DataSym = Symbol("Data");
 export const UpdatingFromServer = Symbol("UpdatingFromServer");
 const CachedUpdates = Symbol("Cached updates");
 
@@ -164,6 +165,7 @@ export class Doc extends RefField {
     private [SelfProxy]: any;
     public [WidthSym] = () => NumCast(this[SelfProxy]._width);
     public [HeightSym] = () => NumCast(this[SelfProxy]._height);
+    public get [DataSym]() { return Cast(this[SelfProxy].resolvedDataDoc, Doc, null) || this[SelfProxy]; }
 
     [ToScriptString]() {
         return "invalid";
@@ -659,6 +661,7 @@ export namespace Doc {
     export function Layout(doc: Doc) { return Doc.LayoutField(doc) instanceof Doc ? Doc.LayoutField(doc) as Doc : doc; }
     export function SetLayout(doc: Doc, layout: Doc | string) { doc[StrCast(doc.layoutKey, "layout")] = layout; }
     export function LayoutField(doc: Doc) { return doc[StrCast(doc.layoutKey, "layout")]; }
+    export function LayoutFieldKey(doc: Doc) { return StrCast(Doc.Layout(doc).layout).split("'")[1]; }
     const manager = new DocData();
     export function SearchQuery(): string { return manager._searchQuery; }
     export function SetSearchQuery(query: string) { runInAction(() => manager._searchQuery = query); }

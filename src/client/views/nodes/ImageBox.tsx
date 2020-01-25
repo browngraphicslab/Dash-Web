@@ -4,7 +4,7 @@ import { faAsterisk, faFileAudio, faImage, faPaintBrush } from '@fortawesome/fre
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, runInAction, trace } from 'mobx';
 import { observer } from "mobx-react";
-import { Doc, DocListCast, HeightSym, WidthSym } from '../../../new_fields/Doc';
+import { Doc, DocListCast, HeightSym, WidthSym, DataSym } from '../../../new_fields/Doc';
 import { List } from '../../../new_fields/List';
 import { createSchema, listSpec, makeInterface } from '../../../new_fields/Schema';
 import { ComputedField } from '../../../new_fields/ScriptField';
@@ -24,10 +24,11 @@ import "./ImageBox.scss";
 import React = require("react");
 import { CollectionFreeFormView } from '../collections/collectionFreeForm/CollectionFreeFormView';
 import { documentSchema } from '../../../new_fields/documentSchemas';
-import { Id } from '../../../new_fields/FieldSymbols';
+import { Id, Copy } from '../../../new_fields/FieldSymbols';
 import { TraceMobx } from '../../../new_fields/util';
 import { SelectionManager } from '../../util/SelectionManager';
 import { cache } from 'sharp';
+import { ObjectField } from '../../../new_fields/ObjectField';
 const requestImageSize = require('../../util/request-image-size');
 const path = require('path');
 const { Howl } = require('howler');
@@ -79,8 +80,12 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
                     e.stopPropagation();
                 }));
             } else if (de.altKey || !this.dataDoc[this.props.fieldKey]) {
-                if (de.complete.docDragData.draggedDocuments?.[0].data instanceof ImageField) {
-                    this.dataDoc[this.props.fieldKey] = new ImageField(de.complete.docDragData.draggedDocuments[0].data.url);
+                const layoutDoc = de.complete.docDragData?.draggedDocuments[0];
+                const targetField = Doc.LayoutFieldKey(layoutDoc);
+                if (layoutDoc?.[DataSym][targetField] instanceof ImageField) {
+                    this.dataDoc[this.props.fieldKey] = ObjectField.MakeCopy(layoutDoc[DataSym][targetField] as ImageField);
+                    this.dataDoc[this.props.fieldKey + "-nativeWidth"] = NumCast(layoutDoc[DataSym][targetField + "-nativeWidth"]);
+                    this.dataDoc[this.props.fieldKey + "-nativeHeight"] = NumCast(layoutDoc[DataSym][targetField + "-nativeHeight"]);
                     e.stopPropagation();
                 }
             }
@@ -218,8 +223,8 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
 
     resize = (imgPath: string) => {
         const cachedNativeSize = {
-            width: NumCast(this.Document[this.props.fieldKey + "-nativeWidth"]),
-            height: NumCast(this.Document[this.props.fieldKey + "-nativeHeight"])
+            width: NumCast(this.dataDoc[this.props.fieldKey + "-nativeWidth"]),
+            height: NumCast(this.dataDoc[this.props.fieldKey + "-nativeHeight"])
         };
         const cachedImgPath = this.dataDoc[this.props.fieldKey + "-imgPath"];
         if (!cachedNativeSize.width || !cachedNativeSize.height || imgPath !== cachedImgPath) {
