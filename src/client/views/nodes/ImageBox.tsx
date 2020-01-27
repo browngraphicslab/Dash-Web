@@ -58,7 +58,12 @@ declare class MediaRecorder {
 type ImageDocument = makeInterface<[typeof pageSchema, typeof documentSchema]>;
 const ImageDocument = makeInterface(pageSchema, documentSchema);
 
-const defaultUploadIcon = "downarrow.png";
+const uploadIcons = {
+    idle: "downarrow.png",
+    loading: "loading.gif",
+    success: "greencheck.png",
+    failure: "redx.png"
+};
 
 @observer
 export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocument>(ImageDocument) {
@@ -67,7 +72,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
     private _dropDisposer?: DragManager.DragDropDisposer;
     @observable private _audioState = 0;
     @observable static _showControls: boolean;
-    @observable uploadIcon = defaultUploadIcon;
+    @observable uploadIcon = uploadIcons.idle;
 
     protected createDropTarget = (ele: HTMLDivElement) => {
         this._dropDisposer && this._dropDisposer();
@@ -311,19 +316,20 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
                 src={`/assets/${this.uploadIcon}`}
                 onClick={async () => {
                     const { dataDoc } = this;
-                    runInAction(() => this.uploadIcon = "loading.gif");
+                    const { success, failure, idle, loading } = uploadIcons;
+                    runInAction(() => this.uploadIcon = loading);
                     const [{ clientAccessPath }] = await Networking.PostToServer("/uploadRemoteImage", { sources: [primary] });
                     dataDoc.originalUrl = primary;
-                    let success = true;
+                    let succeeded = true;
                     let data: ImageField | undefined;
                     try {
-                        data = new ImageField(clientAccessPath);
+                        data = new ImageField(Utils.prepend(clientAccessPath));
                     } catch {
-                        success = false;
+                        succeeded = false;
                     }
-                    runInAction(() => this.uploadIcon = success ? "greencheck.png" : "redx.png");
+                    runInAction(() => this.uploadIcon = succeeded ? success : failure);
                     setTimeout(action(() => {
-                        this.uploadIcon = defaultUploadIcon;
+                        this.uploadIcon = idle;
                         if (data) {
                             dataDoc[this.props.fieldKey] = data;
                         }
