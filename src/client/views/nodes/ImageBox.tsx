@@ -58,6 +58,8 @@ declare class MediaRecorder {
 type ImageDocument = makeInterface<[typeof pageSchema, typeof documentSchema]>;
 const ImageDocument = makeInterface(pageSchema, documentSchema);
 
+const defaultUploadIcon = "downarrow.png";
+
 @observer
 export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocument>(ImageDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(ImageBox, fieldKey); }
@@ -65,6 +67,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
     private _dropDisposer?: DragManager.DragDropDisposer;
     @observable private _audioState = 0;
     @observable static _showControls: boolean;
+    @observable uploadIcon = defaultUploadIcon;
 
     protected createDropTarget = (ele: HTMLDivElement) => {
         this._dropDisposer && this._dropDisposer();
@@ -305,12 +308,26 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
         return (
             <img
                 id={"upload-icon"}
-                src={"/assets/downarrow.png"}
+                src={`/assets/${this.uploadIcon}`}
                 onClick={async () => {
                     const { dataDoc } = this;
+                    runInAction(() => this.uploadIcon = "loading.gif");
                     const [{ clientAccessPath }] = await Networking.PostToServer("/uploadRemoteImage", { sources: [primary] });
                     dataDoc.originalUrl = primary;
-                    dataDoc[this.props.fieldKey] = new ImageField(Utils.prepend(clientAccessPath));
+                    let success = true;
+                    let data: ImageField | undefined;
+                    try {
+                        data = new ImageField(clientAccessPath);
+                    } catch {
+                        success = false;
+                    }
+                    runInAction(() => this.uploadIcon = success ? "greencheck.png" : "redx.png");
+                    setTimeout(action(() => {
+                        this.uploadIcon = defaultUploadIcon;
+                        if (data) {
+                            dataDoc[this.props.fieldKey] = data;
+                        }
+                    }), 2000);
                 }}
             />
         );

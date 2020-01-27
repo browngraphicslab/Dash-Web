@@ -70,7 +70,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 (args) => {
                     const childLayout = Cast(this.props.Document.childLayout, Doc);
                     if (childLayout instanceof Doc) {
-                        this.childDocs.map(doc => Doc.ApplyTemplateTo(childLayout as Doc, doc, "layoutFromParent"));
+                        this.childDocs.map(doc => Doc.ApplyTemplateTo(childLayout, doc, "layoutFromParent"));
                     }
                     else if (!(childLayout instanceof Promise)) {
                         this.childDocs.filter(d => !d.isTemplateForField).map(doc => doc.layoutKey === "layoutFromParent" && (doc.layoutKey = "layout"));
