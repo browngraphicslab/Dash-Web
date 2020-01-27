@@ -8,7 +8,7 @@ import { Doc, DocListCast, HeightSym, WidthSym, DataSym } from '../../../new_fie
 import { List } from '../../../new_fields/List';
 import { createSchema, listSpec, makeInterface } from '../../../new_fields/Schema';
 import { ComputedField } from '../../../new_fields/ScriptField';
-import { Cast, NumCast } from '../../../new_fields/Types';
+import { Cast, NumCast, StrCast } from '../../../new_fields/Types';
 import { AudioField, ImageField } from '../../../new_fields/URLField';
 import { Utils, returnOne, emptyFunction } from '../../../Utils';
 import { CognitiveServices, Confidence, Service, Tag } from '../../cognitive_services/CognitiveServices';
@@ -214,10 +214,14 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
         if (this._curSuffix === "_m") this._mediumRetryCount++;
         if (this._curSuffix === "_l") this._largeRetryCount++;
     }
-    @action onError = () => {
+    @action onError = (error: any) => {
         const timeout = this._curSuffix === "_s" ? this._smallRetryCount : this._curSuffix === "_m" ? this._mediumRetryCount : this._largeRetryCount;
         if (timeout < 10) {
             // setTimeout(this.retryPath, 500);
+        }
+        const original = StrCast(this.dataDoc.originalUrl);
+        if (error.type === "error" && original) {
+            this.dataDoc[this.props.fieldKey] = new ImageField(original);
         }
     }
     _curSuffix = "_m";
