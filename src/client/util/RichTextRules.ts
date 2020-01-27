@@ -2,14 +2,15 @@ import { textblockTypeInputRule, smartQuotes, emDash, ellipsis, InputRule } from
 import { schema } from "./RichTextSchema";
 import { wrappingInputRule } from "./prosemirrorPatches";
 import { NodeSelection, TextSelection } from "prosemirror-state";
-import { StrCast, Cast } from "../../new_fields/Types";
-import { Doc } from "../../new_fields/Doc";
+import { StrCast, Cast, NumCast } from "../../new_fields/Types";
+import { Doc, DataSym } from "../../new_fields/Doc";
 import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
 import { Docs, DocUtils } from "../documents/Documents";
 import { Id } from "../../new_fields/FieldSymbols";
 import { DocServer } from "../DocServer";
 import { returnFalse, Utils } from "../../Utils";
 import RichTextMenu from "./RichTextMenu";
+import { RichTextField } from "../../new_fields/RichTextField";
 
 export const inpRules = {
     rules: [
@@ -70,36 +71,26 @@ export const inpRules = {
                 return state.tr.deleteRange(start, end).addStoredMark(schema.marks.pFontSize.create({ fontSize: size }));
             }),
 
-        // make current selection a hyperlink portal (assumes % was used to initiate an EnteringStyle mode)
+        // create a text display of a metadata field
         new InputRule(
-            new RegExp(/!$/),
+            new RegExp(/\[\[([a-zA-Z_ \-0-9]+)\]\]$/),
             (state, match, start, end) => {
-                if (state.selection.to === state.selection.from || !(schema as any).EnteringStyle) return null;
-                const value = state.doc.textBetween(start, end);
-
-                const node = (state.doc.resolve(start) as any).nodeAfter;
-                const sm = state.storedMarks || undefined;
-                const fieldView = state.schema.nodes.dashField.create({ fieldKey: StrCast(value) });
-                const replaced = node ? state.tr.replaceRangeWith(start, end, fieldView).setStoredMarks([...node.marks, ...(sm ? sm : [])]) : state.tr;
-                return replaced.doc.nodeSize > end - 2 ? replaced.setSelection(new TextSelection(replaced.doc.resolve(end - 2))) : replaced;
+                const fieldKey = match[1];
+                const fieldView = state.schema.nodes.dashField.create({ fieldKey: StrCast(fieldKey) });
+                return state.tr.deleteRange(start, end).insert(start, fieldView);
             }),
-        // make current selection a hyperlink portal (assumes % was used to initiate an EnteringStyle mode)
+        // create a hyperlink portal
         new InputRule(
-            new RegExp(/@$/),
+            new RegExp(/\[\[:([a-zA-Z_ \-0-9]+)\]\]$/),
             (state, match, start, end) => {
-                if (state.selection.to === state.selection.from || !(schema as any).EnteringStyle) return null;
-
-                const value = state.doc.textBetween(start, end);
-                if (value) {
-                    DocServer.GetRefField(value).then(docx => {
-                        const target = ((docx instanceof Doc) && docx) || Docs.Create.FreeformDocument([], { title: value, _width: 500, _height: 500, }, value);
-                        DocUtils.Publish(target, value, returnFalse, returnFalse);
-                        DocUtils.MakeLink({ doc: (schema as any).Document }, { doc: target }, "portal link", "");
-                    });
-                    const link = state.schema.marks.link.create({ href: Utils.prepend("/doc/" + value), location: "onRight", title: value, targetId: value });
-                    return state.tr.addMark(start, end, link);
-                }
-                return state.tr;
+                const docId = match[1].substring(1);
+                DocServer.GetRefField(docId).then(docx => {
+                    const target = ((docx instanceof Doc) && docx) || Docs.Create.FreeformDocument([], { title: docId, _width: 500, _height: 500, }, docId);
+                    DocUtils.Publish(target, docId, returnFalse, returnFalse);
+                    DocUtils.MakeLink({ doc: (schema as any).Document }, { doc: target }, "portal link", "");
+                });
+                const link = state.schema.marks.link.create({ href: Utils.prepend("/doc/" + docId), location: "onRight", title: docId, targetId: docId });
+                return state.tr.addMark(start, end, link);
             }),
         // stop using active style
         new InputRule(
@@ -209,10 +200,21 @@ export const inpRules = {
         new InputRule(
             new RegExp(/%#$/),
             (state, match, start, end) => {
-                const target = Docs.Create.TextDocument("", { _width: 75, _height: 35, backgroundColor: "yellow", annotationOn: FormattedTextBox.FocusedBox!.dataDoc, _autoHeight: true, fontSize: 9, title: "inline comment" });
+                const textDoc = Doc.GetProto(Cast((schema as any).Document[DataSym], Doc, null)!);
+                const numInlines = NumCast(textDoc.inlineTextCount);
+                textDoc.inlineTextCount = numInlines + 1;
+                const inlineFieldKey = "inline" + numInlines;
+                const textDocInline = Docs.Create.TextDocument("", { _width: 75, _height: 35, backgroundColor: "yellow", annotationOn: textDoc, _autoHeight: true, fontSize: 9, title: "inline comment" });
+                textDocInline.layoutKey = "layout_" + inlineFieldKey;
+                textDocInline.customTitle = true;
+                textDocInline.title = "inline";
+                textDocInline.isTemplateForField = inlineFieldKey;
+                textDocInline.proto = textDoc;
+                textDoc[textDocInline.layoutKey] = FormattedTextBox.LayoutString(inlineFieldKey);
+                textDoc[inlineFieldKey] = "-inline-";
                 const node = (state.doc.resolve(start) as any).nodeAfter;
-                const newNode = schema.nodes.dashComment.create({ docid: target[Id] });
-                const dashDoc = schema.nodes.dashDoc.create({ width: 75, height: 35, title: "dashDoc", docid: target[Id], float: "right" });
+                const newNode = schema.nodes.dashComment.create({ docid: textDocInline[Id] });
+                const dashDoc = schema.nodes.dashDoc.create({ width: 75, height: 35, title: "dashDoc", docid: textDocInline[Id], float: "right" });
                 const sm = state.storedMarks || undefined;
                 const replaced = node ? state.tr.insert(start, newNode).replaceRangeWith(start + 1, end + 1, dashDoc).insertText(" ", start + 2).setStoredMarks([...node.marks, ...(sm ? sm : [])]) :
                     state.tr;

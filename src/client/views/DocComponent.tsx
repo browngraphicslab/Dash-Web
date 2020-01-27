@@ -34,7 +34,7 @@ export function DocExtendableComponent<P extends DocExtendableProps, T>(schemaCt
         //TODO This might be pretty inefficient if doc isn't observed, because computed doesn't cache then
         @computed get Document(): T { return schemaCtor(this.props.Document); }
         @computed get layoutDoc() { return Doc.Layout(this.props.Document); }
-        @computed get dataDoc() { return (this.props.DataDoc && (this.props.Document.isTemplateForField || this.props.Document.isTemplateDoc) ? this.props.DataDoc : Doc.GetProto(this.props.Document)) as Doc; }
+        @computed get dataDoc() { return (this.props.DataDoc && (this.props.Document.isTemplateForField || this.props.Document.isTemplateDoc) ? this.props.DataDoc : Cast(this.props.Document.resolvedDataDoc, Doc, null) || Doc.GetProto(this.props.Document)) as Doc; }
         active = (outsideReaction?: boolean) => !this.props.Document.isBackground && (this.props.Document.forceActive || this.props.isSelected(outsideReaction) || this.props.renderDepth === 0);//  && !InkingControl.Instance.selectedTool;  // bcz: inking state shouldn't affect static tools 
     }
     return Component;
@@ -57,7 +57,7 @@ export function DocAnnotatableComponent<P extends DocAnnotatableProps, T>(schema
         //TODO This might be pretty inefficient if doc isn't observed, because computed doesn't cache then
         @computed get Document(): T { return schemaCtor(this.props.Document); }
         @computed get layoutDoc() { return Doc.Layout(this.props.Document); }
-        @computed get dataDoc() { return (this.props.DataDoc && (this.props.Document.isTemplateForField || this.props.Document.isTemplateDoc) ? this.props.DataDoc : Doc.GetProto(this.props.Document)) as Doc; }
+        @computed get dataDoc() { return (this.props.DataDoc && (this.props.Document.isTemplateForField || this.props.Document.isTemplateDoc) ? this.props.DataDoc : Cast(this.props.Document.resolvedDataDoc, Doc, null) || Doc.GetProto(this.props.Document)) as Doc; }
 
         _annotationKey: string = "annotations";
         public set annotationKey(val: string) { this._annotationKey = val; }

@@ -45,13 +45,13 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
                     Document={this.childLayoutPairs[index].layout}
                     DataDocument={this.childLayoutPairs[index].data}
                     getTransform={this.props.ScreenToLocalTransform} />
-                <div className="carouselView-back" onClick={() => this.layoutDoc._itemIndex = (index - 1 + this.childLayoutPairs.length) % this.childLayoutPairs.length}>
+                <div className="carouselView-back" onClick={e => { e.stopPropagation(); this.layoutDoc._itemIndex = (index - 1 + this.childLayoutPairs.length) % this.childLayoutPairs.length }}>
                     <FontAwesomeIcon
                         icon={faCaretLeft}
                         size={"2x"}
                     />
                 </div>
-                <div className="carouselView-fwd" onClick={() => this.layoutDoc._itemIndex = (index + 1) % this.childLayoutPairs.length}>
+                <div className="carouselView-fwd" onClick={e => { e.stopPropagation(); this.layoutDoc._itemIndex = (index + 1) % this.childLayoutPairs.length }}>
                     <FontAwesomeIcon
                         icon={faCaretRight}
                         size={"2x"}

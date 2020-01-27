@@ -4,7 +4,9 @@ import { DocumentType } from "../documents/DocumentTypes";
 import { ObjectField } from "../../new_fields/ObjectField";
 import { StrCast } from "../../new_fields/Types";
 import { Docs } from "../documents/Documents";
-import { ScriptField } from "../../new_fields/ScriptField";
+import { ScriptField, ComputedField } from "../../new_fields/ScriptField";
+import { RichTextField } from "../../new_fields/RichTextField";
+import { Compute } from "google-auth-library";
 
 export function makeTemplate(doc: Doc): boolean {
     const layoutDoc = doc.layout instanceof Doc && doc.layout.isTemplateForField ? doc.layout : doc;
@@ -18,6 +20,10 @@ export function makeTemplate(doc: Doc): boolean {
             Doc.MakeMetadataFieldTemplate(d, Doc.GetProto(layoutDoc));
         } else if (d.type === DocumentType.COL) {
             any = makeTemplate(d) || any;
+        } else if (d.data instanceof RichTextField) {
+            d._textTemplate = ComputedField.MakeFunction("copyField(this.data)", { this: Doc.name });
+            d.isTemplateForField = "data";
+            any = true;
         }
     });
     return any;
