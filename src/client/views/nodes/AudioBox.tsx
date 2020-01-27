@@ -138,7 +138,7 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
             self._recorder.ondataavailable = async function (e: any) {
                 const formData = new FormData();
                 formData.append("file", e.data);
-                const res = await fetch(Utils.prepend("/upload"), {
+                const res = await fetch(Utils.prepend("/uploadFormData"), {
                     method: 'POST',
                     body: formData
                 });

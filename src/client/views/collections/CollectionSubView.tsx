@@ -324,7 +324,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
 
                     formData.append('file', file);
                     const dropFileName = file ? file.name : "-empty-";
-                    promises.push(Networking.PostFormDataToServer("/upload", formData).then(results => {
+                    promises.push(Networking.PostFormDataToServer("/uploadFormData", formData).then(results => {
                         results.map(action((result: any) => {
                             const { clientAccessPath, nativeWidth, nativeHeight, contentSize } = result;
                             const full = { ...options, _width: 300, title: dropFileName };

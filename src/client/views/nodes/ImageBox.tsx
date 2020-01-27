@@ -29,6 +29,7 @@ import { TraceMobx } from '../../../new_fields/util';
 import { SelectionManager } from '../../util/SelectionManager';
 import { cache } from 'sharp';
 import { ObjectField } from '../../../new_fields/ObjectField';
+import { Networking } from '../../Network';
 const requestImageSize = require('../../util/request-image-size');
 const path = require('path');
 const { Howl } = require('howler');
@@ -104,7 +105,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
             recorder.ondataavailable = async function (e: any) {
                 const formData = new FormData();
                 formData.append("file", e.data);
-                const res = await fetch(Utils.prepend("/upload"), {
+                const res = await fetch(Utils.prepend("/uploadFormData"), {
                     method: 'POST',
                     body: formData
                 });
@@ -287,6 +288,30 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
         return !tags ? (null) : (<img id={"google-tags"} src={"/assets/google_tags.png"} />);
     }
 
+    @computed
+    private get considerDownloadIcon() {
+        const data = this.dataDoc[this.props.fieldKey];
+        if (!(data instanceof ImageField)) {
+            return (null);
+        }
+        const primary = data.url.href;
+        if (primary.includes(window.location.origin)) {
+            return (null);
+        }
+        return (
+            <img
+                id={"upload-icon"}
+                src={"/assets/downarrow.png"}
+                onClick={async () => {
+                    const { dataDoc } = this;
+                    const [{ clientAccessPath }] = await Networking.PostToServer("/uploadRemoteImage", { sources: [primary] });
+                    dataDoc.originalUrl = primary;
+                    dataDoc[this.props.fieldKey] = new ImageField(Utils.prepend(clientAccessPath));
+                }}
+            />
+        );
+    }
+
     @computed get nativeSize() {
         const pw = typeof this.props.PanelWidth === "function" ? this.props.PanelWidth() : typeof this.props.PanelWidth === "number" ? (this.props.PanelWidth as any) as number : 50;
         const nativeWidth = NumCast(this.dataDoc[this.props.fieldKey + "-nativeWidth"], pw);
@@ -347,6 +372,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
                     style={{ color: [DocListCast(this.dataDoc[this.props.fieldKey + "-audioAnnotations"]).length ? "blue" : "gray", "green", "red"][this._audioState] }}
                     icon={!DocListCast(this.dataDoc[this.props.fieldKey + "-audioAnnotations"]).length ? "microphone" : faFileAudio} size="sm" />
             </div>
+            {this.considerDownloadIcon}
             {this.considerGooglePhotosLink()}
             <FaceRectangles document={this.dataDoc} color={"#0000FF"} backgroundColor={"#0000FF"} />
         </div>;
