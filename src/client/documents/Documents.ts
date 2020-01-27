@@ -324,7 +324,7 @@ export namespace Docs {
             // whatever options pertain to this specific prototype
             const options = { title, type, baseProto: true, ...defaultOptions, ...(template.options || {}) };
             options.layout = layout.view.LayoutString(layout.dataField);
-            let doc = Doc.assign(new Doc(prototypeId, true), { layoutKey: "layout", ...options });
+            const doc = Doc.assign(new Doc(prototypeId, true), { layoutKey: "layout", ...options });
             return doc;
         }
 

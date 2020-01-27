@@ -70,7 +70,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 (args) => {
                     const childLayout = Cast(this.props.Document.childLayout, Doc);
                     if (childLayout instanceof Doc) {
-                        this.childDocs.map(doc => Doc.ApplyTemplateTo(childLayout as Doc, doc, "layoutFromParent"));
+                        this.childDocs.map(doc => Doc.ApplyTemplateTo(childLayout, doc, "layoutFromParent"));
                     }
                     else if (!(childLayout instanceof Promise)) {
                         this.childDocs.filter(d => !d.isTemplateForField).map(doc => doc.layoutKey === "layoutFromParent" && (doc.layoutKey = "layout"));
@@ -109,15 +109,30 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             const viewSpecScript = Cast(this.props.Document.viewSpecScript, ScriptField);
             const viewedDocs = viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
             const docFilters = Cast(this.props.Document._docFilter, listSpec("string"), []);
-            const filteredDocs = docFilters.length ? viewedDocs.filter(d => {
-                let result = false;
-                for (let i = 0; i < docFilters.length; i += 3) {
-                    const key = docFilters[i];
-                    const value = docFilters[i + 1];
-                    const modifiers = docFilters[i + 2];
-                    result = result || ((modifiers === "x") !== Doc.matchFieldValue(d, key, value));
+            const clusters: { [key: string]: { [value: string]: string } } = {};
+            for (let i = 0; i < docFilters.length; i += 3) {
+                const [key, value, modifiers] = docFilters.slice(i, i + 3);
+                const cluster = clusters[key];
+                if (!cluster) {
+                    const child: { [value: string]: string } = {};
+                    child[value] = modifiers;
+                    clusters[key] = child;
+                } else {
+                    cluster[value] = modifiers;
                 }
-                return result;
+            }
+            const filteredDocs = docFilters.length ? viewedDocs.filter(d => {
+                for (const key of Object.keys(clusters)) {
+                    const cluster = clusters[key];
+                    const satisfiesFacet = Object.keys(cluster).some(inner => {
+                        const modifier = cluster[inner];
+                        return (modifier === "x") !== Doc.matchFieldValue(d, key, inner);
+                    });
+                    if (!satisfiesFacet) {
+                        return false;
+                    }
+                }
+                return true;
             }) : viewedDocs;
             return filteredDocs;
         }
@@ -309,7 +324,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
 
                     formData.append('file', file);
                     const dropFileName = file ? file.name : "-empty-";
-                    promises.push(Networking.PostFormDataToServer("/upload", formData).then(results => {
+                    promises.push(Networking.PostFormDataToServer("/uploadFormData", formData).then(results => {
                         results.map(action((result: any) => {
                             const { clientAccessPath, nativeWidth, nativeHeight, contentSize } = result;
                             const full = { ...options, _width: 300, title: dropFileName };

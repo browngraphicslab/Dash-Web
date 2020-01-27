@@ -45,7 +45,7 @@ class Uploader extends React.Component {
                     const formData = new FormData();
                     formData.append("file", files[0]);
 
-                    const upload = window.location.origin + "/upload";
+                    const upload = window.location.origin + "/uploadFormData";
                     this.status = "uploading image";
                     const res = await fetch(upload, {
                         method: 'POST',

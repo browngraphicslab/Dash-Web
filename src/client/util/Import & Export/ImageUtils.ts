@@ -22,8 +22,8 @@ export namespace ImageUtils {
         } = await Networking.PostToServer("/inspectImage", { source });
         document.exif = error || Docs.Get.DocumentHierarchyFromJson(data);
         const proto = Doc.GetProto(document);
-        proto.nativeWidth = nativeWidth;
-        proto.nativeHeight = nativeHeight;
+        proto["data-nativeWidth"] = nativeWidth;
+        proto["data-nativeHeight"] = nativeHeight;
         proto.contentSize = contentSize;
         return data !== undefined;
     };

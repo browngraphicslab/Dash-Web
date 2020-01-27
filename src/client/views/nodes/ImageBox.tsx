@@ -8,7 +8,7 @@ import { Doc, DocListCast, HeightSym, WidthSym, DataSym } from '../../../new_fie
 import { List } from '../../../new_fields/List';
 import { createSchema, listSpec, makeInterface } from '../../../new_fields/Schema';
 import { ComputedField } from '../../../new_fields/ScriptField';
-import { Cast, NumCast } from '../../../new_fields/Types';
+import { Cast, NumCast, StrCast } from '../../../new_fields/Types';
 import { AudioField, ImageField } from '../../../new_fields/URLField';
 import { Utils, returnOne, emptyFunction } from '../../../Utils';
 import { CognitiveServices, Confidence, Service, Tag } from '../../cognitive_services/CognitiveServices';
@@ -29,6 +29,7 @@ import { TraceMobx } from '../../../new_fields/util';
 import { SelectionManager } from '../../util/SelectionManager';
 import { cache } from 'sharp';
 import { ObjectField } from '../../../new_fields/ObjectField';
+import { Networking } from '../../Network';
 const requestImageSize = require('../../util/request-image-size');
 const path = require('path');
 const { Howl } = require('howler');
@@ -57,6 +58,13 @@ declare class MediaRecorder {
 type ImageDocument = makeInterface<[typeof pageSchema, typeof documentSchema]>;
 const ImageDocument = makeInterface(pageSchema, documentSchema);
 
+const uploadIcons = {
+    idle: "downarrow.png",
+    loading: "loading.gif",
+    success: "greencheck.png",
+    failure: "redx.png"
+};
+
 @observer
 export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocument>(ImageDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(ImageBox, fieldKey); }
@@ -64,6 +72,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
     private _dropDisposer?: DragManager.DragDropDisposer;
     @observable private _audioState = 0;
     @observable static _showControls: boolean;
+    @observable uploadIcon = uploadIcons.idle;
 
     protected createDropTarget = (ele: HTMLDivElement) => {
         this._dropDisposer && this._dropDisposer();
@@ -104,7 +113,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
             recorder.ondataavailable = async function (e: any) {
                 const formData = new FormData();
                 formData.append("file", e.data);
-                const res = await fetch(Utils.prepend("/upload"), {
+                const res = await fetch(Utils.prepend("/uploadFormData"), {
                     method: 'POST',
                     body: formData
                 });
@@ -213,10 +222,14 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
         if (this._curSuffix === "_m") this._mediumRetryCount++;
         if (this._curSuffix === "_l") this._largeRetryCount++;
     }
-    @action onError = () => {
+    @action onError = (error: any) => {
         const timeout = this._curSuffix === "_s" ? this._smallRetryCount : this._curSuffix === "_m" ? this._mediumRetryCount : this._largeRetryCount;
         if (timeout < 10) {
             // setTimeout(this.retryPath, 500);
+        }
+        const original = StrCast(this.dataDoc.originalUrl);
+        if (error.type === "error" && original) {
+            this.dataDoc[this.props.fieldKey] = new ImageField(original);
         }
     }
     _curSuffix = "_m";
@@ -287,6 +300,45 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
         return !tags ? (null) : (<img id={"google-tags"} src={"/assets/google_tags.png"} />);
     }
 
+    @computed
+    private get considerDownloadIcon() {
+        const data = this.dataDoc[this.props.fieldKey];
+        if (!(data instanceof ImageField)) {
+            return (null);
+        }
+        const primary = data.url.href;
+        if (primary.includes(window.location.origin)) {
+            return (null);
+        }
+        return (
+            <img
+                id={"upload-icon"}
+                src={`/assets/${this.uploadIcon}`}
+                onClick={async () => {
+                    const { dataDoc } = this;
+                    const { success, failure, idle, loading } = uploadIcons;
+                    runInAction(() => this.uploadIcon = loading);
+                    const [{ clientAccessPath }] = await Networking.PostToServer("/uploadRemoteImage", { sources: [primary] });
+                    dataDoc.originalUrl = primary;
+                    let succeeded = true;
+                    let data: ImageField | undefined;
+                    try {
+                        data = new ImageField(Utils.prepend(clientAccessPath));
+                    } catch {
+                        succeeded = false;
+                    }
+                    runInAction(() => this.uploadIcon = succeeded ? success : failure);
+                    setTimeout(action(() => {
+                        this.uploadIcon = idle;
+                        if (data) {
+                            dataDoc[this.props.fieldKey] = data;
+                        }
+                    }), 2000);
+                }}
+            />
+        );
+    }
+
     @computed get nativeSize() {
         const pw = typeof this.props.PanelWidth === "function" ? this.props.PanelWidth() : typeof this.props.PanelWidth === "number" ? (this.props.PanelWidth as any) as number : 50;
         const nativeWidth = NumCast(this.dataDoc[this.props.fieldKey + "-nativeWidth"], pw);
@@ -347,6 +399,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
                     style={{ color: [DocListCast(this.dataDoc[this.props.fieldKey + "-audioAnnotations"]).length ? "blue" : "gray", "green", "red"][this._audioState] }}
                     icon={!DocListCast(this.dataDoc[this.props.fieldKey + "-audioAnnotations"]).length ? "microphone" : faFileAudio} size="sm" />
             </div>
+            {this.considerDownloadIcon}
             {this.considerGooglePhotosLink()}
             <FaceRectangles document={this.dataDoc} color={"#0000FF"} backgroundColor={"#0000FF"} />
         </div>;

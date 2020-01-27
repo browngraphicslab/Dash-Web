@@ -761,7 +761,7 @@ export namespace Doc {
             return vals.some(v => v === value);
         }
         const fieldStr = Field.toString(fieldVal as Field);
-        return fieldStr == value;
+        return fieldStr === value;
     }
 }
 
@@ -791,7 +791,7 @@ Scripting.addGlobal(function setDocFilter(container: Doc, key: string, value: an
     }
     if (modifiers !== undefined) {
         docFilters.push(key);
-        docFilters.push(value)
+        docFilters.push(value);
         docFilters.push(modifiers);
         container._docFilter = new List<string>(docFilters);
     }

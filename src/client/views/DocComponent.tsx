@@ -61,7 +61,7 @@ export function DocAnnotatableComponent<P extends DocAnnotatableProps, T>(schema
 
         _annotationKey: string = "annotations";
         public set annotationKey(val: string) { this._annotationKey = val; }
-        public get annotationKey() { return this._annotationKey }
+        public get annotationKey() { return this._annotationKey; }
 
         @action.bound
         removeDocument(doc: Doc): boolean {

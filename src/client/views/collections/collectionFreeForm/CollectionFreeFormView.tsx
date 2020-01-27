@@ -819,23 +819,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         }, "arrange contents");
     }
 
-
-    analyzeStrokes = async () => {
-        const children = await DocListCastAsync(this.dataDoc.data);
-        if (!children) {
-            return;
-        }
-        const inkData: InkData[] = [];
-        for (const doc of children) {
-            const data = Cast(doc.data, InkField)?.inkData;
-            data && inkData.push(data);
-        }
-        if (!inkData.length) {
-            return;
-        }
-        CognitiveServices.Inking.Appliers.ConcatenateHandwriting(this.dataDoc, ["inkAnalysis", "handwriting"], inkData);
-    }
-
     private thumbIdentifier?: number;
 
     // @action
@@ -887,7 +870,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         layoutItems.push({ description: `${this.fitToContent ? "Unset" : "Set"} Fit To Container`, event: () => this.Document._fitToBox = !this.fitToContent, icon: !this.fitToContent ? "expand-arrows-alt" : "compress-arrows-alt" });
         layoutItems.push({ description: `${this.Document.useClusters ? "Uncluster" : "Use Clusters"}`, event: () => this.updateClusters(!this.Document.useClusters), icon: "braille" });
         layoutItems.push({ description: "Arrange contents in grid", event: this.layoutDocsInGrid, icon: "table" });
-        layoutItems.push({ description: "Analyze Strokes", event: this.analyzeStrokes, icon: "paint-brush" });
+        // layoutItems.push({ description: "Analyze Strokes", event: this.analyzeStrokes, icon: "paint-brush" });
         layoutItems.push({ description: "Jitter Rotation", event: action(() => this.props.Document.jitterRotation = 10), icon: "paint-brush" });
         layoutItems.push({
             description: "Import document", icon: "upload", event: ({ x, y }) => {

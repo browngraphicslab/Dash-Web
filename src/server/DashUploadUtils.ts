@@ -108,13 +108,7 @@ export namespace DashUploadUtils {
         return MoveParsedFile(absolutePath, Directory.pdfs);
     }
 
-    const generate = (prefix: string, url: string) => `${prefix}upload_${Utils.GenerateGuid()}${sanitizeExtension(url)}`;
-    const sanitizeExtension = (source: string) => {
-        let extension = path.extname(source);
-        extension = extension.toLowerCase();
-        extension = extension.split("?")[0];
-        return extension;
-    };
+    const generate = (prefix: string, extension: string) => `${prefix}upload_${Utils.GenerateGuid()}.${extension}`;
 
     /**
      * Uploads an image specified by the @param source to Dash's /public/files/
@@ -209,8 +203,8 @@ export namespace DashUploadUtils {
 
     export const UploadInspectedImage = async (metadata: InspectionResults, filename?: string, format?: string, prefix = ""): Promise<ImageUploadInformation> => {
         const { requestable, source, ...remaining } = metadata;
-        const resolved = filename || generate(prefix, requestable);
-        const extension = format || sanitizeExtension(requestable || resolved);
+        const extension = remaining.contentType.toLowerCase().split("/")[1]; //format || sanitizeExtension(requestable || resolved);
+        const resolved = filename || generate(prefix, extension);
         const information: ImageUploadInformation = {
             clientAccessPath: clientPathToFile(Directory.images, resolved),
             serverAccessPaths: {},
