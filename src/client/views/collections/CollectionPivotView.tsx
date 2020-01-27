@@ -16,6 +16,8 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { List } from "../../../new_fields/List";
 import { Set } from "typescript-collections";
 import { PrefetchProxy } from "../../../new_fields/Proxy";
+import { EditableView } from "../EditableView";
+import { listSpec } from "../../../new_fields/Schema";
 
 @observer
 export class CollectionPivotView extends CollectionSubView(doc => doc) {
@@ -76,6 +78,13 @@ export class CollectionPivotView extends CollectionSubView(doc => doc) {
             const found = DocListCast(facetCollection.data).findIndex(doc => doc.title === facetHeader);
             if (found !== -1) {
                 (facetCollection.data as List<Doc>).splice(found, 1);
+                const docFilter = Cast(this.props.Document._docFilter, listSpec("string"));
+                if (docFilter) {
+                    let index: number;
+                    while ((index = docFilter.findIndex(item => item === facetHeader)) !== -1) {
+                        docFilter.splice(index, 3);
+                    }
+                }
             } else {
                 const newFacet = Docs.Create.TreeDocument([], { title: facetHeader, treeViewOpen: true, isFacetFilter: true });
                 const capturedVariables = { layoutDoc: this.props.Document, dataDoc: this.dataDoc };
@@ -129,6 +138,19 @@ export class CollectionPivotView extends CollectionSubView(doc => doc) {
         );
         return !facetCollection ? (null) :
             <div className="collectionPivotView">
+                <div className={"pivotKeyEntry"}>
+                    <EditableView
+                        contents={this.props.Document.pivotField}
+                        GetValue={() => StrCast(this.props.Document.pivotField)}
+                        SetValue={value => {
+                            if (value && value.length) {
+                                this.props.Document.pivotField = value;
+                                return true;
+                            }
+                            return false;
+                        }}
+                    />
+                </div>
                 <div className="collectionPivotView-dragger" key="dragger" onPointerDown={this.onPointerDown} style={{ transform: `translate(${this._facetWidth}px, 0px)` }} >
                     <span title="library View Dragger" style={{ width: "5px", position: "absolute", top: "0" }} />
                 </div>
