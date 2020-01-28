@@ -19,6 +19,7 @@ import React = require("react");
 import { BoolCast, NumCast, StrCast } from "../../new_fields/Types";
 import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
 import { ObjectField } from "../../new_fields/ObjectField";
+import { ComputedField } from "../../new_fields/ScriptField";
 
 const blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
     preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], brDOM: DOMOutputSpecArray = ["br"], ulDOM: DOMOutputSpecArray = ["ul", 0];
@@ -782,14 +783,17 @@ export class DashDocView {
     }
     doRender(dashDoc: Doc, removeDoc: any) {
         const self = this;
-        const finalLayout = Doc.expandTemplateLayout(dashDoc, this._textBox.dataDoc);
+        const finalLayout = Doc.expandTemplateLayout(dashDoc, !Doc.AreProtosEqual(this._textBox.dataDoc, this._textBox.Document) ? this._textBox.dataDoc : undefined);
         if (!finalLayout) setTimeout(() => self.doRender(dashDoc, removeDoc), 0);
         else {
             const layoutKey = StrCast(finalLayout.layoutKey);
             const finalKey = layoutKey && StrCast(finalLayout[layoutKey]).split("'")?.[1];
             if (finalLayout !== dashDoc && finalKey) {
-                const finalLayoutField = finalLayout[finalKey]
-                finalLayoutField instanceof ObjectField && (finalLayout._textTemplate = ObjectField.MakeCopy(finalLayoutField));
+                const finalLayoutField = finalLayout[finalKey];
+                if (finalLayoutField instanceof ObjectField) {
+                    //finalLayout._textTemplate = ObjectField.MakeCopy(finalLayoutField);
+                    finalLayout._textTemplate = ComputedField.MakeFunction(`copyField(this.${finalKey})`, { this: Doc.name });
+                }
             }
             this._reactionDisposer && this._reactionDisposer();
             this._reactionDisposer = reaction(() => [finalLayout[WidthSym](), finalLayout[HeightSym]()], (dim) => {
