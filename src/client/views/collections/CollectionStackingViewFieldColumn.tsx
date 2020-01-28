@@ -270,7 +270,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         const docItems: ContextMenuProps[] = [];
 
         const dataDoc = this.props.parent.props.DataDoc || this.props.parent.Document;
-        Array.from(Object.keys(Doc.GetProto(dataDoc))).filter(fieldKey => dataDoc[fieldKey] instanceof RichTextField || dataDoc[fieldKey] instanceof ImageField).map(fieldKey =>
+        Array.from(Object.keys(Doc.GetProto(dataDoc))).filter(fieldKey => dataDoc[fieldKey] instanceof RichTextField || dataDoc[fieldKey] instanceof ImageField || typeof (dataDoc[fieldKey]) === "string").map(fieldKey =>
             docItems.push({
                 description: ":" + fieldKey, event: () => {
                     const created = Docs.Get.DocumentFromField(dataDoc, fieldKey, Doc.GetProto(this.props.parent.props.Document));

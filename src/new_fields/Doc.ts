@@ -612,7 +612,7 @@ export namespace Doc {
             (Doc.GetProto(templateField)[metadataFieldKey] = ObjectField.MakeCopy(templateField.data));
         }
         if (templateField.data instanceof RichTextField && templateField.data.Data) {
-            templateField._textTemplate = ObjectField.MakeCopy(templateField.data);
+            templateField._textTemplate = ComputedField.MakeFunction(`copyField(this.${metadataFieldKey})`, { this: Doc.name });
         }
 
         // get the layout string that the template uses to specify its layout

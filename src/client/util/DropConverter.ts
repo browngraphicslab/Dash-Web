@@ -6,7 +6,6 @@ import { StrCast } from "../../new_fields/Types";
 import { Docs } from "../documents/Documents";
 import { ScriptField, ComputedField } from "../../new_fields/ScriptField";
 import { RichTextField } from "../../new_fields/RichTextField";
-import { Compute } from "google-auth-library";
 
 export function makeTemplate(doc: Doc): boolean {
     const layoutDoc = doc.layout instanceof Doc && doc.layout.isTemplateForField ? doc.layout : doc;
