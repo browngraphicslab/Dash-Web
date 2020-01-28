@@ -323,8 +323,6 @@ class TreeView extends React.Component<TreeViewProps> {
         return rows;
     }
 
-    noOverlays = (doc: Doc) => ({ title: "", caption: "" });
-
     @computed get renderContent() {
         const expandKey = this.treeViewExpandedView === this.fieldKey ? this.fieldKey : this.treeViewExpandedView === "links" ? "links" : undefined;
         if (expandKey !== undefined) {
@@ -351,7 +349,6 @@ class TreeView extends React.Component<TreeViewProps> {
                     DataDocument={this.templateDataDoc}
                     LibraryPath={emptyPath}
                     renderDepth={this.props.renderDepth + 1}
-                    showOverlays={this.noOverlays}
                     fitToBox={this.boundsOfCollectionDocument !== undefined}
                     PanelWidth={this.docWidth}
                     PanelHeight={this.docHeight}

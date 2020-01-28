@@ -63,7 +63,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             const rowSpan = Math.ceil((height() + this.gridGap) / this.gridGap);
             const style = this.isStackingView ? { width: width(), marginTop: i === 0 ? 0 : this.gridGap, height: height() } : { gridRowEnd: `span ${rowSpan}` };
             return <div className={`collectionStackingView-${this.isStackingView ? "columnDoc" : "masonryDoc"}`} key={d[Id]} ref={dref} style={style} >
-                {this.getDisplayDoc(d, d[DataSym], dxf, width)}
+                {this.getDisplayDoc(d, Cast(d.resolvedDataDoc, Doc, null) || this.props.DataDoc, dxf, width)}
             </div>;
         });
     }
@@ -151,10 +151,6 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         this.createDashEventsTarget(ele!); //so the whole grid is the drop target?
     }
 
-    overlays = (doc: Doc) => {
-        return doc.type === DocumentType.IMG || doc.type === DocumentType.VID ? { title: StrCast(this.props.Document.showTitles), titleHover: StrCast(this.props.Document.showTitleHovers), caption: StrCast(this.props.Document.showCaptions) } : {};
-    }
-
     @computed get onChildClickHandler() { return ScriptCast(this.Document.onChildClick); }
     @computed get onClickHandler() { return ScriptCast(this.Document.onChildClick); }
 
@@ -165,7 +161,6 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             Document={doc}
             DataDocument={dataDoc}
             LibraryPath={this.props.LibraryPath}
-            showOverlays={this.overlays}
             renderDepth={this.props.renderDepth + 1}
             fitToBox={this.props.fitToBox}
             onClick={layoutDoc.isTemplateDoc ? this.onClickHandler : this.onChildClickHandler}

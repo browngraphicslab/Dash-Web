@@ -70,7 +70,6 @@ export interface DocumentViewProps {
     moveDocument?: (doc: Doc, targetCollection: Doc | undefined, addDocument: (document: Doc) => boolean) => boolean;
     ScreenToLocalTransform: () => Transform;
     renderDepth: number;
-    showOverlays?: (doc: Doc) => { title?: string, titleHover?: string, caption?: string };
     ContentScaling: () => number;
     PanelWidth: () => number;
     PanelHeight: () => number;
@@ -846,9 +845,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     select = (ctrlPressed: boolean) => { SelectionManager.SelectDoc(this, ctrlPressed); };
 
     chromeHeight = () => {
-        const showOverlays = this.props.showOverlays ? this.props.showOverlays(this.Document) : undefined;
-        const showTitle = showOverlays && "title" in showOverlays ? showOverlays.title : StrCast(this.layoutDoc.showTitle);
-        const showTitleHover = showOverlays && "titleHover" in showOverlays ? showOverlays.titleHover : StrCast(this.layoutDoc.showTitleHover);
+        const showTitle = StrCast(this.layoutDoc.showTitle);
+        const showTitleHover = StrCast(this.layoutDoc.showTitleHover);
         return (showTitle && !showTitleHover ? 0 : 0) + 1;
     }
 
@@ -874,7 +872,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             moveDocument={this.props.moveDocument}
             ScreenToLocalTransform={this.props.ScreenToLocalTransform}
             renderDepth={this.props.renderDepth}
-            showOverlays={this.props.showOverlays}
             ContentScaling={this.childScaling}
             PanelWidth={this.props.PanelWidth}
             PanelHeight={this.props.PanelHeight}
@@ -907,10 +904,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @computed get innards() {
         TraceMobx();
-        const showOverlays = this.props.showOverlays ? this.props.showOverlays(this.Document) : undefined;
-        const showTitle = showOverlays && "title" in showOverlays ? showOverlays.title : StrCast(this.getLayoutPropStr("showTitle"));
-        const showTitleHover = showOverlays && "titleHover" in showOverlays ? showOverlays.titleHover : StrCast(this.getLayoutPropStr("showTitleHover"));
-        const showCaption = showOverlays && "caption" in showOverlays ? showOverlays.caption : this.getLayoutPropStr("showCaption");
+        const showTitle = StrCast(this.getLayoutPropStr("showTitle"));
+        const showTitleHover = StrCast(this.getLayoutPropStr("showTitleHover"));
+        const showCaption = this.getLayoutPropStr("showCaption");
         const showTextTitle = showTitle && StrCast(this.layoutDoc.layout).indexOf("FormattedTextBox") !== -1 ? showTitle : undefined;
         const searchHighlight = (!this.Document.searchFields ? (null) :
             <div className="documentView-searchHighlight">

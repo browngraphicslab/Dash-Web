@@ -25,7 +25,6 @@ interface ContentFittingDocumentViewProps {
     PanelWidth: () => number;
     PanelHeight: () => number;
     focus?: (doc: Doc) => void;
-    showOverlays?: (doc: Doc) => { title?: string, caption?: string };
     CollectionView?: CollectionView;
     CollectionDoc?: Doc;
     onClick?: ScriptField;
@@ -96,7 +95,6 @@ export class ContentFittingDocumentView extends React.Component<ContentFittingDo
                         LibraryPath={this.props.LibraryPath}
                         fitToBox={this.props.fitToBox}
                         onClick={this.props.onClick}
-                        showOverlays={this.props.showOverlays}
                         addDocument={this.props.addDocument}
                         removeDocument={this.props.removeDocument}
                         moveDocument={this.props.moveDocument}
