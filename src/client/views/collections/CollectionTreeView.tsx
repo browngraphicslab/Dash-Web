@@ -34,6 +34,7 @@ import "./CollectionTreeView.scss";
 import React = require("react");
 import { CollectionViewType } from './CollectionView';
 import { RichTextField } from '../../../new_fields/RichTextField';
+import { ObjectField } from '../../../new_fields/ObjectField';
 
 
 export interface TreeViewProps {
@@ -629,13 +630,23 @@ export class CollectionTreeView extends CollectionSubView(Document) {
         }
         ContextMenu.Instance.addItem({
             description: "Buxton Layout", icon: "eye", event: () => {
-                const { TextDocument, ImageDocument, MulticolumnDocument, TreeDocument, CarouselDocument } = Docs.Create;
+                DocListCast(this.dataDoc[this.props.fieldKey]).map(d => {
+                    DocListCast(d.data).map((img, i) => {
+                        const caption = (d.captions as any)[i]?.data;
+                        if (caption instanceof ObjectField) {
+                            Doc.GetProto(img).caption = ObjectField.MakeCopy(caption as ObjectField);
+                        }
+                        img._hideSidebar = true;
+                        d.captions = undefined;
+                    });
+                });
+                const { TextDocument, ImageDocument, CarouselDocument } = Docs.Create;
                 const { Document } = this.props;
                 const fallbackImg = "http://www.cs.brown.edu/~bcz/face.gif";
                 const detailedTemplate = `{ "doc": { "type": "doc", "content": [ { "type": "paragraph", "content": [ { "type": "dashField", "attrs": { "fieldKey": "short_description" } } ] }, { "type": "paragraph", "content": [ { "type": "dashField", "attrs": { "fieldKey": "year" } } ] },  { "type": "paragraph", "content": [ { "type": "dashField", "attrs": { "fieldKey": "company" } } ] }  ] }, "selection":{"type":"text","anchor":1,"head":1},"storedMarks":[] }`;
 
                 const detailedLayout = Docs.Create.StackingDocument([
-                    CarouselDocument([], { title: "data", _height: 350, _itemIndex: 0 }),
+                    CarouselDocument([], { title: "data", _height: 350, _itemIndex: 0, backgroundColor: "#9b9b9b3F" }),
                     TextDocument("", { title: "details", _autoHeight: true, _textTemplate: new RichTextField(detailedTemplate, "short_description year company") })
                 ], { _chromeStatus: "disabled", title: "detailed layout stack" });
                 detailedLayout.isTemplateDoc = makeTemplate(detailedLayout);
@@ -711,23 +722,18 @@ export class CollectionTreeView extends CollectionSubView(Document) {
 }
 
 Scripting.addGlobal(function readFacetData(layoutDoc: Doc, dataDoc: Doc, dataKey: string, facetHeader: string) {
-    const facetValues = new Set<string>();
-    DocListCast(dataDoc[dataKey]).forEach(child => {
-        Object.keys(Doc.GetProto(child)).forEach(key => child[key] instanceof Doc && facetValues.add((child[key] as Doc)[facetHeader]?.toString() || "(null)"));
-        facetValues.add(Field.toString(child[facetHeader] as Field));
-    });
-    const text = "determineCheckedState(layoutDoc, facetHeader, facetValue)";
-    const params = {
-        layoutDoc: Doc.name,
-        facetHeader: "string",
-        facetValue: "string"
-    };
-    const capturedVariables = { layoutDoc, facetHeader };
-    return new List<Doc>(Array.from(facetValues).sort().map(facetValue => {
-        const value = Docs.Create.TextDocument("", { title: facetValue.toString() });
-        value.treeViewChecked = ComputedField.MakeFunction(text, params, { ...capturedVariables, facetValue });
-        return value;
-    }));
+    const allCollectionDocs = DocListCast(dataDoc[dataKey]);
+    const facetValues = Array.from(allCollectionDocs.reduce((set, child) =>
+        set.add(Field.toString(child[facetHeader] as Field)), new Set<string>()));
+
+    const facetValueDocSet = facetValues.sort().map(facetValue =>
+        Docs.Create.TextDocument("", {
+            title: facetValue.toString(),
+            treeViewChecked: ComputedField.MakeFunction("determineCheckedState(layoutDoc, facetHeader, facetValue)",
+                { layoutDoc: Doc.name, facetHeader: "string", facetValue: "string" },
+                { layoutDoc, facetHeader, facetValue })
+        }));
+    return new List<Doc>(facetValueDocSet);
 });
 
 Scripting.addGlobal(function determineCheckedState(layoutDoc: Doc, facetHeader: string, facetValue: string) {

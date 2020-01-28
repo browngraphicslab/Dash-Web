@@ -9,7 +9,6 @@ import { listSpec } from "../../../new_fields/Schema";
 import { ComputedField, ScriptField } from "../../../new_fields/ScriptField";
 import { Cast, StrCast } from "../../../new_fields/Types";
 import { Docs } from "../../documents/Documents";
-import { CompileScript } from "../../util/Scripting";
 import { EditableView } from "../EditableView";
 import { anchorPoints, Flyout } from "../TemplateMenu";
 import { CollectionFreeFormView } from "./collectionFreeForm/CollectionFreeFormView";
@@ -104,9 +103,7 @@ export class CollectionPivotView extends CollectionSubView(doc => doc) {
         const flyout = (
             <div className="collectionPivotView-flyout" style={{ width: `${this._facetWidth}` }}>
                 {this._allFacets.map(facet => <label className="collectionPivotView-flyout-item" key={`${facet}`} onClick={e => this.facetClick(facet)}>
-                    <input type="checkbox" onChange={e => { }} checked={this.props.Document._facetCollection instanceof Doc && DocListCast(this.props.Document._facetCollection.data).some(d => {
-                        return d.title === facet;
-                    })} />
+                    <input type="checkbox" onChange={e => { }} checked={DocListCast((this.props.Document._facetCollection as Doc)?.data).some(d => d.title === facet)} />
                     <span className="checkmark" />
                     {facet}
                 </label>)}

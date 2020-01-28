@@ -174,6 +174,45 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         if (removed) CollectionDockingView.Instance._removedDocs.push(removed);
         this.stateChanged();
     }
+    @undoBatch
+    @action
+    public static ReplaceRightSplit(document: Doc, dataDoc: Doc | undefined, libraryPath?: Doc[]): boolean {
+        if (!CollectionDockingView.Instance) return false; const instance = CollectionDockingView.Instance;
+        const newItemStackConfig = {
+            type: 'stack',
+            content: [CollectionDockingView.makeDocumentConfig(document, dataDoc, undefined, libraryPath)]
+        };
+
+        const newContentItem = instance._goldenLayout.root.layoutManager.createContentItem(newItemStackConfig, instance._goldenLayout);
+
+        let retVal = false;
+        if (instance._goldenLayout.root.contentItems[0].isRow) {
+            retVal = Array.from(instance._goldenLayout.root.contentItems[0].contentItems).some((child: any) => {
+                if (child.contentItems.length === 1 && child.contentItems[0].config.component === "DocumentFrameRenderer" &&
+                    DocumentManager.Instance.getDocumentViewById(child.contentItems[0].config.props.documentId)?.Document.isDisplayPanle) {
+                    child.contentItems[0].remove();
+                    child.addChild(newContentItem, undefined, true);
+                    instance.layoutChanged(document);
+                    return true;
+                } else {
+                    Array.from(child.contentItems).filter((tab: any) => tab.config.component === "DocumentFrameRenderer").some((tab: any, j: number) => {
+                        if (DocumentManager.Instance.getDocumentViewById(tab.config.props.documentId)?.Document.isDisplayPanel) {
+                            child.contentItems[j].remove();
+                            child.addChild(newContentItem, undefined, true);
+                            return true;
+                        }
+                        return false;
+                    });
+                }
+                return false;
+            });
+        }
+        if (retVal) {
+            instance.stateChanged();
+        }
+        return retVal;
+    }
+
 
     //
     //  Creates a vertical split on the right side of the docking view, and then adds the Document to the right of that split
@@ -217,8 +256,9 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     @action
     public static UseRightSplit(document: Doc, dataDoc: Doc | undefined, libraryPath?: Doc[]) {
         document.isDisplayPanel = true;
-        CollectionDockingView.CloseRightSplit(undefined);
-        CollectionDockingView.AddRightSplit(document, dataDoc, libraryPath);
+        if (!CollectionDockingView.ReplaceRightSplit(document, dataDoc, libraryPath)) {
+            CollectionDockingView.AddRightSplit(document, dataDoc, libraryPath);
+        }
     }
 
     @undoBatch

@@ -112,10 +112,6 @@ def write_collection(parse_results, display_fields, storage_key, viewType):
             "url": parse_results["image_urls"][0],
             "__type": "image"
         }
-        fields["activeHero"] = {
-            "url": parse_results["image_urls"][0],
-            "__type": "image"
-        }
     fields["isPrototype"] = True
     fields["page"] = -1
 
@@ -139,7 +135,7 @@ def write_text_doc(content):
             "proto": protofy(data_doc_guid),
             "x": 10,
             "y": 10,
-            "width": 400,
+            "_width": 400,
             "zIndex": 2
         },
         "__type": "Doc"
@@ -154,7 +150,7 @@ def write_text_doc(content):
                 "__type": "RichTextField"
             },
             "title": content,
-            "nativeWidth": 200,
+            "_nativeWidth": 200,
             "author": "Bill Buxton",
             "creationDate": {
                 "date": datetime.datetime.utcnow().microsecond,
@@ -163,8 +159,8 @@ def write_text_doc(content):
             "isPrototype": True,
             "_autoHeight": True,
             "page": -1,
-            "nativeHeight": 200,
-            "height": 200,
+            "_nativeHeight": 200,
+            "_height": 200,
             "data_text": content
         },
         "__type": "Doc"
@@ -194,7 +190,7 @@ def write_image(folder, name):
             "proto": protofy(data_doc_guid),
             "x": 10,
             "y": 10,
-            "width": min(800, native_width),
+            "_width": min(800, native_width),
             "zIndex": 2,
             "widthUnit": "*",
             "widthMagnitude": 1
@@ -211,7 +207,7 @@ def write_image(folder, name):
                 "__type": "image"
             },
             "title": name,
-            "nativeWidth": native_width,
+            "_nativeWidth": native_width,
             "author": "Bill Buxton",
             "creationDate": {
                 "date": datetime.datetime.utcnow().microsecond,
@@ -219,8 +215,8 @@ def write_image(folder, name):
             },
             "isPrototype": True,
             "page": -1,
-            "nativeHeight": native_height,
-            "height": native_height
+            "_nativeHeight": native_height,
+            "_height": native_height
         },
         "__type": "Doc"
     }

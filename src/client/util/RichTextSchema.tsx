@@ -757,7 +757,7 @@ export class DashDocView {
         DocServer.GetRefField(node.attrs.docid).then(async dashDoc => {
             if (dashDoc instanceof Doc) {
                 self._dashDoc = dashDoc;
-                dashDoc.hideSidebar = true;
+                dashDoc._hideSidebar = true;
                 if (node.attrs.width !== dashDoc._width + "px" || node.attrs.height !== dashDoc._height + "px") {
                     try { // bcz: an exception will be thrown if two aliases are open at the same time when a doc view comment is made
                         view.dispatch(view.state.tr.setNodeMarkup(getPos(), null, { ...node.attrs, width: dashDoc._width + "px", height: dashDoc._height + "px" }));

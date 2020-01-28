@@ -74,7 +74,8 @@ export interface DocumentOptions {
     _xMargin?: number; // gap between left edge of document and start of masonry/stacking layouts
     _yMargin?: number; // gap between top edge of dcoument and start of masonry/stacking layouts
     _textTemplate?: RichTextField; // template used by a formattedTextBox to create a text box to render
-    _itemIndex?: number;
+    _itemIndex?: number; // which item index the carousel viewer is showing
+    _hideSidebar?: boolean;  //whether an annotationsidebar should be displayed for text docuemnts
     x?: number;
     y?: number;
     z?: number;
@@ -127,6 +128,7 @@ export interface DocumentOptions {
     color?: string;
     treeViewHideTitle?: boolean; // whether to hide the title of a tree view
     treeViewOpen?: boolean; // whether this document is expanded in a tree view
+    treeViewChecked?: ScriptField; // script to call when a tree view checkbox is checked
     isFacetFilter?: boolean; // whether document functions as a facet filter in a tree view
     limitHeight?: number; // maximum height for newly created (eg, from pasting) text documents
     // [key: string]: Opt<Field>;
@@ -336,7 +338,8 @@ export namespace Docs {
      */
     export namespace Create {
 
-        const delegateKeys = ["x", "y", "_width", "_height", "_panX", "_panY", "_viewType", "_nativeWidth", "_nativeHeight", "_dropAction", "_annotationOn", "_chromeStatus", "_forceActive", "_autoHeight", "_fitWidth", "_LODdisable", "_itemIndex"];
+        const delegateKeys = ["x", "y", "_width", "_height", "_panX", "_panY", "_viewType", "_nativeWidth", "_nativeHeight", "_dropAction", "_annotationOn",
+            "_chromeStatus", "_forceActive", "_autoHeight", "_fitWidth", "_LODdisable", "_itemIndex", "_hideSidebar"];
 
         /**
          * This function receives the relevant document prototype and uses

@@ -1099,7 +1099,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                 <div className={`formattedTextBox-outer`} style={{ width: `calc(100% - ${this.sidebarWidthPercent})`, }} ref={this._scrollRef}>
                     <div className={`formattedTextBox-inner${rounded}`} style={{ whiteSpace: "pre-wrap", pointerEvents: ((this.Document.isButton || this.props.onClick) && !this.props.isSelected()) ? "none" : undefined }} ref={this.createDropTarget} />
                 </div>
-                {this.props.Document.hideSidebar ? (null) : this.sidebarWidthPercent === "0%" ?
+                {this.props.Document._hideSidebar ? (null) : this.sidebarWidthPercent === "0%" ?
                     <div className="formattedTextBox-sidebar-handle" onPointerDown={this.sidebarDown} onClick={e => this.toggleSidebar()} /> :
                     <div className={"formattedTextBox-sidebar" + (InkingControl.Instance.selectedTool !== InkTool.None ? "-inking" : "")}
                         style={{ width: `${this.sidebarWidthPercent}`, backgroundColor: `${this.sidebarColor}` }}>
@@ -1116,7 +1116,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                             whenActiveChanged={this.whenActiveChanged}
                             removeDocument={this.removeDocument}
                             moveDocument={this.moveDocument}
-                            addDocument={(doc: Doc) => { doc.hideSidebar = true; return this.addDocument(doc); }}
+                            addDocument={(doc: Doc) => { doc._hideSidebar = true; return this.addDocument(doc); }}
                             CollectionView={undefined}
                             ScreenToLocalTransform={() => this.props.ScreenToLocalTransform().translate(-(this.props.PanelWidth() - this.sidebarWidth), 0)}
                             renderDepth={this.props.renderDepth + 1}
