@@ -8,9 +8,12 @@ const HOLD_DURATION = 1000;
 
 export abstract class Touchable<T = {}> extends React.Component<T> {
     //private holdTimer: NodeJS.Timeout | undefined;
-    private holdTimer: NodeJS.Timeout | undefined;
+    holdTimer: NodeJS.Timeout | undefined;
     private moveDisposer?: InteractionUtils.MultiTouchEventDisposer;
     private endDisposer?: InteractionUtils.MultiTouchEventDisposer;
+    private holdMoveDisposer?: InteractionUtils.MultiTouchEventDisposer;
+    private holdEndDisposer?: InteractionUtils.MultiTouchEventDisposer;
+
 
     protected abstract multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
     protected _touchDrag: boolean = false;
@@ -65,8 +68,10 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
                     //     clearTimeout(this.holdTimer)
                     //     this.holdTimer = undefined;
                     // }
-                    this.holdTimer = setTimeout(() => this.handle1PointerHoldStart(te, me), HOLD_DURATION);
-                    // e.stopPropagation();
+                    console.log(this.holdTimer);
+                    if (!this.holdTimer) {
+                        this.holdTimer = setTimeout(() => this.handle1PointerHoldStart(e, me), HOLD_DURATION);
+                    }
                     // console.log(this.holdTimer);
                     break;
                 case 2:
@@ -128,7 +133,12 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
             }
         }
         if (this.holdTimer) {
+            console.log(this.holdTimer);
             clearTimeout(this.holdTimer);
+            console.log(this.holdTimer);
+
+            this.holdTimer = undefined;
+            console.log(this.holdTimer);
             console.log("clear");
         }
         this._touchDrag = false;
@@ -174,10 +184,17 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
         this.addEndListeners();
     }
 
-    handle1PointerHoldStart = (e: React.TouchEvent, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>): any => {
+    handle1PointerHoldStart = (e: Event, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>): any => {
         e.stopPropagation();
-        e.preventDefault();
+        me.touchEvent.stopPropagation();
+        this.holdTimer = undefined;
         this.removeMoveListeners();
+        this.removeEndListeners();
+        this.removeHoldMoveListeners();
+        this.removeHoldEndListeners();
+        this.addHoldMoveListeners();
+        this.addHoldEndListeners();
+
     }
 
     addMoveListeners = () => {
@@ -199,6 +216,44 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
     removeEndListeners = () => {
         this.endDisposer && this.endDisposer();
     }
+
+    addHoldMoveListeners = () => {
+        const handler = (e: Event) => this.handle1PointerHoldMove(e, (e as CustomEvent<InteractionUtils.MultiTouchEvent<TouchEvent>>).detail);
+        document.addEventListener("dashOnTouchHoldMove", handler);
+        this.holdMoveDisposer = () => document.removeEventListener("dashOnTouchHoldMove", handler);
+    }
+
+    addHoldEndListeners = () => {
+        const handler = (e: Event) => this.handle1PointerHoldEnd(e, (e as CustomEvent<InteractionUtils.MultiTouchEvent<TouchEvent>>).detail);
+        document.addEventListener("dashOnTouchHoldEnd", handler);
+        this.holdEndDisposer = () => document.removeEventListener("dashOnTouchHoldEnd", handler);
+    }
+
+    removeHoldMoveListeners = () => {
+        this.holdMoveDisposer && this.holdMoveDisposer();
+    }
+
+    removeHoldEndListeners = () => {
+        this.holdEndDisposer && this.holdEndDisposer();
+    }
+
+
+    handle1PointerHoldMove = (e: Event, me: InteractionUtils.MultiTouchEvent<TouchEvent>): void => {
+        e.stopPropagation();
+        me.touchEvent.stopPropagation();
+    }
+
+
+    handle1PointerHoldEnd = (e: Event, me: InteractionUtils.MultiTouchEvent<TouchEvent>): void => {
+        e.stopPropagation();
+        me.touchEvent.stopPropagation();
+        this.removeHoldMoveListeners();
+        this.removeHoldEndListeners();
+
+        me.touchEvent.stopPropagation();
+        me.touchEvent.preventDefault();
+    }
+
 
     handleHandDown = (e: React.TouchEvent) => {
         // e.stopPropagation();
