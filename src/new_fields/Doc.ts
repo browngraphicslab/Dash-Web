@@ -461,6 +461,9 @@ export namespace Doc {
                     const newLayoutDoc = Doc.MakeDelegate(templateLayoutDoc, undefined, "[" + templateLayoutDoc.title + "]");
                     dataDoc[expandedLayoutFieldKey] = newLayoutDoc;
                     newLayoutDoc.resolvedDataDoc = dataDoc;
+                    if (dataDoc[templateField] === undefined && templateLayoutDoc[templateField] instanceof List && Cast(templateLayoutDoc[templateField], listSpec(Doc), []).length) {
+                        dataDoc[templateField] = ComputedField.MakeFunction(`ObjectField.MakeCopy(templateLayoutDoc["${templateField}"] as List)`, { templateLayoutDoc: Doc.name }, { templateLayoutDoc: templateLayoutDoc });
+                    }
                 }
             }, 0);
         }
@@ -590,7 +593,7 @@ export namespace Doc {
     //  This function converts a generic field layout display into a field layout that displays a specific
     // metadata field indicated by the title of the template field (not the default field that it was rendering)
     //
-    export function MakeMetadataFieldTemplate(templateField: Doc, templateDoc: Doc, suppressTitle: boolean = false): boolean {
+    export function MakeMetadataFieldTemplate(templateField: Doc, templateDoc: Doc): boolean {
 
         // find the metadata field key that this template field doc will display (indicated by its title)
         const metadataFieldKey = StrCast(templateField.title).replace(/^-/, "");
@@ -598,13 +601,14 @@ export namespace Doc {
         // update the original template to mark it as a template
         templateField.isTemplateForField = metadataFieldKey;
         templateField.title = metadataFieldKey;
-        // templateField.showTitle = suppressTitle ? undefined : "title";
 
-        // move any data that the template field had been rendering over to the template doc so that things will 
-        // appear the same after the conversion to a template has completed.  (otherwise, there would be no data for the template to render)
-        // note: this will not overwrite any field that already exists on the template doc at the field key
+        // move any data that the template field had been rendering over to the template doc so that things will still be rendered
+        // when the template field is adjusted to point to the new metadatafield key.
+        // note 1: if the template field contained a list of documents, each of those documents will be converted to templates as well.
+        // note 2: this will not overwrite any field that already exists on the template doc at the field key
         if (!templateDoc[metadataFieldKey] && templateField.data instanceof ObjectField) {
-            (Doc.GetProto(templateDoc)[metadataFieldKey] = ObjectField.MakeCopy(templateField.data));
+            Cast(templateField.data, listSpec(Doc), [])?.map(d => d instanceof Doc && MakeMetadataFieldTemplate(d, templateDoc));
+            (Doc.GetProto(templateField)[metadataFieldKey] = ObjectField.MakeCopy(templateField.data));
         }
 
         // get the layout string that the template uses to specify its layout
