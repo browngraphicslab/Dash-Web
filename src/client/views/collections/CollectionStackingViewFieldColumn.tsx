@@ -283,6 +283,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                 }, icon: "compress-arrows-alt"
             }));
         layoutItems.push({ description: ":freeform", event: () => this.props.parent.props.addDocument(Docs.Create.FreeformDocument([], { _width: 200, _height: 200, _LODdisable: true })), icon: "compress-arrows-alt" });
+        layoutItems.push({ description: ":carousel", event: () => this.props.parent.props.addDocument(Docs.Create.CarouselDocument([], { _width: 400, _height: 200, _LODdisable: true })), icon: "compress-arrows-alt" });
         layoutItems.push({ description: ":columns", event: () => this.props.parent.props.addDocument(Docs.Create.MulticolumnDocument([], { _width: 200, _height: 200 })), icon: "compress-arrows-alt" });
         layoutItems.push({ description: ":image", event: () => this.props.parent.props.addDocument(Docs.Create.ImageDocument("http://www.cs.brown.edu/~bcz/face.gif", { _width: 200, _height: 200 })), icon: "compress-arrows-alt" });
 

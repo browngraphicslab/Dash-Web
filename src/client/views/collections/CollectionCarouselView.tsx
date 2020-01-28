@@ -1,5 +1,5 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { observable } from 'mobx';
+import { observable, computed } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
 import { documentSchema } from '../../../new_fields/documentSchemas';
@@ -36,27 +36,37 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
         }
     }
 
-    render() {
+    advance = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        this.layoutDoc._itemIndex = (NumCast(this.layoutDoc._itemIndex) + 1) % this.childLayoutPairs.length;
+    }
+    goback = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        this.layoutDoc._itemIndex = (NumCast(this.layoutDoc._itemIndex) - 1 + this.childLayoutPairs.length) % this.childLayoutPairs.length;
+    }
+
+    @computed get content() {
         const index = NumCast(this.layoutDoc._itemIndex);
         return !(this.childLayoutPairs?.[index]?.layout instanceof Doc) ? (null) :
-            <div className="collectionCarouselView-outer">
-                <ContentFittingDocumentView
-                    {...this.props}
-                    Document={this.childLayoutPairs[index].layout}
-                    DataDocument={this.childLayoutPairs[index].data}
-                    getTransform={this.props.ScreenToLocalTransform} />
-                <div className="carouselView-back" onClick={e => { e.stopPropagation(); this.layoutDoc._itemIndex = (index - 1 + this.childLayoutPairs.length) % this.childLayoutPairs.length }}>
-                    <FontAwesomeIcon
-                        icon={faCaretLeft}
-                        size={"2x"}
-                    />
-                </div>
-                <div className="carouselView-fwd" onClick={e => { e.stopPropagation(); this.layoutDoc._itemIndex = (index + 1) % this.childLayoutPairs.length }}>
-                    <FontAwesomeIcon
-                        icon={faCaretRight}
-                        size={"2x"}
-                    />
-                </div>
-            </div>;
+            <ContentFittingDocumentView {...this.props}
+                Document={this.childLayoutPairs[index].layout}
+                DataDocument={this.childLayoutPairs[index].data}
+                getTransform={this.props.ScreenToLocalTransform} />
+    }
+    @computed get buttons() {
+        return <>
+            <div key="back" className="carouselView-back" onClick={this.goback}>
+                <FontAwesomeIcon icon={faCaretLeft} size={"2x"} />
+            </div>
+            <div key="fwd" className="carouselView-fwd" onClick={this.advance}>
+                <FontAwesomeIcon icon={faCaretRight} size={"2x"} />
+            </div>
+        </>;
+    }
+    render() {
+        return <div className="collectionCarouselView-outer">
+            {this.content}
+            {this.buttons}
+        </div>;
     }
 }

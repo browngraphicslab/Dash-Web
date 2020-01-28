@@ -114,6 +114,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 PanelWidth={this.finalPanelWidth}
                 PanelHeight={this.finalPanelHeight}
             /> : <ContentFittingDocumentView {...this.props}
+                CollectionDoc={this.props.ContainingCollectionDoc}
                 DataDocument={this.props.DataDoc}
                 getTransform={this.getTransform}
                 active={returnFalse}

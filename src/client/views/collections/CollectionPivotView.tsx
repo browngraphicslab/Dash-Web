@@ -1,61 +1,37 @@
-import { CollectionSubView } from "./CollectionSubView";
-import React = require("react");
-import { computed, action, IReactionDisposer, reaction, runInAction, observable } from "mobx";
-import { faEdit, faChevronCircleUp } from "@fortawesome/free-solid-svg-icons";
-import { Doc, DocListCast, Field, DocCastAsync } from "../../../new_fields/Doc";
-import "./CollectionPivotView.scss";
-import { observer } from "mobx-react";
-import { CollectionFreeFormView } from "./collectionFreeForm/CollectionFreeFormView";
-import { CollectionTreeView } from "./CollectionTreeView";
-import { Cast, StrCast, NumCast } from "../../../new_fields/Types";
-import { Docs } from "../../documents/Documents";
-import { ScriptField, ComputedField } from "../../../new_fields/ScriptField";
-import { CompileScript, Scripting } from "../../util/Scripting";
-import { anchorPoints, Flyout } from "../TemplateMenu";
+import { faEdit } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { List } from "../../../new_fields/List";
+import { action, computed, IReactionDisposer, observable } from "mobx";
+import { observer } from "mobx-react";
 import { Set } from "typescript-collections";
-import { PrefetchProxy } from "../../../new_fields/Proxy";
-import { EditableView } from "../EditableView";
+import { Doc, DocListCast } from "../../../new_fields/Doc";
+import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
+import { ComputedField, ScriptField } from "../../../new_fields/ScriptField";
+import { Cast, StrCast } from "../../../new_fields/Types";
+import { Docs } from "../../documents/Documents";
+import { CompileScript } from "../../util/Scripting";
+import { EditableView } from "../EditableView";
+import { anchorPoints, Flyout } from "../TemplateMenu";
+import { CollectionFreeFormView } from "./collectionFreeForm/CollectionFreeFormView";
+import "./CollectionPivotView.scss";
+import { CollectionSubView } from "./CollectionSubView";
+import { CollectionTreeView } from "./CollectionTreeView";
+import React = require("react");
 
 @observer
 export class CollectionPivotView extends CollectionSubView(doc => doc) {
-    private _narrativeDisposer: IReactionDisposer | undefined;
-    componentWillUnmount() {
-        this._narrativeDisposer?.();
-    }
     componentDidMount() {
         this.props.Document._freeformLayoutEngine = "pivot";
+        const childDetailed = this.props.Document.childDetailed; // bcz: needs to be here to make sure the childDetailed layout template has been loaded when the first item is clicked;
         if (!this.props.Document._facetCollection) {
             const facetCollection = Docs.Create.TreeDocument([], { title: "facetFilters", _yMargin: 0, treeViewHideTitle: true });
             facetCollection.target = this.props.Document;
-            this.props.Document.excludeFields = new List<string>(["_facetCollection", "_docFilter", "viewSpecScript"]);
+            this.props.Document.excludeFields = new List<string>(["_facetCollection", "_docFilter"]);
 
             const scriptText = "setDocFilter(containingTreeView.target, heading, this.title, checked)";
-            const script = CompileScript(scriptText, {
-                params: { this: Doc.name, heading: "boolean", checked: "boolean", containingTreeView: Doc.name },
-                typecheck: false,
-                editable: true,
-            });
-            if (script.compiled) {
-                facetCollection.onCheckedClick = new ScriptField(script);
-            }
-            const openDocText = "const alias = getAlias(this); Doc.ApplyTemplateTo(childDetailed, alias, 'layout_detailed'); useRightSplit(alias); ";
-            this._narrativeDisposer = reaction(() => DocCastAsync(this.props.Document.childDetailed),
-                (childDetailedPromise) => childDetailedPromise.then(childDetailed => {
-                    if (childDetailed) {
-                        const openDocScript = CompileScript(openDocText, {
-                            params: { this: Doc.name, heading: "boolean", containingTreeView: Doc.name },
-                            capturedVariables: { childDetailed: new PrefetchProxy(childDetailed) },
-                            typecheck: false,
-                            editable: true,
-                        });
-                        if (openDocScript.compiled) {
-                            this.props.Document.onChildClick = new ScriptField(openDocScript);
-                        }
-                    }
-                }), { fireImmediately: true });
+            const childText = "const alias = getAlias(this); Doc.ApplyTemplateTo(containingCollection.childDetailed, alias, 'layout_detailed'); useRightSplit(alias); ";
+            facetCollection.onCheckedClick = ScriptField.MakeScript(scriptText, { this: Doc.name, heading: "boolean", checked: "boolean", containingTreeView: Doc.name });
+            this.props.Document.onChildClick = ScriptField.MakeScript(childText, { this: Doc.name, heading: "boolean", containingCollection: Doc.name });
             this.props.Document._facetCollection = facetCollection;
             this.props.Document._fitToBox = true;
         }

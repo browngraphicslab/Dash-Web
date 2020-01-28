@@ -16,6 +16,7 @@ import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, u
 import { intersectRect } from "../Utils";
 import { UndoManager } from "../client/util/UndoManager";
 import { computedFn } from "mobx-utils";
+import { RichTextField } from "./RichTextField";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -609,6 +610,9 @@ export namespace Doc {
         if (!templateDoc?.[metadataFieldKey] && templateField.data instanceof ObjectField) {
             Cast(templateField.data, listSpec(Doc), [])?.map(d => d instanceof Doc && MakeMetadataFieldTemplate(d, templateDoc));
             (Doc.GetProto(templateField)[metadataFieldKey] = ObjectField.MakeCopy(templateField.data));
+        }
+        if (templateField.data instanceof RichTextField && templateField.data.Data) {
+            templateField._textTemplate = ObjectField.MakeCopy(templateField.data);
         }
 
         // get the layout string that the template uses to specify its layout
