@@ -593,7 +593,7 @@ export namespace Doc {
     //  This function converts a generic field layout display into a field layout that displays a specific
     // metadata field indicated by the title of the template field (not the default field that it was rendering)
     //
-    export function MakeMetadataFieldTemplate(templateField: Doc, templateDoc: Doc): boolean {
+    export function MakeMetadataFieldTemplate(templateField: Doc, templateDoc: Opt<Doc>): boolean {
 
         // find the metadata field key that this template field doc will display (indicated by its title)
         const metadataFieldKey = StrCast(templateField.title).replace(/^-/, "");
@@ -606,7 +606,7 @@ export namespace Doc {
         // when the template field is adjusted to point to the new metadatafield key.
         // note 1: if the template field contained a list of documents, each of those documents will be converted to templates as well.
         // note 2: this will not overwrite any field that already exists on the template doc at the field key
-        if (!templateDoc[metadataFieldKey] && templateField.data instanceof ObjectField) {
+        if (!templateDoc?.[metadataFieldKey] && templateField.data instanceof ObjectField) {
             Cast(templateField.data, listSpec(Doc), [])?.map(d => d instanceof Doc && MakeMetadataFieldTemplate(d, templateDoc));
             (Doc.GetProto(templateField)[metadataFieldKey] = ObjectField.MakeCopy(templateField.data));
         }
@@ -620,7 +620,7 @@ export namespace Doc {
         // assign the template field doc a delegate of any extension document that was previously used to render the template field (since extension doc's carry rendering informatino)
         Doc.Layout(templateField)[metadataFieldKey + "_ext"] = Doc.MakeDelegate(templateField[templateFieldLayoutString?.split("'")[1] + "_ext"] as Doc);
 
-        if (templateField.backgroundColor !== templateDoc.defaultBackgroundColor) {
+        if (templateField.backgroundColor !== templateDoc?.defaultBackgroundColor) {
             templateField.defaultBackgroundColor = templateField.backgroundColor;
         }
 
