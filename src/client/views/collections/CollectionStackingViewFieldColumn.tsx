@@ -21,6 +21,9 @@ import { TraceMobx } from "../../../new_fields/util";
 import { FormattedTextBox } from "../nodes/FormattedTextBox";
 import { ImageField } from "../../../new_fields/URLField";
 import { ImageBox } from "../nodes/ImageBox";
+import { ContextMenu } from "../ContextMenu";
+import { ContextMenuProps } from "../ContextMenuItem";
+import { RichTextField } from "../../../new_fields/RichTextField";
 
 library.add(faPalette);
 
@@ -135,21 +138,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
 
     @action
     addDocument = (value: string, shiftDown?: boolean) => {
-        if (value === ":freeForm") {
-            return this.props.parent.props.addDocument(Docs.Create.FreeformDocument([], { _width: 200, _height: 200 }));
-        } else if (value.startsWith(":")) {
-            const { Document, addDocument } = this.props.parent.props;
-            const fieldKey = value.substring(1);
-            const dataDoc = this.props.parent.props.DataDoc || this.props.parent.Document;
-            const created = Docs.Get.DocumentFromField(dataDoc, fieldKey, Doc.GetProto(Document));
-            if (created) {
-                if (this.props.parent.Document.isTemplateDoc) {
-                    Doc.MakeMetadataFieldTemplate(created, this.props.parent.props.Document);
-                }
-                return addDocument(created);
-            }
-            return false;
-        }
+        if (!value) return false;
         this._createAliasSelected = false;
         const key = StrCast(this.props.parent.props.Document.sectionFilter);
         const newDoc = Docs.Create.TextDocument(value, { _height: 18, _width: 200, title: value, _autoHeight: true });
@@ -275,6 +264,34 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
 
     @observable _headingsHack: number = 1;
 
+    menuCallback = (x: number, y: number) => {
+        ContextMenu.Instance.clearItems();
+        const layoutItems: ContextMenuProps[] = [];
+        const docItems: ContextMenuProps[] = [];
+
+        const dataDoc = this.props.parent.props.DataDoc || this.props.parent.Document;
+        Array.from(Object.keys(Doc.GetProto(dataDoc))).filter(fieldKey => dataDoc[fieldKey] instanceof RichTextField || dataDoc[fieldKey] instanceof ImageField).map(fieldKey =>
+            docItems.push({
+                description: ":" + fieldKey, event: () => {
+                    const created = Docs.Get.DocumentFromField(dataDoc, fieldKey, Doc.GetProto(this.props.parent.props.Document));
+                    if (created) {
+                        if (this.props.parent.Document.isTemplateDoc) {
+                            Doc.MakeMetadataFieldTemplate(created, this.props.parent.props.Document);
+                        }
+                        return this.props.parent.props.addDocument(created);
+                    }
+                }, icon: "compress-arrows-alt"
+            }));
+        layoutItems.push({ description: ":freeform", event: () => this.props.parent.props.addDocument(Docs.Create.FreeformDocument([], { _width: 200, _height: 200, _LODdisable: true })), icon: "compress-arrows-alt" });
+        layoutItems.push({ description: ":columns", event: () => this.props.parent.props.addDocument(Docs.Create.MulticolumnDocument([], { _width: 200, _height: 200 })), icon: "compress-arrows-alt" });
+        layoutItems.push({ description: ":image", event: () => this.props.parent.props.addDocument(Docs.Create.ImageDocument("http://www.cs.brown.edu/~bcz/face.gif", { _width: 200, _height: 200 })), icon: "compress-arrows-alt" });
+
+        ContextMenu.Instance.addItem({ description: "Doc Fields ...", subitems: docItems, icon: "eye" });
+        ContextMenu.Instance.addItem({ description: "Containers ...", subitems: layoutItems, icon: "eye" });
+        const pt = this.props.screenToLocalTransform().inverse().transformPoint(x, y);
+        ContextMenu.Instance.displayMenu(pt[0], pt[1]);
+    }
+
     render() {
         TraceMobx();
         const cols = this.props.cols();
@@ -375,7 +392,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                             {(chromeStatus !== 'view-mode' && chromeStatus !== 'disabled') ?
                                 <div key={`${heading}-add-document`} className="collectionStackingView-addDocumentButton"
                                     style={{ width: style.columnWidth / style.numGroupColumns }}>
-                                    <EditableView {...newEditableViewProps} />
+                                    <EditableView {...newEditableViewProps} menuCallback={this.menuCallback} />
                                 </div> : null}
                         </div>
                 }

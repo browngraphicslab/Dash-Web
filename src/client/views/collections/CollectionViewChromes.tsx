@@ -404,9 +404,10 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="4">Tree View</option>
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="5">Stacking View</option>
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="6">Masonry View</option>
-                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="7">Pivot View</option>
-                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="8">Linear View</option>
+                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="7">Multicolumn View</option>
+                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="8">Pivot View</option>
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="9">Carousel View</option>
+                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="10">Linear View</option>
                         </select>
                         <div className="collectionViewBaseChrome-viewSpecs" style={{ display: collapsed ? "none" : "grid" }}>
                             <input className="collectionViewBaseChrome-viewSpecsInput"

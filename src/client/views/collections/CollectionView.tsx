@@ -48,11 +48,11 @@ export enum CollectionViewType {
     Tree,
     Stacking,
     Masonry,
-    Pivot,
-    Linear,
-    Carousel,
-    Staff,
     Multicolumn,
+    Pivot,
+    Carousel,
+    Linear,
+    Staff,
     Timeline
 }
 
@@ -65,10 +65,10 @@ export namespace CollectionViewType {
         ["tree", CollectionViewType.Tree],
         ["stacking", CollectionViewType.Stacking],
         ["masonry", CollectionViewType.Masonry],
+        ["multicolumn", CollectionViewType.Multicolumn],
         ["pivot", CollectionViewType.Pivot],
         ["carousel", CollectionViewType.Carousel],
         ["linear", CollectionViewType.Linear],
-        ["multicolumn", CollectionViewType.Multicolumn]
     ]);
 
     export const valueOf = (value: string) => stringMapping.get(value.toLowerCase());

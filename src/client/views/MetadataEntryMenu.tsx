@@ -19,7 +19,6 @@ export interface MetadataEntryProps {
 export class MetadataEntryMenu extends React.Component<MetadataEntryProps>{
     @observable private _currentKey: string = "";
     @observable private _currentValue: string = "";
-    @observable private suggestions: string[] = [];
     private _addChildren: boolean = false;
     @observable _allSuggestions: string[] = [];
     _suggestionDispser: IReactionDisposer | undefined;

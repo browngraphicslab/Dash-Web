@@ -1,11 +1,12 @@
 import React = require('react');
+import { action, observable } from 'mobx';
 import { observer } from 'mobx-react';
-import { observable, action, trace } from 'mobx';
-import "./EditableView.scss";
 import * as Autosuggest from 'react-autosuggest';
-import { undoBatch } from '../util/UndoManager';
-import { SchemaHeaderField } from '../../new_fields/SchemaHeaderField';
 import { ObjectField } from '../../new_fields/ObjectField';
+import { SchemaHeaderField } from '../../new_fields/SchemaHeaderField';
+import { ContextMenu } from './ContextMenu';
+import { ContextMenuProps } from './ContextMenuItem';
+import "./EditableView.scss";
 
 export interface EditableProps {
     /**
@@ -44,6 +45,7 @@ export interface EditableProps {
     editing?: boolean;
     onClick?: (e: React.MouseEvent) => boolean;
     isEditingCallback?: (isEditing: boolean) => void;
+    menuCallback?: (x: number, y: number) => void;
     HeadingObject?: SchemaHeaderField | undefined;
     HeadingsHack?: number;
     toggle?: () => void;
@@ -88,12 +90,14 @@ export class EditableView extends React.Component<EditableProps> {
             } else if (this.props.OnFillDown) {
                 this.props.OnFillDown(e.currentTarget.value);
                 this._editing = false;
-                this.props.isEditingCallback && this.props.isEditingCallback(false);
+                this.props.isEditingCallback?.(false);
             }
         } else if (e.key === "Escape") {
             e.stopPropagation();
             this._editing = false;
-            this.props.isEditingCallback && this.props.isEditingCallback(false);
+            this.props.isEditingCallback?.(false);
+        } else if (e.key === ":") {
+            this.props.menuCallback?.(e.currentTarget.offsetLeft, e.currentTarget.offsetTop);
         }
     }
 
@@ -102,7 +106,7 @@ export class EditableView extends React.Component<EditableProps> {
         e.nativeEvent.stopPropagation();
         if (!this.props.onClick || !this.props.onClick(e)) {
             this._editing = true;
-            this.props.isEditingCallback && this.props.isEditingCallback(true);
+            this.props.isEditingCallback?.(true);
         }
         e.stopPropagation();
     }
@@ -111,7 +115,7 @@ export class EditableView extends React.Component<EditableProps> {
     private finalizeEdit(value: string, shiftDown: boolean) {
         this._editing = false;
         if (this.props.SetValue(value, shiftDown)) {
-            this.props.isEditingCallback && this.props.isEditingCallback(false);
+            this.props.isEditingCallback?.(false);
         }
     }
 
