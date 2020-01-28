@@ -347,7 +347,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         this._lastX = pt.pageX;
                         this._lastY = pt.pageY;
                         e.preventDefault();
-                        e.stopPropagation();
+                        // e.stopPropagation();
                     }
                     else {
                         e.preventDefault();
