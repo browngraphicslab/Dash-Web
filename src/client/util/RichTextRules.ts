@@ -75,22 +75,28 @@ export const inpRules = {
         new InputRule(
             new RegExp(/\[\[([a-zA-Z_ \-0-9]+)\]\]$/),
             (state, match, start, end) => {
-                const fieldKey = match[1];
-                const fieldView = state.schema.nodes.dashField.create({ fieldKey: StrCast(fieldKey) });
+                const fieldView = state.schema.nodes.dashField.create({ fieldKey: match[1] });
+                return state.tr.deleteRange(start, end).insert(start, fieldView);
+            }),
+        // create a text display of a metadata field
+        new InputRule(
+            new RegExp(/\[\[([a-zA-Z_ \-0-9]+):([a-zA-Z_ \-0-9]+)\]\]$/),
+            (state, match, start, end) => {
+                const fieldView = state.schema.nodes.dashField.create({ fieldKey: match[2], docid: match[1] });
                 return state.tr.deleteRange(start, end).insert(start, fieldView);
             }),
         // create a hyperlink portal
         new InputRule(
-            new RegExp(/\[\[:([a-zA-Z_ \-0-9]+)\]\]$/),
+            new RegExp(/@@([a-zA-Z_ \-0-9]+)@@$/),
             (state, match, start, end) => {
-                const docId = match[1].substring(1);
+                const docId = match[1];
                 DocServer.GetRefField(docId).then(docx => {
                     const target = ((docx instanceof Doc) && docx) || Docs.Create.FreeformDocument([], { title: docId, _width: 500, _height: 500, }, docId);
                     DocUtils.Publish(target, docId, returnFalse, returnFalse);
                     DocUtils.MakeLink({ doc: (schema as any).Document }, { doc: target }, "portal link", "");
                 });
                 const link = state.schema.marks.link.create({ href: Utils.prepend("/doc/" + docId), location: "onRight", title: docId, targetId: docId });
-                return state.tr.addMark(start, end, link);
+                return state.tr.deleteRange(end - 1, end).deleteRange(start, start + 2).addMark(start, end - 3, link);
             }),
         // stop using active style
         new InputRule(

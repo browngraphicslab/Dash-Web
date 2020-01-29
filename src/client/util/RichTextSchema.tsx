@@ -1,4 +1,4 @@
-import { reaction, IReactionDisposer } from "mobx";
+import { reaction, IReactionDisposer, observable, runInAction } from "mobx";
 import { baseKeymap, toggleMark } from "prosemirror-commands";
 import { redo, undo } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
@@ -20,6 +20,7 @@ import { BoolCast, NumCast, StrCast } from "../../new_fields/Types";
 import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
 import { ObjectField } from "../../new_fields/ObjectField";
 import { ComputedField } from "../../new_fields/ScriptField";
+import { observer } from "mobx-react";
 
 const blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
     preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], brDOM: DOMOutputSpecArray = ["br"], ulDOM: DOMOutputSpecArray = ["ul", 0];
@@ -181,6 +182,7 @@ export const nodes: { [index: string]: NodeSpec } = {
         inline: true,
         attrs: {
             fieldKey: { default: "" },
+            docid: { default: "" }
         },
         group: "inline",
         draggable: false,
@@ -831,12 +833,14 @@ export class DashDocView {
     }
 }
 
+
 export class DashFieldView {
     _fieldWrapper: HTMLDivElement;
     _labelSpan: HTMLSpanElement;
     _fieldSpan: HTMLSpanElement;
     _reactionDisposer: IReactionDisposer | undefined;
     _textBoxDoc: Doc;
+    @observable _dashDoc: Doc | undefined;
 
     constructor(node: any, view: any, getPos: any, tbox: FormattedTextBox) {
         this._textBoxDoc = tbox.props.Document;
@@ -856,15 +860,21 @@ export class DashFieldView {
         this._labelSpan.style.fontWeight = "bold";
         this._labelSpan.style.fontSize = "larger";
         this._labelSpan.innerHTML = `${node.attrs.fieldKey}: `;
-        const ddoc = tbox.props.DataDoc || tbox.dataDoc;
-        this._reactionDisposer && this._reactionDisposer();
-        this._reactionDisposer = reaction(() => ddoc[node.attrs.fieldKey], fval => this._fieldSpan.innerHTML = Field.toString(fval as Field), { fireImmediately: true });
+        if (node.attrs.docid) {
+            const self = this;
+            DocServer.GetRefField(node.attrs.docid).then(async dashDoc => dashDoc instanceof Doc && runInAction(() => self._dashDoc = dashDoc));
+        } else {
+            this._dashDoc = tbox.props.DataDoc || tbox.dataDoc;
+        }
+        this._reactionDisposer?.();
+        this._reactionDisposer = reaction(() => this._dashDoc?.[node.attrs.fieldKey], fval => this._fieldSpan.innerHTML = Field.toString(fval as Field), { fireImmediately: true });
+
         this._fieldWrapper.appendChild(this._labelSpan);
         this._fieldWrapper.appendChild(this._fieldSpan);
         (this as any).dom = this._fieldWrapper;
     }
     destroy() {
-        this._reactionDisposer && this._reactionDisposer();
+        this._reactionDisposer?.();
     }
 }
 
