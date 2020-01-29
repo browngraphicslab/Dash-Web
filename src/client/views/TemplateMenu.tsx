@@ -6,8 +6,9 @@ import './TemplateMenu.scss';
 import { DocumentView } from "./nodes/DocumentView";
 import { Template, Templates } from "./Templates";
 import React = require("react");
-import { Doc } from "../../new_fields/Doc";
-import { StrCast } from "../../new_fields/Types";
+import { Doc, DocListCast } from "../../new_fields/Doc";
+import { StrCast, Cast } from "../../new_fields/Types";
+import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -97,6 +98,11 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
         Array.from(Object.keys(Doc.GetProto(this.props.docs[0].props.Document))).
             filter(key => key.startsWith("layout_")).
             map(key => runInAction(() => TemplateMenu._addedKeys.add(key.replace("layout_", ""))));
+        DocListCast(Cast(CurrentUserUtils.UserDocument.expandingButtons, Doc, null)?.data)?.map(btnDoc => {
+            if (StrCast(Cast(btnDoc?.dragFactory, Doc, null)?.title)) {
+                runInAction(() => TemplateMenu._addedKeys.add(StrCast(Cast(btnDoc?.dragFactory, Doc, null)?.title)));
+            }
+        });
     }
 
     static _addedKeys = new ObservableSet(["narrative"]);

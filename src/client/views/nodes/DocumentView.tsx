@@ -523,7 +523,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         })();
     }
 
-    static makeCustomViewClicked = (doc: Doc, dataDoc: Opt<Doc>, creator: (documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc, name: string = "custom") => {
+    static makeCustomViewClicked = (doc: Doc, dataDoc: Opt<Doc>, creator: (documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc, name: string = "custom", docLayoutTemplate?: Doc) => {
         const batch = UndoManager.StartBatch("CustomViewClicked");
         const customName = "layout_" + name;
         if (!StrCast(doc.title).endsWith(name)) doc.title = doc.title + "_" + name;
@@ -552,7 +552,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 fieldTemplate._autoHeight = true;
             }
 
-            const docTemplate = creator(fieldTemplate ? [fieldTemplate] : [], { title: customName + "(" + doc.title + ")", isTemplateDoc: true, _width: _width + 20, _height: Math.max(100, _height + 45) });
+            const docTemplate = docLayoutTemplate || creator(fieldTemplate ? [fieldTemplate] : [], { title: customName + "(" + doc.title + ")", isTemplateDoc: true, _width: _width + 20, _height: Math.max(100, _height + 45) });
 
             fieldTemplate && Doc.MakeMetadataFieldTemplate(fieldTemplate, Doc.GetProto(docTemplate));
             Doc.ApplyTemplateTo(docTemplate, dataDoc || doc, customName, undefined);
@@ -653,7 +653,14 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.ContainingCollectionView.props.Document);
             } else if (custom) {
                 DocumentView.makeNativeViewClicked(this.props.Document, StrCast(this.props.Document.layoutKey).split("_")[1]);
-                DocumentView.makeCustomViewClicked(this.props.Document, this.props.DataDoc, Docs.Create.StackingDocument, layout);
+
+                let foundLayout: Opt<Doc> = undefined;
+                DocListCast(Cast(CurrentUserUtils.UserDocument.expandingButtons, Doc, null)?.data)?.map(btnDoc => {
+                    if (StrCast(Cast(btnDoc?.dragFactory, Doc, null)?.title)) {
+                        foundLayout = btnDoc.dragFactory as Doc;
+                    }
+                })
+                DocumentView.makeCustomViewClicked(this.props.Document, this.props.DataDoc, Docs.Create.StackingDocument, layout, foundLayout);
             } else {
                 DocumentView.makeNativeViewClicked(this.props.Document, StrCast(this.props.Document.layoutKey).split("_")[1]);
             }
