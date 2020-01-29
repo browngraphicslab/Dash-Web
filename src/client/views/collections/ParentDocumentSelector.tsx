@@ -64,22 +64,13 @@ export class SelectorContextMenu extends React.Component<SelectorProps> {
             this.props.addDocTab(col, undefined, "inTab"); // bcz: dataDoc?
         };
     }
-    get metadataMenu() {
-        return <div className="parentDocumentSelector-metadata">
-            <Flyout anchorPoint={anchorPoints.TOP_LEFT}
-                content={<MetadataEntryMenu docs={() => this.props.Views.map(dv => dv.props.Document)} suggestWithFunction />}>{/* tfs: @bcz This might need to be the data document? */}
-                <div className="docDecs-tagButton" title="Add fields"><FontAwesomeIcon className="documentdecorations-icon" icon="tag" size="sm" /></div>
-            </Flyout>
-        </div>;
-    }
 
     render() {
         return <div >
-            <div key="metadata">Metadata: {this.metadataMenu}</div>
             <p key="contexts">Contexts:</p>
             {this._docs.map(doc => <p key={doc.col[Id] + doc.target[Id]}><a onClick={this.getOnClick(doc)}>{doc.col.title?.toString()}</a></p>)}
             {this._otherDocs.length ? <hr key="hr" /> : null}
-            {this._otherDocs.map(doc => <p key="p"><a onClick={this.getOnClick(doc)}>{doc.col.title?.toString()}</a></p>)}
+            {this._otherDocs.map(doc => <p key={"p" + doc.col[Id] + doc.target[Id]}><a onClick={this.getOnClick(doc)}>{doc.col.title?.toString()}</a></p>)}
         </div>;
     }
 }

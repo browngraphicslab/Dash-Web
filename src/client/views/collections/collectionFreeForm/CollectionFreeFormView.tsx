@@ -653,7 +653,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             if (!init) {
                 state.initializers![this.Document[Id]] = { panX: this.Document._panX, panY: this.Document._panY };
                 HistoryUtil.pushState(state);
-            } else if (init.panX !== this.Document.panX || init.panY !== this.Document.panY) {
+            } else if (init.panX !== this.Document._panX || init.panY !== this.Document._panY) {
                 init.panX = this.Document._panX;
                 init.panY = this.Document._panY;
                 HistoryUtil.pushState(state);
@@ -899,7 +899,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     onContextMenu = (e: React.MouseEvent) => {
         const layoutItems: ContextMenuProps[] = [];
 
-        layoutItems.push({ description: "reset view", event: () => { this.props.Document.panX = this.props.Document.panY = 0; this.props.Document.scale = 1; }, icon: "compress-arrows-alt" });
+        layoutItems.push({ description: "reset view", event: () => { this.props.Document._panX = this.props.Document._panY = 0; this.props.Document.scale = 1; }, icon: "compress-arrows-alt" });
         layoutItems.push({ description: `${this.Document._LODdisable ? "Enable LOD" : "Disable LOD"}`, event: () => this.Document._LODdisable = !this.Document._LODdisable, icon: "table" });
         layoutItems.push({ description: `${this.fitToContent ? "Unset" : "Set"} Fit To Container`, event: () => this.Document._fitToBox = !this.fitToContent, icon: !this.fitToContent ? "expand-arrows-alt" : "compress-arrows-alt" });
         layoutItems.push({ description: `${this.Document.useClusters ? "Uncluster" : "Use Clusters"}`, event: () => this.updateClusters(!this.Document.useClusters), icon: "braille" });

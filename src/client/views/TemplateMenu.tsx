@@ -51,9 +51,6 @@ export interface TemplateMenuProps {
 @observer
 export class TemplateMenu extends React.Component<TemplateMenuProps> {
     @observable private _hidden: boolean = true;
-    private _downx = 0;
-    private _downy = 0;
-    private _dragRef = React.createRef<HTMLUListElement>();
 
     toggleCustom = (e: React.ChangeEvent<HTMLInputElement>): void => {
         this.props.docs.map(dv => dv.setCustomView(e.target.checked));
@@ -81,19 +78,6 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
         }
     }
 
-    @undoBatch
-    @action
-    clearTemplates = (event: React.MouseEvent) => {
-        Templates.TemplateList.forEach(template => this.props.docs.forEach(d => d.Document["show" + template.Name] = undefined));
-        ["backgroundColor", "borderRounding", "width", "height"].forEach(field => this.props.docs.forEach(d => {
-            if (d.Document.isTemplateDoc && d.props.DataDoc) {
-                d.Document[field] = undefined;
-            } else if (d.Document["default" + field[0].toUpperCase() + field.slice(1)] !== undefined) {
-                d.Document[field] = Doc.GetProto(d.Document)[field] = undefined;
-            }
-        }));
-    }
-
     @action
     toggleTemplateActivity = (): void => {
         this._hidden = !this._hidden;
@@ -107,40 +91,6 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
             layout._chromeStatus = (layout._chromeStatus !== "disabled" ? "disabled" : "enabled");
         });
     }
-    onAliasButtonUp = (e: PointerEvent): void => {
-        document.removeEventListener("pointermove", this.onAliasButtonMoved);
-        document.removeEventListener("pointerup", this.onAliasButtonUp);
-        e.stopPropagation();
-    }
-
-    onAliasButtonDown = (e: React.PointerEvent): void => {
-        this._downx = e.clientX;
-        this._downy = e.clientY;
-        e.stopPropagation();
-        e.preventDefault();
-        document.removeEventListener("pointermove", this.onAliasButtonMoved);
-        document.addEventListener("pointermove", this.onAliasButtonMoved);
-        document.removeEventListener("pointerup", this.onAliasButtonUp);
-        document.addEventListener("pointerup", this.onAliasButtonUp);
-    }
-    onAliasButtonMoved = (e: PointerEvent): void => {
-        if (this._dragRef.current !== null && (Math.abs(e.clientX - this._downx) > 4 || Math.abs(e.clientY - this._downy) > 4)) {
-            document.removeEventListener("pointermove", this.onAliasButtonMoved);
-            document.removeEventListener("pointerup", this.onAliasButtonUp);
-
-            const dragDocView = this.props.docs[0];
-            const dragData = new DragManager.DocumentDragData([dragDocView.props.Document]);
-            const [left, top] = dragDocView.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
-            dragData.embedDoc = true;
-            dragData.dropAction = "alias";
-            DragManager.StartDocumentDrag([dragDocView.ContentDiv!], dragData, left, top, {
-                offsetX: dragData.offset[0],
-                offsetY: dragData.offset[1],
-                hideSource: false
-            });
-        }
-        e.stopPropagation();
-    }
 
     render() {
         const layout = Doc.Layout(this.props.docs[0].Document);
@@ -151,18 +101,8 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
         templateMenu.push(<OtherToggle key={"custom"} name={"Custom"} checked={StrCast(this.props.docs[0].Document.layoutKey, "layout") !== "layout"} toggle={this.toggleCustom} />);
         templateMenu.push(<OtherToggle key={"narrative"} name={"Narrative"} checked={StrCast(this.props.docs[0].Document.layoutKey, "layout") === "layout_narrative"} toggle={this.toggleNarrative} />);
         templateMenu.push(<OtherToggle key={"chrome"} name={"Chrome"} checked={layout._chromeStatus !== "disabled"} toggle={this.toggleChrome} />);
-        return (
-            <div className="templating-button" onPointerDown={this.onAliasButtonDown} title="Drag:(create alias). Tap:(modify layout)." >
-                <Flyout anchorPoint={anchorPoints.LEFT_TOP}
-                    content={<ul className="template-list" ref={this._dragRef} style={{ display: "block" }}>
-                        {templateMenu}
-                        {<button onClick={this.clearTemplates}>Restore Defaults</button>}
-                    </ul>}>
-                    <span className="parentDocumentSelector-button" >
-                        <FontAwesomeIcon icon={faEdit} size={"sm"} />
-                    </span>
-                </Flyout>
-            </div>
-        );
+        return <ul className="template-list" style={{ display: "block" }}>
+            {templateMenu}
+        </ul>;
     }
 }

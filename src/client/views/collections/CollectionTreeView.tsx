@@ -645,10 +645,12 @@ export class CollectionTreeView extends CollectionSubView(Document) {
                 const fallbackImg = "http://www.cs.brown.edu/~bcz/face.gif";
                 const detailedTemplate = `{ "doc": { "type": "doc", "content": [ { "type": "paragraph", "content": [ { "type": "dashField", "attrs": { "fieldKey": "short_description" } } ] }, { "type": "paragraph", "content": [ { "type": "dashField", "attrs": { "fieldKey": "year" } } ] },  { "type": "paragraph", "content": [ { "type": "dashField", "attrs": { "fieldKey": "company" } } ] }  ] }, "selection":{"type":"text","anchor":1,"head":1},"storedMarks":[] }`;
 
+                const textDoc = TextDocument("", { title: "details", _autoHeight: true });
                 const detailedLayout = Docs.Create.StackingDocument([
                     CarouselDocument([], { title: "data", _height: 350, _itemIndex: 0, backgroundColor: "#9b9b9b3F" }),
-                    TextDocument("", { title: "details", _autoHeight: true, _textTemplate: new RichTextField(detailedTemplate, "short_description year company") })
+                    textDoc,
                 ], { _chromeStatus: "disabled", title: "detailed layout stack" });
+                textDoc.data = new RichTextField(detailedTemplate, "short_description year company");
                 detailedLayout.isTemplateDoc = makeTemplate(detailedLayout);
 
                 const cardLayout = ImageDocument(fallbackImg, { title: "cardLayout", isTemplateDoc: true, isTemplateForField: "hero", }); // this acts like a template doc and a template field ... a little weird, but seems to work?

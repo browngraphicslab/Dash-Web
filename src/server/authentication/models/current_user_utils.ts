@@ -14,6 +14,7 @@ import { Utils } from "../../../Utils";
 import { nullAudio } from "../../../new_fields/URLField";
 import { DragManager } from "../../../client/util/DragManager";
 import { InkingControl } from "../../../client/views/InkingControl";
+import { CollectionViewType } from "../../../client/views/collections/CollectionView";
 
 export class CurrentUserUtils {
     private static curr_id: string;
@@ -54,7 +55,7 @@ export class CurrentUserUtils {
             { title: "cat image", icon: "cat", ignoreClick: true, drag: 'Docs.Create.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", { _width: 200, title: "an image of a cat" })' },
             { title: "record", icon: "microphone", ignoreClick: true, drag: `Docs.Create.AudioDocument("${nullAudio}", { _width: 200, title: "ready to record audio" })` },
             { title: "clickable button", icon: "bolt", ignoreClick: true, drag: 'Docs.Create.ButtonDocument({ _width: 150, _height: 50, title: "Button" })' },
-            { title: "presentation", icon: "tv", ignoreClick: true, drag: 'Doc.UserDoc().curPresentation = Docs.Create.PresDocument(new List<Doc>(), { _width: 200, _height: 500, title: "a presentation trail" })' },
+            { title: "presentation", icon: "tv", ignoreClick: true, drag: `Doc.UserDoc().curPresentation = Docs.Create.PresDocument(new List<Doc>(), { _width: 200, _height: 500, _viewType: ${CollectionViewType.Stacking}, title: "a presentation trail" })` },
             { title: "import folder", icon: "cloud-upload-alt", ignoreClick: true, drag: 'Docs.Create.DirectoryImportDocument({ title: "Directory Import", _width: 400, _height: 400 })' },
             { title: "mobile view", icon: "phone", ignoreClick: true, drag: 'Doc.UserDoc().activeMobile' },
             { title: "use pen", icon: "pen-nib", click: 'activatePen(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this,2, this.backgroundColor)', backgroundColor: "blue", ischecked: `sameDocs(this.activePen.pen,  this)`, activePen: doc },
@@ -246,7 +247,7 @@ export class CurrentUserUtils {
 
     // the initial presentation Doc to use
     static setupDefaultPresentation(doc: Doc) {
-        doc.curPresentation = Docs.Create.PresDocument(new List<Doc>(), { title: "Presentation", boxShadow: "0 0" });
+        doc.curPresentation = Docs.Create.PresDocument(new List<Doc>(), { title: "Presentation", _viewType: CollectionViewType.Stacking, boxShadow: "0 0" });
     }
 
     static setupMobileUploads(doc: Doc) {

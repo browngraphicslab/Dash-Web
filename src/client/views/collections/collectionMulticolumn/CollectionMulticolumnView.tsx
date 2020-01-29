@@ -249,7 +249,7 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
 
     render(): JSX.Element {
         return (
-            <div className={"collectionMulticolumnView_contents"} ref={this.createDashEventsTarget} b >
+            <div className={"collectionMulticolumnView_contents"} ref={this.createDashEventsTarget}>
                 {this.contents}
             </div>
         );

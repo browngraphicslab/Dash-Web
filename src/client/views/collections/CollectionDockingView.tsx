@@ -645,7 +645,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         if (curPres) {
             const pinDoc = Docs.Create.PresElementBoxDocument({ backgroundColor: "transparent" });
             Doc.GetProto(pinDoc).presentationTargetDoc = doc;
-            Doc.GetProto(pinDoc).title = ComputedField.MakeFunction('(this.presentationTargetDoc instanceof Doc) && this.presentationTargetDoc.title.toString()');
+            Doc.GetProto(pinDoc).title = ComputedField.MakeFunction('(this.presentationTargetDoc instanceof Doc) && this.presentationTargetDoc.title?.toString()');
             const data = Cast(curPres.data, listSpec(Doc));
             if (data) {
                 data.push(pinDoc);

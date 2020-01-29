@@ -695,7 +695,7 @@ export class DashDocCommentView {
             e.stopPropagation();
         };
         this._collapsed.onpointerenter = (e: any) => {
-            DocServer.GetRefField(node.attrs.docid).then(async dashDoc => dashDoc instanceof Doc && Doc.linkFollowHighlight(dashDoc));
+            DocServer.GetRefField(node.attrs.docid).then(async dashDoc => dashDoc instanceof Doc && Doc.linkFollowHighlight(dashDoc, false));
             e.preventDefault();
             e.stopPropagation();
         };

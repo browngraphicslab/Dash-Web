@@ -110,7 +110,7 @@ export class CollectionPivotView extends CollectionSubView(doc => doc) {
             </div>
         );
         return !facetCollection ? (null) :
-            <div className="collectionPivotView">
+            <div className="collectionPivotView" style={{ height: `calc(100%  - ${this.props.Document._chromeStatus === "enabled" ? 51 : 0}px)` }}>
                 <div className={"pivotKeyEntry"}>
                     <EditableView
                         contents={this.props.Document.pivotField}

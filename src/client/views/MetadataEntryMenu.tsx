@@ -196,7 +196,7 @@ export class MetadataEntryMenu extends React.Component<MetadataEntryProps>{
     _ref = React.createRef<HTMLInputElement>();
     render() {
         return (
-            <div className="metadataEntry-outerDiv">
+            <div className="metadataEntry-outerDiv" id="metadataEntry-outer">
                 <div className="metadataEntry-inputArea">
                     Key:
                     <Autosuggest inputProps={{ value: this._currentKey, onChange: this.onKeyChange }}

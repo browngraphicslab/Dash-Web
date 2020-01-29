@@ -710,9 +710,9 @@ export namespace Doc {
     }
 
     let dt = 0;
-    export function linkFollowHighlight(destDoc: Doc) {
+    export function linkFollowHighlight(destDoc: Doc, dataAndDisplayDocs = true) {
         linkFollowUnhighlight();
-        Doc.HighlightDoc(destDoc);
+        Doc.HighlightDoc(destDoc, dataAndDisplayDocs);
         document.removeEventListener("pointerdown", linkFollowUnhighlight);
         document.addEventListener("pointerdown", linkFollowUnhighlight);
         const x = dt = Date.now();
@@ -726,10 +726,10 @@ export namespace Doc {
     export function IsHighlighted(doc: Doc) {
         return highlightManager.HighlightedDoc.get(doc) || highlightManager.HighlightedDoc.get(Doc.GetDataDoc(doc));
     }
-    export function HighlightDoc(doc: Doc) {
+    export function HighlightDoc(doc: Doc, dataAndDisplayDocs = true) {
         runInAction(() => {
             highlightManager.HighlightedDoc.set(doc, true);
-            highlightManager.HighlightedDoc.set(Doc.GetDataDoc(doc), true);
+            dataAndDisplayDocs && highlightManager.HighlightedDoc.set(Doc.GetDataDoc(doc), true);
         });
     }
     export function UnHighlightDoc(doc: Doc) {
@@ -756,7 +756,7 @@ export namespace Doc {
             source.dragFactory instanceof Doc && source.dragFactory.isTemplateDoc ? source.dragFactory :
             source && source.layout instanceof Doc && source.layout.isTemplateDoc ? source.layout : undefined;
     }
-    export function setChildDetailed(target: Doc, source?: Doc) {
+    export function setChildDetailedLayout(target: Doc, source?: Doc) {
         target.childDetailed = source && source.isTemplateDoc ? source : source &&
             source.dragFactory instanceof Doc && source.dragFactory.isTemplateDoc ? source.dragFactory :
             source && source.layout instanceof Doc && source.layout.isTemplateDoc ? source.layout : undefined;
@@ -776,6 +776,7 @@ export namespace Doc {
 Scripting.addGlobal(function renameAlias(doc: any, n: any) { return StrCast(Doc.GetProto(doc).title).replace(/\([0-9]*\)/, "") + `(${n})`; });
 Scripting.addGlobal(function getProto(doc: any) { return Doc.GetProto(doc); });
 Scripting.addGlobal(function setChildLayout(target: any, source: any) { Doc.setChildLayout(target, source); });
+Scripting.addGlobal(function setChildDetailedLayout(target: any, source: any) { Doc.setChildDetailedLayout(target, source); });
 Scripting.addGlobal(function getAlias(doc: any) { return Doc.MakeAlias(doc); });
 Scripting.addGlobal(function getCopy(doc: any, copyProto: any) { return doc.isTemplateDoc ? Doc.ApplyTemplate(doc) : Doc.MakeCopy(doc, copyProto); });
 Scripting.addGlobal(function copyField(field: any) { return ObjectField.MakeCopy(field); });

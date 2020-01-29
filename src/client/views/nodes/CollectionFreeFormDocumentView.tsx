@@ -60,8 +60,8 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
 
     componentWillUnmount() { this._disposer?.(); }
     componentDidMount() {
-        this._disposer = reaction(() => Array.from(Cast(this.props.Document?.animateToPos, listSpec("number"), null)),
-            target => this._animPos = !target ? undefined : target[2] ? [NumCast(this.layoutDoc.x), NumCast(this.layoutDoc.y)] :
+        this._disposer = reaction(() => Array.from(Cast(this.props.Document?.animateToPos, listSpec("number"), null) || []),
+            target => this._animPos = !target || !target?.length ? undefined : target[2] ? [NumCast(this.layoutDoc.x), NumCast(this.layoutDoc.y)] :
                 this.props.ScreenToLocalTransform().transformPoint(target[0], target[1]),
             { fireImmediately: true });
     }
