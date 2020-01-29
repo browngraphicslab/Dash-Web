@@ -389,6 +389,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                 <div className={this.isStackingView ? "collectionStackingView" : "collectionMasonryView"}
                     ref={this.createRef}
                     style={{
+                        overflowY: this.props.active() ? "auto" : "hidden",
                         transform: `scale(${Math.min(1, this.props.PanelHeight() / this.layoutDoc[HeightSym]())})`,
                         height: `${Math.max(100, 100 * 1 / Math.min(this.props.PanelWidth() / this.layoutDoc[WidthSym](), this.props.PanelHeight() / this.layoutDoc[HeightSym]()))}%`,
                         transformOrigin: "top"
@@ -396,7 +397,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                     onScroll={action((e: React.UIEvent<HTMLDivElement>) => this._scroll = e.currentTarget.scrollTop)}
                     onDrop={this.onDrop.bind(this)}
                     onContextMenu={this.onContextMenu}
-                    onWheel={e => e.stopPropagation()} >
+                    onWheel={e => this.props.active() && e.stopPropagation()} >
                     {this.renderedSections}
                     {!this.showAddAGroup ? (null) :
                         <div key={`${this.props.Document[Id]}-addGroup`} className="collectionStackingView-addGroupButton"

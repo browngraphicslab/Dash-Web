@@ -274,7 +274,7 @@ export namespace RichTextUtils {
             const backingDocId = StrCast(textNote[guid]);
             if (!backingDocId) {
                 const backingDoc = Docs.Create.ImageDocument(src, { _width: 300, _height: 300 });
-                DocumentView.makeCustomViewClicked(backingDoc, undefined);
+                DocumentView.makeCustomViewClicked(backingDoc, undefined, Docs.Create.FreeformDocument);
                 docid = backingDoc[Id];
                 textNote[guid] = docid;
             } else {
@@ -403,7 +403,7 @@ export namespace RichTextUtils {
                                     let exported = (await Cast(linkDoc.anchor2, Doc))!;
                                     if (!exported.customLayout) {
                                         exported = Doc.MakeAlias(exported);
-                                        DocumentView.makeCustomViewClicked(exported, undefined);
+                                        DocumentView.makeCustomViewClicked(exported, undefined, Docs.Create.FreeformDocument);
                                         linkDoc.anchor2 = exported;
                                     }
                                     url = Utils.shareUrl(exported[Id]);

@@ -9,12 +9,12 @@ import { Id } from '../../../new_fields/FieldSymbols';
 import { listSpec } from "../../../new_fields/Schema";
 import { ScriptField } from '../../../new_fields/ScriptField';
 import { BoolCast, Cast, NumCast, StrCast } from "../../../new_fields/Types";
-import { ImageField } from '../../../new_fields/URLField';
+import { ImageField, PdfField, VideoField, AudioField } from '../../../new_fields/URLField';
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { emptyFunction, returnTransparent, returnTrue, Utils, returnOne } from "../../../Utils";
 import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
 import { DocServer } from "../../DocServer";
-import { Docs, DocUtils } from "../../documents/Documents";
+import { Docs, DocUtils, DocumentOptions } from "../../documents/Documents";
 import { DocumentType } from '../../documents/DocumentTypes';
 import { ClientUtils } from '../../util/ClientUtils';
 import { DocumentManager } from "../../util/DocumentManager";
@@ -49,6 +49,7 @@ import { RadialMenu } from './RadialMenu';
 import { RadialMenuProps } from './RadialMenuItem';
 
 import { CollectionStackingView } from '../collections/CollectionStackingView';
+import { RichTextField } from '../../../new_fields/RichTextField';
 
 library.add(fa.faEdit, fa.faTrash, fa.faShare, fa.faDownload, fa.faExpandArrowsAlt, fa.faCompressArrowsAlt, fa.faLayerGroup, fa.faExternalLinkAlt, fa.faAlignCenter, fa.faCaretSquareRight,
     fa.faSquare, fa.faConciergeBell, fa.faWindowRestore, fa.faFolder, fa.faMapPin, fa.faLink, fa.faFingerprint, fa.faCrosshairs, fa.faDesktop, fa.faUnlock, fa.faLock, fa.faLaptopCode, fa.faMale,
@@ -515,43 +516,45 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @undoBatch
     deleteClicked = (): void => { SelectionManager.DeselectAll(); this.props.removeDocument && this.props.removeDocument(this.props.Document); }
 
-    static makeNativeViewClicked = (doc: Doc) => {
-        undoBatch(() => doc.layoutKey = "layout")();
+    static makeNativeViewClicked = (doc: Doc, prevLayout: string) => {
+        undoBatch(() => {
+            if (StrCast(doc.title).endsWith("_" + prevLayout)) doc.title = StrCast(doc.title).replace("_" + prevLayout, "");
+            doc.layoutKey = "layout";
+        })();
     }
 
-    static makeCustomViewClicked = (doc: Doc, dataDoc: Opt<Doc>, name: string = "custom") => {
+    static makeCustomViewClicked = (doc: Doc, dataDoc: Opt<Doc>, creator: (documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc, name: string = "custom") => {
         const batch = UndoManager.StartBatch("CustomViewClicked");
-        const customName = "layout-" + name;
+        const customName = "layout_" + name;
+        if (!StrCast(doc.title).endsWith(name)) doc.title = doc.title + "_" + name;
         if (doc[customName] === undefined) {
             const _width = NumCast(doc._width);
             const _height = NumCast(doc._height);
             const options = { title: "data", _width, x: -_width / 2, y: - _height / 2, };
 
-            let fieldTemplate: Doc;
-            switch (doc.type) {
-                case DocumentType.TEXT:
-                    fieldTemplate = Docs.Create.TextDocument("", options);
-                    break;
-                case DocumentType.PDF:
-                    fieldTemplate = Docs.Create.PdfDocument("http://www.msn.com", options);
-                    break;
-                case DocumentType.VID:
-                    fieldTemplate = Docs.Create.VideoDocument("http://www.cs.brown.edu", options);
-                    break;
-                case DocumentType.AUDIO:
-                    fieldTemplate = Docs.Create.AudioDocument("http://www.cs.brown.edu", options);
-                    break;
-                default:
-                    fieldTemplate = Docs.Create.ImageDocument("http://www.cs.brown.edu", options);
+            const field = doc.data;
+            let fieldTemplate: Opt<Doc>;
+            if (field instanceof RichTextField || typeof (field) === "string") {
+                fieldTemplate = Docs.Create.TextDocument("", options);
+            } else if (field instanceof PdfField) {
+                fieldTemplate = Docs.Create.PdfDocument("http://www.msn.com", options);
+            } else if (field instanceof VideoField) {
+                fieldTemplate = Docs.Create.VideoDocument("http://www.cs.brown.edu", options);
+            } else if (field instanceof AudioField) {
+                fieldTemplate = Docs.Create.AudioDocument("http://www.cs.brown.edu", options);
+            } else if (field instanceof ImageField) {
+                fieldTemplate = Docs.Create.ImageDocument("http://www.cs.brown.edu", options);
             }
 
-            fieldTemplate.backgroundColor = doc.backgroundColor;
-            fieldTemplate.heading = 1;
-            fieldTemplate._autoHeight = true;
+            if (fieldTemplate) {
+                fieldTemplate.backgroundColor = doc.backgroundColor;
+                fieldTemplate.heading = 1;
+                fieldTemplate._autoHeight = true;
+            }
 
-            const docTemplate = Docs.Create.FreeformDocument([fieldTemplate], { title: customName + "(" + doc.title + ")", isTemplateDoc: true, _width: _width + 20, _height: Math.max(100, _height + 45) });
+            const docTemplate = creator(fieldTemplate ? [fieldTemplate] : [], { title: customName + "(" + doc.title + ")", isTemplateDoc: true, _width: _width + 20, _height: Math.max(100, _height + 45) });
 
-            Doc.MakeMetadataFieldTemplate(fieldTemplate, Doc.GetProto(docTemplate));
+            fieldTemplate && Doc.MakeMetadataFieldTemplate(fieldTemplate, Doc.GetProto(docTemplate));
             Doc.ApplyTemplateTo(docTemplate, dataDoc || doc, customName, undefined);
         } else {
             doc.layoutKey = customName;
@@ -644,27 +647,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @undoBatch
     @action
-    setNarrativeView = (custom: boolean): void => {
-        if (custom) {
-            custom ? DocumentView.makeCustomViewClicked(this.props.Document, this.props.DataDoc, "narrative") : DocumentView.makeNativeViewClicked(this.props.Document);
-            //     this.props.Document.layout_narrative = CollectionView.LayoutString("narrative");
-            //     this.props.Document.layoutKey = "layout_narrative";
-            //     this.props.Document._nativeWidth = this.props.Document._nativeHeight = undefined;
-            //     !this.props.Document.narrative && (Doc.GetProto(this.props.Document).narrative = new List<Doc>([]));
-            //     this.props.Document._viewType = CollectionViewType.Stacking;
-            // } else {
-            //     DocumentView.makeNativeViewClicked(this.props.Document);
-        }
-    }
-
-    @undoBatch
-    @action
     setCustomView =
-        (custom: boolean): void => {
+        (custom: boolean, layout: string): void => {
             if (this.props.ContainingCollectionView?.props.DataDoc || this.props.ContainingCollectionView?.props.Document.isTemplateDoc) {
                 Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.ContainingCollectionView.props.Document);
+            } else if (custom) {
+                DocumentView.makeNativeViewClicked(this.props.Document, StrCast(this.props.Document.layoutKey).split("_")[1]);
+                DocumentView.makeCustomViewClicked(this.props.Document, this.props.DataDoc, Docs.Create.StackingDocument, layout);
             } else {
-                custom ? DocumentView.makeCustomViewClicked(this.props.Document, this.props.DataDoc) : DocumentView.makeNativeViewClicked(this.props.Document);
+                DocumentView.makeNativeViewClicked(this.props.Document, StrCast(this.props.Document.layoutKey).split("_")[1]);
             }
         }
 
@@ -744,11 +735,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         layoutItems.push({ description: this.Document.lockedTransform ? "Unlock Transform" : "Lock Transform", event: this.toggleLockTransform, icon: BoolCast(this.Document.lockedTransform) ? "unlock" : "lock" });
         layoutItems.push({ description: "Center View", event: () => this.props.focus(this.props.Document, false), icon: "crosshairs" });
         layoutItems.push({ description: "Zoom to Document", event: () => this.props.focus(this.props.Document, true), icon: "search" });
-        if (this.Document.type !== DocumentType.COL && this.Document.type !== DocumentType.TEMPLATE) {
-            layoutItems.push({ description: "Use Custom Layout", event: () => DocumentView.makeCustomViewClicked(this.props.Document, this.props.DataDoc), icon: "concierge-bell" });
-        } else {
-            layoutItems.push({ description: "Use Native Layout", event: () => DocumentView.makeNativeViewClicked(this.props.Document), icon: "concierge-bell" });
-        }
         !existing && cm.addItem({ description: "Layout...", subitems: layoutItems, icon: "compass" });
 
         const more = ContextMenu.Instance.findByDescription("More...");

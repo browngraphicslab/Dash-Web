@@ -1,6 +1,5 @@
-import { action, observable } from "mobx";
+import { action, observable, runInAction, ObservableSet } from "mobx";
 import { observer } from "mobx-react";
-import { DragManager } from "../util/DragManager";
 import { SelectionManager } from "../util/SelectionManager";
 import { undoBatch } from "../util/UndoManager";
 import './TemplateMenu.scss';
@@ -9,8 +8,6 @@ import { Template, Templates } from "./Templates";
 import React = require("react");
 import { Doc } from "../../new_fields/Doc";
 import { StrCast } from "../../new_fields/Types";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEdit, faChevronCircleUp } from "@fortawesome/free-solid-svg-icons";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -52,11 +49,8 @@ export interface TemplateMenuProps {
 export class TemplateMenu extends React.Component<TemplateMenuProps> {
     @observable private _hidden: boolean = true;
 
-    toggleCustom = (e: React.ChangeEvent<HTMLInputElement>): void => {
-        this.props.docs.map(dv => dv.setCustomView(e.target.checked));
-    }
-    toggleNarrative = (e: React.ChangeEvent<HTMLInputElement>): void => {
-        this.props.docs.map(dv => dv.setNarrativeView(e.target.checked));
+    toggleLayout = (e: React.ChangeEvent<HTMLInputElement>, layout: string): void => {
+        this.props.docs.map(dv => dv.setCustomView(e.target.checked, layout));
     }
 
     toggleFloat = (e: React.ChangeEvent<HTMLInputElement>): void => {
@@ -92,17 +86,34 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
         });
     }
 
+    // todo: add brushes to brushMap to save with a style name
+    onCustomKeypress = (e: React.KeyboardEvent) => {
+        if (e.key === "Enter") {
+            runInAction(() => TemplateMenu._addedKeys.add(this._customRef.current!.value));
+        }
+    }
+    componentDidMount() {
+        !TemplateMenu._addedKeys && (TemplateMenu._addedKeys = new ObservableSet(["narrative"]));
+        Array.from(Object.keys(Doc.GetProto(this.props.docs[0].props.Document))).
+            filter(key => key.startsWith("layout_")).
+            map(key => runInAction(() => TemplateMenu._addedKeys.add(key.replace("layout_", ""))));
+    }
+
+    static _addedKeys = new ObservableSet(["narrative"]);
+    _customRef = React.createRef<HTMLInputElement>();
     render() {
         const layout = Doc.Layout(this.props.docs[0].Document);
         const templateMenu: Array<JSX.Element> = [];
         this.props.templates.forEach((checked, template) =>
             templateMenu.push(<TemplateToggle key={template.Name} template={template} checked={checked} toggle={this.toggleTemplate} />));
         templateMenu.push(<OtherToggle key={"float"} name={"Float"} checked={this.props.docs[0].Document.z ? true : false} toggle={this.toggleFloat} />);
-        templateMenu.push(<OtherToggle key={"custom"} name={"Custom"} checked={StrCast(this.props.docs[0].Document.layoutKey, "layout") !== "layout"} toggle={this.toggleCustom} />);
-        templateMenu.push(<OtherToggle key={"narrative"} name={"Narrative"} checked={StrCast(this.props.docs[0].Document.layoutKey, "layout") === "layout_narrative"} toggle={this.toggleNarrative} />);
         templateMenu.push(<OtherToggle key={"chrome"} name={"Chrome"} checked={layout._chromeStatus !== "disabled"} toggle={this.toggleChrome} />);
+        TemplateMenu._addedKeys && Array.from(TemplateMenu._addedKeys).map(layout =>
+            templateMenu.push(<OtherToggle key={layout} name={layout} checked={StrCast(this.props.docs[0].Document.layoutKey, "layout") === "layout_" + layout} toggle={e => this.toggleLayout(e, layout)} />)
+        );
         return <ul className="template-list" style={{ display: "block" }}>
             {templateMenu}
+            <input placeholder="+ layout" ref={this._customRef} onKeyPress={this.onCustomKeypress}></input>
         </ul>;
     }
 }

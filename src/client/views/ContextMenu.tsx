@@ -77,7 +77,12 @@ export class ContextMenu extends React.Component {
     @action
     clearItems() {
         this._items = [];
+        this._defaultPrefix = "";
+        this._defaultItem = undefined;
     }
+
+    _defaultPrefix: string = "";
+    _defaultItem: ((name: string) => void) | undefined;
 
     findByDescription = (target: string, toLowerCase = false) => {
         return this._items.find(menuItem => {
@@ -92,6 +97,11 @@ export class ContextMenu extends React.Component {
         if (this._items.indexOf(item) === -1) {
             this._items.push(item);
         }
+    }
+    @action
+    setDefaultItem(prefix: string, item: (name: string) => void) {
+        this._defaultPrefix = prefix;
+        this._defaultItem = item;
     }
 
     getItems() {
@@ -248,7 +258,11 @@ export class ContextMenu extends React.Component {
             e.preventDefault();
         } else if (e.key === "Enter" || e.key === "Tab") {
             const item = this.flatItems[this.selectedIndex];
-            item && item.event({ x: this.pageX, y: this.pageY });
+            if (item) {
+                item.event({ x: this.pageX, y: this.pageY });
+            } else if (this._searchString.startsWith(this._defaultPrefix)) {
+                this._defaultItem?.(this._searchString.substring(this._defaultPrefix.length));
+            }
             this.closeMenu();
             e.preventDefault();
         }

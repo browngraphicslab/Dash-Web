@@ -4,7 +4,7 @@ import { faPalette } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc } from "../../../new_fields/Doc";
+import { Doc, DocListCast } from "../../../new_fields/Doc";
 import { PastelSchemaPalette, SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 import { ScriptField } from "../../../new_fields/ScriptField";
 import { NumCast, StrCast } from "../../../new_fields/Types";
@@ -282,6 +282,18 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                     }
                 }, icon: "compress-arrows-alt"
             }));
+        Array.from(Object.keys(Doc.GetProto(dataDoc))).filter(fieldKey => DocListCast(dataDoc[fieldKey]).length).map(fieldKey =>
+            docItems.push({
+                description: ":" + fieldKey, event: () => {
+                    const created = Docs.Create.CarouselDocument([], { _width: 400, _height: 200, title: fieldKey });
+                    if (created) {
+                        if (this.props.parent.Document.isTemplateDoc) {
+                            Doc.MakeMetadataFieldTemplate(created, this.props.parent.props.Document);
+                        }
+                        return this.props.parent.props.addDocument(created);
+                    }
+                }, icon: "compress-arrows-alt"
+            }));
         layoutItems.push({ description: ":freeform", event: () => this.props.parent.props.addDocument(Docs.Create.FreeformDocument([], { _width: 200, _height: 200, _LODdisable: true })), icon: "compress-arrows-alt" });
         layoutItems.push({ description: ":carousel", event: () => this.props.parent.props.addDocument(Docs.Create.CarouselDocument([], { _width: 400, _height: 200, _LODdisable: true })), icon: "compress-arrows-alt" });
         layoutItems.push({ description: ":columns", event: () => this.props.parent.props.addDocument(Docs.Create.MulticolumnDocument([], { _width: 200, _height: 200 })), icon: "compress-arrows-alt" });
@@ -289,6 +301,16 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
 
         ContextMenu.Instance.addItem({ description: "Doc Fields ...", subitems: docItems, icon: "eye" });
         ContextMenu.Instance.addItem({ description: "Containers ...", subitems: layoutItems, icon: "eye" });
+        ContextMenu.Instance.setDefaultItem("::", (name: string): void => {
+            Doc.GetProto(this.props.parent.props.Document)[name] = "";
+            const created = Docs.Create.TextDocument("", { title: name, _width: 250, _autoHeight: true });
+            if (created) {
+                if (this.props.parent.Document.isTemplateDoc) {
+                    Doc.MakeMetadataFieldTemplate(created, this.props.parent.props.Document);
+                }
+                this.props.parent.props.addDocument(created);
+            }
+        });
         const pt = this.props.screenToLocalTransform().inverse().transformPoint(x, y);
         ContextMenu.Instance.displayMenu(pt[0], pt[1]);
     }
