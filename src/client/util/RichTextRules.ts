@@ -65,7 +65,7 @@ export const inpRules = {
 
         // set the font size using #<font-size> 
         new InputRule(
-            new RegExp(/^%([0-9]+)\s$/),
+            new RegExp(/%([0-9]+)\s$/),
             (state, match, start, end) => {
                 const size = Number(match[1]);
                 return state.tr.deleteRange(start, end).addStoredMark(schema.marks.pFontSize.create({ fontSize: size }));
@@ -78,7 +78,7 @@ export const inpRules = {
                 const fieldView = state.schema.nodes.dashField.create({ fieldKey: match[1] });
                 return state.tr.deleteRange(start, end).insert(start, fieldView);
             }),
-        // create a text display of a metadata field
+        // create a text display of a metadata field on another document
         new InputRule(
             new RegExp(/\[\[([a-zA-Z_ \-0-9]+):([a-zA-Z_ \-0-9]+)\]\]$/),
             (state, match, start, end) => {
@@ -204,7 +204,7 @@ export const inpRules = {
                 return replaced.setSelection(new TextSelection(replaced.doc.resolve(end - 2)));
             }),
         new InputRule(
-            new RegExp(/%#$/),
+            new RegExp(/##$/),
             (state, match, start, end) => {
                 const textDoc = Doc.GetProto(Cast((schema as any).Document[DataSym], Doc, null)!);
                 const numInlines = NumCast(textDoc.inlineTextCount);
