@@ -7,6 +7,7 @@ import { ObjectField } from "./ObjectField";
 import { action, trace } from "mobx";
 import { Parent, OnUpdate, Update, Id, SelfProxy, Self } from "./FieldSymbols";
 import { DocServer } from "../client/DocServer";
+import { props } from "bluebird";
 
 function _readOnlySetter(): never {
     throw new Error("Documents can't be modified in read-only mode");
@@ -35,6 +36,7 @@ const _setterImpl = action(function (target: any, prop: string | symbol | number
         target[prop] = value;
         return true;
     }
+
     if (typeof prop === "symbol") {
         target[prop] = value;
         return true;
@@ -98,11 +100,38 @@ export function makeEditable() {
     _setter = _setterImpl;
 }
 
-export function setter(target: any, prop: string | symbol | number, value: any, receiver: any): boolean {
+let layoutProps = ["panX", "panY", "width", "height", "nativeWidth", "nativeHeight", "fitWidth", "fitToBox",
+    "LODdisable", "dropAction", "chromeStatus", "viewType", "gridGap", "xMargin", "yMargin", "autoHeight"];
+export function setter(target: any, in_prop: string | symbol | number, value: any, receiver: any): boolean {
+    let prop = in_prop;
+    if (typeof prop === "string" && prop !== "__id" && prop !== "__fields" &&
+        ((prop as string).startsWith("_") || layoutProps.includes(prop))) {
+        if (!prop.startsWith("_")) {
+            console.log(prop + " is deprecated - switch to _" + prop);
+            prop = "_" + prop;
+        }
+        const resolvedLayout = getFieldImpl(target, getFieldImpl(target, "layoutKey", receiver), receiver);
+        if (resolvedLayout instanceof Doc) {
+            resolvedLayout[prop] = value;
+            return true;
+        }
+    }
     return _setter(target, prop, value, receiver);
 }
 
-export function getter(target: any, prop: string | symbol | number, receiver: any): any {
+export function getter(target: any, in_prop: string | symbol | number, receiver: any): any {
+    let prop = in_prop;
+    if (typeof prop === "string" && prop !== "__id" && prop !== "__fields" &&
+        ((prop as string).startsWith("_") || layoutProps.includes(prop))) {
+        if (!prop.startsWith("_")) {
+            console.log(prop + " is deprecated - switch to _" + prop);
+            prop = "_" + prop;
+        }
+        const resolvedLayout = getFieldImpl(target, getFieldImpl(target, "layoutKey", receiver), receiver);
+        if (resolvedLayout instanceof Doc) {
+            return resolvedLayout[prop];
+        }
+    }
     if (prop === "then") {//If we're being awaited
         return undefined;
     }

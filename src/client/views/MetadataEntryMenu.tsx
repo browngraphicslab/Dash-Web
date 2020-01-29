@@ -19,7 +19,6 @@ export interface MetadataEntryProps {
 export class MetadataEntryMenu extends React.Component<MetadataEntryProps>{
     @observable private _currentKey: string = "";
     @observable private _currentValue: string = "";
-    @observable private suggestions: string[] = [];
     private _addChildren: boolean = false;
     @observable _allSuggestions: string[] = [];
     _suggestionDispser: IReactionDisposer | undefined;
@@ -178,11 +177,11 @@ export class MetadataEntryMenu extends React.Component<MetadataEntryProps>{
         }
         docSource = docSource as Doc[] | Doc;
         if (docSource instanceof Doc) {
-            if (docSource.viewType === undefined) {
+            if (docSource._viewType === undefined) {
                 return (null);
             }
         } else if (Array.isArray(docSource)) {
-            if (!docSource.every(doc => doc.viewType !== undefined)) {
+            if (!docSource.every(doc => doc._viewType !== undefined)) {
                 return null;
             }
         }

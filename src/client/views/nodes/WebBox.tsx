@@ -39,12 +39,12 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
         const field = Cast(this.props.Document[this.props.fieldKey], WebField);
         if (field && field.url.href.indexOf("youtube") !== -1) {
             const youtubeaspect = 400 / 315;
-            const nativeWidth = NumCast(this.layoutDoc.nativeWidth);
-            const nativeHeight = NumCast(this.layoutDoc.nativeHeight);
+            const nativeWidth = NumCast(this.layoutDoc._nativeWidth);
+            const nativeHeight = NumCast(this.layoutDoc._nativeHeight);
             if (!nativeWidth || !nativeHeight || Math.abs(nativeWidth / nativeHeight - youtubeaspect) > 0.05) {
-                if (!nativeWidth) this.layoutDoc.nativeWidth = 600;
-                this.layoutDoc.nativeHeight = NumCast(this.layoutDoc.nativeWidth) / youtubeaspect;
-                this.layoutDoc.height = NumCast(this.layoutDoc.width) / youtubeaspect;
+                if (!nativeWidth) this.layoutDoc._nativeWidth = 600;
+                this.layoutDoc._nativeHeight = NumCast(this.layoutDoc._nativeWidth) / youtubeaspect;
+                this.layoutDoc._height = NumCast(this.layoutDoc._width) / youtubeaspect;
             }
         }
 
@@ -83,13 +83,12 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
         const field = Cast(this.props.Document[this.props.fieldKey], WebField);
         if (field) url = field.url.href;
 
-        const newBox = Docs.Create.TextDocument({
+        const newBox = Docs.Create.TextDocument(url, {
             x: NumCast(this.props.Document.x),
             y: NumCast(this.props.Document.y),
             title: url,
-            width: 200,
-            height: 70,
-            documentText: "@@@" + url
+            _width: 200,
+            _height: 70,
         });
 
         SelectionManager.SelectedDocuments().map(dv => {
@@ -198,7 +197,7 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
             <CollectionFreeFormView {...this.props}
                 PanelHeight={this.props.PanelHeight}
                 PanelWidth={this.props.PanelWidth}
-                annotationsKey={this.annotationsKey}
+                annotationsKey={this.annotationKey}
                 focus={this.props.focus}
                 isSelected={this.props.isSelected}
                 isAnnotationOverlay={true}

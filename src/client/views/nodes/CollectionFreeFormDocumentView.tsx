@@ -38,18 +38,18 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         return (hgt === undefined && this.nativeWidth && this.nativeHeight) ? this.width * this.nativeHeight / this.nativeWidth : hgt;
     }
     @computed get dataProvider() { return this.props.dataProvider && this.props.dataProvider(this.props.Document) ? this.props.dataProvider(this.props.Document) : undefined; }
-    @computed get nativeWidth() { return NumCast(this.layoutDoc.nativeWidth); }
-    @computed get nativeHeight() { return NumCast(this.layoutDoc.nativeHeight); }
+    @computed get nativeWidth() { return NumCast(this.layoutDoc._nativeWidth); }
+    @computed get nativeHeight() { return NumCast(this.layoutDoc._nativeHeight); }
 
     @computed get renderScriptDim() {
         if (this.Document.renderScript) {
             const someView = Cast(this.props.Document.someView, Doc);
             const minimap = Cast(this.props.Document.minimap, Doc);
             if (someView instanceof Doc && minimap instanceof Doc) {
-                const x = (NumCast(someView.panX) - NumCast(someView.width) / 2 / NumCast(someView.scale) - (NumCast(minimap.fitX) - NumCast(minimap.fitW) / 2)) / NumCast(minimap.fitW) * NumCast(minimap.width) - NumCast(minimap.width) / 2;
-                const y = (NumCast(someView.panY) - NumCast(someView.height) / 2 / NumCast(someView.scale) - (NumCast(minimap.fitY) - NumCast(minimap.fitH) / 2)) / NumCast(minimap.fitH) * NumCast(minimap.height) - NumCast(minimap.height) / 2;
-                const w = NumCast(someView.width) / NumCast(someView.scale) / NumCast(minimap.fitW) * NumCast(minimap.width);
-                const h = NumCast(someView.height) / NumCast(someView.scale) / NumCast(minimap.fitH) * NumCast(minimap.height);
+                const x = (NumCast(someView._panX) - NumCast(someView._width) / 2 / NumCast(someView.scale) - (NumCast(minimap.fitX) - NumCast(minimap.fitW) / 2)) / NumCast(minimap.fitW) * NumCast(minimap._width) - NumCast(minimap._width) / 2;
+                const y = (NumCast(someView._panY) - NumCast(someView._height) / 2 / NumCast(someView.scale) - (NumCast(minimap.fitY) - NumCast(minimap.fitH) / 2)) / NumCast(minimap.fitH) * NumCast(minimap._height) - NumCast(minimap._height) / 2;
+                const w = NumCast(someView._width) / NumCast(someView.scale) / NumCast(minimap.fitW) * NumCast(minimap.width);
+                const h = NumCast(someView._height) / NumCast(someView.scale) / NumCast(minimap.fitH) * NumCast(minimap.height);
                 return { x: x, y: y, width: w, height: h };
             }
         }
@@ -114,6 +114,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 PanelWidth={this.finalPanelWidth}
                 PanelHeight={this.finalPanelHeight}
             /> : <ContentFittingDocumentView {...this.props}
+                CollectionDoc={this.props.ContainingCollectionDoc}
                 DataDocument={this.props.DataDoc}
                 getTransform={this.getTransform}
                 active={returnFalse}

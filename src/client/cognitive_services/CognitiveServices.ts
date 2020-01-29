@@ -185,8 +185,9 @@ export namespace CognitiveServices {
                     results.recognitionUnits && (results = results.recognitionUnits);
                     target[keys[0]] = Docs.Get.DocumentHierarchyFromJson(results, "Ink Analysis");
                     const recognizedText = results.map((item: any) => item.recognizedText);
+                    const recognizedObjects = results.map((item: any) => item.recognizedObject);
                     const individualWords = recognizedText.filter((text: string) => text && text.split(" ").length === 1);
-                    target[keys[1]] = individualWords.join(" ");
+                    target[keys[1]] = individualWords.length ? individualWords.join(" ") : recognizedObjects.join(", ");
                 }
 
                 batch.end();
