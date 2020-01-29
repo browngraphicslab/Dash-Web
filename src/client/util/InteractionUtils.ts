@@ -23,7 +23,7 @@ export namespace InteractionUtils {
 
     export function MakeMultiTouchTarget(
         element: HTMLElement,
-        startFunc: (e: Event, me: MultiTouchEvent<React.TouchEvent>) => void,
+        startFunc: (e: Event, me: MultiTouchEvent<React.TouchEvent>) => void
     ): MultiTouchEventDisposer {
         const onMultiTouchStartHandler = (e: Event) => startFunc(e, (e as CustomEvent<MultiTouchEvent<React.TouchEvent>>).detail);
         // const onMultiTouchMoveHandler = moveFunc ? (e: Event) => moveFunc(e, (e as CustomEvent<MultiTouchEvent<TouchEvent>>).detail) : undefined;
@@ -43,6 +43,17 @@ export namespace InteractionUtils {
             // if (onMultiTouchEndHandler) {
             //     element.removeEventListener("dashOnTouchend", onMultiTouchEndHandler);
             // }
+        };
+    }
+
+    export function MakeHoldTouchTarget(
+        element: HTMLElement,
+        func: (e: Event, me: MultiTouchEvent<React.TouchEvent>) => void
+    ): MultiTouchEventDisposer {
+        const handler = (e: Event) => func(e, (e as CustomEvent<MultiTouchEvent<React.TouchEvent>>).detail);
+        element.addEventListener("dashOnTouchHoldStart", handler);
+        return () => {
+            element.removeEventListener("dashOnTouchHoldStart", handler);
         };
     }
 

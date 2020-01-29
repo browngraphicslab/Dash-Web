@@ -8,7 +8,6 @@ const HOLD_DURATION = 1000;
 
 export abstract class Touchable<T = {}> extends React.Component<T> {
     //private holdTimer: NodeJS.Timeout | undefined;
-    holdTimer: NodeJS.Timeout | undefined;
     private moveDisposer?: InteractionUtils.MultiTouchEventDisposer;
     private endDisposer?: InteractionUtils.MultiTouchEventDisposer;
     private holdMoveDisposer?: InteractionUtils.MultiTouchEventDisposer;
@@ -29,6 +28,8 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
      */
     @action
     protected onTouchStart = (e: Event, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>): void => {
+        console.log(e);
+        console.log(me);
         const actualPts: React.Touch[] = [];
         const te = me.touchEvent;
         // loop through all touches on screen
@@ -68,10 +69,7 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
                     //     clearTimeout(this.holdTimer)
                     //     this.holdTimer = undefined;
                     // }
-                    console.log(this.holdTimer);
-                    if (!this.holdTimer) {
-                        this.holdTimer = setTimeout(() => this.handle1PointerHoldStart(e, me), HOLD_DURATION);
-                    }
+                    // console.log(this.holdTimer);
                     // console.log(this.holdTimer);
                     break;
                 case 2:
@@ -96,11 +94,6 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
         // if we're not actually moving a lot, don't consider it as dragging yet
         if (!InteractionUtils.IsDragging(this.prevPoints, myTouches, 5) && !this._touchDrag) return;
         this._touchDrag = true;
-        if (this.holdTimer) {
-            console.log("CLEAR");
-            clearTimeout(this.holdTimer);
-            // this.holdTimer = undefined;
-        }
         // console.log(myTouches.length);
         switch (myTouches.length) {
             case 1:
@@ -123,6 +116,7 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
     @action
     protected onTouchEnd = (e: Event, me: InteractionUtils.MultiTouchEvent<TouchEvent>): void => {
         // console.log(InteractionUtils.GetMyTargetTouches(e, this.prevPoints).length + " up");
+        console.log("end");
         // remove all the touches associated with the event
         const te = me.touchEvent;
         for (const pt of me.changedTouches) {
@@ -131,15 +125,6 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
                     this.prevPoints.delete(pt.identifier);
                 }
             }
-        }
-        if (this.holdTimer) {
-            console.log(this.holdTimer);
-            clearTimeout(this.holdTimer);
-            console.log(this.holdTimer);
-
-            this.holdTimer = undefined;
-            console.log(this.holdTimer);
-            console.log("clear");
         }
         this._touchDrag = false;
         te.stopPropagation();
@@ -187,7 +172,6 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
     handle1PointerHoldStart = (e: Event, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>): any => {
         e.stopPropagation();
         me.touchEvent.stopPropagation();
-        this.holdTimer = undefined;
         this.removeMoveListeners();
         this.removeEndListeners();
         this.removeHoldMoveListeners();
