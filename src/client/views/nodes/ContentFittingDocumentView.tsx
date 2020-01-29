@@ -61,7 +61,7 @@ export class ContentFittingDocumentView extends React.Component<ContentFittingDo
             this.props.childDocs && this.props.childDocs.map(otherdoc => {
                 const target = Doc.GetProto(otherdoc);
                 target.layout = ComputedField.MakeFunction("this.image_data[0]");
-                target.layoutCustom = Doc.MakeDelegate(docDragData.draggedDocuments[0]);
+                target.layout_custom = Doc.MakeDelegate(docDragData.draggedDocuments[0]);
             });
             e.stopPropagation();
         }

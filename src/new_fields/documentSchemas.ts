@@ -4,9 +4,9 @@ import { Doc } from "./Doc";
 import { DateField } from "./DateField";
 
 export const documentSchema = createSchema({
-    layout: "string",           // this is the native layout string for the document.  templates can be added using other fields and setting layoutKey below (see layoutCustom as an example)
+    layout: "string",           // this is the native layout string for the document.  templates can be added using other fields and setting layoutKey below (see layout_custom as an example)
     layoutKey: "string",        // holds the field key for the field that actually holds the current lyoat
-    layoutCustom: Doc,          // used to hold a custom layout (there's nothing special about this field .. any field could hold a custom layout that can be selected by setting 'layoutKey')
+    layout_custom: Doc,         // used to hold a custom layout (there's nothing special about this field .. any field could hold a custom layout that can be selected by setting 'layoutKey')
     title: "string",            // document title (can be on either data document or layout)
     _dropAction: "string",       // override specifying what should happen when this document is dropped (can be "alias" or "copy")
     _nativeWidth: "number",      // native width of document which determines how much document contents are scaled when the document's width is set

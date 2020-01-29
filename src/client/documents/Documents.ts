@@ -79,6 +79,7 @@ export interface DocumentOptions {
     x?: number;
     y?: number;
     z?: number;
+    layoutKey?: string;
     type?: string;
     title?: string;
     page?: number;
@@ -338,7 +339,7 @@ export namespace Docs {
      */
     export namespace Create {
 
-        const delegateKeys = ["x", "y", "_width", "_height", "_panX", "_panY", "_viewType", "_nativeWidth", "_nativeHeight", "_dropAction", "_annotationOn",
+        const delegateKeys = ["x", "y", "layoutKey", "_width", "_height", "_panX", "_panY", "_viewType", "_nativeWidth", "_nativeHeight", "_dropAction", "_annotationOn",
             "_chromeStatus", "_forceActive", "_autoHeight", "_fitWidth", "_LODdisable", "_itemIndex", "_hideSidebar"];
 
         /**
@@ -823,8 +824,8 @@ export namespace DocUtils {
             linkDocProto.anchor2Groups = new List<Doc>([]);
             linkDocProto.anchor1Timecode = source.doc.currentTimecode;
             linkDocProto.anchor2Timecode = target.doc.currentTimecode;
-            linkDocProto.layoutKey1 = DocuLinkBox.LayoutString("anchor1");
-            linkDocProto.layoutKey2 = DocuLinkBox.LayoutString("anchor2");
+            linkDocProto.layout_key1 = DocuLinkBox.LayoutString("anchor1");
+            linkDocProto.layout_key2 = DocuLinkBox.LayoutString("anchor2");
             linkDocProto.width = linkDocProto.height = 0;
             linkDocProto.isBackground = true;
             linkDocProto.isButton = true;

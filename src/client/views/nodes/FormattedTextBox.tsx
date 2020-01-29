@@ -255,8 +255,8 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                     newLayout = Doc.MakeDelegate(draggedDoc);
                     newLayout.layout = StrCast(newLayout.layout).replace(/fieldKey={'[^']*'}/, `fieldKey={'${this.props.fieldKey}'}`);
                 }
-                this.Document.layoutCustom = newLayout;
-                this.Document.layoutKey = "layoutCustom";
+                this.Document.layout_custom = newLayout;
+                this.Document.layoutKey = "layout_custom";
                 e.stopPropagation();
                 // embed document when dragging with a userDropAction or an embedDoc flag set
             } else if (de.complete.docDragData.userDropAction || de.complete.docDragData.embedDoc) {
