@@ -28,6 +28,8 @@ export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
 @observer
 export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeFormDocumentViewProps, PositionDocument>(PositionDocument) {
     _disposer: IReactionDisposer | undefined = undefined;
+
+    @observable _animPos: number[] | undefined = undefined;
     get displayName() { return "CollectionFreeFormDocumentView(" + this.props.Document.title + ")"; } // this makes mobx trace() statements more descriptive
     get transform() { return `scale(${this.props.ContentScaling()}) translate(${this.X}px, ${this.Y}px) rotate(${anime.random(-1, 1) * this.props.jitterRotation}deg)`; }
     get X() { return this._animPos !== undefined ? this._animPos[0] : this.renderScriptDim ? this.renderScriptDim.x : this.props.x !== undefined ? this.props.x : this.dataProvider ? this.dataProvider.x : (this.Document.x || 0); }
@@ -56,36 +58,24 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         return undefined;
     }
 
-    componentWillUnmount() {
-        this._disposer && this._disposer();
-    }
+    componentWillUnmount() { this._disposer?.(); }
     componentDidMount() {
-        this._disposer = reaction(() => this.props.Document.animateToPos ? Array.from(Cast(this.props.Document.animateToPos, listSpec("number"))!) : undefined,
-            target => this._animPos = !target ? undefined : target[2] ? [NumCast(this.layoutDoc.x), NumCast(this.layoutDoc.y)] : this.props.ScreenToLocalTransform().transformPoint(target[0], target[1]),
+        this._disposer = reaction(() => Array.from(Cast(this.props.Document?.animateToPos, listSpec("number"), null)),
+            target => this._animPos = !target ? undefined : target[2] ? [NumCast(this.layoutDoc.x), NumCast(this.layoutDoc.y)] :
+                this.props.ScreenToLocalTransform().transformPoint(target[0], target[1]),
             { fireImmediately: true });
     }
 
     contentScaling = () => this.nativeWidth > 0 && !this.props.Document.ignoreAspect && !this.props.fitToBox ? this.width / this.nativeWidth : 1;
-    panelWidth = () => this.props.PanelWidth();
-    panelHeight = () => this.props.PanelHeight();
+    clusterColorFunc = (doc: Doc) => this.clusterColor;
+    panelWidth = () => (this.dataProvider?.width || this.props.PanelWidth());
+    panelHeight = () => (this.dataProvider?.height || this.props.PanelHeight());
     getTransform = (): Transform => this.props.ScreenToLocalTransform()
         .translate(-this.X, -this.Y)
         .scale(1 / this.contentScaling())
 
-    borderRounding = () => {
-        const ld = this.layoutDoc[StrCast(this.layoutDoc.layoutKey, "layout")] instanceof Doc ? this.layoutDoc[StrCast(this.layoutDoc.layoutKey, "layout")] as Doc : undefined;
-        return StrCast((ld || this.props.Document).borderRounding);
-    }
-
     @computed
     get clusterColor() { return this.props.backgroundColor(this.props.Document); }
-
-    clusterColorFunc = (doc: Doc) => this.clusterColor;
-
-    @observable _animPos: number[] | undefined = undefined;
-
-    finalPanelWidth = () => (this.dataProvider ? this.dataProvider.width : this.panelWidth());
-    finalPanelHeight = () => (this.dataProvider ? this.dataProvider.height : this.panelHeight());
 
     render() {
         TraceMobx();
@@ -97,7 +87,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                             this.clusterColor ? (`${this.clusterColor} ${StrCast(this.layoutDoc.boxShadow, `0vw 0vw ${(this.layoutDoc.isBackground ? 100 : 50) / this.props.ContentScaling()}px`)}`) :  // if it's just in a cluster, make the shadown roughly match the cluster border extent
                                 this.layoutDoc.isBackground ? undefined :  // if it's a background & has a cluster color, make the shadow spread really big
                                     StrCast(this.layoutDoc.boxShadow, ""),
-                borderRadius: this.borderRounding(),
+                borderRadius: StrCast(Doc.Layout(this.layoutDoc).borderRounding),
                 transform: this.transform,
                 transition: this.Document.isAnimating ? ".5s ease-in" : this.props.transition ? this.props.transition : this.dataProvider ? this.dataProvider.transition : StrCast(this.layoutDoc.transition),
                 width: this.width,
@@ -105,22 +95,21 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 zIndex: this.Document.zIndex || 0,
             }} >
 
-
             {!this.props.fitToBox ? <DocumentView {...this.props}
                 dragDivName={"collectionFreeFormDocumentView-container"}
                 ContentScaling={this.contentScaling}
                 ScreenToLocalTransform={this.getTransform}
                 backgroundColor={this.clusterColorFunc}
-                PanelWidth={this.finalPanelWidth}
-                PanelHeight={this.finalPanelHeight}
+                PanelWidth={this.panelWidth}
+                PanelHeight={this.panelHeight}
             /> : <ContentFittingDocumentView {...this.props}
                 CollectionDoc={this.props.ContainingCollectionDoc}
                 DataDocument={this.props.DataDoc}
                 getTransform={this.getTransform}
                 active={returnFalse}
                 focus={(doc: Doc) => this.props.focus(doc, false)}
-                PanelWidth={this.finalPanelWidth}
-                PanelHeight={this.finalPanelHeight}
+                PanelWidth={this.panelWidth}
+                PanelHeight={this.panelHeight}
                 />}
         </div>;
     }

@@ -155,7 +155,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         this.bringToFront(d);
                     }));
 
-                    de.complete.docDragData.droppedDocuments.length === 1 && this.updateCluster(de.complete.docDragData.droppedDocuments[0]);
+                    (de.complete.docDragData.droppedDocuments.length === 1 || de.shiftKey) && this.updateClusterDocs(de.complete.docDragData.droppedDocuments);
                 }
             }
             else if (de.complete.annoDragData) {
@@ -211,6 +211,41 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         this.props.Document.useClusters = useClusters;
         this._clusterSets.length = 0;
         this.childLayoutPairs.map(pair => pair.layout).map(c => this.updateCluster(c));
+    }
+
+    @action
+    updateClusterDocs(docs: Doc[]) {
+        const childLayouts = this.childLayoutPairs.map(pair => pair.layout);
+        if (this.props.Document.useClusters) {
+            const docFirst = docs[0];
+            docs.map(doc => this._clusterSets.map(set => Doc.IndexOf(doc, set) !== -1 && set.splice(Doc.IndexOf(doc, set), 1)));
+            const preferredInd = NumCast(docFirst.cluster);
+            docs.map(doc => doc.cluster = -1);
+            docs.map(doc => this._clusterSets.map((set, i) => set.map(member => {
+                if (docFirst.cluster === -1 && Doc.IndexOf(member, childLayouts) !== -1 && Doc.overlapping(doc, member, this._clusterDistance)) {
+                    docFirst.cluster = i;
+                }
+            })));
+            if (docFirst.cluster === -1 && preferredInd !== -1 && (!this._clusterSets[preferredInd] || !this._clusterSets[preferredInd].filter(member => Doc.IndexOf(member, childLayouts) !== -1).length)) {
+                docFirst.cluster = preferredInd;
+            }
+            this._clusterSets.map((set, i) => {
+                if (docFirst.cluster === -1 && !set.filter(member => Doc.IndexOf(member, childLayouts) !== -1).length) {
+                    docFirst.cluster = i;
+                }
+            });
+            if (docFirst.cluster === -1) {
+                docs.map(doc => {
+                    doc.cluster = this._clusterSets.length;
+                    this._clusterSets.push([doc]);
+                });
+            } else {
+                for (let i = this._clusterSets.length; i <= NumCast(docFirst.cluster); i++) !this._clusterSets[i] && this._clusterSets.push([]);
+                docs.map(doc => this._clusterSets[doc.cluster = NumCast(docFirst.cluster)].push(doc));
+            }
+            childLayouts.map(child => !this._clusterSets.some((set, i) => Doc.IndexOf(child, set) !== -1 && child.cluster === i) && this.updateCluster(child));
+            childLayouts.map(child => Doc.GetProto(child).clusterStr = child.cluster?.toString());
+        }
     }
 
     @undoBatch
@@ -270,7 +305,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             return;
         }
         this._hitCluster = this.props.Document.useClusters ? this.pickCluster(this.getTransform().transformPoint(e.clientX, e.clientY)) !== -1 : false;
-        if (e.button === 0 && !e.shiftKey && !e.altKey && !e.ctrlKey && this.props.active(true)) {
+        if (e.button === 0 && (!e.shiftKey || this._hitCluster) && !e.altKey && !e.ctrlKey && this.props.active(true)) {
             document.removeEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointermove", this.onPointerMove);
@@ -397,7 +432,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
         let x = this.Document._panX || 0;
         let y = this.Document._panY || 0;
-        const docs = this.childLayoutPairs.map(pair => pair.layout);
+        const docs = this.childLayoutPairs.filter(pair => pair.layout instanceof Doc && !pair.layout.isMinimized).map(pair => pair.layout);
         const [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
         if (!this.isAnnotationOverlay && docs.length) {
             PDFMenu.Instance.fadeOut(true);
@@ -406,7 +441,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             const maxx = this.childDataProvider(docs[0]).width + minx;//docs.length ? NumCast(docs[0].width) + minx : minx;
             const maxy = this.childDataProvider(docs[0]).height + miny;//docs.length ? NumCast(docs[0].height) + miny : miny;
             const ranges = docs.filter(doc => doc).reduce((range, doc) => {
-                const layoutDoc = Doc.Layout(doc);
                 const x = this.childDataProvider(doc).x;//NumCast(doc.x);
                 const y = this.childDataProvider(doc).y;//NumCast(doc.y);
                 const xe = this.childDataProvider(doc).width + x;//x + NumCast(layoutDoc.width);

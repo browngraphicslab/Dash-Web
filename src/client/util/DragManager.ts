@@ -94,6 +94,7 @@ export namespace DragManager {
             readonly x: number,
             readonly y: number,
             readonly complete: DragCompleteEvent,
+            readonly shiftKey: boolean,
             readonly altKey: boolean,
             readonly metaKey: boolean,
             readonly ctrlKey: boolean
@@ -340,7 +341,7 @@ export namespace DragManager {
             if (dragData instanceof DocumentDragData) {
                 dragData.userDropAction = e.ctrlKey ? "alias" : undefined;
             }
-            if (e.shiftKey && CollectionDockingView.Instance) {
+            if (e.shiftKey && CollectionDockingView.Instance && dragData.droppedDocuments.length === 1) {
                 AbortDrag();
                 finishDrag?.(new DragCompleteEvent(true, dragData));
                 CollectionDockingView.Instance.StartOtherDrag({
@@ -409,6 +410,7 @@ export namespace DragManager {
                         x: e.x,
                         y: e.y,
                         complete: complete,
+                        shiftKey: e.shiftKey,
                         altKey: e.altKey,
                         metaKey: e.metaKey,
                         ctrlKey: e.ctrlKey
