@@ -50,21 +50,21 @@ export default class GestureOverlay extends Touchable {
         this._hands.forEach((hand) => {
             for (let i = 0; i < e.targetTouches.length; i++) {
                 const pt = e.targetTouches.item(i);
-                if (pt && hand.some((finger) => finger.screenX === pt?.screenX && finger.screenY === pt.screenY)) {
+                if (pt && hand.some((finger) => finger.screenX === pt ?.screenX && finger.screenY === pt.screenY)) {
                     ntt.splice(ntt.indexOf(pt));
                 }
             }
 
             for (let i = 0; i < e.changedTouches.length; i++) {
                 const pt = e.changedTouches.item(i);
-                if (pt && hand.some((finger) => finger.screenX === pt?.screenX && finger.screenY === pt.screenY)) {
+                if (pt && hand.some((finger) => finger.screenX === pt ?.screenX && finger.screenY === pt.screenY)) {
                     nct.splice(nct.indexOf(pt));
                 }
             }
 
             for (let i = 0; i < e.touches.length; i++) {
                 const pt = e.touches.item(i);
-                if (pt && hand.some((finger) => finger.screenX === pt?.screenX && finger.screenY === pt.screenY)) {
+                if (pt && hand.some((finger) => finger.screenX === pt ?.screenX && finger.screenY === pt.screenY)) {
                     nt.splice(ntt.indexOf(pt));
                 }
             }
@@ -100,7 +100,7 @@ export default class GestureOverlay extends Touchable {
 
             const nts = this.getNewTouches(te);
             const target = document.elementFromPoint(te.changedTouches.item(0).clientX, te.changedTouches.item(0).clientY);
-            target?.dispatchEvent(
+            target ?.dispatchEvent(
                 new CustomEvent<InteractionUtils.MultiTouchEvent<React.TouchEvent>>("dashOnTouchStart",
                     {
                         bubbles: true,
@@ -119,7 +119,7 @@ export default class GestureOverlay extends Touchable {
                 this._holdTimer = setTimeout(() => {
                     console.log("hold");
                     const target = document.elementFromPoint(te.changedTouches.item(0).clientX, te.changedTouches.item(0).clientY);
-                    target?.dispatchEvent(
+                    target ?.dispatchEvent(
                         new CustomEvent<InteractionUtils.MultiTouchEvent<React.TouchEvent>>("dashOnTouchHoldStart",
                             {
                                 bubbles: true,
@@ -134,6 +134,12 @@ export default class GestureOverlay extends Touchable {
                         )
                     );
                     this._holdTimer = undefined;
+                    document.removeEventListener("touchmove", this.onReactTouchMove);
+                    document.removeEventListener("touchend", this.onReactTouchEnd);
+                    document.removeEventListener("touchmove", this.onReactHoldTouchMove);
+                    document.removeEventListener("touchend", this.onReactHoldTouchEnd);
+                    document.addEventListener("touchmove", this.onReactHoldTouchMove);
+                    document.addEventListener("touchend", this.onReactHoldTouchEnd);
                 }, (1000));
             }
             document.removeEventListener("touchmove", this.onReactTouchMove);
@@ -147,6 +153,63 @@ export default class GestureOverlay extends Touchable {
             document.removeEventListener("touchend", this.onReactTouchEnd);
         }
     }
+
+    onReactHoldTouchMove = (e: TouchEvent) => {
+        const nts: any = this.getNewTouches(e);
+        if (this.prevPoints.size === 1 && this._holdTimer) {
+            clearTimeout(this._holdTimer);
+            this._holdTimer = undefined;
+        }
+        document.dispatchEvent(
+            new CustomEvent<InteractionUtils.MultiTouchEvent<TouchEvent>>("dashOnTouchHoldMove",
+                {
+                    bubbles: true,
+                    detail: {
+                        fingers: this.prevPoints.size,
+                        targetTouches: nts.ntt,
+                        touches: nts.nt,
+                        changedTouches: nts.nct,
+                        touchEvent: e
+                    }
+                })
+        );
+    }
+
+    onReactHoldTouchEnd = (e: TouchEvent) => {
+        const nts: any = this.getNewTouches(e);
+        if (this.prevPoints.size === 1 && this._holdTimer) {
+            clearTimeout(this._holdTimer);
+            this._holdTimer = undefined;
+        }
+        document.dispatchEvent(
+            new CustomEvent<InteractionUtils.MultiTouchEvent<TouchEvent>>("dashOnTouchHoldEnd",
+                {
+                    bubbles: true,
+                    detail: {
+                        fingers: this.prevPoints.size,
+                        targetTouches: nts.ntt,
+                        touches: nts.nt,
+                        changedTouches: nts.nct,
+                        touchEvent: e
+                    }
+                })
+        );
+        for (let i = 0; i < e.changedTouches.length; i++) {
+            const pt = e.changedTouches.item(i);
+            if (pt) {
+                if (this.prevPoints.has(pt.identifier)) {
+                    this.prevPoints.delete(pt.identifier);
+                }
+            }
+        }
+
+        if (this.prevPoints.size === 0) {
+            document.removeEventListener("touchmove", this.onReactTouchMove);
+            document.removeEventListener("touchend", this.onReactTouchEnd);
+        }
+        e.stopPropagation();
+    }
+
 
     onReactTouchMove = (e: TouchEvent) => {
         const nts: any = this.getNewTouches(e);
@@ -211,7 +274,7 @@ export default class GestureOverlay extends Touchable {
             if (pt.radiusX > 1 && pt.radiusY > 1) {
                 for (let j = 0; j < e.targetTouches.length; j++) {
                     const tPt = e.targetTouches.item(j);
-                    if (tPt?.screenX === pt?.screenX && tPt?.screenY === pt?.screenY) {
+                    if (tPt ?.screenX === pt ?.screenX && tPt ?.screenY === pt ?.screenY) {
                         if (pt && this.prevPoints.has(pt.identifier)) {
                             fingers.push(pt);
                         }
@@ -225,7 +288,7 @@ export default class GestureOverlay extends Touchable {
             this._thumbY = thumb.clientY;
             return;
         }
-        this.thumbIdentifier = thumb?.identifier;
+        this.thumbIdentifier = thumb ?.identifier;
         fingers.forEach((f) => this.prevPoints.delete(f.identifier));
         this._hands.push(fingers);
         const others = fingers.filter(f => f !== thumb);
@@ -325,8 +388,8 @@ export default class GestureOverlay extends Touchable {
                     callbackFn: callback
                 }
             });
-        target1?.dispatchEvent(ge);
-        target2?.dispatchEvent(ge);
+        target1 ?.dispatchEvent(ge);
+        target2 ?.dispatchEvent(ge);
         return actionPerformed;
     }
 
@@ -344,7 +407,7 @@ export default class GestureOverlay extends Touchable {
                 switch (result.Name) {
                     case GestureUtils.Gestures.Box:
                         const target = document.elementFromPoint(this._points[0].X, this._points[0].Y);
-                        target?.dispatchEvent(new CustomEvent<GestureUtils.GestureEvent>("dashOnGesture",
+                        target ?.dispatchEvent(new CustomEvent<GestureUtils.GestureEvent>("dashOnGesture",
                             {
                                 bubbles: true,
                                 detail: {
@@ -369,7 +432,7 @@ export default class GestureOverlay extends Touchable {
 
             if (!actionPerformed) {
                 const target = document.elementFromPoint(this._points[0].X, this._points[0].Y);
-                target?.dispatchEvent(
+                target ?.dispatchEvent(
                     new CustomEvent<GestureUtils.GestureEvent>("dashOnGesture",
                         {
                             bubbles: true,

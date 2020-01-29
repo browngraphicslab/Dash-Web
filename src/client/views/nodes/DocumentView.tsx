@@ -116,13 +116,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @computed get onPointerDownHandler() { return this.props.onPointerDown ? this.props.onPointerDown : this.Document.onPointerDown; }
     @computed get onPointerUpHandler() { return this.props.onPointerUp ? this.props.onPointerUp : this.Document.onPointerUp; }
 
-    private _firstX: number = 0;
-    private _firstY: number = 0;
+    private _firstX: number = -1;
+    private _firstY: number = -1;
 
 
     handle1PointerHoldStart = (e: Event, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>): any => {
-        console.log(me);
-        console.log("S");
+        this.addHoldMoveListeners();
+        this.addHoldEndListeners();
         this.onRadialMenu(e, me);
         const pt = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true)[0];
         this._firstX = pt.pageX;
@@ -131,16 +131,21 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     handle1PointerHoldMove = (e: Event, me: InteractionUtils.MultiTouchEvent<TouchEvent>): void => {
-        console.log("K");
         const pt = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true)[0];
+        console.log(pt.pageX, this._firstX, pt.pageY, this._firstY);
+        if (this._firstX === -1 || this._firstY === -1) {
+            return;
+        }
         if (Math.abs(pt.pageX - this._firstX) > 150 || Math.abs(pt.pageY - this._firstY) > 150) {
+            console.log("WHY");
             this.handle1PointerHoldEnd(e, me);
         }
     }
 
     handle1PointerHoldEnd = (e: Event, me: InteractionUtils.MultiTouchEvent<TouchEvent>): void => {
-        console.log("E");
         RadialMenu.Instance.closeMenu();
+        this._firstX = -1;
+        this._firstY = -1;
     }
 
     @action
@@ -150,7 +155,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         RadialMenu.Instance.openMenu();
 
         RadialMenu.Instance.addItem({ description: "Open Fields", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group", selected: -1 });
-        RadialMenu.Instance.addItem({ description: "Delete this document", event: () => this.props.ContainingCollectionView?.removeDocument(this.props.Document), icon: "trash", selected: -1 });
+        RadialMenu.Instance.addItem({ description: "Delete this document", event: () => this.props.ContainingCollectionView ?.removeDocument(this.props.Document), icon: "trash", selected: -1 });
         RadialMenu.Instance.addItem({ description: "Open in a new tab", event: () => this.props.addDocTab(this.props.Document, undefined, "onRight"), icon: "folder", selected: -1 });
         RadialMenu.Instance.addItem({ description: "Pin to Presentation", event: () => this.props.pinToPres(this.props.Document), icon: "map-pin", selected: -1 });
 
@@ -229,13 +234,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             e.preventDefault();
             if (e.key === "†" || e.key === "t") {
                 if (!StrCast(this.layoutDoc.showTitle)) this.layoutDoc.showTitle = "title";
-                if (!this._titleRef.current) setTimeout(() => this._titleRef.current?.setIsFocused(true), 0);
+                if (!this._titleRef.current) setTimeout(() => this._titleRef.current ?.setIsFocused(true), 0);
                 else if (!this._titleRef.current.setIsFocused(true)) { // if focus didn't change, focus on interior text...
                     {
-                        this._titleRef.current?.setIsFocused(false);
-                        const any = (this._mainCont.current?.getElementsByClassName("ProseMirror")?.[0] as any);
+                        this._titleRef.current ?.setIsFocused(false);
+                        const any = (this._mainCont.current ?.getElementsByClassName("ProseMirror") ?.[0] as any);
                         any.keeplocation = true;
-                        any?.focus();
+                        any ?.focus();
                     }
                 }
             } else if (e.key === "f") {
@@ -251,7 +256,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD && Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD)) {
             e.stopPropagation();
             let preventDefault = true;
-            if (this._doubleTap && this.props.renderDepth && !this.onClickHandler?.script) { // disable double-click to show full screen for things that have an on click behavior since clicking them twice can be misinterpreted as a double click
+            if (this._doubleTap && this.props.renderDepth && !this.onClickHandler ?.script) { // disable double-click to show full screen for things that have an on click behavior since clicking them twice can be misinterpreted as a double click
                 const fullScreenAlias = Doc.MakeAlias(this.props.Document);
                 if (StrCast(fullScreenAlias.layoutKey) !== "layoutCustom" && fullScreenAlias.layoutCustom !== undefined) {
                     fullScreenAlias.layoutKey = "layoutCustom";
@@ -265,7 +270,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 ScriptBox.EditButtonScript("On Button Clicked ...", this.props.Document, "onClick", e.clientX, e.clientY);
             } else if (this.props.Document.isButton === "Selector") {  // this should be moved to an OnClick script
                 FormattedTextBoxComment.Hide();
-                this.Document.links?.[0] instanceof Doc && (Doc.UserDoc().SelectedDocs = new List([Doc.LinkOtherAnchor(this.Document.links[0]!, this.props.Document)]));
+                this.Document.links ?.[0] instanceof Doc && (Doc.UserDoc().SelectedDocs = new List([Doc.LinkOtherAnchor(this.Document.links[0]!, this.props.Document)]));
             } else if (this.Document.isButton) {
                 SelectionManager.SelectDoc(this, e.ctrlKey); // don't think this should happen if a button action is actually triggered.
                 this.buttonClick(e.altKey, e.ctrlKey);
@@ -638,7 +643,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @undoBatch
     @action
     setCustomView = (custom: boolean): void => {
-        if (this.props.ContainingCollectionView?.props.DataDoc || this.props.ContainingCollectionView?.props.Document.isTemplateDoc) {
+        if (this.props.ContainingCollectionView ?.props.DataDoc || this.props.ContainingCollectionView ?.props.Document.isTemplateDoc) {
             Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.ContainingCollectionView.props.Document);
         } else {
             custom ? DocumentView.makeCustomViewClicked(this.props.Document, this.props.DataDoc) : DocumentView.makeNativeViewClicked(this.props.Document);

@@ -28,8 +28,7 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
      */
     @action
     protected onTouchStart = (e: Event, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>): void => {
-        console.log(e);
-        console.log(me);
+
         const actualPts: React.Touch[] = [];
         const te = me.touchEvent;
         // loop through all touches on screen
@@ -116,7 +115,6 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
     @action
     protected onTouchEnd = (e: Event, me: InteractionUtils.MultiTouchEvent<TouchEvent>): void => {
         // console.log(InteractionUtils.GetMyTargetTouches(e, this.prevPoints).length + " up");
-        console.log("end");
         // remove all the touches associated with the event
         const te = me.touchEvent;
         for (const pt of me.changedTouches) {
