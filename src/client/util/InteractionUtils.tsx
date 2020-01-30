@@ -73,9 +73,9 @@ export namespace InteractionUtils {
                 }
             }
         }
-        if (mte.touches.length !== myTouches.length) {
-            throw Error("opo")
-        }
+        // if (mte.touches.length !== myTouches.length) {
+        //     throw Error("opo")
+        // }
         return myTouches;
     }
 

@@ -316,6 +316,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     handle1PointerDown = (e: React.TouchEvent, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>) => {
         if (this.Document.onPointerDown) return;
         const touch = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true)[0];
+        console.log("down");
         if (touch) {
             this._downX = touch.clientX;
             this._downY = touch.clientY;
