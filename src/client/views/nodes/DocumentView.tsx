@@ -314,22 +314,25 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     handle1PointerDown = (e: React.TouchEvent, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>) => {
         if (this.Document.onPointerDown) return;
-        if (!e.nativeEvent.cancelBubble) {
-            const touch = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true)[0];
+        const touch = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true)[0];
+        console.log("down");
+        if (touch) {
             this._downX = touch.clientX;
             this._downY = touch.clientY;
-            this._hitTemplateDrag = false;
-            for (let element = (e.target as any); element && !this._hitTemplateDrag; element = element.parentElement) {
-                if (element.className && element.className.toString() === "collectionViewBaseChrome-collapse") {
-                    this._hitTemplateDrag = true;
+            if (!e.nativeEvent.cancelBubble) {
+                this._hitTemplateDrag = false;
+                for (let element = (e.target as any); element && !this._hitTemplateDrag; element = element.parentElement) {
+                    if (element.className && element.className.toString() === "collectionViewBaseChrome-collapse") {
+                        this._hitTemplateDrag = true;
+                    }
                 }
+                if ((this.active || this.Document.onDragStart || this.Document.onClick) && !e.ctrlKey && !this.Document.lockedPosition && !this.Document.inOverlay) e.stopPropagation();
+                this.removeMoveListeners();
+                this.addMoveListeners();
+                this.removeEndListeners();
+                this.addEndListeners();
+                e.stopPropagation();
             }
-            if ((this.active || this.Document.onDragStart || this.Document.onClick) && !e.ctrlKey && !this.Document.lockedPosition && !this.Document.inOverlay) e.stopPropagation();
-            this.removeMoveListeners();
-            this.addMoveListeners();
-            this.removeEndListeners();
-            this.addEndListeners();
-            e.stopPropagation();
         }
     }
 
