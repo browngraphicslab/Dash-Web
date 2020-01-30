@@ -766,27 +766,13 @@ export class DashDocView {
             if (!(dashDoc instanceof Doc)) {
                 alias && DocServer.GetRefField(docid).then(async dashDocBase => {
                     if (dashDocBase instanceof Doc) {
-                        if (node.attrs.fieldKey) {
-                            const fieldDoc = await self._textBox.dataDoc[node.attrs.fieldKey];
-                            if (fieldDoc instanceof Doc) {
-                                self.doRender(Doc.MakeAlias(fieldDoc), removeDoc, node, view, getPos);
-                            } else {
-                                this._dashSpan.innerHTML = `field:'${node.attrs.fieldKey}' is not a document`;
-                            }
-                        } else {
-                            self.doRender(Doc.MakeAlias(dashDocBase), removeDoc, node, view, getPos);
-                        }
+                        const aliasedDoc = Doc.MakeDelegate(dashDocBase, docid + alias);
+                        aliasedDoc.layoutKey = "layout_" + node.attrs.fieldKey;
+                        self.doRender(aliasedDoc, removeDoc, node, view, getPos);
                     }
                 });
             } else {
-                if (node.attrs.fieldKey) {
-                    const fieldDoc = await dashDoc[node.attrs.fieldKey];
-                    if (fieldDoc instanceof Doc) {
-                        self.doRender(fieldDoc, removeDoc, node, view, getPos);
-                    }
-                } else {
-                    self.doRender(dashDoc, removeDoc, node, view, getPos);
-                }
+                self.doRender(dashDoc, removeDoc, node, view, getPos);
             }
         });
         const self = this;
@@ -831,7 +817,7 @@ export class DashDocView {
             }, { fireImmediately: true });
             ReactDOM.render(<DocumentView
                 Document={finalLayout}
-                DataDoc={Doc.AreProtosEqual(this._textBox.Document, dashDoc) ? this._textBox.dataDoc : undefined}
+                DataDoc={!node.attrs.docid ? this._textBox.dataDoc : undefined}
                 LibraryPath={this._textBox.props.LibraryPath}
                 fitToBox={BoolCast(dashDoc._fitToBox)}
                 addDocument={returnFalse}
