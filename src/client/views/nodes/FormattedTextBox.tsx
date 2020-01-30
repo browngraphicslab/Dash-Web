@@ -1,7 +1,7 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faEdit, faSmile, faTextHeight, faUpload } from '@fortawesome/free-solid-svg-icons';
 import { isEqual } from "lodash";
-import { action, computed, IReactionDisposer, Lambda, observable, reaction, runInAction, trace } from "mobx";
+import { action, computed, IReactionDisposer, Lambda, observable, reaction, runInAction, trace, _allowStateChangesInsideComputed } from "mobx";
 import { observer } from "mobx-react";
 import { baseKeymap } from "prosemirror-commands";
 import { history } from "prosemirror-history";
@@ -185,9 +185,11 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
             const tsel = this._editorView.state.selection.$from;
             tsel.marks().filter(m => m.type === this._editorView!.state.schema.marks.user_mark).map(m => AudioBox.SetScrubTime(Math.max(0, m.attrs.modified * 5000 - 1000)));
             this._applyingChange = true;
-            this.dataDoc[this.props.fieldKey + "-lastModified"] && (this.dataDoc[this.props.fieldKey + "-backgroundColor"] = "lightGray");
-            this.dataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
-            this.dataDoc[this.props.fieldKey] = new RichTextField(JSON.stringify(state.toJSON()), state.doc.textBetween(0, state.doc.content.size, "\n\n"));
+            if (!this.props.Document._textTemplate || Doc.GetProto(this.props.Document) === this.dataDoc) {
+                this.dataDoc[this.props.fieldKey + "-lastModified"] && (this.dataDoc[this.props.fieldKey + "-backgroundColor"] = "lightGray");
+                this.dataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
+                this.dataDoc[this.props.fieldKey] = new RichTextField(JSON.stringify(state.toJSON()), state.doc.textBetween(0, state.doc.content.size, "\n\n"));
+            }
             this._applyingChange = false;
             this.updateTitle();
             this.tryUpdateHeight();

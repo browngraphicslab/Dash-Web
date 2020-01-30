@@ -72,9 +72,9 @@ export class FieldView extends React.Component<FieldViewProps> {
         // else if (field instanceof RichTextField) {
         //     return <FormattedTextBox {...this.props} />;
         // }
-        else if (field instanceof ImageField) {
-            return <ImageBox {...this.props} />;
-        }
+        // else if (field instanceof ImageField) {
+        //     return <ImageBox {...this.props} />;
+        // }
         // else if (field instaceof PresBox) {
         //    return <PresBox {...this.props} />;
         // }

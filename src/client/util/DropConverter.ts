@@ -15,16 +15,15 @@ export function makeTemplate(doc: Doc): boolean {
     let any = false;
     docs.forEach(d => {
         if (!StrCast(d.title).startsWith("-")) {
-            any = true;
-            Doc.MakeMetadataFieldTemplate(d, Doc.GetProto(layoutDoc));
+            any = Doc.MakeMetadataFieldTemplate(d, Doc.GetProto(layoutDoc)) || any;
         } else if (d.type === DocumentType.COL || d.data instanceof RichTextField) {
             any = makeTemplate(d) || any;
         }
     });
     if (layoutDoc[fieldKey] instanceof RichTextField) {
-        layoutDoc._textTemplate = ComputedField.MakeFunction("copyField(this.data)", { this: Doc.name });
-        layoutDoc.isTemplateForField = "data";
-        any = true;
+        if (!StrCast(layoutDoc.title).startsWith("-")) {
+            any = Doc.MakeMetadataFieldTemplate(layoutDoc, Doc.GetProto(layoutDoc));
+        }
     }
     return any;
 }
