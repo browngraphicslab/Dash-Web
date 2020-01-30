@@ -72,32 +72,63 @@ export const inpRules = {
                 return state.tr.deleteRange(start, end).addStoredMark(schema.marks.pFontSize.create({ fontSize: size }));
             }),
 
-        // create a text display of a metadata field
+        // create a text display of a metadata field on this or another document, or create a hyperlink portal to another document
         new InputRule(
-            new RegExp(/\[\[([a-zA-Z_ \-0-9]+)\]\]$/),
+            new RegExp(/\[\[([a-zA-Z_ \-0-9]*)(:[a-zA-Z_ \-0-9]+)?\]\]$/),
             (state, match, start, end) => {
-                const fieldView = state.schema.nodes.dashField.create({ fieldKey: match[1] });
+                if (!match[2]) {
+                    const docId = match[1];
+                    DocServer.GetRefField(docId).then(docx => {
+                        const target = ((docx instanceof Doc) && docx) || Docs.Create.FreeformDocument([], { title: docId, _width: 500, _height: 500, _LODdisable: true, }, docId);
+                        DocUtils.Publish(target, docId, returnFalse, returnFalse);
+                        DocUtils.MakeLink({ doc: (schema as any).Document }, { doc: target }, "portal link", "");
+                    });
+                    const link = state.schema.marks.link.create({ href: Utils.prepend("/doc/" + docId), location: "onRight", title: docId, targetId: docId });
+                    return state.tr.deleteRange(end - 1, end).deleteRange(start, start + 2).addMark(start, end - 3, link);
+                }
+                const fieldView = state.schema.nodes.dashField.create({ fieldKey: match[2]?.substring(1), docid: match[1] });
                 return state.tr.deleteRange(start, end).insert(start, fieldView);
             }),
-        // create a text display of a metadata field on another document
+        // create a text display of a metadata field on this or another document, or create a hyperlink portal to another document
         new InputRule(
-            new RegExp(/\[\[([a-zA-Z_ \-0-9]+):([a-zA-Z_ \-0-9]+)\]\]$/),
-            (state, match, start, end) => {
-                const fieldView = state.schema.nodes.dashField.create({ fieldKey: match[2], docid: match[1] });
-                return state.tr.deleteRange(start, end).insert(start, fieldView);
-            }),
-        // create a hyperlink portal
-        new InputRule(
-            new RegExp(/@@([a-zA-Z_ \-0-9]+)@@$/),
+            new RegExp(/\{\{([a-zA-Z_ \-0-9]*)(:[a-zA-Z_ \-0-9]+)?\}\}$/),
             (state, match, start, end) => {
                 const docId = match[1];
                 DocServer.GetRefField(docId).then(docx => {
-                    const target = ((docx instanceof Doc) && docx) || Docs.Create.FreeformDocument([], { title: docId, _width: 500, _height: 500, }, docId);
-                    DocUtils.Publish(target, docId, returnFalse, returnFalse);
-                    DocUtils.MakeLink({ doc: (schema as any).Document }, { doc: target }, "portal link", "");
+                    if (!(docx instanceof Doc && docx)) {
+                        const docx = Docs.Create.FreeformDocument([], { title: docId, _width: 500, _height: 500, _LODdisable: true }, docId);
+                        DocUtils.Publish(docx, docId, returnFalse, returnFalse);
+                    }
                 });
-                const link = state.schema.marks.link.create({ href: Utils.prepend("/doc/" + docId), location: "onRight", title: docId, targetId: docId });
-                return state.tr.deleteRange(end - 1, end).deleteRange(start, start + 2).addMark(start, end - 3, link);
+                const node = (state.doc.resolve(start) as any).nodeAfter;
+                const dashDoc = schema.nodes.dashDoc.create({ width: 75, height: 75, title: "dashDoc", docid: docId, float: "right", fieldKey: match[2], alias: Utils.GenerateGuid() });
+                const sm = state.storedMarks || undefined;
+                return node ? state.tr.replaceRangeWith(start, end, dashDoc).setStoredMarks([...node.marks, ...(sm ? sm : [])]) : state.tr;
+            }),
+        new InputRule(
+            new RegExp(/##$/),
+            (state, match, start, end) => {
+                const schemaDoc = Doc.GetDataDoc((schema as any).Document);
+                const textDoc = Doc.GetProto(Cast(schemaDoc[DataSym], Doc, null)!);
+                const numInlines = NumCast(textDoc.inlineTextCount);
+                textDoc.inlineTextCount = numInlines + 1;
+                const inlineFieldKey = "inline" + numInlines; // which field on the text document this annotation will write to
+                const inlineLayoutKey = "layout_" + inlineFieldKey; // the field holding the layout string that will render the inline annotation
+                const textDocInline = Docs.Create.TextDocument("", { layoutKey: inlineLayoutKey, _width: 75, _height: 35, annotationOn: textDoc, _autoHeight: true, fontSize: 9, title: "inline comment" });
+                textDocInline.title = inlineFieldKey; // give the annotation its own title
+                textDocInline.customTitle = true; // And make sure that it's 'custom' so that editing text doesn't change the title of the containing doc
+                textDocInline.isTemplateForField = inlineFieldKey; // this is needed in case the containing text doc is converted to a template at some point
+                textDocInline.proto = textDoc;  // make the annotation inherit from the outer text doc so that it can resolve any nested field references, e.g., [[field]]
+                textDocInline._textContext = ComputedField.MakeFunction(`copyField(this.${inlineFieldKey})`, { this: Doc.name });
+                textDoc[inlineLayoutKey] = FormattedTextBox.LayoutString(inlineFieldKey); // create a layout string for the layout key that will render the annotation text
+                textDoc[inlineFieldKey] = ""; // set a default value for the annotation
+                const node = (state.doc.resolve(start) as any).nodeAfter;
+                const newNode = schema.nodes.dashComment.create({ docid: textDocInline[Id] });
+                const dashDoc = schema.nodes.dashDoc.create({ width: 75, height: 35, title: "dashDoc", docid: textDocInline[Id], float: "right" });
+                const sm = state.storedMarks || undefined;
+                const replaced = node ? state.tr.insert(start, newNode).replaceRangeWith(start + 1, end + 1, dashDoc).insertText(" ", start + 2).setStoredMarks([...node.marks, ...(sm ? sm : [])]) :
+                    state.tr;
+                return replaced;
             }),
         // stop using active style
         new InputRule(
@@ -203,31 +234,6 @@ export const inpRules = {
                 const replaced = node ? state.tr.replaceRangeWith(start, end, schema.nodes.paragraph.create({ align: "right" })).setStoredMarks([...node.marks, ...(sm ? sm : [])]) :
                     state.tr;
                 return replaced.setSelection(new TextSelection(replaced.doc.resolve(end - 2)));
-            }),
-        new InputRule(
-            new RegExp(/##$/),
-            (state, match, start, end) => {
-                const schemaDoc = Doc.GetDataDoc((schema as any).Document);
-                const textDoc = Doc.GetProto(Cast(schemaDoc[DataSym], Doc, null)!);
-                const numInlines = NumCast(textDoc.inlineTextCount);
-                textDoc.inlineTextCount = numInlines + 1;
-                const inlineFieldKey = "inline" + numInlines; // which field on the text document this annotation will write to
-                const inlineLayoutKey = "layout_" + inlineFieldKey; // the field holding the layout string that will render the inline annotation
-                const textDocInline = Docs.Create.TextDocument("", { layoutKey: inlineLayoutKey, _width: 75, _height: 35, annotationOn: textDoc, _autoHeight: true, fontSize: 9, title: "inline comment" });
-                textDocInline.title = inlineFieldKey; // give the annotation its own title
-                textDocInline.customTitle = true; // And make sure that it's 'custom' so that editing text doesn't change the title of the containing doc
-                textDocInline.isTemplateForField = inlineFieldKey; // this is needed in case the containing text doc is converted to a template at some point
-                textDocInline.proto = textDoc;  // make the annotation inherit from the outer text doc so that it can resolve any nested field references, e.g., [[field]]
-                textDocInline._textContext = ComputedField.MakeFunction(`copyField(this.${inlineFieldKey})`, { this: Doc.name });
-                textDoc[inlineLayoutKey] = FormattedTextBox.LayoutString(inlineFieldKey); // create a layout string for the layout key that will render the annotation text
-                textDoc[inlineFieldKey] = ""; // set a default value for the annotation
-                const node = (state.doc.resolve(start) as any).nodeAfter;
-                const newNode = schema.nodes.dashComment.create({ docid: textDocInline[Id] });
-                const dashDoc = schema.nodes.dashDoc.create({ width: 75, height: 35, title: "dashDoc", docid: textDocInline[Id], float: "right" });
-                const sm = state.storedMarks || undefined;
-                const replaced = node ? state.tr.insert(start, newNode).replaceRangeWith(start + 1, end + 1, dashDoc).insertText(" ", start + 2).setStoredMarks([...node.marks, ...(sm ? sm : [])]) :
-                    state.tr;
-                return replaced;
             }),
         new InputRule(
             new RegExp(/%\(/),

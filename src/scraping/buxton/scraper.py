@@ -100,8 +100,6 @@ def write_collection(parse_results, display_fields, storage_key, viewType):
     fields["proto"] = protofy(common_proto_id)
     fields[storage_key] = listify(proxify_guids(view_guids))
     fields["schemaColumns"] = listify(display_fields)
-    fields["backgroundColor"] = "white"
-    fields["_viewType"] = 2
     fields["author"] = "Bill Buxton"
     fields["creationDate"] = {
         "date": datetime.datetime.utcnow().microsecond,
@@ -113,7 +111,6 @@ def write_collection(parse_results, display_fields, storage_key, viewType):
             "__type": "image"
         }
     fields["isPrototype"] = True
-    fields["page"] = -1
 
     target_collection.insert_one(data_doc)
     target_collection.insert_one(view_doc)
@@ -409,7 +406,7 @@ parent_guid = write_collection({
         "__type": "Doc"
     },
     "child_guids": schema_guids
-}, ["title", "short_description", "original_price"], "data", 4)
+}, ["title", "short_description", "original_price"], "data", 2)
 
 print("appending parent schema to main workspace...\n")
 target_collection.update_one(

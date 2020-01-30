@@ -41,7 +41,7 @@ class OtherToggle extends React.Component<{ checked: boolean, name: string, togg
 }
 
 export interface TemplateMenuProps {
-    docs: DocumentView[];
+    docViews: DocumentView[];
     templates: Map<Template, boolean>;
 }
 
@@ -51,12 +51,12 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     @observable private _hidden: boolean = true;
 
     toggleLayout = (e: React.ChangeEvent<HTMLInputElement>, layout: string): void => {
-        this.props.docs.map(dv => dv.setCustomView(e.target.checked, layout));
+        this.props.docViews.map(dv => dv.setCustomView(e.target.checked, layout));
     }
 
     toggleFloat = (e: React.ChangeEvent<HTMLInputElement>): void => {
         SelectionManager.DeselectAll();
-        const topDocView = this.props.docs[0];
+        const topDocView = this.props.docViews[0];
         const ex = e.target.getBoundingClientRect().left;
         const ey = e.target.getBoundingClientRect().top;
         DocumentView.FloatDoc(topDocView, ex, ey);
@@ -67,9 +67,9 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     @action
     toggleTemplate = (event: React.ChangeEvent<HTMLInputElement>, template: Template): void => {
         if (event.target.checked) {
-            this.props.docs.map(d => d.Document["show" + template.Name] = template.Name.toLowerCase());
+            this.props.docViews.map(d => d.Document["show" + template.Name] = template.Name.toLowerCase());
         } else {
-            this.props.docs.map(d => d.Document["show" + template.Name] = "");
+            this.props.docViews.map(d => d.Document["show" + template.Name] = "");
         }
     }
 
@@ -81,7 +81,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     @undoBatch
     @action
     toggleChrome = (): void => {
-        this.props.docs.map(dv => {
+        this.props.docViews.map(dv => {
             const layout = Doc.Layout(dv.Document);
             layout._chromeStatus = (layout._chromeStatus !== "disabled" ? "disabled" : "enabled");
         });
@@ -95,7 +95,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     }
     componentDidMount() {
         !TemplateMenu._addedKeys && (TemplateMenu._addedKeys = new ObservableSet(["narrative"]));
-        Array.from(Object.keys(Doc.GetProto(this.props.docs[0].props.Document))).
+        Array.from(Object.keys(Doc.GetProto(this.props.docViews[0].props.Document))).
             filter(key => key.startsWith("layout_")).
             map(key => runInAction(() => TemplateMenu._addedKeys.add(key.replace("layout_", ""))));
         DocListCast(Cast(CurrentUserUtils.UserDocument.expandingButtons, Doc, null)?.data)?.map(btnDoc => {
@@ -108,14 +108,14 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     static _addedKeys = new ObservableSet(["narrative"]);
     _customRef = React.createRef<HTMLInputElement>();
     render() {
-        const layout = Doc.Layout(this.props.docs[0].Document);
+        const layout = Doc.Layout(this.props.docViews[0].Document);
         const templateMenu: Array<JSX.Element> = [];
         this.props.templates.forEach((checked, template) =>
             templateMenu.push(<TemplateToggle key={template.Name} template={template} checked={checked} toggle={this.toggleTemplate} />));
-        templateMenu.push(<OtherToggle key={"float"} name={"Float"} checked={this.props.docs[0].Document.z ? true : false} toggle={this.toggleFloat} />);
+        templateMenu.push(<OtherToggle key={"float"} name={"Float"} checked={this.props.docViews[0].Document.z ? true : false} toggle={this.toggleFloat} />);
         templateMenu.push(<OtherToggle key={"chrome"} name={"Chrome"} checked={layout._chromeStatus !== "disabled"} toggle={this.toggleChrome} />);
         TemplateMenu._addedKeys && Array.from(TemplateMenu._addedKeys).map(layout =>
-            templateMenu.push(<OtherToggle key={layout} name={layout} checked={StrCast(this.props.docs[0].Document.layoutKey, "layout") === "layout_" + layout} toggle={e => this.toggleLayout(e, layout)} />)
+            templateMenu.push(<OtherToggle key={layout} name={layout} checked={StrCast(this.props.docViews[0].Document.layoutKey, "layout") === "layout_" + layout} toggle={e => this.toggleLayout(e, layout)} />)
         );
         return <ul className="template-list" style={{ display: "block" }}>
             {templateMenu}

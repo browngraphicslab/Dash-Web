@@ -168,7 +168,9 @@ export const nodes: { [index: string]: NodeSpec } = {
             float: { default: "right" },
             location: { default: "onRight" },
             hidden: { default: false },
+            fieldKey: { default: "" },
             docid: { default: "" },
+            alias: { default: "" }
         },
         group: "inline",
         draggable: false,
@@ -756,18 +758,16 @@ export class DashDocView {
             view.dispatch(view.state.tr.setSelection(ns).deleteSelection());
             return true;
         };
-        DocServer.GetRefField(node.attrs.docid).then(async dashDoc => {
-            if (dashDoc instanceof Doc) {
-                self._dashDoc = dashDoc;
-                dashDoc._hideSidebar = true;
-                if (node.attrs.width !== dashDoc._width + "px" || node.attrs.height !== dashDoc._height + "px") {
-                    try { // bcz: an exception will be thrown if two aliases are open at the same time when a doc view comment is made
-                        view.dispatch(view.state.tr.setNodeMarkup(getPos(), null, { ...node.attrs, width: dashDoc._width + "px", height: dashDoc._height + "px" }));
-                    } catch (e) {
-                        console.log(e);
+        const alias = node.attrs.alias;
+        DocServer.GetRefField(node.attrs.docid + alias).then(async dashDoc => {
+            if (!(dashDoc instanceof Doc)) {
+                alias && DocServer.GetRefField(node.attrs.docid).then(async dashDocBase => {
+                    if (dashDocBase instanceof Doc) {
+                        self.doRender(Doc.MakeAlias(dashDocBase), removeDoc, node, view, getPos);
                     }
-                }
-                self.doRender(dashDoc, removeDoc);
+                });
+            } else {
+                self.doRender(dashDoc, removeDoc, node, view, getPos);
             }
         });
         const self = this;
@@ -783,10 +783,19 @@ export class DashDocView {
         this._outer.appendChild(this._dashSpan);
         (this as any).dom = this._outer;
     }
-    doRender(dashDoc: Doc, removeDoc: any) {
+    doRender(dashDoc: Doc, removeDoc: any, node: any, view: any, getPos: any) {
+        this._dashDoc = dashDoc;
+        dashDoc._hideSidebar = true;
+        if (node.attrs.width !== dashDoc._width + "px" || node.attrs.height !== dashDoc._height + "px") {
+            try { // bcz: an exception will be thrown if two aliases are open at the same time when a doc view comment is made
+                view.dispatch(view.state.tr.setNodeMarkup(getPos(), null, { ...node.attrs, width: dashDoc._width + "px", height: dashDoc._height + "px" }));
+            } catch (e) {
+                console.log(e);
+            }
+        }
         const self = this;
         const finalLayout = Doc.expandTemplateLayout(dashDoc, !Doc.AreProtosEqual(this._textBox.dataDoc, this._textBox.Document) ? this._textBox.dataDoc : undefined);
-        if (!finalLayout) setTimeout(() => self.doRender(dashDoc, removeDoc), 0);
+        if (!finalLayout) setTimeout(() => self.doRender(dashDoc, removeDoc, node, view, getPos), 0);
         else {
             const layoutKey = StrCast(finalLayout.layoutKey);
             const finalKey = layoutKey && StrCast(finalLayout[layoutKey]).split("'")?.[1];
@@ -803,7 +812,7 @@ export class DashDocView {
             }, { fireImmediately: true });
             ReactDOM.render(<DocumentView
                 Document={finalLayout}
-                DataDoc={this._textBox.dataDoc}
+                DataDoc={Doc.AreProtosEqual(this._textBox.Document, dashDoc) ? this._textBox.dataDoc : undefined}
                 LibraryPath={this._textBox.props.LibraryPath}
                 fitToBox={BoolCast(dashDoc._fitToBox)}
                 addDocument={returnFalse}
