@@ -96,7 +96,6 @@ export class DocumentBox extends DocComponent<FieldViewProps, DocBoxSchema>(DocB
                 addDocument={this.props.addDocument}
                 moveDocument={this.props.moveDocument}
                 removeDocument={this.props.removeDocument}
-                ruleProvider={this.props.ruleProvider}
                 addDocTab={this.props.addDocTab}
                 pinToPres={this.props.pinToPres}
                 getTransform={this.getTransform}

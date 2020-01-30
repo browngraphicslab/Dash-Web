@@ -28,6 +28,8 @@ export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
 @observer
 export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeFormDocumentViewProps, PositionDocument>(PositionDocument) {
     _disposer: IReactionDisposer | undefined = undefined;
+
+    @observable _animPos: number[] | undefined = undefined;
     get displayName() { return "CollectionFreeFormDocumentView(" + this.props.Document.title + ")"; } // this makes mobx trace() statements more descriptive
     get transform() { return `scale(${this.props.ContentScaling()}) translate(${this.X}px, ${this.Y}px) rotate(${anime.random(-1, 1) * this.props.jitterRotation}deg)`; }
     get X() { return this._animPos !== undefined ? this._animPos[0] : this.renderScriptDim ? this.renderScriptDim.x : this.props.x !== undefined ? this.props.x : this.dataProvider ? this.dataProvider.x : (this.Document.x || 0); }
@@ -38,56 +40,42 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         return (hgt === undefined && this.nativeWidth && this.nativeHeight) ? this.width * this.nativeHeight / this.nativeWidth : hgt;
     }
     @computed get dataProvider() { return this.props.dataProvider && this.props.dataProvider(this.props.Document) ? this.props.dataProvider(this.props.Document) : undefined; }
-    @computed get nativeWidth() { return NumCast(this.layoutDoc.nativeWidth); }
-    @computed get nativeHeight() { return NumCast(this.layoutDoc.nativeHeight); }
+    @computed get nativeWidth() { return NumCast(this.layoutDoc._nativeWidth); }
+    @computed get nativeHeight() { return NumCast(this.layoutDoc._nativeHeight); }
 
     @computed get renderScriptDim() {
         if (this.Document.renderScript) {
             const someView = Cast(this.props.Document.someView, Doc);
             const minimap = Cast(this.props.Document.minimap, Doc);
             if (someView instanceof Doc && minimap instanceof Doc) {
-                const x = (NumCast(someView.panX) - NumCast(someView.width) / 2 / NumCast(someView.scale) - (NumCast(minimap.fitX) - NumCast(minimap.fitW) / 2)) / NumCast(minimap.fitW) * NumCast(minimap.width) - NumCast(minimap.width) / 2;
-                const y = (NumCast(someView.panY) - NumCast(someView.height) / 2 / NumCast(someView.scale) - (NumCast(minimap.fitY) - NumCast(minimap.fitH) / 2)) / NumCast(minimap.fitH) * NumCast(minimap.height) - NumCast(minimap.height) / 2;
-                const w = NumCast(someView.width) / NumCast(someView.scale) / NumCast(minimap.fitW) * NumCast(minimap.width);
-                const h = NumCast(someView.height) / NumCast(someView.scale) / NumCast(minimap.fitH) * NumCast(minimap.height);
+                const x = (NumCast(someView._panX) - NumCast(someView._width) / 2 / NumCast(someView.scale) - (NumCast(minimap.fitX) - NumCast(minimap.fitW) / 2)) / NumCast(minimap.fitW) * NumCast(minimap._width) - NumCast(minimap._width) / 2;
+                const y = (NumCast(someView._panY) - NumCast(someView._height) / 2 / NumCast(someView.scale) - (NumCast(minimap.fitY) - NumCast(minimap.fitH) / 2)) / NumCast(minimap.fitH) * NumCast(minimap._height) - NumCast(minimap._height) / 2;
+                const w = NumCast(someView._width) / NumCast(someView.scale) / NumCast(minimap.fitW) * NumCast(minimap.width);
+                const h = NumCast(someView._height) / NumCast(someView.scale) / NumCast(minimap.fitH) * NumCast(minimap.height);
                 return { x: x, y: y, width: w, height: h };
             }
         }
         return undefined;
     }
 
-    componentWillUnmount() {
-        this._disposer && this._disposer();
-    }
+    componentWillUnmount() { this._disposer?.(); }
     componentDidMount() {
-        this._disposer = reaction(() => this.props.Document.animateToPos ? Array.from(Cast(this.props.Document.animateToPos, listSpec("number"))!) : undefined,
-            target => this._animPos = !target ? undefined : target[2] ? [NumCast(this.layoutDoc.x), NumCast(this.layoutDoc.y)] : this.props.ScreenToLocalTransform().transformPoint(target[0], target[1]),
+        this._disposer = reaction(() => Array.from(Cast(this.props.Document?.animateToPos, listSpec("number"), null) || []),
+            target => this._animPos = !target || !target?.length ? undefined : target[2] ? [NumCast(this.layoutDoc.x), NumCast(this.layoutDoc.y)] :
+                this.props.ScreenToLocalTransform().transformPoint(target[0], target[1]),
             { fireImmediately: true });
     }
 
-    contentScaling = () => this.nativeWidth > 0 && !this.props.Document.ignoreAspect ? this.width / this.nativeWidth : 1;
-    panelWidth = () => this.props.PanelWidth();
-    panelHeight = () => this.props.PanelHeight();
+    contentScaling = () => this.nativeWidth > 0 && !this.props.Document.ignoreAspect && !this.props.fitToBox ? this.width / this.nativeWidth : 1;
+    clusterColorFunc = (doc: Doc) => this.clusterColor;
+    panelWidth = () => (this.dataProvider?.width || this.props.PanelWidth());
+    panelHeight = () => (this.dataProvider?.height || this.props.PanelHeight());
     getTransform = (): Transform => this.props.ScreenToLocalTransform()
         .translate(-this.X, -this.Y)
         .scale(1 / this.contentScaling())
 
-    borderRounding = () => {
-        const ruleRounding = this.props.ruleProvider ? StrCast(this.props.ruleProvider["ruleRounding_" + this.Document.heading]) : undefined;
-        const ld = this.layoutDoc[StrCast(this.layoutDoc.layoutKey, "layout")] instanceof Doc ? this.layoutDoc[StrCast(this.layoutDoc.layoutKey, "layout")] as Doc : undefined;
-        const br = StrCast((ld || this.props.Document).borderRounding);
-        return !br && ruleRounding ? ruleRounding : br;
-    }
-
     @computed
     get clusterColor() { return this.props.backgroundColor(this.props.Document); }
-
-    clusterColorFunc = (doc: Doc) => this.clusterColor;
-
-    @observable _animPos: number[] | undefined = undefined;
-
-    finalPanelWidth = () => (this.dataProvider ? this.dataProvider.width : this.panelWidth());
-    finalPanelHeight = () => (this.dataProvider ? this.dataProvider.height : this.panelHeight());
 
     render() {
         TraceMobx();
@@ -99,7 +87,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                             this.clusterColor ? (`${this.clusterColor} ${StrCast(this.layoutDoc.boxShadow, `0vw 0vw ${(this.layoutDoc.isBackground ? 100 : 50) / this.props.ContentScaling()}px`)}`) :  // if it's just in a cluster, make the shadown roughly match the cluster border extent
                                 this.layoutDoc.isBackground ? undefined :  // if it's a background & has a cluster color, make the shadow spread really big
                                     StrCast(this.layoutDoc.boxShadow, ""),
-                borderRadius: this.borderRounding(),
+                borderRadius: StrCast(Doc.Layout(this.layoutDoc).borderRounding),
                 transform: this.transform,
                 transition: this.Document.isAnimating ? ".5s ease-in" : this.props.transition ? this.props.transition : this.dataProvider ? this.dataProvider.transition : StrCast(this.layoutDoc.transition),
                 width: this.width,
@@ -107,21 +95,21 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 zIndex: this.Document.zIndex || 0,
             }} >
 
-
             {!this.props.fitToBox ? <DocumentView {...this.props}
                 dragDivName={"collectionFreeFormDocumentView-container"}
                 ContentScaling={this.contentScaling}
                 ScreenToLocalTransform={this.getTransform}
                 backgroundColor={this.clusterColorFunc}
-                PanelWidth={this.finalPanelWidth}
-                PanelHeight={this.finalPanelHeight}
+                PanelWidth={this.panelWidth}
+                PanelHeight={this.panelHeight}
             /> : <ContentFittingDocumentView {...this.props}
+                CollectionDoc={this.props.ContainingCollectionDoc}
                 DataDocument={this.props.DataDoc}
                 getTransform={this.getTransform}
                 active={returnFalse}
                 focus={(doc: Doc) => this.props.focus(doc, false)}
-                PanelWidth={this.finalPanelWidth}
-                PanelHeight={this.finalPanelHeight}
+                PanelWidth={this.panelWidth}
+                PanelHeight={this.panelHeight}
                 />}
         </div>;
     }

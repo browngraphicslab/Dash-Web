@@ -145,7 +145,6 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             DataDoc: this.props.rowProps.original,
             LibraryPath: [],
             fieldKey: this.props.rowProps.column.id as string,
-            ruleProvider: undefined,
             ContainingCollectionView: this.props.CollectionView,
             ContainingCollectionDoc: this.props.CollectionView && this.props.CollectionView.props.Document,
             isSelected: returnFalse,
@@ -226,14 +225,14 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                                 if (value.startsWith(":=")) {
                                     return this.props.setComputed(value.substring(2), props.Document, this.props.rowProps.column.id!, this.props.row, this.props.col);
                                 }
-                                const script = CompileScript(value, { requiredType: type, addReturn: true, params: { this: Doc.name, $r: "number", $c: "number", $: "any" } });
+                                const script = CompileScript(value, { requiredType: type, typecheck: false, editable: true, addReturn: true, params: { this: Doc.name, $r: "number", $c: "number", $: "any" } });
                                 if (!script.compiled) {
                                     return false;
                                 }
                                 return this.applyToDoc(props.Document, this.props.row, this.props.col, script.run);
                             }}
                             OnFillDown={async (value: string) => {
-                                const script = CompileScript(value, { requiredType: type, addReturn: true, params: { this: Doc.name, $r: "number", $c: "number", $: "any" } });
+                                const script = CompileScript(value, { requiredType: type, typecheck: false, editable: true, addReturn: true, params: { this: Doc.name, $r: "number", $c: "number", $: "any" } });
                                 if (script.compiled) {
                                     DocListCast(this.props.Document[this.props.fieldKey]).
                                         forEach((doc, i) => this.applyToDoc(doc, i, this.props.col, script.run));

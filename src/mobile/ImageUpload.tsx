@@ -45,7 +45,7 @@ class Uploader extends React.Component {
                     const formData = new FormData();
                     formData.append("file", files[0]);
 
-                    const upload = window.location.origin + "/upload";
+                    const upload = window.location.origin + "/uploadFormData";
                     this.status = "uploading image";
                     const res = await fetch(upload, {
                         method: 'POST',
@@ -55,7 +55,7 @@ class Uploader extends React.Component {
                     const json = await res.json();
                     json.map(async (file: any) => {
                         const path = window.location.origin + file;
-                        const doc = Docs.Create.ImageDocument(path, { nativeWidth: 200, width: 200, title: name });
+                        const doc = Docs.Create.ImageDocument(path, { _nativeWidth: 200, _width: 200, title: name });
 
                         this.status = "getting user document";
 

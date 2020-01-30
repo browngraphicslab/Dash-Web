@@ -11,10 +11,11 @@ import "./Annotation.scss";
 
 interface IAnnotationProps {
     anno: Doc;
-    extensionDoc: Doc;
     addDocTab: (document: Doc, dataDoc: Opt<Doc>, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     focus: (doc: Doc) => void;
+    dataDoc: Doc;
+    fieldKey: string;
 }
 
 export default class Annotation extends React.Component<IAnnotationProps> {
@@ -29,10 +30,11 @@ interface IRegionAnnotationProps {
     y: number;
     width: number;
     height: number;
-    extensionDoc: Doc;
     addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     document: Doc;
+    dataDoc: Doc;
+    fieldKey: string;
 }
 
 @observer
@@ -62,12 +64,12 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
     }
 
     deleteAnnotation = () => {
-        const annotation = DocListCast(this.props.extensionDoc.annotations);
+        const annotation = DocListCast(this.props.dataDoc[this.props.fieldKey + "-annotations"]);
         const group = FieldValue(Cast(this.props.document.group, Doc));
         if (group) {
             if (annotation.indexOf(group) !== -1) {
                 const newAnnotations = annotation.filter(a => a !== FieldValue(Cast(this.props.document.group, Doc)));
-                this.props.extensionDoc.annotations = new List<Doc>(newAnnotations);
+                this.props.dataDoc[this.props.fieldKey + "-annotations"] = new List<Doc>(newAnnotations);
             }
 
             DocListCast(group.annotations).forEach(anno => anno.delete = true);

@@ -20,18 +20,12 @@ import { DocumentView } from "./nodes/DocumentView";
 import { Transform } from "../util/Transform";
 import { DocumentContentsView } from "./nodes/DocumentContentsView";
 
-/**
- * This class handles all of the gesture and touch events first. Native touch and pen
- * events should be ignored by all classes and handled up here, and this class will interpret
- * these events before dispatching our custom Dash gesture and touch events. Classes that want
- * to use touch and pen events should handle custom Dash events, as opposed to native events.
- */
 @observer
 export default class GestureOverlay extends Touchable {
     static Instance: GestureOverlay;
 
-    @observable public Color?: string;
-    @observable public Width?: number;
+    @observable public Color: string = "rgb(244, 67, 54)";
+    @observable public Width: number = 5;
     @observable public SavedColor?: string;
     @observable public SavedWidth?: number;
     @observable public Tool: ToolglassTools = ToolglassTools.None;
@@ -60,15 +54,6 @@ export default class GestureOverlay extends Touchable {
         GestureOverlay.Instance = this;
     }
 
-    /**
-     * @description 
-     * Given a touch event, returns three arrays that represent the event's targetTouches,
-     * changedTouches, and touches after filtering out the touch events that are being handled
-     * as hands. This helps us separate hand events and touch events, as they are different
-     * events in the mental model that we are pursuing.
-     * @param e - Touch event to filter
-     * @returns \{ newTargetTouches, newChangedTouches, newTouches }
-     */
     getNewTouches(e: React.TouchEvent | TouchEvent) {
         const ntt: (React.Touch | Touch)[] = Array.from(e.targetTouches);
         const nct: (React.Touch | Touch)[] = Array.from(e.changedTouches);
@@ -76,7 +61,6 @@ export default class GestureOverlay extends Touchable {
         this._hands.forEach((hand) => {
             for (let i = 0; i < e.targetTouches.length; i++) {
                 const pt = e.targetTouches.item(i);
-                // if there is a finger in this hand that matches the current point, ignore the current point
                 if (pt && hand.some((finger) => finger.screenX === pt.screenX && finger.screenY === pt.screenY)) {
                     ntt.splice(ntt.indexOf(pt), 1);
                 }
@@ -99,11 +83,7 @@ export default class GestureOverlay extends Touchable {
         return { ntt, nct, nt };
     }
 
-    /**
-     * @description Handler for the native React touchStart event.
-     */
     onReactTouchStart = (te: React.TouchEvent) => {
-        // clean up any ghost points that are remaining but don't actually exist
         const actualPts: React.Touch[] = [];
         for (let i = 0; i < te.touches.length; i++) {
             const pt: any = te.touches.item(i);
@@ -111,6 +91,9 @@ export default class GestureOverlay extends Touchable {
             // pen is also a touch, but with a radius of 0.5 (at least with the surface pens)
             // and this seems to be the only way of differentiating pen and touch on touch events
             if (pt.radiusX > 1 && pt.radiusY > 1) {
+                // if (typeof pt.identifier !== "string") {
+                //     pt.identifier = Utils.GenerateGuid();
+                // }
                 this.prevPoints.set(pt.identifier, pt);
             }
         }
@@ -123,11 +106,10 @@ export default class GestureOverlay extends Touchable {
         });
 
         ptsToDelete.forEach(pt => this.prevPoints.delete(pt));
-
-        // decide whether we should be handling this as a hand event or a touch event
         const nts = this.getNewTouches(te);
+        console.log(nts.nt.length);
+
         if (nts.nt.length < 5) {
-            // dispatch a touch event
             const target = document.elementFromPoint(te.changedTouches.item(0).clientX, te.changedTouches.item(0).clientY);
             target?.dispatchEvent(
                 new CustomEvent<InteractionUtils.MultiTouchEvent<React.TouchEvent>>("dashOnTouchStart",
@@ -149,17 +131,12 @@ export default class GestureOverlay extends Touchable {
             document.addEventListener("touchend", this.onReactTouchEnd);
         }
         else {
-            // handle this event as a hand event
             this.handleHandDown(te);
             document.removeEventListener("touchmove", this.onReactTouchMove);
             document.removeEventListener("touchend", this.onReactTouchEnd);
         }
     }
 
-    /**
-     * @description Handler for the native React touchMove event. Filters and dispatches
-     * the custom Dash touchMove event.
-     */
     onReactTouchMove = (e: TouchEvent) => {
         const nts: any = this.getNewTouches(e);
         document.dispatchEvent(
@@ -177,11 +154,7 @@ export default class GestureOverlay extends Touchable {
         );
     }
 
-    /**
-     * @description Handler for the native React touchEnd event.
-     */
     onReactTouchEnd = (e: TouchEvent) => {
-        // filter and dispatch custom touchEnd event
         const nts: any = this.getNewTouches(e);
         document.dispatchEvent(
             new CustomEvent<InteractionUtils.MultiTouchEvent<TouchEvent>>("dashOnTouchEnd",
@@ -196,8 +169,6 @@ export default class GestureOverlay extends Touchable {
                     }
                 })
         );
-
-        // clean up any points that have ended
         for (let i = 0; i < e.changedTouches.length; i++) {
             const pt = e.changedTouches.item(i);
             if (pt) {
@@ -207,7 +178,6 @@ export default class GestureOverlay extends Touchable {
             }
         }
 
-        // clean up events
         if (this.prevPoints.size === 0) {
             document.removeEventListener("touchmove", this.onReactTouchMove);
             document.removeEventListener("touchend", this.onReactTouchEnd);
@@ -215,12 +185,8 @@ export default class GestureOverlay extends Touchable {
         e.stopPropagation();
     }
 
-    /**
-     * @description Handler for "handDown" events
-     */
     handleHandDown = async (e: React.TouchEvent) => {
         const fingers = new Array<React.Touch>();
-        // log all the fingers on the hand
         for (let i = 0; i < e.touches.length; i++) {
             const pt: any = e.touches.item(i);
             if (pt.radiusX > 1 && pt.radiusY > 1) {
@@ -234,8 +200,6 @@ export default class GestureOverlay extends Touchable {
                 }
             }
         }
-
-        // figure out left/right hand and thumb/pointer finger
         const thumb = fingers.reduce((a, v) => a.clientY > v.clientY ? a : v, fingers[0]);
         const rightMost = Math.max(...fingers.map(f => f.clientX));
         const leftMost = Math.min(...fingers.map(f => f.clientX));
@@ -265,7 +229,6 @@ export default class GestureOverlay extends Touchable {
         const minX = Math.min(...others.map(f => f.clientX));
         const minY = Math.min(...others.map(f => f.clientY));
 
-        // pull up the palette
         const thumbDoc = await Cast(CurrentUserUtils.setupThumbDoc(CurrentUserUtils.UserDocument), Doc);
         if (thumbDoc) {
             runInAction(() => {
@@ -283,9 +246,6 @@ export default class GestureOverlay extends Touchable {
         document.addEventListener("touchend", this.handleHandUp);
     }
 
-    /**
-     * @description Handler for "handMove" event
-     */
     @action
     handleHandMove = (e: TouchEvent) => {
         const fingers = new Array<React.Touch>();
@@ -410,7 +370,7 @@ export default class GestureOverlay extends Touchable {
             else {
                 const result = GestureUtils.GestureRecognizer.Recognize(new Array(points));
                 let actionPerformed = false;
-                if (result && result.Score > 0.8) {
+                if (result && result.Score > 0.7) {
                     switch (result.Name) {
                         case GestureUtils.Gestures.Box:
                             const target = document.elementFromPoint(this._points[0].X, this._points[0].Y);
@@ -478,7 +438,7 @@ export default class GestureOverlay extends Touchable {
 
         return (
             <svg width={B.width} height={B.height} style={{ transform: `translate(${B.left}px, ${B.top}px)`, pointerEvents: "none", position: "absolute", zIndex: 30000 }}>
-                {InteractionUtils.CreatePolyline(this._points, B.left, B.top, this.Color ?? InkingControl.Instance.selectedColor, this.Width ?? parseInt(InkingControl.Instance.selectedWidth))}
+                {InteractionUtils.CreatePolyline(this._points, B.left, B.top, this.Color, this.Width)}
             </svg>
         );
     }
@@ -502,7 +462,6 @@ export default class GestureOverlay extends Touchable {
                 addDocTab={returnFalse}
                 pinToPres={emptyFunction}
                 onClick={undefined}
-                ruleProvider={undefined}
                 removeDocument={undefined}
                 ScreenToLocalTransform={() => new Transform(-(this._thumbX ?? 0), -(this._thumbY ?? 0) + this.height, 1)}
                 ContentScaling={returnOne}
@@ -554,7 +513,6 @@ export default class GestureOverlay extends Touchable {
 
 export enum ToolglassTools {
     InkToText = "inktotext",
-    IgnoreGesture = "ignoregesture",
     None = "none",
 }
 
@@ -572,7 +530,7 @@ Scripting.addGlobal(function setPen(width: any, color: any) {
 });
 Scripting.addGlobal(function resetPen() {
     runInAction(() => {
-        GestureOverlay.Instance.Color = GestureOverlay.Instance.SavedColor ?? undefined;
-        GestureOverlay.Instance.Width = GestureOverlay.Instance.SavedWidth ?? undefined;
+        GestureOverlay.Instance.Color = GestureOverlay.Instance.SavedColor ?? "rgb(244, 67, 54)";
+        GestureOverlay.Instance.Width = GestureOverlay.Instance.SavedWidth ?? 5;
     });
 });

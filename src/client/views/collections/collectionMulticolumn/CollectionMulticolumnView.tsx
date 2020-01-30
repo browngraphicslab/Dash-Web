@@ -4,7 +4,7 @@ import { documentSchema } from '../../../../new_fields/documentSchemas';
 import { CollectionSubView, SubCollectionViewProps } from '../CollectionSubView';
 import * as React from "react";
 import { Doc } from '../../../../new_fields/Doc';
-import { NumCast, StrCast, BoolCast } from '../../../../new_fields/Types';
+import { NumCast, StrCast, BoolCast, ScriptCast } from '../../../../new_fields/Types';
 import { ContentFittingDocumentView } from '../../nodes/ContentFittingDocumentView';
 import { Utils } from '../../../../Utils';
 import "./collectionMulticolumnView.scss";
@@ -12,6 +12,8 @@ import { computed, trace, observable, action } from 'mobx';
 import { Transform } from '../../../util/Transform';
 import WidthLabel from './MulticolumnWidthLabel';
 import ResizeBar from './MulticolumnResizer';
+import { undoBatch } from '../../../util/UndoManager';
+import { DragManager } from '../../../util/DragManager';
 
 type MulticolumnDocument = makeInterface<[typeof documentSchema]>;
 const MulticolumnDocument = makeInterface(documentSchema);
@@ -186,6 +188,21 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
         return Transform.Identity(); // type coersion, this case should never be hit
     }
 
+    @undoBatch
+    @action
+    drop = (e: Event, de: DragManager.DropEvent) => {
+        if (super.drop(e, de)) {
+            de.complete.docDragData?.droppedDocuments.forEach(action((d: Doc) => {
+                d.widthUnit = "*";
+                d.widthMagnitude = 1;
+            }));
+        }
+        return false;
+    }
+
+
+    @computed get onChildClickHandler() { return ScriptCast(this.Document.onChildClick); }
+
     /**
      * @returns the resolved list of rendered child documents, displayed
      * at their resolved pixel widths, each separated by a resizer. 
@@ -206,9 +223,11 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
                         {...this.props}
                         Document={layout}
                         DataDocument={layout.resolvedDataDoc as Doc}
+                        CollectionDoc={this.props.Document}
                         PanelWidth={() => this.lookupPixels(layout)}
                         PanelHeight={() => PanelHeight() - (BoolCast(Document.showWidthLabels) ? 20 : 0)}
                         getTransform={() => this.lookupIndividualTransform(layout)}
+                        onClick={this.onChildClickHandler}
                     />
                     <WidthLabel
                         layout={layout}
@@ -230,10 +249,7 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
 
     render(): JSX.Element {
         return (
-            <div
-                className={"collectionMulticolumnView_contents"}
-                ref={this.createDropTarget}
-            >
+            <div className={"collectionMulticolumnView_contents"} ref={this.createDashEventsTarget}>
                 {this.contents}
             </div>
         );

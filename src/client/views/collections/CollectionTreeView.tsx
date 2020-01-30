@@ -1,19 +1,22 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faAngleRight, faArrowsAltH, faBell, faCamera, faCaretDown, faCaretRight, faCaretSquareDown, faCaretSquareRight, faExpand, faMinus, faPlus, faTrash, faTrashAlt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, observable, untracked, runInAction } from "mobx";
+import { action, computed, observable, runInAction, untracked } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast, Field, HeightSym, WidthSym } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { List } from '../../../new_fields/List';
 import { Document, listSpec } from '../../../new_fields/Schema';
 import { ComputedField, ScriptField } from '../../../new_fields/ScriptField';
-import { BoolCast, Cast, NumCast, StrCast, ScriptCast } from '../../../new_fields/Types';
-import { emptyFunction, Utils, returnFalse, emptyPath } from '../../../Utils';
+import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from '../../../new_fields/Types';
+import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
+import { emptyFunction, emptyPath, returnFalse, Utils } from '../../../Utils';
 import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentType } from "../../documents/DocumentTypes";
 import { DocumentManager } from '../../util/DocumentManager';
 import { DragManager, dropActionType, SetupDrag } from "../../util/DragManager";
+import { makeTemplate } from '../../util/DropConverter';
+import { Scripting } from '../../util/Scripting';
 import { SelectionManager } from '../../util/SelectionManager';
 import { Transform } from '../../util/Transform';
 import { undoBatch } from '../../util/UndoManager';
@@ -21,17 +24,17 @@ import { ContextMenu } from '../ContextMenu';
 import { ContextMenuProps } from '../ContextMenuItem';
 import { EditableView } from "../EditableView";
 import { MainView } from '../MainView';
-import { KeyValueBox } from '../nodes/KeyValueBox';
-import { Templates } from '../Templates';
 import { ContentFittingDocumentView } from '../nodes/ContentFittingDocumentView';
+import { ImageBox } from '../nodes/ImageBox';
+import { KeyValueBox } from '../nodes/KeyValueBox';
+import { ScriptBox } from '../ScriptBox';
+import { Templates } from '../Templates';
 import { CollectionSubView } from "./CollectionSubView";
 import "./CollectionTreeView.scss";
 import React = require("react");
-import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
-import { ScriptBox } from '../ScriptBox';
-import { ImageBox } from '../nodes/ImageBox';
-import { makeTemplate } from '../../util/DropConverter';
-import { CollectionDockingView } from './CollectionDockingView';
+import { CollectionViewType } from './CollectionView';
+import { RichTextField } from '../../../new_fields/RichTextField';
+import { ObjectField } from '../../../new_fields/ObjectField';
 
 
 export interface TreeViewProps {
@@ -42,7 +45,6 @@ export interface TreeViewProps {
     prevSibling?: Doc;
     renderDepth: number;
     deleteDoc: (doc: Doc) => boolean;
-    ruleProvider: Doc | undefined;
     moveDocument: DragManager.MoveFunction;
     dropAction: "alias" | "copy" | undefined;
     addDocTab: (doc: Doc, dataDoc: Doc | undefined, where: string, libraryPath?: Doc[]) => boolean;
@@ -178,8 +180,8 @@ class TreeView extends React.Component<TreeViewProps> {
         SetValue={undoBatch((value: string) => Doc.SetInPlace(this.props.document, key, value, false) || true)}
         OnFillDown={undoBatch((value: string) => {
             Doc.SetInPlace(this.props.document, key, value, false);
-            const layoutDoc = this.props.document.layoutCustom instanceof Doc ? Doc.ApplyTemplate(Doc.GetProto(this.props.document.layoutCustom)) : undefined;
-            const doc = layoutDoc || Docs.Create.FreeformDocument([], { title: "", x: 0, y: 0, width: 100, height: 25, templates: new List<string>([Templates.Title.Layout]) });
+            const layoutDoc = this.props.document.layout_custom instanceof Doc ? Doc.ApplyTemplate(Doc.GetProto(this.props.document.layout_custom)) : undefined;
+            const doc = layoutDoc || Docs.Create.FreeformDocument([], { title: "", x: 0, y: 0, _width: 100, _height: 25, templates: new List<string>([Templates.Title.Layout]) });
             TreeView.loadId = doc[Id];
             return this.props.addDocument(doc);
         })}
@@ -210,7 +212,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 ContextMenu.Instance.addItem({ description: "Delete Workspace", event: () => this.props.deleteDoc(this.props.document), icon: "trash-alt" });
                 ContextMenu.Instance.addItem({ description: "Create New Workspace", event: () => MainView.Instance.createNewWorkspace(), icon: "plus" });
             }
-            ContextMenu.Instance.addItem({ description: "Open Fields", event: () => { const kvp = Docs.Create.KVPDocument(this.props.document, { width: 300, height: 300 }); this.props.addDocTab(kvp, this.props.dataDoc ? this.props.dataDoc : kvp, "onRight"); }, icon: "layer-group" });
+            ContextMenu.Instance.addItem({ description: "Open Fields", event: () => { const kvp = Docs.Create.KVPDocument(this.props.document, { _width: 300, _height: 300 }); this.props.addDocTab(kvp, this.props.dataDoc ? this.props.dataDoc : kvp, "onRight"); }, icon: "layer-group" });
             ContextMenu.Instance.addItem({ description: "Publish", event: () => DocUtils.Publish(this.props.document, StrCast(this.props.document.title), () => { }, () => { }), icon: "file" });
             ContextMenu.Instance.displayMenu(e.pageX > 156 ? e.pageX - 156 : 0, e.pageY - 15);
             e.stopPropagation();
@@ -256,21 +258,21 @@ class TreeView extends React.Component<TreeViewProps> {
     }
     docWidth = () => {
         const layoutDoc = Doc.Layout(this.props.document);
-        const aspect = NumCast(layoutDoc.nativeHeight) / NumCast(layoutDoc.nativeWidth);
+        const aspect = NumCast(layoutDoc._nativeHeight) / NumCast(layoutDoc._nativeWidth);
         if (aspect) return Math.min(layoutDoc[WidthSym](), Math.min(this.MAX_EMBED_HEIGHT / aspect, this.props.panelWidth() - 20));
-        return NumCast(layoutDoc.nativeWidth) ? Math.min(layoutDoc[WidthSym](), this.props.panelWidth() - 20) : this.props.panelWidth() - 20;
+        return NumCast(layoutDoc._nativeWidth) ? Math.min(layoutDoc[WidthSym](), this.props.panelWidth() - 20) : this.props.panelWidth() - 20;
     }
     docHeight = () => {
         const layoutDoc = Doc.Layout(this.props.document);
         const bounds = this.boundsOfCollectionDocument;
         return Math.min(this.MAX_EMBED_HEIGHT, (() => {
-            const aspect = NumCast(layoutDoc.nativeHeight) / NumCast(layoutDoc.nativeWidth, 1);
+            const aspect = NumCast(layoutDoc._nativeHeight) / NumCast(layoutDoc._nativeWidth, 1);
             if (aspect) return this.docWidth() * aspect;
             if (bounds) return this.docWidth() * (bounds.b - bounds.y) / (bounds.r - bounds.x);
-            return layoutDoc.fitWidth ? (!this.props.document.nativeHeight ? NumCast(this.props.containingCollection.height) :
-                Math.min(this.docWidth() * NumCast(layoutDoc.scrollHeight, NumCast(layoutDoc.nativeHeight)) / NumCast(layoutDoc.nativeWidth,
-                    NumCast(this.props.containingCollection.height)))) :
-                NumCast(layoutDoc.height) ? NumCast(layoutDoc.height) : 50;
+            return layoutDoc._fitWidth ? (!this.props.document.nativeHeight ? NumCast(this.props.containingCollection._height) :
+                Math.min(this.docWidth() * NumCast(layoutDoc.scrollHeight, NumCast(layoutDoc._nativeHeight)) / NumCast(layoutDoc._nativeWidth,
+                    NumCast(this.props.containingCollection._height)))) :
+                NumCast(layoutDoc._height) ? NumCast(layoutDoc._height) : 50;
         })());
     }
 
@@ -322,8 +324,6 @@ class TreeView extends React.Component<TreeViewProps> {
         return rows;
     }
 
-    noOverlays = (doc: Doc) => ({ title: "", caption: "" });
-
     @computed get renderContent() {
         const expandKey = this.treeViewExpandedView === this.fieldKey ? this.fieldKey : this.treeViewExpandedView === "links" ? "links" : undefined;
         if (expandKey !== undefined) {
@@ -350,8 +350,6 @@ class TreeView extends React.Component<TreeViewProps> {
                     DataDocument={this.templateDataDoc}
                     LibraryPath={emptyPath}
                     renderDepth={this.props.renderDepth + 1}
-                    showOverlays={this.noOverlays}
-                    ruleProvider={this.props.document.isRuleProvider && layoutDoc.type !== DocumentType.TEXT ? this.props.document : this.props.ruleProvider}
                     fitToBox={this.boundsOfCollectionDocument !== undefined}
                     PanelWidth={this.docWidth}
                     PanelHeight={this.docHeight}
@@ -372,12 +370,12 @@ class TreeView extends React.Component<TreeViewProps> {
     @action
     bulletClick = (e: React.MouseEvent) => {
         if (this.props.onCheckedClick && this.props.document.type !== DocumentType.COL) {
-            this.props.document.treeViewChecked = this.props.document.treeViewChecked === "check" ? "x" : this.props.document.treeViewChecked === "x" ? undefined : "check";
+            // this.props.document.treeViewChecked = this.props.document.treeViewChecked === "check" ? "x" : this.props.document.treeViewChecked === "x" ? undefined : "check";
             ScriptCast(this.props.onCheckedClick).script.run({
-                this: this.props.document.isTemplateField && this.props.dataDoc ? this.props.dataDoc : this.props.document,
+                this: this.props.document.isTemplateForField && this.props.dataDoc ? this.props.dataDoc : this.props.document,
                 heading: this.props.containingCollection.title,
-                checked: this.props.document.treeViewChecked === "check" ? false : this.props.document.treeViewChecked === "x" ? "x" : "none",
-                context: this.props.treeViewId
+                checked: this.props.document.treeViewChecked === "check" ? "x" : this.props.document.treeViewChecked === "x" ? undefined : "check",
+                containingTreeView: this.props.treeViewId,
             }, console.log);
         } else {
             this.treeViewOpen = !this.treeViewOpen;
@@ -518,7 +516,7 @@ class TreeView extends React.Component<TreeViewProps> {
 
         const rowWidth = () => panelWidth() - 20;
         return docs.map((child, i) => {
-            const pair = Doc.GetLayoutDataDocPair(containingCollection, dataDoc, key, child);
+            const pair = Doc.GetLayoutDataDocPair(containingCollection, dataDoc, child);
             if (!pair.layout || pair.data instanceof Promise) {
                 return (null);
             }
@@ -548,7 +546,7 @@ class TreeView extends React.Component<TreeViewProps> {
             };
             const childLayout = Doc.Layout(pair.layout);
             const rowHeight = () => {
-                const aspect = NumCast(childLayout.nativeWidth, 0) / NumCast(childLayout.nativeHeight, 0);
+                const aspect = NumCast(childLayout._nativeWidth, 0) / NumCast(childLayout._nativeHeight, 0);
                 return aspect ? Math.min(childLayout[WidthSym](), rowWidth()) / aspect : childLayout[HeightSym]();
             };
             return !(child instanceof Doc) ? (null) : <TreeView
@@ -558,7 +556,6 @@ class TreeView extends React.Component<TreeViewProps> {
                 containingCollection={containingCollection}
                 prevSibling={docs[i]}
                 treeViewId={treeViewId}
-                ruleProvider={containingCollection.isRuleProvider && pair.layout.type !== DocumentType.TEXT ? containingCollection : containingCollection.ruleProvider as Doc}
                 key={child[Id]}
                 indentDocument={indent}
                 outdentDocument={outdent}
@@ -633,32 +630,45 @@ export class CollectionTreeView extends CollectionSubView(Document) {
         }
         ContextMenu.Instance.addItem({
             description: "Buxton Layout", icon: "eye", event: () => {
-                const { TextDocument, ImageDocument } = Docs.Create;
-                const wrapper = Docs.Create.StackingDocument([
-                    ImageDocument("http://www.cs.brown.edu/~bcz/face.gif", { title: "hero" }),
-                    TextDocument({ title: "year" }),
-                    TextDocument({ title: "degrees_of_freedom" }),
-                    TextDocument({ title: "company" }),
-                    TextDocument({ title: "short_description" }),
-                ], { autoHeight: true, chromeStatus: "disabled" });
-                wrapper.disableLOD = true;
-                makeTemplate(wrapper, true);
-                const detailedLayout = Doc.MakeAlias(wrapper);
-                const cardLayout = ImageBox.LayoutString("hero");
-                this.childLayoutPairs.forEach(({ layout }) => {
-                    const proto = Doc.GetProto(layout);
-                    proto.layout = cardLayout;
-                    proto.layout_detailed = detailedLayout;
-                    layout.showTitle = "title";
-                    layout.showTitleHover = "titlehover";
+                DocListCast(this.dataDoc[this.props.fieldKey]).map(d => {
+                    DocListCast(d.data).map((img, i) => {
+                        const caption = (d.captions as any)[i]?.data;
+                        if (caption instanceof ObjectField) {
+                            Doc.GetProto(img).caption = ObjectField.MakeCopy(caption as ObjectField);
+                        }
+                        img._hideSidebar = true;
+                        d.captions = undefined;
+                    });
                 });
+                const { TextDocument, ImageDocument, CarouselDocument } = Docs.Create;
+                const { Document } = this.props;
+                const fallbackImg = "http://www.cs.brown.edu/~bcz/face.gif";
+                const detailedTemplate = `{ "doc": { "type": "doc", "content": [ { "type": "paragraph", "content": [ { "type": "dashField", "attrs": { "fieldKey": "short_description" } } ] }, { "type": "paragraph", "content": [ { "type": "dashField", "attrs": { "fieldKey": "year" } } ] },  { "type": "paragraph", "content": [ { "type": "dashField", "attrs": { "fieldKey": "company" } } ] }  ] }, "selection":{"type":"text","anchor":1,"head":1},"storedMarks":[] }`;
+
+                const textDoc = TextDocument("", { title: "details", _autoHeight: true });
+                const detailedLayout = Docs.Create.StackingDocument([
+                    CarouselDocument([], { title: "data", _height: 350, _itemIndex: 0, backgroundColor: "#9b9b9b3F" }),
+                    textDoc,
+                ], { _chromeStatus: "disabled", title: "detailed layout stack" });
+                textDoc.data = new RichTextField(detailedTemplate, "short_description year company");
+                detailedLayout.isTemplateDoc = makeTemplate(detailedLayout);
+
+                const cardLayout = ImageDocument(fallbackImg, { title: "cardLayout", isTemplateDoc: true, isTemplateForField: "hero", }); // this acts like a template doc and a template field ... a little weird, but seems to work?
+                cardLayout.proto!.layout = ImageBox.LayoutString("hero");
+                cardLayout.showTitle = "title";
+                cardLayout.showTitleHover = "titlehover";
+
+                Document.childLayout = cardLayout;
+                Document.childDetailed = detailedLayout;
+                Document._viewType = CollectionViewType.Pivot;
+                Document.pivotField = "company";
             }
         });
         const existingOnClick = ContextMenu.Instance.findByDescription("OnClick...");
         const onClicks: ContextMenuProps[] = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
         onClicks.push({
             description: "Edit onChecked Script", icon: "edit", event: (obj: any) => ScriptBox.EditButtonScript("On Checked Changed ...", this.props.Document,
-                "onCheckedClick", obj.x, obj.y, { heading: "boolean", checked: "boolean", context: Doc.name })
+                "onCheckedClick", obj.x, obj.y, { heading: "boolean", checked: "boolean", treeViewContainer: Doc.name })
         });
         !existingOnClick && ContextMenu.Instance.addItem({ description: "OnClick...", subitems: onClicks, icon: "hand-point-right" });
     }
@@ -675,12 +685,12 @@ export class CollectionTreeView extends CollectionSubView(Document) {
     }
 
     render() {
-        const dropAction = StrCast(this.props.Document.dropAction) as dropActionType;
+        const dropAction = StrCast(this.props.Document._dropAction) as dropActionType;
         const addDoc = (doc: Doc, relativeTo?: Doc, before?: boolean) => Doc.AddDocToList(this.props.Document, this.props.fieldKey, doc, relativeTo, before, false, false, false);
         const moveDoc = (d: Doc, target: Doc | undefined, addDoc: (doc: Doc) => boolean) => this.props.moveDocument(d, target, addDoc);
         return !this.childDocs ? (null) : (
             <div className="collectionTreeView-dropTarget" id="body"
-                style={{ background: StrCast(this.props.Document.backgroundColor, "lightgray"), paddingTop: `${NumCast(this.props.Document.yMargin, 20)}px` }}
+                style={{ background: StrCast(this.props.Document.backgroundColor, "lightgray"), paddingTop: `${NumCast(this.props.Document._yMargin, 20)}px` }}
                 onContextMenu={this.onContextMenu}
                 onWheel={(e: React.WheelEvent) => this._mainEle && this._mainEle.scrollHeight > this._mainEle.clientHeight && e.stopPropagation()}
                 onDrop={this.onTreeDrop}
@@ -694,8 +704,8 @@ export class CollectionTreeView extends CollectionSubView(Document) {
                     SetValue={undoBatch((value: string) => Doc.SetInPlace(this.dataDoc, "title", value, false) || true)}
                     OnFillDown={undoBatch((value: string) => {
                         Doc.SetInPlace(this.dataDoc, "title", value, false);
-                        const layoutDoc = this.props.Document.layoutCustom instanceof Doc ? Doc.ApplyTemplate(Doc.GetProto(this.props.Document.layoutCustom)) : undefined;
-                        const doc = layoutDoc || Docs.Create.FreeformDocument([], { title: "", x: 0, y: 0, width: 100, height: 25, templates: new List<string>([Templates.Title.Layout]) });
+                        const layoutDoc = this.props.Document.layout_custom instanceof Doc ? Doc.ApplyTemplate(Doc.GetProto(this.props.Document.layout_custom)) : undefined;
+                        const doc = layoutDoc || Docs.Create.FreeformDocument([], { title: "", x: 0, y: 0, _width: 100, _height: 25, templates: new List<string>([Templates.Title.Layout]) });
                         TreeView.loadId = doc[Id];
                         Doc.AddDocToList(this.props.Document, this.props.fieldKey, doc, this.childDocs.length ? this.childDocs[0] : undefined, true, false, false, false);
                     })} />)}
@@ -712,3 +722,29 @@ export class CollectionTreeView extends CollectionSubView(Document) {
         );
     }
 }
+
+Scripting.addGlobal(function readFacetData(layoutDoc: Doc, dataDoc: Doc, dataKey: string, facetHeader: string) {
+    const allCollectionDocs = DocListCast(dataDoc[dataKey]);
+    const facetValues = Array.from(allCollectionDocs.reduce((set, child) =>
+        set.add(Field.toString(child[facetHeader] as Field)), new Set<string>()));
+
+    const facetValueDocSet = facetValues.sort().map(facetValue =>
+        Docs.Create.TextDocument("", {
+            title: facetValue.toString(),
+            treeViewChecked: ComputedField.MakeFunction("determineCheckedState(layoutDoc, facetHeader, facetValue)",
+                { layoutDoc: Doc.name, facetHeader: "string", facetValue: "string" },
+                { layoutDoc, facetHeader, facetValue })
+        }));
+    return new List<Doc>(facetValueDocSet);
+});
+
+Scripting.addGlobal(function determineCheckedState(layoutDoc: Doc, facetHeader: string, facetValue: string) {
+    const docFilters = Cast(layoutDoc._docFilter, listSpec("string"), []);
+    for (let i = 0; i < docFilters.length; i += 3) {
+        const [header, value, state] = docFilters.slice(i, i + 3);
+        if (header === facetHeader && value === facetValue) {
+            return state;
+        }
+    }
+    return undefined;
+});

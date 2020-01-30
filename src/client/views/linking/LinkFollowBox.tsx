@@ -89,7 +89,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     async resetPan() {
         if (LinkFollowBox.destinationDoc && this.sourceView && this.sourceView.props.ContainingCollectionDoc) {
             runInAction(() => this.canPan = false);
-            if (this.sourceView.props.ContainingCollectionDoc.viewType === CollectionViewType.Freeform) {
+            if (this.sourceView.props.ContainingCollectionDoc._viewType === CollectionViewType.Freeform) {
                 const docs = Cast(this.sourceView.props.ContainingCollectionDoc.data, listSpec(Doc), []);
                 const aliases = await SearchUtil.GetViewsOfDocument(Doc.GetProto(LinkFollowBox.destinationDoc));
 
@@ -165,11 +165,11 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     @undoBatch
     openColFullScreen = (options: { context: Doc }) => {
         if (LinkFollowBox.destinationDoc) {
-            if (NumCast(options.context.viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
-                const newPanX = NumCast(LinkFollowBox.destinationDoc.x) + NumCast(LinkFollowBox.destinationDoc.width) / 2;
-                const newPanY = NumCast(LinkFollowBox.destinationDoc.y) + NumCast(LinkFollowBox.destinationDoc.height) / 2;
-                options.context.panX = newPanX;
-                options.context.panY = newPanY;
+            if (NumCast(options.context._viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
+                const newPanX = NumCast(LinkFollowBox.destinationDoc.x) + NumCast(LinkFollowBox.destinationDoc._width) / 2;
+                const newPanY = NumCast(LinkFollowBox.destinationDoc.y) + NumCast(LinkFollowBox.destinationDoc._height) / 2;
+                options.context._panX = newPanX;
+                options.context._panY = newPanY;
             }
             const view = DocumentManager.Instance.getDocumentView(options.context);
             view && CollectionDockingView.Instance && CollectionDockingView.Instance.OpenFullScreen(view);
@@ -193,11 +193,11 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     openLinkColRight = (options: { context: Doc, shouldZoom: boolean }) => {
         if (LinkFollowBox.destinationDoc) {
             options.context = Doc.IsPrototype(options.context) ? Doc.MakeDelegate(options.context) : options.context;
-            if (NumCast(options.context.viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
-                const newPanX = NumCast(LinkFollowBox.destinationDoc.x) + NumCast(LinkFollowBox.destinationDoc.width) / 2;
-                const newPanY = NumCast(LinkFollowBox.destinationDoc.y) + NumCast(LinkFollowBox.destinationDoc.height) / 2;
-                options.context.panX = newPanX;
-                options.context.panY = newPanY;
+            if (NumCast(options.context._viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
+                const newPanX = NumCast(LinkFollowBox.destinationDoc.x) + NumCast(LinkFollowBox.destinationDoc._width) / 2;
+                const newPanY = NumCast(LinkFollowBox.destinationDoc.y) + NumCast(LinkFollowBox.destinationDoc._height) / 2;
+                options.context._panX = newPanX;
+                options.context._panY = newPanY;
             }
             (LinkFollowBox._addDocTab || this.props.addDocTab)(options.context, undefined, "onRight");
 
@@ -245,11 +245,11 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     openLinkColTab = (options: { context: Doc, shouldZoom: boolean }) => {
         if (LinkFollowBox.destinationDoc) {
             options.context = Doc.IsPrototype(options.context) ? Doc.MakeDelegate(options.context) : options.context;
-            if (NumCast(options.context.viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
-                const newPanX = NumCast(LinkFollowBox.destinationDoc.x) + NumCast(LinkFollowBox.destinationDoc.width) / 2;
-                const newPanY = NumCast(LinkFollowBox.destinationDoc.y) + NumCast(LinkFollowBox.destinationDoc.height) / 2;
-                options.context.panX = newPanX;
-                options.context.panY = newPanY;
+            if (NumCast(options.context._viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
+                const newPanX = NumCast(LinkFollowBox.destinationDoc.x) + NumCast(LinkFollowBox.destinationDoc._width) / 2;
+                const newPanY = NumCast(LinkFollowBox.destinationDoc.y) + NumCast(LinkFollowBox.destinationDoc._height) / 2;
+                options.context._panX = newPanX;
+                options.context._panY = newPanY;
             }
             (LinkFollowBox._addDocTab || this.props.addDocTab)(options.context, undefined, "inTab");
             if (options.shouldZoom) this.jumpToLink({ shouldZoom: options.shouldZoom });
@@ -270,13 +270,13 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
                     const y = NumCast(LinkFollowBox.sourceDoc.y);
                     const x = NumCast(LinkFollowBox.sourceDoc.x);
 
-                    const width = NumCast(LinkFollowBox.sourceDoc.width);
-                    const height = NumCast(LinkFollowBox.sourceDoc.height);
+                    const width = NumCast(LinkFollowBox.sourceDoc._width);
+                    const height = NumCast(LinkFollowBox.sourceDoc._height);
 
                     alias.x = x + width + 30;
                     alias.y = y;
-                    alias.width = width;
-                    alias.height = height;
+                    alias._width = width;
+                    alias._height = height;
 
                     this.sourceView.props.addDocument(alias);
                 }
@@ -361,7 +361,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
     get canOpenInPlace() {
         if (this.sourceView && this.sourceView.props.ContainingCollectionDoc) {
             const colDoc = this.sourceView.props.ContainingCollectionDoc;
-            if (colDoc.viewType && colDoc.viewType === CollectionViewType.Freeform) return true;
+            if (colDoc._viewType === CollectionViewType.Freeform) return true;
         }
         return false;
     }
@@ -481,7 +481,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
         let contextMatch: boolean = false;
         if (this.selectedContextAliases) {
             this.selectedContextAliases.forEach(alias => {
-                if (alias.viewType === CollectionViewType.Freeform) contextMatch = true;
+                if (alias._viewType === CollectionViewType.Freeform) contextMatch = true;
             });
         }
         if (contextMatch) return true;
@@ -523,7 +523,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
 
     render() {
         return (
-            <div className="linkFollowBox-main" style={{ height: NumCast(this.props.Document.height), width: NumCast(this.props.Document.width) }}>
+            <div className="linkFollowBox-main" style={{ height: NumCast(this.props.Document._height), width: NumCast(this.props.Document._width) }}>
                 <div className="linkFollowBox-header">
                     <div className="topHeader">
                         {LinkFollowBox.linkDoc ? "Link Title: " + StrCast(LinkFollowBox.linkDoc.title) : "No Link Selected"}
@@ -533,7 +533,7 @@ export class LinkFollowBox extends React.Component<FieldViewProps> {
                         LinkFollowBox.sourceDoc && LinkFollowBox.destinationDoc ? "Source: " + StrCast(LinkFollowBox.sourceDoc.title) + ", Destination: " + StrCast(LinkFollowBox.destinationDoc.title)
                             : "" : ""}</div>
                 </div>
-                <div className="linkFollowBox-content" style={{ height: NumCast(this.props.Document.height) - 110 }}>
+                <div className="linkFollowBox-content" style={{ height: NumCast(this.props.Document._height) - 110 }}>
                     <div className="linkFollowBox-item">
                         <div className="linkFollowBox-item title">Mode</div>
                         <div className="linkFollowBox-itemContent">

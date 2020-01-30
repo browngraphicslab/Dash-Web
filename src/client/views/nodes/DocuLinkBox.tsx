@@ -61,10 +61,12 @@ export class DocuLinkBox extends DocComponent<FieldViewProps, DocLinkSchema>(Doc
         }
     }
     onClick = (e: React.MouseEvent) => {
-        if (Math.abs(e.clientX - this._downx) < 3 && Math.abs(e.clientY - this._downy) < 3 && (e.button !== 2 && !e.ctrlKey && this.props.Document.isButton)) {
-            DocumentManager.Instance.FollowLink(this.props.Document, this.props.Document[this.props.fieldKey] as Doc, document => this.props.addDocTab(document, undefined, "inTab"), false);
+        if (!this.props.Document.onClick) {
+            if (Math.abs(e.clientX - this._downx) < 3 && Math.abs(e.clientY - this._downy) < 3 && (e.button !== 2 && !e.ctrlKey && this.props.Document.isButton)) {
+                DocumentManager.Instance.FollowLink(this.props.Document, this.props.Document[this.props.fieldKey] as Doc, document => this.props.addDocTab(document, undefined, "inTab"), false);
+            }
+            e.stopPropagation();
         }
-        e.stopPropagation();
     }
 
     render() {

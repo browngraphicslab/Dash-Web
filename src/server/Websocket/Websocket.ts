@@ -124,8 +124,6 @@ export namespace WebSocket {
             socket.broadcast.emit(MessageStore.SetField.Message, newValue));
         if (newValue.type === Types.Text) {
             Search.updateDocument({ id: newValue.id, data: (newValue as any).data });
-            console.log("set field");
-            console.log("checking in");
         }
     }
 

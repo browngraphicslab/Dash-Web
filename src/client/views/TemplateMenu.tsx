@@ -1,16 +1,14 @@
-import { action, observable } from "mobx";
+import { action, observable, runInAction, ObservableSet } from "mobx";
 import { observer } from "mobx-react";
-import { DragManager } from "../util/DragManager";
 import { SelectionManager } from "../util/SelectionManager";
 import { undoBatch } from "../util/UndoManager";
 import './TemplateMenu.scss';
 import { DocumentView } from "./nodes/DocumentView";
 import { Template, Templates } from "./Templates";
 import React = require("react");
-import { Doc } from "../../new_fields/Doc";
-import { StrCast } from "../../new_fields/Types";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEdit, faChevronCircleUp } from "@fortawesome/free-solid-svg-icons";
+import { Doc, DocListCast } from "../../new_fields/Doc";
+import { StrCast, Cast } from "../../new_fields/Types";
+import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -43,7 +41,7 @@ class OtherToggle extends React.Component<{ checked: boolean, name: string, togg
 }
 
 export interface TemplateMenuProps {
-    docs: DocumentView[];
+    docViews: DocumentView[];
     templates: Map<Template, boolean>;
 }
 
@@ -51,20 +49,14 @@ export interface TemplateMenuProps {
 @observer
 export class TemplateMenu extends React.Component<TemplateMenuProps> {
     @observable private _hidden: boolean = true;
-    private _downx = 0;
-    private _downy = 0;
-    private _dragRef = React.createRef<HTMLUListElement>();
 
-    toggleCustom = (e: React.ChangeEvent<HTMLInputElement>): void => {
-        this.props.docs.map(dv => dv.setCustomView(e.target.checked));
-    }
-    toggleNarrative = (e: React.ChangeEvent<HTMLInputElement>): void => {
-        this.props.docs.map(dv => dv.setNarrativeView(e.target.checked));
+    toggleLayout = (e: React.ChangeEvent<HTMLInputElement>, layout: string): void => {
+        this.props.docViews.map(dv => dv.setCustomView(e.target.checked, layout));
     }
 
     toggleFloat = (e: React.ChangeEvent<HTMLInputElement>): void => {
         SelectionManager.DeselectAll();
-        const topDocView = this.props.docs[0];
+        const topDocView = this.props.docViews[0];
         const ex = e.target.getBoundingClientRect().left;
         const ey = e.target.getBoundingClientRect().top;
         DocumentView.FloatDoc(topDocView, ex, ey);
@@ -75,23 +67,10 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     @action
     toggleTemplate = (event: React.ChangeEvent<HTMLInputElement>, template: Template): void => {
         if (event.target.checked) {
-            this.props.docs.map(d => d.Document["show" + template.Name] = template.Name.toLowerCase());
+            this.props.docViews.map(d => d.Document["show" + template.Name] = template.Name.toLowerCase());
         } else {
-            this.props.docs.map(d => d.Document["show" + template.Name] = "");
+            this.props.docViews.map(d => d.Document["show" + template.Name] = "");
         }
-    }
-
-    @undoBatch
-    @action
-    clearTemplates = (event: React.MouseEvent) => {
-        Templates.TemplateList.forEach(template => this.props.docs.forEach(d => d.Document["show" + template.Name] = undefined));
-        ["backgroundColor", "borderRounding", "width", "height"].forEach(field => this.props.docs.forEach(d => {
-            if (d.Document.isTemplateDoc && d.props.DataDoc) {
-                d.Document[field] = undefined;
-            } else if (d.Document["default" + field[0].toUpperCase() + field.slice(1)] !== undefined) {
-                d.Document[field] = Doc.GetProto(d.Document)[field] = undefined;
-            }
-        }));
     }
 
     @action
@@ -102,68 +81,45 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     @undoBatch
     @action
     toggleChrome = (): void => {
-        this.props.docs.map(dv => {
+        this.props.docViews.map(dv => {
             const layout = Doc.Layout(dv.Document);
-            layout.chromeStatus = (layout.chromeStatus !== "disabled" ? "disabled" : "enabled");
+            layout._chromeStatus = (layout._chromeStatus !== "disabled" ? "disabled" : "enabled");
         });
     }
-    onAliasButtonUp = (e: PointerEvent): void => {
-        document.removeEventListener("pointermove", this.onAliasButtonMoved);
-        document.removeEventListener("pointerup", this.onAliasButtonUp);
-        e.stopPropagation();
-    }
 
-    onAliasButtonDown = (e: React.PointerEvent): void => {
-        this._downx = e.clientX;
-        this._downy = e.clientY;
-        e.stopPropagation();
-        e.preventDefault();
-        document.removeEventListener("pointermove", this.onAliasButtonMoved);
-        document.addEventListener("pointermove", this.onAliasButtonMoved);
-        document.removeEventListener("pointerup", this.onAliasButtonUp);
-        document.addEventListener("pointerup", this.onAliasButtonUp);
-    }
-    onAliasButtonMoved = (e: PointerEvent): void => {
-        if (this._dragRef.current !== null && (Math.abs(e.clientX - this._downx) > 4 || Math.abs(e.clientY - this._downy) > 4)) {
-            document.removeEventListener("pointermove", this.onAliasButtonMoved);
-            document.removeEventListener("pointerup", this.onAliasButtonUp);
-
-            const dragDocView = this.props.docs[0];
-            const dragData = new DragManager.DocumentDragData([dragDocView.props.Document]);
-            const [left, top] = dragDocView.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
-            dragData.embedDoc = true;
-            dragData.dropAction = "alias";
-            DragManager.StartDocumentDrag([dragDocView.ContentDiv!], dragData, left, top, {
-                offsetX: dragData.offset[0],
-                offsetY: dragData.offset[1],
-                hideSource: false
-            });
+    // todo: add brushes to brushMap to save with a style name
+    onCustomKeypress = (e: React.KeyboardEvent) => {
+        if (e.key === "Enter") {
+            runInAction(() => this._addedKeys.add(this._customRef.current!.value));
         }
-        e.stopPropagation();
+    }
+    componentDidMount() {
+        !this._addedKeys && (this._addedKeys = new ObservableSet());
+        Array.from(Object.keys(Doc.GetProto(this.props.docViews[0].props.Document))).
+            filter(key => key.startsWith("layout_")).
+            map(key => runInAction(() => this._addedKeys.add(key.replace("layout_", ""))));
+        DocListCast(Cast(CurrentUserUtils.UserDocument.expandingButtons, Doc, null)?.data)?.map(btnDoc => {
+            if (StrCast(Cast(btnDoc?.dragFactory, Doc, null)?.title)) {
+                runInAction(() => this._addedKeys.add(StrCast(Cast(btnDoc?.dragFactory, Doc, null)?.title)));
+            }
+        });
     }
 
+    _addedKeys = new ObservableSet();
+    _customRef = React.createRef<HTMLInputElement>();
     render() {
-        const layout = Doc.Layout(this.props.docs[0].Document);
+        const layout = Doc.Layout(this.props.docViews[0].Document);
         const templateMenu: Array<JSX.Element> = [];
         this.props.templates.forEach((checked, template) =>
             templateMenu.push(<TemplateToggle key={template.Name} template={template} checked={checked} toggle={this.toggleTemplate} />));
-        templateMenu.push(<OtherToggle key={"float"} name={"Float"} checked={this.props.docs[0].Document.z ? true : false} toggle={this.toggleFloat} />);
-        templateMenu.push(<OtherToggle key={"custom"} name={"Custom"} checked={StrCast(this.props.docs[0].Document.layoutKey, "layout") !== "layout"} toggle={this.toggleCustom} />);
-        templateMenu.push(<OtherToggle key={"narrative"} name={"Narrative"} checked={StrCast(this.props.docs[0].Document.layoutKey, "layout") === "layout_narrative"} toggle={this.toggleNarrative} />);
-        templateMenu.push(<OtherToggle key={"chrome"} name={"Chrome"} checked={layout.chromeStatus !== "disabled"} toggle={this.toggleChrome} />);
-        return (
-            <Flyout anchorPoint={anchorPoints.LEFT_TOP}
-                content={<ul className="template-list" ref={this._dragRef} style={{ display: "block" }}>
-                    {templateMenu}
-                    {<button onClick={this.clearTemplates}>Restore Defaults</button>}
-                </ul>}>
-                <span className="parentDocumentSelector-button" >
-                    <FontAwesomeIcon icon={faEdit} size={"lg"} />
-                </span>
-                {/* <div className="templating-menu" onPointerDown={this.onAliasButtonDown}>
-                    <div title="Drag:(create alias). Tap:(modify layout)." className="templating-button" onClick={() => this.toggleTemplateActivity()}>+</div>
-                </div> */}
-            </Flyout>
+        templateMenu.push(<OtherToggle key={"float"} name={"Float"} checked={this.props.docViews[0].Document.z ? true : false} toggle={this.toggleFloat} />);
+        templateMenu.push(<OtherToggle key={"chrome"} name={"Chrome"} checked={layout._chromeStatus !== "disabled"} toggle={this.toggleChrome} />);
+        this._addedKeys && Array.from(this._addedKeys).map(layout =>
+            templateMenu.push(<OtherToggle key={layout} name={layout} checked={StrCast(this.props.docViews[0].Document.layoutKey, "layout") === "layout_" + layout} toggle={e => this.toggleLayout(e, layout)} />)
         );
+        return <ul className="template-list" style={{ display: "block" }}>
+            {templateMenu}
+            <input placeholder="+ layout" ref={this._customRef} onKeyPress={this.onCustomKeypress}></input>
+        </ul>;
     }
 }

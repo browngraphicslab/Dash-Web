@@ -85,13 +85,14 @@ def write_collection(parse_results, display_fields, storage_key, viewType):
             "proto": protofy(data_doc["_id"]),
             "x": 10,
             "y": 10,
-            "width": 900,
-            "height": 600,
-            "panX": 0,
-            "panY": 0,
+            "_width": 900,
+            "_height": 600,
+            "_panX": 0,
+            "_panY": 0,
             "zIndex": 2,
             "libraryBrush": False,
-            "viewType": viewType
+            "_viewType": viewType,
+            "_LODdisable": True
         },
         "__type": "Doc"
     }
@@ -99,10 +100,7 @@ def write_collection(parse_results, display_fields, storage_key, viewType):
     fields["proto"] = protofy(common_proto_id)
     fields[storage_key] = listify(proxify_guids(view_guids))
     fields["schemaColumns"] = listify(display_fields)
-    fields["backgroundColor"] = "white"
-    fields["viewType"] = 2
     fields["author"] = "Bill Buxton"
-    fields["disableLOD"] = True
     fields["creationDate"] = {
         "date": datetime.datetime.utcnow().microsecond,
         "__type": "date"
@@ -113,7 +111,6 @@ def write_collection(parse_results, display_fields, storage_key, viewType):
             "__type": "image"
         }
     fields["isPrototype"] = True
-    fields["page"] = -1
 
     target_collection.insert_one(data_doc)
     target_collection.insert_one(view_doc)
@@ -135,7 +132,7 @@ def write_text_doc(content):
             "proto": protofy(data_doc_guid),
             "x": 10,
             "y": 10,
-            "width": 400,
+            "_width": 400,
             "zIndex": 2
         },
         "__type": "Doc"
@@ -150,17 +147,17 @@ def write_text_doc(content):
                 "__type": "RichTextField"
             },
             "title": content,
-            "nativeWidth": 200,
+            "_nativeWidth": 200,
             "author": "Bill Buxton",
             "creationDate": {
                 "date": datetime.datetime.utcnow().microsecond,
                 "__type": "date"
             },
             "isPrototype": True,
-            "autoHeight": True,
+            "_autoHeight": True,
             "page": -1,
-            "nativeHeight": 200,
-            "height": 200,
+            "_nativeHeight": 200,
+            "_height": 200,
             "data_text": content
         },
         "__type": "Doc"
@@ -190,8 +187,10 @@ def write_image(folder, name):
             "proto": protofy(data_doc_guid),
             "x": 10,
             "y": 10,
-            "width": min(800, native_width),
-            "zIndex": 2
+            "_width": min(800, native_width),
+            "zIndex": 2,
+            "widthUnit": "*",
+            "widthMagnitude": 1
         },
         "__type": "Doc"
     }
@@ -205,7 +204,7 @@ def write_image(folder, name):
                 "__type": "image"
             },
             "title": name,
-            "nativeWidth": native_width,
+            "_nativeWidth": native_width,
             "author": "Bill Buxton",
             "creationDate": {
                 "date": datetime.datetime.utcnow().microsecond,
@@ -213,8 +212,8 @@ def write_image(folder, name):
             },
             "isPrototype": True,
             "page": -1,
-            "nativeHeight": native_height,
-            "height": native_height
+            "_nativeHeight": native_height,
+            "_height": native_height
         },
         "__type": "Doc"
     }
@@ -366,7 +365,7 @@ def parse_document(file_name: str):
 
 
 def proxify_guids(guids):
-    return list(map(lambda guid: {"fieldId": guid, "__type": "proxy"}, guids))
+    return list(map(lambda guid: {"fieldId": guid, "__type": "prefetch_proxy"}, guids))
 
 
 def write_common_proto():
@@ -407,7 +406,7 @@ parent_guid = write_collection({
         "__type": "Doc"
     },
     "child_guids": schema_guids
-}, ["title", "short_description", "original_price"], "data", 4)
+}, ["title", "short_description", "original_price"], "data", 2)
 
 print("appending parent schema to main workspace...\n")
 target_collection.update_one(

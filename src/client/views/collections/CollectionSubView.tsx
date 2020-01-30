@@ -1,4 +1,4 @@
-import { action, computed, IReactionDisposer, reaction } from "mobx";
+import { action, computed, IReactionDisposer, reaction, trace } from "mobx";
 import * as rp from 'request-promise';
 import CursorField from "../../../new_fields/CursorField";
 import { Doc, DocListCast, Opt } from "../../../new_fields/Doc";
@@ -40,7 +40,6 @@ export interface CollectionViewProps extends FieldViewProps {
 
 export interface SubCollectionViewProps extends CollectionViewProps {
     CollectionView: Opt<CollectionView>;
-    ruleProvider: Doc | undefined;
     children?: never | (() => JSX.Element[]) | React.ReactNode;
     isAnnotationOverlay?: boolean;
     annotationsKey: string;
@@ -53,9 +52,9 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
         private _childLayoutDisposer?: IReactionDisposer;
         protected createDashEventsTarget = (ele: HTMLDivElement) => { //used for stacking and masonry view
-            this.dropDisposer && this.dropDisposer();
-            this.gestureDisposer && this.gestureDisposer();
-            this.multiTouchDisposer && this.multiTouchDisposer();
+            this.dropDisposer?.();
+            this.gestureDisposer?.();
+            this.multiTouchDisposer?.();
             if (ele) {
                 this.dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this));
                 this.gestureDisposer = GestureUtils.MakeGestureTarget(ele, this.onGesture.bind(this));
@@ -67,35 +66,39 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         }
 
         componentDidMount() {
-            this._childLayoutDisposer = reaction(() => [this.childDocs, Cast(this.props.Document.childLayout, Doc)],
-                async (args) => {
-                    if (args[1] instanceof Doc) {
-                        this.childDocs.map(async doc => !Doc.AreProtosEqual(args[1] as Doc, (await doc).layout as Doc) && Doc.ApplyTemplateTo(args[1] as Doc, (await doc), "layoutFromParent"));
+            this._childLayoutDisposer = reaction(() => [this.childDocs, (Cast(this.props.Document.childLayout, Doc) as Doc)?.[Id]],
+                (args) => {
+                    const childLayout = Cast(this.props.Document.childLayout, Doc);
+                    if (childLayout instanceof Doc) {
+                        this.childDocs.map(doc => Doc.ApplyTemplateTo(childLayout, doc, "layout_fromParent"));
                     }
-                    else if (!(args[1] instanceof Promise)) {
-                        this.childDocs.filter(d => !d.isTemplateField).map(async doc => doc.layoutKey === "layoutFromParent" && (doc.layoutKey = "layout"));
+                    else if (!(childLayout instanceof Promise)) {
+                        this.childDocs.filter(d => !d.isTemplateForField).map(doc => doc.layoutKey === "layout_fromParent" && (doc.layoutKey = "layout"));
                     }
-                });
+                }, { fireImmediately: true });
 
         }
         componentWillUnmount() {
             this._childLayoutDisposer && this._childLayoutDisposer();
         }
 
-        @computed get dataDoc() { return this.props.DataDoc && this.props.Document.isTemplateField ? Doc.GetProto(this.props.DataDoc) : Doc.GetProto(this.props.Document); }
-        @computed get extensionDoc() { return Doc.fieldExtensionDoc(this.dataDoc, this.props.fieldKey); }
+        @computed get dataDoc() { return this.props.DataDoc && this.props.Document.isTemplateForField ? Doc.GetProto(this.props.DataDoc) : Doc.GetProto(this.props.Document); }
 
         // The data field for rendering this collection will be on the this.props.Document unless we're rendering a template in which case we try to use props.DataDoc.
         // When a document has a DataDoc but it's not a template, then it contains its own rendering data, but needs to pass the DataDoc through
         // to its children which may be templates.
         // If 'annotationField' is specified, then all children exist on that field of the extension document, otherwise, they exist directly on the data document under 'fieldKey'
         @computed get dataField() {
-            return this.props.annotationsKey ? (this.extensionDoc ? this.extensionDoc[this.props.annotationsKey] : undefined) : this.dataDoc[this.props.fieldKey];
+            const { annotationsKey, fieldKey } = this.props;
+            if (annotationsKey) {
+                return this.dataDoc[fieldKey + "-" + annotationsKey];
+            }
+            return this.dataDoc[fieldKey];
         }
 
         get childLayoutPairs(): { layout: Doc; data: Doc; }[] {
-            const { Document, DataDoc, fieldKey } = this.props;
-            const validPairs = this.childDocs.map(doc => Doc.GetLayoutDataDocPair(Document, DataDoc, fieldKey, doc)).filter(pair => pair.layout);
+            const { Document, DataDoc } = this.props;
+            const validPairs = this.childDocs.map(doc => Doc.GetLayoutDataDocPair(Document, DataDoc, doc)).filter(pair => pair.layout);
             return validPairs.map(({ data, layout }) => ({ data: data!, layout: layout! })); // this mapping is a bit of a hack to coerce types
         }
         get childDocList() {
@@ -104,7 +107,34 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         get childDocs() {
             const docs = DocListCast(this.dataField);
             const viewSpecScript = Cast(this.props.Document.viewSpecScript, ScriptField);
-            return viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
+            const viewedDocs = viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
+            const docFilters = Cast(this.props.Document._docFilter, listSpec("string"), []);
+            const clusters: { [key: string]: { [value: string]: string } } = {};
+            for (let i = 0; i < docFilters.length; i += 3) {
+                const [key, value, modifiers] = docFilters.slice(i, i + 3);
+                const cluster = clusters[key];
+                if (!cluster) {
+                    const child: { [value: string]: string } = {};
+                    child[value] = modifiers;
+                    clusters[key] = child;
+                } else {
+                    cluster[value] = modifiers;
+                }
+            }
+            const filteredDocs = docFilters.length ? viewedDocs.filter(d => {
+                for (const key of Object.keys(clusters)) {
+                    const cluster = clusters[key];
+                    const satisfiesFacet = Object.keys(cluster).some(inner => {
+                        const modifier = cluster[inner];
+                        return (modifier === "x") !== Doc.matchFieldValue(d, key, inner);
+                    });
+                    if (!satisfiesFacet) {
+                        return false;
+                    }
+                }
+                return true;
+            }) : viewedDocs;
+            return filteredDocs;
         }
 
         @action
@@ -153,7 +183,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             if (docDragData && !docDragData.applyAsTemplate) {
                 if (de.altKey && docDragData.draggedDocuments.length) {
                     this.childDocs.map(doc =>
-                        Doc.ApplyTemplateTo(docDragData.draggedDocuments[0], doc, "layoutFromParent"));
+                        Doc.ApplyTemplateTo(docDragData.draggedDocuments[0], doc, "layout_fromParent"));
                     e.stopPropagation();
                     return true;
                 }
@@ -209,7 +239,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                         this.props.addDocument && this.props.addDocument(Docs.Create.WebDocument(href, { ...options, title: href }));
                     }
                 } else if (text) {
-                    this.props.addDocument && this.props.addDocument(Docs.Create.TextDocument({ ...options, width: 100, height: 25, documentText: "@@@" + text }));
+                    this.props.addDocument && this.props.addDocument(Docs.Create.TextDocument(text, { ...options, _width: 100, _height: 25 }));
                 }
                 return;
             }
@@ -219,7 +249,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 const img = tags[0].startsWith("img") ? tags[0] : tags.length > 1 && tags[1].startsWith("img") ? tags[1] : "";
                 if (img) {
                     const split = img.split("src=\"")[1].split("\"")[0];
-                    const doc = Docs.Create.ImageDocument(split, { ...options, width: 300 });
+                    const doc = Docs.Create.ImageDocument(split, { ...options, _width: 300 });
                     ImageUtils.ExtractExif(doc);
                     this.props.addDocument(doc);
                     return;
@@ -234,7 +264,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                             }
                         });
                     } else {
-                        const htmlDoc = Docs.Create.HtmlDocument(html, { ...options, title: "-web page-", width: 300, height: 300, documentText: text });
+                        const htmlDoc = Docs.Create.HtmlDocument(html, { ...options, title: "-web page-", _width: 300, _height: 300, documentText: text });
                         this.props.addDocument(htmlDoc);
                     }
                     return;
@@ -242,12 +272,12 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             }
             if (text && text.indexOf("www.youtube.com/watch") !== -1) {
                 const url = text.replace("youtube.com/watch?v=", "youtube.com/embed/");
-                this.props.addDocument(Docs.Create.VideoDocument(url, { ...options, title: url, width: 400, height: 315, nativeWidth: 600, nativeHeight: 472.5 }));
+                this.props.addDocument(Docs.Create.VideoDocument(url, { ...options, title: url, _width: 400, _height: 315, _nativeWidth: 600, _nativeHeight: 472.5 }));
                 return;
             }
             let matches: RegExpExecArray | null;
             if ((matches = /(https:\/\/)?docs\.google\.com\/document\/d\/([^\\]+)\/edit/g.exec(text)) !== null) {
-                const newBox = Docs.Create.TextDocument({ ...options, width: 400, height: 200, title: "Awaiting title from Google Docs..." });
+                const newBox = Docs.Create.TextDocument("", { ...options, _width: 400, _height: 200, title: "Awaiting title from Google Docs..." });
                 const proto = newBox.proto!;
                 const documentId = matches[2];
                 proto[GoogleRef] = documentId;
@@ -294,13 +324,20 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
 
                     formData.append('file', file);
                     const dropFileName = file ? file.name : "-empty-";
-                    promises.push(Networking.PostFormDataToServer("/upload", formData).then(results => {
-                        results.map(action(({ clientAccessPath }: any) => {
-                            const full = { ...options, width: 300, title: dropFileName };
+                    promises.push(Networking.PostFormDataToServer("/uploadFormData", formData).then(results => {
+                        results.map(action((result: any) => {
+                            const { clientAccessPath, nativeWidth, nativeHeight, contentSize } = result;
+                            const full = { ...options, _width: 300, title: dropFileName };
                             const pathname = Utils.prepend(clientAccessPath);
                             Docs.Get.DocumentFromType(type, pathname, full).then(doc => {
-                                doc && (Doc.GetProto(doc).fileUpload = basename(pathname).replace("upload_", "").replace(/\.[a-z0-9]*$/, ""));
-                                doc && this.props.addDocument(doc);
+                                if (doc) {
+                                    const proto = Doc.GetProto(doc);
+                                    proto.fileUpload = basename(pathname).replace("upload_", "").replace(/\.[a-z0-9]*$/, "");
+                                    nativeWidth && (proto["data-nativeWidth"] = nativeWidth);
+                                    nativeHeight && (proto["data-nativeHeight"] = nativeHeight);
+                                    contentSize && (proto.contentSize = contentSize);
+                                    this.props.addDocument(doc);
+                                }
                             });
                         }));
                     }));
@@ -311,7 +348,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 Promise.all(promises).finally(() => { completed && completed(); batch.end(); });
             } else {
                 if (text && !text.includes("https://")) {
-                    this.props.addDocument(Docs.Create.TextDocument({ ...options, documentText: "@@@" + text, width: 400, height: 315 }));
+                    this.props.addDocument(Docs.Create.TextDocument(text, { ...options, _width: 400, _height: 315 }));
                 }
                 batch.end();
             }

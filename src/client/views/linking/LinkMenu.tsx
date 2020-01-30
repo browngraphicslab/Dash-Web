@@ -25,7 +25,7 @@ export class LinkMenu extends React.Component<Props> {
     @observable private _editingLink?: Doc;
 
     @action
-    componentWillReceiveProps() {
+    componentDidMount() {
         this._editingLink = undefined;
     }
 
