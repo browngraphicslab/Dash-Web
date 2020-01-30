@@ -35,10 +35,11 @@ export function convertDropDataToButtons(data: DragManager.DocumentDragData) {
         if (!doc.onDragStart && !doc.onClick && !doc.isButtonBar) {
             const layoutDoc = doc.layout instanceof Doc && doc.layout.isTemplateForField ? doc.layout : doc;
             if (layoutDoc.type === DocumentType.COL || layoutDoc.type === DocumentType.TEXT || layoutDoc.type === DocumentType.IMG) {
-                layoutDoc.isTemplateDoc = makeTemplate(layoutDoc);
+                makeTemplate(layoutDoc);
             } else {
-                layoutDoc.isTemplateDoc = (layoutDoc.layout instanceof Doc) && !data.userDropAction;
+                (layoutDoc.layout instanceof Doc) && !data.userDropAction;
             }
+            layoutDoc.isTemplateDoc = true;
             dbox = Docs.Create.FontIconDocument({ _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, backgroundColor: StrCast(doc.backgroundColor), title: "Custom", icon: layoutDoc.isTemplateDoc ? "font" : "bolt" });
             dbox.dragFactory = layoutDoc;
             dbox.removeDropProperties = doc.removeDropProperties instanceof ObjectField ? ObjectField.MakeCopy(doc.removeDropProperties) : undefined;

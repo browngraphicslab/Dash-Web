@@ -611,7 +611,7 @@ export namespace Doc {
             Cast(templateField.data, listSpec(Doc), [])?.map(d => d instanceof Doc && MakeMetadataFieldTemplate(d, templateDoc));
             (Doc.GetProto(templateField)[metadataFieldKey] = ObjectField.MakeCopy(templateField.data));
         }
-        if (templateField.data instanceof RichTextField && templateField.data.Data) {
+        if (templateField.data instanceof RichTextField && templateField.data.Text) {
             templateField._textTemplate = ComputedField.MakeFunction(`copyField(this.${metadataFieldKey})`, { this: Doc.name });
         }
 
