@@ -6,6 +6,7 @@ import { StrCast } from "../../new_fields/Types";
 import { Docs } from "../documents/Documents";
 import { ScriptField, ComputedField } from "../../new_fields/ScriptField";
 import { RichTextField } from "../../new_fields/RichTextField";
+import { ImageField } from "../../new_fields/URLField";
 
 export function makeTemplate(doc: Doc): boolean {
     const layoutDoc = doc.layout instanceof Doc && doc.layout.isTemplateForField ? doc.layout : doc;
@@ -20,7 +21,7 @@ export function makeTemplate(doc: Doc): boolean {
             any = makeTemplate(d) || any;
         }
     });
-    if (layoutDoc[fieldKey] instanceof RichTextField) {
+    if (layoutDoc[fieldKey] instanceof RichTextField || layoutDoc[fieldKey] instanceof ImageField) {
         if (!StrCast(layoutDoc.title).startsWith("-")) {
             any = Doc.MakeMetadataFieldTemplate(layoutDoc, Doc.GetProto(layoutDoc));
         }
@@ -33,7 +34,7 @@ export function convertDropDataToButtons(data: DragManager.DocumentDragData) {
         // bcz: isButtonBar is intended to allow a collection of linear buttons to be dropped and nested into another collection of buttons... it's not being used yet, and isn't very elegant
         if (!doc.onDragStart && !doc.onClick && !doc.isButtonBar) {
             const layoutDoc = doc.layout instanceof Doc && doc.layout.isTemplateForField ? doc.layout : doc;
-            if (layoutDoc.type === DocumentType.COL || layoutDoc.type === DocumentType.TEXT) {
+            if (layoutDoc.type === DocumentType.COL || layoutDoc.type === DocumentType.TEXT || layoutDoc.type === DocumentType.IMG) {
                 layoutDoc.isTemplateDoc = makeTemplate(layoutDoc);
             } else {
                 layoutDoc.isTemplateDoc = (layoutDoc.layout instanceof Doc) && !data.userDropAction;

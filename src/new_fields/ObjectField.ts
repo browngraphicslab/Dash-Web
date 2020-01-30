@@ -14,7 +14,7 @@ export abstract class ObjectField {
 
 export namespace ObjectField {
     export function MakeCopy<T extends ObjectField>(field: T) {
-        return field[Copy]();
+        return field?.[Copy]();
     }
 }
 

@@ -11,6 +11,7 @@ import { DocServer } from "../DocServer";
 import { returnFalse, Utils } from "../../Utils";
 import RichTextMenu from "./RichTextMenu";
 import { RichTextField } from "../../new_fields/RichTextField";
+import { ComputedField } from "../../new_fields/ScriptField";
 
 export const inpRules = {
     rules: [
@@ -206,7 +207,8 @@ export const inpRules = {
         new InputRule(
             new RegExp(/##$/),
             (state, match, start, end) => {
-                const textDoc = Doc.GetProto(Cast((schema as any).Document[DataSym], Doc, null)!);
+                const schemaDoc = Doc.GetDataDoc((schema as any).Document);
+                const textDoc = Doc.GetProto(Cast(schemaDoc[DataSym], Doc, null)!);
                 const numInlines = NumCast(textDoc.inlineTextCount);
                 textDoc.inlineTextCount = numInlines + 1;
                 const inlineFieldKey = "inline" + numInlines; // which field on the text document this annotation will write to
@@ -216,6 +218,7 @@ export const inpRules = {
                 textDocInline.customTitle = true; // And make sure that it's 'custom' so that editing text doesn't change the title of the containing doc
                 textDocInline.isTemplateForField = inlineFieldKey; // this is needed in case the containing text doc is converted to a template at some point
                 textDocInline.proto = textDoc;  // make the annotation inherit from the outer text doc so that it can resolve any nested field references, e.g., [[field]]
+                textDocInline._textContext = ComputedField.MakeFunction(`copyField(this.${inlineFieldKey})`, { this: Doc.name });
                 textDoc[inlineLayoutKey] = FormattedTextBox.LayoutString(inlineFieldKey); // create a layout string for the layout key that will render the annotation text
                 textDoc[inlineFieldKey] = ""; // set a default value for the annotation
                 const node = (state.doc.resolve(start) as any).nodeAfter;
