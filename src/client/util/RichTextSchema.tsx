@@ -21,6 +21,7 @@ import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
 import { ObjectField } from "../../new_fields/ObjectField";
 import { ComputedField } from "../../new_fields/ScriptField";
 import { observer } from "mobx-react";
+import { Id } from "../../new_fields/FieldSymbols";
 
 const blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
     preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], brDOM: DOMOutputSpecArray = ["br"], ulDOM: DOMOutputSpecArray = ["ul", 0];
@@ -759,15 +760,33 @@ export class DashDocView {
             return true;
         };
         const alias = node.attrs.alias;
-        DocServer.GetRefField(node.attrs.docid + alias).then(async dashDoc => {
+
+        const docid = node.attrs.docid || tbox.props.DataDoc?.[Id] || tbox.dataDoc?.[Id];
+        DocServer.GetRefField(docid + alias).then(async dashDoc => {
             if (!(dashDoc instanceof Doc)) {
-                alias && DocServer.GetRefField(node.attrs.docid).then(async dashDocBase => {
+                alias && DocServer.GetRefField(docid).then(async dashDocBase => {
                     if (dashDocBase instanceof Doc) {
-                        self.doRender(Doc.MakeAlias(dashDocBase), removeDoc, node, view, getPos);
+                        if (node.attrs.fieldKey) {
+                            const fieldDoc = await self._textBox.dataDoc[node.attrs.fieldKey];
+                            if (fieldDoc instanceof Doc) {
+                                self.doRender(Doc.MakeAlias(fieldDoc), removeDoc, node, view, getPos);
+                            } else {
+                                this._dashSpan.innerHTML = `field:'${node.attrs.fieldKey}' is not a document`;
+                            }
+                        } else {
+                            self.doRender(Doc.MakeAlias(dashDocBase), removeDoc, node, view, getPos);
+                        }
                     }
                 });
             } else {
-                self.doRender(dashDoc, removeDoc, node, view, getPos);
+                if (node.attrs.fieldKey) {
+                    const fieldDoc = await dashDoc[node.attrs.fieldKey];
+                    if (fieldDoc instanceof Doc) {
+                        self.doRender(fieldDoc, removeDoc, node, view, getPos);
+                    }
+                } else {
+                    self.doRender(dashDoc, removeDoc, node, view, getPos);
+                }
             }
         });
         const self = this;

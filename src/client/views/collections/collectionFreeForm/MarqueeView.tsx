@@ -299,7 +299,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         this.hideMarquee();
     }
 
-    getCollection = (selected: Doc[]) => {
+    getCollection = (selected: Doc[], asTemplate: boolean) => {
         const bounds = this.Bounds;
         const defaultPalette = ["rgb(114,229,239)", "rgb(255,246,209)", "rgb(255,188,156)", "rgb(247,220,96)", "rgb(122,176,238)",
             "rgb(209,150,226)", "rgb(127,235,144)", "rgb(252,188,189)", "rgb(247,175,81)",];
@@ -321,7 +321,8 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         const usedSequnce = Array.from(usedPaletted.keys()).sort((a, b) => usedPaletted.get(a)! < usedPaletted.get(b)! ? -1 : usedPaletted.get(a)! > usedPaletted.get(b)! ? 1 : 0);
         const chosenColor = (usedPaletted.size === 0) ? "white" : palette.length ? palette[0] : usedSequnce[0];
         // const inkData = this.ink ? this.ink.inkData : undefined;
-        const newCollection = Docs.Create.FreeformDocument(selected, {
+        const creator = asTemplate ? Docs.Create.StackingDocument : Docs.Create.FreeformDocument;
+        const newCollection = creator(selected, {
             x: bounds.left,
             y: bounds.top,
             _panX: 0,
@@ -353,7 +354,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
                 return d;
             });
         }
-        const newCollection = this.getCollection(selected);
+        const newCollection = this.getCollection(selected, e.key === "t");
         this.props.addDocument(newCollection);
         this.props.selectDocuments([newCollection], []);
         MarqueeOptionsMenu.Instance.fadeOut(true);
@@ -406,12 +407,12 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             this.delete();
             e.stopPropagation();
         }
-        if (e.key === "c" || e.key === "s" || e.key === "S") {
+        if (e.key === "c" || e.key === "t" || e.key === "s" || e.key === "S") {
             this._commandExecuted = true;
             e.stopPropagation();
             e.preventDefault();
             (e as any).propagationIsStopped = true;
-            if (e.key === "c") {
+            if (e.key === "c" || e.key === "t") {
                 this.collection(e);
             }
 

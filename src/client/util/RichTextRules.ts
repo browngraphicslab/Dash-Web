@@ -101,7 +101,7 @@ export const inpRules = {
                     }
                 });
                 const node = (state.doc.resolve(start) as any).nodeAfter;
-                const dashDoc = schema.nodes.dashDoc.create({ width: 75, height: 75, title: "dashDoc", docid: docId, float: "right", fieldKey: match[2], alias: Utils.GenerateGuid() });
+                const dashDoc = schema.nodes.dashDoc.create({ width: 75, height: 75, title: "dashDoc", docid: docId, float: "right", fieldKey: match[2]?.substring(1), alias: Utils.GenerateGuid() });
                 const sm = state.storedMarks || undefined;
                 return node ? state.tr.replaceRangeWith(start, end, dashDoc).setStoredMarks([...node.marks, ...(sm ? sm : [])]) : state.tr;
             }),
