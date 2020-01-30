@@ -17,14 +17,15 @@ export function makeTemplate(doc: Doc): boolean {
         if (!StrCast(d.title).startsWith("-")) {
             any = true;
             Doc.MakeMetadataFieldTemplate(d, Doc.GetProto(layoutDoc));
-        } else if (d.type === DocumentType.COL) {
+        } else if (d.type === DocumentType.COL || d.data instanceof RichTextField) {
             any = makeTemplate(d) || any;
-        } else if (d.data instanceof RichTextField) {
-            d._textTemplate = ComputedField.MakeFunction("copyField(this.data)", { this: Doc.name });
-            d.isTemplateForField = "data";
-            any = true;
         }
     });
+    if (layoutDoc[fieldKey] instanceof RichTextField) {
+        layoutDoc._textTemplate = ComputedField.MakeFunction("copyField(this.data)", { this: Doc.name });
+        layoutDoc.isTemplateForField = "data";
+        any = true;
+    }
     return any;
 }
 export function convertDropDataToButtons(data: DragManager.DocumentDragData) {
@@ -33,10 +34,10 @@ export function convertDropDataToButtons(data: DragManager.DocumentDragData) {
         // bcz: isButtonBar is intended to allow a collection of linear buttons to be dropped and nested into another collection of buttons... it's not being used yet, and isn't very elegant
         if (!doc.onDragStart && !doc.onClick && !doc.isButtonBar) {
             const layoutDoc = doc.layout instanceof Doc && doc.layout.isTemplateForField ? doc.layout : doc;
-            if (layoutDoc.type === DocumentType.COL) {
+            if (layoutDoc.type === DocumentType.COL || layoutDoc.type === DocumentType.TEXT) {
                 layoutDoc.isTemplateDoc = makeTemplate(layoutDoc);
             } else {
-                layoutDoc.isTemplateDoc = (layoutDoc.type === DocumentType.TEXT || layoutDoc.layout instanceof Doc) && !data.userDropAction;
+                layoutDoc.isTemplateDoc = (layoutDoc.layout instanceof Doc) && !data.userDropAction;
             }
             dbox = Docs.Create.FontIconDocument({ _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, backgroundColor: StrCast(doc.backgroundColor), title: "Custom", icon: layoutDoc.isTemplateDoc ? "font" : "bolt" });
             dbox.dragFactory = layoutDoc;
