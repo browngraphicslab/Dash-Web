@@ -624,6 +624,19 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         return Array.from(Object.keys(keys));
     }
 
+    @undoBatch
+    @action
+    toggleTextwrap = async () => {
+        const textwrappedRows = Cast(this.props.Document.textwrappedSchemaRows, listSpec("string"), []);
+        if (textwrappedRows.length) {
+            this.props.Document.textwrappedSchemaRows = new List<string>([]);
+        } else {
+            const docs = DocListCast(this.props.Document[this.props.fieldKey]);
+            const allRows = docs instanceof Doc ? [docs[Id]] : docs.map(doc => doc[Id]);
+            this.props.Document.textwrappedSchemaRows = new List<string>(allRows);
+        }
+    }
+
     @action
     toggleTextWrapRow = (doc: Doc): void => {
         const textWrapped = this.textWrappedRows;
@@ -642,7 +655,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         const expanded = {};
         //@ts-ignore
         expandedRowsList.forEach(row => expanded[row] = true);
-        console.log("text wrapped rows", ...[...this.textWrappedRows]); // TODO: get component to rerender on text wrap change without needign to console.log :((((
+        const rerender = [...this.textWrappedRows]; // TODO: get component to rerender on text wrap change without needign to console.log :((((
 
         return <ReactTable
             style={{ position: "relative" }}
@@ -678,7 +691,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
     onContextMenu = (e: React.MouseEvent): void => {
         if (!e.isPropagationStopped() && this.props.Document[Id] !== "mainDoc") { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
-            ContextMenu.Instance.addItem({ description: "Make DB", event: this.makeDB, icon: "table" });
+            // ContextMenu.Instance.addItem({ description: "Make DB", event: this.makeDB, icon: "table" });
+            ContextMenu.Instance.addItem({ description: "Toggle text wrapping", event: this.toggleTextwrap, icon: "table" })
         }
     }
 

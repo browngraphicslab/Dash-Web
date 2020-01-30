@@ -61,10 +61,12 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     _freeform_commands = [this._contentCommand, this._templateCommand, this._narrativeCommand, this._viewCommand];
     _stacking_commands = [this._contentCommand, this._templateCommand];
     _masonry_commands = [this._contentCommand, this._templateCommand];
+    _schema_commands = [this._templateCommand, this._narrativeCommand];
     _tree_commands = [];
     private get _buttonizableCommands() {
         switch (this.props.type) {
             case CollectionViewType.Tree: return this._tree_commands;
+            case CollectionViewType.Schema: return this._schema_commands;
             case CollectionViewType.Stacking: return this._stacking_commands;
             case CollectionViewType.Masonry: return this._stacking_commands;
             case CollectionViewType.Freeform: return this._freeform_commands;
@@ -616,15 +618,6 @@ export class CollectionSchemaViewChrome extends React.Component<CollectionViewCh
 
         return (
             <div className="collectionSchemaViewChrome-cont">
-                <div className="collectionSchemaViewChrome-toggle">
-                    <div className="collectionSchemaViewChrome-label">Wrap Text: </div>
-                    <div className="collectionSchemaViewChrome-toggler" onClick={this.toggleTextwrap}>
-                        <div className={"collectionSchemaViewChrome-togglerButton" + (textWrapped ? " on" : " off")}>
-                            {textWrapped ? "on" : "off"}
-                        </div>
-                    </div>
-                </div>
-
                 <div className="collectionSchemaViewChrome-toggle">
                     <div className="collectionSchemaViewChrome-label">Show Preview: </div>
                     <div className="collectionSchemaViewChrome-toggler" onClick={this.togglePreview}>

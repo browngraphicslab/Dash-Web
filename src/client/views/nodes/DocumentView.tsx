@@ -656,11 +656,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
                 let foundLayout: Opt<Doc> = undefined;
                 DocListCast(Cast(CurrentUserUtils.UserDocument.expandingButtons, Doc, null)?.data)?.map(btnDoc => {
-                    if (StrCast(Cast(btnDoc?.dragFactory, Doc, null)?.title)) {
+                    if (StrCast(Cast(btnDoc?.dragFactory, Doc, null)?.title) === layout) {
                         foundLayout = btnDoc.dragFactory as Doc;
                     }
                 })
-                DocumentView.makeCustomViewClicked(this.props.Document, this.props.DataDoc, Docs.Create.StackingDocument, layout, foundLayout);
+                DocumentView.
+                    makeCustomViewClicked(this.props.Document, this.props.DataDoc, Docs.Create.StackingDocument, layout, foundLayout);
             } else {
                 DocumentView.makeNativeViewClicked(this.props.Document, StrCast(this.props.Document.layoutKey).split("_")[1]);
             }
