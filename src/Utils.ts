@@ -328,10 +328,10 @@ export function timenow() {
     return now.toLocaleDateString() + ' ' + h + ':' + m + ' ' + ampm;
 }
 
-export function aggregateBounds(boundsList: { x: number, y: number, width: number, height: number }[], xpad: number, ypad: number) {
+export function aggregateBounds(boundsList: { x: number, y: number, width: number, height?: number }[], xpad: number, ypad: number) {
     const bounds = boundsList.reduce((bounds, b) => {
         const [sptX, sptY] = [b.x, b.y];
-        const [bptX, bptY] = [sptX + b.width, sptY + b.height];
+        const [bptX, bptY] = [sptX + b.width, sptY + (b.height || 0)];
         return {
             x: Math.min(sptX, bounds.x), y: Math.min(sptY, bounds.y),
             r: Math.max(bptX, bounds.r), b: Math.max(bptY, bounds.b)

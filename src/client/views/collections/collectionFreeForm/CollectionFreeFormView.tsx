@@ -758,12 +758,12 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             const width = Cast(viewDef.width, "number");
             const height = Cast(viewDef.height, "number");
             const fontSize = Cast(viewDef.fontSize, "number");
-            return [text, x, y, width, height].some(val => val === undefined) ? undefined :
+            return [text, x, y, width].some(val => val === undefined) ? undefined :
                 {
                     ele: <div className="collectionFreeform-customText" key={(text || "") + x + y + z} style={{ width, height, fontSize, transform: `translate(${x}px, ${y}px)` }}>
                         {text}
                     </div>,
-                    bounds: { x: x!, y: y!, z: z, width: width!, height: height! }
+                    bounds: { x: x!, y: y!, z: z, width: width!, height: height }
                 };
         }
     }
@@ -776,7 +776,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }.bind(this));
 
     doPivotLayout(poolData: ObservableMap<string, any>) {
-        return computePivotLayout(poolData, this.props.Document, this.props.PanelWidth(), this.props.PanelHeight(), this.childDocs,
+        return computePivotLayout(poolData, this.props.Document, this.childDocs,
             this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)), [this.props.PanelWidth(), this.props.PanelHeight()], this.viewDefsToJSX);
     }
 
