@@ -188,7 +188,7 @@ export namespace Docs {
             }],
             [DocumentType.COL, {
                 layout: { view: CollectionView, dataField: data },
-                options: { _panX: 0, _panY: 0, scale: 1, _width: 500, _height: 500 }
+                options: { _panX: 0, _panY: 0, scale: 1 } // , _width: 500, _height: 500 }
             }],
             [DocumentType.KVP, {
                 layout: { view: KeyValueBox, dataField: data },
@@ -249,7 +249,7 @@ export namespace Docs {
         ]);
 
         // All document prototypes are initialized with at least these values
-        const defaultOptions: DocumentOptions = { x: 0, y: 0, _width: 300 };
+        const defaultOptions: DocumentOptions = { _width: 300 }; // bcz: do we really want to set anything here?  could also try to set in render() methods for types that need a default
         const suffix = "Proto";
 
         /**
