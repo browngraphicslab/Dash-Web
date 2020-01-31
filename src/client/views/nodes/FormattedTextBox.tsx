@@ -1070,8 +1070,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         const rounded = StrCast(this.layoutDoc.borderRounding) === "100%" ? "-rounded" : "";
         const interactive = InkingControl.Instance.selectedTool || this.layoutDoc.isBackground;
         if (this.props.isSelected()) {
-            // TODO: ftong --> update from dash in richtextmenu
-            RichTextMenu.Instance.updateFromDash(this._editorView!, undefined, this.props);
+            this._editorView && RichTextMenu.Instance.updateFromDash(this._editorView, undefined, this.props);
         } else if (FormattedTextBoxComment.textBox === this) {
             FormattedTextBoxComment.Hide();
         }

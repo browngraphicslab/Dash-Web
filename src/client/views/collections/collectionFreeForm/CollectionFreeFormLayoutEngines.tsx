@@ -4,7 +4,7 @@ import { ScriptBox } from "../../ScriptBox";
 import { CompileScript } from "../../../util/Scripting";
 import { ScriptField } from "../../../../new_fields/ScriptField";
 import { OverlayView, OverlayElementOptions } from "../../OverlayView";
-import { emptyFunction } from "../../../../Utils";
+import { emptyFunction, aggregateBounds } from "../../../../Utils";
 import React = require("react");
 import { ObservableMap, runInAction } from "mobx";
 import { Id, ToString } from "../../../../new_fields/FieldSymbols";
@@ -42,7 +42,13 @@ function toLabel(target: FieldResult<Field>) {
     return String(target);
 }
 
-export function computePivotLayout(poolData: ObservableMap<string, any>, pivotDoc: Doc, childDocs: Doc[], childPairs: { layout: Doc, data?: Doc }[], panelDim: number[], viewDefsToJSX: (views: any) => ViewDefResult[]) {
+export function computePivotLayout(
+    poolData: ObservableMap<string, any>,
+    pivotDoc: Doc,
+    pwidth: number, pheight: number,
+    childDocs: Doc[],
+    childPairs: { layout: Doc, data?: Doc }[], panelDim: number[], viewDefsToJSX: (views: any) => ViewDefResult[]
+) {
     const pivotAxisWidth = NumCast(pivotDoc.pivotWidth, 200);
     const pivotColumnGroups = new Map<FieldResult<Field>, Doc[]>();
 
@@ -99,21 +105,37 @@ export function computePivotLayout(poolData: ObservableMap<string, any>, pivotDo
         x += pivotAxisWidth * (numCols * expander + gap);
     });
 
+    const grpEles = groupNames.map(gn => { return { x: gn.x, y: gn.y, width: gn.width, height: gn.height }; });
+    const docEles = childPairs.map(pair => {
+        const newPos = docMap.get(pair.layout) || { x: NumCast(pair.layout.x), y: NumCast(pair.layout.y) }; // new pos is computed pos, or pos written to the document's fields
+        return {
+            x: newPos.x,
+            y: newPos.y,
+            width: NumCast(pair.layout._width),
+            height: NumCast(pair.layout._height)
+        };
+    }
+    );
+    const aggBounds = aggregateBounds(docEles.concat(grpEles), 0, 0);
+
+    const scale = Math.min(pheight / (aggBounds.b - aggBounds.y), pwidth / (aggBounds.r - aggBounds.x));
+
     childPairs.map(pair => {
-        const defaultPosition = {
+        const fallbackPos = {
             x: NumCast(pair.layout.x),
             y: NumCast(pair.layout.y),
             z: NumCast(pair.layout.z),
             width: NumCast(pair.layout._width),
             height: NumCast(pair.layout._height)
         };
-        const pos = docMap.get(pair.layout) || defaultPosition;
-        const data = poolData.get(pair.layout[Id]);
-        if (!data || pos.x !== data.x || pos.y !== data.y || pos.z !== data.z || pos.width !== data.width || pos.height !== data.height) {
-            runInAction(() => poolData.set(pair.layout[Id], { transition: "transform 1s", ...pos }));
+        const newPosRaw = docMap.get(pair.layout) || fallbackPos; // new pos is computed pos, or pos written to the document's fields
+        const newPos = { x: newPosRaw.x * scale, y: newPosRaw.y * scale, z: newPosRaw.z, width: newPosRaw.width * scale, height: newPosRaw.height * scale };
+        const lastPos = poolData.get(pair.layout[Id]); // last computed pos
+        if (!lastPos || newPos.x !== lastPos.x || newPos.y !== lastPos.y || newPos.z !== lastPos.z || newPos.width !== lastPos.width || newPos.height !== lastPos.height) {
+            runInAction(() => poolData.set(pair.layout[Id], { transition: "transform 1s", ...newPos }));
         }
     });
-    return { elements: viewDefsToJSX(groupNames) };
+    return { elements: viewDefsToJSX(groupNames.map(gname => { return { type: gname.type, text: gname.text, x: gname.x * scale, y: gname.y * scale, width: gname.width * scale, height: gname.height, fontSize: gname.fontSize } })) };
 }
 
 export function AddCustomFreeFormLayout(doc: Doc, dataKey: string): () => void {

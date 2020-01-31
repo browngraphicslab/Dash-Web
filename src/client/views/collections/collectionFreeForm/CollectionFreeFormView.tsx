@@ -776,7 +776,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }.bind(this));
 
     doPivotLayout(poolData: ObservableMap<string, any>) {
-        return computePivotLayout(poolData, this.props.Document, this.childDocs,
+        return computePivotLayout(poolData, this.props.Document, this.props.PanelWidth(), this.props.PanelHeight(), this.childDocs,
             this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)), [this.props.PanelWidth(), this.props.PanelHeight()], this.viewDefsToJSX);
     }
 
