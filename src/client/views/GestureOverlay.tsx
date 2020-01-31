@@ -6,7 +6,7 @@ import { computed, observable, action, runInAction, IReactionDisposer, reaction 
 import { GestureUtils } from "../../pen-gestures/GestureUtils";
 import { InteractionUtils } from "../util/InteractionUtils";
 import { InkingControl } from "./InkingControl";
-import { InkTool } from "../../new_fields/InkField";
+import { InkTool, InkData } from "../../new_fields/InkField";
 import { Doc } from "../../new_fields/Doc";
 import { LinkManager } from "../util/LinkManager";
 import { DocUtils } from "../documents/Documents";
@@ -19,6 +19,7 @@ import { Utils, emptyPath, emptyFunction, returnFalse, returnOne, returnEmptyStr
 import { DocumentView } from "./nodes/DocumentView";
 import { Transform } from "../util/Transform";
 import { DocumentContentsView } from "./nodes/DocumentContentsView";
+import { CognitiveServices } from "../cognitive_services/CognitiveServices";
 
 @observer
 export default class GestureOverlay extends Touchable {
@@ -34,6 +35,7 @@ export default class GestureOverlay extends Touchable {
     @observable private _thumbY?: number;
     @observable private _pointerY?: number;
     @observable private _points: { X: number, Y: number }[] = [];
+    @observable private _strokes: InkData[] = [];
     @observable private _palette?: JSX.Element;
     @observable private _clipboardDoc?: JSX.Element;
 
@@ -364,7 +366,10 @@ export default class GestureOverlay extends Touchable {
             if (this.Tool !== ToolglassTools.None && xInGlass && yInGlass) {
                 switch (this.Tool) {
                     case ToolglassTools.InkToText:
-                        break;
+                        this._strokes.push(this._points);
+                        this._points = [];
+                        console.log(CognitiveServices.Inking.Appliers.InterpretStrokes([this._points]));
+                        return;
                 }
             }
             else {
@@ -420,8 +425,10 @@ export default class GestureOverlay extends Touchable {
     }
 
     @computed get svgBounds() {
-        const xs = this._points.map(p => p.X);
-        const ys = this._points.map(p => p.Y);
+        const sxs = this._strokes.reduce((acc, curr) => acc.concat(...curr.map(p => p.X)), new Array<number>());
+        const xs = this._points.map(p => p.X).concat(sxs);
+        const sys = this._strokes.reduce((acc, curr) => acc.concat(...curr.map(p => p.Y)), new Array<number>());
+        const ys = this._points.map(p => p.Y).concat(sys);
         const right = Math.max(...xs);
         const left = Math.min(...xs);
         const bottom = Math.max(...ys);
@@ -429,8 +436,8 @@ export default class GestureOverlay extends Touchable {
         return { right: right, left: left, bottom: bottom, top: top, width: right - left, height: bottom - top };
     }
 
-    @computed get currentStroke() {
-        if (this._points.length <= 1) {
+    @computed get currentStrokes() {
+        if (this._points.length <= 1 && this._strokes.length <= 1) {
             return (null);
         }
 
@@ -438,6 +445,7 @@ export default class GestureOverlay extends Touchable {
 
         return (
             <svg width={B.width} height={B.height} style={{ transform: `translate(${B.left}px, ${B.top}px)`, pointerEvents: "none", position: "absolute", zIndex: 30000 }}>
+                {this._strokes.map(l => InteractionUtils.CreatePolyline(l, B.left, B.top, this.Color, this.Width))}
                 {InteractionUtils.CreatePolyline(this._points, B.left, B.top, this.Color, this.Width)}
             </svg>
         );
@@ -447,7 +455,7 @@ export default class GestureOverlay extends Touchable {
         return [
             this.props.children,
             this._palette,
-            this.currentStroke
+            this.currentStrokes
         ];
     }
 
@@ -510,6 +518,8 @@ export default class GestureOverlay extends Touchable {
             </div >);
     }
 }
+
+// export class 
 
 export enum ToolglassTools {
     InkToText = "inktotext",
