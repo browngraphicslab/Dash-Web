@@ -636,7 +636,6 @@ export class CollectionTreeView extends CollectionSubView(Document) {
                         if (caption instanceof ObjectField) {
                             Doc.GetProto(img).caption = ObjectField.MakeCopy(caption);
                         }
-                        img._hideSidebar = true;
                         d.captions = undefined;
                     });
                 });

@@ -314,22 +314,25 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     handle1PointerDown = (e: React.TouchEvent, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>) => {
         if (this.Document.onPointerDown) return;
-        if (!e.nativeEvent.cancelBubble) {
-            const touch = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true)[0];
+        const touch = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true)[0];
+        console.log("down");
+        if (touch) {
             this._downX = touch.clientX;
             this._downY = touch.clientY;
-            this._hitTemplateDrag = false;
-            for (let element = (e.target as any); element && !this._hitTemplateDrag; element = element.parentElement) {
-                if (element.className && element.className.toString() === "collectionViewBaseChrome-collapse") {
-                    this._hitTemplateDrag = true;
+            if (!e.nativeEvent.cancelBubble) {
+                this._hitTemplateDrag = false;
+                for (let element = (e.target as any); element && !this._hitTemplateDrag; element = element.parentElement) {
+                    if (element.className && element.className.toString() === "collectionViewBaseChrome-collapse") {
+                        this._hitTemplateDrag = true;
+                    }
                 }
+                if ((this.active || this.Document.onDragStart || this.Document.onClick) && !e.ctrlKey && !this.Document.lockedPosition && !this.Document.inOverlay) e.stopPropagation();
+                this.removeMoveListeners();
+                this.addMoveListeners();
+                this.removeEndListeners();
+                this.addEndListeners();
+                e.stopPropagation();
             }
-            if ((this.active || this.Document.onDragStart || this.Document.onClick) && !e.ctrlKey && !this.Document.lockedPosition && !this.Document.inOverlay) e.stopPropagation();
-            this.removeMoveListeners();
-            this.addMoveListeners();
-            this.removeEndListeners();
-            this.addEndListeners();
-            e.stopPropagation();
         }
     }
 
@@ -710,6 +713,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         subitems.push({ description: "Open Alias Tab  ", event: () => this.props.addDocTab(Doc.MakeAlias(this.props.Document), this.props.DataDoc, "inTab"), icon: "folder" });
         subitems.push({ description: "Open Alias Right", event: () => this.props.addDocTab(Doc.MakeAlias(this.props.Document), this.props.DataDoc, "onRight"), icon: "caret-square-right" });
         subitems.push({ description: "Open Fields     ", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { _width: 300, _height: 300 }), undefined, "onRight"), icon: "layer-group" });
+        subitems.push({ description: "Open Repl", icon: "laptop-code", event: () => OverlayView.Instance.addWindow(<ScriptingRepl />, { x: 300, y: 100, width: 200, height: 200, title: "Scripting REPL" }) });
         cm.addItem({ description: "Open...", subitems: subitems, icon: "external-link-alt" });
 
 
@@ -761,8 +765,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             moreItems.push({ description: "Tag Child Images via Google Photos", event: () => GooglePhotos.Query.TagChildImages(this.props.Document), icon: "caret-square-right" });
             moreItems.push({ description: "Write Back Link to Album", event: () => GooglePhotos.Transactions.AddTextEnrichment(this.props.Document), icon: "caret-square-right" });
         }
-        moreItems.push({ description: "Pin to Presentation", event: () => this.props.pinToPres(this.props.Document), icon: "map-pin" }); //I think this should work... and it does! A miracle!
-        moreItems.push({ description: "Add Repl", icon: "laptop-code", event: () => OverlayView.Instance.addWindow(<ScriptingRepl />, { x: 300, y: 100, width: 200, height: 200, title: "Scripting REPL" }) });
         moreItems.push({
             description: "Download document", icon: "download", event: async () =>
                 console.log(JSON.parse(await rp.get(Utils.CorsProxy("http://localhost:8983/solr/dash/select"), {
@@ -820,6 +822,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             }
         });
         const path = this.props.LibraryPath.reduce((p: string, d: Doc) => p + "/" + (Doc.AreProtosEqual(d, (Doc.UserDoc().LibraryBtn as Doc).sourcePanel as Doc) ? "" : d.title), "");
+        cm.addItem({ description: "Pin to Presentation", event: () => this.props.pinToPres(this.props.Document), icon: "map-pin" });
         cm.addItem({
             description: `path: ${path}`, event: () => {
                 this.props.LibraryPath.map(lp => Doc.GetProto(lp).treeViewOpen = lp.treeViewOpen = true);

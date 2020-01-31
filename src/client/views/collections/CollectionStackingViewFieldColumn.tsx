@@ -312,7 +312,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
             }
         });
         const pt = this.props.screenToLocalTransform().inverse().transformPoint(x, y);
-        ContextMenu.Instance.displayMenu(pt[0], pt[1]);
+        ContextMenu.Instance.displayMenu(x, y);
     }
 
     render() {

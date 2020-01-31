@@ -371,6 +371,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         this._lastX = pt.pageX;
                         this._lastY = pt.pageY;
                         e.preventDefault();
+                        e.stopPropagation();
                     }
                     else {
                         e.preventDefault();
@@ -386,7 +387,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             case GestureUtils.Gestures.Stroke:
                 const points = ge.points;
                 const B = this.getTransform().transformBounds(ge.bounds.left, ge.bounds.top, ge.bounds.width, ge.bounds.height);
-                const inkDoc = Docs.Create.InkDocument(InkingControl.Instance.selectedColor, InkingControl.Instance.selectedTool, parseInt(InkingControl.Instance.selectedWidth), points, { x: B.x, y: B.y, _width: B.width, _height: B.height });
+                const inkDoc = Docs.Create.InkDocument(InkingControl.Instance.selectedColor, InkingControl.Instance.selectedTool, parseInt(InkingControl.Instance.selectedWidth), points, { title: "ink stroke", x: B.x, y: B.y, _width: B.width, _height: B.height });
                 this.addDocument(inkDoc);
                 e.stopPropagation();
                 break;
@@ -408,7 +409,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     }
                     return pass;
                 });
-                this.addDocument(Docs.Create.FreeformDocument(sel, { x: bounds.x, y: bounds.y, _width: bWidth, _height: bHeight, _panX: 0, _panY: 0 }));
+                this.addDocument(Docs.Create.FreeformDocument(sel, { title: "nested collection", x: bounds.x, y: bounds.y, _width: bWidth, _height: bHeight, _panX: 0, _panY: 0 }));
                 sel.forEach(d => this.props.removeDocument(d));
                 break;
 
@@ -775,7 +776,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }.bind(this));
 
     doPivotLayout(poolData: ObservableMap<string, any>) {
-        return computePivotLayout(poolData, this.props.Document, this.childDocs,
+        return computePivotLayout(poolData, this.props.Document, this.props.PanelWidth(), this.props.PanelHeight(), this.childDocs,
             this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)), [this.props.PanelWidth(), this.props.PanelHeight()], this.viewDefsToJSX);
     }
 
@@ -833,23 +834,23 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     layoutDocsInGrid = () => {
         UndoManager.RunInBatch(() => {
-            const docs = DocListCast(this.Document[this.props.fieldKey]);
+            const docs = this.childLayoutPairs;
             const startX = this.Document._panX || 0;
             let x = startX;
             let y = this.Document._panY || 0;
             let i = 0;
-            const width = Math.max(...docs.map(doc => NumCast(doc._width)));
-            const height = Math.max(...docs.map(doc => NumCast(doc._height)));
-            for (const doc of docs) {
-                doc.x = x;
-                doc.y = y;
+            const width = Math.max(...docs.map(doc => NumCast(doc.layout._width)));
+            const height = Math.max(...docs.map(doc => NumCast(doc.layout._height)));
+            docs.forEach(pair => {
+                pair.layout.x = x;
+                pair.layout.y = y;
                 x += width + 20;
                 if (++i === 6) {
                     i = 0;
                     x = startX;
                     y += height + 20;
                 }
-            }
+            });
         }, "arrange contents");
     }
 

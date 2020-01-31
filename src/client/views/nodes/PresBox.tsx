@@ -42,7 +42,7 @@ export class PresBox extends React.Component<FieldViewProps> {
             if (value) {
                 value.forEach((item, i) => {
                     if (item instanceof Doc && item.type !== DocumentType.PRESELEMENT) {
-                        const pinDoc = Docs.Create.PresElementBoxDocument({ backgroundColor: "transparent" });
+                        const pinDoc = Docs.Create.PresElementBoxDocument({ backgroundColor: "transparent", _xMargin: 5 });
                         Doc.GetProto(pinDoc).presentationTargetDoc = item;
                         Doc.GetProto(pinDoc).title = ComputedField.MakeFunction('this.presentationTargetDoc?.title?.toString()');
                         value.splice(i, 1, pinDoc);
@@ -337,7 +337,7 @@ export class PresBox extends React.Component<FieldViewProps> {
     @action
     initializeScaleViews = (docList: Doc[], viewtype: number) => {
         this.props.Document._chromeStatus = "disabled";
-        const hgt = (viewtype === CollectionViewType.Tree) ? 50 : 72;
+        const hgt = (viewtype === CollectionViewType.Tree) ? 50 : 42;
         docList.forEach((doc: Doc) => {
             doc.presBox = this.props.Document;
             doc.presBoxKey = this.props.fieldKey;
@@ -357,7 +357,7 @@ export class PresBox extends React.Component<FieldViewProps> {
     }
 
     getTransform = () => {
-        return this.props.ScreenToLocalTransform().translate(-10, -50);// listBox padding-left and pres-box-cont minHeight
+        return this.props.ScreenToLocalTransform().translate(0, -50);// listBox padding-left and pres-box-cont minHeight
     }
     render() {
         this.initializeScaleViews(this.childDocs, NumCast(this.props.Document._viewType));

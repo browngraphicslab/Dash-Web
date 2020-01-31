@@ -21,6 +21,7 @@ import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
 import { ObjectField } from "../../new_fields/ObjectField";
 import { ComputedField } from "../../new_fields/ScriptField";
 import { observer } from "mobx-react";
+import { Id } from "../../new_fields/FieldSymbols";
 
 const blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
     preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], brDOM: DOMOutputSpecArray = ["br"], ulDOM: DOMOutputSpecArray = ["ul", 0];
@@ -759,11 +760,15 @@ export class DashDocView {
             return true;
         };
         const alias = node.attrs.alias;
-        DocServer.GetRefField(node.attrs.docid + alias).then(async dashDoc => {
+
+        const docid = node.attrs.docid || tbox.props.DataDoc?.[Id] || tbox.dataDoc?.[Id];
+        DocServer.GetRefField(docid + alias).then(async dashDoc => {
             if (!(dashDoc instanceof Doc)) {
-                alias && DocServer.GetRefField(node.attrs.docid).then(async dashDocBase => {
+                alias && DocServer.GetRefField(docid).then(async dashDocBase => {
                     if (dashDocBase instanceof Doc) {
-                        self.doRender(Doc.MakeAlias(dashDocBase), removeDoc, node, view, getPos);
+                        const aliasedDoc = Doc.MakeDelegate(dashDocBase, docid + alias);
+                        aliasedDoc.layoutKey = "layout_" + node.attrs.fieldKey;
+                        self.doRender(aliasedDoc, removeDoc, node, view, getPos);
                     }
                 });
             } else {
@@ -785,7 +790,6 @@ export class DashDocView {
     }
     doRender(dashDoc: Doc, removeDoc: any, node: any, view: any, getPos: any) {
         this._dashDoc = dashDoc;
-        dashDoc._hideSidebar = true;
         if (node.attrs.width !== dashDoc._width + "px" || node.attrs.height !== dashDoc._height + "px") {
             try { // bcz: an exception will be thrown if two aliases are open at the same time when a doc view comment is made
                 view.dispatch(view.state.tr.setNodeMarkup(getPos(), null, { ...node.attrs, width: dashDoc._width + "px", height: dashDoc._height + "px" }));
@@ -812,7 +816,7 @@ export class DashDocView {
             }, { fireImmediately: true });
             ReactDOM.render(<DocumentView
                 Document={finalLayout}
-                DataDoc={Doc.AreProtosEqual(this._textBox.Document, dashDoc) ? this._textBox.dataDoc : undefined}
+                DataDoc={!node.attrs.docid ? this._textBox.dataDoc : undefined}
                 LibraryPath={this._textBox.props.LibraryPath}
                 fitToBox={BoolCast(dashDoc._fitToBox)}
                 addDocument={returnFalse}

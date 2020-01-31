@@ -90,22 +90,22 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     // todo: add brushes to brushMap to save with a style name
     onCustomKeypress = (e: React.KeyboardEvent) => {
         if (e.key === "Enter") {
-            runInAction(() => TemplateMenu._addedKeys.add(this._customRef.current!.value));
+            runInAction(() => this._addedKeys.add(this._customRef.current!.value));
         }
     }
     componentDidMount() {
-        !TemplateMenu._addedKeys && (TemplateMenu._addedKeys = new ObservableSet(["narrative"]));
+        !this._addedKeys && (this._addedKeys = new ObservableSet());
         Array.from(Object.keys(Doc.GetProto(this.props.docViews[0].props.Document))).
             filter(key => key.startsWith("layout_")).
-            map(key => runInAction(() => TemplateMenu._addedKeys.add(key.replace("layout_", ""))));
+            map(key => runInAction(() => this._addedKeys.add(key.replace("layout_", ""))));
         DocListCast(Cast(CurrentUserUtils.UserDocument.expandingButtons, Doc, null)?.data)?.map(btnDoc => {
             if (StrCast(Cast(btnDoc?.dragFactory, Doc, null)?.title)) {
-                runInAction(() => TemplateMenu._addedKeys.add(StrCast(Cast(btnDoc?.dragFactory, Doc, null)?.title)));
+                runInAction(() => this._addedKeys.add(StrCast(Cast(btnDoc?.dragFactory, Doc, null)?.title)));
             }
         });
     }
 
-    static _addedKeys = new ObservableSet(["narrative"]);
+    _addedKeys = new ObservableSet();
     _customRef = React.createRef<HTMLInputElement>();
     render() {
         const layout = Doc.Layout(this.props.docViews[0].Document);
@@ -114,7 +114,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
             templateMenu.push(<TemplateToggle key={template.Name} template={template} checked={checked} toggle={this.toggleTemplate} />));
         templateMenu.push(<OtherToggle key={"float"} name={"Float"} checked={this.props.docViews[0].Document.z ? true : false} toggle={this.toggleFloat} />);
         templateMenu.push(<OtherToggle key={"chrome"} name={"Chrome"} checked={layout._chromeStatus !== "disabled"} toggle={this.toggleChrome} />);
-        TemplateMenu._addedKeys && Array.from(TemplateMenu._addedKeys).map(layout =>
+        this._addedKeys && Array.from(this._addedKeys).map(layout =>
             templateMenu.push(<OtherToggle key={layout} name={layout} checked={StrCast(this.props.docViews[0].Document.layoutKey, "layout") === "layout_" + layout} toggle={e => this.toggleLayout(e, layout)} />)
         );
         return <ul className="template-list" style={{ display: "block" }}>
