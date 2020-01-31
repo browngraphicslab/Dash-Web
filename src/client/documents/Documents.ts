@@ -52,37 +52,25 @@ import { DocumentBox } from "../views/nodes/DocumentBox";
 import { InkingStroke } from "../views/InkingStroke";
 import { InkField } from "../../new_fields/InkField";
 import { InkingControl } from "../views/InkingControl";
-import { RichTextField } from "../../new_fields/RichTextField";
 const requestImageSize = require('../util/request-image-size');
 const path = require('path');
 
 export interface DocumentOptions {
-    _autoHeight?: boolean;
-    _panX?: number;
-    _panY?: number;
-    _width?: number;
-    _height?: number;
-    _nativeWidth?: number;
-    _nativeHeight?: number;
-    _fitWidth?: boolean;
-    _fitToBox?: boolean; // whether a freeformview should zoom/scale to create a shrinkwrapped view of its contents
-    _LODdisable?: boolean;
-    _dropAction?: dropActionType;
-    _chromeStatus?: string;
-    _viewType?: number;
-    _gridGap?: number; // gap between items in masonry view
-    _xMargin?: number; // gap between left edge of document and start of masonry/stacking layouts
-    _yMargin?: number; // gap between top edge of dcoument and start of masonry/stacking layouts
-    _textTemplate?: RichTextField; // template used by a formattedTextBox to create a text box to render
-    _itemIndex?: number; // which item index the carousel viewer is showing
-    _hideSidebar?: boolean;  //whether an annotationsidebar should be displayed for text docuemnts
     x?: number;
     y?: number;
     z?: number;
     type?: string;
+    width?: number;
+    height?: number;
+    nativeWidth?: number;
+    nativeHeight?: number;
     title?: string;
+    panX?: number;
+    panY?: number;
     page?: number;
     scale?: number;
+    fitWidth?: boolean;
+    fitToBox?: boolean; // whether a freeformview should zoom/scale to create a shrinkwrapped view of its contents
     isDisplayPanel?: boolean; // whether the panel functions as GoldenLayout "stack" used to display documents
     forceActive?: boolean;
     preventTreeViewOpen?: boolean; // ignores the treeViewOpen Doc flag which allows a treeViewItem's expande/collapse state to be independent of other views of the same document in the tree view
@@ -91,12 +79,16 @@ export interface DocumentOptions {
     isTemplateForField?: string; // the field key for which the containing document is a rendering template
     isTemplateDoc?: boolean;
     templates?: List<string>;
+    viewType?: number;
     backgroundColor?: string | ScriptField;
     ignoreClick?: boolean;
     lockedPosition?: boolean; // lock the x,y coordinates of the document so that it can't be dragged
     lockedTransform?: boolean; // lock the panx,pany and scale parameters of the document so that it be panned/zoomed
     opacity?: number;
     defaultBackgroundColor?: string;
+    dropAction?: dropActionType;
+    chromeStatus?: string;
+    LODdisable?: boolean;
     columnWidth?: number;
     fontSize?: number;
     curPage?: number;
@@ -108,6 +100,7 @@ export interface DocumentOptions {
     sectionFilter?: string; // field key used to determine headings for sections in stacking and masonry views
     schemaColumns?: List<SchemaHeaderField>;
     dockingConfig?: string;
+    autoHeight?: boolean;
     annotationOn?: Doc;
     removeDropProperties?: List<string>; // list of properties that should be removed from a document when it is dropped.  e.g., a creator button may be forceActive to allow it be dragged, but the forceActive property can be removed from the dropped document
     dbDoc?: Doc;
@@ -121,6 +114,9 @@ export interface DocumentOptions {
     onDragStart?: ScriptField; //script to execute at start of drag operation --  e.g., when a "creator" button is dragged this script generates a different document to drop
     clipboard?: Doc; //script to execute at start of drag operation --  e.g., when a "creator" button is dragged this script generates a different document to drop
     icon?: string;
+    gridGap?: number; // gap between items in masonry view
+    xMargin?: number; // gap between left edge of document and start of masonry/stacking layouts
+    yMargin?: number; // gap between top edge of dcoument and start of masonry/stacking layouts
     sourcePanel?: Doc; // panel to display in 'targetContainer' as the result of a button onClick script
     targetContainer?: Doc; // document whose proto will be set to 'panel' as the result of a onClick click script
     dropConverter?: ScriptField; // script to run when documents are dropped on this Document.
@@ -128,7 +124,6 @@ export interface DocumentOptions {
     color?: string;
     treeViewHideTitle?: boolean; // whether to hide the title of a tree view
     treeViewOpen?: boolean; // whether this document is expanded in a tree view
-    treeViewChecked?: ScriptField; // script to call when a tree view checkbox is checked
     isFacetFilter?: boolean; // whether document functions as a facet filter in a tree view
     limitHeight?: number; // maximum height for newly created (eg, from pasting) text documents
     // [key: string]: Opt<Field>;
@@ -163,19 +158,19 @@ export namespace Docs {
         const TemplateMap: TemplateMap = new Map([
             [DocumentType.TEXT, {
                 layout: { view: FormattedTextBox, dataField: data },
-                options: { _height: 150, backgroundColor: "#f1efeb", defaultBackgroundColor: "#f1efeb" }
+                options: { height: 150, backgroundColor: "#f1efeb", defaultBackgroundColor: "#f1efeb" }
             }],
             [DocumentType.HIST, {
                 layout: { view: HistogramBox, dataField: data },
-                options: { _height: 300, backgroundColor: "black" }
+                options: { height: 300, backgroundColor: "black" }
             }],
             [DocumentType.QUERY, {
                 layout: { view: QueryBox, dataField: data },
-                options: { _width: 400 }
+                options: { width: 400 }
             }],
             [DocumentType.COLOR, {
                 layout: { view: ColorBox, dataField: data },
-                options: { _nativeWidth: 220, _nativeHeight: 300 }
+                options: { nativeWidth: 220, nativeHeight: 300 }
             }],
             [DocumentType.IMG, {
                 layout: { view: ImageBox, dataField: data },
@@ -183,19 +178,19 @@ export namespace Docs {
             }],
             [DocumentType.WEB, {
                 layout: { view: WebBox, dataField: data },
-                options: { _height: 300 }
+                options: { height: 300 }
             }],
             [DocumentType.COL, {
                 layout: { view: CollectionView, dataField: data },
-                options: { _panX: 0, _panY: 0, scale: 1, _width: 500, _height: 500 }
+                options: { panX: 0, panY: 0, scale: 1, width: 500, height: 500 }
             }],
             [DocumentType.KVP, {
                 layout: { view: KeyValueBox, dataField: data },
-                options: { _height: 150 }
+                options: { height: 150 }
             }],
             [DocumentType.DOCUMENT, {
                 layout: { view: DocumentBox, dataField: data },
-                options: { _height: 250 }
+                options: { height: 250 }
             }],
             [DocumentType.VID, {
                 layout: { view: VideoBox, dataField: data },
@@ -203,7 +198,7 @@ export namespace Docs {
             }],
             [DocumentType.AUDIO, {
                 layout: { view: AudioBox, dataField: data },
-                options: { _height: 35, backgroundColor: "lightGray" }
+                options: { height: 35, backgroundColor: "lightGray" }
             }],
             [DocumentType.PDF, {
                 layout: { view: PDFBox, dataField: data },
@@ -211,11 +206,11 @@ export namespace Docs {
             }],
             [DocumentType.ICON, {
                 layout: { view: IconBox, dataField: data },
-                options: { _width: Number(MINIMIZED_ICON_SIZE), _height: Number(MINIMIZED_ICON_SIZE) },
+                options: { width: Number(MINIMIZED_ICON_SIZE), height: Number(MINIMIZED_ICON_SIZE) },
             }],
             [DocumentType.IMPORT, {
                 layout: { view: DirectoryImportBox, dataField: data },
-                options: { _height: 150 }
+                options: { height: 150 }
             }],
             [DocumentType.LINKDOC, {
                 data: new List<Doc>(),
@@ -233,7 +228,7 @@ export namespace Docs {
             }],
             [DocumentType.FONTICON, {
                 layout: { view: FontIconBox, dataField: data },
-                options: { _width: 40, _height: 40, borderRounding: "100%" },
+                options: { width: 40, height: 40, borderRounding: "100%" },
             }],
             [DocumentType.LINKFOLLOW, {
                 layout: { view: LinkFollowBox, dataField: data }
@@ -248,7 +243,7 @@ export namespace Docs {
         ]);
 
         // All document prototypes are initialized with at least these values
-        const defaultOptions: DocumentOptions = { x: 0, y: 0, _width: 300 };
+        const defaultOptions: DocumentOptions = { x: 0, y: 0, width: 300 };
         const suffix = "Proto";
 
         /**
@@ -326,8 +321,7 @@ export namespace Docs {
             // whatever options pertain to this specific prototype
             const options = { title, type, baseProto: true, ...defaultOptions, ...(template.options || {}) };
             options.layout = layout.view.LayoutString(layout.dataField);
-            const doc = Doc.assign(new Doc(prototypeId, true), { layoutKey: "layout", ...options });
-            return doc;
+            return Doc.assign(new Doc(prototypeId, true), { ...options });
         }
 
     }
@@ -338,8 +332,7 @@ export namespace Docs {
      */
     export namespace Create {
 
-        const delegateKeys = ["x", "y", "_width", "_height", "_panX", "_panY", "_viewType", "_nativeWidth", "_nativeHeight", "_dropAction", "_annotationOn",
-            "_chromeStatus", "_forceActive", "_autoHeight", "_fitWidth", "_LODdisable", "_itemIndex", "_hideSidebar"];
+        const delegateKeys = ["x", "y", "width", "height", "panX", "panY", "nativeWidth", "nativeHeight", "dropAction", "annotationOn", "forceActive", "fitWidth", "diableLOD"];
 
         /**
          * This function receives the relevant document prototype and uses
@@ -409,11 +402,11 @@ export namespace Docs {
             requestImageSize(target)
                 .then((size: any) => {
                     const aspect = size.height / size.width;
-                    if (!inst._nativeWidth) {
-                        inst._nativeWidth = size.width;
+                    if (!inst.nativeWidth) {
+                        inst.nativeWidth = size.width;
                     }
-                    inst._nativeHeight = NumCast(inst._nativeWidth) * aspect;
-                    inst._height = NumCast(inst._width) * aspect;
+                    inst.nativeHeight = NumCast(inst.nativeWidth) * aspect;
+                    inst.height = NumCast(inst.width) * aspect;
                 })
                 .catch((err: any) => console.log(err));
             // }
@@ -447,8 +440,8 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.COLOR), "", options);
         }
 
-        export function TextDocument(text: string, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.TEXT), text, options);
+        export function TextDocument(options: DocumentOptions = {}) {
+            return InstanceFromProto(Prototypes.get(DocumentType.TEXT), "", options);
         }
 
         export function InkDocument(color: string, tool: number, strokeWidth: number, points: { X: number, Y: number }[], options: DocumentOptions = {}) {
@@ -472,7 +465,7 @@ export namespace Docs {
             const ctlog = await Gateway.Instance.GetSchema(url, schemaName);
             if (ctlog && ctlog.schemas) {
                 const schema = ctlog.schemas[0];
-                const schemaDoc = Docs.Create.TreeDocument([], { ...options, _nativeWidth: undefined, _nativeHeight: undefined, _width: 150, _height: 100, title: schema.displayName! });
+                const schemaDoc = Docs.Create.TreeDocument([], { ...options, nativeWidth: undefined, nativeHeight: undefined, width: 150, height: 100, title: schema.displayName! });
                 const schemaDocuments = Cast(schemaDoc.data, listSpec(Doc), []);
                 if (!schemaDocuments) {
                     return;
@@ -489,13 +482,13 @@ export namespace Docs {
                                 new AttributeTransformationModel(atmod, AggregateFunction.None),
                                 new AttributeTransformationModel(atmod, AggregateFunction.Count),
                                 new AttributeTransformationModel(atmod, AggregateFunction.Count));
-                            docs.push(Docs.Create.HistogramDocument(histoOp, { ...columnOptions, _width: 200, _height: 200, title: attr.displayName! }));
+                            docs.push(Docs.Create.HistogramDocument(histoOp, { ...columnOptions, width: 200, height: 200, title: attr.displayName! }));
                         }
                     }));
                 });
                 return schemaDoc;
             }
-            return Docs.Create.TreeDocument([], { _width: 50, _height: 100, title: schemaName });
+            return Docs.Create.TreeDocument([], { width: 50, height: 100, title: schemaName });
         }
 
         export function WebDocument(url: string, options: DocumentOptions = {}) {
@@ -515,35 +508,31 @@ export namespace Docs {
         }
 
         export function FreeformDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, _viewType: CollectionViewType.Freeform }, id);
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, viewType: CollectionViewType.Freeform }, id);
         }
 
         export function LinearDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", backgroundColor: "black", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, _viewType: CollectionViewType.Linear }, id);
-        }
-
-        export function CarouselDocument(documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, _viewType: CollectionViewType.Carousel });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { chromeStatus: "collapsed", backgroundColor: "black", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, viewType: CollectionViewType.Linear }, id);
         }
 
         export function SchemaDocument(schemaColumns: SchemaHeaderField[], documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", schemaColumns: new List(schemaColumns), ...options, _viewType: CollectionViewType.Schema });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { chromeStatus: "collapsed", schemaColumns: new List(schemaColumns), ...options, viewType: CollectionViewType.Schema });
         }
 
         export function TreeDocument(documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, _viewType: CollectionViewType.Tree });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, viewType: CollectionViewType.Tree });
         }
 
         export function StackingDocument(documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, _viewType: CollectionViewType.Stacking });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, viewType: CollectionViewType.Stacking });
         }
 
         export function MulticolumnDocument(documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, _viewType: CollectionViewType.Multicolumn });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, viewType: CollectionViewType.Multicolumn });
         }
 
         export function MasonryDocument(documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, _viewType: CollectionViewType.Masonry });
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, viewType: CollectionViewType.Masonry });
         }
 
         export function ButtonDocument(options?: DocumentOptions) {
@@ -564,7 +553,7 @@ export namespace Docs {
         }
 
         export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions, id?: string) {
-            const inst = InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { ...options, _viewType: CollectionViewType.Docking, dockingConfig: config }, id);
+            const inst = InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { ...options, viewType: CollectionViewType.Docking, dockingConfig: config }, id);
             Doc.GetProto(inst).data = new List<Doc>(documents);
             return inst;
         }
@@ -713,11 +702,10 @@ export namespace Docs {
                 created = Docs.Create.StackingDocument(DocListCast(field), resolved);
                 layout = CollectionView.LayoutString;
             } else {
-                created = Docs.Create.TextDocument("", { ...{ _width: 200, _height: 25, _autoHeight: true }, ...resolved });
+                created = Docs.Create.TextDocument({ ...{ width: 200, height: 25, autoHeight: true }, ...resolved });
                 layout = FormattedTextBox.LayoutString;
             }
             created.layout = layout?.(fieldKey);
-            created.title = fieldKey;
             proto && (created.proto = Doc.GetProto(proto));
             return created;
         }
@@ -726,24 +714,24 @@ export namespace Docs {
             let ctor: ((path: string, options: DocumentOptions) => (Doc | Promise<Doc | undefined>)) | undefined = undefined;
             if (type.indexOf("image") !== -1) {
                 ctor = Docs.Create.ImageDocument;
-                if (!options._width) options._width = 300;
+                if (!options.width) options.width = 300;
             }
             if (type.indexOf("video") !== -1) {
                 ctor = Docs.Create.VideoDocument;
-                if (!options._width) options._width = 600;
-                if (!options._height) options._height = options._width * 2 / 3;
+                if (!options.width) options.width = 600;
+                if (!options.height) options.height = options.width * 2 / 3;
             }
             if (type.indexOf("audio") !== -1) {
                 ctor = Docs.Create.AudioDocument;
             }
             if (type.indexOf("pdf") !== -1) {
                 ctor = Docs.Create.PdfDocument;
-                if (!options._width) options._width = 400;
-                if (!options._height) options._height = options._width * 1200 / 927;
+                if (!options.width) options.width = 400;
+                if (!options.height) options.height = options.width * 1200 / 927;
             }
             if (type.indexOf("excel") !== -1) {
                 ctor = Docs.Create.DBDocument;
-                options._dropAction = "copy";
+                options.dropAction = "copy";
             }
             if (type.indexOf("html") !== -1) {
                 if (path.includes(window.location.hostname)) {
@@ -754,15 +742,15 @@ export namespace Docs {
                             const alias = Doc.MakeAlias(field);
                             alias.x = options.x || 0;
                             alias.y = options.y || 0;
-                            alias._width = options._width || 300;
-                            alias._height = options._height || options._width || 300;
+                            alias.width = options.width || 300;
+                            alias.height = options.height || options.width || 300;
                             return alias;
                         }
                         return undefined;
                     });
                 }
                 ctor = Docs.Create.WebDocument;
-                options = { _height: options._width, ...options, title: path, _nativeWidth: undefined };
+                options = { height: options.width, ...options, title: path, nativeWidth: undefined };
             }
             return ctor ? ctor(path, options) : undefined;
         }

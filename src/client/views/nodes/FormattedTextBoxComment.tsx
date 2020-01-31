@@ -86,7 +86,7 @@ export class FormattedTextBoxComment {
                     DocumentManager.Instance.FollowLink(FormattedTextBoxComment.linkDoc, textBox.props.Document,
                         (doc: Doc, maxLocation: string) => textBox.props.addDocTab(doc, undefined, e.ctrlKey ? "inTab" : "onRight"));
                 } else if (textBox && (FormattedTextBoxComment.tooltipText as any).href) {
-                    textBox.props.addDocTab(Docs.Create.WebDocument((FormattedTextBoxComment.tooltipText as any).href, { title: (FormattedTextBoxComment.tooltipText as any).href, _width: 200, _height: 400 }), undefined, "onRight");
+                    textBox.props.addDocTab(Docs.Create.WebDocument((FormattedTextBoxComment.tooltipText as any).href, { title: (FormattedTextBoxComment.tooltipText as any).href, width: 200, height: 400 }), undefined, "onRight");
                 }
                 keep && textBox && FormattedTextBoxComment.start !== undefined && textBox.adoptAnnotation(
                     FormattedTextBoxComment.start, FormattedTextBoxComment.end, FormattedTextBoxComment.mark);

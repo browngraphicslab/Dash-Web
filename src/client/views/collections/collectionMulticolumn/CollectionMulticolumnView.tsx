@@ -12,8 +12,6 @@ import { computed, trace, observable, action } from 'mobx';
 import { Transform } from '../../../util/Transform';
 import WidthLabel from './MulticolumnWidthLabel';
 import ResizeBar from './MulticolumnResizer';
-import { undoBatch } from '../../../util/UndoManager';
-import { DragManager } from '../../../util/DragManager';
 
 type MulticolumnDocument = makeInterface<[typeof documentSchema]>;
 const MulticolumnDocument = makeInterface(documentSchema);
@@ -188,19 +186,6 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
         return Transform.Identity(); // type coersion, this case should never be hit
     }
 
-    @undoBatch
-    @action
-    drop = (e: Event, de: DragManager.DropEvent) => {
-        if (super.drop(e, de)) {
-            de.complete.docDragData?.droppedDocuments.forEach(action((d: Doc) => {
-                d.widthUnit = "*";
-                d.widthMagnitude = 1;
-            }));
-        }
-        return false;
-    }
-
-
     @computed get onChildClickHandler() { return ScriptCast(this.Document.onChildClick); }
 
     /**
@@ -249,7 +234,10 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
 
     render(): JSX.Element {
         return (
-            <div className={"collectionMulticolumnView_contents"} ref={this.createDashEventsTarget} b >
+            <div
+                className={"collectionMulticolumnView_contents"}
+                ref={this.createDropTarget}
+            >
                 {this.contents}
             </div>
         );

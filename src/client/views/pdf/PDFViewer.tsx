@@ -113,8 +113,8 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
     private _coverPath: any;
 
     @computed get allAnnotations() {
-        return DocListCast(this.dataDoc[this.props.fieldKey + "-annotations"]).filter(
-            anno => this._script.run({ this: anno }, console.log, true).result);
+        return this.extensionDoc ? DocListCast(this.extensionDoc.annotations).filter(
+            anno => this._script.run({ this: anno }, console.log, true).result) : [];
     }
 
     @computed get nonDocAnnotations() {
@@ -208,8 +208,8 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
         await this.initialLoad();
 
         this._annotationReactionDisposer = reaction(
-            () => DocListCast(this.dataDoc[this.props.fieldKey + "-annotations"]),
-            annotations => annotations?.length && (this._annotations = annotations),
+            () => this.extensionDoc && DocListCast(this.extensionDoc.annotations),
+            annotations => annotations && annotations.length && (this._annotations = annotations),
             { fireImmediately: true });
 
         this._filterReactionDisposer = reaction(
@@ -271,8 +271,8 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
             const annoDoc = Docs.Create.FreeformDocument([], { backgroundColor: color, title: "Annotation on " + this.Document.title });
             if (anno.style.left) annoDoc.x = parseInt(anno.style.left);
             if (anno.style.top) annoDoc.y = parseInt(anno.style.top);
-            if (anno.style.height) annoDoc._height = parseInt(anno.style.height);
-            if (anno.style.width) annoDoc._width = parseInt(anno.style.width);
+            if (anno.style.height) annoDoc.height = parseInt(anno.style.height);
+            if (anno.style.width) annoDoc.width = parseInt(anno.style.width);
             annoDoc.group = mainAnnoDoc;
             annoDoc.isButton = true;
             annoDocs.push(annoDoc);
@@ -286,8 +286,8 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
                 const annoDoc = new Doc();
                 if (anno.style.left) annoDoc.x = parseInt(anno.style.left);
                 if (anno.style.top) annoDoc.y = parseInt(anno.style.top);
-                if (anno.style.height) annoDoc._height = parseInt(anno.style.height);
-                if (anno.style.width) annoDoc._width = parseInt(anno.style.width);
+                if (anno.style.height) annoDoc.height = parseInt(anno.style.height);
+                if (anno.style.width) annoDoc.width = parseInt(anno.style.width);
                 annoDoc.group = mainAnnoDoc;
                 annoDoc.backgroundColor = color;
                 annoDocs.push(annoDoc);
@@ -558,7 +558,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
     startDrag = (e: PointerEvent, ele: HTMLElement): void => {
         e.preventDefault();
         e.stopPropagation();
-        const targetDoc = Docs.Create.TextDocument("", { _width: 200, _height: 200, title: "Note linked to " + this.props.Document.title });
+        const targetDoc = Docs.Create.TextDocument({ width: 200, height: 200, title: "Note linked to " + this.props.Document.title });
         const annotationDoc = this.highlight("rgba(146, 245, 95, 0.467)"); // yellowish highlight color when dragging out a text selection
         if (annotationDoc) {
             DragManager.StartPdfAnnoDrag([ele], new DragManager.PdfAnnoDragData(this.props.Document, annotationDoc, targetDoc), e.pageX, e.pageY, {
@@ -573,11 +573,11 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
         const data = Doc.MakeDelegate(Doc.GetProto(this.props.Document));
         data.title = StrCast(data.title) + "_snippet";
         view.proto = data;
-        view._nativeHeight = marquee.height;
-        view._height = (this.Document[WidthSym]() / (this.Document._nativeWidth || 1)) * marquee.height;
-        view._nativeWidth = this.Document._nativeWidth;
+        view.nativeHeight = marquee.height;
+        view.height = (this.Document[WidthSym]() / (this.Document.nativeWidth || 1)) * marquee.height;
+        view.nativeWidth = this.Document.nativeWidth;
         view.startY = marquee.top;
-        view._width = this.Document[WidthSym]();
+        view.width = this.Document[WidthSym]();
         DragManager.StartDocumentDrag([], new DragManager.DocumentDragData([view]), 0, 0);
     }
 
@@ -598,12 +598,12 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
     getCoverImage = () => {
         if (!this.props.Document[HeightSym]() || !this.props.Document.nativeHeight) {
             setTimeout((() => {
-                this.Document._height = this.Document[WidthSym]() * this._coverPath.height / this._coverPath.width;
-                this.Document._nativeHeight = (this.Document._nativeWidth || 0) * this._coverPath.height / this._coverPath.width;
+                this.Document.height = this.Document[WidthSym]() * this._coverPath.height / this._coverPath.width;
+                this.Document.nativeHeight = (this.Document.nativeWidth || 0) * this._coverPath.height / this._coverPath.width;
             }).bind(this), 0);
         }
-        const nativeWidth = (this.Document._nativeWidth || 0);
-        const nativeHeight = (this.Document._nativeHeight || 0);
+        const nativeWidth = (this.Document.nativeWidth || 0);
+        const nativeHeight = (this.Document.nativeHeight || 0);
         const resolved = Utils.prepend(this._coverPath.path);
         return <img key={resolved} src={resolved} onError={action(() => this._coverPath.path = "http://www.cs.brown.edu/~bcz/face.gif")} onLoad={action(() => this._showWaiting = false)}
             style={{ position: "absolute", display: "inline-block", top: 0, left: 0, width: `${nativeWidth}px`, height: `${nativeHeight}px` }} />;
@@ -621,19 +621,19 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
 
     @computed get annotationLayer() {
         TraceMobx();
-        return <div className="pdfViewer-annotationLayer" style={{ height: NumCast(this.Document.nativeHeight), transform: `scale(${this._zoomed})` }} ref={this._annotationLayer}>
+        return <div className="pdfViewer-annotationLayer" style={{ height: (this.Document.nativeHeight || 0), transform: `scale(${this._zoomed})` }} ref={this._annotationLayer}>
             {this.nonDocAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y)).map((anno, index) =>
-                <Annotation {...this.props} focus={this.props.focus} dataDoc={this.dataDoc!} fieldKey={this.props.fieldKey} anno={anno} key={`${anno[Id]}-annotation`} />)}
+                <Annotation {...this.props} focus={this.props.focus} extensionDoc={this.extensionDoc!} anno={anno} key={`${anno[Id]}-annotation`} />)}
         </div>;
     }
     overlayTransform = () => this.scrollXf().scale(1 / this._zoomed);
-    panelWidth = () => (this.Document.scrollHeight || this.Document._nativeHeight || 0);
-    panelHeight = () => this._pageSizes.length && this._pageSizes[0] ? this._pageSizes[0].width : (this.Document._nativeWidth || 0);
+    panelWidth = () => (this.Document.scrollHeight || this.Document.nativeHeight || 0);
+    panelHeight = () => this._pageSizes.length && this._pageSizes[0] ? this._pageSizes[0].width : (this.Document.nativeWidth || 0);
     @computed get overlayLayer() {
         return <div className={`pdfViewer-overlay${InkingControl.Instance.selectedTool !== InkTool.None ? "-inking" : ""}`} id="overlay" style={{ transform: `scale(${this._zoomed})` }}>
             <CollectionFreeFormView {...this.props}
                 LibraryPath={this.props.ContainingCollectionView?.props.LibraryPath ?? []}
-                annotationsKey={this.annotationKey}
+                annotationsKey={this.annotationsKey}
                 setPreviewCursor={this.setPreviewCursor}
                 PanelHeight={this.panelWidth}
                 PanelWidth={this.panelHeight}
@@ -675,19 +675,20 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
     contentZoom = () => this._zoomed;
     render() {
         TraceMobx();
-        return <div className={"pdfViewer" + (this._zoomed !== 1 ? "-zoomed" : "")} ref={this._mainCont}
-            onScroll={this.onScroll} onWheel={this.onZoomWheel} onPointerDown={this.onPointerDown} onClick={this.onClick}
-            style={{
-                width: !this.props.Document._fitWidth ? NumCast(this.props.Document._nativeWidth) : `${100 / this.contentScaling}%`,
-                height: !this.props.Document._fitWidth ? NumCast(this.props.Document._nativeHeight) : `${100 / this.contentScaling}%`,
-                transform: `scale(${this.props.ContentScaling()})`
-            }}  >
-            {this.pdfViewerDiv}
-            {this.overlayLayer}
-            {this.annotationLayer}
-            {this.standinViews}
-            <PdfViewerMarquee isMarqueeing={this.marqueeing} width={this.marqueeWidth} height={this.marqueeHeight} x={this.marqueeX} y={this.marqueeY} />
-        </div >;
+        return !this.extensionDoc ? (null) :
+            <div className={"pdfViewer" + (this._zoomed !== 1 ? "-zoomed" : "")} ref={this._mainCont}
+                onScroll={this.onScroll} onWheel={this.onZoomWheel} onPointerDown={this.onPointerDown} onClick={this.onClick}
+                style={{
+                    width: !this.props.Document.fitWidth ? NumCast(this.props.Document.nativeWidth) : `${100 / this.contentScaling}%`,
+                    height: !this.props.Document.fitWidth ? NumCast(this.props.Document.nativeHeight) : `${100 / this.contentScaling}%`,
+                    transform: `scale(${this.props.ContentScaling()})`
+                }}  >
+                {this.pdfViewerDiv}
+                {this.overlayLayer}
+                {this.annotationLayer}
+                {this.standinViews}
+                <PdfViewerMarquee isMarqueeing={this.marqueeing} width={this.marqueeWidth} height={this.marqueeHeight} x={this.marqueeX} y={this.marqueeY} />
+            </div >;
     }
 }
 

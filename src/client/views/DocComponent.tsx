@@ -34,7 +34,8 @@ export function DocExtendableComponent<P extends DocExtendableProps, T>(schemaCt
         //TODO This might be pretty inefficient if doc isn't observed, because computed doesn't cache then
         @computed get Document(): T { return schemaCtor(this.props.Document); }
         @computed get layoutDoc() { return Doc.Layout(this.props.Document); }
-        @computed get dataDoc() { return (this.props.DataDoc && (this.props.Document.isTemplateForField || this.props.Document.isTemplateDoc) ? this.props.DataDoc : Cast(this.props.Document.resolvedDataDoc, Doc, null) || Doc.GetProto(this.props.Document)) as Doc; }
+        @computed get dataDoc() { return (this.props.DataDoc && (this.props.Document.isTemplateForField || this.props.Document.isTemplateDoc) ? this.props.DataDoc : Doc.GetProto(this.props.Document)) as Doc; }
+        @computed get extensionDoc() { return Doc.fieldExtensionDoc(this.dataDoc, this.props.fieldKey); }
         active = (outsideReaction?: boolean) => !this.props.Document.isBackground && (this.props.Document.forceActive || this.props.isSelected(outsideReaction) || this.props.renderDepth === 0);//  && !InkingControl.Instance.selectedTool;  // bcz: inking state shouldn't affect static tools 
     }
     return Component;
@@ -42,7 +43,7 @@ export function DocExtendableComponent<P extends DocExtendableProps, T>(schemaCt
 
 
 ///  DocAnnotatbleComponent return a base class for React views of document fields that are annotatable *and* interactive when selected (e.g., pdf, image)
-export interface DocAnnotatableProps {
+interface DocAnnotatableProps {
     Document: Doc;
     DataDoc?: Doc;
     fieldKey: string;
@@ -57,16 +58,15 @@ export function DocAnnotatableComponent<P extends DocAnnotatableProps, T>(schema
         //TODO This might be pretty inefficient if doc isn't observed, because computed doesn't cache then
         @computed get Document(): T { return schemaCtor(this.props.Document); }
         @computed get layoutDoc() { return Doc.Layout(this.props.Document); }
-        @computed get dataDoc() { return (this.props.DataDoc && (this.props.Document.isTemplateForField || this.props.Document.isTemplateDoc) ? this.props.DataDoc : Cast(this.props.Document.resolvedDataDoc, Doc, null) || Doc.GetProto(this.props.Document)) as Doc; }
-
-        _annotationKey: string = "annotations";
-        public set annotationKey(val: string) { this._annotationKey = val; }
-        public get annotationKey() { return this._annotationKey; }
+        @computed get dataDoc() { return (this.props.DataDoc && (this.props.Document.isTemplateForField || this.props.Document.isTemplateDoc) ? this.props.DataDoc : Doc.GetProto(this.props.Document)) as Doc; }
+        @computed get extensionDoc() { return Doc.fieldExtensionDoc(this.dataDoc, this.props.fieldKey); }
+        @computed get extensionDocSync() { return Doc.fieldExtensionDocSync(this.dataDoc, this.props.fieldKey); }
+        @computed get annotationsKey() { return "annotations"; }
 
         @action.bound
         removeDocument(doc: Doc): boolean {
             Doc.GetProto(doc).annotationOn = undefined;
-            const value = Cast(this.dataDoc[this.props.fieldKey + "-" + this._annotationKey], listSpec(Doc), []);
+            const value = this.extensionDoc && Cast(this.extensionDoc[this.annotationsKey], listSpec(Doc), []);
             const index = value ? Doc.IndexOf(doc, value.map(d => d as Doc), true) : -1;
             return index !== -1 && value && value.splice(index, 1) ? true : false;
         }
@@ -79,7 +79,7 @@ export function DocAnnotatableComponent<P extends DocAnnotatableProps, T>(schema
         @action.bound
         addDocument(doc: Doc): boolean {
             Doc.GetProto(doc).annotationOn = this.props.Document;
-            return Doc.AddDocToList(this.dataDoc, this.props.fieldKey + "-" + this._annotationKey, doc) ? true : false;
+            return this.extensionDoc && Doc.AddDocToList(this.extensionDoc, this.annotationsKey, doc) ? true : false;
         }
 
         whenActiveChanged = action((isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive));

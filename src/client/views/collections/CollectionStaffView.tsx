@@ -23,6 +23,10 @@ export class CollectionStaffView extends CollectionSubView(doc => doc) {
         this.props.Document.staves = 5;
     }
 
+    @computed get fieldExtensionDoc() {
+        return Doc.fieldExtensionDoc(this.props.DataDoc || this.props.Document, this.props.fieldKey);
+    }
+
     @computed get addStaffButton() {
         return <div onPointerDown={this.addStaff}>+</div>;
     }

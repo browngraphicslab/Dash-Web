@@ -38,8 +38,8 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
 
     componentDidMount() {
         // is there any reason this needs to exist? -syip.  yes, it handles autoHeight for stacking views (masonry isn't yet supported).
-        this._widthDisposer = reaction(() => this.props.Document[HeightSym]() + this.childDocs.length + (this.props.Document.isExpanded ? 1 : 0),
-            () => this.props.Document._width = 5 + (this.props.Document.isExpanded ? this.childDocs.length * (this.props.Document[HeightSym]()) : 10),
+        this._widthDisposer = reaction(() => NumCast(this.props.Document.height, 0) + this.childDocs.length + (this.props.Document.isExpanded ? 1 : 0),
+            () => this.props.Document.width = 5 + (this.props.Document.isExpanded ? this.childDocs.length * (this.props.Document[HeightSym]()) : 10),
             { fireImmediately: true }
         );
 
@@ -73,7 +73,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
 
     public isCurrent(doc: Doc) { return !doc.isMinimized && (Math.abs(NumCast(doc.displayTimecode, -1) - NumCast(this.Document.currentTimecode, -1)) < 1.5 || NumCast(doc.displayTimecode, -1) === -1); }
 
-    dimension = () => NumCast(this.props.Document._height); // 2 * the padding
+    dimension = () => NumCast(this.props.Document.height); // 2 * the padding
     getTransform = (ele: React.RefObject<HTMLDivElement>) => () => {
         if (!ele.current) return Transform.Identity();
         const { scale, translateX, translateY } = Utils.GetScreenTransform(ele.current);
@@ -88,11 +88,11 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                     onChange={action((e: any) => this.props.Document.isExpanded = this.addMenuToggle.current!.checked)} />
                 <label htmlFor={`${guid}`} style={{ marginTop: "auto", marginBottom: "auto", background: StrCast(this.props.Document.backgroundColor, "black") === StrCast(this.props.Document.color, "white") ? "black" : StrCast(this.props.Document.backgroundColor, "black") }} title="Close Menu"><p>+</p></label>
 
-                <div className="collectionLinearView-content" style={{ height: this.dimension(), width: NumCast(this.props.Document._width, 25) }}>
+                <div className="collectionLinearView-content" style={{ height: this.dimension(), width: NumCast(this.props.Document.width, 25) }}>
                     {this.childLayoutPairs.filter((pair) => this.isCurrent(pair.layout)).map((pair, ind) => {
-                        const nested = pair.layout._viewType === CollectionViewType.Linear;
+                        const nested = pair.layout.viewType === CollectionViewType.Linear;
                         const dref = React.createRef<HTMLDivElement>();
-                        const nativeWidth = NumCast(pair.layout._nativeWidth, this.dimension());
+                        const nativeWidth = NumCast(pair.layout.nativeWidth, this.dimension());
                         const deltaSize = nativeWidth * .15 / 2;
                         return <div className={`collectionLinearView-docBtn` + (pair.layout.onClick || pair.layout.onDragStart ? "-scalable" : "")} key={pair.layout[Id]} ref={dref}
                             style={{

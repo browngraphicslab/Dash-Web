@@ -31,8 +31,8 @@ export class PreviewCursor extends React.Component<{}> {
                 if (e.clipboardData.getData("text/plain").indexOf("www.youtube.com/watch") !== -1) {
                     const url = e.clipboardData.getData("text/plain").replace("youtube.com/watch?v=", "youtube.com/embed/");
                     return PreviewCursor._addDocument(Docs.Create.VideoDocument(url, {
-                        title: url, _width: 400, _height: 315,
-                        _nativeWidth: 600, _nativeHeight: 472.5,
+                        title: url, width: 400, height: 315,
+                        nativeWidth: 600, nativeHeight: 472.5,
                         x: newPoint[0], y: newPoint[1]
                     }));
                 }
@@ -42,17 +42,17 @@ export class PreviewCursor extends React.Component<{}> {
                 if (re.test(e.clipboardData.getData("text/plain"))) {
                     const url = e.clipboardData.getData("text/plain");
                     return PreviewCursor._addDocument(Docs.Create.WebDocument(url, {
-                        title: url, _width: 500, _height: 300,
+                        title: url, width: 500, height: 300,
                         // nativeWidth: 300, nativeHeight: 472.5,
                         x: newPoint[0], y: newPoint[1]
                     }));
                 }
 
                 // creates text document
-                return PreviewCursor._addLiveTextDoc(Docs.Create.TextDocument("", {
-                    _width: 500,
+                return PreviewCursor._addLiveTextDoc(Docs.Create.TextDocument({
+                    width: 500,
                     limitHeight: 400,
-                    _autoHeight: true,
+                    autoHeight: true,
                     x: newPoint[0],
                     y: newPoint[1],
                     title: "-pasted text-"
@@ -65,7 +65,7 @@ export class PreviewCursor extends React.Component<{}> {
 
                 return PreviewCursor._addDocument(Docs.Create.ImageDocument(
                     arr[1], {
-                    _width: 300, title: arr[1],
+                    width: 300, title: arr[1],
                     x: newPoint[0],
                     y: newPoint[1],
                 }));

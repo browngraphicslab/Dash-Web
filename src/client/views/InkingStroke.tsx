@@ -11,12 +11,6 @@ import { FieldView, FieldViewProps } from "./nodes/FieldView";
 import React = require("react");
 import { TraceMobx } from "../../new_fields/util";
 import { InteractionUtils } from "../util/InteractionUtils";
-import { ContextMenu } from "./ContextMenu";
-import { CognitiveServices } from "../cognitive_services/CognitiveServices";
-import { faPaintBrush } from "@fortawesome/free-solid-svg-icons";
-import { library } from "@fortawesome/fontawesome-svg-core";
-
-library.add(faPaintBrush);
 
 type InkDocument = makeInterface<[typeof documentSchema]>;
 const InkDocument = makeInterface(documentSchema);
@@ -27,11 +21,6 @@ export class InkingStroke extends DocExtendableComponent<FieldViewProps, InkDocu
 
     @computed get PanelWidth() { return this.props.PanelWidth(); }
     @computed get PanelHeight() { return this.props.PanelHeight(); }
-
-    private analyzeStrokes = () => {
-        const data: InkData = Cast(this.Document.data, InkField)?.inkData ?? [];
-        CognitiveServices.Inking.Appliers.ConcatenateHandwriting(this.Document, ["inkAnalysis", "handwriting"], [data]);
-    }
 
     render() {
         TraceMobx();
@@ -48,23 +37,12 @@ export class InkingStroke extends DocExtendableComponent<FieldViewProps, InkDocu
         const scaleX = this.PanelWidth / width;
         const scaleY = this.PanelHeight / height;
         return (
-            <svg
-                width={width}
-                height={height}
-                style={{
-                    transformOrigin: "top left",
-                    transform: `scale(${scaleX}, ${scaleY})`,
-                    mixBlendMode: this.Document.tool === InkTool.Highlighter ? "multiply" : "unset",
-                    pointerEvents: "all"
-                }}
-                onContextMenu={() => {
-                    ContextMenu.Instance.addItem({
-                        description: "Analyze Stroke",
-                        event: this.analyzeStrokes,
-                        icon: "paint-brush"
-                    });
-                }}
-            >
+            <svg width={width} height={height} style={{
+                transformOrigin: "top left",
+                transform: `scale(${scaleX}, ${scaleY})`,
+                mixBlendMode: this.Document.tool === InkTool.Highlighter ? "multiply" : "unset",
+                pointerEvents: "all"
+            }}>
                 {points}
             </svg>
         );

@@ -85,14 +85,13 @@ def write_collection(parse_results, display_fields, storage_key, viewType):
             "proto": protofy(data_doc["_id"]),
             "x": 10,
             "y": 10,
-            "_width": 900,
-            "_height": 600,
-            "_panX": 0,
-            "_panY": 0,
+            "width": 900,
+            "height": 600,
+            "panX": 0,
+            "panY": 0,
             "zIndex": 2,
             "libraryBrush": False,
-            "_viewType": viewType,
-            "_LODdisable": True
+            "viewType": viewType
         },
         "__type": "Doc"
     }
@@ -101,14 +100,19 @@ def write_collection(parse_results, display_fields, storage_key, viewType):
     fields[storage_key] = listify(proxify_guids(view_guids))
     fields["schemaColumns"] = listify(display_fields)
     fields["backgroundColor"] = "white"
-    fields["_viewType"] = 2
+    fields["viewType"] = 2
     fields["author"] = "Bill Buxton"
+    fields["LODdisable"] = True
     fields["creationDate"] = {
         "date": datetime.datetime.utcnow().microsecond,
         "__type": "date"
     }
     if "image_urls" in parse_results:
         fields["hero"] = {
+            "url": parse_results["image_urls"][0],
+            "__type": "image"
+        }
+        fields["activeHero"] = {
             "url": parse_results["image_urls"][0],
             "__type": "image"
         }
@@ -135,7 +139,7 @@ def write_text_doc(content):
             "proto": protofy(data_doc_guid),
             "x": 10,
             "y": 10,
-            "_width": 400,
+            "width": 400,
             "zIndex": 2
         },
         "__type": "Doc"
@@ -150,17 +154,17 @@ def write_text_doc(content):
                 "__type": "RichTextField"
             },
             "title": content,
-            "_nativeWidth": 200,
+            "nativeWidth": 200,
             "author": "Bill Buxton",
             "creationDate": {
                 "date": datetime.datetime.utcnow().microsecond,
                 "__type": "date"
             },
             "isPrototype": True,
-            "_autoHeight": True,
+            "autoHeight": True,
             "page": -1,
-            "_nativeHeight": 200,
-            "_height": 200,
+            "nativeHeight": 200,
+            "height": 200,
             "data_text": content
         },
         "__type": "Doc"
@@ -190,7 +194,7 @@ def write_image(folder, name):
             "proto": protofy(data_doc_guid),
             "x": 10,
             "y": 10,
-            "_width": min(800, native_width),
+            "width": min(800, native_width),
             "zIndex": 2,
             "widthUnit": "*",
             "widthMagnitude": 1
@@ -207,7 +211,7 @@ def write_image(folder, name):
                 "__type": "image"
             },
             "title": name,
-            "_nativeWidth": native_width,
+            "nativeWidth": native_width,
             "author": "Bill Buxton",
             "creationDate": {
                 "date": datetime.datetime.utcnow().microsecond,
@@ -215,8 +219,8 @@ def write_image(folder, name):
             },
             "isPrototype": True,
             "page": -1,
-            "_nativeHeight": native_height,
-            "_height": native_height
+            "nativeHeight": native_height,
+            "height": native_height
         },
         "__type": "Doc"
     }

@@ -48,7 +48,7 @@ export namespace Utils {
     }
 
     export async function getApiKey(target: string): Promise<string> {
-        const response = await fetch(prepend(`/environment/${target.toUpperCase()}`));
+        const response = await fetch(prepend(`environment/${target.toUpperCase()}`));
         return response.text();
     }
 

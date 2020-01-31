@@ -136,7 +136,7 @@ export namespace GooglePhotos {
                 document.contentSize = upload.contentSize;
                 return document;
             });
-            const options = { _width: 500, _height: 500 };
+            const options = { width: 500, height: 500 };
             return constructor(children, options);
         };
 

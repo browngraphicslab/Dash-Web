@@ -43,7 +43,7 @@ export namespace Templates {
         `<div>
             <div style="height:100%; width:100%;">{layout}</div>
             <div style="bottom: 0; font-size:14px; width:100%; position:absolute">
-                <FormattedTextBox {...props} fieldKey={"caption"} hideOnLeave={"true"} />
+                <FormattedTextBox {...props} height="min-content" fieldKey={"caption"} hideOnLeave={"true"} />
             </div>
         </div>` );
 

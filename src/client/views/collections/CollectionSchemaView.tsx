@@ -477,7 +477,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
     @undoBatch
     createRow = () => {
-        const newDoc = Docs.Create.TextDocument("", { title: "", _width: 100, _height: 30 });
+        const newDoc = Docs.Create.TextDocument({ title: "", width: 100, height: 30 });
         this.props.addDocument(newDoc);
     }
 

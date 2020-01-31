@@ -38,7 +38,7 @@ module.exports = function requestImageSize(options) {
                 return reject(new HttpError(res.statusCode, res.statusMessage));
             }
 
-            let buffer = new Buffer.from([]);
+            let buffer = new Buffer([]);
             let size;
             let imageSizeError;
 

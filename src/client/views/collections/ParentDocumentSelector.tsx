@@ -21,13 +21,7 @@ export const Flyout = higflyout.default;
 
 library.add(faEdit);
 
-type SelectorProps = {
-    Document: Doc,
-    Views: DocumentView[],
-    Stack?: any,
-    addDocTab(doc: Doc, dataDoc: Doc | undefined, location: string): void
-};
-
+type SelectorProps = { Document: Doc, Views: DocumentView[], Stack?: any, addDocTab(doc: Doc, dataDoc: Doc | undefined, location: string): void };
 @observer
 export class SelectorContextMenu extends React.Component<SelectorProps> {
     @observable private _docs: { col: Doc, target: Doc }[] = [];
@@ -55,11 +49,11 @@ export class SelectorContextMenu extends React.Component<SelectorProps> {
     getOnClick({ col, target }: { col: Doc, target: Doc }) {
         return () => {
             col = Doc.IsPrototype(col) ? Doc.MakeDelegate(col) : col;
-            if (NumCast(col._viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
-                const newPanX = NumCast(target.x) + NumCast(target._width) / 2;
-                const newPanY = NumCast(target.y) + NumCast(target._height) / 2;
-                col._panX = newPanX;
-                col._panY = newPanY;
+            if (NumCast(col.viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
+                const newPanX = NumCast(target.x) + NumCast(target.width) / 2;
+                const newPanY = NumCast(target.y) + NumCast(target.height) / 2;
+                col.panX = newPanX;
+                col.panY = newPanY;
             }
             this.props.addDocTab(col, undefined, "inTab"); // bcz: dataDoc?
         };

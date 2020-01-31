@@ -2,11 +2,14 @@ import { action, computed, observable } from "mobx";
 import { ColorState } from 'react-color';
 import { Doc } from "../../new_fields/Doc";
 import { InkTool } from "../../new_fields/InkField";
-import { FieldValue, NumCast, StrCast } from "../../new_fields/Types";
-import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
+import { List } from "../../new_fields/List";
+import { listSpec } from "../../new_fields/Schema";
+import { Cast, NumCast, StrCast, FieldValue } from "../../new_fields/Types";
+import { Utils } from "../../Utils";
 import { Scripting } from "../util/Scripting";
 import { SelectionManager } from "../util/SelectionManager";
-import { undoBatch } from "../util/UndoManager";
+import { undoBatch, UndoManager } from "../util/UndoManager";
+import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
 import GestureOverlay from "./GestureOverlay";
 
 export class InkingControl {
@@ -38,12 +41,32 @@ export class InkingControl {
 
         if (InkingControl.Instance.selectedTool === InkTool.None) {
             const selected = SelectionManager.SelectedDocuments();
-            selected.map(view => {
+            const oldColors = selected.map(view => {
                 const targetDoc = view.props.Document.dragFactory instanceof Doc ? view.props.Document.dragFactory :
                     view.props.Document.layout instanceof Doc ? view.props.Document.layout :
                         view.props.Document.isTemplateForField ? view.props.Document : Doc.GetProto(view.props.Document);
-                targetDoc && (Doc.Layout(view.props.Document).backgroundColor = CurrentUserUtils.UserDocument.inkColor);
+                const sel = window.getSelection();
+                if (StrCast(targetDoc.layout).indexOf("FormattedTextBox") !== -1 && (!sel || sel.toString() !== "")) {
+                    targetDoc.color = this._selectedColor;
+                    return {
+                        target: targetDoc,
+                        previous: StrCast(targetDoc.color)
+                    };
+                }
+                const oldColor = StrCast(targetDoc.backgroundColor);
+                let matchedColor = this._selectedColor;
+                targetDoc && (Doc.Layout(view.props.Document).backgroundColor = matchedColor);
+
+                return {
+                    target: targetDoc,
+                    previous: oldColor
+                };
             });
+            //let captured = this._selectedColor;
+            // UndoManager.AddEvent({
+            //     undo: () => oldColors.forEach(pair => pair.target.backgroundColor = pair.previous),
+            //     redo: () => oldColors.forEach(pair => pair.target.backgroundColor = captured)
+            // });
         } else {
             CurrentUserUtils.ActivePen && (CurrentUserUtils.ActivePen.backgroundColor = this._selectedColor);
         }

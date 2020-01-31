@@ -131,7 +131,6 @@ interface Promise<T> {
 declare const Update: unique symbol;
 declare const Self: unique symbol;
 declare const SelfProxy: unique symbol;
-declare const DataSym: unique symbol;
 declare const HandleUpdate: unique symbol;
 declare const Id: unique symbol;
 declare const OnUpdate: unique symbol;
