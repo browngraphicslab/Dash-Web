@@ -17,7 +17,7 @@ interface PivotData {
     x: number;
     y: number;
     width: number;
-    height: number;
+    height?: number;
     fontSize: number;
 }
 
@@ -26,7 +26,7 @@ export interface ViewDefBounds {
     y: number;
     z?: number;
     width: number;
-    height: number;
+    height?: number;
     transition?: string;
 }
 
@@ -45,7 +45,6 @@ function toLabel(target: FieldResult<Field>) {
 export function computePivotLayout(
     poolData: ObservableMap<string, any>,
     pivotDoc: Doc,
-    pwidth: number, pheight: number,
     childDocs: Doc[],
     childPairs: { layout: Doc, data?: Doc }[], panelDim: number[], viewDefsToJSX: (views: any) => ViewDefResult[]
 ) {
@@ -77,10 +76,9 @@ export function computePivotLayout(
             type: "text",
             text: toLabel(key),
             x,
-            y: pivotAxisWidth + 50,
+            y: pivotAxisWidth,
             width: pivotAxisWidth * expander * numCols,
-            height: NumCast(pivotDoc.pivotFontSize, 10),
-            fontSize: NumCast(pivotDoc.pivotFontSize, 10)
+            fontSize: NumCast(pivotDoc.pivotFontSize, 20)
         });
         for (const doc of val) {
             const layoutDoc = Doc.Layout(doc);
@@ -105,20 +103,16 @@ export function computePivotLayout(
         x += pivotAxisWidth * (numCols * expander + gap);
     });
 
-    const grpEles = groupNames.map(gn => { return { x: gn.x, y: gn.y, width: gn.width, height: gn.height }; });
-    const docEles = childPairs.map(pair => {
-        const newPos = docMap.get(pair.layout) || { x: NumCast(pair.layout.x), y: NumCast(pair.layout.y) }; // new pos is computed pos, or pos written to the document's fields
-        return {
-            x: newPos.x,
-            y: newPos.y,
-            width: NumCast(pair.layout._width),
-            height: NumCast(pair.layout._height)
-        };
-    }
+    const grpEles = groupNames.map(gn => { return { x: gn.x, y: gn.y, width: gn.width, height: undefined } as PivotData; });
+    const docEles = childPairs.map(pair =>
+        docMap.get(pair.layout) || { x: NumCast(pair.layout.x), y: NumCast(pair.layout.y), width: NumCast(pair.layout._width), height: NumCast(pair.layout._height) } // new pos is computed pos, or pos written to the document's fields
     );
+    const minLabelHeight = 56;
     const aggBounds = aggregateBounds(docEles.concat(grpEles), 0, 0);
-
-    const scale = Math.min(pheight / (aggBounds.b - aggBounds.y), pwidth / (aggBounds.r - aggBounds.x));
+    const wscale = panelDim[0] / (aggBounds.r - aggBounds.x);
+    const scale = wscale * (aggBounds.b - aggBounds.y) > panelDim[1] - (2 * minLabelHeight) ? (panelDim[1] - (2 * minLabelHeight)) / (aggBounds.b - aggBounds.y) : wscale;
+    const centerY = ((panelDim[1] - 2 * minLabelHeight) - (aggBounds.b - aggBounds.y) * scale) / 2;
+    const centerX = (panelDim[0] - (aggBounds.r - aggBounds.x) * scale) / 2;
 
     childPairs.map(pair => {
         const fallbackPos = {
@@ -129,13 +123,17 @@ export function computePivotLayout(
             height: NumCast(pair.layout._height)
         };
         const newPosRaw = docMap.get(pair.layout) || fallbackPos; // new pos is computed pos, or pos written to the document's fields
-        const newPos = { x: newPosRaw.x * scale, y: newPosRaw.y * scale, z: newPosRaw.z, width: newPosRaw.width * scale, height: newPosRaw.height * scale };
+        const newPos = { x: newPosRaw.x * scale + centerX, y: (newPosRaw.y - aggBounds.y) * scale + centerY, z: newPosRaw.z, width: newPosRaw.width * scale, height: newPosRaw.height! * scale };
         const lastPos = poolData.get(pair.layout[Id]); // last computed pos
         if (!lastPos || newPos.x !== lastPos.x || newPos.y !== lastPos.y || newPos.z !== lastPos.z || newPos.width !== lastPos.width || newPos.height !== lastPos.height) {
             runInAction(() => poolData.set(pair.layout[Id], { transition: "transform 1s", ...newPos }));
         }
     });
-    return { elements: viewDefsToJSX(groupNames.map(gname => { return { type: gname.type, text: gname.text, x: gname.x * scale, y: gname.y * scale, width: gname.width * scale, height: gname.height, fontSize: gname.fontSize } })) };
+    return {
+        elements: viewDefsToJSX([{ type: "text", text: "", x: 0, y: -aggBounds.y * scale - minLabelHeight, width: panelDim[0], height: panelDim[1], fontSize: 1 }].concat(groupNames.map(gname => {
+            return { type: gname.type, text: gname.text, x: gname.x * scale + centerX, y: (gname.y - aggBounds.y) * scale + centerY, width: gname.width * scale, height: Math.max(minLabelHeight, centerY), fontSize: gname.fontSize };
+        })))
+    };
 }
 
 export function AddCustomFreeFormLayout(doc: Doc, dataKey: string): () => void {

@@ -354,7 +354,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
                 return d;
             });
         }
-        const newCollection = this.getCollection(selected, e.key === "t");
+        const newCollection = this.getCollection(selected, (e as KeyboardEvent)?.key === "t");
         this.props.addDocument(newCollection);
         this.props.selectDocuments([newCollection], []);
         MarqueeOptionsMenu.Instance.fadeOut(true);
@@ -365,7 +365,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
     summary = (e: KeyboardEvent | React.PointerEvent | undefined) => {
         const bounds = this.Bounds;
         const selected = this.marqueeSelect(false);
-        const newCollection = this.getCollection(selected);
+        const newCollection = this.getCollection(selected, false);
 
         selected.map(d => {
             this.props.removeDocument(d);
