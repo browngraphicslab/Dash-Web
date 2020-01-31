@@ -25,7 +25,21 @@ export class DashSessionAgent extends AppliedSessionAgent {
      * The core method invoked when the single master thread is initialized.
      * Installs event hooks, repl commands and additional IPC listeners.
      */
-    protected async initializeMonitor(monitor: Monitor, sessionKey: string): Promise<void> {
+    protected async initializeMonitor(monitor: Monitor): Promise<string> {
+        // ['log', 'warn'].forEach(function (method) {
+        //     const old = (console as any)[method];
+        //     (console as any)[method] = function () {
+        //         let stack = new Error("").stack?.split(/\n/);
+        //         // Chrome includes a single "Error" line, FF doesn't.
+        //         if (stack && stack[0].indexOf('Error') === 0) {
+        //             stack = stack.slice(1);
+        //         }
+        //         const message = (stack?.[1] || "Stack undefined!").trim();
+        //         const args = ([] as any[]).slice.apply(arguments).concat([message]);
+        //         return old.apply(console, args);
+        //     };
+        // });
+        const sessionKey = Utils.GenerateGuid();
         await this.dispatchSessionPassword(sessionKey);
         monitor.addReplCommand("pull", [], () => monitor.exec("git pull"));
         monitor.addReplCommand("solr", [/start|stop|index/], this.executeSolrCommand);
@@ -34,6 +48,7 @@ export class DashSessionAgent extends AppliedSessionAgent {
         monitor.on("backup", this.backup);
         monitor.on("debug", async ({ to }) => this.dispatchZippedDebugBackup(to));
         monitor.coreHooks.onCrashDetected(this.dispatchCrashReport);
+        return sessionKey;
     }
 
     /**
