@@ -43,9 +43,11 @@
 }
 
 .presElementBox-closeIcon {
-    float: right;
     border-radius: 20px;
     transform:scale(0.7);
+    position: absolute;
+    right: 0;
+    top: 0;
 }
 
 .presElementBox-interaction {
