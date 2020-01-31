@@ -418,12 +418,13 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                             className="collectionViewBaseChrome-viewPicker"
                             onPointerDown={stopPropagation}
                             onChange={this.viewChanged}
-                            value={NumCast(this.props.CollectionView.props.Document.viewType)}>
+                            value={NumCast(this.props.CollectionView.props.Document._viewType)}>
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="1">Freeform</option>
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="2">Schema</option>
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="4">Tree</option>
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="5">Stacking</option>
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="6">Masonry</option>
+                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="7">Multicolumn</option>
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="8">Pivot</option>
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="9">Carousel</option>
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="11">Timeline</option>
