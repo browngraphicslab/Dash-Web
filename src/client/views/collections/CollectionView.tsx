@@ -26,6 +26,7 @@ import { Touchable } from '../Touchable';
 import { CollectionDockingView } from "./CollectionDockingView";
 import { AddCustomFreeFormLayout } from './collectionFreeForm/CollectionFreeFormLayoutEngines';
 import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormView';
+import { CollectionCarouselView } from './CollectionCarouselView';
 import { CollectionLinearView } from './CollectionLinearView';
 import { CollectionMulticolumnView } from './collectionMulticolumn/CollectionMulticolumnView';
 import { CollectionPivotView } from './CollectionPivotView';
@@ -48,12 +49,12 @@ export enum CollectionViewType {
     Tree,
     Stacking,
     Masonry,
+    Multicolumn,
     Pivot,
+    Carousel,
     Linear,
     Timeline,
     Staff,
-    Multicolumn,
-    Timeline
 }
 
 export namespace CollectionViewType {
@@ -65,10 +66,11 @@ export namespace CollectionViewType {
         ["tree", CollectionViewType.Tree],
         ["stacking", CollectionViewType.Stacking],
         ["masonry", CollectionViewType.Masonry],
+        ["multicolumn", CollectionViewType.Multicolumn],
         ["pivot", CollectionViewType.Pivot],
+        ["carousel", CollectionViewType.Carousel],
         ["linear", CollectionViewType.Linear],
         ["timeline", CollectionViewType.Timeline],
-        ["multicolumn", CollectionViewType.Multicolumn],
     ]);
 
     export const valueOf = (value: string) => stringMapping.get(value.toLowerCase());
@@ -94,17 +96,8 @@ export class CollectionView extends Touchable<FieldViewProps> {
     @observable private static _safeMode = false;
     public static SetSafeMode(safeMode: boolean) { this._safeMode = safeMode; }
 
-    @computed get extensionDoc() { return Doc.fieldExtensionDoc(this.props.Document, this.props.fieldKey); }
-
     get collectionViewType(): CollectionViewType | undefined {
-        if (!this.extensionDoc) return CollectionViewType.Invalid;
-        NumCast(this.props.Document.viewType) && setTimeout(() => {
-            if (this.props.Document.viewType) {
-                this.extensionDoc!.viewType = NumCast(this.props.Document.viewType);
-            }
-            Doc.GetProto(this.props.Document).viewType = this.props.Document.viewType = undefined;
-        });
-        const viewField = NumCast(this.extensionDoc.viewType, Cast(this.props.Document.viewType, "number"));
+        const viewField = NumCast(this.props.Document._viewType);
         if (CollectionView._safeMode) {
             if (viewField === CollectionViewType.Freeform) {
                 return CollectionViewType.Tree;
@@ -113,15 +106,15 @@ export class CollectionView extends Touchable<FieldViewProps> {
                 return CollectionViewType.Freeform;
             }
         }
-        return viewField === undefined ? CollectionViewType.Invalid : viewField;
+        return viewField;
     }
 
     componentDidMount = () => {
-        this._reactionDisposer = reaction(() => StrCast(this.props.Document.chromeStatus),
+        this._reactionDisposer = reaction(() => StrCast(this.props.Document._chromeStatus),
             () => {
                 // chrome status is one of disabled, collapsed, or visible. this determines initial state from document
                 // chrome status may also be view-mode, in reference to stacking view's toggle mode. it is essentially disabled mode, but prevents the toggle button from showing up on the left sidebar.
-                const chromeStatus = this.props.Document.chromeStatus;
+                const chromeStatus = this.props.Document._chromeStatus;
                 if (chromeStatus && (chromeStatus === "disabled" || chromeStatus === "collapsed")) {
                     runInAction(() => this._collapsed = true);
                 }
@@ -131,7 +124,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
     componentWillUnmount = () => this._reactionDisposer && this._reactionDisposer();
 
     // bcz: Argh?  What's the height of the collection chromes??  
-    chromeHeight = () => (this.props.Document.chromeStatus === "enabled" ? -60 : 0);
+    chromeHeight = () => (this.props.Document._chromeStatus === "enabled" ? -60 : 0);
 
     active = (outsideReaction?: boolean) => this.props.isSelected(outsideReaction) || BoolCast(this.props.Document.forceActive) || this._isChildActive || this.props.renderDepth === 0;
 
@@ -141,8 +134,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
     addDocument(doc: Doc): boolean {
         const targetDataDoc = Doc.GetProto(this.props.Document);
         Doc.AddDocToList(targetDataDoc, this.props.fieldKey, doc);
-        const extension = Doc.fieldExtensionDoc(targetDataDoc, this.props.fieldKey);  // set metadata about the field being rendered (ie, the set of documents) on an extension field for that field
-        extension && (extension.lastModified = new DateField(new Date(Date.now())));
+        targetDataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
         Doc.GetProto(doc).lastOpened = new DateField;
         return true;
     }
@@ -192,23 +184,24 @@ export class CollectionView extends Touchable<FieldViewProps> {
             case CollectionViewType.Staff: return (<CollectionStaffView chromeCollapsed={true} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} />);
             case CollectionViewType.Multicolumn: return (<CollectionMulticolumnView chromeCollapsed={true} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} />);
             case CollectionViewType.Linear: { return (<CollectionLinearView key="collview" {...props} />); }
+            case CollectionViewType.Carousel: { return (<CollectionCarouselView key="collview" {...props} />); }
             case CollectionViewType.Stacking: { this.props.Document.singleColumn = true; return (<CollectionStackingView key="collview" {...props} />); }
             case CollectionViewType.Masonry: { this.props.Document.singleColumn = false; return (<CollectionStackingView key="collview" {...props} />); }
             case CollectionViewType.Pivot: { return (<CollectionPivotView key="collview" {...props} />); }
             case CollectionViewType.Freeform:
-            default: { this.props.Document.freeformLayoutEngine = undefined; return (<CollectionFreeFormView key="collview" {...props} />); }
+            default: { this.props.Document._freeformLayoutEngine = undefined; return (<CollectionFreeFormView key="collview" {...props} />); }
         }
     }
 
     @action
     private collapse = (value: boolean) => {
         this._collapsed = value;
-        this.props.Document.chromeStatus = value ? "collapsed" : "enabled";
+        this.props.Document._chromeStatus = value ? "collapsed" : "enabled";
     }
 
     private SubView = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
         // currently cant think of a reason for collection docking view to have a chrome. mind may change if we ever have nested docking views -syip
-        const chrome = this.props.Document.chromeStatus === "disabled" || type === CollectionViewType.Docking ? (null) :
+        const chrome = this.props.Document._chromeStatus === "disabled" || type === CollectionViewType.Docking ? (null) :
             <CollectionViewBaseChrome CollectionView={this} key="chrome" type={type} collapse={this.collapse} />;
         return [chrome, this.SubViewHelper(type, renderProps)];
     }
@@ -218,25 +211,26 @@ export class CollectionView extends Touchable<FieldViewProps> {
         if (!e.isPropagationStopped() && this.props.Document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
             const existingVm = ContextMenu.Instance.findByDescription("View Modes...");
             const subItems = existingVm && "subitems" in existingVm ? existingVm.subitems : [];
-            subItems.push({ description: "Freeform", event: () => { this.props.Document.viewType = CollectionViewType.Freeform; }, icon: "signature" });
+            subItems.push({ description: "Freeform", event: () => { this.props.Document._viewType = CollectionViewType.Freeform; }, icon: "signature" });
             if (CollectionView._safeMode) {
-                ContextMenu.Instance.addItem({ description: "Test Freeform", event: () => this.props.Document.viewType = CollectionViewType.Invalid, icon: "project-diagram" });
+                ContextMenu.Instance.addItem({ description: "Test Freeform", event: () => this.props.Document._viewType = CollectionViewType.Invalid, icon: "project-diagram" });
             }
-            subItems.push({ description: "Schema", event: () => this.props.Document.viewType = CollectionViewType.Schema, icon: "th-list" });
-            subItems.push({ description: "Treeview", event: () => this.props.Document.viewType = CollectionViewType.Tree, icon: "tree" });
-            subItems.push({ description: "Stacking", event: () => this.props.Document.viewType = CollectionViewType.Stacking, icon: "ellipsis-v" });
+            subItems.push({ description: "Schema", event: () => this.props.Document._viewType = CollectionViewType.Schema, icon: "th-list" });
+            subItems.push({ description: "Treeview", event: () => this.props.Document._viewType = CollectionViewType.Tree, icon: "tree" });
+            subItems.push({ description: "Stacking", event: () => this.props.Document._viewType = CollectionViewType.Stacking, icon: "ellipsis-v" });
             subItems.push({
                 description: "Stacking (AutoHeight)", event: () => {
-                    this.props.Document.viewType = CollectionViewType.Stacking;
-                    this.props.Document.autoHeight = true;
+                    this.props.Document._viewType = CollectionViewType.Stacking;
+                    this.props.Document._autoHeight = true;
                 }, icon: "ellipsis-v"
             });
-            subItems.push({ description: "Staff", event: () => this.props.Document.viewType = CollectionViewType.Staff, icon: "music" });
-            subItems.push({ description: "Multicolumn", event: () => this.props.Document.viewType = CollectionViewType.Multicolumn, icon: "columns" });
-            subItems.push({ description: "Masonry", event: () => this.props.Document.viewType = CollectionViewType.Masonry, icon: "columns" });
+            subItems.push({ description: "Staff", event: () => this.props.Document._viewType = CollectionViewType.Staff, icon: "music" });
+            subItems.push({ description: "Multicolumn", event: () => this.props.Document._viewType = CollectionViewType.Multicolumn, icon: "columns" });
+            subItems.push({ description: "Masonry", event: () => this.props.Document._viewType = CollectionViewType.Masonry, icon: "columns" });
+            subItems.push({ description: "Carousel", event: () => this.props.Document._viewType = CollectionViewType.Carousel, icon: "columns" });
             subItems.push({ description: "Timeline", event: () => this.props.Document.viewType = CollectionViewType.Timeline, icon: "columns" });
-            subItems.push({ description: "Pivot", event: () => this.props.Document.viewType = CollectionViewType.Pivot, icon: "columns" });
-            switch (this.props.Document.viewType) {
+            subItems.push({ description: "Pivot", event: () => this.props.Document._viewType = CollectionViewType.Pivot, icon: "columns" });
+            switch (this.props.Document._viewType) {
                 case CollectionViewType.Freeform: {
                     subItems.push({ description: "Custom", icon: "fingerprint", event: AddCustomFreeFormLayout(this.props.Document, this.props.fieldKey) });
                     break;

@@ -1068,7 +1068,7 @@ export class CollectionTimelineView extends CollectionSubView(doc => doc) {
         this.props.Document.minvalue = this.props.Document.minvalue = this._values[0].value - this._range * 0.05;
         const p: [number, number] = this._visible ? this.props.ScreenToLocalTransform().translate(0, 0).transformPoint(this._downX < this._lastX ? this._downX : this._lastX, this._downY < this._lastY ? this._downY : this._lastY) : [0, 0];
         return (
-            <div ref={this.createDropTarget} onDrop={this.onDrop.bind(this)}>
+            <div ref={this.CreateDropTarget} onDrop={this.onDrop.bind(this)}>
                 <div className="collectionTimelineView" ref={this.screenref} style={{ overflow: "hidden", width: "100%", height: this.props.PanelHeight() }} onWheel={(e: React.WheelEvent) => e.stopPropagation()}>
 
                     {/*Marquee*/}

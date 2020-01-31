@@ -1,6 +1,6 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import {
-    faArrowDown, faArrowUp, faBolt, faCaretUp, faCat, faCheck, faChevronRight, faClone, faCloudUploadAlt, faCommentAlt, faCut, faEllipsisV, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faLongArrowAltRight,
+    faArrowDown, faBullseye, faFilter, faArrowUp, faBolt, faCaretUp, faCat, faCheck, faChevronRight, faClone, faCloudUploadAlt, faCommentAlt, faCut, faEllipsisV, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faLongArrowAltRight,
     faMusic, faObjectGroup, faPause, faMousePointer, faPenNib, faFileAudio, faPen, faEraser, faPlay, faPortrait, faRedoAlt, faThumbtack, faTree, faTv, faUndoAlt, faHighlighter, faMicrophone, faCompressArrowsAlt, faPhone, faStamp, faClipboard
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -131,6 +131,8 @@ export class MainView extends React.Component {
         library.add(faLongArrowAltRight);
         library.add(faCheck);
         library.add(faCaretUp);
+        library.add(faFilter);
+        library.add(faBullseye);
         library.add(faArrowDown);
         library.add(faArrowUp);
         library.add(faCloudUploadAlt);
@@ -176,9 +178,9 @@ export class MainView extends React.Component {
         } else {
             if (received && this._urlState.sharing) {
                 reaction(() => CollectionDockingView.Instance && CollectionDockingView.Instance.initialized,
-                    initialized => initialized && received && DocServer.GetRefField(received).then(field => {
-                        if (field instanceof Doc && field.viewType !== CollectionViewType.Docking) {
-                            CollectionDockingView.AddRightSplit(field, undefined);
+                    initialized => initialized && received && DocServer.GetRefField(received).then(docField => {
+                        if (docField instanceof Doc && docField._viewType !== CollectionViewType.Docking) {
+                            CollectionDockingView.AddRightSplit(docField, undefined);
                         }
                     }),
                 );
@@ -199,8 +201,8 @@ export class MainView extends React.Component {
         const freeformOptions: DocumentOptions = {
             x: 0,
             y: 400,
-            width: this._panelWidth * .7,
-            height: this._panelHeight,
+            _width: this._panelWidth * .7,
+            _height: this._panelHeight,
             title: "Collection " + workspaceCount,
             backgroundColor: "white"
         };

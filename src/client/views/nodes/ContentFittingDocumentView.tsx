@@ -25,7 +25,6 @@ interface ContentFittingDocumentViewProps {
     PanelWidth: () => number;
     PanelHeight: () => number;
     focus?: (doc: Doc) => void;
-    showOverlays?: (doc: Doc) => { title?: string, caption?: string };
     CollectionView?: CollectionView;
     CollectionDoc?: Doc;
     onClick?: ScriptField;
@@ -44,8 +43,8 @@ interface ContentFittingDocumentViewProps {
 export class ContentFittingDocumentView extends React.Component<ContentFittingDocumentViewProps>{
     public get displayName() { return "DocumentView(" + this.props.Document?.title + ")"; } // this makes mobx trace() statements more descriptive
     private get layoutDoc() { return this.props.Document && Doc.Layout(this.props.Document); }
-    private get nativeWidth() { return NumCast(this.layoutDoc?.nativeWidth, this.props.PanelWidth()); }
-    private get nativeHeight() { return NumCast(this.layoutDoc?.nativeHeight, this.props.PanelHeight()); }
+    private get nativeWidth() { return NumCast(this.layoutDoc?._nativeWidth, this.props.PanelWidth()); }
+    private get nativeHeight() { return NumCast(this.layoutDoc?._nativeHeight, this.props.PanelHeight()); }
     private contentScaling = () => {
         const wscale = this.props.PanelWidth() / (this.nativeWidth || this.props.PanelWidth() || 1);
         if (wscale * this.nativeHeight > this.props.PanelHeight()) {
@@ -62,16 +61,16 @@ export class ContentFittingDocumentView extends React.Component<ContentFittingDo
             this.props.childDocs && this.props.childDocs.map(otherdoc => {
                 const target = Doc.GetProto(otherdoc);
                 target.layout = ComputedField.MakeFunction("this.image_data[0]");
-                target.layoutCustom = Doc.MakeDelegate(docDragData.draggedDocuments[0]);
+                target.layout_custom = Doc.MakeDelegate(docDragData.draggedDocuments[0]);
             });
             e.stopPropagation();
         }
         return true;
     }
-    private PanelWidth = () => this.nativeWidth && (!this.props.Document || !this.props.Document.fitWidth) ? this.nativeWidth * this.contentScaling() : this.props.PanelWidth();
-    private PanelHeight = () => this.nativeHeight && (!this.props.Document || !this.props.Document.fitWidth) ? this.nativeHeight * this.contentScaling() : this.props.PanelHeight();
+    private PanelWidth = () => this.nativeWidth && (!this.props.Document || !this.props.Document._fitWidth) ? this.nativeWidth * this.contentScaling() : this.props.PanelWidth();
+    private PanelHeight = () => this.nativeHeight && (!this.props.Document || !this.props.Document._fitWidth) ? this.nativeHeight * this.contentScaling() : this.props.PanelHeight();
     private getTransform = () => this.props.getTransform().translate(-this.centeringOffset, -this.centeringYOffset).scale(1 / this.contentScaling());
-    private get centeringOffset() { return this.nativeWidth && (!this.props.Document || !this.props.Document.fitWidth) ? (this.props.PanelWidth() - this.nativeWidth * this.contentScaling()) / 2 : 0; }
+    private get centeringOffset() { return this.nativeWidth && (!this.props.Document || !this.props.Document._fitWidth) ? (this.props.PanelWidth() - this.nativeWidth * this.contentScaling()) / 2 : 0; }
     private get centeringYOffset() { return Math.abs(this.centeringOffset) < 0.001 ? (this.props.PanelHeight() - this.nativeHeight * this.contentScaling()) / 2 : 0; }
 
     @computed get borderRounding() { return StrCast(this.props.Document?.borderRounding); }
@@ -96,7 +95,6 @@ export class ContentFittingDocumentView extends React.Component<ContentFittingDo
                         LibraryPath={this.props.LibraryPath}
                         fitToBox={this.props.fitToBox}
                         onClick={this.props.onClick}
-                        showOverlays={this.props.showOverlays}
                         addDocument={this.props.addDocument}
                         removeDocument={this.props.removeDocument}
                         moveDocument={this.props.moveDocument}

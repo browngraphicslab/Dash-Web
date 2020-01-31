@@ -217,16 +217,16 @@ export class SearchBox extends React.Component {
             doc.x = x;
             doc.y = y;
             const size = 200;
-            const aspect = NumCast(doc.nativeHeight) / NumCast(doc.nativeWidth, 1);
+            const aspect = NumCast(doc._nativeHeight) / NumCast(doc._nativeWidth, 1);
             if (aspect > 1) {
-                doc.height = size;
-                doc.width = size / aspect;
+                doc._height = size;
+                doc._width = size / aspect;
             } else if (aspect > 0) {
-                doc.width = size;
-                doc.height = size * aspect;
+                doc._width = size;
+                doc._height = size * aspect;
             } else {
-                doc.width = size;
-                doc.height = size;
+                doc._width = size;
+                doc._height = size;
             }
             x += 250;
             if (x > 1000) {
@@ -234,7 +234,7 @@ export class SearchBox extends React.Component {
                 y += 300;
             }
         }
-        return Docs.Create.TreeDocument(docs, { width: 200, height: 400, backgroundColor: "grey", title: `Search Docs: "${this._searchString}"` });
+        return Docs.Create.TreeDocument(docs, { _width: 200, _height: 400, backgroundColor: "grey", title: `Search Docs: "${this._searchString}"` });
     }
 
     @action.bound

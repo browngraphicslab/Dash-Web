@@ -60,7 +60,7 @@
             "request": "attach",
             "name": "Typescript Server",
             "protocol": "inspector",
-            "port": 9230,
+            "port": 9229,
             "localRoot": "${workspaceFolder}",
             "remoteRoot": "${workspaceFolder}"
         },

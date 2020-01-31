@@ -136,7 +136,7 @@ export namespace GooglePhotos {
                 document.contentSize = upload.contentSize;
                 return document;
             });
-            const options = { width: 500, height: 500 };
+            const options = { _width: 500, _height: 500 };
             return constructor(children, options);
         };
 
@@ -340,7 +340,7 @@ export namespace GooglePhotos {
                 const url = data.url.href;
                 const target = Doc.MakeAlias(source);
                 const description = parseDescription(target, descriptionKey);
-                await DocumentView.makeCustomViewClicked(target, undefined);
+                await DocumentView.makeCustomViewClicked(target, undefined, Docs.Create.FreeformDocument);
                 media.push({ url, description });
             }
             if (media.length) {

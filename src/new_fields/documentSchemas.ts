@@ -4,20 +4,22 @@ import { Doc } from "./Doc";
 import { DateField } from "./DateField";
 
 export const documentSchema = createSchema({
-    layout: "string",           // this is the native layout string for the document.  templates can be added using other fields and setting layoutKey below (see layoutCustom as an example)
+    layout: "string",           // this is the native layout string for the document.  templates can be added using other fields and setting layoutKey below (see layout_custom as an example)
     layoutKey: "string",        // holds the field key for the field that actually holds the current lyoat
-    layoutCustom: Doc,          // used to hold a custom layout (there's nothing special about this field .. any field could hold a custom layout that can be selected by setting 'layoutKey')
+    layout_custom: Doc,         // used to hold a custom layout (there's nothing special about this field .. any field could hold a custom layout that can be selected by setting 'layoutKey')
     title: "string",            // document title (can be on either data document or layout)
-    nativeWidth: "number",      // native width of document which determines how much document contents are scaled when the document's width is set
-    nativeHeight: "number",     // "
-    width: "number",            // width of document in its container's coordinate system
-    height: "number",           // "
+    _dropAction: "string",       // override specifying what should happen when this document is dropped (can be "alias" or "copy")
+    _nativeWidth: "number",      // native width of document which determines how much document contents are scaled when the document's width is set
+    _nativeHeight: "number",     // "
+    _width: "number",            // width of document in its container's coordinate system
+    _height: "number",           // "
+    _freeformLayoutEngine: "string",// the string ID for the layout engine to use to layout freeform view documents
+    _LODdisable: "boolean",      // whether to disbale LOD switching for CollectionFreeFormViews
     color: "string",            // foreground color of document
     backgroundColor: "string",  // background color of document
     opacity: "number",          // opacity of document
     creationDate: DateField,     // when the document was created
     links: listSpec(Doc),       // computed (readonly) list of links associated with this document
-    dropAction: "string",       // override specifying what should happen when this document is dropped (can be "alias" or "copy")
     removeDropProperties: listSpec("string"), // properties that should be removed from the alias/copy/etc of this document when it is dropped
     onClick: ScriptField,       // script to run when document is clicked (can be overriden by an onClick prop)
     onPointerDown: ScriptField,       // script to run when document is clicked (can be overriden by an onClick prop)
@@ -56,7 +58,6 @@ export const documentSchema = createSchema({
     xPadding: "number",         // pixels of padding on left/right of collectionfreeformview contents when fitToBox is set
     yPadding: "number",         // pixels of padding on left/right of collectionfreeformview contents when fitToBox is set
     LODarea: "number",          // area (width*height) where CollectionFreeFormViews switch from a label to rendering contents
-    LODdisable: "boolean",      // whether to disbale LOD switching for CollectionFreeFormViews
     letterSpacing: "string",
     textTransform: "string"
 });

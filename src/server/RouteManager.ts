@@ -180,7 +180,7 @@ export const STATUS = {
 };
 
 export function _error(res: Response, message: string, error?: any) {
-    console.error(message);
+    console.error(message, error);
     res.statusMessage = message;
     res.status(STATUS.EXECUTION_ERROR).send(error);
 }

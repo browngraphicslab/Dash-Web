@@ -59,7 +59,7 @@ export function computePivotLayout(poolData: ObservableMap<string, any>, pivotDo
     let numCols = NumCast(pivotDoc.pivotNumColumns, Math.ceil(Math.sqrt(minSize)));
     const docMap = new Map<Doc, ViewDefBounds>();
     const groupNames: PivotData[] = [];
-    numCols = Math.min(panelDim[0] / pivotAxisWidth, numCols)
+    numCols = Math.min(panelDim[0] / pivotAxisWidth, numCols);
 
     const expander = 1.05;
     const gap = .15;
@@ -79,10 +79,10 @@ export function computePivotLayout(poolData: ObservableMap<string, any>, pivotDo
         for (const doc of val) {
             const layoutDoc = Doc.Layout(doc);
             let wid = pivotAxisWidth;
-            let hgt = layoutDoc.nativeWidth ? (NumCast(layoutDoc.nativeHeight) / NumCast(layoutDoc.nativeWidth)) * pivotAxisWidth : pivotAxisWidth;
+            let hgt = layoutDoc._nativeWidth ? (NumCast(layoutDoc._nativeHeight) / NumCast(layoutDoc._nativeWidth)) * pivotAxisWidth : pivotAxisWidth;
             if (hgt > pivotAxisWidth) {
                 hgt = pivotAxisWidth;
-                wid = layoutDoc.nativeHeight ? (NumCast(layoutDoc.nativeWidth) / NumCast(layoutDoc.nativeHeight)) * pivotAxisWidth : pivotAxisWidth;
+                wid = layoutDoc._nativeHeight ? (NumCast(layoutDoc._nativeWidth) / NumCast(layoutDoc._nativeHeight)) * pivotAxisWidth : pivotAxisWidth;
             }
             docMap.set(doc, {
                 x: x + xCount * pivotAxisWidth * expander + (pivotAxisWidth - wid) / 2 + (val.length < numCols ? (numCols - val.length) * pivotAxisWidth / 2 : 0),
@@ -104,8 +104,8 @@ export function computePivotLayout(poolData: ObservableMap<string, any>, pivotDo
             x: NumCast(pair.layout.x),
             y: NumCast(pair.layout.y),
             z: NumCast(pair.layout.z),
-            width: NumCast(pair.layout.width),
-            height: NumCast(pair.layout.height)
+            width: NumCast(pair.layout._width),
+            height: NumCast(pair.layout._height)
         };
         const pos = docMap.get(pair.layout) || defaultPosition;
         const data = poolData.get(pair.layout[Id]);

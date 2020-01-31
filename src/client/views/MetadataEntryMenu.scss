@@ -8,6 +8,10 @@
     }
 }
 
+#metadataEntry-outer {
+    overflow: auto !important;
+}
+
 .metadataEntry-keys {
     max-height: 80;
     overflow-y: auto; 
