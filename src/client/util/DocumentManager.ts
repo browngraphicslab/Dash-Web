@@ -140,7 +140,7 @@ export class DocumentManager {
             if (first) annotatedDoc = first.props.Document;
         }
         if (docView) {  // we have a docView already and aren't forced to create a new one ... just focus on the document.  TODO move into view if necessary otherwise just highlight?
-            docView.props.focus(docView.props.Document, false);
+            docView.props.focus(docView.props.Document, willZoom);
             highlight();
         } else {
             const contextDocs = docContext ? await DocListCastAsync(docContext.data) : undefined;
