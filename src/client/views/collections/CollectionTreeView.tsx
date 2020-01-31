@@ -634,7 +634,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
                     DocListCast(d.data).map((img, i) => {
                         const caption = (d.captions as any)[i]?.data;
                         if (caption instanceof ObjectField) {
-                            Doc.GetProto(img).caption = ObjectField.MakeCopy(caption as ObjectField);
+                            Doc.GetProto(img).caption = ObjectField.MakeCopy(caption);
                         }
                         img._hideSidebar = true;
                         d.captions = undefined;
