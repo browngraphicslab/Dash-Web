@@ -74,7 +74,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
     }
     _canClick = false;
     _facetWidthOnDown = 0;
-    @observable _facetWidth = 200;
+    @observable _facetWidth = 0;
     onPointerDown = (e: React.PointerEvent) => {
         this._canClick = true;
         this._facetWidthOnDown = e.screenX;

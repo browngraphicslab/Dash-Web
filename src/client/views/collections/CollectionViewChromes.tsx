@@ -417,11 +417,12 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="4">Tree</option>
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="5">Stacking</option>
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="6">Masonry</option>
-                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="7">Multicolumn</option>
-                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="8">Pivot</option>
-                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="9">Time</option>
-                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="10">Carousel</option>
-                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="11">Linear</option>
+                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="7">MultiCol</option>
+                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="8">MultiRow</option>
+                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="9">Pivot</option>
+                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="10">Time</option>
+                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="11">Carousel</option>
+                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="12">Linear</option>
                         </select>
                         <div className="collectionViewBaseChrome-viewSpecs" title="filter documents to show" style={{ display: collapsed ? "none" : "grid" }}>
                             <div className="collectionViewBaseChrome-filterIcon" onPointerDown={this.openViewSpecs} >

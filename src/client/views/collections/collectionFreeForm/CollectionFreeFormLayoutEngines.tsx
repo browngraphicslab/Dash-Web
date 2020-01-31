@@ -10,7 +10,6 @@ import { ObservableMap, runInAction } from "mobx";
 import { Id, ToString } from "../../../../new_fields/FieldSymbols";
 import { ObjectField } from "../../../../new_fields/ObjectField";
 import { RefField } from "../../../../new_fields/RefField";
-import { createPromiseCapability } from "../../../../../deploy/assets/pdf.worker";
 
 interface PivotData {
     type: string;
@@ -142,8 +141,11 @@ export function computeTimelineLayout(
     poolData: ObservableMap<string, any>,
     pivotDoc: Doc,
     childDocs: Doc[],
-    childPairs: { layout: Doc, data?: Doc }[], panelDim: number[], viewDefsToJSX: (views: any) => ViewDefResult[]
+    childPairs: { layout: Doc, data?: Doc }[],
+    panelDim: number[],
+    viewDefsToJSX: (views: any) => ViewDefResult[]
 ) {
+    const fieldKey = "data";
     const pivotAxisWidth = NumCast(pivotDoc.pivotWidth, 200);
     const pivotDateGroups = new Map<number, Doc[]>();
 
@@ -159,6 +161,9 @@ export function computeTimelineLayout(
         minTime = Math.min(num, minTime);
         maxTime = Math.max(num, maxTime);
     }
+    minTime = NumCast(pivotDoc[fieldKey + "-timelineMin"], minTime);
+    maxTime = NumCast(pivotDoc[fieldKey + "-timelineMax"], maxTime);
+    const curTime = Cast(pivotDoc[fieldKey + "-timelineCur"], "number", null);
 
     const docMap = new Map<Doc, ViewDefBounds>();
     const groupNames: PivotData[] = [];

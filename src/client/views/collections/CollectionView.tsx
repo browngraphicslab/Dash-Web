@@ -37,6 +37,7 @@ import { CollectionTreeView } from "./CollectionTreeView";
 import './CollectionView.scss';
 import { CollectionViewBaseChrome } from './CollectionViewChromes';
 import { CollectionTimeView } from './CollectionTimeView';
+import { CollectionMultirowView } from './collectionMulticolumn/CollectionMultirowView';
 export const COLLECTION_BORDER_WIDTH = 2;
 const path = require('path');
 library.add(faTh, faTree, faSquare, faProjectDiagram, faSignature, faThList, faFingerprint, faColumns, faEllipsisV, faImage, faEye as any, faCopy);
@@ -50,6 +51,7 @@ export enum CollectionViewType {
     Stacking,
     Masonry,
     Multicolumn,
+    Multirow,
     Pivot,
     Time,
     Carousel,
@@ -68,6 +70,7 @@ export namespace CollectionViewType {
         ["stacking", CollectionViewType.Stacking],
         ["masonry", CollectionViewType.Masonry],
         ["multicolumn", CollectionViewType.Multicolumn],
+        ["multirow", CollectionViewType.Multirow],
         ["pivot", CollectionViewType.Pivot],
         ["time", CollectionViewType.Time],
         ["carousel", CollectionViewType.Carousel],
@@ -183,6 +186,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
             case CollectionViewType.Tree: return (<CollectionTreeView key="collview" {...props} />);
             case CollectionViewType.Staff: return (<CollectionStaffView chromeCollapsed={true} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} />);
             case CollectionViewType.Multicolumn: return (<CollectionMulticolumnView chromeCollapsed={true} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} />);
+            case CollectionViewType.Multirow: return (<CollectionMultirowView chromeCollapsed={true} key="rpwview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} />);
             case CollectionViewType.Linear: { return (<CollectionLinearView key="collview" {...props} />); }
             case CollectionViewType.Carousel: { return (<CollectionCarouselView key="collview" {...props} />); }
             case CollectionViewType.Stacking: { this.props.Document.singleColumn = true; return (<CollectionStackingView key="collview" {...props} />); }
@@ -227,6 +231,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
             });
             subItems.push({ description: "Staff", event: () => this.props.Document._viewType = CollectionViewType.Staff, icon: "music" });
             subItems.push({ description: "Multicolumn", event: () => this.props.Document._viewType = CollectionViewType.Multicolumn, icon: "columns" });
+            subItems.push({ description: "Multirow", event: () => this.props.Document._viewType = CollectionViewType.Multirow, icon: "columns" });
             subItems.push({ description: "Masonry", event: () => this.props.Document._viewType = CollectionViewType.Masonry, icon: "columns" });
             subItems.push({ description: "Carousel", event: () => this.props.Document._viewType = CollectionViewType.Carousel, icon: "columns" });
             subItems.push({ description: "Pivot", event: () => this.props.Document._viewType = CollectionViewType.Pivot, icon: "columns" });
