@@ -16,6 +16,10 @@ import "./CollectionPivotView.scss";
 import { CollectionSubView } from "./CollectionSubView";
 import { CollectionTreeView } from "./CollectionTreeView";
 import React = require("react");
+import { ContextMenu } from "../ContextMenu";
+import { ContextMenuProps } from "../ContextMenuItem";
+import { RichTextField } from "../../../new_fields/RichTextField";
+import { ImageField } from "../../../new_fields/URLField";
 
 @observer
 export class CollectionPivotView extends CollectionSubView(doc => doc) {
@@ -36,7 +40,7 @@ export class CollectionPivotView extends CollectionSubView(doc => doc) {
         }
     }
     bodyPanelWidth = () => this.props.PanelWidth() - this._facetWidth;
-    getTransform = () => this.props.ScreenToLocalTransform().translate(-200, 0);
+    getTransform = () => this.props.ScreenToLocalTransform().translate(-this._facetWidth, 0);
 
     @computed get _allFacets() {
         const facets = new Set<string>();
@@ -98,6 +102,25 @@ export class CollectionPivotView extends CollectionSubView(doc => doc) {
         document.removeEventListener("pointerup", this.onPointerUp);
     }
 
+    menuCallback = (x: number, y: number) => {
+        ContextMenu.Instance.clearItems();
+        const docItems: ContextMenuProps[] = [];
+        const keySet: Set<string> = new Set();
+
+        this.childLayoutPairs.map(pair =>
+            Array.from(Object.keys(Doc.GetProto(pair.layout))).filter(fieldKey => pair.layout[fieldKey] instanceof RichTextField || typeof (pair.layout[fieldKey]) === "string").map(fieldKey =>
+                keySet.add(fieldKey)));
+        keySet.toArray().map(fieldKey =>
+            docItems.push({ description: ":" + fieldKey, event: () => this.props.Document.pivotField = fieldKey, icon: "compress-arrows-alt" }));
+        docItems.push({ description: ":(null)", event: () => this.props.Document.pivotField = undefined, icon: "compress-arrows-alt" })
+        ContextMenu.Instance.addItem({ description: "Pivot Fields ...", subitems: docItems, icon: "eye" });
+        const pt = this.props.ScreenToLocalTransform().inverse().transformPoint(x, y);
+        ContextMenu.Instance.displayMenu(x, y, ":");
+    }
+
+    @observable private collapsed: boolean = false;
+    private toggleVisibility = action(() => this.collapsed = !this.collapsed);
+
     render() {
         const facetCollection = Cast(this.props.Document?._facetCollection, Doc, null);
         const flyout = (
@@ -109,20 +132,24 @@ export class CollectionPivotView extends CollectionSubView(doc => doc) {
                 </label>)}
             </div>
         );
+        const newEditableViewProps = {
+            GetValue: () => "",
+            SetValue: (value: any) => {
+                if (value?.length) {
+                    this.props.Document.pivotField = value;
+                    return true;
+                }
+                return false;
+            },
+            showMenuOnLoad: true,
+            contents: ":" + StrCast(this.props.Document.pivotField),
+            toggle: this.toggleVisibility,
+            color: "#f1efeb" // this.props.headingObject ? this.props.headingObject.color : "#f1efeb";
+        };
         return !facetCollection ? (null) :
             <div className="collectionPivotView" style={{ height: `calc(100%  - ${this.props.Document._chromeStatus === "enabled" ? 51 : 0}px)` }}>
                 <div className={"pivotKeyEntry"}>
-                    <EditableView
-                        contents={this.props.Document.pivotField}
-                        GetValue={() => StrCast(this.props.Document.pivotField)}
-                        SetValue={value => {
-                            if (value && value.length) {
-                                this.props.Document.pivotField = value;
-                                return true;
-                            }
-                            return false;
-                        }}
-                    />
+                    <EditableView {...newEditableViewProps} menuCallback={this.menuCallback} />
                 </div>
                 <div className="collectionPivotView-dragger" key="dragger" onPointerDown={this.onPointerDown} style={{ transform: `translate(${this._facetWidth}px, 0px)` }} >
                     <span title="library View Dragger" style={{ width: "5px", position: "absolute", top: "0" }} />

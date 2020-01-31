@@ -790,7 +790,6 @@ export class DashDocView {
     }
     doRender(dashDoc: Doc, removeDoc: any, node: any, view: any, getPos: any) {
         this._dashDoc = dashDoc;
-        dashDoc._hideSidebar = true;
         if (node.attrs.width !== dashDoc._width + "px" || node.attrs.height !== dashDoc._height + "px") {
             try { // bcz: an exception will be thrown if two aliases are open at the same time when a doc view comment is made
                 view.dispatch(view.state.tr.setNodeMarkup(getPos(), null, { ...node.attrs, width: dashDoc._width + "px", height: dashDoc._height + "px" }));

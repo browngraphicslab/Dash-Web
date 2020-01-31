@@ -75,7 +75,7 @@ export interface DocumentOptions {
     _yMargin?: number; // gap between top edge of dcoument and start of masonry/stacking layouts
     _textTemplate?: RichTextField; // template used by a formattedTextBox to create a text box to render
     _itemIndex?: number; // which item index the carousel viewer is showing
-    _hideSidebar?: boolean;  //whether an annotationsidebar should be displayed for text docuemnts
+    _showSidebar?: boolean;  //whether an annotationsidebar should be displayed for text docuemnts
     x?: number;
     y?: number;
     z?: number;
@@ -340,7 +340,7 @@ export namespace Docs {
     export namespace Create {
 
         const delegateKeys = ["x", "y", "layoutKey", "_width", "_height", "_panX", "_panY", "_viewType", "_nativeWidth", "_nativeHeight", "_dropAction", "_annotationOn",
-            "_chromeStatus", "_forceActive", "_autoHeight", "_fitWidth", "_LODdisable", "_itemIndex", "_hideSidebar"];
+            "_chromeStatus", "_forceActive", "_autoHeight", "_fitWidth", "_LODdisable", "_itemIndex", "_showSidebar"];
 
         /**
          * This function receives the relevant document prototype and uses
