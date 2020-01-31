@@ -71,6 +71,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
             case CollectionViewType.Masonry: return this._stacking_commands;
             case CollectionViewType.Freeform: return this._freeform_commands;
             case CollectionViewType.Pivot: return this._freeform_commands;
+            case CollectionViewType.Time: return this._freeform_commands;
             case CollectionViewType.Carousel: return this._freeform_commands;
         }
         return [];
@@ -418,8 +419,9 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="6">Masonry</option>
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="7">Multicolumn</option>
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="8">Pivot</option>
-                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="9">Carousel</option>
-                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="10">Linear</option>
+                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="9">Time</option>
+                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="10">Carousel</option>
+                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="11">Linear</option>
                         </select>
                         <div className="collectionViewBaseChrome-viewSpecs" title="filter documents to show" style={{ display: collapsed ? "none" : "grid" }}>
                             <div className="collectionViewBaseChrome-filterIcon" onPointerDown={this.openViewSpecs} >

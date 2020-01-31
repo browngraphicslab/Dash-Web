@@ -32,7 +32,7 @@ import { FormattedTextBox } from "../../nodes/FormattedTextBox";
 import { pageSchema } from "../../nodes/ImageBox";
 import PDFMenu from "../../pdf/PDFMenu";
 import { CollectionSubView } from "../CollectionSubView";
-import { computePivotLayout, ViewDefResult } from "./CollectionFreeFormLayoutEngines";
+import { computePivotLayout, ViewDefResult, computeTimelineLayout } from "./CollectionFreeFormLayoutEngines";
 import { CollectionFreeFormRemoteCursors } from "./CollectionFreeFormRemoteCursors";
 import "./CollectionFreeFormView.scss";
 import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
@@ -41,7 +41,6 @@ import React = require("react");
 import { computedFn } from "mobx-utils";
 import { TraceMobx } from "../../../../new_fields/util";
 import { GestureUtils } from "../../../../pen-gestures/GestureUtils";
-import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
@@ -765,6 +764,20 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     </div>,
                     bounds: { x: x!, y: y!, z: z, width: width!, height: height }
                 };
+        } else if (viewDef.type === "div") {
+            const x = Cast(viewDef.x, "number");
+            const y = Cast(viewDef.y, "number");
+            const z = Cast(viewDef.z, "number");
+            const backgroundColor = Cast(viewDef.color, "string");
+            const width = Cast(viewDef.width, "number");
+            const height = Cast(viewDef.height, "number");
+            const fontSize = Cast(viewDef.fontSize, "number");
+            return [x, y, width].some(val => val === undefined) ? undefined :
+                {
+                    ele: <div className="collectionFreeform-customDiv" key={"div" + x + y + z} style={{ width, height, fontSize, backgroundColor, transform: `translate(${x}px, ${y}px)` }}>
+                    </div>,
+                    bounds: { x: x!, y: y!, z: z, width: width!, height: height }
+                };
         }
     }
 
@@ -774,6 +787,11 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         }
         return this._layoutPoolData.get(doc[Id]);
     }.bind(this));
+
+    doTimelineLayout(poolData: ObservableMap<string, any>) {
+        return computeTimelineLayout(poolData, this.props.Document, this.childDocs,
+            this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)), [this.props.PanelWidth(), this.props.PanelHeight()], this.viewDefsToJSX);
+    }
 
     doPivotLayout(poolData: ObservableMap<string, any>) {
         return computePivotLayout(poolData, this.props.Document, this.childDocs,
@@ -800,6 +818,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     get doLayoutComputation() {
         let computedElementData: { elements: ViewDefResult[] };
         switch (this.Document._freeformLayoutEngine) {
+            case "timeline": computedElementData = this.doTimelineLayout(this._layoutPoolData); break;
             case "pivot": computedElementData = this.doPivotLayout(this._layoutPoolData); break;
             default: computedElementData = this.doFreeformLayout(this._layoutPoolData); break;
         }
@@ -808,7 +827,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 ele: <CollectionFreeFormDocumentView key={pair.layout[Id]}  {...this.getChildDocumentViewProps(pair.layout, pair.data)}
                     dataProvider={this.childDataProvider}
                     jitterRotation={NumCast(this.props.Document.jitterRotation)}
-                    fitToBox={this.props.fitToBox || this.Document._freeformLayoutEngine === "pivot"} />,
+                    fitToBox={this.props.fitToBox || this.Document._freeformLayoutEngine === "pivot" || this.Document._freeformLayoutEngine === "timeline"} />,
                 bounds: this.childDataProvider(pair.layout)
             }));
 

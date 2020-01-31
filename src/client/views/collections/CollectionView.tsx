@@ -36,6 +36,7 @@ import { CollectionStaffView } from './CollectionStaffView';
 import { CollectionTreeView } from "./CollectionTreeView";
 import './CollectionView.scss';
 import { CollectionViewBaseChrome } from './CollectionViewChromes';
+import { CollectionTimeView } from './CollectionTimeView';
 export const COLLECTION_BORDER_WIDTH = 2;
 const path = require('path');
 library.add(faTh, faTree, faSquare, faProjectDiagram, faSignature, faThList, faFingerprint, faColumns, faEllipsisV, faImage, faEye as any, faCopy);
@@ -50,6 +51,7 @@ export enum CollectionViewType {
     Masonry,
     Multicolumn,
     Pivot,
+    Time,
     Carousel,
     Linear,
     Staff,
@@ -67,6 +69,7 @@ export namespace CollectionViewType {
         ["masonry", CollectionViewType.Masonry],
         ["multicolumn", CollectionViewType.Multicolumn],
         ["pivot", CollectionViewType.Pivot],
+        ["time", CollectionViewType.Time],
         ["carousel", CollectionViewType.Carousel],
         ["linear", CollectionViewType.Linear],
     ]);
@@ -185,6 +188,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
             case CollectionViewType.Stacking: { this.props.Document.singleColumn = true; return (<CollectionStackingView key="collview" {...props} />); }
             case CollectionViewType.Masonry: { this.props.Document.singleColumn = false; return (<CollectionStackingView key="collview" {...props} />); }
             case CollectionViewType.Pivot: { return (<CollectionPivotView key="collview" {...props} />); }
+            case CollectionViewType.Time: { return (<CollectionTimeView key="collview" {...props} />); }
             case CollectionViewType.Freeform:
             default: { this.props.Document._freeformLayoutEngine = undefined; return (<CollectionFreeFormView key="collview" {...props} />); }
         }
@@ -226,6 +230,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
             subItems.push({ description: "Masonry", event: () => this.props.Document._viewType = CollectionViewType.Masonry, icon: "columns" });
             subItems.push({ description: "Carousel", event: () => this.props.Document._viewType = CollectionViewType.Carousel, icon: "columns" });
             subItems.push({ description: "Pivot", event: () => this.props.Document._viewType = CollectionViewType.Pivot, icon: "columns" });
+            subItems.push({ description: "Time", event: () => this.props.Document._viewType = CollectionViewType.Time, icon: "columns" });
             switch (this.props.Document._viewType) {
                 case CollectionViewType.Freeform: {
                     subItems.push({ description: "Custom", icon: "fingerprint", event: AddCustomFreeFormLayout(this.props.Document, this.props.fieldKey) });

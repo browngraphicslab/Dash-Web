@@ -12,7 +12,7 @@ import { Docs } from "../../documents/Documents";
 import { EditableView } from "../EditableView";
 import { anchorPoints, Flyout } from "../TemplateMenu";
 import { CollectionFreeFormView } from "./collectionFreeForm/CollectionFreeFormView";
-import "./CollectionPivotView.scss";
+import "./CollectionTimeView.scss";
 import { CollectionSubView } from "./CollectionSubView";
 import { CollectionTreeView } from "./CollectionTreeView";
 import React = require("react");
@@ -21,9 +21,9 @@ import { ContextMenuProps } from "../ContextMenuItem";
 import { RichTextField } from "../../../new_fields/RichTextField";
 
 @observer
-export class CollectionPivotView extends CollectionSubView(doc => doc) {
+export class CollectionTimeView extends CollectionSubView(doc => doc) {
     componentDidMount() {
-        this.props.Document._freeformLayoutEngine = "pivot";
+        this.props.Document._freeformLayoutEngine = "timeline";
         const childDetailed = this.props.Document.childDetailed; // bcz: needs to be here to make sure the childDetailed layout template has been loaded when the first item is clicked;
         if (!this.props.Document._facetCollection) {
             const facetCollection = Docs.Create.TreeDocument([], { title: "facetFilters", _yMargin: 0, treeViewHideTitle: true });
@@ -123,8 +123,8 @@ export class CollectionPivotView extends CollectionSubView(doc => doc) {
     render() {
         const facetCollection = Cast(this.props.Document?._facetCollection, Doc, null);
         const flyout = (
-            <div className="collectionPivotView-flyout" style={{ width: `${this._facetWidth}` }}>
-                {this._allFacets.map(facet => <label className="collectionPivotView-flyout-item" key={`${facet}`} onClick={e => this.facetClick(facet)}>
+            <div className="collectionTimeView-flyout" style={{ width: `${this._facetWidth}` }}>
+                {this._allFacets.map(facet => <label className="collectionTimeView-flyout-item" key={`${facet}`} onClick={e => this.facetClick(facet)}>
                     <input type="checkbox" onChange={e => { }} checked={DocListCast((this.props.Document._facetCollection as Doc)?.data).some(d => d.title === facet)} />
                     <span className="checkmark" />
                     {facet}
@@ -146,27 +146,27 @@ export class CollectionPivotView extends CollectionSubView(doc => doc) {
             color: "#f1efeb" // this.props.headingObject ? this.props.headingObject.color : "#f1efeb";
         };
         return !facetCollection ? (null) :
-            <div className="collectionPivotView" style={{ height: `calc(100%  - ${this.props.Document._chromeStatus === "enabled" ? 51 : 0}px)` }}>
+            <div className="collectionTimeView" style={{ height: `calc(100%  - ${this.props.Document._chromeStatus === "enabled" ? 51 : 0}px)` }}>
                 <div className={"pivotKeyEntry"}>
                     <EditableView {...newEditableViewProps} menuCallback={this.menuCallback} />
                 </div>
-                <div className="collectionPivotView-dragger" key="dragger" onPointerDown={this.onPointerDown} style={{ transform: `translate(${this._facetWidth}px, 0px)` }} >
+                <div className="collectionTimeView-dragger" key="dragger" onPointerDown={this.onPointerDown} style={{ transform: `translate(${this._facetWidth}px, 0px)` }} >
                     <span title="library View Dragger" style={{ width: "5px", position: "absolute", top: "0" }} />
                 </div>
-                <div className="collectionPivotView-treeView" style={{ width: `${this._facetWidth}px`, overflow: this._facetWidth < 15 ? "hidden" : undefined }}>
-                    <div className="collectionPivotView-addFacet" style={{ width: `${this._facetWidth}px` }} onPointerDown={e => e.stopPropagation()}>
+                <div className="collectionTimeView-treeView" style={{ width: `${this._facetWidth}px`, overflow: this._facetWidth < 15 ? "hidden" : undefined }}>
+                    <div className="collectionTimeView-addFacet" style={{ width: `${this._facetWidth}px` }} onPointerDown={e => e.stopPropagation()}>
                         <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={flyout}>
-                            <div className="collectionPivotView-button">
-                                <span className="collectionPivotView-span">Facet Filters</span>
+                            <div className="collectionTimeView-button">
+                                <span className="collectionTimeView-span">Facet Filters</span>
                                 <FontAwesomeIcon icon={faEdit} size={"lg"} />
                             </div>
                         </Flyout>
                     </div>
-                    <div className="collectionPivotView-tree" key="tree">
+                    <div className="collectionTimeView-tree" key="tree">
                         <CollectionTreeView {...this.props} Document={facetCollection} />
                     </div>
                 </div>
-                <div className="collectionPivotView-pivot" key="pivot" style={{ width: this.bodyPanelWidth() }}>
+                <div className="collectionTimeView-pivot" key="pivot" style={{ width: this.bodyPanelWidth() }}>
                     <CollectionFreeFormView  {...this.props} ScreenToLocalTransform={this.getTransform} PanelWidth={this.bodyPanelWidth} />
                 </div>
             </div>;
