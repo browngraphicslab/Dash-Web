@@ -1062,7 +1062,8 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     }
 
     @computed get sidebarWidthPercent() { return StrCast(this.props.Document.sidebarWidthPercent, "0%"); }
-    @computed get sidebarWidth() { return Number(this.sidebarWidthPercent.substring(0, this.sidebarWidthPercent.length - 1)) / 100 * this.props.PanelWidth(); }
+    sidebarWidth = () => { return Number(this.sidebarWidthPercent.substring(0, this.sidebarWidthPercent.length - 1)) / 100 * this.props.PanelWidth(); }
+    sidebarScreenToLocal = () => this.props.ScreenToLocalTransform().translate(-(this.props.PanelWidth() - this.sidebarWidth()), 0);
     @computed get sidebarColor() { return StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"], StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"], "transparent")); }
     render() {
         TraceMobx();
@@ -1107,7 +1108,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                         style={{ width: `${this.sidebarWidthPercent}`, backgroundColor: `${this.sidebarColor}` }}>
                         <CollectionFreeFormView {...this.props}
                             PanelHeight={this.props.PanelHeight}
-                            PanelWidth={() => this.sidebarWidth}
+                            PanelWidth={this.sidebarWidth}
                             annotationsKey={this.annotationKey}
                             isAnnotationOverlay={false}
                             focus={this.props.focus}
@@ -1118,9 +1119,9 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                             whenActiveChanged={this.whenActiveChanged}
                             removeDocument={this.removeDocument}
                             moveDocument={this.moveDocument}
-                            addDocument={(doc: Doc) => { doc._showSidebar = false; return this.addDocument(doc); }}
+                            addDocument={this.addDocument}
                             CollectionView={undefined}
-                            ScreenToLocalTransform={() => this.props.ScreenToLocalTransform().translate(-(this.props.PanelWidth() - this.sidebarWidth), 0)}
+                            ScreenToLocalTransform={this.sidebarScreenToLocal}
                             renderDepth={this.props.renderDepth + 1}
                             ContainingCollectionDoc={this.props.ContainingCollectionDoc}
                             chromeCollapsed={true}>
