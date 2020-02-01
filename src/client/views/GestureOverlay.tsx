@@ -20,6 +20,8 @@ import { DocumentView } from "./nodes/DocumentView";
 import { Transform } from "../util/Transform";
 import { DocumentContentsView } from "./nodes/DocumentContentsView";
 import { CognitiveServices } from "../cognitive_services/CognitiveServices";
+import { DocServer } from "../DocServer";
+import htmlToImage from "html-to-image";
 
 @observer
 export default class GestureOverlay extends Touchable {
@@ -218,13 +220,16 @@ export default class GestureOverlay extends Touchable {
             console.log("not hand");
         }
         this.pointerIdentifier = pointer?.identifier;
-        runInAction(() => this._pointerY = pointer?.clientY);
-        if (thumb.identifier === this.thumbIdentifier) {
-            this._thumbX = thumb.clientX;
-            this._thumbY = thumb.clientY;
-            this._hands.set(thumb.identifier, fingers);
-            return;
-        }
+        runInAction(() => {
+            this._pointerY = pointer?.clientY;
+            if (thumb.identifier === this.thumbIdentifier) {
+                this._thumbX = thumb.clientX;
+                this._thumbY = thumb.clientY;
+                this._hands.set(thumb.identifier, fingers);
+                return;
+            }
+        });
+
         this.thumbIdentifier = thumb?.identifier;
         this._hands.set(thumb.identifier, fingers);
         const others = fingers.filter(f => f !== thumb);
@@ -295,6 +300,10 @@ export default class GestureOverlay extends Touchable {
             this._palette = undefined;
             this.thumbIdentifier = undefined;
             this._thumbDoc = undefined;
+            this._strokes.forEach(s => {
+                this.dispatchGesture(GestureUtils.Gestures.Stroke, s);
+            });
+            this._strokes = [];
             document.removeEventListener("touchend", this.handleHandUp);
         }
     }
@@ -303,6 +312,11 @@ export default class GestureOverlay extends Touchable {
     onPointerDown = (e: React.PointerEvent) => {
         if (InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || (InkingControl.Instance.selectedTool === InkTool.Highlighter || InkingControl.Instance.selectedTool === InkTool.Pen)) {
             this._points.push({ X: e.clientX, Y: e.clientY });
+            const canvas = this._canvas.current;
+            const ctx = canvas?.getContext("2d");
+            if (canvas && ctx) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
             e.stopPropagation();
             e.preventDefault();
 
@@ -354,22 +368,79 @@ export default class GestureOverlay extends Touchable {
         return actionPerformed;
     }
 
+    draw = (points: InkData) => {
+        let ctx;
+        if (this._canvas.current && this._canvas.current.getContext("2d") && (ctx = this._canvas.current.getContext("2d"))) {
+            ctx.strokeStyle = this.Color;
+            ctx.lineWidth = this.Width;
+            ctx.moveTo(points[0].X, points[0].Y);
+            for (let i = 1; i < points.length; i++) {
+                ctx.lineTo(points[i].X, points[i].Y);
+            }
+            ctx.stroke();
+        }
+    }
+
     @action
-    onPointerUp = (e: PointerEvent) => {
+    onPointerUp = async (e: PointerEvent) => {
         if (this._points.length > 1) {
             const B = this.svgBounds;
             const points = this._points.map(p => ({ X: p.X - B.left, Y: p.Y - B.top }));
 
-            const xInGlass = points[0].X > (this._thumbX ?? Number.MAX_SAFE_INTEGER) && points[0].X < (this._thumbX ?? Number.MAX_SAFE_INTEGER) + this.height;
-            const yInGlass = points[0].Y > (this._thumbY ?? Number.MAX_SAFE_INTEGER) - this.height && points[0].Y < (this._thumbY ?? Number.MAX_SAFE_INTEGER);
+            const initialPoint = this._points[0];
+            const xInGlass = initialPoint.X > (this._thumbX ?? Number.MAX_SAFE_INTEGER) && initialPoint.X < (this._thumbX ?? Number.MAX_SAFE_INTEGER) + this.height;
+            const yInGlass = initialPoint.Y > (this._thumbY ?? Number.MAX_SAFE_INTEGER) - this.height && initialPoint.Y < (this._thumbY ?? Number.MAX_SAFE_INTEGER);
 
             if (this.Tool !== ToolglassTools.None && xInGlass && yInGlass) {
                 switch (this.Tool) {
                     case ToolglassTools.InkToText:
-                        this._strokes.push(this._points);
+                        // this.draw(points);
+                        // const dataUrl = this._canvas.current?.toDataURL("image/jpeg");
+                        // if (dataUrl) {
+                        //     DocServer.analyzeImage(dataUrl, (result: any) => {
+                        //         console.log("something");
+                        //         console.log(result);
+                        //     });
+                        // }
+
+                        // htmlToImage.toCanvas(this._svg.current!).then((blob) => {
+                        //     if (blob) {
+                        //         console.log("blobbed");
+                        //         blob.toDataURL("image/jpeg")
+                        //         const t = blob.getContext("2d")?.getImageData(0, 0, blob.width, blob.height);
+                        //         if (t) {
+                        //             DocServer.analyzeImage(t.data, (text: any) => {
+                        //                 console.log(text);
+                        //             });
+                        //         }
+                        //     }
+                        //     else {
+                        //         console.log("no blob")
+                        //     }
+                        //     runInAction(() => {
+                        //         this._strokes.push(this._points);
+                        //         this._points = [];
+                        //     });
+                        // }).catch(e => console.log(e));
+                        runInAction(() => {
+                            this._strokes.push(this._points);
+                            this._points = [];
+                        });
+                        const results = await CognitiveServices.Inking.Appliers.InterpretStrokes(this._strokes);
+                        // console.log(results);
+                        const wordResults = results.filter(r => r.category === "inkWord");
+                        console.log(wordResults);
+                        const possibilities = [wordResults[0]?.recognizedText];
+                        possibilities.push(...wordResults[0].alternates?.map(a => a.recognizedString));
+                        console.log(possibilities);
+
+                        // return;
+                        break;
+                    case ToolglassTools.IgnoreGesture:
+                        this.dispatchGesture(GestureUtils.Gestures.Stroke);
                         this._points = [];
-                        console.log(CognitiveServices.Inking.Appliers.InterpretStrokes([this._points]));
-                        return;
+                        this._canvas.current?.getContext("2d")?.restore();
+                        break;
                 }
             }
             else {
@@ -378,16 +449,7 @@ export default class GestureOverlay extends Touchable {
                 if (result && result.Score > 0.7) {
                     switch (result.Name) {
                         case GestureUtils.Gestures.Box:
-                            const target = document.elementFromPoint(this._points[0].X, this._points[0].Y);
-                            target?.dispatchEvent(new CustomEvent<GestureUtils.GestureEvent>("dashOnGesture",
-                                {
-                                    bubbles: true,
-                                    detail: {
-                                        points: this._points,
-                                        gesture: GestureUtils.Gestures.Box,
-                                        bounds: B
-                                    }
-                                }));
+                            this.dispatchGesture(GestureUtils.Gestures.Box);
                             actionPerformed = true;
                             break;
                         case GestureUtils.Gestures.Line:
@@ -399,24 +461,14 @@ export default class GestureOverlay extends Touchable {
                     }
                     if (actionPerformed) {
                         this._points = [];
+                        this._canvas.current?.getContext("2d")?.restore();
                     }
                 }
 
                 if (!actionPerformed) {
-                    const target = document.elementFromPoint(this._points[0].X, this._points[0].Y);
-                    target?.dispatchEvent(
-                        new CustomEvent<GestureUtils.GestureEvent>("dashOnGesture",
-                            {
-                                bubbles: true,
-                                detail: {
-                                    points: this._points,
-                                    gesture: GestureUtils.Gestures.Stroke,
-                                    bounds: B
-                                }
-                            }
-                        )
-                    );
+                    this.dispatchGesture(GestureUtils.Gestures.Stroke);
                     this._points = [];
+                    this._canvas.current?.getContext("2d")?.restore();
                 }
             }
         }
@@ -424,17 +476,38 @@ export default class GestureOverlay extends Touchable {
         document.removeEventListener("pointerup", this.onPointerUp);
     }
 
-    @computed get svgBounds() {
-        const sxs = this._strokes.reduce((acc, curr) => acc.concat(...curr.map(p => p.X)), new Array<number>());
-        const xs = this._points.map(p => p.X).concat(sxs);
-        const sys = this._strokes.reduce((acc, curr) => acc.concat(...curr.map(p => p.Y)), new Array<number>());
-        const ys = this._points.map(p => p.Y).concat(sys);
+    dispatchGesture = (gesture: GestureUtils.Gestures, stroke?: InkData) => {
+        const target = document.elementFromPoint((stroke ?? this._points)[0].X, (stroke ?? this._points)[0].Y);
+        target?.dispatchEvent(
+            new CustomEvent<GestureUtils.GestureEvent>("dashOnGesture",
+                {
+                    bubbles: true,
+                    detail: {
+                        points: stroke ?? this._points,
+                        gesture: gesture,
+                        bounds: this.svgBounds
+                    }
+                }
+            )
+        );
+    }
+
+    getBounds = (stroke: InkData) => {
+        const xs = stroke.map(p => p.X);
+        const ys = stroke.map(p => p.Y);
         const right = Math.max(...xs);
         const left = Math.min(...xs);
         const bottom = Math.max(...ys);
         const top = Math.min(...ys);
         return { right: right, left: left, bottom: bottom, top: top, width: right - left, height: bottom - top };
     }
+
+    @computed get svgBounds() {
+        return this.getBounds(this._points);
+    }
+
+    private _canvas = React.createRef<HTMLCanvasElement>();
+    private _svg = React.createRef<HTMLDivElement>();
 
     @computed get currentStrokes() {
         if (this._points.length <= 1 && this._strokes.length <= 1) {
@@ -444,10 +517,15 @@ export default class GestureOverlay extends Touchable {
         const B = this.svgBounds;
 
         return (
-            <svg width={B.width} height={B.height} style={{ transform: `translate(${B.left}px, ${B.top}px)`, pointerEvents: "none", position: "absolute", zIndex: 30000 }}>
-                {this._strokes.map(l => InteractionUtils.CreatePolyline(l, B.left, B.top, this.Color, this.Width))}
-                {InteractionUtils.CreatePolyline(this._points, B.left, B.top, this.Color, this.Width)}
-            </svg>
+            <div ref={this._svg}>
+                <svg width={B.width} height={B.height} style={{ transform: `translate(${B.left}px, ${B.top}px)`, pointerEvents: "none", position: "absolute", zIndex: 30000 }}>
+                    {this._strokes.map(l => {
+                        const b = this.getBounds(l);
+                        InteractionUtils.CreatePolyline(l, b.left, b.top, this.Color, this.Width);
+                    })}
+                    {InteractionUtils.CreatePolyline(this._points, B.left, B.top, this.Color, this.Width)}
+                </svg>
+            </div>
         );
     }
 
@@ -514,6 +592,7 @@ export default class GestureOverlay extends Touchable {
                     touchAction: "none",
                     display: this.showBounds ? "unset" : "none",
                 }}>
+                    <canvas ref={this._canvas} width={this.height} height={this.height} style={{ pointerEvents: "none", position: "absolute" }}></canvas>
                 </div>
             </div >);
     }
@@ -523,6 +602,7 @@ export default class GestureOverlay extends Touchable {
 
 export enum ToolglassTools {
     InkToText = "inktotext",
+    IgnoreGesture = "ignoregesture",
     None = "none",
 }
 
