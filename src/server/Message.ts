@@ -50,10 +50,16 @@ export interface GestureContent {
     readonly color?: string;
 }
 
-export interface MobileInkBoxContent {
-    readonly enableBox: boolean;
+export interface MobileInkOverlayContent {
+    readonly enableOverlay: boolean;
     readonly width?: number;
     readonly height?: number;
+}
+
+export interface UpdateMobileInkOverlayPosition {
+    readonly dx?: number;
+    readonly dy?: number;
+    readonly dsize?: number;
 }
 
 export namespace MessageStore {
@@ -65,8 +71,10 @@ export namespace MessageStore {
     export const GetDocument = new Message<string>("Get Document");
     export const DeleteAll = new Message<any>("Delete All");
     export const ConnectionTerminated = new Message<string>("Connection Terminated");
+
     export const GesturePoints = new Message<GestureContent>("Gesture Points");
-    export const MobileInkBoxTrigger = new Message<MobileInkBoxContent>("Trigger Mobile Ink Box");
+    export const MobileInkOverlayTrigger = new Message<MobileInkOverlayContent>("Trigger Mobile Ink Overlay");
+    export const UpdateMobileInkOverlayPosition = new Message<UpdateMobileInkOverlayPosition>("Update Mobile Ink Overlay Position");
 
     export const GetRefField = new Message<string>("Get Ref Field");
     export const GetRefFields = new Message<string[]>("Get Ref Fields");

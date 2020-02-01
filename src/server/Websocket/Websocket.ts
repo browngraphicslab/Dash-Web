@@ -1,5 +1,5 @@
 import { Utils } from "../../Utils";
-import { MessageStore, Transferable, Types, Diff, YoutubeQueryInput, YoutubeQueryTypes, GestureContent, MobileInkBoxContent } from "../Message";
+import { MessageStore, Transferable, Types, Diff, YoutubeQueryInput, YoutubeQueryTypes, GestureContent, MobileInkOverlayContent } from "../Message";
 import { Client } from "../Client";
 import { Socket } from "socket.io";
 import { Database } from "../database";
@@ -55,7 +55,7 @@ export namespace WebSocket {
             Utils.AddServerHandler(socket, MessageStore.DeleteField, id => DeleteField(socket, id));
             Utils.AddServerHandler(socket, MessageStore.DeleteFields, ids => DeleteFields(socket, ids));
             Utils.AddServerHandler(socket, MessageStore.GesturePoints, content => processGesturePoints(socket, content));
-            Utils.AddServerHandler(socket, MessageStore.MobileInkBoxTrigger, content => processBoxTrigger(socket, content));
+            Utils.AddServerHandler(socket, MessageStore.MobileInkOverlayTrigger, content => processOverlayTrigger(socket, content));
             Utils.AddServerHandlerCallback(socket, MessageStore.GetRefField, GetRefField);
             Utils.AddServerHandlerCallback(socket, MessageStore.GetRefFields, GetRefFields);
 
@@ -74,8 +74,8 @@ export namespace WebSocket {
         socket.broadcast.emit("receiveGesturePoints", content);
     }
 
-    function processBoxTrigger(socket: Socket, content: MobileInkBoxContent) {
-        socket.broadcast.emit("receiveBoxTrigger", content);
+    function processOverlayTrigger(socket: Socket, content: MobileInkOverlayContent) {
+        socket.broadcast.emit("receiveOverlayTrigger", content);
     }
 
     function HandleYoutubeQuery([query, callback]: [YoutubeQueryInput, (result?: any[]) => void]) {

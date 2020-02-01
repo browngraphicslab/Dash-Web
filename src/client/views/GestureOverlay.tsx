@@ -19,7 +19,7 @@ import Palette from "./Palette";
 import MobileInterface from "../../mobile/MobileInterface";
 import { MainView } from "./MainView";
 import { DocServer } from "../DocServer";
-import { GestureContent, MobileInkBoxContent } from "../../server/Message";
+import { GestureContent, MobileInkOverlayContent } from "../../server/Message";
 import { Point } from "../northstar/model/idea/idea";
 import MobileInkOverlay from "../../mobile/MobileInkOverlay";
 
@@ -217,21 +217,6 @@ export default class GestureOverlay extends Touchable {
         return { right: right, left: left, bottom: bottom, top: top, width: right - left, height: bottom - top };
     }
 
-    // TODO: find a way to reference this function from InkingStroke instead of copy pastign here. copied bc of weird error when on mobile view
-    CreatePolyline(points: { X: number, Y: number }[], left: number, top: number, color?: string, width?: number) {
-        const pts = points.reduce((acc: string, pt: { X: number, Y: number }) => acc + `${pt.X - left},${pt.Y - top} `, "");
-        return (
-            <polyline
-                points={pts}
-                style={{
-                    fill: "none",
-                    stroke: color ?? InkingControl.Instance.selectedColor,
-                    strokeWidth: width ?? InkingControl.Instance.selectedWidth
-                }}
-            />
-        );
-    }
-
     @computed get currentStroke() {
         if (this._points.length <= 1) {
             return (null);
@@ -241,23 +226,23 @@ export default class GestureOverlay extends Touchable {
 
         return (
             <svg width={B.width} height={B.height} style={{ transform: `translate(${B.left}px, ${B.top}px)`, pointerEvents: "none", position: "absolute", zIndex: 30000 }}>
-                {this.CreatePolyline(this._points, B.left, B.top, this.Color, this.Width)}
+                {InteractionUtils.CreatePolyline(this._points, B.left, B.top, this.Color, this.Width)}
             </svg>
         );
     }
 
     @action
-    enableMobileInkBox = (content: MobileInkBoxContent) => {
-        this.showMobileInkOverlay = content.enableBox;
+    enableMobileInkOverlay = (content: MobileInkOverlayContent) => {
+        this.showMobileInkOverlay = content.enableOverlay;
     }
 
     render() {
         return (
             <div className="gestureOverlay-cont" onPointerDown={this.onPointerDown} onTouchStart={this.onTouchStart}>
+                {this.showMobileInkOverlay ? <MobileInkOverlay /> : <></>}
                 {this.currentStroke}
                 {this.props.children}
                 {this._palette}
-                {this.showMobileInkOverlay ? <MobileInkOverlay /> : <></>}
             </div>);
     }
 }

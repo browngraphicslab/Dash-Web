@@ -1,5 +1,5 @@
 import * as OpenSocket from 'socket.io-client';
-import { MessageStore, YoutubeQueryTypes, GestureContent, MobileInkBoxContent } from "./../server/Message";
+import { MessageStore, YoutubeQueryTypes, GestureContent, MobileInkOverlayContent, UpdateMobileInkOverlayPosition } from "./../server/Message";
 import { Opt, Doc } from '../new_fields/Doc';
 import { Utils, emptyFunction } from '../Utils';
 import { SerializationHelper } from './util/SerializationHelper';
@@ -72,9 +72,13 @@ export namespace DocServer {
             Utils.Emit(_socket, MessageStore.GesturePoints, content);
         }
 
-        export function dispatchBoxTrigger(content: MobileInkBoxContent) {
+        export function dispatchOverlayTrigger(content: MobileInkOverlayContent) {
             // _socket.emit("dispatchBoxTrigger");
-            Utils.Emit(_socket, MessageStore.MobileInkBoxTrigger, content);
+            Utils.Emit(_socket, MessageStore.MobileInkOverlayTrigger, content);
+        }
+
+        export function dispatchOverlayPositionUpdate(content: UpdateMobileInkOverlayPosition) {
+            Utils.Emit(_socket, MessageStore.UpdateMobileInkOverlayPosition, content);
         }
 
     }
@@ -100,12 +104,17 @@ export namespace DocServer {
         Utils.AddServerHandler(_socket, MessageStore.ConnectionTerminated, () => {
             alert("Your connection to the server has been terminated.");
         });
+
+        // mobile ink overlay socket events to communicate between mobile view and desktop view
         _socket.addEventListener("receiveGesturePoints", (content: GestureContent) => {
             MobileInkOverlay.Instance.drawStroke(content);
         });
-        _socket.addEventListener("receiveBoxTrigger", (content: MobileInkBoxContent) => {
-            GestureOverlay.Instance.enableMobileInkBox(content);
+        _socket.addEventListener("receiveOverlayTrigger", (content: MobileInkOverlayContent) => {
+            GestureOverlay.Instance.enableMobileInkOverlay(content);
             MobileInkOverlay.Instance.initMobileInkOverlay(content);
+        });
+        _socket.addEventListener("updateMobileOverlayPosition", (content: UpdateMobileInkOverlayPosition) => {
+            MobileInkOverlay.Instance.updatePosition(content);
         });
     }
 

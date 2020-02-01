@@ -10,7 +10,7 @@ import { DocumentView } from '../client/views/nodes/DocumentView';
 import { emptyPath, emptyFunction, returnFalse, returnOne, returnEmptyString, returnTrue } from '../Utils';
 import { Transform } from '../client/util/Transform';
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faPenNib, faHighlighter, faEraser, faMousePointer, faBreadSlice, faTrash, faCheck } from '@fortawesome/free-solid-svg-icons';
+import { faPenNib, faHighlighter, faEraser, faMousePointer, faBreadSlice, faTrash, faCheck, faLongArrowAltLeft } from '@fortawesome/free-solid-svg-icons';
 import { Scripting } from '../client/util/Scripting';
 import { CollectionFreeFormView } from '../client/views/collections/collectionFreeForm/CollectionFreeFormView';
 import GestureOverlay from '../client/views/GestureOverlay';
@@ -23,7 +23,7 @@ import { DateField } from '../new_fields/DateField';
 import { GestureUtils } from '../pen-gestures/GestureUtils';
 import { DocServer } from '../client/DocServer';
 
-library.add(faTrash, faCheck);
+library.add(faLongArrowAltLeft);
 
 @observer
 export default class MobileInterface extends React.Component {
@@ -68,8 +68,8 @@ export default class MobileInterface extends React.Component {
                     InkingControl.Instance.switchTool(InkTool.Pen);
                     this.drawingInk = true;
 
-                    DocServer.Mobile.dispatchBoxTrigger({
-                        enableBox: true,
+                    DocServer.Mobile.dispatchOverlayTrigger({
+                        enableOverlay: true,
                         width: window.innerWidth,
                         height: window.innerHeight
                     });
@@ -112,12 +112,12 @@ export default class MobileInterface extends React.Component {
         return "hello";
     }
 
-    onClick = (e: React.MouseEvent) => {
+    onBack = (e: React.MouseEvent) => {
         this.switchCurrentView("main");
         InkingControl.Instance.switchTool(InkTool.None); // TODO: switch to previous tool
 
-        DocServer.Mobile.dispatchBoxTrigger({
-            enableBox: false,
+        DocServer.Mobile.dispatchOverlayTrigger({
+            enableOverlay: false,
             width: window.innerWidth,
             height: window.innerHeight
         });
@@ -126,37 +126,61 @@ export default class MobileInterface extends React.Component {
         this.drawingInk = false;
     }
 
+    shiftLeft = (e: React.MouseEvent) => {
+        DocServer.Mobile.dispatchOverlayPositionUpdate({
+            dx: -10
+        });
+    }
+
+    shiftRight = (e: React.MouseEvent) => {
+        DocServer.Mobile.dispatchOverlayPositionUpdate({
+            dx: 10
+        });
+    }
+
     @computed
     get inkContent() {
+        // TODO: support panning and zooming
+        // TODO: handle moving of ink strokes
         if (this.mainContainer) {
             return (
-                <GestureOverlay>
-                    <div className="mobileInterface-topButtons">
-                        <button className="mobileInterface-button cancel" onClick={this.onClick} title="Cancel drawing"><FontAwesomeIcon icon="trash" /></button>
-                        <button className="mobileInterface-button cancel" onClick={this.onClick} title="Insert drawing"><FontAwesomeIcon icon="check" /></button>
+                <div className="mobileInterface">
+                    <div className="mobileInterface-inkInterfaceButtons">
+                        <div className="navButtons">
+                            <button className="mobileInterface-button cancel" onClick={this.onBack} title="Cancel drawing"><FontAwesomeIcon icon="long-arrow-alt-left" /></button>
+                        </div>
+                        <div className="inkSettingButtons">
+                            <button className="mobileInterface-button cancel" onClick={this.onBack} title="Cancel drawing"><FontAwesomeIcon icon="long-arrow-alt-left" /></button>
+                        </div>
+                        <div className="navButtons">
+                            <button className="mobileInterface-button" onClick={this.shiftLeft} title="Shift left">left</button>
+                            <button className="mobileInterface-button" onClick={this.shiftRight} title="Shift right">right</button>
+                        </div>
                     </div>
-                    <CollectionView
-                        Document={this.mainContainer}
-                        DataDoc={undefined}
-                        LibraryPath={emptyPath}
-                        fieldKey={""}
-                        addDocTab={returnFalse}
-                        pinToPres={emptyFunction}
-                        PanelHeight={() => window.innerHeight}
-                        PanelWidth={() => window.innerWidth}
-                        focus={emptyFunction}
-                        isSelected={returnFalse}
-                        select={emptyFunction}
-                        active={returnFalse}
-                        ContentScaling={returnOne}
-                        whenActiveChanged={returnFalse}
-                        ScreenToLocalTransform={Transform.Identity}
-                        ruleProvider={undefined}
-                        renderDepth={0}
-                        ContainingCollectionView={undefined}
-                        ContainingCollectionDoc={undefined}>
-                    </CollectionView>
-                </GestureOverlay>
+                    <GestureOverlay>
+                        <CollectionView
+                            Document={this.mainContainer}
+                            DataDoc={undefined}
+                            LibraryPath={emptyPath}
+                            fieldKey={""}
+                            addDocTab={returnFalse}
+                            pinToPres={emptyFunction}
+                            PanelHeight={() => window.innerHeight}
+                            PanelWidth={() => window.innerWidth}
+                            focus={emptyFunction}
+                            isSelected={returnFalse}
+                            select={emptyFunction}
+                            active={returnFalse}
+                            ContentScaling={returnOne}
+                            whenActiveChanged={returnFalse}
+                            ScreenToLocalTransform={Transform.Identity}
+                            ruleProvider={undefined}
+                            renderDepth={0}
+                            ContainingCollectionView={undefined}
+                            ContainingCollectionDoc={undefined}>
+                        </CollectionView>
+                    </GestureOverlay>
+                </div>
             );
         }
     }
