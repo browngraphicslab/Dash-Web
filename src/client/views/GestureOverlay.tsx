@@ -312,11 +312,6 @@ export default class GestureOverlay extends Touchable {
     onPointerDown = (e: React.PointerEvent) => {
         if (InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || (InkingControl.Instance.selectedTool === InkTool.Highlighter || InkingControl.Instance.selectedTool === InkTool.Pen)) {
             this._points.push({ X: e.clientX, Y: e.clientY });
-            const canvas = this._canvas.current;
-            const ctx = canvas?.getContext("2d");
-            if (canvas && ctx) {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-            }
             e.stopPropagation();
             e.preventDefault();
 
@@ -368,19 +363,6 @@ export default class GestureOverlay extends Touchable {
         return actionPerformed;
     }
 
-    draw = (points: InkData) => {
-        let ctx;
-        if (this._canvas.current && this._canvas.current.getContext("2d") && (ctx = this._canvas.current.getContext("2d"))) {
-            ctx.strokeStyle = this.Color;
-            ctx.lineWidth = this.Width;
-            ctx.moveTo(points[0].X, points[0].Y);
-            for (let i = 1; i < points.length; i++) {
-                ctx.lineTo(points[i].X, points[i].Y);
-            }
-            ctx.stroke();
-        }
-    }
-
     @action
     onPointerUp = async (e: PointerEvent) => {
         if (this._points.length > 1) {
@@ -394,52 +376,19 @@ export default class GestureOverlay extends Touchable {
             if (this.Tool !== ToolglassTools.None && xInGlass && yInGlass) {
                 switch (this.Tool) {
                     case ToolglassTools.InkToText:
-                        // this.draw(points);
-                        // const dataUrl = this._canvas.current?.toDataURL("image/jpeg");
-                        // if (dataUrl) {
-                        //     DocServer.analyzeImage(dataUrl, (result: any) => {
-                        //         console.log("something");
-                        //         console.log(result);
-                        //     });
-                        // }
-
-                        // htmlToImage.toCanvas(this._svg.current!).then((blob) => {
-                        //     if (blob) {
-                        //         console.log("blobbed");
-                        //         blob.toDataURL("image/jpeg")
-                        //         const t = blob.getContext("2d")?.getImageData(0, 0, blob.width, blob.height);
-                        //         if (t) {
-                        //             DocServer.analyzeImage(t.data, (text: any) => {
-                        //                 console.log(text);
-                        //             });
-                        //         }
-                        //     }
-                        //     else {
-                        //         console.log("no blob")
-                        //     }
-                        //     runInAction(() => {
-                        //         this._strokes.push(this._points);
-                        //         this._points = [];
-                        //     });
-                        // }).catch(e => console.log(e));
-                        runInAction(() => {
-                            this._strokes.push(this._points);
-                            this._points = [];
-                        });
+                        document.removeEventListener("pointermove", this.onPointerMove);
+                        document.removeEventListener("pointerup", this.onPointerUp);
+                        this._strokes.push(new Array(...this._points));
+                        this._points = [];
                         const results = await CognitiveServices.Inking.Appliers.InterpretStrokes(this._strokes);
-                        // console.log(results);
-                        const wordResults = results.filter(r => r.category === "inkWord");
-                        console.log(wordResults);
+                        const wordResults = results.filter((r: any) => r.category === "inkWord");
                         const possibilities = [wordResults[0]?.recognizedText];
-                        possibilities.push(...wordResults[0].alternates?.map(a => a.recognizedString));
+                        possibilities.push(...wordResults[0]?.alternates?.map((a: any) => a.recognizedString));
                         console.log(possibilities);
-
-                        // return;
                         break;
                     case ToolglassTools.IgnoreGesture:
                         this.dispatchGesture(GestureUtils.Gestures.Stroke);
                         this._points = [];
-                        this._canvas.current?.getContext("2d")?.restore();
                         break;
                 }
             }
@@ -461,14 +410,12 @@ export default class GestureOverlay extends Touchable {
                     }
                     if (actionPerformed) {
                         this._points = [];
-                        this._canvas.current?.getContext("2d")?.restore();
                     }
                 }
 
                 if (!actionPerformed) {
                     this.dispatchGesture(GestureUtils.Gestures.Stroke);
                     this._points = [];
-                    this._canvas.current?.getContext("2d")?.restore();
                 }
             }
         }
@@ -485,7 +432,7 @@ export default class GestureOverlay extends Touchable {
                     detail: {
                         points: stroke ?? this._points,
                         gesture: gesture,
-                        bounds: this.svgBounds
+                        bounds: this.getBounds(stroke ?? this._points)
                     }
                 }
             )
@@ -506,26 +453,20 @@ export default class GestureOverlay extends Touchable {
         return this.getBounds(this._points);
     }
 
-    private _canvas = React.createRef<HTMLCanvasElement>();
-    private _svg = React.createRef<HTMLDivElement>();
-
     @computed get currentStrokes() {
-        if (this._points.length <= 1 && this._strokes.length <= 1) {
-            return (null);
-        }
-
         const B = this.svgBounds;
 
         return (
-            <div ref={this._svg}>
-                <svg width={B.width} height={B.height} style={{ transform: `translate(${B.left}px, ${B.top}px)`, pointerEvents: "none", position: "absolute", zIndex: 30000 }}>
-                    {this._strokes.map(l => {
-                        const b = this.getBounds(l);
-                        InteractionUtils.CreatePolyline(l, b.left, b.top, this.Color, this.Width);
-                    })}
-                    {InteractionUtils.CreatePolyline(this._points, B.left, B.top, this.Color, this.Width)}
-                </svg>
-            </div>
+            [this._strokes.map(l => {
+                let b = this.getBounds(l);
+                console.log(b);
+                return <svg width={b.width} height={b.height} style={{ transform: `translate(${b.left}px, ${b.top}px)`, pointerEvents: "none", position: "absolute", zIndex: 30000 }}>
+                    {InteractionUtils.CreatePolyline(l, b.left, b.top, this.Color, this.Width)}
+                </svg>;
+            }),
+            this._points.length <= 1 ? (null) : <svg width={B.width} height={B.height} style={{ transform: `translate(${B.left}px, ${B.top}px)`, pointerEvents: "none", position: "absolute", zIndex: 30000 }}>
+                {InteractionUtils.CreatePolyline(this._points, B.left, B.top, this.Color, this.Width)}
+            </svg>]
         );
     }
 
@@ -575,6 +516,7 @@ export default class GestureOverlay extends Touchable {
         return (
             <div className="gestureOverlay-cont" onPointerDown={this.onPointerDown} onTouchStart={this.onReactTouchStart}>
                 {this.elements}
+
                 <div className="clipboardDoc-cont" style={{
                     transform: `translate(${this._thumbX}px, ${(this._thumbY ?? 0) - this.height}px)`,
                     height: this.height,
@@ -592,7 +534,6 @@ export default class GestureOverlay extends Touchable {
                     touchAction: "none",
                     display: this.showBounds ? "unset" : "none",
                 }}>
-                    <canvas ref={this._canvas} width={this.height} height={this.height} style={{ pointerEvents: "none", position: "absolute" }}></canvas>
                 </div>
             </div >);
     }
