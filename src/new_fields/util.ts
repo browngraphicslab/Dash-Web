@@ -14,7 +14,7 @@ function _readOnlySetter(): never {
 }
 
 export function TraceMobx() {
-    //trace();
+    // trace();
 }
 
 export interface GetterResult {

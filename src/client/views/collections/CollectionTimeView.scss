@@ -4,6 +4,31 @@
     position: absolute;
     height: 100%;
     width: 100%;
+    overflow: hidden;
+    .collectionFreeform-customText {
+        text-align: left;
+    }
+    .collectionTimeView-thumb {
+        position: absolute;
+        width: 30px;
+        height: 30px;
+        transform: rotate(45deg);
+        display: inline-block;
+        background: gray;
+        bottom: 0;
+        margin-bottom: -17px;
+        border-radius: 9px;
+        opacity: 0.25;
+    }
+    .collectionTimeView-thumb-min {
+        margin-left:25%;
+    }
+    .collectionTimeView-thumb-max {
+        margin-left:75%;
+    }
+    .collectionTimeView-thumb-mid {
+        margin-left:50%;
+    }
 
     .collectionTimeView-flyout {
         width: 400px;

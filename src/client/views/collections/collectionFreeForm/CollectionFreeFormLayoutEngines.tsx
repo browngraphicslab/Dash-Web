@@ -1,4 +1,4 @@
-import { Doc, Field, FieldResult } from "../../../../new_fields/Doc";
+import { Doc, Field, FieldResult, WidthSym, HeightSym } from "../../../../new_fields/Doc";
 import { NumCast, StrCast, Cast, DateCast } from "../../../../new_fields/Types";
 import { ScriptBox } from "../../ScriptBox";
 import { CompileScript } from "../../../util/Scripting";
@@ -16,7 +16,7 @@ interface PivotData {
     text: string;
     x: number;
     y: number;
-    width: number;
+    width?: number;
     height?: number;
     fontSize: number;
 }
@@ -25,7 +25,7 @@ export interface ViewDefBounds {
     x: number;
     y: number;
     z?: number;
-    width: number;
+    width?: number;
     height?: number;
     transition?: string;
 }
@@ -123,7 +123,7 @@ export function computePivotLayout(
             height: NumCast(pair.layout._height)
         };
         const newPosRaw = docMap.get(pair.layout) || fallbackPos; // new pos is computed pos, or pos written to the document's fields
-        const newPos = { x: newPosRaw.x * scale + centerX, y: (newPosRaw.y - aggBounds.y) * scale + centerY, z: newPosRaw.z, width: newPosRaw.width * scale, height: newPosRaw.height! * scale };
+        const newPos = { x: newPosRaw.x * scale + centerX, y: (newPosRaw.y - aggBounds.y) * scale + centerY, z: newPosRaw.z, width: (newPosRaw.width || 0) * scale, height: newPosRaw.height! * scale };
         const lastPos = poolData.get(pair.layout[Id]); // last computed pos
         if (!lastPos || newPos.x !== lastPos.x || newPos.y !== lastPos.y || newPos.z !== lastPos.z || newPos.width !== lastPos.width || newPos.height !== lastPos.height) {
             runInAction(() => poolData.set(pair.layout[Id], { transition: "transform 1s", ...newPos }));
@@ -131,7 +131,7 @@ export function computePivotLayout(
     });
     return {
         elements: viewDefsToJSX([{ type: "text", text: "", x: 0, y: -aggBounds.y * scale - minLabelHeight, width: panelDim[0], height: panelDim[1], fontSize: 1 }].concat(groupNames.map(gname => {
-            return { type: gname.type, text: gname.text, x: gname.x * scale + centerX, y: (gname.y - aggBounds.y) * scale + centerY, width: gname.width * scale, height: Math.max(minLabelHeight, centerY), fontSize: gname.fontSize };
+            return { type: gname.type, text: gname.text, x: gname.x * scale + centerX, y: (gname.y - aggBounds.y) * scale + centerY, width: (gname.width || 0) * scale, height: Math.max(minLabelHeight, centerY), fontSize: gname.fontSize };
         })))
     };
 }
@@ -146,63 +146,57 @@ export function computeTimelineLayout(
     viewDefsToJSX: (views: any) => ViewDefResult[]
 ) {
     const fieldKey = "data";
-    const pivotAxisWidth = NumCast(pivotDoc.pivotWidth, 200);
     const pivotDateGroups = new Map<number, Doc[]>();
-
-    const timelineFieldKey = Field.toString(pivotDoc.pivotField as Field);
-    let minTime = Number.MAX_VALUE, maxTime = Number.MIN_VALUE;
-    for (const doc of childDocs) {
-        const num = NumCast(doc[timelineFieldKey], Number(StrCast(doc[timelineFieldKey])));
-        if (Number.isNaN(num)) continue;
-        if (num) {
-            !pivotDateGroups.get(num) && pivotDateGroups.set(num, []);
-            pivotDateGroups.get(num)!.push(doc);
-        }
-        minTime = Math.min(num, minTime);
-        maxTime = Math.max(num, maxTime);
-    }
-    minTime = NumCast(pivotDoc[fieldKey + "-timelineMin"], minTime);
-    maxTime = NumCast(pivotDoc[fieldKey + "-timelineMax"], maxTime);
-    const curTime = Cast(pivotDoc[fieldKey + "-timelineCur"], "number", null);
-
     const docMap = new Map<Doc, ViewDefBounds>();
     const groupNames: PivotData[] = [];
+    const timelineFieldKey = Field.toString(pivotDoc.pivotField as Field);
+    const minTimeReq = Cast(pivotDoc[fieldKey + "-timelineMinReq"], "number", null);
+    const maxTimeReq = Cast(pivotDoc[fieldKey + "-timelineMaxReq"], "number", null);
+    const curTime = Cast(pivotDoc[fieldKey + "-timelineCur"], "number", null);
+    const fontSize = NumCast(pivotDoc[fieldKey + "-timelineFontSize"], panelDim[1] > 58 ? 20 : Math.max(7, panelDim[1] / 3));
+    const fontHeight = panelDim[1] > 58 ? 30 : panelDim[1] / 2;
+    const findStack = (time: number, stack: number[]) => {
+        const index = stack.findIndex(val => val === undefined || val < x);
+        return index === -1 ? stack.length : index;
+    }
 
+    let minTime = Number.MAX_VALUE;
+    let maxTime = Number.MIN_VALUE;
+    childDocs.map(doc => {
+        const num = NumCast(doc[timelineFieldKey], Number(StrCast(doc[timelineFieldKey])));
+        if (Number.isNaN(num) || (minTimeReq && num < minTimeReq) || (maxTimeReq && num > maxTimeReq)) {
+            doc.isMinimized = true;
+        } else {
+            !pivotDateGroups.get(num) && pivotDateGroups.set(num, []);
+            pivotDateGroups.get(num)!.push(doc);
+            minTime = Math.min(num, minTime);
+            maxTime = Math.max(num, maxTime);
+        }
+    });
+    pivotDoc[fieldKey + "-timelineMin"] = minTime = minTimeReq ? Math.min(minTimeReq, minTime) : minTime;
+    pivotDoc[fieldKey + "-timelineMax"] = maxTime = maxTimeReq ? Math.max(maxTimeReq, maxTime) : maxTime;
+
+    const arrayofKeys = Array.from(pivotDateGroups.keys());
+    const sortedKeys = arrayofKeys.sort((n1, n2) => n1 - n2);
     const scaling = panelDim[0] / (maxTime - minTime);
-    const expander = 1.05;
     let x = 0;
-    let prevKey = minTime;
-    const sortedKeys = Array.from(pivotDateGroups.keys()).sort();
+    let prevKey = Math.floor(minTime);
+
+    if (sortedKeys.length && scaling * (sortedKeys[0] - prevKey) > 25) {
+        groupNames.push({ type: "text", text: prevKey.toString(), x: x, y: 0, height: fontHeight, fontSize });
+    }
+
+    const pivotAxisWidth = NumCast(pivotDoc.pivotWidth, panelDim[1] / 2.5);
     let stacking: number[] = [];
-    for (let i = 0; i < sortedKeys.length; i++) {
-        const key = sortedKeys[i];
-        const val = pivotDateGroups.get(key)!;
-        val.forEach(d => d.isMinimized = key < minTime || key > maxTime);
-        if (key < minTime || key > maxTime) {
-            continue;
-        }
-        x += Math.max(25, scaling * (key - prevKey));
-        let stack = 0;
-        for (; stack < stacking.length; stack++) {
-            if (stacking[stack] === undefined || stacking[stack] < x)
-                break;
-        }
+    sortedKeys.forEach(key => {
+        const keyDocs = pivotDateGroups.get(key)!;
+        keyDocs.forEach(d => d.isMinimized = false);
+        x += scaling * (key - prevKey);
+        const stack = findStack(x, stacking);
         prevKey = key;
-        groupNames.push({
-            type: "text",
-            text: toLabel(key),
-            x: x,
-            y: stack * 25,
-            width: pivotAxisWidth * expander,
-            height: 35,
-            fontSize: NumCast(pivotDoc.pivotFontSize, 20)
-        });
-        val.forEach((doc, i) => {
-            let stack = 0;
-            for (; stack < stacking.length; stack++) {
-                if (stacking[stack] === undefined || stacking[stack] < x)
-                    break;
-            }
+        !stack && groupNames.push({ type: "text", text: key.toString(), x: x, y: stack * 25, height: fontHeight, fontSize });
+        keyDocs.forEach(doc => {
+            const stack = findStack(x, stacking);
             const layoutDoc = Doc.Layout(doc);
             let wid = pivotAxisWidth;
             let hgt = layoutDoc._nativeWidth ? (NumCast(layoutDoc._nativeHeight) / NumCast(layoutDoc._nativeWidth)) * pivotAxisWidth : pivotAxisWidth;
@@ -210,25 +204,22 @@ export function computeTimelineLayout(
                 hgt = pivotAxisWidth;
                 wid = layoutDoc._nativeHeight ? (NumCast(layoutDoc._nativeWidth) / NumCast(layoutDoc._nativeHeight)) * pivotAxisWidth : pivotAxisWidth;
             }
-            docMap.set(doc, {
-                x: x,
-                y: - Math.sqrt(stack) * pivotAxisWidth - pivotAxisWidth,
-                width: wid,
-                height: hgt
-            });
+            docMap.set(doc, { x: x, y: - Math.sqrt(stack) * pivotAxisWidth / 2 - pivotAxisWidth, width: wid, height: hgt });
             stacking[stack] = x + pivotAxisWidth;
         });
+    });
+    if (Math.ceil(maxTime - minTime) * scaling > x + 25) {
+        groupNames.push({ type: "text", text: Math.ceil(maxTime).toString(), x: Math.ceil(maxTime - minTime) * scaling, y: 0, height: fontHeight, fontSize });
     }
 
-    const grpEles = groupNames.map(gn => { return { x: gn.x, y: gn.y, width: gn.width, height: gn.height } as PivotData; });
+    const grpEles = groupNames.map(gn => { return { x: gn.x, y: gn.y, height: gn.height } as PivotData; });
     const docEles = childPairs.filter(d => !d.layout.isMinimized).map(pair =>
-        docMap.get(pair.layout) || { x: NumCast(pair.layout.x), y: NumCast(pair.layout.y), width: NumCast(pair.layout._width), height: NumCast(pair.layout._height) } // new pos is computed pos, or pos written to the document's fields
+        docMap.get(pair.layout) || { x: NumCast(pair.layout.x), y: NumCast(pair.layout.y), width: pair.layout[WidthSym](), height: pair.layout[HeightSym]() } as PivotData // new pos is computed pos, or pos written to the document's fields
     );
     const aggBounds = aggregateBounds(docEles.concat(grpEles), 0, 0);
+    aggBounds.r = Math.max((maxTime - minTime) * scaling, aggBounds.r - aggBounds.x);
     const wscale = panelDim[0] / (aggBounds.r - aggBounds.x);
     let scale = wscale * (aggBounds.b - aggBounds.y) > panelDim[1] ? (panelDim[1]) / (aggBounds.b - aggBounds.y) : wscale;
-    const centerY = (panelDim[1] - (aggBounds.b - aggBounds.y) * scale) / 2;
-    const centerX = (panelDim[0] - (aggBounds.r - aggBounds.x) * scale) / 2;
     if (Number.isNaN(scale)) scale = 1;
 
     childPairs.map(pair => {
@@ -240,7 +231,7 @@ export function computeTimelineLayout(
             height: NumCast(pair.layout._height)
         };
         const newPosRaw = docMap.get(pair.layout) || fallbackPos; // new pos is computed pos, or pos written to the document's fields
-        const newPos = { x: newPosRaw.x * scale, y: newPosRaw.y * scale, z: newPosRaw.z, width: newPosRaw.width * scale, height: newPosRaw.height! * scale };
+        const newPos = { x: newPosRaw.x * scale, y: newPosRaw.y * scale, z: newPosRaw.z, width: (newPosRaw.width || 0) * scale, height: newPosRaw.height! * scale };
         const lastPos = poolData.get(pair.layout[Id]); // last computed pos
         if (!lastPos || newPos.x !== lastPos.x || newPos.y !== lastPos.y || newPos.z !== lastPos.z || newPos.width !== lastPos.width || newPos.height !== lastPos.height) {
             runInAction(() => poolData.set(pair.layout[Id], { transition: "transform 1s", ...newPos }));
@@ -248,10 +239,9 @@ export function computeTimelineLayout(
     });
     return {
         elements: viewDefsToJSX([
-            { type: "text", text: "", x: -centerX, y: aggBounds.y * scale - centerY, width: panelDim[0], height: panelDim[1], fontSize: 1 },
-            { type: "div", color: "black", x: -centerX, y: 0, width: panelDim[0], height: 1 }
+            { type: "div", color: "black", x: 0, y: 0, width: panelDim[0], height: 1 } as any
         ].concat(groupNames.map(gname => {
-            return { type: gname.type, text: gname.text, x: gname.x * scale, y: gname.y * scale, width: gname.width * scale, height: gname.height! * scale, fontSize: gname.fontSize };
+            return { type: gname.type, text: gname.text, x: gname.x * scale, y: gname.y * scale, width: gname.width === undefined ? gname.width : gname.width * scale, height: Math.max(fontHeight, gname.height! * scale), fontSize: gname.fontSize };
         })))
     };
 }

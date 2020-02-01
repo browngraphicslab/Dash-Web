@@ -7,7 +7,7 @@ import { Doc, DocListCast } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
 import { ComputedField, ScriptField } from "../../../new_fields/ScriptField";
-import { Cast, StrCast } from "../../../new_fields/Types";
+import { Cast, StrCast, NumCast } from "../../../new_fields/Types";
 import { Docs } from "../../documents/Documents";
 import { EditableView } from "../EditableView";
 import { anchorPoints, Flyout } from "../TemplateMenu";
@@ -107,7 +107,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
         const keySet: Set<string> = new Set();
 
         this.childLayoutPairs.map(pair =>
-            Array.from(Object.keys(Doc.GetProto(pair.layout))).filter(fieldKey => pair.layout[fieldKey] instanceof RichTextField || typeof (pair.layout[fieldKey]) === "string").map(fieldKey =>
+            Array.from(Object.keys(Doc.GetProto(pair.layout))).filter(fieldKey => pair.layout[fieldKey] instanceof RichTextField || typeof (pair.layout[fieldKey]) === "number" || typeof (pair.layout[fieldKey]) === "string").map(fieldKey =>
                 keySet.add(fieldKey)));
         keySet.toArray().map(fieldKey =>
             docItems.push({ description: ":" + fieldKey, event: () => this.props.Document.pivotField = fieldKey, icon: "compress-arrows-alt" }));
@@ -119,6 +119,80 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
 
     @observable private collapsed: boolean = false;
     private toggleVisibility = action(() => this.collapsed = !this.collapsed);
+
+    _downX = 0;
+    onMinDown = (e: React.PointerEvent) => {
+        document.removeEventListener("pointermove", this.onMinMove);
+        document.removeEventListener("pointerup", this.onMinUp);
+        document.addEventListener("pointermove", this.onMinMove);
+        document.addEventListener("pointerup", this.onMinUp);
+        this._downX = e.clientX;
+        e.stopPropagation();
+        e.preventDefault();
+    }
+    @action
+    onMinMove = (e: PointerEvent) => {
+        const delta = e.clientX - this._downX;
+        this._downX = e.clientX;
+        const minReq = NumCast(this.props.Document[this.props.fieldKey + "-timelineMinReq"], NumCast(this.props.Document[this.props.fieldKey + "-timelineMin"], 0));
+        const maxReq = NumCast(this.props.Document[this.props.fieldKey + "-timelineMaxReq"], NumCast(this.props.Document[this.props.fieldKey + "-timelineMax"], 10));
+        this.props.Document[this.props.fieldKey + "-timelineMinReq"] = minReq + (maxReq - minReq) * delta / this.props.PanelWidth();
+    }
+    onMinUp = (e: PointerEvent) => {
+        document.removeEventListener("pointermove", this.onMinMove);
+        document.removeEventListener("pointermove", this.onMinUp);
+    }
+
+    onMaxDown = (e: React.PointerEvent) => {
+        document.removeEventListener("pointermove", this.onMaxMove);
+        document.removeEventListener("pointermove", this.onMaxUp);
+        document.addEventListener("pointermove", this.onMaxMove);
+        document.addEventListener("pointerup", this.onMaxUp);
+        this._downX = e.clientX;
+        e.stopPropagation();
+        e.preventDefault();
+    }
+    @action
+    onMaxMove = (e: PointerEvent) => {
+        const delta = e.clientX - this._downX;
+        this._downX = e.clientX;
+        const minReq = NumCast(this.props.Document[this.props.fieldKey + "-timelineMinReq"], NumCast(this.props.Document[this.props.fieldKey + "-timelineMin"], 0));
+        const maxReq = NumCast(this.props.Document[this.props.fieldKey + "-timelineMaxReq"], NumCast(this.props.Document[this.props.fieldKey + "-timelineMax"], 10));
+        this.props.Document[this.props.fieldKey + "-timelineMaxReq"] = maxReq + (maxReq - minReq) * delta / this.props.PanelWidth();
+    }
+    onMaxUp = (e: PointerEvent) => {
+        document.removeEventListener("pointermove", this.onMaxMove);
+        document.removeEventListener("pointermove", this.onMaxUp);
+    }
+
+    onMidDown = (e: React.PointerEvent) => {
+        document.removeEventListener("pointermove", this.onMidMove);
+        document.removeEventListener("pointermove", this.onMidUp);
+        document.addEventListener("pointermove", this.onMidMove);
+        document.addEventListener("pointerup", this.onMidUp);
+        this._downX = e.clientX;
+        e.stopPropagation();
+        e.preventDefault();
+    }
+    @action
+    onMidMove = (e: PointerEvent) => {
+        const delta = e.clientX - this._downX;
+        this._downX = e.clientX;
+        const minReq = NumCast(this.props.Document[this.props.fieldKey + "-timelineMinReq"], NumCast(this.props.Document[this.props.fieldKey + "-timelineMin"], 0));
+        const maxReq = NumCast(this.props.Document[this.props.fieldKey + "-timelineMaxReq"], NumCast(this.props.Document[this.props.fieldKey + "-timelineMax"], 10));
+        this.props.Document[this.props.fieldKey + "-timelineMinReq"] = minReq - (maxReq - minReq) * delta / this.props.PanelWidth();
+        this.props.Document[this.props.fieldKey + "-timelineMaxReq"] = maxReq - (maxReq - minReq) * delta / this.props.PanelWidth();
+    }
+    onMidUp = (e: PointerEvent) => {
+        document.removeEventListener("pointermove", this.onMidMove);
+        document.removeEventListener("pointermove", this.onMidUp);
+    }
+
+    @computed get contents() {
+        return <div className="collectionTimeView-pivot" key="pivot" style={{ width: this.bodyPanelWidth() }}>
+            <CollectionFreeFormView  {...this.props} ScreenToLocalTransform={this.getTransform} PanelWidth={this.bodyPanelWidth} />
+        </div>;
+    }
 
     render() {
         const facetCollection = Cast(this.props.Document?._facetCollection, Doc, null);
@@ -150,9 +224,11 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
                 <div className={"pivotKeyEntry"}>
                     <EditableView {...newEditableViewProps} menuCallback={this.menuCallback} />
                 </div>
-                <div className="collectionTimeView-dragger" key="dragger" onPointerDown={this.onPointerDown} style={{ transform: `translate(${this._facetWidth}px, 0px)` }} >
-                    <span title="library View Dragger" style={{ width: "5px", position: "absolute", top: "0" }} />
-                </div>
+                {!this.props.isSelected() || this.props.PanelHeight() < 100 ? (null) :
+                    <div className="collectionTimeView-dragger" key="dragger" onPointerDown={this.onPointerDown} style={{ transform: `translate(${this._facetWidth}px, 0px)` }} >
+                        <span title="library View Dragger" style={{ width: "5px", position: "absolute", top: "0" }} />
+                    </div>
+                }
                 <div className="collectionTimeView-treeView" style={{ width: `${this._facetWidth}px`, overflow: this._facetWidth < 15 ? "hidden" : undefined }}>
                     <div className="collectionTimeView-addFacet" style={{ width: `${this._facetWidth}px` }} onPointerDown={e => e.stopPropagation()}>
                         <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={flyout}>
@@ -166,9 +242,12 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
                         <CollectionTreeView {...this.props} Document={facetCollection} />
                     </div>
                 </div>
-                <div className="collectionTimeView-pivot" key="pivot" style={{ width: this.bodyPanelWidth() }}>
-                    <CollectionFreeFormView  {...this.props} ScreenToLocalTransform={this.getTransform} PanelWidth={this.bodyPanelWidth} />
-                </div>
+                {this.contents}
+                {!this.props.isSelected() ? (null) : <>
+                    <div className="collectionTimeView-thumb-min collectionTimeView-thumb" key="min" onPointerDown={this.onMinDown} />
+                    <div className="collectionTimeView-thumb-max collectionTimeView-thumb" key="mid" onPointerDown={this.onMaxDown} />
+                    <div className="collectionTimeView-thumb-mid collectionTimeView-thumb" key="max" onPointerDown={this.onMidDown} />
+                </>}
             </div>;
     }
 }

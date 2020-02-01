@@ -749,33 +749,26 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     private viewDefToJSX(viewDef: any): Opt<ViewDefResult> {
+        const x = Cast(viewDef.x, "number");
+        const y = Cast(viewDef.y, "number");
+        const z = Cast(viewDef.z, "number");
+        const width = Cast(viewDef.width, "number", null);
+        const height = Cast(viewDef.height, "number", null);
         if (viewDef.type === "text") {
             const text = Cast(viewDef.text, "string"); // don't use NumCast, StrCast, etc since we want to test for undefined below
-            const x = Cast(viewDef.x, "number");
-            const y = Cast(viewDef.y, "number");
-            const z = Cast(viewDef.z, "number");
-            const width = Cast(viewDef.width, "number");
-            const height = Cast(viewDef.height, "number");
             const fontSize = Cast(viewDef.fontSize, "number");
-            return [text, x, y, width].some(val => val === undefined) ? undefined :
+            return [text, x, y].some(val => val === undefined) ? undefined :
                 {
                     ele: <div className="collectionFreeform-customText" key={(text || "") + x + y + z} style={{ width, height, fontSize, transform: `translate(${x}px, ${y}px)` }}>
                         {text}
                     </div>,
-                    bounds: { x: x!, y: y!, z: z, width: width!, height: height }
+                    bounds: { x: x!, y: y!, z: z, width, height: height }
                 };
         } else if (viewDef.type === "div") {
-            const x = Cast(viewDef.x, "number");
-            const y = Cast(viewDef.y, "number");
-            const z = Cast(viewDef.z, "number");
             const backgroundColor = Cast(viewDef.color, "string");
-            const width = Cast(viewDef.width, "number");
-            const height = Cast(viewDef.height, "number");
-            const fontSize = Cast(viewDef.fontSize, "number");
-            return [x, y, width].some(val => val === undefined) ? undefined :
+            return [x, y].some(val => val === undefined) ? undefined :
                 {
-                    ele: <div className="collectionFreeform-customDiv" key={"div" + x + y + z} style={{ width, height, fontSize, backgroundColor, transform: `translate(${x}px, ${y}px)` }}>
-                    </div>,
+                    ele: <div className="collectionFreeform-customDiv" key={"div" + x + y + z} style={{ width, height, backgroundColor, transform: `translate(${x}px, ${y}px)` }} />,
                     bounds: { x: x!, y: y!, z: z, width: width!, height: height }
                 };
         }

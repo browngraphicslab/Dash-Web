@@ -328,16 +328,15 @@ export function timenow() {
     return now.toLocaleDateString() + ' ' + h + ':' + m + ' ' + ampm;
 }
 
-export function aggregateBounds(boundsList: { x: number, y: number, width: number, height?: number }[], xpad: number, ypad: number) {
-    const bounds = boundsList.reduce((bounds, b) => {
-        const [sptX, sptY] = [b.x, b.y];
-        const [bptX, bptY] = [sptX + b.width, sptY + (b.height || 0)];
-        return {
-            x: Math.min(sptX, bounds.x), y: Math.min(sptY, bounds.y),
-            r: Math.max(bptX, bounds.r), b: Math.max(bptY, bounds.b)
-        };
-    }, { x: Number.MAX_VALUE, y: Number.MAX_VALUE, r: -Number.MAX_VALUE, b: -Number.MAX_VALUE });
-    return { x: bounds.x !== Number.MAX_VALUE ? bounds.x - xpad : bounds.x, y: bounds.y !== Number.MAX_VALUE ? bounds.y - ypad : bounds.y, r: bounds.r !== -Number.MAX_VALUE ? bounds.r + xpad : bounds.r, b: bounds.b !== -Number.MAX_VALUE ? bounds.b + ypad : bounds.b };
+export function aggregateBounds(boundsList: { x: number, y: number, width?: number, height?: number }[], xpad: number, ypad: number) {
+    const bounds = boundsList.map(b => ({ x: b.x, y: b.y, r: b.x + (b.width || 0), b: b.y + (b.height || 0) })).reduce((bounds, b) => ({
+        x: Math.min(b.x, bounds.x), y: Math.min(b.y, bounds.y),
+        r: Math.max(b.r, bounds.r), b: Math.max(b.b, bounds.b)
+    }), { x: Number.MAX_VALUE, y: Number.MAX_VALUE, r: -Number.MAX_VALUE, b: -Number.MAX_VALUE });
+    return {
+        x: bounds.x !== Number.MAX_VALUE ? bounds.x - xpad : bounds.x, y: bounds.y !== Number.MAX_VALUE ? bounds.y - ypad : bounds.y,
+        r: bounds.r !== -Number.MAX_VALUE ? bounds.r + xpad : bounds.r, b: bounds.b !== -Number.MAX_VALUE ? bounds.b + ypad : bounds.b
+    };
 }
 export function intersectRect(r1: { left: number, top: number, width: number, height: number },
     r2: { left: number, top: number, width: number, height: number }) {

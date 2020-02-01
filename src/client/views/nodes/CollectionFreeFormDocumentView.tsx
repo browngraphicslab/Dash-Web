@@ -27,8 +27,6 @@ export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
 
 @observer
 export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeFormDocumentViewProps, PositionDocument>(PositionDocument) {
-    _disposer: IReactionDisposer | undefined = undefined;
-
     @observable _animPos: number[] | undefined = undefined;
     get displayName() { return "CollectionFreeFormDocumentView(" + this.props.Document.title + ")"; } // this makes mobx trace() statements more descriptive
     get transform() { return `scale(${this.props.ContentScaling()}) translate(${this.X}px, ${this.Y}px) rotate(${anime.random(-1, 1) * this.props.jitterRotation}deg)`; }
@@ -58,14 +56,6 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         return undefined;
     }
 
-    componentWillUnmount() { this._disposer?.(); }
-    componentDidMount() {
-        this._disposer = reaction(() => Array.from(Cast(this.props.Document?.animateToPos, listSpec("number"), null) || []),
-            target => this._animPos = !target || !target?.length ? undefined : target[2] ? [NumCast(this.layoutDoc.x), NumCast(this.layoutDoc.y)] :
-                this.props.ScreenToLocalTransform().transformPoint(target[0], target[1]),
-            { fireImmediately: true });
-    }
-
     contentScaling = () => this.nativeWidth > 0 && !this.props.Document.ignoreAspect && !this.props.fitToBox ? this.width / this.nativeWidth : 1;
     clusterColorFunc = (doc: Doc) => this.clusterColor;
     panelWidth = () => (this.dataProvider?.width || this.props.PanelWidth());
@@ -76,7 +66,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
 
     @computed
     get clusterColor() { return this.props.backgroundColor(this.props.Document); }
-
+    focusDoc = (doc: Doc) => this.props.focus(doc, false);
     render() {
         TraceMobx();
         return <div className="collectionFreeFormDocumentView-container"
@@ -107,7 +97,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 DataDocument={this.props.DataDoc}
                 getTransform={this.getTransform}
                 active={returnFalse}
-                focus={(doc: Doc) => this.props.focus(doc, false)}
+                focus={this.focusDoc}
                 PanelWidth={this.panelWidth}
                 PanelHeight={this.panelHeight}
                 />}

@@ -969,10 +969,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const borderRounding = this.getLayoutPropStr("borderRounding");
         const localScale = fullDegree;
 
-        const animDims = this.Document.animateToDimensions ? Array.from(this.Document.animateToDimensions) : undefined;
-        const animheight = animDims ? animDims[1] : "100%";
-        const animwidth = animDims ? animDims[0] : "100%";
-
         const highlightColors = ["transparent", "maroon", "maroon", "yellow", "magenta", "cyan", "orange"];
         const highlightStyles = ["solid", "dashed", "solid", "solid", "solid", "solid", "solid"];
         let highlighting = fullDegree && this.layoutDoc.type !== DocumentType.FONTICON && this.layoutDoc._viewType !== CollectionViewType.Linear;
@@ -988,8 +984,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 border: highlighting && borderRounding ? `${highlightStyles[fullDegree]} ${highlightColors[fullDegree]} ${localScale}px` : undefined,
                 boxShadow: this.props.Document.isTemplateForField ? "black 0.2vw 0.2vw 0.8vw" : undefined,
                 background: this.layoutDoc.type === DocumentType.FONTICON || this.layoutDoc._viewType === CollectionViewType.Linear ? undefined : backgroundColor,
-                width: animwidth,
-                height: animheight,
+                width: "100%",
+                height: "100%",
                 opacity: this.Document.opacity
             }}>
             {this.innards}

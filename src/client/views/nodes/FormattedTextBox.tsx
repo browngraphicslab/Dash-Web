@@ -1044,7 +1044,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     @action
     tryUpdateHeight(limitHeight?: number) {
         let scrollHeight = this._ref.current?.scrollHeight;
-        if (!this.layoutDoc.animateToPos && this.layoutDoc._autoHeight && scrollHeight &&
+        if (this.layoutDoc._autoHeight && scrollHeight &&
             getComputedStyle(this._ref.current!.parentElement!).top === "0px") {  // if top === 0, then the text box is growing upward (as the overlay caption) which doesn't contribute to the height computation
             if (limitHeight && scrollHeight > limitHeight) {
                 scrollHeight = limitHeight;
