@@ -33,33 +33,17 @@ export class Track extends React.Component<IProps> {
     @observable private _onKeyframe: (Doc | undefined) = undefined;
     @observable private _onRegionData: (Doc | undefined) = undefined;
     @observable private _storedState: (Doc | undefined) = undefined;
-    @observable private filterList = [
-        "regions",
-        "cursors",
-        "hidden",
-        "nativeHeight",
-        "nativeWidth",
-        "schemaColumns",
-        "baseLayout",
-        "backgroundLayout",
-        "layout",
-        "title",
-        "AnimationLength",
-        "author",
-        "baseProto",
-        "creationDate",
-        "isATOn",
-        "isPrototype",
-        "lastOpened",
-        "proto",
-        "type",
-        "zIndex"
-    ];
-
     private readonly MAX_TITLE_HEIGHT = 75;
     private _trackHeight = 0;
-
+    private whitelist = [
+        "x",
+        "y",
+        "width",
+        "height",
+        "data"
+    ];
     @computed private get regions() { return Cast(this.props.node.regions, listSpec(Doc)) as List<Doc>; }
+    // @computed private get time() {}
 
     ////////// life cycle functions///////////////
     componentWillMount() {
@@ -78,7 +62,7 @@ export class Track extends React.Component<IProps> {
             if (this.regions.length === 0) this.createRegion(KeyframeFunc.convertPixelTime(this.props.currentBarX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement));
             this.props.node.hidden = false;
             this.props.node.opacity = 1;
-            this.autoCreateKeyframe();
+           // this.autoCreateKeyframe(); 
         });
     }
 
@@ -130,13 +114,6 @@ export class Track extends React.Component<IProps> {
     }
 
 
-    private whitelist = [
-        "x",
-        "y",
-        "width",
-        "height",
-        "data"
-    ]
     /**
      * autocreates keyframe
      */
@@ -146,22 +123,20 @@ export class Track extends React.Component<IProps> {
         return reaction(() => {
             return this.whitelist.map(key => node[key]);
         }, (changed, reaction) => {
+            console.log(changed); 
             //convert scrubber pos(pixel) to time
             let time = KeyframeFunc.convertPixelTime(this.props.currentBarX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement);
             //check for region 
             this.findRegion(time).then((region) => {
-                console.log(changed);
+                if (region !== undefined){ //if region at scrub time exist
+                    let r = region as any as RegionData; //for some region is returning undefined... which is not the case
+                    if (DocListCast(r.keyframes).find(kf => kf.time === time) === undefined ){ //basically when there is no additional keyframe at that timespot 
+                        KeyframeFunc.makeKeyData(r, time, this.props.node, KeyframeFunc.KeyframeType.default); 
+                    } 
+                }
+                // reaction.dispose(); 
             });
-
-
-            // if (region !== undefined){ //if region at scrub time exist
-            //     if (DocListCast(region!.keyframes).find(kf => {return kf.time === time}) === undefined ){
-            //        console.log("change has occured");
-            //     } 
-            // }
-            //reaction.dispose(); 
         });
-
     }
 
     /**
@@ -186,7 +161,7 @@ export class Track extends React.Component<IProps> {
             let regiondata: (Doc | undefined) = await this.findRegion(KeyframeFunc.convertPixelTime(this.props.currentBarX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement));
             if (regiondata) {
                 this.props.node.hidden = false;
-                //await this.timeChange(KeyframeFunc.convertPixelTime(this.props.currentBarX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement));
+                await this.timeChange(KeyframeFunc.convertPixelTime(this.props.currentBarX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement));
             } else {
                 this.props.node.hidden = true;
                 this.props.node.opacity = 0;
@@ -267,19 +242,6 @@ export class Track extends React.Component<IProps> {
     }
 
 
-
-    /**
-     * changing the filter here 
-     */
-    @action
-    private filterKeys = (keys: string[]): string[] => {
-        return keys.reduce((acc: string[], key: string) => {
-            if (!this.filterList.includes(key)) acc.push(key);
-            return acc;
-        }, []);
-    }
-
-
     /**
      *  calculating current keyframe, if the scrubber is right on the keyframe
      */
@@ -302,50 +264,52 @@ export class Track extends React.Component<IProps> {
     interpolate = async (left: Doc, right: Doc, regiondata: Doc) => {
         let leftNode = left.key as Doc;
         let rightNode = right.key as Doc;
-        const dif_time = NumCast(right.time) - NumCast(left.time);
-        const timeratio = (KeyframeFunc.convertPixelTime(this.props.currentBarX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement) - NumCast(left.time)) / dif_time; //linear 
-        let keyframes = (await DocListCastAsync(regiondata.keyframes!))!;
-        let indexLeft = keyframes.indexOf(left);
-        let interY: List<number> = (await ((regiondata.functions as List<Doc>)[indexLeft] as Doc).interpolationY as List<number>)!;
-        let realIndex = (interY.length - 1) * timeratio;
-        let xIndex = Math.floor(realIndex);
-        let yValue = interY[xIndex];
-        let secondYOffset: number = yValue;
-        let minY = interY[0];  // for now
-        let maxY = interY[interY.length - 1]; //for now 
-        if (interY.length !== 1) {
-            secondYOffset = interY[xIndex] + ((realIndex - xIndex) / 1) * (interY[xIndex + 1] - interY[xIndex]) - minY;
-        }
-        let finalRatio = secondYOffset / (maxY - minY);
-        let pathX: List<number> = await ((regiondata.functions as List<Doc>)[indexLeft] as Doc).pathX as List<number>;
-        let pathY: List<number> = await ((regiondata.functions as List<Doc>)[indexLeft] as Doc).pathY as List<number>;
-        let proposedX = 0;
-        let proposedY = 0;
-        if (pathX.length !== 0) {
-            let realPathCorrespondingIndex = finalRatio * (pathX.length - 1);
-            let pathCorrespondingIndex = Math.floor(realPathCorrespondingIndex);
-            if (pathCorrespondingIndex >= pathX.length - 1) {
-                proposedX = pathX[pathX.length - 1];
-                proposedY = pathY[pathY.length - 1];
-            } else if (pathCorrespondingIndex < 0) {
-                proposedX = pathX[0];
-                proposedY = pathY[0];
-            } else {
-                proposedX = pathX[pathCorrespondingIndex] + ((realPathCorrespondingIndex - pathCorrespondingIndex) / 1) * (pathX[pathCorrespondingIndex + 1] - pathX[pathCorrespondingIndex]);
-                proposedY = pathY[pathCorrespondingIndex] + ((realPathCorrespondingIndex - pathCorrespondingIndex) / 1) * (pathY[pathCorrespondingIndex + 1] - pathY[pathCorrespondingIndex]);
-            }
+        // const dif_time = NumCast(right.time) - NumCast(left.time);
+        // const timeratio = (KeyframeFunc.convertPixelTime(this.props.currentBarX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement) - NumCast(left.time)) / dif_time; //linear 
+        // let keyframes = (await DocListCastAsync(regiondata.keyframes!))!;
+        // let indexLeft = keyframes.indexOf(left);
+        // let interY: List<number> = (await ((regiondata.functions as List<Doc>)[indexLeft] as Doc).interpolationY as List<number>)!;
+        // let realIndex = (interY.length - 1) * timeratio;
+        // let xIndex = Math.floor(realIndex);
+        // let yValue = interY[xIndex];
+        // let secondYOffset: number = yValue;
+        // let minY = interY[0];  // for now
+        // let maxY = interY[interY.length - 1]; //for now 
+        // if (interY.length !== 1) {
+        //     secondYOffset = interY[xIndex] + ((realIndex - xIndex) / 1) * (interY[xIndex + 1] - interY[xIndex]) - minY;
+        // }
+        // let finalRatio = secondYOffset / (maxY - minY);
+        // let pathX: List<number> = await ((regiondata.functions as List<Doc>)[indexLeft] as Doc).pathX as List<number>;
+        // let pathY: List<number> = await ((regiondata.functions as List<Doc>)[indexLeft] as Doc).pathY as List<number>;
+        // let proposedX = 0;
+        // let proposedY = 0;
+        // if (pathX.length !== 0) {
+        //     let realPathCorrespondingIndex = finalRatio * (pathX.length - 1);
+        //     let pathCorrespondingIndex = Math.floor(realPathCorrespondingIndex);
+        //     if (pathCorrespondingIndex >= pathX.length - 1) {
+        //         proposedX = pathX[pathX.length - 1];
+        //         proposedY = pathY[pathY.length - 1];
+        //     } else if (pathCorrespondingIndex < 0) {
+        //         proposedX = pathX[0];
+        //         proposedY = pathY[0];
+        //     } else {
+        //         proposedX = pathX[pathCorrespondingIndex] + ((realPathCorrespondingIndex - pathCorrespondingIndex) / 1) * (pathX[pathCorrespondingIndex + 1] - pathX[pathCorrespondingIndex]);
+        //         proposedY = pathY[pathCorrespondingIndex] + ((realPathCorrespondingIndex - pathCorrespondingIndex) / 1) * (pathY[pathCorrespondingIndex + 1] - pathY[pathCorrespondingIndex]);
+        //     }
 
-        }
-        this.filterKeys(Doc.allKeys(leftNode)).forEach(key => {
+        // }
+        this.whitelist.forEach(key => {
             if (leftNode[key] && rightNode[key] && typeof (leftNode[key]) === "number" && typeof (rightNode[key]) === "number") { //if it is number, interpolate
-                if ((key === "x" || key === "y") && pathX.length !== 0) {
-                    if (key === "x") this.props.node[key] = proposedX;
-                    if (key === "y") this.props.node[key] = proposedY;
-                } else {
-                    const diff = NumCast(rightNode[key]) - NumCast(leftNode[key]);
-                    const adjusted = diff * finalRatio;
-                    this.props.node[key] = NumCast(leftNode[key]) + adjusted;
-                }
+                // if ((key === "x" || key === "y") && pathX.length !== 0) {
+                //     if (key === "x") this.props.node[key] = proposedX;
+                //     if (key === "y") this.props.node[key] = proposedY;
+                // } else {
+                //     const diff = NumCast(rightNode[key]) - NumCast(leftNode[key]);
+                //     const adjusted = diff * finalRatio;
+                //     this.props.node[key] = NumCast(leftNode[key]) + adjusted;
+                // }
+                let dif = NumCast(rightNode[key]) - NumCast(leftNode[key]); 
+                
             } else {
                 let stored = leftNode[key];
                 if (stored instanceof ObjectField) {

@@ -99,6 +99,7 @@ export namespace KeyframeFunc {
 
     export const makeKeyData = async (regiondata:RegionData, time: number, badNode:Doc, type: KeyframeFunc.KeyframeType = KeyframeFunc.KeyframeType.default) => { //Kfpos is mouse offsetX, representing time 
         runInAction(async () => {
+            console.log("ran"); 
             let doclist = (await DocListCastAsync(regiondata.keyframes))!;
             let existingkf: (Doc | undefined) = undefined;
             doclist.forEach(TK => {
