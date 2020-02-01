@@ -449,6 +449,9 @@ export class Timeline extends React.Component<FieldViewProps> {
         // let overviewString: string = "Overview:";
         // let lengthString: string = "Length: ";
 
+        console.log("visible: " + this._visibleLength)
+        console.log("total: " + this._totalLength)
+
         return (
             <div key="timeline_toolbox" className="timeline-toolbox" style={{ height: `${size}px` }}>
                 <div className="playbackControls">
@@ -459,7 +462,7 @@ export class Timeline extends React.Component<FieldViewProps> {
                 <div className="grid-box overview-tool">
                     <div className="overview-box">
                         <div key="overview-text" className="animation-text">{overviewString}</div>
-                        <TimelineOverview parent={this} isAuthoring={BoolCast(this.props.Document.isATOn)} currentBarX={this._currentBarX} totalLength={this._totalLength} visibleLength={this._visibleLength} visibleStart={this._visibleStart} changeCurrentBarX={this.changeCurrentBarX} movePanX={this.movePanX} />
+                        <TimelineOverview panelWidth={this._panelWidth} parent={this} isAuthoring={BoolCast(this.props.Document.isATOn)} currentBarX={this._currentBarX} totalLength={this._totalLength} visibleLength={this._visibleLength} visibleStart={this._visibleStart} changeCurrentBarX={this.changeCurrentBarX} movePanX={this.movePanX} />
                     </div>
                     <div className="mode-box overview-tool">
                         <div key="animation-text" className="animation-text">{modeString}</div>
@@ -551,17 +554,28 @@ export class Timeline extends React.Component<FieldViewProps> {
 
     }
 
+    @action.bound
+    changeLenths() {
+        if (this._infoContainer.current) {
+            this._visibleLength = this._infoContainer.current!.getBoundingClientRect().width; //the visible length of the timeline (the length that you current see)
+            this._visibleStart = this._infoContainer.current!.scrollLeft; //where the div starts
+        }
+    }
+
 
     /**
      * if you have any question here, just shoot me an email or text. 
      * basically the only thing you need to edit besides render methods in track (individual track lines) and keyframe (green region)
      */
     render() {
-        console.log(this.props.PanelWidth());
+        // console.log(this.props.PanelWidth());
         runInAction(() => {
             this._panelWidth = this.props.PanelWidth();
+            this.changeLenths();
             console.log("changing!!")
         });
+
+        // change visible and total width
         return (
             <div>
                 <div style={{ visibility: this._timelineVisible ? "visible" : "hidden" }}>
