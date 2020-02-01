@@ -1,94 +1,94 @@
-@import "./../globalCssVariables.scss"; 
+@import "./../globalCssVariables.scss";
+
+
+$timelineColor: #9acedf;
+$timelineDark: #77a1aa;
 
 .bar {
     height: 100%;
     width: 5px;
     position: absolute;
-    
+
     // pointer-events: none; 
     .menubox {
-        width: 200px; 
-        height:200px;
+        width: 200px;
+        height: 200px;
         top: 50%;
-        position: relative; 
-        background-color: $light-color; 
-        .menutable{
-            tr:nth-child(odd){
-                background-color:$light-color-secondary;
+        position: relative;
+        background-color: $light-color;
+
+        .menutable {
+            tr:nth-child(odd) {
+                background-color: $light-color-secondary;
             }
         }
     }
 
-    .leftResize{
-        left:-12.5px; 
-        height:25px; 
-        width:25px; 
-        border-radius: 50%; 
+    .leftResize {
+        left: -10px;
+        border: 3px solid black;
+    }
+
+    .rightResize {
+        right: -10px;
+        border: 3px solid black;
+    }
+
+    .keyframe-indicator {
+        height: 20px;
+        width: 20px;
+        top: calc(50% - 10px);
         background-color: white;
-        border:3px solid black;
-        top: calc(50% - 12.5px); 
-        z-index: 1000; 
-        position:absolute; 
-    }
-    .rightResize{
-        right:-12.5px; 
-        height:25px; 
-        width:25px; 
-        border-radius: 50%; 
-        top:calc(50% - 12.5px); 
-        background-color:white; 
-        border:3px solid black;
-        z-index: 1000; 
-        position:absolute; 
-    }
-    .fadeLeft{
-        left:0px; 
-        height:100%; 
-        position:absolute; 
-        pointer-events: none; 
-        background: linear-gradient(to left, #4d9900 10%,  $light-color);
+        -ms-transform: rotate(45deg);
+        -webkit-transform: rotate(45deg);
+        transform: rotate(45deg);
+        z-index: 1000;
+        position: absolute;
     }
 
-    .fadeRight{
-        right:0px; 
-        height:100%; 
-        position:absolute; 
-        pointer-events: none; 
-        background: linear-gradient(to right, #4d9900 10%,  $light-color);
-    }
-    .divider{
-        height:100%; 
-        width: 1px; 
-        position: absolute; 
-        background-color:black; 
-        cursor: col-resize; 
-        pointer-events:none; 
-    }
-    .keyframe{
-        height:100%; 
-        position:absolute;
-    }
-    .keyframeCircle{        
-        left:-15px;         
-        height:30px; 
-        width:30px; 
-        border-radius: 50%; 
-        top:calc(50% - 15px); 
-        background-color:white; 
-        border:3px solid green;
-        z-index: 1000; 
-        position:absolute; 
+    .keyframeCircle {
+        left: -10px;
+        border: 3px solid $timelineDark;
     }
 
-    .fadeIn-container, .fadeOut-container, .body-container{
-        position:absolute; 
-        height:100%; 
+    .fadeLeft {
+        left: 0px;
+        height: 100%;
+        position: absolute;
+        pointer-events: none;
+        background: linear-gradient(to left, $timelineColor 10%, $light-color);
+    }
+
+    .fadeRight {
+        right: 0px;
+        height: 100%;
+        position: absolute;
+        pointer-events: none;
+        background: linear-gradient(to right, $timelineColor 10%, $light-color);
+    }
+
+    .divider {
+        height: 100%;
+        width: 1px;
+        position: absolute;
+        background-color: black;
+        cursor: col-resize;
+        pointer-events: none;
+    }
+
+    .keyframe {
+        height: 100%;
+        position: absolute;
+    }
+
+    .fadeIn-container,
+    .fadeOut-container,
+    .body-container {
+        position: absolute;
+        height: 100%;
         background-color: rgba(0, 0, 0, 0.5);
-        opacity: 0; 
+        opacity: 0;
     }
- 
+
 
 }
-    
-
-

@@ -4,6 +4,7 @@ import { observer } from "mobx-react";
 import "./TimelineOverview.scss";
 import * as $ from 'jquery';
 import { Timeline } from "./Timeline";
+import { Keyframe, KeyframeFunc } from "./Keyframe";
 
 
 interface TimelineOverviewProps {
@@ -15,7 +16,9 @@ interface TimelineOverviewProps {
     parent: Timeline;
     changeCurrentBarX: (pixel: number) => void;
     movePanX: (pixel: number) => any;
-    panelWidth: number;
+    time: number;
+    tickSpacing: number;
+    tickIncrement: number;
 }
 
 
@@ -25,7 +28,9 @@ export class TimelineOverview extends React.Component<TimelineOverviewProps>{
     @observable private _scrubberRef = React.createRef<HTMLDivElement>();
     @observable private overviewBarWidth: number = 0;
     @observable private _authoringReaction?: IReactionDisposer;
-    @observable private _resizeReaction?: IReactionDisposer;
+    @observable private visibleTime: number = 0;
+    @observable private currentX: number = 0;
+    @observable private visibleStart: number = 0;
     private readonly DEFAULT_HEIGHT = 50;
     private readonly DEFAULT_WIDTH = 300;
 
@@ -42,22 +47,10 @@ export class TimelineOverview extends React.Component<TimelineOverviewProps>{
                 }
             },
         );
-        // this._resizeReaction = reaction(
-        //     () => this.props.parent.props.PanelWidth,
-        //     () => {
-        //         // if (!this.props.parent._isAuthoring) {
-        //         // runInAction(() => {
-        //         console.log("resizing");
-        //         this.setOverviewWidth();
-        //         // });
-        //         // }
-        //     },
-        // );
     }
 
     componentWillUnmount = () => {
         this._authoringReaction && this._authoringReaction();
-        this._resizeReaction && this._resizeReaction();
     }
 
     @action
@@ -85,8 +78,6 @@ export class TimelineOverview extends React.Component<TimelineOverviewProps>{
         // let movX = (this.props.visibleStart / this.props.totalLength) * (this.overviewWidth) + e.movementX;
         this.props.movePanX((movX / (this.DEFAULT_WIDTH)) * this.props.totalLength);
         // this.props.movePanX((movX / (this.overviewWidth) * this.props.totalLength);
-
-        // console.log(this.props.totalLength);
     }
 
     @action
@@ -125,18 +116,36 @@ export class TimelineOverview extends React.Component<TimelineOverviewProps>{
         document.removeEventListener("pointerup", this.onScrubberUp);
     }
 
+    @action
+    getTimes() {
+        let vis = KeyframeFunc.convertPixelTime(this.props.visibleLength, "mili", "time", this.props.tickSpacing, this.props.tickIncrement);
+        let x = KeyframeFunc.convertPixelTime(this.props.currentBarX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement);
+        let start = KeyframeFunc.convertPixelTime(this.props.visibleStart, "mili", "time", this.props.tickSpacing, this.props.tickIncrement);
+        this.visibleTime = vis;
+        this.currentX = x;
+        this.visibleStart = start;
+    }
+
     render() {
 
-        console.log("helo")
+        this.getTimes();
         // calculates where everything should fall based on its size
-        let percentVisible = this.props.visibleLength / this.props.totalLength;
-        console.log(this.props.visibleLength)
+        // let percentVisible = this.props.visibleLength / this.props.totalLength;
+        // let visibleBarWidth = percentVisible * this.overviewBarWidth;
+
+        // let percentScrubberStart = this.props.currentBarX / this.props.totalLength;
+        // let scrubberStart = percentScrubberStart * this.overviewBarWidth;
+
+        // let percentBarStart = this.props.visibleStart / this.props.totalLength;
+        // let barStart = percentBarStart * this.overviewBarWidth;
+
+        let percentVisible = this.visibleTime / this.props.time;
         let visibleBarWidth = percentVisible * this.overviewBarWidth;
 
-        let percentScrubberStart = this.props.currentBarX / this.props.totalLength;
+        let percentScrubberStart = this.currentX / this.props.time;
         let scrubberStart = percentScrubberStart * this.overviewBarWidth;
 
-        let percentBarStart = this.props.visibleStart / this.props.totalLength;
+        let percentBarStart = this.visibleStart / this.props.time;
         let barStart = percentBarStart * this.overviewBarWidth;
 
         let timeline = this.props.isAuthoring ? [

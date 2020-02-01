@@ -120,18 +120,6 @@ export class Timeline extends React.Component<FieldViewProps> {
             this.toggleHandle();
         });
 
-        this._resizeReaction = reaction(
-            () => this.props.PanelWidth,
-            () => {
-                // if (!this.props.parent._isAuthoring) {
-                // runInAction(() => {
-                console.log("resizing");
-                // this.setOverviewWidth();
-                // });
-                // }
-            },
-        );
-
     }
 
     componentWillUnmount() {
@@ -443,15 +431,6 @@ export class Timeline extends React.Component<FieldViewProps> {
             lengthString = "";
         }
 
-
-        // let modeType: string = this.props.Document.isATOn ? "Author" : "Play";
-        // let modeString: string = "Mode: " + modeType;
-        // let overviewString: string = "Overview:";
-        // let lengthString: string = "Length: ";
-
-        console.log("visible: " + this._visibleLength)
-        console.log("total: " + this._totalLength)
-
         return (
             <div key="timeline_toolbox" className="timeline-toolbox" style={{ height: `${size}px` }}>
                 <div className="playbackControls">
@@ -462,7 +441,7 @@ export class Timeline extends React.Component<FieldViewProps> {
                 <div className="grid-box overview-tool">
                     <div className="overview-box">
                         <div key="overview-text" className="animation-text">{overviewString}</div>
-                        <TimelineOverview panelWidth={this._panelWidth} parent={this} isAuthoring={BoolCast(this.props.Document.isATOn)} currentBarX={this._currentBarX} totalLength={this._totalLength} visibleLength={this._visibleLength} visibleStart={this._visibleStart} changeCurrentBarX={this.changeCurrentBarX} movePanX={this.movePanX} />
+                        <TimelineOverview tickSpacing={this._tickSpacing} tickIncrement={this._tickIncrement} time={this._time} parent={this} isAuthoring={BoolCast(this.props.Document.isATOn)} currentBarX={this._currentBarX} totalLength={this._totalLength} visibleLength={this._visibleLength} visibleStart={this._visibleStart} changeCurrentBarX={this.changeCurrentBarX} movePanX={this.movePanX} />
                     </div>
                     <div className="mode-box overview-tool">
                         <div key="animation-text" className="animation-text">{modeString}</div>
@@ -572,7 +551,6 @@ export class Timeline extends React.Component<FieldViewProps> {
         runInAction(() => {
             this._panelWidth = this.props.PanelWidth();
             this.changeLenths();
-            console.log("changing!!")
         });
 
         // change visible and total width

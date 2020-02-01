@@ -93,11 +93,11 @@ export namespace KeyframeFunc {
         regiondata.fadeIn = 1000;
         regiondata.fadeOut = 1000;
         regiondata.functions = new List<Doc>();
-        regiondata.hasData = false; 
+        regiondata.hasData = false;
         return regiondata;
     };
 
-    export const makeKeyData = async (regiondata:RegionData, time: number, badNode:Doc, type: KeyframeFunc.KeyframeType = KeyframeFunc.KeyframeType.default) => { //Kfpos is mouse offsetX, representing time 
+    export const makeKeyData = async (regiondata: RegionData, time: number, badNode: Doc, type: KeyframeFunc.KeyframeType = KeyframeFunc.KeyframeType.default) => { //Kfpos is mouse offsetX, representing time 
         runInAction(async () => {
             let doclist = (await DocListCastAsync(regiondata.keyframes))!;
             let existingkf: (Doc | undefined) = undefined;
@@ -155,7 +155,7 @@ export const RegionDataSchema = createSchema({
     keyframes: listSpec(Doc),
     fadeIn: defaultSpec("number", 0),
     fadeOut: defaultSpec("number", 0),
-    functions: listSpec(Doc), 
+    functions: listSpec(Doc),
     hasData: defaultSpec("boolean", false)
 });
 export type RegionData = makeInterface<[typeof RegionDataSchema]>;
@@ -212,7 +212,7 @@ export class Keyframe extends React.Component<IProps> {
     @computed private get pixelDuration() { return KeyframeFunc.convertPixelTime(this.regiondata.duration, "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement); }
     @computed private get pixelFadeIn() { return KeyframeFunc.convertPixelTime(this.regiondata.fadeIn, "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement); }
     @computed private get pixelFadeOut() { return KeyframeFunc.convertPixelTime(this.regiondata.fadeOut, "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement); }
-   
+
     componentWillMount() {
         runInAction(async () => {
             if (!this.regiondata.keyframes) this.regiondata.keyframes = new List<Doc>();
@@ -228,7 +228,7 @@ export class Keyframe extends React.Component<IProps> {
         });
     }
 
-    
+
 
 
     @action
@@ -313,10 +313,10 @@ export class Keyframe extends React.Component<IProps> {
         } else if (NumCast(this.keyframes[1].time) + offset >= NumCast(this.keyframes[2].time)) {
             this.regiondata.position = NumCast(this.keyframes[2].time) - this.regiondata.fadeIn;
             this.regiondata.duration = NumCast(this.keyframes[this.keyframes.length - 1].time) - NumCast(this.keyframes[2].time) + this.regiondata.fadeIn;
-        } else if (NumCast(this.keyframes[0].time) + offset <= 0){
-            this.regiondata.position = 0; 
-            this.regiondata.duration = NumCast(this.keyframes[this.keyframes.length - 1].time); 
-        }else {
+        } else if (NumCast(this.keyframes[0].time) + offset <= 0) {
+            this.regiondata.position = 0;
+            this.regiondata.duration = NumCast(this.keyframes[this.keyframes.length - 1].time);
+        } else {
             this.regiondata.duration -= offset;
             this.regiondata.position += offset;
         }
@@ -353,9 +353,9 @@ export class Keyframe extends React.Component<IProps> {
         if (offset > this.regiondata.fadeIn && offset < this.regiondata.duration - this.regiondata.fadeOut) { //make sure keyframe is not created inbetween fades and ends
             let position = this.regiondata.position;
             await KeyframeFunc.makeKeyData(this.regiondata, Math.round(position + offset), this.props.node);
-            this.regiondata.hasData = true; 
+            this.regiondata.hasData = true;
             this.props.changeCurrentBarX(KeyframeFunc.convertPixelTime(Math.round(position + offset), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement)); //first move the keyframe to the correct location and make a copy so the correct file gets coppied
-        
+
         }
     }
 
@@ -386,15 +386,15 @@ export class Keyframe extends React.Component<IProps> {
             }),
             TimelineMenu.Instance.addItem("input", "Move", (val) => {
                 runInAction(() => {
-                        let cannotMove: boolean = false;
-                        let kfIndex: number = this.keyframes.indexOf(kf);
-                        if (val < 0 || (val < NumCast(this.keyframes[kfIndex - 1].time) || val > NumCast(this.keyframes[kfIndex + 1].time))) {
-                            cannotMove = true;
-                        }
-                        if (!cannotMove) {
-                            this.keyframes[kfIndex].time = parseInt(val, 10);
-                            this.keyframes[1].time = this.regiondata.position + this.regiondata.fadeIn;
-                        }
+                    let cannotMove: boolean = false;
+                    let kfIndex: number = this.keyframes.indexOf(kf);
+                    if (val < 0 || (val < NumCast(this.keyframes[kfIndex - 1].time) || val > NumCast(this.keyframes[kfIndex + 1].time))) {
+                        cannotMove = true;
+                    }
+                    if (!cannotMove) {
+                        this.keyframes[kfIndex].time = parseInt(val, 10);
+                        this.keyframes[1].time = this.regiondata.position + this.regiondata.fadeIn;
+                    }
                 });
             });
         TimelineMenu.Instance.addMenu("Keyframe");
@@ -406,22 +406,22 @@ export class Keyframe extends React.Component<IProps> {
      */
     @action
     makeRegionMenu = (kf: Doc, e: MouseEvent) => {
-            TimelineMenu.Instance.addItem("button", "Remove Region", () => {
-                runInAction(() => {
-                    this.regions.splice(this.regions.indexOf(this.props.RegionData), 1);
-                }
-                );
-            }),
+        TimelineMenu.Instance.addItem("button", "Remove Region", () => {
+            runInAction(() => {
+                this.regions.splice(this.regions.indexOf(this.props.RegionData), 1);
+            }
+            );
+        }),
             TimelineMenu.Instance.addItem("input", `fadeIn: ${this.regiondata.fadeIn}ms`, (val) => {
                 runInAction(() => {
-                        let cannotMove: boolean = false;
-                        if (val < 0 || val > NumCast(this.keyframes[2].time) - this.regiondata.position) {
-                            cannotMove = true;
-                        }
-                        if (!cannotMove) {
-                            this.regiondata.fadeIn = parseInt(val, 10);
-                            this.keyframes[1].time = this.regiondata.position + this.regiondata.fadeIn;
-                        }
+                    let cannotMove: boolean = false;
+                    if (val < 0 || val > NumCast(this.keyframes[2].time) - this.regiondata.position) {
+                        cannotMove = true;
+                    }
+                    if (!cannotMove) {
+                        this.regiondata.fadeIn = parseInt(val, 10);
+                        this.keyframes[1].time = this.regiondata.position + this.regiondata.fadeIn;
+                    }
                 });
             }),
             TimelineMenu.Instance.addItem("input", `fadeOut: ${this.regiondata.fadeOut}ms`, (val) => {
@@ -507,7 +507,7 @@ export class Keyframe extends React.Component<IProps> {
         div.style.opacity = "0";
         Doc.UnBrushDoc(this.props.node);
     }
-  
+
 
     ///////////////////////UI STUFF /////////////////////////
 
@@ -524,7 +524,7 @@ export class Keyframe extends React.Component<IProps> {
                 keyframeDivs.push(
                     <div className="keyframe" style={{ left: `${KeyframeFunc.convertPixelTime(NumCast(kf.time), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement) - this.pixelPosition}px` }}>
                         <div className="divider"></div>
-                        <div className="keyframeCircle" onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); this.moveKeyframe(e, kf); }} onContextMenu={(e: React.MouseEvent) => {
+                        <div className="keyframeCircle keyframe-indicator" onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); this.moveKeyframe(e, kf); }} onContextMenu={(e: React.MouseEvent) => {
                             e.preventDefault();
                             e.stopPropagation();
                             this.makeKeyframeMenu(kf, e.nativeEvent);
@@ -577,18 +577,19 @@ export class Keyframe extends React.Component<IProps> {
     /**
      * rendering that green region
      */
+    //154, 206, 223
     render() {
         return (
             <div>
                 <div className="bar" ref={this._bar} style={{
                     transform: `translate(${this.pixelPosition}px)`,
                     width: `${this.pixelDuration}px`,
-                    background: `linear-gradient(90deg, rgba(77, 153, 0, 0) 0%, rgba(77, 153, 0, 1) ${this.pixelFadeIn / this.pixelDuration * 100}%, rgba(77, 153, 0, 1) ${(this.pixelDuration - this.pixelFadeOut) / this.pixelDuration * 100}%, rgba(77, 153, 0, 0) 100% )`
+                    background: `linear-gradient(90deg, rgba(154, 206, 223, 0) 0%, rgba(154, 206, 223, 1) ${this.pixelFadeIn / this.pixelDuration * 100}%, rgba(154, 206, 223, 1) ${(this.pixelDuration - this.pixelFadeOut) / this.pixelDuration * 100}%, rgba(154, 206, 223, 0) 100% )`
                 }}
                     onPointerDown={this.onBarPointerDown
                     }>
-                    <div className="leftResize" onPointerDown={this.onResizeLeft} ></div>
-                    <div className="rightResize" onPointerDown={this.onResizeRight}></div>
+                    <div className="leftResize keyframe-indicator" onPointerDown={this.onResizeLeft} ></div>
+                    <div className="rightResize keyframe-indicator" onPointerDown={this.onResizeRight}></div>
                     {this.drawKeyframes()}
                     {this.drawKeyframeDividers()}
                 </div>

@@ -66,7 +66,7 @@ export class Track extends React.Component<IProps> {
         runInAction(() => {
             if (!this.props.node.regions) this.props.node.regions = new List<Doc>(); //if there is no region, then create new doc to store stuff
             //these two lines are exactly same from timeline.tsx 
-            let relativeHeight = window.innerHeight / 14;
+            let relativeHeight = window.innerHeight / 20;
             this._trackHeight = relativeHeight < this.MAX_TITLE_HEIGHT ? relativeHeight : this.MAX_TITLE_HEIGHT; //for responsiveness
         });
     }
