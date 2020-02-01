@@ -35,6 +35,7 @@ import { ComputedField } from '../../../new_fields/ScriptField';
 import { InteractionUtils } from '../../util/InteractionUtils';
 import { TraceMobx } from '../../../new_fields/util';
 import { Scripting } from '../../util/Scripting';
+import { PresElementBox } from '../presentationview/PresElementBox';
 library.add(faFile);
 const _global = (window /* browser */ || global /* node */) as any;
 
@@ -326,7 +327,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     componentDidMount: () => void = () => {
         if (this._containerRef.current) {
             this.reactionDisposer = reaction(
-                () => StrCast(this.props.Document.dockingConfig),
+                () => this.props.Document.dockingConfig,
                 () => {
                     if (!this._goldenLayout || this._ignoreStateChange !== JSON.stringify(this._goldenLayout.toConfig())) {
                         // Because this is in a set timeout, if this component unmounts right after mounting,
@@ -643,15 +644,9 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         //add this new doc to props.Document
         const curPres = Cast(CurrentUserUtils.UserDocument.curPresentation, Doc) as Doc;
         if (curPres) {
-            const pinDoc = Docs.Create.PresElementBoxDocument({ backgroundColor: "transparent", _xMargin: 5 });
-            Doc.GetProto(pinDoc).presentationTargetDoc = doc;
-            Doc.GetProto(pinDoc).title = ComputedField.MakeFunction('(this.presentationTargetDoc instanceof Doc) && this.presentationTargetDoc.title?.toString()');
-            const data = Cast(curPres.data, listSpec(Doc));
-            if (data) {
-                data.push(pinDoc);
-            } else {
-                curPres.data = new List([pinDoc]);
-            }
+            const pinDoc = Doc.MakeAlias(doc);
+            pinDoc.presentationTargetDoc = doc;
+            Doc.AddDocToList(curPres, "data", pinDoc);
             if (!DocumentManager.Instance.getDocumentView(curPres)) {
                 this.addDocTab(curPres, undefined, "onRight");
             }

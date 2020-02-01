@@ -259,8 +259,10 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
                 .catch((err: any) => console.log(err));
         } else if (this.Document._nativeHeight !== cachedNativeSize.width || this.Document._nativeWidth !== cachedNativeSize.height) {
             !(this.Document[StrCast(this.props.Document.layoutKey)] instanceof Doc) && setTimeout(() => {
-                this.Document._nativeWidth = cachedNativeSize.width;
-                this.Document._nativeHeight = cachedNativeSize.height;
+                if (!(this.Document[StrCast(this.props.Document.layoutKey)] instanceof Doc)) {
+                    this.Document._nativeWidth = cachedNativeSize.width;
+                    this.Document._nativeHeight = cachedNativeSize.height;
+                }
             }, 0);
         }
     }

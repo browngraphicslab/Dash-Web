@@ -81,6 +81,11 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         return this.props.DataDoc instanceof Promise ? undefined : this.props.DataDoc;
     }
     get layoutDoc() {
+        if (this.props.DataDoc === undefined && typeof Doc.LayoutField(this.props.Document) !== "string") {
+            // if there is no dataDoc (ie, we're not rendering a template layout), but this document has a layout document (not a layout string), 
+            // then we render the layout document as a template and use this document as the data context for the template layout.
+            return Doc.expandTemplateLayout(Doc.Layout(this.props.Document), this.props.Document);
+        }
         return Doc.Layout(this.props.Document);
     }
 
@@ -95,7 +100,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
 
     render() {
         TraceMobx();
-        return (this.props.renderDepth > 7 || !this.layout) ? (null) :
+        return (this.props.renderDepth > 7 || !this.layout || !this.layoutDoc) ? (null) :
             <ObserverJsxParser
                 blacklistedAttrs={[]}
                 components={{

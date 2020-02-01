@@ -2,23 +2,22 @@ import React = require("react");
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faArrowLeft, faArrowRight, faEdit, faMinus, faPlay, faPlus, faStop, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, reaction, IReactionDisposer } from "mobx";
+import { action, computed, IReactionDisposer, reaction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast, DocListCastAsync } from "../../../new_fields/Doc";
 import { listSpec } from "../../../new_fields/Schema";
+import { ComputedField } from "../../../new_fields/ScriptField";
 import { Cast, FieldValue, NumCast } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
+import { Docs } from "../../documents/Documents";
 import { DocumentManager } from "../../util/DocumentManager";
 import { undoBatch } from "../../util/UndoManager";
-import { CollectionViewType } from "../collections/CollectionView";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
-import { CollectionView } from "../collections/CollectionView";
+import { CollectionView, CollectionViewType } from "../collections/CollectionView";
 import { ContextMenu } from "../ContextMenu";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./PresBox.scss";
-import { DocumentType } from "../../documents/DocumentTypes";
-import { Docs } from "../../documents/Documents";
-import { ComputedField } from "../../../new_fields/ScriptField";
+import { presSchema } from "../presentationview/PresElementBox";
 
 library.add(faArrowLeft);
 library.add(faArrowRight);
@@ -32,28 +31,18 @@ library.add(faEdit);
 @observer
 export class PresBox extends React.Component<FieldViewProps> {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(PresBox, fieldKey); }
-    _docListChangedReaction: IReactionDisposer | undefined;
     componentDidMount() {
-        this._docListChangedReaction = reaction(() => {
-            const value = FieldValue(Cast(this.props.Document[this.props.fieldKey], listSpec(Doc)));
-            return value ? value.slice() : value;
-        }, () => {
-            const value = FieldValue(Cast(this.props.Document[this.props.fieldKey], listSpec(Doc)));
-            if (value) {
-                value.forEach((item, i) => {
-                    if (item instanceof Doc && item.type !== DocumentType.PRESELEMENT) {
-                        const pinDoc = Docs.Create.PresElementBoxDocument({ backgroundColor: "transparent", _xMargin: 5 });
-                        Doc.GetProto(pinDoc).presentationTargetDoc = item;
-                        Doc.GetProto(pinDoc).title = ComputedField.MakeFunction('this.presentationTargetDoc?.title?.toString()');
-                        value.splice(i, 1, pinDoc);
-                    }
-                });
-            }
-        });
-    }
-
-    componentWillUnmount() {
-        this._docListChangedReaction && this._docListChangedReaction();
+        const userDoc = CurrentUserUtils.UserDocument;
+        let presTemp = Cast(userDoc.presentationTemplate, Doc);
+        if (presTemp instanceof Promise) {
+            presTemp.then(presTemp => this.props.Document.childLayout = presTemp);
+        }
+        else if (presTemp === undefined) {
+            presTemp = userDoc.presentationTemplate = Docs.Create.PresElementBoxDocument({ backgroundColor: "transparent", _xMargin: 5, isTemplateDoc: true, isTemplateForField: "data" });
+        }
+        else {
+            this.props.Document.childLayout = presTemp;
+        }
     }
 
     @computed get childDocs() { return DocListCast(this.props.Document[this.props.fieldKey]); }
@@ -282,6 +271,13 @@ export class PresBox extends React.Component<FieldViewProps> {
         }
     }
 
+    addDocument = (doc: Doc) => {
+        const newPinDoc = Doc.MakeAlias(doc);
+        newPinDoc.presentationTargetDoc = doc;
+        return Doc.AddDocToList(this.props.Document, this.props.fieldKey, newPinDoc);
+    }
+
+
     //The function that resets the presentation by removing every action done by it. It also
     //stops the presentaton.
     @action
@@ -342,7 +338,7 @@ export class PresBox extends React.Component<FieldViewProps> {
             doc.presBox = this.props.Document;
             doc.presBoxKey = this.props.fieldKey;
             doc.collapsedHeight = hgt;
-            doc._height = ComputedField.MakeFunction("this.collapsedHeight + Number(this.embedOpen ? 100:0)");
+            doc._nativeWidth = doc._nativeHeight = undefined;
             const curScale = NumCast(doc.viewScale, null);
             if (curScale === undefined) {
                 doc.viewScale = 1;
@@ -373,7 +369,7 @@ export class PresBox extends React.Component<FieldViewProps> {
                 </div>
                 {this.props.Document.inOverlay ? (null) :
                     <div className="presBox-listCont" >
-                        <CollectionView {...this.props} focus={this.selectElement} ScreenToLocalTransform={this.getTransform} />
+                        <CollectionView {...this.props} addDocument={this.addDocument} focus={this.selectElement} ScreenToLocalTransform={this.getTransform} />
                     </div>
                 }
             </div>

@@ -445,8 +445,8 @@ export namespace Doc {
     // between the two. If so, the layoutDoc is expanded into a new document that inherits the properties 
     // of the original layout while allowing for individual layout properties to be overridden in the expanded layout.
     //
-    export function expandTemplateLayout(templateLayoutDoc: Doc, dataDoc?: Doc) {
-        if (!WillExpandTemplateLayout(templateLayoutDoc, dataDoc) || !dataDoc) return templateLayoutDoc;
+    export function expandTemplateLayout(templateLayoutDoc: Doc, targetDoc?: Doc) {
+        if (!WillExpandTemplateLayout(templateLayoutDoc, targetDoc) || !targetDoc) return templateLayoutDoc;
 
         const templateField = StrCast(templateLayoutDoc.isTemplateForField);  // the field that the template renders
         // First it checks if an expanded layout already exists -- if so it will be stored on the dataDoc
@@ -455,13 +455,15 @@ export namespace Doc {
         // saves it on the data doc indexed by the template layout's id.
         //
         const expandedLayoutFieldKey = templateField + "-layout[" + templateLayoutDoc[Id] + "]";
-        const expandedTemplateLayout = dataDoc?.[expandedLayoutFieldKey];
+        const expandedTemplateLayout = targetDoc?.[expandedLayoutFieldKey];
         if (expandedTemplateLayout === undefined) {
             setTimeout(() => {
-                if (!dataDoc[expandedLayoutFieldKey]) {
+                if (!targetDoc[expandedLayoutFieldKey]) {
                     const newLayoutDoc = Doc.MakeDelegate(templateLayoutDoc, undefined, "[" + templateLayoutDoc.title + "]");
-                    dataDoc[expandedLayoutFieldKey] = newLayoutDoc;
-                    newLayoutDoc.resolvedDataDoc = dataDoc;
+                    newLayoutDoc.expandedTemplate = targetDoc;
+                    targetDoc[expandedLayoutFieldKey] = newLayoutDoc;
+                    const dataDoc = Doc.GetProto(targetDoc);
+                    newLayoutDoc.resolvedDataDoc = targetDoc;
                     if (dataDoc[templateField] === undefined && templateLayoutDoc[templateField] instanceof List && Cast(templateLayoutDoc[templateField], listSpec(Doc), []).length) {
                         dataDoc[templateField] = ComputedField.MakeFunction(`ObjectField.MakeCopy(templateLayoutDoc["${templateField}"] as List)`, { templateLayoutDoc: Doc.name }, { templateLayoutDoc: templateLayoutDoc });
                     }
@@ -474,7 +476,7 @@ export namespace Doc {
     // if the childDoc is a template for a field, then this will return the expanded layout with its data doc.
     // otherwise, it just returns the childDoc
     export function GetLayoutDataDocPair(containerDoc: Doc, containerDataDoc: Opt<Doc>, childDoc: Doc) {
-        const resolvedDataDoc = containerDataDoc === containerDoc || !containerDataDoc ? undefined : Doc.GetDataDoc(containerDataDoc);
+        const resolvedDataDoc = containerDataDoc === containerDoc || !containerDataDoc ? undefined : containerDataDoc;
         return { layout: Doc.expandTemplateLayout(childDoc, resolvedDataDoc), data: resolvedDataDoc };
     }
     export function CreateDocumentExtensionForField(doc: Doc, fieldKey: string) {
