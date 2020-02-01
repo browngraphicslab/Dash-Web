@@ -174,13 +174,19 @@ export class PresElementBox extends DocExtendableComponent<FieldViewProps, PresD
         const propDocWidth = NumCast(this.layoutDoc._nativeWidth);
         const propDocHeight = NumCast(this.layoutDoc._nativeHeight);
         const scale = () => 175 / NumCast(this.layoutDoc._nativeWidth, 175);
+        const layoutDoc = Doc.Layout(this.props.Document);
+        if (!layoutDoc.embeddedView) {
+            layoutDoc.embeddedView = Doc.MakeAlias(this.originalLayout);
+            (layoutDoc.embeddedView as Doc).layoutKey = "layout";
+        }
+        const embedHeight = propDocHeight === 0 ? this.props.PanelHeight() - NumCast(this.originalLayout.collapsedHeight) : propDocHeight * scale();
         return (
             <div className="presElementBox-embedded" style={{
-                height: propDocHeight === 0 ? NumCast(this.layoutDoc._height) - NumCast(this.layoutDoc.collapsedHeight) : propDocHeight * scale(),
+                height: embedHeight,
                 width: propDocWidth === 0 ? "auto" : propDocWidth * scale(),
             }}>
                 <ContentFittingDocumentView
-                    Document={this.props.Document}
+                    Document={layoutDoc.embeddedView as Doc}
                     DataDocument={this.props.DataDoc}
                     LibraryPath={emptyPath}
                     fitToBox={StrCast(this.targetDoc.type).indexOf(DocumentType.COL) !== -1}
@@ -189,11 +195,11 @@ export class PresElementBox extends DocExtendableComponent<FieldViewProps, PresD
                     addDocTab={returnFalse}
                     pinToPres={returnFalse}
                     PanelWidth={() => this.props.PanelWidth() - 20}
-                    PanelHeight={() => 100}
+                    PanelHeight={() => embedHeight}
                     getTransform={Transform.Identity}
                     active={this.props.active}
                     moveDocument={this.props.moveDocument!}
-                    renderDepth={1}
+                    renderDepth={this.props.renderDepth + 1}
                     focus={emptyFunction}
                     whenActiveChanged={returnFalse}
                 />

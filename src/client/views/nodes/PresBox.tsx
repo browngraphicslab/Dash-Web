@@ -333,7 +333,7 @@ export class PresBox extends React.Component<FieldViewProps> {
     @action
     initializeScaleViews = (docList: Doc[], viewtype: number) => {
         this.props.Document._chromeStatus = "disabled";
-        const hgt = (viewtype === CollectionViewType.Tree) ? 50 : 42;
+        const hgt = (viewtype === CollectionViewType.Tree) ? 50 : 46;
         docList.forEach((doc: Doc) => {
             doc.presBox = this.props.Document;
             doc.presBoxKey = this.props.fieldKey;
