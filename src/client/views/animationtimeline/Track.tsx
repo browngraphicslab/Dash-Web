@@ -1,6 +1,6 @@
 import * as React from "react";
 import { observer } from "mobx-react";
-import { observable, reaction, action, IReactionDisposer, computed, runInAction, autorun , toJS, isObservableArray, IObservableArray} from "mobx";
+import { observable, reaction, action, IReactionDisposer, computed, runInAction, autorun, toJS, isObservableArray, IObservableArray, trace } from "mobx";
 import "./Track.scss";
 import { Doc, DocListCastAsync, DocListCast, Field } from "../../../new_fields/Doc";
 import { listSpec } from "../../../new_fields/Schema";
@@ -43,20 +43,20 @@ export class Track extends React.Component<IProps> {
         "baseLayout",
         "backgroundLayout",
         "layout",
-        "title", 
-        "AnimationLength", 
-        "author", 
-        "baseProto", 
-        "creationDate", 
-        "isATOn", 
-        "isPrototype", 
-        "lastOpened", 
-        "proto", 
-        "type", 
+        "title",
+        "AnimationLength",
+        "author",
+        "baseProto",
+        "creationDate",
+        "isATOn",
+        "isPrototype",
+        "lastOpened",
+        "proto",
+        "type",
         "zIndex"
     ];
 
-    private readonly MAX_TITLE_HEIGHT = 75; 
+    private readonly MAX_TITLE_HEIGHT = 75;
     private _trackHeight = 0;
 
     @computed private get regions() { return Cast(this.props.node.regions, listSpec(Doc)) as List<Doc>; }
@@ -78,7 +78,7 @@ export class Track extends React.Component<IProps> {
             if (this.regions.length === 0) this.createRegion(KeyframeFunc.convertPixelTime(this.props.currentBarX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement));
             this.props.node.hidden = false;
             this.props.node.opacity = 1;
-            this.autoCreateKeyframe(); 
+            this.autoCreateKeyframe();
         });
     }
 
@@ -131,28 +131,29 @@ export class Track extends React.Component<IProps> {
 
 
     private whitelist = [
-        "x", 
-        "y", 
-        "width", 
-        "height", 
+        "x",
+        "y",
+        "width",
+        "height",
         "data"
     ]
     /**
      * autocreates keyframe
      */
-    @action 
-    autoCreateKeyframe = async () => {        
-        return reaction(async () => {
-            return this.whitelist.map(key => this.props.node[key]);
-        }, (changed, reaction) => {            
+    @action
+    autoCreateKeyframe = () => {
+        const { node } = this.props;
+        return reaction(() => {
+            return this.whitelist.map(key => node[key]);
+        }, (changed, reaction) => {
             //convert scrubber pos(pixel) to time
-            let time = KeyframeFunc.convertPixelTime(this.props.currentBarX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement); 
+            let time = KeyframeFunc.convertPixelTime(this.props.currentBarX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement);
             //check for region 
-            //let region:(Doc | undefined) = await this.findRegion(time); 
-            console.log(this.props.node.x);
-            console.log(this.props.node.y); 
-            console.log(changed);  
-            
+            this.findRegion(time).then((region) => {
+                console.log(changed);
+            });
+
+
             // if (region !== undefined){ //if region at scrub time exist
             //     if (DocListCast(region!.keyframes).find(kf => {return kf.time === time}) === undefined ){
             //        console.log("change has occured");
@@ -160,7 +161,7 @@ export class Track extends React.Component<IProps> {
             // }
             //reaction.dispose(); 
         });
-        
+
     }
 
     /**
@@ -199,21 +200,21 @@ export class Track extends React.Component<IProps> {
     @action
     timelineVisibleReaction = () => {
         return reaction(() => {
-            return this.props.timelineVisible; 
+            return this.props.timelineVisible;
         }, isVisible => {
             this.revertState();
-            if (isVisible){
+            if (isVisible) {
                 DocListCast(this.regions).forEach(region => {
-                    if (!BoolCast((Cast(region, Doc) as Doc).hasData)){
-                        for (let i = 0; i < 4; i++){
-                            DocListCast(((Cast(region, Doc) as Doc).keyframes as List<Doc>))[i].key = Doc.MakeCopy(this.props.node, true); 
-                            if (i === 0 || i === 3){
+                    if (!BoolCast((Cast(region, Doc) as Doc).hasData)) {
+                        for (let i = 0; i < 4; i++) {
+                            DocListCast(((Cast(region, Doc) as Doc).keyframes as List<Doc>))[i].key = Doc.MakeCopy(this.props.node, true);
+                            if (i === 0 || i === 3) {
                                 DocListCast(((Cast(region, Doc) as Doc).keyframes as List<Doc>))[i].key.opacity = 0.1;
                             }
                         }
-                        console.log("saving keyframes"); 
+                        console.log("saving keyframes");
                     }
-                }); 
+                });
             }
         });
     }
@@ -390,11 +391,11 @@ export class Track extends React.Component<IProps> {
      * creates a region (KEYFRAME.TSX stuff). 
      */
     createRegion = async (time: number) => {
-        if (await this.findRegion(time) === undefined){  //check if there is a region where double clicking (prevents phantom regions)
+        if (await this.findRegion(time) === undefined) {  //check if there is a region where double clicking (prevents phantom regions)
             let regiondata = KeyframeFunc.defaultKeyframe(); //create keyframe data
             regiondata.position = time; //set position
             let rightRegion = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.right, regiondata, this.regions);
-    
+
             if (rightRegion && rightRegion.position - regiondata.position <= 4000) { //edge case when there is less than default 4000 duration space between this and right region
                 regiondata.duration = rightRegion.position - regiondata.position;
             }
