@@ -162,40 +162,25 @@ export class PresElementBox extends DocExtendableComponent<FieldViewProps, PresD
      */
     ScreenToLocalListTransform = (xCord: number, yCord: number) => [xCord, yCord];
 
+    embedHeight = () => this.props.PanelHeight() - NumCast(this.originalLayout.collapsedHeight);
+    embedWidth = () => this.props.PanelWidth() - 20;
     /**
      * The function that is responsible for rendering the a preview or not for this
      * presentation element.
      */
     renderEmbeddedInline = () => {
-        if (!this.originalLayout.embedOpen || !this.targetDoc) {
-            return (null);
-        }
-
-        const propDocWidth = NumCast(this.layoutDoc._nativeWidth);
-        const propDocHeight = NumCast(this.layoutDoc._nativeHeight);
-        const scale = () => 175 / NumCast(this.layoutDoc._nativeWidth, 175);
-        const layoutDoc = Doc.Layout(this.props.Document);
-        if (!layoutDoc.embeddedView) {
-            layoutDoc.embeddedView = Doc.MakeAlias(this.originalLayout);
-            (layoutDoc.embeddedView as Doc).layoutKey = "layout";
-        }
-        const embedHeight = propDocHeight === 0 ? this.props.PanelHeight() - NumCast(this.originalLayout.collapsedHeight) : propDocHeight * scale();
-        return (
-            <div className="presElementBox-embedded" style={{
-                height: embedHeight,
-                width: propDocWidth === 0 ? "auto" : propDocWidth * scale(),
-            }}>
+        return !this.originalLayout.embedOpen || !this.targetDoc ? (null) :
+            <div className="presElementBox-embedded" style={{ height: this.embedHeight() }}>
                 <ContentFittingDocumentView
-                    Document={layoutDoc.embeddedView as Doc}
-                    DataDocument={this.props.DataDoc}
+                    Document={this.targetDoc}
                     LibraryPath={emptyPath}
-                    fitToBox={StrCast(this.targetDoc.type).indexOf(DocumentType.COL) !== -1}
+                    fitToBox={true}
                     addDocument={returnFalse}
                     removeDocument={returnFalse}
                     addDocTab={returnFalse}
                     pinToPres={returnFalse}
-                    PanelWidth={() => this.props.PanelWidth() - 20}
-                    PanelHeight={() => embedHeight}
+                    PanelWidth={this.embedWidth}
+                    PanelHeight={this.embedHeight}
                     getTransform={Transform.Identity}
                     active={this.props.active}
                     moveDocument={this.props.moveDocument!}
@@ -204,8 +189,7 @@ export class PresElementBox extends DocExtendableComponent<FieldViewProps, PresD
                     whenActiveChanged={returnFalse}
                 />
                 <div className="presElementBox-embeddedMask" />
-            </div>
-        );
+            </div>;
     }
 
     render() {
