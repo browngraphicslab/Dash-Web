@@ -10,6 +10,7 @@ import { Keyframe, KeyframeFunc, RegionData } from "./Keyframe";
 import { Transform } from "../../util/Transform";
 import { Copy } from "../../../new_fields/FieldSymbols";
 import { ObjectField } from "../../../new_fields/ObjectField";
+import { fromCallback } from "bluebird";
 
 interface IProps {
     node: Doc;
@@ -40,10 +41,12 @@ export class Track extends React.Component<IProps> {
         "y",
         "width",
         "height",
-        "data"
+        "data", 
+        "opacity"
     ];
+
     @computed private get regions() { return Cast(this.props.node.regions, listSpec(Doc)) as List<Doc>; }
-    // @computed private get time() {}
+    @computed private get time() {return NumCast(KeyframeFunc.convertPixelTime(this.props.currentBarX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement));}
 
     ////////// life cycle functions///////////////
     componentWillMount() {
@@ -59,7 +62,7 @@ export class Track extends React.Component<IProps> {
         runInAction(async () => {
             this._timelineVisibleReaction = this.timelineVisibleReaction();
             this._currentBarXReaction = this.currentBarXReaction();
-            if (this.regions.length === 0) this.createRegion(KeyframeFunc.convertPixelTime(this.props.currentBarX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement));
+            if (this.regions.length === 0) this.createRegion(this.time);
             this.props.node.hidden = false;
             this.props.node.opacity = 1;
            // this.autoCreateKeyframe(); 
@@ -90,17 +93,17 @@ export class Track extends React.Component<IProps> {
         if (!kf) return;
         if (kf.type === KeyframeFunc.KeyframeType.default) { // only save for non-fades
             kf.key = Doc.MakeCopy(this.props.node, true);
-            let leftkf: (Doc | undefined) = await KeyframeFunc.calcMinLeft(regiondata!, KeyframeFunc.convertPixelTime(this.props.currentBarX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement), kf); // lef keyframe, if it exists
-            let rightkf: (Doc | undefined) = await KeyframeFunc.calcMinRight(regiondata!, KeyframeFunc.convertPixelTime(this.props.currentBarX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement), kf); //right keyframe, if it exists 
+            let leftkf: (Doc | undefined) = await KeyframeFunc.calcMinLeft(regiondata!, this.time, kf); // lef keyframe, if it exists
+            let rightkf: (Doc | undefined) = await KeyframeFunc.calcMinRight(regiondata!, this.time, kf); //right keyframe, if it exists 
             if (leftkf!.type === KeyframeFunc.KeyframeType.fade) { //replicating this keyframe to fades
-                let edge: (Doc | undefined) = await KeyframeFunc.calcMinLeft(regiondata!, KeyframeFunc.convertPixelTime(this.props.currentBarX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement), leftkf!);
+                let edge: (Doc | undefined) = await KeyframeFunc.calcMinLeft(regiondata!, this.time, leftkf!);
                 edge!.key = Doc.MakeCopy(kf.key as Doc, true);
                 leftkf!.key = Doc.MakeCopy(kf.key as Doc, true);
                 (Cast(edge!.key, Doc)! as Doc).opacity = 0.1;
                 (Cast(leftkf!.key, Doc)! as Doc).opacity = 1;
             }
             if (rightkf!.type === KeyframeFunc.KeyframeType.fade) {
-                let edge: (Doc | undefined) = await KeyframeFunc.calcMinRight(regiondata!, KeyframeFunc.convertPixelTime(this.props.currentBarX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement), rightkf!);
+                let edge: (Doc | undefined) = await KeyframeFunc.calcMinRight(regiondata!, this.time, rightkf!);
                 edge!.key = Doc.MakeCopy(kf.key as Doc, true);
                 rightkf!.key = Doc.MakeCopy(kf.key as Doc, true);
                 (Cast(edge!.key, Doc)! as Doc).opacity = 0.1;
@@ -124,14 +127,12 @@ export class Track extends React.Component<IProps> {
             return this.whitelist.map(key => node[key]);
         }, (changed, reaction) => {
             console.log(changed); 
-            //convert scrubber pos(pixel) to time
-            let time = KeyframeFunc.convertPixelTime(this.props.currentBarX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement);
             //check for region 
-            this.findRegion(time).then((region) => {
+            this.findRegion(this.time).then((region) => {
                 if (region !== undefined){ //if region at scrub time exist
                     let r = region as any as RegionData; //for some region is returning undefined... which is not the case
-                    if (DocListCast(r.keyframes).find(kf => kf.time === time) === undefined ){ //basically when there is no additional keyframe at that timespot 
-                        KeyframeFunc.makeKeyData(r, time, this.props.node, KeyframeFunc.KeyframeType.default); 
+                    if (DocListCast(r.keyframes).find(kf => kf.time === this.time) === undefined ){ //basically when there is no additional keyframe at that timespot 
+                        KeyframeFunc.makeKeyData(r, this.time, this.props.node, KeyframeFunc.KeyframeType.default); 
                     } 
                 }
                 // reaction.dispose(); 
@@ -158,10 +159,10 @@ export class Track extends React.Component<IProps> {
     @action
     currentBarXReaction = () => {
         return reaction(() => this.props.currentBarX, async () => {
-            let regiondata: (Doc | undefined) = await this.findRegion(KeyframeFunc.convertPixelTime(this.props.currentBarX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement));
+            let regiondata: (Doc | undefined) = await this.findRegion(this.time);
             if (regiondata) {
                 this.props.node.hidden = false;
-                await this.timeChange(KeyframeFunc.convertPixelTime(this.props.currentBarX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement));
+                await this.timeChange();
             } else {
                 this.props.node.hidden = true;
                 this.props.node.opacity = 0;
@@ -198,14 +199,14 @@ export class Track extends React.Component<IProps> {
      * when scrubber position changes. Need to edit the logic
      */
     @action
-    timeChange = async (time: number) => {
+    timeChange = async () => {
         if (this._isOnKeyframe && this._onKeyframe && this._onRegionData) {
             await this.saveKeyframe(this._onKeyframe, this._onRegionData);
         }
-        let regiondata = await this.findRegion(Math.round(time)); //finds a region that the scrubber is on
+        let regiondata = await this.findRegion(Math.round(this.time)); //finds a region that the scrubber is on
         if (regiondata) {
-            let leftkf: (Doc | undefined) = await KeyframeFunc.calcMinLeft(regiondata, KeyframeFunc.convertPixelTime(this.props.currentBarX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement)); // lef keyframe, if it exists
-            let rightkf: (Doc | undefined) = await KeyframeFunc.calcMinRight(regiondata, KeyframeFunc.convertPixelTime(this.props.currentBarX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement)); //right keyframe, if it exists            
+            let leftkf: (Doc | undefined) = await KeyframeFunc.calcMinLeft(regiondata, this.time); // lef keyframe, if it exists
+            let rightkf: (Doc | undefined) = await KeyframeFunc.calcMinRight(regiondata, this.time); //right keyframe, if it exists        
             let currentkf: (Doc | undefined) = await this.calcCurrent(regiondata); //if the scrubber is on top of the keyframe
             if (currentkf) {
                 await this.applyKeys(currentkf);
@@ -213,7 +214,7 @@ export class Track extends React.Component<IProps> {
                 this._onKeyframe = currentkf;
                 this._onRegionData = regiondata;
             } else if (leftkf && rightkf) {
-                await this.interpolate(leftkf, rightkf, regiondata);
+                await this.interpolate(leftkf, rightkf);
             }
         }
     }
@@ -225,17 +226,12 @@ export class Track extends React.Component<IProps> {
     @action
     private applyKeys = async (kf: Doc) => {
         let kfNode = await Cast(kf.key, Doc) as Doc;
-        let docFromApply = kfNode;
         this.whitelist.forEach(key => {
             if (!kfNode[key]) {
                 this.props.node[key] = undefined;
             } else {
                 let stored = kfNode[key];
-                if (stored instanceof ObjectField) {
-                    this.props.node[key] = stored[Copy]();
-                } else {
-                    this.props.node[key] = stored;
-                }
+                this.props.node[key] = stored instanceof ObjectField ? stored[Copy]() : stored; 
             }
         });
     }
@@ -245,77 +241,35 @@ export class Track extends React.Component<IProps> {
      *  calculating current keyframe, if the scrubber is right on the keyframe
      */
     @action
-    calcCurrent = async (region: Doc) => {
+    calcCurrent = (region: Doc) => {
         let currentkf: (Doc | undefined) = undefined;
-        let keyframes = await DocListCastAsync(region.keyframes!);
-        keyframes!.forEach((kf) => {
-            if (NumCast(kf.time) === Math.round(KeyframeFunc.convertPixelTime(this.props.currentBarX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement))) currentkf = kf;
+        let keyframes = DocListCast(region.keyframes!);
+        keyframes.forEach((kf) => {
+            if (NumCast(kf.time) === Math.round(this.time)) currentkf = kf;
         });
         return currentkf;
     }
 
 
     /**
-     * interpolation. definetely needs to be changed. (currently involves custom linear splicing interpolations). 
-     * Too complex right now. Also need to apply quadratic spline later on (for smoothness, instead applying "gains")
+     * basic linear interpolation function 
      */
     @action
-    interpolate = async (left: Doc, right: Doc, regiondata: Doc) => {
-        let leftNode = left.key as Doc;
-        let rightNode = right.key as Doc;
-        // const dif_time = NumCast(right.time) - NumCast(left.time);
-        // const timeratio = (KeyframeFunc.convertPixelTime(this.props.currentBarX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement) - NumCast(left.time)) / dif_time; //linear 
-        // let keyframes = (await DocListCastAsync(regiondata.keyframes!))!;
-        // let indexLeft = keyframes.indexOf(left);
-        // let interY: List<number> = (await ((regiondata.functions as List<Doc>)[indexLeft] as Doc).interpolationY as List<number>)!;
-        // let realIndex = (interY.length - 1) * timeratio;
-        // let xIndex = Math.floor(realIndex);
-        // let yValue = interY[xIndex];
-        // let secondYOffset: number = yValue;
-        // let minY = interY[0];  // for now
-        // let maxY = interY[interY.length - 1]; //for now 
-        // if (interY.length !== 1) {
-        //     secondYOffset = interY[xIndex] + ((realIndex - xIndex) / 1) * (interY[xIndex + 1] - interY[xIndex]) - minY;
-        // }
-        // let finalRatio = secondYOffset / (maxY - minY);
-        // let pathX: List<number> = await ((regiondata.functions as List<Doc>)[indexLeft] as Doc).pathX as List<number>;
-        // let pathY: List<number> = await ((regiondata.functions as List<Doc>)[indexLeft] as Doc).pathY as List<number>;
-        // let proposedX = 0;
-        // let proposedY = 0;
-        // if (pathX.length !== 0) {
-        //     let realPathCorrespondingIndex = finalRatio * (pathX.length - 1);
-        //     let pathCorrespondingIndex = Math.floor(realPathCorrespondingIndex);
-        //     if (pathCorrespondingIndex >= pathX.length - 1) {
-        //         proposedX = pathX[pathX.length - 1];
-        //         proposedY = pathY[pathY.length - 1];
-        //     } else if (pathCorrespondingIndex < 0) {
-        //         proposedX = pathX[0];
-        //         proposedY = pathY[0];
-        //     } else {
-        //         proposedX = pathX[pathCorrespondingIndex] + ((realPathCorrespondingIndex - pathCorrespondingIndex) / 1) * (pathX[pathCorrespondingIndex + 1] - pathX[pathCorrespondingIndex]);
-        //         proposedY = pathY[pathCorrespondingIndex] + ((realPathCorrespondingIndex - pathCorrespondingIndex) / 1) * (pathY[pathCorrespondingIndex + 1] - pathY[pathCorrespondingIndex]);
-        //     }
-
-        // }
+    interpolate = async (left: Doc, right: Doc) => {
+        let leftNode = await(left.key) as Doc;
+        let rightNode = await(right.key) as Doc;
         this.whitelist.forEach(key => {
+            console.log(key); 
+            console.log(leftNode[key]); 
+            console.log(rightNode[key]); 
             if (leftNode[key] && rightNode[key] && typeof (leftNode[key]) === "number" && typeof (rightNode[key]) === "number") { //if it is number, interpolate
-                // if ((key === "x" || key === "y") && pathX.length !== 0) {
-                //     if (key === "x") this.props.node[key] = proposedX;
-                //     if (key === "y") this.props.node[key] = proposedY;
-                // } else {
-                //     const diff = NumCast(rightNode[key]) - NumCast(leftNode[key]);
-                //     const adjusted = diff * finalRatio;
-                //     this.props.node[key] = NumCast(leftNode[key]) + adjusted;
-                // }
                 let dif = NumCast(rightNode[key]) - NumCast(leftNode[key]); 
-                
-            } else {
+                let deltaLeft = this.time - NumCast(left.time);
+                let ratio = deltaLeft / (NumCast(right.time) - NumCast(left.time)); 
+                this.props.node[key] = NumCast(leftNode[key]) + (dif * ratio); 
+            } else { // case data 
                 let stored = leftNode[key];
-                if (stored instanceof ObjectField) {
-                    this.props.node[key] = stored[Copy]();
-                } else {
-                    this.props.node[key] = stored;
-                }
+                this.props.node[key] = stored instanceof ObjectField ? stored[Copy]() : stored; 
             }
         });
     }

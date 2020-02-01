@@ -127,10 +127,8 @@ export class TimelineOverview extends React.Component<TimelineOverviewProps>{
 
     render() {
 
-        console.log("helo")
         // calculates where everything should fall based on its size
         let percentVisible = this.props.visibleLength / this.props.totalLength;
-        console.log(this.props.visibleLength)
         let visibleBarWidth = percentVisible * this.overviewBarWidth;
 
         let percentScrubberStart = this.props.currentBarX / this.props.totalLength;

@@ -449,9 +449,6 @@ export class Timeline extends React.Component<FieldViewProps> {
         // let overviewString: string = "Overview:";
         // let lengthString: string = "Length: ";
 
-        console.log("visible: " + this._visibleLength)
-        console.log("total: " + this._totalLength)
-
         return (
             <div key="timeline_toolbox" className="timeline-toolbox" style={{ height: `${size}px` }}>
                 <div className="playbackControls">
@@ -572,7 +569,6 @@ export class Timeline extends React.Component<FieldViewProps> {
         runInAction(() => {
             this._panelWidth = this.props.PanelWidth();
             this.changeLenths();
-            console.log("changing!!")
         });
 
         // change visible and total width
