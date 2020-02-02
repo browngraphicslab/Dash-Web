@@ -126,7 +126,7 @@
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
   </component>
-  <component name="RunManager" selected="Python.jsonifier">
+  <component name="RunManager" selected="Python.narratives">
     <configuration name="jsonifier" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
       <module name="buxton" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -148,6 +148,27 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
+    <configuration name="narratives" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
+      <module name="buxton" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="/usr/local/bin/python3.7" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/narratives.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <configuration name="scraper" type="PythonConfigurationType" factoryName="Python">
       <module name="buxton" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -160,7 +181,7 @@
       <option name="IS_MODULE_SDK" value="false" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/new_scraper.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/scraper.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -172,6 +193,7 @@
     <list>
       <item itemvalue="Python.jsonifier" />
       <item itemvalue="Python.scraper" />
+      <item itemvalue="Python.narratives" />
     </list>
   </component>
   <component name="SvnConfiguration">
@@ -188,30 +210,30 @@
     <servers />
   </component>
   <component name="WindowStateProjectService">
-    <state x="184" y="103" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1580610403225">
+    <state x="184" y="103" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1580656983882">
       <screen x="0" y="23" width="1440" height="836" />
     </state>
-    <state x="184" y="103" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.23.1440.836@0.23.1440.836" timestamp="1580610403225" />
+    <state x="184" y="103" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.23.1440.836@0.23.1440.836" timestamp="1580656983882" />
     <state x="483" y="152" key="#xdebugger.evaluate" timestamp="1580601059439">
       <screen x="0" y="23" width="1440" height="836" />
     </state>
     <state x="483" y="152" key="#xdebugger.evaluate/0.23.1440.836@0.23.1440.836" timestamp="1580601059439" />
-    <state width="1419" height="216" key="GridCell.Tab.0.bottom" timestamp="1580612505537">
+    <state width="1419" height="216" key="GridCell.Tab.0.bottom" timestamp="1580656997013">
       <screen x="0" y="23" width="1440" height="836" />
     </state>
-    <state width="1419" height="216" key="GridCell.Tab.0.bottom/0.23.1440.836@0.23.1440.836" timestamp="1580612505537" />
-    <state width="1419" height="216" key="GridCell.Tab.0.center" timestamp="1580612505536">
+    <state width="1419" height="216" key="GridCell.Tab.0.bottom/0.23.1440.836@0.23.1440.836" timestamp="1580656997013" />
+    <state width="1419" height="216" key="GridCell.Tab.0.center" timestamp="1580656997012">
       <screen x="0" y="23" width="1440" height="836" />
     </state>
-    <state width="1419" height="216" key="GridCell.Tab.0.center/0.23.1440.836@0.23.1440.836" timestamp="1580612505536" />
-    <state width="1419" height="216" key="GridCell.Tab.0.left" timestamp="1580612505535">
+    <state width="1419" height="216" key="GridCell.Tab.0.center/0.23.1440.836@0.23.1440.836" timestamp="1580656997012" />
+    <state width="1419" height="216" key="GridCell.Tab.0.left" timestamp="1580656997012">
       <screen x="0" y="23" width="1440" height="836" />
     </state>
-    <state width="1419" height="216" key="GridCell.Tab.0.left/0.23.1440.836@0.23.1440.836" timestamp="1580612505535" />
-    <state width="1419" height="216" key="GridCell.Tab.0.right" timestamp="1580612505536">
+    <state width="1419" height="216" key="GridCell.Tab.0.left/0.23.1440.836@0.23.1440.836" timestamp="1580656997012" />
+    <state width="1419" height="216" key="GridCell.Tab.0.right" timestamp="1580656997012">
       <screen x="0" y="23" width="1440" height="836" />
     </state>
-    <state width="1419" height="216" key="GridCell.Tab.0.right/0.23.1440.836@0.23.1440.836" timestamp="1580612505536" />
+    <state width="1419" height="216" key="GridCell.Tab.0.right/0.23.1440.836@0.23.1440.836" timestamp="1580656997012" />
     <state width="1419" height="268" key="GridCell.Tab.1.bottom" timestamp="1580610405283">
       <screen x="0" y="23" width="1440" height="836" />
     </state>

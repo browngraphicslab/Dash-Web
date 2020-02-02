@@ -1,0 +1,39 @@
+{
+    "slides": [{
+            "text": "Theme: Chord Keyboards\nFrom music to type\n\nChord keyboards require 2 or more keys to be simultaneously pushed to spawn the intended output. Playing a chord on a piano or pushing both the shift + a letter key on a typewriter to enter an upper case character are examples.",
+            "devices": ["Casio CZ-101"]
+        },
+        {
+            "text": "This is an early mechanical keyboard for taking dictation. Instead of typing alphanumeric characters as on a typewriter, pressing different combinations prints shorthand symbols on the tape, each representing a different phoneme.  Speech is easier to keep up with this way, since each phoneme typically represents multiple characters.\n\nThe downside – until AI came to the rescue – was that it then took hours to manually transcribe to shorthand into conventional readable text.",
+            "devices": ["Grandjean Sténotype"]
+        },
+        {
+            "text": "Designed and manufactured in the DDR, the purpose of this keyboard is to emboss dots representing Braille symbols onto paper. The effect is to enable blind users to use their tactile sensitivity to read with their fingers.\n\nEach Braille symbol consists of two columns of 3 embossed dots each.  Which 3 dots are embossed in each column is determined by which of the three keys on either side are simultaneously pressed. The key in the middle, operated by either thumb, enters a space.",
+            "devices": ["Braille Writer"]
+        },
+        {
+            "text": "This combination is derived from the work of the inventor of the mouse, Doug Engelbart\n\nWhile these are 2 distinct devices, they are not what they appear to be.\n\nFunctionally, there is a virtual 7-button chord keyboard, employing the 5 buttons on the keyset and the middle and right button of the mouse.  And, using the left mouse button, there is also a 1-button mouse\n\nText was entered using a minor variant of 7-bit ASCII.  The intent was to enable entering small bits of text without moving back-and-forth between mouse and QWERTY keyboard. It didn’t catch on.",
+            "devices": ["Xerox PARC 5-Button Keyset & 3-Button Mouse"]
+        },
+        {
+            "text": "",
+            "devices": []
+        },
+        {
+            "text": "",
+            "devices": []
+        },
+        {
+            "text": "",
+            "devices": []
+        },
+        {
+            "text": "",
+            "devices": []
+        },
+        {
+            "text": "",
+            "devices": []
+        }
+    ]
+}
