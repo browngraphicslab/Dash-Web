@@ -1,4 +1,4 @@
-.collectionTimeView {
+.collectionTimeView, .collectionTimeView-pivot {
     display: flex;
     flex-direction: row;
     position: absolute;
@@ -93,7 +93,7 @@
         }
     }
 
-    .collectionTimeView-pivot {
+    .collectionTimeView-innards {
         display: inline-block;
         width: calc(100% - 200px);
         height: 100%;
@@ -109,5 +109,10 @@
         border: 1px black solid;
         z-index: 2;
         left: -10px;
+    }
+}
+.collectionTimeView-pivot {
+    .collectionFreeform-customText {
+        text-align: center;
     }
 }

@@ -659,7 +659,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
 
                 Document.childLayout = cardLayout;
                 Document.childDetailed = detailedLayout;
-                Document._viewType = CollectionViewType.Pivot;
+                Document._viewType = CollectionViewType.Time;
                 Document.pivotField = "company";
             }
         });

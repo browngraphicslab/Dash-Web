@@ -107,8 +107,10 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
         const keySet: Set<string> = new Set();
 
         this.childLayoutPairs.map(pair =>
-            Array.from(Object.keys(Doc.GetProto(pair.layout))).filter(fieldKey => pair.layout[fieldKey] instanceof RichTextField || typeof (pair.layout[fieldKey]) === "number" || typeof (pair.layout[fieldKey]) === "string").map(fieldKey =>
-                keySet.add(fieldKey)));
+            Array.from(Object.keys(Doc.GetProto(pair.layout))).filter(fieldKey =>
+                pair.layout[fieldKey] instanceof RichTextField ||
+                typeof (pair.layout[fieldKey]) === "number" ||
+                typeof (pair.layout[fieldKey]) === "string").map(fieldKey => keySet.add(fieldKey)));
         keySet.toArray().map(fieldKey =>
             docItems.push({ description: ":" + fieldKey, event: () => this.props.Document.pivotField = fieldKey, icon: "compress-arrows-alt" }));
         docItems.push({ description: ":(null)", event: () => this.props.Document.pivotField = undefined, icon: "compress-arrows-alt" })
@@ -189,11 +191,12 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
     }
 
     @computed get contents() {
-        return <div className="collectionTimeView-pivot" key="pivot" style={{ width: this.bodyPanelWidth() }}>
+        return <div className="collectionTimeView-innards" key="timeline" style={{ width: this.bodyPanelWidth() }}>
             <CollectionFreeFormView  {...this.props} ScreenToLocalTransform={this.getTransform} PanelWidth={this.bodyPanelWidth} />
         </div>;
     }
 
+    _changing = false;
     render() {
         const facetCollection = Cast(this.props.Document?._facetCollection, Doc, null);
         const flyout = (
@@ -219,8 +222,33 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
             toggle: this.toggleVisibility,
             color: "#f1efeb" // this.props.headingObject ? this.props.headingObject.color : "#f1efeb";
         };
+
+        let nonNumbers = 0;
+        this.childDocs.map(doc => {
+            const num = NumCast(doc[StrCast(this.props.Document.pivotField)], Number(StrCast(doc[StrCast(this.props.Document.pivotField)])));
+            if (Number.isNaN(num)) {
+                nonNumbers++;
+            }
+        });
+        const doTimeline = nonNumbers / this.childDocs.length < 0.1;
+        if (doTimeline !== (this.props.Document._freeformLayoutEngine === "timeline")) {
+            if (!this._changing) {
+                this._changing = true;
+                setTimeout(() => {
+                    if (nonNumbers / this.childDocs.length > 0.1) {
+                        this.childDocs.map(child => child.isMinimized = false);
+                        this.props.Document._freeformLayoutEngine = "pivot";
+                    } else {
+                        this.props.Document._freeformLayoutEngine = "timeline";
+                    }
+                    this._changing = false;
+                }, 0);
+            }
+            return (null);
+        }
+
         return !facetCollection ? (null) :
-            <div className="collectionTimeView" style={{ height: `calc(100%  - ${this.props.Document._chromeStatus === "enabled" ? 51 : 0}px)` }}>
+            <div className={"collectionTimeView" + (doTimeline ? "" : "-pivot")} style={{ height: `calc(100%  - ${this.props.Document._chromeStatus === "enabled" ? 51 : 0}px)` }}>
                 <div className={"pivotKeyEntry"}>
                     <EditableView {...newEditableViewProps} menuCallback={this.menuCallback} />
                 </div>
@@ -243,7 +271,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
                     </div>
                 </div>
                 {this.contents}
-                {!this.props.isSelected() ? (null) : <>
+                {!this.props.isSelected() || !doTimeline ? (null) : <>
                     <div className="collectionTimeView-thumb-min collectionTimeView-thumb" key="min" onPointerDown={this.onMinDown} />
                     <div className="collectionTimeView-thumb-max collectionTimeView-thumb" key="mid" onPointerDown={this.onMaxDown} />
                     <div className="collectionTimeView-thumb-mid collectionTimeView-thumb" key="max" onPointerDown={this.onMidDown} />

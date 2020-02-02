@@ -46,10 +46,14 @@ export function computePivotLayout(
     poolData: ObservableMap<string, any>,
     pivotDoc: Doc,
     childDocs: Doc[],
-    childPairs: { layout: Doc, data?: Doc }[], panelDim: number[], viewDefsToJSX: (views: any) => ViewDefResult[]
+    childPairs: { layout: Doc, data?: Doc }[],
+    panelDim: number[],
+    viewDefsToJSX: (views: any) => ViewDefResult[]
 ) {
-    const pivotAxisWidth = NumCast(pivotDoc.pivotWidth, 200);
+    const fieldKey = "data";
+    const pivotAxisWidth = NumCast(pivotDoc.pivotWidth, 1000);
     const pivotColumnGroups = new Map<FieldResult<Field>, Doc[]>();
+    const fontSize = NumCast(pivotDoc[fieldKey + "-timelineFontSize"], panelDim[1] > 58 ? 20 : Math.max(7, panelDim[1] / 3));
 
     const pivotFieldKey = toLabel(pivotDoc.pivotField);
     for (const doc of childDocs) {
@@ -69,16 +73,20 @@ export function computePivotLayout(
     const expander = 1.05;
     const gap = .15;
     let x = 0;
+    let max_text = 60;
     pivotColumnGroups.forEach((val, key) => {
         let y = 0;
         let xCount = 0;
+        const text = toLabel(key);
+        max_text = Math.max(max_text, Math.min(500, text.length));
         groupNames.push({
             type: "text",
-            text: toLabel(key),
+            text,
             x,
             y: pivotAxisWidth,
             width: pivotAxisWidth * expander * numCols,
-            fontSize: NumCast(pivotDoc.pivotFontSize, 20)
+            height: max_text,
+            fontSize
         });
         for (const doc of val) {
             const layoutDoc = Doc.Layout(doc);
@@ -103,37 +111,7 @@ export function computePivotLayout(
         x += pivotAxisWidth * (numCols * expander + gap);
     });
 
-    const grpEles = groupNames.map(gn => { return { x: gn.x, y: gn.y, width: gn.width, height: undefined } as PivotData; });
-    const docEles = childPairs.map(pair =>
-        docMap.get(pair.layout) || { x: NumCast(pair.layout.x), y: NumCast(pair.layout.y), width: NumCast(pair.layout._width), height: NumCast(pair.layout._height) } // new pos is computed pos, or pos written to the document's fields
-    );
-    const minLabelHeight = 56;
-    const aggBounds = aggregateBounds(docEles.concat(grpEles), 0, 0);
-    const wscale = panelDim[0] / (aggBounds.r - aggBounds.x);
-    const scale = wscale * (aggBounds.b - aggBounds.y) > panelDim[1] - (2 * minLabelHeight) ? (panelDim[1] - (2 * minLabelHeight)) / (aggBounds.b - aggBounds.y) : wscale;
-    const centerY = ((panelDim[1] - 2 * minLabelHeight) - (aggBounds.b - aggBounds.y) * scale) / 2;
-    const centerX = (panelDim[0] - (aggBounds.r - aggBounds.x) * scale) / 2;
-
-    childPairs.map(pair => {
-        const fallbackPos = {
-            x: NumCast(pair.layout.x),
-            y: NumCast(pair.layout.y),
-            z: NumCast(pair.layout.z),
-            width: NumCast(pair.layout._width),
-            height: NumCast(pair.layout._height)
-        };
-        const newPosRaw = docMap.get(pair.layout) || fallbackPos; // new pos is computed pos, or pos written to the document's fields
-        const newPos = { x: newPosRaw.x * scale + centerX, y: (newPosRaw.y - aggBounds.y) * scale + centerY, z: newPosRaw.z, width: (newPosRaw.width || 0) * scale, height: newPosRaw.height! * scale };
-        const lastPos = poolData.get(pair.layout[Id]); // last computed pos
-        if (!lastPos || newPos.x !== lastPos.x || newPos.y !== lastPos.y || newPos.z !== lastPos.z || newPos.width !== lastPos.width || newPos.height !== lastPos.height) {
-            runInAction(() => poolData.set(pair.layout[Id], { transition: "transform 1s", ...newPos }));
-        }
-    });
-    return {
-        elements: viewDefsToJSX([{ type: "text", text: "", x: 0, y: -aggBounds.y * scale - minLabelHeight, width: panelDim[0], height: panelDim[1], fontSize: 1 }].concat(groupNames.map(gname => {
-            return { type: gname.type, text: gname.text, x: gname.x * scale + centerX, y: (gname.y - aggBounds.y) * scale + centerY, width: (gname.width || 0) * scale, height: Math.max(minLabelHeight, centerY), fontSize: gname.fontSize };
-        })))
-    };
+    return normalizeResults(panelDim, max_text, childPairs, docMap, poolData, viewDefsToJSX, groupNames, 0, []);
 }
 
 
@@ -186,7 +164,7 @@ export function computeTimelineLayout(
         groupNames.push({ type: "text", text: prevKey.toString(), x: x, y: 0, height: fontHeight, fontSize });
     }
 
-    const pivotAxisWidth = NumCast(pivotDoc.pivotWidth, panelDim[1] / 2.5);
+    const pivotAxisWidth = NumCast(pivotDoc.pivotTimeWidth, panelDim[1] / 2.5);
     let stacking: number[] = [];
     sortedKeys.forEach(key => {
         const keyDocs = pivotDateGroups.get(key)!;
@@ -212,12 +190,19 @@ export function computeTimelineLayout(
         groupNames.push({ type: "text", text: Math.ceil(maxTime).toString(), x: Math.ceil(maxTime - minTime) * scaling, y: 0, height: fontHeight, fontSize });
     }
 
-    const grpEles = groupNames.map(gn => { return { x: gn.x, y: gn.y, height: gn.height } as PivotData; });
+    const divider = { type: "div", color: "black", x: 0, y: 0, width: panelDim[0], height: 1 } as any;
+    return normalizeResults(panelDim, fontHeight, childPairs, docMap, poolData, viewDefsToJSX, groupNames, (maxTime - minTime) * scaling, [divider]);
+}
+
+function normalizeResults(panelDim: number[], fontHeight: number, childPairs: { data?: Doc, layout: Doc }[], docMap: any,
+    poolData: any, viewDefsToJSX: any, groupNames: PivotData[], minWidth: number, extras: any[]) {
+
+    const grpEles = groupNames.map(gn => ({ x: gn.x, y: gn.y, height: gn.height }) as PivotData);
     const docEles = childPairs.filter(d => !d.layout.isMinimized).map(pair =>
         docMap.get(pair.layout) || { x: NumCast(pair.layout.x), y: NumCast(pair.layout.y), width: pair.layout[WidthSym](), height: pair.layout[HeightSym]() } as PivotData // new pos is computed pos, or pos written to the document's fields
     );
     const aggBounds = aggregateBounds(docEles.concat(grpEles), 0, 0);
-    aggBounds.r = Math.max((maxTime - minTime) * scaling, aggBounds.r - aggBounds.x);
+    aggBounds.r = Math.max(minWidth, aggBounds.r - aggBounds.x);
     const wscale = panelDim[0] / (aggBounds.r - aggBounds.x);
     let scale = wscale * (aggBounds.b - aggBounds.y) > panelDim[1] ? (panelDim[1]) / (aggBounds.b - aggBounds.y) : wscale;
     if (Number.isNaN(scale)) scale = 1;
@@ -237,12 +222,18 @@ export function computeTimelineLayout(
             runInAction(() => poolData.set(pair.layout[Id], { transition: "transform 1s", ...newPos }));
         }
     });
+
     return {
-        elements: viewDefsToJSX([
-            { type: "div", color: "black", x: 0, y: 0, width: panelDim[0], height: 1 } as any
-        ].concat(groupNames.map(gname => {
-            return { type: gname.type, text: gname.text, x: gname.x * scale, y: gname.y * scale, width: gname.width === undefined ? gname.width : gname.width * scale, height: Math.max(fontHeight, gname.height! * scale), fontSize: gname.fontSize };
-        })))
+        elements: viewDefsToJSX(extras.concat(groupNames.map(gname => ({
+            type: gname.type,
+            text: gname.text,
+            x: gname.x * scale,
+            y: gname.y * scale,
+            width: gname.width === undefined ? undefined : gname.width * scale,
+            height: Math.max(fontHeight, gname.height! * scale),
+            // height: gname.height === undefined ? undefined : gname.height * scale,
+            fontSize: gname.fontSize
+        }))))
     };
 }
 

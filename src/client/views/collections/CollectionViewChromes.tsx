@@ -70,7 +70,6 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
             case CollectionViewType.Stacking: return this._stacking_commands;
             case CollectionViewType.Masonry: return this._stacking_commands;
             case CollectionViewType.Freeform: return this._freeform_commands;
-            case CollectionViewType.Pivot: return this._freeform_commands;
             case CollectionViewType.Time: return this._freeform_commands;
             case CollectionViewType.Carousel: return this._freeform_commands;
         }
@@ -271,32 +270,6 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
         return this.props.CollectionView.props.Document;
     }
 
-    private get pivotKey() {
-        return StrCast(this.document.pivotField);
-    }
-
-    private set pivotKey(value: string) {
-        this.document.pivotField = value;
-    }
-
-    @observable private pivotKeyDisplay = this.pivotKey;
-    getPivotInput = () => {
-        if (StrCast(this.document._freeformLayoutEngine) !== "pivot") {
-            return (null);
-        }
-        return (<input className="collectionViewBaseChrome-viewSpecsInput"
-            placeholder="PIVOT ON..."
-            value={this.pivotKeyDisplay}
-            onChange={action((e: React.ChangeEvent<HTMLInputElement>) => this.pivotKeyDisplay = e.currentTarget.value)}
-            onKeyPress={action((e: React.KeyboardEvent<HTMLInputElement>) => {
-                const value = e.currentTarget.value;
-                if (e.which === 13) {
-                    this.pivotKey = value;
-                    this.pivotKeyDisplay = "";
-                }
-            })} />);
-    }
-
     @action.bound
     clearFilter = () => {
         this.props.CollectionView.props.Document.viewSpecScript = ScriptField.MakeFunction("true", { doc: Doc.name });
@@ -419,10 +392,9 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="6">Masonry</option>
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="7">MultiCol</option>
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="8">MultiRow</option>
-                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="9">Pivot</option>
-                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="10">Time</option>
-                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="11">Carousel</option>
-                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="12">Linear</option>
+                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="9">Pivo/Time</option>
+                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="10">Carousel</option>
+                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="11">Linear</option>
                         </select>
                         <div className="collectionViewBaseChrome-viewSpecs" title="filter documents to show" style={{ display: collapsed ? "none" : "grid" }}>
                             <div className="collectionViewBaseChrome-filterIcon" onPointerDown={this.openViewSpecs} >
