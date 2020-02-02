@@ -28,6 +28,7 @@ export class Track extends React.Component<IProps> {
     @observable private _inner = React.createRef<HTMLDivElement>();
     @observable private _currentBarXReaction: any;
     @observable private _timelineVisibleReaction: any;
+    @observable private _autoKfReaction: any; 
     private readonly MAX_TITLE_HEIGHT = 75;
     private _trackHeight = 0;
     private whitelist = [
@@ -59,7 +60,7 @@ export class Track extends React.Component<IProps> {
             if (this.regions.length === 0) this.createRegion(this.time);
             this.props.node.hidden = false;
             this.props.node.opacity = 1;
-            //this.autoCreateKeyframe(); 
+            this.autoCreateKeyframe();
         });
     }
 
@@ -71,6 +72,7 @@ export class Track extends React.Component<IProps> {
             //disposing reactions 
             if (this._currentBarXReaction) this._currentBarXReaction();
             if (this._timelineVisibleReaction) this._timelineVisibleReaction();
+            //if (this._autoKfReaction) this._autoKfReaction();
         });
     }
     ////////////////////////////////
@@ -121,6 +123,7 @@ export class Track extends React.Component<IProps> {
             return this.whitelist.map(key => node[key]);
         }, (changed, reaction) => {
             console.log("autocreated"); 
+            console.log(changed);
             //check for region 
             this.findRegion(this.time).then((region) => {
                 if (region !== undefined){ //if region at scrub time exist
@@ -129,9 +132,8 @@ export class Track extends React.Component<IProps> {
                         this.makeKeyData(r, this.time, KeyframeFunc.KeyframeType.default); 
                     } 
                 }
-                // reaction.dispose(); 
             });
-        });
+        }, {fireImmediately: false});
     }
 
     // /**
@@ -156,10 +158,15 @@ export class Track extends React.Component<IProps> {
             this.findRegion(this.time).then((regiondata: (Doc | undefined)) => {
                 if (regiondata) {
                     this.props.node.hidden = false;
+                    if (!this._autoKfReaction){
+                       // console.log("creating another reaction"); 
+                       // this._autoKfReaction = this.autoCreateKeyframe(); 
+                    } 
                     this.timeChange();
                 } else {
                     this.props.node.hidden = true;
                     this.props.node.opacity = 0;
+                    //if (this._autoKfReaction) this._autoKfReaction(); 
                 }
             });
         });
@@ -207,12 +214,10 @@ export class Track extends React.Component<IProps> {
             let rightkf: (Doc | undefined) = await KeyframeFunc.calcMinRight(regiondata, this.time); //right keyframe, if it exists        
             let currentkf: (Doc | undefined) = await this.calcCurrent(regiondata); //if the scrubber is on top of the keyframe
             if (currentkf) {
-                console.log("on a keyframe"); 
                 await this.applyKeys(currentkf);
                 this.saveStateKf = currentkf; 
                 this.saveStateRegion = regiondata; 
             } else if (leftkf && rightkf) {
-                console.log("interpolating!"); 
                 await this.interpolate(leftkf, rightkf);
             }
         }
@@ -229,9 +234,7 @@ export class Track extends React.Component<IProps> {
             if (!kfNode[key]) {
                 this.props.node[key] = undefined;
             } else {
-                let stored = kfNode[key];
-                console.log(key); 
-                console.log(stored); 
+                let stored = kfNode[key]; 
                 this.props.node[key] = stored instanceof ObjectField ? stored[Copy]() : stored; 
             }
         });
