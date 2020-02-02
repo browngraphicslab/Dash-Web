@@ -21,7 +21,6 @@ interface IProps {
     tickIncrement: number;
     tickSpacing: number;
     timelineVisible: boolean;
-    check: string;
     changeCurrentBarX: (x: number) => void;
 }
 
@@ -30,10 +29,6 @@ export class Track extends React.Component<IProps> {
     @observable private _inner = React.createRef<HTMLDivElement>();
     @observable private _currentBarXReaction: any;
     @observable private _timelineVisibleReaction: any;
-    @observable private _isOnKeyframe: boolean = false;
-    @observable private _onKeyframe: (Doc | undefined) = undefined;
-    @observable private _onRegionData: (Doc | undefined) = undefined;
-    @observable private _storedState: (Doc | undefined) = undefined;
     private readonly MAX_TITLE_HEIGHT = 75;
     private _trackHeight = 0;
     private whitelist = [

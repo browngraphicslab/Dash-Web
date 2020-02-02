@@ -137,7 +137,6 @@ interface IProps {
     tickSpacing: number;
     tickIncrement: number;
     time: number;
-    check: string;
     changeCurrentBarX: (x: number) => void;
     transform: Transform;
     makeKeyData: (region:RegionData, pos: number, kftype:KeyframeFunc.KeyframeType) => Doc; 
