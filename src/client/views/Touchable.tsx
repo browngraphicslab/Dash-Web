@@ -22,7 +22,7 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
     public SecondY: number = 0;
 
     /**
-     * When a touch even starts, we keep track of each touch that is associated with that event
+     * When a touch event starts, we keep track of each touch that is associated with that event
      */
     @action
     protected onTouchStart = (e: Event, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>): void => {
@@ -197,6 +197,26 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
     }
 
     removeEndListeners = () => {
+        this.endDisposer && this.endDisposer();
+    }
+
+    addPullMoveListeners = () => {
+        const handler = (e: Event) => this.onTouch(e, (e as CustomEvent<InteractionUtils.MultiTouchEvent<TouchEvent>>).detail);
+        document.addEventListener("dashOnPullMove", handler);
+        this.moveDisposer = () => document.removeEventListener("dashOnPullMove", handler);
+    }
+
+    removePullMoveListeners = () => {
+        this.moveDisposer && this.moveDisposer();
+    }
+
+    addPullEndListeners = () => {
+        const handler = (e: Event) => this.onTouchEnd(e, (e as CustomEvent<InteractionUtils.MultiTouchEvent<TouchEvent>>).detail);
+        document.addEventListener("dashOnPullEnd", handler);
+        this.endDisposer = () => document.removeEventListener("dashOnPullEnd", handler);
+    }
+
+    removePullEndListeners = () => {
         this.endDisposer && this.endDisposer();
     }
 
