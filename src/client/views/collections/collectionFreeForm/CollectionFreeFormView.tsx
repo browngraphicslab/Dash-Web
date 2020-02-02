@@ -32,7 +32,7 @@ import { FormattedTextBox } from "../../nodes/FormattedTextBox";
 import { pageSchema } from "../../nodes/ImageBox";
 import PDFMenu from "../../pdf/PDFMenu";
 import { CollectionSubView } from "../CollectionSubView";
-import { computePivotLayout, ViewDefResult, computeTimelineLayout } from "./CollectionFreeFormLayoutEngines";
+import { computePivotLayout, ViewDefResult, computeTimelineLayout, PoolData } from "./CollectionFreeFormLayoutEngines";
 import { CollectionFreeFormRemoteCursors } from "./CollectionFreeFormRemoteCursors";
 import "./CollectionFreeFormView.scss";
 import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
@@ -735,13 +735,16 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         };
     }
 
-    getCalculatedPositions(params: { doc: Doc, index: number, collection: Doc, docs: Doc[], state: any }): { x?: number, y?: number, z?: number, width?: number, height?: number, transition?: string, state?: any } {
+    getCalculatedPositions(params: { doc: Doc, index: number, collection: Doc, docs: Doc[], state: any }): PoolData {
         const result = this.Document.arrangeScript?.script.run(params, console.log);
         if (result?.success) {
             return { ...result, transition: "transform 1s" };
         }
         const layoutDoc = Doc.Layout(params.doc);
-        return { x: Cast(params.doc.x, "number"), y: Cast(params.doc.y, "number"), z: Cast(params.doc.z, "number"), width: Cast(layoutDoc._width, "number"), height: Cast(layoutDoc._height, "number") };
+        return {
+            x: Cast(params.doc.x, "number"), y: Cast(params.doc.y, "number"), z: Cast(params.doc.z, "number"), color: Cast(params.doc.color, "string"),
+            zIndex: Cast(params.doc.zIndex, "number"), width: Cast(layoutDoc._width, "number"), height: Cast(layoutDoc._height, "number")
+        };
     }
 
     viewDefsToJSX = (views: any[]) => {
@@ -752,6 +755,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         const x = Cast(viewDef.x, "number");
         const y = Cast(viewDef.y, "number");
         const z = Cast(viewDef.z, "number");
+        const highlight = Cast(viewDef.highlight, "boolean");
+        const zIndex = Cast(viewDef.zIndex, "number");
+        const color = Cast(viewDef.color, "string");
         const width = Cast(viewDef.width, "number", null);
         const height = Cast(viewDef.height, "number", null);
         if (viewDef.type === "text") {
@@ -759,17 +765,19 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             const fontSize = Cast(viewDef.fontSize, "number");
             return [text, x, y].some(val => val === undefined) ? undefined :
                 {
-                    ele: <div className="collectionFreeform-customText" key={(text || "") + x + y + z} style={{ width, height, fontSize, transform: `translate(${x}px, ${y}px)` }}>
+                    ele: <div className="collectionFreeform-customText" key={(text || "") + x + y + z + color}
+                        style={{ width, height, color, fontSize, transform: `translate(${x}px, ${y}px)` }}>
                         {text}
                     </div>,
-                    bounds: { x: x!, y: y!, z: z, width, height: height }
+                    bounds: { x: x!, y: y!, z, zIndex, width, height }
                 };
         } else if (viewDef.type === "div") {
             const backgroundColor = Cast(viewDef.color, "string");
             return [x, y].some(val => val === undefined) ? undefined :
                 {
-                    ele: <div className="collectionFreeform-customDiv" key={"div" + x + y + z} style={{ width, height, backgroundColor, transform: `translate(${x}px, ${y}px)` }} />,
-                    bounds: { x: x!, y: y!, z: z, width: width!, height: height }
+                    ele: <div className="collectionFreeform-customDiv" key={"div" + x + y + z}
+                        style={{ width, height, backgroundColor, transform: `translate(${x}px, ${y}px)` }} />,
+                    bounds: { x: x!, y: y!, z, zIndex, width, height }
                 };
         }
     }
@@ -801,7 +809,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             const data = poolData.get(pair.layout[Id]);
             const pos = this.getCalculatedPositions({ doc: pair.layout, index: i, collection: this.Document, docs: layoutDocs, state });
             state = pos.state === undefined ? state : pos.state;
-            if (!data || pos.x !== data.x || pos.y !== data.y || pos.z !== data.z || pos.width !== data.width || pos.height !== data.height || pos.transition !== data.transition) {
+            if (!data || pos.x !== data.x || pos.y !== data.y || pos.z !== data.z || pos.zIndex !== data.zIndex ||
+                pos.width !== data.width || pos.height !== data.height || pos.transition !== data.transition) {
                 runInAction(() => poolData.set(pair.layout[Id], pos));
             }
         });
