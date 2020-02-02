@@ -100,7 +100,7 @@ export class Timeline extends React.Component<FieldViewProps> {
 
     /////////lifecycle functions////////////
     componentWillMount() {
-        let relativeHeight = window.innerHeight / 14; //sets height to arbitrary size, relative to innerHeight
+        let relativeHeight = window.innerHeight / 20; //sets height to arbitrary size, relative to innerHeight
         this._titleHeight = relativeHeight < this.MAX_TITLE_HEIGHT ? relativeHeight : this.MAX_TITLE_HEIGHT; //check if relHeight is less than Maxheight. Else, just set relheight to max
         this.MIN_CONTAINER_HEIGHT = this._titleHeight + 130; //offset
         this.DEFAULT_CONTAINER_HEIGHT = this._titleHeight * 2 + 130; //twice the titleheight + offset

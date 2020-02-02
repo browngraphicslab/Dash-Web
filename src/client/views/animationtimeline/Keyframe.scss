@@ -46,6 +46,21 @@ $timelineDark: #77a1aa;
         position: absolute;
     }
 
+    .keyframe:hover~.keyframe-information {
+        display: flex;
+    }
+
+    .keyframe-information {
+        display: none;
+        position: relative;
+        // z-index: 100000;
+        // background: $timelineDark;
+        width: 100px;
+        // left: -50px;
+        height: 100px;
+        // top: 40px;
+    }
+
     .keyframeCircle {
         left: -10px;
         border: 3px solid $timelineDark;

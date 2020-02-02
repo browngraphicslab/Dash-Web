@@ -1,14 +1,15 @@
-@import "./../globalCssVariables.scss"; 
+@import "./../globalCssVariables.scss";
 
-.track-container{
+.track-container {
 
     .track {
-        .inner {  
-            top:0px; 
-            width: calc(100%); 
-            background-color: $light-color;     
-            border: 1px solid $dark-color;        
-            position:relative; 
+        .inner {
+            top: 0px;
+            width: calc(100%);
+            background-color: $light-color;
+            border: 1px solid $dark-color;
+            position: relative;
+            z-index: 100;
         }
     }
 }

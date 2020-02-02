@@ -206,18 +206,26 @@ $timelineDark: #77a1aa;
         border-right: 2px solid $timelineDark;
 
         .datapane {
-    top: 0px;
-    width: 100px;
-    height: 30%;
-    border: 1px solid $dark-color;
-    background-color: $intermediate-color;
-    color: white;
-    position: relative;
-    float: left;
-    border-style: solid;
-    overflow-y: scroll;
-    overflow-x: hidden;
-}
+            top: 0px;
+            width: 100px;
+            height: 30%;
+            border: 1px solid $dark-color;
+            font-size: 12px;
+            line-height: 11px;
+            background-color: $timelineDark;
+            color: white;
+            position: relative;
+            float: left;
+            padding: 3px;
+            border-style: solid;
+            overflow-y: scroll;
+            overflow-x: hidden;
+
+            p {
+                hyphens: auto;
+            }
+
+        }
     }
 
     .resize {

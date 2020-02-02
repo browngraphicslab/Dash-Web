@@ -522,14 +522,18 @@ export class Keyframe extends React.Component<IProps> {
         DocListCast(this.regiondata.keyframes).forEach(kf => {
             if (kf.type as KeyframeFunc.KeyframeType !== KeyframeFunc.KeyframeType.end) {
                 keyframeDivs.push(
-                    <div className="keyframe" style={{ left: `${KeyframeFunc.convertPixelTime(NumCast(kf.time), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement) - this.pixelPosition}px` }}>
+                    <><div className="keyframe" style={{ left: `${KeyframeFunc.convertPixelTime(NumCast(kf.time), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement) - this.pixelPosition}px` }}>
                         <div className="divider"></div>
                         <div className="keyframeCircle keyframe-indicator" onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); this.moveKeyframe(e, kf); }} onContextMenu={(e: React.MouseEvent) => {
                             e.preventDefault();
                             e.stopPropagation();
                             this.makeKeyframeMenu(kf, e.nativeEvent);
                         }} onDoubleClick={(e) => { e.preventDefault(); e.stopPropagation(); }}></div>
+
                     </div>
+                        <div className="keyframe-information"></div>
+                    </>
+
                 );
             } else {
                 keyframeDivs.push(
@@ -589,7 +593,9 @@ export class Keyframe extends React.Component<IProps> {
                     onPointerDown={this.onBarPointerDown
                     }>
                     <div className="leftResize keyframe-indicator" onPointerDown={this.onResizeLeft} ></div>
+                    {/* <div className="keyframe-information"></div> */}
                     <div className="rightResize keyframe-indicator" onPointerDown={this.onResizeRight}></div>
+                    {/* <div className="keyframe-information"></div> */}
                     {this.drawKeyframes()}
                     {this.drawKeyframeDividers()}
                 </div>
