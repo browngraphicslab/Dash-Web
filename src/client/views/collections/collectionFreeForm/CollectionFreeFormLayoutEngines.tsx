@@ -1,5 +1,5 @@
 import { Doc, Field, FieldResult, WidthSym, HeightSym } from "../../../../new_fields/Doc";
-import { NumCast, StrCast, Cast, DateCast } from "../../../../new_fields/Types";
+import { NumCast, StrCast, Cast, DateCast, BoolCast } from "../../../../new_fields/Types";
 import { ScriptBox } from "../../ScriptBox";
 import { CompileScript } from "../../../util/Scripting";
 import { ScriptField } from "../../../../new_fields/ScriptField";
@@ -16,18 +16,35 @@ interface PivotData {
     text: string;
     x: number;
     y: number;
+    zIndex?: number;
     width?: number;
     height?: number;
     fontSize: number;
+    color?: string;
 }
 
 export interface ViewDefBounds {
     x: number;
     y: number;
     z?: number;
+    zIndex?: number;
     width?: number;
     height?: number;
     transition?: string;
+    highlight?: boolean;
+}
+
+export interface PoolData {
+    x?: number,
+    y?: number,
+    z?: number,
+    zIndex?: number,
+    width?: number,
+    height?: number,
+    color?: string,
+    transition?: string,
+    highlight?: boolean,
+    state?: any
 }
 
 export interface ViewDefResult {
@@ -43,7 +60,7 @@ function toLabel(target: FieldResult<Field>) {
 }
 
 export function computePivotLayout(
-    poolData: ObservableMap<string, any>,
+    poolData: ObservableMap<string, PoolData>,
     pivotDoc: Doc,
     childDocs: Doc[],
     childPairs: { layout: Doc, data?: Doc }[],
@@ -116,7 +133,7 @@ export function computePivotLayout(
 
 
 export function computeTimelineLayout(
-    poolData: ObservableMap<string, any>,
+    poolData: ObservableMap<string, PoolData>,
     pivotDoc: Doc,
     childDocs: Doc[],
     childPairs: { layout: Doc, data?: Doc }[],
@@ -128,9 +145,10 @@ export function computeTimelineLayout(
     const docMap = new Map<Doc, ViewDefBounds>();
     const groupNames: PivotData[] = [];
     const timelineFieldKey = Field.toString(pivotDoc.pivotField as Field);
-    const minTimeReq = Cast(pivotDoc[fieldKey + "-timelineMinReq"], "number", null);
-    const maxTimeReq = Cast(pivotDoc[fieldKey + "-timelineMaxReq"], "number", null);
     const curTime = Cast(pivotDoc[fieldKey + "-timelineCur"], "number", null);
+    const curTimeSpan = Cast(pivotDoc[fieldKey + "-timelineSpan"], "number", null);
+    const minTimeReq = curTime === undefined ? Cast(pivotDoc[fieldKey + "-timelineMinReq"], "number", null) : curTimeSpan && (curTime - curTimeSpan);
+    const maxTimeReq = curTime === undefined ? Cast(pivotDoc[fieldKey + "-timelineMaxReq"], "number", null) : curTimeSpan && (curTime + curTimeSpan);
     const fontSize = NumCast(pivotDoc[fieldKey + "-timelineFontSize"], panelDim[1] > 58 ? 20 : Math.max(7, panelDim[1] / 3));
     const fontHeight = panelDim[1] > 58 ? 30 : panelDim[1] / 2;
     const findStack = (time: number, stack: number[]) => {
@@ -151,6 +169,13 @@ export function computeTimelineLayout(
             maxTime = Math.max(num, maxTime);
         }
     });
+    if (curTime !== undefined) {
+        if (curTime > maxTime || curTime - minTime > maxTime - curTime) {
+            maxTime = curTime + (curTime - minTime);
+        } else {
+            minTime = curTime - (maxTime - curTime);
+        }
+    }
     pivotDoc[fieldKey + "-timelineMin"] = minTime = minTimeReq ? Math.min(minTimeReq, minTime) : minTime;
     pivotDoc[fieldKey + "-timelineMax"] = maxTime = maxTimeReq ? Math.max(maxTimeReq, maxTime) : maxTime;
 
@@ -163,16 +188,23 @@ export function computeTimelineLayout(
     if (sortedKeys.length && scaling * (sortedKeys[0] - prevKey) > 25) {
         groupNames.push({ type: "text", text: prevKey.toString(), x: x, y: 0, height: fontHeight, fontSize });
     }
+    if (!sortedKeys.length && curTime !== undefined) {
+        groupNames.push({ type: "text", text: curTime.toString(), x: (curTime - minTime) * scaling, zIndex: 1000, color: "orange", y: 0, height: fontHeight, fontSize });
+    }
 
     const pivotAxisWidth = NumCast(pivotDoc.pivotTimeWidth, panelDim[1] / 2.5);
     let stacking: number[] = [];
+    let zind = 0;
     sortedKeys.forEach(key => {
+        if (curTime !== undefined && curTime > prevKey && curTime <= key) {
+            groupNames.push({ type: "text", text: curTime.toString(), x: (curTime - minTime) * scaling, y: 0, zIndex: 1000, color: "orange", height: fontHeight, fontSize });
+        }
         const keyDocs = pivotDateGroups.get(key)!;
         keyDocs.forEach(d => d.isMinimized = false);
         x += scaling * (key - prevKey);
         const stack = findStack(x, stacking);
         prevKey = key;
-        !stack && groupNames.push({ type: "text", text: key.toString(), x: x, y: stack * 25, height: fontHeight, fontSize });
+        !stack && Math.abs(x - (curTime - minTime) * scaling) > pivotAxisWidth && groupNames.push({ type: "text", text: key.toString(), x: x, y: stack * 25, height: fontHeight, fontSize });
         keyDocs.forEach(doc => {
             const stack = findStack(x, stacking);
             const layoutDoc = Doc.Layout(doc);
@@ -182,10 +214,17 @@ export function computeTimelineLayout(
                 hgt = pivotAxisWidth;
                 wid = layoutDoc._nativeHeight ? (NumCast(layoutDoc._nativeWidth) / NumCast(layoutDoc._nativeHeight)) * pivotAxisWidth : pivotAxisWidth;
             }
-            docMap.set(doc, { x: x, y: - Math.sqrt(stack) * pivotAxisWidth / 2 - pivotAxisWidth + (pivotAxisWidth - hgt) / 2, width: wid, height: hgt });
+            docMap.set(doc, {
+                x: x, y: - Math.sqrt(stack) * pivotAxisWidth / 2 - pivotAxisWidth + (pivotAxisWidth - hgt) / 2,
+                zIndex: (curTime === key ? 1000 : zind++), highlight: curTime === key, width: wid / (Math.max(stack, 1)), height: hgt
+            });
             stacking[stack] = x + pivotAxisWidth;
         });
     });
+    if (sortedKeys.length && curTime > sortedKeys[sortedKeys.length - 1]) {
+        x = (curTime - minTime) * scaling;
+        groupNames.push({ type: "text", text: curTime.toString(), x: x, y: 0, zIndex: 1000, color: "orange", height: fontHeight, fontSize });
+    }
     if (Math.ceil(maxTime - minTime) * scaling > x + 25) {
         groupNames.push({ type: "text", text: Math.ceil(maxTime).toString(), x: Math.ceil(maxTime - minTime) * scaling, y: 0, height: fontHeight, fontSize });
     }
@@ -194,8 +233,8 @@ export function computeTimelineLayout(
     return normalizeResults(panelDim, fontHeight, childPairs, docMap, poolData, viewDefsToJSX, groupNames, (maxTime - minTime) * scaling, [divider]);
 }
 
-function normalizeResults(panelDim: number[], fontHeight: number, childPairs: { data?: Doc, layout: Doc }[], docMap: any,
-    poolData: any, viewDefsToJSX: any, groupNames: PivotData[], minWidth: number, extras: any[]) {
+function normalizeResults(panelDim: number[], fontHeight: number, childPairs: { data?: Doc, layout: Doc }[], docMap: Map<Doc, ViewDefBounds>,
+    poolData: ObservableMap<string, PoolData>, viewDefsToJSX: (views: any) => ViewDefResult[], groupNames: PivotData[], minWidth: number, extras: PivotData[]) {
 
     const grpEles = groupNames.map(gn => ({ x: gn.x, y: gn.y, height: gn.height }) as PivotData);
     const docEles = childPairs.filter(d => !d.layout.isMinimized).map(pair =>
@@ -212,13 +251,18 @@ function normalizeResults(panelDim: number[], fontHeight: number, childPairs: { 
             x: NumCast(pair.layout.x),
             y: NumCast(pair.layout.y),
             z: NumCast(pair.layout.z),
+            highlight: undefined,
+            zIndex: NumCast(pair.layout.zIndex),
             width: NumCast(pair.layout._width),
             height: NumCast(pair.layout._height)
         };
         const newPosRaw = docMap.get(pair.layout) || fallbackPos; // new pos is computed pos, or pos written to the document's fields
-        const newPos = { x: newPosRaw.x * scale, y: newPosRaw.y * scale, z: newPosRaw.z, width: (newPosRaw.width || 0) * scale, height: newPosRaw.height! * scale };
+        const newPos = {
+            x: newPosRaw.x * scale, y: newPosRaw.y * scale, z: newPosRaw.z, zIndex: newPosRaw.zIndex, highlight: newPosRaw.highlight,
+            width: (newPosRaw.width || 0) * scale, height: newPosRaw.height! * scale
+        };
         const lastPos = poolData.get(pair.layout[Id]); // last computed pos
-        if (!lastPos || newPos.x !== lastPos.x || newPos.y !== lastPos.y || newPos.z !== lastPos.z || newPos.width !== lastPos.width || newPos.height !== lastPos.height) {
+        if (!lastPos || newPos.x !== lastPos.x || newPos.y !== lastPos.y || newPos.z !== lastPos.z || newPos.zIndex !== lastPos.zIndex || newPos.width !== lastPos.width || newPos.height !== lastPos.height) {
             runInAction(() => poolData.set(pair.layout[Id], { transition: "transform 1s", ...newPos }));
         }
     });
@@ -229,6 +273,7 @@ function normalizeResults(panelDim: number[], fontHeight: number, childPairs: { 
             text: gname.text,
             x: gname.x * scale,
             y: gname.y * scale,
+            color: gname.color,
             width: gname.width === undefined ? undefined : gname.width * scale,
             height: Math.max(fontHeight, gname.height! * scale),
             // height: gname.height === undefined ? undefined : gname.height * scale,

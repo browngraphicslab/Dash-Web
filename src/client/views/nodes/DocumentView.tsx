@@ -919,7 +919,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const titleView = (!showTitle ? (null) :
             <div className={`documentView-titleWrapper${showTitleHover ? "-hover" : ""}`} style={{
                 position: showTextTitle ? "relative" : "absolute",
-                pointerEvents: SelectionManager.GetIsDragging() ? "none" : "all",
+                pointerEvents: SelectionManager.GetIsDragging() || this.onClickHandler || this.Document.ignoreClick ? "none" : "all",
             }}>
                 <EditableView ref={this._titleRef}
                     contents={(this.props.DataDoc || this.props.Document)[showTitle]?.toString()}

@@ -15,9 +15,12 @@ import { returnFalse } from "../../../Utils";
 import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
-    dataProvider?: (doc: Doc) => { x: number, y: number, width: number, height: number, z: number, transition?: string } | undefined;
+    dataProvider?: (doc: Doc) => { x: number, y: number, zIndex?: number, highlight?: boolean, width: number, height: number, z: number, transition?: string } | undefined;
     x?: number;
     y?: number;
+    z?: number;
+    zIndex?: number;
+    highlight?: boolean;
     width?: number;
     height?: number;
     jitterRotation: number;
@@ -30,8 +33,10 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     @observable _animPos: number[] | undefined = undefined;
     get displayName() { return "CollectionFreeFormDocumentView(" + this.props.Document.title + ")"; } // this makes mobx trace() statements more descriptive
     get transform() { return `scale(${this.props.ContentScaling()}) translate(${this.X}px, ${this.Y}px) rotate(${anime.random(-1, 1) * this.props.jitterRotation}deg)`; }
-    get X() { return this._animPos !== undefined ? this._animPos[0] : this.renderScriptDim ? this.renderScriptDim.x : this.props.x !== undefined ? this.props.x : this.dataProvider ? this.dataProvider.x : (this.Document.x || 0); }
-    get Y() { return this._animPos !== undefined ? this._animPos[1] : this.renderScriptDim ? this.renderScriptDim.y : this.props.y !== undefined ? this.props.y : this.dataProvider ? this.dataProvider.y : (this.Document.y || 0); }
+    get X() { return this.renderScriptDim ? this.renderScriptDim.x : this.props.x !== undefined ? this.props.x : this.dataProvider ? this.dataProvider.x : (this.Document.x || 0); }
+    get Y() { return this.renderScriptDim ? this.renderScriptDim.y : this.props.y !== undefined ? this.props.y : this.dataProvider ? this.dataProvider.y : (this.Document.y || 0); }
+    get ZInd() { return this.dataProvider ? this.dataProvider.zIndex : (this.Document.zIndex || 0); }
+    get Highlight() { return this.dataProvider?.highlight; }
     get width() { return this.renderScriptDim ? this.renderScriptDim.width : this.props.width !== undefined ? this.props.width : this.props.dataProvider && this.dataProvider ? this.dataProvider.width : this.layoutDoc[WidthSym](); }
     get height() {
         const hgt = this.renderScriptDim ? this.renderScriptDim.height : this.props.height !== undefined ? this.props.height : this.props.dataProvider && this.dataProvider ? this.dataProvider.height : this.layoutDoc[HeightSym]();
@@ -78,11 +83,12 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                                 this.layoutDoc.isBackground ? undefined :  // if it's a background & has a cluster color, make the shadow spread really big
                                     StrCast(this.layoutDoc.boxShadow, ""),
                 borderRadius: StrCast(Doc.Layout(this.layoutDoc).borderRounding),
+                outline: this.Highlight ? "orange solid 2px" : "",
                 transform: this.transform,
                 transition: this.Document.isAnimating ? ".5s ease-in" : this.props.transition ? this.props.transition : this.dataProvider ? this.dataProvider.transition : StrCast(this.layoutDoc.transition),
                 width: this.width,
                 height: this.height,
-                zIndex: this.Document.zIndex || 0,
+                zIndex: this.ZInd,
             }} >
 
             {!this.props.fitToBox ? <DocumentView {...this.props}
