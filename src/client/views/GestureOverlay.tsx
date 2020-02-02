@@ -98,6 +98,7 @@ export default class GestureOverlay extends Touchable {
         if (this.prevPoints.size && this.prevPoints.size < 5) {
             const nts = this.getNewTouches(te);
             const target = document.elementFromPoint(te.changedTouches.item(0).clientX, te.changedTouches.item(0).clientY);
+
             target?.dispatchEvent(
                 new CustomEvent<InteractionUtils.MultiTouchEvent<React.TouchEvent>>("dashOnTouchStart",
                     {
@@ -168,59 +169,6 @@ export default class GestureOverlay extends Touchable {
         if (this.prevPoints.size === 0) {
             document.removeEventListener("touchmove", this.onReactTouchMove);
             document.removeEventListener("touchend", this.onReactTouchEnd);
-        }
-        e.stopPropagation();
-    }
-
-    onReactPullMove = (e: TouchEvent) => {
-        const nts: any = this.getNewTouches(e);
-        document.dispatchEvent(
-            new CustomEvent<InteractionUtils.MultiTouchEvent<TouchEvent>>("dashOnPullMove",
-                {
-                    bubbles: true,
-                    detail: {
-                        fingers: this.prevPoints.size,
-                        targetTouches: nts.ntt,
-                        touches: nts.nt,
-                        changedTouches: nts.nct,
-                        touchEvent: e
-                    }
-                })
-        );
-    }
-
-    onReactPullEnd = (e: TouchEvent) => {
-        const nts: any = this.getNewTouches(e);
-        document.dispatchEvent(
-            new CustomEvent<InteractionUtils.MultiTouchEvent<TouchEvent>>("dashOnPullEnd",
-                {
-                    bubbles: true,
-                    detail: {
-                        fingers: this.prevPoints.size,
-                        targetTouches: nts.ntt,
-                        touches: nts.nt,
-                        changedTouches: nts.nct,
-                        touchEvent: e
-                    }
-                })
-        );
-
-        console.log('pull has ended');
-
-        for (let i = 0; i < e.changedTouches.length; i++) {
-            const pt = e.changedTouches.item(i);
-            if (pt) {
-                if (this.prevPoints.has(pt.identifier)) {
-                    this.prevPoints.delete(pt.identifier);
-                }
-            }
-        }
-
-        // TODO....figure out the thing where it is a reasonable pull... <200?
-
-        if (this.prevPoints.size === 0) {
-            document.removeEventListener("touchmove", this.onReactPullMove);
-            document.removeEventListener("touchend", this.onReactPullEnd);
         }
         e.stopPropagation();
     }

@@ -283,36 +283,6 @@ export class CollectionView extends Touchable<FieldViewProps> {
             onMoveNextRequest={action(() => this._curLightboxImg = (this._curLightboxImg + 1) % images.length)} />);
     }
 
-    @action
-    handle2PointersDown = (e: React.TouchEvent, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>) => {
-        if (!e.nativeEvent.cancelBubble && this.props.active(true)) {
-            // const pt1: React.Touch | null = e.targetTouches.item(0);
-            // const pt2: React.Touch | null = e.targetTouches.item(1);
-            // // if (!pt1 || !pt2) return;
-            const myTouches = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true);
-            const pt1 = myTouches[0];
-            const pt2 = myTouches[1];
-            if (pt1 && pt2) {
-                const centerX = Math.min(pt1.clientX, pt2.clientX) + Math.abs(pt2.clientX - pt1.clientX) / 2;
-                const centerY = Math.min(pt1.clientY, pt2.clientY) + Math.abs(pt2.clientY - pt1.clientY) / 2;
-                this._lastX = centerX;
-                this._lastY = centerY;
-                this.removeMoveListeners();
-                this.removeEndListeners();
-
-                if (Math.abs(this.props.PanelWidth() - this._lastX) < 100 || Math.abs(this.props.PanelHeight() - this._lastY) < 100) { // commencing pulling from side
-                    this.addPullMoveListeners();
-                    this.addPullEndListeners();
-                } else {
-                    this.addMoveListeners();
-                    this.addEndListeners();
-                }
-                e.stopPropagation();
-            }
-        }
-    }
-
-
     render() {
         TraceMobx();
         const props: CollectionRenderProps = {

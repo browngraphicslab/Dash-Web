@@ -200,26 +200,6 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
         this.endDisposer && this.endDisposer();
     }
 
-    addPullMoveListeners = () => {
-        const handler = (e: Event) => this.onTouch(e, (e as CustomEvent<InteractionUtils.MultiTouchEvent<TouchEvent>>).detail);
-        document.addEventListener("dashOnPullMove", handler);
-        this.moveDisposer = () => document.removeEventListener("dashOnPullMove", handler);
-    }
-
-    removePullMoveListeners = () => {
-        this.moveDisposer && this.moveDisposer();
-    }
-
-    addPullEndListeners = () => {
-        const handler = (e: Event) => this.onTouchEnd(e, (e as CustomEvent<InteractionUtils.MultiTouchEvent<TouchEvent>>).detail);
-        document.addEventListener("dashOnPullEnd", handler);
-        this.endDisposer = () => document.removeEventListener("dashOnPullEnd", handler);
-    }
-
-    removePullEndListeners = () => {
-        this.endDisposer && this.endDisposer();
-    }
-
     handleHandDown = (e: React.TouchEvent) => {
         // e.stopPropagation();
         // e.preventDefault();
