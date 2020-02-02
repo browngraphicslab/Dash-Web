@@ -68,7 +68,7 @@ export function computePivotLayout(
     let numCols = NumCast(pivotDoc.pivotNumColumns, Math.ceil(Math.sqrt(minSize)));
     const docMap = new Map<Doc, ViewDefBounds>();
     const groupNames: PivotData[] = [];
-    numCols = Math.min(panelDim[0] / pivotAxisWidth, numCols);
+    numCols = Math.min(Math.max(1, panelDim[0] / pivotAxisWidth), numCols);
 
     const expander = 1.05;
     const gap = .15;

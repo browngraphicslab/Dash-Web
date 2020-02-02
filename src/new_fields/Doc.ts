@@ -1,4 +1,4 @@
-import { observable, ObservableMap, runInAction } from "mobx";
+import { observable, ObservableMap, runInAction, action } from "mobx";
 import { alias, map, serializable } from "serializr";
 import { DocServer } from "../client/DocServer";
 import { DocumentType } from "../client/documents/DocumentTypes";
@@ -423,8 +423,8 @@ export namespace Doc {
     }
     export function MakeAlias(doc: Doc) {
         const alias = !GetT(doc, "isPrototype", "boolean", true) ? Doc.MakeCopy(doc) : Doc.MakeDelegate(doc);
-        const layout = Doc.Layout(alias);
-        if (layout instanceof Doc && layout !== alias) {
+        const layout = Doc.LayoutField(alias);
+        if (layout instanceof Doc && layout !== alias && layout === Doc.Layout(alias)) {
             Doc.SetLayout(alias, Doc.MakeAlias(layout));
         }
         alias.title = ComputedField.MakeFunction(`renameAlias(this, ${Doc.GetProto(doc).aliasNumber = NumCast(Doc.GetProto(doc).aliasNumber) + 1})`);
@@ -455,20 +455,25 @@ export namespace Doc {
         // saves it on the data doc indexed by the template layout's id.
         //
         const expandedLayoutFieldKey = templateField + "-layout[" + templateLayoutDoc[Id] + "]";
-        const expandedTemplateLayout = targetDoc?.[expandedLayoutFieldKey];
-        if (expandedTemplateLayout === undefined) {
-            setTimeout(() => {
+        let expandedTemplateLayout = targetDoc?.[expandedLayoutFieldKey];
+        if (templateLayoutDoc.resolvedDataDoc instanceof Promise) {
+
+            expandedTemplateLayout = undefined;
+        } else if (templateLayoutDoc.resolvedDataDoc === Doc.GetDataDoc(targetDoc)) {
+            expandedTemplateLayout = templateLayoutDoc;
+        } else if (expandedTemplateLayout === undefined) {
+            setTimeout(action(() => {
                 if (!targetDoc[expandedLayoutFieldKey]) {
                     const newLayoutDoc = Doc.MakeDelegate(templateLayoutDoc, undefined, "[" + templateLayoutDoc.title + "]");
                     newLayoutDoc.expandedTemplate = targetDoc;
                     targetDoc[expandedLayoutFieldKey] = newLayoutDoc;
-                    const dataDoc = Doc.GetProto(targetDoc);
-                    newLayoutDoc.resolvedDataDoc = targetDoc;
+                    const dataDoc = Doc.GetDataDoc(targetDoc);
+                    newLayoutDoc.resolvedDataDoc = dataDoc;
                     if (dataDoc[templateField] === undefined && templateLayoutDoc[templateField] instanceof List && Cast(templateLayoutDoc[templateField], listSpec(Doc), []).length) {
                         dataDoc[templateField] = ComputedField.MakeFunction(`ObjectField.MakeCopy(templateLayoutDoc["${templateField}"] as List)`, { templateLayoutDoc: Doc.name }, { templateLayoutDoc: templateLayoutDoc });
                     }
                 }
-            }, 0);
+            }), 0);
         }
         return expandedTemplateLayout instanceof Doc ? expandedTemplateLayout : undefined; // layout is undefined if the expandedTemplate is pending.
     }
@@ -668,10 +673,17 @@ export namespace Doc {
 
     // the document containing the view layout information - will be the Document itself unless the Document has
     // a layout field.  In that case, all layout information comes from there unless overriden by Document  
-    export function Layout(doc: Doc) { return Doc.LayoutField(doc) instanceof Doc ? Doc.LayoutField(doc) as Doc : doc; }
+    export function Layout(doc: Doc): Doc {
+        let templateLayoutDoc = Cast(Doc.LayoutField(doc), Doc, null);
+        if (templateLayoutDoc) {
+            const renderFieldKey = Doc.LayoutFieldKey(templateLayoutDoc);
+            return Cast(doc[renderFieldKey + "-layout[" + templateLayoutDoc[Id] + "]"], Doc, null) || templateLayoutDoc;
+        }
+        return doc;
+    }
     export function SetLayout(doc: Doc, layout: Doc | string) { doc[StrCast(doc.layoutKey, "layout")] = layout; }
     export function LayoutField(doc: Doc) { return doc[StrCast(doc.layoutKey, "layout")]; }
-    export function LayoutFieldKey(doc: Doc) { return StrCast(Doc.Layout(doc).layout).split("'")[1]; }
+    export function LayoutFieldKey(doc: Doc): string { return StrCast(Doc.Layout(doc).layout).split("'")[1]; }
     const manager = new DocData();
     export function SearchQuery(): string { return manager._searchQuery; }
     export function SetSearchQuery(query: string) { runInAction(() => manager._searchQuery = query); }
