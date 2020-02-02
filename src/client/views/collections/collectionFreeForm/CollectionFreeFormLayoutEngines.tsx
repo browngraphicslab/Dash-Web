@@ -98,7 +98,7 @@ export function computePivotLayout(
             }
             docMap.set(doc, {
                 x: x + xCount * pivotAxisWidth * expander + (pivotAxisWidth - wid) / 2 + (val.length < numCols ? (numCols - val.length) * pivotAxisWidth / 2 : 0),
-                y: -y,
+                y: -y + (pivotAxisWidth - hgt) / 2,
                 width: wid,
                 height: hgt
             });
@@ -182,7 +182,7 @@ export function computeTimelineLayout(
                 hgt = pivotAxisWidth;
                 wid = layoutDoc._nativeHeight ? (NumCast(layoutDoc._nativeWidth) / NumCast(layoutDoc._nativeHeight)) * pivotAxisWidth : pivotAxisWidth;
             }
-            docMap.set(doc, { x: x, y: - Math.sqrt(stack) * pivotAxisWidth / 2 - pivotAxisWidth, width: wid, height: hgt });
+            docMap.set(doc, { x: x, y: - Math.sqrt(stack) * pivotAxisWidth / 2 - pivotAxisWidth + (pivotAxisWidth - hgt) / 2, width: wid, height: hgt });
             stacking[stack] = x + pivotAxisWidth;
         });
     });
