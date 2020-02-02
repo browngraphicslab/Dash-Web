@@ -10,7 +10,6 @@ import { Keyframe, KeyframeFunc, RegionData } from "./Keyframe";
 import { Transform } from "../../util/Transform";
 import { Copy } from "../../../new_fields/FieldSymbols";
 import { ObjectField } from "../../../new_fields/ObjectField";
-import { fromCallback } from "bluebird";
 
 interface IProps {
     node: Doc;
@@ -153,15 +152,16 @@ export class Track extends React.Component<IProps> {
     */
     @action
     currentBarXReaction = () => {
-        return reaction(() => this.props.currentBarX, async () => {
-            let regiondata: (Doc | undefined) = await this.findRegion(this.time);
-            if (regiondata) {
-                this.props.node.hidden = false;
-                await this.timeChange();
-            } else {
-                this.props.node.hidden = true;
-                this.props.node.opacity = 0;
-            }
+        return reaction(() => this.props.currentBarX, () => {
+            this.findRegion(this.time).then((regiondata: (Doc | undefined)) => {
+                if (regiondata) {
+                    this.props.node.hidden = false;
+                    this.timeChange();
+                } else {
+                    this.props.node.hidden = true;
+                    this.props.node.opacity = 0;
+                }
+            });
         });
     }
 
@@ -207,10 +207,12 @@ export class Track extends React.Component<IProps> {
             let rightkf: (Doc | undefined) = await KeyframeFunc.calcMinRight(regiondata, this.time); //right keyframe, if it exists        
             let currentkf: (Doc | undefined) = await this.calcCurrent(regiondata); //if the scrubber is on top of the keyframe
             if (currentkf) {
+                console.log("on a keyframe"); 
                 await this.applyKeys(currentkf);
                 this.saveStateKf = currentkf; 
                 this.saveStateRegion = regiondata; 
             } else if (leftkf && rightkf) {
+                console.log("interpolating!"); 
                 await this.interpolate(leftkf, rightkf);
             }
         }
@@ -228,6 +230,8 @@ export class Track extends React.Component<IProps> {
                 this.props.node[key] = undefined;
             } else {
                 let stored = kfNode[key];
+                console.log(key); 
+                console.log(stored); 
                 this.props.node[key] = stored instanceof ObjectField ? stored[Copy]() : stored; 
             }
         });
@@ -287,14 +291,13 @@ export class Track extends React.Component<IProps> {
 
 
     /**
-     * double click on track. Signalling keyframe creation. Problem with phantom regions
+     * double click on track. Signalling keyframe creation. 
      */
     @action
     onInnerDoubleClick = (e: React.MouseEvent) => {
         let inner = this._inner.current!;
         let offsetX = Math.round((e.clientX - inner.getBoundingClientRect().left) * this.props.transform.Scale);
         this.createRegion(KeyframeFunc.convertPixelTime(offsetX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement));
-        this.forceUpdate();
     }
 
 
@@ -320,7 +323,6 @@ export class Track extends React.Component<IProps> {
 
     @action
     makeKeyData = (regiondata:RegionData, time: number, type: KeyframeFunc.KeyframeType = KeyframeFunc.KeyframeType.default) => { //Kfpos is mouse offsetX, representing time 
-        console.log("KEYDATA GENERATING"); 
         let doclist =  DocListCast(regiondata.keyframes)!;
         let existingkf: (Doc | undefined) = undefined;
         doclist.forEach(TK => {
@@ -349,8 +351,8 @@ export class Track extends React.Component<IProps> {
     makeCopy = () => {
         let doc = new Doc(); 
         this.whitelist.forEach(key => {
-            let originalVal = this.props.node[key]; 
-            doc.key = originalVal instanceof ObjectField ? originalVal[Copy]() : this.props.node[key]; 
+            let originalVal = this.props.node[key];
+            doc[key] = originalVal instanceof ObjectField ? originalVal[Copy]() : this.props.node[key]; 
         });
         return doc; 
     }

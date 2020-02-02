@@ -60,9 +60,7 @@ export namespace KeyframeFunc {
         let keyframes = await DocListCastAsync(region.keyframes!);
         keyframes!.forEach((kf) => {
             let compTime = currentBarX;
-            if (ref) {
-                compTime = NumCast(ref.time);
-            }
+            if (ref) compTime = NumCast(ref.time);
             if (NumCast(kf.time) < compTime && NumCast(kf.time) >= time) {
                 leftKf = kf;
                 time = NumCast(kf.time);
@@ -78,9 +76,7 @@ export namespace KeyframeFunc {
         let keyframes = await DocListCastAsync(region.keyframes!);
         keyframes!.forEach((kf) => {
             let compTime = currentBarX;
-            if (ref) {
-                compTime = NumCast(ref.time);
-            }
+            if (ref) compTime = NumCast(ref.time);
             if (NumCast(kf.time) > compTime && NumCast(kf.time) <= NumCast(time)) {
                 rightKf = kf;
                 time = NumCast(kf.time);
@@ -181,16 +177,19 @@ export class Keyframe extends React.Component<IProps> {
     @computed private get pixelFadeIn() { return KeyframeFunc.convertPixelTime(this.regiondata.fadeIn, "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement); }
     @computed private get pixelFadeOut() { return KeyframeFunc.convertPixelTime(this.regiondata.fadeOut, "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement); }
    
-    componentWillMount() {
-        if (!this.regiondata.keyframes) this.regiondata.keyframes = new List<Doc>();        
-        let start = this.props.makeKeyData(this.regiondata, this.regiondata.position,  KeyframeFunc.KeyframeType.end);
-        let fadeIn = this.props.makeKeyData(this.regiondata, this.regiondata.position + this.regiondata.fadeIn, KeyframeFunc.KeyframeType.fade);
-        let fadeOut = this.props.makeKeyData(this.regiondata, this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut, KeyframeFunc.KeyframeType.fade);
-        let finish = this.props.makeKeyData(this.regiondata, this.regiondata.position + this.regiondata.duration,KeyframeFunc.KeyframeType.end);
-        (fadeIn.key as Doc).opacity = 1;
-        (fadeOut.key as Doc).opacity = 1;
-        (start.key as Doc).opacity = 0.1;
-        (finish.key as Doc).opacity = 0.1;
+    componentDidMount() {
+        setTimeout(() => {      //giving it a temporary 1sec delay... 
+            if (!this.regiondata.keyframes) this.regiondata.keyframes = new List<Doc>();   
+            let start = this.props.makeKeyData(this.regiondata, this.regiondata.position,  KeyframeFunc.KeyframeType.end);
+            let fadeIn = this.props.makeKeyData(this.regiondata, this.regiondata.position + this.regiondata.fadeIn, KeyframeFunc.KeyframeType.fade);
+            let fadeOut = this.props.makeKeyData(this.regiondata, this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut, KeyframeFunc.KeyframeType.fade);
+            let finish = this.props.makeKeyData(this.regiondata, this.regiondata.position + this.regiondata.duration,KeyframeFunc.KeyframeType.end);
+            (fadeIn.key as Doc).opacity = 1;
+            (fadeOut.key as Doc).opacity = 1;
+            (start.key as Doc).opacity = 0.1;
+            (finish.key as Doc).opacity = 0.1;
+            this.forceUpdate(); //not needed, if setTimeout is gone...
+        }, 1000);
     }
 
     
