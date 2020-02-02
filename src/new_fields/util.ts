@@ -112,7 +112,11 @@ export function setter(target: any, in_prop: string | symbol | number, value: an
         }
         const resolvedLayout = getFieldImpl(target, getFieldImpl(target, "layoutKey", receiver), receiver);
         if (resolvedLayout instanceof Doc) {
-            resolvedLayout[prop] = value;
+            let x = resolvedLayout[Id];
+            let layout = (resolvedLayout.layout as string).split("'")[1];
+            let expanded = getFieldImpl(target, layout + "-layout[" + x + "]", receiver);
+            expanded && (expanded[prop] = value);
+            // resolvedLayout[prop] = value;
             return true;
         }
     }
@@ -129,7 +133,11 @@ export function getter(target: any, in_prop: string | symbol | number, receiver:
         }
         const resolvedLayout = getFieldImpl(target, getFieldImpl(target, "layoutKey", receiver), receiver);
         if (resolvedLayout instanceof Doc) {
-            return resolvedLayout[prop];
+            let x = resolvedLayout[Id];
+            let layout = (resolvedLayout.layout as string).split("'")[1];
+            let expanded = getFieldImpl(target, layout + "-layout[" + x + "]", receiver);
+            return expanded?.[prop];
+            //return resolvedLayout[prop];
         }
     }
     if (prop === "then") {//If we're being awaited

@@ -70,7 +70,10 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 (args) => {
                     const childLayout = Cast(this.props.Document.childLayout, Doc);
                     if (childLayout instanceof Doc) {
-                        this.childDocs.map(doc => Doc.ApplyTemplateTo(childLayout, doc, "layout_fromParent"));
+                        this.childDocs.map(doc => {
+                            doc.layout_fromParent = childLayout;
+                            doc.layoutKey = "layout_fromParent";
+                        });
                     }
                     else if (!(childLayout instanceof Promise)) {
                         this.childDocs.filter(d => !d.isTemplateForField).map(doc => doc.layoutKey === "layout_fromParent" && (doc.layoutKey = "layout"));
@@ -182,8 +185,10 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 this.props.Document.dropConverter.script.run({ dragData: docDragData }); /// bcz: check this 
             if (docDragData && !docDragData.applyAsTemplate) {
                 if (de.altKey && docDragData.draggedDocuments.length) {
-                    this.childDocs.map(doc =>
-                        Doc.ApplyTemplateTo(docDragData.draggedDocuments[0], doc, "layout_fromParent"));
+                    this.childDocs.map(doc => {
+                        doc.layout_fromParent = docDragData.draggedDocuments[0];
+                        doc.layoutKey = "layout_fromParent";
+                    });
                     e.stopPropagation();
                     return true;
                 }
