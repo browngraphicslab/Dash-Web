@@ -60,12 +60,12 @@ export class Track extends React.Component<IProps> {
 
     componentDidMount() {
         runInAction(async () => {
-            this._timelineVisibleReaction = this.timelineVisibleReaction();
+          //  this._timelineVisibleReaction = this.timelineVisibleReaction();
             this._currentBarXReaction = this.currentBarXReaction();
             if (this.regions.length === 0) this.createRegion(this.time);
             this.props.node.hidden = false;
             this.props.node.opacity = 1;
-           // this.autoCreateKeyframe(); 
+            //this.autoCreateKeyframe(); 
         });
     }
 
@@ -86,34 +86,34 @@ export class Track extends React.Component<IProps> {
      * 
      */
     @action
-    saveKeyframe = async (ref: Doc, regiondata: Doc) => {
-        let keyframes: List<Doc> = (Cast(regiondata.keyframes, listSpec(Doc)) as List<Doc>);
-        let kfIndex: number = keyframes.indexOf(ref);
-        let kf = keyframes[kfIndex] as Doc;
+    saveKeyframe = async () => {
+        console.log("saving keyframe");
+        let keyframes: List<Doc> = (Cast(this.saveStateRegion!.keyframes, listSpec(Doc)) as List<Doc>);
+        let kfIndex: number = keyframes.indexOf(this.saveStateKf!);
+        let kf = keyframes[kfIndex] as Doc; //index in the keyframe
         if (!kf) return;
         if (kf.type === KeyframeFunc.KeyframeType.default) { // only save for non-fades
-            kf.key = Doc.MakeCopy(this.props.node, true);
-            let leftkf: (Doc | undefined) = await KeyframeFunc.calcMinLeft(regiondata!, this.time, kf); // lef keyframe, if it exists
-            let rightkf: (Doc | undefined) = await KeyframeFunc.calcMinRight(regiondata!, this.time, kf); //right keyframe, if it exists 
+            kf.key = this.makeCopy(); 
+            let leftkf: (Doc | undefined) = await KeyframeFunc.calcMinLeft(this.saveStateRegion!, this.time, kf); // lef keyframe, if it exists
+            let rightkf: (Doc | undefined) = await KeyframeFunc.calcMinRight(this.saveStateRegion!, this.time, kf); //right keyframe, if it exists 
             if (leftkf!.type === KeyframeFunc.KeyframeType.fade) { //replicating this keyframe to fades
-                let edge: (Doc | undefined) = await KeyframeFunc.calcMinLeft(regiondata!, this.time, leftkf!);
-                edge!.key = Doc.MakeCopy(kf.key as Doc, true);
-                leftkf!.key = Doc.MakeCopy(kf.key as Doc, true);
+                let edge: (Doc | undefined) = await KeyframeFunc.calcMinLeft(this.saveStateRegion!, this.time, leftkf!);
+                edge!.key = this.makeCopy(); 
+                leftkf!.key = this.makeCopy();
                 (Cast(edge!.key, Doc)! as Doc).opacity = 0.1;
                 (Cast(leftkf!.key, Doc)! as Doc).opacity = 1;
             }
             if (rightkf!.type === KeyframeFunc.KeyframeType.fade) {
-                let edge: (Doc | undefined) = await KeyframeFunc.calcMinRight(regiondata!, this.time, rightkf!);
-                edge!.key = Doc.MakeCopy(kf.key as Doc, true);
-                rightkf!.key = Doc.MakeCopy(kf.key as Doc, true);
+                let edge: (Doc | undefined) = await KeyframeFunc.calcMinRight(this.saveStateRegion!, this.time, rightkf!);
+                edge!.key = this.makeCopy();
+                rightkf!.key = this.makeCopy(); 
                 (Cast(edge!.key, Doc)! as Doc).opacity = 0.1;
                 (Cast(rightkf!.key, Doc)! as Doc).opacity = 1;
             }
         }
         keyframes[kfIndex] = kf;
-        this._onKeyframe = undefined;
-        this._onRegionData = undefined;
-        this._isOnKeyframe = false;
+        this.saveStateKf = undefined; 
+        this.saveStateRegion = undefined;
     }
 
 
@@ -126,13 +126,13 @@ export class Track extends React.Component<IProps> {
         return reaction(() => {
             return this.whitelist.map(key => node[key]);
         }, (changed, reaction) => {
-            console.log(changed); 
+            console.log("autocreated"); 
             //check for region 
             this.findRegion(this.time).then((region) => {
                 if (region !== undefined){ //if region at scrub time exist
                     let r = region as any as RegionData; //for some region is returning undefined... which is not the case
                     if (DocListCast(r.keyframes).find(kf => kf.time === this.time) === undefined ){ //basically when there is no additional keyframe at that timespot 
-                        KeyframeFunc.makeKeyData(r, this.time, this.props.node, KeyframeFunc.KeyframeType.default); 
+                        this.makeKeyData(r, this.time, KeyframeFunc.KeyframeType.default); 
                     } 
                 }
                 // reaction.dispose(); 
@@ -140,17 +140,17 @@ export class Track extends React.Component<IProps> {
         });
     }
 
-    /**
-     * reverting back to previous state before editing on AT
-     */
-    @action
-    revertState = () => {
-        let copyDoc = Doc.MakeCopy(this.props.node, true);
-        if (this._storedState) this.applyKeys(this._storedState);
-        let newState = new Doc();
-        newState.key = copyDoc;
-        this._storedState = newState;
-    }
+    // /**
+    //  * reverting back to previous state before editing on AT
+    //  */
+    // @action
+    // revertState = () => {
+    //     let copyDoc = Doc.MakeCopy(this.props.node, true);
+    //     if (this._storedState) this.applyKeys(this._storedState);
+    //     let newState = new Doc();
+    //     newState.key = copyDoc;
+    //     this._storedState = newState;
+    // }
 
     /**
      * Reaction when scrubber bar changes
@@ -170,38 +170,41 @@ export class Track extends React.Component<IProps> {
         });
     }
 
-    /**
-     * when timeline is visible, reaction is ran so states are reverted
-     */
-    @action
-    timelineVisibleReaction = () => {
-        return reaction(() => {
-            return this.props.timelineVisible;
-        }, isVisible => {
-            this.revertState();
-            if (isVisible) {
-                DocListCast(this.regions).forEach(region => {
-                    if (!BoolCast((Cast(region, Doc) as Doc).hasData)) {
-                        for (let i = 0; i < 4; i++) {
-                            DocListCast(((Cast(region, Doc) as Doc).keyframes as List<Doc>))[i].key = Doc.MakeCopy(this.props.node, true);
-                            if (i === 0 || i === 3) {
-                                DocListCast(((Cast(region, Doc) as Doc).keyframes as List<Doc>))[i].key.opacity = 0.1;
-                            }
-                        }
-                        console.log("saving keyframes");
-                    }
-                });
-            }
-        });
-    }
+    // /**
+    //  * when timeline is visible, reaction is ran so states are reverted
+    //  */
+    // @action
+    // timelineVisibleReaction = () => {
+    //     return reaction(() => {
+    //         return this.props.timelineVisible;
+    //     }, isVisible => {
+    //         this.revertState();
+    //         if (isVisible) {
+    //             DocListCast(this.regions).forEach(region => {
+    //                 if (!BoolCast((Cast(region, Doc) as Doc).hasData)) {
+    //                     for (let i = 0; i < 4; i++) {
+    //                         DocListCast(((Cast(region, Doc) as Doc).keyframes as List<Doc>))[i].key = Doc.MakeCopy(this.props.node, true);
+    //                         if (i === 0 || i === 3) {
+    //                             DocListCast(((Cast(region, Doc) as Doc).keyframes as List<Doc>))[i].key.opacity = 0.1;
+    //                         }
+    //                     }
+    //                     console.log("saving keyframes");
+    //                 }
+    //             });
+    //         }
+    //     });
+    // }
+
+    @observable private saveStateKf:(Doc | undefined) = undefined;  
+    @observable private saveStateRegion: (Doc|undefined) = undefined; 
 
     /**w
      * when scrubber position changes. Need to edit the logic
      */
     @action
     timeChange = async () => {
-        if (this._isOnKeyframe && this._onKeyframe && this._onRegionData) {
-            await this.saveKeyframe(this._onKeyframe, this._onRegionData);
+        if (this.saveStateKf !== undefined) {
+            await this.saveKeyframe();
         }
         let regiondata = await this.findRegion(Math.round(this.time)); //finds a region that the scrubber is on
         if (regiondata) {
@@ -210,9 +213,8 @@ export class Track extends React.Component<IProps> {
             let currentkf: (Doc | undefined) = await this.calcCurrent(regiondata); //if the scrubber is on top of the keyframe
             if (currentkf) {
                 await this.applyKeys(currentkf);
-                this._isOnKeyframe = true;
-                this._onKeyframe = currentkf;
-                this._onRegionData = regiondata;
+                this.saveStateKf = currentkf; 
+                this.saveStateRegion = regiondata; 
             } else if (leftkf && rightkf) {
                 await this.interpolate(leftkf, rightkf);
             }
@@ -259,9 +261,6 @@ export class Track extends React.Component<IProps> {
         let leftNode = await(left.key) as Doc;
         let rightNode = await(right.key) as Doc;
         this.whitelist.forEach(key => {
-            console.log(key); 
-            console.log(leftNode[key]); 
-            console.log(rightNode[key]); 
             if (leftNode[key] && rightNode[key] && typeof (leftNode[key]) === "number" && typeof (rightNode[key]) === "number") { //if it is number, interpolate
                 let dif = NumCast(rightNode[key]) - NumCast(leftNode[key]); 
                 let deltaLeft = this.time - NumCast(left.time);
@@ -307,6 +306,7 @@ export class Track extends React.Component<IProps> {
     /**
      * creates a region (KEYFRAME.TSX stuff). 
      */
+    @action
     createRegion = async (time: number) => {
         if (await this.findRegion(time) === undefined) {  //check if there is a region where double clicking (prevents phantom regions)
             let regiondata = KeyframeFunc.defaultKeyframe(); //create keyframe data
@@ -323,6 +323,42 @@ export class Track extends React.Component<IProps> {
         }
     }
 
+    @action
+    makeKeyData = (regiondata:RegionData, time: number, type: KeyframeFunc.KeyframeType = KeyframeFunc.KeyframeType.default) => { //Kfpos is mouse offsetX, representing time 
+        console.log("KEYDATA GENERATING"); 
+        let doclist =  DocListCast(regiondata.keyframes)!;
+        let existingkf: (Doc | undefined) = undefined;
+        doclist.forEach(TK => {
+            if (TK.time === time) existingkf = TK;
+        });
+        if (existingkf) return existingkf;
+        //else creates a new doc. 
+        let TK: Doc = new Doc();
+        TK.time = time;
+        TK.key = this.makeCopy();
+        TK.type = type;
+        //assuming there are already keyframes (for keeping keyframes in order, sorted by time)
+        if (doclist.length === 0) regiondata.keyframes!.push(TK); 
+        doclist.forEach(kf => {
+            let index = doclist.indexOf(kf); 
+            let kfTime = NumCast(kf.time);
+            if ((kfTime < time && index === doclist.length - 1) || (kfTime < time && time < NumCast(doclist[index + 1].time))){
+               regiondata.keyframes!.splice(index + 1, 0, TK);
+                return; 
+            }
+        });
+        return TK; 
+    }
+
+    @action 
+    makeCopy = () => {
+        let doc = new Doc(); 
+        this.whitelist.forEach(key => {
+            let originalVal = this.props.node[key]; 
+            doc.key = originalVal instanceof ObjectField ? originalVal[Copy]() : this.props.node[key]; 
+        });
+        return doc; 
+    }
 
     /**
      * UI sstuff here. Not really much to change
@@ -333,7 +369,7 @@ export class Track extends React.Component<IProps> {
                 <div className="track">
                     <div className="inner" ref={this._inner} onDoubleClick={this.onInnerDoubleClick} onPointerOver={() => { Doc.BrushDoc(this.props.node); }} onPointerOut={() => { Doc.UnBrushDoc(this.props.node); }} style={{ height: `${this._trackHeight}px` }}>
                         {DocListCast(this.regions).map((region) => {
-                            return <Keyframe {...this.props} RegionData={region} />;
+                            return <Keyframe {...this.props} RegionData={region} makeKeyData={this.makeKeyData} />;
                         })}
                     </div>
                 </div>

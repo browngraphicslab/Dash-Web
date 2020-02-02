@@ -140,6 +140,7 @@ interface IProps {
     check: string;
     changeCurrentBarX: (x: number) => void;
     transform: Transform;
+    makeKeyData: (region:RegionData, pos: number, kftype:KeyframeFunc.KeyframeType) => Doc; 
 }
 
 
@@ -183,10 +184,10 @@ export class Keyframe extends React.Component<IProps> {
    
     componentWillMount() {
         if (!this.regiondata.keyframes) this.regiondata.keyframes = new List<Doc>();        
-        let start = this.makeKeyData(this.regiondata, this.regiondata.position,  KeyframeFunc.KeyframeType.end);
-        let fadeIn = this.makeKeyData(this.regiondata, this.regiondata.position + this.regiondata.fadeIn, KeyframeFunc.KeyframeType.fade);
-        let fadeOut = this.makeKeyData(this.regiondata, this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut, KeyframeFunc.KeyframeType.fade);
-        let finish = this.makeKeyData(this.regiondata, this.regiondata.position + this.regiondata.duration,KeyframeFunc.KeyframeType.end);
+        let start = this.props.makeKeyData(this.regiondata, this.regiondata.position,  KeyframeFunc.KeyframeType.end);
+        let fadeIn = this.props.makeKeyData(this.regiondata, this.regiondata.position + this.regiondata.fadeIn, KeyframeFunc.KeyframeType.fade);
+        let fadeOut = this.props.makeKeyData(this.regiondata, this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut, KeyframeFunc.KeyframeType.fade);
+        let finish = this.props.makeKeyData(this.regiondata, this.regiondata.position + this.regiondata.duration,KeyframeFunc.KeyframeType.end);
         (fadeIn.key as Doc).opacity = 1;
         (fadeOut.key as Doc).opacity = 1;
         (start.key as Doc).opacity = 0.1;
@@ -216,32 +217,6 @@ export class Keyframe extends React.Component<IProps> {
                 document.removeEventListener("pointermove", this.onBarPointerMove);
             });
         }
-    }
-    private makeKeyData = (regiondata:RegionData, time: number, type: KeyframeFunc.KeyframeType = KeyframeFunc.KeyframeType.default) => { //Kfpos is mouse offsetX, representing time 
-        let doclist =  DocListCast(regiondata.keyframes)!;
-        let existingkf: (Doc | undefined) = undefined;
-        doclist.forEach(TK => {
-            if (TK.time === time) existingkf = TK;
-        });
-        if (existingkf) return existingkf;
-        //else creates a new doc. 
-        let TK: Doc = new Doc();
-        TK.time = time;
-        TK.key = Doc.MakeCopy(this.props.node, true);
-        TK.type = type;
-        //assuming there are already keyframes (for keeping keyframes in order, sorted by time)
-        console.log("making..."); 
-        if (doclist.length === 0) regiondata.keyframes!.push(TK); 
-        doclist.forEach(kf => {
-            let index = doclist.indexOf(kf); 
-            let kfTime = NumCast(kf.time);
-                console.log(kfTime); 
-            if ((kfTime < time && index === doclist.length - 1) || (kfTime < time && time < NumCast(doclist[index + 1].time))){
-               regiondata.keyframes!.splice(index + 1, 0, TK);
-                return; 
-            }
-        });
-        return TK; 
     }
 
     @action
@@ -342,7 +317,7 @@ export class Keyframe extends React.Component<IProps> {
         let offset = KeyframeFunc.convertPixelTime(Math.round((clientX - bar.getBoundingClientRect().left) * this.props.transform.Scale), "mili", "time", this.props.tickSpacing, this.props.tickIncrement);
         if (offset > this.regiondata.fadeIn && offset < this.regiondata.duration - this.regiondata.fadeOut) { //make sure keyframe is not created inbetween fades and ends
             let position = this.regiondata.position;
-            this.makeKeyData(this.regiondata, Math.round(position + offset));
+            this.props.makeKeyData(this.regiondata, Math.round(position + offset), KeyframeFunc.KeyframeType.default);
             this.regiondata.hasData = true; 
             this.props.changeCurrentBarX(KeyframeFunc.convertPixelTime(Math.round(position + offset), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement)); //first move the keyframe to the correct location and make a copy so the correct file gets coppied
         
