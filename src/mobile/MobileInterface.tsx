@@ -30,11 +30,14 @@ export default class MobileInterface extends React.Component {
     @observable static Instance: MobileInterface;
     @computed private get userDoc() { return CurrentUserUtils.UserDocument; }
     @computed private get mainContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeMobile, Doc)) : CurrentUserUtils.GuestMobile; }
-    @observable private currentView: "main" | "ink" | "library" = "main";
+    @observable private currentView: "main" | "ink" | "upload" = "main";
 
     private mainDoc = CurrentUserUtils.setupMobileDoc(this.userDoc);
+
     private inkDoc?: Doc;
     public drawingInk: boolean = false;
+
+    private uploadDoc?: Doc;
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -52,7 +55,7 @@ export default class MobileInterface extends React.Component {
     }
 
     @action
-    switchCurrentView = (view: "main" | "ink" | "library") => {
+    switchCurrentView = (view: "main" | "ink" | "upload") => {
         this.currentView = view;
 
         if (this.userDoc) {
@@ -75,6 +78,11 @@ export default class MobileInterface extends React.Component {
                     });
 
                     break;
+                }
+                case "upload": {
+                    this.uploadDoc = CurrentUserUtils.setupMobileUploadDoc(this.userDoc);
+                    this.userDoc.activeMobile = this.uploadDoc;
+
                 }
             }
         }
@@ -127,15 +135,20 @@ export default class MobileInterface extends React.Component {
     }
 
     shiftLeft = (e: React.MouseEvent) => {
+        console.log("shift left!");
         DocServer.Mobile.dispatchOverlayPositionUpdate({
             dx: -10
         });
+        e.preventDefault();
+        e.stopPropagation();
     }
 
     shiftRight = (e: React.MouseEvent) => {
         DocServer.Mobile.dispatchOverlayPositionUpdate({
             dx: 10
         });
+        e.preventDefault();
+        e.stopPropagation();
     }
 
     @computed
@@ -147,7 +160,7 @@ export default class MobileInterface extends React.Component {
                 <div className="mobileInterface">
                     <div className="mobileInterface-inkInterfaceButtons">
                         <div className="navButtons">
-                            <button className="mobileInterface-button cancel" onClick={this.onBack} title="Cancel drawing"><FontAwesomeIcon icon="long-arrow-alt-left" /></button>
+                            <button className="mobileInterface-button cancel" onClick={this.onBack} title="Cancel drawing">BACK</button>
                         </div>
                         <div className="inkSettingButtons">
                             <button className="mobileInterface-button cancel" onClick={this.onBack} title="Cancel drawing"><FontAwesomeIcon icon="long-arrow-alt-left" /></button>
@@ -185,8 +198,57 @@ export default class MobileInterface extends React.Component {
         }
     }
 
+    upload = () => {
+
+    }
+
+    @computed
+    get uploadContent() {
+        if (this.mainContainer) {
+            return (
+                <div className="mobileInterface">
+                    <div className="mobileInterface-inkInterfaceButtons">
+                        <div className="navButtons">
+                            <button className="mobileInterface-button cancel" onClick={this.onBack} title="Back">BACK</button>
+                        </div>
+                        <div className="uploadSettings">
+                            <button className="mobileInterface-button" onClick={this.upload} title="Shift left">UPLOAD</button>
+                        </div>
+                    </div>
+                    <DocumentView
+                        Document={this.mainContainer}
+                        DataDoc={undefined}
+                        LibraryPath={emptyPath}
+                        addDocument={returnFalse}
+                        addDocTab={returnFalse}
+                        pinToPres={emptyFunction}
+                        removeDocument={undefined}
+                        ruleProvider={undefined}
+                        onClick={undefined}
+                        ScreenToLocalTransform={Transform.Identity}
+                        ContentScaling={returnOne}
+                        PanelWidth={() => window.screen.width}
+                        PanelHeight={() => window.screen.height}
+                        renderDepth={0}
+                        focus={emptyFunction}
+                        backgroundColor={returnEmptyString}
+                        parentActive={returnTrue}
+                        whenActiveChanged={emptyFunction}
+                        bringToFront={emptyFunction}
+                        ContainingCollectionView={undefined}
+                        ContainingCollectionDoc={undefined}
+                        zoomToScale={emptyFunction}
+                        getScale={returnOne}>
+                    </DocumentView>
+                </div>
+            );
+        }
+    }
+
     render() {
-        const content = this.currentView === "main" ? this.mainContent : this.currentView === "ink" ? this.inkContent : <></>;
+        const content = this.currentView === "main" ? this.mainContent :
+            this.currentView === "ink" ? this.inkContent :
+                this.currentView === "upload" ? this.uploadContent : <></>;
         return (
             <div className="mobile-container">
                 {content}
@@ -195,4 +257,4 @@ export default class MobileInterface extends React.Component {
     }
 }
 
-Scripting.addGlobal(function switchMobileView(view: "main" | "ink" | "library") { return MobileInterface.Instance.switchCurrentView(view); });
+Scripting.addGlobal(function switchMobileView(view: "main" | "ink" | "upload") { return MobileInterface.Instance.switchCurrentView(view); });

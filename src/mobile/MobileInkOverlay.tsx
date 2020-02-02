@@ -1,6 +1,6 @@
 import React = require('react');
 import { observer } from "mobx-react";
-import { MobileInkOverlayContent, GestureContent, UpdateMobileInkOverlayPosition } from "../server/Message";
+import { MobileInkOverlayContent, GestureContent, UpdateMobileInkOverlayPositionContent } from "../server/Message";
 import { observable, action } from "mobx";
 import { GestureUtils } from "../pen-gestures/GestureUtils";
 import "./MobileInkOverlay.scss";
@@ -37,17 +37,19 @@ export default class MobileInkOverlay extends React.Component {
     initMobileInkOverlay(content: MobileInkOverlayContent) {
         const { width, height } = content;
         const scaledSize = this.initialSize(width ? width : 0, height ? height : 0);
-        this._width = scaledSize.width * .5;
-        this._height = scaledSize.height * .5;
-        this._scale = .5; //scaledSize.scale;
+        this._width = scaledSize.width * .8;
+        this._height = scaledSize.height * .8;
+        this._scale = .8; //scaledSize.scale;
         this._x = 300; // TODO: center on screen
         this._y = 25; // TODO: center on screen
     }
 
     @action
-    updatePosition(content: UpdateMobileInkOverlayPosition) {
+    updatePosition(content: UpdateMobileInkOverlayPositionContent) {
         const { dx, dy, dsize } = content;
-        console.log(dx, dy, dsize);
+        if (dx) this._x += dx;
+        if (dy) this._y += dy;
+        // TODO: scale dsize
     }
 
     drawStroke = (content: GestureContent) => {
@@ -82,7 +84,6 @@ export default class MobileInkOverlay extends React.Component {
 
     @action
     dragStart = (e: React.PointerEvent) => {
-        console.log("pointer down");
         document.removeEventListener("pointermove", this.dragging);
         document.removeEventListener("pointerup", this.dragEnd);
         document.addEventListener("pointermove", this.dragging);

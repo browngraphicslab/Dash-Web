@@ -101,7 +101,8 @@ export class CurrentUserUtils {
             { title: "use eraser", icon: "eraser", click: 'activateEraser(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this);', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "pink", activePen: doc },
             { title: "use scrubber", icon: "eraser", click: 'activateScrubber(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this);', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "green", activePen: doc },
             { title: "use drag", icon: "mouse-pointer", click: 'deactivateInk();this.activePen.pen = this;', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "white", activePen: doc },
-            { title: "draw", icon: "mouse-pointer", click: 'switchMobileView("ink");', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "red", activePen: doc },
+            { title: "draw", icon: "pen-nib", click: 'switchMobileView("ink");', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "red", activePen: doc },
+            { title: "upload", icon: "upload", click: 'switchMobileView("upload");', backgroundColor: "orange" },
         ];
         return docProtoData.filter(d => !buttons || !buttons.includes(d.title)).map(data => Docs.Create.FontIconDocument({
             nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, dropAction: data.click ? "copy" : undefined, title: data.title, icon: data.icon, ignoreClick: data.ignoreClick,
@@ -142,6 +143,17 @@ export class CurrentUserUtils {
 
     static setupMobileInkingDoc(userDoc: Doc) {
         return Docs.Create.FreeformDocument([], { title: "Mobile Inking", backgroundColor: "white" });
+    }
+
+    static setupMobileUploadDoc(userDoc: Doc) {
+        console.log("setup mobile upload", window.innerWidth, window.innerHeight);
+        const webDoc = Docs.Create.WebDocument("https://wikipedia.com", { title: "Mobile Upload Web", chromeStatus: "enabled", ignoreClick: true });
+        const uploadDoc = Docs.Create.StackingDocument([], { title: "Mobile Upload", backgroundColor: "pink" });
+        return Docs.Create.StackingDocument([webDoc, uploadDoc], {
+            title: "Mobile Upload", backgroundColor: "white",
+            columnWidth: window.innerWidth, ignoreClick: true, lockedPosition: true, chromeStatus: "disabled", autoHeight: true, yMargin: 5,
+            width: window.innerWidth, height: window.innerHeight
+        });
     }
 
     // setup the Creator button which will display the creator panel.  This panel will include the drag creators and the color picker.  when clicked, this panel will be displayed in the target container (ie, sidebarContainer)  

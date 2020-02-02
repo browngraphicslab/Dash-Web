@@ -56,7 +56,7 @@ export interface MobileInkOverlayContent {
     readonly height?: number;
 }
 
-export interface UpdateMobileInkOverlayPosition {
+export interface UpdateMobileInkOverlayPositionContent {
     readonly dx?: number;
     readonly dy?: number;
     readonly dsize?: number;
@@ -74,7 +74,7 @@ export namespace MessageStore {
 
     export const GesturePoints = new Message<GestureContent>("Gesture Points");
     export const MobileInkOverlayTrigger = new Message<MobileInkOverlayContent>("Trigger Mobile Ink Overlay");
-    export const UpdateMobileInkOverlayPosition = new Message<UpdateMobileInkOverlayPosition>("Update Mobile Ink Overlay Position");
+    export const UpdateMobileInkOverlayPosition = new Message<UpdateMobileInkOverlayPositionContent>("Update Mobile Ink Overlay Position");
 
     export const GetRefField = new Message<string>("Get Ref Field");
     export const GetRefFields = new Message<string[]>("Get Ref Fields");
