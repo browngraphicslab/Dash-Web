@@ -131,9 +131,11 @@ export class CurrentUserUtils {
 
     static setupThumbDoc(userDoc: Doc) {
         if (!userDoc.thumbDoc) {
-            userDoc.thumbDoc = Docs.Create.LinearDocument(CurrentUserUtils.setupThumbButtons(userDoc), {
+            const thumbDoc = Docs.Create.LinearDocument(CurrentUserUtils.setupThumbButtons(userDoc), {
                 _width: 100, _height: 50, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled", title: "buttons", _autoHeight: true, _yMargin: 5, isExpanded: true, backgroundColor: "white"
             });
+            thumbDoc.inkToTextDoc = Docs.Create.LinearDocument([], { _width: 300, _height: 25, _autoHeight: true, _chromeStatus: "disabled", isExpanded: true, flexDirection: "column" });
+            userDoc.thumbDoc = thumbDoc;
         }
         return userDoc.thumbDoc;
     }
