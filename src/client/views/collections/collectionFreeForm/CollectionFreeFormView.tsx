@@ -72,7 +72,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private _clusterDistance: number = 75;
     private _hitCluster = false;
     private _layoutComputeReaction: IReactionDisposer | undefined;
-    private _layoutPoolData = new ObservableMap<string, any>();
+    private _layoutPoolData = observable.map<string, any>();
 
     public get displayName() { return "CollectionFreeFormView(" + this.props.Document.title?.toString() + ")"; } // this makes mobx trace() statements more descriptive
     @observable.shallow _layoutElements: ViewDefResult[] = []; // shallow because some layout items (eg pivot labels) are just generated 'divs' and can't be frozen as observables
@@ -789,48 +789,56 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         return this._layoutPoolData.get(doc[Id]);
     }.bind(this));
 
-    doTimelineLayout(poolData: ObservableMap<string, any>) {
+    doTimelineLayout(poolData: Map<string, any>) {
         return computeTimelineLayout(poolData, this.props.Document, this.childDocs,
             this.childLayoutPairs, [this.props.PanelWidth(), this.props.PanelHeight()], this.viewDefsToJSX);
     }
 
-    doPivotLayout(poolData: ObservableMap<string, any>) {
+    doPivotLayout(poolData: Map<string, any>) {
         return computePivotLayout(poolData, this.props.Document, this.childDocs,
             this.childLayoutPairs, [this.props.PanelWidth(), this.props.PanelHeight()], this.viewDefsToJSX);
     }
 
-    doFreeformLayout(poolData: ObservableMap<string, any>) {
+    _cachedPool: Map<string, any> = new Map();
+    doFreeformLayout(poolData: Map<string, any>) {
         const layoutDocs = this.childLayoutPairs.map(pair => pair.layout);
         const initResult = this.Document.arrangeInit && this.Document.arrangeInit.script.run({ docs: layoutDocs, collection: this.Document }, console.log);
         let state = initResult && initResult.success ? initResult.result.scriptState : undefined;
         const elements = initResult && initResult.success ? this.viewDefsToJSX(initResult.result.views) : [];
 
         this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)).map((pair, i) => {
-            const data = poolData.get(pair.layout[Id]);
             const pos = this.getCalculatedPositions({ doc: pair.layout, index: i, collection: this.Document, docs: layoutDocs, state });
             state = pos.state === undefined ? state : pos.state;
-            if (!data || pos.x !== data.x || pos.y !== data.y || pos.z !== data.z || pos.zIndex !== data.zIndex ||
-                pos.width !== data.width || pos.height !== data.height || pos.transition !== data.transition) {
-                runInAction(() => poolData.set(pair.layout[Id], pos));
-            }
+            poolData.set(pair.layout[Id], pos);
         });
         return { elements: elements };
     }
 
-    get doLayoutComputation() {
-        trace();
-        let computedElementData: { elements: ViewDefResult[] };
+    @computed get doInternalLayoutComputation() {
+        const newPool = new Map<string, any>();
         switch (this.Document._freeformLayoutEngine) {
-            case "timeline": computedElementData = this.doTimelineLayout(this._layoutPoolData); break;
-            case "pivot": computedElementData = this.doPivotLayout(this._layoutPoolData); break;
-            default: computedElementData = this.doFreeformLayout(this._layoutPoolData); break;
+            case "timeline": return { newPool, computedElementData: this.doTimelineLayout(newPool) };
+            case "pivot": return { newPool, computedElementData: this.doPivotLayout(newPool) };
         }
+        return { newPool, computedElementData: this.doFreeformLayout(newPool) };
+    }
+    get doLayoutComputation() {
+        const { newPool, computedElementData } = this.doInternalLayoutComputation;
+        Array.from(newPool.keys()).map(key => {
+            const lastPos = this._cachedPool.get(key); // last computed pos
+            const newPos = newPool.get(key);
+            if (!lastPos || newPos.x !== lastPos.x || newPos.y !== lastPos.y || newPos.z !== lastPos.z || newPos.zIndex !== lastPos.zIndex || newPos.width !== lastPos.width || newPos.height !== lastPos.height) {
+                runInAction(() => this._layoutPoolData.set(key, { transition: "transform 1s", ...newPos }));
+            }
+        });
+        this._cachedPool.clear();
+        Array.from(newPool.keys()).forEach(k => this._cachedPool.set(k, newPool.get(k)));
         this.childLayoutPairs.filter((pair, i) => this.isCurrent(pair.layout)).forEach(pair =>
             computedElementData.elements.push({
                 ele: <CollectionFreeFormDocumentView key={pair.layout[Id]}  {...this.getChildDocumentViewProps(pair.layout, pair.data)}
                     dataProvider={this.childDataProvider}
                     jitterRotation={NumCast(this.props.Document.jitterRotation)}
-                    fitToBox={this.props.fitToBox || this.Document._freeformLayoutEngine === "pivot" || this.Document._freeformLayoutEngine === "timeline"} />,
+                    fitToBox={this.props.fitToBox || this.Document._freeformLayoutEngine !== undefined} />,
                 bounds: this.childDataProvider(pair.layout)
             }));
 
@@ -840,9 +848,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     componentDidMount() {
         super.componentDidMount();
         this._layoutComputeReaction = reaction(
-            () => this.doLayoutComputation,
-            action((computation: { elements: ViewDefResult[] }) =>
-                computation && (this._layoutElements = computation.elements)),
+            () => (this.doLayoutComputation),
+            (computation) => this._layoutElements = computation?.elements.slice() || [],
             { fireImmediately: true, name: "doLayout" });
     }
     componentWillUnmount() {
