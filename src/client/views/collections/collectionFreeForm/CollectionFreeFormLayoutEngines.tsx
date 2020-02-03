@@ -68,24 +68,27 @@ export function computePivotLayout(
     viewDefsToJSX: (views: any) => ViewDefResult[]
 ) {
     const fieldKey = "data";
-    const pivotAxisWidth = NumCast(pivotDoc.pivotWidth, 1000);
     const pivotColumnGroups = new Map<FieldResult<Field>, Doc[]>();
     const fontSize = NumCast(pivotDoc[fieldKey + "-timelineFontSize"], panelDim[1] > 58 ? 20 : Math.max(7, panelDim[1] / 3));
 
+    let maxInColumn = 1;
     const pivotFieldKey = toLabel(pivotDoc.pivotField);
     for (const doc of childDocs) {
         const val = Field.toString(doc[pivotFieldKey] as Field);
         if (val) {
             !pivotColumnGroups.get(val) && pivotColumnGroups.set(val, []);
             pivotColumnGroups.get(val)!.push(doc);
+            maxInColumn = Math.max(maxInColumn, pivotColumnGroups.get(val)?.length || 0);
         }
     }
 
-    const minSize = Array.from(pivotColumnGroups.entries()).reduce((min, pair) => Math.min(min, pair[1].length), Infinity);
-    let numCols = NumCast(pivotDoc.pivotNumColumns, Math.ceil(Math.sqrt(minSize)));
+    const colWidth = panelDim[0] / pivotColumnGroups.size;
+    const colHeight = panelDim[1];
+    const pivotAxisWidth = Math.sqrt(colWidth * colHeight / maxInColumn);
+    const numCols = Math.max(Math.round(colWidth / pivotAxisWidth), 1);
+
     const docMap = new Map<Doc, ViewDefBounds>();
-    const groupNames: PivotData[] = [];
-    numCols = Math.min(Math.max(1, panelDim[0] / pivotAxisWidth), numCols);
+    const groupNames: PivotData[] = [];;
 
     const expander = 1.05;
     const gap = .15;
@@ -205,7 +208,7 @@ export function computeTimelineLayout(
         const stack = findStack(x, stacking);
         prevKey = key;
         !stack && (curTime === undefined || Math.abs(x - (curTime - minTime) * scaling) > pivotAxisWidth) && groupNames.push({ type: "text", text: key.toString(), x: x, y: stack * 25, height: fontHeight, fontSize });
-        newFunction(keyDocs, key);
+        layoutDocsAtTime(keyDocs, key);
     });
     if (sortedKeys.length && curTime > sortedKeys[sortedKeys.length - 1]) {
         x = (curTime - minTime) * scaling;
@@ -218,7 +221,7 @@ export function computeTimelineLayout(
     const divider = { type: "div", color: "black", x: 0, y: 0, width: panelDim[0], height: 1 } as any;
     return normalizeResults(panelDim, fontHeight, childPairs, docMap, poolData, viewDefsToJSX, groupNames, (maxTime - minTime) * scaling, [divider]);
 
-    function newFunction(keyDocs: Doc[], key: number) {
+    function layoutDocsAtTime(keyDocs: Doc[], key: number) {
         keyDocs.forEach(doc => {
             const stack = findStack(x, stacking);
             const layoutDoc = Doc.Layout(doc);
@@ -249,27 +252,21 @@ function normalizeResults(panelDim: number[], fontHeight: number, childPairs: { 
     if (Number.isNaN(scale)) scale = 1;
 
     childPairs.filter(d => !d.layout.isMinimized).map(pair => {
-        const newPosRaw = docMap.get(pair.layout) || {// new pos is computed pos, or pos written to the document's fields
-            x: NumCast(pair.layout.x),
-            y: NumCast(pair.layout.y),
-            z: NumCast(pair.layout.z),
-            highlight: undefined,
-            zIndex: NumCast(pair.layout.zIndex),
-            width: NumCast(pair.layout._width),
-            height: NumCast(pair.layout._height)
-        };
-        const newPos = {
-            x: newPosRaw.x * scale,
-            y: newPosRaw.y * scale,
-            z: newPosRaw.z,
-            highlight: newPosRaw.highlight,
-            zIndex: newPosRaw.zIndex,
-            width: (newPosRaw.width || 0) * scale,
-            height: newPosRaw.height! * scale
-        };
-        const lastPos = poolData.get(pair.layout[Id]); // last computed pos
-        if (!lastPos || newPos.x !== lastPos.x || newPos.y !== lastPos.y || newPos.z !== lastPos.z || newPos.zIndex !== lastPos.zIndex || newPos.width !== lastPos.width || newPos.height !== lastPos.height) {
-            runInAction(() => poolData.set(pair.layout[Id], { transition: "transform 1s", ...newPos }));
+        const newPosRaw = docMap.get(pair.layout);
+        if (newPosRaw) {
+            const newPos = {
+                x: newPosRaw.x * scale,
+                y: newPosRaw.y * scale,
+                z: newPosRaw.z,
+                highlight: newPosRaw.highlight,
+                zIndex: newPosRaw.zIndex,
+                width: (newPosRaw.width || 0) * scale,
+                height: newPosRaw.height! * scale
+            };
+            const lastPos = poolData.get(pair.layout[Id]); // last computed pos
+            if (!lastPos || newPos.x !== lastPos.x || newPos.y !== lastPos.y || newPos.z !== lastPos.z || newPos.zIndex !== lastPos.zIndex || newPos.width !== lastPos.width || newPos.height !== lastPos.height) {
+                runInAction(() => poolData.set(pair.layout[Id], { transition: "transform 1s", ...newPos }));
+            }
         }
     });
 
