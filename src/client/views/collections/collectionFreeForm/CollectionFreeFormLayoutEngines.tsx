@@ -241,17 +241,15 @@ function normalizeResults(panelDim: number[], fontHeight: number, childPairs: { 
     poolData: ObservableMap<string, PoolData>, viewDefsToJSX: (views: any) => ViewDefResult[], groupNames: PivotData[], minWidth: number, extras: PivotData[]) {
 
     const grpEles = groupNames.map(gn => ({ x: gn.x, y: gn.y, height: gn.height }) as PivotData);
-    const docEles = childPairs.filter(d => !d.layout.isMinimized).map(pair =>
-        docMap.get(pair.layout) || { x: NumCast(pair.layout.x), y: NumCast(pair.layout.y), width: pair.layout[WidthSym](), height: pair.layout[HeightSym]() } as PivotData // new pos is computed pos, or pos written to the document's fields
-    );
+    const docEles = childPairs.filter(d => !d.layout.isMinimized).map(pair => docMap.get(pair.layout) as PivotData);
     const aggBounds = aggregateBounds(docEles.concat(grpEles), 0, 0);
     aggBounds.r = Math.max(minWidth, aggBounds.r - aggBounds.x);
     const wscale = panelDim[0] / (aggBounds.r - aggBounds.x);
     let scale = wscale * (aggBounds.b - aggBounds.y) > panelDim[1] ? (panelDim[1]) / (aggBounds.b - aggBounds.y) : wscale;
     if (Number.isNaN(scale)) scale = 1;
 
-    childPairs.map(pair => {
-        const fallbackPos = {
+    childPairs.filter(d => !d.layout.isMinimized).map(pair => {
+        const newPosRaw = docMap.get(pair.layout) || {// new pos is computed pos, or pos written to the document's fields
             x: NumCast(pair.layout.x),
             y: NumCast(pair.layout.y),
             z: NumCast(pair.layout.z),
@@ -260,10 +258,14 @@ function normalizeResults(panelDim: number[], fontHeight: number, childPairs: { 
             width: NumCast(pair.layout._width),
             height: NumCast(pair.layout._height)
         };
-        const newPosRaw = docMap.get(pair.layout) || fallbackPos; // new pos is computed pos, or pos written to the document's fields
         const newPos = {
-            x: newPosRaw.x * scale, y: newPosRaw.y * scale, z: newPosRaw.z, zIndex: newPosRaw.zIndex, highlight: newPosRaw.highlight,
-            width: (newPosRaw.width || 0) * scale, height: newPosRaw.height! * scale
+            x: newPosRaw.x * scale,
+            y: newPosRaw.y * scale,
+            z: newPosRaw.z,
+            highlight: newPosRaw.highlight,
+            zIndex: newPosRaw.zIndex,
+            width: (newPosRaw.width || 0) * scale,
+            height: newPosRaw.height! * scale
         };
         const lastPos = poolData.get(pair.layout[Id]); // last computed pos
         if (!lastPos || newPos.x !== lastPos.x || newPos.y !== lastPos.y || newPos.z !== lastPos.z || newPos.zIndex !== lastPos.zIndex || newPos.width !== lastPos.width || newPos.height !== lastPos.height) {
@@ -279,8 +281,7 @@ function normalizeResults(panelDim: number[], fontHeight: number, childPairs: { 
             y: gname.y * scale,
             color: gname.color,
             width: gname.width === undefined ? undefined : gname.width * scale,
-            height: Math.max(fontHeight, gname.height! * scale),
-            // height: gname.height === undefined ? undefined : gname.height * scale,
+            height: Math.max(fontHeight, (gname.height || 0) * scale),
             fontSize: gname.fontSize
         }))))
     };
