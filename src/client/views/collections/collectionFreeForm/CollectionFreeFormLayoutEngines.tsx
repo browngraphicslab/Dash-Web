@@ -60,13 +60,14 @@ function toLabel(target: FieldResult<Field>) {
 }
 
 export function computePivotLayout(
-    poolData: ObservableMap<string, PoolData>,
+    poolData: Map<string, PoolData>,
     pivotDoc: Doc,
     childDocs: Doc[],
     childPairs: { layout: Doc, data?: Doc }[],
     panelDim: number[],
     viewDefsToJSX: (views: any) => ViewDefResult[]
 ) {
+    console.log("PIVOT " + pivotDoc[HeightSym]());
     const fieldKey = "data";
     const pivotColumnGroups = new Map<FieldResult<Field>, Doc[]>();
     const fontSize = NumCast(pivotDoc[fieldKey + "-timelineFontSize"], panelDim[1] > 58 ? 20 : Math.max(7, panelDim[1] / 3));
@@ -136,7 +137,7 @@ export function computePivotLayout(
 
 
 export function computeTimelineLayout(
-    poolData: ObservableMap<string, PoolData>,
+    poolData: Map<string, PoolData>,
     pivotDoc: Doc,
     childDocs: Doc[],
     childPairs: { layout: Doc, data?: Doc }[],
@@ -241,7 +242,7 @@ export function computeTimelineLayout(
 }
 
 function normalizeResults(panelDim: number[], fontHeight: number, childPairs: { data?: Doc, layout: Doc }[], docMap: Map<Doc, ViewDefBounds>,
-    poolData: ObservableMap<string, PoolData>, viewDefsToJSX: (views: any) => ViewDefResult[], groupNames: PivotData[], minWidth: number, extras: PivotData[]) {
+    poolData: Map<string, PoolData>, viewDefsToJSX: (views: any) => ViewDefResult[], groupNames: PivotData[], minWidth: number, extras: PivotData[]) {
 
     const grpEles = groupNames.map(gn => ({ x: gn.x, y: gn.y, height: gn.height }) as PivotData);
     const docEles = childPairs.filter(d => !d.layout.isMinimized).map(pair => docMap.get(pair.layout) as PivotData);
@@ -263,10 +264,7 @@ function normalizeResults(panelDim: number[], fontHeight: number, childPairs: { 
                 width: (newPosRaw.width || 0) * scale,
                 height: newPosRaw.height! * scale
             };
-            const lastPos = poolData.get(pair.layout[Id]); // last computed pos
-            if (!lastPos || newPos.x !== lastPos.x || newPos.y !== lastPos.y || newPos.z !== lastPos.z || newPos.zIndex !== lastPos.zIndex || newPos.width !== lastPos.width || newPos.height !== lastPos.height) {
-                runInAction(() => poolData.set(pair.layout[Id], { transition: "transform 1s", ...newPos }));
-            }
+            poolData.set(pair.layout[Id], { transition: "transform 1s", ...newPos });
         }
     });
 
