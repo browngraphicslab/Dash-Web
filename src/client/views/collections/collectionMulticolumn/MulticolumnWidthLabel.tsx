@@ -4,7 +4,7 @@ import { computed } from "mobx";
 import { Doc } from "../../../../new_fields/Doc";
 import { NumCast, StrCast, BoolCast } from "../../../../new_fields/Types";
 import { EditableView } from "../../EditableView";
-import { WidthUnit } from "./CollectionMulticolumnView";
+import { DimUnit } from "./CollectionMulticolumnView";
 
 interface WidthLabelProps {
     layout: Doc;
@@ -18,8 +18,8 @@ export default class WidthLabel extends React.Component<WidthLabelProps> {
     @computed
     private get contents() {
         const { layout, decimals } = this.props;
-        const getUnit = () => StrCast(layout.widthUnit);
-        const getMagnitude = () => String(+NumCast(layout.widthMagnitude).toFixed(decimals ?? 3));
+        const getUnit = () => StrCast(layout.dimUnit);
+        const getMagnitude = () => String(+NumCast(layout.dimMagnitude).toFixed(decimals ?? 3));
         return (
             <div className={"label-wrapper"}>
                 <EditableView
@@ -27,7 +27,7 @@ export default class WidthLabel extends React.Component<WidthLabelProps> {
                     SetValue={value => {
                         const converted = Number(value);
                         if (!isNaN(converted) && converted > 0) {
-                            layout.widthMagnitude = converted;
+                            layout.dimMagnitude = converted;
                             return true;
                         }
                         return false;
@@ -37,8 +37,8 @@ export default class WidthLabel extends React.Component<WidthLabelProps> {
                 <EditableView
                     GetValue={getUnit}
                     SetValue={value => {
-                        if (Object.values(WidthUnit).includes(value)) {
-                            layout.widthUnit = value;
+                        if (Object.values(DimUnit).includes(value)) {
+                            layout.dimUnit = value;
                             return true;
                         }
                         return false;

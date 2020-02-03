@@ -1,7 +1,7 @@
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faEye } from "@fortawesome/free-regular-svg-icons";
 import { faBraille, faChalkboard, faCompass, faCompressArrowsAlt, faExpandArrowsAlt, faFileUpload, faPaintBrush, faTable, faUpload } from "@fortawesome/free-solid-svg-icons";
-import { action, computed, observable, ObservableMap, reaction, runInAction, IReactionDisposer } from "mobx";
+import { action, computed, observable, ObservableMap, reaction, runInAction, IReactionDisposer, trace } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast, HeightSym, Opt, WidthSym, DocListCastAsync, Field } from "../../../../new_fields/Doc";
 import { documentSchema, positionSchema } from "../../../../new_fields/documentSchemas";
@@ -791,12 +791,12 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     doTimelineLayout(poolData: ObservableMap<string, any>) {
         return computeTimelineLayout(poolData, this.props.Document, this.childDocs,
-            this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)), [this.props.PanelWidth(), this.props.PanelHeight()], this.viewDefsToJSX);
+            this.childLayoutPairs, [this.props.PanelWidth(), this.props.PanelHeight()], this.viewDefsToJSX);
     }
 
     doPivotLayout(poolData: ObservableMap<string, any>) {
         return computePivotLayout(poolData, this.props.Document, this.childDocs,
-            this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)), [this.props.PanelWidth(), this.props.PanelHeight()], this.viewDefsToJSX);
+            this.childLayoutPairs, [this.props.PanelWidth(), this.props.PanelHeight()], this.viewDefsToJSX);
     }
 
     doFreeformLayout(poolData: ObservableMap<string, any>) {
@@ -818,6 +818,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     get doLayoutComputation() {
+        trace();
         let computedElementData: { elements: ViewDefResult[] };
         switch (this.Document._freeformLayoutEngine) {
             case "timeline": computedElementData = this.doTimelineLayout(this._layoutPoolData); break;
@@ -838,12 +839,14 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     componentDidMount() {
         super.componentDidMount();
-        this._layoutComputeReaction = reaction(() => { TraceMobx(); return this.doLayoutComputation; },
-            action((computation: { elements: ViewDefResult[] }) => computation && (this._layoutElements = computation.elements)),
+        this._layoutComputeReaction = reaction(
+            () => this.doLayoutComputation,
+            action((computation: { elements: ViewDefResult[] }) =>
+                computation && (this._layoutElements = computation.elements)),
             { fireImmediately: true, name: "doLayout" });
     }
     componentWillUnmount() {
-        this._layoutComputeReaction && this._layoutComputeReaction();
+        this._layoutComputeReaction?.();
     }
     @computed get views() { return this._layoutElements.filter(ele => ele.bounds && !ele.bounds.z).map(ele => ele.ele); }
     elementFunc = () => this._layoutElements;

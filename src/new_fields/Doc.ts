@@ -777,7 +777,7 @@ export namespace Doc {
     }
 
     export function matchFieldValue(doc: Doc, key: string, value: any): boolean {
-        const fieldVal = doc[key] ? doc[key] : doc[key + "_ext"];
+        const fieldVal = doc[key];
         if (Cast(fieldVal, listSpec("string"), []).length) {
             const vals = Cast(fieldVal, listSpec("string"), []);
             return vals.some(v => v === value);

@@ -68,24 +68,27 @@ export function computePivotLayout(
     viewDefsToJSX: (views: any) => ViewDefResult[]
 ) {
     const fieldKey = "data";
-    const pivotAxisWidth = NumCast(pivotDoc.pivotWidth, 1000);
     const pivotColumnGroups = new Map<FieldResult<Field>, Doc[]>();
     const fontSize = NumCast(pivotDoc[fieldKey + "-timelineFontSize"], panelDim[1] > 58 ? 20 : Math.max(7, panelDim[1] / 3));
 
+    let maxInColumn = 1;
     const pivotFieldKey = toLabel(pivotDoc.pivotField);
     for (const doc of childDocs) {
         const val = Field.toString(doc[pivotFieldKey] as Field);
         if (val) {
             !pivotColumnGroups.get(val) && pivotColumnGroups.set(val, []);
             pivotColumnGroups.get(val)!.push(doc);
+            maxInColumn = Math.max(maxInColumn, pivotColumnGroups.get(val)?.length || 0);
         }
     }
 
-    const minSize = Array.from(pivotColumnGroups.entries()).reduce((min, pair) => Math.min(min, pair[1].length), Infinity);
-    let numCols = NumCast(pivotDoc.pivotNumColumns, Math.ceil(Math.sqrt(minSize)));
+    const colWidth = panelDim[0] / pivotColumnGroups.size;
+    const colHeight = panelDim[1];
+    const pivotAxisWidth = Math.sqrt(colWidth * colHeight / maxInColumn);
+    const numCols = Math.max(Math.round(colWidth / pivotAxisWidth), 1);
+
     const docMap = new Map<Doc, ViewDefBounds>();
-    const groupNames: PivotData[] = [];
-    numCols = Math.min(Math.max(1, panelDim[0] / pivotAxisWidth), numCols);
+    const groupNames: PivotData[] = [];;
 
     const expander = 1.05;
     const gap = .15;
@@ -204,22 +207,8 @@ export function computeTimelineLayout(
         x += scaling * (key - prevKey);
         const stack = findStack(x, stacking);
         prevKey = key;
-        !stack && Math.abs(x - (curTime - minTime) * scaling) > pivotAxisWidth && groupNames.push({ type: "text", text: key.toString(), x: x, y: stack * 25, height: fontHeight, fontSize });
-        keyDocs.forEach(doc => {
-            const stack = findStack(x, stacking);
-            const layoutDoc = Doc.Layout(doc);
-            let wid = pivotAxisWidth;
-            let hgt = layoutDoc._nativeWidth ? (NumCast(layoutDoc._nativeHeight) / NumCast(layoutDoc._nativeWidth)) * pivotAxisWidth : pivotAxisWidth;
-            if (hgt > pivotAxisWidth) {
-                hgt = pivotAxisWidth;
-                wid = layoutDoc._nativeHeight ? (NumCast(layoutDoc._nativeWidth) / NumCast(layoutDoc._nativeHeight)) * pivotAxisWidth : pivotAxisWidth;
-            }
-            docMap.set(doc, {
-                x: x, y: - Math.sqrt(stack) * pivotAxisWidth / 2 - pivotAxisWidth + (pivotAxisWidth - hgt) / 2,
-                zIndex: (curTime === key ? 1000 : zind++), highlight: curTime === key, width: wid / (Math.max(stack, 1)), height: hgt
-            });
-            stacking[stack] = x + pivotAxisWidth;
-        });
+        !stack && (curTime === undefined || Math.abs(x - (curTime - minTime) * scaling) > pivotAxisWidth) && groupNames.push({ type: "text", text: key.toString(), x: x, y: stack * 25, height: fontHeight, fontSize });
+        layoutDocsAtTime(keyDocs, key);
     });
     if (sortedKeys.length && curTime > sortedKeys[sortedKeys.length - 1]) {
         x = (curTime - minTime) * scaling;
@@ -231,39 +220,53 @@ export function computeTimelineLayout(
 
     const divider = { type: "div", color: "black", x: 0, y: 0, width: panelDim[0], height: 1 } as any;
     return normalizeResults(panelDim, fontHeight, childPairs, docMap, poolData, viewDefsToJSX, groupNames, (maxTime - minTime) * scaling, [divider]);
+
+    function layoutDocsAtTime(keyDocs: Doc[], key: number) {
+        keyDocs.forEach(doc => {
+            const stack = findStack(x, stacking);
+            const layoutDoc = Doc.Layout(doc);
+            let wid = pivotAxisWidth;
+            let hgt = layoutDoc._nativeWidth ? (NumCast(layoutDoc._nativeHeight) / NumCast(layoutDoc._nativeWidth)) * pivotAxisWidth : pivotAxisWidth;
+            if (hgt > pivotAxisWidth) {
+                hgt = pivotAxisWidth;
+                wid = layoutDoc._nativeHeight ? (NumCast(layoutDoc._nativeWidth) / NumCast(layoutDoc._nativeHeight)) * pivotAxisWidth : pivotAxisWidth;
+            }
+            docMap.set(doc, {
+                x: x, y: -Math.sqrt(stack) * pivotAxisWidth / 2 - pivotAxisWidth + (pivotAxisWidth - hgt) / 2,
+                zIndex: (curTime === key ? 1000 : zind++), highlight: curTime === key, width: wid / (Math.max(stack, 1)), height: hgt
+            });
+            stacking[stack] = x + pivotAxisWidth;
+        });
+    }
 }
 
 function normalizeResults(panelDim: number[], fontHeight: number, childPairs: { data?: Doc, layout: Doc }[], docMap: Map<Doc, ViewDefBounds>,
     poolData: ObservableMap<string, PoolData>, viewDefsToJSX: (views: any) => ViewDefResult[], groupNames: PivotData[], minWidth: number, extras: PivotData[]) {
 
     const grpEles = groupNames.map(gn => ({ x: gn.x, y: gn.y, height: gn.height }) as PivotData);
-    const docEles = childPairs.filter(d => !d.layout.isMinimized).map(pair =>
-        docMap.get(pair.layout) || { x: NumCast(pair.layout.x), y: NumCast(pair.layout.y), width: pair.layout[WidthSym](), height: pair.layout[HeightSym]() } as PivotData // new pos is computed pos, or pos written to the document's fields
-    );
+    const docEles = childPairs.filter(d => !d.layout.isMinimized).map(pair => docMap.get(pair.layout) as PivotData);
     const aggBounds = aggregateBounds(docEles.concat(grpEles), 0, 0);
     aggBounds.r = Math.max(minWidth, aggBounds.r - aggBounds.x);
     const wscale = panelDim[0] / (aggBounds.r - aggBounds.x);
     let scale = wscale * (aggBounds.b - aggBounds.y) > panelDim[1] ? (panelDim[1]) / (aggBounds.b - aggBounds.y) : wscale;
     if (Number.isNaN(scale)) scale = 1;
 
-    childPairs.map(pair => {
-        const fallbackPos = {
-            x: NumCast(pair.layout.x),
-            y: NumCast(pair.layout.y),
-            z: NumCast(pair.layout.z),
-            highlight: undefined,
-            zIndex: NumCast(pair.layout.zIndex),
-            width: NumCast(pair.layout._width),
-            height: NumCast(pair.layout._height)
-        };
-        const newPosRaw = docMap.get(pair.layout) || fallbackPos; // new pos is computed pos, or pos written to the document's fields
-        const newPos = {
-            x: newPosRaw.x * scale, y: newPosRaw.y * scale, z: newPosRaw.z, zIndex: newPosRaw.zIndex, highlight: newPosRaw.highlight,
-            width: (newPosRaw.width || 0) * scale, height: newPosRaw.height! * scale
-        };
-        const lastPos = poolData.get(pair.layout[Id]); // last computed pos
-        if (!lastPos || newPos.x !== lastPos.x || newPos.y !== lastPos.y || newPos.z !== lastPos.z || newPos.zIndex !== lastPos.zIndex || newPos.width !== lastPos.width || newPos.height !== lastPos.height) {
-            runInAction(() => poolData.set(pair.layout[Id], { transition: "transform 1s", ...newPos }));
+    childPairs.filter(d => !d.layout.isMinimized).map(pair => {
+        const newPosRaw = docMap.get(pair.layout);
+        if (newPosRaw) {
+            const newPos = {
+                x: newPosRaw.x * scale,
+                y: newPosRaw.y * scale,
+                z: newPosRaw.z,
+                highlight: newPosRaw.highlight,
+                zIndex: newPosRaw.zIndex,
+                width: (newPosRaw.width || 0) * scale,
+                height: newPosRaw.height! * scale
+            };
+            const lastPos = poolData.get(pair.layout[Id]); // last computed pos
+            if (!lastPos || newPos.x !== lastPos.x || newPos.y !== lastPos.y || newPos.z !== lastPos.z || newPos.zIndex !== lastPos.zIndex || newPos.width !== lastPos.width || newPos.height !== lastPos.height) {
+                runInAction(() => poolData.set(pair.layout[Id], { transition: "transform 1s", ...newPos }));
+            }
         }
     });
 
@@ -275,8 +278,7 @@ function normalizeResults(panelDim: number[], fontHeight: number, childPairs: { 
             y: gname.y * scale,
             color: gname.color,
             width: gname.width === undefined ? undefined : gname.width * scale,
-            height: Math.max(fontHeight, gname.height! * scale),
-            // height: gname.height === undefined ? undefined : gname.height * scale,
+            height: Math.max(fontHeight, (gname.height || 0) * scale),
             fontSize: gname.fontSize
         }))))
     };
