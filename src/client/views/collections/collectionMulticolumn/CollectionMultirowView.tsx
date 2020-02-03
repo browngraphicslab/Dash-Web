@@ -28,12 +28,12 @@ interface LayoutData {
     starSum: number;
 }
 
-export const HeightUnit = {
+export const DimUnit = {
     Pixel: "px",
     Ratio: "*"
 };
 
-const resolvedUnits = Object.values(HeightUnit);
+const resolvedUnits = Object.values(DimUnit);
 const resizerHeight = 4;
 
 @observer
@@ -45,12 +45,12 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
      */
     @computed
     private get ratioDefinedDocs() {
-        return this.childLayoutPairs.map(({ layout }) => layout).filter(({ widthUnit }) => StrCast(widthUnit) === HeightUnit.Ratio);
+        return this.childLayoutPairs.map(({ layout }) => layout).filter(({ dimUnit }) => StrCast(dimUnit) === DimUnit.Ratio);
     }
 
     /**
-     * This loops through all childLayoutPairs and extracts the values for widthUnit
-     * and widthMagnitude, ignoring any that are malformed. Additionally, it then
+     * This loops through all childLayoutPairs and extracts the values for dimUnit
+     * and dimUnit, ignoring any that are malformed. Additionally, it then
      * normalizes the ratio values so that one * value is always 1, with the remaining
      * values proportionate to that easily readable metric.
      * @returns the list of the resolved width specifiers (unit and magnitude pairs)
@@ -60,11 +60,11 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
     private get resolvedLayoutInformation(): LayoutData {
         let starSum = 0;
         const heightSpecifiers: HeightSpecifier[] = [];
-        this.childLayoutPairs.map(({ layout: { heightUnit, heightMagnitude } }) => {
-            const unit = StrCast(heightUnit);
-            const magnitude = NumCast(heightMagnitude);
+        this.childLayoutPairs.map(({ layout: { dimUnit, dimMagnitude } }) => {
+            const unit = StrCast(dimUnit);
+            const magnitude = NumCast(dimMagnitude);
             if (unit && magnitude && magnitude > 0 && resolvedUnits.includes(unit)) {
-                (unit === HeightUnit.Ratio) && (starSum += magnitude);
+                (unit === DimUnit.Ratio) && (starSum += magnitude);
                 heightSpecifiers.push({ magnitude, unit });
             }
             /**
@@ -82,9 +82,9 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
         setTimeout(() => {
             const { ratioDefinedDocs } = this;
             if (this.childLayoutPairs.length) {
-                const minimum = Math.min(...ratioDefinedDocs.map(({ heightMagnitude }) => NumCast(heightMagnitude)));
+                const minimum = Math.min(...ratioDefinedDocs.map(({ dimMagnitude }) => NumCast(dimMagnitude)));
                 if (minimum !== 0) {
-                    ratioDefinedDocs.forEach(layout => layout.heightMagnitude = NumCast(layout.heightMagnitude) / minimum);
+                    ratioDefinedDocs.forEach(layout => layout.dimMagnitude = NumCast(layout.dimMagnitude) / minimum);
                 }
             }
         });
@@ -103,7 +103,7 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
     @computed
     private get totalFixedAllocation(): number | undefined {
         return this.resolvedLayoutInformation?.heightSpecifiers.reduce(
-            (sum, { magnitude, unit }) => sum + (unit === HeightUnit.Pixel ? magnitude : 0), 0);
+            (sum, { magnitude, unit }) => sum + (unit === DimUnit.Pixel ? magnitude : 0), 0);
     }
 
     /**
@@ -160,8 +160,8 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
         if (rowUnitLength === undefined) {
             return 0; // we're still waiting on promises to resolve
         }
-        let height = NumCast(layout.heightMagnitude);
-        if (StrCast(layout.heightUnit) === HeightUnit.Ratio) {
+        let height = NumCast(layout.dimMagnitude);
+        if (StrCast(layout.dimUnit) === DimUnit.Ratio) {
             height *= rowUnitLength;
         }
         return height;
@@ -193,8 +193,8 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
     drop = (e: Event, de: DragManager.DropEvent) => {
         if (super.drop(e, de)) {
             de.complete.docDragData?.droppedDocuments.forEach(action((d: Doc) => {
-                d.heightUnit = "*";
-                d.heightMagnitude = 1;
+                d.dimUnit = "*";
+                d.dimMagnitude = 1;
             }));
         }
         return false;

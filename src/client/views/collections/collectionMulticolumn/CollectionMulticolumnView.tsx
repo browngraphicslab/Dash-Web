@@ -28,12 +28,12 @@ interface LayoutData {
     starSum: number;
 }
 
-export const WidthUnit = {
+export const DimUnit = {
     Pixel: "px",
     Ratio: "*"
 };
 
-const resolvedUnits = Object.values(WidthUnit);
+const resolvedUnits = Object.values(DimUnit);
 const resizerWidth = 4;
 
 @observer
@@ -45,12 +45,12 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
      */
     @computed
     private get ratioDefinedDocs() {
-        return this.childLayoutPairs.map(({ layout }) => layout).filter(({ widthUnit }) => StrCast(widthUnit) === WidthUnit.Ratio);
+        return this.childLayoutPairs.map(({ layout }) => layout).filter(({ dimUnit }) => StrCast(dimUnit) === DimUnit.Ratio);
     }
 
     /**
-     * This loops through all childLayoutPairs and extracts the values for widthUnit
-     * and widthMagnitude, ignoring any that are malformed. Additionally, it then
+     * This loops through all childLayoutPairs and extracts the values for dimUnit
+     * and dimMagnitude, ignoring any that are malformed. Additionally, it then
      * normalizes the ratio values so that one * value is always 1, with the remaining
      * values proportionate to that easily readable metric.
      * @returns the list of the resolved width specifiers (unit and magnitude pairs)
@@ -60,11 +60,11 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
     private get resolvedLayoutInformation(): LayoutData {
         let starSum = 0;
         const widthSpecifiers: WidthSpecifier[] = [];
-        this.childLayoutPairs.map(({ layout: { widthUnit, widthMagnitude } }) => {
-            const unit = StrCast(widthUnit);
-            const magnitude = NumCast(widthMagnitude);
+        this.childLayoutPairs.map(({ layout: { dimUnit, dimMagnitude } }) => {
+            const unit = StrCast(dimUnit);
+            const magnitude = NumCast(dimMagnitude);
             if (unit && magnitude && magnitude > 0 && resolvedUnits.includes(unit)) {
-                (unit === WidthUnit.Ratio) && (starSum += magnitude);
+                (unit === DimUnit.Ratio) && (starSum += magnitude);
                 widthSpecifiers.push({ magnitude, unit });
             }
             /**
@@ -82,9 +82,9 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
         setTimeout(() => {
             const { ratioDefinedDocs } = this;
             if (this.childLayoutPairs.length) {
-                const minimum = Math.min(...ratioDefinedDocs.map(({ widthMagnitude }) => NumCast(widthMagnitude)));
+                const minimum = Math.min(...ratioDefinedDocs.map(({ dimMagnitude }) => NumCast(dimMagnitude)));
                 if (minimum !== 0) {
-                    ratioDefinedDocs.forEach(layout => layout.widthMagnitude = NumCast(layout.widthMagnitude) / minimum);
+                    ratioDefinedDocs.forEach(layout => layout.dimMagnitude = NumCast(layout.dimMagnitude) / minimum);
                 }
             }
         });
@@ -103,7 +103,7 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
     @computed
     private get totalFixedAllocation(): number | undefined {
         return this.resolvedLayoutInformation?.widthSpecifiers.reduce(
-            (sum, { magnitude, unit }) => sum + (unit === WidthUnit.Pixel ? magnitude : 0), 0);
+            (sum, { magnitude, unit }) => sum + (unit === DimUnit.Pixel ? magnitude : 0), 0);
     }
 
     /**
@@ -160,8 +160,8 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
         if (columnUnitLength === undefined) {
             return 0; // we're still waiting on promises to resolve
         }
-        let width = NumCast(layout.widthMagnitude);
-        if (StrCast(layout.widthUnit) === WidthUnit.Ratio) {
+        let width = NumCast(layout.dimMagnitude);
+        if (StrCast(layout.dimUnit) === DimUnit.Ratio) {
             width *= columnUnitLength;
         }
         return width;
@@ -193,8 +193,8 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
     drop = (e: Event, de: DragManager.DropEvent) => {
         if (super.drop(e, de)) {
             de.complete.docDragData?.droppedDocuments.forEach(action((d: Doc) => {
-                d.widthUnit = "*";
-                d.widthMagnitude = 1;
+                d.dimUnit = "*";
+                d.dimMagnitude = 1;
             }));
         }
         return false;

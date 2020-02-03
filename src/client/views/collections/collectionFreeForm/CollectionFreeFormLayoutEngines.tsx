@@ -204,22 +204,8 @@ export function computeTimelineLayout(
         x += scaling * (key - prevKey);
         const stack = findStack(x, stacking);
         prevKey = key;
-        !stack && Math.abs(x - (curTime - minTime) * scaling) > pivotAxisWidth && groupNames.push({ type: "text", text: key.toString(), x: x, y: stack * 25, height: fontHeight, fontSize });
-        keyDocs.forEach(doc => {
-            const stack = findStack(x, stacking);
-            const layoutDoc = Doc.Layout(doc);
-            let wid = pivotAxisWidth;
-            let hgt = layoutDoc._nativeWidth ? (NumCast(layoutDoc._nativeHeight) / NumCast(layoutDoc._nativeWidth)) * pivotAxisWidth : pivotAxisWidth;
-            if (hgt > pivotAxisWidth) {
-                hgt = pivotAxisWidth;
-                wid = layoutDoc._nativeHeight ? (NumCast(layoutDoc._nativeWidth) / NumCast(layoutDoc._nativeHeight)) * pivotAxisWidth : pivotAxisWidth;
-            }
-            docMap.set(doc, {
-                x: x, y: - Math.sqrt(stack) * pivotAxisWidth / 2 - pivotAxisWidth + (pivotAxisWidth - hgt) / 2,
-                zIndex: (curTime === key ? 1000 : zind++), highlight: curTime === key, width: wid / (Math.max(stack, 1)), height: hgt
-            });
-            stacking[stack] = x + pivotAxisWidth;
-        });
+        !stack && (curTime === undefined || Math.abs(x - (curTime - minTime) * scaling) > pivotAxisWidth) && groupNames.push({ type: "text", text: key.toString(), x: x, y: stack * 25, height: fontHeight, fontSize });
+        newFunction(keyDocs, key);
     });
     if (sortedKeys.length && curTime > sortedKeys[sortedKeys.length - 1]) {
         x = (curTime - minTime) * scaling;
@@ -231,6 +217,24 @@ export function computeTimelineLayout(
 
     const divider = { type: "div", color: "black", x: 0, y: 0, width: panelDim[0], height: 1 } as any;
     return normalizeResults(panelDim, fontHeight, childPairs, docMap, poolData, viewDefsToJSX, groupNames, (maxTime - minTime) * scaling, [divider]);
+
+    function newFunction(keyDocs: Doc[], key: number) {
+        keyDocs.forEach(doc => {
+            const stack = findStack(x, stacking);
+            const layoutDoc = Doc.Layout(doc);
+            let wid = pivotAxisWidth;
+            let hgt = layoutDoc._nativeWidth ? (NumCast(layoutDoc._nativeHeight) / NumCast(layoutDoc._nativeWidth)) * pivotAxisWidth : pivotAxisWidth;
+            if (hgt > pivotAxisWidth) {
+                hgt = pivotAxisWidth;
+                wid = layoutDoc._nativeHeight ? (NumCast(layoutDoc._nativeWidth) / NumCast(layoutDoc._nativeHeight)) * pivotAxisWidth : pivotAxisWidth;
+            }
+            docMap.set(doc, {
+                x: x, y: -Math.sqrt(stack) * pivotAxisWidth / 2 - pivotAxisWidth + (pivotAxisWidth - hgt) / 2,
+                zIndex: (curTime === key ? 1000 : zind++), highlight: curTime === key, width: wid / (Math.max(stack, 1)), height: hgt
+            });
+            stacking[stack] = x + pivotAxisWidth;
+        });
+    }
 }
 
 function normalizeResults(panelDim: number[], fontHeight: number, childPairs: { data?: Doc, layout: Doc }[], docMap: Map<Doc, ViewDefBounds>,

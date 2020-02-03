@@ -188,8 +188,8 @@ def write_image(folder, name):
             "y": 10,
             "_width": min(800, native_width),
             "zIndex": 2,
-            "widthUnit": "*",
-            "widthMagnitude": 1
+            "dimUnit": "*",
+            "dimMagnitude": 1
         },
         "__type": "Doc"
     }
