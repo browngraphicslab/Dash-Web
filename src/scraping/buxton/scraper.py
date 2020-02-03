@@ -115,8 +115,8 @@ def write_collection(parse_results, display_fields, storage_key, viewType):
     target_collection.insert_one(view_doc)
 
     data_doc_guid = data_doc["_id"]
-    print(f"inserted view document ({view_doc_guid})")
-    print(f"inserted data document ({data_doc_guid})\n")
+    # print(f"inserted view document ({view_doc_guid})")
+    # print(f"inserted data document ({data_doc_guid})\n")
 
     return view_doc_guid
 
@@ -233,7 +233,7 @@ def parse_document(file_name: str):
     result = {}
 
     dir_path = image_dist + "/" + pure_name
-    print(dir_path)
+    # print(dir_path)
     mkdir_if_absent(dir_path)
 
     raw = str(docx2txt.process(source + "/" + file_name, dir_path))
@@ -252,7 +252,7 @@ def parse_document(file_name: str):
             medium = dir_path + "/" + image.replace(".", "_m.", 1)
             copyfile(resolved, original)
             copyfile(resolved, medium)
-    print(f"extracted {count} images...")
+    # print(f"extracted {count} images...")
 
     def sanitize(line): return re.sub("[\n\t]+", "", line).replace(u"\u00A0", " ").replace(
         u"\u2013", "-").replace(u"\u201c", '''"''').replace(u"\u201d", '''"''').strip()
@@ -360,7 +360,7 @@ def parse_document(file_name: str):
     if len(notes) > 0:
         result["notes"] = listify(notes)
 
-    print("writing child schema...")
+    # print("writing child schema...")
 
     return {
         "schema": {
@@ -392,7 +392,7 @@ def write_common_proto():
 
 
 if os.path.exists(image_dist):
-    shutil.rmtree(image_dist)
+    shutil.rmtree(image_dist, True)
 while os.path.exists(image_dist):
     pass
 os.mkdir(image_dist)
@@ -415,7 +415,7 @@ parent_guid = write_collection({
         "__type": "Doc"
     },
     "child_guids": schema_guids
-}, ["title", "short_description", "original_price"], "data", 2)
+}, ["title", "short_description", "original_price"], "data", 4)
 
 print("appending parent schema to main workspace...\n")
 target_collection.update_one(

@@ -47,7 +47,12 @@ export default class UtilManager extends ApiManager {
 
                 const onResolved = (stdout: string) => { console.log(stdout); res.redirect("/"); };
                 const onRejected = (err: any) => { console.error(err.message); res.send(err); };
-                const tryPython3 = () => command_line('python3 scraper.py', cwd).then(onResolved, onRejected);
+                const tryPython3 = (reason: any) => {
+                    console.log("Initial scraper failed for the following reason:");
+                    console.log(red(reason.Error));
+                    console.log("Falling back to python3...");
+                    command_line('python3 scraper.py', cwd).then(onResolved, onRejected);
+                };
 
                 return command_line('python scraper.py', cwd).then(onResolved, tryPython3);
             },
