@@ -45,7 +45,7 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
      */
     @computed
     private get ratioDefinedDocs() {
-        return this.childLayoutPairs.map(({ layout }) => layout).filter(({ dimUnit }) => StrCast(dimUnit) === DimUnit.Ratio);
+        return this.childLayoutPairs.map(pair => pair.layout).filter(layout => StrCast(layout.dimUnit, "*") === DimUnit.Ratio);
     }
 
     /**
@@ -60,9 +60,9 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
     private get resolvedLayoutInformation(): LayoutData {
         let starSum = 0;
         const heightSpecifiers: HeightSpecifier[] = [];
-        this.childLayoutPairs.map(({ layout: { dimUnit, dimMagnitude } }) => {
-            const unit = StrCast(dimUnit);
-            const magnitude = NumCast(dimMagnitude);
+        this.childLayoutPairs.map(pair => {
+            const unit = StrCast(pair.layout.dimUnit, "*");
+            const magnitude = NumCast(pair.layout.dimMagnitude, 1);
             if (unit && magnitude && magnitude > 0 && resolvedUnits.includes(unit)) {
                 (unit === DimUnit.Ratio) && (starSum += magnitude);
                 heightSpecifiers.push({ magnitude, unit });
@@ -82,9 +82,9 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
         setTimeout(() => {
             const { ratioDefinedDocs } = this;
             if (this.childLayoutPairs.length) {
-                const minimum = Math.min(...ratioDefinedDocs.map(({ dimMagnitude }) => NumCast(dimMagnitude)));
+                const minimum = Math.min(...ratioDefinedDocs.map(layout => NumCast(layout.dimMagnitude, 1)));
                 if (minimum !== 0) {
-                    ratioDefinedDocs.forEach(layout => layout.dimMagnitude = NumCast(layout.dimMagnitude) / minimum);
+                    ratioDefinedDocs.forEach(layout => layout.dimMagnitude = NumCast(layout.dimMagnitude, 1) / minimum);
                 }
             }
         });
@@ -160,8 +160,8 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
         if (rowUnitLength === undefined) {
             return 0; // we're still waiting on promises to resolve
         }
-        let height = NumCast(layout.dimMagnitude);
-        if (StrCast(layout.dimUnit) === DimUnit.Ratio) {
+        let height = NumCast(layout.dimMagnitude, 1);
+        if (StrCast(layout.dimUnit, "*") === DimUnit.Ratio) {
             height *= rowUnitLength;
         }
         return height;

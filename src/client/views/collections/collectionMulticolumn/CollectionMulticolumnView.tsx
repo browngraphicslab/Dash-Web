@@ -1,19 +1,19 @@
+import { action, computed } from 'mobx';
 import { observer } from 'mobx-react';
-import { makeInterface } from '../../../../new_fields/Schema';
-import { documentSchema } from '../../../../new_fields/documentSchemas';
-import { CollectionSubView, SubCollectionViewProps } from '../CollectionSubView';
 import * as React from "react";
 import { Doc } from '../../../../new_fields/Doc';
-import { NumCast, StrCast, BoolCast, ScriptCast } from '../../../../new_fields/Types';
-import { ContentFittingDocumentView } from '../../nodes/ContentFittingDocumentView';
+import { documentSchema } from '../../../../new_fields/documentSchemas';
+import { makeInterface } from '../../../../new_fields/Schema';
+import { BoolCast, NumCast, ScriptCast, StrCast } from '../../../../new_fields/Types';
 import { Utils } from '../../../../Utils';
-import "./collectionMulticolumnView.scss";
-import { computed, trace, observable, action } from 'mobx';
-import { Transform } from '../../../util/Transform';
-import WidthLabel from './MulticolumnWidthLabel';
-import ResizeBar from './MulticolumnResizer';
-import { undoBatch } from '../../../util/UndoManager';
 import { DragManager } from '../../../util/DragManager';
+import { Transform } from '../../../util/Transform';
+import { undoBatch } from '../../../util/UndoManager';
+import { ContentFittingDocumentView } from '../../nodes/ContentFittingDocumentView';
+import { CollectionSubView } from '../CollectionSubView';
+import "./collectionMulticolumnView.scss";
+import ResizeBar from './MulticolumnResizer';
+import WidthLabel from './MulticolumnWidthLabel';
 
 type MulticolumnDocument = makeInterface<[typeof documentSchema]>;
 const MulticolumnDocument = makeInterface(documentSchema);
@@ -45,7 +45,7 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
      */
     @computed
     private get ratioDefinedDocs() {
-        return this.childLayoutPairs.map(({ layout }) => layout).filter(({ dimUnit }) => StrCast(dimUnit) === DimUnit.Ratio);
+        return this.childLayoutPairs.map(pair => pair.layout).filter(layout => StrCast(layout.dimUnit, "*") === DimUnit.Ratio);
     }
 
     /**
@@ -60,9 +60,9 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
     private get resolvedLayoutInformation(): LayoutData {
         let starSum = 0;
         const widthSpecifiers: WidthSpecifier[] = [];
-        this.childLayoutPairs.map(({ layout: { dimUnit, dimMagnitude } }) => {
-            const unit = StrCast(dimUnit);
-            const magnitude = NumCast(dimMagnitude);
+        this.childLayoutPairs.map(pair => {
+            const unit = StrCast(pair.layout.dimUnit, "*");
+            const magnitude = NumCast(pair.layout.dimMagnitude, 1);
             if (unit && magnitude && magnitude > 0 && resolvedUnits.includes(unit)) {
                 (unit === DimUnit.Ratio) && (starSum += magnitude);
                 widthSpecifiers.push({ magnitude, unit });
@@ -82,9 +82,9 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
         setTimeout(() => {
             const { ratioDefinedDocs } = this;
             if (this.childLayoutPairs.length) {
-                const minimum = Math.min(...ratioDefinedDocs.map(({ dimMagnitude }) => NumCast(dimMagnitude)));
+                const minimum = Math.min(...ratioDefinedDocs.map(doc => NumCast(doc.dimMagnitude, 1)));
                 if (minimum !== 0) {
-                    ratioDefinedDocs.forEach(layout => layout.dimMagnitude = NumCast(layout.dimMagnitude) / minimum);
+                    ratioDefinedDocs.forEach(layout => layout.dimMagnitude = NumCast(layout.dimMagnitude, 1) / minimum, 1);
                 }
             }
         });
@@ -160,8 +160,8 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
         if (columnUnitLength === undefined) {
             return 0; // we're still waiting on promises to resolve
         }
-        let width = NumCast(layout.dimMagnitude);
-        if (StrCast(layout.dimUnit) === DimUnit.Ratio) {
+        let width = NumCast(layout.dimMagnitude, 1);
+        if (StrCast(layout.dimUnit, "*") === DimUnit.Ratio) {
             width *= columnUnitLength;
         }
         return width;

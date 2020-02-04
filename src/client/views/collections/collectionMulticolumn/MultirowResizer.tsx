@@ -46,14 +46,12 @@ export default class ResizeBar extends React.Component<ResizerProps> {
         const unitLength = columnUnitLength();
         if (unitLength) {
             if (toNarrow) {
-                const { dimUnit, dimMagnitude } = toNarrow;
-                const scale = dimUnit === DimUnit.Ratio ? unitLength : 1;
-                toNarrow.dimMagnitude = NumCast(dimMagnitude) - Math.abs(movementY) / scale;
+                const scale = StrCast(toNarrow.dimUnit, "*") === DimUnit.Ratio ? unitLength : 1;
+                toNarrow.dimMagnitude = NumCast(toNarrow.dimMagnitude, 1) - Math.abs(movementY) / scale;
             }
             if (this.resizeMode === ResizeMode.Pinned && toWiden) {
-                const { dimUnit, dimMagnitude } = toWiden;
-                const scale = dimUnit === DimUnit.Ratio ? unitLength : 1;
-                toWiden.dimMagnitude = NumCast(dimMagnitude) + Math.abs(movementY) / scale;
+                const scale = StrCast(toWiden.dimUnit, "*") === DimUnit.Ratio ? unitLength : 1;
+                toWiden.dimMagnitude = NumCast(toWiden.dimMagnitude, 1) + Math.abs(movementY) / scale;
             }
         }
     }
@@ -61,17 +59,17 @@ export default class ResizeBar extends React.Component<ResizerProps> {
     private get isActivated() {
         const { toTop, toBottom } = this.props;
         if (toTop && toBottom) {
-            if (StrCast(toTop.dimUnit) === DimUnit.Pixel && StrCast(toBottom.dimUnit) === DimUnit.Pixel) {
+            if (StrCast(toTop.dimUnit, "*") === DimUnit.Pixel && StrCast(toBottom.dimUnit, "*") === DimUnit.Pixel) {
                 return false;
             }
             return true;
         } else if (toTop) {
-            if (StrCast(toTop.dimUnit) === DimUnit.Pixel) {
+            if (StrCast(toTop.dimUnit, "*") === DimUnit.Pixel) {
                 return false;
             }
             return true;
         } else if (toBottom) {
-            if (StrCast(toBottom.dimUnit) === DimUnit.Pixel) {
+            if (StrCast(toBottom.dimUnit, "*") === DimUnit.Pixel) {
                 return false;
             }
             return true;
