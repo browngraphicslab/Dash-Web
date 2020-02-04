@@ -67,35 +67,59 @@ export function computePivotLayout(
     panelDim: number[],
     viewDefsToJSX: (views: any) => ViewDefResult[]
 ) {
-    console.log("PIVOT " + pivotDoc[HeightSym]());
     const fieldKey = "data";
     const pivotColumnGroups = new Map<FieldResult<Field>, Doc[]>();
     const fontSize = NumCast(pivotDoc[fieldKey + "-timelineFontSize"], panelDim[1] > 58 ? 20 : Math.max(7, panelDim[1] / 3));
 
-    let maxInColumn = 1;
     const pivotFieldKey = toLabel(pivotDoc.pivotField);
     for (const doc of childDocs) {
         const val = Field.toString(doc[pivotFieldKey] as Field);
         if (val) {
             !pivotColumnGroups.get(val) && pivotColumnGroups.set(val, []);
             pivotColumnGroups.get(val)!.push(doc);
-            maxInColumn = Math.max(maxInColumn, pivotColumnGroups.get(val)?.length || 0);
         }
     }
+    if (pivotColumnGroups.size > 10) {
+        const arrayofKeys = Array.from(pivotColumnGroups.keys());
+        const sortedKeys = arrayofKeys.sort();
+        const clusterSize = Math.ceil(pivotColumnGroups.size / 10);
+        const numClusters = Math.ceil(sortedKeys.length / clusterSize);
+        for (let i = 0; i < numClusters; i++) {
+            for (let j = i * clusterSize + 1; j < Math.min(sortedKeys.length, (i + 1) * clusterSize); j++) {
+                pivotColumnGroups.get(sortedKeys[i * clusterSize])!.push(...pivotColumnGroups.get(sortedKeys[j])!);
+                pivotColumnGroups.delete(sortedKeys[j]);
+            }
+        }
+    }
+    let maxInColumn = Array.from(pivotColumnGroups.values()).reduce((p, s) => Math.max(p, s.length), 1);
 
     const colWidth = panelDim[0] / pivotColumnGroups.size;
     const colHeight = panelDim[1];
-    const pivotAxisWidth = Math.sqrt(colWidth * colHeight / maxInColumn);
-    const numCols = Math.max(Math.round(colWidth / pivotAxisWidth), 1);
+    let numCols = 0;
+    let bestArea = 0;
+    let pivotAxisWidth = 0;
+    for (let i = 1; i < 10; i++) {
+        const numInCol = Math.ceil(maxInColumn / i);
+        const hd = colHeight / numInCol;
+        const wd = colWidth / i;
+        const dim = Math.min(hd, wd);
+        const area = dim * dim * i * numInCol;
+        if (area > bestArea) {
+            bestArea = area;
+            numCols = i;
+            pivotAxisWidth = dim;
+        }
+    }
 
     const docMap = new Map<Doc, ViewDefBounds>();
-    const groupNames: PivotData[] = [];;
+    const groupNames: PivotData[] = [];
 
     const expander = 1.05;
     const gap = .15;
     let x = 0;
     let max_text = 60;
-    pivotColumnGroups.forEach((val, key) => {
+    Array.from(pivotColumnGroups.keys()).sort().forEach(key => {
+        const val = pivotColumnGroups.get(key)!;
         let y = 0;
         let xCount = 0;
         const text = toLabel(key);
@@ -132,6 +156,10 @@ export function computePivotLayout(
         x += pivotAxisWidth * (numCols * expander + gap);
     });
 
+    const maxColHeight = pivotAxisWidth * Math.ceil(maxInColumn / numCols) + pivotAxisWidth;
+    const dividers = Array.from(pivotColumnGroups.values()).map((pg, i) =>
+        ({ type: "div", color: "lightGray", x: i * pivotAxisWidth * (numCols * expander + gap), y: -maxColHeight + pivotAxisWidth, width: pivotAxisWidth * numCols * expander, height: maxColHeight } as any));
+    groupNames.push(...dividers);
     return normalizeResults(panelDim, max_text, childPairs, docMap, poolData, viewDefsToJSX, groupNames, 0, []);
 }
 
@@ -161,12 +189,10 @@ export function computeTimelineLayout(
     }
 
     let minTime = Number.MAX_VALUE;
-    let maxTime = Number.MIN_VALUE;
+    let maxTime = -Number.MAX_VALUE;
     childDocs.map(doc => {
         const num = NumCast(doc[timelineFieldKey], Number(StrCast(doc[timelineFieldKey])));
-        if (Number.isNaN(num) || (minTimeReq && num < minTimeReq) || (maxTimeReq && num > maxTimeReq)) {
-            doc.isMinimized = true;
-        } else {
+        if (!(Number.isNaN(num) || (minTimeReq && num < minTimeReq) || (maxTimeReq && num > maxTimeReq))) {
             !pivotDateGroups.get(num) && pivotDateGroups.set(num, []);
             pivotDateGroups.get(num)!.push(doc);
             minTime = Math.min(num, minTime);
@@ -180,8 +206,14 @@ export function computeTimelineLayout(
             minTime = curTime - (maxTime - curTime);
         }
     }
-    pivotDoc[fieldKey + "-timelineMin"] = minTime = minTimeReq ? Math.min(minTimeReq, minTime) : minTime;
-    pivotDoc[fieldKey + "-timelineMax"] = maxTime = maxTimeReq ? Math.max(maxTimeReq, maxTime) : maxTime;
+    setTimeout(() => {
+        pivotDoc[fieldKey + "-timelineMin"] = minTime = minTimeReq ? Math.min(minTimeReq, minTime) : minTime;
+        pivotDoc[fieldKey + "-timelineMax"] = maxTime = maxTimeReq ? Math.max(maxTimeReq, maxTime) : maxTime;
+    }, 0);
+
+    if (maxTime === minTime) {
+        maxTime = minTime + 1;
+    }
 
     const arrayofKeys = Array.from(pivotDateGroups.keys());
     const sortedKeys = arrayofKeys.sort((n1, n2) => n1 - n2);
@@ -204,7 +236,6 @@ export function computeTimelineLayout(
             groupNames.push({ type: "text", text: curTime.toString(), x: (curTime - minTime) * scaling, y: 0, zIndex: 1000, color: "orange", height: fontHeight, fontSize });
         }
         const keyDocs = pivotDateGroups.get(key)!;
-        keyDocs.forEach(d => d.isMinimized = false);
         x += scaling * (key - prevKey);
         const stack = findStack(x, stacking);
         prevKey = key;
@@ -244,15 +275,15 @@ export function computeTimelineLayout(
 function normalizeResults(panelDim: number[], fontHeight: number, childPairs: { data?: Doc, layout: Doc }[], docMap: Map<Doc, ViewDefBounds>,
     poolData: Map<string, PoolData>, viewDefsToJSX: (views: any) => ViewDefResult[], groupNames: PivotData[], minWidth: number, extras: PivotData[]) {
 
-    const grpEles = groupNames.map(gn => ({ x: gn.x, y: gn.y, height: gn.height }) as PivotData);
-    const docEles = childPairs.filter(d => !d.layout.isMinimized).map(pair => docMap.get(pair.layout) as PivotData);
+    const grpEles = groupNames.map(gn => ({ x: gn.x, y: gn.y, width: gn.width, height: gn.height }) as PivotData);
+    const docEles = childPairs.filter(d => docMap.get(d.layout)).map(pair => docMap.get(pair.layout) as PivotData);
     const aggBounds = aggregateBounds(docEles.concat(grpEles), 0, 0);
     aggBounds.r = Math.max(minWidth, aggBounds.r - aggBounds.x);
     const wscale = panelDim[0] / (aggBounds.r - aggBounds.x);
     let scale = wscale * (aggBounds.b - aggBounds.y) > panelDim[1] ? (panelDim[1]) / (aggBounds.b - aggBounds.y) : wscale;
     if (Number.isNaN(scale)) scale = 1;
 
-    childPairs.filter(d => !d.layout.isMinimized).map(pair => {
+    childPairs.filter(d => docMap.get(d.layout)).map(pair => {
         const newPosRaw = docMap.get(pair.layout);
         if (newPosRaw) {
             const newPos = {

@@ -816,7 +816,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     @computed get doInternalLayoutComputation() {
         const newPool = new Map<string, any>();
-        switch (this.Document._freeformLayoutEngine) {
+        switch (this.props.layoutEngine?.()) {
             case "timeline": return { newPool, computedElementData: this.doTimelineLayout(newPool) };
             case "pivot": return { newPool, computedElementData: this.doPivotLayout(newPool) };
         }
@@ -839,7 +839,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 ele: <CollectionFreeFormDocumentView key={pair.layout[Id]}  {...this.getChildDocumentViewProps(pair.layout, pair.data)}
                     dataProvider={this.childDataProvider}
                     jitterRotation={NumCast(this.props.Document.jitterRotation)}
-                    fitToBox={this.props.fitToBox || this.Document._freeformLayoutEngine !== undefined} />,
+                    fitToBox={this.props.fitToBox || this.props.layoutEngine !== undefined} />,
                 bounds: this.childDataProvider(pair.layout)
             }));
 

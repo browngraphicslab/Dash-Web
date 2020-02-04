@@ -43,6 +43,7 @@ export interface SubCollectionViewProps extends CollectionViewProps {
     children?: never | (() => JSX.Element[]) | React.ReactNode;
     isAnnotationOverlay?: boolean;
     annotationsKey: string;
+    layoutEngine?: () => string;
 }
 
 export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
