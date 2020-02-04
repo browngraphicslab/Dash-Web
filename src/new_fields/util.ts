@@ -136,7 +136,7 @@ export function getter(target: any, in_prop: string | symbol | number, receiver:
             let x = resolvedLayout[Id];
             let layout = (resolvedLayout.layout as string).split("'")[1];
             let expanded = getFieldImpl(target, layout + "-layout[" + x + "]", receiver);
-            return expanded?.[prop];
+            return (expanded || resolvedLayout)?.[prop];
             //return resolvedLayout[prop];
         }
     }

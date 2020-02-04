@@ -254,7 +254,12 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 const img = tags[0].startsWith("img") ? tags[0] : tags.length > 1 && tags[1].startsWith("img") ? tags[1] : "";
                 if (img) {
                     const split = img.split("src=\"")[1].split("\"")[0];
-                    const doc = Docs.Create.ImageDocument(split, { ...options, _width: 300 });
+                    let source = split;
+                    if (split.startsWith("data:image") && split.includes("base64")) {
+                        const [{ clientAccessPath }] = await Networking.PostToServer("/uploadRemoteImage", { sources: [split] });
+                        source = Utils.prepend(clientAccessPath);
+                    }
+                    const doc = Docs.Create.ImageDocument(source, { ...options, _width: 300 });
                     ImageUtils.ExtractExif(doc);
                     this.props.addDocument(doc);
                     return;

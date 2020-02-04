@@ -65,7 +65,8 @@ export default class UploadManager extends ApiManager {
             secureHandler: async ({ req, res }) => {
                 const { sources } = req.body;
                 if (Array.isArray(sources)) {
-                    return res.send(await Promise.all(sources.map(url => DashUploadUtils.UploadImage(url))));
+                    const results = await Promise.all(sources.map(source => DashUploadUtils.UploadImage(source)));
+                    return res.send(results);
                 }
                 res.send();
             }
