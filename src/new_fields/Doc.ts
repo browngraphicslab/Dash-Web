@@ -421,8 +421,8 @@ export namespace Doc {
         doc.title = title;
         return doc;
     }
-    export function MakeAlias(doc: Doc) {
-        const alias = !GetT(doc, "isPrototype", "boolean", true) ? Doc.MakeCopy(doc) : Doc.MakeDelegate(doc);
+    export function MakeAlias(doc: Doc, id?: string) {
+        const alias = !GetT(doc, "isPrototype", "boolean", true) ? Doc.MakeCopy(doc, undefined, id) : Doc.MakeDelegate(doc, id);
         const layout = Doc.LayoutField(alias);
         if (layout instanceof Doc && layout !== alias && layout === Doc.Layout(alias)) {
             Doc.SetLayout(alias, Doc.MakeAlias(layout));
@@ -574,7 +574,7 @@ export namespace Doc {
         }
         return undefined;
     }
-    export function ApplyTemplateTo(templateDoc: Doc, target: Doc, targetKey: string, titleTarget: string | undefined = undefined) {
+    export function ApplyTemplateTo(templateDoc: Doc, target: Doc, targetKey: string, titleTarget: string | undefined) {
         if (!templateDoc) {
             target.layout = undefined;
             target._nativeWidth = undefined;
@@ -584,14 +584,9 @@ export namespace Doc {
             return;
         }
 
-        if ((target[targetKey] as Doc)?.proto !== templateDoc) {
-            const layoutCustomLayout = Doc.MakeDelegate(templateDoc);
-
+        if (!Doc.AreProtosEqual(target[targetKey] as Doc, templateDoc)) {
             titleTarget && (Doc.GetProto(target).title = titleTarget);
-            Doc.GetProto(target).type = DocumentType.TEMPLATE;
-            target.onClick = templateDoc.onClick instanceof ObjectField && templateDoc.onClick[Copy]();
-
-            Doc.GetProto(target)[targetKey] = new PrefetchProxy(layoutCustomLayout);
+            Doc.GetProto(target)[targetKey] = new PrefetchProxy(templateDoc);
         }
         target.layoutKey = targetKey;
         return target;

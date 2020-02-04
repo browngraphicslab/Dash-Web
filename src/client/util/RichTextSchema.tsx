@@ -766,8 +766,8 @@ export class DashDocView {
             if (!(dashDoc instanceof Doc)) {
                 alias && DocServer.GetRefField(docid).then(async dashDocBase => {
                     if (dashDocBase instanceof Doc) {
-                        const aliasedDoc = Doc.MakeDelegate(dashDocBase, docid + alias);
-                        aliasedDoc.layoutKey = "layout_" + node.attrs.fieldKey;
+                        const aliasedDoc = Doc.MakeAlias(dashDocBase, docid + alias);
+                        aliasedDoc.layoutKey = "layout" + (node.attrs.fieldKey ? "_" + node.attrs.fieldKey : "");
                         self.doRender(aliasedDoc, removeDoc, node, view, getPos);
                     }
                 });
@@ -809,10 +809,10 @@ export class DashDocView {
                     finalLayout._textTemplate = ComputedField.MakeFunction(`copyField(this.${finalKey})`, { this: Doc.name });
                 }
             }
-            this._reactionDisposer && this._reactionDisposer();
+            this._reactionDisposer?.();
             this._reactionDisposer = reaction(() => [finalLayout[WidthSym](), finalLayout[HeightSym]()], (dim) => {
-                this._dashSpan.style.width = this._outer.style.width = dim[0] + "px";
-                this._dashSpan.style.height = this._outer.style.height = dim[1] + "px";
+                this._dashSpan.style.width = this._outer.style.width = Math.max(20, dim[0]) + "px";
+                this._dashSpan.style.height = this._outer.style.height = Math.max(20, dim[1]) + "px";
             }, { fireImmediately: true });
             ReactDOM.render(<DocumentView
                 Document={finalLayout}
