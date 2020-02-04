@@ -180,27 +180,22 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     public static ReplaceRightSplit(document: Doc, dataDoc: Doc | undefined, libraryPath?: Doc[], addToSplit?: boolean): boolean {
         if (!CollectionDockingView.Instance) return false;
         const instance = CollectionDockingView.Instance;
-        const newItemStackConfig = {
-            type: 'stack',
-            content: [CollectionDockingView.makeDocumentConfig(document, dataDoc, undefined, libraryPath)]
-        };
-
-        const newContentItem = instance._goldenLayout.root.layoutManager.createContentItem(newItemStackConfig, instance._goldenLayout);
-
         let retVal = false;
         if (instance._goldenLayout.root.contentItems[0].isRow) {
             retVal = Array.from(instance._goldenLayout.root.contentItems[0].contentItems).some((child: any) => {
                 if (child.contentItems.length === 1 && child.contentItems[0].config.component === "DocumentFrameRenderer" &&
-                    DocumentManager.Instance.getDocumentViewById(child.contentItems[0].config.props.documentId)?.Document.isDisplayPanle) {
+                    DocumentManager.Instance.getDocumentViewById(child.contentItems[0].config.props.documentId)?.Document.isDisplayPanel) {
+                    const newItemStackConfig = CollectionDockingView.makeDocumentConfig(document, dataDoc, undefined, libraryPath);
+                    child.addChild(newItemStackConfig, undefined);
                     !addToSplit && child.contentItems[0].remove();
-                    child.addChild(newContentItem, undefined, true);
                     instance.layoutChanged(document);
                     return true;
                 }
                 return Array.from(child.contentItems).filter((tab: any) => tab.config.component === "DocumentFrameRenderer").some((tab: any, j: number) => {
                     if (DocumentManager.Instance.getDocumentViewById(tab.config.props.documentId)?.Document.isDisplayPanel) {
+                        const newItemStackConfig = CollectionDockingView.makeDocumentConfig(document, dataDoc, undefined, libraryPath);
+                        child.addChild(newItemStackConfig, undefined);
                         !addToSplit && child.contentItems[j].remove();
-                        child.addChild(newContentItem, undefined, true);
                         instance.layoutChanged(document);
                         return true;
                     }
