@@ -16,11 +16,13 @@
 .inkToTextDoc-cont {
     position: absolute;
     width: 300px;
-    height: 300px;
     overflow: hidden;
 
     .inkToTextDoc-scroller {
         overflow: visible;
+        position: absolute;
+        width: 100%;
+        left: -24px;
 
         .collectionView {
             overflow: visible;
@@ -29,6 +31,15 @@
                 overflow: visible;
             }
         }
+    }
+
+    .shadow {
+        width: 100%;
+        height: calc(100% - 25px);
+        position: absolute;
+        top: 25px;
+        background-color: black;
+        opacity: 0.2;
     }
 }
 

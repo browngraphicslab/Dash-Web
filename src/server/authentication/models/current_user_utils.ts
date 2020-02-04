@@ -137,7 +137,7 @@ export class CurrentUserUtils {
             thumbDoc.inkToTextDoc = Docs.Create.LinearDocument([], { _width: 300, _height: 25, _autoHeight: true, _chromeStatus: "disabled", isExpanded: true, flexDirection: "column" });
             userDoc.thumbDoc = thumbDoc;
         }
-        return userDoc.thumbDoc;
+        return Cast(userDoc.thumbDoc, Doc);
     }
 
     static setupMobileDoc(userDoc: Doc) {

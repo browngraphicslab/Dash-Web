@@ -412,7 +412,11 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 this.addDocument(Docs.Create.FreeformDocument(sel, { title: "nested collection", x: bounds.x, y: bounds.y, _width: bWidth, _height: bHeight, _panX: 0, _panY: 0 }));
                 sel.forEach(d => this.props.removeDocument(d));
                 break;
-
+            case GestureUtils.Gestures.Text:
+                if (ge.text) {
+                    const B = this.getTransform().transformPoint(ge.points[0].X, ge.points[0].Y);
+                    this.addDocument(Docs.Create.TextDocument(ge.text, { title: ge.text, x: B[0], y: B[1] }));
+                }
         }
     }
 
