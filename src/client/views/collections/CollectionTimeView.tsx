@@ -43,7 +43,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
 
     @computed get _allFacets() {
         const facets = new Set<string>();
-        this.childDocs.forEach(child => Object.keys(Doc.GetProto(child)).forEach(key => facets.add(key)));
+        //this.childDocs.forEach(child => Object.keys(Doc.GetProto(child)).forEach(key => facets.add(key)));
         return facets.toArray();
     }
 

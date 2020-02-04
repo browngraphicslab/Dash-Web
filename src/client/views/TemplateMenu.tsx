@@ -94,15 +94,15 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
         }
     }
     componentDidMount() {
-        !this._addedKeys && (this._addedKeys = new ObservableSet());
-        Array.from(Object.keys(Doc.GetProto(this.props.docViews[0].props.Document))).
-            filter(key => key.startsWith("layout_")).
-            map(key => runInAction(() => this._addedKeys.add(key.replace("layout_", ""))));
-        DocListCast(Cast(CurrentUserUtils.UserDocument.expandingButtons, Doc, null)?.data)?.map(btnDoc => {
-            if (StrCast(Cast(btnDoc?.dragFactory, Doc, null)?.title)) {
-                runInAction(() => this._addedKeys.add(StrCast(Cast(btnDoc?.dragFactory, Doc, null)?.title)));
-            }
-        });
+        // !this._addedKeys && (this._addedKeys = new ObservableSet());
+        // Array.from(Object.keys(Doc.GetProto(this.props.docViews[0].props.Document))).
+        //     filter(key => key.startsWith("layout_")).
+        //     map(key => runInAction(() => this._addedKeys.add(key.replace("layout_", ""))));
+        // DocListCast(Cast(CurrentUserUtils.UserDocument.expandingButtons, Doc, null)?.data)?.map(btnDoc => {
+        //     if (StrCast(Cast(btnDoc?.dragFactory, Doc, null)?.title)) {
+        //         runInAction(() => this._addedKeys.add(StrCast(Cast(btnDoc?.dragFactory, Doc, null)?.title)));
+        //     }
+        // });
     }
 
     _addedKeys = new ObservableSet();

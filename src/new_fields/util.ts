@@ -1,5 +1,5 @@
 import { UndoManager } from "../client/util/UndoManager";
-import { Doc, Field, FieldResult, UpdatingFromServer } from "./Doc";
+import { Doc, Field, FieldResult, UpdatingFromServer, LayoutSym } from "./Doc";
 import { SerializationHelper } from "../client/util/SerializationHelper";
 import { ProxyField, PrefetchProxy } from "./Proxy";
 import { RefField } from "./RefField";
@@ -104,41 +104,47 @@ let layoutProps = ["panX", "panY", "width", "height", "nativeWidth", "nativeHeig
     "LODdisable", "dropAction", "chromeStatus", "viewType", "gridGap", "xMargin", "yMargin", "autoHeight"];
 export function setter(target: any, in_prop: string | symbol | number, value: any, receiver: any): boolean {
     let prop = in_prop;
-    if (typeof prop === "string" && prop !== "__id" && prop !== "__fields" &&
+    if (typeof prop === "string" && prop !== "__id" && prop !== "__LAYOUT__" && prop !== "__fields" &&
         ((prop as string).startsWith("_") || layoutProps.includes(prop))) {
         if (!prop.startsWith("_")) {
             console.log(prop + " is deprecated - switch to _" + prop);
             prop = "_" + prop;
         }
-        const resolvedLayout = getFieldImpl(target, getFieldImpl(target, "layoutKey", receiver), receiver);
-        if (resolvedLayout instanceof Doc) {
-            let x = resolvedLayout[Id];
-            let layout = (resolvedLayout.layout as string).split("'")[1];
-            let expanded = getFieldImpl(target, layout + "-layout[" + x + "]", receiver);
-            expanded && (expanded[prop] = value);
-            // resolvedLayout[prop] = value;
-            return true;
-        }
+        const self = target[Self];
+        const layoutDoc = (self || target).__LAYOUT__;
+        if (layoutDoc) layoutDoc[prop] = value;
+        // const resolvedLayout = getFieldImpl(target, getFieldImpl(target, "layoutKey", receiver), receiver);
+        // if (resolvedLayout instanceof Doc) {
+        //     let x = resolvedLayout[Id];
+        //     let layout = (resolvedLayout.layout as string).split("'")[1];
+        //     let expanded = getFieldImpl(target, layout + "-layout[" + x + "]", receiver);
+        //     expanded && (expanded[prop] = value);
+        //     // resolvedLayout[prop] = value;
+        //     return true;
+        // }
     }
     return _setter(target, prop, value, receiver);
 }
 
 export function getter(target: any, in_prop: string | symbol | number, receiver: any): any {
     let prop = in_prop;
-    if (typeof prop === "string" && prop !== "__id" && prop !== "__fields" &&
+    if (typeof prop === "string" && prop !== "__id" && prop !== "__LAYOUT__" && prop !== "__fields" &&
         ((prop as string).startsWith("_") || layoutProps.includes(prop))) {
         if (!prop.startsWith("_")) {
             console.log(prop + " is deprecated - switch to _" + prop);
             prop = "_" + prop;
         }
-        const resolvedLayout = getFieldImpl(target, getFieldImpl(target, "layoutKey", receiver), receiver);
-        if (resolvedLayout instanceof Doc) {
-            let x = resolvedLayout[Id];
-            let layout = (resolvedLayout.layout as string).split("'")[1];
-            let expanded = getFieldImpl(target, layout + "-layout[" + x + "]", receiver);
-            return (expanded || resolvedLayout)?.[prop];
-            //return resolvedLayout[prop];
-        }
+        const self = target[Self];
+        const layoutDoc = (self || target).__LAYOUT__;
+        if (layoutDoc) return layoutDoc[prop];
+        // const resolvedLayout = getFieldImpl(target, getFieldImpl(target, "layoutKey", receiver), receiver);
+        // if (resolvedLayout instanceof Doc) {
+        //     let x = resolvedLayout[Id];
+        //     let layout = (resolvedLayout.layout as string).split("'")[1];
+        //     let expanded = getFieldImpl(target, layout + "-layout[" + x + "]", receiver);
+        //     return (expanded || resolvedLayout)?.[prop];
+        //     //return resolvedLayout[prop];
+        // }
     }
     if (prop === "then") {//If we're being awaited
         return undefined;

@@ -824,13 +824,14 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
     get doLayoutComputation() {
         const { newPool, computedElementData } = this.doInternalLayoutComputation;
-        Array.from(newPool.keys()).map(key => {
-            const lastPos = this._cachedPool.get(key); // last computed pos
-            const newPos = newPool.get(key);
-            if (!lastPos || newPos.x !== lastPos.x || newPos.y !== lastPos.y || newPos.z !== lastPos.z || newPos.zIndex !== lastPos.zIndex || newPos.width !== lastPos.width || newPos.height !== lastPos.height) {
-                runInAction(() => this._layoutPoolData.set(key, { transition: "transform 1s", ...newPos }));
-            }
-        });
+        runInAction(() =>
+            Array.from(newPool.keys()).map(key => {
+                const lastPos = this._cachedPool.get(key); // last computed pos
+                const newPos = newPool.get(key);
+                if (!lastPos || newPos.x !== lastPos.x || newPos.y !== lastPos.y || newPos.z !== lastPos.z || newPos.zIndex !== lastPos.zIndex || newPos.width !== lastPos.width || newPos.height !== lastPos.height) {
+                    this._layoutPoolData.set(key, newPos);
+                }
+            }));
         this._cachedPool.clear();
         Array.from(newPool.keys()).forEach(k => this._cachedPool.set(k, newPool.get(k)));
         this.childLayoutPairs.filter((pair, i) => this.isCurrent(pair.layout)).forEach(pair =>

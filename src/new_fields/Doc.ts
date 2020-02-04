@@ -1,4 +1,4 @@
-import { observable, ObservableMap, runInAction, action } from "mobx";
+import { observable, ObservableMap, runInAction, action, computed } from "mobx";
 import { alias, map, serializable } from "serializr";
 import { DocServer } from "../client/DocServer";
 import { DocumentType } from "../client/documents/DocumentTypes";
@@ -89,6 +89,7 @@ export function DocListCast(field: FieldResult): Doc[] {
 export const WidthSym = Symbol("Width");
 export const HeightSym = Symbol("Height");
 export const DataSym = Symbol("Data");
+export const LayoutSym = Symbol("Layout");
 export const UpdatingFromServer = Symbol("UpdatingFromServer");
 const CachedUpdates = Symbol("Cached updates");
 
@@ -167,6 +168,17 @@ export class Doc extends RefField {
     public [WidthSym] = () => NumCast(this[SelfProxy]._width);
     public [HeightSym] = () => NumCast(this[SelfProxy]._height);
     public get [DataSym]() { return Cast(this[SelfProxy].resolvedDataDoc, Doc, null) || this[SelfProxy]; }
+    @computed public get __LAYOUT__() {
+        const layoutKey = StrCast(this[SelfProxy].layoutKey);
+        const resolvedLayout = Cast(this[SelfProxy][layoutKey], Doc);
+        if (resolvedLayout instanceof Doc) {
+            let x = resolvedLayout[Id];
+            let layout = (resolvedLayout.layout as string).split("'")[1];
+            const layoutDoc = this[SelfProxy][layout + "-layout[" + x + "]"];
+            return layoutDoc || this[SelfProxy];
+        }
+        return undefined;
+    }
 
     [ToScriptString]() {
         return "invalid";
