@@ -874,10 +874,16 @@ export class DashFieldView {
         this._fieldSpan.style.minWidth = "50px";
         this._fieldSpan.style.backgroundColor = "rgba(155, 155, 155, 0.24)";
         this._fieldSpan.addEventListener("input", this.onchanged);
+        this._fieldSpan.onkeypress = function (e: any) { e.stopPropagation(); };
+        this._fieldSpan.onkeyup = function (e: any) { e.stopPropagation(); };
+        this._fieldSpan.onmousedown = function (e: any) {
+            console.log(e);
+            e.stopPropagation();
+        };
         const self = this;
         this._fieldSpan.onkeydown = function (e: any) {
             e.stopPropagation();
-            if (e.key === "Tab" || e.key === "Enter" || (e.key === "a" && e.ctrlKey) || (e.key === "a" && e.metaKey)) {
+            if ((e.key === "a" && e.ctrlKey) || (e.key === "a" && e.metaKey)) {
                 if (window.getSelection) {
                     var range = document.createRange();
                     range.selectNodeContents(self._fieldSpan);
