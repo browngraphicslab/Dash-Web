@@ -74,7 +74,7 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
         </>;
     }
     render() {
-        return <div className="collectionCarouselView-outer">
+        return <div className="collectionCarouselView-outer" ref={this.createDashEventsTarget}>
             {this.content}
             {this.buttons}
         </div>;

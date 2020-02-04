@@ -626,6 +626,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
             const layoutItems: ContextMenuProps[] = [];
             layoutItems.push({ description: (this.props.Document.preventTreeViewOpen ? "Persist" : "Abandon") + "Treeview State", event: () => this.props.Document.preventTreeViewOpen = !this.props.Document.preventTreeViewOpen, icon: "paint-brush" });
             layoutItems.push({ description: (this.props.Document.hideHeaderFields ? "Show" : "Hide") + " Header Fields", event: () => this.props.Document.hideHeaderFields = !this.props.Document.hideHeaderFields, icon: "paint-brush" });
+            layoutItems.push({ description: (this.props.Document.treeViewHideTitle ? "Show" : "Hide") + " Title", event: () => this.props.Document.treeViewHideTitle = !this.props.Document.treeViewHideTitle, icon: "paint-brush" });
             ContextMenu.Instance.addItem({ description: "Treeview Options ...", subitems: layoutItems, icon: "eye" });
         }
         ContextMenu.Instance.addItem({
