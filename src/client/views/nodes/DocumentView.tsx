@@ -665,7 +665,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     }
                 })
                 DocumentView.
-                    makeCustomViewClicked(this.props.Document, this.props.DataDoc, Docs.Create.StackingDocument, layout, foundLayout);
+                    makeCustomViewClicked(this.props.Document, this.props.DataDoc, Docs.Create.StackingDocument, layout, foundLayout && Doc.MakeDelegate(foundLayout));
             } else {
                 DocumentView.makeNativeViewClicked(this.props.Document, StrCast(this.props.Document.layoutKey).split("_")[1]);
             }

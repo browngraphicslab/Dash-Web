@@ -79,13 +79,16 @@ export const inpRules = {
                 const fieldKey = match[1];
                 const docid = match[2]?.substring(1);
                 if (!fieldKey) {
-                    DocServer.GetRefField(docid).then(docx => {
-                        const target = ((docx instanceof Doc) && docx) || Docs.Create.FreeformDocument([], { title: docid, _width: 500, _height: 500, _LODdisable: true, }, docid);
-                        DocUtils.Publish(target, docid, returnFalse, returnFalse);
-                        DocUtils.MakeLink({ doc: (schema as any).Document }, { doc: target }, "portal link", "");
-                    });
-                    const link = state.schema.marks.link.create({ href: Utils.prepend("/doc/" + docid), location: "onRight", title: docid, targetId: docid });
-                    return state.tr.deleteRange(end - 1, end).deleteRange(start, start + 2).addMark(start, end - 3, link);
+                    if (docid) {
+                        DocServer.GetRefField(docid).then(docx => {
+                            const target = ((docx instanceof Doc) && docx) || Docs.Create.FreeformDocument([], { title: docid, _width: 500, _height: 500, _LODdisable: true, }, docid);
+                            DocUtils.Publish(target, docid, returnFalse, returnFalse);
+                            DocUtils.MakeLink({ doc: (schema as any).Document }, { doc: target }, "portal link", "");
+                        });
+                        const link = state.schema.marks.link.create({ href: Utils.prepend("/doc/" + docid), location: "onRight", title: docid, targetId: docid });
+                        return state.tr.deleteRange(end - 1, end).deleteRange(start, start + 2).addMark(start, end - 3, link);
+                    }
+                    return state.tr;
                 }
                 const fieldView = state.schema.nodes.dashField.create({ fieldKey, docid });
                 return state.tr.deleteRange(start, end).insert(start, fieldView);
@@ -96,7 +99,8 @@ export const inpRules = {
             (state, match, start, end) => {
                 const fieldKey = match[1];
                 const docid = match[2]?.substring(1);
-                DocServer.GetRefField(docid).then(docx => {
+                if (!fieldKey && !docid) return state.tr;
+                docid && DocServer.GetRefField(docid).then(docx => {
                     if (!(docx instanceof Doc && docx)) {
                         const docx = Docs.Create.FreeformDocument([], { title: docid, _width: 500, _height: 500, _LODdisable: true }, docid);
                         DocUtils.Publish(docx, docid, returnFalse, returnFalse);
