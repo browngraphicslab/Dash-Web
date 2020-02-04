@@ -34,7 +34,7 @@ export const DimUnit = {
 };
 
 const resolvedUnits = Object.values(DimUnit);
-const resizerHeight = 4;
+const resizerHeight = 10;
 
 @observer
 export class CollectionMultirowView extends CollectionSubView(MultirowDocument) {
