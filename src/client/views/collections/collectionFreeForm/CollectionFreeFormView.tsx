@@ -434,7 +434,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         let y = this.Document._panY || 0;
         const docs = this.childLayoutPairs.filter(pair => pair.layout instanceof Doc && !pair.layout.isMinimized).map(pair => pair.layout);
         const [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
-        if (!this.isAnnotationOverlay && docs.length) {
+        if (!this.isAnnotationOverlay && docs.length && this.childDataProvider(docs[0])) {
             PDFMenu.Instance.fadeOut(true);
             const minx = this.childDataProvider(docs[0]).x;//docs.length ? NumCast(docs[0].x) : 0;
             const miny = this.childDataProvider(docs[0]).y;//docs.length ? NumCast(docs[0].y) : 0;

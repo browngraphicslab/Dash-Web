@@ -128,11 +128,15 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             const filteredDocs = docFilters.length ? viewedDocs.filter(d => {
                 for (const key of Object.keys(clusters)) {
                     const cluster = clusters[key];
+                    const satisfiesFacetx = !Object.keys(cluster).some((inner) => {
+                        const modifier = cluster[inner];
+                        return ((modifier === "x") === Doc.matchFieldValue(d, key, inner));
+                    });
                     const satisfiesFacet = Object.keys(cluster).some(inner => {
                         const modifier = cluster[inner];
                         return (modifier === "x") !== Doc.matchFieldValue(d, key, inner);
                     });
-                    if (!satisfiesFacet) {
+                    if (!satisfiesFacet || !satisfiesFacetx) {
                         return false;
                     }
                 }

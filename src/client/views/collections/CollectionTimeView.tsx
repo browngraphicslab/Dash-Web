@@ -33,7 +33,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
             this.props.Document.excludeFields = new List<string>(["_facetCollection", "_docFilter"]);
 
             const scriptText = "setDocFilter(containingTreeView.target, heading, this.title, checked)";
-            const childText = "const alias = getAlias(this); Doc.ApplyTemplateTo(containingCollection.childDetailed, alias, 'layout_detailed'); useRightSplit(alias, shiftKey); ";
+            const childText = "const alias = getAlias(this); Doc.ApplyTemplateTo(containingCollection.childDetailed, alias, 'layout_detailView'); alias._dropAction='alias'; alias.removeDropProperties=new List<string>(['dropAction']);  useRightSplit(alias, shiftKey); ";
             facetCollection.onCheckedClick = ScriptField.MakeScript(scriptText, { this: Doc.name, heading: "boolean", checked: "boolean", containingTreeView: Doc.name });
             this.props.Document.onChildClick = ScriptField.MakeScript(childText, { this: Doc.name, heading: "boolean", containingCollection: Doc.name, shiftKey: "boolean" });
             this.props.Document._facetCollection = facetCollection;

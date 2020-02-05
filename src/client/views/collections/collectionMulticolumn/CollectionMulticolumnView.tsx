@@ -5,7 +5,6 @@ import { Doc } from '../../../../new_fields/Doc';
 import { documentSchema } from '../../../../new_fields/documentSchemas';
 import { makeInterface } from '../../../../new_fields/Schema';
 import { BoolCast, NumCast, ScriptCast, StrCast } from '../../../../new_fields/Types';
-import { Utils } from '../../../../Utils';
 import { DragManager } from '../../../util/DragManager';
 import { Transform } from '../../../util/Transform';
 import { undoBatch } from '../../../util/UndoManager';
@@ -119,7 +118,7 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
     private get totalRatioAllocation(): number | undefined {
         const layoutInfoLen = this.resolvedLayoutInformation.widthSpecifiers.length;
         if (layoutInfoLen > 0 && this.totalFixedAllocation !== undefined) {
-            return this.props.PanelWidth() - (this.totalFixedAllocation + resizerWidth * (layoutInfoLen - 1));
+            return this.props.PanelWidth() - (this.totalFixedAllocation + resizerWidth * (layoutInfoLen - 1)) - 2 * NumCast(this.props.Document._xMargin);
         }
     }
 
@@ -228,7 +227,7 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
         for (let i = 0; i < childLayoutPairs.length; i++) {
             const { layout } = childLayoutPairs[i];
             const dxf = () => this.lookupIndividualTransform(layout).translate(-NumCast(Document._xMargin), -NumCast(Document._yMargin));
-            const width = () => this.lookupPixels(layout) - 2 * NumCast(Document._xMargin);
+            const width = () => this.lookupPixels(layout);
             const height = () => PanelHeight() - 2 * NumCast(Document._yMargin) - (BoolCast(Document.showWidthLabels) ? 20 : 0);
             collector.push(
                 <div className={"document-wrapper"}
