@@ -454,7 +454,7 @@ export class Timeline extends React.Component<FieldViewProps> {
                     <div className="time-box overview-tool" style={{ display: this._timelineVisible ? "flex" : "none" }}>
                         <div key="time-text" className="animation-text" style={{ visibility: this.props.Document.isATOn ? "visible" : "hidden", display: this.props.Document.isATOn ? "flex" : "none" }}>{lengthString}</div>
                         <input className="time-input" style={{ visibility: this.props.Document.isATOn ? "visible" : "hidden", display: this.props.Document.isATOn ? "flex" : "none" }} placeholder={String(Math.floor(this._time) / 1000) + " s"} ref={this._timeInputRef} onKeyDown={this.onTimeInput} />
-                        <div style={{ width: "100%", backgroundColor: "red", display: !this.props.Document.isATOn ? "flex" : "none" }}>{this.getCurrentTime()}</div>
+                        <div style={{ width: "100%", display: !this.props.Document.isATOn ? "flex" : "none" }}>Current: {this.getCurrentTime()}</div>
                     </div>
                 </div>
             </div>
