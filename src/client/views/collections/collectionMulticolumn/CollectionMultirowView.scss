@@ -19,13 +19,13 @@
 
     }
 
-    .resizer {
+    .multiRowResizer {
         cursor: ew-resize;
         transition: 0.5s opacity ease;
         display: flex;
         flex-direction: row;
 
-        .internal {
+        .multiRowResizer-hdl {
             width: 100%;
             height: 100%;
             transition: 0.5s background-color ease;

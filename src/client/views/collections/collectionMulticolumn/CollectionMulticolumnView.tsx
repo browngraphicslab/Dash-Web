@@ -34,7 +34,7 @@ export const DimUnit = {
 };
 
 const resolvedUnits = Object.values(DimUnit);
-const resizerWidth = 4;
+const resizerWidth = 8;
 
 @observer
 export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocument) {
@@ -203,6 +203,19 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
 
     @computed get onChildClickHandler() { return ScriptCast(this.Document.onChildClick); }
 
+    getDisplayDoc(layout: Doc, dxf: () => Transform, width: () => number, height: () => number) {
+        return <ContentFittingDocumentView
+            {...this.props}
+            Document={layout}
+            DataDocument={layout.resolvedDataDoc as Doc}
+            CollectionDoc={this.props.Document}
+            PanelWidth={width}
+            PanelHeight={height}
+            getTransform={dxf}
+            onClick={this.onChildClickHandler}
+            renderDepth={this.props.renderDepth + 1}
+        />
+    }
     /**
      * @returns the resolved list of rendered child documents, displayed
      * at their resolved pixel widths, each separated by a resizer. 
@@ -214,22 +227,14 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
         const collector: JSX.Element[] = [];
         for (let i = 0; i < childLayoutPairs.length; i++) {
             const { layout } = childLayoutPairs[i];
+            const dxf = () => this.lookupIndividualTransform(layout).translate(-NumCast(Document._xMargin), -NumCast(Document._yMargin));
+            const width = () => this.lookupPixels(layout) - 2 * NumCast(Document._xMargin);
+            const height = () => PanelHeight() - 2 * NumCast(Document._yMargin) - (BoolCast(Document.showWidthLabels) ? 20 : 0);
             collector.push(
-                <div
-                    className={"document-wrapper"}
-                    key={Utils.GenerateGuid()}
-                >
-                    <ContentFittingDocumentView
-                        {...this.props}
-                        Document={layout}
-                        DataDocument={layout.resolvedDataDoc as Doc}
-                        CollectionDoc={this.props.Document}
-                        PanelWidth={() => this.lookupPixels(layout) - 2 * NumCast(Document._xMargin)}
-                        PanelHeight={() => PanelHeight() - 2 * NumCast(Document._yMargin) - (BoolCast(Document.showWidthLabels) ? 20 : 0)}
-                        getTransform={() => this.lookupIndividualTransform(layout).translate(-NumCast(Document._xMargin), -NumCast(Document._yMargin))}
-                        onClick={this.onChildClickHandler}
-                        renderDepth={this.props.renderDepth + 1}
-                    />
+                <div className={"document-wrapper"}
+                    key={"wrapper" + i}
+                    style={{ width: width() }} >
+                    {this.getDisplayDoc(layout, dxf, width, height)}
                     <WidthLabel
                         layout={layout}
                         collectionDoc={Document}
@@ -237,7 +242,7 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
                 </div>,
                 <ResizeBar
                     width={resizerWidth}
-                    key={Utils.GenerateGuid()}
+                    key={"resizer" + i}
                     columnUnitLength={this.getColumnUnitLength}
                     toLeft={layout}
                     toRight={childLayoutPairs[i + 1]?.layout}

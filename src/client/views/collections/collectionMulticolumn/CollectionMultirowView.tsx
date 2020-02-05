@@ -34,7 +34,7 @@ export const DimUnit = {
 };
 
 const resolvedUnits = Object.values(DimUnit);
-const resizerHeight = 10;
+const resizerHeight = 8;
 
 @observer
 export class CollectionMultirowView extends CollectionSubView(MultirowDocument) {
@@ -203,6 +203,19 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
 
     @computed get onChildClickHandler() { return ScriptCast(this.Document.onChildClick); }
 
+    getDisplayDoc(layout: Doc, dxf: () => Transform, width: () => number, height: () => number) {
+        return <ContentFittingDocumentView
+            {...this.props}
+            Document={layout}
+            DataDocument={layout.resolvedDataDoc as Doc}
+            CollectionDoc={this.props.Document}
+            PanelWidth={width}
+            PanelHeight={height}
+            getTransform={dxf}
+            onClick={this.onChildClickHandler}
+            renderDepth={this.props.renderDepth + 1}
+        />
+    }
     /**
      * @returns the resolved list of rendered child documents, displayed
      * at their resolved pixel widths, each separated by a resizer. 
@@ -214,22 +227,15 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
         const collector: JSX.Element[] = [];
         for (let i = 0; i < childLayoutPairs.length; i++) {
             const { layout } = childLayoutPairs[i];
+            const dxf = () => this.lookupIndividualTransform(layout).translate(-NumCast(Document._xMargin), -NumCast(Document._yMargin));
+            const height = () => this.lookupPixels(layout) - 2 * NumCast(Document._yMargin);
+            const width = () => PanelWidth() - 2 * NumCast(Document._xMargin) - (BoolCast(Document.showWidthLabels) ? 20 : 0);
             collector.push(
                 <div
                     className={"document-wrapper"}
-                    key={Utils.GenerateGuid()}
+                    key={"wrapper" + i}
                 >
-                    <ContentFittingDocumentView
-                        {...this.props}
-                        Document={layout}
-                        DataDocument={layout.resolvedDataDoc as Doc}
-                        CollectionDoc={this.props.Document}
-                        PanelHeight={() => this.lookupPixels(layout) - 2 * NumCast(Document._yMargin)}
-                        PanelWidth={() => PanelWidth() - 2 * NumCast(Document._xMargin) - (BoolCast(Document.showHeightLabels) ? 20 : 0)}
-                        getTransform={() => this.lookupIndividualTransform(layout).translate(-NumCast(Document._xMargin), -NumCast(Document._yMargin))}
-                        onClick={this.onChildClickHandler}
-                        renderDepth={this.props.renderDepth + 1}
-                    />
+                    {this.getDisplayDoc(layout, dxf, width, height)}
                     <HeightLabel
                         layout={layout}
                         collectionDoc={Document}
@@ -237,7 +243,7 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
                 </div>,
                 <ResizeBar
                     height={resizerHeight}
-                    key={Utils.GenerateGuid()}
+                    key={"resizer" + i}
                     columnUnitLength={this.getRowUnitLength}
                     toTop={layout}
                     toBottom={childLayoutPairs[i + 1]?.layout}

@@ -47,11 +47,11 @@ export default class ResizeBar extends React.Component<ResizerProps> {
         if (unitLength) {
             if (toNarrow) {
                 const scale = StrCast(toNarrow.dimUnit, "*") === DimUnit.Ratio ? unitLength : 1;
-                toNarrow.dimMagnitude = NumCast(toNarrow.dimMagnitude, 1) - Math.abs(movementX) / scale;
+                toNarrow.dimMagnitude = Math.max(0.05, NumCast(toNarrow.dimMagnitude, 1) - Math.abs(movementX) / scale);
             }
             if (this.resizeMode === ResizeMode.Pinned && toWiden) {
                 const scale = StrCast(toWiden.dimUnit, "*") === DimUnit.Ratio ? unitLength : 1;
-                toWiden.dimMagnitude = NumCast(toWiden.dimMagnitude, 1) + Math.abs(movementX) / scale;
+                toWiden.dimMagnitude = Math.max(0.05, NumCast(toWiden.dimMagnitude, 1) + Math.abs(movementX) / scale);
             }
         }
     }
@@ -89,7 +89,7 @@ export default class ResizeBar extends React.Component<ResizerProps> {
     render() {
         return (
             <div
-                className={"resizer"}
+                className={"multiColumnResizer"}
                 style={{
                     width: this.props.width,
                     opacity: this.isActivated && this.isHoverActive ? resizerOpacity : 0
@@ -98,12 +98,12 @@ export default class ResizeBar extends React.Component<ResizerProps> {
                 onPointerLeave={action(() => !this.isResizingActive && (this.isHoverActive = false))}
             >
                 <div
-                    className={"internal"}
+                    className={"multiColumnResizer-hdl"}
                     onPointerDown={e => this.registerResizing(e, ResizeMode.Pinned)}
                     style={{ backgroundColor: this.resizeMode }}
                 />
                 <div
-                    className={"internal"}
+                    className={"multiColumnResizer-hdl"}
                     onPointerDown={e => this.registerResizing(e, ResizeMode.Global)}
                     style={{ backgroundColor: this.resizeMode }}
                 />
