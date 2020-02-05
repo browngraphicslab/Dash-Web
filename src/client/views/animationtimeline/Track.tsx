@@ -91,6 +91,17 @@ export class Track extends React.Component<IProps> {
         let keyframes: List<Doc> = (Cast(this.saveStateRegion!.keyframes, listSpec(Doc)) as List<Doc>);
         let kfIndex: number = keyframes.indexOf(this.saveStateKf!);
         let kf = keyframes[kfIndex] as Doc; //index in the keyframe
+        if (this._newKeyframe) {
+            console.log("new keyframe registering");
+            let kfList = DocListCast(this.saveStateRegion!.keyframes); 
+            kfList.forEach(kf => {
+                kf.key = this.makeCopy(); 
+                if (kfList.indexOf(kf) === 0  ||  kfList.indexOf(kf) === 3){
+                    (kf.key as Doc).opacity = 0.1; 
+                }
+            });
+            this._newKeyframe = false; 
+        }
         if (!kf) return;
         if (kf.type === KeyframeFunc.KeyframeType.default) { // only save for non-fades
             kf.key = this.makeCopy();
@@ -110,21 +121,10 @@ export class Track extends React.Component<IProps> {
                 (Cast(edge!.key, Doc)! as Doc).opacity = 0.1;
                 (Cast(rightkf!.key, Doc)! as Doc).opacity = 1;
             }
-        } else if (this._newKeyframe) {
-            // console.log("new keyframe registering");
-            // let kfList = DocListCast(this.saveStateRegion!.keyframes); 
-            // kfList.forEach(kf => {
-            //     kf.key = this.makeCopy(); 
-            //     if (kfList.indexOf(kf) === 0  ||  kfList.indexOf(kf) === 3){
-            //         (kf.key as Doc).opacity = 0.1; 
-            //     }
-            // });
-
         }
         keyframes[kfIndex] = kf;
         this.saveStateKf = undefined;
         this.saveStateRegion = undefined;
-        this._newKeyframe = false; 
     }
 
 
@@ -223,7 +223,10 @@ export class Track extends React.Component<IProps> {
     timeChange = async () => {
         if (this.saveStateKf !== undefined) {
             await this.saveKeyframe();
-        } 
+        } else if (this._newKeyframe){
+            console.log("CALLED"); 
+            await this.saveKeyframe();
+        }
         let regiondata = await this.findRegion(Math.round(this.time)); //finds a region that the scrubber is on
         if (regiondata) {
             let leftkf: (Doc | undefined) = await KeyframeFunc.calcMinLeft(regiondata, this.time); // lef keyframe, if it exists
