@@ -224,10 +224,11 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
                         Document={layout}
                         DataDocument={layout.resolvedDataDoc as Doc}
                         CollectionDoc={this.props.Document}
-                        PanelWidth={() => this.lookupPixels(layout)}
-                        PanelHeight={() => PanelHeight() - (BoolCast(Document.showWidthLabels) ? 20 : 0)}
-                        getTransform={() => this.lookupIndividualTransform(layout)}
+                        PanelWidth={() => this.lookupPixels(layout) - 2 * NumCast(Document._xMargin)}
+                        PanelHeight={() => PanelHeight() - 2 * NumCast(Document._yMargin) - (BoolCast(Document.showWidthLabels) ? 20 : 0)}
+                        getTransform={() => this.lookupIndividualTransform(layout).translate(-NumCast(Document._xMargin), -NumCast(Document._yMargin))}
                         onClick={this.onChildClickHandler}
+                        renderDepth={this.props.renderDepth + 1}
                     />
                     <WidthLabel
                         layout={layout}
@@ -249,7 +250,11 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
 
     render(): JSX.Element {
         return (
-            <div className={"collectionMulticolumnView_contents"} ref={this.createDashEventsTarget}>
+            <div className={"collectionMulticolumnView_contents"}
+                style={{
+                    marginLeft: NumCast(this.props.Document._xMargin), marginRight: NumCast(this.props.Document._xMargin),
+                    marginTop: NumCast(this.props.Document._yMargin), marginBottom: NumCast(this.props.Document._yMargin)
+                }} ref={this.createDashEventsTarget}>
                 {this.contents}
             </div>
         );

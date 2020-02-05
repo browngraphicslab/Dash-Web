@@ -224,9 +224,9 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
                         Document={layout}
                         DataDocument={layout.resolvedDataDoc as Doc}
                         CollectionDoc={this.props.Document}
-                        PanelHeight={() => this.lookupPixels(layout)}
-                        PanelWidth={() => PanelWidth() - (BoolCast(Document.showHeightLabels) ? 20 : 0)}
-                        getTransform={() => this.lookupIndividualTransform(layout)}
+                        PanelHeight={() => this.lookupPixels(layout) - 2 * NumCast(Document._yMargin)}
+                        PanelWidth={() => PanelWidth() - 2 * NumCast(Document._xMargin) - (BoolCast(Document.showHeightLabels) ? 20 : 0)}
+                        getTransform={() => this.lookupIndividualTransform(layout).translate(-NumCast(Document._xMargin), -NumCast(Document._yMargin))}
                         onClick={this.onChildClickHandler}
                         renderDepth={this.props.renderDepth + 1}
                     />
@@ -250,7 +250,11 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
 
     render(): JSX.Element {
         return (
-            <div className={"collectionMultirowView_contents"} ref={this.createDashEventsTarget}>
+            <div className={"collectionMultirowView_contents"}
+                style={{
+                    marginLeft: NumCast(this.props.Document._xMargin), marginRight: NumCast(this.props.Document._xMargin),
+                    marginTop: NumCast(this.props.Document._yMargin), marginBottom: NumCast(this.props.Document._yMargin)
+                }} ref={this.createDashEventsTarget}>
                 {this.contents}
             </div>
         );

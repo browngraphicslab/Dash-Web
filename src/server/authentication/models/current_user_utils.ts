@@ -15,6 +15,8 @@ import { nullAudio } from "../../../new_fields/URLField";
 import { DragManager } from "../../../client/util/DragManager";
 import { InkingControl } from "../../../client/views/InkingControl";
 import { CollectionViewType } from "../../../client/views/collections/CollectionView";
+import { makeTemplate } from "../../../client/util/DropConverter";
+import { RichTextField } from "../../../new_fields/RichTextField";
 
 export class CurrentUserUtils {
     private static curr_id: string;
@@ -227,14 +229,30 @@ export class CurrentUserUtils {
 
     /// sets up the default list of buttons to be shown in the expanding button menu at the bottom of the Dash window
     static setupExpandingButtons(doc: Doc) {
+        const slideTemplate = Docs.Create.StackingDocument(
+            [
+                Docs.Create.MulticolumnDocument([], { title: "images", _height: 200, _xMargin: 10, _yMargin: 10 }),
+                Docs.Create.TextDocument("", { title: "contents", _height: 100 })
+            ],
+            { _width: 400, _height: 300, title: "slide", _chromeStatus: "disabled", _autoHeight: true });
+        slideTemplate.isTemplateDoc = makeTemplate(slideTemplate);
+
+        const iconDoc = Docs.Create.TextDocument("", { title: "icon", _width: 150, _height: 30, onClick: ScriptField.MakeScript("setNativeView(this)") });
+        Doc.GetProto(iconDoc).data = new RichTextField('{"doc":{"type":"doc","content":[{"type":"paragraph","attrs":{"align":null,"color":null,"id":null,"indent":null,"inset":null,"lineSpacing":null,"paddingBottom":null,"paddingTop":null},"content":[{"type":"dashField","attrs":{"fieldKey":"title","docid":""}}]}]},"selection":{"type":"text","anchor":2,"head":2},"storedMarks":[]}', "");
+        doc.isTemplateDoc = makeTemplate(iconDoc);
+        doc.iconView = iconDoc;
+
         doc.undoBtn = Docs.Create.FontIconDocument(
             { _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, _dropAction: "alias", onClick: ScriptField.MakeScript("undo()"), removeDropProperties: new List<string>(["dropAction"]), title: "undo button", icon: "undo-alt" });
         doc.redoBtn = Docs.Create.FontIconDocument(
             { _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, _dropAction: "alias", onClick: ScriptField.MakeScript("redo()"), removeDropProperties: new List<string>(["dropAction"]), title: "redo button", icon: "redo-alt" });
+        doc.slidesBtn = Docs.Create.FontIconDocument(
+            { _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, _dropAction: "alias", onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'), dragFactory: slideTemplate, removeDropProperties: new List<string>(["dropAction"]), title: "slide button", icon: "sticky-note" });
 
-        doc.expandingButtons = Docs.Create.LinearDocument([doc.undoBtn as Doc, doc.redoBtn as Doc], {
+        doc.expandingButtons = Docs.Create.LinearDocument([doc.undoBtn as Doc, doc.redoBtn as Doc, doc.slidesBtn as Doc], {
             title: "expanding buttons", _gridGap: 5, _xMargin: 5, _yMargin: 5, _height: 42, _width: 100, boxShadow: "0 0",
             backgroundColor: "black", preventTreeViewOpen: true, forceActive: true, lockedPosition: true,
+
             dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name })
         });
     }

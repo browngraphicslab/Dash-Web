@@ -111,7 +111,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @computed get topMost() { return this.props.renderDepth === 0; }
     @computed get nativeWidth() { return this.layoutDoc._nativeWidth || 0; }
     @computed get nativeHeight() { return this.layoutDoc._nativeHeight || 0; }
-    @computed get onClickHandler() { return this.props.onClick ? this.props.onClick : this.Document.onClick; }
+    @computed get onClickHandler() { return this.props.onClick || this.layoutDoc.onClick || this.Document.onClick; }
     @computed get onPointerDownHandler() { return this.props.onPointerDown ? this.props.onPointerDown : this.Document.onPointerDown; }
     @computed get onPointerUpHandler() { return this.props.onPointerUp ? this.props.onPointerUp : this.Document.onPointerUp; }
 
@@ -520,11 +520,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @undoBatch
     deleteClicked = (): void => { SelectionManager.DeselectAll(); this.props.removeDocument && this.props.removeDocument(this.props.Document); }
 
-    static makeNativeViewClicked = (doc: Doc, prevLayout: string) => {
-        undoBatch(() => {
-            if (StrCast(doc.title).endsWith("_" + prevLayout)) doc.title = StrCast(doc.title).replace("_" + prevLayout, "");
-            doc.layoutKey = "layout";
-        })();
+    static makeNativeViewClicked = (doc: Doc) => {
+        undoBatch(() => Doc.setNativeView(doc))();
     }
 
     static makeCustomViewClicked = (doc: Doc, dataDoc: Opt<Doc>, creator: (documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc, name: string = "custom", docLayoutTemplate?: Doc) => {
@@ -653,21 +650,22 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @action
     setCustomView =
         (custom: boolean, layout: string): void => {
-            if (this.props.ContainingCollectionView?.props.DataDoc || this.props.ContainingCollectionView?.props.Document.isTemplateDoc) {
-                Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.ContainingCollectionView.props.Document);
-            } else if (custom) {
-                DocumentView.makeNativeViewClicked(this.props.Document, StrCast(this.props.Document.layoutKey).split("_")[1]);
+            // if (this.props.ContainingCollectionView?.props.DataDoc || this.props.ContainingCollectionView?.props.Document.isTemplateDoc) {
+            //     Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.ContainingCollectionView.props.Document);
+            // } else 
+            if (custom) {
+                DocumentView.makeNativeViewClicked(this.props.Document);
 
-                let foundLayout: Opt<Doc> = undefined;
-                DocListCast(Cast(CurrentUserUtils.UserDocument.expandingButtons, Doc, null)?.data)?.map(btnDoc => {
+                let foundLayout: Opt<Doc> = Cast(Doc.UserDoc().iconView, Doc, null);
+                !foundLayout && DocListCast(Cast(CurrentUserUtils.UserDocument.expandingButtons, Doc, null)?.data)?.map(btnDoc => {
                     if (StrCast(Cast(btnDoc?.dragFactory, Doc, null)?.title) === layout) {
                         foundLayout = btnDoc.dragFactory as Doc;
                     }
                 })
                 DocumentView.
-                    makeCustomViewClicked(this.props.Document, this.props.DataDoc, Docs.Create.StackingDocument, layout, foundLayout && Doc.MakeDelegate(foundLayout));
+                    makeCustomViewClicked(this.props.Document, this.props.DataDoc, Docs.Create.StackingDocument, layout, foundLayout);
             } else {
-                DocumentView.makeNativeViewClicked(this.props.Document, StrCast(this.props.Document.layoutKey).split("_")[1]);
+                DocumentView.makeNativeViewClicked(this.props.Document);
             }
         }
 

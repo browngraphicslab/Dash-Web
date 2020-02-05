@@ -46,6 +46,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
     @computed get _allFacets() {
         const facets = new Set<string>();
         this.childDocs.forEach(child => Object.keys(Doc.GetProto(child)).forEach(key => facets.add(key)));
+        Doc.AreProtosEqual(this.dataDoc, this.props.Document) && this.childDocs.forEach(child => Object.keys(child).forEach(key => facets.add(key)));
         return facets.toArray();
     }
 
@@ -108,11 +109,10 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
         const docItems: ContextMenuProps[] = [];
         const keySet: Set<string> = new Set();
 
-        this.childLayoutPairs.map(pair =>
-            Array.from(Object.keys(Doc.GetProto(pair.layout))).filter(fieldKey =>
-                pair.layout[fieldKey] instanceof RichTextField ||
-                typeof (pair.layout[fieldKey]) === "number" ||
-                typeof (pair.layout[fieldKey]) === "string").map(fieldKey => keySet.add(fieldKey)));
+        this.childLayoutPairs.map(pair => this._allFacets.filter(fieldKey =>
+            pair.layout[fieldKey] instanceof RichTextField ||
+            typeof (pair.layout[fieldKey]) === "number" ||
+            typeof (pair.layout[fieldKey]) === "string").map(fieldKey => keySet.add(fieldKey)));
         keySet.toArray().map(fieldKey =>
             docItems.push({ description: ":" + fieldKey, event: () => this.props.Document.pivotField = fieldKey, icon: "compress-arrows-alt" }));
         docItems.push({ description: ":(null)", event: () => this.props.Document.pivotField = undefined, icon: "compress-arrows-alt" })

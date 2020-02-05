@@ -6,7 +6,6 @@ import { action, computed, IReactionDisposer, reaction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast, DocListCastAsync } from "../../../new_fields/Doc";
 import { listSpec } from "../../../new_fields/Schema";
-import { ComputedField } from "../../../new_fields/ScriptField";
 import { Cast, FieldValue, NumCast } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { Docs } from "../../documents/Documents";
@@ -17,7 +16,6 @@ import { CollectionView, CollectionViewType } from "../collections/CollectionVie
 import { ContextMenu } from "../ContextMenu";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./PresBox.scss";
-import { presSchema } from "../presentationview/PresElementBox";
 
 library.add(faArrowLeft);
 library.add(faArrowRight);
@@ -31,6 +29,7 @@ library.add(faEdit);
 @observer
 export class PresBox extends React.Component<FieldViewProps> {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(PresBox, fieldKey); }
+    _childReaction: IReactionDisposer | undefined;
     componentDidMount() {
         const userDoc = CurrentUserUtils.UserDocument;
         let presTemp = Cast(userDoc.presentationTemplate, Doc);
@@ -43,6 +42,11 @@ export class PresBox extends React.Component<FieldViewProps> {
         else {
             this.props.Document.childLayout = presTemp;
         }
+        this._childReaction = reaction(() => this.childDocs.slice(),
+            (children) => children.forEach((child, i) => child.presentationIndex = i), { fireImmediately: true });
+    }
+    componentWillUnmount() {
+        this._childReaction?.();
     }
 
     @computed get childDocs() { return DocListCast(this.props.Document[this.props.fieldKey]); }
