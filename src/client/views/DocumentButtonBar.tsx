@@ -211,6 +211,7 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
                     DockedFrameRenderer.UnpinDoc(targetDoc);
                 }
                 else {
+                    targetDoc.sourceContext = this.view0?.props.ContainingCollectionDoc; // bcz: !! Shouldn't need this ... use search to lookup contexts dynamically
                     DockedFrameRenderer.PinDoc(targetDoc);
                 }
             }}>

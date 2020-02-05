@@ -210,6 +210,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             dragData.moveDocument = this.props.moveDocument;//  this.Document.onDragStart ? undefined : this.props.moveDocument;
             dragData.applyAsTemplate = applyAsTemplate;
             dragData.dragDivName = this.props.dragDivName;
+            this.props.Document.sourceContext = this.props.ContainingCollectionDoc; // bcz: !! shouldn't need this ... use search find the document's context dynamically
             DragManager.StartDocumentDrag([this._mainCont.current], dragData, x, y, { hideSource: !dropAction && !this.Document.onDragStart });
         }
     }
@@ -483,9 +484,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (e.cancelBubble && this.active) {
             document.removeEventListener("pointermove", this.onPointerMove); // stop listening to pointerMove if something else has stopPropagated it (e.g., the MarqueeView)
         }
-        else if (!e.cancelBubble && (SelectionManager.IsSelected(this, true) || this.props.parentActive(true) || this.Document.onDragStart || this.Document.onClick) && !this.Document.lockedPosition && !this.Document.inOverlay) {
+        else if (!e.cancelBubble && (SelectionManager.IsSelected(this, true) || this.props.parentActive(true) || this.Document.onDragStart || this.onClickHandler) && !this.Document.lockedPosition && !this.Document.inOverlay) {
             if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
-                if (!e.altKey && (!this.topMost || this.Document.onDragStart || this.Document.onClick) && (e.buttons === 1 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE))) {
+                if (!e.altKey && (!this.topMost || this.Document.onDragStart || this.onClickHandler) && (e.buttons === 1 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE))) {
                     document.removeEventListener("pointermove", this.onPointerMove);
                     document.removeEventListener("pointerup", this.onPointerUp);
                     this.startDragging(this._downX, this._downY, this.Document._dropAction ? this.Document._dropAction as any : e.ctrlKey || e.altKey ? "alias" : undefined, this._hitTemplateDrag);
@@ -518,7 +519,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     @undoBatch
-    deleteClicked = (): void => { SelectionManager.DeselectAll(); this.props.removeDocument && this.props.removeDocument(this.props.Document); }
+    deleteClicked = (): void => { SelectionManager.DeselectAll(); this.props.removeDocument?.(this.props.Document); }
 
     static makeNativeViewClicked = (doc: Doc) => {
         undoBatch(() => Doc.setNativeView(doc))();
@@ -597,7 +598,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 `Link from ${StrCast(de.complete.annoDragData.annotationDocument.title)}`);
         }
         if (de.complete.docDragData && de.complete.docDragData.applyAsTemplate) {
-            Doc.ApplyTemplateTo(de.complete.docDragData.draggedDocuments[0], this.props.Document, "layout_custom");
+            Doc.ApplyTemplateTo(de.complete.docDragData.draggedDocuments[0], this.props.Document, "layout_custom", undefined);
             e.stopPropagation();
         }
         if (de.complete.linkDragData) {
@@ -656,12 +657,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             if (custom) {
                 DocumentView.makeNativeViewClicked(this.props.Document);
 
-                let foundLayout: Opt<Doc> = Cast(Doc.UserDoc().iconView, Doc, null);
-                !foundLayout && DocListCast(Cast(CurrentUserUtils.UserDocument.expandingButtons, Doc, null)?.data)?.map(btnDoc => {
-                    if (StrCast(Cast(btnDoc?.dragFactory, Doc, null)?.title) === layout) {
-                        foundLayout = btnDoc.dragFactory as Doc;
-                    }
-                })
+                let foundLayout: Opt<Doc>;
+                DocListCast(Cast(Doc.UserDoc().expandingButtons, Doc, null)?.data)?.concat([Cast(Doc.UserDoc().iconView, Doc, null)]).
+                    map(btnDoc => (btnDoc.dragFactory as Doc) || btnDoc).filter(doc => doc.isTemplateDoc).forEach(tempDoc => {
+                        if (StrCast(tempDoc.title) === layout) {
+                            foundLayout = tempDoc;
+                        }
+                    })
                 DocumentView.
                     makeCustomViewClicked(this.props.Document, this.props.DataDoc, Docs.Create.StackingDocument, layout, foundLayout);
             } else {
@@ -902,7 +904,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const showTitle = StrCast(this.getLayoutPropStr("showTitle"));
         const showTitleHover = StrCast(this.getLayoutPropStr("showTitleHover"));
         const showCaption = this.getLayoutPropStr("showCaption");
-        const showTextTitle = showTitle && StrCast(this.layoutDoc.layout).indexOf("FormattedTextBox") !== -1 ? showTitle : undefined;
+        const showTextTitle = showTitle && (StrCast(this.layoutDoc.layout).indexOf("PresBox") !== -1 || StrCast(this.layoutDoc.layout).indexOf("FormattedTextBox") !== -1) ? showTitle : undefined;
         const searchHighlight = (!this.Document.searchFields ? (null) :
             <div className="documentView-searchHighlight">
                 {this.Document.searchFields}

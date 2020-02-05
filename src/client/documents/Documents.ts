@@ -106,6 +106,7 @@ export interface DocumentOptions {
     documentText?: string;
     borderRounding?: string;
     boxShadow?: string;
+    showTitle?: string;
     sectionFilter?: string; // field key used to determine headings for sections in stacking and masonry views
     schemaColumns?: List<SchemaHeaderField>;
     dockingConfig?: string;
@@ -340,7 +341,7 @@ export namespace Docs {
     export namespace Create {
 
         const delegateKeys = ["x", "y", "layoutKey", "_width", "_height", "_panX", "_panY", "_viewType", "_nativeWidth", "_nativeHeight", "_dropAction", "_annotationOn",
-            "_chromeStatus", "_forceActive", "_autoHeight", "_fitWidth", "_LODdisable", "_itemIndex", "_showSidebar"];
+            "_chromeStatus", "_forceActive", "_autoHeight", "_fitWidth", "_LODdisable", "_itemIndex", "_showSidebar", "showTitle"];
 
         /**
          * This function receives the relevant document prototype and uses

@@ -181,15 +181,17 @@ export class PresBox extends React.Component<FieldViewProps> {
         });
 
         //docToJump stayed same meaning, it was not in the group or was the last element in the group
+        const aliasOf = await Cast(docToJump.aliasOf, Doc);
+        const srcContext = aliasOf && await Cast(aliasOf.sourceContext, Doc);
         if (docToJump === curDoc) {
             //checking if curDoc has navigation open
-            const target = await curDoc.presentationTargetDoc as Doc;
-            if (curDoc.navButton) {
-                DocumentManager.Instance.jumpToDocument(target, false);
-            } else if (curDoc.showButton) {
+            const target = await Cast(curDoc.presentationTargetDoc, Doc);
+            if (curDoc.navButton && target) {
+                DocumentManager.Instance.jumpToDocument(target, false, undefined, srcContext);
+            } else if (curDoc.showButton && target) {
                 const curScale = DocumentManager.Instance.getScaleOfDocView(fromDoc);
                 //awaiting jump so that new scale can be found, since jumping is async
-                await DocumentManager.Instance.jumpToDocument(target, true);
+                await DocumentManager.Instance.jumpToDocument(target, true, undefined, srcContext);
                 curDoc.viewScale = DocumentManager.Instance.getScaleOfDocView(target);
 
                 //saving the scale user was on before zooming in
@@ -203,7 +205,8 @@ export class PresBox extends React.Component<FieldViewProps> {
         const curScale = DocumentManager.Instance.getScaleOfDocView(fromDoc);
 
         //awaiting jump so that new scale can be found, since jumping is async
-        await DocumentManager.Instance.jumpToDocument(await docToJump.presentationTargetDoc as Doc, willZoom);
+        const presTargetDoc = await docToJump.presentationTargetDoc as Doc;
+        await DocumentManager.Instance.jumpToDocument(presTargetDoc, willZoom, undefined, srcContext);
         const newScale = DocumentManager.Instance.getScaleOfDocView(await curDoc.presentationTargetDoc as Doc);
         curDoc.viewScale = newScale;
         //saving the scale that user was on

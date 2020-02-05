@@ -119,7 +119,7 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
     private get totalRatioAllocation(): number | undefined {
         const layoutInfoLen = this.resolvedLayoutInformation.heightSpecifiers.length;
         if (layoutInfoLen > 0 && this.totalFixedAllocation !== undefined) {
-            return this.props.PanelHeight() - (this.totalFixedAllocation + resizerHeight * (layoutInfoLen - 1));
+            return this.props.PanelHeight() - (this.totalFixedAllocation + resizerHeight * (layoutInfoLen - 1)) - 2 * NumCast(this.props.Document._yMargin);
         }
     }
 
@@ -228,7 +228,7 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
         for (let i = 0; i < childLayoutPairs.length; i++) {
             const { layout } = childLayoutPairs[i];
             const dxf = () => this.lookupIndividualTransform(layout).translate(-NumCast(Document._xMargin), -NumCast(Document._yMargin));
-            const height = () => this.lookupPixels(layout) - 2 * NumCast(Document._yMargin);
+            const height = () => this.lookupPixels(layout);
             const width = () => PanelWidth() - 2 * NumCast(Document._xMargin) - (BoolCast(Document.showWidthLabels) ? 20 : 0);
             collector.push(
                 <div

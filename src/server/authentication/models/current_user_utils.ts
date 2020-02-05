@@ -17,6 +17,7 @@ import { InkingControl } from "../../../client/views/InkingControl";
 import { CollectionViewType } from "../../../client/views/collections/CollectionView";
 import { makeTemplate } from "../../../client/util/DropConverter";
 import { RichTextField } from "../../../new_fields/RichTextField";
+import { PrefetchProxy } from "../../../new_fields/Proxy";
 
 export class CurrentUserUtils {
     private static curr_id: string;
@@ -47,17 +48,19 @@ export class CurrentUserUtils {
     // setup the "creator" buttons for the sidebar-- eg. the default set of draggable document creation tools
     static setupCreatorButtons(doc: Doc, buttons?: string[]) {
         const notes = CurrentUserUtils.setupNoteTypes(doc);
+        const emptyPresentation = Docs.Create.PresDocument(new List<Doc>(), { title: "Presentation", _viewType: CollectionViewType.Stacking, showTitle: "title", boxShadow: "0 0" });
+        const emptyCollection = Docs.Create.FreeformDocument([], { _nativeWidth: undefined, _nativeHeight: undefined, _LODdisable: true, _width: 150, _height: 100, title: "freeform" });
         doc.noteTypes = Docs.Create.TreeDocument(notes, { title: "Note Types", _height: 75 });
         doc.activePen = doc;
         const docProtoData: { title: string, icon: string, drag?: string, ignoreClick?: boolean, click?: string, ischecked?: string, activePen?: Doc, backgroundColor?: string, dragFactory?: Doc }[] = [
-            { title: "collection", icon: "folder", ignoreClick: true, drag: 'Docs.Create.FreeformDocument([], { _nativeWidth: undefined, _nativeHeight: undefined, _LODdisable: true, _width: 150, _height: 100, title: "freeform" })' },
+            { title: "collection", icon: "folder", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: emptyCollection },
             { title: "preview", icon: "expand", ignoreClick: true, drag: 'Docs.Create.DocumentDocument(ComputedField.MakeFunction("selectedDocs(this,true,[_last_])?.[0]"), { _width: 250, _height: 250, title: "container" })' },
             { title: "todo item", icon: "check", ignoreClick: true, drag: 'getCopy(this.dragFactory, true)', dragFactory: notes[notes.length - 1] },
             { title: "web page", icon: "globe-asia", ignoreClick: true, drag: 'Docs.Create.WebDocument("https://en.wikipedia.org/wiki/Hedgehog", {_width: 300, _height: 300, title: "New Webpage" })' },
             { title: "cat image", icon: "cat", ignoreClick: true, drag: 'Docs.Create.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", { _width: 200, title: "an image of a cat" })' },
             { title: "record", icon: "microphone", ignoreClick: true, drag: `Docs.Create.AudioDocument("${nullAudio}", { _width: 200, title: "ready to record audio" })` },
             { title: "clickable button", icon: "bolt", ignoreClick: true, drag: 'Docs.Create.ButtonDocument({ _width: 150, _height: 50, title: "Button" })' },
-            { title: "presentation", icon: "tv", ignoreClick: true, drag: `Doc.UserDoc().curPresentation = Docs.Create.PresDocument(new List<Doc>(), { _width: 200, _height: 500, _xMargin:5, _viewType: ${CollectionViewType.Stacking}, title: "a presentation trail" })` },
+            { title: "presentation", icon: "tv", click: 'openOnRight(Doc.UserDoc().curPresentation = getCopy(this.dragFactory, true))', drag: `Doc.UserDoc().curPresentation = getCopy(this.dragFactory,true)`, dragFactory: emptyPresentation },
             { title: "import folder", icon: "cloud-upload-alt", ignoreClick: true, drag: 'Docs.Create.DirectoryImportDocument({ title: "Directory Import", _width: 400, _height: 400 })' },
             { title: "mobile view", icon: "phone", ignoreClick: true, drag: 'Doc.UserDoc().activeMobile' },
             { title: "use pen", icon: "pen-nib", click: 'activatePen(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this,2, this.backgroundColor)', backgroundColor: "blue", ischecked: `sameDocs(this.activePen.pen,  this)`, activePen: doc },
@@ -237,18 +240,17 @@ export class CurrentUserUtils {
             { _width: 400, _height: 300, title: "slide", _chromeStatus: "disabled", _autoHeight: true });
         slideTemplate.isTemplateDoc = makeTemplate(slideTemplate);
 
-        const iconDoc = Docs.Create.TextDocument("", { title: "icon", _width: 150, _height: 30, onClick: ScriptField.MakeScript("setNativeView(this)") });
+        const iconDoc = Docs.Create.TextDocument("", { title: "icon", _width: 150, _height: 30, isTemplateDoc: true, onClick: ScriptField.MakeScript("setNativeView(this)") });
         Doc.GetProto(iconDoc).data = new RichTextField('{"doc":{"type":"doc","content":[{"type":"paragraph","attrs":{"align":null,"color":null,"id":null,"indent":null,"inset":null,"lineSpacing":null,"paddingBottom":null,"paddingTop":null},"content":[{"type":"dashField","attrs":{"fieldKey":"title","docid":""}}]}]},"selection":{"type":"text","anchor":2,"head":2},"storedMarks":[]}', "");
         doc.isTemplateDoc = makeTemplate(iconDoc);
-        doc.iconView = iconDoc;
+        doc.iconView = new PrefetchProxy(iconDoc);
 
         doc.undoBtn = Docs.Create.FontIconDocument(
             { _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, _dropAction: "alias", onClick: ScriptField.MakeScript("undo()"), removeDropProperties: new List<string>(["dropAction"]), title: "undo button", icon: "undo-alt" });
         doc.redoBtn = Docs.Create.FontIconDocument(
             { _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, _dropAction: "alias", onClick: ScriptField.MakeScript("redo()"), removeDropProperties: new List<string>(["dropAction"]), title: "redo button", icon: "redo-alt" });
         doc.slidesBtn = Docs.Create.FontIconDocument(
-            { _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, _dropAction: "alias", onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'), dragFactory: slideTemplate, removeDropProperties: new List<string>(["dropAction"]), title: "slide button", icon: "sticky-note" });
-
+            { _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, _dropAction: "alias", onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'), dragFactory: slideTemplate, removeDropProperties: new List<string>(["dropAction"]), title: "presentation slide", icon: "sticky-note" });
         doc.expandingButtons = Docs.Create.LinearDocument([doc.undoBtn as Doc, doc.redoBtn as Doc, doc.slidesBtn as Doc], {
             title: "expanding buttons", _gridGap: 5, _xMargin: 5, _yMargin: 5, _height: 42, _width: 100, boxShadow: "0 0",
             backgroundColor: "black", preventTreeViewOpen: true, forceActive: true, lockedPosition: true,
@@ -266,7 +268,7 @@ export class CurrentUserUtils {
 
     // the initial presentation Doc to use
     static setupDefaultPresentation(doc: Doc) {
-        doc.curPresentation = Docs.Create.PresDocument(new List<Doc>(), { title: "Presentation", _viewType: CollectionViewType.Stacking, boxShadow: "0 0" });
+        doc.curPresentation = Docs.Create.PresDocument(new List<Doc>(), { title: "Presentation", _viewType: CollectionViewType.Stacking, showTitle: "title", boxShadow: "0 0" });
     }
 
     static setupMobileUploads(doc: Doc) {

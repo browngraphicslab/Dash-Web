@@ -427,6 +427,7 @@ export namespace Doc {
         if (layout instanceof Doc && layout !== alias && layout === Doc.Layout(alias)) {
             Doc.SetLayout(alias, Doc.MakeAlias(layout));
         }
+        alias.aliasOf = doc;
         alias.title = ComputedField.MakeFunction(`renameAlias(this, ${Doc.GetProto(doc).aliasNumber = NumCast(Doc.GetProto(doc).aliasNumber) + 1})`);
         return alias;
     }
@@ -784,8 +785,10 @@ export namespace Doc {
 
     export function setNativeView(doc: any) {
         const prevLayout = StrCast(doc.layoutKey).split("_")[1];
+        const deiconify = prevLayout === "icon" && StrCast(doc.deiconifyLayout) ? "layout_" + StrCast(doc.deiconifyLayout) : "";
+        doc.deiconifyLayout = undefined;
         if (StrCast(doc.title).endsWith("_" + prevLayout)) doc.title = StrCast(doc.title).replace("_" + prevLayout, "");
-        doc.layoutKey = "layout";
+        doc.layoutKey = deiconify || "layout";
     }
 }
 

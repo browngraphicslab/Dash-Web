@@ -93,9 +93,9 @@ export class DocumentManager {
         const toReturn: DocumentView[] = [];
 
         DocumentManager.Instance.DocumentViews.map(view =>
-            view.props.Document === toFind && toReturn.push(view));
+            view.props.Document.presBox === undefined && view.props.Document === toFind && toReturn.push(view));
         DocumentManager.Instance.DocumentViews.map(view =>
-            view.props.Document !== toFind && Doc.AreProtosEqual(view.props.Document, toFind) && toReturn.push(view));
+            view.props.Document.presBox === undefined && view.props.Document !== toFind && Doc.AreProtosEqual(view.props.Document, toFind) && toReturn.push(view));
 
         return toReturn;
     }
