@@ -29,6 +29,7 @@ export class Track extends React.Component<IProps> {
     @observable private _currentBarXReaction: any;
     @observable private _timelineVisibleReaction: any;
     @observable private _autoKfReaction: any;
+    @observable private _newKeyframe: boolean = false; 
     private readonly MAX_TITLE_HEIGHT = 75;
     private _trackHeight = 0;
     private primitiveWhitelist = [
@@ -36,11 +37,12 @@ export class Track extends React.Component<IProps> {
         "y",
         "width",
         "height",
-        "opacity"
+        "opacity", 
+        "data",
     ];
     private objectWhitelist = [
         "data"
-    ]
+    ];
 
     @computed private get regions() { return Cast(this.props.node.regions, listSpec(Doc)) as List<Doc>; }
     @computed private get time() { return NumCast(KeyframeFunc.convertPixelTime(this.props.currentBarX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement)); }
@@ -57,12 +59,12 @@ export class Track extends React.Component<IProps> {
 
     componentDidMount() {
         runInAction(async () => {
-            //  this._timelineVisibleReaction = this.timelineVisibleReaction();
+            this._timelineVisibleReaction = this.timelineVisibleReaction();
             this._currentBarXReaction = this.currentBarXReaction();
             if (this.regions.length === 0) this.createRegion(this.time);
             this.props.node.hidden = false;
             this.props.node.opacity = 1;
-            this.autoCreateKeyframe();
+            // this.autoCreateKeyframe();
         });
     }
 
@@ -108,10 +110,21 @@ export class Track extends React.Component<IProps> {
                 (Cast(edge!.key, Doc)! as Doc).opacity = 0.1;
                 (Cast(rightkf!.key, Doc)! as Doc).opacity = 1;
             }
+        } else if (this._newKeyframe) {
+            // console.log("new keyframe registering");
+            // let kfList = DocListCast(this.saveStateRegion!.keyframes); 
+            // kfList.forEach(kf => {
+            //     kf.key = this.makeCopy(); 
+            //     if (kfList.indexOf(kf) === 0  ||  kfList.indexOf(kf) === 3){
+            //         (kf.key as Doc).opacity = 0.1; 
+            //     }
+            // });
+
         }
         keyframes[kfIndex] = kf;
         this.saveStateKf = undefined;
         this.saveStateRegion = undefined;
+        this._newKeyframe = false; 
     }
 
 
@@ -129,8 +142,6 @@ export class Track extends React.Component<IProps> {
         return reaction(() => {
             return [...this.primitiveWhitelist.map(key => node[key]), ...objects];
         }, (changed, reaction) => {
-            console.log("autocreated");
-            console.log(changed);
             //check for region 
             this.findRegion(this.time).then((region) => {
                 if (region !== undefined) { //if region at scrub time exist
@@ -179,30 +190,28 @@ export class Track extends React.Component<IProps> {
         });
     }
 
-    // /**
-    //  * when timeline is visible, reaction is ran so states are reverted
-    //  */
-    // @action
-    // timelineVisibleReaction = () => {
-    //     return reaction(() => {
-    //         return this.props.timelineVisible;
-    //     }, isVisible => {
-    //         this.revertState();
-    //         if (isVisible) {
-    //             DocListCast(this.regions).forEach(region => {
-    //                 if (!BoolCast((Cast(region, Doc) as Doc).hasData)) {
-    //                     for (let i = 0; i < 4; i++) {
-    //                         DocListCast(((Cast(region, Doc) as Doc).keyframes as List<Doc>))[i].key = Doc.MakeCopy(this.props.node, true);
-    //                         if (i === 0 || i === 3) {
-    //                             DocListCast(((Cast(region, Doc) as Doc).keyframes as List<Doc>))[i].key.opacity = 0.1;
-    //                         }
-    //                     }
-    //                     console.log("saving keyframes");
-    //                 }
-    //             });
-    //         }
-    //     });
-    // }
+    /**
+     * when timeline is visible, reaction is ran so states are reverted
+     */
+    @action
+    timelineVisibleReaction = () => {
+        return reaction(() => {
+            return this.props.timelineVisible;
+        }, isVisible => {
+            if (isVisible) {
+                DocListCast(this.regions).forEach(region => {
+                    if (!BoolCast((Cast(region, Doc) as Doc).hasData)) {
+                        for (let i = 0; i < 4; i++) {
+                            DocListCast(((Cast(region, Doc) as Doc).keyframes as List<Doc>))[i].key = this.makeCopy();
+                            if (i === 0 || i === 3) { //manually inputing fades
+                                (DocListCast(((Cast(region, Doc) as Doc).keyframes as List<Doc>))[i].key! as Doc).opacity = 0.1;
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    }
 
     @observable private saveStateKf: (Doc | undefined) = undefined;
     @observable private saveStateRegion: (Doc | undefined) = undefined;
@@ -214,7 +223,7 @@ export class Track extends React.Component<IProps> {
     timeChange = async () => {
         if (this.saveStateKf !== undefined) {
             await this.saveKeyframe();
-        }
+        } 
         let regiondata = await this.findRegion(Math.round(this.time)); //finds a region that the scrubber is on
         if (regiondata) {
             let leftkf: (Doc | undefined) = await KeyframeFunc.calcMinLeft(regiondata, this.time); // lef keyframe, if it exists
@@ -318,6 +327,8 @@ export class Track extends React.Component<IProps> {
     createRegion = async (time: number) => {
         if (await this.findRegion(time) === undefined) {  //check if there is a region where double clicking (prevents phantom regions)
             let regiondata = KeyframeFunc.defaultKeyframe(); //create keyframe data
+            this._newKeyframe = true; 
+            this.saveStateRegion = regiondata; 
             regiondata.position = time; //set position
             let rightRegion = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.right, regiondata, this.regions);
 
@@ -362,6 +373,9 @@ export class Track extends React.Component<IProps> {
         let doc = new Doc();
         this.primitiveWhitelist.forEach(key => {
             let originalVal = this.props.node[key];
+            if (key === "data"){
+                console.log(originalVal);
+            }
             doc[key] = originalVal instanceof ObjectField ? originalVal[Copy]() : this.props.node[key];
         });
         return doc;
