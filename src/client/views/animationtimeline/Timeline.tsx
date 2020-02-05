@@ -312,6 +312,7 @@ export class Timeline extends React.Component<FieldViewProps> {
         e.preventDefault();
         e.stopPropagation();
         let offset = e.clientY - this._timelineContainer.current!.getBoundingClientRect().bottom;
+        // let offset = 0;
         if (this._containerHeight + offset <= this.MIN_CONTAINER_HEIGHT) {
             this._containerHeight = this.MIN_CONTAINER_HEIGHT;
         } else if (this._containerHeight + offset >= this.MAX_CONTAINER_HEIGHT) {
@@ -326,7 +327,10 @@ export class Timeline extends React.Component<FieldViewProps> {
      */
     @action
     toReadTime = (time: number): string => {
-        const inSeconds = time / 1000;
+        time = time / 1000;
+        var inSeconds = Math.round((time * 100)) / 100;
+        // var inSeconds = parseFloat(time.toFixed(2));
+        // const inSeconds = (Math.floor(time) / 1000);
         let min: (string | number) = Math.floor(inSeconds / 60);
         let sec: (string | number) = inSeconds % 60;
 
@@ -451,7 +455,8 @@ export class Timeline extends React.Component<FieldViewProps> {
                     </div>
                     <div className="time-box overview-tool" style={{ display: this._timelineVisible ? "flex" : "none" }}>
                         <div key="time-text" className="animation-text" style={{ visibility: this.props.Document.isATOn ? "visible" : "hidden" }}>{lengthString}</div>
-                        <input className="time-input" style={{ visibility: this.props.Document.isATOn ? "visible" : "hidden" }} placeholder={String(Math.floor(this._time) / 1000) + " s"} ref={this._timeInputRef} onKeyDown={this.onTimeInput} />
+                        <input className="time-input" style={{ visibility: this.props.Document.isATOn ? "visible" : "hidden", display: !this.props.Document.isATOn ? "flex" : "none" }} placeholder={String(Math.floor(this._time) / 1000) + " s"} ref={this._timeInputRef} onKeyDown={this.onTimeInput} />
+                        <div style={{ width: "100%", backgroundColor: "red", display: !this.props.Document.isATOn ? "flex" : "none" }}>Hello there</div>
                     </div>
                 </div>
             </div>
@@ -541,13 +546,22 @@ export class Timeline extends React.Component<FieldViewProps> {
         }
     }
 
+    // @computed
+    getCurrentTime = () => {
+        let current = KeyframeFunc.convertPixelTime(this._currentBarX, "mili", "time", this._tickSpacing, this._tickIncrement);
+        // console.log(this._currentBarX)
+        return this.toReadTime(current); ``
+        // return (Math.floor(current) / 1000)
+        // return current / 1000.0;
+    }
+
 
     /**
      * if you have any question here, just shoot me an email or text. 
      * basically the only thing you need to edit besides render methods in track (individual track lines) and keyframe (green region)
      */
     render() {
-        // console.log(this.props.PanelWidth());
+        console.log(this.props.Document.isATOn);
         runInAction(() => {
             this._panelWidth = this.props.PanelWidth();
             this.changeLenths();
@@ -568,6 +582,7 @@ export class Timeline extends React.Component<FieldViewProps> {
                                     {DocListCast(this.children).map(doc => <Track node={doc} currentBarX={this._currentBarX} changeCurrentBarX={this.changeCurrentBarX} transform={this.props.ScreenToLocalTransform()} time={this._time} tickSpacing={this._tickSpacing} tickIncrement={this._tickIncrement} collection={this.props.Document} timelineVisible={this._timelineVisible} check={this._check} />)}
                                 </div>
                             </div>
+                            <div className="currentTime">Current: {this.getCurrentTime()}</div>
                             <div key="timeline_title" className="title-container" ref={this._titleContainer}>
                                 {DocListCast(this.children).map(doc => <div style={{ height: `${(this._titleHeight)}px` }} className="datapane" onPointerOver={() => { Doc.BrushDoc(doc); }} onPointerOut={() => { Doc.UnBrushDoc(doc); }}><p>{doc.title}</p></div>)}
                             </div>

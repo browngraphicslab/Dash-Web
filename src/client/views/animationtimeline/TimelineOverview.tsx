@@ -56,8 +56,11 @@ export class TimelineOverview extends React.Component<TimelineOverviewProps>{
     @action
     setOverviewWidth() {
         let width = $("#timelineOverview").width();
+        // console.log($("timelineOverview"))
         if (width) this.overviewBarWidth = width;
         else this.overviewBarWidth = 0;
+
+        // console.log(this.overviewBarWidth)
     }
 
     @action
@@ -124,20 +127,14 @@ export class TimelineOverview extends React.Component<TimelineOverviewProps>{
         this.visibleTime = vis;
         this.currentX = x;
         this.visibleStart = start;
+        // console.log("getting times")
+        // console.log(x)
+        // console.log(start)
     }
 
     render() {
-
+        this.setOverviewWidth();
         this.getTimes();
-        // calculates where everything should fall based on its size
-        // let percentVisible = this.props.visibleLength / this.props.totalLength;
-        // let visibleBarWidth = percentVisible * this.overviewBarWidth;
-
-        // let percentScrubberStart = this.props.currentBarX / this.props.totalLength;
-        // let scrubberStart = percentScrubberStart * this.overviewBarWidth;
-
-        // let percentBarStart = this.props.visibleStart / this.props.totalLength;
-        // let barStart = percentBarStart * this.overviewBarWidth;
 
         let percentVisible = this.visibleTime / this.props.time;
         let visibleBarWidth = percentVisible * this.overviewBarWidth;
@@ -163,8 +160,10 @@ export class TimelineOverview extends React.Component<TimelineOverviewProps>{
                 <div className="timeline-play-tail" style={{ width: `${(this.props.currentBarX / this.props.totalLength) * 294}px` }}></div>
             ];
         return (
+            <div className = "timeline-flex">
             <div className="timelineOverview-bounding">
                 {timeline}
+            </div>
             </div>
         );
     }

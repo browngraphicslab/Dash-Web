@@ -8,6 +8,13 @@ $timelineDark: #77a1aa;
     margin-right: 10px;
 }
 
+.timeline-flex {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}
+
 .timeline-overview-container {
     // padding: 0px;
     margin-right: 5px;
@@ -93,7 +100,7 @@ $timelineDark: #77a1aa;
     height: 4px;
     width: 0px;
     z-index: 1000;
-    background-color: $timelineColor;
+    background-color: $timelineDark;
     border-radius: 20px;
     margin-top: -4px;
     cursor: pointer;
