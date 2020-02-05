@@ -38,7 +38,6 @@ export class Track extends React.Component<IProps> {
         "width",
         "height",
         "opacity", 
-        "data",
     ];
     private objectWhitelist = [
         "data"
@@ -98,6 +97,8 @@ export class Track extends React.Component<IProps> {
                 kf.key = this.makeCopy(); 
                 if (kfList.indexOf(kf) === 0  ||  kfList.indexOf(kf) === 3){
                     (kf.key as Doc).opacity = 0.1; 
+                } else{
+                    (kf.key as Doc).opacity = 1; 
                 }
             });
             this._newKeyframe = false; 
@@ -154,17 +155,17 @@ export class Track extends React.Component<IProps> {
         }, { fireImmediately: false });
     }
 
+
+
+    // @observable private _storedState:(Doc | undefined) = undefined; 
     // /**
     //  * reverting back to previous state before editing on AT
     //  */
     // @action
     // revertState = () => {
-    //     let copyDoc = Doc.MakeCopy(this.props.node, true);
     //     if (this._storedState) this.applyKeys(this._storedState);
-    //     let newState = new Doc();
-    //     newState.key = copyDoc;
-    //     this._storedState = newState;
     // }
+
 
     /**
      * Reaction when scrubber bar changes
@@ -176,10 +177,10 @@ export class Track extends React.Component<IProps> {
             this.findRegion(this.time).then((regiondata: (Doc | undefined)) => {
                 if (regiondata) {
                     this.props.node.hidden = false;
-                    if (!this._autoKfReaction) {
-                        // console.log("creating another reaction"); 
-                        // this._autoKfReaction = this.autoCreateKeyframe(); 
-                    }
+                    // if (!this._autoKfReaction) {
+                    //     // console.log("creating another reaction"); 
+                    //     // this._autoKfReaction = this.autoCreateKeyframe(); 
+                    // }
                     this.timeChange();
                 } else {
                     this.props.node.hidden = true;
@@ -209,6 +210,9 @@ export class Track extends React.Component<IProps> {
                         }
                     }
                 });
+            } else {
+                console.log("reverting state"); 
+                //this.revertState(); 
             }
         });
     }
@@ -224,7 +228,6 @@ export class Track extends React.Component<IProps> {
         if (this.saveStateKf !== undefined) {
             await this.saveKeyframe();
         } else if (this._newKeyframe){
-            console.log("CALLED"); 
             await this.saveKeyframe();
         }
         let regiondata = await this.findRegion(Math.round(this.time)); //finds a region that the scrubber is on
@@ -233,6 +236,7 @@ export class Track extends React.Component<IProps> {
             let rightkf: (Doc | undefined) = await KeyframeFunc.calcMinRight(regiondata, this.time); //right keyframe, if it exists        
             let currentkf: (Doc | undefined) = await this.calcCurrent(regiondata); //if the scrubber is on top of the keyframe
             if (currentkf) {
+                console.log("is current"); 
                 await this.applyKeys(currentkf);
                 this.saveStateKf = currentkf;
                 this.saveStateRegion = regiondata;
@@ -330,8 +334,7 @@ export class Track extends React.Component<IProps> {
     createRegion = async (time: number) => {
         if (await this.findRegion(time) === undefined) {  //check if there is a region where double clicking (prevents phantom regions)
             let regiondata = KeyframeFunc.defaultKeyframe(); //create keyframe data
-            this._newKeyframe = true; 
-            this.saveStateRegion = regiondata; 
+           
             regiondata.position = time; //set position
             let rightRegion = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.right, regiondata, this.regions);
 
@@ -339,7 +342,9 @@ export class Track extends React.Component<IProps> {
                 regiondata.duration = rightRegion.position - regiondata.position;
             }
             if (this.regions.length === 0 || !rightRegion || (rightRegion && rightRegion.position - regiondata.position >= NumCast(regiondata.fadeIn) + NumCast(regiondata.fadeOut))) {
-                this.regions.push(regiondata);
+                this.regions.push(regiondata); 
+                this._newKeyframe = true; 
+                this.saveStateRegion = regiondata; 
                 return regiondata;
             }
         }
