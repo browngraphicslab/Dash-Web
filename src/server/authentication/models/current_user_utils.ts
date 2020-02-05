@@ -304,6 +304,15 @@ export class CurrentUserUtils {
         return doc;
     }
 
+    public static IsDocPinned(doc: Doc) {
+        //add this new doc to props.Document
+        const curPres = Cast(CurrentUserUtils.UserDocument.curPresentation, Doc) as Doc;
+        if (curPres) {
+            return DocListCast(curPres.data).findIndex((val) => Doc.AreProtosEqual(val, doc)) !== -1;
+        }
+        return false;
+    }
+
     public static async loadCurrentUser() {
         return rp.get(Utils.prepend("/getCurrentUser")).then(response => {
             if (response) {

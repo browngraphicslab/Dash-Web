@@ -635,7 +635,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
      **/
     @undoBatch
     @action
-    public PinDoc(doc: Doc) {
+    public static PinDoc(doc: Doc) {
         //add this new doc to props.Document
         const curPres = Cast(CurrentUserUtils.UserDocument.curPresentation, Doc) as Doc;
         if (curPres) {
@@ -643,8 +643,21 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             pinDoc.presentationTargetDoc = doc;
             Doc.AddDocToList(curPres, "data", pinDoc);
             if (!DocumentManager.Instance.getDocumentView(curPres)) {
-                this.addDocTab(curPres, undefined, "onRight");
+                CollectionDockingView.AddRightSplit(curPres, undefined);
             }
+        }
+    }
+    /**
+     * Adds a document to the presentation view
+     **/
+    @undoBatch
+    @action
+    public static UnpinDoc(doc: Doc) {
+        //add this new doc to props.Document
+        const curPres = Cast(CurrentUserUtils.UserDocument.curPresentation, Doc) as Doc;
+        if (curPres) {
+            const ind = DocListCast(curPres.data).findIndex((val) => Doc.AreProtosEqual(val, doc));
+            ind !== -1 && Doc.RemoveDocFromList(curPres, "data", DocListCast(curPres.data)[ind]);
         }
     }
 
@@ -743,7 +756,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             focus={emptyFunction}
             backgroundColor={returnEmptyString}
             addDocTab={this.addDocTab}
-            pinToPres={this.PinDoc}
+            pinToPres={DockedFrameRenderer.PinDoc}
             ContainingCollectionView={undefined}
             ContainingCollectionDoc={undefined}
             zoomToScale={emptyFunction}
