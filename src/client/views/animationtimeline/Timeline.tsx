@@ -79,7 +79,6 @@ export class Timeline extends React.Component<FieldViewProps> {
 
     // so a reaction can be made
     @observable public _isAuthoring = this.props.Document.isATOn;
-    @observable private _resizeReaction?: IReactionDisposer;
     @observable private _panelWidth = 0;
 
     /**
@@ -119,7 +118,6 @@ export class Timeline extends React.Component<FieldViewProps> {
             this.props.Document.isATOn = !this.props.Document.isATOn; //turns the boolean on, saying AT (animation timeline) is on
             this.toggleHandle();
         });
-
     }
 
     componentWillUnmount() {
@@ -454,9 +452,9 @@ export class Timeline extends React.Component<FieldViewProps> {
                         </div>
                     </div>
                     <div className="time-box overview-tool" style={{ display: this._timelineVisible ? "flex" : "none" }}>
-                        <div key="time-text" className="animation-text" style={{ visibility: this.props.Document.isATOn ? "visible" : "hidden" }}>{lengthString}</div>
-                        <input className="time-input" style={{ visibility: this.props.Document.isATOn ? "visible" : "hidden", display: !this.props.Document.isATOn ? "flex" : "none" }} placeholder={String(Math.floor(this._time) / 1000) + " s"} ref={this._timeInputRef} onKeyDown={this.onTimeInput} />
-                        <div style={{ width: "100%", backgroundColor: "red", display: !this.props.Document.isATOn ? "flex" : "none" }}>Hello there</div>
+                        <div key="time-text" className="animation-text" style={{ visibility: this.props.Document.isATOn ? "visible" : "hidden", display: this.props.Document.isATOn ? "flex" : "none" }}>{lengthString}</div>
+                        <input className="time-input" style={{ visibility: this.props.Document.isATOn ? "visible" : "hidden", display: this.props.Document.isATOn ? "flex" : "none" }} placeholder={String(Math.floor(this._time) / 1000) + " s"} ref={this._timeInputRef} onKeyDown={this.onTimeInput} />
+                        <div style={{ width: "100%", backgroundColor: "red", display: !this.props.Document.isATOn ? "flex" : "none" }}>{this.getCurrentTime()}</div>
                     </div>
                 </div>
             </div>
@@ -514,30 +512,6 @@ export class Timeline extends React.Component<FieldViewProps> {
     }
 
 
-    @observable private _check: string = "";
-    @observable private _checkVisible: boolean = false;
-    @action
-    private onCheckClicked = (type: string) => {
-        if (type === "yes") {
-            this._check = "yes";
-        } else if (type === "no") {
-            this._check = "no";
-        }
-    }
-
-
-    /**
-     * check mark thing that needs to be fixed. Do not edit this, because it most likely change.
-     */
-    @action
-    private checkCallBack = (visible: boolean) => {
-        this._checkVisible = visible;
-        if (!visible) { //when user confirms
-            this._check = "";
-        }
-
-    }
-
     @action.bound
     changeLenths() {
         if (this._infoContainer.current) {
@@ -579,7 +553,7 @@ export class Timeline extends React.Component<FieldViewProps> {
                                     <div key="timeline_scrubberhead" className="scrubberhead" onPointerDown={this.onScrubberDown} ></div>
                                 </div>
                                 <div key="timeline_trackbox" className="trackbox" ref={this._trackbox} onPointerDown={this.onPanDown} style={{ width: `${this._totalLength}px` }}>
-                                    {DocListCast(this.children).map(doc => <Track node={doc} currentBarX={this._currentBarX} changeCurrentBarX={this.changeCurrentBarX} transform={this.props.ScreenToLocalTransform()} time={this._time} tickSpacing={this._tickSpacing} tickIncrement={this._tickIncrement} collection={this.props.Document} timelineVisible={this._timelineVisible} check={this._check} />)}
+                                    {DocListCast(this.children).map(doc => <Track node={doc} currentBarX={this._currentBarX} changeCurrentBarX={this.changeCurrentBarX} transform={this.props.ScreenToLocalTransform()} time={this._time} tickSpacing={this._tickSpacing} tickIncrement={this._tickIncrement} collection={this.props.Document} timelineVisible={this._timelineVisible} />)}
                                 </div>
                             </div>
                             <div className="currentTime">Current: {this.getCurrentTime()}</div>
@@ -588,14 +562,6 @@ export class Timeline extends React.Component<FieldViewProps> {
                             </div>
                             <div key="timeline_resize" onPointerDown={this.onResizeDown}>
                                 <FontAwesomeIcon className="resize" icon={faGripLines} />
-                            </div>
-                        </div>
-                        <div key="timeline-checker" className="timeline-checker" style={{ top: `${this._containerHeight}px`, visibility: this._checkVisible ? "visible" : "hidden" }}>
-                            <div onClick={() => { this.onCheckClicked("yes"); }}>
-                                <FontAwesomeIcon style={{ color: "#42b883" }} className="check" icon={faCheckCircle} />
-                            </div>
-                            <div onClick={() => { this.onCheckClicked("no"); }}>
-                                <FontAwesomeIcon style={{ color: "#ff7e67" }} className="check" icon={faTimesCircle} />
                             </div>
                         </div>
                     </div>

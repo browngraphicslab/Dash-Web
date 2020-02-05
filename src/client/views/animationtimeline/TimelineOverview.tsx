@@ -160,10 +160,10 @@ export class TimelineOverview extends React.Component<TimelineOverviewProps>{
                 <div className="timeline-play-tail" style={{ width: `${(this.props.currentBarX / this.props.totalLength) * 294}px` }}></div>
             ];
         return (
-            <div className = "timeline-flex">
-            <div className="timelineOverview-bounding">
-                {timeline}
-            </div>
+            <div className="timeline-flex">
+                <div className="timelineOverview-bounding">
+                    {timeline}
+                </div>
             </div>
         );
     }

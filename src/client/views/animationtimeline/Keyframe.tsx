@@ -20,15 +20,18 @@ import { undoBatch, UndoManager } from "../../util/UndoManager";
  * Useful static functions that you can use. Mostly for logic, but you can also add UI logic here also 
  */
 export namespace KeyframeFunc {
+
     export enum KeyframeType {
         end = "end",
         fade = "fade",
         default = "default",
     }
+
     export enum Direction {
         left = "left",
         right = "right"
     }
+
     export const findAdjacentRegion = (dir: KeyframeFunc.Direction, currentRegion: Doc, regions: List<Doc>): (RegionData | undefined) => {
         let leftMost: (RegionData | undefined) = undefined;
         let rightMost: (RegionData | undefined) = undefined;
@@ -57,9 +60,7 @@ export namespace KeyframeFunc {
         let keyframes = await DocListCastAsync(region.keyframes!);
         keyframes!.forEach((kf) => {
             let compTime = currentBarX;
-            if (ref) {
-                compTime = NumCast(ref.time);
-            }
+            if (ref) compTime = NumCast(ref.time);
             if (NumCast(kf.time) < compTime && NumCast(kf.time) >= time) {
                 leftKf = kf;
                 time = NumCast(kf.time);
@@ -75,9 +76,7 @@ export namespace KeyframeFunc {
         let keyframes = await DocListCastAsync(region.keyframes!);
         keyframes!.forEach((kf) => {
             let compTime = currentBarX;
-            if (ref) {
-                compTime = NumCast(ref.time);
-            }
+            if (ref) compTime = NumCast(ref.time);
             if (NumCast(kf.time) > compTime && NumCast(kf.time) <= NumCast(time)) {
                 rightKf = kf;
                 time = NumCast(kf.time);
@@ -97,40 +96,6 @@ export namespace KeyframeFunc {
         return regiondata;
     };
 
-    export const makeKeyData = async (regiondata: RegionData, time: number, badNode: Doc, type: KeyframeFunc.KeyframeType = KeyframeFunc.KeyframeType.default) => { //Kfpos is mouse offsetX, representing time 
-        runInAction(async () => {
-            let doclist = (await DocListCastAsync(regiondata.keyframes))!;
-            let existingkf: (Doc | undefined) = undefined;
-            doclist.forEach(TK => {
-                if (TK.time === time) existingkf = TK;
-            });
-            if (existingkf) return existingkf;
-            let TK: Doc = new Doc();
-            TK.time = time;
-            TK.key = Doc.MakeCopy(badNode, true);
-            TK.type = type;
-            regiondata.keyframes!.push(TK);
-            let interpolationFunctions = new Doc();
-            interpolationFunctions.interpolationX = new List<number>([0, 1]);
-            interpolationFunctions.interpolationY = new List<number>([0, 100]);
-            interpolationFunctions.pathX = new List<number>();
-            interpolationFunctions.pathY = new List<number>();
-            regiondata.functions!.push(interpolationFunctions);
-            let found: boolean = false;
-            regiondata.keyframes!.forEach(compkf => {
-                compkf = compkf as Doc;
-                if (time < NumCast(compkf.time) && !found) {
-                    runInAction(() => {
-                        regiondata.keyframes!.splice(doclist.indexOf(compkf as Doc), 0, TK);
-                        regiondata.keyframes!.pop();
-                        found = true;
-                    });
-                    return;
-                }
-            });
-            return TK;
-        });
-    };
 
     export const convertPixelTime = (pos: number, unit: "mili" | "sec" | "min" | "hr", dir: "pixel" | "time", tickSpacing: number, tickIncrement: number) => {
         let time = dir === "pixel" ? (pos * tickSpacing) / tickIncrement : (pos / tickSpacing) * tickIncrement;
@@ -168,9 +133,9 @@ interface IProps {
     tickSpacing: number;
     tickIncrement: number;
     time: number;
-    check: string;
     changeCurrentBarX: (x: number) => void;
     transform: Transform;
+    makeKeyData: (region:RegionData, pos: number, kftype:KeyframeFunc.KeyframeType) => Doc; 
 }
 
 
@@ -201,7 +166,6 @@ interface IProps {
 export class Keyframe extends React.Component<IProps> {
 
     @observable private _bar = React.createRef<HTMLDivElement>();
-    @observable private _gain = 20; //default
     @observable private _mouseToggled = false;
     @observable private _doubleClickEnabled = false;
 
@@ -212,20 +176,20 @@ export class Keyframe extends React.Component<IProps> {
     @computed private get pixelDuration() { return KeyframeFunc.convertPixelTime(this.regiondata.duration, "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement); }
     @computed private get pixelFadeIn() { return KeyframeFunc.convertPixelTime(this.regiondata.fadeIn, "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement); }
     @computed private get pixelFadeOut() { return KeyframeFunc.convertPixelTime(this.regiondata.fadeOut, "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement); }
-
-    componentWillMount() {
-        runInAction(async () => {
-            if (!this.regiondata.keyframes) this.regiondata.keyframes = new List<Doc>();
-            let fadeIn = (await KeyframeFunc.makeKeyData(this.regiondata, this.regiondata.position + this.regiondata.fadeIn, this.props.node, KeyframeFunc.KeyframeType.fade))! as any as Doc;
-            let fadeOut = (await KeyframeFunc.makeKeyData(this.regiondata, this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut, this.props.node, KeyframeFunc.KeyframeType.fade))! as any as Doc;
-            let start = (await KeyframeFunc.makeKeyData(this.regiondata, this.regiondata.position, this.props.node, KeyframeFunc.KeyframeType.end))! as any as Doc;
-            let finish = (await KeyframeFunc.makeKeyData(this.regiondata, this.regiondata.position + this.regiondata.duration, this.props.node, KeyframeFunc.KeyframeType.end))! as any as Doc;
-            (fadeIn.key! as Doc).opacity = 1;
-            (fadeOut.key! as Doc).opacity = 1;
-            (start.key! as Doc).opacity = 0.1;
-            (finish.key! as Doc).opacity = 0.1;
-            this.forceUpdate();
-        });
+   
+    componentDidMount() {
+        setTimeout(() => {      //giving it a temporary 1sec delay... 
+            if (!this.regiondata.keyframes) this.regiondata.keyframes = new List<Doc>();   
+            let start = this.props.makeKeyData(this.regiondata, this.regiondata.position,  KeyframeFunc.KeyframeType.end);
+            let fadeIn = this.props.makeKeyData(this.regiondata, this.regiondata.position + this.regiondata.fadeIn, KeyframeFunc.KeyframeType.fade);
+            let fadeOut = this.props.makeKeyData(this.regiondata, this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut, KeyframeFunc.KeyframeType.fade);
+            let finish = this.props.makeKeyData(this.regiondata, this.regiondata.position + this.regiondata.duration,KeyframeFunc.KeyframeType.end);
+            (fadeIn.key as Doc).opacity = 1;
+            (fadeOut.key as Doc).opacity = 1;
+            (start.key as Doc).opacity = 0.1;
+            (finish.key as Doc).opacity = 0.1;
+            this.forceUpdate(); //not needed, if setTimeout is gone...
+        }, 1000);
     }
 
 
@@ -252,7 +216,6 @@ export class Keyframe extends React.Component<IProps> {
             });
         }
     }
-
 
     @action
     onBarPointerMove = (e: PointerEvent) => {
@@ -352,8 +315,8 @@ export class Keyframe extends React.Component<IProps> {
         let offset = KeyframeFunc.convertPixelTime(Math.round((clientX - bar.getBoundingClientRect().left) * this.props.transform.Scale), "mili", "time", this.props.tickSpacing, this.props.tickIncrement);
         if (offset > this.regiondata.fadeIn && offset < this.regiondata.duration - this.regiondata.fadeOut) { //make sure keyframe is not created inbetween fades and ends
             let position = this.regiondata.position;
-            await KeyframeFunc.makeKeyData(this.regiondata, Math.round(position + offset), this.props.node);
-            this.regiondata.hasData = true;
+            this.props.makeKeyData(this.regiondata, Math.round(position + offset), KeyframeFunc.KeyframeType.default);
+            this.regiondata.hasData = true; 
             this.props.changeCurrentBarX(KeyframeFunc.convertPixelTime(Math.round(position + offset), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement)); //first move the keyframe to the correct location and make a copy so the correct file gets coppied
 
         }
@@ -555,12 +518,12 @@ export class Keyframe extends React.Component<IProps> {
         DocListCast(this.regiondata.keyframes).forEach(kf => {
             let index = this.keyframes.indexOf(kf);
             if (index !== this.keyframes.length - 1) {
-                let left = this.keyframes[this.keyframes.indexOf(kf) + 1];
+                let right = this.keyframes[index + 1];
                 let bodyRef = React.createRef<HTMLDivElement>();
                 let kfPos = KeyframeFunc.convertPixelTime(NumCast(kf.time), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement);
-                let leftPos = KeyframeFunc.convertPixelTime(NumCast(left!.time), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement);
+                let rightPos = KeyframeFunc.convertPixelTime(NumCast(right.time), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement);
                 keyframeDividers.push(
-                    <div ref={bodyRef} className="body-container" style={{ left: `${kfPos - this.pixelPosition}px`, width: `${leftPos - kfPos}px` }}
+                    <div ref={bodyRef} className="body-container" style={{ left: `${kfPos - this.pixelPosition}px`, width: `${rightPos - kfPos}px` }}
                         onPointerOver={(e) => { e.preventDefault(); e.stopPropagation(); this.onContainerOver(e, bodyRef); }}
                         onPointerOut={(e) => { e.preventDefault(); e.stopPropagation(); this.onContainerOut(e, bodyRef); }}
                         onContextMenu={(e) => {
