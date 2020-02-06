@@ -15,7 +15,7 @@ import { listSpec } from "../../new_fields/Schema";
 import { Scripting } from "./Scripting";
 import { convertDropDataToButtons } from "./DropConverter";
 
-export type dropActionType = "alias" | "copy" | "move" | undefined;
+export type dropActionType = "alias" | "copy" | undefined;
 export function SetupDrag(
     _reference: React.RefObject<HTMLElement>,
     docFunc: () => Doc | Promise<Doc> | undefined,
@@ -198,7 +198,7 @@ export namespace DragManager {
             );
             e.docDragData?.droppedDocuments.forEach((drop: Doc, i: number) =>
                 Cast(dragData.draggedDocuments[i].removeDropProperties, listSpec("string"), []).map(prop => {
-                    drop[prop] = "move";
+                    drop[prop] = undefined;
                 })
             );
         };

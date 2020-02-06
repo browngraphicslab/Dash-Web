@@ -678,8 +678,8 @@ export class CollectionTreeView extends CollectionSubView(Document) {
                 Document.childDetailed = detailView;
                 Document._viewType = CollectionViewType.Time;
                 Document._forceActive = true;
+                Document._pivotField = "company";
                 Document.childDropAction = "alias";
-                Document.pivotField = "company";
             }
         });
         const existingOnClick = ContextMenu.Instance.findByDescription("OnClick...");

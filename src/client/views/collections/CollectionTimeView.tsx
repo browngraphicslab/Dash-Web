@@ -19,6 +19,9 @@ import React = require("react");
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { RichTextField } from "../../../new_fields/RichTextField";
+import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
+import { Scripting } from "../../util/Scripting";
+import { ViewDefResult, ViewDefBounds } from "./collectionFreeForm/CollectionFreeFormLayoutEngines";
 
 @observer
 export class CollectionTimeView extends CollectionSubView(doc => doc) {
@@ -39,7 +42,11 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
             this.props.Document._facetCollection = facetCollection;
             this.props.Document._fitToBox = true;
         }
+        if (!this.props.Document.onViewDefClick) {
+            this.props.Document.onViewDefDivClick = ScriptField.MakeScript("pivotColumnClick(this,payload)", { payload: "any" })
+        }
     }
+
     bodyPanelWidth = () => this.props.PanelWidth() - this._facetWidth;
     getTransform = () => this.props.ScreenToLocalTransform().translate(-this._facetWidth, 0);
 
@@ -114,8 +121,8 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
             typeof (pair.layout[fieldKey]) === "number" ||
             typeof (pair.layout[fieldKey]) === "string").map(fieldKey => keySet.add(fieldKey)));
         keySet.toArray().map(fieldKey =>
-            docItems.push({ description: ":" + fieldKey, event: () => this.props.Document.pivotField = fieldKey, icon: "compress-arrows-alt" }));
-        docItems.push({ description: ":(null)", event: () => this.props.Document.pivotField = undefined, icon: "compress-arrows-alt" })
+            docItems.push({ description: ":" + fieldKey, event: () => this.props.Document._pivotField = fieldKey, icon: "compress-arrows-alt" }));
+        docItems.push({ description: ":(null)", event: () => this.props.Document._pivotField = undefined, icon: "compress-arrows-alt" })
         ContextMenu.Instance.addItem({ description: "Pivot Fields ...", subitems: docItems, icon: "eye" });
         const pt = this.props.ScreenToLocalTransform().inverse().transformPoint(x, y);
         ContextMenu.Instance.displayMenu(x, y, ":");
@@ -225,30 +232,47 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
         </div>;
     }
 
+    public static SyncTimelineToPresentation(doc: Doc) {
+        const fieldKey = Doc.LayoutFieldKey(doc);
+        doc[fieldKey + "-timelineCur"] = ComputedField.MakeFunction("(curPresentationItem()[this._pivotField || 'year'] || 0)");
+    }
+    specificMenu = (e: React.MouseEvent) => {
+        const layoutItems: ContextMenuProps[] = [];
+        const doc = this.props.Document;
+
+        layoutItems.push({ description: "Force Timeline", event: () => { doc._forceRenderEngine = "timeline" }, icon: "compress-arrows-alt" });
+        layoutItems.push({ description: "Force Pivot", event: () => { doc._forceRenderEngine = "pivot" }, icon: "compress-arrows-alt" });
+        layoutItems.push({ description: "Auto Time/Pivot layout", event: () => { doc._forceRenderEngine = undefined }, icon: "compress-arrows-alt" });
+        layoutItems.push({ description: "Sync with presentation", event: () => CollectionTimeView.SyncTimelineToPresentation(doc), icon: "compress-arrows-alt" });
+
+        ContextMenu.Instance.addItem({ description: "Pivot/Time Options ...", subitems: layoutItems, icon: "eye" });
+    }
+
     render() {
         const newEditableViewProps = {
             GetValue: () => "",
             SetValue: (value: any) => {
                 if (value?.length) {
-                    this.props.Document.pivotField = value;
+                    this.props.Document._pivotField = value;
                     return true;
                 }
                 return false;
             },
             showMenuOnLoad: true,
-            contents: ":" + StrCast(this.props.Document.pivotField),
+            contents: ":" + StrCast(this.props.Document._pivotField),
             toggle: this.toggleVisibility,
             color: "#f1efeb" // this.props.headingObject ? this.props.headingObject.color : "#f1efeb";
         };
 
         let nonNumbers = 0;
         this.childDocs.map(doc => {
-            const num = NumCast(doc[StrCast(this.props.Document.pivotField)], Number(StrCast(doc[StrCast(this.props.Document.pivotField)])));
+            const num = NumCast(doc[StrCast(this.props.Document._pivotField)], Number(StrCast(doc[StrCast(this.props.Document._pivotField)])));
             if (Number.isNaN(num)) {
                 nonNumbers++;
             }
         });
-        const doTimeline = nonNumbers / this.childDocs.length < 0.1 && this.props.PanelWidth() / this.props.PanelHeight() > 6;
+        const forceLayout = StrCast(this.props.Document._forceRenderEngine);
+        const doTimeline = forceLayout ? (forceLayout === "timeline") : nonNumbers / this.childDocs.length < 0.1 && this.props.PanelWidth() / this.props.PanelHeight() > 6;
         if (doTimeline !== (this._layoutEngine === "timeline")) {
             if (!this._changing) {
                 this._changing = true;
@@ -259,9 +283,11 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
             }
         }
 
+
         const facetCollection = Cast(this.props.Document?._facetCollection, Doc, null);
         return !facetCollection ? (null) :
-            <div className={"collectionTimeView" + (doTimeline ? "" : "-pivot")} style={{ height: `calc(100%  - ${this.props.Document._chromeStatus === "enabled" ? 51 : 0}px)` }}>
+            <div className={"collectionTimeView" + (doTimeline ? "" : "-pivot")} onContextMenu={this.specificMenu}
+                style={{ height: `calc(100%  - ${this.props.Document._chromeStatus === "enabled" ? 51 : 0}px)` }}>
                 <div className={"pivotKeyEntry"}>
                     <EditableView {...newEditableViewProps} menuCallback={this.menuCallback} />
                 </div>
@@ -280,3 +306,9 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
             </div>;
     }
 }
+
+Scripting.addGlobal(function pivotColumnClick(pivotDoc: Doc, bounds: ViewDefBounds) {
+    pivotDoc._docFilter = new List();
+    (bounds.payload as string[]).map(filterVal =>
+        Doc.setDocFilter(pivotDoc, StrCast(pivotDoc._pivotField), filterVal, "check"));
+});

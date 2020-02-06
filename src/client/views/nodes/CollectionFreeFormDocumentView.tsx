@@ -88,6 +88,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 width: this.width,
                 height: this.height,
                 zIndex: this.ZInd,
+                pointerEvents: this.props.Document.isBackground ? "none" : undefined
             }} >
 
             {!this.props.fitToBox ? <DocumentView {...this.props}
