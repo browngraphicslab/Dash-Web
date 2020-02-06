@@ -19,6 +19,7 @@ import React = require("react");
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { RichTextField } from "../../../new_fields/RichTextField";
+import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 
 @observer
 export class CollectionTimeView extends CollectionSubView(doc => doc) {
@@ -225,6 +226,21 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
         </div>;
     }
 
+    specificMenu = (e: React.MouseEvent) => {
+        const layoutItems: ContextMenuProps[] = [];
+
+        layoutItems.push({ description: "Force Timeline", event: () => { this.props.Document._forceRenderEngine = "timeline" }, icon: "compress-arrows-alt" });
+        layoutItems.push({ description: "Force Pivot", event: () => { this.props.Document._forceRenderEngine = "pivot" }, icon: "compress-arrows-alt" });
+        layoutItems.push({ description: "Auto Time/Pivot layout", event: () => { this.props.Document._forceRenderEngine = undefined }, icon: "compress-arrows-alt" });
+        layoutItems.push({
+            description: "Sync with presentation", event: () => {
+                this.props.Document[this.props.fieldKey + "-timelineCur"] = ComputedField.MakeFunction("mainPres.curPresentation.data[mainPres.curPresentation._itemIndex].year || 0", { mainPres: Doc.name }, { mainPres: CurrentUserUtils.UserDocument });
+            }, icon: "compress-arrows-alt"
+        });
+
+        ContextMenu.Instance.addItem({ description: "Pivot/Time Options ...", subitems: layoutItems, icon: "eye" });
+    }
+
     render() {
         const newEditableViewProps = {
             GetValue: () => "",
@@ -248,7 +264,8 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
                 nonNumbers++;
             }
         });
-        const doTimeline = nonNumbers / this.childDocs.length < 0.1 && this.props.PanelWidth() / this.props.PanelHeight() > 6;
+        const forceLayout = StrCast(this.props.Document._forceRenderEngine);
+        const doTimeline = forceLayout ? (forceLayout === "timeline") : nonNumbers / this.childDocs.length < 0.1 && this.props.PanelWidth() / this.props.PanelHeight() > 6;
         if (doTimeline !== (this._layoutEngine === "timeline")) {
             if (!this._changing) {
                 this._changing = true;
@@ -259,9 +276,11 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
             }
         }
 
+
         const facetCollection = Cast(this.props.Document?._facetCollection, Doc, null);
         return !facetCollection ? (null) :
-            <div className={"collectionTimeView" + (doTimeline ? "" : "-pivot")} style={{ height: `calc(100%  - ${this.props.Document._chromeStatus === "enabled" ? 51 : 0}px)` }}>
+            <div className={"collectionTimeView" + (doTimeline ? "" : "-pivot")} onContextMenu={this.specificMenu}
+                style={{ height: `calc(100%  - ${this.props.Document._chromeStatus === "enabled" ? 51 : 0}px)` }}>
                 <div className={"pivotKeyEntry"}>
                     <EditableView {...newEditableViewProps} menuCallback={this.menuCallback} />
                 </div>
