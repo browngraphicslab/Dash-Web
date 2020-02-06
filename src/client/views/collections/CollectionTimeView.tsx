@@ -20,6 +20,8 @@ import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
+import { Scripting } from "../../util/Scripting";
+import { ViewDefResult, ViewDefBounds } from "./collectionFreeForm/CollectionFreeFormLayoutEngines";
 
 @observer
 export class CollectionTimeView extends CollectionSubView(doc => doc) {
@@ -40,7 +42,11 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
             this.props.Document._facetCollection = facetCollection;
             this.props.Document._fitToBox = true;
         }
+        if (!this.props.Document.onViewDefClick) {
+            this.props.Document.onViewDefDivClick = ScriptField.MakeScript("pivotColumnClick(this,payload)", { payload: "any" })
+        }
     }
+
     bodyPanelWidth = () => this.props.PanelWidth() - this._facetWidth;
     getTransform = () => this.props.ScreenToLocalTransform().translate(-this._facetWidth, 0);
 
@@ -300,3 +306,9 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
             </div>;
     }
 }
+
+Scripting.addGlobal(function pivotColumnClick(pivotDoc: Doc, bounds: ViewDefBounds) {
+    console.log("filter down to key: " + pivotDoc._pivotField + " val:" + bounds.payload);
+    (bounds.payload as string[]).map(filterVal =>
+        Doc.setDocFilter(pivotDoc, StrCast(pivotDoc._pivotField), filterVal, "check"));
+});

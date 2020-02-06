@@ -360,7 +360,7 @@ export class PresBox extends React.Component<FieldViewProps> {
         const funcs: ContextMenuProps[] = [];
         funcs.push({ description: "Show as Slideshow", event: action(() => this.props.Document._slideshow = "slideshow"), icon: "asterisk" });
         funcs.push({ description: "Show as Timeline", event: action(() => this.props.Document._slideshow = "timeline"), icon: "asterisk" });
-        funcs.push({ description: "Show as List", event: action(() => this.props.Document._slideshow = "list"), icon: "asterisk" });
+        funcs.push({ description: "Show as List", event: action(() => this.props.Document._slideshow = undefined), icon: "asterisk" });
         ContextMenu.Instance.addItem({ description: "Presentation Funcs...", subitems: funcs, icon: "asterisk" });
     }
 

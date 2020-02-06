@@ -32,7 +32,7 @@ import { FormattedTextBox } from "../../nodes/FormattedTextBox";
 import { pageSchema } from "../../nodes/ImageBox";
 import PDFMenu from "../../pdf/PDFMenu";
 import { CollectionSubView } from "../CollectionSubView";
-import { computePivotLayout, ViewDefResult, computeTimelineLayout, PoolData } from "./CollectionFreeFormLayoutEngines";
+import { computePivotLayout, ViewDefResult, computeTimelineLayout, PoolData, ViewDefBounds } from "./CollectionFreeFormLayoutEngines";
 import { CollectionFreeFormRemoteCursors } from "./CollectionFreeFormRemoteCursors";
 import "./CollectionFreeFormView.scss";
 import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
@@ -747,11 +747,14 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         };
     }
 
-    viewDefsToJSX = (views: any[]) => {
+    viewDefsToJSX = (views: ViewDefBounds[]) => {
         return !Array.isArray(views) ? [] : views.filter(ele => this.viewDefToJSX(ele)).map(ele => this.viewDefToJSX(ele)!);
     }
 
-    private viewDefToJSX(viewDef: any): Opt<ViewDefResult> {
+    onViewDefDivClick = (e: React.MouseEvent, payload: any) => {
+        (this.props.Document.onViewDefDivClick as ScriptField)?.script.run({ this: this.props.Document, payload });
+    }
+    private viewDefToJSX(viewDef: ViewDefBounds): Opt<ViewDefResult> {
         const x = Cast(viewDef.x, "number");
         const y = Cast(viewDef.y, "number");
         const z = Cast(viewDef.z, "number");
@@ -769,15 +772,15 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         style={{ width, height, color, fontSize, transform: `translate(${x}px, ${y}px)` }}>
                         {text}
                     </div>,
-                    bounds: { x: x!, y: y!, z, zIndex, width, height }
+                    bounds: viewDef
                 };
         } else if (viewDef.type === "div") {
             const backgroundColor = Cast(viewDef.color, "string");
             return [x, y].some(val => val === undefined) ? undefined :
                 {
-                    ele: <div className="collectionFreeform-customDiv" key={"div" + x + y + z}
+                    ele: <div className="collectionFreeform-customDiv" key={"div" + x + y + z} onClick={e => this.onViewDefDivClick(e, viewDef)}
                         style={{ width, height, backgroundColor, transform: `translate(${x}px, ${y}px)` }} />,
-                    bounds: { x: x!, y: y!, z, zIndex, width, height }
+                    bounds: viewDef
                 };
         }
     }
