@@ -66,6 +66,11 @@ function getTextWidth(text: string, font: string): number {
     return metrics.width;
 }
 
+interface pivotColumn {
+    docs: Doc[],
+    filters: string[]
+}
+
 export function computePivotLayout(
     poolData: Map<string, PoolData>,
     pivotDoc: Doc,
@@ -75,7 +80,7 @@ export function computePivotLayout(
     viewDefsToJSX: (views: any) => ViewDefResult[]
 ) {
     const fieldKey = "data";
-    const pivotColumnGroups = new Map<FieldResult<Field>, { docs: Doc[], filters: string[] }>();
+    const pivotColumnGroups = new Map<FieldResult<Field>, pivotColumn>();
 
     const pivotFieldKey = toLabel(pivotDoc._pivotField);
     for (const doc of childDocs) {
@@ -129,7 +134,8 @@ export function computePivotLayout(
     const expander = 1.05;
     const gap = .15;
     let x = 0;
-    Array.from(pivotColumnGroups.keys()).sort().forEach(key => {
+    const sortedPivotKeys = Array.from(pivotColumnGroups.keys()).sort();
+    sortedPivotKeys.forEach(key => {
         const val = pivotColumnGroups.get(key)!;
         let y = 0;
         let xCount = 0;
@@ -170,8 +176,8 @@ export function computePivotLayout(
     });
 
     const maxColHeight = pivotAxisWidth * expander * Math.ceil(maxInColumn / numCols);
-    const dividers = Array.from(pivotColumnGroups.values()).map((pkey, i) =>
-        ({ type: "div", color: "lightGray", x: i * pivotAxisWidth * (numCols * expander + gap), y: -maxColHeight + pivotAxisWidth, width: pivotAxisWidth * numCols * expander, height: maxColHeight, payload: pkey.filters }));
+    const dividers = sortedPivotKeys.map((key, i) =>
+        ({ type: "div", color: "lightGray", x: i * pivotAxisWidth * (numCols * expander + gap), y: -maxColHeight + pivotAxisWidth, width: pivotAxisWidth * numCols * expander, height: maxColHeight, payload: pivotColumnGroups.get(key)!.filters }));
     groupNames.push(...dividers);
     return normalizeResults(panelDim, max_text, childPairs, docMap, poolData, viewDefsToJSX, groupNames, 0, []);
 }

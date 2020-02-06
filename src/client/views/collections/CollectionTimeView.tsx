@@ -308,7 +308,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
 }
 
 Scripting.addGlobal(function pivotColumnClick(pivotDoc: Doc, bounds: ViewDefBounds) {
-    console.log("filter down to key: " + pivotDoc._pivotField + " val:" + bounds.payload);
+    pivotDoc._docFilter = new List();
     (bounds.payload as string[]).map(filterVal =>
         Doc.setDocFilter(pivotDoc, StrCast(pivotDoc._pivotField), filterVal, "check"));
 });

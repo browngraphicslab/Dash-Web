@@ -778,7 +778,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             const backgroundColor = Cast(viewDef.color, "string");
             return [x, y].some(val => val === undefined) ? undefined :
                 {
-                    ele: <div className="collectionFreeform-customDiv" key={"div" + x + y + z} onClick={e => this.onViewDefDivClick(e, viewDef)}
+                    ele: <div className="collectionFreeform-customDiv" title={viewDef.payload.join(" ")} key={"div" + x + y + z} onClick={e => this.onViewDefDivClick(e, viewDef)}
                         style={{ width, height, backgroundColor, transform: `translate(${x}px, ${y}px)` }} />,
                     bounds: viewDef
                 };
