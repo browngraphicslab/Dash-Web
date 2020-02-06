@@ -131,7 +131,7 @@ export class DashWebRTCVideo extends React.Component<CollectionFreeFormDocumentV
                     candidate: message.message.candidate
                 });
                 self.pc.addIceCandidate(candidate);
-            } else if (message === 'bye' && self.isStarted) {
+            } else if (message.message === 'bye' && self.isStarted) {
                 self.handleRemoteHangup();
             }
         });
@@ -335,8 +335,14 @@ export class DashWebRTCVideo extends React.Component<CollectionFreeFormDocumentV
 
     private handleRemoteHangup = () => {
         console.log('Session terminated.');
-        stop();
+        this.stop();
         this.isInitiator = false;
+
+        if (this.localStream) {
+            this.localStream.getTracks().forEach(track => track.stop());
+        }
+
+
     }
 
     private stop = () => {
