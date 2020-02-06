@@ -1,32 +1,36 @@
 import os
+from shutil import copyfile
 import docx2txt
 from docx import Document
 from docx.opc.constants import RELATIONSHIP_TYPE as RT
 import re
+from pymongo import MongoClient
 import shutil
 import uuid
-import json
-import base64
-from shutil import copyfile
+import datetime
 from PIL import Image
+import math
 
-files_path = "../../server/public/files"
-source_path = "./source"
-temp_images_path = "./extracted_images"
-server_images_path = f"{files_path}/images/buxton"
-json_path = "./json"
+source = "./source"
+filesPath = "../../server/public/files"
+image_dist = filesPath + "/images/buxton"
+
+db = MongoClient("localhost", 27017)["Dash"]
+target_collection = db.newDocuments
+target_doc_title = "Collection 1"
+schema_guids = []
+common_proto_id = ""
 
 
-# noinspection PyProtectedMember
-def extract_links(file):
+def extract_links(fileName):
     links = []
-    doc = Document(file)
+    doc = Document(fileName)
     rels = doc.part.rels
     for rel in rels:
         item = rels[rel]
         if item.reltype == RT.HYPERLINK and ".aspx" not in item._target:
             links.append(item._target)
-    return links
+    return text_doc_map(links)
 
 
 def extract_value(kv_string):
@@ -46,58 +50,228 @@ def guid():
     return str(uuid.uuid4())
 
 
-def encode_image(folder: str, name: str):
-    with open(f"{temp_images_path}/{folder}/{name}", "rb") as image:
-        encoded = base64.b64encode(image.read())
-        return encoded.decode("utf-8")
+def listify(list):
+    return {
+        "fields": list,
+        "__type": "list"
+    }
 
 
-def parse_document(name: str):
-    print(f"parsing {name}...")
-    pure_name = name.split(".")[0]
+def protofy(fieldId):
+    return {
+        "fieldId": fieldId,
+        "__type": "proxy"
+    }
+
+
+def text_doc_map(string_list):
+    def guid_map(caption):
+        return write_text_doc(caption)
+    return listify(proxify_guids(list(map(guid_map, string_list))))
+
+
+def write_collection(parse_results, display_fields, storage_key, viewType):
+    view_guids = parse_results["child_guids"]
+
+    data_doc = parse_results["schema"]
+    fields = data_doc["fields"]
+
+    view_doc_guid = guid()
+
+    view_doc = {
+        "_id": view_doc_guid,
+        "fields": {
+            "proto": protofy(data_doc["_id"]),
+            "x": 10,
+            "y": 10,
+            "_width": 900,
+            "_height": 600,
+            "_panX": 0,
+            "_panY": 0,
+            "zIndex": 2,
+            "libraryBrush": False,
+            "_viewType": viewType,
+            "_LODdisable": True
+        },
+        "__type": "Doc"
+    }
+
+    fields["proto"] = protofy(common_proto_id)
+    fields[storage_key] = listify(proxify_guids(view_guids))
+    fields["schemaColumns"] = listify(display_fields)
+    fields["author"] = "Bill Buxton"
+    fields["creationDate"] = {
+        "date": datetime.datetime.utcnow().microsecond,
+        "__type": "date"
+    }
+    if "image_urls" in parse_results:
+        fields["hero"] = {
+            "url": parse_results["image_urls"][0],
+            "__type": "image"
+        }
+    fields["isPrototype"] = True
+
+    target_collection.insert_one(data_doc)
+    target_collection.insert_one(view_doc)
+
+    data_doc_guid = data_doc["_id"]
+    # print(f"inserted view document ({view_doc_guid})")
+    # print(f"inserted data document ({data_doc_guid})\n")
+
+    return view_doc_guid
+
+
+def write_text_doc(content):
+    data_doc_guid = guid()
+    view_doc_guid = guid()
+
+    view_doc = {
+        "_id": view_doc_guid,
+        "fields": {
+            "proto": protofy(data_doc_guid),
+            "x": 10,
+            "y": 10,
+            "_width": 400,
+            "zIndex": 2
+        },
+        "__type": "Doc"
+    }
+
+    data_doc = {
+        "_id": data_doc_guid,
+        "fields": {
+            "proto": protofy("textProto"),
+            "data": {
+                "Data": '{"doc":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"' + content + '"}]}]},"selection":{"type":"text","anchor":1,"head":1}' + '}',
+                "__type": "RichTextField"
+            },
+            "title": content,
+            "_nativeWidth": 200,
+            "author": "Bill Buxton",
+            "creationDate": {
+                "date": datetime.datetime.utcnow().microsecond,
+                "__type": "date"
+            },
+            "isPrototype": True,
+            "_autoHeight": True,
+            "page": -1,
+            "_nativeHeight": 200,
+            "_height": 200,
+            "data_text": content
+        },
+        "__type": "Doc"
+    }
+
+    target_collection.insert_one(view_doc)
+    target_collection.insert_one(data_doc)
+
+    return view_doc_guid
+
+
+def write_image(folder, name):
+    path = f"http://localhost:1050/files/images/buxton/{folder}/{name}"
+
+    data_doc_guid = guid()
+    view_doc_guid = guid()
+
+    image = Image.open(f"{image_dist}/{folder}/{name}")
+    native_width, native_height = image.size
+
+    if abs(native_width - native_height) < 10:
+        return None
+
+    view_doc = {
+        "_id": view_doc_guid,
+        "fields": {
+            "proto": protofy(data_doc_guid),
+            "x": 10,
+            "y": 10,
+            "_width": min(800, native_width),
+            "zIndex": 2,
+            "dimUnit": "*",
+            "dimMagnitude": 1
+        },
+        "__type": "Doc"
+    }
+
+    data_doc = {
+        "_id": data_doc_guid,
+        "fields": {
+            "proto": protofy("imageProto"),
+            "data": {
+                "url": path,
+                "__type": "image"
+            },
+            "title": name,
+            "_nativeWidth": native_width,
+            "author": "Bill Buxton",
+            "creationDate": {
+                "date": datetime.datetime.utcnow().microsecond,
+                "__type": "date"
+            },
+            "isPrototype": True,
+            "page": -1,
+            "_nativeHeight": native_height,
+            "_height": native_height
+        },
+        "__type": "Doc"
+    }
+
+    target_collection.insert_one(view_doc)
+    target_collection.insert_one(data_doc)
+
+    return {
+        "layout_id": view_doc_guid,
+        "url": path
+    }
+
+
+def parse_document(file_name: str):
+    print(f"parsing {file_name}...")
+    pure_name = file_name.split(".")[0]
 
     result = {}
 
-    saved_device_images_dir = server_images_path + "/" + pure_name
-    temp_device_images_dir = temp_images_path + "/" + pure_name
-    mkdir_if_absent(temp_device_images_dir)
-    mkdir_if_absent(saved_device_images_dir)
+    dir_path = image_dist + "/" + pure_name
+    # print(dir_path)
+    mkdir_if_absent(dir_path)
 
-    raw = str(docx2txt.process(source_path +
-                               "/" + name, temp_device_images_dir))
+    raw = str(docx2txt.process(source + "/" + file_name, dir_path))
 
-    extracted_images = []
-    for image in os.listdir(temp_device_images_dir):
-        temp = f"{temp_device_images_dir}/{image}"
-        native_width, native_height = Image.open(temp).size
-        if abs(native_width - native_height) < 10:
-            continue
-        original = saved_device_images_dir + "/" + image.replace(".", "_o.", 1)
-        medium = saved_device_images_dir + "/" + image.replace(".", "_m.", 1)
-        copyfile(temp, original)
-        copyfile(temp, medium)
-        server_path = f"http://localhost:1050/files/images/buxton/{pure_name}/{image}"
-        extracted_images.append(server_path)
-    result["extracted_images"] = extracted_images
+    urls = []
+    view_guids = []
+    count = 0
+    for image in os.listdir(dir_path):
+        created = write_image(pure_name, image)
+        if created != None:
+            urls.append(created["url"])
+            view_guids.append(created["layout_id"])
+            count += 1
+            resolved = dir_path + "/" + image
+            original = dir_path + "/" + image.replace(".", "_o.", 1)
+            medium = dir_path + "/" + image.replace(".", "_m.", 1)
+            copyfile(resolved, original)
+            copyfile(resolved, medium)
+    # print(f"extracted {count} images...")
 
     def sanitize(line): return re.sub("[\n\t]+", "", line).replace(u"\u00A0", " ").replace(
         u"\u2013", "-").replace(u"\u201c", '''"''').replace(u"\u201d", '''"''').strip()
 
-    def sanitize_price(raw_price: str):
-        raw_price = raw_price.replace(",", "")
-        start = raw_price.find("$")
-        if "x" in raw_price.lower():
+    def sanitize_price(raw: str):
+        raw = raw.replace(",", "")
+        if "x" in raw.lower():
             return None
+        start = raw.find("$")
         if start > -1:
             i = start + 1
-            while i < len(raw_price) and re.match(r"[0-9.]", raw_price[i]):
+            while (i < len(raw) and re.match(r"[0-9\.]", raw[i])):
                 i += 1
-            price = raw_price[start + 1: i + 1]
+            price = raw[start + 1: i + 1]
             return float(price)
-        elif raw_price.lower().find("nfs"):
+        elif (raw.lower().find("nfs")):
             return -1
         else:
-            return None
+            return math.nan
 
     def remove_empty(line): return len(line) > 1
 
@@ -112,6 +286,7 @@ def parse_document(name: str):
     lines = list(map(sanitize, raw.split("\n")))
     lines = list(filter(remove_empty, lines))
 
+    result["file_name"] = file_name
     result["title"] = lines[2].strip()
     result["short_description"] = lines[3].strip().replace(
         "Short Description: ", "")
@@ -127,13 +302,11 @@ def parse_document(name: str):
     clean = list(
         map(lambda data: data.strip().split(":"), lines[cur].split("|")))
     result["company"] = clean[0][len(clean[0]) - 1].strip()
-
     result["year"] = try_parse(clean[1][len(clean[1]) - 1].strip())
     result["original_price"] = sanitize_price(
         clean[2][len(clean[2]) - 1].strip())
 
     cur += 1
-
     result["degrees_of_freedom"] = try_parse(extract_value(
         lines[cur]).replace("NA", "N/A"))
     cur += 1
@@ -161,71 +334,99 @@ def parse_document(name: str):
     cur += 1
     link_descriptions = []
     while lines[cur] != "Image":
-        description = lines[cur].strip().lower()
-        valid = True
-        for ignored in ["powerpoint", "vimeo", "xxx"]:
-            if ignored in description:
-                valid = False
-                break
-        if valid:
-            link_descriptions.append(description)
+        link_descriptions.append(lines[cur].strip())
         cur += 1
-    result["link_descriptions"] = link_descriptions
+    result["link_descriptions"] = text_doc_map(link_descriptions)
 
-    result["hyperlinks"] = extract_links(source_path + "/" + name)
+    result["hyperlinks"] = extract_links(source + "/" + file_name)
 
     images = []
     captions = []
     cur += 3
     while cur + 1 < len(lines) and lines[cur] != "NOTES:":
-        name = lines[cur]
-        if "full document" not in name.lower():
-            images.append(name)
-            captions.append(lines[cur + 1])
+        images.append(lines[cur])
+        captions.append(lines[cur + 1])
         cur += 2
-    result["table_image_names"] = images
+    result["images"] = listify(images)
 
-    result["captions"] = captions
+    result["captions"] = text_doc_map(captions)
 
     notes = []
-    if cur < len(lines) and lines[cur] == "NOTES:":
+    if (cur < len(lines) and lines[cur] == "NOTES:"):
         cur += 1
         while cur < len(lines):
             notes.append(lines[cur])
             cur += 1
     if len(notes) > 0:
-        result["notes"] = notes
+        result["notes"] = listify(notes)
 
-    return result
+    # print("writing child schema...")
+
+    return {
+        "schema": {
+            "_id": guid(),
+            "fields": result,
+            "__type": "Doc"
+        },
+        "child_guids": view_guids,
+        "image_urls": urls
+    }
 
 
-if os.path.exists(server_images_path):
-    shutil.rmtree(server_images_path)
-while os.path.exists(server_images_path):
+def proxify_guids(guids):
+    return list(map(lambda guid: {"fieldId": guid, "__type": "prefetch_proxy"}, guids))
+
+
+def write_common_proto():
+    id = guid()
+    common_proto = {
+        "_id": id,
+        "fields": {
+            "proto": protofy("collectionProto"),
+            "title": "The Buxton Collection",
+        },
+        "__type": "Doc"
+    }
+    target_collection.insert_one(common_proto)
+    return id
+
+
+if os.path.exists(image_dist):
+    shutil.rmtree(image_dist, True)
+while os.path.exists(image_dist):
     pass
-os.mkdir(server_images_path)
+os.mkdir(image_dist)
+mkdir_if_absent(source)
 
-mkdir_if_absent(source_path)
-mkdir_if_absent(json_path)
-mkdir_if_absent(temp_images_path)
-
-results = []
+common_proto_id = write_common_proto()
 
 candidates = 0
-for file_name in os.listdir(source_path):
-    if file_name.endswith('.docx') or file_name.endswith(".doc"):
+for file_name in os.listdir(source):
+    if file_name.endswith('.docx') or file_name.endswith('.doc'):
         candidates += 1
-        results.append(parse_document(file_name))
+        schema_guids.append(write_collection(
+            parse_document(file_name), ["title", "data"], "data", 5))
 
+print("writing parent schema...")
+parent_guid = write_collection({
+    "schema": {
+        "_id": guid(),
+        "fields": {},
+        "__type": "Doc"
+    },
+    "child_guids": schema_guids
+}, ["title", "short_description", "original_price"], "data", 4)
 
-with open(f"./json/buxton_collection.json", "w", encoding="utf-8") as out:
-    json.dump(results, out, ensure_ascii=False, indent=4)
+print("appending parent schema to main workspace...\n")
+target_collection.update_one(
+    {"fields.title": target_doc_title},
+    {"$push": {"fields.data.fields": {"fieldId": parent_guid, "__type": "proxy"}}}
+)
 
-print(f"\nSuccessfully parsed {candidates} candidates.")
+print("rewriting .gitignore...\n")
+lines = ['*', '!.gitignore']
+with open(filesPath + "/.gitignore", 'w') as f:
+    f.write('\n'.join(lines))
 
-print("\nrewriting .gitignore...")
-entries = ['*', '!.gitignore']
-with open(files_path + "/.gitignore", 'w') as f:
-    f.write('\n'.join(entries))
-
-shutil.rmtree(temp_images_path)
+suffix = "" if candidates == 1 else "s"
+print(f"conversion complete. {candidates} candidate{suffix} processed.")

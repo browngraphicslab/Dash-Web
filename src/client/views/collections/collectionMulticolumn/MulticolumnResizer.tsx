@@ -3,7 +3,7 @@ import { observer } from "mobx-react";
 import { observable, action } from "mobx";
 import { Doc } from "../../../../new_fields/Doc";
 import { NumCast, StrCast } from "../../../../new_fields/Types";
-import { WidthUnit } from "./CollectionMulticolumnView";
+import { DimUnit } from "./CollectionMulticolumnView";
 
 interface ResizerProps {
     width: number;
@@ -46,14 +46,12 @@ export default class ResizeBar extends React.Component<ResizerProps> {
         const unitLength = columnUnitLength();
         if (unitLength) {
             if (toNarrow) {
-                const { widthUnit, widthMagnitude } = toNarrow;
-                const scale = widthUnit === WidthUnit.Ratio ? unitLength : 1;
-                toNarrow.widthMagnitude = NumCast(widthMagnitude) - Math.abs(movementX) / scale;
+                const scale = StrCast(toNarrow.dimUnit, "*") === DimUnit.Ratio ? unitLength : 1;
+                toNarrow.dimMagnitude = Math.max(0.05, NumCast(toNarrow.dimMagnitude, 1) - Math.abs(movementX) / scale);
             }
             if (this.resizeMode === ResizeMode.Pinned && toWiden) {
-                const { widthUnit, widthMagnitude } = toWiden;
-                const scale = widthUnit === WidthUnit.Ratio ? unitLength : 1;
-                toWiden.widthMagnitude = NumCast(widthMagnitude) + Math.abs(movementX) / scale;
+                const scale = StrCast(toWiden.dimUnit, "*") === DimUnit.Ratio ? unitLength : 1;
+                toWiden.dimMagnitude = Math.max(0.05, NumCast(toWiden.dimMagnitude, 1) + Math.abs(movementX) / scale);
             }
         }
     }
@@ -61,17 +59,17 @@ export default class ResizeBar extends React.Component<ResizerProps> {
     private get isActivated() {
         const { toLeft, toRight } = this.props;
         if (toLeft && toRight) {
-            if (StrCast(toLeft.widthUnit) === WidthUnit.Pixel && StrCast(toRight.widthUnit) === WidthUnit.Pixel) {
+            if (StrCast(toLeft.dimUnit, "*") === DimUnit.Pixel && StrCast(toRight.dimUnit, "*") === DimUnit.Pixel) {
                 return false;
             }
             return true;
         } else if (toLeft) {
-            if (StrCast(toLeft.widthUnit) === WidthUnit.Pixel) {
+            if (StrCast(toLeft.dimUnit, "*") === DimUnit.Pixel) {
                 return false;
             }
             return true;
         } else if (toRight) {
-            if (StrCast(toRight.widthUnit) === WidthUnit.Pixel) {
+            if (StrCast(toRight.dimUnit, "*") === DimUnit.Pixel) {
                 return false;
             }
             return true;
@@ -91,7 +89,7 @@ export default class ResizeBar extends React.Component<ResizerProps> {
     render() {
         return (
             <div
-                className={"resizer"}
+                className={"multiColumnResizer"}
                 style={{
                     width: this.props.width,
                     opacity: this.isActivated && this.isHoverActive ? resizerOpacity : 0
@@ -100,12 +98,12 @@ export default class ResizeBar extends React.Component<ResizerProps> {
                 onPointerLeave={action(() => !this.isResizingActive && (this.isHoverActive = false))}
             >
                 <div
-                    className={"internal"}
+                    className={"multiColumnResizer-hdl"}
                     onPointerDown={e => this.registerResizing(e, ResizeMode.Pinned)}
                     style={{ backgroundColor: this.resizeMode }}
                 />
                 <div
-                    className={"internal"}
+                    className={"multiColumnResizer-hdl"}
                     onPointerDown={e => this.registerResizing(e, ResizeMode.Global)}
                     style={{ backgroundColor: this.resizeMode }}
                 />

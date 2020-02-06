@@ -3,7 +3,7 @@ import { observer } from "mobx-react";
 import { observable, action } from "mobx";
 import { Doc } from "../../../../new_fields/Doc";
 import { NumCast, StrCast } from "../../../../new_fields/Types";
-import { HeightUnit } from "./CollectionMultirowView";
+import { DimUnit } from "./CollectionMultirowView";
 
 interface ResizerProps {
     height: number;
@@ -46,14 +46,12 @@ export default class ResizeBar extends React.Component<ResizerProps> {
         const unitLength = columnUnitLength();
         if (unitLength) {
             if (toNarrow) {
-                const { heightUnit, heightMagnitude } = toNarrow;
-                const scale = heightUnit === HeightUnit.Ratio ? unitLength : 1;
-                toNarrow.heightMagnitude = NumCast(heightMagnitude) - Math.abs(movementY) / scale;
+                const scale = StrCast(toNarrow.dimUnit, "*") === DimUnit.Ratio ? unitLength : 1;
+                toNarrow.dimMagnitude = Math.max(0.05, NumCast(toNarrow.dimMagnitude, 1) - Math.abs(movementY) / scale);
             }
             if (this.resizeMode === ResizeMode.Pinned && toWiden) {
-                const { heightUnit, heightMagnitude } = toWiden;
-                const scale = heightUnit === HeightUnit.Ratio ? unitLength : 1;
-                toWiden.heightMagnitude = NumCast(heightMagnitude) + Math.abs(movementY) / scale;
+                const scale = StrCast(toWiden.dimUnit, "*") === DimUnit.Ratio ? unitLength : 1;
+                toWiden.dimMagnitude = Math.max(0.05, NumCast(toWiden.dimMagnitude, 1) + Math.abs(movementY) / scale);
             }
         }
     }
@@ -61,17 +59,17 @@ export default class ResizeBar extends React.Component<ResizerProps> {
     private get isActivated() {
         const { toTop, toBottom } = this.props;
         if (toTop && toBottom) {
-            if (StrCast(toTop.heightUnit) === HeightUnit.Pixel && StrCast(toBottom.heightUnit) === HeightUnit.Pixel) {
+            if (StrCast(toTop.dimUnit, "*") === DimUnit.Pixel && StrCast(toBottom.dimUnit, "*") === DimUnit.Pixel) {
                 return false;
             }
             return true;
         } else if (toTop) {
-            if (StrCast(toTop.heightUnit) === HeightUnit.Pixel) {
+            if (StrCast(toTop.dimUnit, "*") === DimUnit.Pixel) {
                 return false;
             }
             return true;
         } else if (toBottom) {
-            if (StrCast(toBottom.heightUnit) === HeightUnit.Pixel) {
+            if (StrCast(toBottom.dimUnit, "*") === DimUnit.Pixel) {
                 return false;
             }
             return true;
@@ -91,7 +89,7 @@ export default class ResizeBar extends React.Component<ResizerProps> {
     render() {
         return (
             <div
-                className={"resizer"}
+                className={"multiRowResizer"}
                 style={{
                     height: this.props.height,
                     opacity: this.isActivated && this.isHoverActive ? resizerOpacity : 0
@@ -100,12 +98,12 @@ export default class ResizeBar extends React.Component<ResizerProps> {
                 onPointerLeave={action(() => !this.isResizingActive && (this.isHoverActive = false))}
             >
                 <div
-                    className={"internal"}
+                    className={"multiRowResizer-hdl"}
                     onPointerDown={e => this.registerResizing(e, ResizeMode.Pinned)}
                     style={{ backgroundColor: this.resizeMode }}
                 />
                 <div
-                    className={"internal"}
+                    className={"multiRowResizer-hdl"}
                     onPointerDown={e => this.registerResizing(e, ResizeMode.Global)}
                     style={{ backgroundColor: this.resizeMode }}
                 />

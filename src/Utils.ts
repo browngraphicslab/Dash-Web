@@ -26,6 +26,22 @@ export namespace Utils {
         return { scale, translateX, translateY };
     }
 
+    export function TraceConsoleLog() {
+        ['log', 'warn'].forEach(function (method) {
+            const old = (console as any)[method];
+            (console as any)[method] = function () {
+                let stack = new Error("").stack?.split(/\n/);
+                // Chrome includes a single "Error" line, FF doesn't.
+                if (stack && stack[0].indexOf('Error') === 0) {
+                    stack = stack.slice(1);
+                }
+                const message = (stack?.[1] || "Stack undefined!").trim();
+                const args = ([] as any[]).slice.apply(arguments).concat([message]);
+                return old.apply(console, args);
+            };
+        });
+    }
+
     /**
      * A convenience method. Prepends the full path (i.e. http://localhost:1050) to the
      * requested extension

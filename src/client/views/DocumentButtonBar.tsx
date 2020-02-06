@@ -11,7 +11,7 @@ import { emptyFunction } from "../../Utils";
 import { Pulls, Pushes } from '../apis/google_docs/GoogleApiClientUtils';
 import RichTextMenu from '../util/RichTextMenu';
 import { UndoManager } from "../util/UndoManager";
-import { CollectionDockingView } from './collections/CollectionDockingView';
+import { CollectionDockingView, DockedFrameRenderer } from './collections/CollectionDockingView';
 import { ParentDocSelector } from './collections/ParentDocumentSelector';
 import './collections/ParentDocumentSelector.scss';
 import './DocumentButtonBar.scss';
@@ -23,6 +23,7 @@ import { Template, Templates } from "./Templates";
 import React = require("react");
 import { DragManager } from '../util/DragManager';
 import { MetadataEntryMenu } from './MetadataEntryMenu';
+import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -197,6 +198,27 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
             />
         </div>;
     }
+    @computed
+    get pinButton() {
+        const targetDoc = this.view0?.props.Document;
+        const isPinned = targetDoc && CurrentUserUtils.IsDocPinned(targetDoc);
+        return !targetDoc ? (null) : <div className="documentButtonBar-linker"
+            title={CurrentUserUtils.IsDocPinned(targetDoc) ? "Unpin from presentation" : "Pin to presentation"}
+            style={{ backgroundColor: isPinned ? "black" : "white", color: isPinned ? "white" : "black" }}
+
+            onClick={e => {
+                if (isPinned) {
+                    DockedFrameRenderer.UnpinDoc(targetDoc);
+                }
+                else {
+                    targetDoc.sourceContext = this.view0?.props.ContainingCollectionDoc; // bcz: !! Shouldn't need this ... use search to lookup contexts dynamically
+                    DockedFrameRenderer.PinDoc(targetDoc);
+                }
+            }}>
+            <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="map-pin"
+            />
+        </div>;
+    }
 
     @computed
     get linkButton() {
@@ -294,6 +316,7 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
         const isText = this.view0.props.Document.data instanceof RichTextField; // bcz: Todo - can't assume layout is using the 'data' field.  need to add fieldKey to DocumentView
         const considerPull = isText && this.considerGoogleDocsPull;
         const considerPush = isText && this.considerGoogleDocsPush;
+        Doc.UserDoc().pr
         return <div className="documentButtonBar">
             <div className="documentButtonBar-button">
                 {this.linkButton}
@@ -306,6 +329,9 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
             </div>
             <div className="documentButtonBar-button">
                 {this.contextButton}
+            </div>
+            <div className="documentButtonBar-button">
+                {this.pinButton}
             </div>
             <div className="documentButtonBar-button" style={{ display: !considerPush ? "none" : "" }}>
                 {this.considerGoogleDocsPush}

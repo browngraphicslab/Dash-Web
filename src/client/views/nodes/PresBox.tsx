@@ -2,11 +2,10 @@ import React = require("react");
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faArrowLeft, faArrowRight, faEdit, faMinus, faPlay, faPlus, faStop, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, IReactionDisposer, reaction } from "mobx";
+import { action, computed, IReactionDisposer, reaction, observable } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast, DocListCastAsync } from "../../../new_fields/Doc";
 import { listSpec } from "../../../new_fields/Schema";
-import { ComputedField } from "../../../new_fields/ScriptField";
 import { Cast, FieldValue, NumCast } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { Docs } from "../../documents/Documents";
@@ -17,7 +16,10 @@ import { CollectionView, CollectionViewType } from "../collections/CollectionVie
 import { ContextMenu } from "../ContextMenu";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./PresBox.scss";
-import { presSchema } from "../presentationview/PresElementBox";
+import { CollectionCarouselView } from "../collections/CollectionCarouselView";
+import { returnFalse } from "../../../Utils";
+import { ContextMenuProps } from "../ContextMenuItem";
+import { CollectionTimeView } from "../collections/CollectionTimeView";
 
 library.add(faArrowLeft);
 library.add(faArrowRight);
@@ -31,24 +33,38 @@ library.add(faEdit);
 @observer
 export class PresBox extends React.Component<FieldViewProps> {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(PresBox, fieldKey); }
+    _childReaction: IReactionDisposer | undefined;
+    _slideshowReaction: IReactionDisposer | undefined;
     componentDidMount() {
         const userDoc = CurrentUserUtils.UserDocument;
-        let presTemp = Cast(userDoc.presentationTemplate, Doc);
-        if (presTemp instanceof Promise) {
-            presTemp.then(presTemp => this.props.Document.childLayout = presTemp);
-        }
-        else if (presTemp === undefined) {
-            presTemp = userDoc.presentationTemplate = Docs.Create.PresElementBoxDocument({ backgroundColor: "transparent", _xMargin: 5, isTemplateDoc: true, isTemplateForField: "data" });
-        }
-        else {
-            this.props.Document.childLayout = presTemp;
-        }
+        this._slideshowReaction = reaction(() => this.props.Document._slideshow,
+            (slideshow) => {
+                if (!slideshow) {
+                    let presTemp = Cast(userDoc.presentationTemplate, Doc);
+                    if (presTemp instanceof Promise) {
+                        presTemp.then(presTemp => this.props.Document.childLayout = presTemp);
+                    }
+                    else if (presTemp === undefined) {
+                        presTemp = userDoc.presentationTemplate = Docs.Create.PresElementBoxDocument({ backgroundColor: "transparent", _xMargin: 5, isTemplateDoc: true, isTemplateForField: "data" });
+                    }
+                    else {
+                        this.props.Document.childLayout = presTemp;
+                    }
+                } else {
+                    this.props.Document.childLayout = undefined;
+                }
+            }, { fireImmediately: true });
+        this._childReaction = reaction(() => this.childDocs.slice(),
+            (children) => children.forEach((child, i) => child.presentationIndex = i), { fireImmediately: true });
+    }
+    componentWillUnmount() {
+        this._childReaction?.();
     }
 
     @computed get childDocs() { return DocListCast(this.props.Document[this.props.fieldKey]); }
 
     next = async () => {
-        const current = NumCast(this.props.Document.selectedDoc);
+        const current = NumCast(this.props.Document._itemIndex);
         //asking to get document at current index
         const docAtCurrentNext = await this.getDocAtIndex(current + 1);
         if (docAtCurrentNext !== undefined) {
@@ -65,7 +81,7 @@ export class PresBox extends React.Component<FieldViewProps> {
         }
     }
     back = async () => {
-        const current = NumCast(this.props.Document.selectedDoc);
+        const current = NumCast(this.props.Document._itemIndex);
         //requesting for the doc at current index
         const docAtCurrent = await this.getDocAtIndex(current);
         if (docAtCurrent !== undefined) {
@@ -177,15 +193,17 @@ export class PresBox extends React.Component<FieldViewProps> {
         });
 
         //docToJump stayed same meaning, it was not in the group or was the last element in the group
+        const aliasOf = await Cast(docToJump.aliasOf, Doc);
+        const srcContext = aliasOf && await Cast(aliasOf.sourceContext, Doc);
         if (docToJump === curDoc) {
             //checking if curDoc has navigation open
-            const target = await curDoc.presentationTargetDoc as Doc;
-            if (curDoc.navButton) {
-                DocumentManager.Instance.jumpToDocument(target, false);
-            } else if (curDoc.showButton) {
+            const target = await Cast(curDoc.presentationTargetDoc, Doc);
+            if (curDoc.navButton && target) {
+                DocumentManager.Instance.jumpToDocument(target, false, undefined, srcContext);
+            } else if (curDoc.showButton && target) {
                 const curScale = DocumentManager.Instance.getScaleOfDocView(fromDoc);
                 //awaiting jump so that new scale can be found, since jumping is async
-                await DocumentManager.Instance.jumpToDocument(target, true);
+                await DocumentManager.Instance.jumpToDocument(target, true, undefined, srcContext);
                 curDoc.viewScale = DocumentManager.Instance.getScaleOfDocView(target);
 
                 //saving the scale user was on before zooming in
@@ -199,7 +217,8 @@ export class PresBox extends React.Component<FieldViewProps> {
         const curScale = DocumentManager.Instance.getScaleOfDocView(fromDoc);
 
         //awaiting jump so that new scale can be found, since jumping is async
-        await DocumentManager.Instance.jumpToDocument(await docToJump.presentationTargetDoc as Doc, willZoom);
+        const presTargetDoc = await docToJump.presentationTargetDoc as Doc;
+        await DocumentManager.Instance.jumpToDocument(presTargetDoc, willZoom, undefined, srcContext);
         const newScale = DocumentManager.Instance.getScaleOfDocView(await curDoc.presentationTargetDoc as Doc);
         curDoc.viewScale = newScale;
         //saving the scale that user was on
@@ -215,7 +234,7 @@ export class PresBox extends React.Component<FieldViewProps> {
     getDocAtIndex = async (index: number) => {
         const list = FieldValue(Cast(this.props.Document[this.props.fieldKey], listSpec(Doc)));
         if (list && index >= 0 && index < list.length) {
-            this.props.Document.selectedDoc = index;
+            this.props.Document._itemIndex = index;
             //awaiting async call to finish to get Doc instance
             return list[index];
         }
@@ -243,7 +262,7 @@ export class PresBox extends React.Component<FieldViewProps> {
         Doc.UnBrushAllDocs();
         const list = FieldValue(Cast(this.props.Document[this.props.fieldKey], listSpec(Doc)));
         if (list && index >= 0 && index < list.length) {
-            this.props.Document.selectedDoc = index;
+            this.props.Document._itemIndex = index;
 
             if (!this.props.Document.presStatus) {
                 this.props.Document.presStatus = true;
@@ -267,7 +286,7 @@ export class PresBox extends React.Component<FieldViewProps> {
         } else {
             this.props.Document.presStatus = true;
             this.startPresentation(0);
-            this.gotoDocument(0, NumCast(this.props.Document.selectedDoc));
+            this.gotoDocument(0, NumCast(this.props.Document._itemIndex));
         }
     }
 
@@ -286,7 +305,7 @@ export class PresBox extends React.Component<FieldViewProps> {
             doc.opacity = 1;
             doc.viewScale = 1;
         });
-        this.props.Document.selectedDoc = 0;
+        this.props.Document._itemIndex = 0;
         this.props.Document.presStatus = false;
         if (this.childDocs.length !== 0) {
             DocumentManager.Instance.zoomIntoScale(this.childDocs[0], 1);
@@ -323,7 +342,12 @@ export class PresBox extends React.Component<FieldViewProps> {
     }));
 
     specificContextMenu = (e: React.MouseEvent): void => {
-        ContextMenu.Instance.addItem({ description: "Make Current Presentation", event: action(() => Doc.UserDoc().curPresentation = this.props.Document), icon: "asterisk" });
+        const funcs: ContextMenuProps[] = [];
+        funcs.push({ description: "Make Current Presentation", event: action(() => Doc.UserDoc().curPresentation = this.props.Document), icon: "asterisk" });
+        funcs.push({ description: "Make slideshow", event: action(() => this.props.Document._slideshow = "slideshow"), icon: "asterisk" });
+        funcs.push({ description: "Make timeline", event: action(() => this.props.Document._slideshow = "timeline"), icon: "asterisk" });
+        funcs.push({ description: "Make list", event: action(() => this.props.Document._slideshow = "list"), icon: "asterisk" });
+        ContextMenu.Instance.addItem({ description: "Presentatoin Funcs...", subitems: funcs, icon: "asterisk" });
     }
 
     /**
@@ -346,19 +370,37 @@ export class PresBox extends React.Component<FieldViewProps> {
         });
     }
 
-
     selectElement = (doc: Doc) => {
         const index = DocListCast(this.props.Document[this.props.fieldKey]).indexOf(doc);
-        index !== -1 && this.gotoDocument(index, NumCast(this.props.Document.selectedDoc));
+        index !== -1 && this.gotoDocument(index, NumCast(this.props.Document._itemIndex));
     }
 
     getTransform = () => {
         return this.props.ScreenToLocalTransform().translate(0, -50);// listBox padding-left and pres-box-cont minHeight
     }
+    panelHeight = () => {
+        return this.props.PanelHeight() - 20;
+    }
     render() {
         this.initializeScaleViews(this.childDocs, NumCast(this.props.Document._viewType));
-        return (
+        return (this.props.Document._slideshow ?
             <div className="presBox-cont" onContextMenu={this.specificContextMenu}>
+                {this.props.Document.inOverlay ? (null) :
+                    <div className="presBox-listCont" >
+                        {this.props.Document._slideshow === "slideshow" ?
+                            <CollectionCarouselView {...this.props} PanelHeight={this.panelHeight} chromeCollapsed={true} annotationsKey={""} CollectionView={undefined}
+                                moveDocument={returnFalse}
+                                addDocument={this.addDocument} removeDocument={returnFalse} focus={this.selectElement} ScreenToLocalTransform={this.getTransform} />
+                            :
+                            <CollectionTimeView {...this.props} PanelHeight={this.panelHeight} chromeCollapsed={true} annotationsKey={""} CollectionView={undefined}
+                                moveDocument={returnFalse}
+                                addDocument={this.addDocument} removeDocument={returnFalse} focus={this.selectElement} ScreenToLocalTransform={this.getTransform} />
+                        }
+                    </div>}
+                <button className="presBox-backward" title="Back" onClick={this.back}><FontAwesomeIcon icon={"arrow-left"} /></button>
+                <button className="presBox-forward" title="Next" onClick={this.next}><FontAwesomeIcon icon={"arrow-right"} /></button>
+            </div>
+            : <div className="presBox-cont" onContextMenu={this.specificContextMenu}>
                 <div className="presBox-buttons">
                     <button className="presBox-button" title="Back" onClick={this.back}><FontAwesomeIcon icon={"arrow-left"} /></button>
                     <button className="presBox-button" title={"Reset Presentation" + this.props.Document.presStatus ? "" : " From Start"} onClick={this.startOrResetPres}>
@@ -366,13 +408,10 @@ export class PresBox extends React.Component<FieldViewProps> {
                     </button>
                     <button className="presBox-button" title="Next" onClick={this.next}><FontAwesomeIcon icon={"arrow-right"} /></button>
                     <button className="presBox-button" title={this.props.Document.inOverlay ? "Expand" : "Minimize"} onClick={this.toggleMinimize}><FontAwesomeIcon icon={"eye"} /></button>
-                </div>
-                {this.props.Document.inOverlay ? (null) :
-                    <div className="presBox-listCont" >
-                        <CollectionView {...this.props} addDocument={this.addDocument} focus={this.selectElement} ScreenToLocalTransform={this.getTransform} />
-                    </div>
-                }
-            </div>
-        );
+                    {this.props.Document.inOverlay ? (null) :
+                        <div className="presBox-listCont" >
+                            <CollectionView {...this.props} PanelHeight={this.panelHeight} addDocument={this.addDocument} focus={this.selectElement} ScreenToLocalTransform={this.getTransform} />
+                        </div>}
+                </div></div>);
     }
 }

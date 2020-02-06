@@ -13,9 +13,6 @@ import { faCaretLeft, faCaretRight } from '@fortawesome/free-solid-svg-icons';
 import { Doc } from '../../../new_fields/Doc';
 import { FormattedTextBox } from '../nodes/FormattedTextBox';
 
-
-
-
 type CarouselDocument = makeInterface<[typeof documentSchema,]>;
 const CarouselDocument = makeInterface(documentSchema);
 
@@ -74,7 +71,7 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
         </>;
     }
     render() {
-        return <div className="collectionCarouselView-outer">
+        return <div className="collectionCarouselView-outer" ref={this.createDashEventsTarget}>
             {this.content}
             {this.buttons}
         </div>;

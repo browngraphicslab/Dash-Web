@@ -2,107 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="693c6819-edcc-46d6-8260-3f51ec080a46" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/new_scraper.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../client/views/collections/CollectionSubView.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../../client/views/collections/CollectionSubView.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Apple_ADB_Mouse/image1.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Apple_ADB_Mouse/image10.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Apple_ADB_Mouse/image11.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Apple_ADB_Mouse/image12.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Apple_ADB_Mouse/image13.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Apple_ADB_Mouse/image14.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Apple_ADB_Mouse/image15.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Apple_ADB_Mouse/image16.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Apple_ADB_Mouse/image2.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Apple_ADB_Mouse/image3.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Apple_ADB_Mouse/image4.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Apple_ADB_Mouse/image5.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Apple_ADB_Mouse/image6.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Apple_ADB_Mouse/image7.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Apple_ADB_Mouse/image8.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Apple_ADB_Mouse/image9.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Casio_CZ-101/image1.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Casio_CZ-101/image10.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Casio_CZ-101/image11.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Casio_CZ-101/image2.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Casio_CZ-101/image3.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Casio_CZ-101/image4.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Casio_CZ-101/image5.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Casio_CZ-101/image6.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Casio_CZ-101/image7.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Casio_CZ-101/image8.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Casio_CZ-101/image9.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Contour_UniTrap/image1.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Contour_UniTrap/image10.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Contour_UniTrap/image11.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Contour_UniTrap/image12.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Contour_UniTrap/image13.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Contour_UniTrap/image14.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Contour_UniTrap/image15.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Contour_UniTrap/image16.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Contour_UniTrap/image17.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Contour_UniTrap/image18.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Contour_UniTrap/image2.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Contour_UniTrap/image3.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Contour_UniTrap/image4.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Contour_UniTrap/image5.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Contour_UniTrap/image6.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Contour_UniTrap/image7.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Contour_UniTrap/image8.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Contour_UniTrap/image9.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Dymo_MK-6/image1.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Dymo_MK-6/image10.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Dymo_MK-6/image11.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Dymo_MK-6/image12.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Dymo_MK-6/image13.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Dymo_MK-6/image14.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Dymo_MK-6/image15.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Dymo_MK-6/image16.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Dymo_MK-6/image17.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Dymo_MK-6/image18.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Dymo_MK-6/image19.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Dymo_MK-6/image2.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Dymo_MK-6/image20.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Dymo_MK-6/image21.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Dymo_MK-6/image3.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Dymo_MK-6/image4.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Dymo_MK-6/image5.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Dymo_MK-6/image6.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Dymo_MK-6/image7.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Dymo_MK-6/image8.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Dymo_MK-6/image9.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Helios-Klimax/image1.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Helios-Klimax/image10.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Helios-Klimax/image11.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Helios-Klimax/image12.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Helios-Klimax/image13.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Helios-Klimax/image14.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Helios-Klimax/image15.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Helios-Klimax/image16.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Helios-Klimax/image2.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Helios-Klimax/image3.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Helios-Klimax/image4.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Helios-Klimax/image5.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Helios-Klimax/image6.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Helios-Klimax/image7.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Helios-Klimax/image8.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_Helios-Klimax/image9.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_IBM_PS2_Mouse/image1.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_IBM_PS2_Mouse/image10.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_IBM_PS2_Mouse/image11.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_IBM_PS2_Mouse/image12.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_IBM_PS2_Mouse/image13.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_IBM_PS2_Mouse/image14.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_IBM_PS2_Mouse/image15.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_IBM_PS2_Mouse/image2.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_IBM_PS2_Mouse/image3.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_IBM_PS2_Mouse/image4.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_IBM_PS2_Mouse/image5.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_IBM_PS2_Mouse/image6.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_IBM_PS2_Mouse/image7.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_IBM_PS2_Mouse/image8.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/extracted_images/Bill_Notes_IBM_PS2_Mouse/image9.jpeg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/jsonifier.py" beforeDir="false" afterPath="$PROJECT_DIR$/jsonifier.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scraper.py" beforeDir="false" afterPath="$PROJECT_DIR$/scraper.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -122,11 +22,10 @@
   <component name="PropertiesComponent">
     <property name="ASKED_SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
-    <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
   </component>
-  <component name="RunManager" selected="Python.jsonifier">
+  <component name="RunManager" selected="Python.narratives">
     <configuration name="jsonifier" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
       <module name="buxton" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -148,6 +47,27 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
+    <configuration name="narratives" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
+      <module name="buxton" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="/usr/local/bin/python3.7" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/narratives.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <configuration name="scraper" type="PythonConfigurationType" factoryName="Python">
       <module name="buxton" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -160,7 +80,7 @@
       <option name="IS_MODULE_SDK" value="false" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/new_scraper.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/scraper.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -171,6 +91,7 @@
     </configuration>
     <list>
       <item itemvalue="Python.jsonifier" />
+      <item itemvalue="Python.narratives" />
       <item itemvalue="Python.scraper" />
     </list>
   </component>
@@ -188,46 +109,46 @@
     <servers />
   </component>
   <component name="WindowStateProjectService">
-    <state x="184" y="103" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1580610403225">
+    <state x="184" y="103" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1580656983882">
       <screen x="0" y="23" width="1440" height="836" />
     </state>
-    <state x="184" y="103" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.23.1440.836@0.23.1440.836" timestamp="1580610403225" />
+    <state x="184" y="103" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.23.1440.836@0.23.1440.836" timestamp="1580656983882" />
     <state x="483" y="152" key="#xdebugger.evaluate" timestamp="1580601059439">
       <screen x="0" y="23" width="1440" height="836" />
     </state>
     <state x="483" y="152" key="#xdebugger.evaluate/0.23.1440.836@0.23.1440.836" timestamp="1580601059439" />
-    <state width="1419" height="216" key="GridCell.Tab.0.bottom" timestamp="1580612505537">
+    <state width="1419" height="268" key="GridCell.Tab.0.bottom" timestamp="1580786975290">
       <screen x="0" y="23" width="1440" height="836" />
     </state>
-    <state width="1419" height="216" key="GridCell.Tab.0.bottom/0.23.1440.836@0.23.1440.836" timestamp="1580612505537" />
-    <state width="1419" height="216" key="GridCell.Tab.0.center" timestamp="1580612505536">
+    <state width="1419" height="268" key="GridCell.Tab.0.bottom/0.23.1440.836@0.23.1440.836" timestamp="1580786975289" />
+    <state width="1419" height="268" key="GridCell.Tab.0.center" timestamp="1580786975289">
       <screen x="0" y="23" width="1440" height="836" />
     </state>
-    <state width="1419" height="216" key="GridCell.Tab.0.center/0.23.1440.836@0.23.1440.836" timestamp="1580612505536" />
-    <state width="1419" height="216" key="GridCell.Tab.0.left" timestamp="1580612505535">
+    <state width="1419" height="268" key="GridCell.Tab.0.center/0.23.1440.836@0.23.1440.836" timestamp="1580786975289" />
+    <state width="1419" height="268" key="GridCell.Tab.0.left" timestamp="1580786975289">
       <screen x="0" y="23" width="1440" height="836" />
     </state>
-    <state width="1419" height="216" key="GridCell.Tab.0.left/0.23.1440.836@0.23.1440.836" timestamp="1580612505535" />
-    <state width="1419" height="216" key="GridCell.Tab.0.right" timestamp="1580612505536">
+    <state width="1419" height="268" key="GridCell.Tab.0.left/0.23.1440.836@0.23.1440.836" timestamp="1580786975289" />
+    <state width="1419" height="268" key="GridCell.Tab.0.right" timestamp="1580786975289">
       <screen x="0" y="23" width="1440" height="836" />
     </state>
-    <state width="1419" height="216" key="GridCell.Tab.0.right/0.23.1440.836@0.23.1440.836" timestamp="1580612505536" />
-    <state width="1419" height="268" key="GridCell.Tab.1.bottom" timestamp="1580610405283">
+    <state width="1419" height="268" key="GridCell.Tab.0.right/0.23.1440.836@0.23.1440.836" timestamp="1580786975289" />
+    <state width="1419" height="268" key="GridCell.Tab.1.bottom" timestamp="1580786975292">
       <screen x="0" y="23" width="1440" height="836" />
     </state>
-    <state width="1419" height="268" key="GridCell.Tab.1.bottom/0.23.1440.836@0.23.1440.836" timestamp="1580610405283" />
-    <state width="1419" height="268" key="GridCell.Tab.1.center" timestamp="1580610405282">
+    <state width="1419" height="268" key="GridCell.Tab.1.bottom/0.23.1440.836@0.23.1440.836" timestamp="1580786975292" />
+    <state width="1419" height="268" key="GridCell.Tab.1.center" timestamp="1580786975291">
       <screen x="0" y="23" width="1440" height="836" />
     </state>
-    <state width="1419" height="268" key="GridCell.Tab.1.center/0.23.1440.836@0.23.1440.836" timestamp="1580610405282" />
-    <state width="1419" height="268" key="GridCell.Tab.1.left" timestamp="1580610405282">
+    <state width="1419" height="268" key="GridCell.Tab.1.center/0.23.1440.836@0.23.1440.836" timestamp="1580786975291" />
+    <state width="1419" height="268" key="GridCell.Tab.1.left" timestamp="1580786975290">
       <screen x="0" y="23" width="1440" height="836" />
     </state>
-    <state width="1419" height="268" key="GridCell.Tab.1.left/0.23.1440.836@0.23.1440.836" timestamp="1580610405282" />
-    <state width="1419" height="268" key="GridCell.Tab.1.right" timestamp="1580610405282">
+    <state width="1419" height="268" key="GridCell.Tab.1.left/0.23.1440.836@0.23.1440.836" timestamp="1580786975290" />
+    <state width="1419" height="268" key="GridCell.Tab.1.right" timestamp="1580786975292">
       <screen x="0" y="23" width="1440" height="836" />
     </state>
-    <state width="1419" height="268" key="GridCell.Tab.1.right/0.23.1440.836@0.23.1440.836" timestamp="1580610405282" />
+    <state width="1419" height="268" key="GridCell.Tab.1.right/0.23.1440.836@0.23.1440.836" timestamp="1580786975292" />
     <state x="229" y="80" key="SettingsEditor" timestamp="1580610123068">
       <screen x="0" y="23" width="1440" height="836" />
     </state>
@@ -236,6 +157,10 @@
       <screen x="0" y="23" width="1440" height="836" />
     </state>
     <state width="720" height="417" key="XDebugger.FullValuePopup/0.23.1440.836@0.23.1440.836" timestamp="1580584300118" />
+    <state x="399" y="273" key="com.intellij.ide.util.TipDialog" timestamp="1580799621511">
+      <screen x="0" y="23" width="1440" height="836" />
+    </state>
+    <state x="399" y="273" key="com.intellij.ide.util.TipDialog/0.23.1440.836@0.23.1440.836" timestamp="1580799621511" />
     <state x="515" y="128" key="com.intellij.openapi.editor.actions.MultiplePasteAction$ClipboardContentChooser" timestamp="1580582281665">
       <screen x="0" y="23" width="1440" height="836" />
     </state>

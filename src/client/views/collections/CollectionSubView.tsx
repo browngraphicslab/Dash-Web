@@ -43,6 +43,7 @@ export interface SubCollectionViewProps extends CollectionViewProps {
     children?: never | (() => JSX.Element[]) | React.ReactNode;
     isAnnotationOverlay?: boolean;
     annotationsKey: string;
+    layoutEngine?: () => string;
 }
 
 export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
@@ -127,11 +128,15 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             const filteredDocs = docFilters.length ? viewedDocs.filter(d => {
                 for (const key of Object.keys(clusters)) {
                     const cluster = clusters[key];
+                    const satisfiesFacetx = !Object.keys(cluster).some((inner) => {
+                        const modifier = cluster[inner];
+                        return ((modifier === "x") === Doc.matchFieldValue(d, key, inner));
+                    });
                     const satisfiesFacet = Object.keys(cluster).some(inner => {
                         const modifier = cluster[inner];
                         return (modifier === "x") !== Doc.matchFieldValue(d, key, inner);
                     });
-                    if (!satisfiesFacet) {
+                    if (!satisfiesFacet || !satisfiesFacetx) {
                         return false;
                     }
                 }
@@ -254,7 +259,12 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 const img = tags[0].startsWith("img") ? tags[0] : tags.length > 1 && tags[1].startsWith("img") ? tags[1] : "";
                 if (img) {
                     const split = img.split("src=\"")[1].split("\"")[0];
-                    const doc = Docs.Create.ImageDocument(split, { ...options, _width: 300 });
+                    let source = split;
+                    if (split.startsWith("data:image") && split.includes("base64")) {
+                        const [{ clientAccessPath }] = await Networking.PostToServer("/uploadRemoteImage", { sources: [split] });
+                        source = Utils.prepend(clientAccessPath);
+                    }
+                    const doc = Docs.Create.ImageDocument(source, { ...options, _width: 300 });
                     ImageUtils.ExtractExif(doc);
                     this.props.addDocument(doc);
                     return;

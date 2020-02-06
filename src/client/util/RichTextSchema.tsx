@@ -22,6 +22,7 @@ import { ObjectField } from "../../new_fields/ObjectField";
 import { ComputedField } from "../../new_fields/ScriptField";
 import { observer } from "mobx-react";
 import { Id } from "../../new_fields/FieldSymbols";
+import { OnChangeHandler } from "react-color/lib/components/common/ColorWrap";
 
 const blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
     preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], brDOM: DOMOutputSpecArray = ["br"], ulDOM: DOMOutputSpecArray = ["ul", 0];
@@ -766,8 +767,8 @@ export class DashDocView {
             if (!(dashDoc instanceof Doc)) {
                 alias && DocServer.GetRefField(docid).then(async dashDocBase => {
                     if (dashDocBase instanceof Doc) {
-                        const aliasedDoc = Doc.MakeDelegate(dashDocBase, docid + alias);
-                        aliasedDoc.layoutKey = "layout_" + node.attrs.fieldKey;
+                        const aliasedDoc = Doc.MakeAlias(dashDocBase, docid + alias);
+                        aliasedDoc.layoutKey = "layout" + (node.attrs.fieldKey ? "_" + node.attrs.fieldKey : "");
                         self.doRender(aliasedDoc, removeDoc, node, view, getPos);
                     }
                 });
@@ -809,10 +810,10 @@ export class DashDocView {
                     finalLayout._textTemplate = ComputedField.MakeFunction(`copyField(this.${finalKey})`, { this: Doc.name });
                 }
             }
-            this._reactionDisposer && this._reactionDisposer();
+            this._reactionDisposer?.();
             this._reactionDisposer = reaction(() => [finalLayout[WidthSym](), finalLayout[HeightSym]()], (dim) => {
-                this._dashSpan.style.width = this._outer.style.width = dim[0] + "px";
-                this._dashSpan.style.height = this._outer.style.height = dim[1] + "px";
+                this._dashSpan.style.width = this._outer.style.width = Math.max(20, dim[0]) + "px";
+                this._dashSpan.style.height = this._outer.style.height = Math.max(20, dim[1]) + "px";
             }, { fireImmediately: true });
             ReactDOM.render(<DocumentView
                 Document={finalLayout}
@@ -850,22 +851,48 @@ export class DashDocView {
 export class DashFieldView {
     _fieldWrapper: HTMLDivElement;
     _labelSpan: HTMLSpanElement;
-    _fieldSpan: HTMLSpanElement;
+    _fieldSpan: HTMLDivElement;
     _reactionDisposer: IReactionDisposer | undefined;
     _textBoxDoc: Doc;
     @observable _dashDoc: Doc | undefined;
+    _fieldKey: string;
 
     constructor(node: any, view: any, getPos: any, tbox: FormattedTextBox) {
+        this._fieldKey = node.attrs.fieldKey;
         this._textBoxDoc = tbox.props.Document;
         this._fieldWrapper = document.createElement("div");
         this._fieldWrapper.style.width = node.attrs.width;
         this._fieldWrapper.style.height = node.attrs.height;
         this._fieldWrapper.style.position = "relative";
-        this._fieldWrapper.style.display = "inline";
+        this._fieldWrapper.style.display = "inline-block";
 
-        this._fieldSpan = document.createElement("span");
+        this._fieldSpan = document.createElement("div");
+        this._fieldSpan.id = Utils.GenerateGuid();
+        this._fieldSpan.contentEditable = "true";
         this._fieldSpan.style.position = "relative";
-        this._fieldSpan.style.display = "inline";
+        this._fieldSpan.style.display = "inline-block";
+        this._fieldSpan.style.minWidth = "50px";
+        this._fieldSpan.style.backgroundColor = "rgba(155, 155, 155, 0.24)";
+        this._fieldSpan.addEventListener("input", this.onchanged);
+        this._fieldSpan.onkeypress = function (e: any) { e.stopPropagation(); };
+        this._fieldSpan.onkeyup = function (e: any) { e.stopPropagation(); };
+        this._fieldSpan.onmousedown = function (e: any) {
+            console.log(e);
+            e.stopPropagation();
+        };
+        const self = this;
+        this._fieldSpan.onkeydown = function (e: any) {
+            e.stopPropagation();
+            if ((e.key === "a" && e.ctrlKey) || (e.key === "a" && e.metaKey)) {
+                if (window.getSelection) {
+                    var range = document.createRange();
+                    range.selectNodeContents(self._fieldSpan);
+                    window.getSelection()!.removeAllRanges();
+                    window.getSelection()!.addRange(range);
+                }
+                e.preventDefault();
+            }
+        };
 
         this._labelSpan = document.createElement("span");
         this._labelSpan.style.position = "relative";
@@ -880,15 +907,22 @@ export class DashFieldView {
             this._dashDoc = tbox.props.DataDoc || tbox.dataDoc;
         }
         this._reactionDisposer?.();
-        this._reactionDisposer = reaction(() => this._dashDoc?.[node.attrs.fieldKey], fval => this._fieldSpan.innerHTML = Field.toString(fval as Field), { fireImmediately: true });
+        this._reactionDisposer = reaction(() => this._dashDoc?.[node.attrs.fieldKey], fval => this._fieldSpan.innerHTML = Field.toString(fval as Field) || "(null)", { fireImmediately: true });
 
         this._fieldWrapper.appendChild(this._labelSpan);
         this._fieldWrapper.appendChild(this._fieldSpan);
         (this as any).dom = this._fieldWrapper;
     }
+    onchanged = () => {
+        this._reactionDisposer?.();
+        this._dashDoc![this._fieldKey] = this._fieldSpan.innerText;
+        this._reactionDisposer = reaction(() => this._dashDoc?.[this._fieldKey], fval => this._fieldSpan.innerHTML = Field.toString(fval as Field) || "(null)");
+
+    }
     destroy() {
         this._reactionDisposer?.();
     }
+    selectNode() { }
 }
 
 export class OrderedListView {

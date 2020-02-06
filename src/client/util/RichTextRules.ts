@@ -72,36 +72,42 @@ export const inpRules = {
                 return state.tr.deleteRange(start, end).addStoredMark(schema.marks.pFontSize.create({ fontSize: size }));
             }),
 
-        // create a text display of a metadata field on this or another document, or create a hyperlink portal to another document
+        // create a text display of a metadata field on this or another document, or create a hyperlink portal to another document [[ <fieldKey> : <Doc>]]   // [[:Doc]] => hyperlink   [[fieldKey]] => show field   [[fieldKey:Doc]] => show field of doc
         new InputRule(
             new RegExp(/\[\[([a-zA-Z_ \-0-9]*)(:[a-zA-Z_ \-0-9]+)?\]\]$/),
             (state, match, start, end) => {
-                if (!match[2]) {
-                    const docId = match[1];
-                    DocServer.GetRefField(docId).then(docx => {
-                        const target = ((docx instanceof Doc) && docx) || Docs.Create.FreeformDocument([], { title: docId, _width: 500, _height: 500, _LODdisable: true, }, docId);
-                        DocUtils.Publish(target, docId, returnFalse, returnFalse);
-                        DocUtils.MakeLink({ doc: (schema as any).Document }, { doc: target }, "portal link", "");
-                    });
-                    const link = state.schema.marks.link.create({ href: Utils.prepend("/doc/" + docId), location: "onRight", title: docId, targetId: docId });
-                    return state.tr.deleteRange(end - 1, end).deleteRange(start, start + 2).addMark(start, end - 3, link);
+                const fieldKey = match[1];
+                const docid = match[2]?.substring(1);
+                if (!fieldKey) {
+                    if (docid) {
+                        DocServer.GetRefField(docid).then(docx => {
+                            const target = ((docx instanceof Doc) && docx) || Docs.Create.FreeformDocument([], { title: docid, _width: 500, _height: 500, _LODdisable: true, }, docid);
+                            DocUtils.Publish(target, docid, returnFalse, returnFalse);
+                            DocUtils.MakeLink({ doc: (schema as any).Document }, { doc: target }, "portal link", "");
+                        });
+                        const link = state.schema.marks.link.create({ href: Utils.prepend("/doc/" + docid), location: "onRight", title: docid, targetId: docid });
+                        return state.tr.deleteRange(end - 1, end).deleteRange(start, start + 2).addMark(start, end - 3, link);
+                    }
+                    return state.tr;
                 }
-                const fieldView = state.schema.nodes.dashField.create({ fieldKey: match[2]?.substring(1), docid: match[1] });
+                const fieldView = state.schema.nodes.dashField.create({ fieldKey, docid });
                 return state.tr.deleteRange(start, end).insert(start, fieldView);
             }),
-        // create a text display of a metadata field on this or another document, or create a hyperlink portal to another document
+        // create an inline view of a document {{ <layoutKey> : <Doc> }}  // {{:Doc}} => show default view of document   {{<layout>}} => show layout for this doc   {{<layout> : Doc}} => show layout for another doc
         new InputRule(
             new RegExp(/\{\{([a-zA-Z_ \-0-9]*)(:[a-zA-Z_ \-0-9]+)?\}\}$/),
             (state, match, start, end) => {
-                const docId = match[1];
-                DocServer.GetRefField(docId).then(docx => {
+                const fieldKey = match[1];
+                const docid = match[2]?.substring(1);
+                if (!fieldKey && !docid) return state.tr;
+                docid && DocServer.GetRefField(docid).then(docx => {
                     if (!(docx instanceof Doc && docx)) {
-                        const docx = Docs.Create.FreeformDocument([], { title: docId, _width: 500, _height: 500, _LODdisable: true }, docId);
-                        DocUtils.Publish(docx, docId, returnFalse, returnFalse);
+                        const docx = Docs.Create.FreeformDocument([], { title: docid, _width: 500, _height: 500, _LODdisable: true }, docid);
+                        DocUtils.Publish(docx, docid, returnFalse, returnFalse);
                     }
                 });
                 const node = (state.doc.resolve(start) as any).nodeAfter;
-                const dashDoc = schema.nodes.dashDoc.create({ width: 75, height: 75, title: "dashDoc", docid: docId, float: "right", fieldKey: match[2]?.substring(1), alias: Utils.GenerateGuid() });
+                const dashDoc = schema.nodes.dashDoc.create({ width: 75, height: 75, title: "dashDoc", docid, fieldKey, float: "right", alias: Utils.GenerateGuid() });
                 const sm = state.storedMarks || undefined;
                 return node ? state.tr.replaceRangeWith(start, end, dashDoc).setStoredMarks([...node.marks, ...(sm ? sm : [])]) : state.tr;
             }),

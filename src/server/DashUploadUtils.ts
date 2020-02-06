@@ -1,4 +1,4 @@
-import { unlinkSync, createWriteStream, readFileSync, rename } from 'fs';
+import { unlinkSync, createWriteStream, readFileSync, rename, writeFile } from 'fs';
 import { Utils } from '../Utils';
 import * as path from 'path';
 import * as sharp from 'sharp';
@@ -127,9 +127,12 @@ export namespace DashUploadUtils {
      * 3) the size of the image, in bytes (4432130)
      * 4) the content type of the image, i.e. image/(jpeg | png | ...)
      */
-    export const UploadImage = async (source: string, filename?: string, format?: string, prefix: string = ""): Promise<ImageUploadInformation> => {
+    export const UploadImage = async (source: string, filename?: string, format?: string, prefix: string = ""): Promise<ImageUploadInformation | Error> => {
         const metadata = await InspectImage(source);
-        return UploadInspectedImage(metadata, filename, format, prefix);
+        if (metadata instanceof Error) {
+            return metadata;
+        }
+        return UploadInspectedImage(metadata, filename || metadata.filename, format, prefix);
     };
 
     export interface InspectionResults {
@@ -140,6 +143,7 @@ export namespace DashUploadUtils {
         contentType: string;
         nativeWidth: number;
         nativeHeight: number;
+        filename?: string;
     }
 
     export interface EnrichedExifData {
@@ -164,7 +168,20 @@ export namespace DashUploadUtils {
      * 
      * @param source is the path or url to the image in question
      */
-    export const InspectImage = async (source: string): Promise<InspectionResults> => {
+    export const InspectImage = async (source: string): Promise<InspectionResults | Error> => {
+        let rawMatches: RegExpExecArray | null;
+        let filename: string | undefined;
+        if ((rawMatches = /^data:image\/([a-z]+);base64,(.*)/.exec(source)) !== null) {
+            const [ext, data] = rawMatches.slice(1, 3);
+            const resolved = filename = `upload_${Utils.GenerateGuid()}.${ext}`;
+            const error = await new Promise<Error | null>(resolve => {
+                writeFile(serverPathToFile(Directory.images, resolved), data, "base64", resolve);
+            });
+            if (error !== null) {
+                return error;
+            }
+            source = `http://localhost:1050${clientPathToFile(Directory.images, resolved)}`;
+        }
         let resolvedUrl: string;
         const matches = isLocal().exec(source);
         if (matches === null) {
@@ -187,6 +204,7 @@ export namespace DashUploadUtils {
             contentType: headers[type],
             nativeWidth,
             nativeHeight,
+            filename,
             ...results
         };
     };
