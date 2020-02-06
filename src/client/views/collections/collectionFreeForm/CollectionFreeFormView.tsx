@@ -42,6 +42,7 @@ import { computedFn } from "mobx-utils";
 import { TraceMobx } from "../../../../new_fields/util";
 import { GestureUtils } from "../../../../pen-gestures/GestureUtils";
 import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
+import { CollectionDockingView } from "../CollectionDockingView";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
@@ -74,6 +75,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private _hitCluster = false;
     private _layoutComputeReaction: IReactionDisposer | undefined;
     private _layoutPoolData = observable.map<string, any>();
+    private _pullDistance: number = -1;
 
     public get displayName() { return "CollectionFreeFormView(" + this.props.Document.title?.toString() + ")"; } // this makes mobx trace() statements more descriptive
     @observable.shallow _layoutElements: ViewDefResult[] = []; // shallow because some layout items (eg pivot labels) are just generated 'divs' and can't be frozen as observables
@@ -546,7 +548,11 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         // use the centerx and centery as the "new mouse position"
                         const centerX = Math.min(pt1.clientX, pt2.clientX) + Math.abs(pt2.clientX - pt1.clientX) / 2;
                         const centerY = Math.min(pt1.clientY, pt2.clientY) + Math.abs(pt2.clientY - pt1.clientY) / 2;
-                        this.pan({ clientX: centerX, clientY: centerY });
+
+                        if (!this._pullDistance) { // if we are not dragging out side bar
+                            this.pan({ clientX: centerX, clientY: centerY });
+                        }
+
                         this._lastX = centerX;
                         this._lastY = centerY;
                     }
@@ -571,6 +577,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 const centerY = Math.min(pt1.clientY, pt2.clientY) + Math.abs(pt2.clientY - pt1.clientY) / 2;
                 this._lastX = centerX;
                 this._lastY = centerY;
+                if (this.props.PanelWidth() - this._lastX < 300) { // if at right border of screen
+                    this._pullDistance = this._lastX;
+                }
                 this.removeMoveListeners();
                 this.addMoveListeners();
                 this.removeEndListeners();
@@ -585,6 +594,13 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         document.removeEventListener("pointerup", this.onPointerUp);
         this.removeMoveListeners();
         this.removeEndListeners();
+
+        if (this._lastX < this._pullDistance) {  // if we've been pulling from the side
+            // possible future to-do: if doing multiple sides of pulling, figure out which side it was
+            CollectionDockingView.AddRightSplit(this.Document, undefined);
+            // open new right tab with new collection
+            this._pullDistance = 0;
+        }
     }
 
     @action
