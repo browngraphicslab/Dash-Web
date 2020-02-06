@@ -14,10 +14,6 @@
     transition: 0.7s opacity ease;
     pointer-events: all;
 
-    .presBox-listCont {
-        position: relative;
-    }
-
     .presBox-buttons {
         padding: 10px;
         width: 100%;
@@ -27,5 +23,18 @@
             width: 20%;
             border-radius: 5px;
         }
+    }
+    .presBox-backward, .presBox-forward {
+        width: 25px;
+        border-radius: 5px;
+        top:50%;
+        position: absolute;
+        display: inline-block;
+    }
+    .presBox-backward {
+        left:5;
+    }
+    .presBox-forward {
+        right:5;
     }
 }

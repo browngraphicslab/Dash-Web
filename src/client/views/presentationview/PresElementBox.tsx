@@ -54,7 +54,7 @@ export class PresElementBox extends DocExtendableComponent<FieldViewProps, PresD
     @computed get presentationDoc() { return Cast(this.originalLayout?.presBox, Doc) as Doc; }
     @computed get originalLayout() { return this.props.Document.expandedTemplate as Doc; }
     @computed get targetDoc() { return this.originalLayout?.presentationTargetDoc as Doc; }
-    @computed get currentIndex() { return NumCast(this.presentationDoc?.selectedDoc); }
+    @computed get currentIndex() { return NumCast(this.presentationDoc?._itemIndex); }
 
     componentDidMount() {
         this._heightDisposer = reaction(() => [this.originalLayout.embedOpen, this.originalLayout.collapsedHeight],

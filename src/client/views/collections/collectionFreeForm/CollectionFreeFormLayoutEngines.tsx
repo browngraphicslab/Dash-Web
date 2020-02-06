@@ -57,6 +57,21 @@ function toLabel(target: FieldResult<Field>) {
         return target[ToString]();
     }
     return String(target);
+}/**
+ * Uses canvas.measureText to compute and return the width of the given text of given font in pixels.
+ * 
+ * @param {String} text The text to be rendered.
+ * @param {String} font The css font descriptor that text is to be rendered with (e.g. "bold 14px verdana").
+ * 
+ * @see https://stackoverflow.com/questions/118241/calculate-text-width-with-javascript/21015393#21015393
+ */
+function getTextWidth(text: string, font: string): number {
+    // re-use canvas object for better performance
+    var canvas = (getTextWidth as any).canvas || ((getTextWidth as any).canvas = document.createElement("canvas"));
+    var context = canvas.getContext("2d");
+    context.font = font;
+    var metrics = context.measureText(text);
+    return metrics.width;
 }
 
 export function computePivotLayout(
@@ -69,7 +84,6 @@ export function computePivotLayout(
 ) {
     const fieldKey = "data";
     const pivotColumnGroups = new Map<FieldResult<Field>, Doc[]>();
-    const fontSize = NumCast(pivotDoc[fieldKey + "-timelineFontSize"], panelDim[1] > 58 ? 20 : Math.max(7, panelDim[1] / 3));
 
     const pivotFieldKey = toLabel(pivotDoc.pivotField);
     for (const doc of childDocs) {
@@ -91,10 +105,14 @@ export function computePivotLayout(
             }
         }
     }
+    const fontSize = NumCast(pivotDoc[fieldKey + "-timelineFontSize"], panelDim[1] > 58 ? 20 : Math.max(7, panelDim[1] / 3));
+    const desc = `${fontSize}px ${getComputedStyle(document.body).fontFamily}`;
+    const textlen = Array.from(pivotColumnGroups.keys()).map(c => getTextWidth(toLabel(c), desc)).reduce((p, c) => Math.max(p, c), 0 as number);
+    const max_text = Math.min(Math.ceil(textlen / 120) * 28, panelDim[1] / 2);
     let maxInColumn = Array.from(pivotColumnGroups.values()).reduce((p, s) => Math.max(p, s.length), 1);
 
     const colWidth = panelDim[0] / pivotColumnGroups.size;
-    const colHeight = panelDim[1];
+    const colHeight = panelDim[1] - max_text;
     let numCols = 0;
     let bestArea = 0;
     let pivotAxisWidth = 0;
@@ -103,9 +121,8 @@ export function computePivotLayout(
         const hd = colHeight / numInCol;
         const wd = colWidth / i;
         const dim = Math.min(hd, wd);
-        const area = dim * dim * i * numInCol;
-        if (area > bestArea) {
-            bestArea = area;
+        if (dim > bestArea) {
+            bestArea = dim;
             numCols = i;
             pivotAxisWidth = dim;
         }
@@ -117,13 +134,11 @@ export function computePivotLayout(
     const expander = 1.05;
     const gap = .15;
     let x = 0;
-    let max_text = 60;
     Array.from(pivotColumnGroups.keys()).sort().forEach(key => {
         const val = pivotColumnGroups.get(key)!;
         let y = 0;
         let xCount = 0;
         const text = toLabel(key);
-        max_text = Math.max(max_text, Math.min(500, text.length));
         groupNames.push({
             type: "text",
             text,
@@ -156,7 +171,7 @@ export function computePivotLayout(
         x += pivotAxisWidth * (numCols * expander + gap);
     });
 
-    const maxColHeight = pivotAxisWidth * Math.ceil(maxInColumn / numCols) + pivotAxisWidth;
+    const maxColHeight = pivotAxisWidth * expander * Math.ceil(maxInColumn / numCols);
     const dividers = Array.from(pivotColumnGroups.values()).map((pg, i) =>
         ({ type: "div", color: "lightGray", x: i * pivotAxisWidth * (numCols * expander + gap), y: -maxColHeight + pivotAxisWidth, width: pivotAxisWidth * numCols * expander, height: maxColHeight } as any));
     groupNames.push(...dividers);
