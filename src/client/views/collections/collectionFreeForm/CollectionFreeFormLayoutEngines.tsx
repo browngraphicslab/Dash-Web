@@ -192,7 +192,7 @@ export function computeTimelineLayout(
     childDocs: Doc[],
     childPairs: { layout: Doc, data?: Doc }[],
     panelDim: number[],
-    viewDefsToJSX: (views: any) => ViewDefResult[]
+    viewDefsToJSX: (views: ViewDefBounds) => ViewDefResult[]
 ) {
     const fieldKey = "data";
     const pivotDateGroups = new Map<number, Doc[]>();
@@ -274,7 +274,7 @@ export function computeTimelineLayout(
         groupNames.push({ type: "text", text: Math.ceil(maxTime).toString(), x: Math.ceil(maxTime - minTime) * scaling, y: 0, height: fontHeight, fontSize, payload: undefined });
     }
 
-    const divider = { type: "div", color: "black", x: 0, y: 0, width: panelDim[0], height: 1 } as any;
+    const divider = { type: "div", color: "black", x: 0, y: 0, width: panelDim[0], height: 1, payload: undefined };
     return normalizeResults(panelDim, fontHeight, childPairs, docMap, poolData, viewDefsToJSX, groupNames, (maxTime - minTime) * scaling, [divider]);
 
     function layoutDocsAtTime(keyDocs: Doc[], key: number) {
@@ -298,7 +298,7 @@ export function computeTimelineLayout(
 }
 
 function normalizeResults(panelDim: number[], fontHeight: number, childPairs: { data?: Doc, layout: Doc }[], docMap: Map<Doc, ViewDefBounds>,
-    poolData: Map<string, PoolData>, viewDefsToJSX: (views: any) => ViewDefResult[], groupNames: ViewDefBounds[], minWidth: number, extras: ViewDefBounds[]) {
+    poolData: Map<string, PoolData>, viewDefsToJSX: (views: ViewDefBounds) => ViewDefResult[], groupNames: ViewDefBounds[], minWidth: number, extras: ViewDefBounds[]) {
 
     const grpEles = groupNames.map(gn => ({ x: gn.x, y: gn.y, width: gn.width, height: gn.height }) as ViewDefBounds);
     const docEles = childPairs.filter(d => docMap.get(d.layout)).map(pair => docMap.get(pair.layout) as ViewDefBounds);

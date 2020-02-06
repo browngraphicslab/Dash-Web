@@ -237,7 +237,7 @@ export class CurrentUserUtils {
                 Docs.Create.MulticolumnDocument([], { title: "images", _height: 200, _xMargin: 10, _yMargin: 10 }),
                 Docs.Create.TextDocument("", { title: "contents", _height: 100 })
             ],
-            { _width: 400, _height: 300, title: "slide", _chromeStatus: "disabled", _autoHeight: true });
+            { _width: 400, _height: 300, title: "slide", _chromeStatus: "disabled", backgroundColor: "lightGray", _autoHeight: true });
         slideTemplate.isTemplateDoc = makeTemplate(slideTemplate);
 
         const iconDoc = Docs.Create.TextDocument("", { title: "icon", _width: 150, _height: 30, isTemplateDoc: true, onClick: ScriptField.MakeScript("setNativeView(this)") });

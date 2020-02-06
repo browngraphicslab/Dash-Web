@@ -441,7 +441,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             const miny = this.childDataProvider(docs[0]).y;//docs.length ? NumCast(docs[0].y) : 0;
             const maxx = this.childDataProvider(docs[0]).width + minx;//docs.length ? NumCast(docs[0].width) + minx : minx;
             const maxy = this.childDataProvider(docs[0]).height + miny;//docs.length ? NumCast(docs[0].height) + miny : miny;
-            const ranges = docs.filter(doc => doc).reduce((range, doc) => {
+            const ranges = docs.filter(doc => doc).filter(doc => this.childDataProvider(doc)).reduce((range, doc) => {
                 const x = this.childDataProvider(doc).x;//NumCast(doc.x);
                 const y = this.childDataProvider(doc).y;//NumCast(doc.y);
                 const xe = this.childDataProvider(doc).width + x;//x + NumCast(layoutDoc.width);
@@ -779,7 +779,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             const backgroundColor = Cast(viewDef.color, "string");
             return [x, y].some(val => val === undefined) ? undefined :
                 {
-                    ele: <div className="collectionFreeform-customDiv" title={viewDef.payload.join(" ")} key={"div" + x + y + z} onClick={e => this.onViewDefDivClick(e, viewDef)}
+                    ele: <div className="collectionFreeform-customDiv" title={viewDef.payload?.join(" ")} key={"div" + x + y + z} onClick={e => this.onViewDefDivClick(e, viewDef)}
                         style={{ width, height, backgroundColor, transform: `translate(${x}px, ${y}px)` }} />,
                     bounds: viewDef
                 };
