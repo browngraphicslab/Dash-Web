@@ -85,7 +85,7 @@ export function computePivotLayout(
     const fieldKey = "data";
     const pivotColumnGroups = new Map<FieldResult<Field>, Doc[]>();
 
-    const pivotFieldKey = toLabel(pivotDoc.pivotField);
+    const pivotFieldKey = toLabel(pivotDoc._pivotField);
     for (const doc of childDocs) {
         const val = Field.toString(doc[pivotFieldKey] as Field);
         if (val) {
@@ -191,7 +191,7 @@ export function computeTimelineLayout(
     const pivotDateGroups = new Map<number, Doc[]>();
     const docMap = new Map<Doc, ViewDefBounds>();
     const groupNames: PivotData[] = [];
-    const timelineFieldKey = Field.toString(pivotDoc.pivotField as Field);
+    const timelineFieldKey = Field.toString(pivotDoc._pivotField as Field);
     const curTime = Cast(pivotDoc[fieldKey + "-timelineCur"], "number", null);
     const curTimeSpan = Cast(pivotDoc[fieldKey + "-timelineSpan"], "number", null);
     const minTimeReq = curTime === undefined ? Cast(pivotDoc[fieldKey + "-timelineMinReq"], "number", null) : curTimeSpan && (curTime - curTimeSpan);

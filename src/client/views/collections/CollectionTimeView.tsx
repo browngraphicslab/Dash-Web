@@ -115,8 +115,8 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
             typeof (pair.layout[fieldKey]) === "number" ||
             typeof (pair.layout[fieldKey]) === "string").map(fieldKey => keySet.add(fieldKey)));
         keySet.toArray().map(fieldKey =>
-            docItems.push({ description: ":" + fieldKey, event: () => this.props.Document.pivotField = fieldKey, icon: "compress-arrows-alt" }));
-        docItems.push({ description: ":(null)", event: () => this.props.Document.pivotField = undefined, icon: "compress-arrows-alt" })
+            docItems.push({ description: ":" + fieldKey, event: () => this.props.Document._pivotField = fieldKey, icon: "compress-arrows-alt" }));
+        docItems.push({ description: ":(null)", event: () => this.props.Document._pivotField = undefined, icon: "compress-arrows-alt" })
         ContextMenu.Instance.addItem({ description: "Pivot Fields ...", subitems: docItems, icon: "eye" });
         const pt = this.props.ScreenToLocalTransform().inverse().transformPoint(x, y);
         ContextMenu.Instance.displayMenu(x, y, ":");
@@ -226,17 +226,18 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
         </div>;
     }
 
+    public static SyncTimelineToPresentation(doc: Doc) {
+        const fieldKey = Doc.LayoutFieldKey(doc);
+        doc[fieldKey + "-timelineCur"] = ComputedField.MakeFunction("(curPresentationItem()[this._pivotField || 'year'] || 0)");
+    }
     specificMenu = (e: React.MouseEvent) => {
         const layoutItems: ContextMenuProps[] = [];
+        const doc = this.props.Document;
 
-        layoutItems.push({ description: "Force Timeline", event: () => { this.props.Document._forceRenderEngine = "timeline" }, icon: "compress-arrows-alt" });
-        layoutItems.push({ description: "Force Pivot", event: () => { this.props.Document._forceRenderEngine = "pivot" }, icon: "compress-arrows-alt" });
-        layoutItems.push({ description: "Auto Time/Pivot layout", event: () => { this.props.Document._forceRenderEngine = undefined }, icon: "compress-arrows-alt" });
-        layoutItems.push({
-            description: "Sync with presentation", event: () => {
-                this.props.Document[this.props.fieldKey + "-timelineCur"] = ComputedField.MakeFunction("mainPres.curPresentation.data[mainPres.curPresentation._itemIndex].year || 0", { mainPres: Doc.name }, { mainPres: CurrentUserUtils.UserDocument });
-            }, icon: "compress-arrows-alt"
-        });
+        layoutItems.push({ description: "Force Timeline", event: () => { doc._forceRenderEngine = "timeline" }, icon: "compress-arrows-alt" });
+        layoutItems.push({ description: "Force Pivot", event: () => { doc._forceRenderEngine = "pivot" }, icon: "compress-arrows-alt" });
+        layoutItems.push({ description: "Auto Time/Pivot layout", event: () => { doc._forceRenderEngine = undefined }, icon: "compress-arrows-alt" });
+        layoutItems.push({ description: "Sync with presentation", event: () => CollectionTimeView.SyncTimelineToPresentation(doc), icon: "compress-arrows-alt" });
 
         ContextMenu.Instance.addItem({ description: "Pivot/Time Options ...", subitems: layoutItems, icon: "eye" });
     }
@@ -246,20 +247,20 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
             GetValue: () => "",
             SetValue: (value: any) => {
                 if (value?.length) {
-                    this.props.Document.pivotField = value;
+                    this.props.Document._pivotField = value;
                     return true;
                 }
                 return false;
             },
             showMenuOnLoad: true,
-            contents: ":" + StrCast(this.props.Document.pivotField),
+            contents: ":" + StrCast(this.props.Document._pivotField),
             toggle: this.toggleVisibility,
             color: "#f1efeb" // this.props.headingObject ? this.props.headingObject.color : "#f1efeb";
         };
 
         let nonNumbers = 0;
         this.childDocs.map(doc => {
-            const num = NumCast(doc[StrCast(this.props.Document.pivotField)], Number(StrCast(doc[StrCast(this.props.Document.pivotField)])));
+            const num = NumCast(doc[StrCast(this.props.Document._pivotField)], Number(StrCast(doc[StrCast(this.props.Document._pivotField)])));
             if (Number.isNaN(num)) {
                 nonNumbers++;
             }

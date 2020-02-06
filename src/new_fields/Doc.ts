@@ -17,6 +17,7 @@ import { intersectRect } from "../Utils";
 import { UndoManager } from "../client/util/UndoManager";
 import { computedFn } from "mobx-utils";
 import { RichTextField } from "./RichTextField";
+import { Script } from "vm";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -805,6 +806,10 @@ Scripting.addGlobal(function sameDocs(doc1: any, doc2: any) { return Doc.AreProt
 Scripting.addGlobal(function setNativeView(doc: any) { Doc.setNativeView(doc); });
 Scripting.addGlobal(function undo() { return UndoManager.Undo(); });
 Scripting.addGlobal(function redo() { return UndoManager.Redo(); });
+Scripting.addGlobal(function curPresentationItem() {
+    const curPres = Doc.UserDoc().curPresentation as Doc;
+    return curPres && DocListCast(curPres[Doc.LayoutFieldKey(curPres)])[NumCast(curPres._itemIndex)];
+})
 Scripting.addGlobal(function selectDoc(doc: any) { Doc.UserDoc().SelectedDocs = new List([doc]); });
 Scripting.addGlobal(function selectedDocs(container: Doc, excludeCollections: boolean, prevValue: any) {
     const docs = DocListCast(Doc.UserDoc().SelectedDocs).filter(d => !Doc.AreProtosEqual(d, container) && !d.annotationOn && d.type !== DocumentType.DOCUMENT && d.type !== DocumentType.KVP && (!excludeCollections || !Cast(d.data, listSpec(Doc), null)));
