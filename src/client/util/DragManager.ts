@@ -15,7 +15,7 @@ import { listSpec } from "../../new_fields/Schema";
 import { Scripting } from "./Scripting";
 import { convertDropDataToButtons } from "./DropConverter";
 
-export type dropActionType = "alias" | "copy" | undefined;
+export type dropActionType = "alias" | "copy" | "move" | undefined;
 export function SetupDrag(
     _reference: React.RefObject<HTMLElement>,
     docFunc: () => Doc | Promise<Doc> | undefined,
@@ -197,7 +197,10 @@ export namespace DragManager {
                         dragData.userDropAction === "copy" || (!dragData.userDropAction && dragData.dropAction === "copy") ? Doc.MakeCopy(d, true) : d)
             );
             e.docDragData?.droppedDocuments.forEach((drop: Doc, i: number) =>
-                Cast(dragData.draggedDocuments[i].removeDropProperties, listSpec("string"), []).map(prop => drop[prop] = undefined));
+                Cast(dragData.draggedDocuments[i].removeDropProperties, listSpec("string"), []).map(prop => {
+                    drop[prop] = "move";
+                })
+            );
         };
         dragData.draggedDocuments.map(d => d.dragFactory); // does this help?  trying to make sure the dragFactory Doc is loaded
         StartDrag(eles, dragData, downX, downY, options, finishDrag);

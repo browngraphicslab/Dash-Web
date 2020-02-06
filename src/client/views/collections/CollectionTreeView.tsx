@@ -660,18 +660,16 @@ export class CollectionTreeView extends CollectionSubView(Document) {
                 heroView.proto!.layout = ImageBox.LayoutString("hero");
                 heroView.showTitle = "title";
                 heroView.showTitleHover = "titlehover";
-                heroView._dropAction = "alias";
-                heroView.removeDropProperties = new List<string>(["dropAction"]);
 
                 Doc.AddDocToList(CurrentUserUtils.UserDocument.expandingButtons as Doc, "data",
                     Docs.Create.FontIconDocument({
-                        _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, _dropAction: "alias", onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
+                        _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, dropAction: "alias", onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
                         dragFactory: heroView, removeDropProperties: new List<string>(["dropAction"]), title: "hero view", icon: "portrait"
                     }));
 
                 Doc.AddDocToList(CurrentUserUtils.UserDocument.expandingButtons as Doc, "data",
                     Docs.Create.FontIconDocument({
-                        _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, _dropAction: "alias", onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
+                        _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, dropAction: "alias", onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
                         dragFactory: detailView, removeDropProperties: new List<string>(["dropAction"]), title: "detail view", icon: "file-alt"
                     }));
 
@@ -680,6 +678,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
                 Document.childDetailed = detailView;
                 Document._viewType = CollectionViewType.Time;
                 Document._forceActive = true;
+                Document.childDropAction = "alias";
                 Document.pivotField = "company";
             }
         });
@@ -704,7 +703,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
     }
 
     render() {
-        const dropAction = StrCast(this.props.Document._dropAction) as dropActionType;
+        const dropAction = StrCast(this.props.Document.dropAction) as dropActionType;
         const addDoc = (doc: Doc, relativeTo?: Doc, before?: boolean) => Doc.AddDocToList(this.props.Document, this.props.fieldKey, doc, relativeTo, before, false, false, false);
         const moveDoc = (d: Doc, target: Doc | undefined, addDoc: (doc: Doc) => boolean) => this.props.moveDocument(d, target, addDoc);
         return !this.childDocs ? (null) : (

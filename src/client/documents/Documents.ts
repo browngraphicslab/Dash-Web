@@ -67,7 +67,7 @@ export interface DocumentOptions {
     _fitWidth?: boolean;
     _fitToBox?: boolean; // whether a freeformview should zoom/scale to create a shrinkwrapped view of its contents
     _LODdisable?: boolean;
-    _dropAction?: dropActionType;
+    dropAction?: dropActionType;
     _chromeStatus?: string;
     _viewType?: number;
     _gridGap?: number; // gap between items in masonry view
@@ -340,7 +340,7 @@ export namespace Docs {
      */
     export namespace Create {
 
-        const delegateKeys = ["x", "y", "layoutKey", "_width", "_height", "_panX", "_panY", "_viewType", "_nativeWidth", "_nativeHeight", "_dropAction", "_annotationOn",
+        const delegateKeys = ["x", "y", "layoutKey", "_width", "_height", "_panX", "_panY", "_viewType", "_nativeWidth", "_nativeHeight", "dropAction", "_annotationOn",
             "_chromeStatus", "_forceActive", "_autoHeight", "_fitWidth", "_LODdisable", "_itemIndex", "_showSidebar", "showTitle"];
 
         /**
@@ -745,7 +745,7 @@ export namespace Docs {
             }
             if (type.indexOf("excel") !== -1) {
                 ctor = Docs.Create.DBDocument;
-                options._dropAction = "copy";
+                options.dropAction = "copy";
             }
             if (type.indexOf("html") !== -1) {
                 if (path.includes(window.location.hostname)) {
