@@ -218,6 +218,10 @@ export namespace DocServer {
         return apiKey;
     }
 
+    export async function analyzeImage(image: string, callback: (result: any) => void) {
+        Utils.EmitCallback(_socket, MessageStore.AnalyzeInk, image, callback);
+    }
+
     export function getYoutubeVideos(videoTitle: string, callBack: (videos: any[]) => void) {
         Utils.EmitCallback(_socket, MessageStore.YoutubeApiQuery, { type: YoutubeQueryTypes.SearchVideo, userInput: videoTitle }, callBack);
     }

@@ -1,12 +1,12 @@
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast } from "../../../../new_fields/Doc";
+import { Doc, DocListCast, DataSym, WidthSym, HeightSym } from "../../../../new_fields/Doc";
 import { InkField } from "../../../../new_fields/InkField";
 import { List } from "../../../../new_fields/List";
 import { listSpec } from "../../../../new_fields/Schema";
 import { SchemaHeaderField } from "../../../../new_fields/SchemaHeaderField";
 import { ComputedField } from "../../../../new_fields/ScriptField";
-import { Cast, NumCast, StrCast } from "../../../../new_fields/Types";
+import { Cast, NumCast, StrCast, FieldValue } from "../../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../../server/authentication/models/current_user_utils";
 import { Utils } from "../../../../Utils";
 import { Docs } from "../../../documents/Documents";
@@ -19,6 +19,7 @@ import "./MarqueeView.scss";
 import React = require("react");
 import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
 import { SubCollectionViewProps } from "../CollectionSubView";
+import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -204,6 +205,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             MarqueeOptionsMenu.Instance.createCollection = this.collection;
             MarqueeOptionsMenu.Instance.delete = this.delete;
             MarqueeOptionsMenu.Instance.summarize = this.summary;
+            MarqueeOptionsMenu.Instance.inkToText = this.syntaxHighlight;
             MarqueeOptionsMenu.Instance.showMarquee = this.showMarquee;
             MarqueeOptionsMenu.Instance.hideMarquee = this.hideMarquee;
             MarqueeOptionsMenu.Instance.jumpTo(e.clientX, e.clientY);
@@ -359,6 +361,29 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         this.props.selectDocuments([newCollection], []);
         MarqueeOptionsMenu.Instance.fadeOut(true);
         this.hideMarquee();
+    }
+
+    @action
+    syntaxHighlight = (e: KeyboardEvent | React.PointerEvent | undefined) => {
+        const selected = this.marqueeSelect(false);
+        if (e instanceof KeyboardEvent ? e.key === "i" : true) {
+            const inks = selected.filter(s => s.proto?.type === "ink");
+            const sets = selected.filter(s => s.proto?.type === "text")
+            const inkFields = inks.map(i => FieldValue(Cast(i.data, InkField)));
+            CognitiveServices.Inking.Appliers.InterpretStrokes(inkFields.filter(i => i instanceof InkField).map(i => i!.inkData)).then((results) => {
+                const wordResults = results.filter((r: any) => r.category === "inkWord");
+                console.log(wordResults);
+                for (const word of wordResults) {
+                    const indices: number[] = word.strokeIds;
+                    const r = Math.floor(Math.random() * 256);
+                    const g = Math.floor(Math.random() * 256);
+                    const b = Math.floor(Math.random() * 256);
+                    indices.forEach(i => {
+                        inks[i].color = `rgb(${r}, ${g}, ${b})`;
+                    })
+                }
+            });
+        }
     }
 
     @action

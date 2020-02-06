@@ -13,6 +13,35 @@
     height: 300px;
 }
 
+.inkToTextDoc-cont {
+    position: absolute;
+    width: 300px;
+    overflow: hidden;
+    pointer-events: none;
+
+    .inkToTextDoc-scroller {
+        overflow: visible;
+        position: absolute;
+        width: 100%;
+
+        .menuItem-cont {
+            width: 100%;
+            height: 20px;
+            padding: 2.5px;
+            border-bottom: .5px solid black;
+        }
+    }
+
+    .shadow {
+        width: 100%;
+        height: calc(100% - 25px);
+        position: absolute;
+        top: 25px;
+        background-color: black;
+        opacity: 0.2;
+    }
+}
+
 .filter-cont {
     position: absolute;
     background-color: transparent;

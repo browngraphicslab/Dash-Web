@@ -92,7 +92,6 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
         if (!InteractionUtils.IsDragging(this.prevPoints, myTouches, 5) && !this._touchDrag) return;
         this._touchDrag = true;
         if (this.holdTimer) {
-            console.log("CLEAR");
             clearTimeout(this.holdTimer);
             // this.holdTimer = undefined;
         }
@@ -129,7 +128,6 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
         }
         if (this.holdTimer) {
             clearTimeout(this.holdTimer);
-            console.log("clear");
         }
         this._touchDrag = false;
         te.stopPropagation();

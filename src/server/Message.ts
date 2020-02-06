@@ -1,4 +1,5 @@
 import { Utils } from "../Utils";
+import { Image } from "canvas";
 
 export class Message<T> {
     private _name: string;
@@ -59,4 +60,5 @@ export namespace MessageStore {
     export const YoutubeApiQuery = new Message<YoutubeQueryInput>("Youtube Api Query");
     export const DeleteField = new Message<string>("Delete field");
     export const DeleteFields = new Message<string[]>("Delete fields");
+    export const AnalyzeInk = new Message<string>("Analyze Ink");
 }

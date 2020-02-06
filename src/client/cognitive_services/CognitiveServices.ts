@@ -47,7 +47,8 @@ export namespace CognitiveServices {
         let results: any;
         try {
             results = await manager.requester(apiKey, manager.converter(data), service).then(json => JSON.parse(json));
-        } catch {
+        } catch (e) {
+            throw e;
             results = undefined;
         }
         return results;
@@ -193,6 +194,13 @@ export namespace CognitiveServices {
                 batch.end();
             };
 
+            export const InterpretStrokes = async (strokes: InkData[]) => {
+                let results = await ExecuteQuery(Service.Handwriting, Manager, strokes);
+                if (results) {
+                    results.recognitionUnits && (results = results.recognitionUnits);
+                }
+                return results;
+            }
         }
 
         export interface AzureStrokeData {

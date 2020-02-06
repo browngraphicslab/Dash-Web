@@ -138,6 +138,8 @@ export interface DocumentOptions {
     isExpanded?: boolean; // is linear view expanded
     textTransform?: string; // is linear view expanded
     letterSpacing?: string; // is linear view expanded
+    flexDirection?: "unset" | "row" | "column" | "row-reverse" | "column-reverse";
+    selectedIndex?: number;
 }
 
 class EmptyBox {

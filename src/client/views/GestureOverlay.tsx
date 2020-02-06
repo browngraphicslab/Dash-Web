@@ -2,32 +2,59 @@ import React = require("react");
 import { Touchable } from "./Touchable";
 import { observer } from "mobx-react";
 import "./GestureOverlay.scss";
-import { computed, observable, action, runInAction } from "mobx";
-// import { CreatePolyline } from "./InkingStroke";
+import { computed, observable, action, runInAction, IReactionDisposer, reaction, flow, trace } from "mobx";
 import { GestureUtils } from "../../pen-gestures/GestureUtils";
 import { InteractionUtils } from "../util/InteractionUtils";
 import { InkingControl } from "./InkingControl";
-import { InkTool } from "../../new_fields/InkField";
+import { InkTool, InkData } from "../../new_fields/InkField";
 import { Doc } from "../../new_fields/Doc";
 import { LinkManager } from "../util/LinkManager";
-import { DocUtils } from "../documents/Documents";
+import { DocUtils, Docs } from "../documents/Documents";
 import { undoBatch } from "../util/UndoManager";
 import { Scripting } from "../util/Scripting";
 import { FieldValue, Cast, NumCast } from "../../new_fields/Types";
 import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
-import Palette from "./Palette";
-import { Utils } from "../../Utils";
+import HorizontalPalette from "./Palette";
+import { Utils, emptyPath, emptyFunction, returnFalse, returnOne, returnEmptyString, returnTrue, numberRange } from "../../Utils";
+import { DocumentView } from "./nodes/DocumentView";
+import { Transform } from "../util/Transform";
+import { DocumentContentsView } from "./nodes/DocumentContentsView";
+import { CognitiveServices } from "../cognitive_services/CognitiveServices";
+import { DocServer } from "../DocServer";
+import htmlToImage from "html-to-image";
+import { ScriptField } from "../../new_fields/ScriptField";
+import { listSpec } from "../../new_fields/Schema";
+import { List } from "../../new_fields/List";
+import { CollectionViewType } from "./collections/CollectionView";
+import TouchScrollableMenu, { TouchScrollableMenuItem } from "./TouchScrollableMenu";
 
 @observer
 export default class GestureOverlay extends Touchable {
     static Instance: GestureOverlay;
 
-    @observable private _points: { X: number, Y: number }[] = [];
-    @observable private _palette?: JSX.Element;
     @observable public Color: string = "rgb(244, 67, 54)";
     @observable public Width: number = 5;
+    @observable public SavedColor?: string;
+    @observable public SavedWidth?: number;
+    @observable public Tool: ToolglassTools = ToolglassTools.None;
+
+    @observable private _thumbX?: number;
+    @observable private _thumbY?: number;
+    @observable private _selectedIndex: number = -1;
+    @observable private _menuX: number = -300;
+    @observable private _menuY: number = -300;
+    @observable private _pointerY?: number;
+    @observable private _points: { X: number, Y: number }[] = [];
+    @observable private _strokes: InkData[] = [];
+    @observable private _palette?: JSX.Element;
+    @observable private _clipboardDoc?: JSX.Element;
+    @observable private _possibilities: JSX.Element[] = [];
+
+    @computed private get height(): number { return Math.max(this._pointerY && this._thumbY ? this._thumbY - this._pointerY : 300, 300); }
+    @computed private get showBounds() { return this.Tool !== ToolglassTools.None; }
 
     private _d1: Doc | undefined;
+    private _inkToTextDoc: Doc | undefined;
     private _thumbDoc: Doc | undefined;
     private _thumbX?: number;
     private _thumbY?: number;
@@ -40,6 +67,11 @@ export default class GestureOverlay extends Touchable {
         super(props);
 
         GestureOverlay.Instance = this;
+    }
+
+    componentDidMount = () => {
+        this._thumbDoc = FieldValue(Cast(CurrentUserUtils.setupThumbDoc(CurrentUserUtils.UserDocument), Doc));
+        this._inkToTextDoc = FieldValue(Cast(this._thumbDoc?.inkToTextDoc, Doc));
     }
 
     getNewTouches(e: React.TouchEvent | TouchEvent) {
@@ -94,6 +126,10 @@ export default class GestureOverlay extends Touchable {
         });
 
         ptsToDelete.forEach(pt => this.prevPoints.delete(pt));
+<<<<<<< HEAD
+=======
+        const nts = this.getNewTouches(te);
+>>>>>>> 8767ec49fbb927ccde96f9f89562109703535d4e
 
         if (this.prevPoints.size && this.prevPoints.size < 5) {
             const nts = this.getNewTouches(te);
@@ -189,11 +225,31 @@ export default class GestureOverlay extends Touchable {
             }
         }
         const thumb = fingers.reduce((a, v) => a.clientY > v.clientY ? a : v, fingers[0]);
-        if (thumb.identifier === this.thumbIdentifier) {
-            this._thumbX = thumb.clientX;
-            this._thumbY = thumb.clientY;
-            return;
+        const rightMost = Math.max(...fingers.map(f => f.clientX));
+        const leftMost = Math.min(...fingers.map(f => f.clientX));
+        let pointer: React.Touch | undefined;
+        // left hand
+        if (thumb.clientX === rightMost) {
+            pointer = fingers.reduce((a, v) => a.clientX > v.clientX || v.identifier === thumb.identifier ? a : v);
         }
+        // right hand
+        else if (thumb.clientX === leftMost) {
+            pointer = fingers.reduce((a, v) => a.clientX < v.clientX || v.identifier === thumb.identifier ? a : v);
+        }
+        else {
+            console.log("not hand");
+        }
+        this.pointerIdentifier = pointer?.identifier;
+        runInAction(() => {
+            this._pointerY = pointer?.clientY;
+            if (thumb.identifier === this.thumbIdentifier) {
+                this._thumbX = thumb.clientX;
+                this._thumbY = thumb.clientY;
+                this._hands.set(thumb.identifier, fingers);
+                return;
+            }
+        });
+
         this.thumbIdentifier = thumb?.identifier;
         fingers.forEach((f) => this.prevPoints.delete(f.identifier));
         this._hands.push(fingers);
@@ -206,10 +262,13 @@ export default class GestureOverlay extends Touchable {
         const thumbDoc = FieldValue(Cast(CurrentUserUtils.setupThumbDoc(CurrentUserUtils.UserDocument), Doc));
         if (thumbDoc) {
             runInAction(() => {
+                this._inkToTextDoc = FieldValue(Cast(thumbDoc.inkToTextDoc, Doc));
                 this._thumbDoc = thumbDoc;
                 this._thumbX = thumb.clientX;
                 this._thumbY = thumb.clientY;
-                this._palette = <Palette x={minX} y={minY} thumb={[thumb.clientX, thumb.clientY]} thumbDoc={thumbDoc} />;
+                this._menuX = thumb.clientX + 50;
+                this._menuY = thumb.clientY;
+                this._palette = <HorizontalPalette x={minX} y={minY} thumb={[thumb.clientX, thumb.clientY]} thumbDoc={thumbDoc} />;
             });
         }
 
@@ -224,10 +283,17 @@ export default class GestureOverlay extends Touchable {
     handleHandMove = (e: TouchEvent) => {
         for (let i = 0; i < e.changedTouches.length; i++) {
             const pt = e.changedTouches.item(i);
-            if (pt && pt.identifier === this.thumbIdentifier && this._thumbX && this._thumbDoc) {
-                if (Math.abs(pt.clientX - this._thumbX) > 20) {
-                    this._thumbDoc.selectedIndex = Math.max(0, NumCast(this._thumbDoc.selectedIndex) - Math.sign(pt.clientX - this._thumbX));
-                    this._thumbX = pt.clientX;
+            if (pt && pt.identifier === this.thumbIdentifier && this._thumbY) {
+                if (this._thumbX && this._thumbDoc) {
+                    if (Math.abs(pt.clientX - this._thumbX) > 30) {
+                        this._thumbDoc.selectedIndex = Math.max(0, NumCast(this._thumbDoc.selectedIndex) - Math.sign(pt.clientX - this._thumbX));
+                        this._thumbX = pt.clientX;
+                    }
+                }
+                if (this._thumbY && this._inkToTextDoc) {
+                    if (Math.abs(pt.clientY - this._thumbY) > 20) {
+                        this._selectedIndex = Math.max(0, -Math.floor((pt.clientY - this._thumbY) / 20));
+                    }
                 }
             }
         }
@@ -240,6 +306,24 @@ export default class GestureOverlay extends Touchable {
             this._palette = undefined;
             this.thumbIdentifier = undefined;
             this._thumbDoc = undefined;
+
+            let scriptWorked = false;
+            if (NumCast(this._inkToTextDoc?.selectedIndex) > -1) {
+                const selectedButton = this._possibilities[NumCast(this._inkToTextDoc?.selectedIndex)];
+                if (selectedButton) {
+                    selectedButton.props.onClick();
+                    scriptWorked = true;
+                }
+            }
+
+            if (!scriptWorked) {
+                this._strokes.forEach(s => {
+                    this.dispatchGesture(GestureUtils.Gestures.Stroke, s);
+                });
+            }
+            this._strokes = [];
+            this._points = [];
+            this._possibilities = [];
             document.removeEventListener("touchend", this.handleHandUp);
         }
     }
@@ -307,31 +391,63 @@ export default class GestureOverlay extends Touchable {
             const B = this.svgBounds;
             const points = this._points.map(p => ({ X: p.X - B.left, Y: p.Y - B.top }));
 
-            const result = GestureUtils.GestureRecognizer.Recognize(new Array(points));
-            let actionPerformed = false;
-            if (result && result.Score > 0.7) {
-                switch (result.Name) {
-                    case GestureUtils.Gestures.Box:
-                        const target = document.elementFromPoint(this._points[0].X, this._points[0].Y);
-                        target?.dispatchEvent(new CustomEvent<GestureUtils.GestureEvent>("dashOnGesture",
-                            {
-                                bubbles: true,
-                                detail: {
-                                    points: this._points,
-                                    gesture: GestureUtils.Gestures.Box,
-                                    bounds: B
-                                }
-                            }));
-                        actionPerformed = true;
+            const initialPoint = this._points[0.];
+            const xInGlass = initialPoint.X > (this._thumbX ?? Number.MAX_SAFE_INTEGER) && initialPoint.X < (this._thumbX ?? Number.MAX_SAFE_INTEGER) + this.height;
+            const yInGlass = initialPoint.Y > (this._thumbY ?? Number.MAX_SAFE_INTEGER) - this.height && initialPoint.Y < (this._thumbY ?? Number.MAX_SAFE_INTEGER);
+
+            if (this.Tool !== ToolglassTools.None && xInGlass && yInGlass) {
+                switch (this.Tool) {
+                    case ToolglassTools.InkToText:
+                        document.removeEventListener("pointermove", this.onPointerMove);
+                        document.removeEventListener("pointerup", this.onPointerUp);
+                        this._strokes.push(new Array(...this._points));
+                        this._points = [];
+                        CognitiveServices.Inking.Appliers.InterpretStrokes(this._strokes).then((results) => {
+                            const wordResults = results.filter((r: any) => r.category === "inkWord" || r.category === "paragraph");
+                            const possibilities: string[] = [];
+                            if (wordResults[0]?.recognizedText) {
+                                possibilities.push(wordResults[0]?.recognizedText)
+                            }
+                            possibilities.push(...wordResults[0]?.alternates?.map((a: any) => a.recognizedString));
+                            console.log(possibilities);
+                            const r = Math.max(this.svgBounds.right, ...this._strokes.map(s => this.getBounds(s).right));
+                            const l = Math.min(this.svgBounds.left, ...this._strokes.map(s => this.getBounds(s).left));
+                            const t = Math.min(this.svgBounds.top, ...this._strokes.map(s => this.getBounds(s).top));
+                            runInAction(() => {
+                                this._possibilities = possibilities.map(p =>
+                                    <TouchScrollableMenuItem text={p} onClick={() => GestureOverlay.Instance.dispatchGesture(GestureUtils.Gestures.Text, [{ X: l, Y: t }], p)} />);
+                            });
+                        });
                         break;
-                    case GestureUtils.Gestures.Line:
-                        actionPerformed = this.handleLineGesture();
-                        break;
-                    case GestureUtils.Gestures.Scribble:
-                        console.log("scribble");
+                    case ToolglassTools.IgnoreGesture:
+                        this.dispatchGesture(GestureUtils.Gestures.Stroke);
+                        this._points = [];
                         break;
                 }
-                if (actionPerformed) {
+            }
+            else {
+                const result = GestureUtils.GestureRecognizer.Recognize(new Array(points));
+                let actionPerformed = false;
+                if (result && result.Score > 0.7) {
+                    switch (result.Name) {
+                        case GestureUtils.Gestures.Box:
+                            this.dispatchGesture(GestureUtils.Gestures.Box);
+                            actionPerformed = true;
+                            break;
+                        case GestureUtils.Gestures.Line:
+                            actionPerformed = this.handleLineGesture();
+                            break;
+                        case GestureUtils.Gestures.Scribble:
+                            console.log("scribble");
+                            break;
+                    }
+                    if (actionPerformed) {
+                        this._points = [];
+                    }
+                }
+
+                if (!actionPerformed) {
+                    this.dispatchGesture(GestureUtils.Gestures.Stroke);
                     this._points = [];
                 }
             }
@@ -357,9 +473,26 @@ export default class GestureOverlay extends Touchable {
         document.removeEventListener("pointerup", this.onPointerUp);
     }
 
-    @computed get svgBounds() {
-        const xs = this._points.map(p => p.X);
-        const ys = this._points.map(p => p.Y);
+    dispatchGesture = (gesture: GestureUtils.Gestures, stroke?: InkData, data?: any) => {
+        const target = document.elementFromPoint((stroke ?? this._points)[0].X, (stroke ?? this._points)[0].Y);
+        target?.dispatchEvent(
+            new CustomEvent<GestureUtils.GestureEvent>("dashOnGesture",
+                {
+                    bubbles: true,
+                    detail: {
+                        points: stroke ?? this._points,
+                        gesture: gesture,
+                        bounds: this.getBounds(stroke ?? this._points),
+                        text: data
+                    }
+                }
+            )
+        );
+    }
+
+    getBounds = (stroke: InkData) => {
+        const xs = stroke.map(p => p.X);
+        const ys = stroke.map(p => p.Y);
         const right = Math.max(...xs);
         const left = Math.min(...xs);
         const bottom = Math.max(...ys);
@@ -367,30 +500,122 @@ export default class GestureOverlay extends Touchable {
         return { right: right, left: left, bottom: bottom, top: top, width: right - left, height: bottom - top };
     }
 
-    @computed get currentStroke() {
-        if (this._points.length <= 1) {
-            return (null);
-        }
+    @computed get svgBounds() {
+        return this.getBounds(this._points);
+    }
 
+    @computed get elements() {
         const B = this.svgBounds;
+        return [
+            this.props.children,
+            this._palette,
+            [this._strokes.map(l => {
+                const b = this.getBounds(l);
+                return <svg key={b.left} width={b.width} height={b.height} style={{ transform: `translate(${b.left}px, ${b.top}px)`, pointerEvents: "none", position: "absolute", zIndex: 30000 }}>
+                    {InteractionUtils.CreatePolyline(l, b.left, b.top, GestureOverlay.Instance.Color, GestureOverlay.Instance.Width)}
+                </svg>;
+            }),
+            this._points.length <= 1 ? (null) : <svg width={B.width} height={B.height} style={{ transform: `translate(${B.left}px, ${B.top}px)`, pointerEvents: "none", position: "absolute", zIndex: 30000 }}>
+                {InteractionUtils.CreatePolyline(this._points, B.left, B.top, GestureOverlay.Instance.Color, GestureOverlay.Instance.Width)}
+            </svg>]
+        ];
+    }
 
-        return (
-            <svg width={B.width} height={B.height} style={{ transform: `translate(${B.left}px, ${B.top}px)`, pointerEvents: "none", position: "absolute", zIndex: 30000 }}>
-                {CreatePolyline(this._points, B.left, B.top, this.Color, this.Width)}
-            </svg>
-        );
+    @action
+    public openFloatingDoc = (doc: Doc) => {
+        this._clipboardDoc =
+            <DocumentView
+                Document={doc}
+                DataDoc={undefined}
+                LibraryPath={emptyPath}
+                addDocument={undefined}
+                addDocTab={returnFalse}
+                pinToPres={emptyFunction}
+                onClick={undefined}
+                removeDocument={undefined}
+                ScreenToLocalTransform={() => new Transform(-(this._thumbX ?? 0), -(this._thumbY ?? 0) + this.height, 1)}
+                ContentScaling={returnOne}
+                PanelWidth={() => 300}
+                PanelHeight={() => 300}
+                renderDepth={0}
+                backgroundColor={returnEmptyString}
+                focus={emptyFunction}
+                parentActive={returnTrue}
+                whenActiveChanged={emptyFunction}
+                bringToFront={emptyFunction}
+                ContainingCollectionView={undefined}
+                ContainingCollectionDoc={undefined}
+                zoomToScale={emptyFunction}
+                getScale={returnOne}
+            />;
+    }
+
+    @action
+    public closeFloatingDoc = () => {
+        this._clipboardDoc = undefined;
     }
 
     render() {
+        trace();
         return (
             <div className="gestureOverlay-cont" onPointerDown={this.onPointerDown} onTouchStart={this.onReactTouchStart}>
-                {this.props.children}
-                {this._palette}
-                {this.currentStroke}
+                {this.elements}
+
+                <div className="clipboardDoc-cont" style={{
+                    transform: `translate(${this._thumbX}px, ${(this._thumbY ?? 0) - this.height}px)`,
+                    height: this.height * 2,
+                    width: this.height * 2,
+                    pointerEvents: this._clipboardDoc ? "unset" : "none",
+                    touchAction: this._clipboardDoc ? "unset" : "none",
+                }}>
+                    {this._clipboardDoc}
+                </div>
+                <div className="filter-cont" style={{
+                    transform: `translate(${this._thumbX}px, ${(this._thumbY ?? 0) - this.height}px)`,
+                    height: this.height * 2,
+                    width: this.height * 2,
+                    pointerEvents: "none",
+                    touchAction: "none",
+                    display: this.showBounds ? "unset" : "none",
+                }}>
+                </div>
+                <TouchScrollableMenu options={this._possibilities} bounds={this.svgBounds} selectedIndex={this._selectedIndex} x={this._menuX} y={this._menuY} />
             </div>);
     }
 }
 
+<<<<<<< HEAD
 Scripting.addGlobal("GestureOverlay", GestureOverlay);
 Scripting.addGlobal(function setPen(width: any, color: any) { runInAction(() => { GestureOverlay.Instance.Color = color; GestureOverlay.Instance.Width = width; }); });
 Scripting.addGlobal(function resetPen() { runInAction(() => { GestureOverlay.Instance.Color = "rgb(244, 67, 54)"; GestureOverlay.Instance.Width = 5; }); });
+=======
+// export class
+
+export enum ToolglassTools {
+    InkToText = "inktotext",
+    IgnoreGesture = "ignoregesture",
+    None = "none",
+}
+
+Scripting.addGlobal("GestureOverlay", GestureOverlay);
+Scripting.addGlobal(function setToolglass(tool: any) {
+    runInAction(() => GestureOverlay.Instance.Tool = tool);
+});
+Scripting.addGlobal(function setPen(width: any, color: any) {
+    runInAction(() => {
+        GestureOverlay.Instance.SavedColor = GestureOverlay.Instance.Color;
+        GestureOverlay.Instance.Color = color;
+        GestureOverlay.Instance.SavedWidth = GestureOverlay.Instance.Width;
+        GestureOverlay.Instance.Width = width;
+    });
+});
+Scripting.addGlobal(function resetPen() {
+    runInAction(() => {
+        GestureOverlay.Instance.Color = GestureOverlay.Instance.SavedColor ?? "rgb(244, 67, 54)";
+        GestureOverlay.Instance.Width = GestureOverlay.Instance.SavedWidth ?? 5;
+    });
+});
+Scripting.addGlobal(function createText(text: any, x: any, y: any) {
+    GestureOverlay.Instance.dispatchGesture("text", [{ X: x, Y: y }], text);
+});
+>>>>>>> 8767ec49fbb927ccde96f9f89562109703535d4e
