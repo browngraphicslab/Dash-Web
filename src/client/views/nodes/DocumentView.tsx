@@ -467,10 +467,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     this._hitTemplateDrag = true;
                 }
             }
-            if ((this.active || this.Document.onDragStart || this.onClickHandler) && 
-                !e.ctrlKey && 
-                (e.button === 0 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE)) && 
-                !this.Document.lockedPosition && 
+            if ((this.active || this.Document.onDragStart || this.onClickHandler) &&
+                !e.ctrlKey &&
+                (e.button === 0 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE)) &&
+                !this.Document.lockedPosition &&
                 !this.Document.inOverlay) {
                 e.stopPropagation(); // events stop at the lowest document that is active.  if right dragging, we let it go through though to allow for context menu clicks. PointerMove callbacks should remove themselves if the move event gets stopPropagated by a lower-level handler (e.g, marquee drag);
             }
@@ -613,18 +613,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             // const views = docs.map(d => DocumentManager.Instance.getDocumentView(d)).filter(d => d).map(d => d as DocumentView);
             de.complete.linkDragData.linkSourceDocument !== this.props.Document &&
                 (de.complete.linkDragData.linkDocument = DocUtils.MakeLink({ doc: de.complete.linkDragData.linkSourceDocument }, { doc: this.props.Document, ctx: this.props.ContainingCollectionDoc }, "in-text link being created")); // TODODO this is where in text links get passed
-        }
-    }
-
-    @action
-    onDrop = (e: React.DragEvent) => {
-        const text = e.dataTransfer.getData("text/plain");
-        if (!e.isDefaultPrevented() && text && text.startsWith("<div")) {
-            const oldLayout = this.Document.layout || "";
-            const layout = text.replace("{layout}", oldLayout);
-            this.Document.layout = layout;
-            e.stopPropagation();
-            e.preventDefault();
         }
     }
 
@@ -981,7 +969,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         let highlighting = fullDegree && this.layoutDoc.type !== DocumentType.FONTICON && this.layoutDoc._viewType !== CollectionViewType.Linear;
         highlighting = highlighting && this.props.focus !== emptyFunction;  // bcz: hack to turn off highlighting onsidebar panel documents.  need to flag a document as not highlightable in a more direct way
         return <div className={`documentView-node${this.topMost ? "-topmost" : ""}`} ref={this._mainCont} onKeyDown={this.onKeyDown}
-            onDrop={this.onDrop} onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
+            onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
             onPointerEnter={e => Doc.BrushDoc(this.props.Document)} onPointerLeave={e => Doc.UnBrushDoc(this.props.Document)}
             style={{
                 transition: this.Document.isAnimating ? ".5s linear" : StrCast(this.Document.transition),

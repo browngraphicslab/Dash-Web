@@ -108,7 +108,7 @@ export function computePivotLayout(
     const fontSize = NumCast(pivotDoc[fieldKey + "-timelineFontSize"], panelDim[1] > 58 ? 20 : Math.max(7, panelDim[1] / 3));
     const desc = `${fontSize}px ${getComputedStyle(document.body).fontFamily}`;
     const textlen = Array.from(pivotColumnGroups.keys()).map(c => getTextWidth(toLabel(c), desc)).reduce((p, c) => Math.max(p, c), 0 as number);
-    const max_text = Math.min(Math.ceil(textlen / 120) * 28, panelDim[1]/2);
+    const max_text = Math.min(Math.ceil(textlen / 120) * 28, panelDim[1] / 2);
     let maxInColumn = Array.from(pivotColumnGroups.values()).reduce((p, s) => Math.max(p, s.length), 1);
 
     const colWidth = panelDim[0] / pivotColumnGroups.size;
@@ -171,7 +171,7 @@ export function computePivotLayout(
         x += pivotAxisWidth * (numCols * expander + gap);
     });
 
-    const maxColHeight = pivotAxisWidth * Math.ceil(maxInColumn / numCols) + pivotAxisWidth;
+    const maxColHeight = pivotAxisWidth * expander * Math.ceil(maxInColumn / numCols);
     const dividers = Array.from(pivotColumnGroups.values()).map((pg, i) =>
         ({ type: "div", color: "lightGray", x: i * pivotAxisWidth * (numCols * expander + gap), y: -maxColHeight + pivotAxisWidth, width: pivotAxisWidth * numCols * expander, height: maxColHeight } as any));
     groupNames.push(...dividers);
