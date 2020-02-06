@@ -456,7 +456,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             }
             return;
         }
-        if (!e.nativeEvent.cancelBubble || this.Document.onClick || this.Document.onDragStart) {
+        if (!e.nativeEvent.cancelBubble || this.onClickHandler || this.Document.onDragStart) {
             this._downX = e.clientX;
             this._downY = e.clientY;
             this._hitTemplateDrag = false;
@@ -467,7 +467,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     this._hitTemplateDrag = true;
                 }
             }
-            if ((this.active || this.Document.onDragStart || this.Document.onClick) && !e.ctrlKey && (e.button === 0 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE)) && !this.Document.lockedPosition && !this.Document.inOverlay) e.stopPropagation(); // events stop at the lowest document that is active.  if right dragging, we let it go through though to allow for context menu clicks. PointerMove callbacks should remove themselves if the move event gets stopPropagated by a lower-level handler (e.g, marquee drag);
+            if ((this.active || this.Document.onDragStart || this.onClickHandler) && 
+                !e.ctrlKey && 
+                (e.button === 0 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE)) && 
+                !this.Document.lockedPosition && 
+                !this.Document.inOverlay) {
+                e.stopPropagation(); // events stop at the lowest document that is active.  if right dragging, we let it go through though to allow for context menu clicks. PointerMove callbacks should remove themselves if the move event gets stopPropagated by a lower-level handler (e.g, marquee drag);
+            }
             document.removeEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointermove", this.onPointerMove);
@@ -532,7 +538,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (doc[customName] === undefined) {
             const _width = NumCast(doc._width);
             const _height = NumCast(doc._height);
-            const options = { title: "data", _width, x: -_width / 2, y: - _height / 2, };
+            const options = { title: "data", _width, x: -_width / 2, y: - _height / 2, _showSidebar: false };
 
             const field = doc.data;
             let fieldTemplate: Opt<Doc>;
