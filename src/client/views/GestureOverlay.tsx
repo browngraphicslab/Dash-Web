@@ -126,10 +126,7 @@ export default class GestureOverlay extends Touchable {
         });
 
         ptsToDelete.forEach(pt => this.prevPoints.delete(pt));
-<<<<<<< HEAD
-=======
         const nts = this.getNewTouches(te);
->>>>>>> 8767ec49fbb927ccde96f9f89562109703535d4e
 
         if (this.prevPoints.size && this.prevPoints.size < 5) {
             const nts = this.getNewTouches(te);
@@ -584,11 +581,6 @@ export default class GestureOverlay extends Touchable {
     }
 }
 
-<<<<<<< HEAD
-Scripting.addGlobal("GestureOverlay", GestureOverlay);
-Scripting.addGlobal(function setPen(width: any, color: any) { runInAction(() => { GestureOverlay.Instance.Color = color; GestureOverlay.Instance.Width = width; }); });
-Scripting.addGlobal(function resetPen() { runInAction(() => { GestureOverlay.Instance.Color = "rgb(244, 67, 54)"; GestureOverlay.Instance.Width = 5; }); });
-=======
 // export class
 
 export enum ToolglassTools {
@@ -618,4 +610,3 @@ Scripting.addGlobal(function resetPen() {
 Scripting.addGlobal(function createText(text: any, x: any, y: any) {
     GestureOverlay.Instance.dispatchGesture("text", [{ X: x, Y: y }], text);
 });
->>>>>>> 8767ec49fbb927ccde96f9f89562109703535d4e

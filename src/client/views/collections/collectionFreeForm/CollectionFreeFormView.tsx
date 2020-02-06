@@ -32,11 +32,7 @@ import { FormattedTextBox } from "../../nodes/FormattedTextBox";
 import { pageSchema } from "../../nodes/ImageBox";
 import PDFMenu from "../../pdf/PDFMenu";
 import { CollectionSubView } from "../CollectionSubView";
-<<<<<<< HEAD
-import { computePivotLayout, ViewDefResult } from "./CollectionFreeFormLayoutEngines";
-=======
 import { computePivotLayout, ViewDefResult, computeTimelineLayout, PoolData, ViewDefBounds } from "./CollectionFreeFormLayoutEngines";
->>>>>>> 8597134b6ada1e57ae08d49e24c00d11f728ba90
 import { CollectionFreeFormRemoteCursors } from "./CollectionFreeFormRemoteCursors";
 import "./CollectionFreeFormView.scss";
 import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
@@ -773,9 +769,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         return !Array.isArray(views) ? [] : views.filter(ele => this.viewDefToJSX(ele)).map(ele => this.viewDefToJSX(ele)!);
     }
 
-<<<<<<< HEAD
-    private viewDefToJSX(viewDef: any): Opt<ViewDefResult> {
-=======
     onViewDefDivClick = (e: React.MouseEvent, payload: any) => {
         (this.props.Document.onViewDefDivClick as ScriptField)?.script.run({ this: this.props.Document, payload });
     }
@@ -788,7 +781,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         const color = Cast(viewDef.color, "string");
         const width = Cast(viewDef.width, "number", null);
         const height = Cast(viewDef.height, "number", null);
->>>>>>> 8597134b6ada1e57ae08d49e24c00d11f728ba90
         if (viewDef.type === "text") {
             const text = Cast(viewDef.text, "string"); // don't use NumCast, StrCast, etc since we want to test for undefined below
             const x = Cast(viewDef.x, "number");
@@ -802,9 +794,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     ele: <div className="collectionFreeform-customText" key={(text || "") + x + y + z} style={{ width, height, fontSize, transform: `translate(${x}px, ${y}px)` }}>
                         {text}
                     </div>,
-<<<<<<< HEAD
-                    bounds: { x: x!, y: y!, z: z, width: width!, height: height! }
-=======
                     bounds: viewDef
                 };
         } else if (viewDef.type === "div") {
@@ -814,7 +803,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     ele: <div className="collectionFreeform-customDiv" title={viewDef.payload.join(" ")} key={"div" + x + y + z} onClick={e => this.onViewDefDivClick(e, viewDef)}
                         style={{ width, height, backgroundColor, transform: `translate(${x}px, ${y}px)` }} />,
                     bounds: viewDef
->>>>>>> 8597134b6ada1e57ae08d49e24c00d11f728ba90
                 };
         }
     }
