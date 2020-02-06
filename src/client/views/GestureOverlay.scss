@@ -17,19 +17,18 @@
     position: absolute;
     width: 300px;
     overflow: hidden;
+    pointer-events: none;
 
     .inkToTextDoc-scroller {
         overflow: visible;
         position: absolute;
         width: 100%;
-        left: -24px;
 
-        .collectionView {
-            overflow: visible;
-
-            .collectionLinearView-outer {
-                overflow: visible;
-            }
+        .menuItem-cont {
+            width: 100%;
+            height: 20px;
+            padding: 2.5px;
+            border-bottom: .5px solid black;
         }
     }
 

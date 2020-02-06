@@ -984,6 +984,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             </CollectionFreeFormViewPannableContents>
         </MarqueeView>;
     }
+
     @computed get contentScaling() {
         if (this.props.annotationsKey) return 0;
         const hscale = this.nativeHeight ? this.props.PanelHeight() / this.nativeHeight : 1;

@@ -26,7 +26,7 @@ import { ScriptField } from "../../new_fields/ScriptField";
 import { listSpec } from "../../new_fields/Schema";
 import { List } from "../../new_fields/List";
 import { CollectionViewType } from "./collections/CollectionView";
-import InkCanvas from "./InkCanvas";
+import TouchScrollableMenu, { TouchScrollableMenuItem } from "./TouchScrollableMenu";
 
 @observer
 export default class GestureOverlay extends Touchable {
@@ -40,12 +40,15 @@ export default class GestureOverlay extends Touchable {
 
     @observable private _thumbX?: number;
     @observable private _thumbY?: number;
+    @observable private _selectedIndex: number = -1;
+    @observable private _menuX: number = -300;
+    @observable private _menuY: number = -300;
     @observable private _pointerY?: number;
     @observable private _points: { X: number, Y: number }[] = [];
     @observable private _strokes: InkData[] = [];
     @observable private _palette?: JSX.Element;
     @observable private _clipboardDoc?: JSX.Element;
-    @observable private _possibilities: Doc[] = [];
+    @observable private _possibilities: JSX.Element[] = [];
 
     @computed private get height(): number { return Math.max(this._pointerY && this._thumbY ? this._thumbY - this._pointerY : 300, 300); }
     @computed private get showBounds() { return this.Tool !== ToolglassTools.None; }
@@ -254,6 +257,8 @@ export default class GestureOverlay extends Touchable {
                 this._thumbDoc = thumbDoc;
                 this._thumbX = thumb.clientX;
                 this._thumbY = thumb.clientY;
+                this._menuX = thumb.clientX + 50;
+                this._menuY = thumb.clientY;
                 this._palette = <HorizontalPalette x={minX} y={minY} thumb={[thumb.clientX, thumb.clientY]} thumbDoc={thumbDoc} />;
             });
         }
@@ -294,15 +299,14 @@ export default class GestureOverlay extends Touchable {
             const pt = e.changedTouches.item(i);
             if (pt && pt.identifier === this.thumbIdentifier && this._thumbY) {
                 if (this._thumbX && this._thumbDoc) {
-                    if (Math.abs(pt.clientX - this._thumbX) > 20) {
+                    if (Math.abs(pt.clientX - this._thumbX) > 30) {
                         this._thumbDoc.selectedIndex = Math.max(0, NumCast(this._thumbDoc.selectedIndex) - Math.sign(pt.clientX - this._thumbX));
                         this._thumbX = pt.clientX;
                     }
                 }
                 if (this._thumbY && this._inkToTextDoc) {
                     if (Math.abs(pt.clientY - this._thumbY) > 20) {
-                        this._inkToTextDoc.selectedIndex = Math.max(0, NumCast(this._inkToTextDoc.selectedIndex) - Math.sign(pt.clientY - this._thumbY));
-                        this._thumbY = pt.clientY;
+                        this._selectedIndex = Math.max(0, -Math.floor((pt.clientY - this._thumbY) / 20));
                     }
                 }
             }
@@ -324,11 +328,10 @@ export default class GestureOverlay extends Touchable {
             let scriptWorked = false;
             if (NumCast(this._inkToTextDoc?.selectedIndex) > -1) {
                 const selectedButton = this._possibilities[NumCast(this._inkToTextDoc?.selectedIndex)];
-                if (Cast(selectedButton?.proto?.onClick, ScriptField)?.script.run({ this: selectedButton }, console.log).success) {
+                if (selectedButton) {
+                    selectedButton.props.onClick();
                     scriptWorked = true;
-                    console.log("success");
-                };
-                console.log(Cast(selectedButton?.proto?.onClick, ScriptField)?.script);
+                }
             }
 
             if (!scriptWorked) {
@@ -337,6 +340,7 @@ export default class GestureOverlay extends Touchable {
                 });
             }
             this._strokes = [];
+            this._points = [];
             this._possibilities = [];
             document.removeEventListener("touchend", this.handleHandUp);
         }
@@ -398,12 +402,12 @@ export default class GestureOverlay extends Touchable {
     }
 
     @action
-    onPointerUp = async (e: PointerEvent) => {
+    onPointerUp = (e: PointerEvent) => {
         if (this._points.length > 1) {
             const B = this.svgBounds;
             const points = this._points.map(p => ({ X: p.X - B.left, Y: p.Y - B.top }));
 
-            const initialPoint = this._points[0];
+            const initialPoint = this._points[0.];
             const xInGlass = initialPoint.X > (this._thumbX ?? Number.MAX_SAFE_INTEGER) && initialPoint.X < (this._thumbX ?? Number.MAX_SAFE_INTEGER) + this.height;
             const yInGlass = initialPoint.Y > (this._thumbY ?? Number.MAX_SAFE_INTEGER) - this.height && initialPoint.Y < (this._thumbY ?? Number.MAX_SAFE_INTEGER);
 
@@ -414,28 +418,21 @@ export default class GestureOverlay extends Touchable {
                         document.removeEventListener("pointerup", this.onPointerUp);
                         this._strokes.push(new Array(...this._points));
                         this._points = [];
-                        const results = await CognitiveServices.Inking.Appliers.InterpretStrokes(this._strokes);
-                        const wordResults = results.filter((r: any) => r.category === "inkWord");
-                        const possibilities: string[] = [];
-                        if (wordResults[0]?.recognizedText) {
-                            possibilities.push(wordResults[0]?.recognizedText)
-                        }
-                        possibilities.push(...wordResults[0]?.alternates?.map((a: any) => a.recognizedString));
-                        const r = Math.max(this.svgBounds.right, ...this._strokes.map(s => this.getBounds(s).right));
-                        const l = Math.min(this.svgBounds.left, ...this._strokes.map(s => this.getBounds(s).left));
-                        const t = Math.min(this.svgBounds.top, ...this._strokes.map(s => this.getBounds(s).top));
-                        runInAction(() => {
-                            const buttons = possibilities.map(p => Docs.Create.ButtonDocument({
-                                _height: 25, _width: r - l, backgroundColor: "lightgrey", color: "rgb(34, 34, 34)", x: l, y: t, _viewType: CollectionViewType.Linear,
-                                isExpanded: true,
-                                title: p, fontSize: 10, letterSpacing: "0px", textTransform: "unset", boxShadow: ".5px .5px 0px rgb(34, 34, 34)",
-                                onClick: ScriptField.MakeScript('createText(this.proto.title, this.x, this.y)')
-                            }));
-                            if (this._inkToTextDoc && this._thumbDoc) {
-                                this._inkToTextDoc = this._thumbDoc.inkToTextDoc = Docs.Create.LinearDocument(buttons, { _width: 300, _height: 25, _autoHeight: true, _chromeStatus: "disabled", isExpanded: true, flexDirection: "column" });
-                                this._inkToTextDoc.selectedIndex = 0;
+                        CognitiveServices.Inking.Appliers.InterpretStrokes(this._strokes).then((results) => {
+                            const wordResults = results.filter((r: any) => r.category === "inkWord" || r.category === "paragraph");
+                            const possibilities: string[] = [];
+                            if (wordResults[0]?.recognizedText) {
+                                possibilities.push(wordResults[0]?.recognizedText)
                             }
-                            this._possibilities = buttons;
+                            possibilities.push(...wordResults[0]?.alternates?.map((a: any) => a.recognizedString));
+                            console.log(possibilities);
+                            const r = Math.max(this.svgBounds.right, ...this._strokes.map(s => this.getBounds(s).right));
+                            const l = Math.min(this.svgBounds.left, ...this._strokes.map(s => this.getBounds(s).left));
+                            const t = Math.min(this.svgBounds.top, ...this._strokes.map(s => this.getBounds(s).top));
+                            runInAction(() => {
+                                this._possibilities = possibilities.map(p =>
+                                    <TouchScrollableMenuItem text={p} onClick={() => GestureOverlay.Instance.dispatchGesture(GestureUtils.Gestures.Text, [{ X: l, Y: t }], p)} />);
+                            });
                         });
                         break;
                     case ToolglassTools.IgnoreGesture:
@@ -511,10 +508,9 @@ export default class GestureOverlay extends Touchable {
         return [
             this.props.children,
             this._palette,
-
             [this._strokes.map(l => {
                 const b = this.getBounds(l);
-                return <svg width={b.width} height={b.height} style={{ transform: `translate(${b.left}px, ${b.top}px)`, pointerEvents: "none", position: "absolute", zIndex: 30000 }}>
+                return <svg key={b.left} width={b.width} height={b.height} style={{ transform: `translate(${b.left}px, ${b.top}px)`, pointerEvents: "none", position: "absolute", zIndex: 30000 }}>
                     {InteractionUtils.CreatePolyline(l, b.left, b.top, GestureOverlay.Instance.Color, GestureOverlay.Instance.Width)}
                 </svg>;
             }),
@@ -558,58 +554,6 @@ export default class GestureOverlay extends Touchable {
         this._clipboardDoc = undefined;
     }
 
-    @computed
-    private get suggestionContent() {
-        const b = Math.max(this.svgBounds.bottom, ...this._strokes.map(s => this.getBounds(s).bottom));
-        const r = Math.max(this.svgBounds.right, ...this._strokes.map(s => this.getBounds(s).right));
-        const l = Math.min(this.svgBounds.left, ...this._strokes.map(s => this.getBounds(s).left));
-        const t = Math.min(this.svgBounds.top, ...this._strokes.map(s => this.getBounds(s).top));
-        return (
-            <div className="inkToTextDoc-cont" style={{
-                transform: `translate(${l}px, ${b}px)`,
-                width: r - l,
-                height: this._possibilities.length * 25
-            }}>
-                <div className="inkToTextDoc-scroller" style={{ transform: `translate(0, ${-NumCast(this._inkToTextDoc!.selectedIndex) * 25}px)` }}>
-                    <DocumentView
-                        Document={this._inkToTextDoc!}
-                        DataDoc={undefined}
-                        LibraryPath={emptyPath}
-                        addDocument={undefined}
-                        addDocTab={returnFalse}
-                        pinToPres={emptyFunction}
-                        onClick={undefined}
-                        removeDocument={undefined}
-                        ScreenToLocalTransform={() => new Transform(-l, -(b + NumCast(this._inkToTextDoc?.selectedIndex, 0) * 25), 1)}
-                        ContentScaling={returnOne}
-                        PanelWidth={() => 300}
-                        PanelHeight={() => 300}
-                        renderDepth={0}
-                        backgroundColor={returnEmptyString}
-                        focus={emptyFunction}
-                        parentActive={returnTrue}
-                        whenActiveChanged={emptyFunction}
-                        bringToFront={emptyFunction}
-                        ContainingCollectionView={undefined}
-                        ContainingCollectionDoc={undefined}
-                        zoomToScale={emptyFunction}
-                        getScale={returnOne}
-                    />;
-                    </div>
-                <div className="shadow" style={{ height: `calc(100% - 25px - ${NumCast(this._inkToTextDoc!.selectedIndex) * 25}px)` }}>
-                </div>
-            </div>)
-    }
-
-    private get inkToTextSuggestions() {
-        if (this._inkToTextDoc && this._possibilities.length) {
-            return (
-                this.suggestionContent
-            );
-        }
-        return null;
-    }
-
     render() {
         trace();
         return (
@@ -618,8 +562,8 @@ export default class GestureOverlay extends Touchable {
 
                 <div className="clipboardDoc-cont" style={{
                     transform: `translate(${this._thumbX}px, ${(this._thumbY ?? 0) - this.height}px)`,
-                    height: this.height,
-                    width: this.height,
+                    height: this.height * 2,
+                    width: this.height * 2,
                     pointerEvents: this._clipboardDoc ? "unset" : "none",
                     touchAction: this._clipboardDoc ? "unset" : "none",
                 }}>
@@ -627,14 +571,14 @@ export default class GestureOverlay extends Touchable {
                 </div>
                 <div className="filter-cont" style={{
                     transform: `translate(${this._thumbX}px, ${(this._thumbY ?? 0) - this.height}px)`,
-                    height: this.height,
-                    width: this.height,
+                    height: this.height * 2,
+                    width: this.height * 2,
                     pointerEvents: "none",
                     touchAction: "none",
                     display: this.showBounds ? "unset" : "none",
                 }}>
                 </div>
-                {this.inkToTextSuggestions}
+                <TouchScrollableMenu options={this._possibilities} bounds={this.svgBounds} selectedIndex={this._selectedIndex} x={this._menuX} y={this._menuY} />
             </div>);
     }
 }
@@ -666,6 +610,5 @@ Scripting.addGlobal(function resetPen() {
     });
 });
 Scripting.addGlobal(function createText(text: any, x: any, y: any) {
-    console.log("creating");
     GestureOverlay.Instance.dispatchGesture("text", [{ X: x, Y: y }], text);
 });
