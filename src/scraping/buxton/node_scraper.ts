@@ -1,4 +1,4 @@
-import { readdirSync, writeFile } from "fs";
+import { readdirSync, writeFile, existsSync, mkdirSync } from "fs";
 import * as path from "path";
 import { red, cyan, yellow } from "colors";
 const StreamZip = require('node-stream-zip');
@@ -20,20 +20,62 @@ type Converter<T> = (raw: string) => { transformed?: T, error?: string };
 
 interface Processor<T> {
     exp: RegExp;
+    matchIndex?: number;
     transformer?: Converter<T>;
 }
 
 const RegexMap = new Map<keyof DeviceDocument, Processor<any>>([
-    ["title", { exp: /contact\s+(.*)Short Description:/ }],
-    ["company", { exp: /Company:\s+([^\|]*)\s+\|/ }],
-    ["year", { exp: /Year:\s+([^\|]*)\s+\|/, transformer: numberValue }],
-    ["primaryKey", { exp: /Primary:\s+(.*)Secondary:/, transformer: collectTokens }],
-    ["secondaryKey", { exp: /Secondary:\s+([^\{\}]*)Links/, transformer: collectTokens }],
-    ["originalPrice", { exp: /Original Price \(USD\)\:\s+\$([0-9\.]+)/, transformer: numberValue }],
-    ["degreesOfFreedom", { exp: /Degrees of Freedom:\s+([0-9]+)/, transformer: numberValue }],
-    ["dimensions", { exp: /Dimensions\s+\(L x W x H\):\s+([0-9]+\s+x\s+[0-9]+\s+x\s+[0-9]+\s\([A-Za-z]+\))/ }],
-    ["shortDescription", { exp: /Short Description:\s+(.*)Bill Buxton[’']s Notes/ }],
-    ["longDescription", { exp: /Bill Buxton[’']s Notes(.*)Device Details/ }],
+    ["title", {
+        exp: /contact\s+(.*)Short Description:/
+    }],
+    ["company", {
+        exp: /Company:\s+([^\|]*)\s+\|/,
+        transformer: (raw: string) => ({ transformed: raw.replace(/\./g, "") })
+    }],
+    ["year", {
+        exp: /Year:\s+([^\|]*)\s+\|/,
+        transformer: numberValue
+    }],
+    ["primaryKey", {
+        exp: /Primary:\s+(.*)(Secondary|Additional):/,
+        transformer: collectUniqueTokens
+    }],
+    ["secondaryKey", {
+        exp: /(Secondary|Additional):\s+([^\{\}]*)Links/,
+        transformer: collectUniqueTokens,
+        matchIndex: 2
+    }],
+    ["originalPrice", {
+        exp: /Original Price \(USD\)\:\s+\$([0-9\.]+)/,
+        transformer: numberValue
+    }],
+    ["degreesOfFreedom", {
+        exp: /Degrees of Freedom:\s+([0-9]+)/,
+        transformer: numberValue
+    }],
+    ["dimensions", {
+        exp: /Dimensions\s+\(L x W x H\):\s+([0-9\.]+\s+x\s+[0-9\.]+\s+x\s+[0-9\.]+\s\([A-Za-z]+\))/,
+        transformer: (raw: string) => {
+            const [length, width, group] = raw.split(" x ");
+            const [height, unit] = group.split(" ");
+            return {
+                transformed: {
+                    length: Number(length),
+                    width: Number(width),
+                    height: Number(height),
+                    unit: unit.replace(/[\(\)]+/g, "")
+                }
+            };
+        }
+    }],
+    ["shortDescription", {
+        exp: /Short Description:\s+(.*)Bill Buxton[’']s Notes/,
+        transformer: correctWordParagraphs
+    }],
+    ["longDescription", {
+        exp: /Bill Buxton[’']s Notes(.*)Device Details/,
+        transformer: correctWordParagraphs
+    }],
 ]);
 
 function numberValue(raw: string) {
@@ -44,10 +86,19 @@ function numberValue(raw: string) {
     return { transformed };
 }
 
-function collectTokens(raw: string) {
-    return { transformed: raw.replace(/,|\s+and\s+/g, " ").split(/\s+/).sort() };
+function collectUniqueTokens(raw: string) {
+    return { transformed: Array.from(new Set(raw.replace(/,|\s+and\s+/g, " ").split(/\s+/).map(token => token.toLowerCase().trim()))).map(capitalize).sort() };
 }
 
+function correctWordParagraphs(raw: string) {
+    raw = raw.replace(/\./g, ". ").replace(/\:/g, ": ").replace(/\,/g, ", ").replace(/\?/g, "? ").trimRight();
+    raw = raw.replace(/\s{2,}/g, " ");
+    return { transformed: raw };
+}
+
+const outDir = path.resolve(__dirname, "json");
+const successOut = "buxton.json";
+const failOut = "incomplete.json";
 const deviceKeys = Array.from(RegexMap.keys());
 
 function printEntries(zip: any) {
@@ -92,9 +143,9 @@ export async function extract(path: string) {
     return body;
 }
 
-function tryGetValidCapture(matches: RegExpExecArray | null) {
+function tryGetValidCapture(matches: RegExpExecArray | null, matchIndex: number) {
     let captured: string;
-    if (!matches || !(captured = matches[1])) {
+    if (!matches || !(captured = matches[matchIndex])) {
         return undefined;
     }
     const lower = captured.toLowerCase();
@@ -110,6 +161,14 @@ function tryGetValidCapture(matches: RegExpExecArray | null) {
     return captured;
 }
 
+function capitalize(word: string) {
+    const clean = word.trim();
+    if (!clean.length) {
+        return word;
+    }
+    return word.charAt(0).toUpperCase() + word.slice(1);
+}
+
 export function analyze(path: string, body: string): { device?: DeviceDocument, errors?: any } {
     const device: any = {};
 
@@ -119,19 +178,17 @@ export function analyze(path: string, body: string): { device?: DeviceDocument, 
     const errors: any = { filename };
 
     for (const key of deviceKeys) {
-        const { exp, transformer } = RegexMap.get(key)!;
+        const { exp, transformer, matchIndex } = RegexMap.get(key)!;
         const matches = exp.exec(body);
 
-        let captured = tryGetValidCapture(matches);
+        let captured = tryGetValidCapture(matches, matchIndex ?? 1);
         if (!captured) {
             errors[key] = `ERR__${key.toUpperCase()}__: outer match ${matches === null ? "wasn't" : "was"} captured.`;
             continue;
         }
 
-        if (!transformer) {
-            captured = captured.replace(/\./g, ". ").replace(/\:/g, ": ").replace(/\,/g, ", ").replace(/\?/g, "? ").trimRight();
-            captured = captured.replace(/\s{2,}/g, " ");
-        } else {
+        captured = captured.replace(/\s{2,}/g, " ");
+        if (transformer) {
             const { error, transformed } = transformer(captured);
             if (error) {
                 errors[key] = `__ERR__${key.toUpperCase()}__TRANSFORM__: ${error}`;
@@ -169,22 +226,26 @@ async function parse() {
         }
     });
     const total = candidates.length;
-    // if (masterdevices.length + masterErrors.length !== total) {
-    //     throw new Error(`Encountered a ${masterdevices.length} to ${masterErrors.length} mismatch in device / error split!`);
-    // }
+    if (masterdevices.length + masterErrors.length !== total) {
+        throw new Error(`Encountered a ${masterdevices.length} to ${masterErrors.length} mismatch in device / error split!`);
+    }
     console.log();
-    await writeOutputFile("buxton.json", masterdevices, total, true);
-    await writeOutputFile("errors.json", masterErrors, total, false);
+    await writeOutputFile(successOut, masterdevices, total, true);
+    await writeOutputFile(failOut, masterErrors, total, false);
     console.log();
 }
 
 async function writeOutputFile(relativePath: string, data: any[], total: number, success: boolean) {
     console.log(yellow(`Encountered ${data.length} ${success ? "valid" : "invalid"} documents out of ${total} candidates. Writing ${relativePath}...`));
     return new Promise<void>((resolve, reject) => {
-        const destination = path.resolve(__dirname, relativePath);
+        const destination = path.resolve(outDir, relativePath);
         const contents = JSON.stringify(data, undefined, 4);
         writeFile(destination, contents, err => err ? reject(err) : resolve());
     });
+}
+
+if (!existsSync(outDir)) {
+    mkdirSync(outDir);
 }
 
 parse();
