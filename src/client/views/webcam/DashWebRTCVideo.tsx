@@ -137,7 +137,7 @@ export class DashWebRTCVideo extends React.Component<CollectionFreeFormDocumentV
         });
 
         navigator.mediaDevices.getUserMedia({
-            audio: false,
+            audio: true,
             video: true
         })
             .then(this.gotStream)
