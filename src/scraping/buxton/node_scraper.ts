@@ -313,7 +313,6 @@ async function main() {
         mkdirSync(outDir);
     }
 
-
     const devices = await parseFiles();
     await Database.tryInitializeConnection();
 
