@@ -626,6 +626,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
             const layoutItems: ContextMenuProps[] = [];
             layoutItems.push({ description: (this.props.Document.preventTreeViewOpen ? "Persist" : "Abandon") + "Treeview State", event: () => this.props.Document.preventTreeViewOpen = !this.props.Document.preventTreeViewOpen, icon: "paint-brush" });
             layoutItems.push({ description: (this.props.Document.hideHeaderFields ? "Show" : "Hide") + " Header Fields", event: () => this.props.Document.hideHeaderFields = !this.props.Document.hideHeaderFields, icon: "paint-brush" });
+            layoutItems.push({ description: (this.props.Document.treeViewHideTitle ? "Show" : "Hide") + " Title", event: () => this.props.Document.treeViewHideTitle = !this.props.Document.treeViewHideTitle, icon: "paint-brush" });
             ContextMenu.Instance.addItem({ description: "Treeview Options ...", subitems: layoutItems, icon: "eye" });
         }
         ContextMenu.Instance.addItem({
@@ -639,28 +640,46 @@ export class CollectionTreeView extends CollectionSubView(Document) {
                         d.captions = undefined;
                     });
                 });
-                const { TextDocument, ImageDocument, CarouselDocument } = Docs.Create;
+                const { TextDocument, ImageDocument, CarouselDocument, TreeDocument } = Docs.Create;
                 const { Document } = this.props;
                 const fallbackImg = "http://www.cs.brown.edu/~bcz/face.gif";
-                const detailedTemplate = `{ "doc": { "type": "doc", "content": [ { "type": "paragraph", "content": [ { "type": "dashField", "attrs": { "fieldKey": "short_description" } } ] }, { "type": "paragraph", "content": [ { "type": "dashField", "attrs": { "fieldKey": "year" } } ] },  { "type": "paragraph", "content": [ { "type": "dashField", "attrs": { "fieldKey": "company" } } ] }  ] }, "selection":{"type":"text","anchor":1,"head":1},"storedMarks":[] }`;
+                const detailedTemplate = `{ "doc": { "type": "doc", "content": [  { "type": "paragraph", "content": [ { "type": "dashField", "attrs": { "fieldKey": "year" } } ] },  { "type": "paragraph", "content": [ { "type": "dashField", "attrs": { "fieldKey": "company" } } ] }  ] }, "selection":{"type":"text","anchor":1,"head":1},"storedMarks":[] }`;
 
                 const textDoc = TextDocument("", { title: "details", _autoHeight: true });
-                const detailedLayout = Docs.Create.StackingDocument([
+                const detailView = Docs.Create.StackingDocument([
                     CarouselDocument([], { title: "data", _height: 350, _itemIndex: 0, backgroundColor: "#9b9b9b3F" }),
                     textDoc,
-                ], { _chromeStatus: "disabled", title: "detailed layout stack" });
-                textDoc.data = new RichTextField(detailedTemplate, "short_description year company");
-                detailedLayout.isTemplateDoc = makeTemplate(detailedLayout);
+                    TextDocument("", { title: "short_description", _autoHeight: true }),
+                    TreeDocument([], { title: "narratives", _height: 75, treeViewHideTitle: true })
+                ], { _chromeStatus: "disabled", _width: 300, _height: 300, _autoHeight: true, title: "detailView" });
+                textDoc.data = new RichTextField(detailedTemplate, "year company");
+                detailView.isTemplateDoc = makeTemplate(detailView);
 
-                const cardLayout = ImageDocument(fallbackImg, { title: "cardLayout", isTemplateDoc: true, isTemplateForField: "hero", }); // this acts like a template doc and a template field ... a little weird, but seems to work?
-                cardLayout.proto!.layout = ImageBox.LayoutString("hero");
-                cardLayout.showTitle = "title";
-                cardLayout.showTitleHover = "titlehover";
 
-                Document.childLayout = cardLayout;
-                Document.childDetailed = detailedLayout;
+                const heroView = ImageDocument(fallbackImg, { title: "heroView", isTemplateDoc: true, isTemplateForField: "hero", }); // this acts like a template doc and a template field ... a little weird, but seems to work?
+                heroView.proto!.layout = ImageBox.LayoutString("hero");
+                heroView.showTitle = "title";
+                heroView.showTitleHover = "titlehover";
+
+                Doc.AddDocToList(CurrentUserUtils.UserDocument.expandingButtons as Doc, "data",
+                    Docs.Create.FontIconDocument({
+                        _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, dropAction: "alias", onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
+                        dragFactory: heroView, removeDropProperties: new List<string>(["dropAction"]), title: "hero view", icon: "portrait"
+                    }));
+
+                Doc.AddDocToList(CurrentUserUtils.UserDocument.expandingButtons as Doc, "data",
+                    Docs.Create.FontIconDocument({
+                        _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, dropAction: "alias", onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
+                        dragFactory: detailView, removeDropProperties: new List<string>(["dropAction"]), title: "detail view", icon: "file-alt"
+                    }));
+
+
+                Document.childLayout = heroView;
+                Document.childDetailed = detailView;
                 Document._viewType = CollectionViewType.Time;
-                Document.pivotField = "company";
+                Document._forceActive = true;
+                Document._pivotField = "company";
+                Document.childDropAction = "alias";
             }
         });
         const existingOnClick = ContextMenu.Instance.findByDescription("OnClick...");
@@ -684,7 +703,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
     }
 
     render() {
-        const dropAction = StrCast(this.props.Document._dropAction) as dropActionType;
+        const dropAction = StrCast(this.props.Document.dropAction) as dropActionType;
         const addDoc = (doc: Doc, relativeTo?: Doc, before?: boolean) => Doc.AddDocToList(this.props.Document, this.props.fieldKey, doc, relativeTo, before, false, false, false);
         const moveDoc = (d: Doc, target: Doc | undefined, addDoc: (doc: Doc) => boolean) => this.props.moveDocument(d, target, addDoc);
         return !this.childDocs ? (null) : (

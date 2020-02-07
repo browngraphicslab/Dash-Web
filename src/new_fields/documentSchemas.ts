@@ -8,13 +8,15 @@ export const documentSchema = createSchema({
     layoutKey: "string",        // holds the field key for the field that actually holds the current lyoat
     layout_custom: Doc,         // used to hold a custom layout (there's nothing special about this field .. any field could hold a custom layout that can be selected by setting 'layoutKey')
     title: "string",            // document title (can be on either data document or layout)
-    _dropAction: "string",       // override specifying what should happen when this document is dropped (can be "alias" or "copy")
+    dropAction: "string",       // override specifying what should happen when this document is dropped (can be "alias" or "copy")
+    childDropAction: "string",  // specify the override for what should happen when the child of a collection is dragged from it and dropped (can be "alias" or "copy")
     _nativeWidth: "number",      // native width of document which determines how much document contents are scaled when the document's width is set
     _nativeHeight: "number",     // "
     _width: "number",            // width of document in its container's coordinate system
     _height: "number",           // "
     _freeformLayoutEngine: "string",// the string ID for the layout engine to use to layout freeform view documents
     _LODdisable: "boolean",      // whether to disbale LOD switching for CollectionFreeFormViews
+    _pivotField: "string",      // specifies which field should be used as the timeline/pivot axis
     color: "string",            // foreground color of document
     backgroundColor: "string",  // background color of document
     opacity: "number",          // opacity of document

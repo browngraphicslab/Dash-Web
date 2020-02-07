@@ -265,8 +265,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 const layoutKey = Cast(dv.props.Document.layoutKey, "string", null);
                 const collapse = layoutKey !== "layout_icon";
                 if (collapse) {
-                    if (layoutKey && layoutKey !== "layout") dv.props.Document.deiconifyLayout = layoutKey.replace("layout_", "");
                     dv.setCustomView(collapse, "icon");
+                    if (layoutKey && layoutKey !== "layout") dv.props.Document.deiconifyLayout = layoutKey.replace("layout_", "");
                 } else {
                     const deiconifyLayout = Cast(dv.props.Document.deiconifyLayout, "string", null);
                     dv.setCustomView(deiconifyLayout ? true : false, deiconifyLayout);
@@ -274,6 +274,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 }
             });
         }
+        SelectionManager.DeselectAll();
     }
 
     @action

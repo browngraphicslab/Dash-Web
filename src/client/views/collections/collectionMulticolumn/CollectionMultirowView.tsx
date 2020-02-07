@@ -34,7 +34,7 @@ export const DimUnit = {
 };
 
 const resolvedUnits = Object.values(DimUnit);
-const resizerHeight = 4;
+const resizerHeight = 8;
 
 @observer
 export class CollectionMultirowView extends CollectionSubView(MultirowDocument) {
@@ -45,7 +45,7 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
      */
     @computed
     private get ratioDefinedDocs() {
-        return this.childLayoutPairs.map(({ layout }) => layout).filter(({ dimUnit }) => StrCast(dimUnit) === DimUnit.Ratio);
+        return this.childLayoutPairs.map(pair => pair.layout).filter(layout => StrCast(layout.dimUnit, "*") === DimUnit.Ratio);
     }
 
     /**
@@ -60,9 +60,9 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
     private get resolvedLayoutInformation(): LayoutData {
         let starSum = 0;
         const heightSpecifiers: HeightSpecifier[] = [];
-        this.childLayoutPairs.map(({ layout: { dimUnit, dimMagnitude } }) => {
-            const unit = StrCast(dimUnit);
-            const magnitude = NumCast(dimMagnitude);
+        this.childLayoutPairs.map(pair => {
+            const unit = StrCast(pair.layout.dimUnit, "*");
+            const magnitude = NumCast(pair.layout.dimMagnitude, 1);
             if (unit && magnitude && magnitude > 0 && resolvedUnits.includes(unit)) {
                 (unit === DimUnit.Ratio) && (starSum += magnitude);
                 heightSpecifiers.push({ magnitude, unit });
@@ -82,9 +82,9 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
         setTimeout(() => {
             const { ratioDefinedDocs } = this;
             if (this.childLayoutPairs.length) {
-                const minimum = Math.min(...ratioDefinedDocs.map(({ dimMagnitude }) => NumCast(dimMagnitude)));
+                const minimum = Math.min(...ratioDefinedDocs.map(layout => NumCast(layout.dimMagnitude, 1)));
                 if (minimum !== 0) {
-                    ratioDefinedDocs.forEach(layout => layout.dimMagnitude = NumCast(layout.dimMagnitude) / minimum);
+                    ratioDefinedDocs.forEach(layout => layout.dimMagnitude = NumCast(layout.dimMagnitude, 1) / minimum);
                 }
             }
         });
@@ -119,7 +119,7 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
     private get totalRatioAllocation(): number | undefined {
         const layoutInfoLen = this.resolvedLayoutInformation.heightSpecifiers.length;
         if (layoutInfoLen > 0 && this.totalFixedAllocation !== undefined) {
-            return this.props.PanelHeight() - (this.totalFixedAllocation + resizerHeight * (layoutInfoLen - 1));
+            return this.props.PanelHeight() - (this.totalFixedAllocation + resizerHeight * (layoutInfoLen - 1)) - 2 * NumCast(this.props.Document._yMargin);
         }
     }
 
@@ -160,8 +160,8 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
         if (rowUnitLength === undefined) {
             return 0; // we're still waiting on promises to resolve
         }
-        let height = NumCast(layout.dimMagnitude);
-        if (StrCast(layout.dimUnit) === DimUnit.Ratio) {
+        let height = NumCast(layout.dimMagnitude, 1);
+        if (StrCast(layout.dimUnit, "*") === DimUnit.Ratio) {
             height *= rowUnitLength;
         }
         return height;
@@ -203,6 +203,19 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
 
     @computed get onChildClickHandler() { return ScriptCast(this.Document.onChildClick); }
 
+    getDisplayDoc(layout: Doc, dxf: () => Transform, width: () => number, height: () => number) {
+        return <ContentFittingDocumentView
+            {...this.props}
+            Document={layout}
+            DataDocument={layout.resolvedDataDoc as Doc}
+            CollectionDoc={this.props.Document}
+            PanelWidth={width}
+            PanelHeight={height}
+            getTransform={dxf}
+            onClick={this.onChildClickHandler}
+            renderDepth={this.props.renderDepth + 1}
+        />
+    }
     /**
      * @returns the resolved list of rendered child documents, displayed
      * at their resolved pixel widths, each separated by a resizer. 
@@ -214,22 +227,15 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
         const collector: JSX.Element[] = [];
         for (let i = 0; i < childLayoutPairs.length; i++) {
             const { layout } = childLayoutPairs[i];
+            const dxf = () => this.lookupIndividualTransform(layout).translate(-NumCast(Document._xMargin), -NumCast(Document._yMargin));
+            const height = () => this.lookupPixels(layout);
+            const width = () => PanelWidth() - 2 * NumCast(Document._xMargin) - (BoolCast(Document.showWidthLabels) ? 20 : 0);
             collector.push(
                 <div
                     className={"document-wrapper"}
-                    key={Utils.GenerateGuid()}
+                    key={"wrapper" + i}
                 >
-                    <ContentFittingDocumentView
-                        {...this.props}
-                        Document={layout}
-                        DataDocument={layout.resolvedDataDoc as Doc}
-                        CollectionDoc={this.props.Document}
-                        PanelHeight={() => this.lookupPixels(layout)}
-                        PanelWidth={() => PanelWidth() - (BoolCast(Document.showHeightLabels) ? 20 : 0)}
-                        getTransform={() => this.lookupIndividualTransform(layout)}
-                        onClick={this.onChildClickHandler}
-                        renderDepth={this.props.renderDepth + 1}
-                    />
+                    {this.getDisplayDoc(layout, dxf, width, height)}
                     <HeightLabel
                         layout={layout}
                         collectionDoc={Document}
@@ -237,7 +243,7 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
                 </div>,
                 <ResizeBar
                     height={resizerHeight}
-                    key={Utils.GenerateGuid()}
+                    key={"resizer" + i}
                     columnUnitLength={this.getRowUnitLength}
                     toTop={layout}
                     toBottom={childLayoutPairs[i + 1]?.layout}
@@ -250,7 +256,11 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
 
     render(): JSX.Element {
         return (
-            <div className={"collectionMultirowView_contents"} ref={this.createDashEventsTarget}>
+            <div className={"collectionMultirowView_contents"}
+                style={{
+                    marginLeft: NumCast(this.props.Document._xMargin), marginRight: NumCast(this.props.Document._xMargin),
+                    marginTop: NumCast(this.props.Document._yMargin), marginBottom: NumCast(this.props.Document._yMargin)
+                }} ref={this.createDashEventsTarget}>
                 {this.contents}
             </div>
         );

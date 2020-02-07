@@ -5,8 +5,16 @@
     height: 100%;
     width: 100%;
     overflow: hidden;
+    .collectionTimeView-backBtn {
+        background: green;
+        display: inline;
+        margin-right: 20px;
+    }
     .collectionFreeform-customText {
         text-align: left;
+    }
+    .collectionFreeform-customDiv {
+        position: absolute;
     }
     .collectionTimeView-thumb {
         position: absolute;

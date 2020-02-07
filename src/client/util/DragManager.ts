@@ -197,7 +197,10 @@ export namespace DragManager {
                         dragData.userDropAction === "copy" || (!dragData.userDropAction && dragData.dropAction === "copy") ? Doc.MakeCopy(d, true) : d)
             );
             e.docDragData?.droppedDocuments.forEach((drop: Doc, i: number) =>
-                Cast(dragData.draggedDocuments[i].removeDropProperties, listSpec("string"), []).map(prop => drop[prop] = undefined));
+                Cast(dragData.draggedDocuments[i].removeDropProperties, listSpec("string"), []).map(prop => {
+                    drop[prop] = undefined;
+                })
+            );
         };
         dragData.draggedDocuments.map(d => d.dragFactory); // does this help?  trying to make sure the dragFactory Doc is loaded
         StartDrag(eles, dragData, downX, downY, options, finishDrag);

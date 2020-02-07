@@ -50,6 +50,7 @@ import { RadialMenuProps } from './RadialMenuItem';
 
 import { CollectionStackingView } from '../collections/CollectionStackingView';
 import { RichTextField } from '../../../new_fields/RichTextField';
+import { HistoryUtil } from '../../util/History';
 
 library.add(fa.faEdit, fa.faTrash, fa.faShare, fa.faDownload, fa.faExpandArrowsAlt, fa.faCompressArrowsAlt, fa.faLayerGroup, fa.faExternalLinkAlt, fa.faAlignCenter, fa.faCaretSquareRight,
     fa.faSquare, fa.faConciergeBell, fa.faWindowRestore, fa.faFolder, fa.faMapPin, fa.faLink, fa.faFingerprint, fa.faCrosshairs, fa.faDesktop, fa.faUnlock, fa.faLock, fa.faLaptopCode, fa.faMale,
@@ -110,7 +111,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @computed get topMost() { return this.props.renderDepth === 0; }
     @computed get nativeWidth() { return this.layoutDoc._nativeWidth || 0; }
     @computed get nativeHeight() { return this.layoutDoc._nativeHeight || 0; }
-    @computed get onClickHandler() { return this.props.onClick ? this.props.onClick : this.Document.onClick; }
+    @computed get onClickHandler() { return this.props.onClick || this.layoutDoc.onClick || this.Document.onClick; }
     @computed get onPointerDownHandler() { return this.props.onPointerDown ? this.props.onPointerDown : this.Document.onPointerDown; }
     @computed get onPointerUpHandler() { return this.props.onPointerUp ? this.props.onPointerUp : this.Document.onPointerUp; }
 
@@ -209,6 +210,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             dragData.moveDocument = this.props.moveDocument;//  this.Document.onDragStart ? undefined : this.props.moveDocument;
             dragData.applyAsTemplate = applyAsTemplate;
             dragData.dragDivName = this.props.dragDivName;
+            this.props.Document.sourceContext = this.props.ContainingCollectionDoc; // bcz: !! shouldn't need this ... use search find the document's context dynamically
             DragManager.StartDocumentDrag([this._mainCont.current], dragData, x, y, { hideSource: !dropAction && !this.Document.onDragStart });
         }
     }
@@ -253,7 +255,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
 
-    onClick = async (e: React.MouseEvent | React.PointerEvent) => {
+    onClick = undoBatch((e: React.MouseEvent | React.PointerEvent) => {
         if (!e.nativeEvent.cancelBubble && !this.Document.ignoreClick && CurrentUserUtils.MainDocId !== this.props.Document[Id] &&
             (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD && Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD)) {
             e.stopPropagation();
@@ -267,7 +269,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 SelectionManager.DeselectAll();
                 Doc.UnBrushDoc(this.props.Document);
             } else if (this.onClickHandler && this.onClickHandler.script) {
-                this.onClickHandler.script.run({ this: this.Document.isTemplateForField && this.props.DataDoc ? this.props.DataDoc : this.props.Document, containingCollection: this.props.ContainingCollectionDoc }, console.log);
+                this.onClickHandler.script.run({ this: this.Document.isTemplateForField && this.props.DataDoc ? this.props.DataDoc : this.props.Document, containingCollection: this.props.ContainingCollectionDoc, shiftKey: e.shiftKey }, console.log);
             } else if (this.Document.type === DocumentType.BUTTON) {
                 ScriptBox.EditButtonScript("On Button Clicked ...", this.props.Document, "onClick", e.clientX, e.clientY);
             } else if (this.props.Document.isButton === "Selector") {  // this should be moved to an OnClick script
@@ -282,7 +284,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             }
             preventDefault && e.preventDefault();
         }
-    }
+    })
 
     buttonClick = async (altKey: boolean, ctrlKey: boolean) => {
         const maximizedDocs = await DocListCastAsync(this.Document.maximizedDocs);
@@ -346,7 +348,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             if (Math.abs(this._downX - touch.clientX) > 3 || Math.abs(this._downY - touch.clientY) > 3) {
                 if (!e.altKey && (!this.topMost || this.Document.onDragStart || this.Document.onClick)) {
                     this.cleanUpInteractions();
-                    this.startDragging(this._downX, this._downY, this.Document._dropAction ? this.Document._dropAction as any : e.ctrlKey || e.altKey ? "alias" : undefined, this._hitTemplateDrag);
+                    this.startDragging(this._downX, this._downY, this.Document.dropAction ? this.Document.dropAction as any : e.ctrlKey || e.altKey ? "alias" : undefined, this._hitTemplateDrag);
                 }
             }
             e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers
@@ -454,7 +456,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             }
             return;
         }
-        if (!e.nativeEvent.cancelBubble || this.Document.onClick || this.Document.onDragStart) {
+        if (!e.nativeEvent.cancelBubble || this.onClickHandler || this.Document.onDragStart) {
             this._downX = e.clientX;
             this._downY = e.clientY;
             this._hitTemplateDrag = false;
@@ -465,7 +467,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     this._hitTemplateDrag = true;
                 }
             }
-            if ((this.active || this.Document.onDragStart || this.Document.onClick) && !e.ctrlKey && (e.button === 0 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE)) && !this.Document.lockedPosition && !this.Document.inOverlay) e.stopPropagation(); // events stop at the lowest document that is active.  if right dragging, we let it go through though to allow for context menu clicks. PointerMove callbacks should remove themselves if the move event gets stopPropagated by a lower-level handler (e.g, marquee drag);
+            if ((this.active || this.Document.onDragStart || this.onClickHandler) &&
+                !e.ctrlKey &&
+                (e.button === 0 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE)) &&
+                !this.Document.lockedPosition &&
+                !this.Document.inOverlay) {
+                e.stopPropagation(); // events stop at the lowest document that is active.  if right dragging, we let it go through though to allow for context menu clicks. PointerMove callbacks should remove themselves if the move event gets stopPropagated by a lower-level handler (e.g, marquee drag);
+            }
             document.removeEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointermove", this.onPointerMove);
@@ -482,12 +490,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (e.cancelBubble && this.active) {
             document.removeEventListener("pointermove", this.onPointerMove); // stop listening to pointerMove if something else has stopPropagated it (e.g., the MarqueeView)
         }
-        else if (!e.cancelBubble && (SelectionManager.IsSelected(this, true) || this.props.parentActive(true) || this.Document.onDragStart || this.Document.onClick) && !this.Document.lockedPosition && !this.Document.inOverlay) {
+        else if (!e.cancelBubble && (SelectionManager.IsSelected(this, true) || this.props.parentActive(true) || this.Document.onDragStart || this.onClickHandler) && !this.Document.lockedPosition && !this.Document.inOverlay) {
             if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
-                if (!e.altKey && (!this.topMost || this.Document.onDragStart || this.Document.onClick) && (e.buttons === 1 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE))) {
+                if (!e.altKey && (!this.topMost || this.Document.onDragStart || this.onClickHandler) && (e.buttons === 1 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE))) {
                     document.removeEventListener("pointermove", this.onPointerMove);
                     document.removeEventListener("pointerup", this.onPointerUp);
-                    this.startDragging(this._downX, this._downY, this.Document._dropAction ? this.Document._dropAction as any : e.ctrlKey || e.altKey ? "alias" : undefined, this._hitTemplateDrag);
+                    this.startDragging(this._downX, this._downY, this.props.ContainingCollectionDoc?.childDropAction ? this.props.ContainingCollectionDoc?.childDropAction : this.Document.dropAction ? this.Document.dropAction as any : e.ctrlKey || e.altKey ? "alias" : undefined, this._hitTemplateDrag);
                 }
             }
             e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers
@@ -517,13 +525,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     @undoBatch
-    deleteClicked = (): void => { SelectionManager.DeselectAll(); this.props.removeDocument && this.props.removeDocument(this.props.Document); }
+    deleteClicked = (): void => { SelectionManager.DeselectAll(); this.props.removeDocument?.(this.props.Document); }
 
-    static makeNativeViewClicked = (doc: Doc, prevLayout: string) => {
-        undoBatch(() => {
-            if (StrCast(doc.title).endsWith("_" + prevLayout)) doc.title = StrCast(doc.title).replace("_" + prevLayout, "");
-            doc.layoutKey = "layout";
-        })();
+    static makeNativeViewClicked = (doc: Doc) => {
+        undoBatch(() => Doc.setNativeView(doc))();
     }
 
     static makeCustomViewClicked = (doc: Doc, dataDoc: Opt<Doc>, creator: (documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc, name: string = "custom", docLayoutTemplate?: Doc) => {
@@ -533,7 +538,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (doc[customName] === undefined) {
             const _width = NumCast(doc._width);
             const _height = NumCast(doc._height);
-            const options = { title: "data", _width, x: -_width / 2, y: - _height / 2, };
+            const options = { title: "data", _width, x: -_width / 2, y: - _height / 2, _showSidebar: false };
 
             const field = doc.data;
             let fieldTemplate: Opt<Doc>;
@@ -599,7 +604,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 `Link from ${StrCast(de.complete.annoDragData.annotationDocument.title)}`);
         }
         if (de.complete.docDragData && de.complete.docDragData.applyAsTemplate) {
-            Doc.ApplyTemplateTo(de.complete.docDragData.draggedDocuments[0], this.props.Document, "layout_custom");
+            Doc.ApplyTemplateTo(de.complete.docDragData.draggedDocuments[0], this.props.Document, "layout_custom", undefined);
             e.stopPropagation();
         }
         if (de.complete.linkDragData) {
@@ -608,18 +613,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             // const views = docs.map(d => DocumentManager.Instance.getDocumentView(d)).filter(d => d).map(d => d as DocumentView);
             de.complete.linkDragData.linkSourceDocument !== this.props.Document &&
                 (de.complete.linkDragData.linkDocument = DocUtils.MakeLink({ doc: de.complete.linkDragData.linkSourceDocument }, { doc: this.props.Document, ctx: this.props.ContainingCollectionDoc }, "in-text link being created")); // TODODO this is where in text links get passed
-        }
-    }
-
-    @action
-    onDrop = (e: React.DragEvent) => {
-        const text = e.dataTransfer.getData("text/plain");
-        if (!e.isDefaultPrevented() && text && text.startsWith("<div")) {
-            const oldLayout = this.Document.layout || "";
-            const layout = text.replace("{layout}", oldLayout);
-            this.Document.layout = layout;
-            e.stopPropagation();
-            e.preventDefault();
         }
     }
 
@@ -652,21 +645,23 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @action
     setCustomView =
         (custom: boolean, layout: string): void => {
-            if (this.props.ContainingCollectionView?.props.DataDoc || this.props.ContainingCollectionView?.props.Document.isTemplateDoc) {
-                Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.ContainingCollectionView.props.Document);
-            } else if (custom) {
-                DocumentView.makeNativeViewClicked(this.props.Document, StrCast(this.props.Document.layoutKey).split("_")[1]);
+            // if (this.props.ContainingCollectionView?.props.DataDoc || this.props.ContainingCollectionView?.props.Document.isTemplateDoc) {
+            //     Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.ContainingCollectionView.props.Document);
+            // } else 
+            if (custom) {
+                DocumentView.makeNativeViewClicked(this.props.Document);
 
-                let foundLayout: Opt<Doc> = undefined;
-                DocListCast(Cast(CurrentUserUtils.UserDocument.expandingButtons, Doc, null)?.data)?.map(btnDoc => {
-                    if (StrCast(Cast(btnDoc?.dragFactory, Doc, null)?.title) === layout) {
-                        foundLayout = btnDoc.dragFactory as Doc;
-                    }
-                })
+                let foundLayout: Opt<Doc>;
+                DocListCast(Cast(Doc.UserDoc().expandingButtons, Doc, null)?.data)?.concat([Cast(Doc.UserDoc().iconView, Doc, null)]).
+                    map(btnDoc => (btnDoc.dragFactory as Doc) || btnDoc).filter(doc => doc.isTemplateDoc).forEach(tempDoc => {
+                        if (StrCast(tempDoc.title) === layout) {
+                            foundLayout = tempDoc;
+                        }
+                    })
                 DocumentView.
                     makeCustomViewClicked(this.props.Document, this.props.DataDoc, Docs.Create.StackingDocument, layout, foundLayout);
             } else {
-                DocumentView.makeNativeViewClicked(this.props.Document, StrCast(this.props.Document.layoutKey).split("_")[1]);
+                DocumentView.makeNativeViewClicked(this.props.Document);
             }
         }
 
@@ -903,7 +898,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const showTitle = StrCast(this.getLayoutPropStr("showTitle"));
         const showTitleHover = StrCast(this.getLayoutPropStr("showTitleHover"));
         const showCaption = this.getLayoutPropStr("showCaption");
-        const showTextTitle = showTitle && StrCast(this.layoutDoc.layout).indexOf("FormattedTextBox") !== -1 ? showTitle : undefined;
+        const showTextTitle = showTitle && (StrCast(this.layoutDoc.layout).indexOf("PresBox") !== -1 || StrCast(this.layoutDoc.layout).indexOf("FormattedTextBox") !== -1) ? showTitle : undefined;
         const searchHighlight = (!this.Document.searchFields ? (null) :
             <div className="documentView-searchHighlight">
                 {this.Document.searchFields}
@@ -974,7 +969,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         let highlighting = fullDegree && this.layoutDoc.type !== DocumentType.FONTICON && this.layoutDoc._viewType !== CollectionViewType.Linear;
         highlighting = highlighting && this.props.focus !== emptyFunction;  // bcz: hack to turn off highlighting onsidebar panel documents.  need to flag a document as not highlightable in a more direct way
         return <div className={`documentView-node${this.topMost ? "-topmost" : ""}`} ref={this._mainCont} onKeyDown={this.onKeyDown}
-            onDrop={this.onDrop} onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
+            onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
             onPointerEnter={e => Doc.BrushDoc(this.props.Document)} onPointerLeave={e => Doc.UnBrushDoc(this.props.Document)}
             style={{
                 transition: this.Document.isAnimating ? ".5s linear" : StrCast(this.Document.transition),

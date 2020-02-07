@@ -11,7 +11,6 @@ import { listSpec } from "../../../new_fields/Schema";
 import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 import { BoolCast, Cast, NumCast, StrCast, ScriptCast } from "../../../new_fields/Types";
 import { emptyFunction, Utils } from "../../../Utils";
-import { DocumentType } from "../../documents/DocumentTypes";
 import { DragManager } from "../../util/DragManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
@@ -41,7 +40,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     @computed get sectionFilter() { return StrCast(this.props.Document.sectionFilter); }
     @computed get filteredChildren() { return this.childLayoutPairs.filter(pair => pair.layout instanceof Doc && !pair.layout.isMinimized).map(pair => pair.layout); }
     @computed get xMargin() { return NumCast(this.props.Document._xMargin, 2 * this.gridGap); }
-    @computed get yMargin() { return Math.max(this.props.Document.showTitle && !this.props.Document.showTitleHover ? 30 : 0, NumCast(this.props.Document._yMargin, 2 * this.gridGap)); }
+    @computed get yMargin() { return Math.max(this.props.Document.showTitle && !this.props.Document.showTitleHover ? 30 : 0, NumCast(this.props.Document._yMargin, 0)); } // 2 * this.gridGap)); }
     @computed get gridGap() { return NumCast(this.props.Document._gridGap, 10); }
     @computed get isStackingView() { return BoolCast(this.props.Document.singleColumn, true); }
     @computed get numGroupColumns() { return this.isStackingView ? Math.max(1, this.Sections.size + (this.showAddAGroup ? 1 : 0)) : 1; }
@@ -52,11 +51,11 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     }
     @computed get NodeWidth() { return this.props.PanelWidth() - this.gridGap; }
 
-    children(docs: Doc[]) {
+    children(docs: Doc[], columns?: number) {
         this._docXfs.length = 0;
         return docs.map((d, i) => {
-            const width = () => Math.min(d._nativeWidth && !d.ignoreAspect && !this.props.Document.fillColumn ? d[WidthSym]() : Number.MAX_VALUE, this.columnWidth / this.numGroupColumns);
             const height = () => this.getDocHeight(d);
+            const width = () => this.widthScale * Math.min(d._nativeWidth && !d.ignoreAspect && !this.props.Document.fillColumn ? d[WidthSym]() : Number.MAX_VALUE, this.columnWidth / this.numGroupColumns);
             const dref = React.createRef<HTMLDivElement>();
             const dxf = () => this.getDocTransform(d, dref.current!);
             this._docXfs.push({ dxf: dxf, width: width, height: height });
@@ -377,6 +376,16 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         }
         return sections.map(section => this.isStackingView ? this.sectionStacking(section[0], section[1]) : this.sectionMasonry(section[0], section[1]));
     }
+    @computed get contentScale() {
+        const heightExtra = this.heightPercent > 1 ? this.heightPercent : 1;
+        return Math.max(this.props.Document[WidthSym]() / this.props.PanelWidth(), heightExtra * this.props.Document[HeightSym]() / this.props.PanelHeight());
+    }
+    @computed get widthScale() {
+        return this.heightPercent < 1 ? Math.max(1, this.contentScale) : 1;
+    }
+    @computed get heightPercent() {
+        return this.props.PanelHeight() / this.layoutDoc[HeightSym]();
+    }
     render() {
         TraceMobx();
         const editableViewProps = {
@@ -390,9 +399,10 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                     ref={this.createRef}
                     style={{
                         overflowY: this.props.active() ? "auto" : "hidden",
-                        transform: `scale(${Math.min(1, this.props.PanelHeight() / this.layoutDoc[HeightSym]())})`,
-                        height: `${Math.max(100, 100 * 1 / Math.min(this.props.PanelWidth() / this.layoutDoc[WidthSym](), this.props.PanelHeight() / this.layoutDoc[HeightSym]()))}%`,
-                        transformOrigin: "top"
+                        transform: `scale(${Math.min(1, this.heightPercent)})`,
+                        height: `${100 * Math.max(1, this.contentScale)}%`,
+                        width: `${100 * this.widthScale}%`,
+                        transformOrigin: "top left",
                     }}
                     onScroll={action((e: React.UIEvent<HTMLDivElement>) => this._scroll = e.currentTarget.scrollTop)}
                     onDrop={this.onDrop.bind(this)}
