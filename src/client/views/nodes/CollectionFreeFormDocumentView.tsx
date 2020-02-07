@@ -88,6 +88,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 width: this.width,
                 height: this.height,
                 zIndex: this.ZInd,
+                display: this.ZInd === -99 ? "none" : undefined,
                 pointerEvents: this.props.Document.isBackground ? "none" : undefined
             }} >
 

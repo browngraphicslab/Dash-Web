@@ -52,11 +52,11 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     }
     @computed get NodeWidth() { return this.props.PanelWidth() - this.gridGap; }
 
-    children(docs: Doc[]) {
+    children(docs: Doc[], columns?: number) {
         this._docXfs.length = 0;
         return docs.map((d, i) => {
             const height = () => this.getDocHeight(d);
-            const width = () => (this.widthScale ? this.widthScale : 1) * Math.min(d._nativeWidth && !d.ignoreAspect && !this.props.Document.fillColumn ? d[WidthSym]() : Number.MAX_VALUE, this.columnWidth / this.numGroupColumns);
+            const width = () => (this.widthScale && !columns ? this.widthScale : 1) * Math.min(d._nativeWidth && !d.ignoreAspect && !this.props.Document.fillColumn ? d[WidthSym]() : Number.MAX_VALUE, this.columnWidth / this.numGroupColumns);
             const dref = React.createRef<HTMLDivElement>();
             const dxf = () => this.getDocTransform(d, dref.current!);
             this._docXfs.push({ dxf: dxf, width: width, height: height });
@@ -381,7 +381,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         return Math.min(this.props.Document[WidthSym]() / this.props.PanelWidth(), this.props.Document[HeightSym]() / this.props.PanelHeight());
     }
     @computed get widthScale() {
-        return StrCast(this.props.Document.title).includes("slide") ? this.heightScale : undefined;
+        return StrCast(this.props.Document.title).includes("slide") || true ? this.heightScale : undefined;
     }
     render() {
         TraceMobx();

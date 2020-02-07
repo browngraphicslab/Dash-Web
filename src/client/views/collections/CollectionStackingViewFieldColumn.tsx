@@ -407,7 +407,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                                     gridTemplateColumns: singleColumn ? undefined : templatecols,
                                     gridAutoRows: singleColumn ? undefined : "0px"
                                 }}>
-                                {this.props.parent.children(this.props.docList)}
+                                {this.props.parent.children(this.props.docList, uniqueHeadings.length)}
                                 {singleColumn ? (null) : this.props.parent.columnDragger}
                             </div>
                             {(chromeStatus !== 'view-mode' && chromeStatus !== 'disabled') ?

@@ -36,7 +36,6 @@ export interface PoolData {
     color?: string,
     transition?: string,
     highlight?: boolean,
-    state?: any
 }
 
 export interface ViewDefResult {
@@ -71,19 +70,21 @@ interface pivotColumn {
     filters: string[]
 }
 
+
 export function computePivotLayout(
     poolData: Map<string, PoolData>,
     pivotDoc: Doc,
     childDocs: Doc[],
+    filterDocs: Doc[],
     childPairs: { layout: Doc, data?: Doc }[],
     panelDim: number[],
-    viewDefsToJSX: (views: any) => ViewDefResult[]
+    viewDefsToJSX: (views: ViewDefBounds[]) => ViewDefResult[]
 ) {
     const fieldKey = "data";
     const pivotColumnGroups = new Map<FieldResult<Field>, pivotColumn>();
 
     const pivotFieldKey = toLabel(pivotDoc._pivotField);
-    for (const doc of childDocs) {
+    for (const doc of filterDocs) {
         const val = Field.toString(doc[pivotFieldKey] as Field);
         if (val) {
             !pivotColumnGroups.get(val) && pivotColumnGroups.set(val, { docs: [], filters: [val] });
@@ -179,7 +180,7 @@ export function computePivotLayout(
     const dividers = sortedPivotKeys.map((key, i) =>
         ({ type: "div", color: "lightGray", x: i * pivotAxisWidth * (numCols * expander + gap), y: -maxColHeight + pivotAxisWidth, width: pivotAxisWidth * numCols * expander, height: maxColHeight, payload: pivotColumnGroups.get(key)!.filters }));
     groupNames.push(...dividers);
-    return normalizeResults(panelDim, max_text, childPairs, docMap, poolData, viewDefsToJSX, groupNames, 0, []);
+    return normalizeResults(panelDim, max_text, childPairs, docMap, poolData, viewDefsToJSX, groupNames, 0, [], childDocs.filter(c => !filterDocs.includes(c)));
 }
 
 function toNumber(val: FieldResult<Field>) {
@@ -190,9 +191,10 @@ export function computeTimelineLayout(
     poolData: Map<string, PoolData>,
     pivotDoc: Doc,
     childDocs: Doc[],
+    filterDocs: Doc[],
     childPairs: { layout: Doc, data?: Doc }[],
     panelDim: number[],
-    viewDefsToJSX: (views: ViewDefBounds) => ViewDefResult[]
+    viewDefsToJSX: (views: ViewDefBounds[]) => ViewDefResult[]
 ) {
     const fieldKey = "data";
     const pivotDateGroups = new Map<number, Doc[]>();
@@ -212,7 +214,7 @@ export function computeTimelineLayout(
 
     let minTime = Number.MAX_VALUE;
     let maxTime = -Number.MAX_VALUE;
-    childDocs.map(doc => {
+    filterDocs.map(doc => {
         const num = NumCast(doc[timelineFieldKey], Number(StrCast(doc[timelineFieldKey])));
         if (!(Number.isNaN(num) || (minTimeReq && num < minTimeReq) || (maxTimeReq && num > maxTimeReq))) {
             !pivotDateGroups.get(num) && pivotDateGroups.set(num, []);
@@ -275,7 +277,7 @@ export function computeTimelineLayout(
     }
 
     const divider = { type: "div", color: "black", x: 0, y: 0, width: panelDim[0], height: 1, payload: undefined };
-    return normalizeResults(panelDim, fontHeight, childPairs, docMap, poolData, viewDefsToJSX, groupNames, (maxTime - minTime) * scaling, [divider]);
+    return normalizeResults(panelDim, fontHeight, childPairs, docMap, poolData, viewDefsToJSX, groupNames, (maxTime - minTime) * scaling, [divider], childDocs.filter(c => !filterDocs.includes(c)));
 
     function layoutDocsAtTime(keyDocs: Doc[], key: number) {
         keyDocs.forEach(doc => {
@@ -298,7 +300,8 @@ export function computeTimelineLayout(
 }
 
 function normalizeResults(panelDim: number[], fontHeight: number, childPairs: { data?: Doc, layout: Doc }[], docMap: Map<Doc, ViewDefBounds>,
-    poolData: Map<string, PoolData>, viewDefsToJSX: (views: ViewDefBounds) => ViewDefResult[], groupNames: ViewDefBounds[], minWidth: number, extras: ViewDefBounds[]) {
+    poolData: Map<string, PoolData>, viewDefsToJSX: (views: ViewDefBounds[]) => ViewDefResult[], groupNames: ViewDefBounds[], minWidth: number, extras: ViewDefBounds[],
+    extraDocs: Doc[]) {
 
     const grpEles = groupNames.map(gn => ({ x: gn.x, y: gn.y, width: gn.width, height: gn.height }) as ViewDefBounds);
     const docEles = childPairs.filter(d => docMap.get(d.layout)).map(pair => docMap.get(pair.layout) as ViewDefBounds);
@@ -323,6 +326,7 @@ function normalizeResults(panelDim: number[], fontHeight: number, childPairs: { 
             poolData.set(pair.layout[Id], { transition: "transform 1s", ...newPos });
         }
     });
+    extraDocs.map(ed => poolData.set(ed[Id], { x: 0, y: 0, zIndex: -99 }));
 
     return {
         elements: viewDefsToJSX(extras.concat(groupNames.map(gname => ({
