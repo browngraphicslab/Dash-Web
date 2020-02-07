@@ -1,6 +1,6 @@
 import { readdirSync, writeFile } from "fs";
 import * as path from "path";
-import { red, green, cyan, yellow } from "colors";
+import { red, cyan, yellow } from "colors";
 const StreamZip = require('node-stream-zip');
 
 export interface DeviceDocument {
@@ -157,6 +157,7 @@ async function parse() {
     const sourceDirectory = path.resolve(`${__dirname}/source`);
     const candidates = readdirSync(sourceDirectory).filter(file => file.endsWith(".doc") || file.endsWith(".docx")).map(file => `${sourceDirectory}/${file}`);
     const imported = await Promise.all(candidates.map(async path => ({ path, body: await extract(path) })));
+    // const imported = [{ path: candidates[10], body: await extract(candidates[10]) }];
     const data = imported.map(({ path, body }) => analyze(path, body));
     const masterdevices: DeviceDocument[] = [];
     const masterErrors: any[] = [];
@@ -168,9 +169,9 @@ async function parse() {
         }
     });
     const total = candidates.length;
-    if (masterdevices.length + masterErrors.length !== total) {
-        throw new Error(`Encountered a ${masterdevices.length} to ${masterErrors.length} mismatch in device / error split!`);
-    }
+    // if (masterdevices.length + masterErrors.length !== total) {
+    //     throw new Error(`Encountered a ${masterdevices.length} to ${masterErrors.length} mismatch in device / error split!`);
+    // }
     console.log();
     await writeOutputFile("buxton.json", masterdevices, total, true);
     await writeOutputFile("errors.json", masterErrors, total, false);
