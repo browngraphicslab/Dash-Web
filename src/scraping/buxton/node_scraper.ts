@@ -322,12 +322,13 @@ async function main() {
         title: "The Buxton Collection",
         data: listify(proxifyGuids(await Promise.all(devices.map(create))))
     });
-    Database.Instance.updateMany(
+    const result = await Database.Instance.updateMany(
         { "fields.title": "Collection 1" },
-        { "$push": { "fields.data.fields": { "fieldId": parentGuid, "__type": "proxy" } } },
+        { $push: { "fields.data.fields": { fieldId: parentGuid, __type: "proxy" } } },
         targetMongoCollection
     );
 
+    console.log(result);
     console.log(green(`\nSuccessfully inserted ${devices.length} devices into ${targetMongoCollection}.`));
 
     Database.disconnect();
