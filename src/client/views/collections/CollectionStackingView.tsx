@@ -378,7 +378,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     }
     @computed get contentScale() {
         const heightExtra = this.heightPercent > 1 ? this.heightPercent : 1;
-        return Math.max(this.props.Document[WidthSym]() / this.props.PanelWidth(), heightExtra * this.props.Document[HeightSym]() / this.props.PanelHeight());
+        return Math.min(this.props.Document[WidthSym]() / this.props.PanelWidth(), heightExtra * this.props.Document[HeightSym]() / this.props.PanelHeight());
     }
     @computed get widthScale() {
         return this.heightPercent < 1 ? Math.max(1, this.contentScale) : 1;
