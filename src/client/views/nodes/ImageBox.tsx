@@ -257,7 +257,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
                 }), 0);
             })
                 .catch((err: any) => console.log(err));
-        } else if (this.Document._nativeHeight !== cachedNativeSize.width || this.Document._nativeWidth !== cachedNativeSize.height) {
+        } else if (this.Document._nativeWidth !== cachedNativeSize.width || this.Document._nativeHeight !== cachedNativeSize.height) {
             !(this.Document[StrCast(this.props.Document.layoutKey)] instanceof Doc) && setTimeout(() => {
                 if (!(this.Document[StrCast(this.props.Document.layoutKey)] instanceof Doc)) {
                     this.Document._nativeWidth = cachedNativeSize.width;
