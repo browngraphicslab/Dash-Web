@@ -469,7 +469,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                         e.preventDefault();
                         e.stopPropagation();
                         const dragData = new DragManager.DocumentDragData([doc]);
-                        dragData.dropAction = doc.dropAction;
+                        dragData.dropAction = doc.dropAction === "alias" ? "alias" : doc.dropAction === "copy" ? "copy" : undefined;
                         DragManager.StartDocumentDrag([dragSpan], dragData, e.clientX, e.clientY);
                     }}>
                     <FontAwesomeIcon icon="file" size="lg" />
