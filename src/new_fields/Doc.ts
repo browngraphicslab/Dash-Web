@@ -144,8 +144,9 @@ export class Doc extends RefField {
         return this.___fields;
     }
     private get __allfields() {
-        let obj = this.___fields;
-        obj.__LAYOUT__ = this.__LAYOUT__;
+        let obj = {} as any;
+        Object.assign(obj, this.___fields);
+        runInAction(() => obj.__LAYOUT__ = this.__LAYOUT__);
         return obj;
     }
 
@@ -180,10 +181,10 @@ export class Doc extends RefField {
     public get [DataSym]() { return Cast(this[SelfProxy].resolvedDataDoc, Doc, null) || this[SelfProxy]; }
     @computed public get __LAYOUT__() {
         const layoutKey = StrCast(this[SelfProxy].layoutKey);
-        const resolvedLayout = Cast(this[SelfProxy][layoutKey], Doc);
+        const resolvedLayout = Cast(layoutKey, Doc);
         if (resolvedLayout instanceof Doc) {
             let layout = (resolvedLayout.layout as string).split("'")[1];
-            return this[SelfProxy][layout + "-layout[" + resolvedLayout[Id] + "]"];
+            return this[SelfProxy][layout + "-layout[" + resolvedLayout[Id] + "]"] || resolvedLayout;
         }
         return undefined;
     }
@@ -691,12 +692,14 @@ export namespace Doc {
     // the document containing the view layout information - will be the Document itself unless the Document has
     // a layout field.  In that case, all layout information comes from there unless overriden by Document  
     export function Layout(doc: Doc): Doc {
-        let templateLayoutDoc = Cast(Doc.LayoutField(doc), Doc, null);
-        if (templateLayoutDoc) {
-            const renderFieldKey = Doc.LayoutFieldKey(templateLayoutDoc);
-            return Cast(doc[renderFieldKey + "-layout[" + templateLayoutDoc[Id] + "]"], Doc, null) || templateLayoutDoc;
-        }
-        return doc;
+        return doc.__LAYOUT__ || Cast(Doc.LayoutField(doc), Doc, null) || doc;
+        // let templateLayoutDoc = Cast(Doc.LayoutField(doc), Doc, null);
+        // if (templateLayoutDoc) {
+        //     const renderFieldKey = Doc.LayoutFieldKey(templateLayoutDoc);
+        //     const layout = Cast(doc[renderFieldKey + "-layout[" + templateLayoutDoc[Id] + "]"], Doc, null) || templateLayoutDoc;
+        //     return layout;
+        // }
+        // return doc;
     }
     export function SetLayout(doc: Doc, layout: Doc | string) { doc[StrCast(doc.layoutKey, "layout")] = layout; }
     export function LayoutField(doc: Doc) { return doc[StrCast(doc.layoutKey, "layout")]; }
