@@ -1,27 +1,27 @@
 import { faEdit } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, IReactionDisposer, observable, trace } from "mobx";
+import { action, computed, observable, trace } from "mobx";
 import { observer } from "mobx-react";
 import { Set } from "typescript-collections";
-import { Doc, DocListCast } from "../../../new_fields/Doc";
+import { Doc, DocListCast, Field } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
+import { RichTextField } from "../../../new_fields/RichTextField";
 import { listSpec } from "../../../new_fields/Schema";
 import { ComputedField, ScriptField } from "../../../new_fields/ScriptField";
-import { Cast, StrCast, NumCast } from "../../../new_fields/Types";
+import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { Docs } from "../../documents/Documents";
-import { EditableView } from "../EditableView";
-import { anchorPoints, Flyout } from "../TemplateMenu";
-import { CollectionFreeFormView } from "./collectionFreeForm/CollectionFreeFormView";
-import "./CollectionTimeView.scss";
-import { CollectionSubView } from "./CollectionSubView";
-import { CollectionTreeView } from "./CollectionTreeView";
-import React = require("react");
+import { Scripting } from "../../util/Scripting";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
-import { RichTextField } from "../../../new_fields/RichTextField";
-import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
-import { Scripting } from "../../util/Scripting";
-import { ViewDefResult, ViewDefBounds } from "./collectionFreeForm/CollectionFreeFormLayoutEngines";
+import { EditableView } from "../EditableView";
+import { anchorPoints, Flyout } from "../TemplateMenu";
+import { ViewDefBounds } from "./collectionFreeForm/CollectionFreeFormLayoutEngines";
+import { CollectionFreeFormView } from "./collectionFreeForm/CollectionFreeFormView";
+import { CollectionSubView } from "./CollectionSubView";
+import "./CollectionTimeView.scss";
+import React = require("react");
+import { CollectionTreeView } from "./CollectionTreeView";
+import { ObjectField } from "../../../new_fields/ObjectField";
 
 @observer
 export class CollectionTimeView extends CollectionSubView(doc => doc) {
@@ -289,7 +289,19 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
             <div className={"collectionTimeView" + (doTimeline ? "" : "-pivot")} onContextMenu={this.specificMenu}
                 style={{ height: `calc(100%  - ${this.props.Document._chromeStatus === "enabled" ? 51 : 0}px)` }}>
                 <div className={"pivotKeyEntry"}>
-                    <EditableView {...newEditableViewProps} menuCallback={this.menuCallback} />
+                    <button className="collectionTimeView-backBtn" style={{ width: 50, height: 20, background: "green" }}
+                        onClick={action(() => {
+                            let pfilterIndex = NumCast(this.props.Document._pfilterIndex);
+                            if (pfilterIndex > 0) {
+                                this.props.Document._docFilter = ObjectField.MakeCopy(this.props.Document["_pfilter" + --pfilterIndex] as ObjectField);
+                                this.props.Document._pfilterIndex = pfilterIndex;
+                            } else {
+                                this.props.Document._docFilter = new List([]);
+                            }
+                        })}>
+                        back
+                    </button>
+                    <EditableView {...newEditableViewProps} display={"inline"} menuCallback={this.menuCallback} />
                 </div>
                 {!this.props.isSelected() || this.props.PanelHeight() < 100 ? (null) :
                     <div className="collectionTimeView-dragger" key="dragger" onPointerDown={this.onPointerDown} style={{ transform: `translate(${this._facetWidth}px, 0px)` }} >
@@ -308,6 +320,9 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
 }
 
 Scripting.addGlobal(function pivotColumnClick(pivotDoc: Doc, bounds: ViewDefBounds) {
+    let pfilterIndex = NumCast(pivotDoc._pfilterIndex);
+    pivotDoc["_pfilter" + pfilterIndex] = ObjectField.MakeCopy(pivotDoc._docFilter as ObjectField);
+    pivotDoc._pfilterIndex = ++pfilterIndex;
     pivotDoc._docFilter = new List();
     (bounds.payload as string[]).map(filterVal =>
         Doc.setDocFilter(pivotDoc, StrCast(pivotDoc._pivotField), filterVal, "check"));

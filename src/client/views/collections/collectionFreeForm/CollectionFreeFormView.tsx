@@ -7,7 +7,7 @@ import { Doc, DocListCast, HeightSym, Opt, WidthSym, DocListCastAsync, Field } f
 import { documentSchema, positionSchema } from "../../../../new_fields/documentSchemas";
 import { Id } from "../../../../new_fields/FieldSymbols";
 import { InkTool, InkField, InkData } from "../../../../new_fields/InkField";
-import { createSchema, makeInterface } from "../../../../new_fields/Schema";
+import { createSchema, makeInterface, listSpec } from "../../../../new_fields/Schema";
 import { ScriptField } from "../../../../new_fields/ScriptField";
 import { BoolCast, Cast, DateCast, NumCast, StrCast, ScriptCast } from "../../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../../server/authentication/models/current_user_utils";
@@ -794,12 +794,12 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }.bind(this));
 
     doTimelineLayout(poolData: Map<string, any>) {
-        return computeTimelineLayout(poolData, this.props.Document, this.childDocs,
+        return computeTimelineLayout(poolData, this.props.Document, this.childDocs, this.filterDocs,
             this.childLayoutPairs, [this.props.PanelWidth(), this.props.PanelHeight()], this.viewDefsToJSX);
     }
 
     doPivotLayout(poolData: Map<string, any>) {
-        return computePivotLayout(poolData, this.props.Document, this.childDocs,
+        return computePivotLayout(poolData, this.props.Document, this.childDocs, this.filterDocs,
             this.childLayoutPairs, [this.props.PanelWidth(), this.props.PanelHeight()], this.viewDefsToJSX);
     }
 
@@ -812,7 +812,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
         this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)).map((pair, i) => {
             const pos = this.getCalculatedPositions({ doc: pair.layout, index: i, collection: this.Document, docs: layoutDocs, state });
-            state = pos.state === undefined ? state : pos.state;
             poolData.set(pair.layout[Id], pos);
         });
         return { elements: elements };
@@ -825,6 +824,36 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             case "pivot": return { newPool, computedElementData: this.doPivotLayout(newPool) };
         }
         return { newPool, computedElementData: this.doFreeformLayout(newPool) };
+    }
+
+    @computed get filterDocs() {
+        const docFilters = Cast(this.props.Document._docFilter, listSpec("string"), []);
+        const clusters: { [key: string]: { [value: string]: string } } = {};
+        for (let i = 0; i < docFilters.length; i += 3) {
+            const [key, value, modifiers] = docFilters.slice(i, i + 3);
+            const cluster = clusters[key];
+            if (!cluster) {
+                const child: { [value: string]: string } = {};
+                child[value] = modifiers;
+                clusters[key] = child;
+            } else {
+                cluster[value] = modifiers;
+            }
+        }
+        const filteredDocs = docFilters.length ? this.childDocs.filter(d => {
+            for (const key of Object.keys(clusters)) {
+                const cluster = clusters[key];
+                const satisfiesFacet = Object.keys(cluster).some(inner => {
+                    const modifier = cluster[inner];
+                    return (modifier === "x") !== Doc.matchFieldValue(d, key, inner);
+                });
+                if (!satisfiesFacet) {
+                    return false;
+                }
+            }
+            return true;
+        }) : this.childDocs;
+        return filteredDocs;
     }
     get doLayoutComputation() {
         const { newPool, computedElementData } = this.doInternalLayoutComputation;

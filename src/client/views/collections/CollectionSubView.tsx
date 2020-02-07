@@ -111,34 +111,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         get childDocs() {
             const docs = DocListCast(this.dataField);
             const viewSpecScript = Cast(this.props.Document.viewSpecScript, ScriptField);
-            const viewedDocs = viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
-            const docFilters = Cast(this.props.Document._docFilter, listSpec("string"), []);
-            const clusters: { [key: string]: { [value: string]: string } } = {};
-            for (let i = 0; i < docFilters.length; i += 3) {
-                const [key, value, modifiers] = docFilters.slice(i, i + 3);
-                const cluster = clusters[key];
-                if (!cluster) {
-                    const child: { [value: string]: string } = {};
-                    child[value] = modifiers;
-                    clusters[key] = child;
-                } else {
-                    cluster[value] = modifiers;
-                }
-            }
-            const filteredDocs = docFilters.length ? viewedDocs.filter(d => {
-                for (const key of Object.keys(clusters)) {
-                    const cluster = clusters[key];
-                    const satisfiesFacet = Object.keys(cluster).some(inner => {
-                        const modifier = cluster[inner];
-                        return (modifier === "x") !== Doc.matchFieldValue(d, key, inner);
-                    });
-                    if (!satisfiesFacet) {
-                        return false;
-                    }
-                }
-                return true;
-            }) : viewedDocs;
-            return filteredDocs;
+            return viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
         }
 
         @action
