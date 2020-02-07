@@ -110,15 +110,16 @@ export function setter(target: any, in_prop: string | symbol | number, value: an
             console.log(prop + " is deprecated - switch to _" + prop);
             prop = "_" + prop;
         }
-        const self = target[Self];
-        const layoutDoc = (self || target).__LAYOUT__;
-        if (layoutDoc) layoutDoc[prop] = value;
+        if (target.__LAYOUT__) {
+            target.__LAYOUT__[prop] = value;
+            return true;
+        }
         // const resolvedLayout = getFieldImpl(target, getFieldImpl(target, "layoutKey", receiver), receiver);
         // if (resolvedLayout instanceof Doc) {
         //     let x = resolvedLayout[Id];
         //     let layout = (resolvedLayout.layout as string).split("'")[1];
         //     let expanded = getFieldImpl(target, layout + "-layout[" + x + "]", receiver);
-        //     expanded && (expanded[prop] = value);
+        //     //expanded && (expanded[prop] = value);
         //     // resolvedLayout[prop] = value;
         //     return true;
         // }
@@ -134,15 +135,13 @@ export function getter(target: any, in_prop: string | symbol | number, receiver:
             console.log(prop + " is deprecated - switch to _" + prop);
             prop = "_" + prop;
         }
-        const self = target[Self];
-        const layoutDoc = (self || target).__LAYOUT__;
-        if (layoutDoc) return layoutDoc[prop];
+        if (target.__LAYOUT__) return target.__LAYOUT__[prop];
         // const resolvedLayout = getFieldImpl(target, getFieldImpl(target, "layoutKey", receiver), receiver);
         // if (resolvedLayout instanceof Doc) {
         //     let x = resolvedLayout[Id];
         //     let layout = (resolvedLayout.layout as string).split("'")[1];
         //     let expanded = getFieldImpl(target, layout + "-layout[" + x + "]", receiver);
-        //     return (expanded || resolvedLayout)?.[prop];
+        //     return (expanded)?.[prop];
         //     //return resolvedLayout[prop];
         // }
     }

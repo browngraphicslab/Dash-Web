@@ -112,8 +112,11 @@ export class Doc extends RefField {
             get: getter,
             // getPrototypeOf: (target) => Cast(target[SelfProxy].proto, Doc) || null, // TODO this might be able to replace the proto logic in getter
             has: (target, key) => key in target.__fields,
-            ownKeys: target => Object.keys(target.__fields),
+            ownKeys: target => Object.keys(target.__allfields),
             getOwnPropertyDescriptor: (target, prop) => {
+                if (prop.toString() === "__LAYOUT__") {
+                    return Reflect.getOwnPropertyDescriptor(target, prop);
+                }
                 if (prop in target.__fields) {
                     return {
                         configurable: true,//TODO Should configurable be true?
@@ -140,6 +143,12 @@ export class Doc extends RefField {
     private get __fields() {
         return this.___fields;
     }
+    private get __allfields() {
+        let obj = this.___fields;
+        obj.__LAYOUT__ = this.__LAYOUT__;
+        return obj;
+    }
+
 
     private set __fields(value) {
         this.___fields = value;
@@ -173,10 +182,8 @@ export class Doc extends RefField {
         const layoutKey = StrCast(this[SelfProxy].layoutKey);
         const resolvedLayout = Cast(this[SelfProxy][layoutKey], Doc);
         if (resolvedLayout instanceof Doc) {
-            let x = resolvedLayout[Id];
             let layout = (resolvedLayout.layout as string).split("'")[1];
-            const layoutDoc = this[SelfProxy][layout + "-layout[" + x + "]"];
-            return layoutDoc || this[SelfProxy];
+            return this[SelfProxy][layout + "-layout[" + resolvedLayout[Id] + "]"];
         }
         return undefined;
     }

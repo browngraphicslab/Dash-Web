@@ -1,6 +1,6 @@
 import { faEdit } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, observable, trace } from "mobx";
+import { action, computed, observable, trace, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Set } from "typescript-collections";
 import { Doc, DocListCast, Field } from "../../../new_fields/Doc";
@@ -323,7 +323,9 @@ Scripting.addGlobal(function pivotColumnClick(pivotDoc: Doc, bounds: ViewDefBoun
     let pfilterIndex = NumCast(pivotDoc._pfilterIndex);
     pivotDoc["_pfilter" + pfilterIndex] = ObjectField.MakeCopy(pivotDoc._docFilter as ObjectField);
     pivotDoc._pfilterIndex = ++pfilterIndex;
-    pivotDoc._docFilter = new List();
-    (bounds.payload as string[]).map(filterVal =>
-        Doc.setDocFilter(pivotDoc, StrCast(pivotDoc._pivotField), filterVal, "check"));
+    runInAction(() => {
+        pivotDoc._docFilter = new List();
+        (bounds.payload as string[]).map(filterVal =>
+            Doc.setDocFilter(pivotDoc, StrCast(pivotDoc._pivotField), filterVal, "check"));
+    });
 });
