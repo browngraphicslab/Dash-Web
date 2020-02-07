@@ -1,0 +1,36 @@
+@import "../globalCssVariables";
+
+.webcam-cont {
+    // position: absolute;
+    background: whitesmoke;
+    color: grey;
+    border-radius: 15px;
+    box-shadow: $intermediate-color 0.2vw 0.2vw 0.4vw;
+    border: solid #BBBBBBBB 5px;
+    pointer-events: all;
+
+    .webcam-header {
+        height: 50px;
+        text-align: center;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        font-size: 16px;
+        width: 100%;
+    }
+
+    #localVideo {
+        margin: 10px;
+        position: relative;
+        width: 300px;
+        max-height: 300px;
+    }
+
+    #remoteVideo {
+        margin: 10px;
+        position: relative;
+        width: 300px;
+        max-height: 300px;
+
+    }
+
+}

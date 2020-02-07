@@ -6,7 +6,7 @@ import { observable } from "mobx";
 import { DocumentDecorations, CloseCall } from "../DocumentDecorations";
 import { InkingControl } from "../InkingControl";
 import "../../views/nodes/WebBox.scss";
-import "./DashWebRTC.scss";
+import "./DashWebRTCVideo.scss";
 import adapter from 'webrtc-adapter';
 import { DocServer } from "../../DocServer";
 import { DocumentView } from "../nodes/DocumentView";
@@ -397,18 +397,15 @@ export class DashWebRTCVideo extends React.Component<CollectionFreeFormDocumentV
     render() {
         let content =
             <div className="webcam-cont" style={{ width: "100%", height: "100%" }} onWheel={this.onPostWheel} onPointerDown={this.onPostPointer} onPointerMove={this.onPostPointer} onPointerUp={this.onPostPointer}>
+                <div className="webcam-header">DashWebRTC</div>
                 <input type="text" placeholder="Enter room name" ref={(e) => this.roomText = e!} onKeyDown={this.onEnterKeyDown} />
                 <video id="localVideo" autoPlay playsInline ref={(e) => {
                     this.localVideoEl = e!;
-                    //this.setLocalVideoObject(e!);
                 }}></video>
                 <video id="remoteVideo" autoPlay playsInline ref={(e) => {
                     this.peerVideoEl = e!;
-                    //this.setRemoteVideoObject(e!);
                 }}></video>
-                {/* <button id="startButton" ref={(e) => this.startButton = e!} onClick={this.startAction}>Start</button>
-                <button id="callButton" ref={(e) => this.callButton = e!} onClick={this.callAction}>Call</button>
-                <button id="hangupButton" ref={(e) => this.hangupButton = e!} onClick={this.hangupAction}>Hang Up</button> */}
+
             </div>;
 
         let frozen = !this.props.isSelected() || DocumentDecorations.Instance.Interacting;
