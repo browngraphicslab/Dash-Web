@@ -19,6 +19,7 @@
     position: absolute;
     top: 0;
     overflow-y: auto;
+    overflow-x: hidden;
     flex-wrap: wrap;
     transition: top .5s;
     >div {

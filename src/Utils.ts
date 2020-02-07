@@ -363,7 +363,7 @@ export function percent2frac(percent: string) {
     return Number(percent.substr(0, percent.length - 1)) / 100;
 }
 
-export function numberRange(num: number) { return Array.from(Array(num)).map((v, i) => i); }
+export function numberRange(num: number) { return num > 0 && num < 1000 ? Array.from(Array(num)).map((v, i) => i) : []; }
 
 export function returnTransparent() { return "transparent"; }
 
