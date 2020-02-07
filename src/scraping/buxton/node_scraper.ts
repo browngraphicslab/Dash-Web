@@ -1,6 +1,9 @@
 import { readdirSync, writeFile, existsSync, mkdirSync } from "fs";
 import * as path from "path";
-import { red, cyan, yellow } from "colors";
+import { red, cyan, yellow, green } from "colors";
+import { Database } from "../../server/database";
+import { Opt } from "../../new_fields/Doc";
+import { Utils } from "../../Utils";
 const StreamZip = require('node-stream-zip');
 
 export interface DeviceDocument {
@@ -14,6 +17,11 @@ export interface DeviceDocument {
     dimensions: string;
     primaryKey: string;
     secondaryKey: string;
+}
+
+interface AnalysisResult {
+    device?: DeviceDocument;
+    errors?: any;
 }
 
 type Converter<T> = (raw: string) => { transformed?: T, error?: string };
@@ -70,11 +78,11 @@ const RegexMap = new Map<keyof DeviceDocument, Processor<any>>([
     }],
     ["shortDescription", {
         exp: /Short Description:\s+(.*)Bill Buxton[’']s Notes/,
-        transformer: correctWordParagraphs
+        transformer: correctSentences
     }],
     ["longDescription", {
         exp: /Bill Buxton[’']s Notes(.*)Device Details/,
-        transformer: correctWordParagraphs
+        transformer: correctSentences
     }],
 ]);
 
@@ -90,31 +98,30 @@ function collectUniqueTokens(raw: string) {
     return { transformed: Array.from(new Set(raw.replace(/,|\s+and\s+/g, " ").split(/\s+/).map(token => token.toLowerCase().trim()))).map(capitalize).sort() };
 }
 
-function correctWordParagraphs(raw: string) {
+function correctSentences(raw: string) {
     raw = raw.replace(/\./g, ". ").replace(/\:/g, ": ").replace(/\,/g, ", ").replace(/\?/g, "? ").trimRight();
     raw = raw.replace(/\s{2,}/g, " ");
     return { transformed: raw };
 }
 
+const targetMongoCollection = "newDocuments";
 const outDir = path.resolve(__dirname, "json");
 const successOut = "buxton.json";
 const failOut = "incomplete.json";
 const deviceKeys = Array.from(RegexMap.keys());
 
 function printEntries(zip: any) {
-    console.log("READY!", zip.entriesCount);
-    for (const entry of Object.values(zip.entries()) as any[]) {
+    const { entriesCount } = zip;
+    console.log(`Recognized ${entriesCount} entr${entriesCount === 1 ? "y" : "ies"}.`);
+    for (const entry of Object.values<any>(zip.entries())) {
         const desc = entry.isDirectory ? 'directory' : `${entry.size} bytes`;
-        console.log(`Entry ${entry.name}: ${desc}`);
+        console.log(`${entry.name}: ${desc}`);
     }
 }
 
-export async function open(path: string) {
-    const zip = new StreamZip({
-        file: path,
-        storeEntries: true
-    });
-    return new Promise<string>((resolve, reject) => {
+export async function wordToPlainText(pathToDocument: string): Promise<string> {
+    const zip = new StreamZip({ file: pathToDocument, storeEntries: true });
+    const contents = await new Promise<string>((resolve, reject) => {
         zip.on('ready', () => {
             let body = "";
             zip.stream("word/document.xml", (error: any, stream: any) => {
@@ -129,10 +136,6 @@ export async function open(path: string) {
             });
         });
     });
-}
-
-export async function extract(path: string) {
-    const contents = await open(path);
     let body = "";
     const components = contents.toString().split('<w:t');
     for (const component of components) {
@@ -143,7 +146,7 @@ export async function extract(path: string) {
     return body;
 }
 
-function tryGetValidCapture(matches: RegExpExecArray | null, matchIndex: number) {
+function tryGetValidCapture(matches: RegExpExecArray | null, matchIndex: number): Opt<string> {
     let captured: string;
     if (!matches || !(captured = matches[matchIndex])) {
         return undefined;
@@ -161,7 +164,7 @@ function tryGetValidCapture(matches: RegExpExecArray | null, matchIndex: number)
     return captured;
 }
 
-function capitalize(word: string) {
+function capitalize(word: string): string {
     const clean = word.trim();
     if (!clean.length) {
         return word;
@@ -169,7 +172,7 @@ function capitalize(word: string) {
     return word.charAt(0).toUpperCase() + word.slice(1);
 }
 
-export function analyze(path: string, body: string): { device?: DeviceDocument, errors?: any } {
+export function analyze(path: string, body: string): AnalysisResult {
     const device: any = {};
 
     const segments = path.split("/");
@@ -210,29 +213,31 @@ export function analyze(path: string, body: string): { device?: DeviceDocument, 
     return { device };
 }
 
-async function parse() {
+async function parseFiles(): Promise<DeviceDocument[]> {
     const sourceDirectory = path.resolve(`${__dirname}/source`);
     const candidates = readdirSync(sourceDirectory).filter(file => file.endsWith(".doc") || file.endsWith(".docx")).map(file => `${sourceDirectory}/${file}`);
-    const imported = await Promise.all(candidates.map(async path => ({ path, body: await extract(path) })));
+    const imported = await Promise.all(candidates.map(async path => ({ path, body: await wordToPlainText(path) })));
     // const imported = [{ path: candidates[10], body: await extract(candidates[10]) }];
     const data = imported.map(({ path, body }) => analyze(path, body));
-    const masterdevices: DeviceDocument[] = [];
+    const masterDevices: DeviceDocument[] = [];
     const masterErrors: any[] = [];
     data.forEach(({ device, errors }) => {
         if (device) {
-            masterdevices.push(device);
+            masterDevices.push(device);
         } else {
             masterErrors.push(errors);
         }
     });
     const total = candidates.length;
-    if (masterdevices.length + masterErrors.length !== total) {
-        throw new Error(`Encountered a ${masterdevices.length} to ${masterErrors.length} mismatch in device / error split!`);
+    if (masterDevices.length + masterErrors.length !== total) {
+        throw new Error(`Encountered a ${masterDevices.length} to ${masterErrors.length} mismatch in device / error split!`);
     }
     console.log();
-    await writeOutputFile(successOut, masterdevices, total, true);
+    await writeOutputFile(successOut, masterDevices, total, true);
     await writeOutputFile(failOut, masterErrors, total, false);
     console.log();
+
+    return masterDevices;
 }
 
 async function writeOutputFile(relativePath: string, data: any[], total: number, success: boolean) {
@@ -244,8 +249,90 @@ async function writeOutputFile(relativePath: string, data: any[], total: number,
     });
 }
 
-if (!existsSync(outDir)) {
-    mkdirSync(outDir);
+namespace Doc {
+
+    export async function create<T = any>(fields: T, viewType?: number) {
+        const dataDocId = Utils.GenerateGuid();
+        const dataDoc = {
+            _id: dataDocId,
+            fields: {
+                ...fields,
+                isPrototype: true,
+                author: "Bill Buxton"
+            },
+            __type: "Doc"
+        };
+        const viewDocId = Utils.GenerateGuid();
+        const viewDoc = {
+            _id: viewDocId,
+            fields: {
+                proto: protofy(dataDocId),
+                x: 10,
+                y: 10,
+                _width: 900,
+                _height: 600,
+                _panX: 0,
+                _panY: 0,
+                zIndex: 2,
+                libraryBrush: false,
+                _viewType: viewType || 4,
+                _LODdisable: true
+            },
+            __type: "Doc"
+        };
+        await Database.Instance.insert(viewDoc, targetMongoCollection);
+        await Database.Instance.insert(dataDoc, targetMongoCollection);
+        return viewDocId;
+    }
+
+    export function protofy(id: string) {
+        return {
+            fieldId: id,
+            __type: "proxy"
+        };
+    }
+
+    export function proxifyGuids(ids: string[]) {
+        return ids.map(id => ({
+            fieldId: id,
+            __type: "prefetch_proxy"
+        }));
+    }
+
+    export function listify(fields: any[]) {
+        return {
+            fields: fields,
+            __type: "list"
+        };
+    }
+
 }
 
-parse();
+async function main() {
+    if (!existsSync(outDir)) {
+        mkdirSync(outDir);
+    }
+
+
+    const devices = await parseFiles();
+    await Database.tryInitializeConnection();
+
+    const { create, protofy, proxifyGuids, listify } = Doc;
+    const parentGuid = await Doc.create({
+        proto: protofy("collectionProto"),
+        title: "The Buxton Collection",
+        data: listify(proxifyGuids(await Promise.all(devices.map(create))))
+    });
+    Database.Instance.updateMany(
+        { "fields.title": "Collection 1" },
+        { "$push": { "fields.data.fields": { "fieldId": parentGuid, "__type": "proxy" } } },
+        targetMongoCollection
+    );
+
+    console.log(green(`\nSuccessfully inserted ${devices.length} devices into ${targetMongoCollection}.`));
+
+    Database.disconnect();
+    process.exit(0);
+}
+
+main();
