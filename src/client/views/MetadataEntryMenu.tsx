@@ -133,7 +133,23 @@ export class MetadataEntryMenu extends React.Component<MetadataEntryProps>{
     }
 
     getKeySuggestions = async (value: string): Promise<string[]> => {
-        return [];
+        value = value.toLowerCase();
+        let docs = this.props.docs;
+        if (typeof docs === "function") {
+            if (this.props.suggestWithFunction) {
+                docs = docs();
+            } else {
+                return [];
+            }
+        }
+        docs = await docs;
+        if (docs instanceof Doc) {
+            return Object.keys(docs).filter(key => key.toLowerCase().startsWith(value));
+        } else {
+            const keys = new Set<string>();
+            docs.forEach(doc => Doc.allKeys(doc).forEach(key => keys.add(key)));
+            return Array.from(keys).filter(key => key.toLowerCase().startsWith(value));
+        }
     }
     getSuggestionValue = (suggestion: string) => suggestion;
 
