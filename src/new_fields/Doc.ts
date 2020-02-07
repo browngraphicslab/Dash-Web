@@ -1,4 +1,4 @@
-import { observable, ObservableMap, runInAction, action } from "mobx";
+import { observable, ObservableMap, runInAction, action, computed } from "mobx";
 import { alias, map, serializable } from "serializr";
 import { DocServer } from "../client/DocServer";
 import { DocumentType } from "../client/documents/DocumentTypes";
@@ -90,6 +90,7 @@ export function DocListCast(field: FieldResult): Doc[] {
 export const WidthSym = Symbol("Width");
 export const HeightSym = Symbol("Height");
 export const DataSym = Symbol("Data");
+export const LayoutSym = Symbol("Layout");
 export const UpdatingFromServer = Symbol("UpdatingFromServer");
 const CachedUpdates = Symbol("Cached updates");
 
@@ -111,8 +112,11 @@ export class Doc extends RefField {
             get: getter,
             // getPrototypeOf: (target) => Cast(target[SelfProxy].proto, Doc) || null, // TODO this might be able to replace the proto logic in getter
             has: (target, key) => key in target.__fields,
-            ownKeys: target => Object.keys(target.__fields),
+            ownKeys: target => Object.keys(target.__allfields),
             getOwnPropertyDescriptor: (target, prop) => {
+                if (prop.toString() === "__LAYOUT__") {
+                    return Reflect.getOwnPropertyDescriptor(target, prop);
+                }
                 if (prop in target.__fields) {
                     return {
                         configurable: true,//TODO Should configurable be true?
@@ -139,6 +143,12 @@ export class Doc extends RefField {
     private get __fields() {
         return this.___fields;
     }
+    private get __allfields() {
+        let obj = this.___fields;
+        obj.__LAYOUT__ = this.__LAYOUT__;
+        return obj;
+    }
+
 
     private set __fields(value) {
         this.___fields = value;
@@ -168,6 +178,15 @@ export class Doc extends RefField {
     public [WidthSym] = () => NumCast(this[SelfProxy]._width);
     public [HeightSym] = () => NumCast(this[SelfProxy]._height);
     public get [DataSym]() { return Cast(this[SelfProxy].resolvedDataDoc, Doc, null) || this[SelfProxy]; }
+    @computed public get __LAYOUT__() {
+        const layoutKey = StrCast(this[SelfProxy].layoutKey);
+        const resolvedLayout = Cast(this[SelfProxy][layoutKey], Doc);
+        if (resolvedLayout instanceof Doc) {
+            let layout = (resolvedLayout.layout as string).split("'")[1];
+            return this[SelfProxy][layout + "-layout[" + resolvedLayout[Id] + "]"];
+        }
+        return undefined;
+    }
 
     [ToScriptString]() {
         return "invalid";
