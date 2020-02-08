@@ -1,9 +1,7 @@
 import { readdirSync, writeFile, existsSync, mkdirSync } from "fs";
 import * as path from "path";
 import { red, cyan, yellow, green } from "colors";
-import { Database } from "../../server/database";
 import { Opt } from "../../new_fields/Doc";
-import { Utils } from "../../Utils";
 const StreamZip = require('node-stream-zip');
 
 export interface DeviceDocument {
@@ -104,7 +102,6 @@ function correctSentences(raw: string) {
     return { transformed: raw };
 }
 
-const targetMongoCollection = "newDocuments";
 const outDir = path.resolve(__dirname, "json");
 const successOut = "buxton.json";
 const failOut = "incomplete.json";
@@ -119,7 +116,7 @@ function printEntries(zip: any) {
     }
 }
 
-export async function wordToPlainText(pathToDocument: string): Promise<string> {
+async function wordToPlainText(pathToDocument: string): Promise<string> {
     const zip = new StreamZip({ file: pathToDocument, storeEntries: true });
     const contents = await new Promise<string>((resolve, reject) => {
         zip.on('ready', () => {
@@ -172,7 +169,7 @@ function capitalize(word: string): string {
     return word.charAt(0).toUpperCase() + word.slice(1);
 }
 
-export function analyze(path: string, body: string): AnalysisResult {
+function analyze(path: string, body: string): AnalysisResult {
     const device: any = {};
 
     const segments = path.split("/");
@@ -249,90 +246,11 @@ async function writeOutputFile(relativePath: string, data: any[], total: number,
     });
 }
 
-namespace Doc {
-
-    export async function create<T = any>(fields: T, viewType?: number) {
-        const dataDocId = Utils.GenerateGuid();
-        const dataDoc = {
-            _id: dataDocId,
-            fields: {
-                ...fields,
-                isPrototype: true,
-                author: "Bill Buxton"
-            },
-            __type: "Doc"
-        };
-        const viewDocId = Utils.GenerateGuid();
-        const viewDoc = {
-            _id: viewDocId,
-            fields: {
-                proto: protofy(dataDocId),
-                x: 10,
-                y: 10,
-                _width: 900,
-                _height: 600,
-                _panX: 0,
-                _panY: 0,
-                zIndex: 2,
-                libraryBrush: false,
-                _viewType: viewType || 4,
-                _LODdisable: true
-            },
-            __type: "Doc"
-        };
-        await Database.Instance.insert(viewDoc, targetMongoCollection);
-        await Database.Instance.insert(dataDoc, targetMongoCollection);
-        return viewDocId;
-    }
-
-    export function protofy(id: string) {
-        return {
-            fieldId: id,
-            __type: "proxy"
-        };
-    }
-
-    export function proxifyGuids(ids: string[]) {
-        return ids.map(id => ({
-            fieldId: id,
-            __type: "proxy"
-        }));
-    }
-
-    export function listify(fields: any[]) {
-        return {
-            fields: fields,
-            __type: "list"
-        };
-    }
-
-}
-
-async function main() {
+export async function main() {
     if (!existsSync(outDir)) {
         mkdirSync(outDir);
     }
-
-    const devices = await parseFiles();
-    await Database.tryInitializeConnection();
-
-    const { create, protofy, proxifyGuids, listify } = Doc;
-    const parentGuid = await Doc.create({
-        proto: protofy("collectionProto"),
-        title: "The Buxton Collection",
-        data: listify(proxifyGuids(await Promise.all(devices.map(create))))
-    });
-    const result = await Database.Instance.updateMany(
-        { "fields.title": "Collection 1" },
-        { $push: { "fields.data.fields": { fieldId: parentGuid, __type: "proxy" } } },
-        targetMongoCollection
-    );
-
-    console.log(result);
-    console.log(green(`\nSuccessfully inserted ${devices.length} devices into ${targetMongoCollection}.`));
-
-    Database.disconnect();
-    process.exit(0);
+    return parseFiles();
 }
 
 main();
