@@ -8,6 +8,9 @@
     box-shadow: $intermediate-color 0.2vw 0.2vw 0.4vw;
     border: solid #BBBBBBBB 5px;
     pointer-events: all;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 
     .webcam-header {
         height: 50px;
@@ -18,19 +21,45 @@
         width: 100%;
     }
 
-    #localVideo {
-        margin: 10px;
-        position: relative;
-        width: 300px;
-        max-height: 300px;
+    #roomName {
+        outline: none;
+        border-radius: inherit;
+        border: 1px solid #BBBBBBBB;
     }
 
-    #remoteVideo {
-        margin: 10px;
-        position: relative;
-        width: 300px;
-        max-height: 300px;
+    // #localVideo {
+    //     width: 25%;
+    //     height: 20%;
+    //     position: absolute;
+    //     top: 65%;
+    //     z-index: 2;
+    //     right: 5%;
+    // }
 
+    .side {
+        width: 25%;
+        height: 20%;
+        position: absolute;
+        top: 65%;
+        z-index: 2;
+        right: 5%;
     }
+
+    .main {
+        position: absolute;
+        width: 95%;
+        height: 75%;
+        top: 20%;
+        align-self: center;
+    }
+
+    // #remoteVideo {
+    //     position: absolute;
+    //     width: 95%;
+    //     height: 75%;
+    //     top: 20%;
+    //     align-self: center;
+
+    // }
 
 }

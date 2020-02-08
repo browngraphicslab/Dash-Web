@@ -2,7 +2,7 @@ import { observer } from "mobx-react";
 import React = require("react");
 import { CollectionFreeFormDocumentViewProps } from "../nodes/CollectionFreeFormDocumentView";
 import { FieldViewProps, FieldView } from "../nodes/FieldView";
-import { observable } from "mobx";
+import { observable, action } from "mobx";
 import { DocumentDecorations, CloseCall } from "../DocumentDecorations";
 import { InkingControl } from "../InkingControl";
 import "../../views/nodes/WebBox.scss";
@@ -38,6 +38,7 @@ export class DashWebRTCVideo extends React.Component<CollectionFreeFormDocumentV
     private isChannelReady = false;
     private isInitiator = false;
     private isStarted = false;
+    @observable remoteVideoAdded: boolean = false;
     localStream: MediaStream | undefined;
     private pc: any;
     remoteStream: MediaStream | undefined;
@@ -309,11 +310,12 @@ export class DashWebRTCVideo extends React.Component<CollectionFreeFormDocumentV
             xhr.send();
         }
     }
-
+    @action
     private handleRemoteStreamAdded = (event: MediaStreamEvent) => {
         console.log('Remote stream added.');
         this.remoteStream = event.stream!;
         this.peerVideoEl!.srcObject = this.remoteStream;
+        this.remoteVideoAdded = true;
     }
 
     private handleRemoteStreamRemoved = (event: MediaStreamEvent) => {
@@ -398,15 +400,15 @@ export class DashWebRTCVideo extends React.Component<CollectionFreeFormDocumentV
         let content =
             <div className="webcam-cont" style={{ width: "100%", height: "100%" }} onWheel={this.onPostWheel} onPointerDown={this.onPostPointer} onPointerMove={this.onPostPointer} onPointerUp={this.onPostPointer}>
                 <div className="webcam-header">DashWebRTC</div>
-                <input type="text" placeholder="Enter room name" ref={(e) => this.roomText = e!} onKeyDown={this.onEnterKeyDown} />
-                <video id="localVideo" autoPlay playsInline ref={(e) => {
+                <input id="roomName" type="text" placeholder="Enter room name" ref={(e) => this.roomText = e!} onKeyDown={this.onEnterKeyDown} />
+                <video id="localVideo" className={"RTCVideo" + (this.remoteVideoAdded ? " side" : " main")} autoPlay playsInline ref={(e) => {
                     this.localVideoEl = e!;
                 }}></video>
-                <video id="remoteVideo" autoPlay playsInline ref={(e) => {
+                <video id="remoteVideo" className="RTCVideo main" autoPlay playsInline ref={(e) => {
                     this.peerVideoEl = e!;
                 }}></video>
 
-            </div>;
+            </div >;
 
         let frozen = !this.props.isSelected() || DocumentDecorations.Instance.Interacting;
         let classname = "webBox-cont" + (this.props.isSelected() && !InkingControl.Instance.selectedTool && !DocumentDecorations.Instance.Interacting ? "-interactive" : "");
