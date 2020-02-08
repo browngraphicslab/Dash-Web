@@ -295,7 +295,7 @@ namespace Doc {
     export function proxifyGuids(ids: string[]) {
         return ids.map(id => ({
             fieldId: id,
-            __type: "prefetch_proxy"
+            __type: "proxy"
         }));
     }
 
