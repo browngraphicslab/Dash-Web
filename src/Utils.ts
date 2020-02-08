@@ -2,10 +2,8 @@ import v4 = require('uuid/v4');
 import v5 = require("uuid/v5");
 import { Socket } from 'socket.io';
 import { Message } from './server/Message';
-import { RouteStore } from './server/RouteStore';
 
 export namespace Utils {
-
     export const DRAG_THRESHOLD = 4;
 
     export function GenerateGuid(): string {
@@ -28,6 +26,22 @@ export namespace Utils {
         return { scale, translateX, translateY };
     }
 
+    export function TraceConsoleLog() {
+        ['log', 'warn'].forEach(function (method) {
+            const old = (console as any)[method];
+            (console as any)[method] = function () {
+                let stack = new Error("").stack?.split(/\n/);
+                // Chrome includes a single "Error" line, FF doesn't.
+                if (stack && stack[0].indexOf('Error') === 0) {
+                    stack = stack.slice(1);
+                }
+                const message = (stack?.[1] || "Stack undefined!").trim();
+                const args = ([] as any[]).slice.apply(arguments).concat([message]);
+                return old.apply(console, args);
+            };
+        });
+    }
+
     /**
      * A convenience method. Prepends the full path (i.e. http://localhost:1050) to the
      * requested extension
@@ -46,11 +60,16 @@ export namespace Utils {
     }
 
     export function CorsProxy(url: string): string {
-        return prepend(RouteStore.corsProxy + "/") + encodeURIComponent(url);
+        return prepend("/corsProxy/") + encodeURIComponent(url);
+    }
+
+    export async function getApiKey(target: string): Promise<string> {
+        const response = await fetch(prepend(`/environment/${target.toUpperCase()}`));
+        return response.text();
     }
 
     export function CopyText(text: string) {
-        var textArea = document.createElement("textarea");
+        const textArea = document.createElement("textarea");
         textArea.value = text;
         document.body.appendChild(textArea);
         textArea.focus();
@@ -62,14 +81,14 @@ export namespace Utils {
     }
 
     export function fromRGBAstr(rgba: string) {
-        let rm = rgba.match(/rgb[a]?\(([ 0-9]+)/);
-        let r = rm ? Number(rm[1]) : 0;
-        let gm = rgba.match(/rgb[a]?\([ 0-9]+,([ 0-9]+)/);
-        let g = gm ? Number(gm[1]) : 0;
-        let bm = rgba.match(/rgb[a]?\([ 0-9]+,[ 0-9]+,([ 0-9]+)/);
-        let b = bm ? Number(bm[1]) : 0;
-        let am = rgba.match(/rgba?\([ 0-9]+,[ 0-9]+,[ 0-9]+,([ .0-9]+)/);
-        let a = am ? Number(am[1]) : 1;
+        const rm = rgba.match(/rgb[a]?\(([ 0-9]+)/);
+        const r = rm ? Number(rm[1]) : 0;
+        const gm = rgba.match(/rgb[a]?\([ 0-9]+,([ 0-9]+)/);
+        const g = gm ? Number(gm[1]) : 0;
+        const bm = rgba.match(/rgb[a]?\([ 0-9]+,[ 0-9]+,([ 0-9]+)/);
+        const b = bm ? Number(bm[1]) : 0;
+        const am = rgba.match(/rgba?\([ 0-9]+,[ 0-9]+,[ 0-9]+,([ .0-9]+)/);
+        const a = am ? Number(am[1]) : 1;
         return { r: r, g: g, b: b, a: a };
     }
 
@@ -82,10 +101,10 @@ export namespace Utils {
         // s /= 100;
         // l /= 100;
 
-        let c = (1 - Math.abs(2 * l - 1)) * s,
+        const c = (1 - Math.abs(2 * l - 1)) * s,
             x = c * (1 - Math.abs((h / 60) % 2 - 1)),
-            m = l - c / 2,
-            r = 0,
+            m = l - c / 2;
+        let r = 0,
             g = 0,
             b = 0;
         if (0 <= h && h < 60) {
@@ -114,10 +133,10 @@ export namespace Utils {
         b /= 255;
 
         // Find greatest and smallest channel values
-        let cmin = Math.min(r, g, b),
+        const cmin = Math.min(r, g, b),
             cmax = Math.max(r, g, b),
-            delta = cmax - cmin,
-            h = 0,
+            delta = cmax - cmin;
+        let h = 0,
             s = 0,
             l = 0;
         // Calculate hue
@@ -169,11 +188,11 @@ export namespace Utils {
     function project(px: number, py: number, ax: number, ay: number, bx: number, by: number) {
 
         if (ax === bx && ay === by) return { point: { x: ax, y: ay }, left: false, dot: 0, t: 0 };
-        var atob = { x: bx - ax, y: by - ay };
-        var atop = { x: px - ax, y: py - ay };
-        var len = atob.x * atob.x + atob.y * atob.y;
+        const atob = { x: bx - ax, y: by - ay };
+        const atop = { x: px - ax, y: py - ay };
+        const len = atob.x * atob.x + atob.y * atob.y;
         var dot = atop.x * atob.x + atop.y * atob.y;
-        var t = Math.min(1, Math.max(0, dot / len));
+        const t = Math.min(1, Math.max(0, dot / len));
 
         dot = (bx - ax) * (py - ay) - (by - ay) * (px - ax);
 
@@ -191,38 +210,38 @@ export namespace Utils {
     export function closestPtBetweenRectangles(l: number, t: number, w: number, h: number,
         l1: number, t1: number, w1: number, h1: number,
         x: number, y: number) {
-        var r = l + w,
+        const r = l + w,
             b = t + h;
-        var r1 = l1 + w1,
+        const r1 = l1 + w1,
             b1 = t1 + h1;
-        let hsegs = [[l, r, t, l1, r1, t1], [l, r, b, l1, r1, t1], [l, r, t, l1, r1, b1], [l, r, b, l1, r1, b1]];
-        let vsegs = [[l, t, b, l1, t1, b1], [r, t, b, l1, t1, b1], [l, t, b, r1, t1, b1], [r, t, b, r1, t1, b1]];
-        let res = hsegs.reduce((closest, seg) => {
-            let res = distanceBetweenHorizontalLines(seg[0], seg[1], seg[2], seg[3], seg[4], seg[5]);
+        const hsegs = [[l, r, t, l1, r1, t1], [l, r, b, l1, r1, t1], [l, r, t, l1, r1, b1], [l, r, b, l1, r1, b1]];
+        const vsegs = [[l, t, b, l1, t1, b1], [r, t, b, l1, t1, b1], [l, t, b, r1, t1, b1], [r, t, b, r1, t1, b1]];
+        const res = hsegs.reduce((closest, seg) => {
+            const res = distanceBetweenHorizontalLines(seg[0], seg[1], seg[2], seg[3], seg[4], seg[5]);
             return (res[0] < closest[0]) ? res : closest;
         }, [Number.MAX_VALUE, []] as [number, number[]]);
-        let fres = vsegs.reduce((closest, seg) => {
-            let res = distanceBetweenVerticalLines(seg[0], seg[1], seg[2], seg[3], seg[4], seg[5]);
+        const fres = vsegs.reduce((closest, seg) => {
+            const res = distanceBetweenVerticalLines(seg[0], seg[1], seg[2], seg[3], seg[4], seg[5]);
             return (res[0] < closest[0]) ? res : closest;
         }, res);
 
-        let near = project(x, y, fres[1][0], fres[1][1], fres[1][2], fres[1][3]);
+        const near = project(x, y, fres[1][0], fres[1][1], fres[1][2], fres[1][3]);
         return project(near.point.x, near.point.y, fres[1][0], fres[1][1], fres[1][2], fres[1][3]);
     }
 
     export function getNearestPointInPerimeter(l: number, t: number, w: number, h: number, x: number, y: number) {
-        var r = l + w,
+        const r = l + w,
             b = t + h;
 
-        var x = clamp(x, l, r),
+        x = clamp(x, l, r),
             y = clamp(y, t, b);
 
-        var dl = Math.abs(x - l),
+        const dl = Math.abs(x - l),
             dr = Math.abs(x - r),
             dt = Math.abs(y - t),
             db = Math.abs(y - b);
 
-        var m = Math.min(dl, dr, dt, db);
+        const m = Math.min(dl, dr, dt, db);
 
         return (m === dt) ? [x, t] :
             (m === db) ? [x, b] :
@@ -230,7 +249,7 @@ export namespace Utils {
     }
 
     export function GetClipboardText(): string {
-        var textArea = document.createElement("textarea");
+        const textArea = document.createElement("textarea");
         document.body.appendChild(textArea);
         textArea.focus();
         textArea.select();
@@ -253,9 +272,9 @@ export namespace Utils {
         if (logFilter !== undefined && logFilter !== message.type) {
             return;
         }
-        let idString = (message.id || "").padStart(36, ' ');
+        const idString = (message.id || "").padStart(36, ' ');
         prefix = prefix.padEnd(16, ' ');
-        console.log(`${prefix}: ${idString}, ${receiving ? 'receiving' : 'sending'} ${messageName} with data ${JSON.stringify(message)}`);
+        console.log(`${prefix}: ${idString}, ${receiving ? 'receiving' : 'sending'} ${messageName} with data ${JSON.stringify(message)} `);
     }
 
     function loggingCallback(prefix: string, func: (args: any) => any, messageName: string) {
@@ -305,18 +324,18 @@ export function OmitKeys(obj: any, keys: string[], addKeyFunc?: (dup: any) => vo
 }
 
 export function WithKeys(obj: any, keys: string[], addKeyFunc?: (dup: any) => void) {
-    var dup: any = {};
+    const dup: any = {};
     keys.forEach(key => dup[key] = obj[key]);
     addKeyFunc && addKeyFunc(dup);
     return dup;
 }
 
 export function timenow() {
-    var now = new Date();
+    const now = new Date();
     let ampm = 'am';
     let h = now.getHours();
     let m: any = now.getMinutes();
-    let s: any = now.getSeconds();
+    const s: any = now.getSeconds();
     if (h >= 12) {
         if (h > 12) h -= 12;
         ampm = 'pm';
@@ -325,15 +344,15 @@ export function timenow() {
     return now.toLocaleDateString() + ' ' + h + ':' + m + ' ' + ampm;
 }
 
-export function aggregateBounds(boundsList: { x: number, y: number, width: number, height: number }[]) {
-    return boundsList.reduce((bounds, b) => {
-        var [sptX, sptY] = [b.x, b.y];
-        let [bptX, bptY] = [sptX + b.width, sptY + b.height];
-        return {
-            x: Math.min(sptX, bounds.x), y: Math.min(sptY, bounds.y),
-            r: Math.max(bptX, bounds.r), b: Math.max(bptY, bounds.b)
-        };
-    }, { x: Number.MAX_VALUE, y: Number.MAX_VALUE, r: -Number.MAX_VALUE, b: -Number.MAX_VALUE });
+export function aggregateBounds(boundsList: { x: number, y: number, width?: number, height?: number }[], xpad: number, ypad: number) {
+    const bounds = boundsList.map(b => ({ x: b.x, y: b.y, r: b.x + (b.width || 0), b: b.y + (b.height || 0) })).reduce((bounds, b) => ({
+        x: Math.min(b.x, bounds.x), y: Math.min(b.y, bounds.y),
+        r: Math.max(b.r, bounds.r), b: Math.max(b.b, bounds.b)
+    }), { x: Number.MAX_VALUE, y: Number.MAX_VALUE, r: -Number.MAX_VALUE, b: -Number.MAX_VALUE });
+    return {
+        x: bounds.x !== Number.MAX_VALUE ? bounds.x - xpad : bounds.x, y: bounds.y !== Number.MAX_VALUE ? bounds.y - ypad : bounds.y,
+        r: bounds.r !== -Number.MAX_VALUE ? bounds.r + xpad : bounds.r, b: bounds.b !== -Number.MAX_VALUE ? bounds.b + ypad : bounds.b
+    };
 }
 export function intersectRect(r1: { left: number, top: number, width: number, height: number },
     r2: { left: number, top: number, width: number, height: number }) {
@@ -344,7 +363,7 @@ export function percent2frac(percent: string) {
     return Number(percent.substr(0, percent.length - 1)) / 100;
 }
 
-export function numberRange(num: number) { return Array.from(Array(num)).map((v, i) => i); }
+export function numberRange(num: number) { return num > 0 && num < 1000 ? Array.from(Array(num)).map((v, i) => i) : []; }
 
 export function returnTransparent() { return "transparent"; }
 
@@ -358,6 +377,8 @@ export function returnZero() { return 0; }
 
 export function returnEmptyString() { return ""; }
 
+export let emptyPath = [];
+
 export function emptyFunction() { }
 
 export function unimplementedFunction() { throw new Error("This function is not implemented, but should be."); }
@@ -367,10 +388,11 @@ export type Without<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
 export type Predicate<K, V> = (entry: [K, V]) => boolean;
 
 export function DeepCopy<K, V>(source: Map<K, V>, predicate?: Predicate<K, V>) {
-    let deepCopy = new Map<K, V>();
-    let entries = source.entries(), next = entries.next();
+    const deepCopy = new Map<K, V>();
+    const entries = source.entries();
+    let next = entries.next();
     while (!next.done) {
-        let entry = next.value;
+        const entry = next.value;
         if (!predicate || predicate(entry)) {
             deepCopy.set(entry[0], entry[1]);
         }
@@ -423,13 +445,13 @@ export function smoothScroll(duration: number, element: HTMLElement, to: number)
     animateScroll();
 }
 export function addStyleSheet(styleType: string = "text/css") {
-    let style = document.createElement("style");
+    const style = document.createElement("style");
     style.type = styleType;
-    var sheets = document.head.appendChild(style);
+    const sheets = document.head.appendChild(style);
     return (sheets as any).sheet;
 }
 export function addStyleSheetRule(sheet: any, selector: any, css: any) {
-    var propText = typeof css === "string" ? css : Object.keys(css).map(p => p + ":" + (p === "content" ? "'" + css[p] + "'" : css[p])).join(";");
+    const propText = typeof css === "string" ? css : Object.keys(css).map(p => p + ":" + (p === "content" ? "'" + css[p] + "'" : css[p])).join(";");
     return sheet.insertRule("." + selector + "{" + propText + "}", sheet.cssRules.length);
 }
 export function removeStyleSheetRule(sheet: any, rule: number) {

@@ -37,7 +37,7 @@ export class QuantitativeVisualBinRange extends VisualBinRange {
     }
 
     public GetBins(): number[] {
-        let bins = new Array<number>();
+        const bins = new Array<number>();
 
         for (let v: number = this.DataBinRange.minValue!; v < this.DataBinRange.maxValue!; v += this.DataBinRange.step!) {
             bins.push(v);
@@ -46,8 +46,8 @@ export class QuantitativeVisualBinRange extends VisualBinRange {
     }
 
     public static Initialize(dataMinValue: number, dataMaxValue: number, targetBinNumber: number, isIntegerRange: boolean): QuantitativeVisualBinRange {
-        let extent = QuantitativeVisualBinRange.getExtent(dataMinValue, dataMaxValue, targetBinNumber, isIntegerRange);
-        let dataBinRange = new QuantitativeBinRange();
+        const extent = QuantitativeVisualBinRange.getExtent(dataMinValue, dataMaxValue, targetBinNumber, isIntegerRange);
+        const dataBinRange = new QuantitativeBinRange();
         dataBinRange.minValue = extent[0];
         dataBinRange.maxValue = extent[1];
         dataBinRange.step = extent[2];
@@ -60,10 +60,10 @@ export class QuantitativeVisualBinRange extends VisualBinRange {
             // dataMin -= 0.1;
             dataMax += 0.1;
         }
-        let span = dataMax - dataMin;
+        const span = dataMax - dataMin;
 
         let step = Math.pow(10, Math.floor(Math.log10(span / m)));
-        let err = m / span * step;
+        const err = m / span * step;
 
         if (err <= .15) {
             step *= 10;
@@ -78,9 +78,9 @@ export class QuantitativeVisualBinRange extends VisualBinRange {
         if (isIntegerRange) {
             step = Math.ceil(step);
         }
-        let ret: number[] = new Array<number>(3);
-        let minDivStep = Math.floor(dataMin / step);
-        let maxDivStep = Math.floor(dataMax / step);
+        const ret: number[] = new Array<number>(3);
+        const minDivStep = Math.floor(dataMin / step);
+        const maxDivStep = Math.floor(dataMax / step);
         ret[0] = minDivStep * step; // Math.floor(Math.Round(dataMin, 8)/step)*step;
         ret[1] = maxDivStep * step + step; // Math.floor(Math.Round(dataMax, 8)/step)*step + step;
         ret[2] = step;

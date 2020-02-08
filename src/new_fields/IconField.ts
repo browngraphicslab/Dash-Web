@@ -1,7 +1,7 @@
 import { Deserializable } from "../client/util/SerializationHelper";
 import { serializable, primitive } from "serializr";
 import { ObjectField } from "./ObjectField";
-import { Copy, ToScriptString } from "./FieldSymbols";
+import { Copy, ToScriptString, ToString } from "./FieldSymbols";
 
 @Deserializable("icon")
 export class IconField extends ObjectField {
@@ -19,5 +19,8 @@ export class IconField extends ObjectField {
 
     [ToScriptString]() {
         return "invalid";
+    }
+    [ToString]() {
+        return "ICONfield";
     }
 }

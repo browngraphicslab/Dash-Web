@@ -1,26 +1,26 @@
 import { Deserializable } from "../client/util/SerializationHelper";
 import { serializable, custom, createSimpleSchema, list, object, map } from "serializr";
 import { ObjectField } from "./ObjectField";
-import { Copy, ToScriptString } from "./FieldSymbols";
-import { DeepCopy } from "../Utils";
+import { Copy, ToScriptString, ToString } from "./FieldSymbols";
 
 export enum InkTool {
     None,
     Pen,
     Highlighter,
     Eraser,
-    Scrubber
+    Scrubber,
+    Stamp
 }
 
 export interface PointData {
-    x: number;
-    y: number;
+    X: number;
+    Y: number;
 }
 
 export type InkData = Array<PointData>;
 
 const pointSchema = createSimpleSchema({
-    x: true, y: true
+    X: true, Y: true
 });
 
 const strokeDataSchema = createSimpleSchema({
@@ -44,5 +44,8 @@ export class InkField extends ObjectField {
 
     [ToScriptString]() {
         return "invalid";
+    }
+    [ToString]() {
+        return "InkField";
     }
 }

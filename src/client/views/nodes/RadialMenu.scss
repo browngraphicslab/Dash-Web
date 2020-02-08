@@ -1,0 +1,83 @@
+@import "../globalCssVariables";
+
+.radialMenu-cont {
+    position: absolute;
+    z-index: $radialMenu-zindex;
+    flex-direction: column;
+}
+
+.radialMenu-subMenu-cont {
+    position: absolute;
+    display: flex;
+    z-index: 1000;
+    flex-direction: column;
+    border-radius: 15px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+.radialMenu-item {
+    // width: 11vw; //10vw
+    display: flex; //comment out to allow search icon to be inline with search text
+    align-items: center;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    transition: all .1s;
+    border-style: none;
+    white-space: nowrap;
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+s
+.radialMenu-itemSelected {
+    border-style: none;
+}
+
+.radialMenu-group {
+    // width: 11vw; //10vw
+    display: flex; //comment out to allow search icon to be inline with search text
+    justify-content: left;
+    align-items: center;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    transition: all .1s;
+    border-width: .11px;
+    border-style: none;
+    border-color: $intermediate-color; //  rgb(187, 186, 186);
+    // padding: 10px 0px 10px 0px;
+    white-space: nowrap;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    padding-left: 5px;
+}
+
+
+.radialMenu-description {
+    margin-left: 5px;
+    text-align: left;
+    display: inline; //need this?
+}
+
+
+
+.icon-background {
+    pointer-events: all;
+    height:100%;
+    margin-top: 15px;
+    background-color: transparent;
+    width: 35px;
+    text-align: center;
+    font-size: 20px;
+    margin-left: 5px;
+}

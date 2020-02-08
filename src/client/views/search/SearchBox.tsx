@@ -8,18 +8,15 @@ import * as rp from 'request-promise';
 import { Doc } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { Cast, NumCast } from '../../../new_fields/Types';
-import { RouteStore } from '../../../server/RouteStore';
 import { Utils } from '../../../Utils';
 import { Docs } from '../../documents/Documents';
 import { SetupDrag } from '../../util/DragManager';
 import { SearchUtil } from '../../util/SearchUtil';
-import { MainView } from '../MainView';
 import { FilterBox } from './FilterBox';
 import "./FilterBox.scss";
 import "./SearchBox.scss";
 import { SearchItem } from './SearchItem';
 import { IconBar } from './IconBar';
-import { string } from 'prop-types';
 
 library.add(faTimes);
 
@@ -86,11 +83,15 @@ export class SearchBox extends React.Component {
         this._maxSearchIndex = 0;
     }
 
-    enter = (e: React.KeyboardEvent) => { if (e.key === "Enter") { this.submitSearch(); } };
+    enter = (e: React.KeyboardEvent) => {
+        if (e.key === "Enter") {
+            this.submitSearch();
+        }
+    }
 
     public static async convertDataUri(imageUri: string, returnedFilename: string) {
         try {
-            let posting = Utils.prepend(RouteStore.dataUriToImage);
+            const posting = Utils.prepend("/uploadURI");
             const returnedUri = await rp.post(posting, {
                 body: {
                     uri: imageUri,
@@ -145,6 +146,7 @@ export class SearchBox extends React.Component {
     }
 
 
+    private NumResults = 25;
     private lockPromise?: Promise<void>;
     getResults = async (query: string) => {
         if (this.lockPromise) {
@@ -152,7 +154,7 @@ export class SearchBox extends React.Component {
         }
         this.lockPromise = new Promise(async res => {
             while (this._results.length <= this._endIndex && (this._numTotalResults === -1 || this._maxSearchIndex < this._numTotalResults)) {
-                this._curRequest = SearchUtil.Search(query, true, { fq: this.filterQuery, start: this._maxSearchIndex, rows: 10, hl: true, "hl.fl": "*" }).then(action(async (res: SearchUtil.DocSearchResult) => {
+                this._curRequest = SearchUtil.Search(query, true, { fq: this.filterQuery, start: this._maxSearchIndex, rows: this.NumResults, hl: true, "hl.fl": "*" }).then(action(async (res: SearchUtil.DocSearchResult) => {
 
                     // happens at the beginning
                     if (res.numFound !== this._numTotalResults && this._numTotalResults === -1) {
@@ -166,7 +168,7 @@ export class SearchBox extends React.Component {
                     const docs = await Promise.all(res.docs.map(async doc => (await Cast(doc.extendsDoc, Doc)) || doc));
                     const highlights: typeof res.highlighting = {};
                     docs.forEach((doc, index) => highlights[doc[Id]] = highlightList[index]);
-                    let filteredDocs = FilterBox.Instance.filterDocsByType(docs);
+                    const filteredDocs = FilterBox.Instance.filterDocsByType(docs);
                     runInAction(() => {
                         // this._results.push(...filteredDocs);
                         filteredDocs.forEach(doc => {
@@ -186,7 +188,7 @@ export class SearchBox extends React.Component {
 
                     this._curRequest = undefined;
                 }));
-                this._maxSearchIndex += 10;
+                this._maxSearchIndex += this.NumResults;
 
                 await this._curRequest;
             }
@@ -198,8 +200,8 @@ export class SearchBox extends React.Component {
 
     collectionRef = React.createRef<HTMLSpanElement>();
     startDragCollection = async () => {
-        let res = await this.getAllResults(FilterBox.Instance.getFinalQuery(this._searchString));
-        let filtered = FilterBox.Instance.filterDocsByType(res.docs);
+        const res = await this.getAllResults(FilterBox.Instance.getFinalQuery(this._searchString));
+        const filtered = FilterBox.Instance.filterDocsByType(res.docs);
         // console.log(this._results)
         const docs = filtered.map(doc => {
             const isProto = Doc.GetT(doc, "isPrototype", "boolean", true);
@@ -215,16 +217,16 @@ export class SearchBox extends React.Component {
             doc.x = x;
             doc.y = y;
             const size = 200;
-            const aspect = NumCast(doc.nativeHeight) / NumCast(doc.nativeWidth, 1);
+            const aspect = NumCast(doc._nativeHeight) / NumCast(doc._nativeWidth, 1);
             if (aspect > 1) {
-                doc.height = size;
-                doc.width = size / aspect;
+                doc._height = size;
+                doc._width = size / aspect;
             } else if (aspect > 0) {
-                doc.width = size;
-                doc.height = size * aspect;
+                doc._width = size;
+                doc._height = size * aspect;
             } else {
-                doc.width = size;
-                doc.height = size;
+                doc._width = size;
+                doc._height = size;
             }
             x += 250;
             if (x > 1000) {
@@ -232,8 +234,7 @@ export class SearchBox extends React.Component {
                 y += 300;
             }
         }
-        return Docs.Create.FreeformDocument(docs, { width: 400, height: 400, panX: 175, panY: 175, backgroundColor: "grey", title: `Search Docs: "${this._searchString}"` });
-
+        return Docs.Create.TreeDocument(docs, { _width: 200, _height: 400, backgroundColor: "grey", title: `Search Docs: "${this._searchString}"` });
     }
 
     @action.bound
@@ -266,10 +267,11 @@ export class SearchBox extends React.Component {
 
     @action
     resultsScrolled = (e?: React.UIEvent<HTMLDivElement>) => {
-        let scrollY = e ? e.currentTarget.scrollTop : this.resultsRef.current ? this.resultsRef.current.scrollTop : 0;
-        let buffer = 4;
-        let startIndex = Math.floor(Math.max(0, scrollY / 70 - buffer));
-        let endIndex = Math.ceil(Math.min(this._numTotalResults - 1, startIndex + (560 / 70) + buffer));
+        if (!this.resultsRef.current) return;
+        const scrollY = e ? e.currentTarget.scrollTop : this.resultsRef.current ? this.resultsRef.current.scrollTop : 0;
+        const itemHght = 53;
+        const startIndex = Math.floor(Math.max(0, scrollY / itemHght));
+        const endIndex = Math.ceil(Math.min(this._numTotalResults - 1, startIndex + (this.resultsRef.current.getBoundingClientRect().height / itemHght)));
 
         this._endIndex = endIndex === -1 ? 12 : endIndex;
 
@@ -307,7 +309,7 @@ export class SearchBox extends React.Component {
                         this.getResults(this._searchString);
                         if (i < this._results.length) result = this._results[i];
                         if (result) {
-                            let highlights = Array.from([...Array.from(new Set(result[1]).values())]).filter(v => v !== "search_string");
+                            const highlights = Array.from([...Array.from(new Set(result[1]).values())]);
                             this._visibleElements[i] = <SearchItem doc={result[0]} query={this._searchString} key={result[0][Id]} lines={result[2]} highlighting={highlights} />;
                             this._isSearch[i] = "search";
                         }
@@ -315,7 +317,7 @@ export class SearchBox extends React.Component {
                     else {
                         result = this._results[i];
                         if (result) {
-                            let highlights = Array.from([...Array.from(new Set(result[1]).values())]).filter(v => v !== "search_string");
+                            const highlights = Array.from([...Array.from(new Set(result[1]).values())]);
                             this._visibleElements[i] = <SearchItem doc={result[0]} query={this._searchString} key={result[0][Id]} lines={result[2]} highlighting={highlights} />;
                             this._isSearch[i] = "search";
                         }
@@ -337,9 +339,9 @@ export class SearchBox extends React.Component {
 
     render() {
         return (
-            <div className="searchBox-container">
+            <div className="searchBox-container" onPointerDown={e => { e.stopPropagation(); e.preventDefault(); }}>
                 <div className="searchBox-bar">
-                    <span className="searchBox-barChild searchBox-collection" onPointerDown={SetupDrag(this.collectionRef, this.startDragCollection)} ref={this.collectionRef} title="Drag Results as Collection">
+                    <span className="searchBox-barChild searchBox-collection" onPointerDown={SetupDrag(this.collectionRef, () => this._searchString ? this.startDragCollection() : undefined)} ref={this.collectionRef} title="Drag Results as Collection">
                         <FontAwesomeIcon icon="object-group" size="lg" />
                     </span>
                     <input value={this._searchString} onChange={this.onChange} type="text" placeholder="Search..." id="search-input" ref={this.inputRef}
@@ -347,13 +349,13 @@ export class SearchBox extends React.Component {
                         style={{ width: this._searchbarOpen ? "500px" : "100px" }} />
                     <button className="searchBox-barChild searchBox-filter" title="Advanced Filtering Options" onClick={FilterBox.Instance.openFilter} onPointerDown={FilterBox.Instance.stopProp}><FontAwesomeIcon icon="ellipsis-v" color="white" /></button>
                 </div>
-                {(this._numTotalResults > 0 || !this._searchbarOpen) ? (null) :
-                    (<div className="searchBox-quickFilter" onPointerDown={this.openSearch}>
-                        <div className="filter-panel"><IconBar /></div>
-                    </div>)}
+                <div className="searchBox-quickFilter" onPointerDown={this.openSearch}>
+                    <div className="filter-panel"><IconBar /></div>
+                </div>
                 <div className="searchBox-results" onScroll={this.resultsScrolled} style={{
                     display: this._resultsOpen ? "flex" : "none",
-                    height: this.resFull ? "560px" : this.resultHeight, overflow: this.resFull ? "auto" : "visible"
+                    height: this.resFull ? "auto" : this.resultHeight,
+                    overflow: "visibile" // this.resFull ? "auto" : "visible"
                 }} ref={this.resultsRef}>
                     {this._visibleElements}
                 </div>

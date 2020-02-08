@@ -94,16 +94,16 @@ function Run(script: string | undefined, customParams: string[], diagnostics: an
         return { compiled: false, errors: diagnostics };
     }
 
-    let paramNames = Object.keys(scriptingGlobals);
-    let params = paramNames.map(key => scriptingGlobals[key]);
+    const paramNames = Object.keys(scriptingGlobals);
+    const params = paramNames.map(key => scriptingGlobals[key]);
     // let fieldTypes = [Doc, ImageField, PdfField, VideoField, AudioField, List, RichTextField, ScriptField, ComputedField, CompileScript];
     // let paramNames = ["Docs", ...fieldTypes.map(fn => fn.name)];
     // let params: any[] = [Docs, ...fieldTypes];
-    let compiledFunction = new Function(...paramNames, `return ${script}`);
-    let { capturedVariables = {} } = options;
-    let run = (args: { [name: string]: any } = {}, onError?: (e: any) => void, errorVal?: any): ScriptResult => {
-        let argsArray: any[] = [];
-        for (let name of customParams) {
+    const compiledFunction = new Function(...paramNames, `return ${script}`);
+    const { capturedVariables = {} } = options;
+    const run = (args: { [name: string]: any } = {}, onError?: (e: any) => void, errorVal?: any): ScriptResult => {
+        const argsArray: any[] = [];
+        for (const name of customParams) {
             if (name === "this") {
                 continue;
             }
@@ -113,7 +113,7 @@ function Run(script: string | undefined, customParams: string[], diagnostics: an
                 argsArray.push(capturedVariables[name]);
             }
         }
-        let thisParam = args.this || capturedVariables.this;
+        const thisParam = args.this || capturedVariables.this;
         let batch: { end(): void } | undefined = undefined;
         try {
             if (!options.editable) {
@@ -146,7 +146,7 @@ class ScriptingCompilerHost {
 
     // getSourceFile(fileName: string, languageVersion: ts.ScriptTarget, onError?: ((message: string) => void) | undefined, shouldCreateNewSourceFile?: boolean | undefined): ts.SourceFile | undefined {
     getSourceFile(fileName: string, languageVersion: any, onError?: ((message: string) => void) | undefined, shouldCreateNewSourceFile?: boolean | undefined): any | undefined {
-        let contents = this.readFile(fileName);
+        const contents = this.readFile(fileName);
         if (contents !== undefined) {
             return ts.createSourceFile(fileName, contents, languageVersion, true);
         }
@@ -180,7 +180,7 @@ class ScriptingCompilerHost {
         return this.files.some(file => file.fileName === fileName);
     }
     readFile(fileName: string): string | undefined {
-        let file = this.files.find(file => file.fileName === fileName);
+        const file = this.files.find(file => file.fileName === fileName);
         if (file) {
             return file.content;
         }
@@ -218,7 +218,7 @@ export function CompileScript(script: string, options: ScriptOptions = {}): Comp
     if (options.globals) {
         Scripting.setScriptingGlobals(options.globals);
     }
-    let host = new ScriptingCompilerHost;
+    const host = new ScriptingCompilerHost;
     if (options.traverser) {
         const sourceFile = ts.createSourceFile('script.ts', script, ts.ScriptTarget.ES2015, true);
         const onEnter = typeof options.traverser === "object" ? options.traverser.onEnter : options.traverser;
@@ -240,7 +240,7 @@ export function CompileScript(script: string, options: ScriptOptions = {}): Comp
         script = printer.printFile(transformed[0]);
         result.dispose();
     }
-    let paramNames: string[] = [];
+    const paramNames: string[] = [];
     if ("this" in params || "this" in capturedVariables) {
         paramNames.push("this");
     }
@@ -248,7 +248,7 @@ export function CompileScript(script: string, options: ScriptOptions = {}): Comp
         if (key === "this") continue;
         paramNames.push(key);
     }
-    let paramList = paramNames.map(key => {
+    const paramList = paramNames.map(key => {
         const val = params[key];
         return `${key}: ${val}`;
     });
@@ -258,18 +258,18 @@ export function CompileScript(script: string, options: ScriptOptions = {}): Comp
         paramNames.push(key);
         paramList.push(`${key}: ${typeof val === "object" ? Object.getPrototypeOf(val).constructor.name : typeof val}`);
     }
-    let paramString = paramList.join(", ");
-    let funcScript = `(function(${paramString})${requiredType ? `: ${requiredType}` : ''} {
+    const paramString = paramList.join(", ");
+    const funcScript = `(function(${paramString})${requiredType ? `: ${requiredType}` : ''} {
         ${addReturn ? `return ${script};` : script}
     })`;
     host.writeFile("file.ts", funcScript);
 
     if (typecheck) host.writeFile('node_modules/typescript/lib/lib.d.ts', typescriptlib);
-    let program = ts.createProgram(["file.ts"], {}, host);
-    let testResult = program.emit();
-    let outputText = host.readFile("file.js");
+    const program = ts.createProgram(["file.ts"], {}, host);
+    const testResult = program.emit();
+    const outputText = host.readFile("file.js");
 
-    let diagnostics = ts.getPreEmitDiagnostics(program).concat(testResult.diagnostics);
+    const diagnostics = ts.getPreEmitDiagnostics(program).concat(testResult.diagnostics);
 
     const result = Run(outputText, paramNames, diagnostics, script, options);
 

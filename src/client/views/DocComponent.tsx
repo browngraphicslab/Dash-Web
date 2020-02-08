@@ -1,4 +1,3 @@
-import * as React from 'react';
 import { Doc } from '../../new_fields/Doc';
 import { Touchable } from './Touchable';
 import { computed, action, observable } from 'mobx';
@@ -31,12 +30,11 @@ interface DocExtendableProps {
     renderDepth: number;
 }
 export function DocExtendableComponent<P extends DocExtendableProps, T>(schemaCtor: (doc: Doc) => T) {
-    class Component extends React.Component<P> {
+    class Component extends Touchable<P> {
         //TODO This might be pretty inefficient if doc isn't observed, because computed doesn't cache then
         @computed get Document(): T { return schemaCtor(this.props.Document); }
         @computed get layoutDoc() { return Doc.Layout(this.props.Document); }
-        @computed get dataDoc() { return (this.props.DataDoc && (this.props.Document.isTemplateField || this.props.Document.isTemplateDoc) ? this.props.DataDoc : Doc.GetProto(this.props.Document)) as Doc; }
-        @computed get extensionDoc() { return Doc.fieldExtensionDoc(this.dataDoc, this.props.fieldKey); }
+        @computed get dataDoc() { return (this.props.DataDoc && (this.props.Document.isTemplateForField || this.props.Document.isTemplateDoc) ? this.props.DataDoc : Cast(this.props.Document.resolvedDataDoc, Doc, null) || Doc.GetProto(this.props.Document)) as Doc; }
         active = (outsideReaction?: boolean) => !this.props.Document.isBackground && (this.props.Document.forceActive || this.props.isSelected(outsideReaction) || this.props.renderDepth === 0);//  && !InkingControl.Instance.selectedTool;  // bcz: inking state shouldn't affect static tools 
     }
     return Component;
@@ -44,41 +42,44 @@ export function DocExtendableComponent<P extends DocExtendableProps, T>(schemaCt
 
 
 ///  DocAnnotatbleComponent return a base class for React views of document fields that are annotatable *and* interactive when selected (e.g., pdf, image)
-interface DocAnnotatableProps {
+export interface DocAnnotatableProps {
     Document: Doc;
     DataDoc?: Doc;
     fieldKey: string;
+    active: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
     isSelected: (outsideReaction?: boolean) => boolean;
     renderDepth: number;
 }
 export function DocAnnotatableComponent<P extends DocAnnotatableProps, T>(schemaCtor: (doc: Doc) => T) {
-    class Component extends React.Component<P> {
+    class Component extends Touchable<P> {
         @observable _isChildActive = false;
         //TODO This might be pretty inefficient if doc isn't observed, because computed doesn't cache then
         @computed get Document(): T { return schemaCtor(this.props.Document); }
         @computed get layoutDoc() { return Doc.Layout(this.props.Document); }
-        @computed get dataDoc() { return (this.props.DataDoc && this.props.Document.isTemplateField ? this.props.DataDoc : Doc.GetProto(this.props.Document)) as Doc; }
-        @computed get extensionDoc() { return Doc.fieldExtensionDoc(this.dataDoc, this.props.fieldKey); }
-        @computed get annotationsKey() { return "annotations"; }
+        @computed get dataDoc() { return (this.props.DataDoc && (this.props.Document.isTemplateForField || this.props.Document.isTemplateDoc) ? this.props.DataDoc : Cast(this.props.Document.resolvedDataDoc, Doc, null) || Doc.GetProto(this.props.Document)) as Doc; }
+
+        _annotationKey: string = "annotations";
+        public set annotationKey(val: string) { this._annotationKey = val; }
+        public get annotationKey() { return this._annotationKey; }
 
         @action.bound
         removeDocument(doc: Doc): boolean {
             Doc.GetProto(doc).annotationOn = undefined;
-            let value = this.extensionDoc && Cast(this.extensionDoc[this.annotationsKey], listSpec(Doc), []);
-            let index = value ? Doc.IndexOf(doc, value.map(d => d as Doc), true) : -1;
+            const value = Cast(this.dataDoc[this.props.fieldKey + "-" + this._annotationKey], listSpec(Doc), []);
+            const index = value ? Doc.IndexOf(doc, value.map(d => d as Doc), true) : -1;
             return index !== -1 && value && value.splice(index, 1) ? true : false;
         }
         // if the moved document is already in this overlay collection nothing needs to be done.
         // otherwise, if the document can be removed from where it was, it will then be added to this document's overlay collection. 
         @action.bound
-        moveDocument(doc: Doc, targetCollection: Doc, addDocument: (doc: Doc) => boolean): boolean {
+        moveDocument(doc: Doc, targetCollection: Doc | undefined, addDocument: (doc: Doc) => boolean): boolean {
             return Doc.AreProtosEqual(this.props.Document, targetCollection) ? true : this.removeDocument(doc) ? addDocument(doc) : false;
         }
         @action.bound
         addDocument(doc: Doc): boolean {
             Doc.GetProto(doc).annotationOn = this.props.Document;
-            return this.extensionDoc && Doc.AddDocToList(this.extensionDoc, this.annotationsKey, doc) ? true : false;
+            return Doc.AddDocToList(this.dataDoc, this.props.fieldKey + "-" + this._annotationKey, doc) ? true : false;
         }
 
         whenActiveChanged = action((isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive));

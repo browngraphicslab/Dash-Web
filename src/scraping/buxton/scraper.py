@@ -10,14 +10,14 @@ import uuid
 import datetime
 from PIL import Image
 import math
-import sys
 
 source = "./source"
-dist = "../../server/public/files"
+filesPath = "../../server/public/files"
+image_dist = filesPath + "/images/buxton"
 
 db = MongoClient("localhost", 27017)["Dash"]
 target_collection = db.newDocuments
-target_doc_title = "Workspace 1"
+target_doc_title = "Collection 1"
 schema_guids = []
 common_proto_id = ""
 
@@ -70,7 +70,7 @@ def text_doc_map(string_list):
     return listify(proxify_guids(list(map(guid_map, string_list))))
 
 
-def write_collection(parse_results, display_fields, storage_key, viewType=2):
+def write_collection(parse_results, display_fields, storage_key, viewType):
     view_guids = parse_results["child_guids"]
 
     data_doc = parse_results["schema"]
@@ -84,13 +84,14 @@ def write_collection(parse_results, display_fields, storage_key, viewType=2):
             "proto": protofy(data_doc["_id"]),
             "x": 10,
             "y": 10,
-            "width": 900,
-            "height": 600,
-            "panX": 0,
-            "panY": 0,
+            "_width": 900,
+            "_height": 600,
+            "_panX": 0,
+            "_panY": 0,
             "zIndex": 2,
             "libraryBrush": False,
-            "viewType": viewType
+            "_viewType": viewType,
+            "_LODdisable": True
         },
         "__type": "Doc"
     }
@@ -98,23 +99,24 @@ def write_collection(parse_results, display_fields, storage_key, viewType=2):
     fields["proto"] = protofy(common_proto_id)
     fields[storage_key] = listify(proxify_guids(view_guids))
     fields["schemaColumns"] = listify(display_fields)
-    fields["backgroundColor"] = "white"
-    fields["scale"] = 0.5
-    fields["viewType"] = 2
     fields["author"] = "Bill Buxton"
     fields["creationDate"] = {
         "date": datetime.datetime.utcnow().microsecond,
         "__type": "date"
     }
+    if "image_urls" in parse_results:
+        fields["hero"] = {
+            "url": parse_results["image_urls"][0],
+            "__type": "image"
+        }
     fields["isPrototype"] = True
-    fields["page"] = -1
 
     target_collection.insert_one(data_doc)
     target_collection.insert_one(view_doc)
 
     data_doc_guid = data_doc["_id"]
-    print(f"inserted view document ({view_doc_guid})")
-    print(f"inserted data document ({data_doc_guid})\n")
+    # print(f"inserted view document ({view_doc_guid})")
+    # print(f"inserted data document ({data_doc_guid})\n")
 
     return view_doc_guid
 
@@ -129,7 +131,7 @@ def write_text_doc(content):
             "proto": protofy(data_doc_guid),
             "x": 10,
             "y": 10,
-            "width": 400,
+            "_width": 400,
             "zIndex": 2
         },
         "__type": "Doc"
@@ -144,17 +146,17 @@ def write_text_doc(content):
                 "__type": "RichTextField"
             },
             "title": content,
-            "nativeWidth": 200,
+            "_nativeWidth": 200,
             "author": "Bill Buxton",
             "creationDate": {
                 "date": datetime.datetime.utcnow().microsecond,
                 "__type": "date"
             },
             "isPrototype": True,
-            "autoHeight": True,
+            "_autoHeight": True,
             "page": -1,
-            "nativeHeight": 200,
-            "height": 200,
+            "_nativeHeight": 200,
+            "_height": 200,
             "data_text": content
         },
         "__type": "Doc"
@@ -167,13 +169,16 @@ def write_text_doc(content):
 
 
 def write_image(folder, name):
-    path = f"http://localhost:1050/files/{folder}/{name}"
+    path = f"http://localhost:1050/files/images/buxton/{folder}/{name}"
 
     data_doc_guid = guid()
     view_doc_guid = guid()
 
-    image = Image.open(f"{dist}/{folder}/{name}")
+    image = Image.open(f"{image_dist}/{folder}/{name}")
     native_width, native_height = image.size
+
+    if abs(native_width - native_height) < 10:
+        return None
 
     view_doc = {
         "_id": view_doc_guid,
@@ -181,8 +186,10 @@ def write_image(folder, name):
             "proto": protofy(data_doc_guid),
             "x": 10,
             "y": 10,
-            "width": min(800, native_width),
-            "zIndex": 2
+            "_width": min(800, native_width),
+            "zIndex": 2,
+            "dimUnit": "*",
+            "dimMagnitude": 1
         },
         "__type": "Doc"
     }
@@ -196,7 +203,7 @@ def write_image(folder, name):
                 "__type": "image"
             },
             "title": name,
-            "nativeWidth": native_width,
+            "_nativeWidth": native_width,
             "author": "Bill Buxton",
             "creationDate": {
                 "date": datetime.datetime.utcnow().microsecond,
@@ -204,8 +211,8 @@ def write_image(folder, name):
             },
             "isPrototype": True,
             "page": -1,
-            "nativeHeight": native_height,
-            "height": native_height
+            "_nativeHeight": native_height,
+            "_height": native_height
         },
         "__type": "Doc"
     }
@@ -213,7 +220,10 @@ def write_image(folder, name):
     target_collection.insert_one(view_doc)
     target_collection.insert_one(data_doc)
 
-    return view_doc_guid
+    return {
+        "layout_id": view_doc_guid,
+        "url": path
+    }
 
 
 def parse_document(file_name: str):
@@ -222,27 +232,35 @@ def parse_document(file_name: str):
 
     result = {}
 
-    dir_path = dist + "/" + pure_name
+    dir_path = image_dist + "/" + pure_name
+    # print(dir_path)
     mkdir_if_absent(dir_path)
 
     raw = str(docx2txt.process(source + "/" + file_name, dir_path))
 
+    urls = []
     view_guids = []
     count = 0
     for image in os.listdir(dir_path):
-        count += 1
-        view_guids.append(write_image(pure_name, image))
-        copyfile(dir_path + "/" + image, dir_path +
-                 "/" + image.replace(".", "_o.", 1))
-        copyfile(dir_path + "/" + image, dir_path +
-                 "/" + image.replace(".", "_m.", 1))
-    print(f"extracted {count} images...")
+        created = write_image(pure_name, image)
+        if created != None:
+            urls.append(created["url"])
+            view_guids.append(created["layout_id"])
+            count += 1
+            resolved = dir_path + "/" + image
+            original = dir_path + "/" + image.replace(".", "_o.", 1)
+            medium = dir_path + "/" + image.replace(".", "_m.", 1)
+            copyfile(resolved, original)
+            copyfile(resolved, medium)
+    # print(f"extracted {count} images...")
 
     def sanitize(line): return re.sub("[\n\t]+", "", line).replace(u"\u00A0", " ").replace(
         u"\u2013", "-").replace(u"\u201c", '''"''').replace(u"\u201d", '''"''').strip()
 
     def sanitize_price(raw: str):
         raw = raw.replace(",", "")
+        if "x" in raw.lower():
+            return None
         start = raw.find("$")
         if start > -1:
             i = start + 1
@@ -256,6 +274,14 @@ def parse_document(file_name: str):
             return math.nan
 
     def remove_empty(line): return len(line) > 1
+
+    def try_parse(to_parse: int):
+        value: int
+        try:
+            value = int(to_parse)
+        except ValueError:
+            value = None
+        return value
 
     lines = list(map(sanitize, raw.split("\n")))
     lines = list(filter(remove_empty, lines))
@@ -276,13 +302,13 @@ def parse_document(file_name: str):
     clean = list(
         map(lambda data: data.strip().split(":"), lines[cur].split("|")))
     result["company"] = clean[0][len(clean[0]) - 1].strip()
-    result["year"] = clean[1][len(clean[1]) - 1].strip()
+    result["year"] = try_parse(clean[1][len(clean[1]) - 1].strip())
     result["original_price"] = sanitize_price(
         clean[2][len(clean[2]) - 1].strip())
 
     cur += 1
-    result["degrees_of_freedom"] = extract_value(
-        lines[cur]).replace("NA", "N/A")
+    result["degrees_of_freedom"] = try_parse(extract_value(
+        lines[cur]).replace("NA", "N/A"))
     cur += 1
 
     dimensions = lines[cur].lower()
@@ -334,7 +360,7 @@ def parse_document(file_name: str):
     if len(notes) > 0:
         result["notes"] = listify(notes)
 
-    print("writing child schema...")
+    # print("writing child schema...")
 
     return {
         "schema": {
@@ -342,12 +368,13 @@ def parse_document(file_name: str):
             "fields": result,
             "__type": "Doc"
         },
-        "child_guids": view_guids
+        "child_guids": view_guids,
+        "image_urls": urls
     }
 
 
 def proxify_guids(guids):
-    return list(map(lambda guid: {"fieldId": guid, "__type": "proxy"}, guids))
+    return list(map(lambda guid: {"fieldId": guid, "__type": "prefetch_proxy"}, guids))
 
 
 def write_common_proto():
@@ -356,31 +383,29 @@ def write_common_proto():
         "_id": id,
         "fields": {
             "proto": protofy("collectionProto"),
-            "title": "Common Import Proto",
+            "title": "The Buxton Collection",
         },
         "__type": "Doc"
     }
-
     target_collection.insert_one(common_proto)
-
     return id
 
 
-if os.path.exists(dist):
-    shutil.rmtree(dist)
-while os.path.exists(dist):
+if os.path.exists(image_dist):
+    shutil.rmtree(image_dist, True)
+while os.path.exists(image_dist):
     pass
-os.mkdir(dist)
+os.mkdir(image_dist)
 mkdir_if_absent(source)
 
 common_proto_id = write_common_proto()
 
 candidates = 0
 for file_name in os.listdir(source):
-    if file_name.endswith('.docx'):
+    if file_name.endswith('.docx') or file_name.endswith('.doc'):
         candidates += 1
         schema_guids.append(write_collection(
-            parse_document(file_name), ["title", "data"], "image_data"))
+            parse_document(file_name), ["title", "data"], "data", 5))
 
 print("writing parent schema...")
 parent_guid = write_collection({
@@ -390,7 +415,7 @@ parent_guid = write_collection({
         "__type": "Doc"
     },
     "child_guids": schema_guids
-}, ["title", "short_description", "original_price"], "data", 1)
+}, ["title", "short_description", "original_price"], "data", 4)
 
 print("appending parent schema to main workspace...\n")
 target_collection.update_one(
@@ -400,7 +425,7 @@ target_collection.update_one(
 
 print("rewriting .gitignore...\n")
 lines = ['*', '!.gitignore']
-with open(dist + "/.gitignore", 'w') as f:
+with open(filesPath + "/.gitignore", 'w') as f:
     f.write('\n'.join(lines))
 
 suffix = "" if candidates == 1 else "s"

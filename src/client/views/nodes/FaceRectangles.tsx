@@ -20,10 +20,10 @@ export interface RectangleTemplate {
 export default class FaceRectangles extends React.Component<FaceRectanglesProps> {
 
     render() {
-        let faces = DocListCast(this.props.document.faces);
-        let templates: RectangleTemplate[] = faces.map(faceDoc => {
-            let rectangle = Cast(faceDoc.faceRectangle, Doc) as Doc;
-            let style = {
+        const faces = DocListCast(this.props.document.faces);
+        const templates: RectangleTemplate[] = faces.map(faceDoc => {
+            const rectangle = Cast(faceDoc.faceRectangle, Doc) as Doc;
+            const style = {
                 top: NumCast(rectangle.top),
                 left: NumCast(rectangle.left),
                 width: NumCast(rectangle.width),

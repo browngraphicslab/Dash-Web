@@ -8,7 +8,6 @@ import { Opt, Doc } from "./Doc";
 import Color = require('color');
 import { sinkListItem } from "prosemirror-schema-list";
 import { Utils } from "../Utils";
-import { RouteStore } from "../server/RouteStore";
 import { Docs } from "../client/documents/Documents";
 import { schema } from "../client/util/RichTextSchema";
 import { GooglePhotos } from "../client/apis/google_docs/GooglePhotosClientUtils";
@@ -17,7 +16,7 @@ import { Cast, StrCast } from "./Types";
 import { Id } from "./FieldSymbols";
 import { DocumentView } from "../client/views/nodes/DocumentView";
 import { AssertionError } from "assert";
-import { Identified } from "../client/Network";
+import { Networking } from "../client/Network";
 
 export namespace RichTextUtils {
 
@@ -26,8 +25,8 @@ export namespace RichTextUtils {
 
 
     export const Initialize = (initial?: string) => {
-        let content: any[] = [];
-        let state = {
+        const content: any[] = [];
+        const state = {
             doc: {
                 type: "doc",
                 content,
@@ -57,32 +56,32 @@ export namespace RichTextUtils {
 
     export const ToPlainText = (state: EditorState) => {
         // Because we're working with plain text, just concatenate all paragraphs
-        let content = state.doc.content;
-        let paragraphs: Node<any>[] = [];
+        const content = state.doc.content;
+        const paragraphs: Node<any>[] = [];
         content.forEach(node => node.type.name === "paragraph" && paragraphs.push(node));
 
         // Functions to flatten ProseMirror paragraph objects (and their components) to plain text
         // Concatentate paragraphs and string the result together
-        let textParagraphs: string[] = paragraphs.map(paragraph => {
-            let text: string[] = [];
+        const textParagraphs: string[] = paragraphs.map(paragraph => {
+            const text: string[] = [];
             paragraph.content.forEach(node => node.text && text.push(node.text));
             return text.join(joiner) + delimiter;
         });
-        let plainText = textParagraphs.join(joiner);
+        const plainText = textParagraphs.join(joiner);
         return plainText.substring(0, plainText.length - 1);
     };
 
     export const ToProsemirrorState = (plainText: string, oldState?: RichTextField) => {
         // Remap the text, creating blocks split on newlines
-        let elements = plainText.split(delimiter);
+        const elements = plainText.split(delimiter);
 
         // Google Docs adds in an extra carriage return automatically, so this counteracts it
         !elements[elements.length - 1].length && elements.pop();
 
         // Preserve the current state, but re-write the content to be the blocks
-        let parsed = JSON.parse(oldState ? oldState.Data : Initialize());
+        const parsed = JSON.parse(oldState ? oldState.Data : Initialize());
         parsed.doc.content = elements.map(text => {
-            let paragraph: any = { type: "paragraph" };
+            const paragraph: any = { type: "paragraph" };
             text.length && (paragraph.content = [{ type: "text", marks: [], text }]); // An empty paragraph gets treated as a line break
             return paragraph;
         });
@@ -98,7 +97,7 @@ export namespace RichTextUtils {
 
         export const Export = async (state: EditorState): Promise<GoogleApiClientUtils.Docs.Content> => {
             const nodes: (Node<any> | null)[] = [];
-            let text = ToPlainText(state);
+            const text = ToPlainText(state);
             state.doc.content.forEach(node => {
                 if (!node.childCount) {
                     nodes.push(null);
@@ -129,7 +128,7 @@ export namespace RichTextUtils {
                     return { baseUrl, filename };
                 });
 
-                const uploads = await Identified.PostToServer(RouteStore.googlePhotosMediaDownload, { mediaItems });
+                const uploads = await Networking.PostToServer("/googlePhotosMediaDownload", { mediaItems });
 
                 if (uploads.length !== mediaItems.length) {
                     throw new AssertionError({ expected: mediaItems.length, actual: uploads.length, message: "Error with internally uploading inlineObjects!" });
@@ -169,20 +168,20 @@ export namespace RichTextUtils {
             const title = document.title!;
             const { text, paragraphs } = GoogleApiClientUtils.Docs.Utils.extractText(document);
             let state = FormattedTextBox.blankState();
-            let structured = parseLists(paragraphs);
+            const structured = parseLists(paragraphs);
 
             let position = 3;
-            let lists: ListGroup[] = [];
+            const lists: ListGroup[] = [];
             const indentMap = new Map<ListGroup, BulletPosition[]>();
             let globalOffset = 0;
             const nodes: Node<any>[] = [];
-            for (let element of structured) {
+            for (const element of structured) {
                 if (Array.isArray(element)) {
                     lists.push(element);
-                    let positions: BulletPosition[] = [];
-                    let items = element.map(paragraph => {
-                        let item = listItem(state.schema, paragraph.contents);
-                        let sinks = paragraph.bullet!;
+                    const positions: BulletPosition[] = [];
+                    const items = element.map(paragraph => {
+                        const item = listItem(state.schema, paragraph.contents);
+                        const sinks = paragraph.bullet!;
                         positions.push({
                             value: position + globalOffset,
                             sinks
@@ -209,7 +208,7 @@ export namespace RichTextUtils {
                             }
                         });
                     } else {
-                        let paragraph = paragraphNode(state.schema, element.contents);
+                        const paragraph = paragraphNode(state.schema, element.contents);
                         nodes.push(paragraph);
                         position += paragraph.nodeSize;
                     }
@@ -217,11 +216,11 @@ export namespace RichTextUtils {
             }
             state = state.apply(state.tr.replaceWith(0, 2, nodes));
 
-            let sink = sinkListItem(state.schema.nodes.list_item);
-            let dispatcher = (tr: Transaction) => state = state.apply(tr);
-            for (let list of lists) {
-                for (let pos of indentMap.get(list)!) {
-                    let resolved = state.doc.resolve(pos.value);
+            const sink = sinkListItem(state.schema.nodes.list_item);
+            const dispatcher = (tr: Transaction) => state = state.apply(tr);
+            for (const list of lists) {
+                for (const pos of indentMap.get(list)!) {
+                    const resolved = state.doc.resolve(pos.value);
                     state = state.apply(state.tr.setSelection(new TextSelection(resolved)));
                     for (let i = 0; i < pos.sinks; i++) {
                         sink(state, dispatcher);
@@ -237,9 +236,9 @@ export namespace RichTextUtils {
         type PreparedParagraphs = (ListGroup | Paragraph)[];
 
         const parseLists = (paragraphs: ListGroup) => {
-            let groups: PreparedParagraphs = [];
+            const groups: PreparedParagraphs = [];
             let group: ListGroup = [];
-            for (let paragraph of paragraphs) {
+            for (const paragraph of paragraphs) {
                 if (paragraph.bullet !== undefined) {
                     group.push(paragraph);
                 } else {
@@ -263,8 +262,8 @@ export namespace RichTextUtils {
         };
 
         const paragraphNode = (schema: any, runs: docs_v1.Schema$TextRun[]): Node => {
-            let children = runs.map(run => textNode(schema, run)).filter(child => child !== undefined);
-            let fragment = children.length ? Fragment.from(children) : undefined;
+            const children = runs.map(run => textNode(schema, run)).filter(child => child !== undefined);
+            const fragment = children.length ? Fragment.from(children) : undefined;
             return schema.node("paragraph", null, fragment);
         };
 
@@ -274,8 +273,8 @@ export namespace RichTextUtils {
             const guid = Utils.GenerateDeterministicGuid(src);
             const backingDocId = StrCast(textNote[guid]);
             if (!backingDocId) {
-                const backingDoc = Docs.Create.ImageDocument(src, { width: 300, height: 300 });
-                DocumentView.makeCustomViewClicked(backingDoc, undefined);
+                const backingDoc = Docs.Create.ImageDocument(src, { _width: 300, _height: 300 });
+                DocumentView.makeCustomViewClicked(backingDoc, undefined, Docs.Create.FreeformDocument);
                 docid = backingDoc[Id];
                 textNote[guid] = docid;
             } else {
@@ -285,7 +284,7 @@ export namespace RichTextUtils {
         };
 
         const textNode = (schema: any, run: docs_v1.Schema$TextRun) => {
-            let text = run.content!.removeTrailingNewlines();
+            const text = run.content!.removeTrailingNewlines();
             return text.length ? schema.text(text, styleToMarks(schema, run.textStyle)) : undefined;
         };
 
@@ -300,17 +299,17 @@ export namespace RichTextUtils {
             if (!textStyle) {
                 return undefined;
             }
-            let marks: Mark[] = [];
+            const marks: Mark[] = [];
             Object.keys(textStyle).forEach(key => {
                 let value: any;
-                let targeted = key as keyof docs_v1.Schema$TextStyle;
+                const targeted = key as keyof docs_v1.Schema$TextStyle;
                 if (value = textStyle[targeted]) {
-                    let attributes: any = {};
+                    const attributes: any = {};
                     let converted = StyleToMark.get(targeted) || targeted;
 
                     value.url && (attributes.href = value.url);
                     if (value.color) {
-                        let object = value.color.rgbColor;
+                        const object = value.color.rgbColor;
                         attributes.color = Color.rgb(["red", "green", "blue"].map(color => object[color] * 255 || 0)).hex();
                     }
                     if (value.magnitude) {
@@ -321,13 +320,13 @@ export namespace RichTextUtils {
                         converted = ImportFontFamilyMapping.get(value.fontFamily) || "timesNewRoman";
                     }
 
-                    let mapped = schema.marks[converted];
+                    const mapped = schema.marks[converted];
                     if (!mapped) {
                         alert(`No mapping found for ${converted}!`);
                         return;
                     }
 
-                    let mark = schema.mark(mapped, attributes);
+                    const mark = schema.mark(mapped, attributes);
                     mark && marks.push(mark);
                 }
             });
@@ -367,9 +366,9 @@ export namespace RichTextUtils {
         const ignored = ["user_mark"];
 
         const marksToStyle = async (nodes: (Node<any> | null)[]): Promise<docs_v1.Schema$Request[]> => {
-            let requests: docs_v1.Schema$Request[] = [];
+            const requests: docs_v1.Schema$Request[] = [];
             let position = 1;
-            for (let node of nodes) {
+            for (const node of nodes) {
                 if (node === null) {
                     position += 2;
                     continue;
@@ -383,7 +382,7 @@ export namespace RichTextUtils {
                 };
                 let mark: Mark<any>;
                 const markMap = BuildMarkMap(marks);
-                for (let markName of Object.keys(schema.marks)) {
+                for (const markName of Object.keys(schema.marks)) {
                     if (ignored.includes(markName) || !(mark = markMap[markName])) {
                         continue;
                     }
@@ -404,7 +403,7 @@ export namespace RichTextUtils {
                                     let exported = (await Cast(linkDoc.anchor2, Doc))!;
                                     if (!exported.customLayout) {
                                         exported = Doc.MakeAlias(exported);
-                                        DocumentView.makeCustomViewClicked(exported, undefined);
+                                        DocumentView.makeCustomViewClicked(exported, undefined, Docs.Create.FreeformDocument);
                                         linkDoc.anchor2 = exported;
                                     }
                                     url = Utils.shareUrl(exported[Id]);

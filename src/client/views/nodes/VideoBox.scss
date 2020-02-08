@@ -1,6 +1,9 @@
-.videoBox-container {
+.videoBox {
     pointer-events: all;
     transform-origin: top left;
+    .videoBox-viewer {
+        opacity: 0.99;  // hack!  overcomes some kind of Chrome weirdness where buttons (e.g., snapshot) disappear at some point as the video is resized larger
+    }
     .inkingCanvas-paths-markers {
         opacity : 0.4; // we shouldn't have to do this, but since chrome crawls to a halt with z-index unset in videoBox-content, this is a workaround
     }

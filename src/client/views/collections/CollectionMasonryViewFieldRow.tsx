@@ -2,7 +2,7 @@ import React = require("react");
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faPalette } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, observable } from "mobx";
+import { action, observable, computed } from "mobx";
 import { observer } from "mobx-react";
 import Measure from "react-measure";
 import { Doc } from "../../../new_fields/Doc";
@@ -20,7 +20,6 @@ import { anchorPoints, Flyout } from "../DocumentDecorations";
 import { EditableView } from "../EditableView";
 import { CollectionStackingView } from "./CollectionStackingView";
 import "./CollectionStackingView.scss";
-import { undo } from "prosemirror-history";
 
 library.add(faPalette);
 
@@ -57,7 +56,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
     createRowDropRef = (ele: HTMLDivElement | null) => {
         this._dropDisposer && this._dropDisposer();
         if (ele) {
-            this._dropDisposer = DragManager.MakeDropTarget(ele, { handlers: { drop: this.rowDrop.bind(this) } });
+            this._dropDisposer = DragManager.MakeDropTarget(ele, this.rowDrop.bind(this));
         }
     }
 
@@ -65,9 +64,9 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
         if (this._collapsed) {
             this.props.setDocHeight(this._heading, 20);
         } else {
-            let rawHeight = this._contRef.current!.getBoundingClientRect().height + 15; //+ 15 accounts for the group header
-            let transformScale = this.props.screenToLocalTransform().Scale;
-            let trueHeight = rawHeight * transformScale;
+            const rawHeight = this._contRef.current!.getBoundingClientRect().height + 15; //+ 15 accounts for the group header
+            const transformScale = this.props.screenToLocalTransform().Scale;
+            const trueHeight = rawHeight * transformScale;
             this.props.setDocHeight(this._heading, trueHeight);
         }
     }
@@ -75,19 +74,19 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
     @undoBatch
     rowDrop = action((e: Event, de: DragManager.DropEvent) => {
         this._createAliasSelected = false;
-        if (de.data instanceof DragManager.DocumentDragData) {
+        if (de.complete.docDragData) {
             (this.props.parent.Document.dropConverter instanceof ScriptField) &&
-                this.props.parent.Document.dropConverter.script.run({ dragData: de.data });
-            let key = StrCast(this.props.parent.props.Document.sectionFilter);
-            let castedValue = this.getValue(this._heading);
-            de.data.droppedDocuments.forEach(d => d[key] = castedValue);
+                this.props.parent.Document.dropConverter.script.run({ dragData: de.complete.docDragData });
+            const key = StrCast(this.props.parent.props.Document.sectionFilter);
+            const castedValue = this.getValue(this._heading);
+            de.complete.docDragData.droppedDocuments.forEach(d => d[key] = castedValue);
             this.props.parent.drop(e, de);
             e.stopPropagation();
         }
     });
 
     getValue = (value: string): any => {
-        let parsed = parseInt(value);
+        const parsed = parseInt(value);
         if (!isNaN(parsed)) return parsed;
         if (value.toLowerCase().indexOf("true") > -1) return true;
         if (value.toLowerCase().indexOf("false") > -1) return false;
@@ -97,8 +96,8 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
     @action
     headingChanged = (value: string, shiftDown?: boolean) => {
         this._createAliasSelected = false;
-        let key = StrCast(this.props.parent.props.Document.sectionFilter);
-        let castedValue = this.getValue(value);
+        const key = StrCast(this.props.parent.props.Document.sectionFilter);
+        const castedValue = this.getValue(value);
         if (castedValue) {
             if (this.props.parent.sectionHeaders) {
                 if (this.props.parent.sectionHeaders.map(i => i.heading).indexOf(castedValue.toString()) > -1) {
@@ -136,18 +135,18 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
     @action
     addDocument = (value: string, shiftDown?: boolean) => {
         this._createAliasSelected = false;
-        let key = StrCast(this.props.parent.props.Document.sectionFilter);
-        let newDoc = Docs.Create.TextDocument({ height: 18, width: 200, title: value });
+        const key = StrCast(this.props.parent.props.Document.sectionFilter);
+        const newDoc = Docs.Create.TextDocument("", { _height: 18, _width: 200, title: value });
         newDoc[key] = this.getValue(this.props.heading);
         return this.props.parent.props.addDocument(newDoc);
     }
 
     deleteRow = undoBatch(action(() => {
         this._createAliasSelected = false;
-        let key = StrCast(this.props.parent.props.Document.sectionFilter);
+        const key = StrCast(this.props.parent.props.Document.sectionFilter);
         this.props.docList.forEach(d => d[key] = undefined);
         if (this.props.parent.sectionHeaders && this.props.headingObject) {
-            let index = this.props.parent.sectionHeaders.indexOf(this.props.headingObject);
+            const index = this.props.parent.sectionHeaders.indexOf(this.props.headingObject);
             this.props.parent.sectionHeaders.splice(index, 1);
         }
     }));
@@ -163,19 +162,17 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
     }
 
     startDrag = (e: PointerEvent) => {
-        let [dx, dy] = this.props.screenToLocalTransform().transformDirection(e.clientX - this._startDragPosition.x, e.clientY - this._startDragPosition.y);
+        const [dx, dy] = this.props.screenToLocalTransform().transformDirection(e.clientX - this._startDragPosition.x, e.clientY - this._startDragPosition.y);
         if (Math.abs(dx) + Math.abs(dy) > this._sensitivity) {
-            let alias = Doc.MakeAlias(this.props.parent.props.Document);
-            let key = StrCast(this.props.parent.props.Document.sectionFilter);
+            const alias = Doc.MakeAlias(this.props.parent.props.Document);
+            const key = StrCast(this.props.parent.props.Document.sectionFilter);
             let value = this.getValue(this._heading);
             value = typeof value === "string" ? `"${value}"` : value;
-            let script = `return doc.${key} === ${value}`;
-            let compiled = CompileScript(script, { params: { doc: Doc.name } });
+            const script = `return doc.${key} === ${value}`;
+            const compiled = CompileScript(script, { params: { doc: Doc.name } });
             if (compiled.compiled) {
-                let scriptField = new ScriptField(compiled);
-                alias.viewSpecScript = scriptField;
-                let dragData = new DragManager.DocumentDragData([alias]);
-                DragManager.StartDocumentDrag([this._headerRef.current!], dragData, e.clientX, e.clientY);
+                alias.viewSpecScript = new ScriptField(compiled);
+                DragManager.StartDocumentDrag([this._headerRef.current!], new DragManager.DocumentDragData([alias]), e.clientX, e.clientY);
             }
 
             e.stopPropagation();
@@ -197,7 +194,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
         e.stopPropagation();
         e.preventDefault();
 
-        let [dx, dy] = this.props.screenToLocalTransform().transformDirection(e.clientX, e.clientY);
+        const [dx, dy] = this.props.screenToLocalTransform().transformDirection(e.clientX, e.clientY);
         this._startDragPosition = { x: dx, y: dy };
 
         if (this._createAliasSelected) {
@@ -210,17 +207,17 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
     }
 
     renderColorPicker = () => {
-        let selected = this.props.headingObject ? this.props.headingObject.color : "#f1efeb";
+        const selected = this.props.headingObject ? this.props.headingObject.color : "#f1efeb";
 
-        let pink = PastelSchemaPalette.get("pink2");
-        let purple = PastelSchemaPalette.get("purple4");
-        let blue = PastelSchemaPalette.get("bluegreen1");
-        let yellow = PastelSchemaPalette.get("yellow4");
-        let red = PastelSchemaPalette.get("red2");
-        let green = PastelSchemaPalette.get("bluegreen7");
-        let cyan = PastelSchemaPalette.get("bluegreen5");
-        let orange = PastelSchemaPalette.get("orange1");
-        let gray = "#f1efeb";
+        const pink = PastelSchemaPalette.get("pink2");
+        const purple = PastelSchemaPalette.get("purple4");
+        const blue = PastelSchemaPalette.get("bluegreen1");
+        const yellow = PastelSchemaPalette.get("yellow4");
+        const red = PastelSchemaPalette.get("red2");
+        const green = PastelSchemaPalette.get("bluegreen7");
+        const cyan = PastelSchemaPalette.get("bluegreen5");
+        const orange = PastelSchemaPalette.get("orange1");
+        const gray = "#f1efeb";
 
         return (
             <div className="collectionStackingView-colorPicker">
@@ -243,7 +240,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
     toggleVisibility = action(() => this._collapsed = !this._collapsed);
 
     renderMenu = () => {
-        let selected = this._createAliasSelected;
+        const selected = this._createAliasSelected;
         return (<div className="collectionStackingView-optionPicker">
             <div className="optionOptions">
                 <div className={"optionPicker" + (selected === true ? " active" : "")} onClick={this.toggleAlias}>Create Alias</div>
@@ -258,14 +255,46 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
         }
     }
 
+    @computed get contentLayout() {
+        const rows = Math.max(1, Math.min(this.props.docList.length, Math.floor((this.props.parent.props.PanelWidth() - 2 * this.props.parent.xMargin) / (this.props.parent.columnWidth + this.props.parent.gridGap))));
+        const style = this.props.parent; const collapsed = this._collapsed;
+        const chromeStatus = this.props.parent.props.Document._chromeStatus;
+        const newEditableViewProps = {
+            GetValue: () => "",
+            SetValue: this.addDocument,
+            contents: "+ NEW",
+            HeadingObject: this.props.headingObject,
+            HeadingsHack: this._headingsHack,
+            toggle: this.toggleVisibility,
+            color: this._color
+        };
+        return collapsed ? (null) :
+            <div style={{ position: "relative" }}>
+                <div className={`collectionStackingView-masonryGrid`}
+                    ref={this._contRef}
+                    style={{
+                        padding: `${this.props.parent.yMargin}px ${this.props.parent.xMargin}px`,
+                        width: this.props.parent.NodeWidth,
+                        gridGap: this.props.parent.gridGap,
+                        gridTemplateColumns: numberRange(rows).reduce((list: string, i: any) => list + ` ${this.props.parent.columnWidth}px`, ""),
+                    }}>
+                    {this.props.parent.children(this.props.docList)}
+                    {this.props.parent.columnDragger}
+                </div>
+                {(chromeStatus !== 'view-mode' && chromeStatus !== 'disabled') ?
+                    <div className="collectionStackingView-addDocumentButton"
+                        style={{ width: style.columnWidth / style.numGroupColumns }}>
+                        <EditableView {...newEditableViewProps} />
+                    </div> : null
+                }
+            </div>;
+    }
 
-    render() {
-        let rows = Math.max(1, Math.min(this.props.docList.length, Math.floor((this.props.parent.props.PanelWidth() - 2 * this.props.parent.xMargin) / (this.props.parent.columnWidth + this.props.parent.gridGap))));
-        let key = StrCast(this.props.parent.props.Document.sectionFilter);
-        let heading = this._heading;
-        let style = this.props.parent;
-        let evContents = heading ? heading : this.props.type && this.props.type === "number" ? "0" : `NO ${key.toUpperCase()} VALUE`;
-        let headerEditableViewProps = {
+    @computed get headingView() {
+        const heading = this._heading;
+        const key = StrCast(this.props.parent.props.Document.sectionFilter);
+        const evContents = heading ? heading : this.props.type && this.props.type === "number" ? "0" : `NO ${key.toUpperCase()} VALUE`;
+        const headerEditableViewProps = {
             GetValue: () => evContents,
             SetValue: this.headingChanged,
             contents: evContents,
@@ -275,30 +304,17 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
             toggle: this.toggleVisibility,
             color: this._color
         };
-        let newEditableViewProps = {
-            GetValue: () => "",
-            SetValue: this.addDocument,
-            contents: "+ NEW",
-            HeadingObject: this.props.headingObject,
-            HeadingsHack: this._headingsHack,
-            toggle: this.toggleVisibility,
-            color: this._color
-        };
-        let headingView = this.props.parent.props.Document.miniHeaders ?
-            <div className="collectionStackingView-miniHeader" style={{ width: "100%" }}>
-                {<EditableView {...headerEditableViewProps} />}
+        return this.props.parent.props.Document.miniHeaders ?
+            <div className="collectionStackingView-miniHeader">
+                <EditableView {...headerEditableViewProps} />
             </div> :
-            this.props.headingObject ?
+            !this.props.headingObject ? (null) :
                 <div className="collectionStackingView-sectionHeader" ref={this._headerRef} >
                     <div className="collectionStackingView-sectionHeader-subCont" onPointerDown={this.headerDown}
                         title={evContents === `NO ${key.toUpperCase()} VALUE` ?
                             `Documents that don't have a ${key} value will go here. This column cannot be removed.` : ""}
-                        style={{
-                            width: "100%",
-                            background: evContents !== `NO ${key.toUpperCase()} VALUE` ? this._color : "lightgrey",
-                            color: "grey"
-                        }}>
-                        {<EditableView {...headerEditableViewProps} />}
+                        style={{ background: evContents !== `NO ${key.toUpperCase()} VALUE` ? this._color : "lightgrey", }}>
+                        <EditableView {...headerEditableViewProps} />
                         {evContents === `NO ${key.toUpperCase()} VALUE` ? (null) :
                             <div className="collectionStackingView-sectionColor">
                                 <Flyout anchorPoint={anchorPoints.CENTER_RIGHT} content={this.renderColorPicker()}>
@@ -321,47 +337,26 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
                             </div>
                         }
                     </div>
-                </div > : (null);
+                </div>;
+    }
+    render() {
         const background = this._background; //to account for observables in Measure
-        const collapsed = this._collapsed;
-        let chromeStatus = this.props.parent.props.Document.chromeStatus;
-        return (
-            <Measure offset onResize={this.handleResize}>
-                {({ measureRef }) => {
-                    return <div ref={measureRef}>
-                        <div className="collectionStackingView-masonrySection"
-                            key={heading = "empty"}
-                            style={{ width: this.props.parent.NodeWidth, background }}
-                            ref={this.createRowDropRef}
-                            onPointerEnter={this.pointerEnteredRow}
-                            onPointerLeave={this.pointerLeaveRow}
-                        >
-                            {headingView}
-                            {collapsed ? (null) :
-                                < div style={{ position: "relative" }}>
-                                    <div key={`${heading}-stack`} className={`collectionStackingView-masonryGrid`}
-                                        ref={this._contRef}
-                                        style={{
-                                            padding: `${this.props.parent.yMargin}px ${this.props.parent.xMargin}px`,
-                                            width: this.props.parent.NodeWidth,
-                                            gridGap: this.props.parent.gridGap,
-                                            gridTemplateColumns: numberRange(rows).reduce((list: string, i: any) => list + ` ${this.props.parent.columnWidth}px`, ""),
-                                        }}>
-                                        {this.props.parent.children(this.props.docList)}
-                                        {this.props.parent.columnDragger}
-                                    </div>
-                                    {(chromeStatus !== 'view-mode' && chromeStatus !== 'disabled') ?
-                                        <div key={`${heading}-add-document`} className="collectionStackingView-addDocumentButton"
-                                            style={{ width: style.columnWidth / style.numGroupColumns }}>
-                                            <EditableView {...newEditableViewProps} />
-                                        </div> : null
-                                    }
-                                </div>
-                            }
-                        </div >
-                    </div>;
-                }}
-            </Measure>
-        );
+        const contentlayout = this.contentLayout;
+        const headingview = this.headingView;
+        return <Measure offset onResize={this.handleResize}>
+            {({ measureRef }) => {
+                return <div ref={measureRef}>
+                    <div className="collectionStackingView-masonrySection"
+                        style={{ width: this.props.parent.NodeWidth, background }}
+                        ref={this.createRowDropRef}
+                        onPointerEnter={this.pointerEnteredRow}
+                        onPointerLeave={this.pointerLeaveRow}
+                    >
+                        {headingview}
+                        {contentlayout}
+                    </div >
+                </div>;
+            }}
+        </Measure>;
     }
 }

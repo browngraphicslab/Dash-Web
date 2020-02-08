@@ -5,7 +5,6 @@ import { emptyFunction, returnFalse, returnOne, returnZero } from '../../../Util
 import { Docs } from '../../documents/Documents';
 import { Transform } from '../../util/Transform';
 import { undoBatch } from '../../util/UndoManager';
-import { CollectionDockingView } from '../collections/CollectionDockingView';
 import { ContextMenu } from '../ContextMenu';
 import { EditableView } from "../EditableView";
 import { FieldView, FieldViewProps } from './FieldView';
@@ -47,18 +46,18 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
         if (value instanceof Doc) {
             e.stopPropagation();
             e.preventDefault();
-            ContextMenu.Instance.addItem({ description: "Open Fields", event: () => this.props.addDocTab(Docs.Create.KVPDocument(value, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group" });
+            ContextMenu.Instance.addItem({ description: "Open Fields", event: () => this.props.addDocTab(Docs.Create.KVPDocument(value, { _width: 300, _height: 300 }), undefined, "onRight"), icon: "layer-group" });
             ContextMenu.Instance.displayMenu(e.clientX, e.clientY);
         }
     }
 
     render() {
-        let props: FieldViewProps = {
+        const props: FieldViewProps = {
             Document: this.props.doc,
             DataDoc: this.props.doc,
+            LibraryPath: [],
             ContainingCollectionView: undefined,
             ContainingCollectionDoc: undefined,
-            ruleProvider: undefined,
             fieldKey: this.props.keyName,
             isSelected: returnFalse,
             select: emptyFunction,
@@ -73,7 +72,7 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
             pinToPres: returnZero,
             ContentScaling: returnOne
         };
-        let contents = <FieldView {...props} />;
+        const contents = <FieldView {...props} />;
         // let fieldKey = Object.keys(props.Document).indexOf(props.fieldKey) !== -1 ? props.fieldKey : "(" + props.fieldKey + ")";
         let protoCount = 0;
         let doc: Doc | undefined = props.Document;
@@ -85,9 +84,9 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
             doc = doc.proto;
         }
         const parenCount = Math.max(0, protoCount - 1);
-        let keyStyle = protoCount === 0 ? "black" : "blue";
+        const keyStyle = protoCount === 0 ? "black" : "blue";
 
-        let hover = { transition: "0.3s ease opacity", opacity: this.isPointerOver || this.isChecked ? 1 : 0 };
+        const hover = { transition: "0.3s ease opacity", opacity: this.isPointerOver || this.isChecked ? 1 : 0 };
 
         return (
             <tr className={this.props.rowStyle} onPointerEnter={action(() => this.isPointerOver = true)} onPointerLeave={action(() => this.isPointerOver = false)}>

@@ -21,22 +21,25 @@ export default class MarqueeOptionsMenu extends AntimodeMenu {
     }
 
     render() {
-        let buttons = [
+        const buttons = [
             <button
                 className="antimodeMenu-button"
                 title="Create a Collection"
+                key="group"
                 onPointerDown={this.createCollection}>
                 <FontAwesomeIcon icon="object-group" size="lg" />
             </button>,
             <button
                 className="antimodeMenu-button"
                 title="Summarize Documents"
+                key="summarize"
                 onPointerDown={this.summarize}>
                 <FontAwesomeIcon icon="compress-arrows-alt" size="lg" />
             </button>,
             <button
                 className="antimodeMenu-button"
                 title="Delete Documents"
+                key="delete"
                 onPointerDown={this.delete}>
                 <FontAwesomeIcon icon="trash-alt" size="lg" />
             </button>,

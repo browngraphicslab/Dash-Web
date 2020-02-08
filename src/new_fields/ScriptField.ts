@@ -1,9 +1,9 @@
 import { ObjectField } from "./ObjectField";
 import { CompiledScript, CompileScript, scriptingGlobal, ScriptOptions } from "../client/util/Scripting";
-import { Copy, ToScriptString, Parent, SelfProxy } from "./FieldSymbols";
+import { Copy, ToScriptString, ToString, Parent, SelfProxy } from "./FieldSymbols";
 import { serializable, createSimpleSchema, map, primitive, object, deserialize, PropSchema, custom, SKIP } from "serializr";
 import { Deserializable, autoObject } from "../client/util/SerializationHelper";
-import { Doc } from "../new_fields/Doc";
+import { Doc, Field } from "../new_fields/Doc";
 import { Plugins } from "./util";
 import { computedFn } from "mobx-utils";
 import { ProxyField } from "./Proxy";
@@ -101,22 +101,26 @@ export class ScriptField extends ObjectField {
     [ToScriptString]() {
         return "script field";
     }
-    public static CompileScript(script: string, params: object = {}, addReturn = false) {
-        let compiled = CompileScript(script, {
-            params: { this: Doc.name, ...params },
+    [ToString]() {
+        return "script field";
+    }
+    public static CompileScript(script: string, params: object = {}, addReturn = false, capturedVariables?: { [name: string]: Field }) {
+        const compiled = CompileScript(script, {
+            params: { this: Doc.name, _last_: "any", ...params },
             typecheck: false,
             editable: true,
-            addReturn: addReturn
+            addReturn: addReturn,
+            capturedVariables
         });
         return compiled;
     }
-    public static MakeFunction(script: string, params: object = {}) {
-        let compiled = ScriptField.CompileScript(script, params, true);
+    public static MakeFunction(script: string, params: object = {}, capturedVariables?: { [name: string]: Field }) {
+        const compiled = ScriptField.CompileScript(script, params, true, capturedVariables);
         return compiled.compiled ? new ScriptField(compiled) : undefined;
     }
 
     public static MakeScript(script: string, params: object = {}) {
-        let compiled = ScriptField.CompileScript(script, params, false);
+        const compiled = ScriptField.CompileScript(script, params, false);
         return compiled.compiled ? new ScriptField(compiled) : undefined;
     }
 }
@@ -124,14 +128,15 @@ export class ScriptField extends ObjectField {
 @scriptingGlobal
 @Deserializable("computed", deserializeScript)
 export class ComputedField extends ScriptField {
+    _lastComputedResult: any;
     //TODO maybe add an observable cache based on what is passed in for doc, considering there shouldn't really be that many possible values for doc
-    value = computedFn((doc: Doc) => this.script.run({ this: doc }, console.log).result);
-    public static MakeScript(script: string, params: object = {}, ) {
-        let compiled = ScriptField.CompileScript(script, params, false);
+    value = computedFn((doc: Doc) => this._lastComputedResult = this.script.run({ this: doc, _last_: this._lastComputedResult }, console.log).result);
+    public static MakeScript(script: string, params: object = {}) {
+        const compiled = ScriptField.CompileScript(script, params, false);
         return compiled.compiled ? new ComputedField(compiled) : undefined;
     }
-    public static MakeFunction(script: string, params: object = {}) {
-        let compiled = ScriptField.CompileScript(script, params, true);
+    public static MakeFunction(script: string, params: object = {}, capturedVariables?: { [name: string]: Field }) {
+        const compiled = ScriptField.CompileScript(script, params, true, capturedVariables);
         return compiled.compiled ? new ComputedField(compiled) : undefined;
     }
 }

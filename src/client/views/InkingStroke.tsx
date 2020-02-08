@@ -9,23 +9,17 @@ import { InkingControl } from "./InkingControl";
 import "./InkingStroke.scss";
 import { FieldView, FieldViewProps } from "./nodes/FieldView";
 import React = require("react");
+import { TraceMobx } from "../../new_fields/util";
+import { InteractionUtils } from "../util/InteractionUtils";
+import { ContextMenu } from "./ContextMenu";
+import { CognitiveServices } from "../cognitive_services/CognitiveServices";
+import { faPaintBrush } from "@fortawesome/free-solid-svg-icons";
+import { library } from "@fortawesome/fontawesome-svg-core";
+
+library.add(faPaintBrush);
 
 type InkDocument = makeInterface<[typeof documentSchema]>;
 const InkDocument = makeInterface(documentSchema);
-
-export function CreatePolyline(points: { x: number, y: number }[], left: number, top: number, color?: string, width?: number) {
-    let pts = points.reduce((acc: string, pt: { x: number, y: number }) => acc + `${pt.x - left},${pt.y - top} `, "");
-    return (
-        <polyline
-            points={pts}
-            style={{
-                fill: "none",
-                stroke: color ?? InkingControl.Instance.selectedColor,
-                strokeWidth: width ?? InkingControl.Instance.selectedWidth
-            }}
-        />
-    );
-}
 
 @observer
 export class InkingStroke extends DocExtendableComponent<FieldViewProps, InkDocument>(InkDocument) {
@@ -34,25 +28,45 @@ export class InkingStroke extends DocExtendableComponent<FieldViewProps, InkDocu
     @computed get PanelWidth() { return this.props.PanelWidth(); }
     @computed get PanelHeight() { return this.props.PanelHeight(); }
 
+    private analyzeStrokes = () => {
+        const data: InkData = Cast(this.Document.data, InkField)?.inkData ?? [];
+        CognitiveServices.Inking.Appliers.ConcatenateHandwriting(this.Document, ["inkAnalysis", "handwriting"], [data]);
+    }
+
     render() {
-        let data: InkData = Cast(this.Document.data, InkField)?.inkData ?? [];
-        let xs = data.map(p => p.x);
-        let ys = data.map(p => p.y);
-        let left = Math.min(...xs);
-        let top = Math.min(...ys);
-        let right = Math.max(...xs);
-        let bottom = Math.max(...ys);
-        let points = CreatePolyline(data, 0, 0, this.Document.color, this.Document.strokeWidth);
-        let width = right - left;
-        let height = bottom - top;
-        let scaleX = this.PanelWidth / width;
-        let scaleY = this.PanelHeight / height;
-        return <svg width={width} height={height} style={{
-            transformOrigin: "top left",
-            transform: `translate(${left}px, ${top}px) scale(${scaleX}, ${scaleY})`,
-            mixBlendMode: this.Document.tool === InkTool.Highlighter ? "multiply" : "unset"
-        }}>
-            {points}
-        </svg>;
+        TraceMobx();
+        const data: InkData = Cast(this.Document.data, InkField)?.inkData ?? [];
+        const xs = data.map(p => p.X);
+        const ys = data.map(p => p.Y);
+        const left = Math.min(...xs);
+        const top = Math.min(...ys);
+        const right = Math.max(...xs);
+        const bottom = Math.max(...ys);
+        const points = InteractionUtils.CreatePolyline(data, left, top, this.Document.color ?? InkingControl.Instance.selectedColor, this.Document.strokeWidth ?? parseInt(InkingControl.Instance.selectedWidth));
+        const width = right - left;
+        const height = bottom - top;
+        const scaleX = this.PanelWidth / width;
+        const scaleY = this.PanelHeight / height;
+        return (
+            <svg
+                width={width}
+                height={height}
+                style={{
+                    transformOrigin: "top left",
+                    transform: `scale(${scaleX}, ${scaleY})`,
+                    mixBlendMode: this.Document.tool === InkTool.Highlighter ? "multiply" : "unset",
+                    pointerEvents: "all"
+                }}
+                onContextMenu={() => {
+                    ContextMenu.Instance.addItem({
+                        description: "Analyze Stroke",
+                        event: this.analyzeStrokes,
+                        icon: "paint-brush"
+                    });
+                }}
+            >
+                {points}
+            </svg>
+        );
     }
 }

@@ -8,7 +8,6 @@ import { DocExtendableComponent } from "../DocComponent";
 import { makeInterface, createSchema } from "../../../new_fields/Schema";
 import { documentSchema } from "../../../new_fields/documentSchemas";
 import { Utils, returnTrue, emptyFunction, returnOne, returnTransparent } from "../../../Utils";
-import { RouteStore } from "../../../server/RouteStore";
 import { runInAction, observable, reaction, IReactionDisposer, computed, action } from "mobx";
 import { DateField } from "../../../new_fields/DateField";
 import { SelectionManager } from "../../util/SelectionManager";
@@ -57,19 +56,19 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
         this._linkPlayDisposer = reaction(() => this.layoutDoc.scrollToLinkID,
             scrollLinkId => {
                 scrollLinkId && DocListCast(this.dataDoc.links).filter(l => l[Id] === scrollLinkId).map(l => {
-                    let la1 = l.anchor1 as Doc;
-                    let linkTime = Doc.AreProtosEqual(la1, this.dataDoc) ? NumCast(l.anchor1Timecode) : NumCast(l.anchor2Timecode);
+                    const la1 = l.anchor1 as Doc;
+                    const linkTime = Doc.AreProtosEqual(la1, this.dataDoc) ? NumCast(l.anchor1Timecode) : NumCast(l.anchor2Timecode);
                     setTimeout(() => { this.playFrom(linkTime); Doc.linkFollowHighlight(l); }, 250);
                 });
                 scrollLinkId && Doc.SetInPlace(this.layoutDoc, "scrollToLinkID", undefined, false);
             }, { fireImmediately: true });
         this._reactionDisposer = reaction(() => SelectionManager.SelectedDocuments(),
             selected => {
-                let sel = selected.length ? selected[0].props.Document : undefined;
+                const sel = selected.length ? selected[0].props.Document : undefined;
                 this.Document.playOnSelect && sel && !Doc.AreProtosEqual(sel, this.props.Document) && this.playFrom(DateCast(sel.creationTime).date.getTime());
             });
         this._scrubbingDisposer = reaction(() => AudioBox._scrubTime, timeInMillisecondsFrom1970 => {
-            let start = this.extensionDoc && DateCast(this.extensionDoc.recordingStart);
+            const start = DateCast(this.dataDoc[this.props.fieldKey + "-recordingStart"]);
             start && this.playFrom((timeInMillisecondsFrom1970 - start.date.getTime()) / 1000);
         });
     }
@@ -128,19 +127,18 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
 
     recordAudioAnnotation = () => {
         let gumStream: any;
-        let self = this;
-        const extensionDoc = this.extensionDoc;
-        extensionDoc && navigator.mediaDevices.getUserMedia({
+        const self = this;
+        navigator.mediaDevices.getUserMedia({
             audio: true
         }).then(function (stream) {
             gumStream = stream;
             self._recorder = new MediaRecorder(stream);
-            extensionDoc.recordingStart = new DateField(new Date());
+            self.dataDoc[self.props.fieldKey + "-recordingStart"] = new DateField(new Date());
             AudioBox.ActiveRecordings.push(self.props.Document);
             self._recorder.ondataavailable = async function (e: any) {
                 const formData = new FormData();
                 formData.append("file", e.data);
-                const res = await fetch(Utils.prepend(RouteStore.upload), {
+                const res = await fetch(Utils.prepend("/uploadFormData"), {
                     method: 'POST',
                     body: formData
                 });
@@ -161,7 +159,7 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
     }
 
     specificContextMenu = (e: React.MouseEvent): void => {
-        let funcs: ContextMenuProps[] = [];
+        const funcs: ContextMenuProps[] = [];
         funcs.push({ description: (this.Document.playOnSelect ? "Don't play" : "Play") + " when document selected", event: () => this.Document.playOnSelect = !this.Document.playOnSelect, icon: "expand-arrows-alt" });
 
         ContextMenu.Instance.addItem({ description: "Audio Funcs...", subitems: funcs, icon: "asterisk" });
@@ -171,7 +169,7 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
         this._recorder.stop();
         this.dataDoc.duration = (new Date().getTime() - this._recordStart) / 1000;
         this._audioState = "recorded";
-        let ind = AudioBox.ActiveRecordings.indexOf(this.props.Document);
+        const ind = AudioBox.ActiveRecordings.indexOf(this.props.Document);
         ind !== -1 && (AudioBox.ActiveRecordings.splice(ind, 1));
     });
 
@@ -199,13 +197,13 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
     }
 
     @computed get path() {
-        let field = Cast(this.props.Document[this.props.fieldKey], AudioField);
-        let path = (field instanceof AudioField) ? field.url.href : "";
+        const field = Cast(this.props.Document[this.props.fieldKey], AudioField);
+        const path = (field instanceof AudioField) ? field.url.href : "";
         return path === nullAudio ? "" : path;
     }
 
     @computed get audio() {
-        let interactive = this.active() ? "-interactive" : "";
+        const interactive = this.active() ? "-interactive" : "";
         return <audio ref={this.setRef} className={`audiobox-control${interactive}`}>
             <source src={this.path} type="audio/mpeg" />
             Not supported.
@@ -213,56 +211,54 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
     }
 
     render() {
-        let interactive = this.active() ? "-interactive" : "";
-        return (!this.extensionDoc ? (null) :
-            <div className={`audiobox-container`} onContextMenu={this.specificContextMenu}
-                onClick={!this.path ? this.recordClick : undefined}>
-                <div className="audiobox-handle"></div>
-                {!this.path ?
-                    <button className={`audiobox-record${interactive}`} style={{ backgroundColor: this._audioState === "recording" ? "red" : "black" }}>
-                        {this._audioState === "recording" ? "STOP" : "RECORD"}
-                    </button> :
-                    <div className="audiobox-controls">
-                        <div className="audiobox-player" onClick={this.onPlay}>
-                            <div className="audiobox-playhead"> <FontAwesomeIcon style={{ width: "100%" }} icon={this._playing ? "pause" : "play"} size={this.props.PanelHeight() < 36 ? "1x" : "2x"} /></div>
-                            <div className="audiobox-playhead" onClick={this.onStop}><FontAwesomeIcon style={{ width: "100%" }} icon="stop" size={this.props.PanelHeight() < 36 ? "1x" : "2x"} /></div>
-                            <div className="audiobox-timeline" onClick={e => e.stopPropagation()}
-                                onPointerDown={e => {
-                                    if (e.button === 0 && !e.ctrlKey) {
-                                        let rect = (e.target as any).getBoundingClientRect();
-                                        this._ele!.currentTime = this.Document.currentTimecode = (e.clientX - rect.x) / rect.width * NumCast(this.dataDoc.duration);
-                                        this.pause();
-                                        e.stopPropagation();
-                                    }
-                                }} >
-                                {DocListCast(this.dataDoc.links).map((l, i) => {
-                                    let la1 = l.anchor1 as Doc;
-                                    let la2 = l.anchor2 as Doc;
-                                    let linkTime = NumCast(l.anchor2Timecode);
-                                    if (Doc.AreProtosEqual(la1, this.dataDoc)) {
-                                        la1 = l.anchor2 as Doc;
-                                        la2 = l.anchor1 as Doc;
-                                        linkTime = NumCast(l.anchor1Timecode);
-                                    }
-                                    return !linkTime ? (null) :
-                                        <div className={this.props.PanelHeight() < 32 ? "audiobox-marker-minicontainer" : "audiobox-marker-container"} key={l[Id]} style={{ left: `${linkTime / NumCast(this.dataDoc.duration, 1) * 100}%` }}>
-                                            <div className={this.props.PanelHeight() < 32 ? "audioBox-linker-mini" : "audioBox-linker"} key={"linker" + i}>
-                                                <DocumentView {...this.props} Document={l} layoutKey={Doc.LinkEndpoint(l, la2)}
-                                                    parentActive={returnTrue} bringToFront={emptyFunction} zoomToScale={emptyFunction} getScale={returnOne}
-                                                    backgroundColor={returnTransparent} />
-                                            </div>
-                                            <div key={i} className="audiobox-marker" onPointerEnter={() => Doc.linkFollowHighlight(la1)}
-                                                onPointerDown={e => { if (e.button === 0 && !e.ctrlKey) { this.playFrom(linkTime); e.stopPropagation(); } }}
-                                                onClick={e => { if (e.button === 0 && !e.ctrlKey) { this.pause(); e.stopPropagation(); } }} />
-                                        </div>;
-                                })}
-                                <div className="audiobox-current" style={{ left: `${NumCast(this.Document.currentTimecode) / NumCast(this.dataDoc.duration, 1) * 100}%` }} />
-                                {this.audio}
-                            </div>
+        const interactive = this.active() ? "-interactive" : "";
+        return <div className={`audiobox-container`} onContextMenu={this.specificContextMenu}
+            onClick={!this.path ? this.recordClick : undefined}>
+            <div className="audiobox-handle"></div>
+            {!this.path ?
+                <button className={`audiobox-record${interactive}`} style={{ backgroundColor: this._audioState === "recording" ? "red" : "black" }}>
+                    {this._audioState === "recording" ? "STOP" : "RECORD"}
+                </button> :
+                <div className="audiobox-controls">
+                    <div className="audiobox-player" onClick={this.onPlay}>
+                        <div className="audiobox-playhead"> <FontAwesomeIcon style={{ width: "100%" }} icon={this._playing ? "pause" : "play"} size={this.props.PanelHeight() < 36 ? "1x" : "2x"} /></div>
+                        <div className="audiobox-playhead" onClick={this.onStop}><FontAwesomeIcon style={{ width: "100%" }} icon="stop" size={this.props.PanelHeight() < 36 ? "1x" : "2x"} /></div>
+                        <div className="audiobox-timeline" onClick={e => e.stopPropagation()}
+                            onPointerDown={e => {
+                                if (e.button === 0 && !e.ctrlKey) {
+                                    const rect = (e.target as any).getBoundingClientRect();
+                                    this._ele!.currentTime = this.Document.currentTimecode = (e.clientX - rect.x) / rect.width * NumCast(this.dataDoc.duration);
+                                    this.pause();
+                                    e.stopPropagation();
+                                }
+                            }} >
+                            {DocListCast(this.dataDoc.links).map((l, i) => {
+                                let la1 = l.anchor1 as Doc;
+                                let la2 = l.anchor2 as Doc;
+                                let linkTime = NumCast(l.anchor2Timecode);
+                                if (Doc.AreProtosEqual(la1, this.dataDoc)) {
+                                    la1 = l.anchor2 as Doc;
+                                    la2 = l.anchor1 as Doc;
+                                    linkTime = NumCast(l.anchor1Timecode);
+                                }
+                                return !linkTime ? (null) :
+                                    <div className={this.props.PanelHeight() < 32 ? "audiobox-marker-minicontainer" : "audiobox-marker-container"} key={l[Id]} style={{ left: `${linkTime / NumCast(this.dataDoc.duration, 1) * 100}%` }}>
+                                        <div className={this.props.PanelHeight() < 32 ? "audioBox-linker-mini" : "audioBox-linker"} key={"linker" + i}>
+                                            <DocumentView {...this.props} Document={l} layoutKey={Doc.LinkEndpoint(l, la2)}
+                                                parentActive={returnTrue} bringToFront={emptyFunction} zoomToScale={emptyFunction} getScale={returnOne}
+                                                backgroundColor={returnTransparent} />
+                                        </div>
+                                        <div key={i} className="audiobox-marker" onPointerEnter={() => Doc.linkFollowHighlight(la1)}
+                                            onPointerDown={e => { if (e.button === 0 && !e.ctrlKey) { this.playFrom(linkTime); e.stopPropagation(); } }}
+                                            onClick={e => { if (e.button === 0 && !e.ctrlKey) { this.pause(); e.stopPropagation(); } }} />
+                                    </div>;
+                            })}
+                            <div className="audiobox-current" style={{ left: `${NumCast(this.Document.currentTimecode) / NumCast(this.dataDoc.duration, 1) * 100}%` }} />
+                            {this.audio}
                         </div>
                     </div>
-                }
-            </div>
-        );
+                </div>
+            }
+        </div>;
     }
 }

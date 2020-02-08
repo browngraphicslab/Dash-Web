@@ -1,9 +1,6 @@
 import * as passport from 'passport';
 import * as passportLocal from 'passport-local';
-import _ from "lodash";
 import { default as User } from '../models/user_model';
-import { Request, Response, NextFunction } from "express";
-import { RouteStore } from '../../RouteStore';
 
 const LocalStrategy = passportLocal.Strategy;
 
@@ -30,20 +27,3 @@ passport.use(new LocalStrategy({ usernameField: 'email', passReqToCallback: true
         });
     });
 }));
-
-export let isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
-    if (req.isAuthenticated()) {
-        return next();
-    }
-    return res.redirect(RouteStore.login);
-};
-
-export let isAuthorized = (req: Request, res: Response, next: NextFunction) => {
-    const provider = req.path.split("/").slice(-1)[0];
-
-    if (_.find((req.user as any).tokens, { kind: provider })) {
-        next();
-    } else {
-        res.redirect(`/auth/${provider}`);
-    }
-};

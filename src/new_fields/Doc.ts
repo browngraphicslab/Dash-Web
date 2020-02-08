@@ -1,27 +1,29 @@
-import { observable, ObservableMap, runInAction, action } from "mobx";
+import { observable, ObservableMap, runInAction, action, computed } from "mobx";
 import { alias, map, serializable } from "serializr";
 import { DocServer } from "../client/DocServer";
 import { DocumentType } from "../client/documents/DocumentTypes";
 import { Scripting, scriptingGlobal } from "../client/util/Scripting";
 import { afterDocDeserialize, autoObject, Deserializable, SerializationHelper } from "../client/util/SerializationHelper";
-import { Copy, HandleUpdate, Id, OnUpdate, Parent, Self, SelfProxy, ToScriptString, Update } from "./FieldSymbols";
+import { Copy, HandleUpdate, Id, OnUpdate, Parent, Self, SelfProxy, ToScriptString, ToString, Update } from "./FieldSymbols";
 import { List } from "./List";
 import { ObjectField } from "./ObjectField";
 import { PrefetchProxy, ProxyField } from "./Proxy";
 import { FieldId, RefField } from "./RefField";
 import { listSpec } from "./Schema";
-import { ComputedField } from "./ScriptField";
-import { BoolCast, Cast, FieldValue, NumCast, PromiseValue, StrCast, ToConstructor } from "./Types";
+import { ComputedField, ScriptField } from "./ScriptField";
+import { BoolCast, Cast, FieldValue, NumCast, StrCast, ToConstructor } from "./Types";
 import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, updateFunction } from "./util";
 import { intersectRect } from "../Utils";
 import { UndoManager } from "../client/util/UndoManager";
 import { computedFn } from "mobx-utils";
+import { RichTextField } from "./RichTextField";
+import { Script } from "vm";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
         const onDelegate = Object.keys(doc).includes(key);
 
-        let field = ComputedField.WithoutComputed(() => FieldValue(doc[key]));
+        const field = ComputedField.WithoutComputed(() => FieldValue(doc[key]));
         if (Field.IsField(field)) {
             return (onDelegate ? "=" : "") + (field instanceof ComputedField ? `:=${field.script.originalScript}` : Field.toScriptString(field));
         }
@@ -35,6 +37,18 @@ export namespace Field {
         } else {
             return field[ToScriptString]();
         }
+    }
+    export function toString(field: Field): string {
+        if (typeof field === "string") {
+            return field;
+        } else if (typeof field === "number" || typeof field === "boolean") {
+            return String(field);
+        } else if (field instanceof ObjectField) {
+            return field[ToString]();
+        } else if (field instanceof RefField) {
+            return field[ToString]();
+        }
+        return "(null)";
     }
     export function IsField(field: any): field is Field;
     export function IsField(field: any, includeUndefined: true): field is Field | undefined;
@@ -75,6 +89,8 @@ export function DocListCast(field: FieldResult): Doc[] {
 
 export const WidthSym = Symbol("Width");
 export const HeightSym = Symbol("Height");
+export const DataSym = Symbol("Data");
+export const LayoutSym = Symbol("Layout");
 export const UpdatingFromServer = Symbol("UpdatingFromServer");
 const CachedUpdates = Symbol("Cached updates");
 
@@ -96,8 +112,11 @@ export class Doc extends RefField {
             get: getter,
             // getPrototypeOf: (target) => Cast(target[SelfProxy].proto, Doc) || null, // TODO this might be able to replace the proto logic in getter
             has: (target, key) => key in target.__fields,
-            ownKeys: target => Object.keys(target.__fields),
+            ownKeys: target => Object.keys(target.__allfields),
             getOwnPropertyDescriptor: (target, prop) => {
+                if (prop.toString() === "__LAYOUT__") {
+                    return Reflect.getOwnPropertyDescriptor(target, prop);
+                }
                 if (prop in target.__fields) {
                     return {
                         configurable: true,//TODO Should configurable be true?
@@ -124,6 +143,13 @@ export class Doc extends RefField {
     private get __fields() {
         return this.___fields;
     }
+    private get __allfields() {
+        let obj = {} as any;
+        Object.assign(obj, this.___fields);
+        runInAction(() => obj.__LAYOUT__ = this.__LAYOUT__);
+        return obj;
+    }
+
 
     private set __fields(value) {
         this.___fields = value;
@@ -150,11 +176,24 @@ export class Doc extends RefField {
 
     private [Self] = this;
     private [SelfProxy]: any;
-    public [WidthSym] = () => NumCast(this[SelfProxy].width);
-    public [HeightSym] = () => NumCast(this[SelfProxy].height);
+    public [WidthSym] = () => NumCast(this[SelfProxy]._width);
+    public [HeightSym] = () => NumCast(this[SelfProxy]._height);
+    public get [DataSym]() { return Cast(this[SelfProxy].resolvedDataDoc, Doc, null) || this[SelfProxy]; }
+    public get [LayoutSym]() { return this[SelfProxy].__LAYOUT__; }
+    @computed get __LAYOUT__() {
+        const templateLayoutDoc = Cast(Doc.LayoutField(this[SelfProxy]), Doc, null);
+        if (templateLayoutDoc) {
+            const renderFieldKey = (templateLayoutDoc[StrCast(templateLayoutDoc.layoutKey, "layout")] as string).split("'")[1];
+            return Cast(this[SelfProxy][renderFieldKey + "-layout[" + templateLayoutDoc[Id] + "]"], Doc, null) || templateLayoutDoc;
+        }
+        return undefined;
+    }
 
     [ToScriptString]() {
         return "invalid";
+    }
+    [ToString]() {
+        return "Doc";
     }
 
     private [CachedUpdates]: { [key: string]: () => void | Promise<any> } = {};
@@ -255,9 +294,9 @@ export namespace Doc {
         return GetT(doc, "isPrototype", "boolean", true);
     }
     export async function SetInPlace(doc: Doc, key: string, value: Field | undefined, defaultProto: boolean) {
-        let hasProto = doc.proto instanceof Doc;
-        let onDeleg = Object.getOwnPropertyNames(doc).indexOf(key) !== -1;
-        let onProto = hasProto && Object.getOwnPropertyNames(doc.proto).indexOf(key) !== -1;
+        const hasProto = doc.proto instanceof Doc;
+        const onDeleg = Object.getOwnPropertyNames(doc).indexOf(key) !== -1;
+        const onProto = hasProto && Object.getOwnPropertyNames(doc.proto).indexOf(key) !== -1;
         if (onDeleg || !hasProto || (!onProto && !defaultProto)) {
             doc[key] = value;
         } else doc.proto![key] = value;
@@ -290,14 +329,13 @@ export namespace Doc {
      * @param fields the fields to project onto the target. Its type signature defines a mapping from some string key
      * to a potentially undefined field, where each entry in this mapping is optional. 
      */
-    export function assign<K extends string>(doc: Doc, fields: Partial<Record<K, Opt<Field>>>) {
+    export function assign<K extends string>(doc: Doc, fields: Partial<Record<K, Opt<Field>>>, skipUndefineds: boolean = false) {
         for (const key in fields) {
             if (fields.hasOwnProperty(key)) {
                 const value = fields[key];
-                // Do we want to filter out undefineds?
-                // if (value !== undefined) {
-                doc[key] = value;
-                // }
+                if (!skipUndefineds || value !== undefined) { // Do we want to filter out undefineds?
+                    doc[key] = value;
+                }
             }
         }
         return doc;
@@ -306,10 +344,10 @@ export namespace Doc {
     // compare whether documents or their protos match
     export function AreProtosEqual(doc?: Doc, other?: Doc) {
         if (!doc || !other) return false;
-        let r = (doc === other);
-        let r2 = (Doc.GetProto(doc) === other);
-        let r3 = (Doc.GetProto(other) === doc);
-        let r4 = (Doc.GetProto(doc) === Doc.GetProto(other) && Doc.GetProto(other) !== undefined);
+        const r = (doc === other);
+        const r2 = (Doc.GetProto(doc) === other);
+        const r3 = (Doc.GetProto(other) === doc);
+        const r4 = (Doc.GetProto(doc) === Doc.GetProto(other) && Doc.GetProto(other) !== undefined);
         return r || r2 || r3 || r4;
     }
 
@@ -318,7 +356,7 @@ export namespace Doc {
         return doc && (Doc.GetT(doc, "isPrototype", "boolean", true) ? doc : (doc.proto || doc));
     }
     export function GetDataDoc(doc: Doc): Doc {
-        let proto = Doc.GetProto(doc);
+        const proto = Doc.GetProto(doc);
         return proto === doc ? proto : Doc.GetDataDoc(proto);
     }
 
@@ -343,9 +381,9 @@ export namespace Doc {
         if (listDoc[key] === undefined) {
             Doc.GetProto(listDoc)[key] = new List<Doc>();
         }
-        let list = Cast(listDoc[key], listSpec(Doc));
+        const list = Cast(listDoc[key], listSpec(Doc));
         if (list) {
-            let ind = list.indexOf(doc);
+            const ind = list.indexOf(doc);
             if (ind !== -1) {
                 list.splice(ind, 1);
                 return true;
@@ -357,10 +395,10 @@ export namespace Doc {
         if (listDoc[key] === undefined) {
             Doc.GetProto(listDoc)[key] = new List<Doc>();
         }
-        let list = Cast(listDoc[key], listSpec(Doc));
+        const list = Cast(listDoc[key], listSpec(Doc));
         if (list) {
             if (allowDuplicates !== true) {
-                let pind = list.reduce((l, d, i) => d instanceof Doc && d[Id] === doc[Id] ? i : l, -1);
+                const pind = list.reduce((l, d, i) => d instanceof Doc && d[Id] === doc[Id] ? i : l, -1);
                 if (pind !== -1) {
                     list.splice(pind, 1);
                 }
@@ -369,7 +407,7 @@ export namespace Doc {
                 list.splice(0, 0, doc);
             }
             else {
-                let ind = relativeTo ? list.indexOf(relativeTo) : -1;
+                const ind = relativeTo ? list.indexOf(relativeTo) : -1;
                 if (ind === -1) {
                     if (reversed) list.splice(0, 0, doc);
                     else list.push(doc);
@@ -388,9 +426,9 @@ export namespace Doc {
     // Computes the bounds of the contents of a set of documents.
     //
     export function ComputeContentBounds(docList: Doc[]) {
-        let bounds = docList.reduce((bounds, doc) => {
-            var [sptX, sptY] = [NumCast(doc.x), NumCast(doc.y)];
-            let [bptX, bptY] = [sptX + doc[WidthSym](), sptY + doc[HeightSym]()];
+        const bounds = docList.reduce((bounds, doc) => {
+            const [sptX, sptY] = [NumCast(doc.x), NumCast(doc.y)];
+            const [bptX, bptY] = [sptX + doc[WidthSym](), sptY + doc[HeightSym]()];
             return {
                 x: Math.min(sptX, bounds.x), y: Math.min(sptY, bounds.y),
                 r: Math.max(bptX, bounds.r), b: Math.max(bptY, bounds.b)
@@ -400,89 +438,89 @@ export namespace Doc {
     }
 
     export function MakeTitled(title: string) {
-        let doc = new Doc();
+        const doc = new Doc();
         doc.title = title;
         return doc;
     }
-    export function MakeAlias(doc: Doc) {
-        let alias = !GetT(doc, "isPrototype", "boolean", true) ? Doc.MakeCopy(doc) : Doc.MakeDelegate(doc);
-        if (alias.layout instanceof Doc) {
-            alias.layout = Doc.MakeAlias(alias.layout);
+    export function MakeAlias(doc: Doc, id?: string) {
+        const alias = !GetT(doc, "isPrototype", "boolean", true) ? Doc.MakeCopy(doc, undefined, id) : Doc.MakeDelegate(doc, id);
+        const layout = Doc.LayoutField(alias);
+        if (layout instanceof Doc && layout !== alias && layout === Doc.Layout(alias)) {
+            Doc.SetLayout(alias, Doc.MakeAlias(layout));
         }
-        let aliasNumber = Doc.GetProto(doc).aliasNumber = NumCast(Doc.GetProto(doc).aliasNumber) + 1;
-        alias.title = ComputedField.MakeFunction(`renameAlias(this, ${aliasNumber})`);
+        alias.aliasOf = doc;
+        alias.title = ComputedField.MakeFunction(`renameAlias(this, ${Doc.GetProto(doc).aliasNumber = NumCast(Doc.GetProto(doc).aliasNumber) + 1})`);
         return alias;
     }
 
     //
     // Determines whether the combination of the layoutDoc and dataDoc represents
-    // a template relationship.  If so, the layoutDoc will be expanded into a new
-    // document that inherits the properties of the original layout while allowing
-    // for individual layout properties to be overridden in the expanded layout.
+    // a template relationship :  there is a dataDoc and it doesn't match the layoutDoc an
+    // the lyouatDoc's layout is layout string (not a document) 
     //
     export function WillExpandTemplateLayout(layoutDoc: Doc, dataDoc?: Doc) {
-        return BoolCast(layoutDoc.isTemplateField) && dataDoc && layoutDoc !== dataDoc && !(layoutDoc[StrCast(layoutDoc.layoutKey, "layout")] instanceof Doc);
+        return (layoutDoc.isTemplateForField || layoutDoc.isTemplateDoc) && dataDoc && layoutDoc !== dataDoc && !(Doc.LayoutField(layoutDoc) instanceof Doc);
     }
 
     //
-    // Returns an expanded template layout for a target data document.
-    // First it checks if an expanded layout already exists -- if so it will be stored on the dataDoc
-    // using the template layout doc's id as the field key.
-    // If it doesn't find the expanded layout, then it makes a delegate of the template layout and
-    // saves it on the data doc indexed by the template layout's id
+    // Returns an expanded template layout for a target data document if there is a template relationship
+    // between the two. If so, the layoutDoc is expanded into a new document that inherits the properties 
+    // of the original layout while allowing for individual layout properties to be overridden in the expanded layout.
     //
-    export function expandTemplateLayout(templateLayoutDoc: Doc, dataDoc?: Doc) {
-        if (!WillExpandTemplateLayout(templateLayoutDoc, dataDoc) || !dataDoc) return templateLayoutDoc;
-        // if we have a data doc that doesn't match the layout, then we're rendering a template.
-        // ... which means we change the layout to be an expanded view of the template layout.  
-        // This allows the view override the template's properties and be referenceable as its own document.
+    export function expandTemplateLayout(templateLayoutDoc: Doc, targetDoc?: Doc) {
+        if (!WillExpandTemplateLayout(templateLayoutDoc, targetDoc) || !targetDoc) return templateLayoutDoc;
 
-        let expandedLayoutFieldKey = "Layout[" + templateLayoutDoc[Id] + "]";
-        let expandedTemplateLayout = dataDoc[expandedLayoutFieldKey];
-        if (expandedTemplateLayout instanceof Doc) {
-            return expandedTemplateLayout;
+        const templateField = StrCast(templateLayoutDoc.isTemplateForField);  // the field that the template renders
+        // First it checks if an expanded layout already exists -- if so it will be stored on the dataDoc
+        // using the template layout doc's id as the field key.
+        // If it doesn't find the expanded layout, then it makes a delegate of the template layout and
+        // saves it on the data doc indexed by the template layout's id.
+        //
+        const layoutFielddKey = Doc.LayoutFieldKey(templateLayoutDoc);
+        const expandedLayoutFieldKey = (templateField || layoutFielddKey) + "-layout[" + templateLayoutDoc[Id] + "]";
+        let expandedTemplateLayout = targetDoc?.[expandedLayoutFieldKey];
+        if (templateLayoutDoc.resolvedDataDoc instanceof Promise) {
+
+            expandedTemplateLayout = undefined;
+        } else if (templateLayoutDoc.resolvedDataDoc === Doc.GetDataDoc(targetDoc)) {
+            expandedTemplateLayout = templateLayoutDoc;
+        } else if (expandedTemplateLayout === undefined) {
+            setTimeout(action(() => {
+                if (!targetDoc[expandedLayoutFieldKey]) {
+                    const newLayoutDoc = Doc.MakeDelegate(templateLayoutDoc, undefined, "[" + templateLayoutDoc.title + "]");
+                    newLayoutDoc.expandedTemplate = targetDoc;
+                    targetDoc[expandedLayoutFieldKey] = newLayoutDoc;
+                    const dataDoc = Doc.GetDataDoc(targetDoc);
+                    newLayoutDoc.resolvedDataDoc = dataDoc;
+                    if (dataDoc[templateField] === undefined && templateLayoutDoc[templateField] instanceof List && Cast(templateLayoutDoc[templateField], listSpec(Doc), []).length) {
+                        dataDoc[templateField] = ComputedField.MakeFunction(`ObjectField.MakeCopy(templateLayoutDoc["${templateField}"] as List)`, { templateLayoutDoc: Doc.name }, { templateLayoutDoc: templateLayoutDoc });
+                    }
+                }
+            }), 0);
         }
-        if (expandedTemplateLayout === undefined) {
-            setTimeout(() => dataDoc[expandedLayoutFieldKey] === undefined &&
-                (dataDoc[expandedLayoutFieldKey] = Doc.MakeDelegate(templateLayoutDoc, undefined, "[" + templateLayoutDoc.title + "]")), 0);
-        }
-        return undefined; // use the templateLayout when it's not a template or the expandedTemplate is pending.
+        return expandedTemplateLayout instanceof Doc ? expandedTemplateLayout : undefined; // layout is undefined if the expandedTemplate is pending.
     }
 
-    export function GetLayoutDataDocPair(doc: Doc, dataDoc: Doc | undefined, fieldKey: string, childDocLayout: Doc) {
-        let layoutDoc: Doc | undefined = childDocLayout;
-        let resolvedDataDoc = !doc.isTemplateField && dataDoc !== doc && dataDoc ? Doc.GetDataDoc(dataDoc) : undefined;
-        if (resolvedDataDoc && Doc.WillExpandTemplateLayout(childDocLayout, resolvedDataDoc)) {
-            let extensionDoc = fieldExtensionDoc(resolvedDataDoc, StrCast(childDocLayout.templateField, StrCast(childDocLayout.title)));
-            layoutDoc = Doc.expandTemplateLayout(childDocLayout, extensionDoc !== resolvedDataDoc ? extensionDoc : undefined);
-        } else layoutDoc = childDocLayout;
-        return { layout: layoutDoc, data: resolvedDataDoc };
+    // if the childDoc is a template for a field, then this will return the expanded layout with its data doc.
+    // otherwise, it just returns the childDoc
+    export function GetLayoutDataDocPair(containerDoc: Doc, containerDataDoc: Opt<Doc>, childDoc: Doc) {
+        const resolvedDataDoc = containerDataDoc === containerDoc || !containerDataDoc || (!childDoc.isTemplateDoc && !childDoc.isTemplateForField) ? undefined : containerDataDoc;
+        return { layout: Doc.expandTemplateLayout(childDoc, resolvedDataDoc), data: resolvedDataDoc };
     }
-
-    //
-    // Resolves a reference to a field by returning 'doc' if no field extension is specified,
-    // otherwise, it returns the extension document stored in doc.<fieldKey>_ext.
-    // This mechanism allows any fields to be extended with an extension document that can
-    // be used to capture field-specific metadata.  For example, an image field can be extended
-    // to store annotations, ink, and other data.
-    //
-    export function fieldExtensionDoc(doc: Doc, fieldKey: string) {
-        let extension = doc[fieldKey + "_ext"] as Doc;
-        (extension === undefined) && setTimeout(() => CreateDocumentExtensionForField(doc, fieldKey), 0);
-        return extension ? extension : undefined;
-    }
-
     export function CreateDocumentExtensionForField(doc: Doc, fieldKey: string) {
-        let docExtensionForField = new Doc(doc[Id] + fieldKey, true);
-        docExtensionForField.title = fieldKey + ".ext"; // courtesy field--- shouldn't be needed except maybe for debugging
-        docExtensionForField.extendsDoc = doc; // this is used by search to map field matches on the extension doc back to the document it extends.
-        docExtensionForField.extendsField = fieldKey; // this can be used by search to map matches on the extension doc back to the field that was extended.
-        docExtensionForField.type = DocumentType.EXTENSION;
         let proto: Doc | undefined = doc;
         while (proto && !Doc.IsPrototype(proto) && proto.proto) {
             proto = proto.proto;
         }
-        (proto ? proto : doc)[fieldKey + "_ext"] = new PrefetchProxy(docExtensionForField);
+        let docExtensionForField = ((proto || doc)[fieldKey + "_ext"] as Doc);
+        if (!docExtensionForField) {
+            docExtensionForField = new Doc(doc[Id] + fieldKey, true);
+            docExtensionForField.title = fieldKey + ".ext"; // courtesy field--- shouldn't be needed except maybe for debugging
+            docExtensionForField.extendsDoc = doc; // this is used by search to map field matches on the extension doc back to the document it extends.
+            docExtensionForField.extendsField = fieldKey; // this can be used by search to map matches on the extension doc back to the field that was extended.
+            docExtensionForField.type = DocumentType.EXTENSION;
+            (proto || doc)[fieldKey + "_ext"] = new PrefetchProxy(docExtensionForField);
+        }
         return docExtensionForField;
     }
 
@@ -511,8 +549,10 @@ export namespace Doc {
 
     export function MakeCopy(doc: Doc, copyProto: boolean = false, copyProtoId?: string): Doc {
         const copy = new Doc(copyProtoId, true);
+        const exclude = Cast(doc.excludeFields, listSpec("string"), []);
         Object.keys(doc).forEach(key => {
-            let cfield = ComputedField.WithoutComputed(() => FieldValue(doc[key]));
+            if (exclude.includes(key)) return;
+            const cfield = ComputedField.WithoutComputed(() => FieldValue(doc[key]));
             const field = ProxyField.WithoutProxy(() => doc[key]);
             if (key === "proto" && copyProto) {
                 if (doc[key] instanceof Doc) {
@@ -525,7 +565,7 @@ export namespace Doc {
                 } else if (cfield instanceof ComputedField) {
                     copy[key] = ComputedField.MakeFunction(cfield.script.originalScript);
                 } else if (field instanceof ObjectField) {
-                    copy[key] = ObjectField.MakeCopy(field);
+                    copy[key] = key.includes("layout[") && doc[key] instanceof Doc ? Doc.MakeCopy(doc[key] as Doc, false) : ObjectField.MakeCopy(field);
                 } else if (field instanceof Promise) {
                     debugger; //This shouldn't happend...
                 } else {
@@ -552,80 +592,82 @@ export namespace Doc {
     let _applyCount: number = 0;
     export function ApplyTemplate(templateDoc: Doc) {
         if (templateDoc) {
-            let applied = ApplyTemplateTo(templateDoc, Doc.MakeDelegate(new Doc()), "layoutCustom", templateDoc.title + "(..." + _applyCount++ + ")");
+            const applied = ApplyTemplateTo(templateDoc, Doc.MakeDelegate(new Doc()), "layout", templateDoc.title + "(..." + _applyCount++ + ")");
             applied && (Doc.GetProto(applied).layout = applied.layout);
             return applied;
         }
         return undefined;
     }
-    export function ApplyTemplateTo(templateDoc: Doc, target: Doc, targetKey: string, titleTarget: string | undefined = undefined) {
+    export function ApplyTemplateTo(templateDoc: Doc, target: Doc, targetKey: string, titleTarget: string | undefined) {
         if (!templateDoc) {
             target.layout = undefined;
-            target.nativeWidth = undefined;
-            target.nativeHeight = undefined;
+            target._nativeWidth = undefined;
+            target._nativeHeight = undefined;
             target.onClick = undefined;
             target.type = undefined;
             return;
         }
 
-        let layoutCustomLayout = Doc.MakeDelegate(templateDoc);
-
-        titleTarget && (Doc.GetProto(target).title = titleTarget);
-        Doc.GetProto(target).type = DocumentType.TEMPLATE;
-        target.onClick = templateDoc.onClick instanceof ObjectField && templateDoc.onClick[Copy]();
-
-        Doc.GetProto(target)[targetKey] = layoutCustomLayout;
+        if (!Doc.AreProtosEqual(target[targetKey] as Doc, templateDoc)) {
+            titleTarget && (Doc.GetProto(target).title = titleTarget);
+            Doc.GetProto(target)[targetKey] = new PrefetchProxy(templateDoc);
+        }
         target.layoutKey = targetKey;
         return target;
     }
 
-    export function MakeMetadataFieldTemplate(fieldTemplate: Doc, templateDataDoc: Doc, suppressTitle: boolean = false): boolean {
-        // move data doc fields to layout doc as needed (nativeWidth/nativeHeight, data, ??)
-        let metadataFieldName = StrCast(fieldTemplate.title).replace(/^-/, "");
-        let fieldLayoutDoc = fieldTemplate;
-        if (fieldTemplate.layout instanceof Doc) {
-            fieldLayoutDoc = Doc.MakeDelegate(fieldTemplate.layout);
+    //
+    //  This function converts a generic field layout display into a field layout that displays a specific
+    // metadata field indicated by the title of the template field (not the default field that it was rendering)
+    //
+    export function MakeMetadataFieldTemplate(templateField: Doc, templateDoc: Opt<Doc>): boolean {
+
+        // find the metadata field key that this template field doc will display (indicated by its title)
+        const metadataFieldKey = StrCast(templateField.title).replace(/^-/, "");
+
+        // update the original template to mark it as a template
+        templateField.isTemplateForField = metadataFieldKey;
+        templateField.title = metadataFieldKey;
+
+        // move any data that the template field had been rendering over to the template doc so that things will still be rendered
+        // when the template field is adjusted to point to the new metadatafield key.
+        // note 1: if the template field contained a list of documents, each of those documents will be converted to templates as well.
+        // note 2: this will not overwrite any field that already exists on the template doc at the field key
+        if (!templateDoc?.[metadataFieldKey] && templateField.data instanceof ObjectField) {
+            Cast(templateField.data, listSpec(Doc), [])?.map(d => d instanceof Doc && MakeMetadataFieldTemplate(d, templateDoc));
+            (Doc.GetProto(templateField)[metadataFieldKey] = ObjectField.MakeCopy(templateField.data));
+        }
+        if (templateField.data instanceof RichTextField && (templateField.data.Text || templateField.data.Data.toString().includes("dashField"))) {
+            templateField._textTemplate = ComputedField.MakeFunction(`copyField(this.${metadataFieldKey})`, { this: Doc.name });
         }
 
-        fieldTemplate.templateField = metadataFieldName;
-        fieldTemplate.title = metadataFieldName;
-        fieldTemplate.isTemplateField = true;
-        /* move certain layout properties from the original data doc to the template layout to avoid
-           inheriting them from the template's data doc which may also define these fields for its own use.
-        */
-        fieldTemplate.ignoreAspect = fieldTemplate.ignoreAspect === undefined ? undefined : BoolCast(fieldTemplate.ignoreAspect);
-        fieldTemplate.singleColumn = BoolCast(fieldTemplate.singleColumn);
-        fieldTemplate.nativeWidth = Cast(fieldTemplate.nativeWidth, "number");
-        fieldTemplate.nativeHeight = Cast(fieldTemplate.nativeHeight, "number");
-        fieldTemplate.type = fieldTemplate.type;
-        fieldTemplate.panX = 0;
-        fieldTemplate.panY = 0;
-        fieldTemplate.scale = 1;
-        fieldTemplate.showTitle = suppressTitle ? undefined : "title";
-        let data = fieldTemplate.data;
-        setTimeout(action(() => {
-            !templateDataDoc[metadataFieldName] && data instanceof ObjectField && (Doc.GetProto(templateDataDoc)[metadataFieldName] = ObjectField.MakeCopy(data));
-            let layout = StrCast(fieldLayoutDoc.layout).replace(/fieldKey={"[^"]*"}/, `fieldKey={"${metadataFieldName}"}`);
-            let layoutDelegate = Doc.Layout(fieldTemplate);
-            layoutDelegate.layout = layout;
-            fieldTemplate.layout = layoutDelegate !== fieldTemplate ? layoutDelegate : layout;
-            if (fieldTemplate.backgroundColor !== templateDataDoc.defaultBackgroundColor) fieldTemplate.defaultBackgroundColor = fieldTemplate.backgroundColor;
-            fieldTemplate.proto = templateDataDoc;
-        }), 0);
+        // get the layout string that the template uses to specify its layout
+        const templateFieldLayoutString = StrCast(Doc.LayoutField(Doc.Layout(templateField)));
+
+        // change itto render the target metadata field instead of what it was rendering before and assign it to the template field layout document.
+        Doc.Layout(templateField).layout = templateFieldLayoutString.replace(/fieldKey={'[^']*'}/, `fieldKey={'${metadataFieldKey}'}`);
+
+        // assign the template field doc a delegate of any extension document that was previously used to render the template field (since extension doc's carry rendering informatino)
+        Doc.Layout(templateField)[metadataFieldKey + "_ext"] = Doc.MakeDelegate(templateField[templateFieldLayoutString?.split("'")[1] + "_ext"] as Doc);
+
+        if (templateField.backgroundColor !== templateDoc?.defaultBackgroundColor) {
+            templateField.defaultBackgroundColor = templateField.backgroundColor;
+        }
+
         return true;
     }
 
     export function overlapping(doc1: Doc, doc2: Doc, clusterDistance: number) {
-        let doc2Layout = Doc.Layout(doc2);
-        let doc1Layout = Doc.Layout(doc1);
-        var x2 = NumCast(doc2.x) - clusterDistance;
-        var y2 = NumCast(doc2.y) - clusterDistance;
-        var w2 = NumCast(doc2Layout.width) + clusterDistance;
-        var h2 = NumCast(doc2Layout.height) + clusterDistance;
-        var x = NumCast(doc1.x) - clusterDistance;
-        var y = NumCast(doc1.y) - clusterDistance;
-        var w = NumCast(doc1Layout.width) + clusterDistance;
-        var h = NumCast(doc1Layout.height) + clusterDistance;
+        const doc2Layout = Doc.Layout(doc2);
+        const doc1Layout = Doc.Layout(doc1);
+        const x2 = NumCast(doc2.x) - clusterDistance;
+        const y2 = NumCast(doc2.y) - clusterDistance;
+        const w2 = NumCast(doc2Layout._width) + clusterDistance;
+        const h2 = NumCast(doc2Layout._height) + clusterDistance;
+        const x = NumCast(doc1.x) - clusterDistance;
+        const y = NumCast(doc1.y) - clusterDistance;
+        const w = NumCast(doc1Layout._width) + clusterDistance;
+        const h = NumCast(doc1Layout._height) + clusterDistance;
         return doc1.z === doc2.z && intersectRect({ left: x, top: y, width: w, height: h }, { left: x2, top: y2, width: w2, height: h2 });
     }
 
@@ -645,13 +687,18 @@ export namespace Doc {
 
     export class DocData {
         @observable _user_doc: Doc = undefined!;
+        @observable _searchQuery: string = "";
     }
 
     // the document containing the view layout information - will be the Document itself unless the Document has
     // a layout field.  In that case, all layout information comes from there unless overriden by Document  
-    export function Layout(doc: Doc) { return Doc.LayoutField(doc) instanceof Doc ? doc[StrCast(doc.layoutKey, "layout")] as Doc : doc; }
+    export function Layout(doc: Doc): Doc { return doc[LayoutSym] || doc; }
+    export function SetLayout(doc: Doc, layout: Doc | string) { doc[StrCast(doc.layoutKey, "layout")] = layout; }
     export function LayoutField(doc: Doc) { return doc[StrCast(doc.layoutKey, "layout")]; }
+    export function LayoutFieldKey(doc: Doc): string { return StrCast(Doc.Layout(doc).layout).split("'")[1]; }
     const manager = new DocData();
+    export function SearchQuery(): string { return manager._searchQuery; }
+    export function SetSearchQuery(query: string) { runInAction(() => manager._searchQuery = query); }
     export function UserDoc(): Doc { return manager._user_doc; }
     export function SetUserDoc(doc: Doc) { manager._user_doc = doc; }
     export function IsBrushed(doc: Doc) {
@@ -680,19 +727,21 @@ export namespace Doc {
     }
 
 
-    export function LinkEndpoint(linkDoc: Doc, anchorDoc: Doc) { return Doc.AreProtosEqual(anchorDoc, Cast(linkDoc.anchor1, Doc) as Doc) ? "layoutKey1" : "layoutKey2"; }
+    export function LinkOtherAnchor(linkDoc: Doc, anchorDoc: Doc) { return Doc.AreProtosEqual(anchorDoc, Cast(linkDoc.anchor1, Doc) as Doc) ? Cast(linkDoc.anchor2, Doc) as Doc : Cast(linkDoc.anchor1, Doc) as Doc; }
+    export function LinkEndpoint(linkDoc: Doc, anchorDoc: Doc) { return Doc.AreProtosEqual(anchorDoc, Cast(linkDoc.anchor1, Doc) as Doc) ? "layout_key1" : "layout_key2"; }
+
     export function linkFollowUnhighlight() {
         Doc.UnhighlightAll();
         document.removeEventListener("pointerdown", linkFollowUnhighlight);
     }
 
     let dt = 0;
-    export function linkFollowHighlight(destDoc: Doc) {
+    export function linkFollowHighlight(destDoc: Doc, dataAndDisplayDocs = true) {
         linkFollowUnhighlight();
-        Doc.HighlightDoc(destDoc);
+        Doc.HighlightDoc(destDoc, dataAndDisplayDocs);
         document.removeEventListener("pointerdown", linkFollowUnhighlight);
         document.addEventListener("pointerdown", linkFollowUnhighlight);
-        let x = dt = Date.now();
+        const x = dt = Date.now();
         window.setTimeout(() => dt === x && linkFollowUnhighlight(), 5000);
     }
 
@@ -701,13 +750,12 @@ export namespace Doc {
     }
     const highlightManager = new HighlightBrush();
     export function IsHighlighted(doc: Doc) {
-        let IsHighlighted = highlightManager.HighlightedDoc.get(doc) || highlightManager.HighlightedDoc.get(Doc.GetDataDoc(doc));
-        return IsHighlighted;
+        return highlightManager.HighlightedDoc.get(doc) || highlightManager.HighlightedDoc.get(Doc.GetDataDoc(doc));
     }
-    export function HighlightDoc(doc: Doc) {
+    export function HighlightDoc(doc: Doc, dataAndDisplayDocs = true) {
         runInAction(() => {
             highlightManager.HighlightedDoc.set(doc, true);
-            highlightManager.HighlightedDoc.set(Doc.GetDataDoc(doc), true);
+            dataAndDisplayDocs && highlightManager.HighlightedDoc.set(Doc.GetDataDoc(doc), true);
         });
     }
     export function UnHighlightDoc(doc: Doc) {
@@ -717,10 +765,10 @@ export namespace Doc {
         });
     }
     export function UnhighlightAll() {
-        let mapEntries = highlightManager.HighlightedDoc.keys();
+        const mapEntries = highlightManager.HighlightedDoc.keys();
         let docEntry: IteratorResult<Doc>;
         while (!(docEntry = mapEntries.next()).done) {
-            let targetDoc = docEntry.value;
+            const targetDoc = docEntry.value;
             targetDoc && Doc.UnHighlightDoc(targetDoc);
         }
 
@@ -734,17 +782,66 @@ export namespace Doc {
             source.dragFactory instanceof Doc && source.dragFactory.isTemplateDoc ? source.dragFactory :
             source && source.layout instanceof Doc && source.layout.isTemplateDoc ? source.layout : undefined;
     }
-}
+    export function setChildDetailedLayout(target: Doc, source?: Doc) {
+        target.childDetailed = source && source.isTemplateDoc ? source : source &&
+            source.dragFactory instanceof Doc && source.dragFactory.isTemplateDoc ? source.dragFactory :
+            source && source.layout instanceof Doc && source.layout.isTemplateDoc ? source.layout : undefined;
+    }
 
+    export function matchFieldValue(doc: Doc, key: string, value: any): boolean {
+        const fieldVal = doc[key];
+        if (Cast(fieldVal, listSpec("string"), []).length) {
+            const vals = Cast(fieldVal, listSpec("string"), []);
+            return vals.some(v => v === value);
+        }
+        const fieldStr = Field.toString(fieldVal as Field);
+        return fieldStr === value;
+    }
+
+    export function setNativeView(doc: any) {
+        const prevLayout = StrCast(doc.layoutKey).split("_")[1];
+        const deiconify = prevLayout === "icon" && StrCast(doc.deiconifyLayout) ? "layout_" + StrCast(doc.deiconifyLayout) : "";
+        doc.deiconifyLayout = undefined;
+        if (StrCast(doc.title).endsWith("_" + prevLayout)) doc.title = StrCast(doc.title).replace("_" + prevLayout, "");
+        doc.layoutKey = deiconify || "layout";
+    }
+    export function setDocFilter(container: Doc, key: string, value: any, modifiers?: string) {
+        const docFilters = Cast(container._docFilter, listSpec("string"), []);
+        for (let i = 0; i < docFilters.length; i += 3) {
+            if (docFilters[i] === key && docFilters[i + 1] === value) {
+                docFilters.splice(i, 3);
+                break;
+            }
+        }
+        if (modifiers !== undefined) {
+            docFilters.push(key);
+            docFilters.push(value);
+            docFilters.push(modifiers);
+            container._docFilter = new List<string>(docFilters);
+        }
+    }
+}
 
 Scripting.addGlobal(function renameAlias(doc: any, n: any) { return StrCast(Doc.GetProto(doc).title).replace(/\([0-9]*\)/, "") + `(${n})`; });
 Scripting.addGlobal(function getProto(doc: any) { return Doc.GetProto(doc); });
 Scripting.addGlobal(function setChildLayout(target: any, source: any) { Doc.setChildLayout(target, source); });
+Scripting.addGlobal(function setChildDetailedLayout(target: any, source: any) { Doc.setChildDetailedLayout(target, source); });
 Scripting.addGlobal(function getAlias(doc: any) { return Doc.MakeAlias(doc); });
 Scripting.addGlobal(function getCopy(doc: any, copyProto: any) { return doc.isTemplateDoc ? Doc.ApplyTemplate(doc) : Doc.MakeCopy(doc, copyProto); });
 Scripting.addGlobal(function copyField(field: any) { return ObjectField.MakeCopy(field); });
 Scripting.addGlobal(function aliasDocs(field: any) { return new List<Doc>(field.map((d: any) => Doc.MakeAlias(d))); });
 Scripting.addGlobal(function docList(field: any) { return DocListCast(field); });
 Scripting.addGlobal(function sameDocs(doc1: any, doc2: any) { return Doc.AreProtosEqual(doc1, doc2); });
+Scripting.addGlobal(function setNativeView(doc: any) { Doc.setNativeView(doc); });
 Scripting.addGlobal(function undo() { return UndoManager.Undo(); });
 Scripting.addGlobal(function redo() { return UndoManager.Redo(); });
+Scripting.addGlobal(function curPresentationItem() {
+    const curPres = Doc.UserDoc().curPresentation as Doc;
+    return curPres && DocListCast(curPres[Doc.LayoutFieldKey(curPres)])[NumCast(curPres._itemIndex)];
+})
+Scripting.addGlobal(function selectDoc(doc: any) { Doc.UserDoc().SelectedDocs = new List([doc]); });
+Scripting.addGlobal(function selectedDocs(container: Doc, excludeCollections: boolean, prevValue: any) {
+    const docs = DocListCast(Doc.UserDoc().SelectedDocs).filter(d => !Doc.AreProtosEqual(d, container) && !d.annotationOn && d.type !== DocumentType.DOCUMENT && d.type !== DocumentType.KVP && (!excludeCollections || !Cast(d.data, listSpec(Doc), null)));
+    return docs.length ? new List(docs) : prevValue;
+});
+Scripting.addGlobal(function setDocFilter(container: Doc, key: string, value: any, modifiers?: string) { Doc.setDocFilter(container, key, value, modifiers); });

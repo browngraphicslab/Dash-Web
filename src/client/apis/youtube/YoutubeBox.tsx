@@ -46,46 +46,46 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
      * When component mounts, last search's results are laoded in based on the back up stored
      * in the document of the props.
      */
-    async componentWillMount() {
+    async componentDidMount() {
         //DocServer.getYoutubeChannels();
-        let castedSearchBackUp = Cast(this.props.Document.cachedSearchResults, Doc);
-        let awaitedBackUp = await castedSearchBackUp;
-        let castedDetailBackUp = Cast(this.props.Document.cachedDetails, Doc);
-        let awaitedDetails = await castedDetailBackUp;
+        const castedSearchBackUp = Cast(this.props.Document.cachedSearchResults, Doc);
+        const awaitedBackUp = await castedSearchBackUp;
+        const castedDetailBackUp = Cast(this.props.Document.cachedDetails, Doc);
+        const awaitedDetails = await castedDetailBackUp;
 
 
         if (awaitedBackUp) {
 
 
-            let jsonList = await DocListCastAsync(awaitedBackUp.json);
-            let jsonDetailList = await DocListCastAsync(awaitedDetails!.json);
+            const jsonList = await DocListCastAsync(awaitedBackUp.json);
+            const jsonDetailList = await DocListCastAsync(awaitedDetails!.json);
 
             if (jsonList!.length !== 0) {
                 runInAction(() => this.searchResultsFound = true);
                 let index = 0;
                 //getting the necessary information from backUps and building templates that will be used to map in render
-                for (let video of jsonList!) {
+                for (const video of jsonList!) {
 
-                    let videoId = await Cast(video.id, Doc);
-                    let id = StrCast(videoId!.videoId);
-                    let snippet = await Cast(video.snippet, Doc);
-                    let videoTitle = this.filterYoutubeTitleResult(StrCast(snippet!.title));
-                    let thumbnail = await Cast(snippet!.thumbnails, Doc);
-                    let thumbnailMedium = await Cast(thumbnail!.medium, Doc);
-                    let thumbnailUrl = StrCast(thumbnailMedium!.url);
-                    let videoDescription = StrCast(snippet!.description);
-                    let pusblishDate = (this.roundPublishTime(StrCast(snippet!.publishedAt)))!;
-                    let channelTitle = StrCast(snippet!.channelTitle);
+                    const videoId = await Cast(video.id, Doc);
+                    const id = StrCast(videoId!.videoId);
+                    const snippet = await Cast(video.snippet, Doc);
+                    const videoTitle = this.filterYoutubeTitleResult(StrCast(snippet!.title));
+                    const thumbnail = await Cast(snippet!.thumbnails, Doc);
+                    const thumbnailMedium = await Cast(thumbnail!.medium, Doc);
+                    const thumbnailUrl = StrCast(thumbnailMedium!.url);
+                    const videoDescription = StrCast(snippet!.description);
+                    const pusblishDate = (this.roundPublishTime(StrCast(snippet!.publishedAt)))!;
+                    const channelTitle = StrCast(snippet!.channelTitle);
                     let duration: string = "";
                     let viewCount: string = "";
                     if (jsonDetailList!.length !== 0) {
-                        let contentDetails = await Cast(jsonDetailList![index].contentDetails, Doc);
-                        let statistics = await Cast(jsonDetailList![index].statistics, Doc);
+                        const contentDetails = await Cast(jsonDetailList![index].contentDetails, Doc);
+                        const statistics = await Cast(jsonDetailList![index].statistics, Doc);
                         duration = this.convertIsoTimeToDuration(StrCast(contentDetails!.duration));
                         viewCount = this.abbreviateViewCount(parseInt(StrCast(statistics!.viewCount)))!;
                     }
                     index = index + 1;
-                    let newTemplate: VideoTemplate = { videoId: id, videoTitle: videoTitle, thumbnailUrl: thumbnailUrl, publishDate: pusblishDate, channelTitle: channelTitle, videoDescription: videoDescription, duration: duration, viewCount: viewCount };
+                    const newTemplate: VideoTemplate = { videoId: id, videoTitle: videoTitle, thumbnailUrl: thumbnailUrl, publishDate: pusblishDate, channelTitle: channelTitle, videoDescription: videoDescription, duration: duration, viewCount: viewCount };
                     runInAction(() => this.curVideoTemplates.push(newTemplate));
                 }
             }
@@ -115,7 +115,7 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
      */
     onEnterKeyDown = (e: React.KeyboardEvent) => {
         if (e.keyCode === 13) {
-            let submittedTitle = this.YoutubeSearchElement!.value;
+            const submittedTitle = this.YoutubeSearchElement!.value;
             this.YoutubeSearchElement!.value = "";
             this.YoutubeSearchElement!.blur();
             DocServer.getYoutubeVideos(submittedTitle, this.processesVideoResults);
@@ -184,23 +184,23 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
      * difference between today's date and that date, in terms of "ago" to imitate youtube.
      */
     roundPublishTime = (publishTime: string) => {
-        let date = new Date(publishTime).getTime();
-        let curDate = new Date().getTime();
-        let timeDif = curDate - date;
-        let totalSeconds = timeDif / 1000;
-        let totalMin = totalSeconds / 60;
-        let totalHours = totalMin / 60;
-        let totalDays = totalHours / 24;
-        let totalMonths = totalDays / 30.417;
-        let totalYears = totalMonths / 12;
+        const date = new Date(publishTime).getTime();
+        const curDate = new Date().getTime();
+        const timeDif = curDate - date;
+        const totalSeconds = timeDif / 1000;
+        const totalMin = totalSeconds / 60;
+        const totalHours = totalMin / 60;
+        const totalDays = totalHours / 24;
+        const totalMonths = totalDays / 30.417;
+        const totalYears = totalMonths / 12;
 
 
-        let truncYears = Math.trunc(totalYears);
-        let truncMonths = Math.trunc(totalMonths);
-        let truncDays = Math.trunc(totalDays);
-        let truncHours = Math.trunc(totalHours);
-        let truncMin = Math.trunc(totalMin);
-        let truncSec = Math.trunc(totalSeconds);
+        const truncYears = Math.trunc(totalYears);
+        const truncMonths = Math.trunc(totalMonths);
+        const truncDays = Math.trunc(totalDays);
+        const truncHours = Math.trunc(totalHours);
+        const truncMin = Math.trunc(totalMin);
+        const truncSec = Math.trunc(totalSeconds);
 
         let pluralCase = "";
 
@@ -230,7 +230,7 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
      */
     convertIsoTimeToDuration = (isoDur: string) => {
 
-        let convertedTime = isoDur.replace(/D|H|M/g, ":").replace(/P|T|S/g, "").split(":");
+        const convertedTime = isoDur.replace(/D|H|M/g, ":").replace(/P|T|S/g, "").split(":");
 
         if (1 === convertedTime.length) {
             2 !== convertedTime[0].length && (convertedTime[0] = "0" + convertedTime[0]), convertedTime[0] = "0:" + convertedTime[0];
@@ -269,10 +269,10 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
             if (this.searchResults.length !== 0) {
                 return <ul>
                     {this.searchResults.map((video, index) => {
-                        let filteredTitle = this.filterYoutubeTitleResult(video.snippet.title);
-                        let channelTitle = video.snippet.channelTitle;
-                        let videoDescription = video.snippet.description;
-                        let pusblishDate = this.roundPublishTime(video.snippet.publishedAt);
+                        const filteredTitle = this.filterYoutubeTitleResult(video.snippet.title);
+                        const channelTitle = video.snippet.channelTitle;
+                        const videoDescription = video.snippet.description;
+                        const pusblishDate = this.roundPublishTime(video.snippet.publishedAt);
                         let duration;
                         let viewCount;
                         if (this.videoDetails.length !== 0) {
@@ -331,26 +331,26 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
      */
     @action
     embedVideoOnClick = (videoId: string, filteredTitle: string) => {
-        let embeddedUrl = "https://www.youtube.com/embed/" + videoId;
+        const embeddedUrl = "https://www.youtube.com/embed/" + videoId;
         this.selectedVideoUrl = embeddedUrl;
-        let addFunction = this.props.addDocument!;
-        let newVideoX = NumCast(this.props.Document.x);
-        let newVideoY = NumCast(this.props.Document.y) + NumCast(this.props.Document.height);
+        const addFunction = this.props.addDocument!;
+        const newVideoX = NumCast(this.props.Document.x);
+        const newVideoY = NumCast(this.props.Document.y) + NumCast(this.props.Document.height);
 
-        addFunction(Docs.Create.VideoDocument(embeddedUrl, { title: filteredTitle, width: 400, height: 315, x: newVideoX, y: newVideoY }));
+        addFunction(Docs.Create.VideoDocument(embeddedUrl, { title: filteredTitle, _width: 400, _height: 315, x: newVideoX, y: newVideoY }));
         this.videoClicked = true;
     }
 
     render() {
-        let content =
+        const content =
             <div className="youtubeBox-cont" style={{ width: "100%", height: "100%", position: "absolute" }} onWheel={this.onPostWheel} onPointerDown={this.onPostPointer} onPointerMove={this.onPostPointer} onPointerUp={this.onPostPointer}>
                 <input type="text" placeholder="Search for a video" onKeyDown={this.onEnterKeyDown} style={{ height: 40, width: "100%", border: "1px solid black", padding: 5, textAlign: "center" }} ref={(e) => this.YoutubeSearchElement = e!} />
                 {this.renderSearchResultsOrVideo()}
             </div>;
 
-        let frozen = !this.props.isSelected() || DocumentDecorations.Instance.Interacting;
+        const frozen = !this.props.isSelected() || DocumentDecorations.Instance.Interacting;
 
-        let classname = "webBox-cont" + (this.props.isSelected() && !InkingControl.Instance.selectedTool && !DocumentDecorations.Instance.Interacting ? "-interactive" : "");
+        const classname = "webBox-cont" + (this.props.isSelected() && !InkingControl.Instance.selectedTool && !DocumentDecorations.Instance.Interacting ? "-interactive" : "");
         return (
             <>
                 <div className={classname}  >
