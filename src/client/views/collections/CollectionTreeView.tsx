@@ -746,7 +746,14 @@ Scripting.addGlobal(function readFacetData(layoutDoc: Doc, dataDoc: Doc, dataKey
     const facetValues = Array.from(allCollectionDocs.reduce((set, child) =>
         set.add(Field.toString(child[facetHeader] as Field)), new Set<string>()));
 
-    const facetValueDocSet = facetValues.sort().map(facetValue =>
+    let nonNumbers = 0;
+    facetValues.map(val => {
+        const num = Number(val);
+        if (Number.isNaN(num)) {
+            nonNumbers++;
+        }
+    });
+    const facetValueDocSet = (nonNumbers / facetValues.length > .1 ? facetValues.sort() : facetValues.sort((n1: string, n2: string) => Number(n1) - Number(n2))).map(facetValue =>
         Docs.Create.TextDocument("", {
             title: facetValue.toString(),
             treeViewChecked: ComputedField.MakeFunction("determineCheckedState(layoutDoc, facetHeader, facetValue)",
