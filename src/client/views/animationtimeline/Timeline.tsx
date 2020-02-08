@@ -453,7 +453,7 @@ export class Timeline extends React.Component<FieldViewProps> {
                     </div>
                     <div className="time-box overview-tool" style={{ display: this._timelineVisible ? "flex" : "none" }}>
                         <div key="time-text" className="animation-text" style={{ visibility: this.props.Document.isATOn ? "visible" : "hidden", display: this.props.Document.isATOn ? "flex" : "none" }}>{lengthString}</div>
-                        <input className="time-input" style={{ visibility: this.props.Document.isATOn ? "visible" : "hidden", display: this.props.Document.isATOn ? "flex" : "none" }} placeholder={String(Math.floor(this._time) / 1000) + " s"} ref={this._timeInputRef} onKeyDown={this.onTimeInput} />
+                        <input className="time-input" disabled style={{ visibility: this.props.Document.isATOn ? "visible" : "hidden", display: this.props.Document.isATOn ? "flex" : "none" }} placeholder={String(Math.floor(this._time) / 1000) + " s"} ref={this._timeInputRef} onKeyDown={this.onTimeInput} />
                         <div style={{ width: "100%", display: !this.props.Document.isATOn ? "flex" : "none" }}>Current: {this.getCurrentTime()}</div>
                     </div>
                 </div>
@@ -466,12 +466,12 @@ export class Timeline extends React.Component<FieldViewProps> {
      */
     @action
     private onTimeInput = (e: React.KeyboardEvent) => {
-        if (e.keyCode === 13) {
-            let timeInput = this._timeInputRef.current!;
-            this._time = parseInt(timeInput.value, 10);
-            this._totalLength = KeyframeFunc.convertPixelTime(this._time, "mili", "pixel", this._tickSpacing, this._tickIncrement);
-            this.props.Document.AnimationLength = this._time;
-        }
+        // if (e.keyCode === 13) {
+        //     let timeInput = this._timeInputRef.current!;
+        //     this._time = parseInt(timeInput.value, 10);
+        //     this._totalLength = KeyframeFunc.convertPixelTime(this._time, "mili", "pixel", this._tickSpacing, this._tickIncrement);
+        //     this.props.Document.AnimationLength = this._time;
+        // }
     }
 
 
@@ -535,7 +535,6 @@ export class Timeline extends React.Component<FieldViewProps> {
      * basically the only thing you need to edit besides render methods in track (individual track lines) and keyframe (green region)
      */
     render() {
-        console.log(this.props.Document.isATOn);
         runInAction(() => {
             this._panelWidth = this.props.PanelWidth();
             this.changeLenths();

@@ -58,7 +58,7 @@ export class TimelineOverview extends React.Component<TimelineOverviewProps>{
         let width = $("#timelineOverview").width();
         // console.log($("timelineOverview"))
         if (width) this.overviewBarWidth = width;
-        else this.overviewBarWidth = 0;
+        // else this.overviewBarWidth = 0;
 
         // console.log(this.overviewBarWidth)
     }
@@ -95,10 +95,12 @@ export class TimelineOverview extends React.Component<TimelineOverviewProps>{
     onScrubberDown = (e: React.PointerEvent) => {
         e.preventDefault();
         e.stopPropagation();
+        if (!this.props.isAuthoring) {
         document.removeEventListener("pointermove", this.onScrubberMove);
         document.removeEventListener("pointerup", this.onScrubberUp);
         document.addEventListener("pointermove", this.onScrubberMove);
         document.addEventListener("pointerup", this.onScrubberUp);
+        }
     }
 
     @action
@@ -107,8 +109,10 @@ export class TimelineOverview extends React.Component<TimelineOverviewProps>{
         e.stopPropagation();
         let scrubberRef = this._scrubberRef.current!;
         let left = scrubberRef.getBoundingClientRect().left;
+        // left = e.screenX;
         let offsetX = Math.round(e.clientX - left);
         this.props.changeCurrentBarX((offsetX / (this.DEFAULT_WIDTH) * this.props.totalLength) + this.props.currentBarX);
+        // this.props.changeCurrentBarX(e.screenX)
     }
 
     @action
@@ -154,7 +158,7 @@ export class TimelineOverview extends React.Component<TimelineOverviewProps>{
                 </div>
             </div>
         ] : [
-                <div className="timeline-play-bar">
+                <div className="timeline-play-bar" style={{ width: this.overviewBarWidth }}>
                     <div ref={this._scrubberRef} className="timeline-play-head" style={{ left: `${(this.props.currentBarX / this.props.totalLength) * 294}px` }} onPointerDown={this.onScrubberDown}></div>
                 </div>,
                 <div className="timeline-play-tail" style={{ width: `${(this.props.currentBarX / this.props.totalLength) * 294}px` }}></div>
