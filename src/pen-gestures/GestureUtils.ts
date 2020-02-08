@@ -35,6 +35,8 @@ export namespace GestureUtils {
     export enum Gestures {
         Box = "box",
         Line = "line",
+        StartBracket = "startbracket",
+        EndBracket = "endbracket",
         Stroke = "stroke",
         Scribble = "scribble",
         Text = "text"

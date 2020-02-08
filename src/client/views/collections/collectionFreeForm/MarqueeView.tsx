@@ -20,6 +20,7 @@ import React = require("react");
 import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
 import { SubCollectionViewProps } from "../CollectionSubView";
 import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
+import { RichTextField } from "../../../../new_fields/RichTextField";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -368,18 +369,29 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         const selected = this.marqueeSelect(false);
         if (e instanceof KeyboardEvent ? e.key === "i" : true) {
             const inks = selected.filter(s => s.proto?.type === "ink");
-            const sets = selected.filter(s => s.proto?.type === "text")
-            const inkFields = inks.map(i => FieldValue(Cast(i.data, InkField)));
+            const setDocs = selected.filter(s => s.proto?.type === "text" && s.color);
+            const sets = setDocs.map((sd) => {
+                return Cast(sd.data, RichTextField)?.Text as string;
+            });
+            const colors = setDocs.map(sd => FieldValue(sd.color) as string);
+            const wordToColor = new Map<string, string>();
+            console.log(sets);
+            sets.forEach((st: string, i: number) => {
+                const words = st.split(",");
+                words.forEach(word => {
+                    wordToColor.set(word, colors[i]);
+                });
+            });
+            const inkFields = inks.map(i => Cast(i.data, InkField));
             CognitiveServices.Inking.Appliers.InterpretStrokes(inkFields.filter(i => i instanceof InkField).map(i => i!.inkData)).then((results) => {
                 const wordResults = results.filter((r: any) => r.category === "inkWord");
                 console.log(wordResults);
                 for (const word of wordResults) {
                     const indices: number[] = word.strokeIds;
-                    const r = Math.floor(Math.random() * 256);
-                    const g = Math.floor(Math.random() * 256);
-                    const b = Math.floor(Math.random() * 256);
                     indices.forEach(i => {
-                        inks[i].color = `rgb(${r}, ${g}, ${b})`;
+                        if (wordToColor.has(word.recognizedText)) {
+                            inks[i].color = wordToColor.get(word.recognizedText);
+                        }
                     })
                 }
             });

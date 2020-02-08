@@ -9,7 +9,7 @@ import { Id } from "../../../../new_fields/FieldSymbols";
 import { InkTool, InkField, InkData } from "../../../../new_fields/InkField";
 import { createSchema, makeInterface } from "../../../../new_fields/Schema";
 import { ScriptField } from "../../../../new_fields/ScriptField";
-import { BoolCast, Cast, DateCast, NumCast, StrCast, ScriptCast } from "../../../../new_fields/Types";
+import { BoolCast, Cast, DateCast, NumCast, StrCast, ScriptCast, FieldValue } from "../../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../../server/authentication/models/current_user_utils";
 import { aggregateBounds, emptyFunction, intersectRect, returnOne, Utils } from "../../../../Utils";
 import { DocServer } from "../../../DocServer";
@@ -42,6 +42,8 @@ import { computedFn } from "mobx-utils";
 import { TraceMobx } from "../../../../new_fields/util";
 import { GestureUtils } from "../../../../pen-gestures/GestureUtils";
 import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
+import { RichTextField } from "../../../../new_fields/RichTextField";
+import { List } from "../../../../new_fields/List";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
@@ -70,6 +72,9 @@ const PanZoomDocument = makeInterface(panZoomSchema, documentSchema, positionSch
 export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private _lastX: number = 0;
     private _lastY: number = 0;
+    private _inkToTextStartX: number | undefined;
+    private _inkToTextStartY: number | undefined;
+    private _wordPalette: Map<string, string> = new Map<string, string>();
     private _clusterDistance: number = 75;
     private _hitCluster = false;
     private _layoutComputeReaction: IReactionDisposer | undefined;
@@ -411,11 +416,78 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 });
                 this.addDocument(Docs.Create.FreeformDocument(sel, { title: "nested collection", x: bounds.x, y: bounds.y, _width: bWidth, _height: bHeight, _panX: 0, _panY: 0 }));
                 sel.forEach(d => this.props.removeDocument(d));
+                e.stopPropagation();
+                break;
+            case GestureUtils.Gestures.StartBracket:
+                const start = this.getTransform().transformPoint(Math.min(...ge.points.map(p => p.X)), Math.min(...ge.points.map(p => p.Y)));
+                this._inkToTextStartX = start[0];
+                this._inkToTextStartY = start[1];
+                console.log("start");
+                break;
+            case GestureUtils.Gestures.EndBracket:
+                console.log("end");
+                if (this._inkToTextStartX && this._inkToTextStartY) {
+                    const end = this.getTransform().transformPoint(Math.max(...ge.points.map(p => p.X)), Math.max(...ge.points.map(p => p.Y)));
+                    const setDocs = this.getActiveDocuments().filter(s => s.proto?.type === "text" && s.color);
+                    const sets = setDocs.map((sd) => {
+                        return Cast(sd.data, RichTextField)?.Text as string;
+                    });
+                    if (sets.length && sets[0]) {
+                        this._wordPalette.clear();
+                        const colors = setDocs.map(sd => FieldValue(sd.color) as string);
+                        sets.forEach((st: string, i: number) => {
+                            const words = st.split(",");
+                            words.forEach(word => {
+                                this._wordPalette.set(word, colors[i]);
+                            });
+                        });
+                    }
+                    const inks = this.getActiveDocuments().filter(doc => {
+                        if (doc.type === "ink") {
+                            const l = NumCast(doc.x);
+                            const r = l + doc[WidthSym]();
+                            const t = NumCast(doc.y);
+                            const b = t + doc[HeightSym]();
+                            const pass = !(this._inkToTextStartX! > r || end[0] < l || this._inkToTextStartY! > b || end[1] < t);
+                            return pass;
+                        }
+                        return false;
+                    });
+                    const inkFields = inks.map(i => Cast(i.data, InkField));
+                    CognitiveServices.Inking.Appliers.InterpretStrokes(inkFields.filter(i => i instanceof InkField).map(i => i!.inkData)).then((results) => {
+                        const wordResults = results.filter((r: any) => r.category === "inkWord");
+                        console.log(wordResults);
+                        for (const word of wordResults) {
+                            const indices: number[] = word.strokeIds;
+                            indices.forEach(i => {
+                                const otherInks: Doc[] = [];
+                                indices.forEach(i2 => i2 !== i && otherInks.push(inks[i2]));
+                                inks[i].relatedInks = new List<Doc>(otherInks);
+                                const uniqueColors: string[] = [];
+                                Array.from(this._wordPalette.values()).forEach(c => uniqueColors.indexOf(c) === -1 && uniqueColors.push(c));
+                                inks[i].alternativeColors = new List<string>(uniqueColors);
+                                if (this._wordPalette.has(word.recognizedText)) {
+                                    inks[i].color = this._wordPalette.get(word.recognizedText);
+                                }
+                                else {
+                                    for (const alt of word.alternates) {
+                                        if (this._wordPalette.has(alt.recognizedString)) {
+                                            inks[i].color = this._wordPalette.get(alt.recognizedString);
+                                            break;
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                    });
+                    this._inkToTextStartX = end[0];
+                }
                 break;
             case GestureUtils.Gestures.Text:
                 if (ge.text) {
                     const B = this.getTransform().transformPoint(ge.points[0].X, ge.points[0].Y);
                     this.addDocument(Docs.Create.TextDocument(ge.text, { title: ge.text, x: B[0], y: B[1] }));
+                    e.stopPropagation();
                 }
         }
     }

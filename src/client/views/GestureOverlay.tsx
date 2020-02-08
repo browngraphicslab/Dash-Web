@@ -50,7 +50,7 @@ export default class GestureOverlay extends Touchable {
     @observable private _clipboardDoc?: JSX.Element;
     @observable private _possibilities: JSX.Element[] = [];
 
-    @computed private get height(): number { return Math.max(this._pointerY && this._thumbY ? this._thumbY - this._pointerY : 300, 300); }
+    @computed private get height(): number { return 2 * Math.max(this._pointerY && this._thumbY ? this._thumbY - this._pointerY : 300, 300); }
     @computed private get showBounds() { return this.Tool !== ToolglassTools.None; }
 
     private _d1: Doc | undefined;
@@ -408,8 +408,8 @@ export default class GestureOverlay extends Touchable {
             const points = this._points.map(p => ({ X: p.X - B.left, Y: p.Y - B.top }));
 
             const initialPoint = this._points[0.];
-            const xInGlass = initialPoint.X > (this._thumbX ?? Number.MAX_SAFE_INTEGER) && initialPoint.X < (this._thumbX ?? Number.MAX_SAFE_INTEGER) + this.height;
-            const yInGlass = initialPoint.Y > (this._thumbY ?? Number.MAX_SAFE_INTEGER) - this.height && initialPoint.Y < (this._thumbY ?? Number.MAX_SAFE_INTEGER);
+            const xInGlass = initialPoint.X > (this._thumbX ?? Number.MAX_SAFE_INTEGER) && initialPoint.X < (this._thumbX ?? Number.MAX_SAFE_INTEGER) + (this.height);
+            const yInGlass = initialPoint.Y > (this._thumbY ?? Number.MAX_SAFE_INTEGER) - (this.height) && initialPoint.Y < (this._thumbY ?? Number.MAX_SAFE_INTEGER);
 
             if (this.Tool !== ToolglassTools.None && xInGlass && yInGlass) {
                 switch (this.Tool) {
@@ -448,6 +448,14 @@ export default class GestureOverlay extends Touchable {
                     switch (result.Name) {
                         case GestureUtils.Gestures.Box:
                             this.dispatchGesture(GestureUtils.Gestures.Box);
+                            actionPerformed = true;
+                            break;
+                        case GestureUtils.Gestures.StartBracket:
+                            this.dispatchGesture(GestureUtils.Gestures.StartBracket);
+                            actionPerformed = true;
+                            break;
+                        case GestureUtils.Gestures.EndBracket:
+                            this.dispatchGesture(GestureUtils.Gestures.EndBracket);
                             actionPerformed = true;
                             break;
                         case GestureUtils.Gestures.Line:
@@ -562,8 +570,8 @@ export default class GestureOverlay extends Touchable {
 
                 <div className="clipboardDoc-cont" style={{
                     transform: `translate(${this._thumbX}px, ${(this._thumbY ?? 0) - this.height}px)`,
-                    height: this.height * 2,
-                    width: this.height * 2,
+                    height: this.height,
+                    width: this.height,
                     pointerEvents: this._clipboardDoc ? "unset" : "none",
                     touchAction: this._clipboardDoc ? "unset" : "none",
                 }}>
@@ -571,8 +579,8 @@ export default class GestureOverlay extends Touchable {
                 </div>
                 <div className="filter-cont" style={{
                     transform: `translate(${this._thumbX}px, ${(this._thumbY ?? 0) - this.height}px)`,
-                    height: this.height * 2,
-                    width: this.height * 2,
+                    height: this.height,
+                    width: this.height,
                     pointerEvents: "none",
                     touchAction: "none",
                     display: this.showBounds ? "unset" : "none",

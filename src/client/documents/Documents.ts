@@ -139,6 +139,7 @@ export interface DocumentOptions {
     letterSpacing?: string; // is linear view expanded
     flexDirection?: "unset" | "row" | "column" | "row-reverse" | "column-reverse";
     selectedIndex?: number;
+    syntaxColor?: string; // can be applied to text for syntax highlighting all matches in the text
 }
 
 class EmptyBox {
