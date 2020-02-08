@@ -983,7 +983,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 height: "100%",
                 opacity: this.Document.opacity
             }}>
-            {this.innards}
+            {this.onClickHandler ?  <>
+                {this.innards}
+                <div className="documentView-contentBlocker"/>
+            </> :
+            this.innards}
         </div>;
     }
 }
