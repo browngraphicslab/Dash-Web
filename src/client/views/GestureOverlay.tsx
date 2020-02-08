@@ -130,7 +130,7 @@ export default class GestureOverlay extends Touchable {
 
         if (nts.nt.length < 5) {
             const target = document.elementFromPoint(te.changedTouches.item(0).clientX, te.changedTouches.item(0).clientY);
-            target ?.dispatchEvent(
+            target?.dispatchEvent(
                 new CustomEvent<InteractionUtils.MultiTouchEvent<React.TouchEvent>>("dashOnTouchStart",
                     {
                         bubbles: true,
@@ -144,34 +144,34 @@ export default class GestureOverlay extends Touchable {
                     }
                 )
             );
-            if (this.prevPoints.size === 1 && this._holdTimer === undefined) {
-                console.log("started");
-                this._holdTimer = setTimeout(() => {
-                    console.log("hold");
-                    const target = document.elementFromPoint(te.changedTouches.item(0).clientX, te.changedTouches.item(0).clientY);
-                    target ?.dispatchEvent(
-                        new CustomEvent<InteractionUtils.MultiTouchEvent<React.TouchEvent>>("dashOnTouchHoldStart",
-                            {
-                                bubbles: true,
-                                detail: {
-                                    fingers: this.prevPoints.size,
-                                    targetTouches: nts.ntt,
-                                    touches: nts.nt,
-                                    changedTouches: nts.nct,
-                                    touchEvent: te
-                                }
-                            }
-                        )
-                    );
-                    this._holdTimer = undefined;
-                    document.removeEventListener("touchmove", this.onReactTouchMove);
-                    document.removeEventListener("touchend", this.onReactTouchEnd);
-                    document.removeEventListener("touchmove", this.onReactHoldTouchMove);
-                    document.removeEventListener("touchend", this.onReactHoldTouchEnd);
-                    document.addEventListener("touchmove", this.onReactHoldTouchMove);
-                    document.addEventListener("touchend", this.onReactHoldTouchEnd);
-                }, (1000));
-            }
+            // if (this.prevPoints.size === 1 && this._holdTimer === undefined) {
+            //     console.log("started");
+            //     this._holdTimer = setTimeout(() => {
+            //         console.log("hold");
+            //         const target = document.elementFromPoint(te.changedTouches.item(0).clientX, te.changedTouches.item(0).clientY);
+            //         target?.dispatchEvent(
+            //             new CustomEvent<InteractionUtils.MultiTouchEvent<React.TouchEvent>>("dashOnTouchHoldStart",
+            //                 {
+            //                     bubbles: true,
+            //                     detail: {
+            //                         fingers: this.prevPoints.size,
+            //                         targetTouches: nts.ntt,
+            //                         touches: nts.nt,
+            //                         changedTouches: nts.nct,
+            //                         touchEvent: te
+            //                     }
+            //                 }
+            //             )
+            //         );
+            //         this._holdTimer = undefined;
+            //         document.removeEventListener("touchmove", this.onReactTouchMove);
+            //         document.removeEventListener("touchend", this.onReactTouchEnd);
+            //         document.removeEventListener("touchmove", this.onReactHoldTouchMove);
+            //         document.removeEventListener("touchend", this.onReactHoldTouchEnd);
+            //         document.addEventListener("touchmove", this.onReactHoldTouchMove);
+            //         document.addEventListener("touchend", this.onReactHoldTouchEnd);
+            //     }, (1000));
+            // }
             document.removeEventListener("touchmove", this.onReactTouchMove);
             document.removeEventListener("touchend", this.onReactTouchEnd);
             document.addEventListener("touchmove", this.onReactTouchMove);
@@ -304,7 +304,7 @@ export default class GestureOverlay extends Touchable {
             if (pt.radiusX > 1 && pt.radiusY > 1) {
                 for (let j = 0; j < e.targetTouches.length; j++) {
                     const tPt = e.targetTouches.item(j);
-                    if (tPt ?.screenX === pt ?.screenX && tPt ?.screenY === pt ?.screenY) {
+                    if (tPt?.screenX === pt?.screenX && tPt?.screenY === pt?.screenY) {
                         if (pt && this.prevPoints.has(pt.identifier)) {
                             fingers.push(pt);
                         }
@@ -392,17 +392,32 @@ export default class GestureOverlay extends Touchable {
         for (let i = 0; i < e.changedTouches.length; i++) {
             const pt = e.changedTouches.item(i);
             if (pt && pt.identifier === this.thumbIdentifier && this._thumbY) {
-                if (this._thumbX && this._thumbDoc) {
-                    if (Math.abs(pt.clientX - this._thumbX) > 30) {
-                        this._thumbDoc.selectedIndex = Math.max(0, NumCast(this._thumbDoc.selectedIndex) - Math.sign(pt.clientX - this._thumbX));
-                        this._thumbX = pt.clientX;
+                if (this._thumbX && this._thumbY) {
+                    const yOverX = Math.abs(pt.clientX - this._thumbX) < Math.abs(pt.clientY - this._thumbY);
+                    if ((yOverX && this._inkToTextDoc) || this._selectedIndex > 0) {
+                        if (Math.abs(pt.clientY - this._thumbY) > 20) {
+                            this._selectedIndex = Math.min(Math.max(0, -Math.ceil((pt.clientY - this._thumbY) / 20)), this._possibilities.length - 1);
+                        }
+                    }
+                    else if (this._thumbDoc) {
+                        if (Math.abs(pt.clientX - this._thumbX) > 30) {
+                            this._thumbDoc.selectedIndex = Math.max(0, NumCast(this._thumbDoc.selectedIndex) - Math.sign(pt.clientX - this._thumbX));
+                            this._thumbX = pt.clientX;
+                        }
                     }
                 }
-                if (this._thumbY && this._inkToTextDoc) {
-                    if (Math.abs(pt.clientY - this._thumbY) > 20) {
-                        this._selectedIndex = Math.max(0, -Math.floor((pt.clientY - this._thumbY) / 20));
-                    }
-                }
+
+                // if (this._thumbX && this._thumbDoc) {
+                //     if (Math.abs(pt.clientX - this._thumbX) > 30) {
+                //         this._thumbDoc.selectedIndex = Math.max(0, NumCast(this._thumbDoc.selectedIndex) - Math.sign(pt.clientX - this._thumbX));
+                //         this._thumbX = pt.clientX;
+                //     }
+                // }
+                // if (this._thumbY && this._inkToTextDoc) {
+                //     if (Math.abs(pt.clientY - this._thumbY) > 20) {
+                //         this._selectedIndex = Math.min(Math.max(0, -Math.ceil((pt.clientY - this._thumbY) / 20)), this._possibilities.length - 1);
+                //     }
+                // }
             }
             if (pt && pt.identifier === this.pointerIdentifier) {
                 this._pointerY = pt.clientY;
@@ -506,8 +521,8 @@ export default class GestureOverlay extends Touchable {
                     callbackFn: callback
                 }
             });
-        target1 ?.dispatchEvent(ge);
-        target2 ?.dispatchEvent(ge);
+        target1?.dispatchEvent(ge);
+        target2?.dispatchEvent(ge);
         return actionPerformed;
     }
 
@@ -529,12 +544,16 @@ export default class GestureOverlay extends Touchable {
                         this._strokes.push(new Array(...this._points));
                         this._points = [];
                         CognitiveServices.Inking.Appliers.InterpretStrokes(this._strokes).then((results) => {
-                            const wordResults = results.filter((r: any) => r.category === "inkWord" || r.category === "paragraph");
+                            console.log(results);
+                            const wordResults = results.filter((r: any) => r.category === "line");
                             const possibilities: string[] = [];
-                            if (wordResults[0]?.recognizedText) {
-                                possibilities.push(wordResults[0]?.recognizedText)
+                            for (const wR of wordResults) {
+                                console.log(wR);
+                                if (wR?.recognizedText) {
+                                    possibilities.push(wR?.recognizedText)
+                                }
+                                possibilities.push(...wR?.alternates?.map((a: any) => a.recognizedString));
                             }
-                            possibilities.push(...wordResults[0]?.alternates?.map((a: any) => a.recognizedString));
                             console.log(possibilities);
                             const r = Math.max(this.svgBounds.right, ...this._strokes.map(s => this.getBounds(s).right));
                             const l = Math.min(this.svgBounds.left, ...this._strokes.map(s => this.getBounds(s).left));
