@@ -366,6 +366,22 @@ export default class GestureOverlay extends Touchable {
             this._points.push({ X: e.clientX, Y: e.clientY });
             e.stopPropagation();
             e.preventDefault();
+
+
+            if (this._points.length > 1) {
+                const B = this.svgBounds;
+                const initialPoint = this._points[0.];
+                const xInGlass = initialPoint.X > (this._thumbX ?? Number.MAX_SAFE_INTEGER) && initialPoint.X < (this._thumbX ?? Number.MAX_SAFE_INTEGER) + this.height;
+                const yInGlass = initialPoint.Y > (this._thumbY ?? Number.MAX_SAFE_INTEGER) - this.height && initialPoint.Y < (this._thumbY ?? Number.MAX_SAFE_INTEGER);
+                if (this.Tool !== ToolglassTools.None && xInGlass && yInGlass) {
+                    switch (this.Tool) {
+                        case ToolglassTools.RadialMenu:
+                            document.removeEventListener("pointermove", this.onPointerMove);
+                            document.removeEventListener("pointerup", this.onPointerUp);
+                        //this.handle1PointerHoldStart(e);
+                    }
+                }
+            }
         }
     }
 
@@ -588,6 +604,7 @@ export default class GestureOverlay extends Touchable {
 export enum ToolglassTools {
     InkToText = "inktotext",
     IgnoreGesture = "ignoregesture",
+    RadialMenu = "radialmenu",
     None = "none",
 }
 
