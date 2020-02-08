@@ -595,6 +595,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             const myTouches = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true);
             const pt1 = myTouches[0];
             const pt2 = myTouches[1];
+            console.log(myTouches);
 
             if (this.prevPoints.size === 2) {
                 const oldPoint1 = this.prevPoints.get(pt1.identifier);

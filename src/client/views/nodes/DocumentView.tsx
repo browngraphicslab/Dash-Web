@@ -103,6 +103,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     private _titleRef = React.createRef<EditableView>();
 
     protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
+    private holdDisposer?: InteractionUtils.MultiTouchEventDisposer;
 
     public get displayName() { return "DocumentView(" + this.props.Document.title + ")"; } // this makes mobx trace() statements more descriptive
     public get ContentDiv() { return this._mainCont.current; }
@@ -114,71 +115,62 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @computed get onPointerDownHandler() { return this.props.onPointerDown ? this.props.onPointerDown : this.Document.onPointerDown; }
     @computed get onPointerUpHandler() { return this.props.onPointerUp ? this.props.onPointerUp : this.Document.onPointerUp; }
 
-    private _firstX: number = 0;
-    private _firstY: number = 0;
+    private _firstX: number = -1;
+    private _firstY: number = -1;
 
 
-    // handle1PointerHoldStart = (e: React.TouchEvent): any => {
-    //     this.onRadialMenu(e);
-    //     const pt = InteractionUtils.GetMyTargetTouches(e, this.prevPoints, true)[0];
-    //     this._firstX = pt.pageX;
-    //     this._firstY = pt.pageY;
-    //     e.stopPropagation();
-    //     e.preventDefault();
+    handle1PointerHoldStart = (e: Event, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>): any => {
+        this.addHoldMoveListeners();
+        this.addHoldEndListeners();
+        this.onRadialMenu(e, me);
+        const pt = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true)[0];
+        this._firstX = pt.pageX;
+        this._firstY = pt.pageY;
 
-    //     document.removeEventListener("touchmove", this.onTouch);
-    //     document.removeEventListener("touchmove", this.handle1PointerHoldMove);
-    //     document.addEventListener("touchmove", this.handle1PointerHoldMove);
-    //     document.removeEventListener("touchend", this.handle1PointerHoldEnd);
-    //     document.addEventListener("touchend", this.handle1PointerHoldEnd);
-    // }
+    }
 
-    // handle1PointerHoldMove = (e: TouchEvent): void => {
-    //     const pt = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true)[0];
-    //     if (Math.abs(pt.pageX - this._firstX) > 150 || Math.abs(pt.pageY - this._firstY) > 150) {
-    //         this.handleRelease();
-    //     }
-    //     document.removeEventListener("touchmove", this.handle1PointerHoldMove);
-    //     document.addEventListener("touchmove", this.handle1PointerHoldMove);
-    //     document.removeEventListener("touchend", this.handle1PointerHoldEnd);
-    //     document.addEventListener("touchend", this.handle1PointerHoldEnd);
-    // }
+    handle1PointerHoldMove = (e: Event, me: InteractionUtils.MultiTouchEvent<TouchEvent>): void => {
+        const pt = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true)[0];
+        console.log(pt.pageX, this._firstX, pt.pageY, this._firstY);
+        if (this._firstX === -1 || this._firstY === -1) {
+            return;
+        }
+        if (Math.abs(pt.pageX - this._firstX) > 150 || Math.abs(pt.pageY - this._firstY) > 150) {
+            console.log("WHY");
+            this.handle1PointerHoldEnd(e, me);
+        }
+    }
 
-    // handleRelease() {
-    //     RadialMenu.Instance.closeMenu();
-    //     document.removeEventListener("touchmove", this.handle1PointerHoldMove);
-    //     document.removeEventListener("touchend", this.handle1PointerHoldEnd);
-    // }
+    handle1PointerHoldEnd = (e: Event, me: InteractionUtils.MultiTouchEvent<TouchEvent>): void => {
+        RadialMenu.Instance.closeMenu();
+        this._firstX = -1;
+        this._firstY = -1;
+    }
 
-    // handle1PointerHoldEnd = (e: TouchEvent): void => {
-    //     RadialMenu.Instance.closeMenu();
-    //     document.removeEventListener("touchmove", this.handle1PointerHoldMove);
-    //     document.removeEventListener("touchend", this.handle1PointerHoldEnd);
-    // }
+    @action
+    onRadialMenu = (e: Event, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>): void => {
+        const pt = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true)[0];
 
-    // @action
-    // onRadialMenu = (e: React.TouchEvent): void => {
-    //     const pt = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true)[0];
+        RadialMenu.Instance.openMenu();
 
-    //     RadialMenu.Instance.openMenu();
+        RadialMenu.Instance.addItem({ description: "Open Fields", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group", selected: -1 });
+        RadialMenu.Instance.addItem({ description: "Delete this document", event: () => this.props.ContainingCollectionView?.removeDocument(this.props.Document), icon: "trash", selected: -1 });
+        RadialMenu.Instance.addItem({ description: "Open in a new tab", event: () => this.props.addDocTab(this.props.Document, undefined, "onRight"), icon: "folder", selected: -1 });
+        RadialMenu.Instance.addItem({ description: "Pin to Presentation", event: () => this.props.pinToPres(this.props.Document), icon: "map-pin", selected: -1 });
 
-    //     RadialMenu.Instance.addItem({ description: "Open Fields", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group", selected: -1 });
-    //     RadialMenu.Instance.addItem({ description: "Delete this document", event: () => this.props.ContainingCollectionView?.removeDocument(this.props.Document), icon: "trash", selected: -1 });
-    //     RadialMenu.Instance.addItem({ description: "Open in a new tab", event: () => this.props.addDocTab(this.props.Document, undefined, "onRight"), icon: "folder", selected: -1 });
-    //     RadialMenu.Instance.addItem({ description: "Pin to Presentation", event: () => this.props.pinToPres(this.props.Document), icon: "map-pin", selected: -1 });
-
-    //     RadialMenu.Instance.displayMenu(pt.pageX - 15, pt.pageY - 15);
-    //     if (!SelectionManager.IsSelected(this, true)) {
-    //         SelectionManager.SelectDoc(this, false);
-    //     }
-    //     e.stopPropagation();
-    // }
+        RadialMenu.Instance.displayMenu(pt.pageX - 15, pt.pageY - 15);
+        if (!SelectionManager.IsSelected(this, true)) {
+            SelectionManager.SelectDoc(this, false);
+        }
+        e.stopPropagation();
+    }
 
     @action
     componentDidMount() {
         this._mainCont.current && (this._dropDisposer = DragManager.MakeDropTarget(this._mainCont.current, this.drop.bind(this)));
         this._mainCont.current && (this._gestureEventDisposer = GestureUtils.MakeGestureTarget(this._mainCont.current, this.onGesture.bind(this)));
         this._mainCont.current && (this.multiTouchDisposer = InteractionUtils.MakeMultiTouchTarget(this._mainCont.current, this.onTouchStart.bind(this)));
+        this._mainCont.current && (this.holdDisposer = InteractionUtils.MakeHoldTouchTarget(this._mainCont.current, this.handle1PointerHoldStart.bind(this)));
 
         !this.props.dontRegisterView && DocumentManager.Instance.DocumentViews.push(this);
     }
@@ -188,14 +180,19 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this._dropDisposer && this._dropDisposer();
         this._gestureEventDisposer && this._gestureEventDisposer();
         this.multiTouchDisposer && this.multiTouchDisposer();
+        this.holdDisposer && this.holdDisposer();
         this._mainCont.current && (this._dropDisposer = DragManager.MakeDropTarget(this._mainCont.current, this.drop.bind(this)));
         this._mainCont.current && (this._gestureEventDisposer = GestureUtils.MakeGestureTarget(this._mainCont.current, this.onGesture.bind(this)));
         this._mainCont.current && (this.multiTouchDisposer = InteractionUtils.MakeMultiTouchTarget(this._mainCont.current, this.onTouchStart.bind(this)));
+        this._mainCont.current && (this.holdDisposer = InteractionUtils.MakeHoldTouchTarget(this._mainCont.current, this.handle1PointerHoldStart.bind(this)));
     }
 
     @action
     componentWillUnmount() {
         this._dropDisposer && this._dropDisposer();
+        this._gestureEventDisposer && this._gestureEventDisposer();
+        this.multiTouchDisposer && this.multiTouchDisposer();
+        this.holdDisposer && this.holdDisposer();
         Doc.UnBrushDoc(this.props.Document);
         !this.props.dontRegisterView && DocumentManager.Instance.DocumentViews.splice(DocumentManager.Instance.DocumentViews.indexOf(this), 1);
     }
