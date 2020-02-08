@@ -12,7 +12,7 @@ import { DocServer } from "../../DocServer";
 import { DocumentView } from "../nodes/DocumentView";
 import { Utils } from "../../../Utils";
 import { MessageStore } from "../../../server/Message";
-import { initialize } from "./WebCamLogic";
+import { initialize, hangup } from "./WebCamLogic";
 
 const mediaStreamConstraints = {
     video: true,
@@ -29,12 +29,12 @@ const offerOptions = {
 export class DashWebRTCVideo extends React.Component<CollectionFreeFormDocumentViewProps & FieldViewProps> {
     @observable private localVideoEl: HTMLVideoElement | undefined;
     @observable private peerVideoEl: HTMLVideoElement | undefined;
-    // private roomText: HTMLInputElement | undefined;
+    private roomText: HTMLInputElement | undefined;
     // private roomOfCam: string = "";
     // private isChannelReady = false;
     // private isInitiator = false;
     // private isStarted = false;
-    // @observable remoteVideoAdded: boolean = false;
+    @observable remoteVideoAdded: boolean = false;
     // localStream: MediaStream | undefined;
     // private pc: any;
     // remoteStream: MediaStream | undefined;
@@ -56,17 +56,22 @@ export class DashWebRTCVideo extends React.Component<CollectionFreeFormDocumentV
     // };
 
     componentDidMount() {
-        // DocumentDecorations.Instance.addCloseCall(this.closeConnection);
-        setTimeout(() => initialize(), 10000);
+        DocumentDecorations.Instance.addCloseCall(this.closeConnection);
+        // setTimeout(() => initialize(), 10000);
         // let self = this;
         // window.onbeforeunload = function () {
         //     self.sendMessage('bye');
         // };
     }
 
-    // closeConnection: CloseCall = () => {
-    //     this.hangup();
-    // }
+    closeConnection: CloseCall = () => {
+        hangup();
+    }
+
+    @action
+    changeUILook = () => {
+        this.remoteVideoAdded = true;
+    }
 
     // componentWillUnmount() {
     // }
@@ -335,18 +340,17 @@ export class DashWebRTCVideo extends React.Component<CollectionFreeFormDocumentV
 
 
 
-    // /**
-    //   * Function that submits the title entered by user on enter press.
-    //   */
-    // private onEnterKeyDown = (e: React.KeyboardEvent) => {
-    //     if (e.keyCode === 13) {
-    //         let submittedTitle = this.roomText!.value;
-    //         this.roomText!.value = "";
-    //         this.roomText!.blur();
-    //         this.roomOfCam = submittedTitle;
-    //         this.init(submittedTitle);
-    //     }
-    // }
+    /**
+      * Function that submits the title entered by user on enter press.
+      */
+    private onEnterKeyDown = (e: React.KeyboardEvent) => {
+        if (e.keyCode === 13) {
+            let submittedTitle = this.roomText!.value;
+            this.roomText!.value = "";
+            this.roomText!.blur();
+            initialize(submittedTitle, this.changeUILook);
+        }
+    }
 
 
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(DashWebRTCVideo, fieldKey); }
@@ -373,11 +377,11 @@ export class DashWebRTCVideo extends React.Component<CollectionFreeFormDocumentV
         let content =
             <div className="webcam-cont" style={{ width: "100%", height: "100%" }} onWheel={this.onPostWheel} onPointerDown={this.onPostPointer} onPointerMove={this.onPostPointer} onPointerUp={this.onPostPointer}>
                 <div className="webcam-header">DashWebRTC</div>
-                {/* <input id="roomName" type="text" placeholder="Enter room name" ref={(e) => this.roomText = e!} onKeyDown={this.onEnterKeyDown} /> */}
-                <video id="localVideo" autoPlay playsInline ref={(e) => {
+                <input id="roomName" type="text" placeholder="Enter room name" ref={(e) => this.roomText = e!} onKeyDown={this.onEnterKeyDown} />
+                <video id="localVideo" className={"RTCVideo" + (this.remoteVideoAdded ? " side" : " main")} autoPlay playsInline ref={(e) => {
                     this.localVideoEl = e!;
                 }}></video>
-                <video id="remoteVideo" autoPlay playsInline ref={(e) => {
+                <video id="remoteVideo" className="RTCVideo main" autoPlay playsInline ref={(e) => {
                     this.peerVideoEl = e!;
                 }}></video>
 

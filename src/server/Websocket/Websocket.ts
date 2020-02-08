@@ -47,25 +47,25 @@ export namespace WebSocket {
             }
 
             socket.on('message', function (message) {
-                log('Client said: ', message);
+                console.log('Client said: ', message);
                 // for a real app, would be room-only (not broadcast)
                 socket.broadcast.emit('message', message);
             });
 
             socket.on('create or join', function (room) {
-                log('Received request to create or join room ' + room);
+                console.log('Received request to create or join room ' + room);
 
                 var clientsInRoom = socket.adapter.rooms[room];
                 var numClients = clientsInRoom ? Object.keys(clientsInRoom.sockets).length : 0;
-                log('Room ' + room + ' now has ' + numClients + ' client(s)');
+                console.log('Room ' + room + ' now has ' + numClients + ' client(s)');
 
                 if (numClients === 0) {
                     socket.join(room);
-                    log('Client ID ' + socket.id + ' created room ' + room);
+                    console.log('Client ID ' + socket.id + ' created room ' + room);
                     socket.emit('created', room, socket.id);
 
                 } else if (numClients === 1) {
-                    log('Client ID ' + socket.id + ' joined room ' + room);
+                    console.log('Client ID ' + socket.id + ' joined room ' + room);
                     socket.in(room).emit('join', room);
                     socket.join(room);
                     socket.emit('joined', room, socket.id);
@@ -107,9 +107,9 @@ export namespace WebSocket {
             Utils.AddServerHandler(socket, MessageStore.DeleteFields, ids => DeleteFields(socket, ids));
             Utils.AddServerHandlerCallback(socket, MessageStore.GetRefField, GetRefField);
             Utils.AddServerHandlerCallback(socket, MessageStore.GetRefFields, GetRefFields);
-            Utils.AddServerHandler(socket, MessageStore.NotifyRoommates, message => HandleRoommateNotification(socket, message));
-            Utils.AddServerHandler(socket, MessageStore.HangUpCall, message => HandleHangUp(socket, message));
-            Utils.AddRoomHandler(socket, "create or join", HandleCreateOrJoin);
+            //Utils.AddServerHandler(socket, MessageStore.NotifyRoommates, message => HandleRoommateNotification(socket, message));
+            //Utils.AddServerHandler(socket, MessageStore.HangUpCall, message => HandleHangUp(socket, message));
+            //Utils.AddRoomHandler(socket, "create or join", HandleCreateOrJoin);
 
             disconnect = () => {
                 socket.broadcast.emit("connection_terminated", Date.now());

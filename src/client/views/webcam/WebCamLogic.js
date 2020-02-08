@@ -1,15 +1,17 @@
 'use strict';
 import io from "socket.io-client";
 
-export function initialize() {
+var socket;
+var isChannelReady = false;
+var isInitiator = false;
+var isStarted = false;
+var localStream;
+var pc;
+var remoteStream;
+var turnReady;
+var room;
 
-    var isChannelReady = false;
-    var isInitiator = false;
-    var isStarted = false;
-    var localStream;
-    var pc;
-    var remoteStream;
-    var turnReady;
+export function initialize(roomName, handlerUI) {
 
     var pcConfig = {
         'iceServers': [{
@@ -25,11 +27,11 @@ export function initialize() {
 
     /////////////////////////////////////////////
 
-    var room = 'foo';
+    room = roomName;
     // Could prompt for room name:
     // room = prompt('Enter room name:');
 
-    var socket = io.connect(`${window.location.protocol}//${window.location.hostname}:${4321}`);
+    socket = io.connect(`${window.location.protocol}//${window.location.hostname}:${4321}`);
 
     if (room !== '') {
         socket.emit('create or join', room);
@@ -62,10 +64,6 @@ export function initialize() {
 
     ////////////////////////////////////////////////
 
-    const sendMessage = (message) => {
-        console.log('Client sending message: ', message);
-        socket.emit('message', message);
-    };
 
     // This client receives a message
     socket.on('message', function (message) {
@@ -95,6 +93,7 @@ export function initialize() {
 
     var localVideo = document.querySelector('#localVideo');
     var remoteVideo = document.querySelector('#remoteVideo');
+
 
     console.log("Local Video: ", localVideo);
     console.log("Remote Video: ", remoteVideo);
@@ -241,28 +240,40 @@ export function initialize() {
         console.log('Remote stream added.');
         remoteStream = event.stream;
         remoteVideo.srcObject = remoteStream;
+        handlerUI();
+
     };
 
     const handleRemoteStreamRemoved = (event) => {
         console.log('Remote stream removed. Event: ', event);
     }
-
-    const hangup = () => {
-        console.log('Hanging up.');
-        stop();
-        sendMessage('bye');
-    }
-
-    const handleRemoteHangup = () => {
-        console.log('Session terminated.');
-        stop();
-        isInitiator = false;
-    }
-
-    const stop = () => {
-        isStarted = false;
-        pc.close();
-        pc = null;
-    }
-
 }
+
+export function hangup() {
+    console.log('Hanging up.');
+    stop();
+    sendMessage('bye');
+    if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+    }
+}
+
+function stop() {
+    isStarted = false;
+    pc.close();
+    pc = null;
+}
+
+function handleRemoteHangup() {
+    console.log('Session terminated.');
+    stop();
+    isInitiator = false;
+    if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+    }
+}
+
+function sendMessage(message) {
+    console.log('Client sending message: ', message);
+    socket.emit('message', message);
+};
