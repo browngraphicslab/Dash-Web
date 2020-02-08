@@ -4,6 +4,7 @@ import { exec } from 'child_process';
 import { command_line } from "../ActionUtilities";
 import RouteSubscriber from "../RouteSubscriber";
 import { red } from "colors";
+import { main } from "../../scraping/buxton/node_scraper";
 
 export default class UtilManager extends ApiManager {
 
@@ -56,6 +57,12 @@ export default class UtilManager extends ApiManager {
 
                 return command_line('python scraper.py', cwd).then(onResolved, tryPython3);
             },
+        });
+
+        register({
+            method: Method.GET,
+            subscription: "/newBuxton",
+            secureHandler: async ({ res }) => res.send(await main())
         });
 
         register({

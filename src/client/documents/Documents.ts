@@ -53,6 +53,7 @@ import { InkingStroke } from "../views/InkingStroke";
 import { InkField } from "../../new_fields/InkField";
 import { InkingControl } from "../views/InkingControl";
 import { RichTextField } from "../../new_fields/RichTextField";
+import { Networking } from "../Network";
 const requestImageSize = require('../util/request-image-size');
 const path = require('path');
 
@@ -339,6 +340,12 @@ export namespace Docs {
      * delegated from top-level prototypes
      */
     export namespace Create {
+
+        export async function Buxton() {
+            console.log(await Networking.FetchFromServer("/newBuxton"));
+        }
+
+        Scripting.addGlobal(Buxton);
 
         const delegateKeys = ["x", "y", "layoutKey", "_width", "_height", "_panX", "_panY", "_viewType", "_nativeWidth", "_nativeHeight", "dropAction", "_annotationOn",
             "_chromeStatus", "_forceActive", "_autoHeight", "_fitWidth", "_LODdisable", "_itemIndex", "_showSidebar", "showTitle"];
