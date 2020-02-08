@@ -10,7 +10,8 @@ import { GoogleCredentialsLoader } from "../credentials/CredentialsLoader";
 import { logPort } from "../ActionUtilities";
 import { timeMap } from "../ApiManagers/UserManager";
 import { green } from "colors";
-import { networkInterfaces } from "os";
+import { networkInterfaces, type } from "os";
+import { object } from "serializr";
 
 export namespace WebSocket {
 
@@ -46,10 +47,9 @@ export namespace WebSocket {
                 socket.emit('log', ['Message from server:', message, ...optionalParams]);
             }
 
-            socket.on('message', function (message) {
+            socket.on('message', function (message, room) {
                 console.log('Client said: ', message);
-                // for a real app, would be room-only (not broadcast)
-                socket.broadcast.emit('message', message);
+                socket.in(room).emit('message', message);
             });
 
             socket.on('create or join', function (room) {

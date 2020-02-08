@@ -260,7 +260,9 @@ export function hangup() {
 
 function stop() {
     isStarted = false;
-    pc.close();
+    if (pc) {
+        pc.close();
+    }
     pc = null;
 }
 
@@ -275,5 +277,5 @@ function handleRemoteHangup() {
 
 function sendMessage(message) {
     console.log('Client sending message: ', message);
-    socket.emit('message', message);
+    socket.emit('message', message, room);
 };
