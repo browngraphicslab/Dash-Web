@@ -301,25 +301,6 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
 
     getCollection = (selected: Doc[], asTemplate: boolean) => {
         const bounds = this.Bounds;
-        const defaultPalette = ["rgb(114,229,239)", "rgb(255,246,209)", "rgb(255,188,156)", "rgb(247,220,96)", "rgb(122,176,238)",
-            "rgb(209,150,226)", "rgb(127,235,144)", "rgb(252,188,189)", "rgb(247,175,81)",];
-        const colorPalette = Cast(this.props.Document.colorPalette, listSpec("string"));
-        if (!colorPalette) this.props.Document.colorPalette = new List<string>(defaultPalette);
-        const palette = Array.from(Cast(this.props.Document.colorPalette, listSpec("string")) as string[]);
-        const usedPaletted = new Map<string, number>();
-        [...this.props.activeDocuments(), this.props.Document].map(child => {
-            const bg = StrCast(Doc.Layout(child).backgroundColor);
-            if (palette.indexOf(bg) !== -1) {
-                palette.splice(palette.indexOf(bg), 1);
-                if (usedPaletted.get(bg)) usedPaletted.set(bg, usedPaletted.get(bg)! + 1);
-                else usedPaletted.set(bg, 1);
-            }
-        });
-        usedPaletted.delete("#f1efeb");
-        usedPaletted.delete("white");
-        usedPaletted.delete("rgba(255,255,255,1)");
-        const usedSequnce = Array.from(usedPaletted.keys()).sort((a, b) => usedPaletted.get(a)! < usedPaletted.get(b)! ? -1 : usedPaletted.get(a)! > usedPaletted.get(b)! ? 1 : 0);
-        const chosenColor = (usedPaletted.size === 0) ? "white" : palette.length ? palette[0] : usedSequnce[0];
         // const inkData = this.ink ? this.ink.inkData : undefined;
         const creator = asTemplate ? Docs.Create.StackingDocument : Docs.Create.FreeformDocument;
         const newCollection = creator(selected, {
@@ -327,8 +308,8 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             y: bounds.top,
             _panX: 0,
             _panY: 0,
-            backgroundColor: this.props.isAnnotationOverlay ? undefined : chosenColor,
-            defaultBackgroundColor: this.props.isAnnotationOverlay ? undefined : chosenColor,
+            backgroundColor: this.props.isAnnotationOverlay ? "#00000015" : "white",
+            defaultBackgroundColor: this.props.isAnnotationOverlay ? "#00000015" : "white",
             _width: bounds.width,
             _height: bounds.height,
             _LODdisable: true,

@@ -320,7 +320,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                                     nativeWidth && (proto["data-nativeWidth"] = nativeWidth);
                                     nativeHeight && (proto["data-nativeHeight"] = nativeHeight);
                                     contentSize && (proto.contentSize = contentSize);
-                                    this.props.addDocument(doc);
+                                    this.props?.addDocument(doc);
                                 }
                             });
                         }));

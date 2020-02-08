@@ -386,15 +386,14 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                             onChange={this.viewChanged}
                             value={NumCast(this.props.CollectionView.props.Document._viewType)}>
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="1">Freeform</option>
-                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="2">schema</option>
+                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="2">Schema</option>
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="4">Tree</option>
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="5">Stacking</option>
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="6">Masonry</option>
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="7">MultiCol</option>
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="8">MultiRow</option>
-                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="9">Pivo/Time</option>
+                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="9">Pivot/Time</option>
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="10">Carousel</option>
-                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="11">Linear</option>
                         </select>
                         <div className="collectionViewBaseChrome-viewSpecs" title="filter documents to show" style={{ display: collapsed ? "none" : "grid" }}>
                             <div className="collectionViewBaseChrome-filterIcon" onPointerDown={this.openViewSpecs} >

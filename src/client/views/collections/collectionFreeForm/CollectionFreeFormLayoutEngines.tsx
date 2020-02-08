@@ -42,13 +42,13 @@ export interface ViewDefResult {
     ele: JSX.Element;
     bounds?: ViewDefBounds;
 }
-
 function toLabel(target: FieldResult<Field>) {
     if (target instanceof ObjectField || target instanceof RefField) {
         return target[ToString]();
     }
     return String(target);
-}/**
+}
+/**
  * Uses canvas.measureText to compute and return the width of the given text of given font in pixels.
  * 
  * @param {String} text The text to be rendered.
@@ -91,9 +91,17 @@ export function computePivotLayout(
             pivotColumnGroups.get(val)!.docs.push(doc);
         }
     }
+    let nonNumbers = 0;
+    childDocs.map(doc => {
+        const num = toNumber(doc[pivotFieldKey]);
+        if (num === undefined || Number.isNaN(num)) {
+            nonNumbers++;
+        }
+    });
+    const pivotNumbers = nonNumbers / childDocs.length < .1;
     if (pivotColumnGroups.size > 10) {
         const arrayofKeys = Array.from(pivotColumnGroups.keys());
-        const sortedKeys = arrayofKeys.sort();
+        const sortedKeys = pivotNumbers ? arrayofKeys.sort((n1: FieldResult, n2: FieldResult) => toNumber(n1)! - toNumber(n2)!) : arrayofKeys.sort();
         const clusterSize = Math.ceil(pivotColumnGroups.size / 10);
         const numClusters = Math.ceil(sortedKeys.length / clusterSize);
         for (let i = 0; i < numClusters; i++) {
@@ -135,7 +143,7 @@ export function computePivotLayout(
     const expander = 1.05;
     const gap = .15;
     let x = 0;
-    const sortedPivotKeys = Array.from(pivotColumnGroups.keys()).sort();
+    const sortedPivotKeys = pivotNumbers ? Array.from(pivotColumnGroups.keys()).sort((n1: FieldResult, n2: FieldResult) => toNumber(n1)! - toNumber(n2)!) : Array.from(pivotColumnGroups.keys()).sort();
     sortedPivotKeys.forEach(key => {
         const val = pivotColumnGroups.get(key)!;
         let y = 0;

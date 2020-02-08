@@ -237,7 +237,7 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
     @computed
     get metadataButton() {
         const view0 = this.view0;
-        return !view0 ? (null) : <div title="Show metadata panel" className="documentButtonBar-linkFlyout" ref={this._linkButton}>
+        return !view0 ? (null) : <div title="Show metadata panel" className="documentButtonBar-linkFlyout">
             <Flyout anchorPoint={anchorPoints.LEFT_TOP}
                 content={<MetadataEntryMenu docs={() => this.props.views.filter(dv => dv).map(dv => dv!.props.Document)} suggestWithFunction />  /* tfs: @bcz This might need to be the data document? */}>
                 <div className={"documentButtonBar-linkButton-" + "empty"} >
