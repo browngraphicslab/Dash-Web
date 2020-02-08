@@ -68,11 +68,11 @@ export class SelectorContextMenu extends React.Component<SearchItemProps> {
     getOnClick({ col, target }: { col: Doc, target: Doc }) {
         return () => {
             col = Doc.IsPrototype(col) ? Doc.MakeDelegate(col) : col;
-            if (NumCast(col.viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
-                const newPanX = NumCast(target.x) + NumCast(target.width) / 2;
-                const newPanY = NumCast(target.y) + NumCast(target.height) / 2;
-                col.panX = newPanX;
-                col.panY = newPanY;
+            if (NumCast(col._viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
+                const newPanX = NumCast(target.x) + NumCast(target._width) / 2;
+                const newPanY = NumCast(target.y) + NumCast(target._height) / 2;
+                col._panX = newPanX;
+                col._panY = newPanY;
             }
             CollectionDockingView.AddRightSplit(col, undefined);
         };
@@ -161,7 +161,6 @@ export class SearchItem extends React.Component<SearchItemProps> {
                     fitToBox={StrCast(this.props.doc.type).indexOf(DocumentType.COL) !== -1}
                     addDocument={returnFalse}
                     removeDocument={returnFalse}
-                    ruleProvider={undefined}
                     addDocTab={returnFalse}
                     pinToPres={returnFalse}
                     getTransform={Transform.Identity}
@@ -260,7 +259,6 @@ export class SearchItem extends React.Component<SearchItemProps> {
     onPointerMoved = (e: PointerEvent) => {
         if (Math.abs(e.clientX - this._downX) > Utils.DRAG_THRESHOLD ||
             Math.abs(e.clientY - this._downY) > Utils.DRAG_THRESHOLD) {
-            console.log("DRAGGIGNG");
             document.removeEventListener("pointermove", this.onPointerMoved);
             document.removeEventListener("pointerup", this.onPointerUp);
             const doc = Doc.IsPrototype(this.props.doc) ? Doc.MakeDelegate(this.props.doc) : this.props.doc;

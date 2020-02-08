@@ -27,7 +27,6 @@ export interface FieldViewProps {
     fitToBox?: boolean;
     ContainingCollectionView: Opt<CollectionView>;
     ContainingCollectionDoc: Opt<Doc>;
-    ruleProvider: Doc | undefined;
     Document: Doc;
     DataDoc?: Doc;
     LibraryPath: Doc[];
@@ -54,7 +53,7 @@ export interface FieldViewProps {
 @observer
 export class FieldView extends React.Component<FieldViewProps> {
     public static LayoutString(fieldType: { name: string }, fieldStr: string) {
-        return `<${fieldType.name} {...props} fieldKey={'${fieldStr}'}/>`;  //e.g., "<ImageBox {...props} fieldKey={"dada} />"
+        return `<${fieldType.name} {...props} fieldKey={'${fieldStr}'}/>`;  //e.g., "<ImageBox {...props} fieldKey={"data} />"
     }
 
     @computed
@@ -70,12 +69,12 @@ export class FieldView extends React.Component<FieldViewProps> {
         // if (typeof field === "string") {
         //     return <p>{field}</p>;
         // }
-        else if (field instanceof RichTextField) {
-            return <FormattedTextBox {...this.props} />;
-        }
-        else if (field instanceof ImageField) {
-            return <ImageBox {...this.props} />;
-        }
+        // else if (field instanceof RichTextField) {
+        //     return <FormattedTextBox {...this.props} />;
+        // }
+        // else if (field instanceof ImageField) {
+        //     return <ImageBox {...this.props} />;
+        // }
         // else if (field instaceof PresBox) {
         //    return <PresBox {...this.props} />;
         // }

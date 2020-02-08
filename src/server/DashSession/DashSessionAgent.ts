@@ -25,7 +25,8 @@ export class DashSessionAgent extends AppliedSessionAgent {
      * The core method invoked when the single master thread is initialized.
      * Installs event hooks, repl commands and additional IPC listeners.
      */
-    protected async initializeMonitor(monitor: Monitor, sessionKey: string): Promise<void> {
+    protected async initializeMonitor(monitor: Monitor): Promise<string> {
+        const sessionKey = Utils.GenerateGuid();
         await this.dispatchSessionPassword(sessionKey);
         monitor.addReplCommand("pull", [], () => monitor.exec("git pull"));
         monitor.addReplCommand("solr", [/start|stop|index/], this.executeSolrCommand);
@@ -34,6 +35,7 @@ export class DashSessionAgent extends AppliedSessionAgent {
         monitor.on("backup", this.backup);
         monitor.on("debug", async ({ to }) => this.dispatchZippedDebugBackup(to));
         monitor.coreHooks.onCrashDetected(this.dispatchCrashReport);
+        return sessionKey;
     }
 
     /**

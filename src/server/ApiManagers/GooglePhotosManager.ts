@@ -88,8 +88,13 @@ export default class GooglePhotosManager extends ApiManager {
                 if (contents) {
                     const completed: Opt<DashUploadUtils.ImageUploadInformation>[] = [];
                     for (const item of contents.mediaItems) {
-                        const { contentSize, ...attributes } = await DashUploadUtils.InspectImage(item.baseUrl);
-                        const found: Opt<DashUploadUtils.ImageUploadInformation> = await Database.Auxiliary.QueryUploadHistory(contentSize!);
+                        const results = await DashUploadUtils.InspectImage(item.baseUrl);
+                        if (results instanceof Error) {
+                            failed++;
+                            continue;
+                        }
+                        const { contentSize, ...attributes } = results;
+                        const found: Opt<DashUploadUtils.ImageUploadInformation> = await Database.Auxiliary.QueryUploadHistory(contentSize);
                         if (!found) {
                             const upload = await DashUploadUtils.UploadInspectedImage({ contentSize, ...attributes }, item.filename, prefix).catch(error => _error(res, downloadError, error));
                             if (upload) {

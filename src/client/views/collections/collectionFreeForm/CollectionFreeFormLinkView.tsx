@@ -68,8 +68,8 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
                         (this.props.B.props.Document[(this.props.B.props as any).fieldKey] as Doc);
                         const m = targetAhyperlink.getBoundingClientRect();
                         const mp = this.props.B.props.ScreenToLocalTransform().transformPoint(m.right, m.top + 5);
-                        this.props.B.props.Document[afield + "_x"] = mp[0] / this.props.B.props.PanelWidth() * 100;
-                        this.props.B.props.Document[afield + "_y"] = mp[1] / this.props.B.props.PanelHeight() * 100;
+                        this.props.B.props.Document[bfield + "_x"] = mp[0] / this.props.B.props.PanelWidth() * 100;
+                        this.props.B.props.Document[bfield + "_y"] = mp[1] / this.props.B.props.PanelHeight() * 100;
                     }, 0);
                 }
             })

@@ -30,7 +30,7 @@ export namespace WebSocket {
     async function preliminaryFunctions() {
     }
     function initialize(isRelease: boolean) {
-        endpoint = io();
+        const endpoint = io();
         endpoint.on("connection", function (socket: Socket) {
             _socket = socket;
 
@@ -186,6 +186,11 @@ export namespace WebSocket {
         await Database.Instance.deleteAll('newDocuments');
     }
 
+    // export async function deleteUserDocuments() {
+    //     await Database.Instance.deleteAll();
+    //     await Database.Instance.deleteAll('newDocuments');
+    // }
+
     export async function deleteAll() {
         await Database.Instance.deleteAll();
         await Database.Instance.deleteAll('newDocuments');
@@ -216,8 +221,6 @@ export namespace WebSocket {
             socket.broadcast.emit(MessageStore.SetField.Message, newValue));
         if (newValue.type === Types.Text) {
             Search.updateDocument({ id: newValue.id, data: (newValue as any).data });
-            console.log("set field");
-            console.log("checking in");
         }
     }
 

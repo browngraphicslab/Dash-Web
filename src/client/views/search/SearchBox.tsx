@@ -217,16 +217,16 @@ export class SearchBox extends React.Component {
             doc.x = x;
             doc.y = y;
             const size = 200;
-            const aspect = NumCast(doc.nativeHeight) / NumCast(doc.nativeWidth, 1);
+            const aspect = NumCast(doc._nativeHeight) / NumCast(doc._nativeWidth, 1);
             if (aspect > 1) {
-                doc.height = size;
-                doc.width = size / aspect;
+                doc._height = size;
+                doc._width = size / aspect;
             } else if (aspect > 0) {
-                doc.width = size;
-                doc.height = size * aspect;
+                doc._width = size;
+                doc._height = size * aspect;
             } else {
-                doc.width = size;
-                doc.height = size;
+                doc._width = size;
+                doc._height = size;
             }
             x += 250;
             if (x > 1000) {
@@ -234,7 +234,7 @@ export class SearchBox extends React.Component {
                 y += 300;
             }
         }
-        return Docs.Create.TreeDocument(docs, { width: 200, height: 400, backgroundColor: "grey", title: `Search Docs: "${this._searchString}"` });
+        return Docs.Create.TreeDocument(docs, { _width: 200, _height: 400, backgroundColor: "grey", title: `Search Docs: "${this._searchString}"` });
     }
 
     @action.bound
@@ -267,10 +267,11 @@ export class SearchBox extends React.Component {
 
     @action
     resultsScrolled = (e?: React.UIEvent<HTMLDivElement>) => {
+        if (!this.resultsRef.current) return;
         const scrollY = e ? e.currentTarget.scrollTop : this.resultsRef.current ? this.resultsRef.current.scrollTop : 0;
         const itemHght = 53;
         const startIndex = Math.floor(Math.max(0, scrollY / itemHght));
-        const endIndex = Math.ceil(Math.min(this._numTotalResults - 1, startIndex + (this.resultsRef.current!.getBoundingClientRect().height / itemHght)));
+        const endIndex = Math.ceil(Math.min(this._numTotalResults - 1, startIndex + (this.resultsRef.current.getBoundingClientRect().height / itemHght)));
 
         this._endIndex = endIndex === -1 ? 12 : endIndex;
 

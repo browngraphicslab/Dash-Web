@@ -6,19 +6,13 @@
     top: 0;
     bottom: 0;
     width: 100%;
-    min-width: 200px;
+    min-width: 120px;
     height: 100%;
     min-height: 50px;
     letter-spacing: 2px;
     overflow: hidden;
     transition: 0.7s opacity ease;
     pointer-events: all;
-
-    .presBox-listCont {
-        position: relative;
-        padding-left: 10px;
-        padding-right: 10px;
-    }
 
     .presBox-buttons {
         padding: 10px;
@@ -29,5 +23,18 @@
             width: 20%;
             border-radius: 5px;
         }
+    }
+    .presBox-backward, .presBox-forward {
+        width: 25px;
+        border-radius: 5px;
+        top:50%;
+        position: absolute;
+        display: inline-block;
+    }
+    .presBox-backward {
+        left:5;
+    }
+    .presBox-forward {
+        right:5;
     }
 }

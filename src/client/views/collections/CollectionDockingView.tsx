@@ -35,6 +35,7 @@ import { ComputedField } from '../../../new_fields/ScriptField';
 import { InteractionUtils } from '../../util/InteractionUtils';
 import { TraceMobx } from '../../../new_fields/util';
 import { Scripting } from '../../util/Scripting';
+import { PresElementBox } from '../presentationview/PresElementBox';
 library.add(faFile);
 const _global = (window /* browser */ || global /* node */) as any;
 
@@ -132,7 +133,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
     @undoBatch
     @action
-    public static CloseRightSplit(document: Doc): boolean {
+    public static CloseRightSplit(document: Opt<Doc>): boolean {
         if (!CollectionDockingView.Instance) return false;
         const instance = CollectionDockingView.Instance;
         let retVal = false;
@@ -140,14 +141,16 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             retVal = Array.from(instance._goldenLayout.root.contentItems[0].contentItems).some((child: any) => {
                 if (child.contentItems.length === 1 && child.contentItems[0].config.component === "DocumentFrameRenderer" &&
                     DocumentManager.Instance.getDocumentViewById(child.contentItems[0].config.props.documentId) &&
-                    Doc.AreProtosEqual(DocumentManager.Instance.getDocumentViewById(child.contentItems[0].config.props.documentId)!.Document, document)) {
+                    ((!document && DocumentManager.Instance.getDocumentViewById(child.contentItems[0].config.props.documentId)!.Document.isDisplayPanel) ||
+                        (document && Doc.AreProtosEqual(DocumentManager.Instance.getDocumentViewById(child.contentItems[0].config.props.documentId)!.Document, document)))) {
                     child.contentItems[0].remove();
                     instance.layoutChanged(document);
                     return true;
                 } else {
                     Array.from(child.contentItems).filter((tab: any) => tab.config.component === "DocumentFrameRenderer").some((tab: any, j: number) => {
                         if (DocumentManager.Instance.getDocumentViewById(tab.config.props.documentId) &&
-                            Doc.AreProtosEqual(DocumentManager.Instance.getDocumentViewById(tab.config.props.documentId)!.Document, document)) {
+                            ((!document && DocumentManager.Instance.getDocumentViewById(tab.config.props.documentId)!.Document.isDisplayPanel) ||
+                                (document && Doc.AreProtosEqual(DocumentManager.Instance.getDocumentViewById(tab.config.props.documentId)!.Document, document)))) {
                             child.contentItems[j].remove();
                             child.config.activeItemIndex = Math.max(child.contentItems.length - 1, 0);
                             return true;
@@ -172,9 +175,43 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         if (removed) CollectionDockingView.Instance._removedDocs.push(removed);
         this.stateChanged();
     }
+    @undoBatch
+    @action
+    public static ReplaceRightSplit(document: Doc, dataDoc: Doc | undefined, libraryPath?: Doc[], addToSplit?: boolean): boolean {
+        if (!CollectionDockingView.Instance) return false;
+        const instance = CollectionDockingView.Instance;
+        let retVal = false;
+        if (instance._goldenLayout.root.contentItems[0].isRow) {
+            retVal = Array.from(instance._goldenLayout.root.contentItems[0].contentItems).some((child: any) => {
+                if (child.contentItems.length === 1 && child.contentItems[0].config.component === "DocumentFrameRenderer" &&
+                    DocumentManager.Instance.getDocumentViewById(child.contentItems[0].config.props.documentId)?.Document.isDisplayPanel) {
+                    const newItemStackConfig = CollectionDockingView.makeDocumentConfig(document, dataDoc, undefined, libraryPath);
+                    child.addChild(newItemStackConfig, undefined);
+                    !addToSplit && child.contentItems[0].remove();
+                    instance.layoutChanged(document);
+                    return true;
+                }
+                return Array.from(child.contentItems).filter((tab: any) => tab.config.component === "DocumentFrameRenderer").some((tab: any, j: number) => {
+                    if (DocumentManager.Instance.getDocumentViewById(tab.config.props.documentId)?.Document.isDisplayPanel) {
+                        const newItemStackConfig = CollectionDockingView.makeDocumentConfig(document, dataDoc, undefined, libraryPath);
+                        child.addChild(newItemStackConfig, undefined);
+                        !addToSplit && child.contentItems[j].remove();
+                        instance.layoutChanged(document);
+                        return true;
+                    }
+                    return false;
+                });
+            });
+        }
+        if (retVal) {
+            instance.stateChanged();
+        }
+        return retVal;
+    }
+
 
     //
-    //  Creates a vertical split on the right side of the docking view, and then adds the Document to that split
+    //  Creates a vertical split on the right side of the docking view, and then adds the Document to the right of that split
     //
     @undoBatch
     @action
@@ -207,36 +244,16 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         instance.layoutChanged();
         return true;
     }
+
     //
     //  Creates a vertical split on the right side of the docking view, and then adds the Document to that split
     //
     @undoBatch
     @action
-    public static UseRightSplit(document: Doc, dataDoc: Doc | undefined, libraryPath?: Doc[]) {
-        if (!CollectionDockingView.Instance) return false;
-        const instance = CollectionDockingView.Instance;
-        if (instance._goldenLayout.root.contentItems[0].isRow) {
-            let found: DocumentView | undefined;
-            Array.from(instance._goldenLayout.root.contentItems[0].contentItems).some((child: any) => {
-                if (child.contentItems.length === 1 && child.contentItems[0].config.component === "DocumentFrameRenderer" &&
-                    DocumentManager.Instance.getDocumentViewById(child.contentItems[0].config.props.documentId)?.props.Document.isDisplayPanel) {
-                    found = DocumentManager.Instance.getDocumentViewById(child.contentItems[0].config.props.documentId)!;
-                } else {
-                    Array.from(child.contentItems).filter((tab: any) => tab.config.component === "DocumentFrameRenderer").some((tab: any, j: number) => {
-                        if (DocumentManager.Instance.getDocumentViewById(tab.config.props.documentId)?.props.Document.isDisplayPanel) {
-                            found = DocumentManager.Instance.getDocumentViewById(tab.config.props.documentId)!;
-                            return true;
-                        }
-                        return false;
-                    });
-                }
-            });
-            if (found) {
-                Doc.GetProto(found.props.Document).data = new List<Doc>([document]);
-            } else {
-                const stackView = Docs.Create.FreeformDocument([document], { fitToBox: true, isDisplayPanel: true, title: "document viewer" });
-                CollectionDockingView.AddRightSplit(stackView, undefined, []);
-            }
+    public static UseRightSplit(document: Doc, dataDoc: Doc | undefined, libraryPath?: Doc[], shiftKey?: boolean) {
+        document.isDisplayPanel = true;
+        if (shiftKey || !CollectionDockingView.ReplaceRightSplit(document, dataDoc, libraryPath, shiftKey)) {
+            CollectionDockingView.AddRightSplit(document, dataDoc, libraryPath);
         }
     }
 
@@ -305,7 +322,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     componentDidMount: () => void = () => {
         if (this._containerRef.current) {
             this.reactionDisposer = reaction(
-                () => StrCast(this.props.Document.dockingConfig),
+                () => this.props.Document.dockingConfig,
                 () => {
                     if (!this._goldenLayout || this._ignoreStateChange !== JSON.stringify(this._goldenLayout.toConfig())) {
                         // Because this is in a set timeout, if this component unmounts right after mounting,
@@ -451,7 +468,9 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                     onPointerDown={e => {
                         e.preventDefault();
                         e.stopPropagation();
-                        DragManager.StartDocumentDrag([dragSpan], new DragManager.DocumentDragData([doc]), e.clientX, e.clientY);
+                        const dragData = new DragManager.DocumentDragData([doc]);
+                        dragData.dropAction = doc.dropAction === "alias" ? "alias" : doc.dropAction === "copy" ? "copy" : undefined;
+                        DragManager.StartDocumentDrag([dragSpan], dragData, e.clientX, e.clientY);
                     }}>
                     <FontAwesomeIcon icon="file" size="lg" />
                 </span>, dragSpan);
@@ -504,7 +523,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         stack.header.element[0].style.backgroundColor = DocServer.Control.isReadOnly() ? "#228540" : undefined;
         stack.header.element.on('mousedown', (e: any) => {
             if (e.target === stack.header.element[0] && e.button === 1) {
-                this.AddTab(stack, Docs.Create.FreeformDocument([], { width: this.props.PanelWidth(), height: this.props.PanelHeight(), title: "Untitled Collection" }), undefined);
+                this.AddTab(stack, Docs.Create.FreeformDocument([], { _width: this.props.PanelWidth(), _height: this.props.PanelHeight(), title: "Untitled Collection" }), undefined);
             }
         });
 
@@ -618,22 +637,29 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
      **/
     @undoBatch
     @action
-    public PinDoc(doc: Doc) {
+    public static PinDoc(doc: Doc) {
         //add this new doc to props.Document
         const curPres = Cast(CurrentUserUtils.UserDocument.curPresentation, Doc) as Doc;
         if (curPres) {
-            const pinDoc = Docs.Create.PresElementBoxDocument({ backgroundColor: "transparent" });
-            Doc.GetProto(pinDoc).presentationTargetDoc = doc;
-            Doc.GetProto(pinDoc).title = ComputedField.MakeFunction('(this.presentationTargetDoc instanceof Doc) && this.presentationTargetDoc.title.toString()');
-            const data = Cast(curPres.data, listSpec(Doc));
-            if (data) {
-                data.push(pinDoc);
-            } else {
-                curPres.data = new List([pinDoc]);
-            }
+            const pinDoc = Doc.MakeAlias(doc);
+            pinDoc.presentationTargetDoc = doc;
+            Doc.AddDocToList(curPres, "data", pinDoc);
             if (!DocumentManager.Instance.getDocumentView(curPres)) {
-                this.addDocTab(curPres, undefined, "onRight");
+                CollectionDockingView.AddRightSplit(curPres, undefined);
             }
+        }
+    }
+    /**
+     * Adds a document to the presentation view
+     **/
+    @undoBatch
+    @action
+    public static UnpinDoc(doc: Doc) {
+        //add this new doc to props.Document
+        const curPres = Cast(CurrentUserUtils.UserDocument.curPresentation, Doc) as Doc;
+        if (curPres) {
+            const ind = DocListCast(curPres.data).findIndex((val) => Doc.AreProtosEqual(val, doc));
+            ind !== -1 && Doc.RemoveDocFromList(curPres, "data", DocListCast(curPres.data)[ind]);
         }
     }
 
@@ -664,19 +690,19 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     }
 
     get layoutDoc() { return this._document && Doc.Layout(this._document); }
-    panelWidth = () => this.layoutDoc && this.layoutDoc.maxWidth ? Math.min(Math.max(NumCast(this.layoutDoc.width), NumCast(this.layoutDoc.nativeWidth)), this._panelWidth) : this._panelWidth;
+    panelWidth = () => this.layoutDoc && this.layoutDoc.maxWidth ? Math.min(Math.max(NumCast(this.layoutDoc._width), NumCast(this.layoutDoc._nativeWidth)), this._panelWidth) : this._panelWidth;
     panelHeight = () => this._panelHeight;
 
-    nativeWidth = () => !this.layoutDoc!.ignoreAspect && !this.layoutDoc!.fitWidth ? NumCast(this.layoutDoc!.nativeWidth) || this._panelWidth : 0;
-    nativeHeight = () => !this.layoutDoc!.ignoreAspect && !this.layoutDoc!.fitWidth ? NumCast(this.layoutDoc!.nativeHeight) || this._panelHeight : 0;
+    nativeWidth = () => !this.layoutDoc!.ignoreAspect && !this.layoutDoc!._fitWidth ? NumCast(this.layoutDoc!._nativeWidth) || this._panelWidth : 0;
+    nativeHeight = () => !this.layoutDoc!.ignoreAspect && !this.layoutDoc!._fitWidth ? NumCast(this.layoutDoc!._nativeHeight) || this._panelHeight : 0;
 
     contentScaling = () => {
         if (this.layoutDoc!.type === DocumentType.PDF) {
-            if ((this.layoutDoc && this.layoutDoc.fitWidth) ||
-                this._panelHeight / NumCast(this.layoutDoc!.nativeHeight) > this._panelWidth / NumCast(this.layoutDoc!.nativeWidth)) {
-                return this._panelWidth / NumCast(this.layoutDoc!.nativeWidth);
+            if ((this.layoutDoc && this.layoutDoc._fitWidth) ||
+                this._panelHeight / NumCast(this.layoutDoc!._nativeHeight) > this._panelWidth / NumCast(this.layoutDoc!._nativeWidth)) {
+                return this._panelWidth / NumCast(this.layoutDoc!._nativeWidth);
             } else {
-                return this._panelHeight / NumCast(this.layoutDoc!.nativeHeight);
+                return this._panelHeight / NumCast(this.layoutDoc!._nativeHeight);
             }
         }
         const nativeH = this.nativeHeight();
@@ -722,7 +748,6 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             bringToFront={emptyFunction}
             addDocument={undefined}
             removeDocument={undefined}
-            ruleProvider={undefined}
             ContentScaling={this.contentScaling}
             PanelWidth={this.panelWidth}
             PanelHeight={this.panelHeight}
@@ -733,7 +758,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             focus={emptyFunction}
             backgroundColor={returnEmptyString}
             addDocTab={this.addDocTab}
-            pinToPres={this.PinDoc}
+            pinToPres={DockedFrameRenderer.PinDoc}
             ContainingCollectionView={undefined}
             ContainingCollectionDoc={undefined}
             zoomToScale={emptyFunction}
@@ -745,7 +770,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             (<div className="collectionDockingView-content" ref={ref => this._mainCont = ref}
                 style={{
                     transform: `translate(${this.previewPanelCenteringOffset}px, 0px)`,
-                    height: this.layoutDoc && this.layoutDoc.fitWidth ? undefined : "100%",
+                    height: this.layoutDoc && this.layoutDoc._fitWidth ? undefined : "100%",
                     width: this.widthpercent
                 }}>
                 {this.docView}
@@ -753,4 +778,4 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     }
 }
 Scripting.addGlobal(function openOnRight(doc: any) { CollectionDockingView.AddRightSplit(doc, undefined); });
-Scripting.addGlobal(function useRightSplit(doc: any) { CollectionDockingView.UseRightSplit(doc, undefined); });
+Scripting.addGlobal(function useRightSplit(doc: any, shiftKey?: boolean) { CollectionDockingView.UseRightSplit(doc, undefined, undefined, shiftKey); });

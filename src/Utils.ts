@@ -26,6 +26,22 @@ export namespace Utils {
         return { scale, translateX, translateY };
     }
 
+    export function TraceConsoleLog() {
+        ['log', 'warn'].forEach(function (method) {
+            const old = (console as any)[method];
+            (console as any)[method] = function () {
+                let stack = new Error("").stack?.split(/\n/);
+                // Chrome includes a single "Error" line, FF doesn't.
+                if (stack && stack[0].indexOf('Error') === 0) {
+                    stack = stack.slice(1);
+                }
+                const message = (stack?.[1] || "Stack undefined!").trim();
+                const args = ([] as any[]).slice.apply(arguments).concat([message]);
+                return old.apply(console, args);
+            };
+        });
+    }
+
     /**
      * A convenience method. Prepends the full path (i.e. http://localhost:1050) to the
      * requested extension
@@ -48,7 +64,7 @@ export namespace Utils {
     }
 
     export async function getApiKey(target: string): Promise<string> {
-        const response = await fetch(prepend(`environment/${target.toUpperCase()}`));
+        const response = await fetch(prepend(`/environment/${target.toUpperCase()}`));
         return response.text();
     }
 
@@ -334,16 +350,15 @@ export function timenow() {
     return now.toLocaleDateString() + ' ' + h + ':' + m + ' ' + ampm;
 }
 
-export function aggregateBounds(boundsList: { x: number, y: number, width: number, height: number }[], xpad: number, ypad: number) {
-    const bounds = boundsList.reduce((bounds, b) => {
-        const [sptX, sptY] = [b.x, b.y];
-        const [bptX, bptY] = [sptX + b.width, sptY + b.height];
-        return {
-            x: Math.min(sptX, bounds.x), y: Math.min(sptY, bounds.y),
-            r: Math.max(bptX, bounds.r), b: Math.max(bptY, bounds.b)
-        };
-    }, { x: Number.MAX_VALUE, y: Number.MAX_VALUE, r: -Number.MAX_VALUE, b: -Number.MAX_VALUE });
-    return { x: bounds.x !== Number.MAX_VALUE ? bounds.x - xpad : bounds.x, y: bounds.y !== Number.MAX_VALUE ? bounds.y - ypad : bounds.y, r: bounds.r !== -Number.MAX_VALUE ? bounds.r + xpad : bounds.r, b: bounds.b !== -Number.MAX_VALUE ? bounds.b + ypad : bounds.b };
+export function aggregateBounds(boundsList: { x: number, y: number, width?: number, height?: number }[], xpad: number, ypad: number) {
+    const bounds = boundsList.map(b => ({ x: b.x, y: b.y, r: b.x + (b.width || 0), b: b.y + (b.height || 0) })).reduce((bounds, b) => ({
+        x: Math.min(b.x, bounds.x), y: Math.min(b.y, bounds.y),
+        r: Math.max(b.r, bounds.r), b: Math.max(b.b, bounds.b)
+    }), { x: Number.MAX_VALUE, y: Number.MAX_VALUE, r: -Number.MAX_VALUE, b: -Number.MAX_VALUE });
+    return {
+        x: bounds.x !== Number.MAX_VALUE ? bounds.x - xpad : bounds.x, y: bounds.y !== Number.MAX_VALUE ? bounds.y - ypad : bounds.y,
+        r: bounds.r !== -Number.MAX_VALUE ? bounds.r + xpad : bounds.r, b: bounds.b !== -Number.MAX_VALUE ? bounds.b + ypad : bounds.b
+    };
 }
 export function intersectRect(r1: { left: number, top: number, width: number, height: number },
     r2: { left: number, top: number, width: number, height: number }) {
@@ -354,7 +369,7 @@ export function percent2frac(percent: string) {
     return Number(percent.substr(0, percent.length - 1)) / 100;
 }
 
-export function numberRange(num: number) { return Array.from(Array(num)).map((v, i) => i); }
+export function numberRange(num: number) { return num > 0 && num < 1000 ? Array.from(Array(num)).map((v, i) => i) : []; }
 
 export function returnTransparent() { return "transparent"; }
 

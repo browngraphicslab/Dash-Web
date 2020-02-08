@@ -11,6 +11,8 @@ import { List } from '../new_fields/List';
 import { observer } from 'mobx-react';
 import { observable } from 'mobx';
 import { Utils } from '../Utils';
+import MobileInterface from './MobileInterface';
+import { CurrentUserUtils } from '../server/authentication/models/current_user_utils';
 
 
 
@@ -43,7 +45,7 @@ class Uploader extends React.Component {
                     const formData = new FormData();
                     formData.append("file", files[0]);
 
-                    const upload = window.location.origin + "/upload";
+                    const upload = window.location.origin + "/uploadFormData";
                     this.status = "uploading image";
                     const res = await fetch(upload, {
                         method: 'POST',
@@ -53,7 +55,7 @@ class Uploader extends React.Component {
                     const json = await res.json();
                     json.map(async (file: any) => {
                         const path = window.location.origin + file;
-                        const doc = Docs.Create.ImageDocument(path, { nativeWidth: 200, width: 200, title: name });
+                        const doc = Docs.Create.ImageDocument(path, { _nativeWidth: 200, _width: 200, title: name });
 
                         this.status = "getting user document";
 
@@ -104,10 +106,25 @@ class Uploader extends React.Component {
 }
 
 
-DocServer.init(window.location.protocol, window.location.hostname, 4321, "image upload");
-
-ReactDOM.render((
-    <Uploader />
-),
-    document.getElementById('root')
-);
+// DocServer.init(window.location.protocol, window.location.hostname, 4321, "image upload");
+(async () => {
+    const info = await CurrentUserUtils.loadCurrentUser();
+    DocServer.init(window.location.protocol, window.location.hostname, 4321, info.email + "mobile");
+    await Docs.Prototypes.initialize();
+    if (info.id !== "__guest__") {
+        // a guest will not have an id registered
+        await CurrentUserUtils.loadUserDocument(info);
+    }
+    document.getElementById('root')!.addEventListener('wheel', event => {
+        if (event.ctrlKey) {
+            event.preventDefault();
+        }
+    }, true);
+    ReactDOM.render((
+        // <Uploader />
+        <MobileInterface />
+    ),
+        document.getElementById('root')
+    );
+}
+)();

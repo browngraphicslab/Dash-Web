@@ -144,7 +144,7 @@ export class OverlayView extends React.Component {
             return (null);
         }
         return CurrentUserUtils.UserDocument.overlays instanceof Doc && DocListCast(CurrentUserUtils.UserDocument.overlays.data).map(d => {
-            d.inOverlay = true;
+            setTimeout(() => d.inOverlay = true, 0);
             let offsetx = 0, offsety = 0;
             const onPointerMove = action((e: PointerEvent) => {
                 if (e.buttons === 1) {
@@ -178,7 +178,6 @@ export class OverlayView extends React.Component {
                     // select={emptyFunction}
                     // layoutKey={"layout"}
                     bringToFront={emptyFunction}
-                    ruleProvider={undefined}
                     addDocument={undefined}
                     removeDocument={undefined}
                     ContentScaling={returnOne}

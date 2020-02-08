@@ -1,0 +1,468 @@
+[
+    {
+        "filename": "3DMag.docx",
+        "secondaryKey": "ERR__SECONDARYKEY__: outer match wasn't captured.",
+        "dimensions": "ERR__DIMENSIONS__: outer match wasn't captured."
+    },
+    {
+        "filename": "3DPlus.docx",
+        "year": "ERR__YEAR__: outer match was captured.",
+        "secondaryKey": "ERR__SECONDARYKEY__: outer match wasn't captured.",
+        "dimensions": "ERR__DIMENSIONS__: outer match wasn't captured.",
+        "longDescription": "ERR__LONGDESCRIPTION__: outer match was captured."
+    },
+    {
+        "filename": "3DSpace.docx",
+        "year": "ERR__YEAR__: outer match was captured.",
+        "secondaryKey": "ERR__SECONDARYKEY__: outer match wasn't captured.",
+        "dimensions": "ERR__DIMENSIONS__: outer match wasn't captured.",
+        "longDescription": "ERR__LONGDESCRIPTION__: outer match was captured."
+    },
+    {
+        "filename": "3Dconnexion_SpaceNavigator.docx",
+        "dimensions": "ERR__DIMENSIONS__: outer match wasn't captured."
+    },
+    {
+        "filename": "3MErgo.docx",
+        "secondaryKey": "ERR__SECONDARYKEY__: outer match wasn't captured.",
+        "dimensions": "ERR__DIMENSIONS__: outer match wasn't captured.",
+        "longDescription": "ERR__LONGDESCRIPTION__: outer match was captured."
+    },
+    {
+        "filename": "ADB2.docx",
+        "secondaryKey": "ERR__SECONDARYKEY__: outer match wasn't captured.",
+        "originalPrice": "ERR__ORIGINALPRICE__: outer match wasn't captured.",
+        "dimensions": "ERR__DIMENSIONS__: outer match wasn't captured."
+    },
+    {
+        "filename": "AWrock.docx",
+        "secondaryKey": "ERR__SECONDARYKEY__: outer match wasn't captured.",
+        "originalPrice": "ERR__ORIGINALPRICE__: outer match wasn't captured.",
+        "dimensions": "ERR__DIMENSIONS__: outer match wasn't captured."
+    },
+    {
+        "filename": "Abaton.docx",
+        "secondaryKey": "ERR__SECONDARYKEY__: outer match wasn't captured.",
+        "dimensions": "ERR__DIMENSIONS__: outer match wasn't captured."
+    },
+    {
+        "filename": "Active.docx",
+        "secondaryKey": "ERR__SECONDARYKEY__: outer match wasn't captured.",
+        "originalPrice": "ERR__ORIGINALPRICE__: outer match wasn't captured.",
+        "dimensions": "ERR__DIMENSIONS__: outer match wasn't captured.",
+        "longDescription": "ERR__LONGDESCRIPTION__: outer match was captured."
+    },
+    {
+        "filename": "AlphaSmart_Pro.docx",
+        "degreesOfFreedom": "ERR__DEGREESOFFREEDOM__: outer match wasn't captured."
+    },
+    {
+        "filename": "Apple_ADB_Mouse.docx",
+        "originalPrice": "ERR__ORIGINALPRICE__: outer match wasn't captured."
+    },
+    {
+        "filename": "Apple_Mac_Portable-Katy’s MacBook Air-2.docx",
+        "year": "__ERR__YEAR__TRANSFORM__: NaN cannot be parsed to a numeric value.",
+        "longDescription": "ERR__LONGDESCRIPTION__: outer match was captured."
+    },
+    {
+        "filename": "Apple_Mac_Portable-Katy’s MacBook Air.docx",
+        "longDescription": "ERR__LONGDESCRIPTION__: outer match was captured."
+    },
+    {
+        "filename": "Apple_Scroll_Mouse.docx",
+        "year": "__ERR__YEAR__TRANSFORM__: NaN cannot be parsed to a numeric value.",
+        "originalPrice": "ERR__ORIGINALPRICE__: outer match wasn't captured.",
+        "dimensions": "ERR__DIMENSIONS__: outer match wasn't captured."
+    },
+    {
+        "filename": "Apple_iPhone.docx",
+        "longDescription": "ERR__LONGDESCRIPTION__: outer match was captured."
+    },
+    {
+        "filename": "Brailler.docx",
+        "originalPrice": "ERR__ORIGINALPRICE__: outer match wasn't captured.",
+        "degreesOfFreedom": "ERR__DEGREESOFFREEDOM__: outer match wasn't captured.",
+        "longDescription": "ERR__LONGDESCRIPTION__: outer match was captured."
+    },
+    {
+        "filename": "Brewster_Stereoscope.docx",
+        "originalPrice": "ERR__ORIGINALPRICE__: outer match wasn't captured.",
+        "degreesOfFreedom": "ERR__DEGREESOFFREEDOM__: outer match wasn't captured.",
+        "dimensions": "ERR__DIMENSIONS__: outer match wasn't captured."
+    },
+    {
+        "filename": "CasioTC500.docx",
+        "secondaryKey": "ERR__SECONDARYKEY__: outer match wasn't captured.",
+        "degreesOfFreedom": "ERR__DEGREESOFFREEDOM__: outer match wasn't captured.",
+        "dimensions": "ERR__DIMENSIONS__: outer match wasn't captured."
+    },
+    {
+        "filename": "Citizen_LC_909.docx",
+        "originalPrice": "ERR__ORIGINALPRICE__: outer match wasn't captured.",
+        "degreesOfFreedom": "ERR__DEGREESOFFREEDOM__: outer match wasn't captured.",
+        "dimensions": "ERR__DIMENSIONS__: outer match wasn't captured."
+    },
+    {
+        "filename": "Citizen_LC_913.docx",
+        "originalPrice": "ERR__ORIGINALPRICE__: outer match wasn't captured."
+    },
+    {
+        "filename": "Citizen_LCl_914.docx",
+        "originalPrice": "ERR__ORIGINALPRICE__: outer match wasn't captured.",
+        "degreesOfFreedom": "ERR__DEGREESOFFREEDOM__: outer match wasn't captured."
+    },
+    {
+        "filename": "CoolPix.docx",
+        "secondaryKey": "ERR__SECONDARYKEY__: outer match wasn't captured.",
+        "originalPrice": "ERR__ORIGINALPRICE__: outer match wasn't captured.",
+        "degreesOfFreedom": "ERR__DEGREESOFFREEDOM__: outer match wasn't captured.",
+        "shortDescription": "ERR__SHORTDESCRIPTION__: outer match was captured."
+    },
+    {
+        "filename": "Cross.docx",
+        "secondaryKey": "ERR__SECONDARYKEY__: outer match wasn't captured.",
+        "dimensions": "ERR__DIMENSIONS__: outer match wasn't captured.",
+        "longDescription": "ERR__LONGDESCRIPTION__: outer match was captured."
+    },
+    {
+        "filename": "Dymo_MK-6.docx",
+        "secondaryKey": "ERR__SECONDARYKEY__: outer match wasn't captured.",
+        "originalPrice": "ERR__ORIGINALPRICE__: outer match wasn't captured.",
+        "degreesOfFreedom": "ERR__DEGREESOFFREEDOM__: outer match wasn't captured.",
+        "longDescription": "ERR__LONGDESCRIPTION__: outer match was captured."
+    },
+    {
+        "filename": "Emotiv.docx",
+        "primaryKey": "ERR__PRIMARYKEY__: outer match was captured.",
+        "secondaryKey": "ERR__SECONDARYKEY__: outer match wasn't captured.",
+        "degreesOfFreedom": "ERR__DEGREESOFFREEDOM__: outer match wasn't captured.",
+        "shortDescription": "ERR__SHORTDESCRIPTION__: outer match was captured.",
+        "longDescription": "ERR__LONGDESCRIPTION__: outer match was captured."
+    },
+    {
+        "filename": "Explorer.docx",
+        "secondaryKey": "ERR__SECONDARYKEY__: outer match wasn't captured.",
+        "shortDescription": "ERR__SHORTDESCRIPTION__: outer match was captured.",
+        "longDescription": "ERR__LONGDESCRIPTION__: outer match was captured."
+    },
+    {
+        "filename": "Falcon.docx",
+        "primaryKey": "ERR__PRIMARYKEY__: outer match was captured.",
+        "secondaryKey": "ERR__SECONDARYKEY__: outer match wasn't captured.",
+        "degreesOfFreedom": "ERR__DEGREESOFFREEDOM__: outer match wasn't captured.",
+        "dimensions": "ERR__DIMENSIONS__: outer match wasn't captured.",
+        "shortDescription": "ERR__SHORTDESCRIPTION__: outer match was captured."
+    },
+    {
+        "filename": "Freeboard.docx",
+        "secondaryKey": "ERR__SECONDARYKEY__: outer match was captured.",
+        "originalPrice": "ERR__ORIGINALPRICE__: outer match wasn't captured.",
+        "degreesOfFreedom": "ERR__DEGREESOFFREEDOM__: outer match wasn't captured.",
+        "dimensions": "ERR__DIMENSIONS__: outer match wasn't captured."
+    },
+    {
+        "filename": "FujitsuPalm.docx",
+        "primaryKey": "ERR__PRIMARYKEY__: outer match was captured.",
+        "secondaryKey": "ERR__SECONDARYKEY__: outer match wasn't captured.",
+        "originalPrice": "ERR__ORIGINALPRICE__: outer match wasn't captured.",
+        "degreesOfFreedom": "ERR__DEGREESOFFREEDOM__: outer match wasn't captured.",
+        "shortDescription": "ERR__SHORTDESCRIPTION__: outer match was captured.",
+        "longDescription": "ERR__LONGDESCRIPTION__: outer match was captured."
+    },
+    {
+        "filename": "FujitsuTouch.docx",
+        "secondaryKey": "ERR__SECONDARYKEY__: outer match wasn't captured.",
+        "originalPrice": "ERR__ORIGINALPRICE__: outer match wasn't captured.",
+        "degreesOfFreedom": "ERR__DEGREESOFFREEDOM__: outer match wasn't captured.",
+        "shortDescription": "ERR__SHORTDESCRIPTION__: outer match was captured."
+    },
+    {
+        "filename": "GRiD1550-Katy’s MacBook Air-2.docx",
+        "year": "__ERR__YEAR__TRANSFORM__: NaN cannot be parsed to a numeric value.",
+        "shortDescription": "ERR__SHORTDESCRIPTION__: outer match was captured."
+    },
+    {
+        "filename": "GRiD1550-Katy’s MacBook Air.docx",
+        "secondaryKey": "ERR__SECONDARYKEY__: outer match wasn't captured.",
+        "degreesOfFreedom": "ERR__DEGREESOFFREEDOM__: outer match wasn't captured.",
+        "shortDescription": "ERR__SHORTDESCRIPTION__: outer match was captured."
+    },
+    {
+        "filename": "GRiD1550.docx",
+        "primaryKey": "ERR__PRIMARYKEY__: outer match was captured.",
+        "secondaryKey": "ERR__SECONDARYKEY__: outer match wasn't captured.",
+        "degreesOfFreedom": "ERR__DEGREESOFFREEDOM__: outer match wasn't captured.",
+        "shortDescription": "ERR__SHORTDESCRIPTION__: outer match was captured."
+    },
+    {
+        "filename": "Genius_Ring_Mouse.docx",
+        "dimensions": "ERR__DIMENSIONS__: outer match wasn't captured."
+    },
+    {
+        "filename": "HTC_Touch.docx",
+        "year": "__ERR__YEAR__TRANSFORM__: NaN cannot be parsed to a numeric value.",
+        "originalPrice": "ERR__ORIGINALPRICE__: outer match wasn't captured."
+    },
+    {
+        "filename": "Helios-Klimax.docx",
+        "primaryKey": "ERR__PRIMARYKEY__: outer match was captured.",
+        "secondaryKey": "ERR__SECONDARYKEY__: outer match wasn't captured.",
+        "originalPrice": "ERR__ORIGINALPRICE__: outer match wasn't captured.",
+        "degreesOfFreedom": "ERR__DEGREESOFFREEDOM__: outer match wasn't captured.",
+        "dimensions": "ERR__DIMENSIONS__: outer match wasn't captured.",
+        "longDescription": "ERR__LONGDESCRIPTION__: outer match was captured."
+    },
+    {
+        "filename": "Honeywell_T86.docx",
+        "dimensions": "ERR__DIMENSIONS__: outer match wasn't captured."
+    },
+    {
+        "filename": "IBMTrack.docx",
+        "year": "ERR__YEAR__: outer match was captured.",
+        "secondaryKey": "ERR__SECONDARYKEY__: outer match wasn't captured.",
+        "originalPrice": "ERR__ORIGINALPRICE__: outer match wasn't captured.",
+        "dimensions": "ERR__DIMENSIONS__: outer match wasn't captured."
+    },
+    {
+        "filename": "IBM_Convertable-Katy’s MacBook Air-2.docx",
+        "degreesOfFreedom": "ERR__DEGREESOFFREEDOM__: outer match wasn't captured.",
+        "dimensions": "ERR__DIMENSIONS__: outer match wasn't captured."
+    },
+    {
+        "filename": "IBM_Convertable-Katy’s MacBook Air.docx",
+        "degreesOfFreedom": "ERR__DEGREESOFFREEDOM__: outer match wasn't captured.",
+        "dimensions": "ERR__DIMENSIONS__: outer match wasn't captured."
+    },
+    {
+        "filename": "IBM_Convertable.docx",
+        "degreesOfFreedom": "ERR__DEGREESOFFREEDOM__: outer match wasn't captured.",
+        "dimensions": "ERR__DIMENSIONS__: outer match wasn't captured."
+    },
+    {
+        "filename": "IBM_PS2_Mouse.docx",
+        "primaryKey": "ERR__PRIMARYKEY__: outer match was captured.",
+        "secondaryKey": "ERR__SECONDARYKEY__: outer match wasn't captured.",
+        "dimensions": "ERR__DIMENSIONS__: outer match wasn't captured.",
+        "shortDescription": "ERR__SHORTDESCRIPTION__: outer match was captured.",
+        "longDescription": "ERR__LONGDESCRIPTION__: outer match was captured."
+    },
+    {
+        "filename": "IBM_Simon.docx",
+        "year": "__ERR__YEAR__TRANSFORM__: NaN cannot be parsed to a numeric value."
+    },
+    {
+        "filename": "IDEO.docx",
+        "secondaryKey": "ERR__SECONDARYKEY__: outer match wasn't captured.",
+        "degreesOfFreedom": "ERR__DEGREESOFFREEDOM__: outer match wasn't captured.",
+        "dimensions": "ERR__DIMENSIONS__: outer match wasn't captured.",
+        "longDescription": "ERR__LONGDESCRIPTION__: outer match was captured."
+    },
+    {
+        "filename": "Joyboard.docx",
+        "primaryKey": "ERR__PRIMARYKEY__: outer match was captured.",
+        "secondaryKey": "ERR__SECONDARYKEY__: outer match wasn't captured.",
+        "degreesOfFreedom": "ERR__DEGREESOFFREEDOM__: outer match wasn't captured.",
+        "dimensions": "ERR__DIMENSIONS__: outer match wasn't captured.",
+        "shortDescription": "ERR__SHORTDESCRIPTION__: outer match was captured."
+    },
+    {
+        "filename": "Kensington_SB_TB-Mouse.docx",
+        "secondaryKey": "ERR__SECONDARYKEY__: outer match wasn't captured.",
+        "degreesOfFreedom": "ERR__DEGREESOFFREEDOM__: outer match wasn't captured.",
+        "dimensions": "ERR__DIMENSIONS__: outer match wasn't captured."
+    },
+    {
+        "filename": "Leatherman_Tread.docx",
+        "primaryKey": "ERR__PRIMARYKEY__: outer match was captured.",
+        "secondaryKey": "ERR__SECONDARYKEY__: outer match wasn't captured.",
+        "degreesOfFreedom": "ERR__DEGREESOFFREEDOM__: outer match wasn't captured.",
+        "dimensions": "ERR__DIMENSIONS__: outer match wasn't captured.",
+        "shortDescription": "ERR__SHORTDESCRIPTION__: outer match was captured.",
+        "longDescription": "ERR__LONGDESCRIPTION__: outer match was captured."
+    },
+    {
+        "filename": "M1.docx",
+        "secondaryKey": "ERR__SECONDARYKEY__: outer match wasn't captured."
+    },
+    {
+        "filename": "MS-1_Stereoscope.docx",
+        "year": "__ERR__YEAR__TRANSFORM__: NaN cannot be parsed to a numeric value.",
+        "originalPrice": "ERR__ORIGINALPRICE__: outer match wasn't captured.",
+        "degreesOfFreedom": "ERR__DEGREESOFFREEDOM__: outer match wasn't captured."
+    },
+    {
+        "filename": "MWB_Braille_Writer.docx",
+        "company": "ERR__COMPANY__: outer match wasn't captured.",
+        "year": "__ERR__YEAR__TRANSFORM__: NaN cannot be parsed to a numeric value.",
+        "originalPrice": "ERR__ORIGINALPRICE__: outer match wasn't captured.",
+        "degreesOfFreedom": "ERR__DEGREESOFFREEDOM__: outer match wasn't captured."
+    },
+    {
+        "filename": "MaltronLH.docx",
+        "secondaryKey": "ERR__SECONDARYKEY__: outer match wasn't captured.",
+        "degreesOfFreedom": "ERR__DEGREESOFFREEDOM__: outer match wasn't captured."
+    },
+    {
+        "filename": "Marine_Band_Harmonica.docx",
+        "company": "ERR__COMPANY__: outer match was captured.",
+        "year": "ERR__YEAR__: outer match was captured.",
+        "primaryKey": "ERR__PRIMARYKEY__: outer match was captured.",
+        "secondaryKey": "ERR__SECONDARYKEY__: outer match wasn't captured.",
+        "originalPrice": "ERR__ORIGINALPRICE__: outer match wasn't captured.",
+        "degreesOfFreedom": "ERR__DEGREESOFFREEDOM__: outer match wasn't captured.",
+        "dimensions": "ERR__DIMENSIONS__: outer match wasn't captured.",
+        "longDescription": "ERR__LONGDESCRIPTION__: outer match was captured."
+    },
+    {
+        "filename": "Matrox.docx",
+        "originalPrice": "ERR__ORIGINALPRICE__: outer match wasn't captured.",
+        "degreesOfFreedom": "ERR__DEGREESOFFREEDOM__: outer match wasn't captured."
+    },
+    {
+        "filename": "Metaphor_Kbd.docx",
+        "originalPrice": "ERR__ORIGINALPRICE__: outer match wasn't captured.",
+        "degreesOfFreedom": "ERR__DEGREESOFFREEDOM__: outer match wasn't captured.",
+        "dimensions": "ERR__DIMENSIONS__: outer match wasn't captured.",
+        "shortDescription": "ERR__SHORTDESCRIPTION__: outer match was captured."
+    },
+    {
+        "filename": "Metaphor_Mouse.docx",
+        "originalPrice": "ERR__ORIGINALPRICE__: outer match wasn't captured.",
+        "longDescription": "ERR__LONGDESCRIPTION__: outer match was captured."
+    },
+    {
+        "filename": "Motorola_DynaTAC.docx",
+        "year": "__ERR__YEAR__TRANSFORM__: NaN cannot be parsed to a numeric value.",
+        "degreesOfFreedom": "ERR__DEGREESOFFREEDOM__: outer match wasn't captured.",
+        "dimensions": "ERR__DIMENSIONS__: outer match wasn't captured.",
+        "longDescription": "ERR__LONGDESCRIPTION__: outer match was captured."
+    },
+    {
+        "filename": "NewO.docx",
+        "degreesOfFreedom": "ERR__DEGREESOFFREEDOM__: outer match wasn't captured.",
+        "dimensions": "ERR__DIMENSIONS__: outer match wasn't captured."
+    },
+    {
+        "filename": "Newton120.docx",
+        "dimensions": "ERR__DIMENSIONS__: outer match wasn't captured.",
+        "longDescription": "ERR__LONGDESCRIPTION__: outer match was captured."
+    },
+    {
+        "filename": "Nikon_Coolpix-100.docx",
+        "degreesOfFreedom": "ERR__DEGREESOFFREEDOM__: outer match wasn't captured.",
+        "shortDescription": "ERR__SHORTDESCRIPTION__: outer match was captured."
+    },
+    {
+        "filename": "Numonics_Mgr_Mouse.docx",
+        "company": "ERR__COMPANY__: outer match was captured.",
+        "year": "ERR__YEAR__: outer match was captured.",
+        "primaryKey": "ERR__PRIMARYKEY__: outer match was captured.",
+        "secondaryKey": "ERR__SECONDARYKEY__: outer match wasn't captured.",
+        "originalPrice": "ERR__ORIGINALPRICE__: outer match wasn't captured.",
+        "degreesOfFreedom": "ERR__DEGREESOFFREEDOM__: outer match wasn't captured.",
+        "dimensions": "ERR__DIMENSIONS__: outer match wasn't captured.",
+        "shortDescription": "ERR__SHORTDESCRIPTION__: outer match was captured.",
+        "longDescription": "ERR__LONGDESCRIPTION__: outer match was captured."
+    },
+    {
+        "filename": "PadMouse.docx",
+        "secondaryKey": "ERR__SECONDARYKEY__: outer match wasn't captured.",
+        "originalPrice": "ERR__ORIGINALPRICE__: outer match wasn't captured.",
+        "dimensions": "ERR__DIMENSIONS__: outer match wasn't captured."
+    },
+    {
+        "filename": "PowerTrack.docx",
+        "dimensions": "ERR__DIMENSIONS__: outer match wasn't captured.",
+        "longDescription": "ERR__LONGDESCRIPTION__: outer match was captured."
+    },
+    {
+        "filename": "ProAgio.docx",
+        "secondaryKey": "ERR__SECONDARYKEY__: outer match wasn't captured.",
+        "degreesOfFreedom": "ERR__DEGREESOFFREEDOM__: outer match wasn't captured.",
+        "dimensions": "ERR__DIMENSIONS__: outer match wasn't captured."
+    },
+    {
+        "filename": "Pulsar_time_Computer.docx",
+        "primaryKey": "ERR__PRIMARYKEY__: outer match was captured.",
+        "secondaryKey": "ERR__SECONDARYKEY__: outer match wasn't captured.",
+        "degreesOfFreedom": "ERR__DEGREESOFFREEDOM__: outer match wasn't captured."
+    },
+    {
+        "filename": "Ring.docx",
+        "secondaryKey": "ERR__SECONDARYKEY__: outer match wasn't captured.",
+        "longDescription": "ERR__LONGDESCRIPTION__: outer match was captured."
+    },
+    {
+        "filename": "SafeType_Kbd.docx",
+        "degreesOfFreedom": "ERR__DEGREESOFFREEDOM__: outer match wasn't captured."
+    },
+    {
+        "filename": "Samsung_SPH-A500.docx",
+        "longDescription": "ERR__LONGDESCRIPTION__: outer match was captured."
+    },
+    {
+        "filename": "SurfMouse.docx",
+        "originalPrice": "ERR__ORIGINALPRICE__: outer match wasn't captured."
+    },
+    {
+        "filename": "TPARCtab.docx",
+        "originalPrice": "ERR__ORIGINALPRICE__: outer match wasn't captured.",
+        "dimensions": "ERR__DIMENSIONS__: outer match wasn't captured."
+    },
+    {
+        "filename": "Thumbelina.docx",
+        "secondaryKey": "ERR__SECONDARYKEY__: outer match wasn't captured.",
+        "degreesOfFreedom": "ERR__DEGREESOFFREEDOM__: outer match wasn't captured.",
+        "dimensions": "ERR__DIMENSIONS__: outer match wasn't captured."
+    },
+    {
+        "filename": "adecm.docx",
+        "secondaryKey": "ERR__SECONDARYKEY__: outer match wasn't captured.",
+        "originalPrice": "ERR__ORIGINALPRICE__: outer match wasn't captured.",
+        "dimensions": "ERR__DIMENSIONS__: outer match wasn't captured.",
+        "longDescription": "ERR__LONGDESCRIPTION__: outer match was captured."
+    },
+    {
+        "filename": "eMate.docx",
+        "primaryKey": "ERR__PRIMARYKEY__: outer match was captured.",
+        "secondaryKey": "ERR__SECONDARYKEY__: outer match wasn't captured.",
+        "degreesOfFreedom": "ERR__DEGREESOFFREEDOM__: outer match wasn't captured.",
+        "dimensions": "ERR__DIMENSIONS__: outer match wasn't captured.",
+        "shortDescription": "ERR__SHORTDESCRIPTION__: outer match was captured.",
+        "longDescription": "ERR__LONGDESCRIPTION__: outer match was captured."
+    },
+    {
+        "filename": "gravis.docx",
+        "year": "ERR__YEAR__: outer match was captured.",
+        "secondaryKey": "ERR__SECONDARYKEY__: outer match wasn't captured.",
+        "originalPrice": "ERR__ORIGINALPRICE__: outer match wasn't captured.",
+        "dimensions": "ERR__DIMENSIONS__: outer match wasn't captured.",
+        "longDescription": "ERR__LONGDESCRIPTION__: outer match was captured."
+    },
+    {
+        "filename": "iGesture.docx",
+        "year": "__ERR__YEAR__TRANSFORM__: NaN cannot be parsed to a numeric value.",
+        "primaryKey": "ERR__PRIMARYKEY__: outer match was captured.",
+        "secondaryKey": "ERR__SECONDARYKEY__: outer match wasn't captured.",
+        "degreesOfFreedom": "ERR__DEGREESOFFREEDOM__: outer match wasn't captured.",
+        "longDescription": "ERR__LONGDESCRIPTION__: outer match was captured."
+    },
+    {
+        "filename": "iGrip.docx",
+        "shortDescription": "ERR__SHORTDESCRIPTION__: outer match was captured.",
+        "longDescription": "ERR__LONGDESCRIPTION__: outer match was captured."
+    },
+    {
+        "filename": "iLiad.docx",
+        "secondaryKey": "ERR__SECONDARYKEY__: outer match wasn't captured.",
+        "degreesOfFreedom": "ERR__DEGREESOFFREEDOM__: outer match wasn't captured."
+    },
+    {
+        "filename": "round.docx",
+        "secondaryKey": "ERR__SECONDARYKEY__: outer match wasn't captured.",
+        "originalPrice": "ERR__ORIGINALPRICE__: outer match wasn't captured.",
+        "dimensions": "ERR__DIMENSIONS__: outer match wasn't captured.",
+        "longDescription": "ERR__LONGDESCRIPTION__: outer match was captured."
+    }
+]

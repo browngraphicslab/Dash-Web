@@ -46,7 +46,7 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
         if (value instanceof Doc) {
             e.stopPropagation();
             e.preventDefault();
-            ContextMenu.Instance.addItem({ description: "Open Fields", event: () => this.props.addDocTab(Docs.Create.KVPDocument(value, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group" });
+            ContextMenu.Instance.addItem({ description: "Open Fields", event: () => this.props.addDocTab(Docs.Create.KVPDocument(value, { _width: 300, _height: 300 }), undefined, "onRight"), icon: "layer-group" });
             ContextMenu.Instance.displayMenu(e.clientX, e.clientY);
         }
     }
@@ -58,7 +58,6 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
             LibraryPath: [],
             ContainingCollectionView: undefined,
             ContainingCollectionDoc: undefined,
-            ruleProvider: undefined,
             fieldKey: this.props.keyName,
             isSelected: returnFalse,
             select: emptyFunction,

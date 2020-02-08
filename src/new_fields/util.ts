@@ -1,19 +1,20 @@
 import { UndoManager } from "../client/util/UndoManager";
-import { Doc, Field, FieldResult, UpdatingFromServer } from "./Doc";
+import { Doc, Field, FieldResult, UpdatingFromServer, LayoutSym } from "./Doc";
 import { SerializationHelper } from "../client/util/SerializationHelper";
-import { ProxyField } from "./Proxy";
+import { ProxyField, PrefetchProxy } from "./Proxy";
 import { RefField } from "./RefField";
 import { ObjectField } from "./ObjectField";
 import { action, trace } from "mobx";
 import { Parent, OnUpdate, Update, Id, SelfProxy, Self } from "./FieldSymbols";
 import { DocServer } from "../client/DocServer";
+import { props } from "bluebird";
 
 function _readOnlySetter(): never {
     throw new Error("Documents can't be modified in read-only mode");
 }
 
 export function TraceMobx() {
-    //trace();
+    // trace();
 }
 
 export interface GetterResult {
@@ -35,6 +36,7 @@ const _setterImpl = action(function (target: any, prop: string | symbol | number
         target[prop] = value;
         return true;
     }
+
     if (typeof prop === "symbol") {
         target[prop] = value;
         return true;
@@ -52,7 +54,7 @@ const _setterImpl = action(function (target: any, prop: string | symbol | number
         value = new ProxyField(value);
     }
     if (value instanceof ObjectField) {
-        if (value[Parent] && value[Parent] !== receiver) {
+        if (value[Parent] && value[Parent] !== receiver && !(value instanceof PrefetchProxy)) {
             throw new Error("Can't put the same object in multiple documents at the same time");
         }
         value[Parent] = receiver;
@@ -98,11 +100,35 @@ export function makeEditable() {
     _setter = _setterImpl;
 }
 
-export function setter(target: any, prop: string | symbol | number, value: any, receiver: any): boolean {
+let layoutProps = ["panX", "panY", "width", "height", "nativeWidth", "nativeHeight", "fitWidth", "fitToBox",
+    "LODdisable", "chromeStatus", "viewType", "gridGap", "xMargin", "yMargin", "autoHeight"];
+export function setter(target: any, in_prop: string | symbol | number, value: any, receiver: any): boolean {
+    let prop = in_prop;
+    if (typeof prop === "string" && prop !== "__id" && prop !== "__fields" && (prop.startsWith("_") || layoutProps.includes(prop))) {
+        if (!prop.startsWith("_")) {
+            console.log(prop + " is deprecated - switch to _" + prop);
+            prop = "_" + prop;
+        }
+        if (target.__LAYOUT__) {
+            target.__LAYOUT__[prop] = value;
+            return true;
+        }
+    }
     return _setter(target, prop, value, receiver);
 }
 
-export function getter(target: any, prop: string | symbol | number, receiver: any): any {
+export function getter(target: any, in_prop: string | symbol | number, receiver: any): any {
+    let prop = in_prop;
+    if (prop === LayoutSym) {
+        return target.__LAYOUT__;
+    }
+    if (typeof prop === "string" && prop !== "__id" && prop !== "__fields" && (prop.startsWith("_") || layoutProps.includes(prop))) {
+        if (!prop.startsWith("_")) {
+            console.log(prop + " is deprecated - switch to _" + prop);
+            prop = "_" + prop;
+        }
+        if (target.__LAYOUT__) return target.__LAYOUT__[prop];
+    }
     if (prop === "then") {//If we're being awaited
         return undefined;
     }

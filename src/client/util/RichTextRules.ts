@@ -2,14 +2,16 @@ import { textblockTypeInputRule, smartQuotes, emDash, ellipsis, InputRule } from
 import { schema } from "./RichTextSchema";
 import { wrappingInputRule } from "./prosemirrorPatches";
 import { NodeSelection, TextSelection } from "prosemirror-state";
-import { NumCast, Cast } from "../../new_fields/Types";
-import { Doc } from "../../new_fields/Doc";
+import { StrCast, Cast, NumCast } from "../../new_fields/Types";
+import { Doc, DataSym } from "../../new_fields/Doc";
 import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
-import { TooltipTextMenuManager } from "../util/TooltipTextMenu";
 import { Docs, DocUtils } from "../documents/Documents";
 import { Id } from "../../new_fields/FieldSymbols";
 import { DocServer } from "../DocServer";
 import { returnFalse, Utils } from "../../Utils";
+import RichTextMenu from "./RichTextMenu";
+import { RichTextField } from "../../new_fields/RichTextField";
+import { ComputedField } from "../../new_fields/ScriptField";
 
 export const inpRules = {
     rules: [
@@ -64,35 +66,75 @@ export const inpRules = {
 
         // set the font size using #<font-size> 
         new InputRule(
-            new RegExp(/^%([0-9]+)\s$/),
+            new RegExp(/%([0-9]+)\s$/),
             (state, match, start, end) => {
                 const size = Number(match[1]);
-                const ruleProvider = FormattedTextBox.FocusedBox!.props.ruleProvider;
-                const heading = NumCast(FormattedTextBox.FocusedBox!.props.Document.heading);
-                if (ruleProvider && heading) {
-                    (Cast(FormattedTextBox.FocusedBox!.props.Document, Doc) as Doc).heading = size;
-                    return state.tr.deleteRange(start, end);
-                }
                 return state.tr.deleteRange(start, end).addStoredMark(schema.marks.pFontSize.create({ fontSize: size }));
             }),
 
-        // make current selection a hyperlink portal (assumes % was used to initiate an EnteringStyle mode)
+        // create a text display of a metadata field on this or another document, or create a hyperlink portal to another document [[ <fieldKey> : <Doc>]]   // [[:Doc]] => hyperlink   [[fieldKey]] => show field   [[fieldKey:Doc]] => show field of doc
         new InputRule(
-            new RegExp(/@$/),
+            new RegExp(/\[\[([a-zA-Z_ \-0-9]*)(:[a-zA-Z_ \-0-9]+)?\]\]$/),
             (state, match, start, end) => {
-                if (state.selection.to === state.selection.from || !(schema as any).EnteringStyle) return null;
-
-                const value = state.doc.textBetween(start, end);
-                if (value) {
-                    DocServer.GetRefField(value).then(docx => {
-                        const target = ((docx instanceof Doc) && docx) || Docs.Create.FreeformDocument([], { title: value, width: 500, height: 500, }, value);
-                        DocUtils.Publish(target, value, returnFalse, returnFalse);
-                        DocUtils.MakeLink({ doc: (schema as any).Document }, { doc: target }, "portal link", "");
-                    });
-                    const link = state.schema.marks.link.create({ href: Utils.prepend("/doc/" + value), location: "onRight", title: value, targetId: value });
-                    return state.tr.addMark(start, end, link);
+                const fieldKey = match[1];
+                const docid = match[2]?.substring(1);
+                if (!fieldKey) {
+                    if (docid) {
+                        DocServer.GetRefField(docid).then(docx => {
+                            const target = ((docx instanceof Doc) && docx) || Docs.Create.FreeformDocument([], { title: docid, _width: 500, _height: 500, _LODdisable: true, }, docid);
+                            DocUtils.Publish(target, docid, returnFalse, returnFalse);
+                            DocUtils.MakeLink({ doc: (schema as any).Document }, { doc: target }, "portal link", "");
+                        });
+                        const link = state.schema.marks.link.create({ href: Utils.prepend("/doc/" + docid), location: "onRight", title: docid, targetId: docid });
+                        return state.tr.deleteRange(end - 1, end).deleteRange(start, start + 2).addMark(start, end - 3, link);
+                    }
+                    return state.tr;
                 }
-                return state.tr;
+                const fieldView = state.schema.nodes.dashField.create({ fieldKey, docid });
+                return state.tr.deleteRange(start, end).insert(start, fieldView);
+            }),
+        // create an inline view of a document {{ <layoutKey> : <Doc> }}  // {{:Doc}} => show default view of document   {{<layout>}} => show layout for this doc   {{<layout> : Doc}} => show layout for another doc
+        new InputRule(
+            new RegExp(/\{\{([a-zA-Z_ \-0-9]*)(:[a-zA-Z_ \-0-9]+)?\}\}$/),
+            (state, match, start, end) => {
+                const fieldKey = match[1];
+                const docid = match[2]?.substring(1);
+                if (!fieldKey && !docid) return state.tr;
+                docid && DocServer.GetRefField(docid).then(docx => {
+                    if (!(docx instanceof Doc && docx)) {
+                        const docx = Docs.Create.FreeformDocument([], { title: docid, _width: 500, _height: 500, _LODdisable: true }, docid);
+                        DocUtils.Publish(docx, docid, returnFalse, returnFalse);
+                    }
+                });
+                const node = (state.doc.resolve(start) as any).nodeAfter;
+                const dashDoc = schema.nodes.dashDoc.create({ width: 75, height: 75, title: "dashDoc", docid, fieldKey, float: "right", alias: Utils.GenerateGuid() });
+                const sm = state.storedMarks || undefined;
+                return node ? state.tr.replaceRangeWith(start, end, dashDoc).setStoredMarks([...node.marks, ...(sm ? sm : [])]) : state.tr;
+            }),
+        new InputRule(
+            new RegExp(/##$/),
+            (state, match, start, end) => {
+                const schemaDoc = Doc.GetDataDoc((schema as any).Document);
+                const textDoc = Doc.GetProto(Cast(schemaDoc[DataSym], Doc, null)!);
+                const numInlines = NumCast(textDoc.inlineTextCount);
+                textDoc.inlineTextCount = numInlines + 1;
+                const inlineFieldKey = "inline" + numInlines; // which field on the text document this annotation will write to
+                const inlineLayoutKey = "layout_" + inlineFieldKey; // the field holding the layout string that will render the inline annotation
+                const textDocInline = Docs.Create.TextDocument("", { layoutKey: inlineLayoutKey, _width: 75, _height: 35, annotationOn: textDoc, _autoHeight: true, fontSize: 9, title: "inline comment" });
+                textDocInline.title = inlineFieldKey; // give the annotation its own title
+                textDocInline.customTitle = true; // And make sure that it's 'custom' so that editing text doesn't change the title of the containing doc
+                textDocInline.isTemplateForField = inlineFieldKey; // this is needed in case the containing text doc is converted to a template at some point
+                textDocInline.proto = textDoc;  // make the annotation inherit from the outer text doc so that it can resolve any nested field references, e.g., [[field]]
+                textDocInline._textContext = ComputedField.MakeFunction(`copyField(this.${inlineFieldKey})`, { this: Doc.name });
+                textDoc[inlineLayoutKey] = FormattedTextBox.LayoutString(inlineFieldKey); // create a layout string for the layout key that will render the annotation text
+                textDoc[inlineFieldKey] = ""; // set a default value for the annotation
+                const node = (state.doc.resolve(start) as any).nodeAfter;
+                const newNode = schema.nodes.dashComment.create({ docid: textDocInline[Id] });
+                const dashDoc = schema.nodes.dashDoc.create({ width: 75, height: 35, title: "dashDoc", docid: textDocInline[Id], float: "right" });
+                const sm = state.storedMarks || undefined;
+                const replaced = node ? state.tr.insert(start, newNode).replaceRangeWith(start + 1, end + 1, dashDoc).insertText(" ", start + 2).setStoredMarks([...node.marks, ...(sm ? sm : [])]) :
+                    state.tr;
+                return replaced;
             }),
         // stop using active style
         new InputRule(
@@ -175,12 +217,6 @@ export const inpRules = {
             (state, match, start, end) => {
                 const node = (state.doc.resolve(start) as any).nodeAfter;
                 const sm = state.storedMarks || undefined;
-                const ruleProvider = FormattedTextBox.FocusedBox!.props.ruleProvider;
-                const heading = NumCast(FormattedTextBox.FocusedBox!.props.Document.heading);
-                if (ruleProvider && heading) {
-                    ruleProvider["ruleAlign_" + heading] = "center";
-                    return node ? state.tr.deleteRange(start, end).setStoredMarks([...node.marks, ...(sm ? sm : [])]) : state.tr;
-                }
                 const replaced = node ? state.tr.replaceRangeWith(start, end, schema.nodes.paragraph.create({ align: "center" })).setStoredMarks([...node.marks, ...(sm ? sm : [])]) :
                     state.tr;
                 return replaced.setSelection(new TextSelection(replaced.doc.resolve(end - 2)));
@@ -191,12 +227,6 @@ export const inpRules = {
             (state, match, start, end) => {
                 const node = (state.doc.resolve(start) as any).nodeAfter;
                 const sm = state.storedMarks || undefined;
-                const ruleProvider = FormattedTextBox.FocusedBox!.props.ruleProvider;
-                const heading = NumCast(FormattedTextBox.FocusedBox!.props.Document.heading);
-                if (ruleProvider && heading) {
-                    ruleProvider["ruleAlign_" + heading] = "left";
-                    return node ? state.tr.deleteRange(start, end).setStoredMarks([...node.marks, ...(sm ? sm : [])]) : state.tr;
-                }
                 const replaced = node ? state.tr.replaceRangeWith(start, end, schema.nodes.paragraph.create({ align: "left" })).setStoredMarks([...node.marks, ...(sm ? sm : [])]) :
                     state.tr;
                 return replaced.setSelection(new TextSelection(replaced.doc.resolve(end - 2)));
@@ -207,27 +237,9 @@ export const inpRules = {
             (state, match, start, end) => {
                 const node = (state.doc.resolve(start) as any).nodeAfter;
                 const sm = state.storedMarks || undefined;
-                const ruleProvider = FormattedTextBox.FocusedBox!.props.ruleProvider;
-                const heading = NumCast(FormattedTextBox.FocusedBox!.props.Document.heading);
-                if (ruleProvider && heading) {
-                    ruleProvider["ruleAlign_" + heading] = "right";
-                    return node ? state.tr.deleteRange(start, end).setStoredMarks([...node.marks, ...(sm ? sm : [])]) : state.tr;
-                }
                 const replaced = node ? state.tr.replaceRangeWith(start, end, schema.nodes.paragraph.create({ align: "right" })).setStoredMarks([...node.marks, ...(sm ? sm : [])]) :
                     state.tr;
                 return replaced.setSelection(new TextSelection(replaced.doc.resolve(end - 2)));
-            }),
-        new InputRule(
-            new RegExp(/%#$/),
-            (state, match, start, end) => {
-                const target = Docs.Create.TextDocument({ width: 75, height: 35, backgroundColor: "yellow", annotationOn: FormattedTextBox.FocusedBox!.dataDoc, autoHeight: true, fontSize: 9, title: "inline comment" });
-                const node = (state.doc.resolve(start) as any).nodeAfter;
-                const newNode = schema.nodes.dashComment.create({ docid: target[Id] });
-                const dashDoc = schema.nodes.dashDoc.create({ width: 75, height: 35, title: "dashDoc", docid: target[Id], float: "right" });
-                const sm = state.storedMarks || undefined;
-                const replaced = node ? state.tr.insert(start, newNode).replaceRangeWith(start + 1, end + 1, dashDoc).insertText(" ", start + 2).setStoredMarks([...node.marks, ...(sm ? sm : [])]) :
-                    state.tr;
-                return replaced;//.setSelection(new NodeSelection(replaced.doc.resolve(end)));
             }),
         new InputRule(
             new RegExp(/%\(/),
@@ -264,7 +276,7 @@ export const inpRules = {
             new RegExp(/%[a-z]+$/),
             (state, match, start, end) => {
                 const color = match[0].substring(1, match[0].length);
-                const marks = TooltipTextMenuManager.Instance._brushMap.get(color);
+                const marks = RichTextMenu.Instance._brushMap.get(color);
                 if (marks) {
                     const tr = state.tr.deleteRange(start, end);
                     return marks ? Array.from(marks).reduce((tr, m) => tr.addStoredMark(m), tr) : tr;

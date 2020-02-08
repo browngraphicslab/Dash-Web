@@ -4,6 +4,7 @@ import { exec } from 'child_process';
 import { command_line } from "../ActionUtilities";
 import RouteSubscriber from "../RouteSubscriber";
 import { red } from "colors";
+import { main } from "../../scraping/buxton/node_scraper";
 
 export default class UtilManager extends ApiManager {
 
@@ -47,10 +48,21 @@ export default class UtilManager extends ApiManager {
 
                 const onResolved = (stdout: string) => { console.log(stdout); res.redirect("/"); };
                 const onRejected = (err: any) => { console.error(err.message); res.send(err); };
-                const tryPython3 = () => command_line('python3 scraper.py', cwd).then(onResolved, onRejected);
+                const tryPython3 = (reason: any) => {
+                    console.log("Initial scraper failed for the following reason:");
+                    console.log(red(reason.Error));
+                    console.log("Falling back to python3...");
+                    return command_line('python3 scraper.py', cwd).then(onResolved, onRejected);
+                };
 
                 return command_line('python scraper.py', cwd).then(onResolved, tryPython3);
             },
+        });
+
+        register({
+            method: Method.GET,
+            subscription: "/newBuxton",
+            secureHandler: async ({ res }) => res.send(await main())
         });
 
         register({

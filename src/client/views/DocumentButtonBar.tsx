@@ -1,26 +1,29 @@
 import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
 import { faArrowAltCircleDown, faArrowAltCircleUp, faCheckCircle, faCloudUploadAlt, faLink, faShare, faStopCircle, faSyncAlt, faTag, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, observable, runInAction, computed } from "mobx";
+import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast } from "../../new_fields/Doc";
+import { Id } from '../../new_fields/FieldSymbols';
 import { RichTextField } from '../../new_fields/RichTextField';
-import { NumCast, StrCast, Cast } from "../../new_fields/Types";
+import { NumCast, StrCast } from "../../new_fields/Types";
 import { emptyFunction } from "../../Utils";
 import { Pulls, Pushes } from '../apis/google_docs/GoogleApiClientUtils';
-import { DragManager } from "../util/DragManager";
+import RichTextMenu from '../util/RichTextMenu';
 import { UndoManager } from "../util/UndoManager";
-import './DocumentButtonBar.scss';
+import { CollectionDockingView, DockedFrameRenderer } from './collections/CollectionDockingView';
+import { ParentDocSelector } from './collections/ParentDocumentSelector';
 import './collections/ParentDocumentSelector.scss';
+import './DocumentButtonBar.scss';
 import { LinkMenu } from "./linking/LinkMenu";
-import { FormattedTextBox, GoogleRef } from "./nodes/FormattedTextBox";
+import { DocumentView } from './nodes/DocumentView';
+import { GoogleRef } from "./nodes/FormattedTextBox";
 import { TemplateMenu } from "./TemplateMenu";
 import { Template, Templates } from "./Templates";
 import React = require("react");
-import { DocumentView } from './nodes/DocumentView';
-import { ParentDocSelector } from './collections/ParentDocumentSelector';
-import { CollectionDockingView } from './collections/CollectionDockingView';
-import { Id } from '../../new_fields/FieldSymbols';
+import { DragManager } from '../util/DragManager';
+import { MetadataEntryMenu } from './MetadataEntryMenu';
+import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -42,6 +45,7 @@ const fetch: IconProp = "sync-alt";
 @observer
 export class DocumentButtonBar extends React.Component<{ views: (DocumentView | undefined)[], stack?: any }, {}> {
     private _linkButton = React.createRef<HTMLDivElement>();
+    private _dragRef = React.createRef<HTMLDivElement>();
     private _downX = 0;
     private _downY = 0;
     private _pullAnimating = false;
@@ -112,14 +116,15 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
             const linkDrag = UndoManager.StartBatch("Drag Link");
             this.view0 && DragManager.StartLinkDrag(this._linkButton.current, this.view0.props.Document, e.pageX, e.pageY, {
                 dragComplete: dropEv => {
-                    const linkDoc = dropEv.linkDragData?.linkDocument; // equivalent to !dropEve.aborted since linkDocument is only assigned on a completed drop
-                    if (this.view0 && linkDoc && FormattedTextBox.ToolTipTextMenu) {
+                    const linkDoc = dropEv.linkDragData?.linkDocument as Doc; // equivalent to !dropEve.aborted since linkDocument is only assigned on a completed drop
+                    if (this.view0 && linkDoc) {
                         const proto = Doc.GetProto(linkDoc);
                         proto.sourceContext = this.view0.props.ContainingCollectionDoc;
 
                         const anchor2Title = linkDoc.anchor2 instanceof Doc ? StrCast(linkDoc.anchor2.title) : "-untitled-";
+                        const anchor2Id = linkDoc.anchor2 instanceof Doc ? linkDoc.anchor2[Id] : "";
+                        const text = RichTextMenu.Instance.MakeLinkToSelection(linkDoc[Id], anchor2Title, e.ctrlKey ? "onRight" : "inTab", anchor2Id);
                         if (linkDoc.anchor2 instanceof Doc) {
-                            const text = FormattedTextBox.ToolTipTextMenu.MakeLinkToSelection(linkDoc[Id], anchor2Title, e.ctrlKey ? "onRight" : "inTab", linkDoc.anchor2[Id]);
                             proto.title = text === "" ? proto.title : text + " to " + linkDoc.anchor2.title; // TODO open to more descriptive descriptions of following in text link
                         }
                     }
@@ -193,16 +198,50 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
             />
         </div>;
     }
+    @computed
+    get pinButton() {
+        const targetDoc = this.view0?.props.Document;
+        const isPinned = targetDoc && CurrentUserUtils.IsDocPinned(targetDoc);
+        return !targetDoc ? (null) : <div className="documentButtonBar-linker"
+            title={CurrentUserUtils.IsDocPinned(targetDoc) ? "Unpin from presentation" : "Pin to presentation"}
+            style={{ backgroundColor: isPinned ? "black" : "white", color: isPinned ? "white" : "black" }}
+
+            onClick={e => {
+                if (isPinned) {
+                    DockedFrameRenderer.UnpinDoc(targetDoc);
+                }
+                else {
+                    targetDoc.sourceContext = this.view0?.props.ContainingCollectionDoc; // bcz: !! Shouldn't need this ... use search to lookup contexts dynamically
+                    DockedFrameRenderer.PinDoc(targetDoc);
+                }
+            }}>
+            <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="map-pin"
+            />
+        </div>;
+    }
 
     @computed
     get linkButton() {
         const view0 = this.view0;
         const linkCount = view0 && DocListCast(view0.props.Document.links).length;
         return !view0 ? (null) : <div title="Drag(create link) Tap(view links)" className="documentButtonBar-linkFlyout" ref={this._linkButton}>
-            <Flyout anchorPoint={anchorPoints.RIGHT_TOP}
+            <Flyout anchorPoint={anchorPoints.LEFT_TOP}
                 content={<LinkMenu docView={view0} addDocTab={view0.props.addDocTab} changeFlyout={emptyFunction} />}>
                 <div className={"documentButtonBar-linkButton-" + (linkCount ? "nonempty" : "empty")} onPointerDown={this.onLinkButtonDown} >
                     {linkCount ? linkCount : <FontAwesomeIcon className="documentdecorations-icon" icon="link" size="sm" />}
+                </div>
+            </Flyout>
+        </div>;
+    }
+
+    @computed
+    get metadataButton() {
+        const view0 = this.view0;
+        return !view0 ? (null) : <div title="Show metadata panel" className="documentButtonBar-linkFlyout">
+            <Flyout anchorPoint={anchorPoints.LEFT_TOP}
+                content={<MetadataEntryMenu docs={() => this.props.views.filter(dv => dv).map(dv => dv!.props.Document)} suggestWithFunction />  /* tfs: @bcz This might need to be the data document? */}>
+                <div className={"documentButtonBar-linkButton-" + "empty"} >
+                    {<FontAwesomeIcon className="documentdecorations-icon" icon="tag" size="sm" />}
                 </div>
             </Flyout>
         </div>;
@@ -218,21 +257,81 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
         }} />;
     }
 
-    render() {
-        if (!this.view0) return (null);
+    private _downx = 0;
+    private _downy = 0;
+    onAliasButtonUp = (e: PointerEvent): void => {
+        document.removeEventListener("pointermove", this.onAliasButtonMoved);
+        document.removeEventListener("pointerup", this.onAliasButtonUp);
+        e.stopPropagation();
+    }
+
+    onAliasButtonDown = (e: React.PointerEvent): void => {
+        this._downx = e.clientX;
+        this._downy = e.clientY;
+        e.stopPropagation();
+        e.preventDefault();
+        document.removeEventListener("pointermove", this.onAliasButtonMoved);
+        document.addEventListener("pointermove", this.onAliasButtonMoved);
+        document.removeEventListener("pointerup", this.onAliasButtonUp);
+        document.addEventListener("pointerup", this.onAliasButtonUp);
+    }
+    onAliasButtonMoved = (e: PointerEvent): void => {
+        if (this._dragRef.current !== null && (Math.abs(e.clientX - this._downx) > 4 || Math.abs(e.clientY - this._downy) > 4)) {
+            document.removeEventListener("pointermove", this.onAliasButtonMoved);
+            document.removeEventListener("pointerup", this.onAliasButtonUp);
+
+            const dragDocView = this.props.views[0]!;
+            const dragData = new DragManager.DocumentDragData([dragDocView.props.Document]);
+            const [left, top] = dragDocView.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
+            dragData.embedDoc = true;
+            dragData.dropAction = "alias";
+            DragManager.StartDocumentDrag([dragDocView.ContentDiv!], dragData, left, top, {
+                offsetX: dragData.offset[0],
+                offsetY: dragData.offset[1],
+                hideSource: false
+            });
+        }
+        e.stopPropagation();
+    }
+
+    @computed
+    get templateButton() {
+        const view0 = this.view0;
         const templates: Map<Template, boolean> = new Map();
         Array.from(Object.values(Templates.TemplateList)).map(template =>
             templates.set(template, this.props.views.reduce((checked, doc) => checked || doc?.getLayoutPropStr("show" + template.Name) ? true : false, false as boolean)));
+        return !view0 ? (null) : <div title="Customize layout" className="documentButtonBar-linkFlyout" ref={this._dragRef}>
+            <Flyout anchorPoint={anchorPoints.LEFT_TOP}
+                content={<TemplateMenu docViews={this.props.views.filter(v => v).map(v => v as DocumentView)} templates={templates} />}>
+                <div className={"documentButtonBar-linkButton-" + "empty"} ref={this._dragRef} onPointerDown={this.onAliasButtonDown} >
+                    {<FontAwesomeIcon className="documentdecorations-icon" icon="edit" size="sm" />}
+                </div>
+            </Flyout>
+        </div>;
+    }
+
+    render() {
+        if (!this.view0) return (null);
 
         const isText = this.view0.props.Document.data instanceof RichTextField; // bcz: Todo - can't assume layout is using the 'data' field.  need to add fieldKey to DocumentView
         const considerPull = isText && this.considerGoogleDocsPull;
         const considerPush = isText && this.considerGoogleDocsPush;
+        Doc.UserDoc().pr
         return <div className="documentButtonBar">
             <div className="documentButtonBar-button">
                 {this.linkButton}
             </div>
             <div className="documentButtonBar-button">
-                <TemplateMenu docs={this.props.views.filter(v => v).map(v => v as DocumentView)} templates={templates} />
+                {this.templateButton}
+            </div>
+            <div className="documentButtonBar-button">
+                {this.metadataButton}
+            </div>
+            <div className="documentButtonBar-button">
+                {this.contextButton}
+            </div>
+            <div className="documentButtonBar-button">
+                {this.pinButton}
             </div>
             <div className="documentButtonBar-button" style={{ display: !considerPush ? "none" : "" }}>
                 {this.considerGoogleDocsPush}
@@ -240,7 +339,6 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
             <div className="documentButtonBar-button" style={{ display: !considerPull ? "none" : "" }}>
                 {this.considerGoogleDocsPull}
             </div>
-            {this.contextButton}
         </div>;
     }
 }

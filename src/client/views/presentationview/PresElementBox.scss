@@ -4,17 +4,20 @@
     background-color: #eeeeee;
     pointer-events: all;
     width: 100%;
+    height: 100%;
     outline-color: maroon;
     outline-style: dashed;
-    border-radius: 12px;
+    border-radius: 6px;
     -webkit-touch-callout: none;
     -webkit-user-select: none;
     -khtml-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
-    transition: all .1s;
-
+    transition: all .1s; 
+    padding: 0px;
+    padding-left: 5px;
+    padding-bottom: 3px;
     .documentView-node {
         position: absolute;
         z-index: 1;
@@ -32,34 +35,43 @@
 .presElementBox-item:hover {
     transition: all .1s;
     background: #AAAAAA;
-    border-radius: 12px;
+    border-radius: 6px;
 }
 
 .presElementBox-selected {
     background: gray;
     color: black;
-    border-radius: 12px;
+    border-radius: 6px;
     box-shadow: black 2px 2px 5px;
 }
 
 .presElementBox-closeIcon {
-    float: right;
     border-radius: 20px;
     transform:scale(0.7);
+    position: absolute;
+    right: 0;
+    top: 0;
+    padding: 8px;
 }
 
 .presElementBox-interaction {
     color: gray;
     float: left;
+    padding: 0px;
+    width: 20px;
+    height: 20px;
 }
 
 .presElementBox-interaction-selected {
     color: white;
     float: left;
+    padding: 0px;
+    width: 22px;
+    height: 22px;
 }
 
 .presElementBox-name {
-    font-size: 15px;
+    font-size: 12pxππ;
     position: absolute;
     display: inline-block;
     width: calc(100% - 45px);
@@ -70,7 +82,14 @@
 
 .presElementBox-embedded {
     position: relative;
-    margin-top: 30;
+    margin-top: 22;
+    display: flex;
+    width: auto;
+    justify-content: center;
+    .contentFittingDocumentView {
+        position: absolute;
+        height: 100%;
+    }
 }
 
 .presElementBox-embeddedMask {

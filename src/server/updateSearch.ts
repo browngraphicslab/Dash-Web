@@ -107,11 +107,15 @@ async function update() {
         color: cyan
     });
     try {
-        const { status } = JSON.parse(result).responseHeader;
-        console.log(status ? red(`Failed with status code (${status})`) : green("Success!"));
-    } catch {
+        if (result) {
+            const { status } = JSON.parse(result).responseHeader;
+            console.log(status ? red(`Failed with status code (${status})`) : green("Success!"));
+        } else {
+            console.log(red("Solr is likely not running!"));
+        }
+    } catch (e) {
         console.log(red("Error:"));
-        console.log(result);
+        console.log(e);
         console.log("\n");
     }
     await cursor?.close();

@@ -93,9 +93,9 @@ export class DocumentManager {
         const toReturn: DocumentView[] = [];
 
         DocumentManager.Instance.DocumentViews.map(view =>
-            view.props.Document === toFind && toReturn.push(view));
+            view.props.Document.presBox === undefined && view.props.Document === toFind && toReturn.push(view));
         DocumentManager.Instance.DocumentViews.map(view =>
-            view.props.Document !== toFind && Doc.AreProtosEqual(view.props.Document, toFind) && toReturn.push(view));
+            view.props.Document.presBox === undefined && view.props.Document !== toFind && Doc.AreProtosEqual(view.props.Document, toFind) && toReturn.push(view));
 
         return toReturn;
     }
@@ -140,7 +140,7 @@ export class DocumentManager {
             if (first) annotatedDoc = first.props.Document;
         }
         if (docView) {  // we have a docView already and aren't forced to create a new one ... just focus on the document.  TODO move into view if necessary otherwise just highlight?
-            docView.props.focus(docView.props.Document, false);
+            docView.props.focus(docView.props.Document, willZoom);
             highlight();
         } else {
             const contextDocs = docContext ? await DocListCastAsync(docContext.data) : undefined;
@@ -220,35 +220,6 @@ export class DocumentManager {
         } else {
             return 1;
         }
-    }
-
-    @action
-    animateBetweenPoint = (scrpt: number[], expandedDocs: Doc[] | undefined): void => {
-        expandedDocs && expandedDocs.map(expDoc => {
-            if (expDoc.isMinimized || expDoc.isAnimating === "min") { // MAXIMIZE DOC
-                if (expDoc.isMinimized) {  // docs are never actaully at the minimized location.  so when we unminimize one, we have to set our overrides to make it look like it was at the minimize location
-                    expDoc.isMinimized = false;
-                    expDoc.animateToPos = new List<number>([...scrpt, 0]);
-                    expDoc.animateToDimensions = new List<number>([0, 0]);
-                }
-                setTimeout(() => {
-                    expDoc.isAnimating = "max";
-                    expDoc.animateToPos = new List<number>([0, 0, 1]);
-                    expDoc.animateToDimensions = new List<number>([NumCast(expDoc.width), NumCast(expDoc.height)]);
-                    setTimeout(() => expDoc.isAnimating === "max" && (expDoc.isAnimating = expDoc.animateToPos = expDoc.animateToDimensions = undefined), 600);
-                }, 0);
-            } else {  // MINIMIZE DOC
-                expDoc.isAnimating = "min";
-                expDoc.animateToPos = new List<number>([...scrpt, 0]);
-                expDoc.animateToDimensions = new List<number>([0, 0]);
-                setTimeout(() => {
-                    if (expDoc.isAnimating === "min") {
-                        expDoc.isMinimized = true;
-                        expDoc.isAnimating = expDoc.animateToPos = expDoc.animateToDimensions = undefined;
-                    }
-                }, 600);
-            }
-        });
     }
 }
 Scripting.addGlobal(function focus(doc: any) { DocumentManager.Instance.getDocumentViews(Doc.GetProto(doc)).map(view => view.props.focus(doc, true)); });

@@ -5,9 +5,7 @@ import { Schema } from "prosemirror-model";
 import { liftListItem, sinkListItem } from "./prosemirrorPatches.js";
 import { splitListItem, wrapInList, } from "prosemirror-schema-list";
 import { EditorState, Transaction, TextSelection } from "prosemirror-state";
-import { TooltipTextMenu } from "./TooltipTextMenu";
 import { SelectionManager } from "./SelectionManager";
-import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
 
 const mac = typeof navigator !== "undefined" ? /Mac/.test(navigator.platform) : false;
 
