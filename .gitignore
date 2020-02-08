@@ -6,7 +6,7 @@ ClientUtils.ts
 solr-8.3.1/server/logs/
 solr-8.3.1/server/solr/dash/data/tlog/*
 solr-8.3.1/server/solr/dash/data/index/*
-src/scraping/buxton/source/
+src/scraping/buxton/final/source/
 src/server/public/files/
 src/scraping/acm/package-lock.json
 src/server/session_manager/logs/**/*.log
