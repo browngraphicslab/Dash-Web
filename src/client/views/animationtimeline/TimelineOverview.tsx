@@ -142,10 +142,14 @@ export class TimelineOverview extends React.Component<TimelineOverviewProps>{
         const visibleBarWidth = percentVisible * this.activeOverviewWidth;
 
         const percentScrubberStart = this.currentX / this.props.time;
-        const scrubberStart = this.props.currentBarX / this.props.totalLength * this.activeOverviewWidth;
+        let scrubberStart = this.props.currentBarX / this.props.totalLength * this.activeOverviewWidth;
+        if (scrubberStart > this.activeOverviewWidth) scrubberStart = this.activeOverviewWidth; 
 
         const percentBarStart = this.visibleStart / this.props.time;
         const barStart = percentBarStart * this.activeOverviewWidth;
+
+        let playWidth = (this.props.currentBarX / this.props.totalLength) * this.activeOverviewWidth; 
+        if (playWidth > this.activeOverviewWidth) playWidth = this.activeOverviewWidth; 
 
         const timeline = this.props.isAuthoring ? [
 
@@ -159,7 +163,7 @@ export class TimelineOverview extends React.Component<TimelineOverviewProps>{
                 <div key="timeline-play-container" className="timeline-play-bar overviewBar" id="timelinePlay">
                     <div ref={this._scrubberRef} className="timeline-play-head" style={{ left: `${scrubberStart}px` }} onPointerDown={this.onScrubberDown}></div>
                 </div>,
-                <div className="timeline-play-tail" style={{ width: `${(this.props.currentBarX / this.props.totalLength) * this.playbarWidth}px` }}></div>
+                <div className="timeline-play-tail" style={{ width: `${playWidth}px` }}></div>
             ];
         return (
             <div className="timeline-flex">

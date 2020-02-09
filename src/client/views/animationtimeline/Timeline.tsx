@@ -14,6 +14,7 @@ import { TimelineOverview } from "./TimelineOverview";
 import { FieldViewProps } from "../nodes/FieldView";
 import { KeyframeFunc } from "./Keyframe";
 import { Utils } from "../../../Utils";
+import { createPromiseCapability } from "../../../../deploy/assets/pdf.worker";
 
 
 /**
@@ -470,7 +471,7 @@ export class Timeline extends React.Component<FieldViewProps> {
             return (
                 <>
                     <div key="time-text" className="animation-text" style={{ visibility: this.props.Document.isATOn ? "visible" : "hidden", display: this.props.Document.isATOn ? "flex" : "none" }}>{lengthString}</div>
-                    <div className="totalTime">1:40.07</div>
+                    <div className="totalTime">{this.toReadTime(this._time)}</div>
                 </>
             );
         }
@@ -478,7 +479,7 @@ export class Timeline extends React.Component<FieldViewProps> {
             return (
                 <div style={{ flexDirection: "column" }}>
                     <div className="animation-text" style={{ width: "100%", display: !this.props.Document.isATOn ? "block" : "none" }}>{`Current: ${this.getCurrentTime()}`}</div>
-                    <div className="animation-text" style={{ width: "100%", display: !this.props.Document.isATOn ? "block" : "none" }}>{`Total: 1:40.07`}</div>
+                    <div className="animation-text" style={{ width: "100%", display: !this.props.Document.isATOn ? "block" : "none" }}>{`Total: ${this.toReadTime(this._time)}`}</div>
                 </div>
             );
         }
@@ -524,7 +525,7 @@ export class Timeline extends React.Component<FieldViewProps> {
             timelineContainer.style.top = `${-this._containerHeight}px`;
             this.props.Document.isATOn = false;
             this._isAuthoring = false;
-            this.tracks();
+            this.toPlay();
         } else {
             //turning on authoring mode...
             roundToggle.style.transform = "translate(20px, 0px)";
@@ -534,6 +535,7 @@ export class Timeline extends React.Component<FieldViewProps> {
             timelineContainer.style.top = "0px";
             this.props.Document.isATOn = true;
             this._isAuthoring = true;
+            this.toAuthoring(); 
         }
     }
 
@@ -555,18 +557,40 @@ export class Timeline extends React.Component<FieldViewProps> {
     @observable private mapOfTracks: (Track | null)[] = [];
 
     @action
-    tracks = () => {
-        console.log(this.mapOfTracks.length);
+    findLongestTime = () => {
+        let longestTime:number = 0; 
         this.mapOfTracks.forEach(track => {
-            console.log(track); 
             if (track) {
-                const region = track.getLastRegion();
-                console.log(region.time); 
+                const lastTime = track.getLastRegionTime();
+                if (this.children.length !== 0 ){
+                    if (longestTime <= lastTime){
+                        longestTime = lastTime; 
+                    }
+                }
             } else {
-
+                //TODO: remove undefineds and duplicates
             }
         });
+        return longestTime; 
     }
+
+    @action 
+    toAuthoring = () => {
+        let longestTime = this.findLongestTime(); 
+        if (longestTime === 0) longestTime = 1;
+        const adjustedTime = Math.ceil(longestTime / 100000) * 100000; 
+        console.log(adjustedTime); 
+        this._totalLength = KeyframeFunc.convertPixelTime(adjustedTime, "mili", "pixel", this._tickSpacing, this._tickIncrement); 
+        this._time = adjustedTime; 
+    }
+
+    @action 
+    toPlay = () => {
+        const longestTime = this.findLongestTime(); 
+        this._time = longestTime; 
+        this._totalLength = KeyframeFunc.convertPixelTime(this._time, "mili", "pixel", this._tickSpacing, this._tickIncrement);
+    }
+
     /**
      * if you have any question here, just shoot me an email or text. 
      * basically the only thing you need to edit besides render methods in track (individual track lines) and keyframe (green region)

@@ -81,10 +81,17 @@ export class Track extends React.Component<IProps> {
     ////////////////////////////////
 
 
-    getLastRegion = () => {
-        console.log(this.regions.length); 
-        console.log((this.regions[this.regions.length - 1] as Doc).time); 
-        return this.regions[this.regions.length - 1] as Doc; 
+    getLastRegionTime =  () => {
+        let lastTime:number = 0; 
+        let lastRegion:(Doc | undefined); 
+        DocListCast(this.regions).forEach(region => {
+            const time = NumCast(region.time); 
+            if (lastTime <= time) {
+                lastTime = time; 
+                lastRegion = region; 
+            }
+        }); 
+        return lastRegion ? lastTime + NumCast(lastRegion.duration) : 0;  
     }
 
     /**
