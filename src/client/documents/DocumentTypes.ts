@@ -18,7 +18,6 @@ export enum DocumentType {
     EXTENSION = "extension",
     YOUTUBE = "youtube",
     WEBCAM = "webcam",
-    DRAGBOX = "dragbox",
     FONTICON = "fonticonbox",
     PRES = "presentation",
     LINKFOLLOW = "linkfollow",

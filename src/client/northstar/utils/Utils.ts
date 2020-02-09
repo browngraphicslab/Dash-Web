@@ -4,12 +4,6 @@ import { IBaseFilterProvider } from '../core/filter/IBaseFilterProvider';
 import { AggregateFunction } from '../model/idea/idea';
 
 export class Utils {
-    static Emit() {
-        throw new Error("Method not implemented.");
-    }
-    static EmitCallback() {
-        throw new Error("Method not implemented.");
-    }
 
     public static EqualityHelper(a: Object, b: Object): boolean {
         if (a === b) return true;
