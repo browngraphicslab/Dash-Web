@@ -539,8 +539,10 @@ export class Timeline extends React.Component<FieldViewProps> {
     tracks = () => {
         console.log(this.mapOfTracks.length);
         this.mapOfTracks.forEach(track => {
-            if (track !== null) {
-                track.getLastRegion();
+            console.log(track); 
+            if (track) {
+                const region = track.getLastRegion();
+                console.log(region.time); 
             } else {
 
             }
