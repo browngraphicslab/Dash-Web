@@ -109,10 +109,8 @@ export class TimelineOverview extends React.Component<TimelineOverviewProps>{
         e.stopPropagation();
         const scrubberRef = this._scrubberRef.current!;
         const left = scrubberRef.getBoundingClientRect().left;
-        // left = e.screenX;
         const offsetX = Math.round(e.clientX - left);
-        this.props.changeCurrentBarX((offsetX / (this.DEFAULT_WIDTH) * this.props.totalLength) + this.props.currentBarX);
-        // this.props.changeCurrentBarX(e.screenX)
+        this.props.changeCurrentBarX((((offsetX) / this.overviewBarWidth) * this.props.totalLength) + this.props.currentBarX);
     }
 
     @action
@@ -154,15 +152,15 @@ export class TimelineOverview extends React.Component<TimelineOverviewProps>{
 
             <div key="timeline-overview-container" className="timeline-overview-container" id="timelineOverview">
                 <div ref={this._visibleRef} key="timeline-overview-visible" className="timeline-overview-visible" style={{ left: `${barStart}px`, width: `${visibleBarWidth}px` }} onPointerDown={this.onPointerDown}></div>,
-                <div ref={this._scrubberRef} key="timeline-overview-scrubber-container" className="timeline-overview-scrubber-container" style={{ left: `${scrubberStart}px` }} onPointerDown={this.onScrubberDown}>
+                <div ref={this._scrubberRef} key="timeline-overview-scrubber-container" className="timeline-overview-scrubber-container" style={{left: `${(this.props.currentBarX / this.props.totalLength) * this.overviewBarWidth}px`}} onPointerDown={this.onScrubberDown}>
                     <div key="timeline-overview-scrubber-head" className="timeline-overview-scrubber-head"></div>
                 </div>
             </div>
         ] : [
                 <div className="timeline-play-bar" style={{ width: this.overviewBarWidth }}>
-                    <div ref={this._scrubberRef} className="timeline-play-head" style={{ left: `${(this.props.currentBarX / this.props.totalLength) * 294}px` }} onPointerDown={this.onScrubberDown}></div>
+                    <div ref={this._scrubberRef} className="timeline-play-head" style={{ left: `${(this.props.currentBarX / this.props.totalLength) * this.overviewBarWidth}px` }} onPointerDown={this.onScrubberDown}></div>
                 </div>,
-                <div className="timeline-play-tail" style={{ width: `${(this.props.currentBarX / this.props.totalLength) * 294}px` }}></div>
+                <div className="timeline-play-tail" style={{ width: `${(this.props.currentBarX / this.props.totalLength) * this.overviewBarWidth}px` }}></div>
             ];
         return (
             <div className="timeline-flex">

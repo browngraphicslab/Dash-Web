@@ -337,7 +337,7 @@ export class Keyframe extends React.Component<IProps> {
     makeKeyframeMenu = (kf: Doc, e: MouseEvent) => {
         TimelineMenu.Instance.addItem("button", "Show Data", () => {
             runInAction(() => {
-                let kvp = Docs.Create.KVPDocument(Cast(kf.key, Doc) as Doc, { width: 300, height: 300 });
+                let kvp = Docs.Create.KVPDocument(Cast(kf.key, Doc) as Doc, { _width: 300, _height: 300 });
                 CollectionDockingView.AddRightSplit(kvp, (kf.key as Doc).data as Doc);
             });
         }),
