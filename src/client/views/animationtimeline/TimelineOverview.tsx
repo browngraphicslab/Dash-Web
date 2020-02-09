@@ -135,7 +135,6 @@ export class TimelineOverview extends React.Component<TimelineOverviewProps>{
     }
 
     render() {
-        console.log("RERENDERED!"); 
         this.setOverviewWidth();
         this.getTimes();
 

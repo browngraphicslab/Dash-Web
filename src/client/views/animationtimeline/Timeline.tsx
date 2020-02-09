@@ -342,6 +342,7 @@ export class Timeline extends React.Component<FieldViewProps> {
     /**
      * context menu function. 
      * opens the timeline or closes the timeline. 
+     * Used in: Freeform
      */
     timelineContextMenu = (e: React.MouseEvent): void => {
         ContextMenu.Instance.addItem({
@@ -493,6 +494,7 @@ export class Timeline extends React.Component<FieldViewProps> {
         const roundToggleContainer = this._roundToggleContainerRef.current!;
         const timelineContainer = this._timelineContainer.current!;
         if (BoolCast(this.props.Document.isATOn)) {
+            //turning on playmode...
             roundToggle.style.transform = "translate(0px, 0px)";
             roundToggle.style.animationName = "turnoff";
             roundToggleContainer.style.animationName = "turnoff";
@@ -500,7 +502,9 @@ export class Timeline extends React.Component<FieldViewProps> {
             timelineContainer.style.top = `${-this._containerHeight}px`;
             this.props.Document.isATOn = false;
             this._isAuthoring = false;
+            this.tracks();
         } else {
+            //turning on authoring mode...
             roundToggle.style.transform = "translate(20px, 0px)";
             roundToggle.style.animationName = "turnon";
             roundToggleContainer.style.animationName = "turnon";
@@ -524,12 +528,24 @@ export class Timeline extends React.Component<FieldViewProps> {
     getCurrentTime = () => {
         const current = KeyframeFunc.convertPixelTime(this._currentBarX, "mili", "time", this._tickSpacing, this._tickIncrement);
         // console.log(this._currentBarX)
-        return this.toReadTime(current); 
+        return this.toReadTime(current);
         // return (Math.floor(current) / 1000)
         // return current / 1000.0;
     }
 
+    @observable private mapOfTracks: (Track | null)[] = [];
 
+    @action
+    tracks = () => {
+        console.log(this.mapOfTracks.length);
+        this.mapOfTracks.forEach(track => {
+            if (track !== null) {
+                track.getLastRegion();
+            } else {
+
+            }
+        });
+    }
     /**
      * if you have any question here, just shoot me an email or text. 
      * basically the only thing you need to edit besides render methods in track (individual track lines) and keyframe (green region)
@@ -552,7 +568,10 @@ export class Timeline extends React.Component<FieldViewProps> {
                                     <div key="timeline_scrubberhead" className="scrubberhead" onPointerDown={this.onScrubberDown} ></div>
                                 </div>
                                 <div key="timeline_trackbox" className="trackbox" ref={this._trackbox} onPointerDown={this.onPanDown} style={{ width: `${this._totalLength}px` }}>
-                                    {DocListCast(this.children).map(doc => <Track node={doc} currentBarX={this._currentBarX} changeCurrentBarX={this.changeCurrentBarX} transform={this.props.ScreenToLocalTransform()} time={this._time} tickSpacing={this._tickSpacing} tickIncrement={this._tickIncrement} collection={this.props.Document} timelineVisible={this._timelineVisible} />)}
+                                    {DocListCast(this.children).map(doc => {
+                                        const track = <Track ref={ref => { this.mapOfTracks.push(ref); }} node={doc} currentBarX={this._currentBarX} changeCurrentBarX={this.changeCurrentBarX} transform={this.props.ScreenToLocalTransform()} time={this._time} tickSpacing={this._tickSpacing} tickIncrement={this._tickIncrement} collection={this.props.Document} timelineVisible={this._timelineVisible} />
+                                        return track;
+                                    })}
                                 </div>
                             </div>
                             <div className="currentTime">Current: {this.getCurrentTime()}</div>
