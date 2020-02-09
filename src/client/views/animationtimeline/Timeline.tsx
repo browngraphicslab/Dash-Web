@@ -326,15 +326,18 @@ export class Timeline extends React.Component<FieldViewProps> {
     @action
     toReadTime = (time: number): string => {
         time = time / 1000;
-        const inSeconds = Math.round((time * 100)) / 100;
+        const inSeconds = Math.round(time * 100) / 100;
+
+        // console.log(inSeconds)
         // var inSeconds = parseFloat(time.toFixed(2));
         // const inSeconds = (Math.floor(time) / 1000);
         const min: (string | number) = Math.floor(inSeconds / 60);
-        let sec: (string | number) = inSeconds % 60;
+        let sec: (string | number) = (Math.round((inSeconds % 60) * 100) / 100);
 
         if (Math.floor(sec / 10) === 0) {
             sec = "0" + sec;
         }
+        // sec = Number.parseFloat(sec).toFixed(2);
         return `${min}:${sec}`;
     }
 
@@ -434,6 +437,8 @@ export class Timeline extends React.Component<FieldViewProps> {
             lengthString = "";
         }
 
+        // let rightInfo = this.timeIndicator;
+
         return (
             <div key="timeline_toolbox" className="timeline-toolbox" style={{ height: `${size}px` }}>
                 <div className="playbackControls">
@@ -453,13 +458,30 @@ export class Timeline extends React.Component<FieldViewProps> {
                         </div>
                     </div>
                     <div className="time-box overview-tool" style={{ display: this._timelineVisible ? "flex" : "none" }}>
-                        <div key="time-text" className="animation-text" style={{ visibility: this.props.Document.isATOn ? "visible" : "hidden", display: this.props.Document.isATOn ? "flex" : "none" }}>{lengthString}</div>
-                        <input className="time-input" disabled style={{ visibility: this.props.Document.isATOn ? "visible" : "hidden", display: this.props.Document.isATOn ? "flex" : "none" }} placeholder={String(Math.floor(this._time) / 1000) + " s"} ref={this._timeInputRef} onKeyDown={this.onTimeInput} />
-                        <div style={{ width: "100%", display: !this.props.Document.isATOn ? "flex" : "none" }}>Current: {this.getCurrentTime()}</div>
+                        {this.timeIndicator(lengthString)}
                     </div>
                 </div>
             </div>
         );
+    }
+
+    timeIndicator(lengthString: string) {
+        if (this.props.Document.isATOn) {
+            return (
+                <>
+                    <div key="time-text" className="animation-text" style={{ visibility: this.props.Document.isATOn ? "visible" : "hidden", display: this.props.Document.isATOn ? "flex" : "none" }}>{lengthString}</div>
+                    <div className="totalTime">1:40.07</div>
+                </>
+            );
+        }
+        else {
+            return (
+                <div style={{ flexDirection: "column" }}>
+                    <div className="animation-text" style={{ width: "100%", display: !this.props.Document.isATOn ? "block" : "none" }}>{`Current: ${this.getCurrentTime()}`}</div>
+                    <div className="animation-text" style={{ width: "100%", display: !this.props.Document.isATOn ? "block" : "none" }}>{`Total: 1:40.07`}</div>
+                </div>
+            );
+        }
     }
 
     /**
@@ -527,10 +549,7 @@ export class Timeline extends React.Component<FieldViewProps> {
     // @computed
     getCurrentTime = () => {
         const current = KeyframeFunc.convertPixelTime(this._currentBarX, "mili", "time", this._tickSpacing, this._tickIncrement);
-        // console.log(this._currentBarX)
         return this.toReadTime(current);
-        // return (Math.floor(current) / 1000)
-        // return current / 1000.0;
     }
 
     @observable private mapOfTracks: (Track | null)[] = [];

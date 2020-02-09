@@ -42,14 +42,17 @@ $timelineDark: #77a1aa;
 
         .time-box {
             margin-left: 5px;
+            min-width: 140px;
             display: flex;
             justify-content: center;
             align-items: center;
+            // grid-column-start: line2;
         }
 
         .mode-box {
             display: flex;
             margin-left: 5px;
+            // grid-column-start: line3;
         }
 
         .overview-box {
