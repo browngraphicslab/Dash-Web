@@ -65,6 +65,7 @@ export interface UpdateMobileInkOverlayPositionContent {
 
 export interface MobileDocumentUploadContent {
     readonly docId: string;
+    readonly asCollection: boolean;
 }
 
 export namespace MessageStore {

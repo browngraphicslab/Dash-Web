@@ -4,10 +4,11 @@ import { MobileInkOverlayContent, GestureContent, UpdateMobileInkOverlayPosition
 import { observable, action } from "mobx";
 import { GestureUtils } from "../pen-gestures/GestureUtils";
 import "./MobileInkOverlay.scss";
-import { StrCast } from '../new_fields/Types';
+import { StrCast, Cast } from '../new_fields/Types';
 import { DragManager } from "../client/util/DragManager";
 import { DocServer } from '../client/DocServer';
-import { Doc } from '../new_fields/Doc';
+import { Doc, DocListCastAsync } from '../new_fields/Doc';
+import { listSpec } from '../new_fields/Schema';
 
 
 @observer
@@ -87,7 +88,7 @@ export default class MobileInkOverlay extends React.Component {
     }
 
     uploadDocument = async (content: MobileDocumentUploadContent) => {
-        const { docId } = content;
+        const { docId, asCollection } = content;
         console.log("receive upload document id", docId);
         const doc = await DocServer.GetRefField(docId);
 
@@ -97,7 +98,13 @@ export default class MobileInkOverlay extends React.Component {
             const target = document.elementFromPoint(this._x + 10, this._y + 10);
             console.log("the target is", target);
 
-            const dragData = new DragManager.DocumentDragData([doc]);
+            let uploadDocs = [doc];
+            if (!asCollection) {
+                const children = await DocListCastAsync(doc.data);
+                console.log("uploading children", children);
+                uploadDocs = children ? children : [];
+            }
+            const dragData = new DragManager.DocumentDragData(uploadDocs);
             const complete = new DragManager.DragCompleteEvent(false, dragData);
             console.log("the drag data is", dragData);
 

@@ -203,7 +203,7 @@ export default class MobileInterface extends React.Component {
         }
     }
 
-    upload = async (e: React.MouseEvent) => {
+    upload = async (e: React.MouseEvent, asCollection: boolean) => {
         if (this.mainContainer) {
             const data = Cast(this.mainContainer.data, listSpec(Doc));
             if (data) {
@@ -212,7 +212,8 @@ export default class MobileInterface extends React.Component {
                 console.log("UPLOADING DOCUMENT FROM MOBILE", uploadDoc[Id], StrCast(uploadDoc.proto!.title));
                 if (uploadDoc) {
                     DocServer.Mobile.dispatchMobileDocumentUpload({
-                        docId: uploadDoc[Id]
+                        docId: uploadDoc[Id],
+                        asCollection: asCollection
                     });
                 }
             }
@@ -230,7 +231,8 @@ export default class MobileInterface extends React.Component {
                             <button className="mobileInterface-button cancel" onClick={this.onBack} title="Back">BACK</button>
                         </div>
                         <div className="uploadSettings">
-                            <button className="mobileInterface-button" onClick={this.upload} title="Shift left">UPLOAD</button>
+                            <button className="mobileInterface-button" onClick={e => this.upload(e, false)} title="Upload">UPLOAD</button>
+                            <button className="mobileInterface-button" onClick={e => this.upload(e, true)} title="Upload">UPLOAD AS COLLECTION</button>
                         </div>
                     </div>
                     <DocumentView
