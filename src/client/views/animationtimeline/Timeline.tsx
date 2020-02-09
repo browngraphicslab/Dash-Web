@@ -433,6 +433,8 @@ export class Timeline extends React.Component<FieldViewProps> {
             lengthString = "";
         }
 
+        // let rightInfo = this.timeIndicator;
+
         return (
             <div key="timeline_toolbox" className="timeline-toolbox" style={{ height: `${size}px` }}>
                 <div className="playbackControls">
@@ -452,13 +454,28 @@ export class Timeline extends React.Component<FieldViewProps> {
                         </div>
                     </div>
                     <div className="time-box overview-tool" style={{ display: this._timelineVisible ? "flex" : "none" }}>
-                        <div key="time-text" className="animation-text" style={{ visibility: this.props.Document.isATOn ? "visible" : "hidden", display: this.props.Document.isATOn ? "flex" : "none" }}>{lengthString}</div>
-                        <input className="time-input" disabled style={{ visibility: this.props.Document.isATOn ? "visible" : "hidden", display: this.props.Document.isATOn ? "flex" : "none" }} placeholder={String(Math.floor(this._time) / 1000) + " s"} ref={this._timeInputRef} onKeyDown={this.onTimeInput} />
-                        <div style={{ width: "100%", display: !this.props.Document.isATOn ? "flex" : "none" }}>Current: {this.getCurrentTime()}</div>
+                        {this.timeIndicator(lengthString)}
+                        {/* {rightInfo} */}
                     </div>
                 </div>
             </div>
         );
+    }
+
+    timeIndicator(lengthString: string) {
+        if (this.props.Document.isATOn) {
+            return (
+                <>
+                    <div key="time-text" className="animation-text" style={{ visibility: this.props.Document.isATOn ? "visible" : "hidden", display: this.props.Document.isATOn ? "flex" : "none" }}>{lengthString}</div>
+                    <input className="time-input" disabled style={{ visibility: this.props.Document.isATOn ? "visible" : "hidden", display: this.props.Document.isATOn ? "flex" : "none" }} placeholder={String(Math.floor(this._time) / 1000) + " s"} ref={this._timeInputRef} onKeyDown={this.onTimeInput} />
+                </>
+            );
+        }
+        else {
+            return (
+                <div style={{ width: "100%", display: !this.props.Document.isATOn ? "flex" : "none" }}>Current: {this.getCurrentTime()}</div>
+            );
+        }
     }
 
     /**
