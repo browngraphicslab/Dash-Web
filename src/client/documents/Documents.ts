@@ -45,6 +45,7 @@ import { ProxyField } from "../../new_fields/Proxy";
 import { DocumentType } from "./DocumentTypes";
 import { LinkFollowBox } from "../views/linking/LinkFollowBox";
 import { PresElementBox } from "../views/presentationview/PresElementBox";
+import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
 import { QueryBox } from "../views/nodes/QueryBox";
 import { ColorBox } from "../views/nodes/ColorBox";
 import { DocuLinkBox } from "../views/nodes/DocuLinkBox";
@@ -240,6 +241,9 @@ export namespace Docs {
             }],
             [DocumentType.LINKFOLLOW, {
                 layout: { view: LinkFollowBox, dataField: data }
+            }],
+            [DocumentType.WEBCAM, {
+                layout: { view: DashWebRTCVideo, dataField: data }
             }],
             [DocumentType.PRESELEMENT, {
                 layout: { view: PresElementBox, dataField: data }
@@ -438,6 +442,10 @@ export namespace Docs {
 
         export function YoutubeDocument(url: string, options: DocumentOptions = {}) {
             return InstanceFromProto(Prototypes.get(DocumentType.YOUTUBE), new YoutubeField(new URL(url)), options);
+        }
+
+        export function WebCamDocument(url: string, options: DocumentOptions = {}) {
+            return InstanceFromProto(Prototypes.get(DocumentType.WEBCAM), "", options);
         }
 
         export function AudioDocument(url: string, options: DocumentOptions = {}) {

@@ -49,3 +49,5 @@ export const nullAudio = "https://actions.google.com/sounds/v1/alarms/beep_short
 @scriptingGlobal @Deserializable("pdf") export class PdfField extends URLField { }
 @scriptingGlobal @Deserializable("web") export class WebField extends URLField { }
 @scriptingGlobal @Deserializable("youtube") export class YoutubeField extends URLField { }
+@scriptingGlobal @Deserializable("webcam") export class WebCamField extends URLField { }
+
