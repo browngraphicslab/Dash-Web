@@ -182,9 +182,11 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
                 {view}
             </div>;
 
-        const frozen = !this.props.isSelected() || DocumentDecorations.Instance.Interacting;
+        const decInteracting = DocumentDecorations.Instance && DocumentDecorations.Instance.Interacting;
 
-        const classname = "webBox-cont" + (this.props.isSelected() && InkingControl.Instance.selectedTool === InkTool.None && !DocumentDecorations.Instance.Interacting ? "-interactive" : "");
+        const frozen = !this.props.isSelected() || decInteracting;
+
+        const classname = "webBox-cont" + (this.props.isSelected() && InkingControl.Instance.selectedTool === InkTool.None && !decInteracting ? "-interactive" : "");
         return (
             <>
                 <div className={classname}  >

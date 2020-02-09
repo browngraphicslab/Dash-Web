@@ -14,6 +14,7 @@ import { Utils } from "../../../Utils";
 import { nullAudio } from "../../../new_fields/URLField";
 import { DragManager } from "../../../client/util/DragManager";
 import { InkingControl } from "../../../client/views/InkingControl";
+import { Scripting } from "../../../client/util/Scripting";
 
 export class CurrentUserUtils {
     private static curr_id: string;
@@ -101,8 +102,9 @@ export class CurrentUserUtils {
             { title: "use eraser", icon: "eraser", click: 'activateEraser(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this);', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "pink", activePen: doc },
             { title: "use scrubber", icon: "eraser", click: 'activateScrubber(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this);', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "green", activePen: doc },
             { title: "use drag", icon: "mouse-pointer", click: 'deactivateInk();this.activePen.pen = this;', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "white", activePen: doc },
-            { title: "draw", icon: "pen-nib", click: 'switchMobileView("ink");', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "red", activePen: doc },
-            { title: "upload", icon: "upload", click: 'switchMobileView("upload");', backgroundColor: "orange" },
+            { title: "draw", icon: "pen-nib", click: 'switchMobileView(setupMobileInkingDoc, renderMobileInking, onSwitchMobileInking);', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "red", activePen: doc },
+            { title: "upload", icon: "upload", click: 'switchMobileView(setupMobileUploadDoc, renderMobileUpload);', backgroundColor: "orange" },
+            { title: "upload", icon: "upload", click: 'uploadImageMobile();', backgroundColor: "cyan" },
         ];
         return docProtoData.filter(d => !buttons || !buttons.includes(d.title)).map(data => Docs.Create.FontIconDocument({
             nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, dropAction: data.click ? "copy" : undefined, title: data.title, icon: data.icon, ignoreClick: data.ignoreClick,
@@ -147,7 +149,7 @@ export class CurrentUserUtils {
 
     static setupMobileUploadDoc(userDoc: Doc) {
         console.log("setup mobile upload", window.innerWidth, window.innerHeight);
-        const webDoc = Docs.Create.WebDocument("https://wikipedia.com", { title: "Mobile Upload Web", chromeStatus: "enabled", ignoreClick: true });
+        const webDoc = Docs.Create.WebDocument("https://wikipedia.com", { title: "Mobile Upload Web", chromeStatus: "enabled" });
         const uploadDoc = Docs.Create.StackingDocument([], { title: "Mobile Upload", backgroundColor: "pink" });
         return Docs.Create.StackingDocument([webDoc, uploadDoc], {
             title: "Mobile Upload", backgroundColor: "white",
@@ -389,3 +391,6 @@ export class CurrentUserUtils {
         return recurs([] as Attribute[], schema ? schema.rootAttributeGroup : undefined);
     }
 }
+
+Scripting.addGlobal(function setupMobileInkingDoc(userDoc: Doc) { return CurrentUserUtils.setupMobileInkingDoc(userDoc); });
+Scripting.addGlobal(function setupMobileUploadDoc(userDoc: Doc) { return CurrentUserUtils.setupMobileUploadDoc(userDoc); });

@@ -37,9 +37,9 @@ export default class MobileInkOverlay extends React.Component {
     initMobileInkOverlay(content: MobileInkOverlayContent) {
         const { width, height } = content;
         const scaledSize = this.initialSize(width ? width : 0, height ? height : 0);
-        this._width = scaledSize.width * .8;
-        this._height = scaledSize.height * .8;
-        this._scale = .8; //scaledSize.scale;
+        this._width = scaledSize.width;
+        this._height = scaledSize.height;
+        this._scale = scaledSize.scale; //scaledSize.scale;
         this._x = 300; // TODO: center on screen
         this._y = 25; // TODO: center on screen
     }

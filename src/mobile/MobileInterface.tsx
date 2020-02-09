@@ -30,14 +30,14 @@ export default class MobileInterface extends React.Component {
     @observable static Instance: MobileInterface;
     @computed private get userDoc() { return CurrentUserUtils.UserDocument; }
     @computed private get mainContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeMobile, Doc)) : CurrentUserUtils.GuestMobile; }
-    @observable private currentView: "main" | "ink" | "upload" = "main";
+    // @observable private currentView: "main" | "ink" | "upload" = "main";
+    private mainDoc: Doc = CurrentUserUtils.setupMobileDoc(this.userDoc);
+    @observable private renderView?: () => JSX.Element;
 
-    private mainDoc = CurrentUserUtils.setupMobileDoc(this.userDoc);
-
-    private inkDoc?: Doc;
+    // private inkDoc?: Doc;
     public drawingInk: boolean = false;
 
-    private uploadDoc?: Doc;
+    // private uploadDoc?: Doc;
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -55,41 +55,63 @@ export default class MobileInterface extends React.Component {
     }
 
     @action
-    switchCurrentView = (view: "main" | "ink" | "upload") => {
-        this.currentView = view;
+    switchCurrentView = (doc: (userDoc: Doc) => Doc, renderView?: () => JSX.Element, onSwitch?: () => void) => {
+        if (!this.userDoc) return;
 
-        if (this.userDoc) {
-            switch (view) {
-                case "main": {
-                    // const doc = CurrentUserUtils.setupMobileDoc(this.userDoc);
-                    this.userDoc.activeMobile = this.mainDoc;
-                    break;
-                }
-                case "ink": {
-                    this.inkDoc = CurrentUserUtils.setupMobileInkingDoc(this.userDoc);
-                    this.userDoc.activeMobile = this.inkDoc;
-                    InkingControl.Instance.switchTool(InkTool.Pen);
-                    this.drawingInk = true;
+        this.userDoc.activeMobile = doc(this.userDoc);
+        onSwitch && onSwitch();
 
-                    DocServer.Mobile.dispatchOverlayTrigger({
-                        enableOverlay: true,
-                        width: window.innerWidth,
-                        height: window.innerHeight
-                    });
-
-                    break;
-                }
-                case "upload": {
-                    this.uploadDoc = CurrentUserUtils.setupMobileUploadDoc(this.userDoc);
-                    this.userDoc.activeMobile = this.uploadDoc;
-
-                }
-            }
-        }
+        this.renderView = renderView;
+        console.log("switching current view", renderView);
     }
 
-    @computed
-    get mainContent() {
+    onSwitchInking = () => {
+        InkingControl.Instance.switchTool(InkTool.Pen);
+        MobileInterface.Instance.drawingInk = true;
+
+        DocServer.Mobile.dispatchOverlayTrigger({
+            enableOverlay: true,
+            width: window.innerWidth,
+            height: window.innerHeight
+        });
+    }
+
+    // @action
+    // switchCurrentView = (view: "main" | "ink" | "upload") => {
+    //     this.currentView = view;
+
+    //     if (this.userDoc) {
+    //         switch (view) {
+    //             case "main": {
+    //                 // const doc = CurrentUserUtils.setupMobileDoc(this.userDoc);
+    //                 this.userDoc.activeMobile = this.mainDoc;
+    //                 break;
+    //             }
+    //             case "ink": {
+    //                 this.inkDoc = CurrentUserUtils.setupMobileInkingDoc(this.userDoc);
+    //                 this.userDoc.activeMobile = this.inkDoc;
+    //                 InkingControl.Instance.switchTool(InkTool.Pen);
+    //                 this.drawingInk = true;
+
+    //                 DocServer.Mobile.dispatchOverlayTrigger({
+    //                     enableOverlay: true,
+    //                     width: window.innerWidth,
+    //                     height: window.innerHeight
+    //                 });
+
+    //                 break;
+    //             }
+    //             case "upload": {
+    //                 this.uploadDoc = CurrentUserUtils.setupMobileUploadDoc(this.userDoc);
+    //                 this.userDoc.activeMobile = this.uploadDoc;
+
+    //             }
+    //         }
+    //     }
+    // }
+
+    renderDefaultContent = () => {
+        console.log("rendering default content");
         if (this.mainContainer) {
             return <DocumentView
                 Document={this.mainContainer}
@@ -121,7 +143,7 @@ export default class MobileInterface extends React.Component {
     }
 
     onBack = (e: React.MouseEvent) => {
-        this.switchCurrentView("main");
+        this.switchCurrentView((userDoc: Doc) => this.mainDoc);
         InkingControl.Instance.switchTool(InkTool.None); // TODO: switch to previous tool
 
         DocServer.Mobile.dispatchOverlayTrigger({
@@ -130,7 +152,7 @@ export default class MobileInterface extends React.Component {
             height: window.innerHeight
         });
 
-        this.inkDoc = undefined;
+        // this.inkDoc = undefined;
         this.drawingInk = false;
     }
 
@@ -151,8 +173,8 @@ export default class MobileInterface extends React.Component {
         e.stopPropagation();
     }
 
-    @computed
-    get inkContent() {
+    renderInkingContent = () => {
+        console.log("rendering inking content");
         // TODO: support panning and zooming
         // TODO: handle moving of ink strokes
         if (this.mainContainer) {
@@ -202,8 +224,7 @@ export default class MobileInterface extends React.Component {
 
     }
 
-    @computed
-    get uploadContent() {
+    renderUploadContent() {
         if (this.mainContainer) {
             return (
                 <div className="mobileInterface">
@@ -246,15 +267,19 @@ export default class MobileInterface extends React.Component {
     }
 
     render() {
-        const content = this.currentView === "main" ? this.mainContent :
-            this.currentView === "ink" ? this.inkContent :
-                this.currentView === "upload" ? this.uploadContent : <></>;
+        // const content = this.currentView === "main" ? this.mainContent :
+        //     this.currentView === "ink" ? this.inkContent :
+        //         this.currentView === "upload" ? this.uploadContent : <></>;
         return (
             <div className="mobile-container">
-                {content}
+                {this.renderView ? this.renderView() : this.renderDefaultContent()}
             </div>
         );
     }
 }
 
-Scripting.addGlobal(function switchMobileView(view: "main" | "ink" | "upload") { return MobileInterface.Instance.switchCurrentView(view); });
+Scripting.addGlobal(function switchMobileView(doc: (userDoc: Doc) => Doc, renderView?: () => JSX.Element, onSwitch?: () => void) { return MobileInterface.Instance.switchCurrentView(doc, renderView, onSwitch); });
+Scripting.addGlobal(function onSwitchMobileInking() { return MobileInterface.Instance.onSwitchInking(); });
+Scripting.addGlobal(function renderMobileInking() { return MobileInterface.Instance.renderInkingContent(); });
+Scripting.addGlobal(function renderMobileUpload() { return MobileInterface.Instance.renderUploadContent(); });
+
