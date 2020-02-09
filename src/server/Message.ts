@@ -1,5 +1,6 @@
 import { Utils } from "../Utils";
 import { Point } from "../pen-gestures/ndollar";
+import { Doc } from "../new_fields/Doc";
 
 export class Message<T> {
     private _name: string;
@@ -62,6 +63,10 @@ export interface UpdateMobileInkOverlayPositionContent {
     readonly dsize?: number;
 }
 
+export interface MobileDocumentUploadContent {
+    readonly docId: string;
+}
+
 export namespace MessageStore {
     export const Foo = new Message<string>("Foo");
     export const Bar = new Message<string>("Bar");
@@ -75,6 +80,7 @@ export namespace MessageStore {
     export const GesturePoints = new Message<GestureContent>("Gesture Points");
     export const MobileInkOverlayTrigger = new Message<MobileInkOverlayContent>("Trigger Mobile Ink Overlay");
     export const UpdateMobileInkOverlayPosition = new Message<UpdateMobileInkOverlayPositionContent>("Update Mobile Ink Overlay Position");
+    export const MobileDocumentUpload = new Message<MobileDocumentUploadContent>("Upload Document From Mobile");
 
     export const GetRefField = new Message<string>("Get Ref Field");
     export const GetRefFields = new Message<string[]>("Get Ref Fields");

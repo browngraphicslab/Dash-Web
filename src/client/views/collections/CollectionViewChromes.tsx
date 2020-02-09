@@ -231,6 +231,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
 
     @action
     toggleCollapse = () => {
+        console.log("toggle collapse");
         this.props.CollectionView.props.Document.chromeStatus = this.props.CollectionView.props.Document.chromeStatus === "enabled" ? "collapsed" : "enabled";
         if (this.props.collapse) {
             this.props.collapse(this.props.CollectionView.props.Document.chromeStatus !== "enabled");

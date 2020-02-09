@@ -1,5 +1,5 @@
 import { Utils } from "../../Utils";
-import { MessageStore, Transferable, Types, Diff, YoutubeQueryInput, YoutubeQueryTypes, GestureContent, MobileInkOverlayContent, UpdateMobileInkOverlayPositionContent } from "../Message";
+import { MessageStore, Transferable, Types, Diff, YoutubeQueryInput, YoutubeQueryTypes, GestureContent, MobileInkOverlayContent, UpdateMobileInkOverlayPositionContent, MobileDocumentUploadContent } from "../Message";
 import { Client } from "../Client";
 import { Socket } from "socket.io";
 import { Database } from "../database";
@@ -57,6 +57,7 @@ export namespace WebSocket {
             Utils.AddServerHandler(socket, MessageStore.GesturePoints, content => processGesturePoints(socket, content));
             Utils.AddServerHandler(socket, MessageStore.MobileInkOverlayTrigger, content => processOverlayTrigger(socket, content));
             Utils.AddServerHandler(socket, MessageStore.UpdateMobileInkOverlayPosition, content => processUpdateOverlayPosition(socket, content));
+            Utils.AddServerHandler(socket, MessageStore.MobileDocumentUpload, content => processMobileDocumentUpload(socket, content));
             Utils.AddServerHandlerCallback(socket, MessageStore.GetRefField, GetRefField);
             Utils.AddServerHandlerCallback(socket, MessageStore.GetRefFields, GetRefFields);
 
@@ -81,6 +82,10 @@ export namespace WebSocket {
 
     function processUpdateOverlayPosition(socket: Socket, content: UpdateMobileInkOverlayPositionContent) {
         socket.broadcast.emit("receiveUpdateOverlayPosition", content);
+    }
+
+    function processMobileDocumentUpload(socket: Socket, content: MobileDocumentUploadContent) {
+        socket.broadcast.emit("receiveMobileDocumentUpload", content);
     }
 
     function HandleYoutubeQuery([query, callback]: [YoutubeQueryInput, (result?: any[]) => void]) {

@@ -22,6 +22,18 @@ import { SelectionManager } from '../client/util/SelectionManager';
 import { DateField } from '../new_fields/DateField';
 import { GestureUtils } from '../pen-gestures/GestureUtils';
 import { DocServer } from '../client/DocServer';
+import { DocumentDecorations } from '../client/views/DocumentDecorations';
+import { OverlayView } from '../client/views/OverlayView';
+import { DictationOverlay } from '../client/views/DictationOverlay';
+import SharingManager from '../client/util/SharingManager';
+import { PreviewCursor } from '../client/views/PreviewCursor';
+import { ContextMenu } from '../client/views/ContextMenu';
+import { RadialMenu } from '../client/views/nodes/RadialMenu';
+import PDFMenu from '../client/views/pdf/PDFMenu';
+import MarqueeOptionsMenu from '../client/views/collections/collectionFreeForm/MarqueeOptionsMenu';
+import GoogleAuthenticationManager from '../client/apis/GoogleAuthenticationManager';
+import { listSpec } from '../new_fields/Schema';
+import { Id } from '../new_fields/FieldSymbols';
 
 library.add(faLongArrowAltLeft);
 
@@ -31,7 +43,7 @@ export default class MobileInterface extends React.Component {
     @computed private get userDoc() { return CurrentUserUtils.UserDocument; }
     @computed private get mainContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeMobile, Doc)) : CurrentUserUtils.GuestMobile; }
     // @observable private currentView: "main" | "ink" | "upload" = "main";
-    private mainDoc: Doc = CurrentUserUtils.setupMobileDoc(this.userDoc);
+    private mainDoc: any = CurrentUserUtils.setupMobileDoc(this.userDoc);
     @observable private renderView?: () => JSX.Element;
 
     // private inkDoc?: Doc;
@@ -49,7 +61,6 @@ export default class MobileInterface extends React.Component {
         library.add(...[faPenNib, faHighlighter, faEraser, faMousePointer]);
 
         if (this.userDoc && !this.mainContainer) {
-            // const doc = CurrentUserUtils.setupMobileDoc(this.userDoc);
             this.userDoc.activeMobile = this.mainDoc;
         }
     }
@@ -76,48 +87,22 @@ export default class MobileInterface extends React.Component {
         });
     }
 
-    // @action
-    // switchCurrentView = (view: "main" | "ink" | "upload") => {
-    //     this.currentView = view;
-
-    //     if (this.userDoc) {
-    //         switch (view) {
-    //             case "main": {
-    //                 // const doc = CurrentUserUtils.setupMobileDoc(this.userDoc);
-    //                 this.userDoc.activeMobile = this.mainDoc;
-    //                 break;
-    //             }
-    //             case "ink": {
-    //                 this.inkDoc = CurrentUserUtils.setupMobileInkingDoc(this.userDoc);
-    //                 this.userDoc.activeMobile = this.inkDoc;
-    //                 InkingControl.Instance.switchTool(InkTool.Pen);
-    //                 this.drawingInk = true;
-
-    //                 DocServer.Mobile.dispatchOverlayTrigger({
-    //                     enableOverlay: true,
-    //                     width: window.innerWidth,
-    //                     height: window.innerHeight
-    //                 });
-
-    //                 break;
-    //             }
-    //             case "upload": {
-    //                 this.uploadDoc = CurrentUserUtils.setupMobileUploadDoc(this.userDoc);
-    //                 this.userDoc.activeMobile = this.uploadDoc;
-
-    //             }
-    //         }
-    //     }
-    // }
+    onSwitchUpload = () => {
+        DocServer.Mobile.dispatchOverlayTrigger({
+            enableOverlay: true,
+            width: 100,
+            height: 100
+        });
+    }
 
     renderDefaultContent = () => {
-        console.log("rendering default content");
+        console.log("rendering default content", this.mainContainer);
         if (this.mainContainer) {
             return <DocumentView
                 Document={this.mainContainer}
                 DataDoc={undefined}
                 LibraryPath={emptyPath}
-                addDocument={returnFalse}
+                addDocument={(doc: Doc) => { console.log("want to add doc to default content", StrCast(doc.title)); return false; }}
                 addDocTab={returnFalse}
                 pinToPres={emptyFunction}
                 removeDocument={undefined}
@@ -192,42 +177,54 @@ export default class MobileInterface extends React.Component {
                             <button className="mobileInterface-button" onClick={this.shiftRight} title="Shift right">right</button>
                         </div>
                     </div>
-                    <GestureOverlay>
-                        <CollectionView
-                            Document={this.mainContainer}
-                            DataDoc={undefined}
-                            LibraryPath={emptyPath}
-                            fieldKey={""}
-                            addDocTab={returnFalse}
-                            pinToPres={emptyFunction}
-                            PanelHeight={() => window.innerHeight}
-                            PanelWidth={() => window.innerWidth}
-                            focus={emptyFunction}
-                            isSelected={returnFalse}
-                            select={emptyFunction}
-                            active={returnFalse}
-                            ContentScaling={returnOne}
-                            whenActiveChanged={returnFalse}
-                            ScreenToLocalTransform={Transform.Identity}
-                            ruleProvider={undefined}
-                            renderDepth={0}
-                            ContainingCollectionView={undefined}
-                            ContainingCollectionDoc={undefined}>
-                        </CollectionView>
-                    </GestureOverlay>
+                    <CollectionView
+                        Document={this.mainContainer}
+                        DataDoc={undefined}
+                        LibraryPath={emptyPath}
+                        fieldKey={""}
+                        addDocTab={returnFalse}
+                        pinToPres={emptyFunction}
+                        PanelHeight={() => window.innerHeight}
+                        PanelWidth={() => window.innerWidth}
+                        focus={emptyFunction}
+                        isSelected={returnFalse}
+                        select={emptyFunction}
+                        active={returnFalse}
+                        ContentScaling={returnOne}
+                        whenActiveChanged={returnFalse}
+                        ScreenToLocalTransform={Transform.Identity}
+                        ruleProvider={undefined}
+                        renderDepth={0}
+                        ContainingCollectionView={undefined}
+                        ContainingCollectionDoc={undefined}>
+                    </CollectionView>
                 </div>
             );
         }
     }
 
-    upload = () => {
+    upload = async (e: React.MouseEvent) => {
+        if (this.mainContainer) {
+            const data = Cast(this.mainContainer.data, listSpec(Doc));
+            if (data) {
+                const uploadDoc = await data[1]; // TODO: ensure this is the collection to upload
 
+                console.log("UPLOADING DOCUMENT FROM MOBILE", uploadDoc[Id], StrCast(uploadDoc.proto!.title));
+                if (uploadDoc) {
+                    DocServer.Mobile.dispatchMobileDocumentUpload({
+                        docId: uploadDoc[Id]
+                    });
+                }
+            }
+        }
+        e.stopPropagation();
+        e.preventDefault();
     }
 
     renderUploadContent() {
         if (this.mainContainer) {
             return (
-                <div className="mobileInterface">
+                <div className="mobileInterface" onDragOver={this.onDragOver}>
                     <div className="mobileInterface-inkInterfaceButtons">
                         <div className="navButtons">
                             <button className="mobileInterface-button cancel" onClick={this.onBack} title="Back">BACK</button>
@@ -240,7 +237,7 @@ export default class MobileInterface extends React.Component {
                         Document={this.mainContainer}
                         DataDoc={undefined}
                         LibraryPath={emptyPath}
-                        addDocument={returnFalse}
+                        addDocument={(doc: Doc) => { console.log("want to add doc", StrCast(doc.title)); return false; }}
                         addDocTab={returnFalse}
                         pinToPres={emptyFunction}
                         removeDocument={undefined}
@@ -266,13 +263,35 @@ export default class MobileInterface extends React.Component {
         }
     }
 
+    onDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
     render() {
         // const content = this.currentView === "main" ? this.mainContent :
         //     this.currentView === "ink" ? this.inkContent :
         //         this.currentView === "upload" ? this.uploadContent : <></>;
         return (
-            <div className="mobile-container">
-                {this.renderView ? this.renderView() : this.renderDefaultContent()}
+            <div className="mobileInterface-container" onDragOver={this.onDragOver}>
+                {/* <DocumentDecorations />
+                <GestureOverlay>
+                    {this.renderView ? this.renderView() : this.renderDefaultContent()}
+                </GestureOverlay> */}
+
+                {/* <DictationOverlay />
+                <SharingManager />
+                <GoogleAuthenticationManager /> */}
+                <DocumentDecorations />
+                <GestureOverlay>
+                    {this.renderView ? this.renderView() : this.renderDefaultContent()}
+                </GestureOverlay>
+                <PreviewCursor />
+                {/* <ContextMenu /> */}
+                <RadialMenu />
+                {/* <PDFMenu />
+                <MarqueeOptionsMenu />
+                <OverlayView /> */}
             </div>
         );
     }
@@ -281,5 +300,6 @@ export default class MobileInterface extends React.Component {
 Scripting.addGlobal(function switchMobileView(doc: (userDoc: Doc) => Doc, renderView?: () => JSX.Element, onSwitch?: () => void) { return MobileInterface.Instance.switchCurrentView(doc, renderView, onSwitch); });
 Scripting.addGlobal(function onSwitchMobileInking() { return MobileInterface.Instance.onSwitchInking(); });
 Scripting.addGlobal(function renderMobileInking() { return MobileInterface.Instance.renderInkingContent(); });
+Scripting.addGlobal(function onSwitchMobileUpload() { return MobileInterface.Instance.onSwitchUpload(); });
 Scripting.addGlobal(function renderMobileUpload() { return MobileInterface.Instance.renderUploadContent(); });
 

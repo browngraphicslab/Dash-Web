@@ -42,6 +42,7 @@ export default class UploadManager extends ApiManager {
             method: Method.POST,
             subscription: "/upload",
             secureHandler: async ({ req, res }) => {
+                console.log("/upload register");
                 const form = new formidable.IncomingForm();
                 form.uploadDir = pathToDirectory(Directory.parsed_files);
                 form.keepExtensions = true;

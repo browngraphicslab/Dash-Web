@@ -179,7 +179,7 @@ export namespace DragManager {
             );
         }
         element.dataset.canDrop = "true";
-        const handler = (e: Event) => dropFunc(e, (e as CustomEvent<DropEvent>).detail);
+        const handler = (e: Event) => { console.log("drop target reveied docs"); dropFunc(e, (e as CustomEvent<DropEvent>).detail); };
         element.addEventListener("dashOnDrop", handler);
         return () => {
             element.removeEventListener("dashOnDrop", handler);

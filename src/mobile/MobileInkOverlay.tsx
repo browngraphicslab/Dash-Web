@@ -1,9 +1,13 @@
 import React = require('react');
 import { observer } from "mobx-react";
-import { MobileInkOverlayContent, GestureContent, UpdateMobileInkOverlayPositionContent } from "../server/Message";
+import { MobileInkOverlayContent, GestureContent, UpdateMobileInkOverlayPositionContent, MobileDocumentUploadContent } from "../server/Message";
 import { observable, action } from "mobx";
 import { GestureUtils } from "../pen-gestures/GestureUtils";
 import "./MobileInkOverlay.scss";
+import { StrCast } from '../new_fields/Types';
+import { DragManager } from "../client/util/DragManager";
+import { DocServer } from '../client/DocServer';
+import { Doc } from '../new_fields/Doc';
 
 
 @observer
@@ -67,7 +71,7 @@ export default class MobileInkOverlay extends React.Component {
             height: bounds.height * this._scale,
         };
 
-        const target = document.elementFromPoint(points[0].X, points[0].Y);
+        const target = document.elementFromPoint(this._x + 10, this._y + 10);
         target?.dispatchEvent(
             new CustomEvent<GestureUtils.GestureEvent>("dashOnGesture",
                 {
@@ -80,6 +84,43 @@ export default class MobileInkOverlay extends React.Component {
                 }
             )
         );
+    }
+
+    uploadDocument = async (content: MobileDocumentUploadContent) => {
+        const { docId } = content;
+        console.log("receive upload document id", docId);
+        const doc = await DocServer.GetRefField(docId);
+
+        if (doc && doc instanceof Doc) {
+            console.log("parsed upload document into doc", StrCast(doc.proto!.title));
+
+            const target = document.elementFromPoint(this._x + 10, this._y + 10);
+            console.log("the target is", target);
+
+            const dragData = new DragManager.DocumentDragData([doc]);
+            const complete = new DragManager.DragCompleteEvent(false, dragData);
+            console.log("the drag data is", dragData);
+
+            if (target) {
+                target.dispatchEvent(
+                    new CustomEvent<DragManager.DropEvent>("dashOnDrop",
+                        {
+                            bubbles: true,
+                            detail: {
+                                x: this._x,
+                                y: this._y,
+                                complete: complete,
+                                altKey: false,
+                                metaKey: false,
+                                ctrlKey: false
+                            }
+                        }
+                    )
+                );
+            } else {
+                alert("TARGET IS UNDEFINED");
+            }
+        }
     }
 
     @action
@@ -132,15 +173,17 @@ export default class MobileInkOverlay extends React.Component {
                     transform: `translate(${this._x}px, ${this._y}px)`,
                     zIndex: 30000,
                     pointerEvents: "none",
-                    borderStyle: this._isDragging ? "solid" : "dashed"
-                }}
+                    borderStyle: this._isDragging ? "solid" : "dashed",
+                    backgroundColor: "rgba(255, 0, 0, 0.3)"
+                }
+                }
                 ref={this._mainCont}
             >
                 <div className="mobileInkOverlay-border top" onPointerDown={this.dragStart}></div>
                 <div className="mobileInkOverlay-border bottom" onPointerDown={this.dragStart}></div>
                 <div className="mobileInkOverlay-border left" onPointerDown={this.dragStart}></div>
                 <div className="mobileInkOverlay-border right" onPointerDown={this.dragStart}></div>
-            </div>
+            </div >
         );
     }
 }

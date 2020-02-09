@@ -138,7 +138,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
         let index = value.reduce((p, v, i) => (v instanceof Doc && v === doc) ? i : p, -1);
         index = index !== -1 ? index : value.reduce((p, v, i) => (v instanceof Doc && Doc.AreProtosEqual(v, doc)) ? i : p, -1);
 
-        ContextMenu.Instance.clearItems();
+        ContextMenu.Instance && ContextMenu.Instance.clearItems();
         if (index !== -1) {
             value.splice(index, 1);
             return true;

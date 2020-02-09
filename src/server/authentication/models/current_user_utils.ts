@@ -103,7 +103,7 @@ export class CurrentUserUtils {
             { title: "use scrubber", icon: "eraser", click: 'activateScrubber(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this);', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "green", activePen: doc },
             { title: "use drag", icon: "mouse-pointer", click: 'deactivateInk();this.activePen.pen = this;', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "white", activePen: doc },
             { title: "draw", icon: "pen-nib", click: 'switchMobileView(setupMobileInkingDoc, renderMobileInking, onSwitchMobileInking);', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "red", activePen: doc },
-            { title: "upload", icon: "upload", click: 'switchMobileView(setupMobileUploadDoc, renderMobileUpload);', backgroundColor: "orange" },
+            { title: "upload", icon: "upload", click: 'switchMobileView(setupMobileUploadDoc, renderMobileUpload, onSwitchMobileUpload);', backgroundColor: "orange" },
             { title: "upload", icon: "upload", click: 'uploadImageMobile();', backgroundColor: "cyan" },
         ];
         return docProtoData.filter(d => !buttons || !buttons.includes(d.title)).map(data => Docs.Create.FontIconDocument({
@@ -138,7 +138,9 @@ export class CurrentUserUtils {
     }
 
     static setupMobileDoc(userDoc: Doc) {
-        return userDoc.activeMoble ?? Docs.Create.MasonryDocument(CurrentUserUtils.setupMobileButtons(userDoc), {
+        const webDoc = Docs.Create.WebDocument("https://wikipedia.com", { title: "Mobile Upload Web", chromeStatus: "enabled" });
+
+        return userDoc.activeMoble ?? Docs.Create.MasonryDocument([webDoc, ...CurrentUserUtils.setupMobileButtons(userDoc)], {
             columnWidth: 100, ignoreClick: true, lockedPosition: true, chromeStatus: "disabled", title: "buttons", autoHeight: true, yMargin: 5
         });
     }
@@ -148,13 +150,14 @@ export class CurrentUserUtils {
     }
 
     static setupMobileUploadDoc(userDoc: Doc) {
-        console.log("setup mobile upload", window.innerWidth, window.innerHeight);
-        const webDoc = Docs.Create.WebDocument("https://wikipedia.com", { title: "Mobile Upload Web", chromeStatus: "enabled" });
-        const uploadDoc = Docs.Create.StackingDocument([], { title: "Mobile Upload", backgroundColor: "pink" });
-        return Docs.Create.StackingDocument([webDoc, uploadDoc], {
-            title: "Mobile Upload", backgroundColor: "white",
-            columnWidth: window.innerWidth, ignoreClick: true, lockedPosition: true, chromeStatus: "disabled", autoHeight: true, yMargin: 5,
-            width: window.innerWidth, height: window.innerHeight
+        const webDoc = Docs.Create.WebDocument("https://yahoo.com", { title: "Upload Images From the Web", chromeStatus: "enabled" });
+        const uploadDoc = Docs.Create.StackingDocument([], { title: "Mobile Upload Collection", backgroundColor: "pink" });
+        console.log("window size", window.innerWidth, window.innerHeight);
+        // return Docs.Create.StackingDocument([webDoc, uploadDoc], {
+        //     columnWidth: window.innerWidth, //ignoreClick: true, lockedPosition: true, chromeStatus: "disabled", title: "Mobile Upload", autoHeight: true, yMargin: 5
+        // });
+        return Docs.Create.StackingDocument([webDoc, uploadDoc], {//...CurrentUserUtils.setupMobileButtons(userDoc)], {
+            columnWidth: 100, lockedPosition: true, chromeStatus: "disabled", title: "Upload", autoHeight: true, yMargin: 30
         });
     }
 

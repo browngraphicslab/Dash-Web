@@ -47,6 +47,7 @@ class Uploader extends React.Component {
 
                     const upload = window.location.origin + "/upload";
                     this.status = "uploading image";
+                    console.log("uploading image", formData);
                     const res = await fetch(upload, {
                         method: 'POST',
                         body: formData

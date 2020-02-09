@@ -1,5 +1,5 @@
 import * as OpenSocket from 'socket.io-client';
-import { MessageStore, YoutubeQueryTypes, GestureContent, MobileInkOverlayContent, UpdateMobileInkOverlayPositionContent } from "./../server/Message";
+import { MessageStore, YoutubeQueryTypes, GestureContent, MobileInkOverlayContent, UpdateMobileInkOverlayPositionContent, MobileDocumentUploadContent } from "./../server/Message";
 import { Opt, Doc } from '../new_fields/Doc';
 import { Utils, emptyFunction } from '../Utils';
 import { SerializationHelper } from './util/SerializationHelper';
@@ -81,6 +81,10 @@ export namespace DocServer {
             Utils.Emit(_socket, MessageStore.UpdateMobileInkOverlayPosition, content);
         }
 
+        export function dispatchMobileDocumentUpload(content: MobileDocumentUploadContent) {
+            Utils.Emit(_socket, MessageStore.MobileDocumentUpload, content);
+        }
+
     }
 
     export function init(protocol: string, hostname: string, port: number, identifier: string) {
@@ -115,6 +119,9 @@ export namespace DocServer {
         });
         _socket.addEventListener("receiveUpdateOverlayPosition", (content: UpdateMobileInkOverlayPositionContent) => {
             MobileInkOverlay.Instance.updatePosition(content);
+        });
+        _socket.addEventListener("receiveMobileDocumentUpload", (content: MobileDocumentUploadContent) => {
+            MobileInkOverlay.Instance.uploadDocument(content);
         });
     }
 
