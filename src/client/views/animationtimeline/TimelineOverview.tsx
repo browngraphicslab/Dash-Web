@@ -158,9 +158,9 @@ export class TimelineOverview extends React.Component<TimelineOverviewProps>{
             </div>
         ] : [
                 <div className="timeline-play-bar" style={{ width: this.overviewBarWidth }}>
-                    <div ref={this._scrubberRef} className="timeline-play-head" style={{ left: `${(this.props.currentBarX / this.props.totalLength) * 294}px` }} onPointerDown={this.onScrubberDown}></div>
+                    <div ref={this._scrubberRef} className="timeline-play-head" style={{ left: `${(this.props.currentBarX / this.props.totalLength) * this.overviewBarWidth}px` }} onPointerDown={this.onScrubberDown}></div>
                 </div>,
-                <div className="timeline-play-tail" style={{ width: `${(this.props.currentBarX / this.props.totalLength) * 294}px` }}></div>
+                <div className="timeline-play-tail" style={{ width: `${(this.props.currentBarX / this.props.totalLength) * this.overviewBarWidth}px` }}></div>
             ];
         return (
             <div className="timeline-flex">
