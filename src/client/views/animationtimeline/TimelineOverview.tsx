@@ -27,6 +27,8 @@ export class TimelineOverview extends React.Component<TimelineOverviewProps>{
     @observable private _visibleRef = React.createRef<HTMLDivElement>();
     @observable private _scrubberRef = React.createRef<HTMLDivElement>();
     @observable private overviewBarWidth: number = 0;
+    @observable private playbarWidth: number = 0;
+    @observable private activeOverviewWidth: number = 0;
     @observable private _authoringReaction?: IReactionDisposer;
     @observable private visibleTime: number = 0;
     @observable private currentX: number = 0;
@@ -55,12 +57,17 @@ export class TimelineOverview extends React.Component<TimelineOverviewProps>{
 
     @action
     setOverviewWidth() {
-        const width = $("#timelineOverview").width();
-        // console.log($("timelineOverview"))
-        if (width) this.overviewBarWidth = width;
-        // else this.overviewBarWidth = 0;
+        const width1 = $("#timelineOverview").width();
+        const width2 = $("#timelinePlay").width();
+        if (width1 && width1 !== 0) this.overviewBarWidth = width1;
+        if (width2 && width2 !== 0) this.playbarWidth = width2;
 
-        // console.log(this.overviewBarWidth)
+        if (this.props.isAuthoring) {
+            this.activeOverviewWidth = this.overviewBarWidth;
+        }
+        else {
+            this.activeOverviewWidth = this.playbarWidth;
+        }
     }
 
     @action
@@ -78,9 +85,7 @@ export class TimelineOverview extends React.Component<TimelineOverviewProps>{
         e.stopPropagation();
         e.preventDefault();
         const movX = (this.props.visibleStart / this.props.totalLength) * (this.DEFAULT_WIDTH) + e.movementX;
-        // let movX = (this.props.visibleStart / this.props.totalLength) * (this.overviewWidth) + e.movementX;
         this.props.movePanX((movX / (this.DEFAULT_WIDTH)) * this.props.totalLength);
-        // this.props.movePanX((movX / (this.overviewWidth) * this.props.totalLength);
     }
 
     @action
@@ -95,12 +100,10 @@ export class TimelineOverview extends React.Component<TimelineOverviewProps>{
     onScrubberDown = (e: React.PointerEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        // if (!this.props.isAuthoring) {
         document.removeEventListener("pointermove", this.onScrubberMove);
         document.removeEventListener("pointerup", this.onScrubberUp);
         document.addEventListener("pointermove", this.onScrubberMove);
         document.addEventListener("pointerup", this.onScrubberUp);
-        // }
     }
 
     @action
@@ -110,7 +113,7 @@ export class TimelineOverview extends React.Component<TimelineOverviewProps>{
         const scrubberRef = this._scrubberRef.current!;
         const left = scrubberRef.getBoundingClientRect().left;
         const offsetX = Math.round(e.clientX - left);
-        this.props.changeCurrentBarX((((offsetX) / this.overviewBarWidth) * this.props.totalLength) + this.props.currentBarX);
+        this.props.changeCurrentBarX((((offsetX) / this.activeOverviewWidth) * this.props.totalLength) + this.props.currentBarX);
     }
 
     @action
@@ -129,38 +132,34 @@ export class TimelineOverview extends React.Component<TimelineOverviewProps>{
         this.visibleTime = vis;
         this.currentX = x;
         this.visibleStart = start;
-        // console.log("getting times")
-        // console.log(x)
-        // console.log(start)
     }
 
     render() {
-        console.log("RERENDERED!"); 
         this.setOverviewWidth();
         this.getTimes();
 
         const percentVisible = this.visibleTime / this.props.time;
-        const visibleBarWidth = percentVisible * this.overviewBarWidth;
+        const visibleBarWidth = percentVisible * this.activeOverviewWidth;
 
         const percentScrubberStart = this.currentX / this.props.time;
-        const scrubberStart = percentScrubberStart * this.overviewBarWidth;
+        const scrubberStart = this.props.currentBarX / this.props.totalLength * this.activeOverviewWidth;
 
         const percentBarStart = this.visibleStart / this.props.time;
-        const barStart = percentBarStart * this.overviewBarWidth;
+        const barStart = percentBarStart * this.activeOverviewWidth;
 
         const timeline = this.props.isAuthoring ? [
 
-            <div key="timeline-overview-container" className="timeline-overview-container" id="timelineOverview">
+            <div key="timeline-overview-container" className="timeline-overview-container overviewBar" id="timelineOverview">
                 <div ref={this._visibleRef} key="timeline-overview-visible" className="timeline-overview-visible" style={{ left: `${barStart}px`, width: `${visibleBarWidth}px` }} onPointerDown={this.onPointerDown}></div>,
-                <div ref={this._scrubberRef} key="timeline-overview-scrubber-container" className="timeline-overview-scrubber-container" style={{left: `${(this.props.currentBarX / this.props.totalLength) * this.overviewBarWidth}px`}} onPointerDown={this.onScrubberDown}>
+                <div ref={this._scrubberRef} key="timeline-overview-scrubber-container" className="timeline-overview-scrubber-container" style={{ left: `${scrubberStart}px` }} onPointerDown={this.onScrubberDown}>
                     <div key="timeline-overview-scrubber-head" className="timeline-overview-scrubber-head"></div>
                 </div>
             </div>
         ] : [
-                <div className="timeline-play-bar" style={{ width: this.overviewBarWidth }}>
-                    <div ref={this._scrubberRef} className="timeline-play-head" style={{ left: `${(this.props.currentBarX / this.props.totalLength) * this.overviewBarWidth}px` }} onPointerDown={this.onScrubberDown}></div>
+                <div key="timeline-play-container" className="timeline-play-bar overviewBar" id="timelinePlay">
+                    <div ref={this._scrubberRef} className="timeline-play-head" style={{ left: `${scrubberStart}px` }} onPointerDown={this.onScrubberDown}></div>
                 </div>,
-                <div className="timeline-play-tail" style={{ width: `${(this.props.currentBarX / this.props.totalLength) * this.overviewBarWidth}px` }}></div>
+                <div className="timeline-play-tail" style={{ width: `${(this.props.currentBarX / this.props.totalLength) * this.playbarWidth}px` }}></div>
             ];
         return (
             <div className="timeline-flex">

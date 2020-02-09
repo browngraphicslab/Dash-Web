@@ -458,7 +458,6 @@ export class Timeline extends React.Component<FieldViewProps> {
                     </div>
                     <div className="time-box overview-tool" style={{ display: this._timelineVisible ? "flex" : "none" }}>
                         {this.timeIndicator(lengthString)}
-                        {/* {rightInfo} */}
                     </div>
                 </div>
             </div>
@@ -470,13 +469,16 @@ export class Timeline extends React.Component<FieldViewProps> {
             return (
                 <>
                     <div key="time-text" className="animation-text" style={{ visibility: this.props.Document.isATOn ? "visible" : "hidden", display: this.props.Document.isATOn ? "flex" : "none" }}>{lengthString}</div>
-                    <input className="time-input" disabled style={{ visibility: this.props.Document.isATOn ? "visible" : "hidden", display: this.props.Document.isATOn ? "flex" : "none" }} placeholder={String(Math.floor(this._time) / 1000) + " s"} ref={this._timeInputRef} onKeyDown={this.onTimeInput} />
+                    <div className="totalTime">1:40.07</div>
                 </>
             );
         }
         else {
             return (
-                <div style={{ width: "100%", display: !this.props.Document.isATOn ? "flex" : "none" }}>Current: {this.getCurrentTime()}</div>
+                <div style={{ flexDirection: "column" }}>
+                    <div className="animation-text" style={{ width: "100%", display: !this.props.Document.isATOn ? "block" : "none" }}>{`Current: ${this.getCurrentTime()}`}</div>
+                    <div className="animation-text" style={{ width: "100%", display: !this.props.Document.isATOn ? "block" : "none" }}>{`Total: 1:40.07`}</div>
+                </div>
             );
         }
     }
@@ -543,10 +545,7 @@ export class Timeline extends React.Component<FieldViewProps> {
     // @computed
     getCurrentTime = () => {
         const current = KeyframeFunc.convertPixelTime(this._currentBarX, "mili", "time", this._tickSpacing, this._tickIncrement);
-        // console.log(this._currentBarX)
         return this.toReadTime(current);
-        // return (Math.floor(current) / 1000)
-        // return current / 1000.0;
     }
 
 
