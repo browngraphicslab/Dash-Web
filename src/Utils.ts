@@ -1,6 +1,6 @@
 import v4 = require('uuid/v4');
 import v5 = require("uuid/v5");
-import { Socket } from 'socket.io';
+import { Socket, Room } from 'socket.io';
 import { Message } from './server/Message';
 
 export namespace Utils {
@@ -309,6 +309,12 @@ export namespace Utils {
             log('S receiving', message.Name, arg, true);
             handler([arg, loggingCallback('S sending', fn, message.Name)]);
         });
+    }
+    export type RoomHandler = (socket: Socket, room: string) => any;
+    export type UsedSockets = Socket | SocketIOClient.Socket;
+    export type RoomMessage = "create or join" | "created" | "joined";
+    export function AddRoomHandler(socket: Socket, message: RoomMessage, handler: RoomHandler) {
+        socket.on(message, room => handler(socket, room));
     }
 }
 

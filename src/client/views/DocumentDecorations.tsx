@@ -35,6 +35,8 @@ library.add(faCloudUploadAlt);
 library.add(faSyncAlt);
 library.add(faShare);
 
+export type CloseCall = (toBeDeleted: DocumentView[]) => void;
+
 @observer
 export class DocumentDecorations extends React.Component<{}, { value: string }> {
     static Instance: DocumentDecorations;
@@ -59,6 +61,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @observable public pullIcon: IconProp = "arrow-alt-circle-down";
     @observable public pullColor: string = "white";
     @observable public openHover = false;
+    @observable private addedCloseCalls: CloseCall[] = [];
+
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -68,6 +72,14 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     }
 
     @action titleChanged = (event: any) => this._accumulatedTitle = event.target.value;
+
+    addCloseCall = (handler: CloseCall) => {
+        const currentOffset = this.addedCloseCalls.length - 1;
+        this.addedCloseCalls.push((toBeDeleted: DocumentView[]) => {
+            this.addedCloseCalls.splice(currentOffset, 1);
+            handler(toBeDeleted);
+        });
+    }
 
     titleBlur = undoBatch(action((commit: boolean) => {
         this._edtingTitle = false;
@@ -225,6 +237,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             const recent = Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc) as Doc;
             const selected = SelectionManager.SelectedDocuments().slice();
             SelectionManager.DeselectAll();
+            this.addedCloseCalls.forEach(handler => handler(selected));
+
             selected.map(dv => {
                 recent && Doc.AddDocToList(recent, "data", dv.props.Document, undefined, true, true);
                 dv.props.removeDocument && dv.props.removeDocument(dv.props.Document);

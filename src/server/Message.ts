@@ -42,6 +42,11 @@ export interface Diff extends Reference {
     readonly diff: any;
 }
 
+export interface RoomMessage {
+    readonly message: string;
+    readonly room: string;
+}
+
 export namespace MessageStore {
     export const Foo = new Message<string>("Foo");
     export const Bar = new Message<string>("Bar");
@@ -59,4 +64,6 @@ export namespace MessageStore {
     export const YoutubeApiQuery = new Message<YoutubeQueryInput>("Youtube Api Query");
     export const DeleteField = new Message<string>("Delete field");
     export const DeleteFields = new Message<string[]>("Delete fields");
+
+
 }
