@@ -27,7 +27,7 @@ import { ContextMenu } from "../../ContextMenu";
 import { ContextMenuProps } from "../../ContextMenuItem";
 import { InkingControl } from "../../InkingControl";
 import { CollectionFreeFormDocumentView } from "../../nodes/CollectionFreeFormDocumentView";
-import { DocumentViewProps } from "../../nodes/DocumentView";
+import { DocumentContentsView } from "../../nodes/DocumentContentsView";
 import { FormattedTextBox } from "../../nodes/FormattedTextBox";
 import { pageSchema } from "../../nodes/ImageBox";
 import PDFMenu from "../../pdf/PDFMenu";
@@ -44,6 +44,7 @@ import { GestureUtils } from "../../../../pen-gestures/GestureUtils";
 import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
 import { RichTextField } from "../../../../new_fields/RichTextField";
 import { List } from "../../../../new_fields/List";
+import { DocumentViewProps } from "../../nodes/DocumentView";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 

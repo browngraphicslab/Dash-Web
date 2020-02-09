@@ -1,6 +1,6 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import * as fa from '@fortawesome/free-solid-svg-icons';
-import { action, computed, runInAction, trace } from "mobx";
+import { action, computed, runInAction, trace, observable } from "mobx";
 import { observer } from "mobx-react";
 import * as rp from "request-promise";
 import { Doc, DocListCast, DocListCastAsync, Opt } from "../../../new_fields/Doc";
@@ -50,6 +50,9 @@ import { RadialMenuProps } from './RadialMenuItem';
 
 import { CollectionStackingView } from '../collections/CollectionStackingView';
 import { RichTextField } from '../../../new_fields/RichTextField';
+import { SchemaHeaderField } from '../../../new_fields/SchemaHeaderField';
+import { ClientRecommender } from '../../ClientRecommender';
+import { SearchUtil } from '../../util/SearchUtil';
 
 library.add(fa.faEdit, fa.faTrash, fa.faShare, fa.faDownload, fa.faExpandArrowsAlt, fa.faCompressArrowsAlt, fa.faLayerGroup, fa.faExternalLinkAlt, fa.faAlignCenter, fa.faCaretSquareRight,
     fa.faSquare, fa.faConciergeBell, fa.faWindowRestore, fa.faFolder, fa.faMapPin, fa.faLink, fa.faFingerprint, fa.faCrosshairs, fa.faDesktop, fa.faUnlock, fa.faLock, fa.faLaptopCode, fa.faMale,
@@ -99,6 +102,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     private _hitTemplateDrag = false;
     private _mainCont = React.createRef<HTMLDivElement>();
     private _dropDisposer?: DragManager.DragDropDisposer;
+    private _showKPQuery: boolean = false;
+    private _queries: string = "";
     private _gestureEventDisposer?: GestureUtils.GestureEventDisposer;
     private _titleRef = React.createRef<EditableView>();
 
@@ -793,6 +798,35 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             // a.download = `DocExport-${this.props.Document[Id]}.zip`;
             // a.click();
         });
+        let recommender_subitems: ContextMenuProps[] = [];
+
+        recommender_subitems.push({
+            description: "Internal recommendations",
+            event: () => this.recommender(e),
+            icon: "brain"
+        });
+
+        let ext_recommender_subitems: ContextMenuProps[] = [];
+
+        ext_recommender_subitems.push({
+            description: "arXiv",
+            event: () => this.externalRecommendation(e, "arxiv"),
+            icon: "brain"
+        });
+        ext_recommender_subitems.push({
+            description: "Bing",
+            event: () => this.externalRecommendation(e, "bing"),
+            icon: "brain"
+        });
+
+        recommender_subitems.push({
+            description: "External recommendations",
+            subitems: ext_recommender_subitems,
+            icon: "brain"
+        });
+
+        cm.addItem({ description: "Recommender System", subitems: recommender_subitems, icon: "brain" });
+
 
         moreItems.push({ description: "Publish", event: () => DocUtils.Publish(this.props.Document, this.Document.title || "", this.props.addDocument, this.props.removeDocument), icon: "file" });
         moreItems.push({ description: "Delete", event: this.deleteClicked, icon: "trash" });
@@ -847,6 +881,104 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         });
     }
 
+    recommender = async (e: React.MouseEvent) => {
+        if (!ClientRecommender.Instance) new ClientRecommender({ title: "Client Recommender" });
+        const documents: Doc[] = [];
+        const allDocs = await SearchUtil.GetAllDocs();
+        // allDocs.forEach(doc => console.log(doc.title));
+        // clears internal representation of documents as vectors
+        ClientRecommender.Instance.reset_docs();
+        //ClientRecommender.Instance.arxivrequest("electrons");
+        await Promise.all(allDocs.map((doc: Doc) => {
+            let isMainDoc: boolean = false;
+            const dataDoc = Doc.GetDataDoc(doc);
+            if (doc.type === DocumentType.TEXT) {
+                if (dataDoc === Doc.GetDataDoc(this.props.Document)) {
+                    isMainDoc = true;
+                }
+                if (!documents.includes(dataDoc)) {
+                    documents.push(dataDoc);
+                    const extdoc = doc.data_ext as Doc;
+                    return ClientRecommender.Instance.extractText(doc, extdoc ? extdoc : doc, true, "", isMainDoc);
+                }
+            }
+            if (doc.type === DocumentType.IMG) {
+                if (dataDoc === Doc.GetDataDoc(this.props.Document)) {
+                    isMainDoc = true;
+                }
+                if (!documents.includes(dataDoc)) {
+                    documents.push(dataDoc);
+                    const extdoc = doc.data_ext as Doc;
+                    return ClientRecommender.Instance.extractText(doc, extdoc ? extdoc : doc, true, "", isMainDoc, true);
+                }
+            }
+        }));
+        const doclist = ClientRecommender.Instance.computeSimilarities("cosine");
+        let recDocs: { preview: Doc, score: number }[] = [];
+        // tslint:disable-next-line: prefer-for-of
+        for (let i = 0; i < doclist.length; i++) {
+            recDocs.push({ preview: doclist[i].actualDoc, score: doclist[i].score });
+        }
+
+        const data = recDocs.map(unit => {
+            unit.preview.score = unit.score;
+            return unit.preview;
+        });
+
+        console.log(recDocs.map(doc => doc.score));
+
+        const title = `Showing ${data.length} recommendations for "${StrCast(this.props.Document.title)}"`;
+        const recommendations = Docs.Create.RecommendationsDocument(data, { title });
+        recommendations.documentIconHeight = 150;
+        recommendations.sourceDoc = this.props.Document;
+        recommendations.sourceDocContext = this.props.ContainingCollectionView!.props.Document;
+        CollectionDockingView.AddRightSplit(recommendations, undefined);
+
+        // RecommendationsBox.Instance.displayRecommendations(e.pageX + 100, e.pageY);
+    }
+
+    @action
+    externalRecommendation = async (e: React.MouseEvent, api: string) => {
+        if (!ClientRecommender.Instance) new ClientRecommender({ title: "Client Recommender" });
+        ClientRecommender.Instance.reset_docs();
+        const doc = Doc.GetDataDoc(this.props.Document);
+        const extdoc = doc.data_ext as Doc;
+        const recs_and_kps = await ClientRecommender.Instance.extractText(doc, extdoc ? extdoc : doc, false, api);
+        let recs: any;
+        let kps: any;
+        if (recs_and_kps) {
+            recs = recs_and_kps.recs;
+            kps = recs_and_kps.keyterms;
+        }
+        else {
+            console.log("recommender system failed :(");
+            return;
+        }
+        console.log("ibm keyterms: ", kps.toString());
+        const headers = [new SchemaHeaderField("title"), new SchemaHeaderField("href")];
+        const bodies: Doc[] = [];
+        const titles = recs.title_vals;
+        const urls = recs.url_vals;
+        for (let i = 0; i < 5; i++) {
+            const body = Docs.Create.FreeformDocument([], { title: titles[i] });
+            body.href = urls[i];
+            bodies.push(body);
+        }
+        CollectionDockingView.AddRightSplit(Docs.Create.SchemaDocument(headers, bodies, { title: `Showing External Recommendations for "${StrCast(doc.title)}"` }), undefined);
+        this._showKPQuery = true;
+        this._queries = kps.toString();
+    }
+
+    onPointerEnter = (e: React.PointerEvent): void => { Doc.BrushDoc(this.props.Document); };
+    onPointerLeave = (e: React.PointerEvent): void => { Doc.UnBrushDoc(this.props.Document); };
+
+    // the document containing the view layout information - will be the Document itself unless the Document has
+    // a layout field.  In that case, all layout information comes from there unless overriden by Document
+    get layoutDoc(): Document {
+        return Document(Doc.Layout(this.props.Document));
+    }
+
+    // does Document set a layout prop
     // does Document set a layout prop 
     setsLayoutProp = (prop: string) => this.props.Document[prop] !== this.props.Document["default" + prop[0].toUpperCase() + prop.slice(1)] && this.props.Document["default" + prop[0].toUpperCase() + prop.slice(1)];
     // get the a layout prop by first choosing the prop from Document, then falling back to the layout doc otherwise.
@@ -1010,6 +1142,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             }}>
             {this.innards}
         </div>;
+        { this._showKPQuery ? <KeyphraseQueryView keyphrases={this._queries}></KeyphraseQueryView> : undefined }
     }
 }
 

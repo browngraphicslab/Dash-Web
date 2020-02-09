@@ -19,6 +19,7 @@ export enum DocumentType {
     YOUTUBE = "youtube",
     FONTICON = "fonticonbox",
     PRES = "presentation",
+    RECOMMENDATION = "recommendation",
     LINKFOLLOW = "linkfollow",
     PRESELEMENT = "preselement",
     QUERY = "search",

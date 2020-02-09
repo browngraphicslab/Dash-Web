@@ -1,0 +1,12 @@
+// @import "/views/globalCssVariables.scss";
+
+.space{
+    border: 1px dashed blue;
+    border-spacing: 25px;
+    border-collapse: separate;
+    align-content: center;
+}
+
+.wrapper{
+    text-align: -webkit-center;
+}
