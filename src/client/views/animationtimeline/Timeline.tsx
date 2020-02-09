@@ -86,7 +86,7 @@ export class Timeline extends React.Component<FieldViewProps> {
      */
     @computed
     private get children(): List<Doc> {
-        let extendedDocument = ["image", "video", "pdf"].includes(StrCast(this.props.Document.type));
+        const extendedDocument = ["image", "video", "pdf"].includes(StrCast(this.props.Document.type));
         if (extendedDocument) {
             if (this.props.Document.data_ext) {
                 return Cast((Cast(this.props.Document.data_ext, Doc) as Doc).annotations, listSpec(Doc)) as List<Doc>;
@@ -99,7 +99,7 @@ export class Timeline extends React.Component<FieldViewProps> {
 
     /////////lifecycle functions////////////
     componentWillMount() {
-        let relativeHeight = window.innerHeight / 20; //sets height to arbitrary size, relative to innerHeight
+        const relativeHeight = window.innerHeight / 20; //sets height to arbitrary size, relative to innerHeight
         this._titleHeight = relativeHeight < this.MAX_TITLE_HEIGHT ? relativeHeight : this.MAX_TITLE_HEIGHT; //check if relHeight is less than Maxheight. Else, just set relheight to max
         this.MIN_CONTAINER_HEIGHT = this._titleHeight + 130; //offset
         this.DEFAULT_CONTAINER_HEIGHT = this._titleHeight * 2 + 130; //twice the titleheight + offset
@@ -133,7 +133,7 @@ export class Timeline extends React.Component<FieldViewProps> {
      */
     @action
     drawTicks = () => {
-        let ticks = [];
+        const ticks = [];
         for (let i = 0; i < this._time / this._tickIncrement; i++) {
             ticks.push(<div key={Utils.GenerateGuid()} className="tick" style={{ transform: `translate(${i * this._tickSpacing}px)`, position: "absolute", pointerEvents: "none" }}> <p className="number-label">{this.toReadTime(i * this._tickIncrement)}</p></div>);
         }
@@ -226,9 +226,9 @@ export class Timeline extends React.Component<FieldViewProps> {
     onScrubberMove = (e: PointerEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        let scrubberbox = this._infoContainer.current!;
-        let left = scrubberbox.getBoundingClientRect().left;
-        let offsetX = Math.round(e.clientX - left) * this.props.ScreenToLocalTransform().Scale;
+        const scrubberbox = this._infoContainer.current!;
+        const left = scrubberbox.getBoundingClientRect().left;
+        const offsetX = Math.round(e.clientX - left) * this.props.ScreenToLocalTransform().Scale;
         this.changeCurrentBarX(offsetX + this._visibleStart); //changes scrubber to clicked scrubber position
     }
 
@@ -239,7 +239,7 @@ export class Timeline extends React.Component<FieldViewProps> {
     onPanDown = (e: React.PointerEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        let clientX = e.clientX;
+        const clientX = e.clientX;
         if (this._doubleClickEnabled) {
             this._doubleClickEnabled = false;
         } else {
@@ -270,8 +270,8 @@ export class Timeline extends React.Component<FieldViewProps> {
         if (e.movementX !== 0 || e.movementY !== 0) {
             this._mouseToggled = true;
         }
-        let trackbox = this._trackbox.current!;
-        let titleContainer = this._titleContainer.current!;
+        const trackbox = this._trackbox.current!;
+        const titleContainer = this._titleContainer.current!;
         this.movePanX(this._visibleStart - e.movementX);
         trackbox.scrollTop = trackbox.scrollTop - e.movementY;
         titleContainer.scrollTop = titleContainer.scrollTop - e.movementY;
@@ -287,7 +287,7 @@ export class Timeline extends React.Component<FieldViewProps> {
 
     @action
     movePanX = (pixel: number) => {
-        let infoContainer = this._infoContainer.current!;
+        const infoContainer = this._infoContainer.current!;
         infoContainer.scrollLeft = pixel;
         this._visibleStart = infoContainer.scrollLeft;
     }
@@ -309,7 +309,7 @@ export class Timeline extends React.Component<FieldViewProps> {
     onResizeMove = (e: PointerEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        let offset = e.clientY - this._timelineContainer.current!.getBoundingClientRect().bottom;
+        const offset = e.clientY - this._timelineContainer.current!.getBoundingClientRect().bottom;
         // let offset = 0;
         if (this._containerHeight + offset <= this.MIN_CONTAINER_HEIGHT) {
             this._containerHeight = this.MIN_CONTAINER_HEIGHT;
@@ -326,10 +326,10 @@ export class Timeline extends React.Component<FieldViewProps> {
     @action
     toReadTime = (time: number): string => {
         time = time / 1000;
-        var inSeconds = Math.round((time * 100)) / 100;
+        const inSeconds = Math.round((time * 100)) / 100;
         // var inSeconds = parseFloat(time.toFixed(2));
         // const inSeconds = (Math.floor(time) / 1000);
-        let min: (string | number) = Math.floor(inSeconds / 60);
+        const min: (string | number) = Math.floor(inSeconds / 60);
         let sec: (string | number) = inSeconds % 60;
 
         if (Math.floor(sec / 10) === 0) {
@@ -360,12 +360,12 @@ export class Timeline extends React.Component<FieldViewProps> {
     onWheelZoom = (e: React.WheelEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        let offset = e.clientX - this._infoContainer.current!.getBoundingClientRect().left;
-        let prevTime = KeyframeFunc.convertPixelTime(this._visibleStart + offset, "mili", "time", this._tickSpacing, this._tickIncrement);
-        let prevCurrent = KeyframeFunc.convertPixelTime(this._currentBarX, "mili", "time", this._tickSpacing, this._tickIncrement);
+        const offset = e.clientX - this._infoContainer.current!.getBoundingClientRect().left;
+        const prevTime = KeyframeFunc.convertPixelTime(this._visibleStart + offset, "mili", "time", this._tickSpacing, this._tickIncrement);
+        const prevCurrent = KeyframeFunc.convertPixelTime(this._currentBarX, "mili", "time", this._tickSpacing, this._tickIncrement);
         e.deltaY < 0 ? this.zoom(true) : this.zoom(false);
-        let currPixel = KeyframeFunc.convertPixelTime(prevTime, "mili", "pixel", this._tickSpacing, this._tickIncrement);
-        let currCurrent = KeyframeFunc.convertPixelTime(prevCurrent, "mili", "pixel", this._tickSpacing, this._tickIncrement);
+        const currPixel = KeyframeFunc.convertPixelTime(prevTime, "mili", "pixel", this._tickSpacing, this._tickIncrement);
+        const currCurrent = KeyframeFunc.convertPixelTime(prevCurrent, "mili", "pixel", this._tickSpacing, this._tickIncrement);
         this._infoContainer.current!.scrollLeft = currPixel - offset;
         this._visibleStart = currPixel - offset > 0 ? currPixel - offset : 0;
         this._visibleStart += this._visibleLength + this._visibleStart > this._totalLength ? this._totalLength - (this._visibleStart + this._visibleLength) : 0;
@@ -396,7 +396,7 @@ export class Timeline extends React.Component<FieldViewProps> {
                 spacingChange -= 5;
             }
         }
-        let finalLength = spacingChange * (this._time / incrementChange);
+        const finalLength = spacingChange * (this._time / incrementChange);
         if (finalLength >= this._infoContainer.current!.getBoundingClientRect().width) {
             this._totalLength = finalLength;
             this._tickSpacing = spacingChange;
@@ -408,19 +408,19 @@ export class Timeline extends React.Component<FieldViewProps> {
      * tool box includes the toggle buttons at the top of the timeline (both editing mode and play mode)
      */
     private timelineToolBox = (scale: number) => {
-        let size = 40 * scale; //50 is default
-        let iconSize = 25;
+        const size = 40 * scale; //50 is default
+        const iconSize = 25;
 
         //decides if information should be omitted because the timeline is very small
         // if its less than 950 pixels then it's going to be overlapping
         let shouldCompress = false;
-        let width: number = this.props.PanelWidth();
+        const width: number = this.props.PanelWidth();
         if (width < 850) {
             shouldCompress = true;
         }
 
         let modeString, overviewString, lengthString;
-        let modeType = this.props.Document.isATOn ? "Author" : "Play";
+        const modeType = this.props.Document.isATOn ? "Author" : "Play";
 
         if (!shouldCompress) {
             modeString = "Mode: " + modeType;
@@ -489,9 +489,9 @@ export class Timeline extends React.Component<FieldViewProps> {
      * turns on the toggle button (the purple slide button that changes from editing mode and play mode
      */
     private toggleHandle = () => {
-        let roundToggle = this._roundToggleRef.current!;
-        let roundToggleContainer = this._roundToggleContainerRef.current!;
-        let timelineContainer = this._timelineContainer.current!;
+        const roundToggle = this._roundToggleRef.current!;
+        const roundToggleContainer = this._roundToggleContainerRef.current!;
+        const timelineContainer = this._timelineContainer.current!;
         if (BoolCast(this.props.Document.isATOn)) {
             roundToggle.style.transform = "translate(0px, 0px)";
             roundToggle.style.animationName = "turnoff";
@@ -522,9 +522,9 @@ export class Timeline extends React.Component<FieldViewProps> {
 
     // @computed
     getCurrentTime = () => {
-        let current = KeyframeFunc.convertPixelTime(this._currentBarX, "mili", "time", this._tickSpacing, this._tickIncrement);
+        const current = KeyframeFunc.convertPixelTime(this._currentBarX, "mili", "time", this._tickSpacing, this._tickIncrement);
         // console.log(this._currentBarX)
-        return this.toReadTime(current); ``
+        return this.toReadTime(current); 
         // return (Math.floor(current) / 1000)
         // return current / 1000.0;
     }

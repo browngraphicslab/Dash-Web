@@ -809,7 +809,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     doFreeformLayout(poolData: Map<string, any>) {
         const layoutDocs = this.childLayoutPairs.map(pair => pair.layout);
         const initResult = this.Document.arrangeInit && this.Document.arrangeInit.script.run({ docs: layoutDocs, collection: this.Document }, console.log);
-        let state = initResult && initResult.success ? initResult.result.scriptState : undefined;
+        const state = initResult && initResult.success ? initResult.result.scriptState : undefined;
         const elements = initResult && initResult.success ? this.viewDefsToJSX(initResult.result.views) : [];
 
         this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)).map((pair, i) => {
@@ -1001,7 +1001,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             }
         });
         //@ts-ignore
-        let subitems: ContextMenuProps[] =
+        const subitems: ContextMenuProps[] =
             DocListCast((CurrentUserUtils.UserDocument.noteTypes as Doc).data).map((note, i) => ({
                 description: (i + 1) + ": " + StrCast(note.title),
                 event: () => console.log("Hi"),

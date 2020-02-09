@@ -36,7 +36,7 @@ export namespace KeyframeFunc {
         let leftMost: (RegionData | undefined) = undefined;
         let rightMost: (RegionData | undefined) = undefined;
         DocListCast(regions).forEach(region => {
-            let neighbor = RegionData(region);
+            const neighbor = RegionData(region);
             if (currentRegion.position! > neighbor.position) {
                 if (!leftMost || neighbor.position > leftMost.position) {
                     leftMost = neighbor;
@@ -57,7 +57,7 @@ export namespace KeyframeFunc {
     export const calcMinLeft = async (region: Doc, currentBarX: number, ref?: Doc) => { //returns the time of the closet keyframe to the left
         let leftKf: (Doc | undefined) = undefined;
         let time: number = 0;
-        let keyframes = await DocListCastAsync(region.keyframes!);
+        const keyframes = await DocListCastAsync(region.keyframes!);
         keyframes!.forEach((kf) => {
             let compTime = currentBarX;
             if (ref) compTime = NumCast(ref.time);
@@ -73,7 +73,7 @@ export namespace KeyframeFunc {
     export const calcMinRight = async (region: Doc, currentBarX: number, ref?: Doc) => { //returns the time of the closest keyframe to the right 
         let rightKf: (Doc | undefined) = undefined;
         let time: number = Infinity;
-        let keyframes = await DocListCastAsync(region.keyframes!);
+        const keyframes = await DocListCastAsync(region.keyframes!);
         keyframes!.forEach((kf) => {
             let compTime = currentBarX;
             if (ref) compTime = NumCast(ref.time);
@@ -86,7 +86,7 @@ export namespace KeyframeFunc {
     };
 
     export const defaultKeyframe = () => {
-        let regiondata = new Doc(); //creating regiondata in MILI
+        const regiondata = new Doc(); //creating regiondata in MILI
         regiondata.duration = 4000;
         regiondata.position = 0;
         regiondata.fadeIn = 1000;
@@ -98,7 +98,7 @@ export namespace KeyframeFunc {
 
 
     export const convertPixelTime = (pos: number, unit: "mili" | "sec" | "min" | "hr", dir: "pixel" | "time", tickSpacing: number, tickIncrement: number) => {
-        let time = dir === "pixel" ? (pos * tickSpacing) / tickIncrement : (pos / tickSpacing) * tickIncrement;
+        const time = dir === "pixel" ? (pos * tickSpacing) / tickIncrement : (pos / tickSpacing) * tickIncrement;
         switch (unit) {
             case "mili":
                 return time;
@@ -180,10 +180,10 @@ export class Keyframe extends React.Component<IProps> {
     componentDidMount() {
         setTimeout(() => {      //giving it a temporary 1sec delay... 
             if (!this.regiondata.keyframes) this.regiondata.keyframes = new List<Doc>();   
-            let start = this.props.makeKeyData(this.regiondata, this.regiondata.position,  KeyframeFunc.KeyframeType.end);
-            let fadeIn = this.props.makeKeyData(this.regiondata, this.regiondata.position + this.regiondata.fadeIn, KeyframeFunc.KeyframeType.fade);
-            let fadeOut = this.props.makeKeyData(this.regiondata, this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut, KeyframeFunc.KeyframeType.fade);
-            let finish = this.props.makeKeyData(this.regiondata, this.regiondata.position + this.regiondata.duration,KeyframeFunc.KeyframeType.end);
+            const start = this.props.makeKeyData(this.regiondata, this.regiondata.position,  KeyframeFunc.KeyframeType.end);
+            const fadeIn = this.props.makeKeyData(this.regiondata, this.regiondata.position + this.regiondata.fadeIn, KeyframeFunc.KeyframeType.fade);
+            const fadeOut = this.props.makeKeyData(this.regiondata, this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut, KeyframeFunc.KeyframeType.fade);
+            const finish = this.props.makeKeyData(this.regiondata, this.regiondata.position + this.regiondata.duration,KeyframeFunc.KeyframeType.end);
             (fadeIn.key as Doc).opacity = 1;
             (fadeOut.key as Doc).opacity = 1;
             (start.key as Doc).opacity = 0.1;
@@ -199,7 +199,7 @@ export class Keyframe extends React.Component<IProps> {
     onBarPointerDown = (e: React.PointerEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        let clientX = e.clientX;
+        const clientX = e.clientX;
         if (this._doubleClickEnabled) {
             this.createKeyframe(clientX);
             this._doubleClickEnabled = false;
@@ -224,10 +224,10 @@ export class Keyframe extends React.Component<IProps> {
         if (e.movementX !== 0) {
             this._mouseToggled = true;
         }
-        let left = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.left, this.regiondata, this.regions)!;
-        let right = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.right, this.regiondata, this.regions!);
-        let prevX = this.regiondata.position;
-        let futureX = this.regiondata.position + KeyframeFunc.convertPixelTime(e.movementX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement);
+        const left = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.left, this.regiondata, this.regions)!;
+        const right = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.right, this.regiondata, this.regions!);
+        const prevX = this.regiondata.position;
+        const futureX = this.regiondata.position + KeyframeFunc.convertPixelTime(e.movementX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement);
         if (futureX <= 0) {
             this.regiondata.position = 0;
         } else if ((left && left.position + left.duration >= futureX)) {
@@ -237,7 +237,7 @@ export class Keyframe extends React.Component<IProps> {
         } else {
             this.regiondata.position = futureX;
         }
-        let movement = this.regiondata.position - prevX;
+        const movement = this.regiondata.position - prevX;
         this.keyframes.forEach(kf => {
             kf.time = NumCast(kf.time) + movement;
         });
@@ -267,9 +267,9 @@ export class Keyframe extends React.Component<IProps> {
     onDragResizeLeft = (e: PointerEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        let bar = this._bar.current!;
-        let offset = KeyframeFunc.convertPixelTime(Math.round((e.clientX - bar.getBoundingClientRect().left) * this.props.transform.Scale), "mili", "time", this.props.tickSpacing, this.props.tickIncrement);
-        let leftRegion = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.left, this.regiondata, this.regions);
+        const bar = this._bar.current!;
+        const offset = KeyframeFunc.convertPixelTime(Math.round((e.clientX - bar.getBoundingClientRect().left) * this.props.transform.Scale), "mili", "time", this.props.tickSpacing, this.props.tickIncrement);
+        const leftRegion = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.left, this.regiondata, this.regions);
         if (leftRegion && this.regiondata.position + offset <= leftRegion.position + leftRegion.duration) {
             this.regiondata.position = leftRegion.position + leftRegion.duration;
             this.regiondata.duration = NumCast(this.keyframes[this.keyframes.length - 1].time) - (leftRegion.position + leftRegion.duration);
@@ -292,10 +292,10 @@ export class Keyframe extends React.Component<IProps> {
     onDragResizeRight = (e: PointerEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        let bar = this._bar.current!;
-        let offset = KeyframeFunc.convertPixelTime(Math.round((e.clientX - bar.getBoundingClientRect().right) * this.props.transform.Scale), "mili", "time", this.props.tickSpacing, this.props.tickIncrement);
-        let rightRegion = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.right, this.regiondata, this.regions);
-        let fadeOutKeyframeTime = NumCast(this.keyframes[this.keyframes.length - 3].time);
+        const bar = this._bar.current!;
+        const offset = KeyframeFunc.convertPixelTime(Math.round((e.clientX - bar.getBoundingClientRect().right) * this.props.transform.Scale), "mili", "time", this.props.tickSpacing, this.props.tickIncrement);
+        const rightRegion = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.right, this.regiondata, this.regions);
+        const fadeOutKeyframeTime = NumCast(this.keyframes[this.keyframes.length - 3].time);
         if (this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut + offset <= fadeOutKeyframeTime) { //case 1: when third to last keyframe is in the way 
             this.regiondata.duration = fadeOutKeyframeTime - this.regiondata.position + this.regiondata.fadeOut;
         } else if (rightRegion && (this.regiondata.position + this.regiondata.duration + offset >= rightRegion.position)) {
@@ -311,10 +311,10 @@ export class Keyframe extends React.Component<IProps> {
     @action
     createKeyframe = async (clientX: number) => {
         this._mouseToggled = true;
-        let bar = this._bar.current!;
-        let offset = KeyframeFunc.convertPixelTime(Math.round((clientX - bar.getBoundingClientRect().left) * this.props.transform.Scale), "mili", "time", this.props.tickSpacing, this.props.tickIncrement);
+        const bar = this._bar.current!;
+        const offset = KeyframeFunc.convertPixelTime(Math.round((clientX - bar.getBoundingClientRect().left) * this.props.transform.Scale), "mili", "time", this.props.tickSpacing, this.props.tickIncrement);
         if (offset > this.regiondata.fadeIn && offset < this.regiondata.duration - this.regiondata.fadeOut) { //make sure keyframe is not created inbetween fades and ends
-            let position = this.regiondata.position;
+            const position = this.regiondata.position;
             this.props.makeKeyData(this.regiondata, Math.round(position + offset), KeyframeFunc.KeyframeType.default);
             this.regiondata.hasData = true; 
             this.props.changeCurrentBarX(KeyframeFunc.convertPixelTime(Math.round(position + offset), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement)); //first move the keyframe to the correct location and make a copy so the correct file gets coppied
@@ -337,7 +337,7 @@ export class Keyframe extends React.Component<IProps> {
     makeKeyframeMenu = (kf: Doc, e: MouseEvent) => {
         TimelineMenu.Instance.addItem("button", "Show Data", () => {
             runInAction(() => {
-                let kvp = Docs.Create.KVPDocument(Cast(kf.key, Doc) as Doc, { _width: 300, _height: 300 });
+                const kvp = Docs.Create.KVPDocument(Cast(kf.key, Doc) as Doc, { _width: 300, _height: 300 });
                 CollectionDockingView.AddRightSplit(kvp, (kf.key as Doc).data as Doc);
             });
         }),
@@ -350,7 +350,7 @@ export class Keyframe extends React.Component<IProps> {
             TimelineMenu.Instance.addItem("input", "Move", (val) => {
                 runInAction(() => {
                     let cannotMove: boolean = false;
-                    let kfIndex: number = this.keyframes.indexOf(kf);
+                    const kfIndex: number = this.keyframes.indexOf(kf);
                     if (val < 0 || (val < NumCast(this.keyframes[kfIndex - 1].time) || val > NumCast(this.keyframes[kfIndex + 1].time))) {
                         cannotMove = true;
                     }
@@ -401,7 +401,7 @@ export class Keyframe extends React.Component<IProps> {
             }),
             TimelineMenu.Instance.addItem("input", `position: ${this.regiondata.position}ms`, (val) => {
                 runInAction(() => {
-                    let prevPosition = this.regiondata.position;
+                    const prevPosition = this.regiondata.position;
                     let cannotMove: boolean = false;
                     DocListCast(this.regions).forEach(region => {
                         if (NumCast(region.position) !== this.regiondata.position) {
@@ -454,7 +454,7 @@ export class Keyframe extends React.Component<IProps> {
     onContainerOver = (e: React.PointerEvent, ref: React.RefObject<HTMLDivElement>) => {
         e.preventDefault();
         e.stopPropagation();
-        let div = ref.current!;
+        const div = ref.current!;
         div.style.opacity = "1";
         Doc.BrushDoc(this.props.node);
     }
@@ -466,7 +466,7 @@ export class Keyframe extends React.Component<IProps> {
     onContainerOut = (e: React.PointerEvent, ref: React.RefObject<HTMLDivElement>) => {
         e.preventDefault();
         e.stopPropagation();
-        let div = ref.current!;
+        const div = ref.current!;
         div.style.opacity = "0";
         Doc.UnBrushDoc(this.props.node);
     }
@@ -481,7 +481,7 @@ export class Keyframe extends React.Component<IProps> {
      */
     @action
     drawKeyframes = () => {
-        let keyframeDivs: JSX.Element[] = [];
+        const keyframeDivs: JSX.Element[] = [];
         DocListCast(this.regiondata.keyframes).forEach(kf => {
             if (kf.type as KeyframeFunc.KeyframeType !== KeyframeFunc.KeyframeType.end) {
                 keyframeDivs.push(
@@ -514,14 +514,14 @@ export class Keyframe extends React.Component<IProps> {
      */
     @action
     drawKeyframeDividers = () => {
-        let keyframeDividers: JSX.Element[] = [];
+        const keyframeDividers: JSX.Element[] = [];
         DocListCast(this.regiondata.keyframes).forEach(kf => {
-            let index = this.keyframes.indexOf(kf);
+            const index = this.keyframes.indexOf(kf);
             if (index !== this.keyframes.length - 1) {
-                let right = this.keyframes[index + 1];
-                let bodyRef = React.createRef<HTMLDivElement>();
-                let kfPos = KeyframeFunc.convertPixelTime(NumCast(kf.time), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement);
-                let rightPos = KeyframeFunc.convertPixelTime(NumCast(right.time), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement);
+                const right = this.keyframes[index + 1];
+                const bodyRef = React.createRef<HTMLDivElement>();
+                const kfPos = KeyframeFunc.convertPixelTime(NumCast(kf.time), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement);
+                const rightPos = KeyframeFunc.convertPixelTime(NumCast(right.time), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement);
                 keyframeDividers.push(
                     <div ref={bodyRef} className="body-container" style={{ left: `${kfPos - this.pixelPosition}px`, width: `${rightPos - kfPos}px` }}
                         onPointerOver={(e) => { e.preventDefault(); e.stopPropagation(); this.onContainerOver(e, bodyRef); }}
