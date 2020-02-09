@@ -326,15 +326,18 @@ export class Timeline extends React.Component<FieldViewProps> {
     @action
     toReadTime = (time: number): string => {
         time = time / 1000;
-        var inSeconds = Math.round((time * 100)) / 100;
+        const inSeconds = Math.round(time * 100) / 100;
+
+        // console.log(inSeconds)
         // var inSeconds = parseFloat(time.toFixed(2));
         // const inSeconds = (Math.floor(time) / 1000);
-        let min: (string | number) = Math.floor(inSeconds / 60);
-        let sec: (string | number) = inSeconds % 60;
+        const min: (string | number) = Math.floor(inSeconds / 60);
+        let sec: (string | number) = (Math.round((inSeconds % 60) * 100) / 100);
 
         if (Math.floor(sec / 10) === 0) {
             sec = "0" + sec;
         }
+        // sec = Number.parseFloat(sec).toFixed(2);
         return `${min}:${sec}`;
     }
 
