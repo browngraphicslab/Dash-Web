@@ -1,4 +1,4 @@
-import { readdirSync, writeFile, mkdirSync, createWriteStream, createReadStream, unlinkSync } from "fs";
+import { readdirSync, writeFile, mkdirSync, createWriteStream } from "fs";
 import * as path from "path";
 import { red, cyan, yellow } from "colors";
 import { Utils } from "../../../Utils";
@@ -159,13 +159,19 @@ async function parseFiles(): Promise<DeviceDocument[]> {
     const sourceDirectory = path.resolve(`${__dirname}/source`);
 
     const candidates = readdirSync(sourceDirectory).filter(file => file.endsWith(".doc") || file.endsWith(".docx")).map(file => `${sourceDirectory}/${file}`);
-    const imported = await Promise.all(candidates.map(async path => ({ path, body: await extractFileContents(path) })));
-    const data = imported.map(({ path, body }) => analyze(path, body));
+    const imported: any[] = [];
+    for (const filePath of candidates) {
+        const fileName = path.basename(filePath).replace("Bill_Notes_", "");
+        console.log(cyan(`\nExtracting contents from ${fileName}...`));
+        imported.push({ fileName, body: await extractFileContents(filePath) });
+    }
+    console.log(yellow("\nAnalyzing the extracted document text...\n"));
+    const results = imported.map(({ fileName, body }) => analyze(fileName, body));
 
     const masterDevices: DeviceDocument[] = [];
     const masterErrors: any[] = [];
 
-    data.forEach(({ device, errors }) => {
+    results.forEach(({ device, errors }) => {
         if (device) {
             masterDevices.push(device);
         } else {
@@ -186,6 +192,7 @@ async function parseFiles(): Promise<DeviceDocument[]> {
 }
 
 async function extractFileContents(pathToDocument: string): Promise<{ body: string, images: string[] }> {
+    console.log('Extracting text...');
     const zip = new StreamZip({ file: pathToDocument, storeEntries: true });
     const contents = await new Promise<string>((resolve, reject) => {
         zip.on('ready', () => {
@@ -199,7 +206,10 @@ async function extractFileContents(pathToDocument: string): Promise<{ body: stri
             });
         });
     });
+    console.log("Text extracted.");
+    console.log("Beginning image extraction...");
     const images = await writeImages(zip);
+    console.log(`Extracted ${images.length} images.`);
     zip.close();
     let body = "";
     const components = contents.toString().split('<w:t');
@@ -209,6 +219,31 @@ async function extractFileContents(pathToDocument: string): Promise<{ body: stri
         body += content;
     }
     return { body, images };
+}
+
+const { pngs, jpgs } = AcceptibleMedia;
+const pngOptions = {
+    compressionLevel: 9,
+    adaptiveFiltering: true,
+    force: true
+};
+
+function resizers(ext: string): DashUploadUtils.ImageResizer[] {
+    return [
+        { suffix: SizeSuffix.Original },
+        ...Object.values(DashUploadUtils.Sizes).map(size => {
+            let initial = sharp().resize(size.width, undefined, { withoutEnlargement: true });
+            if (pngs.includes(ext)) {
+                initial = initial.png(pngOptions);
+            } else if (jpgs.includes(ext)) {
+                initial = initial.jpeg();
+            }
+            return {
+                resizer: initial,
+                suffix: size.suffix
+            };
+        })
+    ];
 }
 
 async function writeImages(zip: any): Promise<string[]> {
@@ -221,55 +256,31 @@ async function writeImages(zip: any): Promise<string[]> {
     const outNames: string[] = [];
     for (const { mediaPath, ext } of resolved) {
         const outName = `upload_${Utils.GenerateGuid()}${ext}`;
-        const initialWritePath = path.resolve(imageDir, outName);
-        await new Promise<void>((resolve, reject) => {
-            zip.stream(mediaPath, (error: any, stream: any) => {
-                if (error) {
-                    console.error(error);
-                    return reject(error);
-                }
-                const writeStream = createWriteStream(initialWritePath);
-                stream.on('end', resolve);
-                stream.on('error', reject);
-                stream.pipe(writeStream);
-            });
+        const streamImage = () => new Promise<any>((resolve, reject) => {
+            zip.stream(mediaPath, (error: any, stream: any) => error ? reject(error) : resolve(stream));
         });
-        const resizers = [
-            { resizer: sharp().rotate(), suffix: SizeSuffix.Original },
-            ...Object.values(DashUploadUtils.Sizes).map(size => ({
-                resizer: sharp().resize(size.width, undefined, { withoutEnlargement: true }).rotate(),
-                suffix: size.suffix
-            }))
-        ];
-        const { pngs, jpgs } = AcceptibleMedia;
-        const lower = ext.toLowerCase();
-        if (pngs.includes(lower)) {
-            resizers.forEach(element => element.resizer = element.resizer.png());
-        } else if (jpgs.includes(lower)) {
-            resizers.forEach(element => element.resizer = element.resizer.jpeg());
-        } else {
-            throw new Error(red(`The following image extension is unsupported: ${cyan(lower)}`));
-        }
-        for (const { resizer, suffix } of resizers) {
-            await new Promise<void>((resolve, reject) => {
-                const filename = InjectSize(outName, suffix);
-                createReadStream(initialWritePath).pipe(resizer).pipe(createWriteStream(path.resolve(imageDir, filename)))
-                    .on('close', resolve)
-                    .on('error', reject);
+        for (const { resizer, suffix } of resizers(ext)) {
+            const filePath = path.resolve(imageDir, InjectSize(outName, suffix));
+            await new Promise<void>(async (resolve, reject) => {
+                const writeStream = createWriteStream(filePath);
+                const readStream = await streamImage();
+                let source = readStream;
+                if (resizer) {
+                    source = readStream.pipe(resizer.withMetadata());
+                }
+                const out = source.pipe(writeStream);
+                out.on("close", resolve);
+                out.on("error", reject);
             });
         }
-        unlinkSync(initialWritePath);
         outNames.push(`http://localhost:1050/files/images/buxton/${outName}`);
     }
     return outNames;
 }
 
-function analyze(pathToDocument: string, { body, images }: DocumentContents): AnalysisResult {
-    const filename = path.basename(pathToDocument).replace("Bill_Notes_", "");
-    console.log(`Parsing ${filename}...`);
-
+function analyze(fileName: string, { body, images }: DocumentContents): AnalysisResult {
     const device: any = {};
-    const errors: any = { filename };
+    const errors: any = { fileName };
 
     for (const key of deviceKeys) {
         const { exp, transformer, matchIndex } = RegexMap.get(key)!;
@@ -296,7 +307,7 @@ function analyze(pathToDocument: string, { body, images }: DocumentContents): An
 
     const errorKeys = Object.keys(errors);
     if (errorKeys.length > 1) {
-        console.log(red(`\n@ ${cyan(filename.toUpperCase())}...`));
+        console.log(red(`@ ${cyan(fileName.toUpperCase())}...`));
         errorKeys.forEach(key => key !== "filename" && console.log(red(errors[key])));
         return { errors };
     }

@@ -162,6 +162,11 @@ export namespace DashUploadUtils {
         type: string;
     }
 
+    export interface ImageResizer {
+        resizer?: sharp.Sharp;
+        suffix: SizeSuffix;
+    }
+
     /**
      * Based on the url's classification as local or remote, gleans
      * as much information as possible about the specified image
