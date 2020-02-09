@@ -255,6 +255,25 @@ export namespace Doc {
     //         return Cast(field, ctor);
     //     });
     // }
+
+    export function resetView(doc: Doc) {
+        doc._panX = doc._customOriginX ?? 0;
+        doc._panY = doc._customOriginY ?? 0;
+        doc.scale = doc._customOriginScale ?? 1;
+    }
+
+    export function resetViewToOrigin(doc: Doc) {
+        doc._panX = 0;
+        doc._panY = 0;
+        doc.scale = 1;
+    }
+
+    export function setView(doc: Doc) {
+        doc._customOriginX = doc._panX;
+        doc._customOriginY = doc._panY;
+        doc._customOriginScale = doc.scale;
+    }
+
     export function RunCachedUpdate(doc: Doc, field: string) {
         const update = doc[CachedUpdates][field];
         if (update) {
