@@ -37,6 +37,7 @@ import { DocumentManager } from "../util/DocumentManager";
 import DirectoryImportBox from "../util/Import & Export/DirectoryImportBox";
 import { Scripting } from "../util/Scripting";
 import { ButtonBox } from "../views/nodes/ButtonBox";
+import { SliderBox } from "../views/nodes/SliderBox";
 import { FontIconBox } from "../views/nodes/FontIconBox";
 import { SchemaHeaderField } from "../../new_fields/SchemaHeaderField";
 import { PresBox } from "../views/nodes/PresBox";
@@ -229,6 +230,9 @@ export namespace Docs {
             }],
             [DocumentType.BUTTON, {
                 layout: { view: ButtonBox, dataField: data },
+            }],
+            [DocumentType.SLIDER, {
+                layout: { view: SliderBox, dataField: data },
             }],
             [DocumentType.PRES, {
                 layout: { view: PresBox, dataField: data },
@@ -557,6 +561,10 @@ export namespace Docs {
 
         export function ButtonDocument(options?: DocumentOptions) {
             return InstanceFromProto(Prototypes.get(DocumentType.BUTTON), undefined, { ...(options || {}) });
+        }
+
+        export function SliderDocument(options?: DocumentOptions) {
+            return InstanceFromProto(Prototypes.get(DocumentType.SLIDER), undefined, { ...(options || {}) });
         }
 
 

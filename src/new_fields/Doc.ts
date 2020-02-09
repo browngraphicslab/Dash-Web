@@ -804,7 +804,22 @@ export namespace Doc {
         if (StrCast(doc.title).endsWith("_" + prevLayout)) doc.title = StrCast(doc.title).replace("_" + prevLayout, "");
         doc.layoutKey = deiconify || "layout";
     }
-    export function setDocFilter(container: Doc, key: string, value: any, modifiers?: string) {
+    export function setDocFilterRange(container: Doc, key: string, range?: number[]) {
+        const docFilters = Cast(container._docRangeFilters, listSpec("string"), []);
+        for (let i = 0; i < docFilters.length; i += 3) {
+            if (docFilters[i] === key) {
+                docFilters.splice(i, 3);
+                break;
+            }
+        }
+        if (range !== undefined) {
+            docFilters.push(key);
+            docFilters.push(range[0].toString());
+            docFilters.push(range[1].toString());
+            container._docRangeFilters = new List<string>(docFilters);
+        }
+    }
+    export function setDocFilter(container: Doc, key: string, value: any, modifiers?: string | number) {
         const docFilters = Cast(container._docFilter, listSpec("string"), []);
         for (let i = 0; i < docFilters.length; i += 3) {
             if (docFilters[i] === key && docFilters[i + 1] === value) {
@@ -812,7 +827,7 @@ export namespace Doc {
                 break;
             }
         }
-        if (modifiers !== undefined) {
+        if (typeof modifiers === "string") {
             docFilters.push(key);
             docFilters.push(value);
             docFilters.push(modifiers);
@@ -844,3 +859,4 @@ Scripting.addGlobal(function selectedDocs(container: Doc, excludeCollections: bo
     return docs.length ? new List(docs) : prevValue;
 });
 Scripting.addGlobal(function setDocFilter(container: Doc, key: string, value: any, modifiers?: string) { Doc.setDocFilter(container, key, value, modifiers); });
+Scripting.addGlobal(function setDocFilterRange(container: Doc, key: string, min: number, max: number) { Doc.setDocFilterRange(container, key, min, max); });

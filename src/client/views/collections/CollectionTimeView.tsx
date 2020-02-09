@@ -2,7 +2,6 @@ import { faEdit } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, trace, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Set } from "typescript-collections";
 import { Doc, DocListCast, Field } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
 import { RichTextField } from "../../../new_fields/RichTextField";
@@ -54,7 +53,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
         const facets = new Set<string>();
         this.childDocs.forEach(child => Object.keys(Doc.GetProto(child)).forEach(key => facets.add(key)));
         Doc.AreProtosEqual(this.dataDoc, this.props.Document) && this.childDocs.forEach(child => Object.keys(child).forEach(key => facets.add(key)));
-        return facets.toArray();
+        return Array.from(facets);
     }
 
     /**
@@ -73,12 +72,52 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
                         docFilter.splice(index, 3);
                     }
                 }
+                const docRangeFilters = Cast(this.props.Document._docRangeFilters, listSpec("string"));
+                if (docRangeFilters) {
+                    let index: number;
+                    while ((index = docRangeFilters.findIndex(item => item === facetHeader)) !== -1) {
+                        docRangeFilters.splice(index, 3);
+                    }
+                }
             } else {
-                const newFacet = Docs.Create.TreeDocument([], { title: facetHeader, treeViewOpen: true, isFacetFilter: true });
-                const capturedVariables = { layoutDoc: this.props.Document, dataDoc: this.dataDoc };
-                const params = { layoutDoc: Doc.name, dataDoc: Doc.name, };
-                newFacet.data = ComputedField.MakeFunction(`readFacetData(layoutDoc, dataDoc, "${this.props.fieldKey}", "${facetHeader}")`, params, capturedVariables);
-                Doc.AddDocToList(facetCollection, "data", newFacet);
+                const allCollectionDocs = DocListCast(this.dataDoc[this.props.fieldKey]);
+                const facetValues = Array.from(allCollectionDocs.reduce((set, child) =>
+                    set.add(Field.toString(child[facetHeader] as Field)), new Set<string>()));
+
+                let nonNumbers = 0;
+                let minVal = Number.MAX_VALUE, maxVal = -Number.MAX_VALUE;
+                facetValues.map(val => {
+                    const num = Number(val);
+                    if (Number.isNaN(num)) {
+                        nonNumbers++;
+                    } else {
+                        minVal = Math.min(num, minVal);
+                        maxVal = Math.max(num, maxVal);
+                    }
+                });
+                if (nonNumbers / allCollectionDocs.length < .1) {
+                    const newFacet = Docs.Create.SliderDocument({ title: facetHeader });
+                    newFacet.treeViewExpandedView = "layout";
+                    newFacet.treeViewOpen = true;
+                    newFacet._sliderMin = minVal;
+                    newFacet._sliderMax = maxVal;
+                    newFacet._sliderMinThumb = minVal;
+                    newFacet._sliderMaxThumb = maxVal;
+                    newFacet.target = this.props.Document;
+                    const scriptText = `setDocFilterRange(this.target, "${facetHeader}", range)`;
+                    newFacet.onThumbChanged = ScriptField.MakeScript(scriptText, { this: Doc.name, range: "number" });
+
+                    // const capturedVariables = { layoutDoc: this.props.Document, dataDoc: this.dataDoc };
+                    // const params = { layoutDoc: Doc.name, dataDoc: Doc.name, };
+                    // newFacet.data = ComputedField.MakeFunction(`readFacetData(layoutDoc, dataDoc, "${this.props.fieldKey}", "${facetHeader}")`, params, capturedVariables);
+                    Doc.AddDocToList(facetCollection, "data", newFacet);
+                } else {
+                    const newFacet = Docs.Create.TreeDocument([], { title: facetHeader, treeViewOpen: true, isFacetFilter: true });
+                    const capturedVariables = { layoutDoc: this.props.Document, dataDoc: this.dataDoc };
+                    const params = { layoutDoc: Doc.name, dataDoc: Doc.name, };
+                    newFacet.data = ComputedField.MakeFunction(`readFacetData(layoutDoc, dataDoc, "${this.props.fieldKey}", "${facetHeader}")`, params, capturedVariables);
+                    Doc.AddDocToList(facetCollection, "data", newFacet);
+                }
             }
         }
     }
@@ -120,7 +159,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
             pair.layout[fieldKey] instanceof RichTextField ||
             typeof (pair.layout[fieldKey]) === "number" ||
             typeof (pair.layout[fieldKey]) === "string").map(fieldKey => keySet.add(fieldKey)));
-        keySet.toArray().map(fieldKey =>
+        Array.from(keySet).map(fieldKey =>
             docItems.push({ description: ":" + fieldKey, event: () => this.props.Document._pivotField = fieldKey, icon: "compress-arrows-alt" }));
         docItems.push({ description: ":(null)", event: () => this.props.Document._pivotField = undefined, icon: "compress-arrows-alt" })
         ContextMenu.Instance.addItem({ description: "Pivot Fields ...", subitems: docItems, icon: "eye" });
@@ -227,7 +266,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
                 </Flyout>
             </div>
             <div className="collectionTimeView-tree" key="tree">
-                <CollectionTreeView {...this.props} Document={facetCollection} />
+                <CollectionTreeView {...this.props} PanelWidth={() => this._facetWidth} Document={facetCollection} />
             </div>
         </div>;
     }
