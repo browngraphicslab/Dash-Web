@@ -44,7 +44,6 @@ import { ComputedField, ScriptField } from "../../new_fields/ScriptField";
 import { ProxyField } from "../../new_fields/Proxy";
 import { DocumentType } from "./DocumentTypes";
 import { LinkFollowBox } from "../views/linking/LinkFollowBox";
-import { DashWebCam } from "../views/webcam/DashWebCam";
 import { PresElementBox } from "../views/presentationview/PresElementBox";
 import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
 import { QueryBox } from "../views/nodes/QueryBox";

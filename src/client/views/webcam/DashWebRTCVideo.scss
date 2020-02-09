@@ -1,7 +1,6 @@
 @import "../globalCssVariables";
 
 .webcam-cont {
-    // position: absolute;
     background: whitesmoke;
     color: grey;
     border-radius: 15px;
@@ -27,15 +26,6 @@
         border: 1px solid #BBBBBBBB;
     }
 
-    // #localVideo {
-    //     width: 50%;
-    //     height: 50%;
-    //     position: relative;
-    //     // top: 65%;
-    //     // z-index: 2;
-    //     // right: 5%;
-    // }
-
     .side {
         width: 25%;
         height: 20%;
@@ -52,13 +42,5 @@
         top: 20%;
         align-self: center;
     }
-
-    // #remoteVideo {
-    //     position: relative;
-    //     width: 50%;
-    //     height: 50%;
-    //     // top: 20%;
-    //     // align-self: center;
-    // }
 
 }

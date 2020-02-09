@@ -28,8 +28,6 @@ export function initialize(roomName, handlerUI) {
     /////////////////////////////////////////////
 
     room = roomName;
-    // Could prompt for room name:
-    // room = prompt('Enter room name:');
 
     socket = io.connect(`${window.location.protocol}//${window.location.hostname}:${4321}`);
 
@@ -93,10 +91,6 @@ export function initialize(roomName, handlerUI) {
 
     var localVideo = document.querySelector('#localVideo');
     var remoteVideo = document.querySelector('#remoteVideo');
-
-
-    console.log("Local Video: ", localVideo);
-    console.log("Remote Video: ", remoteVideo);
 
     const gotStream = (stream) => {
         console.log('Adding local stream.');

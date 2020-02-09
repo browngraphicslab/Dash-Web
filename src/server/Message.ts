@@ -64,8 +64,6 @@ export namespace MessageStore {
     export const YoutubeApiQuery = new Message<YoutubeQueryInput>("Youtube Api Query");
     export const DeleteField = new Message<string>("Delete field");
     export const DeleteFields = new Message<string[]>("Delete fields");
-    export const NotifyRoommates = new Message<RoomMessage>("message");
-    export const HangUpCall = new Message<string>("bye");
 
 
 }
