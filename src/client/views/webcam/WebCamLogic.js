@@ -110,7 +110,7 @@ export function initialize(roomName, handlerUI) {
 
 
     navigator.mediaDevices.getUserMedia({
-        audio: false,
+        audio: true,
         video: true
     })
         .then(gotStream)
