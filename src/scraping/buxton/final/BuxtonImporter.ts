@@ -1,6 +1,6 @@
 import { readdirSync, writeFile, mkdirSync, createWriteStream, createReadStream, unlinkSync } from "fs";
 import * as path from "path";
-import { red, cyan, yellow, green } from "colors";
+import { red, cyan, yellow } from "colors";
 import { Utils } from "../../../Utils";
 import rimraf = require("rimraf");
 const StreamZip = require('node-stream-zip');
@@ -199,7 +199,7 @@ async function extractFileContents(pathToDocument: string): Promise<{ body: stri
             });
         });
     });
-    const images = (await writeImages(zip)).map(name => `http://localhost:1050/files/images/buxton/${name}`);
+    const images = await writeImages(zip);
     zip.close();
     let body = "";
     const components = contents.toString().split('<w:t');
@@ -214,22 +214,22 @@ async function extractFileContents(pathToDocument: string): Promise<{ body: stri
 async function writeImages(zip: any): Promise<string[]> {
     const entryNames = Object.values<any>(zip.entries()).map(({ name }) => name);
     const resolved: { mediaPath: string, ext: string }[] = [];
-    let initialWritePath: string;
     entryNames.forEach(name => {
-        const matches = /^word\/media\/\w+\.(jpeg|jpg|png|gif)/.exec(name);
+        const matches = /^word\/media\/\w+(\.jpeg|jpg|png|gif)/.exec(name);
         matches && resolved.push({ mediaPath: name, ext: matches[1] });
     });
-    return Promise.all(resolved.map(async ({ mediaPath, ext }) => {
-        const outName = `upload_${Utils.GenerateGuid()}.${ext}`;
-        const initialWrite = await new Promise<string>((resolve, reject) => {
+    const outNames: string[] = [];
+    for (const { mediaPath, ext } of resolved) {
+        const outName = `upload_${Utils.GenerateGuid()}${ext}`;
+        const initialWritePath = path.resolve(imageDir, outName);
+        await new Promise<void>((resolve, reject) => {
             zip.stream(mediaPath, (error: any, stream: any) => {
                 if (error) {
                     console.error(error);
                     return reject(error);
                 }
-                initialWritePath = `${imageDir}/${outName}`;
                 const writeStream = createWriteStream(initialWritePath);
-                stream.on('end', () => resolve(outName));
+                stream.on('end', resolve);
                 stream.on('error', reject);
                 stream.pipe(writeStream);
             });
@@ -242,16 +242,21 @@ async function writeImages(zip: any): Promise<string[]> {
             }))
         ];
         const { pngs, jpgs } = AcceptibleMedia;
-        if (pngs.includes(ext)) {
+        const lower = ext.toLowerCase();
+        if (pngs.includes(lower)) {
             resizers.forEach(element => element.resizer = element.resizer.png());
-        } else if (jpgs.includes(ext)) {
+        } else if (jpgs.includes(lower)) {
             resizers.forEach(element => element.resizer = element.resizer.jpeg());
+        } else {
+            throw new Error(red(initialWritePath + " " + lower));
         }
         for (const { resizer, suffix } of resizers) {
             await new Promise<void>(resolve => {
                 const filename = InjectSize(outName, suffix);
-                console.log(filename);
-                createReadStream(initialWritePath).pipe(resizer).pipe(createWriteStream(`${imageDir}/${filename}`))
+                createReadStream(initialWritePath).pipe(resizer).on('error', error => {
+                    console.log(red(error.message) + filename);
+                    resolve();
+                }).pipe(createWriteStream(path.resolve(imageDir, filename)))
                     .on('close', resolve)
                     .on('error', error => {
                         console.log(red(error));
@@ -260,8 +265,9 @@ async function writeImages(zip: any): Promise<string[]> {
             });
         }
         unlinkSync(initialWritePath);
-        return initialWrite;
-    }));
+        outNames.push(`http://localhost:1050/files/images/buxton/${outName}`);
+    }
+    return outNames;
 }
 
 function analyze(pathToDocument: string, { body, images }: DocumentContents): AnalysisResult {
