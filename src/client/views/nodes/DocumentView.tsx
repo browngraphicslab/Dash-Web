@@ -983,7 +983,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 height: "100%",
                 opacity: this.Document.opacity
             }}>
-            {this.innards}
+            {this.onClickHandler && this.props.ContainingCollectionView?.props.Document._viewType === CollectionViewType.Time ? <>
+                {this.innards}
+                <div className="documentView-contentBlocker" />
+            </> :
+                this.innards}
         </div>;
     }
 }
