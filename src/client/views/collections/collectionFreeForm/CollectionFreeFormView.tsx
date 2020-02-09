@@ -966,7 +966,24 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     onContextMenu = (e: React.MouseEvent) => {
         const layoutItems: ContextMenuProps[] = [];
-        layoutItems.push({ description: "reset view", event: () => { this.props.Document._panX = this.props.Document._panY = 0; this.props.Document.scale = 1; }, icon: "compress-arrows-alt" });
+        const { Document } = this.props;
+
+        layoutItems.push({
+            description: "reset view", event: () => {
+                Doc.resetView(Document);
+            }, icon: "compress-arrows-alt"
+        });
+        layoutItems.push({
+            description: "set view origin", event: () => {
+                Doc.setView(Document);
+            }, icon: "expand-arrows-alt"
+        });
+        layoutItems.push({
+            description: "reset view to origin", event: () => {
+                Doc.resetViewToOrigin(Document);
+            }, icon: "expand-arrows-alt"
+        });
+
         layoutItems.push({ description: `${this.Document._LODdisable ? "Enable LOD" : "Disable LOD"}`, event: () => this.Document._LODdisable = !this.Document._LODdisable, icon: "table" });
         layoutItems.push({ description: `${this.fitToContent ? "Unset" : "Set"} Fit To Container`, event: () => this.Document._fitToBox = !this.fitToContent, icon: !this.fitToContent ? "expand-arrows-alt" : "compress-arrows-alt" });
         layoutItems.push({ description: `${this.Document.useClusters ? "Uncluster" : "Use Clusters"}`, event: () => this.updateClusters(!this.Document.useClusters), icon: "braille" });
@@ -1018,7 +1035,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             icon: "eye"
         });
         ContextMenu.Instance.addItem({ description: "Freeform Options ...", subitems: layoutItems, icon: "eye" });
-        this._timelineRef.current!.timelineContextMenu(e); 
+        this._timelineRef.current!.timelineContextMenu(e);
     }
 
 
@@ -1081,12 +1098,12 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     transformOrigin: this.contentScaling ? "left top" : "",
                     width: this.contentScaling ? `${100 / this.contentScaling}%` : "",
                     height: this.contentScaling ? `${100 / this.contentScaling}%` : this.isAnnotationOverlay ? (this.props.Document.scrollHeight ? this.Document.scrollHeight : "100%") : this.props.PanelHeight()
-                }}>            
+                }}>
                 {/* <Timeline ref={this._timelineRef} {...this.props} /> */}
                 {!this.Document._LODdisable && !this.props.active() && !this.props.isAnnotationOverlay && !this.props.annotationsKey && this.props.renderDepth > 0 ? // && this.props.CollectionView && lodarea < NumCast(this.Document.LODarea, 100000) ?
                     this.placeholder : this.marqueeView}
                 <CollectionFreeFormOverlayView elements={this.elementFunc} />
-            </div>            
+            </div>
             <Timeline ref={this._timelineRef} {...this.props} />
         </div>;
     }

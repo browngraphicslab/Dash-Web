@@ -459,6 +459,9 @@ export class Timeline extends React.Component<FieldViewProps> {
                     </div>
                     <div className="time-box overview-tool" style={{ display: this._timelineVisible ? "flex" : "none" }}>
                         {this.timeIndicator(lengthString)}
+                        <div className="resetView-tool" title="Return to Default View" onClick={() => Doc.resetView(this.props.Document)}><FontAwesomeIcon icon="compress-arrows-alt" size="lg" /></div>
+                        <div className="resetView-tool" style={{ display: this._isAuthoring ? "flex" : "none" }} title="Set Default View" onClick={() => Doc.setView(this.props.Document)}><FontAwesomeIcon icon="expand-arrows-alt" size="lg" /></div>
+
                     </div>
                 </div>
             </div>
@@ -477,8 +480,8 @@ export class Timeline extends React.Component<FieldViewProps> {
         else {
             return (
                 <div style={{ flexDirection: "column" }}>
-                    <div className="animation-text" style={{ width: "100%", display: !this.props.Document.isATOn ? "block" : "none" }}>{`Current: ${this.getCurrentTime()}`}</div>
-                    <div className="animation-text" style={{ width: "100%", display: !this.props.Document.isATOn ? "block" : "none" }}>{`Total: 1:40.07`}</div>
+                    <div className="animation-text" style={{ fontSize: "10px", width: "100%", display: !this.props.Document.isATOn ? "block" : "none" }}>{`Current: ${this.getCurrentTime()}`}</div>
+                    <div className="animation-text" style={{ fontSize: "10px", width: "100%", display: !this.props.Document.isATOn ? "block" : "none" }}>{`Total: 1:40.07`}</div>
                 </div>
             );
         }
@@ -539,7 +542,7 @@ export class Timeline extends React.Component<FieldViewProps> {
 
 
     @action.bound
-    changeLenths() {
+    changeLengths() {
         if (this._infoContainer.current) {
             this._visibleLength = this._infoContainer.current!.getBoundingClientRect().width; //the visible length of the timeline (the length that you current see)
             this._visibleStart = this._infoContainer.current!.scrollLeft; //where the div starts
@@ -572,7 +575,7 @@ export class Timeline extends React.Component<FieldViewProps> {
     render() {
         runInAction(() => {
             this._panelWidth = this.props.PanelWidth();
-            this.changeLenths();
+            this.changeLengths();
         });
 
         // change visible and total width
