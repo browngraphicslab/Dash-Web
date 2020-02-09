@@ -595,9 +595,28 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             DocUtils.MakeLink({ doc: de.complete.annoDragData.annotationDocument }, { doc: this.props.Document, ctx: this.props.ContainingCollectionDoc },
                 `Link from ${StrCast(de.complete.annoDragData.annotationDocument.title)}`);
         }
-        if (de.complete.docDragData && de.complete.docDragData.applyAsTemplate) {
-            Doc.ApplyTemplateTo(de.complete.docDragData.draggedDocuments[0], this.props.Document, "layout_custom");
-            e.stopPropagation();
+        if (de.complete.docDragData) {
+            if (de.complete.docDragData.applyAsTemplate) {
+                Doc.ApplyTemplateTo(de.complete.docDragData.draggedDocuments[0], this.props.Document, "layout_custom");
+                e.stopPropagation();
+            }
+            else if (de.complete.docDragData.draggedDocuments[0].type === "text") {
+                const text = Cast(de.complete.docDragData.draggedDocuments[0].data, RichTextField)?.Text;
+                if (text && text[0] === "{" && text[text.length - 1] === "}" && text.includes(":")) {
+                    let loc = text.indexOf(":");
+                    let key = text.slice(1, loc);
+                    let value = text.slice(loc + 1, text.length - 1);
+                    console.log(key);
+                    console.log(value);
+                    console.log(this.props.Document);
+                    this.props.Document[key] = value;
+                    console.log(de.complete.docDragData.draggedDocuments[0].x);
+                    console.log(de.complete.docDragData.draggedDocuments[0].x);
+                    e.preventDefault();
+                    e.stopPropagation();
+                    de.complete.aborted = true;
+                }
+            }
         }
         if (de.complete.linkDragData) {
             e.stopPropagation();

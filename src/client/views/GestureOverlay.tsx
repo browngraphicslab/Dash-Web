@@ -395,13 +395,13 @@ export default class GestureOverlay extends Touchable {
                 if (this._thumbX && this._thumbY) {
                     const yOverX = Math.abs(pt.clientX - this._thumbX) < Math.abs(pt.clientY - this._thumbY);
                     if ((yOverX && this._inkToTextDoc) || this._selectedIndex > 0) {
-                        if (Math.abs(pt.clientY - this._thumbY) > 20) {
-                            this._selectedIndex = Math.min(Math.max(0, -Math.ceil((pt.clientY - this._thumbY) / 20)), this._possibilities.length - 1);
+                        if (Math.abs(pt.clientY - this._thumbY) > (10 * window.devicePixelRatio)) {
+                            this._selectedIndex = Math.min(Math.max(-1, -Math.ceil((pt.clientY - this._thumbY) / 20)), this._possibilities.length - 1);
                         }
                     }
                     else if (this._thumbDoc) {
-                        if (Math.abs(pt.clientX - this._thumbX) > 30) {
-                            this._thumbDoc.selectedIndex = Math.max(0, NumCast(this._thumbDoc.selectedIndex) - Math.sign(pt.clientX - this._thumbX));
+                        if (Math.abs(pt.clientX - this._thumbX) > (15 * window.devicePixelRatio)) {
+                            this._thumbDoc.selectedIndex = Math.max(-1, NumCast(this._thumbDoc.selectedIndex) - Math.sign(pt.clientX - this._thumbX));
                             this._thumbX = pt.clientX;
                         }
                     }

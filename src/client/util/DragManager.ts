@@ -402,7 +402,7 @@ export namespace DragManager {
         if (target) {
             const complete = new DragCompleteEvent(false, dragData);
             finishDrag?.(complete);
-
+            console.log(complete.aborted);
             target.dispatchEvent(
                 new CustomEvent<DropEvent>("dashOnDrop", {
                     bubbles: true,
