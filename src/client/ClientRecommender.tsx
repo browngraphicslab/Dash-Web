@@ -14,10 +14,10 @@ import { JSXElement } from "babel-types";
 import { RichTextField } from "../new_fields/RichTextField";
 import { ToPlainText } from "../new_fields/FieldSymbols";
 import { listSpec } from "../new_fields/Schema";
-import { Identified } from "./Network";
 import { ComputedField } from "../new_fields/ScriptField";
 import { ImageField } from "../new_fields/URLField";
 import { KeyphraseQueryView } from "./views/KeyphraseQueryView";
+import { Networking } from "./Network";
 
 export interface RecommenderProps {
     title: string;
@@ -103,7 +103,7 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
 
     public computeSimilarities(distance_metric: string) {
         const parameters: any = {};
-        Identified.PostToServer("/IBMAnalysis", parameters).then(response => {
+        Networking.PostToServer("/IBMAnalysis", parameters).then(response => {
             console.log("ANALYSIS RESULTS! ", response);
         });
         ClientRecommender.Instance.docVectors.forEach((doc: RecommenderDocument) => {
@@ -274,7 +274,7 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
                         }
                     }
                 };
-                await Identified.PostToServer("/IBMAnalysis", parameters).then(response => {
+                await Networking.PostToServer("/IBMAnalysis", parameters).then(response => {
                     const sorted_keywords = response.result.keywords;
                     if (sorted_keywords.length > 0) {
                         console.log("IBM keyphrase", sorted_keywords[0]);

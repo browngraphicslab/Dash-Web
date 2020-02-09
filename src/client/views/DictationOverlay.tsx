@@ -24,7 +24,7 @@ export class DictationOverlay extends React.Component {
     }
 
     public initiateDictationFade = () => {
-        let duration = DictationManager.Commands.dictationFadeDuration;
+        const duration = DictationManager.Commands.dictationFadeDuration;
         this.overlayTimeout = setTimeout(() => {
             this.dictationOverlayVisible = false;
             this.dictationSuccess = undefined;
@@ -50,14 +50,14 @@ export class DictationOverlay extends React.Component {
     public set isListening(value: DictationManager.Controls.ListeningUIStatus) { runInAction(() => this._dictationListeningState = value); }
 
     render() {
-        let success = this.dictationSuccess;
-        let result = this.isListening && !this.isListening.interim ? DictationManager.placeholder : `"${this.dictatedPhrase}"`;
-        let dialogueBoxStyle = {
+        const success = this.dictationSuccess;
+        const result = this.isListening && !this.isListening.interim ? DictationManager.placeholder : `"${this.dictatedPhrase}"`;
+        const dialogueBoxStyle = {
             background: success === undefined ? "gainsboro" : success ? "lawngreen" : "red",
             borderColor: this.isListening ? "red" : "black",
             fontStyle: "italic"
         };
-        let overlayStyle = {
+        const overlayStyle = {
             backgroundColor: this.isListening ? "red" : "darkslategrey"
         };
         return (<MainViewModal

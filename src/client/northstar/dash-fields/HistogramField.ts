@@ -7,10 +7,10 @@ import { ObjectField } from "../../../new_fields/ObjectField";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { OmitKeys } from "../../../Utils";
 import { Deserializable } from "../../util/SerializationHelper";
-import { Copy, ToScriptString } from "../../../new_fields/FieldSymbols";
+import { Copy, ToScriptString, ToString } from "../../../new_fields/FieldSymbols";
 
 function serialize(field: HistogramField) {
-    let obj = OmitKeys(field, ['Links', 'BrushLinks', 'Result', 'BrushColors', 'FilterModels', 'FilterOperand']).omit;
+    const obj = OmitKeys(field, ['Links', 'BrushLinks', 'Result', 'BrushColors', 'FilterModels', 'FilterOperand']).omit;
     return obj;
 }
 
@@ -19,7 +19,7 @@ function deserialize(jp: any) {
     let Y: AttributeTransformationModel | undefined;
     let V: AttributeTransformationModel | undefined;
 
-    let schema = CurrentUserUtils.GetNorthstarSchema(jp.SchemaName);
+    const schema = CurrentUserUtils.GetNorthstarSchema(jp.SchemaName);
     if (schema) {
         CurrentUserUtils.GetAllNorthstarColumnAttributes(schema).map(attr => {
             if (attr.displayName === jp.X.AttributeModel.Attribute.DisplayName) {
@@ -52,12 +52,15 @@ export class HistogramField extends ObjectField {
     }
 
     [Copy]() {
-        let y = this.HistoOp;
-        let z = this.HistoOp.Copy;
+        // const y = this.HistoOp;
+        // const z = this.HistoOp.Copy;
         return new HistogramField(HistogramOperation.Duplicate(this.HistoOp));
     }
 
     [ToScriptString]() {
+        return this.toString();
+    }
+    [ToString]() {
         return this.toString();
     }
 }

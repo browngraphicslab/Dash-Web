@@ -1,4 +1,5 @@
 import { Utils } from "../Utils";
+import { Image } from "canvas";
 
 export class Message<T> {
     private _name: string;
@@ -50,6 +51,7 @@ export namespace MessageStore {
     export const GetFields = new Message<string[]>("Get Fields"); // send string[] of 'id' get Transferable[] back
     export const GetDocument = new Message<string>("Get Document");
     export const DeleteAll = new Message<any>("Delete All");
+    export const ConnectionTerminated = new Message<string>("Connection Terminated");
 
     export const GetRefField = new Message<string>("Get Ref Field");
     export const GetRefFields = new Message<string[]>("Get Ref Fields");
@@ -58,4 +60,5 @@ export namespace MessageStore {
     export const YoutubeApiQuery = new Message<YoutubeQueryInput>("Youtube Api Query");
     export const DeleteField = new Message<string>("Delete field");
     export const DeleteFields = new Message<string[]>("Delete fields");
+    export const AnalyzeInk = new Message<string>("Analyze Ink");
 }

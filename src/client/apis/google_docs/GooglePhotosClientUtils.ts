@@ -1,5 +1,4 @@
 import { Utils } from "../../../Utils";
-import { RouteStore } from "../../../server/RouteStore";
 import { ImageField } from "../../../new_fields/URLField";
 import { Cast, StrCast } from "../../../new_fields/Types";
 import { Doc, Opt, DocListCastAsync } from "../../../new_fields/Doc";
@@ -13,7 +12,7 @@ import { Docs, DocumentOptions } from "../../documents/Documents";
 import { NewMediaItemResult, MediaItem } from "../../../server/apis/google/SharedTypes";
 import { AssertionError } from "assert";
 import { DocumentView } from "../../views/nodes/DocumentView";
-import { Identified } from "../../Network";
+import { Networking } from "../../Network";
 import GoogleAuthenticationManager from "../GoogleAuthenticationManager";
 
 export namespace GooglePhotos {
@@ -78,6 +77,7 @@ export namespace GooglePhotos {
         }
 
         export const CollectionToAlbum = async (options: AlbumCreationOptions): Promise<Opt<AlbumCreationResult>> => {
+            await GoogleAuthenticationManager.Instance.fetchOrGenerateAccessToken();
             const { collection, title, descriptionKey, tag } = options;
             const dataDocument = Doc.GetProto(collection);
             const images = ((await DocListCastAsync(dataDocument.data)) || []).filter(doc => Cast(doc.data, ImageField));
@@ -127,15 +127,16 @@ export namespace GooglePhotos {
         export type CollectionConstructor = (data: Array<Doc>, options: DocumentOptions, ...args: any) => Doc;
 
         export const CollectionFromSearch = async (constructor: CollectionConstructor, requested: Opt<Partial<Query.SearchOptions>>): Promise<Doc> => {
-            let response = await Query.ContentSearch(requested);
-            let uploads = await Transactions.WriteMediaItemsToServer(response);
+            await GoogleAuthenticationManager.Instance.fetchOrGenerateAccessToken();
+            const response = await Query.ContentSearch(requested);
+            const uploads = await Transactions.WriteMediaItemsToServer(response);
             const children = uploads.map((upload: Transactions.UploadInformation) => {
-                let document = Docs.Create.ImageDocument(Utils.fileUrl(upload.fileNames.clean));
+                const document = Docs.Create.ImageDocument(Utils.fileUrl(upload.fileNames.clean));
                 document.fillColumn = true;
                 document.contentSize = upload.contentSize;
                 return document;
             });
-            const options = { width: 500, height: 500 };
+            const options = { _width: 500, _height: 500 };
             return constructor(children, options);
         };
 
@@ -147,6 +148,7 @@ export namespace GooglePhotos {
         const comparator = (a: string, b: string) => (a < b) ? -1 : (a > b ? 1 : 0);
 
         export const TagChildImages = async (collection: Doc) => {
+            await GoogleAuthenticationManager.Instance.fetchOrGenerateAccessToken();
             const idMapping = await Cast(collection.googlePhotosIdMapping, Doc);
             if (!idMapping) {
                 throw new Error("Appending image metadata requires that the targeted collection have already been mapped to an album!");
@@ -155,12 +157,12 @@ export namespace GooglePhotos {
             const images = (await DocListCastAsync(collection.data))!.map(Doc.GetProto);
             images && images.forEach(image => tagMapping.set(image[Id], ContentCategories.NONE));
             const values = Object.values(ContentCategories);
-            for (let value of values) {
+            for (const value of values) {
                 if (value !== ContentCategories.NONE) {
                     const results = await ContentSearch({ included: [value] });
                     if (results.mediaItems) {
                         const ids = results.mediaItems.map(item => item.id);
-                        for (let id of ids) {
+                        for (const id of ids) {
                             const image = await Cast(idMapping[id], Doc);
                             if (image) {
                                 const key = image[Id];
@@ -218,9 +220,9 @@ export namespace GooglePhotos {
 
         export const AlbumSearch = async (albumId: string, pageSize = 100): Promise<MediaItem[]> => {
             const photos = await endpoint();
-            let mediaItems: MediaItem[] = [];
+            const mediaItems: MediaItem[] = [];
             let nextPageTokenStored: Opt<string> = undefined;
-            let found = 0;
+            const found = 0;
             do {
                 const response: any = await photos.mediaItems.search(albumId, pageSize, nextPageTokenStored);
                 mediaItems.push(...response.mediaItems);
@@ -304,7 +306,7 @@ export namespace GooglePhotos {
         };
 
         export const WriteMediaItemsToServer = async (body: { mediaItems: any[] }): Promise<UploadInformation[]> => {
-            const uploads = await Identified.PostToServer(RouteStore.googlePhotosMediaDownload, body);
+            const uploads = await Networking.PostToServer("/googlePhotosMediaDownload", body);
             return uploads;
         };
 
@@ -325,11 +327,12 @@ export namespace GooglePhotos {
         }
 
         export const UploadImages = async (sources: Doc[], album?: AlbumReference, descriptionKey = "caption"): Promise<Opt<ImageUploadResults>> => {
+            await GoogleAuthenticationManager.Instance.fetchOrGenerateAccessToken();
             if (album && "title" in album) {
                 album = await Create.Album(album.title);
             }
             const media: MediaInput[] = [];
-            for (let source of sources) {
+            for (const source of sources) {
                 const data = Cast(Doc.GetProto(source).data, ImageField);
                 if (!data) {
                     return;
@@ -337,11 +340,11 @@ export namespace GooglePhotos {
                 const url = data.url.href;
                 const target = Doc.MakeAlias(source);
                 const description = parseDescription(target, descriptionKey);
-                await DocumentView.makeCustomViewClicked(target, undefined);
+                await DocumentView.makeCustomViewClicked(target, undefined, Docs.Create.FreeformDocument);
                 media.push({ url, description });
             }
             if (media.length) {
-                const results = await Identified.PostToServer(RouteStore.googlePhotosMediaUpload, { media, album });
+                const results = await Networking.PostToServer("/googlePhotosMediaUpload", { media, album });
                 return results;
             }
         };

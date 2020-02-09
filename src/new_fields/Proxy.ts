@@ -5,7 +5,7 @@ import { observable, action } from "mobx";
 import { DocServer } from "../client/DocServer";
 import { RefField } from "./RefField";
 import { ObjectField } from "./ObjectField";
-import { Id, Copy, ToScriptString } from "./FieldSymbols";
+import { Id, Copy, ToScriptString, ToString } from "./FieldSymbols";
 import { scriptingGlobal } from "../client/util/Scripting";
 import { Plugins } from "./util";
 
@@ -31,6 +31,9 @@ export class ProxyField<T extends RefField> extends ObjectField {
 
     [ToScriptString]() {
         return "invalid";
+    }
+    [ToString]() {
+        return "ProxyField";
     }
 
     @serializable(primitive())

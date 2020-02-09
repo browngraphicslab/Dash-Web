@@ -1,13 +1,24 @@
-.PDS-flyout {
-    position: absolute;
+.parentDocumentSelector-linkFlyout {
+    div {
+        overflow: visible !important;
+    }
+    .metadataEntry-outerDiv {
+        overflow: hidden !important;
+        pointer-events: all;
+    }
+}
+.parentDocumentSelector-flyout {
+    position: relative;
     z-index: 9999;
     background-color: #eeeeee;
     box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
-    min-width: 150px;
     color: black;
-    top: 12px;
 
     padding: 10px;
+    border-radius: 3px;
+    display: inline-block;
+    height: 100%;
+    width: 100%;
     border-radius: 3px;
 
     hr {
@@ -21,9 +32,20 @@
     }
 }
 .parentDocumentSelector-button {
-    pointer-events: all;
+    pointer-events: all; 
+    position: relative;
+    display: inline-block;
+}
+.parentDocumentSelector-metadata {
+    pointer-events: auto;
+    padding-right: 5px;
+    width: 25px;
+    display: inline-block;
 }
 .buttonSelector {
+    div {
+        overflow: visible !important;
+    }
     position: absolute; 
     display: inline-block; 
     padding-left: 5px; 

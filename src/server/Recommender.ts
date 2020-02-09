@@ -3,7 +3,7 @@
 //import { List } from "../new_fields/List";
 //import { CognitiveServices } from "../client/cognitive_services/CognitiveServices";
 
-var w2v = require('word2vec');
+// var w2v = require('word2vec');
 var assert = require('assert');
 var arxivapi = require('arxiv-api-node');
 import requestPromise = require("request-promise");
@@ -47,17 +47,17 @@ export class Recommender {
      * Loads pre-trained model from word2vec
      */
 
-    private loadModel(): Promise<any> {
-        let self = this;
-        return new Promise(res => {
-            w2v.loadModel("./node_modules/word2vec/examples/fixtures/vectors.txt", function (err: any, model: any) {
-                self.choice = "WV";
-                self._model = model;
-                self.dimension = model.size;
-                res(model);
-            });
-        });
-    }
+    // private loadModel(): Promise<any> {
+    //     let self = this;
+    //     return new Promise(res => {
+    //         w2v.loadModel("./node_modules/word2vec/examples/fixtures/vectors.txt", function (err: any, model: any) {
+    //             self.choice = "WV";
+    //             self._model = model;
+    //             self.dimension = model.size;
+    //             res(model);
+    //         });
+    //     });
+    // }
 
     /***
      * Testing
@@ -118,20 +118,20 @@ export class Recommender {
         }
     }
 
-    public async trainModel() {
-        console.log("phrasing...");
-        w2v.word2vec("./node_modules/word2vec/examples/eng_news-typical_2016_1M-sentences.txt", './node_modules/word2vec/examples/my_phrases.txt', {
-            cbow: 1,
-            size: 200,
-            window: 8,
-            negative: 25,
-            hs: 0,
-            sample: 1e-4,
-            threads: 20,
-            iter: 200,
-            minCount: 2
-        });
-        console.log("phrased!!!");
-    }
+    // public async trainModel() {
+    //     console.log("phrasing...");
+    //     w2v.word2vec("./node_modules/word2vec/examples/eng_news-typical_2016_1M-sentences.txt", './node_modules/word2vec/examples/my_phrases.txt', {
+    //         cbow: 1,
+    //         size: 200,
+    //         window: 8,
+    //         negative: 25,
+    //         hs: 0,
+    //         sample: 1e-4,
+    //         threads: 20,
+    //         iter: 200,
+    //         minCount: 2
+    //     });
+    //     console.log("phrased!!!");
+    // }
 
 }

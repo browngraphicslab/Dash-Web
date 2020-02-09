@@ -11,6 +11,7 @@
 }
 
 .formattedTextBox-cont {
+    touch-action: none;
     cursor: text;
     background: inherit;
     padding: 0;
@@ -25,11 +26,13 @@
     color: initial;
     height: 100%;
     pointer-events: all;
-    overflow-y: auto;
     max-height: 100%;
+    display: flex;
+    flex-direction: row;
+
     .formattedTextBox-dictation {
-        height: 20px;
-        width: 20px;
+        height: 12px;
+        width: 10px;
         top: 0px;
         left: 0px;
         position: absolute;
@@ -39,13 +42,46 @@
 .collectionfreeformview-container {
     position: relative;
 }
+
 .formattedTextBox-outer {
     position: relative;
     overflow: auto;
     display: inline-block;
-    padding: 10px 10px;
     width: 100%;
     height: 100%;
+}
+
+.formattedTextBox-sidebar-handle {
+    position: absolute;
+    top: calc(50% - 17.5px);
+    width: 10px;
+    height: 35px;
+    background: lightgray;
+    border-radius: 20px;
+    cursor:grabbing;
+}
+
+.formattedTextBox-cont>.formattedTextBox-sidebar-handle {
+    right: 0;
+    left: unset;
+}
+
+.formattedTextBox-sidebar,
+.formattedTextBox-sidebar-inking {
+    border-left: dashed 1px black;
+    height: 100%;
+    display: inline-block;
+    position: absolute;
+    right: 0;
+
+    >.formattedTextBox-sidebar-handle {
+        right: unset;
+        left: -5;
+    }
+}
+
+.formattedTextBox-sidebar-inking {
+    pointer-events: all;
 }
 
 .formattedTextBox-inner-rounded {
@@ -57,8 +93,8 @@
     left: 10%;
 }
 
-.formattedTextBox-inner-rounded ,
-.formattedTextBox-inner  {
+.formattedTextBox-inner-rounded,
+.formattedTextBox-inner {
     padding: 10px 10px;
     height: 100%;
 }
@@ -85,19 +121,20 @@
 }
 
 .userMarkOpen {
-    background:  rgba(255, 255, 0, 0.267);
+    background: rgba(255, 255, 0, 0.267);
     display: inline;
 }
+
 .userMark {
-    background:  rgba(255, 255, 0, 0.267);
+    background: rgba(255, 255, 0, 0.267);
     font-size: 2px;
     display: inline-grid;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    width:10px;
-    min-height:10px;
-    text-align:center;
+    width: 10px;
+    min-height: 10px;
+    text-align: center;
     align-content: center;
 }
 
@@ -105,8 +142,9 @@ footnote {
     display: inline-block;
     position: relative;
     cursor: pointer;
+
     div {
-        padding : 0 !important;
+        padding: 0 !important;
     }
 }
 
@@ -119,7 +157,7 @@ footnote::after {
 
 .ProseMirror {
     counter-reset: prosemirror-footnote;
-  }
+}
 
 .footnote-tooltip {
     cursor: auto;
@@ -138,6 +176,7 @@ footnote::after {
 .prosemirror-attribution {
     font-size: 8px;
 }
+
 .footnote-tooltip::before {
     border: 5px solid silver;
     border-top-width: 0px;
@@ -151,46 +190,78 @@ footnote::after {
     width: 0;
 }
 
-.formattedTextBox-summarizer {
-    opacity :0.5;
+
+.formattedTextBox-inlineComment {
     position: relative;
-    width:40px;
-    height:20px;
+    width: 40px;
+    height: 20px;
+    &::before {
+        content: "→";
+    }
+    &:hover {
+        background: orange;
+    }
 }
-.formattedTextBox-summarizer::after{
-    content: "←" ;
+
+.formattedTextBox-summarizer {
+    opacity: 0.5;
+    position: relative;
+    width: 40px;
+    height: 20px;
+    &::after {
+        content: "←";
+    }
 }
 
 .formattedTextBox-summarizer-collapsed {
-    opacity :0.5;
+    opacity: 0.5;
     position: relative;
-    width:40px;
-    height:20px;
-}
-.formattedTextBox-summarizer-collapsed::after {
-    content: "...";
+    width: 40px;
+    height: 20px;
+    &::after {
+        content: "...";
+    }
 }
 
 .ProseMirror {
-ol { counter-reset: deci1 0; padding-left: 0px; }
-.decimal1-ol {counter-reset: deci1; p { display: inline }; font-size: 24 ; ul, ol {  padding-left:30px; } }
-.decimal2-ol {counter-reset: deci2; p { display: inline }; font-size: 18 ; ul, ol {  padding-left:30px; } }
-.decimal3-ol {counter-reset: deci3; p { display: inline }; font-size: 14 ; ul, ol {  padding-left:30px; } }
-.decimal4-ol {counter-reset: deci4; p { display: inline }; font-size: 10 ; ul, ol {  padding-left:30px; } }
-.decimal5-ol {counter-reset: deci5; p { display: inline }; font-size: 10 ; ul, ol {  padding-left:30px; } }
-.decimal6-ol {counter-reset: deci6; p { display: inline }; font-size: 10 ; ul, ol {  padding-left:30px; } }
-.decimal7-ol {counter-reset: deci7; p { display: inline }; font-size: 10 ; ul, ol {  padding-left:30px; } } 
-.upper-alpha-ol {counter-reset: ualph; p { display: inline }; font-size: 18; }
-.lower-roman-ol {counter-reset: lroman;  p { display: inline }; font-size: 14; }
-.lower-alpha-ol {counter-reset: lalpha;  p { display: inline }; font-size: 10; }
-.decimal1:before { content: counter(deci1) ") "; counter-increment: deci1; display:inline-block; min-width: 30;}
-.decimal2:before { content: counter(deci1) "." counter(deci2) ") "; counter-increment: deci2; display:inline-block; min-width: 35}
-.decimal3:before { content: counter(deci1) "." counter(deci2) "." counter(deci3) ") "; counter-increment: deci3; display:inline-block; min-width: 35}
-.decimal4:before { content: counter(deci1) "." counter(deci2) "." counter(deci3) "." counter(deci4) ") "; counter-increment: deci4; display:inline-block; min-width: 40}
-.decimal5:before { content: counter(deci1) "." counter(deci2) "." counter(deci3) "." counter(deci4) "." counter(deci5) ") "; counter-increment: deci5; display:inline-block; min-width: 40}
-.decimal6:before { content: counter(deci1) "." counter(deci2) "." counter(deci3) "." counter(deci4) "." counter(deci5) "." counter(deci6) ") "; counter-increment: deci6; display:inline-block; min-width: 45}
-.decimal7:before { content: counter(deci1) "." counter(deci2) "." counter(deci3) "." counter(deci4) "." counter(deci5) "." counter(deci6) "." counter(deci7) ") "; counter-increment: deci7; display:inline-block; min-width: 50}
-.upper-alpha:before { content: counter(deci1) "." counter(ualph, upper-alpha) ") "; counter-increment: ualph; display:inline-block; min-width: 35 }
-.lower-roman:before { content: counter(deci1) "." counter(ualph, upper-alpha) "." counter(lroman, lower-roman) ") "; counter-increment: lroman;display:inline-block; min-width: 50 }
-.lower-alpha:before { content: counter(deci1) "." counter(ualph, upper-alpha) "." counter(lroman, lower-roman) "." counter(lalpha, lower-alpha) ") "; counter-increment: lalpha; display:inline-block; min-width: 35}
+    touch-action: none;
+    span {
+        font-family: inherit;
+    }
+
+    ol, ul {
+        counter-reset: deci1 0 multi1 0;
+        padding-left: 1em;
+        font-family: inherit;
+    }
+    ol {
+        margin-left: 1em;
+        font-family: inherit;
+    }
+
+    .decimal1-ol { counter-reset: deci1; p {display: inline; font-family: inherit} margin-left: 0; }
+    .decimal2-ol { counter-reset: deci2; p {display: inline; font-family: inherit} font-size: smaller; padding-left: 1em;}
+    .decimal3-ol { counter-reset: deci3; p {display: inline; font-family: inherit} font-size: smaller; padding-left: 2em;}
+    .decimal4-ol { counter-reset: deci4; p {display: inline; font-family: inherit} font-size: smaller; padding-left: 3em;}
+    .decimal5-ol { counter-reset: deci5; p {display: inline; font-family: inherit} font-size: smaller; }
+    .decimal6-ol { counter-reset: deci6; p {display: inline; font-family: inherit} font-size: smaller; }
+    .decimal7-ol { counter-reset: deci7; p {display: inline; font-family: inherit} font-size: smaller; }
+
+    .multi1-ol { counter-reset: multi1; p {display: inline; font-family: inherit} margin-left: 0;     padding-left: 1.2em }
+    .multi2-ol { counter-reset: multi2; p {display: inline; font-family: inherit} font-size: smaller; padding-left: 1.4em;}
+    .multi3-ol { counter-reset: multi3; p {display: inline; font-family: inherit} font-size: smaller; padding-left: 2em;}
+    .multi4-ol { counter-reset: multi4; p {display: inline; font-family: inherit} font-size: smaller; padding-left: 3.4em;}
+
+    .decimal1:before { transition: 0.5s;counter-increment: deci1; display: inline-block; margin-left: -1em;   width:  1em;   content: counter(deci1) ". ";  }
+    .decimal2:before { transition: 0.5s;counter-increment: deci2; display: inline-block; margin-left: -2.1em; width: 2.1em;  content: counter(deci1) "."counter(deci2) ". ";  }
+    .decimal3:before { transition: 0.5s;counter-increment: deci3; display: inline-block; margin-left: -2.85em;width: 2.85em; content: counter(deci1) "."counter(deci2) "."counter(deci3) ". "; }
+    .decimal4:before { transition: 0.5s;counter-increment: deci4; display: inline-block; margin-left: -3.85em;width: 3.85em; content: counter(deci1) "."counter(deci2) "."counter(deci3) "."counter(deci4) ". "; }
+    .decimal5:before { transition: 0.5s;counter-increment: deci5; display: inline-block; margin-left: -2em;   width:  5em;   content: counter(deci1) "."counter(deci2) "."counter(deci3) "."counter(deci4) "."counter(deci5) ". "; }
+    .decimal6:before { transition: 0.5s;counter-increment: deci6; display: inline-block; margin-left: -2em;   width:  6em;   content: counter(deci1) "."counter(deci2) "."counter(deci3) "."counter(deci4) "."counter(deci5) "."counter(deci6) ". "; }
+    .decimal7:before { transition: 0.5s;counter-increment: deci7; display: inline-block; margin-left: -2em;   width:  7em;   content: counter(deci1) "."counter(deci2) "."counter(deci3) "."counter(deci4) "."counter(deci5) "."counter(deci6) "."counter(deci7) ". "; }
+    
+    .multi1:before { transition: 0.5s;counter-increment: multi1; display: inline-block; margin-left: -1em;    width: 1.2em;  content: counter(multi1, upper-alpha) ". ";  }
+    .multi2:before { transition: 0.5s;counter-increment: multi2; display: inline-block; margin-left: -2em;    width:   2em;  content: counter(multi1, upper-alpha) "."counter(multi2, decimal) ". "; }
+    .multi3:before { transition: 0.5s;counter-increment: multi3; display: inline-block; margin-left: -2.85em; width:2.85em;  content: counter(multi1, upper-alpha) "."counter(multi2, decimal) "."counter(multi3, lower-alpha) ". "; }
+    .multi4:before { transition: 0.5s;counter-increment: multi4; display: inline-block; margin-left:   -4.2em;  width: 4.2em;    content: counter(multi1, upper-alpha) "."counter(multi2, decimal) "."counter(multi3, lower-alpha) "."counter(multi4, lower-roman) ". "; }
 }

@@ -1,70 +1,72 @@
+import { computed } from "mobx";
 import { observer } from "mobx-react";
-import { observable, trace, runInAction } from "mobx";
+import { documentSchema } from "../../new_fields/documentSchemas";
+import { InkData, InkField, InkTool } from "../../new_fields/InkField";
+import { makeInterface } from "../../new_fields/Schema";
+import { Cast } from "../../new_fields/Types";
+import { DocExtendableComponent } from "./DocComponent";
 import { InkingControl } from "./InkingControl";
-import React = require("react");
-import { InkTool } from "../../new_fields/InkField";
 import "./InkingStroke.scss";
-import { AudioBox } from "./nodes/AudioBox";
+import { FieldView, FieldViewProps } from "./nodes/FieldView";
+import React = require("react");
+import { TraceMobx } from "../../new_fields/util";
+import { InteractionUtils } from "../util/InteractionUtils";
+import { ContextMenu } from "./ContextMenu";
+import { CognitiveServices } from "../cognitive_services/CognitiveServices";
+import { faPaintBrush } from "@fortawesome/free-solid-svg-icons";
+import { library } from "@fortawesome/fontawesome-svg-core";
 
+library.add(faPaintBrush);
 
-interface StrokeProps {
-    offsetX: number;
-    offsetY: number;
-    id: string;
-    count: number;
-    line: Array<{ x: number, y: number }>;
-    color: string;
-    width: string;
-    tool: InkTool;
-    creationTime: number;
-    deleteCallback: (index: string) => void;
-}
+type InkDocument = makeInterface<[typeof documentSchema]>;
+const InkDocument = makeInterface(documentSchema);
 
 @observer
-export class InkingStroke extends React.Component<StrokeProps> {
+export class InkingStroke extends DocExtendableComponent<FieldViewProps, InkDocument>(InkDocument) {
+    public static LayoutString(fieldStr: string) { return FieldView.LayoutString(InkingStroke, fieldStr); }
 
-    @observable private _strokeTool: InkTool = this.props.tool;
-    @observable private _strokeColor: string = this.props.color;
-    @observable private _strokeWidth: string = this.props.width;
+    @computed get PanelWidth() { return this.props.PanelWidth(); }
+    @computed get PanelHeight() { return this.props.PanelHeight(); }
 
-    deleteStroke = (e: React.PointerEvent): void => {
-        if (InkingControl.Instance.selectedTool === InkTool.Eraser && e.buttons === 1) {
-            this.props.deleteCallback(this.props.id);
-            e.stopPropagation();
-            e.preventDefault();
-        }
-        if (InkingControl.Instance.selectedTool === InkTool.Scrubber && e.buttons === 1) {
-            AudioBox.SetScrubTime(this.props.creationTime);
-            e.stopPropagation();
-            e.preventDefault();
-        }
-    }
-
-    parseData = (line: Array<{ x: number, y: number }>): string => {
-        return !line.length ? "" : "M " + line.map(p => (p.x + this.props.offsetX) + " " + (p.y + this.props.offsetY)).join(" L ");
-    }
-
-    createStyle() {
-        switch (this._strokeTool) {
-            // add more tool styles here
-            default:
-                return {
-                    fill: "none",
-                    stroke: this._strokeColor,
-                    strokeWidth: this._strokeWidth + "px",
-                };
-        }
+    private analyzeStrokes = () => {
+        const data: InkData = Cast(this.Document.data, InkField)?.inkData ?? [];
+        CognitiveServices.Inking.Appliers.ConcatenateHandwriting(this.Document, ["inkAnalysis", "handwriting"], [data]);
     }
 
     render() {
-        let pathStyle = this.createStyle();
-        let pathData = this.parseData(this.props.line);
-        let pathlength = this.props.count; // bcz: this is needed to force reactions to the line's data changes
-        let marker = this.props.tool === InkTool.Highlighter ? "-marker" : "";
-
-        let pointerEvents: any = InkingControl.Instance.selectedTool === InkTool.Eraser ||
-            InkingControl.Instance.selectedTool === InkTool.Scrubber ? "all" : "none";
-        return (<path className={`inkingStroke${marker}`} d={pathData} style={{ ...pathStyle, pointerEvents: pointerEvents }}
-            strokeLinejoin="round" strokeLinecap="round" onPointerOver={this.deleteStroke} onPointerDown={this.deleteStroke} />);
+        TraceMobx();
+        const data: InkData = Cast(this.Document.data, InkField)?.inkData ?? [];
+        const xs = data.map(p => p.X);
+        const ys = data.map(p => p.Y);
+        const left = Math.min(...xs);
+        const top = Math.min(...ys);
+        const right = Math.max(...xs);
+        const bottom = Math.max(...ys);
+        const points = InteractionUtils.CreatePolyline(data, left, top, this.Document.color ?? InkingControl.Instance.selectedColor, this.Document.strokeWidth ?? parseInt(InkingControl.Instance.selectedWidth));
+        const width = right - left;
+        const height = bottom - top;
+        const scaleX = this.PanelWidth / width;
+        const scaleY = this.PanelHeight / height;
+        return (
+            <svg
+                width={width}
+                height={height}
+                style={{
+                    transformOrigin: "top left",
+                    transform: `scale(${scaleX}, ${scaleY})`,
+                    mixBlendMode: this.Document.tool === InkTool.Highlighter ? "multiply" : "unset",
+                    pointerEvents: "all"
+                }}
+                onContextMenu={() => {
+                    ContextMenu.Instance.addItem({
+                        description: "Analyze Stroke",
+                        event: this.analyzeStrokes,
+                        icon: "paint-brush"
+                    });
+                }}
+            >
+                {points}
+            </svg>
+        );
     }
 }

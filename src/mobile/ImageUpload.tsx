@@ -1,7 +1,6 @@
 import * as ReactDOM from 'react-dom';
 import * as rp from 'request-promise';
 import { Docs } from '../client/documents/Documents';
-import { RouteStore } from '../server/RouteStore';
 import "./ImageUpload.scss";
 import React = require('react');
 import { DocServer } from '../client/DocServer';
@@ -12,6 +11,8 @@ import { List } from '../new_fields/List';
 import { observer } from 'mobx-react';
 import { observable } from 'mobx';
 import { Utils } from '../Utils';
+import MobileInterface from './MobileInterface';
+import { CurrentUserUtils } from '../server/authentication/models/current_user_utils';
 
 
 
@@ -35,16 +36,16 @@ class Uploader extends React.Component {
         try {
             this.status = "initializing protos";
             await Docs.Prototypes.initialize();
-            let imgPrev = document.getElementById("img_preview");
+            const imgPrev = document.getElementById("img_preview");
             if (imgPrev) {
-                let files: FileList | null = inputRef.current!.files;
+                const files: FileList | null = inputRef.current!.files;
                 if (files && files.length !== 0) {
                     console.log(files[0]);
                     const name = files[0].name;
-                    let formData = new FormData();
+                    const formData = new FormData();
                     formData.append("file", files[0]);
 
-                    const upload = window.location.origin + "/upload";
+                    const upload = window.location.origin + "/uploadFormData";
                     this.status = "uploading image";
                     const res = await fetch(upload, {
                         method: 'POST',
@@ -53,12 +54,12 @@ class Uploader extends React.Component {
                     this.status = "upload image, getting json";
                     const json = await res.json();
                     json.map(async (file: any) => {
-                        let path = window.location.origin + file;
-                        var doc = Docs.Create.ImageDocument(path, { nativeWidth: 200, width: 200, title: name });
+                        const path = window.location.origin + file;
+                        const doc = Docs.Create.ImageDocument(path, { _nativeWidth: 200, _width: 200, title: name });
 
                         this.status = "getting user document";
 
-                        const res = await rp.get(Utils.prepend(RouteStore.getUserDocumentId));
+                        const res = await rp.get(Utils.prepend("/getUserDocumentId"));
                         if (!res) {
                             throw new Error("No user id returned");
                         }
@@ -105,10 +106,25 @@ class Uploader extends React.Component {
 }
 
 
-DocServer.init(window.location.protocol, window.location.hostname, 4321, "image upload");
-
-ReactDOM.render((
-    <Uploader />
-),
-    document.getElementById('root')
-);
+// DocServer.init(window.location.protocol, window.location.hostname, 4321, "image upload");
+(async () => {
+    const info = await CurrentUserUtils.loadCurrentUser();
+    DocServer.init(window.location.protocol, window.location.hostname, 4321, info.email + "mobile");
+    await Docs.Prototypes.initialize();
+    if (info.id !== "__guest__") {
+        // a guest will not have an id registered
+        await CurrentUserUtils.loadUserDocument(info);
+    }
+    document.getElementById('root')!.addEventListener('wheel', event => {
+        if (event.ctrlKey) {
+            event.preventDefault();
+        }
+    }, true);
+    ReactDOM.render((
+        // <Uploader />
+        <MobileInterface />
+    ),
+        document.getElementById('root')
+    );
+}
+)();

@@ -1,7 +1,7 @@
 import { Deserializable } from "../client/util/SerializationHelper";
 import { serializable, custom } from "serializr";
 import { ObjectField } from "./ObjectField";
-import { ToScriptString, Copy } from "./FieldSymbols";
+import { ToScriptString, ToString, Copy } from "./FieldSymbols";
 import { Scripting, scriptingGlobal } from "../client/util/Scripting";
 
 function url() {
@@ -31,6 +31,9 @@ export abstract class URLField extends ObjectField {
 
     [ToScriptString]() {
         return `new ${this.constructor.name}("${this.url.href}")`;
+    }
+    [ToString]() {
+        return this.url.href;
     }
 
     [Copy](): this {

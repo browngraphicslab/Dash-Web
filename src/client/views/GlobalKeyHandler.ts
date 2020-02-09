@@ -13,6 +13,7 @@ import { Cast, PromiseValue } from "../../new_fields/Types";
 import { ScriptField } from "../../new_fields/ScriptField";
 import { InkingControl } from "./InkingControl";
 import { InkTool } from "../../new_fields/InkField";
+import { DocumentView } from "./nodes/DocumentView";
 
 const modifiers = ["control", "meta", "shift", "alt"];
 type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo | Promise<KeyControlInfo>;
@@ -26,7 +27,7 @@ export default class KeyManager {
     private router = new Map<string, KeyHandler>();
 
     constructor() {
-        let isMac = navigator.platform.toLowerCase().indexOf("mac") >= 0;
+        const isMac = navigator.platform.toLowerCase().indexOf("mac") >= 0;
 
         // SHIFT CONTROL ALT META
         this.router.set("0000", this.unmodified);
@@ -37,22 +38,22 @@ export default class KeyManager {
     }
 
     public handle = async (e: KeyboardEvent) => {
-        let keyname = e.key && e.key.toLowerCase();
+        const keyname = e.key && e.key.toLowerCase();
         this.handleGreedy(keyname);
 
         if (modifiers.includes(keyname)) {
             return;
         }
 
-        let bit = (value: boolean) => value ? "1" : "0";
-        let modifierIndex = bit(e.shiftKey) + bit(e.ctrlKey) + bit(e.altKey) + bit(e.metaKey);
+        const bit = (value: boolean) => value ? "1" : "0";
+        const modifierIndex = bit(e.shiftKey) + bit(e.ctrlKey) + bit(e.altKey) + bit(e.metaKey);
 
-        let handleConstrained = this.router.get(modifierIndex);
+        const handleConstrained = this.router.get(modifierIndex);
         if (!handleConstrained) {
             return;
         }
 
-        let control = await handleConstrained(keyname, e);
+        const control = await handleConstrained(keyname, e);
 
         control.stopPropagation && e.stopPropagation();
         control.preventDefault && e.preventDefault();
@@ -66,7 +67,7 @@ export default class KeyManager {
     private unmodified = action((keyname: string, e: KeyboardEvent) => {
         switch (keyname) {
             case "escape":
-                let main = MainView.Instance;
+                const main = MainView.Instance;
                 InkingControl.Instance.switchTool(InkTool.None);
                 if (main.isPointerDown) {
                     DragManager.AbortDrag();
@@ -91,8 +92,8 @@ export default class KeyManager {
                 }
                 UndoManager.RunInBatch(() => {
                     SelectionManager.SelectedDocuments().map(docView => {
-                        let doc = docView.props.Document;
-                        let remove = docView.props.removeDocument;
+                        const doc = docView.props.Document;
+                        const remove = docView.props.removeDocument;
                         remove && remove(doc);
                     });
                 }, "delete");
@@ -110,7 +111,7 @@ export default class KeyManager {
         let preventDefault = false;
 
         switch (keyname) {
-            case " ":
+            case "~":
                 DictationManager.Controls.listen({ useOverlay: true, tryExecute: true });
                 stopPropagation = true;
                 preventDefault = true;
@@ -123,10 +124,17 @@ export default class KeyManager {
     }
 
     private alt = action((keyname: string) => {
-        let stopPropagation = true;
-        let preventDefault = true;
+        const stopPropagation = true;
+        const preventDefault = true;
 
         switch (keyname) {
+            case "f":
+                const dv = SelectionManager.SelectedDocuments()?.[0];
+                if (dv) {
+                    const ex = dv.props.ScreenToLocalTransform().inverse().transformPoint(0, 0)[0];
+                    const ey = dv.props.ScreenToLocalTransform().inverse().transformPoint(0, 0)[1];
+                    DocumentView.FloatDoc(dv, ex, ey);
+                }
             // case "n":
             //     let toggle = MainView.Instance.addMenuToggle.current!;
             //     toggle.checked = !toggle.checked;
@@ -192,7 +200,7 @@ export default class KeyManager {
                 }
                 break;
             case "o":
-                let target = SelectionManager.SelectedDocuments()[0];
+                const target = SelectionManager.SelectedDocuments()[0];
                 target && CollectionDockingView.Instance && CollectionDockingView.Instance.OpenFullScreen(target);
                 break;
             case "r":
@@ -222,12 +230,12 @@ export default class KeyManager {
     });
 
     async printClipboard() {
-        let text: string = await navigator.clipboard.readText();
+        const text: string = await navigator.clipboard.readText();
     }
 
     private ctrl_shift = action((keyname: string) => {
-        let stopPropagation = true;
-        let preventDefault = true;
+        const stopPropagation = true;
+        const preventDefault = true;
 
         switch (keyname) {
             case "z":

@@ -34,17 +34,17 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
     @observable private collapsed: boolean = true;
     @observable private url: string = "";
 
-    componentWillMount() {
+    componentDidMount() {
 
-        let field = Cast(this.props.Document[this.props.fieldKey], WebField);
+        const field = Cast(this.props.Document[this.props.fieldKey], WebField);
         if (field && field.url.href.indexOf("youtube") !== -1) {
-            let youtubeaspect = 400 / 315;
-            var nativeWidth = NumCast(this.layoutDoc.nativeWidth);
-            var nativeHeight = NumCast(this.layoutDoc.nativeHeight);
+            const youtubeaspect = 400 / 315;
+            const nativeWidth = NumCast(this.layoutDoc._nativeWidth);
+            const nativeHeight = NumCast(this.layoutDoc._nativeHeight);
             if (!nativeWidth || !nativeHeight || Math.abs(nativeWidth / nativeHeight - youtubeaspect) > 0.05) {
-                if (!nativeWidth) this.layoutDoc.nativeWidth = 600;
-                this.layoutDoc.nativeHeight = NumCast(this.layoutDoc.nativeWidth) / youtubeaspect;
-                this.layoutDoc.height = NumCast(this.layoutDoc.width) / youtubeaspect;
+                if (!nativeWidth) this.layoutDoc._nativeWidth = 600;
+                this.layoutDoc._nativeHeight = NumCast(this.layoutDoc._nativeWidth) / youtubeaspect;
+                this.layoutDoc._height = NumCast(this.layoutDoc._width) / youtubeaspect;
             }
         }
 
@@ -65,7 +65,7 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
 
     @action
     setURL() {
-        let urlField: FieldResult<WebField> = Cast(this.props.Document.data, WebField);
+        const urlField: FieldResult<WebField> = Cast(this.props.Document.data, WebField);
         if (urlField) this.url = urlField.url.toString();
         else this.url = "";
     }
@@ -80,16 +80,15 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
 
     switchToText = () => {
         let url: string = "";
-        let field = Cast(this.props.Document[this.props.fieldKey], WebField);
+        const field = Cast(this.props.Document[this.props.fieldKey], WebField);
         if (field) url = field.url.href;
 
-        let newBox = Docs.Create.TextDocument({
+        const newBox = Docs.Create.TextDocument(url, {
             x: NumCast(this.props.Document.x),
             y: NumCast(this.props.Document.y),
             title: url,
-            width: 200,
-            height: 70,
-            documentText: "@@@" + url
+            _width: 200,
+            _height: 70,
         });
 
         SelectionManager.SelectedDocuments().map(dv => {
@@ -167,7 +166,7 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
 
     @computed
     get content() {
-        let field = this.dataDoc[this.props.fieldKey];
+        const field = this.dataDoc[this.props.fieldKey];
         let view;
         if (field instanceof HtmlField) {
             view = <span id="webBox-htmlSpan" dangerouslySetInnerHTML={{ __html: field.html }} />;
@@ -176,15 +175,15 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
         } else {
             view = <iframe src={"https://crossorigin.me/https://cs.brown.edu"} style={{ position: "absolute", width: "100%", height: "100%", top: 0 }} />;
         }
-        let content =
+        const content =
             <div style={{ width: "100%", height: "100%", position: "absolute" }} onWheel={this.onPostWheel} onPointerDown={this.onPostPointer} onPointerMove={this.onPostPointer} onPointerUp={this.onPostPointer}>
                 {this.urlEditor()}
                 {view}
             </div>;
 
-        let frozen = !this.props.isSelected() || DocumentDecorations.Instance.Interacting;
+        const frozen = !this.props.isSelected() || DocumentDecorations.Instance.Interacting;
 
-        let classname = "webBox-cont" + (this.props.isSelected() && InkingControl.Instance.selectedTool === InkTool.None && !DocumentDecorations.Instance.Interacting ? "-interactive" : "");
+        const classname = "webBox-cont" + (this.props.isSelected() && InkingControl.Instance.selectedTool === InkTool.None && !DocumentDecorations.Instance.Interacting ? "-interactive" : "");
         return (
             <>
                 <div className={classname}  >
@@ -194,11 +193,11 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
             </>);
     }
     render() {
-        return (<div className={"imageBox-container"} >
+        return (<div className={"webBox-container"} >
             <CollectionFreeFormView {...this.props}
                 PanelHeight={this.props.PanelHeight}
                 PanelWidth={this.props.PanelWidth}
-                annotationsKey={this.annotationsKey}
+                annotationsKey={this.annotationKey}
                 focus={this.props.focus}
                 isSelected={this.props.isSelected}
                 isAnnotationOverlay={true}
@@ -211,7 +210,6 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
                 addDocument={this.addDocument}
                 CollectionView={undefined}
                 ScreenToLocalTransform={this.props.ScreenToLocalTransform}
-                ruleProvider={undefined}
                 renderDepth={this.props.renderDepth + 1}
                 ContainingCollectionDoc={this.props.ContainingCollectionDoc}
                 chromeCollapsed={true}>

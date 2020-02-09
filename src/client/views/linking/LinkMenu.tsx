@@ -25,7 +25,7 @@ export class LinkMenu extends React.Component<Props> {
     @observable private _editingLink?: Doc;
 
     @action
-    componentWillReceiveProps() {
+    componentDidMount() {
         this._editingLink = undefined;
     }
 
@@ -34,7 +34,7 @@ export class LinkMenu extends React.Component<Props> {
     }
 
     renderAllGroups = (groups: Map<string, Array<Doc>>): Array<JSX.Element> => {
-        let linkItems: Array<JSX.Element> = [];
+        const linkItems: Array<JSX.Element> = [];
         groups.forEach((group, groupType) => {
             linkItems.push(
                 <LinkMenuGroup
@@ -55,8 +55,8 @@ export class LinkMenu extends React.Component<Props> {
     }
 
     render() {
-        let sourceDoc = this.props.docView.props.Document;
-        let groups: Map<string, Doc[]> = LinkManager.Instance.getRelatedGroupedLinks(sourceDoc);
+        const sourceDoc = this.props.docView.props.Document;
+        const groups: Map<string, Doc[]> = LinkManager.Instance.getRelatedGroupedLinks(sourceDoc);
         if (this._editingLink === undefined) {
             return (
                 <div className="linkMenu">
