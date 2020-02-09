@@ -343,7 +343,7 @@ export class Timeline extends React.Component<FieldViewProps> {
      * context menu function. 
      * opens the timeline or closes the timeline. 
      */
-    timelineContextMenu = (e: MouseEvent): void => {
+    timelineContextMenu = (e: React.MouseEvent): void => {
         ContextMenu.Instance.addItem({
             description: (this._timelineVisible ? "Close" : "Open") + " Animation Timeline", event: action(() => {
                 this._timelineVisible = !this._timelineVisible;

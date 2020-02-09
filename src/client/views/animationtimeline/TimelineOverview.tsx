@@ -55,7 +55,7 @@ export class TimelineOverview extends React.Component<TimelineOverviewProps>{
 
     @action
     setOverviewWidth() {
-        let width = $("#timelineOverview").width();
+        const width = $("#timelineOverview").width();
         // console.log($("timelineOverview"))
         if (width) this.overviewBarWidth = width;
         // else this.overviewBarWidth = 0;
@@ -77,7 +77,7 @@ export class TimelineOverview extends React.Component<TimelineOverviewProps>{
     onPanX = (e: PointerEvent) => {
         e.stopPropagation();
         e.preventDefault();
-        let movX = (this.props.visibleStart / this.props.totalLength) * (this.DEFAULT_WIDTH) + e.movementX;
+        const movX = (this.props.visibleStart / this.props.totalLength) * (this.DEFAULT_WIDTH) + e.movementX;
         // let movX = (this.props.visibleStart / this.props.totalLength) * (this.overviewWidth) + e.movementX;
         this.props.movePanX((movX / (this.DEFAULT_WIDTH)) * this.props.totalLength);
         // this.props.movePanX((movX / (this.overviewWidth) * this.props.totalLength);
@@ -95,22 +95,22 @@ export class TimelineOverview extends React.Component<TimelineOverviewProps>{
     onScrubberDown = (e: React.PointerEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        if (!this.props.isAuthoring) {
+        // if (!this.props.isAuthoring) {
         document.removeEventListener("pointermove", this.onScrubberMove);
         document.removeEventListener("pointerup", this.onScrubberUp);
         document.addEventListener("pointermove", this.onScrubberMove);
         document.addEventListener("pointerup", this.onScrubberUp);
-        }
+        // }
     }
 
     @action
     onScrubberMove = (e: PointerEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        let scrubberRef = this._scrubberRef.current!;
-        let left = scrubberRef.getBoundingClientRect().left;
+        const scrubberRef = this._scrubberRef.current!;
+        const left = scrubberRef.getBoundingClientRect().left;
         // left = e.screenX;
-        let offsetX = Math.round(e.clientX - left);
+        const offsetX = Math.round(e.clientX - left);
         this.props.changeCurrentBarX((offsetX / (this.DEFAULT_WIDTH) * this.props.totalLength) + this.props.currentBarX);
         // this.props.changeCurrentBarX(e.screenX)
     }
@@ -125,9 +125,9 @@ export class TimelineOverview extends React.Component<TimelineOverviewProps>{
 
     @action
     getTimes() {
-        let vis = KeyframeFunc.convertPixelTime(this.props.visibleLength, "mili", "time", this.props.tickSpacing, this.props.tickIncrement);
-        let x = KeyframeFunc.convertPixelTime(this.props.currentBarX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement);
-        let start = KeyframeFunc.convertPixelTime(this.props.visibleStart, "mili", "time", this.props.tickSpacing, this.props.tickIncrement);
+        const vis = KeyframeFunc.convertPixelTime(this.props.visibleLength, "mili", "time", this.props.tickSpacing, this.props.tickIncrement);
+        const x = KeyframeFunc.convertPixelTime(this.props.currentBarX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement);
+        const start = KeyframeFunc.convertPixelTime(this.props.visibleStart, "mili", "time", this.props.tickSpacing, this.props.tickIncrement);
         this.visibleTime = vis;
         this.currentX = x;
         this.visibleStart = start;
@@ -137,19 +137,20 @@ export class TimelineOverview extends React.Component<TimelineOverviewProps>{
     }
 
     render() {
+        console.log("RERENDERED!"); 
         this.setOverviewWidth();
         this.getTimes();
 
-        let percentVisible = this.visibleTime / this.props.time;
-        let visibleBarWidth = percentVisible * this.overviewBarWidth;
+        const percentVisible = this.visibleTime / this.props.time;
+        const visibleBarWidth = percentVisible * this.overviewBarWidth;
 
-        let percentScrubberStart = this.currentX / this.props.time;
-        let scrubberStart = percentScrubberStart * this.overviewBarWidth;
+        const percentScrubberStart = this.currentX / this.props.time;
+        const scrubberStart = percentScrubberStart * this.overviewBarWidth;
 
-        let percentBarStart = this.visibleStart / this.props.time;
-        let barStart = percentBarStart * this.overviewBarWidth;
+        const percentBarStart = this.visibleStart / this.props.time;
+        const barStart = percentBarStart * this.overviewBarWidth;
 
-        let timeline = this.props.isAuthoring ? [
+        const timeline = this.props.isAuthoring ? [
 
             <div key="timeline-overview-container" className="timeline-overview-container" id="timelineOverview">
                 <div ref={this._visibleRef} key="timeline-overview-visible" className="timeline-overview-visible" style={{ left: `${barStart}px`, width: `${visibleBarWidth}px` }} onPointerDown={this.onPointerDown}></div>,
