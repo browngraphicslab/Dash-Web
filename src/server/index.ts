@@ -121,51 +121,6 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
     WebSocket.start(isRelease);
 }
 
-// Utils.AddServerHandler(socket, MessageStore.NotifyRoommates, message => HandleRoommateNotification(socket, message));
-// // Utils.AddServerHandler(socket, MessageStore.HangUpCall, message => HandleHangUp(socket, message));
-// // Utils.AddRoomHandler(socket, "create or join", HandleCreateOrJoin);
-
-// function HandleRoommateNotification(socket: Socket, message: RoomMessage) {
-//     //socket.broadcast.emit('message', message);
-//     console.log("The room that sent this: ", message.room, " and message is : ", message.message);
-//     server.sockets.in(message.room).emit('message', message);
-
-// }
-
-// function HandleCreateOrJoin(socket: io.Socket, room: string) {
-//     console.log("Received request to create or join room " + room);
-
-
-//     let clientsInRoom = server.sockets.adapter.rooms[room];
-//     let numClients = clientsInRoom ? Object.keys(clientsInRoom.sockets).length : 0;
-//     console.log('Room ' + room + ' now has ' + numClients + ' client(s)');
-
-
-//     if (numClients === 0) {
-//         socket.join(room);
-//         console.log('Client ID ' + socket.id + ' created room ' + room);
-//         socket.emit('created', room, socket.id);
-
-//     } else if (numClients === 1) {
-//         console.log('Client ID ' + socket.id + ' joined room ' + room);
-//         server.sockets.in(room).emit('join', room);
-//         socket.join(room);
-//         socket.emit('joined', room, socket.id);
-//         server.sockets.in(room).emit('ready');
-
-//     } else {
-//         socket.emit('full', room);
-//     }
-
-
-
-
-
-// }
-
-// function HandleHangUp(socket: io.Socket, message: string) {
-//     console.log("Receive bye from someone");
-// }
 
 /**
  * This function can be used in two different ways. If not in release mode,
