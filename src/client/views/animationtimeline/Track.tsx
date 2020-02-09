@@ -80,6 +80,13 @@ export class Track extends React.Component<IProps> {
     }
     ////////////////////////////////
 
+
+    getLastRegion = () => {
+
+        console.log((this.regions[this.regions.length - 1] as Doc).time); 
+        return this.regions[this.regions.length - 1] as Doc; 
+    }
+
     /**
      * keyframe save logic. Needs to be changed so it's more efficient
      * 
