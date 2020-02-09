@@ -248,20 +248,14 @@ async function writeImages(zip: any): Promise<string[]> {
         } else if (jpgs.includes(lower)) {
             resizers.forEach(element => element.resizer = element.resizer.jpeg());
         } else {
-            throw new Error(red(initialWritePath + " " + lower));
+            throw new Error(red(`The following image extension is unsupported: ${cyan(lower)}`));
         }
         for (const { resizer, suffix } of resizers) {
-            await new Promise<void>(resolve => {
+            await new Promise<void>((resolve, reject) => {
                 const filename = InjectSize(outName, suffix);
-                createReadStream(initialWritePath).pipe(resizer).on('error', error => {
-                    console.log(red(error.message) + filename);
-                    resolve();
-                }).pipe(createWriteStream(path.resolve(imageDir, filename)))
+                createReadStream(initialWritePath).pipe(resizer).pipe(createWriteStream(path.resolve(imageDir, filename)))
                     .on('close', resolve)
-                    .on('error', error => {
-                        console.log(red(error));
-                        resolve();
-                    });
+                    .on('error', reject);
             });
         }
         unlinkSync(initialWritePath);
