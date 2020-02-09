@@ -249,6 +249,75 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         return true;
     }
 
+
+    //
+    //  Creates a split on the any side of the docking view, based on the passed input pullSide and then adds the Document to the requested side
+    //
+    @undoBatch
+    @action
+    public static AddSplit(document: Doc, pullSide: string, dataDoc: Doc | undefined, libraryPath?: Doc[]) {
+        if (!CollectionDockingView.Instance) return false;
+        const instance = CollectionDockingView.Instance;
+        const newItemStackConfig = {
+            type: 'stack',
+            content: [CollectionDockingView.makeDocumentConfig(document, dataDoc, undefined, libraryPath)]
+        };
+
+        const newContentItem = instance._goldenLayout.root.layoutManager.createContentItem(newItemStackConfig, instance._goldenLayout);
+
+        if (instance._goldenLayout.root.contentItems.length === 0) { // if no rows / columns
+            instance._goldenLayout.root.addChild(newContentItem);
+        } else if (instance._goldenLayout.root.contentItems[0].isRow) { // if row
+            if (pullSide === "left") {
+                instance._goldenLayout.root.contentItems[0].addChild(newContentItem, 0);
+            } else if (pullSide === "right") {
+                instance._goldenLayout.root.contentItems[0].addChild(newContentItem);
+            } else if (pullSide === "top" || pullSide === "bottom") {
+                // if not going in a row layout, must add already existing content into column
+                const rowlayout = instance._goldenLayout.root.contentItems[0];
+                const newColumn = rowlayout.layoutManager.createContentItem({ type: "column" }, instance._goldenLayout);
+                rowlayout.parent.replaceChild(rowlayout, newColumn);
+                if (pullSide === "top") {
+                    newColumn.addChild(rowlayout, undefined, true);
+                    newColumn.addChild(newContentItem, 0, true);
+                } else if (pullSide === "bottom") {
+                    newColumn.addChild(newContentItem, undefined, true);
+                    newColumn.addChild(rowlayout, 0, true);
+                }
+
+                rowlayout.config.height = 50;
+                newContentItem.config.height = 50;
+            }
+        } else if (instance._goldenLayout.root.contentItems[0].isColumn) { // if column
+            if (pullSide === "top") {
+                instance._goldenLayout.root.contentItems[0].addChild(newContentItem, 0);
+            } else if (pullSide === "bottom") {
+                instance._goldenLayout.root.contentItems[0].addChild(newContentItem);
+            } else if (pullSide === "left" || pullSide === "right") {
+                // if not going in a row layout, must add already existing content into column
+                const collayout = instance._goldenLayout.root.contentItems[0];
+                const newRow = collayout.layoutManager.createContentItem({ type: "row" }, instance._goldenLayout);
+                collayout.parent.replaceChild(collayout, newRow);
+
+                if (pullSide === "left") {
+                    newRow.addChild(collayout, undefined, true);
+                    newRow.addChild(newContentItem, 0, true);
+                } else if (pullSide === "right") {
+                    newRow.addChild(newContentItem, undefined, true);
+                    newRow.addChild(collayout, 0, true);
+                }
+
+                collayout.config.width = 50;
+                newContentItem.config.width = 50;
+            }
+        }
+
+        newContentItem.callDownwards('_$init');
+        instance.layoutChanged();
+        return true;
+    }
+
+
     //
     //  Creates a vertical split on the right side of the docking view, and then adds the Document to that split
     //

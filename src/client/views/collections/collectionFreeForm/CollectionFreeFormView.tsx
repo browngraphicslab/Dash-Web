@@ -45,6 +45,7 @@ import { CognitiveServices } from "../../../cognitive_services/CognitiveServices
 import { RichTextField } from "../../../../new_fields/RichTextField";
 import { List } from "../../../../new_fields/List";
 import { DocumentViewProps } from "../../nodes/DocumentView";
+import { CollectionDockingView } from "../CollectionDockingView";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
@@ -80,6 +81,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private _hitCluster = false;
     private _layoutComputeReaction: IReactionDisposer | undefined;
     private _layoutPoolData = new ObservableMap<string, any>();
+    private _pullCoords: number[] = [0, 0];
 
     public get displayName() { return "CollectionFreeFormView(" + this.props.Document.title?.toString() + ")"; } // this makes mobx trace() statements more descriptive
     @observable.shallow _layoutElements: ViewDefResult[] = []; // shallow because some layout items (eg pivot labels) are just generated 'divs' and can't be frozen as observables
@@ -596,7 +598,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             const myTouches = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true);
             const pt1 = myTouches[0];
             const pt2 = myTouches[1];
-            console.log(myTouches);
 
             if (this.prevPoints.size === 2) {
                 const oldPoint1 = this.prevPoints.get(pt1.identifier);
@@ -625,7 +626,11 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         // use the centerx and centery as the "new mouse position"
                         const centerX = Math.min(pt1.clientX, pt2.clientX) + Math.abs(pt2.clientX - pt1.clientX) / 2;
                         const centerY = Math.min(pt1.clientY, pt2.clientY) + Math.abs(pt2.clientY - pt1.clientY) / 2;
-                        this.pan({ clientX: centerX, clientY: centerY });
+
+                        if (!this._pullCoords[0] && !this._pullCoords[1]) { // if we are not bezel movement
+                            this.pan({ clientX: centerX, clientY: centerY });
+                        }
+
                         this._lastX = centerX;
                         this._lastY = centerY;
                     }
@@ -650,6 +655,12 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 const centerY = Math.min(pt1.clientY, pt2.clientY) + Math.abs(pt2.clientY - pt1.clientY) / 2;
                 this._lastX = centerX;
                 this._lastY = centerY;
+
+                // determine if we are using a bezel movement
+                if ((this.props.PanelWidth() - this._lastX) < 100 || this._lastX < 100 || (this.props.PanelHeight() - this._lastY < 100) || this._lastY < 120) { // to account for header
+                    this._pullCoords = [this._lastX, this._lastY];
+                }
+
                 this.removeMoveListeners();
                 this.addMoveListeners();
                 this.removeEndListeners();
@@ -660,11 +671,36 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     cleanUpInteractions = () => {
+
+        if (this._pullCoords[0] !== 0 && this._pullCoords[1] !== 0) { // if bezel mvmt was activated
+            const xDiff = this._pullCoords[0] - this._lastX;
+            const yDiff = this._pullCoords[1] - this._lastY;
+
+            console.log('went thru', this._pullCoords);
+            if ((this._lastX < this._pullCoords[0]) && (yDiff < xDiff)) { // pull from right
+                console.log('pulled from right');
+                // CollectionDockingView.AddRightSplit(this.Document, undefined);
+                CollectionDockingView.AddSplit(this.Document, "right", undefined);
+            } else if ((this._lastY > this._pullCoords[1]) && (yDiff < xDiff)) { // pull from top
+                console.log('pulled from top');
+                CollectionDockingView.AddSplit(this.Document, "top", undefined);
+            } else if ((this._lastY < this._pullCoords[1]) && (yDiff > xDiff)) { // pull from bottom
+                console.log('pulled from bottom');
+                CollectionDockingView.AddSplit(this.Document, "bottom", undefined);
+            } else if ((this._lastX > this._pullCoords[0]) && (yDiff > xDiff)) { // pull from left
+                console.log('pulled from left');
+                CollectionDockingView.AddSplit(this.Document, "left", undefined);
+            }
+        }
+
+        this._pullCoords = [0, 0];
+
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
         this.removeMoveListeners();
         this.removeEndListeners();
     }
+
 
     @action
     zoom = (pointX: number, pointY: number, deltaY: number): void => {
