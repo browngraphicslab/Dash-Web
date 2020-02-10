@@ -21,6 +21,7 @@ import "./CollectionTimeView.scss";
 import React = require("react");
 import { CollectionTreeView } from "./CollectionTreeView";
 import { ObjectField } from "../../../new_fields/ObjectField";
+import { DocumentType } from "../../documents/DocumentTypes";
 
 @observer
 export class CollectionTimeView extends CollectionSubView(doc => doc) {
@@ -97,6 +98,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
                 });
                 if (nonNumbers / allCollectionDocs.length < .1) {
                     const newFacet = Docs.Create.SliderDocument({ title: facetHeader });
+                    Doc.GetProto(newFacet).type = DocumentType.COL; // forces item to show an open/close button instead ofa checkbox
                     newFacet.treeViewExpandedView = "layout";
                     newFacet.treeViewOpen = true;
                     newFacet._sliderMin = minVal;
