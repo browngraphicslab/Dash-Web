@@ -132,6 +132,7 @@ export interface DocumentOptions {
     strokeWidth?: number;
     color?: string;
     treeViewHideTitle?: boolean; // whether to hide the title of a tree view
+    treeViewHideHeaderFields?: boolean; // whether to hide the drop down options for tree view items.
     treeViewOpen?: boolean; // whether this document is expanded in a tree view
     treeViewChecked?: ScriptField; // script to call when a tree view checkbox is checked
     isFacetFilter?: boolean; // whether document functions as a facet filter in a tree view

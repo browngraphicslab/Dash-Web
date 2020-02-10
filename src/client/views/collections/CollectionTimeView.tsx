@@ -1,27 +1,29 @@
 import { faEdit } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, observable, trace, runInAction } from "mobx";
+import { action, computed, observable, runInAction, trace } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast, Field } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
+import { ObjectField } from "../../../new_fields/ObjectField";
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { listSpec } from "../../../new_fields/Schema";
 import { ComputedField, ScriptField } from "../../../new_fields/ScriptField";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { Docs } from "../../documents/Documents";
+import { DocumentType } from "../../documents/DocumentTypes";
 import { Scripting } from "../../util/Scripting";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { EditableView } from "../EditableView";
-import { anchorPoints, Flyout } from "../TemplateMenu";
 import { ViewDefBounds } from "./collectionFreeForm/CollectionFreeFormLayoutEngines";
 import { CollectionFreeFormView } from "./collectionFreeForm/CollectionFreeFormView";
 import { CollectionSubView } from "./CollectionSubView";
 import "./CollectionTimeView.scss";
-import React = require("react");
 import { CollectionTreeView } from "./CollectionTreeView";
-import { ObjectField } from "../../../new_fields/ObjectField";
-import { DocumentType } from "../../documents/DocumentTypes";
+const higflyout = require("@hig/flyout");
+export const { anchorPoints } = higflyout;
+export const Flyout = higflyout.default;
+import React = require("react");
 
 @observer
 export class CollectionTimeView extends CollectionSubView(doc => doc) {
@@ -31,7 +33,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
     componentDidMount() {
         const childDetailed = this.props.Document.childDetailed; // bcz: needs to be here to make sure the childDetailed layout template has been loaded when the first item is clicked;
         if (!this.props.Document._facetCollection) {
-            const facetCollection = Docs.Create.TreeDocument([], { title: "facetFilters", _yMargin: 0, treeViewHideTitle: true });
+            const facetCollection = Docs.Create.TreeDocument([], { title: "facetFilters", _yMargin: 0, treeViewHideTitle: true, treeViewHideHeaderFields: true });
             facetCollection.target = this.props.Document;
             this.props.Document.excludeFields = new List<string>(["_facetCollection", "_docFilter"]);
 
@@ -248,7 +250,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
         trace();
         const facetCollection = Cast(this.props.Document?._facetCollection, Doc, null);
         const flyout = (
-            <div className="collectionTimeView-flyout" style={{ width: `${this._facetWidth}` }}>
+            <div className="collectionTimeView-flyout" style={{ width: `${this._facetWidth}`, display: "block" }} onWheel={e => e.stopPropagation()}>
                 {this._allFacets.map(facet => <label className="collectionTimeView-flyout-item" key={`${facet}`} onClick={e => this.facetClick(facet)}>
                     <input type="checkbox" onChange={e => { }} checked={DocListCast((this.props.Document._facetCollection as Doc)?.data).some(d => d.title === facet)} />
                     <span className="checkmark" />

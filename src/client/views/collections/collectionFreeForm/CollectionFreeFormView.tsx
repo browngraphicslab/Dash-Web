@@ -854,7 +854,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             }
             return true;
         }) : this.childDocs;
-        const rangeFilteredDocs = docRangeFilters.length ? filteredDocs.filter(d => {
+        const rangeFilteredDocs = filteredDocs.filter(d => {
             for (let i = 0; i < docRangeFilters.length; i += 3) {
                 const key = docRangeFilters[i];
                 const min = Number(docRangeFilters[i + 1]);
@@ -865,7 +865,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 }
             }
             return true;
-        }) : this.childDocs;
+        });
         return rangeFilteredDocs;
     }
     get doLayoutComputation() {
