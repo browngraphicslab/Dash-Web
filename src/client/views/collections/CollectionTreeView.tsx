@@ -648,7 +648,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
                 const detailView = Docs.Create.StackingDocument([
                     CarouselDocument([], { title: "data", _height: 350, _itemIndex: 0, backgroundColor: "#9b9b9b3F" }),
                     textDoc,
-                    TextDocument("", { title: "short_description", _autoHeight: true }),
+                    TextDocument("", { title: "shortDescription", _autoHeight: true }),
                     TreeDocument([], { title: "narratives", _height: 75, treeViewHideTitle: true })
                 ], { _chromeStatus: "disabled", _width: 300, _height: 300, _autoHeight: true, title: "detailView" });
                 textDoc.data = new RichTextField(detailedTemplate, "year company");
