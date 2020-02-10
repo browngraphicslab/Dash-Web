@@ -183,7 +183,13 @@ export class Doc extends RefField {
     @computed get __LAYOUT__() {
         const templateLayoutDoc = Cast(Doc.LayoutField(this[SelfProxy]), Doc, null);
         if (templateLayoutDoc) {
-            const renderFieldKey = (templateLayoutDoc[StrCast(templateLayoutDoc.layoutKey, "layout")] as string).split("'")[1];
+            let renderFieldKey: any;
+            const layoutField = templateLayoutDoc[StrCast(templateLayoutDoc.layoutKey, "layout")];
+            if (typeof layoutField === "string") {
+                renderFieldKey = layoutField.split("'")[1];
+            } else {
+                return Cast(layoutField, Doc, null);
+            }
             return Cast(this[SelfProxy][renderFieldKey + "-layout[" + templateLayoutDoc[Id] + "]"], Doc, null) || templateLayoutDoc;
         }
         return undefined;
@@ -608,8 +614,12 @@ export namespace Doc {
         }
 
         if (!Doc.AreProtosEqual(target[targetKey] as Doc, templateDoc)) {
-            titleTarget && (Doc.GetProto(target).title = titleTarget);
-            Doc.GetProto(target)[targetKey] = new PrefetchProxy(templateDoc);
+            if (target.resolvedDataDoc) {
+                target[targetKey] = new PrefetchProxy(templateDoc);
+            } else {
+                titleTarget && (Doc.GetProto(target).title = titleTarget);
+                Doc.GetProto(target)[targetKey] = new PrefetchProxy(templateDoc);
+            }
         }
         target.layoutKey = targetKey;
         return target;
@@ -801,7 +811,8 @@ export namespace Doc {
         const prevLayout = StrCast(doc.layoutKey).split("_")[1];
         const deiconify = prevLayout === "icon" && StrCast(doc.deiconifyLayout) ? "layout_" + StrCast(doc.deiconifyLayout) : "";
         doc.deiconifyLayout = undefined;
-        if (StrCast(doc.title).endsWith("_" + prevLayout)) doc.title = StrCast(doc.title).replace("_" + prevLayout, "");
+        if (StrCast(doc.title).endsWith("_" + prevLayout) && deiconify) doc.title = StrCast(doc.title).replace("_" + prevLayout, deiconify);
+        else doc.title = undefined;
         doc.layoutKey = deiconify || "layout";
     }
     export function setDocFilterRange(target: Doc, key: string, range?: number[]) {
