@@ -348,10 +348,12 @@ export namespace Docs {
             const parent = TreeDocument([loading], {
                 title: "The Buxton Collection",
                 _width: 400,
-                _height: 400
+                _height: 400,
+                _LODdisable: true
             });
             Networking.FetchFromServer("/buxton").then(response => {
-                parent.data = new List<Doc>();
+                const parentProto = Doc.GetProto(parent);
+                parentProto.data = new List<Doc>();
                 const devices = JSON.parse(response);
                 if (!Array.isArray(devices)) {
                     alert("Improper Buxton import formatting!");
@@ -364,9 +366,9 @@ export namespace Docs {
                     if (Array.isArray(__images)) {
                         const deviceImages = __images.map((url, i) => ImageDocument(url, { title: `image${i}.${extname(url)}` }));
                         const doc = StackingDocument(deviceImages, { title: device.title });
-                        doc.hero = new ImageField(__images[0]);
+                        Doc.GetProto(doc).hero = new ImageField(__images[0]);
                         Docs.Get.DocumentHierarchyFromJson(device, undefined, doc);
-                        Doc.AddDocToList(parent, "data", doc);
+                        Doc.AddDocToList(parentProto, "data", doc);
                     }
                 });
             });
