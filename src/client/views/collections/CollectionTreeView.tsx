@@ -633,11 +633,10 @@ export class CollectionTreeView extends CollectionSubView(Document) {
             description: "Buxton Layout", icon: "eye", event: () => {
                 DocListCast(this.dataDoc[this.props.fieldKey]).map(d => {
                     DocListCast(d.data).map((img, i) => {
-                        const caption = (d.captions as any)[i]?.data;
-                        if (caption instanceof ObjectField) {
-                            Doc.GetProto(img).caption = ObjectField.MakeCopy(caption);
+                        const caption = (d.captions as any)[i];
+                        if (caption) {
+                            Doc.GetProto(img).caption = caption;
                         }
-                        d.captions = undefined;
                     });
                 });
                 const { TextDocument, ImageDocument, CarouselDocument, TreeDocument } = Docs.Create;
@@ -649,12 +648,11 @@ export class CollectionTreeView extends CollectionSubView(Document) {
                 const detailView = Docs.Create.StackingDocument([
                     CarouselDocument([], { title: "data", _height: 350, _itemIndex: 0, backgroundColor: "#9b9b9b3F" }),
                     textDoc,
-                    TextDocument("", { title: "short_description", _autoHeight: true }),
+                    TextDocument("", { title: "shortDescription", _autoHeight: true }),
                     TreeDocument([], { title: "narratives", _height: 75, treeViewHideTitle: true })
                 ], { _chromeStatus: "disabled", _width: 300, _height: 300, _autoHeight: true, title: "detailView" });
                 textDoc.data = new RichTextField(detailedTemplate, "year company");
                 detailView.isTemplateDoc = makeTemplate(detailView);
-
 
                 const heroView = ImageDocument(fallbackImg, { title: "heroView", isTemplateDoc: true, isTemplateForField: "hero", }); // this acts like a template doc and a template field ... a little weird, but seems to work?
                 heroView.proto!.layout = ImageBox.LayoutString("hero");
@@ -672,7 +670,6 @@ export class CollectionTreeView extends CollectionSubView(Document) {
                         _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, dropAction: "alias", onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
                         dragFactory: detailView, removeDropProperties: new List<string>(["dropAction"]), title: "detail view", icon: "file-alt"
                     }));
-
 
                 Document.childLayout = heroView;
                 Document.childDetailed = detailView;

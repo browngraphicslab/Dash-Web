@@ -56,6 +56,7 @@ import { InkField } from "../../new_fields/InkField";
 import { InkingControl } from "../views/InkingControl";
 import { RichTextField } from "../../new_fields/RichTextField";
 import { Networking } from "../Network";
+import { extname } from "path";
 const requestImageSize = require('../util/request-image-size');
 const path = require('path');
 
@@ -350,8 +351,38 @@ export namespace Docs {
      */
     export namespace Create {
 
-        export async function Buxton() {
-            console.log(await Networking.FetchFromServer("/newBuxton"));
+        export function Buxton() {
+            const loading = new Doc;
+            loading.title = "Please wait for the import script...";
+            const parent = TreeDocument([loading], {
+                title: "The Buxton Collection",
+                _width: 400,
+                _height: 400,
+                _LODdisable: true
+            });
+            Networking.FetchFromServer("/buxton").then(response => {
+                const parentProto = Doc.GetProto(parent);
+                parentProto.data = new List<Doc>();
+                const devices = JSON.parse(response);
+                if (!Array.isArray(devices)) {
+                    alert("Improper Buxton import formatting!");
+                    return;
+                }
+                devices.forEach(device => {
+                    const { __images } = device;
+                    delete device.__images;
+                    const { ImageDocument, StackingDocument } = Docs.Create;
+                    if (Array.isArray(__images)) {
+                        const deviceImages = __images.map((url, i) => ImageDocument(url, { title: `image${i}.${extname(url)}` }));
+                        const doc = StackingDocument(deviceImages, { title: device.title, _LODdisable: true });
+                        const protoDoc = Doc.GetProto(doc);
+                        protoDoc.hero = new ImageField(__images[0]);
+                        Docs.Get.DocumentHierarchyFromJson(device, undefined, protoDoc);
+                        Doc.AddDocToList(parentProto, "data", doc);
+                    }
+                });
+            });
+            return parent;
         }
 
         Scripting.addGlobal(Buxton);
@@ -645,7 +676,7 @@ export namespace Docs {
          * or the result of any JSON.parse() call.
          * @param title an optional title to give to the highest parent document in the hierarchy
          */
-        export function DocumentHierarchyFromJson(input: any, title?: string): Opt<Doc> {
+        export function DocumentHierarchyFromJson(input: any, title?: string, appendToTarget?: Doc): Opt<Doc> {
             if (input === undefined || input === null || ![...primitives, "object"].includes(typeof input)) {
                 return undefined;
             }
@@ -655,7 +686,7 @@ export namespace Docs {
             }
             let converted: Doc;
             if (typeof parsed === "object" && !(parsed instanceof Array)) {
-                converted = convertObject(parsed, title);
+                converted = convertObject(parsed, title, appendToTarget);
             } else {
                 (converted = new Doc).json = toField(parsed);
             }
@@ -670,12 +701,12 @@ export namespace Docs {
          * @returns the object mapped from JSON to field values, where each mapping 
          * might involve arbitrary recursion (since toField might itself call convertObject)
          */
-        const convertObject = (object: any, title?: string): Doc => {
-            const target = new Doc();
+        const convertObject = (object: any, title?: string, target?: Doc): Doc => {
+            const resolved = target ?? new Doc;
             let result: Opt<Field>;
-            Object.keys(object).map(key => (result = toField(object[key], key)) && (target[key] = result));
-            title && !target.title && (target.title = title);
-            return target;
+            Object.keys(object).map(key => (result = toField(object[key], key)) && (resolved[key] = result));
+            title && !resolved.title && (resolved.title = title);
+            return resolved;
         };
 
         /**
