@@ -766,7 +766,7 @@ export class DashDocView {
                 alias && DocServer.GetRefField(docid).then(async dashDocBase => {
                     if (dashDocBase instanceof Doc) {
                         const aliasedDoc = Doc.MakeAlias(dashDocBase, docid + alias);
-                        aliasedDoc.layoutKey = "layout" + (node.attrs.fieldKey ? "_" + node.attrs.fieldKey : "");
+                        aliasedDoc.layoutKey = node.attrs.fieldKey === "layout" ? "layout" : "layout" + (node.attrs.fieldKey ? "_" + node.attrs.fieldKey : "");
                         self.doRender(aliasedDoc, removeDoc, node, view, getPos);
                     }
                 });
