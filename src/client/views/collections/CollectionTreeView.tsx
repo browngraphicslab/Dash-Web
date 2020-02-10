@@ -764,7 +764,7 @@ Scripting.addGlobal(function readFacetData(layoutDoc: Doc, dataDoc: Doc, dataKey
 });
 
 Scripting.addGlobal(function determineCheckedState(layoutDoc: Doc, facetHeader: string, facetValue: string) {
-    const docFilters = Cast(layoutDoc._docFilter, listSpec("string"), []);
+    const docFilters = Cast(layoutDoc._docFilters, listSpec("string"), []);
     for (let i = 0; i < docFilters.length; i += 3) {
         const [header, value, state] = docFilters.slice(i, i + 3);
         if (header === facetHeader && value === facetValue) {

@@ -827,7 +827,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     @computed get filterDocs() {
-        const docFilters = Cast(this.props.Document._docFilter, listSpec("string"), []);
+        const docFilters = Cast(this.props.Document._docFilters, listSpec("string"), []);
         const docRangeFilters = Cast(this.props.Document._docRangeFilters, listSpec("string"), []);
         const clusters: { [key: string]: { [value: string]: string } } = {};
         for (let i = 0; i < docFilters.length; i += 3) {

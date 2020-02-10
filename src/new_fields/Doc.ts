@@ -820,7 +820,7 @@ export namespace Doc {
         }
     }
     export function setDocFilter(container: Doc, key: string, value: any, modifiers?: string | number) {
-        const docFilters = Cast(container._docFilter, listSpec("string"), []);
+        const docFilters = Cast(container._docFilters, listSpec("string"), []);
         for (let i = 0; i < docFilters.length; i += 3) {
             if (docFilters[i] === key && docFilters[i + 1] === value) {
                 docFilters.splice(i, 3);
@@ -831,7 +831,7 @@ export namespace Doc {
             docFilters.push(key);
             docFilters.push(value);
             docFilters.push(modifiers);
-            container._docFilter = new List<string>(docFilters);
+            container._docFilters = new List<string>(docFilters);
         }
     }
     export function readDocRangeFilter(doc: Doc, key: string) {
