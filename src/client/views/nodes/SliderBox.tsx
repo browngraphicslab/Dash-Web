@@ -1,6 +1,6 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faEdit } from '@fortawesome/free-regular-svg-icons';
-import { computed } from 'mobx';
+import { computed, runInAction } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
 import { Handles, Rail, Slider, Tracks, Ticks } from 'react-compound-slider';
@@ -16,18 +16,20 @@ import { DocComponent } from '../DocComponent';
 import './SliderBox.scss';
 import { Handle, TooltipRail, Track, Tick } from './SliderBox-components';
 import { FieldView, FieldViewProps } from './FieldView';
+import { ScriptBox } from '../ScriptBox';
 
 
 library.add(faEdit as any);
 
-const ButtonSchema = createSchema({
-    onClick: ScriptField,
-    buttonParams: listSpec("string"),
-    text: "string"
+const SliderSchema = createSchema({
+    _sliderMin: "number",
+    _sliderMax: "number",
+    _sliderMinThumb: "number",
+    _sliderMaxThumb: "number",
 });
 
-type SliderDocument = makeInterface<[typeof ButtonSchema, typeof documentSchema]>;
-const SliderDocument = makeInterface(ButtonSchema, documentSchema);
+type SliderDocument = makeInterface<[typeof SliderSchema, typeof documentSchema]>;
+const SliderDocument = makeInterface(SliderSchema, documentSchema);
 
 @observer
 export class SliderBox extends DocComponent<FieldViewProps, SliderDocument>(SliderDocument) {
@@ -37,23 +39,19 @@ export class SliderBox extends DocComponent<FieldViewProps, SliderDocument>(Slid
     @computed get dataDoc() {
         return this.props.DataDoc &&
             (this.Document.isTemplateForField || BoolCast(this.props.DataDoc.isTemplateForField) ||
-                this.props.DataDoc.layout === this.props.Document) ? this.props.DataDoc : Doc.GetProto(this.props.Document);
+                this.props.DataDoc.layout === this.Document) ? this.props.DataDoc : Doc.GetProto(this.Document);
     }
 
     specificContextMenu = (e: React.MouseEvent): void => {
         const funcs: ContextMenuProps[] = [];
-        funcs.push({
-            description: "Clear Script Params", event: () => {
-                const params = FieldValue(this.Document.buttonParams);
-                params && params.map(p => this.props.Document[p] = undefined);
-            }, icon: "trash"
-        });
-
-        ContextMenu.Instance.addItem({ description: "OnClick...", subitems: funcs, icon: "asterisk" });
+        funcs.push({ description: "Edit Thumb Change Script", icon: "edit", event: (obj: any) => ScriptBox.EditButtonScript("On Thumb Change ...", this.props.Document, "onThumbChange", obj.x, obj.y) });
+        ContextMenu.Instance.addItem({ description: "Slider Funcs...", subitems: funcs, icon: "asterisk" });
     }
-    onChange = (values: readonly number[]) => {
-        Cast(this.props.Document.onThumbChanged, ScriptField, null)?.script.run({ range: values, this: this.props.Document })
-    }
+    onChange = (values: readonly number[]) => runInAction(() => {
+        this.Document._sliderMinThumb = values[0];
+        this.Document._sliderMaxThumb = values[1];
+        Cast(this.Document.onThumbChanged, ScriptField, null)?.script.run({ range: values, this: this.props.Document })
+    })
 
     render() {
         const domain = [NumCast(this.props.Document._sliderMin), NumCast(this.props.Document._sliderMax)]
@@ -61,7 +59,7 @@ export class SliderBox extends DocComponent<FieldViewProps, SliderDocument>(Slid
         return (
             <div className="sliderBox-outerDiv" onContextMenu={this.specificContextMenu} onPointerDown={e => e.stopPropagation()}
                 style={{ boxShadow: this.Document.opacity === 0 ? undefined : StrCast(this.Document.boxShadow, "") }}>
-                <div className="sliderBox-mainButton" style={{
+                <div className="sliderBox-mainButton" onContextMenu={this.specificContextMenu} style={{
                     background: this.Document.backgroundColor, color: this.Document.color || "black",
                     fontSize: this.Document.fontSize, letterSpacing: this.Document.letterSpacing || ""
                 }} >
@@ -70,7 +68,6 @@ export class SliderBox extends DocComponent<FieldViewProps, SliderDocument>(Slid
                         step={1}
                         domain={domain}
                         rootStyle={{ position: "relative", width: "100%" }}
-                        // onUpdate={this.onUpdate}
                         onChange={this.onChange}
                         values={defaultValues}
                     >

@@ -97,21 +97,19 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
                     }
                 });
                 if (nonNumbers / allCollectionDocs.length < .1) {
+                    const ranged = Doc.readDocRangeFilter(this.props.Document, facetHeader);
                     const newFacet = Docs.Create.SliderDocument({ title: facetHeader });
                     Doc.GetProto(newFacet).type = DocumentType.COL; // forces item to show an open/close button instead ofa checkbox
                     newFacet.treeViewExpandedView = "layout";
                     newFacet.treeViewOpen = true;
-                    newFacet._sliderMin = minVal;
-                    newFacet._sliderMax = maxVal;
+                    newFacet._sliderMin = ranged === undefined ? minVal : ranged[0];
+                    newFacet._sliderMax = ranged === undefined ? maxVal : ranged[1];
                     newFacet._sliderMinThumb = minVal;
                     newFacet._sliderMaxThumb = maxVal;
                     newFacet.target = this.props.Document;
                     const scriptText = `setDocFilterRange(this.target, "${facetHeader}", range)`;
                     newFacet.onThumbChanged = ScriptField.MakeScript(scriptText, { this: Doc.name, range: "number" });
 
-                    // const capturedVariables = { layoutDoc: this.props.Document, dataDoc: this.dataDoc };
-                    // const params = { layoutDoc: Doc.name, dataDoc: Doc.name, };
-                    // newFacet.data = ComputedField.MakeFunction(`readFacetData(layoutDoc, dataDoc, "${this.props.fieldKey}", "${facetHeader}")`, params, capturedVariables);
                     Doc.AddDocToList(facetCollection, "data", newFacet);
                 } else {
                     const newFacet = Docs.Create.TreeDocument([], { title: facetHeader, treeViewOpen: true, isFacetFilter: true });

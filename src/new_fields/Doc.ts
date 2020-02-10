@@ -804,19 +804,19 @@ export namespace Doc {
         if (StrCast(doc.title).endsWith("_" + prevLayout)) doc.title = StrCast(doc.title).replace("_" + prevLayout, "");
         doc.layoutKey = deiconify || "layout";
     }
-    export function setDocFilterRange(container: Doc, key: string, range?: number[]) {
-        const docFilters = Cast(container._docRangeFilters, listSpec("string"), []);
-        for (let i = 0; i < docFilters.length; i += 3) {
-            if (docFilters[i] === key) {
-                docFilters.splice(i, 3);
+    export function setDocFilterRange(target: Doc, key: string, range?: number[]) {
+        const docRangeFilters = Cast(target._docRangeFilters, listSpec("string"), []);
+        for (let i = 0; i < docRangeFilters.length; i += 3) {
+            if (docRangeFilters[i] === key) {
+                docRangeFilters.splice(i, 3);
                 break;
             }
         }
         if (range !== undefined) {
-            docFilters.push(key);
-            docFilters.push(range[0].toString());
-            docFilters.push(range[1].toString());
-            container._docRangeFilters = new List<string>(docFilters);
+            docRangeFilters.push(key);
+            docRangeFilters.push(range[0].toString());
+            docRangeFilters.push(range[1].toString());
+            target._docRangeFilters = new List<string>(docRangeFilters);
         }
     }
     export function setDocFilter(container: Doc, key: string, value: any, modifiers?: string | number) {
@@ -832,6 +832,14 @@ export namespace Doc {
             docFilters.push(value);
             docFilters.push(modifiers);
             container._docFilter = new List<string>(docFilters);
+        }
+    }
+    export function readDocRangeFilter(doc: Doc, key: string) {
+        const docRangeFilters = Cast(doc._docRangeFilters, listSpec("string"), []);
+        for (let i = 0; i < docRangeFilters.length; i += 3) {
+            if (docRangeFilters[i] === key) {
+                return [Number(docRangeFilters[i + 1]), Number(docRangeFilters[i + 2])];
+            }
         }
     }
 }
@@ -859,4 +867,4 @@ Scripting.addGlobal(function selectedDocs(container: Doc, excludeCollections: bo
     return docs.length ? new List(docs) : prevValue;
 });
 Scripting.addGlobal(function setDocFilter(container: Doc, key: string, value: any, modifiers?: string) { Doc.setDocFilter(container, key, value, modifiers); });
-Scripting.addGlobal(function setDocFilterRange(container: Doc, key: string, min: number, max: number) { Doc.setDocFilterRange(container, key, min, max); });
+Scripting.addGlobal(function setDocFilterRange(container: Doc, key: string, range: number) { Doc.setDocFilterRange(container, key, range); });
