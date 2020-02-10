@@ -3,10 +3,13 @@ import * as path from "path";
 import { red, cyan, yellow } from "colors";
 import { Utils } from "../../../Utils";
 import rimraf = require("rimraf");
-const StreamZip = require('node-stream-zip');
 import * as sharp from 'sharp';
 import { SizeSuffix, DashUploadUtils, InjectSize } from "../../../server/DashUploadUtils";
 import { AcceptibleMedia } from "../../../server/SharedMediaTypes";
+const StreamZip = require('node-stream-zip');
+const createImageSizeStream = require("image-size-stream");
+import { parseXml } from "libxmljs";
+import { strictEqual } from "assert";
 
 export interface DeviceDocument {
     title: string;
@@ -14,16 +17,19 @@ export interface DeviceDocument {
     longDescription: string;
     company: string;
     year: number;
-    originalPrice: number;
+    originalPrice: number | "NFS";
     degreesOfFreedom: number;
     dimensions: string;
     primaryKey: string;
     secondaryKey: string;
+    attribute: string;
 }
 
 interface DocumentContents {
     body: string;
-    images: string[];
+    imageUrls: string[];
+    hyperlinks: string[];
+    captions: Caption[];
 }
 
 interface AnalysisResult {
@@ -37,6 +43,12 @@ interface Processor<T> {
     exp: RegExp;
     matchIndex?: number;
     transformer?: Converter<T>;
+    required?: boolean;
+}
+
+interface Caption {
+    fileName: string;
+    caption: string;
 }
 
 namespace Utilities {
@@ -101,16 +113,25 @@ const RegexMap = new Map<keyof DeviceDocument, Processor<any>>([
     }],
     ["primaryKey", {
         exp: /Primary:\s+(.*)(Secondary|Additional):/,
-        transformer: Utilities.collectUniqueTokens
+        transformer: raw => ({ transformed: Utilities.collectUniqueTokens(raw).transformed[0] })
     }],
     ["secondaryKey", {
-        exp: /(Secondary|Additional):\s+([^\{\}]*)Links/,
-        transformer: Utilities.collectUniqueTokens,
+        exp: /(Secondary|Additional):\s+(.*)Attributes?:/,
+        transformer: raw => ({ transformed: Utilities.collectUniqueTokens(raw).transformed[0] }),
         matchIndex: 2
     }],
+    ["attribute", {
+        exp: /Attributes?:\s+(.*)Links/,
+        transformer: raw => ({ transformed: Utilities.collectUniqueTokens(raw).transformed[0] }),
+    }],
     ["originalPrice", {
-        exp: /Original Price \(USD\)\:\s+\$([0-9\.]+)/,
-        transformer: Utilities.numberValue
+        exp: /Original Price \(USD\)\:\s+(\$[0-9]+\.[0-9]+|NFS)/,
+        transformer: (raw: string) => {
+            if (raw === "NFS") {
+                return { transformed: raw };
+            }
+            return Utilities.numberValue(raw.slice(1));
+        }
     }],
     ["degreesOfFreedom", {
         exp: /Degrees of Freedom:\s+([0-9]+)/,
@@ -129,7 +150,8 @@ const RegexMap = new Map<keyof DeviceDocument, Processor<any>>([
                     dim_unit: unit.replace(/[\(\)]+/g, "")
                 }
             };
-        }
+        },
+        required: false
     }],
     ["shortDescription", {
         exp: /Short Description:\s+(.*)Bill Buxton[’']s Notes/,
@@ -156,21 +178,21 @@ export default async function executeImport() {
 }
 
 async function parseFiles(): Promise<DeviceDocument[]> {
-    const sourceDirectory = path.resolve(`${__dirname}/source`);
+    const source = path.resolve(`${__dirname}/source`);
+    const candidates = readdirSync(source).filter(file => /.*\.docx?$/.test(file)).map(file => `${source}/${file}`);
 
-    const candidates = readdirSync(sourceDirectory).filter(file => file.endsWith(".doc") || file.endsWith(".docx")).map(file => `${sourceDirectory}/${file}`);
     const imported: any[] = [];
     for (const filePath of candidates) {
         const fileName = path.basename(filePath).replace("Bill_Notes_", "");
         console.log(cyan(`\nExtracting contents from ${fileName}...`));
-        imported.push({ fileName, body: await extractFileContents(filePath) });
+        imported.push({ fileName, contents: await extractFileContents(filePath) });
     }
+
     console.log(yellow("\nAnalyzing the extracted document text...\n"));
-    const results = imported.map(({ fileName, body }) => analyze(fileName, body));
+    const results = imported.map(({ fileName, contents }) => analyze(fileName, contents));
 
     const masterDevices: DeviceDocument[] = [];
     const masterErrors: any[] = [];
-
     results.forEach(({ device, errors }) => {
         if (device) {
             masterDevices.push(device);
@@ -178,6 +200,7 @@ async function parseFiles(): Promise<DeviceDocument[]> {
             masterErrors.push(errors);
         }
     });
+
     const total = candidates.length;
     if (masterDevices.length + masterErrors.length !== total) {
         throw new Error(`Encountered a ${masterDevices.length} to ${masterErrors.length} mismatch in device / error split!`);
@@ -191,42 +214,110 @@ async function parseFiles(): Promise<DeviceDocument[]> {
     return masterDevices;
 }
 
-async function extractFileContents(pathToDocument: string): Promise<{ body: string, images: string[] }> {
-    console.log('Extracting text...');
-    const zip = new StreamZip({ file: pathToDocument, storeEntries: true });
+async function readAndParseXml(zip: any, relativePath: string) {
     const contents = await new Promise<string>((resolve, reject) => {
-        zip.on('ready', () => {
-            let body = "";
-            zip.stream("word/document.xml", (error: any, stream: any) => {
-                if (error) {
-                    reject(error);
-                }
-                stream.on('data', (chunk: any) => body += chunk.toString());
-                stream.on('end', () => resolve(body));
-            });
+        let body = "";
+        zip.stream(relativePath, (error: any, stream: any) => {
+            if (error) {
+                reject(error);
+            }
+            stream.on('data', (chunk: any) => body += chunk.toString());
+            stream.on('end', () => resolve(body));
         });
     });
-    console.log("Text extracted.");
-    console.log("Beginning image extraction...");
-    const images = await writeImages(zip);
-    console.log(`Extracted ${images.length} images.`);
-    zip.close();
-    let body = "";
-    const components = contents.toString().split('<w:t');
-    for (const component of components) {
-        const tags = component.split('>');
-        const content = tags[1].replace(/<.*$/, "");
-        body += content;
-    }
-    return { body, images };
+
+    return parseXml(contents);
 }
 
+async function extractFileContents(pathToDocument: string): Promise<DocumentContents> {
+    console.log('Extracting text...');
+
+    const zip = new StreamZip({ file: pathToDocument, storeEntries: true });
+    await new Promise<void>(resolve => zip.on('ready', resolve));
+
+    // extract the body of the document and, specifically, its captions
+
+    const document = await readAndParseXml(zip, "word/document.xml");
+    const body = document.root()?.text() || "No body found.";
+    const captions: Caption[] = [];
+    const captionTargets = document.find('//*[name()="w:tbl"]/*[name()="w:tr"]/*[name()="w:tc"]').map(node => node.text());
+    const { length } = captionTargets;
+
+    strictEqual(length > 3, true, "No captions written.");
+    strictEqual(length % 3 === 0, true, "Improper caption formatting.");
+
+    for (let i = 3; i < captionTargets.length; i += 3) {
+        const [image, fileName, caption] = captionTargets.slice(i, i + 3);
+        strictEqual(image, "", `The image cell in one row was not the empty string: ${image}`);
+        captions.push({ fileName, caption });
+    }
+
+    // extract all hyperlinks embedded in the document
+    const rels = await readAndParseXml(zip, "word/_rels/document.xml.rels");
+    const hyperlinks = rels.find('//*[name()="Relationship" and contains(@Type, "hyperlink")]').map(el => el.attrs()[2].value());
+    console.log("Text extracted.");
+
+    console.log("Beginning image extraction...");
+    const imageUrls = await writeImages(zip);
+    console.log(`Extracted ${imageUrls.length} images.`);
+
+    zip.close();
+
+    return { body, imageUrls, captions, hyperlinks };
+}
+
+const imageEntry = /^word\/media\/\w+\.(jpeg|jpg|png|gif)/;
 const { pngs, jpgs } = AcceptibleMedia;
 const pngOptions = {
     compressionLevel: 9,
     adaptiveFiltering: true,
     force: true
 };
+interface Dimensions {
+    width: number;
+    height: number;
+    type: string;
+}
+
+async function writeImages(zip: any): Promise<string[]> {
+    const allEntries = Object.values<any>(zip.entries()).map(({ name }) => name);
+    const imageEntries = allEntries.filter(name => imageEntry.test(name));
+
+    const imageUrls: string[] = [];
+    for (const mediaPath of imageEntries) {
+        const streamImage = () => new Promise<any>((resolve, reject) => {
+            zip.stream(mediaPath, (error: any, stream: any) => error ? reject(error) : resolve(stream));
+        });
+
+        const { width, height, type } = await new Promise<Dimensions>(async resolve => {
+            const sizeStream = createImageSizeStream().on('size', resolve);
+            (await streamImage()).pipe(sizeStream);
+        });
+        if (Math.abs(width - height) < 10) {
+            continue;
+        }
+
+        const ext = `.${type}`;
+        const generatedFileName = `upload_${Utils.GenerateGuid()}${ext}`;
+        for (const { resizer, suffix } of resizers(ext)) {
+            const resizedPath = path.resolve(imageDir, InjectSize(generatedFileName, suffix));
+            await new Promise<void>(async (resolve, reject) => {
+                const writeStream = createWriteStream(resizedPath);
+                const readStream = await streamImage();
+                let source = readStream;
+                if (resizer) {
+                    source = readStream.pipe(resizer.withMetadata());
+                }
+                const out = source.pipe(writeStream);
+                out.on("close", resolve);
+                out.on("error", reject);
+            });
+        }
+        imageUrls.push(`http://localhost:1050/files/images/buxton/${generatedFileName}`);
+    }
+
+    return imageUrls;
+}
 
 function resizers(ext: string): DashUploadUtils.ImageResizer[] {
     return [
@@ -246,63 +337,31 @@ function resizers(ext: string): DashUploadUtils.ImageResizer[] {
     ];
 }
 
-async function writeImages(zip: any): Promise<string[]> {
-    const entryNames = Object.values<any>(zip.entries()).map(({ name }) => name);
-    const resolved: { mediaPath: string, ext: string }[] = [];
-    entryNames.forEach(name => {
-        const matches = /^word\/media\/\w+(\.jpeg|jpg|png|gif)/.exec(name);
-        matches && resolved.push({ mediaPath: name, ext: matches[1] });
-    });
-    const outNames: string[] = [];
-    for (const { mediaPath, ext } of resolved) {
-        const outName = `upload_${Utils.GenerateGuid()}${ext}`;
-        const streamImage = () => new Promise<any>((resolve, reject) => {
-            zip.stream(mediaPath, (error: any, stream: any) => error ? reject(error) : resolve(stream));
-        });
-        for (const { resizer, suffix } of resizers(ext)) {
-            const filePath = path.resolve(imageDir, InjectSize(outName, suffix));
-            await new Promise<void>(async (resolve, reject) => {
-                const writeStream = createWriteStream(filePath);
-                const readStream = await streamImage();
-                let source = readStream;
-                if (resizer) {
-                    source = readStream.pipe(resizer.withMetadata());
-                }
-                const out = source.pipe(writeStream);
-                out.on("close", resolve);
-                out.on("error", reject);
-            });
-        }
-        outNames.push(`http://localhost:1050/files/images/buxton/${outName}`);
-    }
-    return outNames;
-}
-
-function analyze(fileName: string, { body, images }: DocumentContents): AnalysisResult {
-    const device: any = {};
+function analyze(fileName: string, { body, imageUrls, captions, hyperlinks }: DocumentContents): AnalysisResult {
+    const device: any = { hyperlinks };
     const errors: any = { fileName };
 
     for (const key of deviceKeys) {
-        const { exp, transformer, matchIndex } = RegexMap.get(key)!;
+        const { exp, transformer, matchIndex, required } = RegexMap.get(key)!;
         const matches = exp.exec(body);
 
         let captured = Utilities.tryGetValidCapture(matches, matchIndex ?? 1);
-        if (!captured) {
+        if (captured) {
+            captured = captured.replace(/\s{2,}/g, " ");
+            if (transformer) {
+                const { error, transformed } = transformer(captured);
+                if (error) {
+                    errors[key] = `__ERR__${key.toUpperCase()}__TRANSFORM__: ${error}`;
+                    continue;
+                }
+                captured = transformed;
+            }
+
+            device[key] = captured;
+        } else if (required ?? true) {
             errors[key] = `ERR__${key.toUpperCase()}__: outer match ${matches === null ? "wasn't" : "was"} captured.`;
             continue;
         }
-
-        captured = captured.replace(/\s{2,}/g, " ");
-        if (transformer) {
-            const { error, transformed } = transformer(captured);
-            if (error) {
-                errors[key] = `__ERR__${key.toUpperCase()}__TRANSFORM__: ${error}`;
-                continue;
-            }
-            captured = transformed;
-        }
-
-        device[key] = captured;
     }
 
     const errorKeys = Object.keys(errors);
@@ -312,7 +371,14 @@ function analyze(fileName: string, { body, images }: DocumentContents): Analysis
         return { errors };
     }
 
-    device.__images = images;
+    device.__images = imageUrls;
+
+    device.captions = [];
+    device.fileNames = [];
+    captions.forEach(({ caption, fileName }) => {
+        device.captions.push(caption);
+        device.fileNames.push(fileName);
+    });
 
     return { device };
 }
