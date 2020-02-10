@@ -27,6 +27,7 @@ import { listSpec } from "../../new_fields/Schema";
 import { List } from "../../new_fields/List";
 import { CollectionViewType } from "./collections/CollectionView";
 import TouchScrollableMenu, { TouchScrollableMenuItem } from "./TouchScrollableMenu";
+import { RadialMenu } from "./nodes/RadialMenu";
 
 @observer
 export default class GestureOverlay extends Touchable {
@@ -104,6 +105,16 @@ export default class GestureOverlay extends Touchable {
     }
 
     onReactTouchStart = (te: React.TouchEvent) => {
+        console.log("STARTING");
+        console.log(te.touches);
+        // if (RadialMenu.Instance._display === true) {
+        //     console.log("display", RadialMenu.Instance._display);
+        //     runInAction(() => { RadialMenu.Instance._display = false; });
+        //     te.preventDefault();
+        //     te.stopPropagation();
+        //     return;
+        // }
+
         const actualPts: React.Touch[] = [];
         for (let i = 0; i < te.touches.length; i++) {
             const pt: any = te.touches.item(i);
@@ -127,9 +138,10 @@ export default class GestureOverlay extends Touchable {
 
         ptsToDelete.forEach(pt => this.prevPoints.delete(pt));
         const nts = this.getNewTouches(te);
-
+        console.log(this.prevPoints.size, nts.ntt.length, nts.nt.length, nts.nct.length);
         if (nts.nt.length < 5) {
             const target = document.elementFromPoint(te.changedTouches.item(0).clientX, te.changedTouches.item(0).clientY);
+            console.log(te.touches);
             target?.dispatchEvent(
                 new CustomEvent<InteractionUtils.MultiTouchEvent<React.TouchEvent>>("dashOnTouchStart",
                     {
@@ -144,33 +156,41 @@ export default class GestureOverlay extends Touchable {
                     }
                 )
             );
-            if (this.prevPoints.size === 1 && this._holdTimer === undefined) {
+            console.log("2");
+            if (nts.nt.length === 1) {
                 console.log("started");
                 this._holdTimer = setTimeout(() => {
                     console.log("hold");
                     const target = document.elementFromPoint(te.changedTouches.item(0).clientX, te.changedTouches.item(0).clientY);
-                    target?.dispatchEvent(
-                        new CustomEvent<InteractionUtils.MultiTouchEvent<React.TouchEvent>>("dashOnTouchHoldStart",
-                            {
-                                bubbles: true,
-                                detail: {
-                                    fingers: this.prevPoints.size,
-                                    targetTouches: nts.ntt,
-                                    touches: nts.nt,
-                                    changedTouches: nts.nct,
-                                    touchEvent: te
+                    console.log(this.prevPoints.size, nts.ntt.length, nts.nt.length, nts.nct.length);
+                    if (nts.nt.length === 1) {
+                        target?.dispatchEvent(
+                            new CustomEvent<InteractionUtils.MultiTouchEvent<React.TouchEvent>>("dashOnTouchHoldStart",
+                                {
+                                    bubbles: true,
+                                    detail: {
+                                        fingers: this.prevPoints.size,
+                                        targetTouches: nts.ntt,
+                                        touches: nts.nt,
+                                        changedTouches: nts.nct,
+                                        touchEvent: te
+                                    }
                                 }
-                            }
-                        )
-                    );
-                    this._holdTimer = undefined;
-                    document.removeEventListener("touchmove", this.onReactTouchMove);
-                    document.removeEventListener("touchend", this.onReactTouchEnd);
-                    document.removeEventListener("touchmove", this.onReactHoldTouchMove);
-                    document.removeEventListener("touchend", this.onReactHoldTouchEnd);
-                    document.addEventListener("touchmove", this.onReactHoldTouchMove);
-                    document.addEventListener("touchend", this.onReactHoldTouchEnd);
-                }, (1000));
+                            )
+                        );
+                        this._holdTimer = undefined;
+                        document.removeEventListener("touchmove", this.onReactTouchMove);
+                        document.removeEventListener("touchend", this.onReactTouchEnd);
+                        document.removeEventListener("touchmove", this.onReactHoldTouchMove);
+                        document.removeEventListener("touchend", this.onReactHoldTouchEnd);
+                        document.addEventListener("touchmove", this.onReactHoldTouchMove);
+                        document.addEventListener("touchend", this.onReactHoldTouchEnd);
+                    }
+
+                }, (500));
+            }
+            else {
+                clearTimeout(this._holdTimer);
             }
             document.removeEventListener("touchmove", this.onReactTouchMove);
             document.removeEventListener("touchend", this.onReactTouchEnd);
@@ -298,6 +318,7 @@ export default class GestureOverlay extends Touchable {
     }
 
     handleHandDown = async (e: React.TouchEvent) => {
+        clearTimeout(this._holdTimer!);
         const fingers = new Array<React.Touch>();
         for (let i = 0; i < e.touches.length; i++) {
             const pt: any = e.touches.item(i);
@@ -347,6 +368,7 @@ export default class GestureOverlay extends Touchable {
         const thumbDoc = await Cast(CurrentUserUtils.setupThumbDoc(CurrentUserUtils.UserDocument), Doc);
         if (thumbDoc) {
             runInAction(() => {
+                RadialMenu.Instance._display = false;
                 this._inkToTextDoc = FieldValue(Cast(thumbDoc.inkToTextDoc, Doc));
                 this._thumbDoc = thumbDoc;
                 this._thumbX = thumb.clientX;

@@ -124,24 +124,27 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     private _firstY: number = -1;
 
 
+
     handle1PointerHoldStart = (e: Event, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>): any => {
-        this.addHoldMoveListeners();
-        this.addHoldEndListeners();
-        this.onRadialMenu(e, me);
-        const pt = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true)[0];
-        this._firstX = pt.pageX;
-        this._firstY = pt.pageY;
+        console.log("START");
+        if (RadialMenu.Instance._display === false) {
+            this.addHoldMoveListeners();
+            this.addHoldEndListeners();
+            this.onRadialMenu(e, me);
+            const pt = me.touchEvent.touches[me.touchEvent.touches.length - 1];
+            this._firstX = pt.pageX;
+            this._firstY = pt.pageY;
+        }
 
     }
 
     handle1PointerHoldMove = (e: Event, me: InteractionUtils.MultiTouchEvent<TouchEvent>): void => {
-        const pt = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true)[0];
-        console.log(pt.pageX, this._firstX, pt.pageY, this._firstY);
+        const pt = me.touchEvent.touches[me.touchEvent.touches.length - 1];
+
         if (this._firstX === -1 || this._firstY === -1) {
             return;
         }
         if (Math.abs(pt.pageX - this._firstX) > 150 || Math.abs(pt.pageY - this._firstY) > 150) {
-            console.log("WHY");
             this.handle1PointerHoldEnd(e, me);
         }
     }
@@ -154,20 +157,22 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @action
     onRadialMenu = (e: Event, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>): void => {
-        const pt = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true)[0];
-
-        RadialMenu.Instance.openMenu();
+        console.log("DISPLAYMENUUUU");
+        console.log(me.touchEvent.touches);
+        // console.log(InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true));
+        // const pt = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true)[0];
+        const pt = me.touchEvent.touches[me.touchEvent.touches.length - 1];
+        RadialMenu.Instance.openMenu(pt.pageX - 15, pt.pageY - 15);
 
         RadialMenu.Instance.addItem({ description: "Open Fields", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group", selected: -1 });
         RadialMenu.Instance.addItem({ description: "Delete this document", event: () => this.props.ContainingCollectionView?.removeDocument(this.props.Document), icon: "trash", selected: -1 });
         RadialMenu.Instance.addItem({ description: "Open in a new tab", event: () => this.props.addDocTab(this.props.Document, undefined, "onRight"), icon: "folder", selected: -1 });
         RadialMenu.Instance.addItem({ description: "Pin to Presentation", event: () => this.props.pinToPres(this.props.Document), icon: "map-pin", selected: -1 });
 
-        RadialMenu.Instance.displayMenu(pt.pageX - 15, pt.pageY - 15);
         if (!SelectionManager.IsSelected(this, true)) {
             SelectionManager.SelectDoc(this, false);
         }
-        e.stopPropagation();
+
     }
 
     @action
