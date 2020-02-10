@@ -1,0 +1,46 @@
+@import "../globalCssVariables";
+
+.webcam-cont {
+    background: whitesmoke;
+    color: grey;
+    border-radius: 15px;
+    box-shadow: $intermediate-color 0.2vw 0.2vw 0.4vw;
+    border: solid #BBBBBBBB 5px;
+    pointer-events: all;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+
+    .webcam-header {
+        height: 50px;
+        text-align: center;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        font-size: 16px;
+        width: 100%;
+    }
+
+    #roomName {
+        outline: none;
+        border-radius: inherit;
+        border: 1px solid #BBBBBBBB;
+    }
+
+    .side {
+        width: 25%;
+        height: 20%;
+        position: absolute;
+        top: 65%;
+        z-index: 2;
+        right: 5%;
+    }
+
+    .main {
+        position: absolute;
+        width: 95%;
+        height: 75%;
+        top: 20%;
+        align-self: center;
+    }
+
+}

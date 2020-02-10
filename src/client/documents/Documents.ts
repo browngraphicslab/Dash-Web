@@ -37,6 +37,7 @@ import { DocumentManager } from "../util/DocumentManager";
 import DirectoryImportBox from "../util/Import & Export/DirectoryImportBox";
 import { Scripting } from "../util/Scripting";
 import { ButtonBox } from "../views/nodes/ButtonBox";
+import { SliderBox } from "../views/nodes/SliderBox";
 import { FontIconBox } from "../views/nodes/FontIconBox";
 import { SchemaHeaderField } from "../../new_fields/SchemaHeaderField";
 import { PresBox } from "../views/nodes/PresBox";
@@ -45,6 +46,7 @@ import { ProxyField } from "../../new_fields/Proxy";
 import { DocumentType } from "./DocumentTypes";
 import { LinkFollowBox } from "../views/linking/LinkFollowBox";
 import { PresElementBox } from "../views/presentationview/PresElementBox";
+import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
 import { QueryBox } from "../views/nodes/QueryBox";
 import { ColorBox } from "../views/nodes/ColorBox";
 import { DocuLinkBox } from "../views/nodes/DocuLinkBox";
@@ -131,6 +133,7 @@ export interface DocumentOptions {
     strokeWidth?: number;
     color?: string;
     treeViewHideTitle?: boolean; // whether to hide the title of a tree view
+    treeViewHideHeaderFields?: boolean; // whether to hide the drop down options for tree view items.
     treeViewOpen?: boolean; // whether this document is expanded in a tree view
     treeViewChecked?: ScriptField; // script to call when a tree view checkbox is checked
     isFacetFilter?: boolean; // whether document functions as a facet filter in a tree view
@@ -231,6 +234,9 @@ export namespace Docs {
             [DocumentType.BUTTON, {
                 layout: { view: ButtonBox, dataField: data },
             }],
+            [DocumentType.SLIDER, {
+                layout: { view: SliderBox, dataField: data },
+            }],
             [DocumentType.PRES, {
                 layout: { view: PresBox, dataField: data },
                 options: {}
@@ -241,6 +247,9 @@ export namespace Docs {
             }],
             [DocumentType.LINKFOLLOW, {
                 layout: { view: LinkFollowBox, dataField: data }
+            }],
+            [DocumentType.WEBCAM, {
+                layout: { view: DashWebRTCVideo, dataField: data }
             }],
             [DocumentType.PRESELEMENT, {
                 layout: { view: PresElementBox, dataField: data }
@@ -470,6 +479,10 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.YOUTUBE), new YoutubeField(new URL(url)), options);
         }
 
+        export function WebCamDocument(url: string, options: DocumentOptions = {}) {
+            return InstanceFromProto(Prototypes.get(DocumentType.WEBCAM), "", options);
+        }
+
         export function AudioDocument(url: string, options: DocumentOptions = {}) {
             return InstanceFromProto(Prototypes.get(DocumentType.AUDIO), new AudioField(new URL(url)), options);
         }
@@ -587,6 +600,10 @@ export namespace Docs {
 
         export function ButtonDocument(options?: DocumentOptions) {
             return InstanceFromProto(Prototypes.get(DocumentType.BUTTON), undefined, { ...(options || {}) });
+        }
+
+        export function SliderDocument(options?: DocumentOptions) {
+            return InstanceFromProto(Prototypes.get(DocumentType.SLIDER), undefined, { ...(options || {}) });
         }
 
 

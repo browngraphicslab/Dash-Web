@@ -1,7 +1,6 @@
 import { computed } from "mobx";
 import { observer } from "mobx-react";
 import { Doc } from "../../../new_fields/Doc";
-import { ScriptField } from "../../../new_fields/ScriptField";
 import { Cast, StrCast } from "../../../new_fields/Types";
 import { OmitKeys, Without } from "../../../Utils";
 import { HistogramBox } from "../../northstar/dash-nodes/HistogramBox";
@@ -14,6 +13,7 @@ import { LinkFollowBox } from "../linking/LinkFollowBox";
 import { YoutubeBox } from "./../../apis/youtube/YoutubeBox";
 import { AudioBox } from "./AudioBox";
 import { ButtonBox } from "./ButtonBox";
+import { SliderBox } from "./SliderBox";
 import { DocumentBox } from "./DocumentBox";
 import { DocumentViewProps } from "./DocumentView";
 import "./DocumentView.scss";
@@ -33,6 +33,8 @@ import { VideoBox } from "./VideoBox";
 import { WebBox } from "./WebBox";
 import { InkingStroke } from "../InkingStroke";
 import React = require("react");
+import { DashWebRTCVideo } from "../webcam/DashWebRTCVideo";
+
 import { TraceMobx } from "../../../new_fields/util";
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
@@ -104,10 +106,10 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
             <ObserverJsxParser
                 blacklistedAttrs={[]}
                 components={{
-                    FormattedTextBox, ImageBox, IconBox, DirectoryImportBox, FontIconBox: FontIconBox, ButtonBox, FieldView,
+                    FormattedTextBox, ImageBox, IconBox, DirectoryImportBox, FontIconBox: FontIconBox, ButtonBox, SliderBox, FieldView,
                     CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox,
                     PDFBox, VideoBox, AudioBox, HistogramBox, PresBox, YoutubeBox, LinkFollowBox, PresElementBox, QueryBox,
-                    ColorBox, DocuLinkBox, InkingStroke, DocumentBox
+                    ColorBox, DashWebRTCVideo, DocuLinkBox, InkingStroke, DocumentBox
                 }}
                 bindings={this.CreateBindings()}
                 jsx={this.layout}

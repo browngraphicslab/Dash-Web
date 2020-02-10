@@ -42,6 +42,14 @@
         z-index: 1;
     }
 
+    .documentView-contentBlocker {
+        pointer-events: all;
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        top: 0;
+        left: 0;
+    }
     .documentView-styleWrapper {
         position: absolute;
         display: inline-block;

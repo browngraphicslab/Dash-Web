@@ -827,7 +827,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     @computed get filterDocs() {
-        const docFilters = Cast(this.props.Document._docFilter, listSpec("string"), []);
+        const docFilters = Cast(this.props.Document._docFilters, listSpec("string"), []);
+        const docRangeFilters = Cast(this.props.Document._docRangeFilters, listSpec("string"), []);
         const clusters: { [key: string]: { [value: string]: string } } = {};
         for (let i = 0; i < docFilters.length; i += 3) {
             const [key, value, modifiers] = docFilters.slice(i, i + 3);
@@ -853,7 +854,19 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             }
             return true;
         }) : this.childDocs;
-        return filteredDocs;
+        const rangeFilteredDocs = filteredDocs.filter(d => {
+            for (let i = 0; i < docRangeFilters.length; i += 3) {
+                const key = docRangeFilters[i];
+                const min = Number(docRangeFilters[i + 1]);
+                const max = Number(docRangeFilters[i + 2]);
+                const val = Cast(d[key], "number", null);
+                if (val !== undefined && (val < min || val > max)) {
+                    return false;
+                }
+            }
+            return true;
+        });
+        return rangeFilteredDocs;
     }
     get doLayoutComputation() {
         const { newPool, computedElementData } = this.doInternalLayoutComputation;

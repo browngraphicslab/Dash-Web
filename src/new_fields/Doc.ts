@@ -804,19 +804,42 @@ export namespace Doc {
         if (StrCast(doc.title).endsWith("_" + prevLayout)) doc.title = StrCast(doc.title).replace("_" + prevLayout, "");
         doc.layoutKey = deiconify || "layout";
     }
-    export function setDocFilter(container: Doc, key: string, value: any, modifiers?: string) {
-        const docFilters = Cast(container._docFilter, listSpec("string"), []);
+    export function setDocFilterRange(target: Doc, key: string, range?: number[]) {
+        const docRangeFilters = Cast(target._docRangeFilters, listSpec("string"), []);
+        for (let i = 0; i < docRangeFilters.length; i += 3) {
+            if (docRangeFilters[i] === key) {
+                docRangeFilters.splice(i, 3);
+                break;
+            }
+        }
+        if (range !== undefined) {
+            docRangeFilters.push(key);
+            docRangeFilters.push(range[0].toString());
+            docRangeFilters.push(range[1].toString());
+            target._docRangeFilters = new List<string>(docRangeFilters);
+        }
+    }
+    export function setDocFilter(container: Doc, key: string, value: any, modifiers?: string | number) {
+        const docFilters = Cast(container._docFilters, listSpec("string"), []);
         for (let i = 0; i < docFilters.length; i += 3) {
             if (docFilters[i] === key && docFilters[i + 1] === value) {
                 docFilters.splice(i, 3);
                 break;
             }
         }
-        if (modifiers !== undefined) {
+        if (typeof modifiers === "string") {
             docFilters.push(key);
             docFilters.push(value);
             docFilters.push(modifiers);
-            container._docFilter = new List<string>(docFilters);
+            container._docFilters = new List<string>(docFilters);
+        }
+    }
+    export function readDocRangeFilter(doc: Doc, key: string) {
+        const docRangeFilters = Cast(doc._docRangeFilters, listSpec("string"), []);
+        for (let i = 0; i < docRangeFilters.length; i += 3) {
+            if (docRangeFilters[i] === key) {
+                return [Number(docRangeFilters[i + 1]), Number(docRangeFilters[i + 2])];
+            }
         }
     }
 }
@@ -844,3 +867,4 @@ Scripting.addGlobal(function selectedDocs(container: Doc, excludeCollections: bo
     return docs.length ? new List(docs) : prevValue;
 });
 Scripting.addGlobal(function setDocFilter(container: Doc, key: string, value: any, modifiers?: string) { Doc.setDocFilter(container, key, value, modifiers); });
+Scripting.addGlobal(function setDocFilterRange(container: Doc, key: string, range: number) { Doc.setDocFilterRange(container, key, range); });

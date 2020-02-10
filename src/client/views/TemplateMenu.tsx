@@ -4,14 +4,11 @@ import { SelectionManager } from "../util/SelectionManager";
 import { undoBatch } from "../util/UndoManager";
 import './TemplateMenu.scss';
 import { DocumentView } from "./nodes/DocumentView";
-import { Template, Templates } from "./Templates";
+import { Template } from "./Templates";
 import React = require("react");
 import { Doc, DocListCast } from "../../new_fields/Doc";
 import { StrCast, Cast } from "../../new_fields/Types";
 import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
-const higflyout = require("@hig/flyout");
-export const { anchorPoints } = higflyout;
-export const Flyout = higflyout.default;
 
 @observer
 class TemplateToggle extends React.Component<{ template: Template, checked: boolean, toggle: (event: React.ChangeEvent<HTMLInputElement>, template: Template) => void }> {
@@ -48,6 +45,8 @@ export interface TemplateMenuProps {
 
 @observer
 export class TemplateMenu extends React.Component<TemplateMenuProps> {
+    _addedKeys = new ObservableSet();
+    _customRef = React.createRef<HTMLInputElement>();
     @observable private _hidden: boolean = true;
 
     toggleLayout = (e: React.ChangeEvent<HTMLInputElement>, layout: string): void => {
@@ -61,7 +60,6 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
         const ey = e.target.getBoundingClientRect().top;
         DocumentView.FloatDoc(topDocView, ex, ey);
     }
-
 
     @undoBatch
     @action
@@ -105,8 +103,6 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
         });
     }
 
-    _addedKeys = new ObservableSet();
-    _customRef = React.createRef<HTMLInputElement>();
     render() {
         const layout = Doc.Layout(this.props.docViews[0].Document);
         const templateMenu: Array<JSX.Element> = [];

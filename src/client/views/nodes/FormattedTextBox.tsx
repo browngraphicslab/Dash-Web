@@ -574,7 +574,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                     if (ret.frag.size > 2 && ret.start >= 0) {
                         let selection = TextSelection.near(editor.state.doc.resolve(ret.start)); // default to near the start
                         if (ret.frag.firstChild) {
-                            selection = TextSelection.between(editor.state.doc.resolve(ret.start + 2), editor.state.doc.resolve(ret.start + ret.frag.firstChild.nodeSize)); // bcz: looks better to not have the target selected
+                            selection = TextSelection.between(editor.state.doc.resolve(ret.start), editor.state.doc.resolve(ret.start + ret.frag.firstChild.nodeSize)); // bcz: looks better to not have the target selected
                         }
                         editor.dispatch(editor.state.tr.setSelection(new TextSelection(selection.$from, selection.$from)).scrollIntoView());
                         const mark = editor.state.schema.mark(this._editorView.state.schema.marks.search_highlight);
