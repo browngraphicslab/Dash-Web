@@ -180,6 +180,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             }
             const html = e.dataTransfer.getData("text/html");
             const text = e.dataTransfer.getData("text/plain");
+            console.log(html);
 
             if (text && text.startsWith("<div")) {
                 return;
@@ -212,6 +213,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 const img = tags[0].startsWith("img") ? tags[0] : tags.length > 1 && tags[1].startsWith("img") ? tags[1] : "";
                 if (img) {
                     const split = img.split("src=\"")[1].split("\"")[0];
+                    console.log("creating image", split);
                     const doc = Docs.Create.ImageDocument(split, { ...options, width: 300 });
                     ImageUtils.ExtractExif(doc);
                     this.props.addDocument(doc);

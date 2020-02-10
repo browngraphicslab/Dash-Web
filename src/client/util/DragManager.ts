@@ -179,7 +179,7 @@ export namespace DragManager {
             );
         }
         element.dataset.canDrop = "true";
-        const handler = (e: Event) => { console.log("drop target reveied docs"); dropFunc(e, (e as CustomEvent<DropEvent>).detail); };
+        const handler = (e: Event) => { dropFunc(e, (e as CustomEvent<DropEvent>).detail); };
         element.addEventListener("dashOnDrop", handler);
         return () => {
             element.removeEventListener("dashOnDrop", handler);
@@ -263,6 +263,10 @@ export namespace DragManager {
     // drags a column from a schema view
     export function StartColumnDrag(ele: HTMLElement, dragData: ColumnDragData, downX: number, downY: number, options?: DragOptions) {
         StartDrag([ele], dragData, downX, downY, options);
+    }
+
+    export function StartImgDrag(ele: HTMLElement, downX: number, downY: number) {
+        StartDrag([ele], {}, downX, downY);
     }
 
     function StartDrag(eles: HTMLElement[], dragData: { [id: string]: any }, downX: number, downY: number, options?: DragOptions, finishDrag?: (dropData: DragCompleteEvent) => void) {
