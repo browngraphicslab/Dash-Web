@@ -22,7 +22,7 @@ export class Monitor extends IPCMessageReceiver {
     private readonly config: Configuration;
     private activeWorker: Worker | undefined;
     private key: string | undefined;
-    private repl: Repl;
+    // private repl: Repl;
 
     public static Create() {
         if (isWorker) {
@@ -46,7 +46,7 @@ export class Monitor extends IPCMessageReceiver {
         this.configureInternalHandlers();
         this.config = this.loadAndValidateConfiguration();
         this.initializeClusterFunctions();
-        this.repl = this.initializeRepl();
+        // this.repl = this.initializeRepl();
     }
 
     protected configureInternalHandlers = () => {
@@ -119,7 +119,7 @@ export class Monitor extends IPCMessageReceiver {
      * that can invoke application logic external to this module
      */
     public addReplCommand = (basename: string, argPatterns: (RegExp | string)[], action: ReplAction) => {
-        this.repl.registerCommand(basename, argPatterns, action);
+        // this.repl.registerCommand(basename, argPatterns, action);
     }
 
     public exec = (command: string, options?: ExecOptions) => {
