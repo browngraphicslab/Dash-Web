@@ -1,28 +1,26 @@
-import { reaction, IReactionDisposer, observable, runInAction } from "mobx";
+import { IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { baseKeymap, toggleMark } from "prosemirror-commands";
 import { redo, undo } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
 import { DOMOutputSpecArray, Fragment, MarkSpec, Node, NodeSpec, Schema, Slice } from "prosemirror-model";
 import { bulletList, listItem, orderedList } from 'prosemirror-schema-list';
-import { EditorState, NodeSelection, TextSelection, Plugin } from "prosemirror-state";
+import { EditorState, NodeSelection, Plugin, TextSelection } from "prosemirror-state";
 import { StepMap } from "prosemirror-transform";
 import { EditorView } from "prosemirror-view";
 import * as ReactDOM from 'react-dom';
-import { Doc, WidthSym, HeightSym, DataSym, Field } from "../../new_fields/Doc";
+import { Doc, Field, HeightSym, WidthSym } from "../../new_fields/Doc";
+import { Id } from "../../new_fields/FieldSymbols";
+import { ObjectField } from "../../new_fields/ObjectField";
+import { ComputedField } from "../../new_fields/ScriptField";
+import { BoolCast, NumCast, StrCast } from "../../new_fields/Types";
 import { emptyFunction, returnEmptyString, returnFalse, returnOne, Utils } from "../../Utils";
 import { DocServer } from "../DocServer";
 import { DocumentView } from "../views/nodes/DocumentView";
+import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
 import { DocumentManager } from "./DocumentManager";
 import ParagraphNodeSpec from "./ParagraphNodeSpec";
 import { Transform } from "./Transform";
 import React = require("react");
-import { BoolCast, NumCast, StrCast } from "../../new_fields/Types";
-import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
-import { ObjectField } from "../../new_fields/ObjectField";
-import { ComputedField } from "../../new_fields/ScriptField";
-import { observer } from "mobx-react";
-import { Id } from "../../new_fields/FieldSymbols";
-import { OnChangeHandler } from "react-color/lib/components/common/ColorWrap";
 
 const blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
     preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], brDOM: DOMOutputSpecArray = ["br"], ulDOM: DOMOutputSpecArray = ["ul", 0];

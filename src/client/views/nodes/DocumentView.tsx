@@ -610,13 +610,17 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     @undoBatch
-    @action
-    freezeNativeDimensions = (): void => {
-        this.layoutDoc._autoHeight = false;
-        this.layoutDoc.ignoreAspect = !this.layoutDoc.ignoreAspect;
-        if (!this.layoutDoc.ignoreAspect && !this.layoutDoc._nativeWidth) {
-            this.layoutDoc._nativeWidth = this.props.PanelWidth();
-            this.layoutDoc._nativeHeight = this.props.PanelHeight();
+    public static unfreezeNativeDimensions = action((layoutDoc: Doc): void => {
+        layoutDoc._nativeWidth = undefined;
+        layoutDoc._nativeHeight = undefined;
+    });
+
+    toggleNativeDimensions = () => {
+        if (this.Document._nativeWidth || this.Document._nativeHeight) {
+            DocumentView.unfreezeNativeDimensions(this.layoutDoc);
+        }
+        else {
+            Doc.freezeNativeDimensions(this.layoutDoc, this.props.PanelWidth(), this.props.PanelHeight());
         }
     }
 
@@ -730,7 +734,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
         layoutItems.push({ description: `${this.Document._chromeStatus !== "disabled" ? "Hide" : "Show"} Chrome`, event: () => this.Document._chromeStatus = (this.Document._chromeStatus !== "disabled" ? "disabled" : "enabled"), icon: "project-diagram" });
         layoutItems.push({ description: `${this.Document._autoHeight ? "Variable Height" : "Auto Height"}`, event: () => this.layoutDoc._autoHeight = !this.layoutDoc._autoHeight, icon: "plus" });
-        layoutItems.push({ description: this.Document.ignoreAspect || !this.Document._nativeWidth || !this.Document._nativeHeight ? "Freeze" : "Unfreeze", event: this.freezeNativeDimensions, icon: "snowflake" });
+        layoutItems.push({ description: !this.Document._nativeWidth || !this.Document._nativeHeight ? "Freeze" : "Unfreeze", event: this.toggleNativeDimensions, icon: "snowflake" });
         layoutItems.push({ description: this.Document.lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document.lockedPosition) ? "unlock" : "lock" });
         layoutItems.push({ description: this.Document.lockedTransform ? "Unlock Transform" : "Lock Transform", event: this.toggleLockTransform, icon: BoolCast(this.Document.lockedTransform) ? "unlock" : "lock" });
         layoutItems.push({ description: "Center View", event: () => this.props.focus(this.props.Document, false), icon: "crosshairs" });

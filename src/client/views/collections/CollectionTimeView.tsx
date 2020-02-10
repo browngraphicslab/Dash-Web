@@ -2,7 +2,7 @@ import { faEdit } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, runInAction, trace } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, Field } from "../../../new_fields/Doc";
+import { Doc, DocListCast, Field, WidthSym, HeightSym } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
 import { ObjectField } from "../../../new_fields/ObjectField";
 import { RichTextField } from "../../../new_fields/RichTextField";
@@ -31,6 +31,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
     @observable _layoutEngine = "pivot";
 
     componentDidMount() {
+        this.props.Document._freezeOnDrop = true;
         const childDetailed = this.props.Document.childDetailed; // bcz: needs to be here to make sure the childDetailed layout template has been loaded when the first item is clicked;
         if (!this.props.Document._facetCollection) {
             const facetCollection = Docs.Create.TreeDocument([], { title: "facetFilters", _yMargin: 0, treeViewHideTitle: true, treeViewHideHeaderFields: true });

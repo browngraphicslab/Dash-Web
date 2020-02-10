@@ -1,7 +1,7 @@
 import { action, computed, IReactionDisposer, reaction, trace } from "mobx";
 import * as rp from 'request-promise';
 import CursorField from "../../../new_fields/CursorField";
-import { Doc, DocListCast, Opt } from "../../../new_fields/Doc";
+import { Doc, DocListCast, Opt, WidthSym, HeightSym } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
@@ -167,6 +167,9 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                     return true;
                 }
                 let added = false;
+                if (this.props.Document._freezeOnDrop) {
+                    de.complete.docDragData?.droppedDocuments.forEach(drop => Doc.freezeNativeDimensions(drop, drop[WidthSym](), drop[HeightSym]()));
+                }
                 if (docDragData.dropAction || docDragData.userDropAction) {
                     added = docDragData.droppedDocuments.reduce((added: boolean, d) => this.props.addDocument(d) || added, false);
                 } else if (docDragData.moveDocument) {

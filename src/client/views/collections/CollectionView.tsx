@@ -7,7 +7,7 @@ import * as React from 'react';
 import Lightbox from 'react-image-lightbox-with-rotate';
 import 'react-image-lightbox-with-rotate/style.css'; // This only needs to be imported once in your app
 import { DateField } from '../../../new_fields/DateField';
-import { Doc, DocListCast } from '../../../new_fields/Doc';
+import { Doc, DocListCast, DataSym } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { listSpec } from '../../../new_fields/Schema';
 import { BoolCast, Cast, StrCast, NumCast } from '../../../new_fields/Types';
@@ -133,7 +133,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
 
     @action.bound
     addDocument(doc: Doc): boolean {
-        const targetDataDoc = Doc.GetProto(this.props.DataDoc || this.props.Document); // bcz: shouldn't this be Doc.Layout(this.props.Document)?  Right now, that causes problems with Buxton layout & adding things to a SLideView
+        const targetDataDoc = this.props.Document[DataSym];
         Doc.AddDocToList(targetDataDoc, this.props.fieldKey, doc);
         targetDataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
         Doc.GetProto(doc).lastOpened = new DateField;
@@ -144,7 +144,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
     removeDocument(doc: Doc): boolean {
         const docView = DocumentManager.Instance.getDocumentView(doc, this.props.ContainingCollectionView);
         docView && SelectionManager.DeselectDoc(docView);
-        const value = Cast(Doc.GetProto(this.props.DataDoc || this.props.Document)[this.props.fieldKey], listSpec(Doc), []);
+        const value = Cast(this.props.Document[DataSym][this.props.fieldKey], listSpec(Doc), []);
         let index = value.reduce((p, v, i) => (v instanceof Doc && v === doc) ? i : p, -1);
         index = index !== -1 ? index : value.reduce((p, v, i) => (v instanceof Doc && Doc.AreProtosEqual(v, doc)) ? i : p, -1);
 

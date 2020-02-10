@@ -14,7 +14,7 @@ import { ComputedField, ScriptField } from "./ScriptField";
 import { BoolCast, Cast, FieldValue, NumCast, StrCast, ToConstructor } from "./Types";
 import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, updateFunction } from "./util";
 import { intersectRect } from "../Utils";
-import { UndoManager } from "../client/util/UndoManager";
+import { UndoManager, undoBatch } from "../client/util/UndoManager";
 import { computedFn } from "mobx-utils";
 import { RichTextField } from "./RichTextField";
 import { Script } from "vm";
@@ -178,7 +178,7 @@ export class Doc extends RefField {
     private [SelfProxy]: any;
     public [WidthSym] = () => NumCast(this[SelfProxy]._width);
     public [HeightSym] = () => NumCast(this[SelfProxy]._height);
-    public get [DataSym]() { return Cast(this[SelfProxy].resolvedDataDoc, Doc, null) || this[SelfProxy]; }
+    public get [DataSym]() { return Cast(Doc.Layout(this[SelfProxy]).resolvedDataDoc, Doc, null) || this[SelfProxy]; }
     public get [LayoutSym]() { return this[SelfProxy].__LAYOUT__; }
     @computed get __LAYOUT__() {
         const templateLayoutDoc = Cast(Doc.LayoutField(this[SelfProxy]), Doc, null);
@@ -842,6 +842,17 @@ export namespace Doc {
             }
         }
     }
+
+    @undoBatch
+    @action
+    export function freezeNativeDimensions(layoutDoc: Doc, width: number, height: number): void {
+        layoutDoc._autoHeight = false;
+        layoutDoc.ignoreAspect = false;
+        if (!layoutDoc.ignoreAspect && !layoutDoc._nativeWidth) {
+            layoutDoc._nativeWidth = NumCast(layoutDoc._width, width);
+            layoutDoc._nativeHeight = NumCast(layoutDoc._height, height);
+        }
+    }
 }
 
 Scripting.addGlobal(function renameAlias(doc: any, n: any) { return StrCast(Doc.GetProto(doc).title).replace(/\([0-9]*\)/, "") + `(${n})`; });
@@ -867,4 +878,4 @@ Scripting.addGlobal(function selectedDocs(container: Doc, excludeCollections: bo
     return docs.length ? new List(docs) : prevValue;
 });
 Scripting.addGlobal(function setDocFilter(container: Doc, key: string, value: any, modifiers?: string) { Doc.setDocFilter(container, key, value, modifiers); });
-Scripting.addGlobal(function setDocFilterRange(container: Doc, key: string, range: number) { Doc.setDocFilterRange(container, key, range); });
+Scripting.addGlobal(function setDocFilterRange(container: Doc, key: string, range: number[]) { Doc.setDocFilterRange(container, key, range); });
