@@ -18,7 +18,7 @@ import { AttributeTransformationModel } from "../northstar/core/attribute/Attrib
 import { AggregateFunction } from "../northstar/model/idea/idea";
 import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
 import { IconBox } from "../views/nodes/IconBox";
-import { OmitKeys, JSONUtils } from "../../Utils";
+import { OmitKeys, JSONUtils, Utils } from "../../Utils";
 import { Field, Doc, Opt, DocListCastAsync, FieldResult, DocListCast } from "../../new_fields/Doc";
 import { ImageField, VideoField, AudioField, PdfField, WebField, YoutubeField } from "../../new_fields/URLField";
 import { HtmlField } from "../../new_fields/HtmlField";
@@ -373,7 +373,7 @@ export namespace Docs {
                     delete device.__images;
                     const { ImageDocument, StackingDocument } = Docs.Create;
                     if (Array.isArray(__images)) {
-                        const deviceImages = __images.map((url, i) => ImageDocument(url, { title: `image${i}.${extname(url)}` }));
+                        const deviceImages = __images.map((url, i) => ImageDocument(Utils.prepend(url), { title: `image${i}.${extname(url)}` }));
                         const doc = StackingDocument(deviceImages, { title: device.title, _LODdisable: true });
                         const protoDoc = Doc.GetProto(doc);
                         protoDoc.hero = new ImageField(__images[0]);

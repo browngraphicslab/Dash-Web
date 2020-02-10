@@ -71,24 +71,6 @@ namespace Utilities {
         return { transformed: raw };
     }
 
-    export function tryGetValidCapture(matches: RegExpExecArray | null, matchIndex: number): string | undefined {
-        let captured: string;
-        if (!matches || !(captured = matches[matchIndex])) {
-            return undefined;
-        }
-        const lower = captured.toLowerCase();
-        if (/to come/.test(lower)) {
-            return undefined;
-        }
-        if (lower.includes("xxx")) {
-            return undefined;
-        }
-        if (!captured.toLowerCase().replace(/[….\s]+/g, "").length) {
-            return undefined;
-        }
-        return captured;
-    }
-
     export function capitalize(word: string): string {
         const clean = word.trim();
         if (!clean.length) {
@@ -128,7 +110,7 @@ const RegexMap = new Map<keyof DeviceDocument, Processor<any>>([
         exp: /Original Price \(USD\)\:\s+(\$[0-9]+\.[0-9]+|NFS)/,
         transformer: (raw: string) => {
             if (raw === "NFS") {
-                return { transformed: raw };
+                return { transformed: -1 };
             }
             return Utilities.numberValue(raw.slice(1));
         }
@@ -313,7 +295,7 @@ async function writeImages(zip: any): Promise<string[]> {
                 out.on("error", reject);
             });
         }
-        imageUrls.push(`http://localhost:1050/files/images/buxton/${generatedFileName}`);
+        imageUrls.push(`/files/images/buxton/${generatedFileName}`);
     }
 
     return imageUrls;
@@ -345,8 +327,8 @@ function analyze(fileName: string, { body, imageUrls, captions, hyperlinks }: Do
         const { exp, transformer, matchIndex, required } = RegexMap.get(key)!;
         const matches = exp.exec(body);
 
-        let captured = Utilities.tryGetValidCapture(matches, matchIndex ?? 1);
-        if (captured) {
+        let captured: string;
+        if (matches && (captured = matches[matchIndex ?? 1])) {
             captured = captured.replace(/\s{2,}/g, " ");
             if (transformer) {
                 const { error, transformed } = transformer(captured);
