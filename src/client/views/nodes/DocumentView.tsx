@@ -916,7 +916,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     this.contents
                 :
                 <div className="documentView-styleWrapper" >
-                    <div className="documentView-styleContentWrapper" style={{ height: showTextTitle ? "calc(100% - 29px)" : "100%", top: showTextTitle ? "29px" : undefined }}>
+                    <div className="documentView-styleContentWrapper" style={{ height: showTextTitle ? "calc(100% - 25px)" : "100%", top: showTextTitle ? "25px" : undefined }}>
                         {this.contents}
                     </div>
                     {titleView}

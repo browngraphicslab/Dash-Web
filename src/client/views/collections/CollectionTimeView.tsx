@@ -190,6 +190,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
         const minReq = NumCast(this.props.Document[this.props.fieldKey + "-timelineMinReq"], NumCast(this.props.Document[this.props.fieldKey + "-timelineMin"], 0));
         const maxReq = NumCast(this.props.Document[this.props.fieldKey + "-timelineMaxReq"], NumCast(this.props.Document[this.props.fieldKey + "-timelineMax"], 10));
         this.props.Document[this.props.fieldKey + "-timelineMinReq"] = minReq + (maxReq - minReq) * delta / this.props.PanelWidth();
+        this.props.Document[this.props.fieldKey + "-timelineSpan"] = undefined;
     }
     onMinUp = (e: PointerEvent) => {
         document.removeEventListener("pointermove", this.onMinMove);
@@ -212,6 +213,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
         const minReq = NumCast(this.props.Document[this.props.fieldKey + "-timelineMinReq"], NumCast(this.props.Document[this.props.fieldKey + "-timelineMin"], 0));
         const maxReq = NumCast(this.props.Document[this.props.fieldKey + "-timelineMaxReq"], NumCast(this.props.Document[this.props.fieldKey + "-timelineMax"], 10));
         this.props.Document[this.props.fieldKey + "-timelineMaxReq"] = maxReq + (maxReq - minReq) * delta / this.props.PanelWidth();
+        this.props.Document[this.props.fieldKey + "-timelineSpan"] = undefined;
     }
     onMaxUp = (e: PointerEvent) => {
         document.removeEventListener("pointermove", this.onMaxMove);
