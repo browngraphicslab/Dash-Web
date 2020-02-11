@@ -1,5 +1,5 @@
 import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
-import { faArrowAltCircleDown, faArrowAltCircleUp, faCheckCircle, faCloudUploadAlt, faLink, faShare, faStopCircle, faSyncAlt, faTag, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faCaretUp, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faTextHeight, faArrowAltCircleDown, faArrowAltCircleUp, faCheckCircle, faCloudUploadAlt, faLink, faShare, faStopCircle, faSyncAlt, faTag, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, reaction } from "mobx";
 import { observer } from "mobx-react";
@@ -18,12 +18,16 @@ import { undoBatch, UndoManager } from "../util/UndoManager";
 import { DocumentButtonBar } from './DocumentButtonBar';
 import './DocumentDecorations.scss';
 import { DocumentView } from "./nodes/DocumentView";
-import { IconBox } from "./nodes/IconBox";
 import React = require("react");
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
 
+library.add(faCaretUp);
+library.add(faObjectGroup);
+library.add(faStickyNote);
+library.add(faFilePdf);
+library.add(faFilm, faTextHeight);
 library.add(faLink);
 library.add(faTag);
 library.add(faTimes);
@@ -482,6 +486,15 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             this.TextBar = ele;
         }
     }
+    public static DocumentIcon(layout: string) {
+        const button = layout.indexOf("PDFBox") !== -1 ? faFilePdf :
+            layout.indexOf("ImageBox") !== -1 ? faImage :
+                layout.indexOf("Formatted") !== -1 ? faStickyNote :
+                    layout.indexOf("Video") !== -1 ? faFilm :
+                        layout.indexOf("Collection") !== -1 ? faObjectGroup :
+                            faCaretUp;
+        return <FontAwesomeIcon icon={button} className="documentView-minimizedIcon" />;
+    }
     render() {
         const bounds = this.Bounds;
         const seldoc = SelectionManager.SelectedDocuments().length ? SelectionManager.SelectedDocuments()[0] : undefined;
@@ -491,7 +504,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         const minimizeIcon = (
             <div className="documentDecorations-minimizeButton" onPointerDown={this.onMinimizeDown}>
                 {/* Currently, this is set to be enabled if there is no ink selected. It might be interesting to think about minimizing ink if it's useful? -syip2*/}
-                {SelectionManager.SelectedDocuments().length === 1 ? IconBox.DocumentIcon(StrCast(SelectionManager.SelectedDocuments()[0].props.Document.layout, "...")) : "..."}
+                {SelectionManager.SelectedDocuments().length === 1 ? DocumentDecorations.DocumentIcon(StrCast(SelectionManager.SelectedDocuments()[0].props.Document.layout, "...")) : "..."}
             </div>);
 
         bounds.x = Math.max(0, bounds.x - this._resizeBorderWidth / 2) + this._resizeBorderWidth / 2;

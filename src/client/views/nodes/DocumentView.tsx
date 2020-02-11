@@ -280,26 +280,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     })
 
     buttonClick = async (altKey: boolean, ctrlKey: boolean) => {
-        const maximizedDocs = await DocListCastAsync(this.Document.maximizedDocs);
-        const summarizedDocs = await DocListCastAsync(this.Document.summarizedDocs);
         const linkDocs = DocListCast(this.props.Document.links);
-        let expandedDocs: Doc[] = [];
-        expandedDocs = maximizedDocs ? [...maximizedDocs, ...expandedDocs] : expandedDocs;
-        expandedDocs = summarizedDocs ? [...summarizedDocs, ...expandedDocs] : expandedDocs;
-        // let expandedDocs = [ ...(maximizedDocs ? maximizedDocs : []), ...(summarizedDocs ? summarizedDocs : []),];
-        if (expandedDocs.length) {
-            SelectionManager.DeselectAll();
-            let maxLocation = StrCast(this.Document.maximizeLocation, "inPlace");
-            maxLocation = this.Document.maximizeLocation = (!ctrlKey ? !altKey ? maxLocation : (maxLocation !== "inPlace" ? "inPlace" : "onRight") : (maxLocation !== "inPlace" ? "inPlace" : "inTab"));
-            if (maxLocation === "inPlace") {
-                expandedDocs.forEach(maxDoc => this.props.addDocument && this.props.addDocument(maxDoc));
-                const scrpt = this.props.ScreenToLocalTransform().scale(this.props.ContentScaling()).inverse().transformPoint(NumCast(this.layoutDoc.width) / 2, NumCast(this.layoutDoc.height) / 2);
-                DocumentManager.Instance.animateBetweenPoint(scrpt, expandedDocs);
-            } else {
-                expandedDocs.forEach(maxDoc => (!this.props.addDocTab(maxDoc, undefined, "close") && this.props.addDocTab(maxDoc, undefined, maxLocation)));
-            }
-        }
-        else if (linkDocs.length) {
+        if (linkDocs.length) {
             DocumentManager.Instance.FollowLink(undefined, this.props.Document,
                 // open up target if it's not already in view ... by zooming into the button document first and setting flag to reset zoom afterwards
                 (doc: Doc, maxLocation: string) => this.props.focus(this.props.Document, true, 1, () => this.props.addDocTab(doc, undefined, maxLocation)),
@@ -814,7 +796,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             }
         });
         const path = this.props.LibraryPath.reduce((p: string, d: Doc) => p + "/" + (Doc.AreProtosEqual(d, (Doc.UserDoc().LibraryBtn as Doc).sourcePanel as Doc) ? "" : d.title), "");
-        cm.addItem({ description: "Pin to Presentation", event: () => this.props.pinToPres(this.props.Document), icon: "map-pin" });
         cm.addItem({
             description: `path: ${path}`, event: () => {
                 this.props.LibraryPath.map(lp => Doc.GetProto(lp).treeViewOpen = lp.treeViewOpen = true);

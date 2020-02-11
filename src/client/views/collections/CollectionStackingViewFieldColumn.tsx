@@ -285,8 +285,10 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                 description: ":" + fieldKey, event: () => {
                     const created = Docs.Create.CarouselDocument([], { _width: 400, _height: 200, title: fieldKey });
                     if (created) {
-                        if (this.props.parent.Document.isTemplateDoc) {
-                            Doc.MakeMetadataFieldTemplate(created, this.props.parent.props.Document);
+                        const container = this.props.parent.Document.resolvedDataDoc ? Doc.GetProto(this.props.parent.Document) : this.props.parent.Document;
+                        if (container.isTemplateDoc) {
+                            Doc.MakeMetadataFieldTemplate(created, container);
+                            return Doc.AddDocToList(container, Doc.LayoutFieldKey(container), created);
                         }
                         return this.props.parent.props.addDocument(created);
                     }

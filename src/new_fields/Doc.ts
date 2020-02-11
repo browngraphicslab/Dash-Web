@@ -494,6 +494,7 @@ export namespace Doc {
             setTimeout(action(() => {
                 if (!targetDoc[expandedLayoutFieldKey]) {
                     const newLayoutDoc = Doc.MakeDelegate(templateLayoutDoc, undefined, "[" + templateLayoutDoc.title + "]");
+                    newLayoutDoc.lockedPosition = true;
                     newLayoutDoc.expandedTemplate = targetDoc;
                     targetDoc[expandedLayoutFieldKey] = newLayoutDoc;
                     const dataDoc = Doc.GetDataDoc(targetDoc);

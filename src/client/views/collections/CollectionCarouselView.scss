@@ -14,27 +14,23 @@
         width: 100%;
     }
 }
-.carouselView-back  {
+.carouselView-back, .carouselView-fwd  {
     position: absolute;
     display: flex;
-    left: 0; 
     top: 50%;
     width: 30;
     height: 30;
-    background: lightgray;
     align-items: center;
     border-radius: 5px;
     justify-content: center;
+    background : rgba(255, 255, 255, 0.46);
 }
-.carouselView-fwd  {
-    position: absolute;
-    display: flex;
+.carouselView-fwd {
     right: 0; 
-    top: 50%;
-    width: 30;
-    height: 30;
+}
+.carouselView-back {
+    left: 0; 
+}
+.carouselView-back:hover, .carouselView-fwd:hover {
     background: lightgray;
-    align-items: center;
-    border-radius: 5px;
-    justify-content: center;
 }

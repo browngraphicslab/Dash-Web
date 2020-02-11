@@ -37,8 +37,6 @@ export const documentSchema = createSchema({
     treeViewExpandedView: "string", // name of field whose contents are being displayed as the document's subtree
     preventTreeViewOpen: "boolean", // ignores the treeViewOpen flag (for allowing a view to not be slaved to other views of the document)
     currentTimecode: "number",   // current play back time of a temporal document (video / audio)
-    summarizedDocs: listSpec(Doc), // documents that are summarized by this document (and which will typically be opened by clicking this document)
-    maximizedDocs: listSpec(Doc), // documents to maximize when clicking this document (generally this document will be an icon)
     maximizeLocation: "string", // flag for where to place content when following a click interaction (e.g., onRight, inPlace, inTab) 
     lockedPosition: "boolean",  // whether the document can be moved (dragged)
     lockedTransform: "boolean", // whether the document can be panned/zoomed

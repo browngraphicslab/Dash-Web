@@ -16,8 +16,6 @@ import { action } from "mobx";
 import { ColumnAttributeModel } from "../northstar/core/attribute/AttributeModel";
 import { AttributeTransformationModel } from "../northstar/core/attribute/AttributeTransformationModel";
 import { AggregateFunction } from "../northstar/model/idea/idea";
-import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
-import { IconBox } from "../views/nodes/IconBox";
 import { OmitKeys, JSONUtils, Utils } from "../../Utils";
 import { Field, Doc, Opt, DocListCastAsync, FieldResult, DocListCast } from "../../new_fields/Doc";
 import { ImageField, VideoField, AudioField, PdfField, WebField, YoutubeField } from "../../new_fields/URLField";
@@ -215,10 +213,6 @@ export namespace Docs {
             [DocumentType.PDF, {
                 layout: { view: PDFBox, dataField: data },
                 options: { curPage: 1 }
-            }],
-            [DocumentType.ICON, {
-                layout: { view: IconBox, dataField: data },
-                options: { _width: Number(MINIMIZED_ICON_SIZE), _height: Number(MINIMIZED_ICON_SIZE) },
             }],
             [DocumentType.IMPORT, {
                 layout: { view: DirectoryImportBox, dataField: data },
@@ -758,9 +752,6 @@ export namespace Docs {
             } else if (field instanceof PdfField) {
                 created = Docs.Create.PdfDocument((field).url.href, resolved);
                 layout = PDFBox.LayoutString;
-            } else if (field instanceof IconField) {
-                created = Docs.Create.IconDocument((field).icon, resolved);
-                layout = IconBox.LayoutString;
             } else if (field instanceof AudioField) {
                 created = Docs.Create.AudioDocument((field).url.href, resolved);
                 layout = AudioBox.LayoutString;

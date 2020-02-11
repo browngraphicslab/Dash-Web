@@ -9,7 +9,6 @@ export enum DocumentType {
     VID = "video",
     AUDIO = "audio",
     PDF = "pdf",
-    ICON = "icon",
     IMPORT = "import",
     LINK = "link",
     LINKDOC = "linkdoc",

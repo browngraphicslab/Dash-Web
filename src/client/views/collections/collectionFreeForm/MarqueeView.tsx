@@ -346,8 +346,6 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
     summary = (e: KeyboardEvent | React.PointerEvent | undefined) => {
         const bounds = this.Bounds;
         const selected = this.marqueeSelect(false);
-        const newCollection = this.getCollection(selected, false);
-
         selected.map(d => {
             this.props.removeDocument(d);
             d.x = NumCast(d.x) - bounds.left - bounds.width / 2;
@@ -355,23 +353,9 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             d.page = -1;
             return d;
         });
-        newCollection._chromeStatus = "disabled";
-        const summary = Docs.Create.TextDocument("", { x: bounds.left, y: bounds.top, _width: 300, _height: 100, _autoHeight: true, backgroundColor: "#e2ad32" /* yellow */, title: "-summary-" });
-        Doc.GetProto(summary).summarizedDocs = new List<Doc>([newCollection]);
-        newCollection.x = bounds.left + bounds.width;
-        Doc.GetProto(newCollection).summaryDoc = summary;
-        Doc.GetProto(newCollection).title = ComputedField.MakeFunction(`summaryTitle(this);`);
-        if (e instanceof KeyboardEvent ? e.key === "s" : true) { // summary is wrapped in an expand/collapse container that also contains the summarized documents in a free form view.
-            const container = Docs.Create.FreeformDocument([summary, newCollection], {
-                x: bounds.left, y: bounds.top, _width: 300, _height: 200, _autoHeight: true,
-                _viewType: CollectionViewType.Stacking, _chromeStatus: "disabled", title: "-summary-"
-            });
-            Doc.GetProto(summary).maximizeLocation = "inPlace";  // or "onRight"
-            this.props.addLiveTextDocument(container);
-        } else if (e instanceof KeyboardEvent ? e.key === "S" : false) { // the summary stands alone, but is linked to a collection of the summarized documents - set the OnCLick behavior to link follow to access them
-            Doc.GetProto(summary).maximizeLocation = "inTab";  // or "inPlace", or "onRight"
-            this.props.addLiveTextDocument(summary);
-        }
+        const summary = Docs.Create.TextDocument("", { x: bounds.left, y: bounds.top, _width: 200, _height: 200, _fitToBox: true, _showSidebar: true, backgroundColor: "#e2ad32" /* yellow */, title: "-summary-" });
+        Doc.GetProto(summary)["data-annotations"] = new List<Doc>(selected);
+        this.props.addLiveTextDocument(summary);
         MarqueeOptionsMenu.Instance.fadeOut(true);
     }
 
