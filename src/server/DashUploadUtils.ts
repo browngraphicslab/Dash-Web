@@ -223,7 +223,7 @@ export namespace DashUploadUtils {
         });
     }
 
-    export const UploadInspectedImage = async (metadata: InspectionResults, filename?: string, prefix = ""): Promise<ImageUploadInformation> => {
+    export const UploadInspectedImage = async (metadata: InspectionResults, filename?: string, prefix = "", cleanUp = true): Promise<ImageUploadInformation> => {
         const { requestable, source, ...remaining } = metadata;
         const extension = `.${remaining.contentType.split("/")[1].toLowerCase()}`;
         const resolved = filename || `${prefix}upload_${Utils.GenerateGuid()}${extension}`;
@@ -237,7 +237,7 @@ export namespace DashUploadUtils {
         for (const suffix of Object.keys(writtenFiles)) {
             information.serverAccessPaths[suffix] = serverPathToFile(Directory.images, writtenFiles[suffix]);
         }
-        if (isLocal().test(source)) {
+        if (isLocal().test(source) && cleanUp) {
             unlinkSync(source);
         }
         return information;

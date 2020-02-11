@@ -883,7 +883,7 @@ export class DashFieldView {
             e.stopPropagation();
             if ((e.key === "a" && e.ctrlKey) || (e.key === "a" && e.metaKey)) {
                 if (window.getSelection) {
-                    var range = document.createRange();
+                    const range = document.createRange();
                     range.selectNodeContents(self._fieldSpan);
                     window.getSelection()!.removeAllRanges();
                     window.getSelection()!.addRange(range);

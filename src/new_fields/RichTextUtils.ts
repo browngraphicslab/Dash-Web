@@ -1,5 +1,5 @@
 import { EditorState, Transaction, TextSelection } from "prosemirror-state";
-import { Node, Fragment, Mark, MarkType } from "prosemirror-model";
+import { Node, Fragment, Mark } from "prosemirror-model";
 import { RichTextField } from "./RichTextField";
 import { docs_v1 } from "googleapis";
 import { GoogleApiClientUtils } from "../client/apis/google_docs/GoogleApiClientUtils";
@@ -17,6 +17,7 @@ import { Id } from "./FieldSymbols";
 import { DocumentView } from "../client/views/nodes/DocumentView";
 import { AssertionError } from "assert";
 import { Networking } from "../client/Network";
+import { extname } from "path";
 
 export namespace RichTextUtils {
 
@@ -123,9 +124,7 @@ export namespace RichTextUtils {
                 const objects = Object.keys(inlineObjects).map(objectId => inlineObjects[objectId]);
                 const mediaItems: MediaItem[] = objects.map(object => {
                     const embeddedObject = object.inlineObjectProperties!.embeddedObject!;
-                    const baseUrl = embeddedObject.imageProperties!.contentUri!;
-                    const filename = `upload_${Utils.GenerateGuid()}.png`;
-                    return { baseUrl, filename };
+                    return { baseUrl: embeddedObject.imageProperties!.contentUri! };
                 });
 
                 const uploads = await Networking.PostToServer("/googlePhotosMediaDownload", { mediaItems });
@@ -136,11 +135,12 @@ export namespace RichTextUtils {
 
                 for (let i = 0; i < objects.length; i++) {
                     const object = objects[i];
-                    const { fileNames } = uploads[i];
+                    const { clientAccessPath } = uploads[i];
                     const embeddedObject = object.inlineObjectProperties!.embeddedObject!;
                     const size = embeddedObject.size!;
                     const width = size.width!.magnitude!;
-                    const url = Utils.fileUrl(fileNames.clean);
+                    const ext = extname(clientAccessPath);
+                    const url = Utils.prepend(clientAccessPath.replace(ext, "_m" + ext));
 
                     inlineObjectMap.set(object.objectId!, {
                         title: embeddedObject.title || `Imported Image from ${document.title}`,
@@ -156,7 +156,6 @@ export namespace RichTextUtils {
 
         interface MediaItem {
             baseUrl: string;
-            filename: string;
         }
 
         export const Import = async (documentId: GoogleApiClientUtils.Docs.DocumentId, textNote: Doc): Promise<Opt<GoogleApiClientUtils.Docs.ImportResult>> => {

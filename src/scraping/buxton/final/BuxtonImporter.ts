@@ -285,7 +285,7 @@ async function writeImages(zip: any): Promise<string[]> {
             continue;
         }
 
-        const ext = `.${type}`;
+        const ext = `.${type}`.toLowerCase();
         const generatedFileName = `upload_${Utils.GenerateGuid()}${ext}`;
 
         await DashUploadUtils.outputResizedImages(streamImage, imageDir, generatedFileName, ext);
