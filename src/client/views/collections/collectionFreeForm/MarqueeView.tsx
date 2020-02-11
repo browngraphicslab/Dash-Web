@@ -21,6 +21,7 @@ import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
 import { SubCollectionViewProps } from "../CollectionSubView";
 import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
 import { RichTextField } from "../../../../new_fields/RichTextField";
+import { InteractionUtils } from "../../../util/InteractionUtils";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;

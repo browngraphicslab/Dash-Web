@@ -454,8 +454,22 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         }
                         return false;
                     });
-                    const inkFields = inks.map(i => Cast(i.data, InkField));
-                    CognitiveServices.Inking.Appliers.InterpretStrokes(inkFields.filter(i => i instanceof InkField).map(i => i!.inkData)).then((results) => {
+                    // const inkFields = inks.map(i => Cast(i.data, InkField));
+                    const strokes: InkData[] = [];
+                    inks.forEach(i => {
+                        const d = Cast(i.data, InkField);
+                        const x = NumCast(i.x);
+                        const y = NumCast(i.y);
+                        const left = Math.min(...d?.inkData.map(pd => pd.X) ?? [0]);
+                        const top = Math.min(...d?.inkData.map(pd => pd.Y) ?? [0]);
+                        if (d) {
+                            strokes.push(d.inkData.map(pd => ({ X: pd.X + x - left, Y: pd.Y + y - top })));
+                        }
+                    });
+                    console.log(strokes)
+
+                    CognitiveServices.Inking.Appliers.InterpretStrokes(strokes).then((results) => {
+                        console.log(results);
                         const wordResults = results.filter((r: any) => r.category === "inkWord");
                         for (const word of wordResults) {
                             const indices: number[] = word.strokeIds;
