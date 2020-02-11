@@ -34,7 +34,7 @@ export default class UserManager extends ApiManager {
         register({
             method: Method.GET,
             subscription: "/getCurrentUser",
-            secureHandler: ({ res, user }) => res.send(JSON.stringify(user)),
+            secureHandler: ({ res, user: { _id, email } }) => res.send(JSON.stringify({ id: _id, email })),
             publicHandler: ({ res }) => res.send(JSON.stringify({ id: "__guest__", email: "" }))
         });
 
