@@ -701,8 +701,11 @@ export namespace Doc {
     }
 
     // the document containing the view layout information - will be the Document itself unless the Document has
-    // a layout field.  In that case, all layout information comes from there unless overriden by Document  
-    export function Layout(doc: Doc): Doc { return doc[LayoutSym] || doc; }
+    // a layout field or 'layout' is given.  
+    export function Layout(doc: Doc, layout?: Doc): Doc {
+        const overrideLayout = layout && Cast(doc["data-layout[" + layout[Id] + "]"], Doc, null);
+        return overrideLayout || doc[LayoutSym] || doc;
+    }
     export function SetLayout(doc: Doc, layout: Doc | string) { doc[StrCast(doc.layoutKey, "layout")] = layout; }
     export function LayoutField(doc: Doc) { return doc[StrCast(doc.layoutKey, "layout")]; }
     export function LayoutFieldKey(doc: Doc): string { return StrCast(Doc.Layout(doc).layout).split("'")[1]; }

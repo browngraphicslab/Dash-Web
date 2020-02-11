@@ -1,4 +1,4 @@
-import { Doc } from '../../new_fields/Doc';
+import { Doc, Opt } from '../../new_fields/Doc';
 import { Touchable } from './Touchable';
 import { computed, action, observable } from 'mobx';
 import { Cast } from '../../new_fields/Types';
@@ -11,12 +11,13 @@ import { PositionDocument } from '../../new_fields/documentSchemas';
 ///  DocComponent returns a generic React base class used by views that don't have any data extensions (e.g.,CollectionFreeFormDocumentView, DocumentView, ButtonBox)
 interface DocComponentProps {
     Document: Doc;
+    LayoutDoc?: () => Opt<Doc>;
 }
 export function DocComponent<P extends DocComponentProps, T>(schemaCtor: (doc: Doc) => T) {
     class Component extends Touchable<P> {
         //TODO This might be pretty inefficient if doc isn't observed, because computed doesn't cache then
         @computed get Document(): T { return schemaCtor(this.props.Document); }
-        @computed get layoutDoc() { return PositionDocument(Doc.Layout(this.props.Document)); }
+        @computed get layoutDoc() { return PositionDocument(Doc.Layout(this.props.Document, this.props.LayoutDoc?.())); }
     }
     return Component;
 }

@@ -8,7 +8,7 @@ import { ScriptField, ComputedField } from "../../new_fields/ScriptField";
 import { RichTextField } from "../../new_fields/RichTextField";
 import { ImageField } from "../../new_fields/URLField";
 
-export function makeTemplate(doc: Doc): boolean {
+export function makeTemplate(doc: Doc, first: boolean = true): boolean {
     const layoutDoc = doc.layout instanceof Doc && doc.layout.isTemplateForField ? doc.layout : doc;
     const layout = StrCast(layoutDoc.layout).match(/fieldKey={'[^']*'}/)![0];
     const fieldKey = layout.replace("fieldKey={'", "").replace(/'}$/, "");
@@ -18,9 +18,12 @@ export function makeTemplate(doc: Doc): boolean {
         if (!StrCast(d.title).startsWith("-")) {
             any = Doc.MakeMetadataFieldTemplate(d, Doc.GetProto(layoutDoc)) || any;
         } else if (d.type === DocumentType.COL || d.data instanceof RichTextField) {
-            any = makeTemplate(d) || any;
+            any = makeTemplate(d, false) || any;
         }
     });
+    if (!docs.length && first) {
+        any = Doc.MakeMetadataFieldTemplate(doc, Doc.GetProto(layoutDoc)) || any;
+    }
     if (layoutDoc[fieldKey] instanceof RichTextField || layoutDoc[fieldKey] instanceof ImageField) {
         if (!StrCast(layoutDoc.title).startsWith("-")) {
             any = Doc.MakeMetadataFieldTemplate(layoutDoc, Doc.GetProto(layoutDoc));

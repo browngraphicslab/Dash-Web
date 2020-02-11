@@ -55,7 +55,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         this._docXfs.length = 0;
         return docs.map((d, i) => {
             const height = () => this.getDocHeight(d);
-            const width = () => Math.min(d._nativeWidth && !d.ignoreAspect && !this.props.Document.fillColumn ? d[WidthSym]() : Number.MAX_VALUE, this.columnWidth / this.numGroupColumns);
+            const width = () => this.getDocWidth(d);
             const dref = React.createRef<HTMLDivElement>();
             const dxf = () => this.getDocTransform(d, dref.current!);
             this._docXfs.push({ dxf: dxf, width: width, height: height });
@@ -154,11 +154,12 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     @computed get onClickHandler() { return ScriptCast(this.Document.onChildClick); }
 
     getDisplayDoc(doc: Doc, dataDoc: Doc | undefined, dxf: () => Transform, width: () => number) {
-        const layoutDoc = Doc.Layout(doc);
+        const layoutDoc = Doc.Layout(doc, this.props.childLayoutTemplate?.());
         const height = () => this.getDocHeight(doc);
         return <ContentFittingDocumentView
             Document={doc}
             DataDocument={dataDoc}
+            LayoutDoc={this.props.childLayoutTemplate}
             LibraryPath={this.props.LibraryPath}
             renderDepth={this.props.renderDepth + 1}
             fitToBox={this.props.fitToBox}
@@ -178,19 +179,26 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             pinToPres={this.props.pinToPres}>
         </ContentFittingDocumentView>;
     }
+
+    getDocWidth(d?: Doc) {
+        if (!d) return 0;
+        const layoutDoc = Doc.Layout(d, this.props.childLayoutTemplate?.());
+        const nw = NumCast(layoutDoc._nativeWidth);
+        return Math.min(nw && !d.ignoreAspect && !this.props.Document.fillColumn ? d[WidthSym]() : Number.MAX_VALUE, this.columnWidth / this.numGroupColumns);
+    }
     getDocHeight(d?: Doc) {
         if (!d) return 0;
-        const layoutDoc = Doc.Layout(d);
+        let layoutDoc = Doc.Layout(d, this.props.childLayoutTemplate?.());
         const nw = NumCast(layoutDoc._nativeWidth);
         const nh = NumCast(layoutDoc._nativeHeight);
         let wid = this.columnWidth / (this.isStackingView ? this.numGroupColumns : 1);
         if (!layoutDoc.ignoreAspect && !layoutDoc._fitWidth && nw && nh) {
             const aspect = nw && nh ? nh / nw : 1;
-            if (!(d._nativeWidth && !layoutDoc.ignoreAspect && this.props.Document.fillColumn)) wid = Math.min(layoutDoc[WidthSym](), wid);
+            if (!(!layoutDoc.ignoreAspect && this.props.Document.fillColumn)) wid = Math.min(layoutDoc[WidthSym](), wid);
             return wid * aspect;
         }
-        return layoutDoc._fitWidth ? !layoutDoc._nativeHeight ? this.props.PanelHeight() - 2 * this.yMargin :
-            Math.min(wid * NumCast(layoutDoc.scrollHeight, NumCast(layoutDoc._nativeHeight)) / NumCast(layoutDoc._nativeWidth, 1), this.props.PanelHeight() - 2 * this.yMargin) : layoutDoc[HeightSym]();
+        return layoutDoc._fitWidth ? !nh ? this.props.PanelHeight() - 2 * this.yMargin :
+            Math.min(wid * NumCast(layoutDoc.scrollHeight, nh) / (nw || 1), this.props.PanelHeight() - 2 * this.yMargin) : layoutDoc[HeightSym]();
     }
 
     columnDividerDown = (e: React.PointerEvent) => {

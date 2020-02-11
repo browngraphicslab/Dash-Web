@@ -43,6 +43,7 @@ export interface FieldViewProps {
     setVideoBox?: (player: VideoBox) => void;
     ContentScaling: () => number;
     ChromeHeight?: () => number;
+    childLayoutTemplate?: () => Opt<Doc>;
 }
 
 @observer

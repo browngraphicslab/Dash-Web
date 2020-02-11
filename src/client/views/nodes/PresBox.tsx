@@ -20,6 +20,7 @@ import { ContextMenuProps } from "../ContextMenuItem";
 import { InkingControl } from "../InkingControl";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./PresBox.scss";
+import { PrefetchProxy } from "../../../new_fields/Proxy";
 
 library.add(faArrowLeft);
 library.add(faArrowRight);
@@ -34,35 +35,14 @@ library.add(faEdit);
 export class PresBox extends React.Component<FieldViewProps> {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(PresBox, fieldKey); }
     _childReaction: IReactionDisposer | undefined;
-    _slideshowReaction: IReactionDisposer | undefined;
     @observable _isChildActive = false;
-
     componentDidMount() {
-        const userDoc = CurrentUserUtils.UserDocument;
         this.props.Document._forceRenderEngine = "timeline";
         this.props.Document._replacedChrome = "replaced";
-        this._slideshowReaction = reaction(() => this.props.Document._viewType,
-            (slideshow) => {
-                if (slideshow === CollectionViewType.Stacking || slideshow === undefined) {
-                    let presTemp = Cast(userDoc.presentationTemplate, Doc);
-                    if (presTemp instanceof Promise) {
-                        presTemp.then(presTemp => this.props.Document.childLayout = presTemp);
-                    }
-                    else if (presTemp === undefined) {
-                        presTemp = userDoc.presentationTemplate = Docs.Create.PresElementBoxDocument({ backgroundColor: "transparent", _xMargin: 5, isTemplateDoc: true, isTemplateForField: "data" });
-                    }
-                    else {
-                        this.props.Document.childLayout = presTemp;
-                    }
-                } else {
-                    this.props.Document.childLayout = undefined;
-                }
-            }, { fireImmediately: true });
         this._childReaction = reaction(() => this.childDocs.slice(), (children) => children.forEach((child, i) => child.presentationIndex = i), { fireImmediately: true });
     }
     componentWillUnmount() {
         this._childReaction?.();
-        this._slideshowReaction?.();
     }
 
     @computed get childDocs() { return DocListCast(this.props.Document[this.props.fieldKey]); }
@@ -376,7 +356,6 @@ export class PresBox extends React.Component<FieldViewProps> {
             doc.presBox = this.props.Document;
             doc.presBoxKey = this.props.fieldKey;
             doc.collapsedHeight = hgt;
-            doc._nativeWidth = doc._nativeHeight = undefined;
             const curScale = NumCast(doc.viewScale, null);
             if (curScale === undefined) {
                 doc.viewScale = 1;
@@ -402,6 +381,8 @@ export class PresBox extends React.Component<FieldViewProps> {
         this.props.Document._viewType = Number(e.target.selectedOptions[0].value);
         this.updateMinimize(e, Number(this.props.Document._viewType));
     });
+
+    childLayoutTemplate = () => this.props.Document._viewType === CollectionViewType.Stacking ? Cast(Doc.UserDoc().presentationTemplate, Doc, null) : undefined;
     render() {
         const mode = NumCast(this.props.Document._viewType, CollectionViewType.Invalid);
         this.initializeScaleViews(this.childDocs, mode);
@@ -425,8 +406,7 @@ export class PresBox extends React.Component<FieldViewProps> {
             </div>
             <div className="presBox-listCont" >
                 {mode !== CollectionViewType.Invalid ?
-                    <CollectionView {...this.props} PanelHeight={this.panelHeight}
-                        moveDocument={returnFalse}
+                    <CollectionView {...this.props} PanelHeight={this.panelHeight} moveDocument={returnFalse} childLayoutTemplate={this.childLayoutTemplate}
                         addDocument={this.addDocument} removeDocument={returnFalse} focus={this.selectElement} ScreenToLocalTransform={this.getTransform} />
                     : (null)
                 }

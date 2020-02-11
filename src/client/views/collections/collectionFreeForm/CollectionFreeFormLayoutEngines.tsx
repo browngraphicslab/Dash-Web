@@ -43,6 +43,9 @@ export interface ViewDefResult {
     bounds?: ViewDefBounds;
 }
 function toLabel(target: FieldResult<Field>) {
+    if (typeof target === "number" || Number(target)) {
+        return Number(target).toFixed(2).toString();
+    }
     if (target instanceof ObjectField || target instanceof RefField) {
         return target[ToString]();
     }
@@ -254,10 +257,10 @@ export function computeTimelineLayout(
     let prevKey = Math.floor(minTime);
 
     if (sortedKeys.length && scaling * (sortedKeys[0] - prevKey) > 25) {
-        groupNames.push({ type: "text", text: prevKey.toString(), x: x, y: 0, height: fontHeight, fontSize, payload: undefined });
+        groupNames.push({ type: "text", text: toLabel(prevKey), x: x, y: 0, height: fontHeight, fontSize, payload: undefined });
     }
     if (!sortedKeys.length && curTime !== undefined) {
-        groupNames.push({ type: "text", text: curTime.toString(), x: (curTime - minTime) * scaling, zIndex: 1000, color: "orange", y: 0, height: fontHeight, fontSize, payload: undefined });
+        groupNames.push({ type: "text", text: toLabel(curTime), x: (curTime - minTime) * scaling, zIndex: 1000, color: "orange", y: 0, height: fontHeight, fontSize, payload: undefined });
     }
 
     const pivotAxisWidth = NumCast(pivotDoc.pivotTimeWidth, panelDim[1] / 2.5);
@@ -265,7 +268,7 @@ export function computeTimelineLayout(
     let zind = 0;
     sortedKeys.forEach(key => {
         if (curTime !== undefined && curTime > prevKey && curTime <= key) {
-            groupNames.push({ type: "text", text: curTime.toString(), x: (curTime - minTime) * scaling, y: 0, zIndex: 1000, color: "orange", height: fontHeight, fontSize, payload: key });
+            groupNames.push({ type: "text", text: toLabel(curTime), x: (curTime - minTime) * scaling, y: 0, zIndex: 1000, color: "orange", height: fontHeight, fontSize, payload: key });
         }
         const keyDocs = pivotDateGroups.get(key)!;
         x += scaling * (key - prevKey);
