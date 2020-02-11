@@ -5,6 +5,21 @@
     top: 0;
     left: 0;
     touch-action: none;
+
+    .pointerBubbles {
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        pointer-events: none;
+
+        .bubble {
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            border-radius: 100%;
+            border: .5px solid grey;
+        }
+    }
 }
 
 .clipboardDoc-cont {
