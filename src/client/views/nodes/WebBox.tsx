@@ -222,7 +222,7 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
                 if (pressedElement.nodeName === "IMG") {
                     const src = pressedElement.getAttribute("src"); // TODO: may not always work
                     if (src) {
-                        const doc = Docs.Create.ImageDocument(src, { width: 300 });
+                        const doc = Docs.Create.ImageDocument(src, { _width: 300 });
                         ImageUtils.ExtractExif(doc);
 
                         // add clone to div so that dragging ghost is placed properly

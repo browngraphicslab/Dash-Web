@@ -206,7 +206,6 @@ export default class MobileInterface extends React.Component {
                         ContentScaling={returnOne}
                         whenActiveChanged={returnFalse}
                         ScreenToLocalTransform={Transform.Identity}
-                        ruleProvider={undefined}
                         renderDepth={0}
                         ContainingCollectionView={undefined}
                         ContainingCollectionDoc={undefined}>
@@ -254,7 +253,6 @@ export default class MobileInterface extends React.Component {
                         addDocTab={returnFalse}
                         pinToPres={emptyFunction}
                         removeDocument={undefined}
-                        ruleProvider={undefined}
                         onClick={undefined}
                         ScreenToLocalTransform={Transform.Identity}
                         ContentScaling={returnOne}

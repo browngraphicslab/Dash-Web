@@ -156,14 +156,14 @@ export class CurrentUserUtils {
 
     static setupMobileUploadDoc(userDoc: Doc) {
         const webDoc = Docs.Create.WebDocument("https://www.britannica.com/animal/cat", {
-            title: "Upload Images From the Web", chromeStatus: "enabled", lockedPosition: true
+            title: "Upload Images From the Web", _chromeStatus: "enabled", lockedPosition: true
         });
         const uploadDoc = Docs.Create.StackingDocument([], {
             title: "Mobile Upload Collection", backgroundColor: "white", lockedPosition: true
         });
         console.log(window.innerWidth, screen.width, window.devicePixelRatio);
         return Docs.Create.StackingDocument([webDoc, uploadDoc], {
-            columnWidth: screen.width - 10, lockedPosition: true, chromeStatus: "disabled", title: "Upload", autoHeight: true, yMargin: 80, backgroundColor: "lightgray"
+            columnWidth: screen.width - 10, lockedPosition: true, _chromeStatus: "disabled", title: "Upload", _autoHeight: true, _yMargin: 80, backgroundColor: "lightgray"
         });
     }
 
