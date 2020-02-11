@@ -6,7 +6,7 @@ import { action, computed, IReactionDisposer, reaction, observable, runInAction 
 import { observer } from "mobx-react";
 import { Doc, DocListCast, DocListCastAsync } from "../../../new_fields/Doc";
 import { listSpec, makeInterface } from "../../../new_fields/Schema";
-import { Cast, FieldValue, NumCast } from "../../../new_fields/Types";
+import { Cast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { Docs } from "../../documents/Documents";
 import { DocumentManager } from "../../util/DocumentManager";
@@ -20,9 +20,9 @@ import { CollectionCarouselView } from "../collections/CollectionCarouselView";
 import { returnFalse } from "../../../Utils";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { CollectionTimeView } from "../collections/CollectionTimeView";
-import { documentSchema } from "../../../new_fields/documentSchemas";
 import { InkingControl } from "../InkingControl";
 import { InkTool } from "../../../new_fields/InkField";
+import { Flyout, anchorPoints } from "../collections/ParentDocumentSelector";
 
 library.add(faArrowLeft);
 library.add(faArrowRight);
@@ -44,7 +44,7 @@ export class PresBox extends React.Component<FieldViewProps> {
         const userDoc = CurrentUserUtils.UserDocument;
         this._slideshowReaction = reaction(() => this.props.Document._slideshow,
             (slideshow) => {
-                if (!slideshow) {
+                if (slideshow === "list" || slideshow === undefined) {
                     let presTemp = Cast(userDoc.presentationTemplate, Doc);
                     if (presTemp instanceof Promise) {
                         presTemp.then(presTemp => this.props.Document.childLayout = presTemp);
@@ -343,16 +343,19 @@ export class PresBox extends React.Component<FieldViewProps> {
         });
     }
 
-    toggleMinimize = undoBatch(action((e: React.PointerEvent) => {
-        if (this.props.Document.inOverlay) {
-            Doc.RemoveDocFromList((CurrentUserUtils.UserDocument.overlays as Doc), this.props.fieldKey, this.props.Document);
-            CollectionDockingView.AddRightSplit(this.props.Document, this.props.DataDoc);
-            this.props.Document.inOverlay = false;
-        } else {
-            this.props.Document.x = e.clientX + 25;
-            this.props.Document.y = e.clientY - 25;
-            this.props.addDocTab && this.props.addDocTab(this.props.Document, this.props.DataDoc, "close");
-            Doc.AddDocToList((CurrentUserUtils.UserDocument.overlays as Doc), this.props.fieldKey, this.props.Document);
+    updateMinimize = undoBatch(action((e: React.ChangeEvent, mode: string) => {
+        const toggle = this.props.Document.inOverlay !== (mode === "overlay");
+        if (toggle) {
+            if (this.props.Document.inOverlay) {
+                Doc.RemoveDocFromList((CurrentUserUtils.UserDocument.overlays as Doc), this.props.fieldKey, this.props.Document);
+                CollectionDockingView.AddRightSplit(this.props.Document, this.props.DataDoc);
+                this.props.Document.inOverlay = false;
+            } else {
+                this.props.Document.x = 500;//e.clientX + 25;
+                this.props.Document.y = 500;//e.clientY - 25;
+                this.props.addDocTab && this.props.addDocTab(this.props.Document, this.props.DataDoc, "close");
+                Doc.AddDocToList((CurrentUserUtils.UserDocument.overlays as Doc), this.props.fieldKey, this.props.Document);
+            }
         }
     }));
 
@@ -394,13 +397,21 @@ export class PresBox extends React.Component<FieldViewProps> {
     panelHeight = () => {
         return this.props.PanelHeight() - 20;
     }
+
+    @undoBatch
+    viewChanged = action((e: React.ChangeEvent) => {
+        //@ts-ignore
+        this.props.Document._slideshow = e.target.selectedOptions[0].value;
+        this.updateMinimize(e, this.props.Document._slideshow);
+    });
     render() {
+        const mode = StrCast(this.props.Document._slideshow, "list");
         this.initializeScaleViews(this.childDocs, NumCast(this.props.Document._viewType));
-        return (this.props.Document._slideshow ?
+        return (mode === "timeline" || mode === "slideshow" ?
             <div className="presBox-cont" onContextMenu={this.specificContextMenu} style={{ pointerEvents: this.active() ? "all" : "none" }} >
                 {this.props.Document.inOverlay ? (null) :
                     <div className="presBox-listCont" >
-                        {this.props.Document._slideshow === "slideshow" ?
+                        {mode === "slideshow" ?
                             <CollectionCarouselView {...this.props} PanelHeight={this.panelHeight} chromeCollapsed={true} annotationsKey={""} CollectionView={undefined}
                                 moveDocument={returnFalse}
                                 addDocument={this.addDocument} removeDocument={returnFalse} focus={this.selectElement} ScreenToLocalTransform={this.getTransform} />
@@ -415,12 +426,21 @@ export class PresBox extends React.Component<FieldViewProps> {
             </div>
             : <div className="presBox-cont" onContextMenu={this.specificContextMenu}>
                 <div className="presBox-buttons">
+                    <select style={{ minWidth: 45, width: "5%", height: "25", position: "relative", display: "inline-block" }}
+                        className="collectionViewBaseChrome-viewPicker"
+                        onPointerDown={e => e.stopPropagation()}
+                        onChange={this.viewChanged}
+                        value={mode}>
+                        <option className="collectionViewBaseChrome-viewOption" onPointerDown={e => e.stopPropagation()} value="list">List</option>
+                        <option className="collectionViewBaseChrome-viewOption" onPointerDown={e => e.stopPropagation()} value="timeline">Timeline</option>
+                        <option className="collectionViewBaseChrome-viewOption" onPointerDown={e => e.stopPropagation()} value="slideshow">Slideshow</option>
+                        <option className="collectionViewBaseChrome-viewOption" onPointerDown={e => e.stopPropagation()} value="overlay">Minimized</option>
+                    </select>
                     <button className="presBox-button" title="Back" onClick={this.back}><FontAwesomeIcon icon={"arrow-left"} /></button>
                     <button className="presBox-button" title={"Reset Presentation" + this.props.Document.presStatus ? "" : " From Start"} onClick={this.startOrResetPres}>
                         <FontAwesomeIcon icon={this.props.Document.presStatus ? "stop" : "play"} />
                     </button>
                     <button className="presBox-button" title="Next" onClick={this.next}><FontAwesomeIcon icon={"arrow-right"} /></button>
-                    <button className="presBox-button" title={this.props.Document.inOverlay ? "Expand" : "Minimize"} onClick={this.toggleMinimize}><FontAwesomeIcon icon={"eye"} /></button>
                     {this.props.Document.inOverlay ? (null) :
                         <div className="presBox-listCont">
                             <CollectionView {...this.props} whenActiveChanged={this.whenActiveChanged} PanelHeight={this.panelHeight} addDocument={this.addDocument} focus={this.selectElement} ScreenToLocalTransform={this.getTransform} />
