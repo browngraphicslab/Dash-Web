@@ -19,6 +19,7 @@ import { DocumentButtonBar } from './DocumentButtonBar';
 import './DocumentDecorations.scss';
 import { DocumentView } from "./nodes/DocumentView";
 import React = require("react");
+import { Id } from '../../new_fields/FieldSymbols';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -537,8 +538,17 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             }}>
                 {minimizeIcon}
 
-                {this._edtingTitle ?
-                    <input ref={this._keyinput} className="title" type="text" name="dynbox" value={this._accumulatedTitle} onBlur={e => this.titleBlur(true)} onChange={this.titleChanged} onKeyPress={this.titleEntered} /> :
+                {this._edtingTitle ? <>
+                    <input ref={this._keyinput} className="title" type="text" name="dynbox" value={this._accumulatedTitle} style={{ width: "calc(100% - 20px)" }}
+                        onBlur={e => this.titleBlur(true)} onChange={this.titleChanged} onKeyPress={this.titleEntered} />
+                    <div className="publishBox" title="make document referenceable by its title"
+                        onPointerDown={e => {
+                            const promoteDoc = SelectionManager.SelectedDocuments()[0];
+                            DocUtils.Publish(promoteDoc.props.Document, this._accumulatedTitle, promoteDoc.props.addDocument, promoteDoc.props.removeDocument);
+                        }}>
+                        <FontAwesomeIcon size="lg" color={SelectionManager.SelectedDocuments()[0].props.Document.title === SelectionManager.SelectedDocuments()[0].props.Document[Id] ? "green" : undefined} icon="sticky-note"></FontAwesomeIcon>
+                    </div>
+                </> :
                     <div className="title" onPointerDown={this.onTitleDown} ><span>{`${this.selectionTitle}`}</span></div>}
                 <div className="documentDecorations-closeButton" title="Close Document" onPointerDown={this.onCloseDown}>
                     <FontAwesomeIcon className="documentdecorations-times" icon={faTimes} size="lg" />
