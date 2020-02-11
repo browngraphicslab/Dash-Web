@@ -72,6 +72,7 @@ export default class Palette extends React.Component<PaletteProps> {
                             zoomToScale={emptyFunction}
                             getScale={returnOne}>
                         </DocumentView>
+                        <div className="palette-cover" style={{ transform: `translate(${Math.max(0, this._selectedIndex) * 50.75 + 23}px, 0px)` }}></div>
                     </div>
                 </div>
             </div>

@@ -32,8 +32,8 @@ import TouchScrollableMenu, { TouchScrollableMenuItem } from "./TouchScrollableM
 export default class GestureOverlay extends Touchable {
     static Instance: GestureOverlay;
 
-    @observable public Color: string = "rgb(244, 67, 54)";
-    @observable public Width: number = 5;
+    @observable public Color: string = "rgb(0, 0, 0)";
+    @observable public Width: number = 2;
     @observable public SavedColor?: string;
     @observable public SavedWidth?: number;
     @observable public Tool: ToolglassTools = ToolglassTools.None;
@@ -394,9 +394,9 @@ export default class GestureOverlay extends Touchable {
             if (pt && pt.identifier === this.thumbIdentifier && this._thumbY) {
                 if (this._thumbX && this._thumbY) {
                     const yOverX = Math.abs(pt.clientX - this._thumbX) < Math.abs(pt.clientY - this._thumbY);
-                    if ((yOverX && this._inkToTextDoc) || this._selectedIndex > 0) {
+                    if ((yOverX && this._inkToTextDoc) || this._selectedIndex > -1) {
                         if (Math.abs(pt.clientY - this._thumbY) > (10 * window.devicePixelRatio)) {
-                            this._selectedIndex = Math.min(Math.max(-1, -Math.ceil((pt.clientY - this._thumbY) / 20)), this._possibilities.length - 1);
+                            this._selectedIndex = Math.min(Math.max(-1, (-Math.ceil((pt.clientY - this._thumbY) / (10 * window.devicePixelRatio)) - 1)), this._possibilities.length - 1);
                         }
                     }
                     else if (this._thumbDoc) {
@@ -436,7 +436,7 @@ export default class GestureOverlay extends Touchable {
 
             let scriptWorked = false;
             if (NumCast(this._inkToTextDoc?.selectedIndex) > -1) {
-                const selectedButton = this._possibilities[NumCast(this._inkToTextDoc?.selectedIndex)];
+                const selectedButton = this._possibilities[this._selectedIndex];
                 if (selectedButton) {
                     selectedButton.props.onClick();
                     scriptWorked = true;
@@ -507,8 +507,10 @@ export default class GestureOverlay extends Touchable {
                 this._d1 = doc;
             }
             else if (this._d1 !== doc && !LinkManager.Instance.doesLinkExist(this._d1, doc)) {
-                DocUtils.MakeLink({ doc: this._d1 }, { doc: doc });
-                actionPerformed = true;
+                if (this._d1.type !== "ink" && doc.type !== "ink") {
+                    DocUtils.MakeLink({ doc: this._d1 }, { doc: doc });
+                    actionPerformed = true;
+                }
             }
         };
         const ge = new CustomEvent<GestureUtils.GestureEvent>("dashOnGesture",
@@ -716,6 +718,9 @@ export default class GestureOverlay extends Touchable {
                 }}>
                 </div>
                 <TouchScrollableMenu options={this._possibilities} bounds={this.svgBounds} selectedIndex={this._selectedIndex} x={this._menuX} y={this._menuY} />
+                {/* <div className="pointerBubbles">
+                {this._pointers.map(p => <div className="bubble" style={{ translate: `transform(${p.clientX}px, ${p.clientY}px)` }}></div>)}
+                </div> */}
             </div>);
     }
 }
@@ -743,8 +748,8 @@ Scripting.addGlobal(function setPen(width: any, color: any) {
 });
 Scripting.addGlobal(function resetPen() {
     runInAction(() => {
-        GestureOverlay.Instance.Color = GestureOverlay.Instance.SavedColor ?? "rgb(244, 67, 54)";
-        GestureOverlay.Instance.Width = GestureOverlay.Instance.SavedWidth ?? 5;
+        GestureOverlay.Instance.Color = GestureOverlay.Instance.SavedColor ?? "rgb(0, 0, 0)";
+        GestureOverlay.Instance.Width = GestureOverlay.Instance.SavedWidth ?? 2;
     });
 });
 Scripting.addGlobal(function createText(text: any, x: any, y: any) {

@@ -375,7 +375,6 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             });
             const colors = setDocs.map(sd => FieldValue(sd.color) as string);
             const wordToColor = new Map<string, string>();
-            console.log(sets);
             sets.forEach((st: string, i: number) => {
                 const words = st.split(",");
                 words.forEach(word => {
@@ -386,11 +385,20 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             CognitiveServices.Inking.Appliers.InterpretStrokes(inkFields.filter(i => i instanceof InkField).map(i => i!.inkData)).then((results) => {
                 const wordResults = results.filter((r: any) => r.category === "inkWord");
                 console.log(wordResults);
+                console.log(results);
                 for (const word of wordResults) {
                     const indices: number[] = word.strokeIds;
                     indices.forEach(i => {
-                        if (wordToColor.has(word.recognizedText)) {
-                            inks[i].color = wordToColor.get(word.recognizedText);
+                        if (wordToColor.has(word.recognizedText.toLowerCase())) {
+                            inks[i].color = wordToColor.get(word.recognizedText.toLowerCase());
+                        }
+                        else {
+                            for (const alt of word.alternates) {
+                                if (wordToColor.has(alt.recognizedString.toLowerCase())) {
+                                    inks[i].color = wordToColor.get(alt.recognizedString.toLowerCase());
+                                    break;
+                                }
+                            }
                         }
                     })
                 }

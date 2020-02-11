@@ -457,7 +457,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     const inkFields = inks.map(i => Cast(i.data, InkField));
                     CognitiveServices.Inking.Appliers.InterpretStrokes(inkFields.filter(i => i instanceof InkField).map(i => i!.inkData)).then((results) => {
                         const wordResults = results.filter((r: any) => r.category === "inkWord");
-                        console.log(wordResults);
                         for (const word of wordResults) {
                             const indices: number[] = word.strokeIds;
                             indices.forEach(i => {
@@ -467,13 +466,13 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                                 const uniqueColors: string[] = [];
                                 Array.from(this._wordPalette.values()).forEach(c => uniqueColors.indexOf(c) === -1 && uniqueColors.push(c));
                                 inks[i].alternativeColors = new List<string>(uniqueColors);
-                                if (this._wordPalette.has(word.recognizedText)) {
-                                    inks[i].color = this._wordPalette.get(word.recognizedText);
+                                if (this._wordPalette.has(word.recognizedText.toLowerCase())) {
+                                    inks[i].color = this._wordPalette.get(word.recognizedText.toLowerCase());
                                 }
                                 else {
                                     for (const alt of word.alternates) {
-                                        if (this._wordPalette.has(alt.recognizedString)) {
-                                            inks[i].color = this._wordPalette.get(alt.recognizedString);
+                                        if (this._wordPalette.has(alt.recognizedString.toLowerCase())) {
+                                            inks[i].color = this._wordPalette.get(alt.recognizedString.toLowerCase());
                                             break;
                                         }
                                     }
