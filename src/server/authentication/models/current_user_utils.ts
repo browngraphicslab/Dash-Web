@@ -48,7 +48,7 @@ export class CurrentUserUtils {
     // setup the "creator" buttons for the sidebar-- eg. the default set of draggable document creation tools
     static setupCreatorButtons(doc: Doc, buttons?: string[]) {
         const notes = CurrentUserUtils.setupNoteTypes(doc);
-        const emptyPresentation = Docs.Create.PresDocument(new List<Doc>(), { title: "Presentation", _viewType: CollectionViewType.Stacking, showTitle: "title", boxShadow: "0 0" });
+        const emptyPresentation = Docs.Create.PresDocument(new List<Doc>(), { title: "Presentation", _viewType: CollectionViewType.Stacking, _chromeStatus: "enabled", showTitle: "title", boxShadow: "0 0" });
         const emptyCollection = Docs.Create.FreeformDocument([], { _nativeWidth: undefined, _nativeHeight: undefined, _LODdisable: true, _width: 150, _height: 100, title: "freeform" });
         doc.noteTypes = Docs.Create.TreeDocument(notes, { title: "Note Types", _height: 75 });
         doc.activePen = doc;
@@ -270,7 +270,7 @@ export class CurrentUserUtils {
 
     // the initial presentation Doc to use
     static setupDefaultPresentation(doc: Doc) {
-        doc.curPresentation = Docs.Create.PresDocument(new List<Doc>(), { title: "Presentation", _viewType: CollectionViewType.Stacking, showTitle: "title", boxShadow: "0 0" });
+        doc.curPresentation = Docs.Create.PresDocument(new List<Doc>(), { title: "Presentation", _viewType: CollectionViewType.Stacking, _chromeStatus: "enabled", showTitle: "title", boxShadow: "0 0" });
     }
 
     static setupMobileUploads(doc: Doc) {

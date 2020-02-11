@@ -211,8 +211,8 @@ export function computeTimelineLayout(
     const timelineFieldKey = Field.toString(pivotDoc._pivotField as Field);
     const curTime = toNumber(pivotDoc[fieldKey + "-timelineCur"]);
     const curTimeSpan = Cast(pivotDoc[fieldKey + "-timelineSpan"], "number", null);
-    const minTimeReq = curTime === undefined ? Cast(pivotDoc[fieldKey + "-timelineMinReq"], "number", null) : curTimeSpan && (curTime - curTimeSpan);
-    const maxTimeReq = curTime === undefined ? Cast(pivotDoc[fieldKey + "-timelineMaxReq"], "number", null) : curTimeSpan && (curTime + curTimeSpan);
+    const minTimeReq = curTimeSpan === undefined ? Cast(pivotDoc[fieldKey + "-timelineMinReq"], "number", null) : curTime && (curTime - curTimeSpan);
+    const maxTimeReq = curTimeSpan === undefined ? Cast(pivotDoc[fieldKey + "-timelineMaxReq"], "number", null) : curTime && (curTime + curTimeSpan);
     const fontSize = NumCast(pivotDoc[fieldKey + "-timelineFontSize"], panelDim[1] > 58 ? 20 : Math.max(7, panelDim[1] / 3));
     const fontHeight = panelDim[1] > 58 ? 30 : panelDim[1] / 2;
     const findStack = (time: number, stack: number[]) => {
@@ -220,11 +220,11 @@ export function computeTimelineLayout(
         return index === -1 ? stack.length : index;
     }
 
-    let minTime = Number.MAX_VALUE;
-    let maxTime = -Number.MAX_VALUE;
+    let minTime = minTimeReq === undefined ? Number.MAX_VALUE : minTimeReq;
+    let maxTime = maxTimeReq === undefined ? -Number.MAX_VALUE : maxTimeReq;
     filterDocs.map(doc => {
         const num = NumCast(doc[timelineFieldKey], Number(StrCast(doc[timelineFieldKey])));
-        if (!(Number.isNaN(num) || (minTimeReq && num < minTimeReq) || (maxTimeReq && num > maxTimeReq))) {
+        if (!Number.isNaN(num) && (!minTimeReq || num >= minTimeReq) && (!maxTimeReq || num <= maxTimeReq)) {
             !pivotDateGroups.get(num) && pivotDateGroups.set(num, []);
             pivotDateGroups.get(num)!.push(doc);
             minTime = Math.min(num, minTime);

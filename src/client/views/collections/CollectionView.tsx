@@ -54,8 +54,7 @@ export enum CollectionViewType {
     Time,
     Carousel,
     Linear,
-    Staff,
-    Timeline
+    Staff
 }
 
 export namespace CollectionViewType {

@@ -190,6 +190,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
         const minReq = NumCast(this.props.Document[this.props.fieldKey + "-timelineMinReq"], NumCast(this.props.Document[this.props.fieldKey + "-timelineMin"], 0));
         const maxReq = NumCast(this.props.Document[this.props.fieldKey + "-timelineMaxReq"], NumCast(this.props.Document[this.props.fieldKey + "-timelineMax"], 10));
         this.props.Document[this.props.fieldKey + "-timelineMinReq"] = minReq + (maxReq - minReq) * delta / this.props.PanelWidth();
+        this.props.Document[this.props.fieldKey + "-timelineSpan"] = undefined;
     }
     onMinUp = (e: PointerEvent) => {
         document.removeEventListener("pointermove", this.onMinMove);
@@ -212,6 +213,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
         const minReq = NumCast(this.props.Document[this.props.fieldKey + "-timelineMinReq"], NumCast(this.props.Document[this.props.fieldKey + "-timelineMin"], 0));
         const maxReq = NumCast(this.props.Document[this.props.fieldKey + "-timelineMaxReq"], NumCast(this.props.Document[this.props.fieldKey + "-timelineMax"], 10));
         this.props.Document[this.props.fieldKey + "-timelineMaxReq"] = maxReq + (maxReq - minReq) * delta / this.props.PanelWidth();
+        this.props.Document[this.props.fieldKey + "-timelineSpan"] = undefined;
     }
     onMaxUp = (e: PointerEvent) => {
         document.removeEventListener("pointermove", this.onMaxMove);
@@ -331,7 +333,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
             <div className={"collectionTimeView" + (doTimeline ? "" : "-pivot")} onContextMenu={this.specificMenu}
                 style={{ height: `calc(100%  - ${this.props.Document._chromeStatus === "enabled" ? 51 : 0}px)` }}>
                 <div className={"pivotKeyEntry"}>
-                    <button className="collectionTimeView-backBtn" style={{ width: 50, height: 20, background: "green" }}
+                    <button className="collectionTimeView-backBtn" style={{ width: 50, background: "green" }}
                         onClick={action(() => {
                             let prevFilterIndex = NumCast(this.props.Document._prevFilterIndex);
                             if (prevFilterIndex > 0) {
