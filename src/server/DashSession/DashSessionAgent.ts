@@ -37,6 +37,7 @@ export class DashSessionAgent extends AppliedSessionAgent {
         monitor.addReplCommand("debug", [/\S+\@\S+/], async ([to]) => this.dispatchZippedDebugBackup(to));
         monitor.on("backup", this.backup);
         monitor.on("debug", async ({ to }) => this.dispatchZippedDebugBackup(to));
+        monitor.on("delete", WebSocket.deleteFields);
         monitor.coreHooks.onCrashDetected(this.dispatchCrashReport);
         return sessionKey;
     }

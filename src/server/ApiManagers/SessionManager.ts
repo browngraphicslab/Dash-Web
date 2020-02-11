@@ -53,6 +53,15 @@ export default class SessionManager extends ApiManager {
             })
         });
 
+        register({
+            method: Method.GET,
+            subscription: this.secureSubscriber("delete"),
+            secureHandler: this.authorizedAction(({ res }) => {
+                sessionAgent.serverWorker.emit("delete");
+                res.redirect("/home");
+            })
+        });
+
     }
 
 }
