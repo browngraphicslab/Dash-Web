@@ -163,7 +163,8 @@ export default class GestureOverlay extends Touchable {
                     console.log("hold");
                     const target = document.elementFromPoint(te.changedTouches.item(0).clientX, te.changedTouches.item(0).clientY);
                     console.log(this.prevPoints.size, nts.ntt.length, nts.nt.length, nts.nct.length);
-                    if (nts.nt.length === 1) {
+                    let pt: any = te.touches[te.touches.length - 1];
+                    if (nts.nt.length === 1 && pt.radiusX > 1 && pt.radiusY > 1) {
                         target?.dispatchEvent(
                             new CustomEvent<InteractionUtils.MultiTouchEvent<React.TouchEvent>>("dashOnTouchHoldStart",
                                 {
