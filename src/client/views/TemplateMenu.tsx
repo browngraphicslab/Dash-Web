@@ -81,7 +81,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     toggleChrome = (): void => {
         this.props.docViews.map(dv => {
             const layout = Doc.Layout(dv.Document);
-            layout._chromeStatus = (layout._chromeStatus !== "disabled" ? "disabled" : "enabled");
+            layout._chromeStatus = (layout._chromeStatus !== "disabled" ? "disabled" : StrCast(layout._replacedChrome, "enabled"));
         });
     }
 

@@ -115,7 +115,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
                 // chrome status is one of disabled, collapsed, or visible. this determines initial state from document
                 // chrome status may also be view-mode, in reference to stacking view's toggle mode. it is essentially disabled mode, but prevents the toggle button from showing up on the left sidebar.
                 const chromeStatus = this.props.Document._chromeStatus;
-                if (chromeStatus && (chromeStatus === "disabled" || chromeStatus === "collapsed")) {
+                if (chromeStatus && (chromeStatus === "disabled" || chromeStatus === "collapsed" || chromeStatus === "replaced")) {
                     runInAction(() => this._collapsed = true);
                 }
             });
@@ -175,14 +175,14 @@ export class CollectionView extends Touchable<FieldViewProps> {
     }
 
     private SubViewHelper = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
-        const props = { ...this.props, ...renderProps, chromeCollapsed: this._collapsed, ChromeHeight: this.chromeHeight, CollectionView: this, annotationsKey: "" };
+        const props = { ...this.props, ...renderProps, ChromeHeight: this.chromeHeight, CollectionView: this, annotationsKey: "" };
         switch (type) {
             case CollectionViewType.Schema: return (<CollectionSchemaView key="collview" {...props} />);
             case CollectionViewType.Docking: return (<CollectionDockingView key="collview" {...props} />);
             case CollectionViewType.Tree: return (<CollectionTreeView key="collview" {...props} />);
-            case CollectionViewType.Staff: return (<CollectionStaffView chromeCollapsed={true} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} />);
-            case CollectionViewType.Multicolumn: return (<CollectionMulticolumnView chromeCollapsed={true} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} />);
-            case CollectionViewType.Multirow: return (<CollectionMultirowView chromeCollapsed={true} key="rpwview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} />);
+            case CollectionViewType.Staff: return (<CollectionStaffView key="collview" {...props} />);
+            case CollectionViewType.Multicolumn: return (<CollectionMulticolumnView key="collview" {...props} />);
+            case CollectionViewType.Multirow: return (<CollectionMultirowView key="rpwview" {...props} />);
             case CollectionViewType.Linear: { return (<CollectionLinearView key="collview" {...props} />); }
             case CollectionViewType.Carousel: { return (<CollectionCarouselView key="collview" {...props} />); }
             case CollectionViewType.Stacking: { this.props.Document.singleColumn = true; return (<CollectionStackingView key="collview" {...props} />); }
@@ -201,7 +201,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
 
     private SubView = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
         // currently cant think of a reason for collection docking view to have a chrome. mind may change if we ever have nested docking views -syip
-        const chrome = this.props.Document._chromeStatus === "disabled" || type === CollectionViewType.Docking ? (null) :
+        const chrome = this.props.Document._chromeStatus === "disabled" || this.props.Document._chromeStatus === "replaced" || type === CollectionViewType.Docking ? (null) :
             <CollectionViewBaseChrome CollectionView={this} key="chrome" type={type} collapse={this.collapse} />;
         return [chrome, this.SubViewHelper(type, renderProps)];
     }

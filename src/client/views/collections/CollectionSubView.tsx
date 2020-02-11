@@ -33,7 +33,6 @@ export interface CollectionViewProps extends FieldViewProps {
     PanelWidth: () => number;
     PanelHeight: () => number;
     VisibleHeight?: () => number;
-    chromeCollapsed: boolean;
     setPreviewCursor?: (func: (x: number, y: number, drag: boolean) => void) => void;
     fieldKey: string;
 }

@@ -436,8 +436,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
                 CollectionView={undefined}
                 ScreenToLocalTransform={this.props.ScreenToLocalTransform}
                 renderDepth={this.props.renderDepth + 1}
-                ContainingCollectionDoc={this.props.ContainingCollectionDoc}
-                chromeCollapsed={true}>
+                ContainingCollectionDoc={this.props.ContainingCollectionDoc}>
                 {this.contentFunc}
             </CollectionFreeFormView>
         </div >);

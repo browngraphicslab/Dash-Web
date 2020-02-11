@@ -1123,8 +1123,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                             CollectionView={undefined}
                             ScreenToLocalTransform={this.sidebarScreenToLocal}
                             renderDepth={this.props.renderDepth + 1}
-                            ContainingCollectionDoc={this.props.ContainingCollectionDoc}
-                            chromeCollapsed={true}>
+                            ContainingCollectionDoc={this.props.ContainingCollectionDoc}>
                         </CollectionFreeFormView>
                         <div className="formattedTextBox-sidebar-handle" onPointerDown={this.sidebarDown} onClick={e => this.toggleSidebar()} />
                     </div>}

@@ -354,8 +354,7 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
                     CollectionView={undefined}
                     ScreenToLocalTransform={this.props.ScreenToLocalTransform}
                     renderDepth={this.props.renderDepth + 1}
-                    ContainingCollectionDoc={this.props.ContainingCollectionDoc}
-                    chromeCollapsed={true}>
+                    ContainingCollectionDoc={this.props.ContainingCollectionDoc}>
                     {this.contentFunc}
                 </CollectionFreeFormView>
             </div>

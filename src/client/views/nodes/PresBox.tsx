@@ -40,6 +40,7 @@ export class PresBox extends React.Component<FieldViewProps> {
     componentDidMount() {
         const userDoc = CurrentUserUtils.UserDocument;
         this.props.Document._forceRenderEngine = "timeline";
+        this.props.Document._replacedChrome = "replaced";
         this._slideshowReaction = reaction(() => this.props.Document._viewType,
             (slideshow) => {
                 if (slideshow === CollectionViewType.Stacking || slideshow === undefined) {
