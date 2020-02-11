@@ -46,6 +46,7 @@ import { RichTextField } from "../../../../new_fields/RichTextField";
 import { List } from "../../../../new_fields/List";
 import { DocumentViewProps } from "../../nodes/DocumentView";
 import { CollectionDockingView } from "../CollectionDockingView";
+import { MainView } from "../../MainView";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
@@ -631,7 +632,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                             this.pan({ clientX: centerX, clientY: centerY });
                         } else {
                             this._pullCoords = [centerX, centerY];
-                            console.log(this.layoutDoc._width);
+                            console.log(MainView.Instance.flyoutWidth);
                         }
 
                         this._lastX = centerX;
@@ -1149,8 +1150,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     // height: this._pullDirection === "top" || this._pullDirection === "bottom" ? Math.abs(this.props.PanelHeight() - this._pullCoords[1]) : this.props.PanelHeight(),
                     // top: this._pullDirection === "bottom" ? this._pullCoords[0] : 0,
                     // left: this._pullDirection === "right" ? this._pullCoords[1] : 0
-                    width: this._pullDirection === "left" ? this._pullCoords[0] : this._pullDirection === "right" ? this.props.PanelWidth() - this._pullCoords[0] : this.props.PanelWidth(),
-                    height: this._pullDirection === "top" ? this._pullCoords[1] : this._pullDirection === "bottom" ? this.props.PanelHeight() - this._pullCoords[1] : this.props.PanelHeight(),
+                    width: this._pullDirection === "left" ? this._pullCoords[0] : this._pullDirection === "right" ? MainView.Instance.getPWidth() - this._pullCoords[0] + MainView.Instance.flyoutWidth : MainView.Instance.getPWidth(),
+                    height: this._pullDirection === "top" ? this._pullCoords[1] : this._pullDirection === "bottom" ? MainView.Instance.getPHeight() - this._pullCoords[1] : MainView.Instance.getPHeight(),
                     left: this._pullDirection === "right" ? undefined : 0,
                     right: this._pullDirection === "right" ? 0 : undefined,
                     top: this._pullDirection === "bottom" ? undefined : 0,
