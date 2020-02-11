@@ -81,7 +81,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private _hitCluster = false;
     private _layoutComputeReaction: IReactionDisposer | undefined;
     private _layoutPoolData = new ObservableMap<string, any>();
-    private _pullCoords: number[] = [0, 0];
+    @observable private _pullCoords: number[] = [0, 0];
+    @observable private _pullDirection: string = "";
 
     public get displayName() { return "CollectionFreeFormView(" + this.props.Document.title?.toString() + ")"; } // this makes mobx trace() statements more descriptive
     @observable.shallow _layoutElements: ViewDefResult[] = []; // shallow because some layout items (eg pivot labels) are just generated 'divs' and can't be frozen as observables
@@ -627,8 +628,11 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         const centerX = Math.min(pt1.clientX, pt2.clientX) + Math.abs(pt2.clientX - pt1.clientX) / 2;
                         const centerY = Math.min(pt1.clientY, pt2.clientY) + Math.abs(pt2.clientY - pt1.clientY) / 2;
 
-                        if (!this._pullCoords[0] && !this._pullCoords[1]) { // if we are not bezel movement
+                        if (!this._pullDirection) { // if we are not bezel movement
                             this.pan({ clientX: centerX, clientY: centerY });
+                        } else {
+                            this._pullCoords = [centerX, centerY];
+                            console.log(this.layoutDoc._width);
                         }
 
                         this._lastX = centerX;
@@ -657,9 +661,20 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 this._lastY = centerY;
 
                 // determine if we are using a bezel movement
-                if ((this.props.PanelWidth() - this._lastX) < 100 || this._lastX < 100 || (this.props.PanelHeight() - this._lastY < 100) || this._lastY < 120) { // to account for header
+                if ((this.props.PanelWidth() - this._lastX) < 100) {
                     this._pullCoords = [this._lastX, this._lastY];
+                    this._pullDirection = "right";
+                } else if (this._lastX < 100) {
+                    this._pullCoords = [this._lastX, this._lastY];
+                    this._pullDirection = "left";
+                } else if (this.props.PanelHeight() - this._lastY < 100) {
+                    this._pullCoords = [this._lastX, this._lastY];
+                    this._pullDirection = "bottom";
+                } else if (this._lastY < 120) { // to account for header
+                    this._pullCoords = [this._lastX, this._lastY];
+                    this._pullDirection = "top";
                 }
+
 
                 this.removeMoveListeners();
                 this.addMoveListeners();
@@ -672,27 +687,29 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     cleanUpInteractions = () => {
 
-        if (this._pullCoords[0] !== 0 && this._pullCoords[1] !== 0) { // if bezel mvmt was activated
-            const xDiff = this._pullCoords[0] - this._lastX;
-            const yDiff = this._pullCoords[1] - this._lastY;
+        switch (this._pullDirection) {
 
-            console.log('went thru', this._pullCoords);
-            if ((this._lastX < this._pullCoords[0]) && (yDiff < xDiff)) { // pull from right
-                console.log('pulled from right');
-                // CollectionDockingView.AddRightSplit(this.Document, undefined);
-                CollectionDockingView.AddSplit(this.Document, "right", undefined);
-            } else if ((this._lastY > this._pullCoords[1]) && (yDiff < xDiff)) { // pull from top
-                console.log('pulled from top');
-                CollectionDockingView.AddSplit(this.Document, "top", undefined);
-            } else if ((this._lastY < this._pullCoords[1]) && (yDiff > xDiff)) { // pull from bottom
-                console.log('pulled from bottom');
-                CollectionDockingView.AddSplit(this.Document, "bottom", undefined);
-            } else if ((this._lastX > this._pullCoords[0]) && (yDiff > xDiff)) { // pull from left
+            case "left":
                 console.log('pulled from left');
-                CollectionDockingView.AddSplit(this.Document, "left", undefined);
-            }
+                CollectionDockingView.AddSplit(Docs.Create.FreeformDocument([], { title: "New Collection" }), "left", undefined);
+                break;
+            case "right":
+                console.log('pulled from right');
+                CollectionDockingView.AddSplit(Docs.Create.FreeformDocument([], { title: "New Collection" }), "right", undefined);
+                break;
+            case "top":
+                console.log('pulled from top');
+                CollectionDockingView.AddSplit(Docs.Create.FreeformDocument([], { title: "New Collection" }), "top", undefined);
+                break;
+            case "bottom":
+                console.log('pulled from bottom');
+                CollectionDockingView.AddSplit(Docs.Create.FreeformDocument([], { title: "New Collection" }), "bottom", undefined);
+                break;
+            default:
+                break;
         }
 
+        this._pullDirection = "";
         this._pullCoords = [0, 0];
 
         document.removeEventListener("pointermove", this.onPointerMove);
@@ -1125,7 +1142,24 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             {!this.Document._LODdisable && !this.props.active() && !this.props.isAnnotationOverlay && !this.props.annotationsKey && this.props.renderDepth > 0 ? // && this.props.CollectionView && lodarea < NumCast(this.Document.LODarea, 100000) ?
                 this.placeholder : this.marqueeView}
             <CollectionFreeFormOverlayView elements={this.elementFunc} />
-        </div>;
+
+            <div className={"pullpane-indicator"}
+                style={{
+                    display: this._pullDirection ? "block" : "none",
+                    // width: this._pullDirection === "left" || this._pullDirection === "right" ? Math.abs(this.props.PanelWidth() - this._pullCoords[0]) : this.props.PanelWidth(),
+                    // height: this._pullDirection === "top" || this._pullDirection === "bottom" ? Math.abs(this.props.PanelHeight() - this._pullCoords[1]) : this.props.PanelHeight(),
+                    // top: this._pullDirection === "bottom" ? this._pullCoords[0] : 0,
+                    // left: this._pullDirection === "right" ? this._pullCoords[1] : 0
+                    width: this._pullDirection === "left" ? this._pullCoords[0] : this._pullDirection === "right" ? this.props.PanelWidth() - this._pullCoords[0] : this.props.PanelWidth(),
+                    height: this._pullDirection === "top" ? this._pullCoords[1] : this._pullDirection === "bottom" ? this.props.PanelHeight() - this._pullCoords[1] : this.props.PanelHeight(),
+                    left: this._pullDirection === "right" ? undefined : 0,
+                    right: this._pullDirection === "right" ? 0 : undefined,
+                    top: this._pullDirection === "bottom" ? undefined : 0,
+                    bottom: this._pullDirection === "bottom" ? 0 : undefined
+                }}>
+            </div>
+
+        </div >;
     }
 }
 

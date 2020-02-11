@@ -34,6 +34,7 @@
         height: 100%;
         display: flex;
         align-items: center;
+
         .collectionfreeformview-placeholderSpan {
             font-size: 32;
             display: flex;
@@ -97,4 +98,10 @@
 
 #prevCursor {
     animation: blink 1s infinite;
+}
+
+.pullpane-indicator {
+    z-index: 999;
+    background-color: rgba($color: #000000, $alpha: .4);
+    position: absolute;
 }
