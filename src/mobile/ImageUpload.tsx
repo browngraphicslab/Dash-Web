@@ -106,8 +106,6 @@ class Uploader extends React.Component {
 
 }
 
-// Scripting.addGlobal(function uploadImageMobile() { return Uploader.onClick(); });
-
 
 // DocServer.init(window.location.protocol, window.location.hostname, 4321, "image upload");
 (async () => {

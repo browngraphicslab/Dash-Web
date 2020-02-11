@@ -39,6 +39,7 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
 
     private _longPressSecondsHack?: NodeJS.Timeout;
     private _iframeRef = React.createRef<HTMLIFrameElement>();
+    private _iframeIndicatorRef = React.createRef<HTMLDivElement>();
     private _iframeDragRef = React.createRef<HTMLDivElement>();
     @observable private _pressX: number = 0;
     @observable private _pressY: number = 0;
@@ -63,39 +64,6 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
     componentDidMount() {
         document.addEventListener("pointerup", this.onLongPressUp);
         document.addEventListener("pointermove", this.onLongPressMove);
-        // this._iframeRef.current?.contentWindow?.document.addEventListener("mousedown", (event: MouseEvent) => {
-        //     console.log("clicked inside the iframe?");
-        // });
-        // const iframe = document.getElementById(this.props.Document.proto![Id]);
-        // if (iframe) {
-        //     iframe.addEventListener('pointerdown', function (event) {
-        //         const B = iframe.getBoundingClientRect();
-        //         const e = new CustomEvent('pointerdown', { bubbles: true, cancelable: false });
-        //         // e.clientX = e.clientX + B?.left;
-        //         // e.clientY = e.clientY + B?.top;
-        //         console.log("custom event pointer down");
-        //         iframe.dispatchEvent(e);
-        //     })
-        // }
-        // if (this._iframeRef.current) {
-        //     console.log("resetting iframes events");
-        //     const self = this;
-        //     this._iframeRef.current.addEventListener('pointermove', function (event) {
-        //         const B = self._iframeRef.current?.getBoundingClientRect();
-        //         const e = new CustomEvent('pointermove', { bubbles: true, cancelable: false });
-        //         // e.clientX = e.clientX + B?.left;
-        //         // e.clientY = e.clientY + B?.top;
-        //         self._iframeRef.current?.dispatchEvent(e);
-        //     });
-        //     this._iframeRef.current.addEventListener('pointerdown', function (event) {
-        //         const B = self._iframeRef.current?.getBoundingClientRect();
-        //         const e = new CustomEvent('pointerdown', { bubbles: true, cancelable: false });
-        //         // e.clientX = e.clientX + B?.left;
-        //         // e.clientY = e.clientY + B?.top;
-        //         console.log("custom event pointer down");
-        //         self._iframeRef.current?.dispatchEvent(e);
-        //     })
-        // }
     }
 
     componentWillUnmount() {
@@ -217,59 +185,75 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
         }
     }
 
-    // TODO: make this actually a long press
     onLongPressDown = (e: React.PointerEvent) => {
-
-        console.log("press down", e.clientX, e.clientX);
         this._pressX = e.clientX;
         this._pressY = e.clientY;
-        this._longPressSecondsHack = setTimeout(() => {
-            console.log("start the drag!!");
-            const B = this._iframeRef.current?.getBoundingClientRect();
-            const iframeDoc = this._iframeRef.current?.contentDocument;
+
+        // find the pressed element in the iframe (currently only works if its an img)
+        let pressedElement: HTMLElement | undefined;
+        let pressedBound: ClientRect | undefined;
+        if (this._iframeRef.current) {
+            const B = this._iframeRef.current.getBoundingClientRect();
+            const iframeDoc = this._iframeRef.current.contentDocument;
             if (B && iframeDoc) {
-                console.log("frame doc", iframeDoc);
-                console.log("get point", this._pressX, B.left, this._pressY, B.top);
+                // TODO: this only works when scale = 1
                 const element = iframeDoc.elementFromPoint(this._pressX - B.left, this._pressY - B.top);
-                console.log("found element", element);
-                if (element) {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    const clone = element.cloneNode(true) as HTMLElement;
+                if (element && element.nodeName === "IMG") {
+                    pressedBound = element.getBoundingClientRect();
+                    pressedElement = element.cloneNode(true) as HTMLElement;
+                }
+            }
+        }
 
-                    if (clone.nodeName === "IMG") {
-                        const src = clone.getAttribute("src"); // TODO: may not always work
+        // mark the pressed element
+        if (pressedElement && pressedBound) {
+            console.log("clones b", pressedElement.getBoundingClientRect(), pressedBound);
+            if (this._iframeIndicatorRef.current) {
+                this._iframeIndicatorRef.current.style.top = pressedBound.top + "px";
+                this._iframeIndicatorRef.current.style.left = pressedBound.left + "px";
+                this._iframeIndicatorRef.current.style.width = pressedBound.width + "px";
+                this._iframeIndicatorRef.current.style.height = pressedBound.height + "px";
+                this._iframeIndicatorRef.current.classList.add("active");
+            }
+        }
 
-                        if (src) {
-                            const doc = Docs.Create.ImageDocument(src, { width: 300 });
-                            ImageUtils.ExtractExif(doc);
+        // start dragging the pressed element if long pressed
+        this._longPressSecondsHack = setTimeout(() => {
+            if (pressedElement && pressedBound) {
+                e.stopPropagation();
+                e.preventDefault();
+                if (pressedElement.nodeName === "IMG") {
+                    const src = pressedElement.getAttribute("src"); // TODO: may not always work
+                    if (src) {
+                        const doc = Docs.Create.ImageDocument(src, { width: 300 });
+                        ImageUtils.ExtractExif(doc);
 
-                            console.log("start image drag", this._pressX, this._pressY, doc);
-                            // document.dispatchEvent()
-                            const dragData = new DragManager.DocumentDragData([doc]);
-                            DragManager.StartDocumentDrag([clone], dragData, this._pressX, this._pressY);
-                        }
+                        // add clone to div so that dragging ghost is placed properly
+                        if (this._iframeDragRef.current) this._iframeDragRef.current.appendChild(pressedElement);
+
+                        const dragData = new DragManager.DocumentDragData([doc]);
+                        DragManager.StartDocumentDrag([pressedElement], dragData, this._pressX, this._pressY, { hideSource: true });
                     }
                 }
             }
         }, 1500);
-        // e.stopPropagation();
-        // e.preventDefault();
     }
 
     onLongPressMove = (e: PointerEvent) => {
-        this._pressX = e.clientX;
-        this._pressY = e.clientY;
+        // this._pressX = e.clientX;
+        // this._pressY = e.clientY;
     }
 
     onLongPressUp = (e: PointerEvent) => {
-        console.log("press up");
         if (this._longPressSecondsHack) {
             clearTimeout(this._longPressSecondsHack);
-            console.log("long press cancelled");
         }
-        // e.stopPropagation();
-        // e.preventDefault();
+        if (this._iframeIndicatorRef.current) {
+            this._iframeIndicatorRef.current.classList.remove("active");
+        }
+        if (this._iframeDragRef.current) {
+            while (this._iframeDragRef.current.firstChild) this._iframeDragRef.current.removeChild(this._iframeDragRef.current.firstChild);
+        }
     }
 
 
@@ -300,9 +284,13 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
                 <div className={classname}  >
                     {content}
                 </div>
-                <div className="mobileIframeDragger" ref={this._iframeDragRef} draggable></div>
-                {!frozen ? (null) : <div className="webBox-overlay" onWheel={this.onPreWheel} onPointerDown={this.onPrePointer} onPointerMove={this.onPrePointer} onPointerUp={this.onPrePointer} />}
-                {/* onPointerDown={(e) => { this.onPrePointer(e); this.onLongPressDown(e) }} onPointerMove={this.onPrePointer} onPointerUp={(e) => { this.onPrePointer(e); }} />} */}
+                {!frozen ? (null) :
+                    <div className="webBox-overlay" onWheel={this.onPreWheel} onPointerDown={this.onPrePointer} onPointerMove={this.onPrePointer} onPointerUp={this.onPrePointer}>
+                        <div className="touch-iframe-overlay" onPointerDown={this.onLongPressDown} >
+                            <div className="indicator" ref={this._iframeIndicatorRef}></div>
+                            <div className="dragger" ref={this._iframeDragRef}></div>
+                        </div>
+                    </div>}
             </>);
     }
     render() {

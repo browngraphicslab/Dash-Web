@@ -1,10 +1,10 @@
 .mobileInkOverlay {
     border: 5px dashed red;
+    background-color: rgba(0, 0, 0, .05);
 }
 
 .mobileInkOverlay-border {
-    background-color: rgba(0, 255, 0, .4);
-    position: absolute;
+    // background-color: rgba(0, 255, 0, .4);    position: absolute;
     pointer-events: auto;
     cursor: pointer;
 

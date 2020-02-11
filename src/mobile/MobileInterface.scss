@@ -1,15 +1,18 @@
 .mobileInterface-inkInterfaceButtons {
     position: absolute;
-    top: -50px;
+    top: 0px;
     display: flex;
     justify-content: space-between;
     width: 100%;
     z-index: 9999;
     height: 50px;
+
+    .mobileInterface-button {
+        height: 100%;
+    }
 }
 
 .mobileInterface-container {
     height: calc(100% - 50px);
-    margin-top: 50px;
     position: relative;
 }

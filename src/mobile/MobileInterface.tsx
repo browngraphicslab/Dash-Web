@@ -34,6 +34,7 @@ import MarqueeOptionsMenu from '../client/views/collections/collectionFreeForm/M
 import GoogleAuthenticationManager from '../client/apis/GoogleAuthenticationManager';
 import { listSpec } from '../new_fields/Schema';
 import { Id } from '../new_fields/FieldSymbols';
+import { DocumentManager } from '../client/util/DocumentManager';
 
 library.add(faLongArrowAltLeft);
 
@@ -73,7 +74,6 @@ export default class MobileInterface extends React.Component {
         onSwitch && onSwitch();
 
         this.renderView = renderView;
-        console.log("switching current view", renderView);
     }
 
     onSwitchInking = () => {
@@ -87,22 +87,37 @@ export default class MobileInterface extends React.Component {
         });
     }
 
-    onSwitchUpload = () => {
+    onSwitchUpload = async () => {
+        let width = 300;
+        let height = 300;
+
+        // get width and height of the collection doc
+        if (this.mainContainer) {
+            const data = Cast(this.mainContainer.data, listSpec(Doc));
+            if (data) {
+                const collectionDoc = await data[1]; // this should be the collection doc since the positions should be locked
+                const docView = DocumentManager.Instance.getDocumentView(collectionDoc);
+                if (docView) {
+                    width = docView.nativeWidth ? docView.nativeWidth : 300;
+                    height = docView.nativeHeight ? docView.nativeHeight : 300;
+                }
+            }
+        }
         DocServer.Mobile.dispatchOverlayTrigger({
             enableOverlay: true,
-            width: 100,
-            height: 100
+            width: width,
+            height: height,
+            text: "Documents uploaded from mobile will show here",
         });
     }
 
     renderDefaultContent = () => {
-        console.log("rendering default content", this.mainContainer);
         if (this.mainContainer) {
             return <DocumentView
                 Document={this.mainContainer}
                 DataDoc={undefined}
                 LibraryPath={emptyPath}
-                addDocument={(doc: Doc) => { console.log("want to add doc to default content", StrCast(doc.title)); return false; }}
+                addDocument={returnFalse}
                 addDocTab={returnFalse}
                 pinToPres={emptyFunction}
                 removeDocument={undefined}
@@ -142,7 +157,6 @@ export default class MobileInterface extends React.Component {
     }
 
     shiftLeft = (e: React.MouseEvent) => {
-        console.log("shift left!");
         DocServer.Mobile.dispatchOverlayPositionUpdate({
             dx: -10
         });
@@ -203,17 +217,16 @@ export default class MobileInterface extends React.Component {
         }
     }
 
-    upload = async (e: React.MouseEvent, asCollection: boolean) => {
+    upload = async (e: React.MouseEvent) => {
         if (this.mainContainer) {
             const data = Cast(this.mainContainer.data, listSpec(Doc));
             if (data) {
-                const uploadDoc = await data[1]; // TODO: ensure this is the collection to upload
-
-                console.log("UPLOADING DOCUMENT FROM MOBILE", uploadDoc[Id], StrCast(uploadDoc.proto!.title));
+                const collectionDoc = await data[1]; // this should be the collection doc since the positions should be locked
+                const children = Cast(collectionDoc.data, listSpec(Doc), []);
+                const uploadDoc = children.length === 1 ? await children[0] : collectionDoc;
                 if (uploadDoc) {
                     DocServer.Mobile.dispatchMobileDocumentUpload({
                         docId: uploadDoc[Id],
-                        asCollection: asCollection
                     });
                 }
             }
@@ -231,15 +244,14 @@ export default class MobileInterface extends React.Component {
                             <button className="mobileInterface-button cancel" onClick={this.onBack} title="Back">BACK</button>
                         </div>
                         <div className="uploadSettings">
-                            <button className="mobileInterface-button" onClick={e => this.upload(e, false)} title="Upload">UPLOAD</button>
-                            <button className="mobileInterface-button" onClick={e => this.upload(e, true)} title="Upload">UPLOAD AS COLLECTION</button>
+                            <button className="mobileInterface-button" onClick={this.upload} title="Upload">UPLOAD</button>
                         </div>
                     </div>
                     <DocumentView
                         Document={this.mainContainer}
                         DataDoc={undefined}
                         LibraryPath={emptyPath}
-                        addDocument={(doc: Doc) => { console.log("want to add doc", StrCast(doc.title)); return false; }}
+                        addDocument={returnFalse}
                         addDocTab={returnFalse}
                         pinToPres={emptyFunction}
                         removeDocument={undefined}

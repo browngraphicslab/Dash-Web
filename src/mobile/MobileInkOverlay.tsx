@@ -20,6 +20,7 @@ export default class MobileInkOverlay extends React.Component {
     @observable private _height: number = 0;
     @observable private _x: number = -300;
     @observable private _y: number = -300;
+    @observable private _text: string = "";
 
     @observable private _offsetX: number = 0;
     @observable private _offsetY: number = 0;
@@ -32,21 +33,25 @@ export default class MobileInkOverlay extends React.Component {
     }
 
     initialSize(mobileWidth: number, mobileHeight: number) {
-        const maxWidth = window.innerWidth - 30; // TODO: may not be window ?? figure out how to not include library ????
+        const maxWidth = window.innerWidth - 30;
         const maxHeight = window.innerHeight - 30; // -30 for padding
-        const scale = Math.min(maxWidth / mobileWidth, maxHeight / mobileHeight);
-        return { width: mobileWidth * scale, height: mobileHeight * scale, scale: scale };
+        if (mobileWidth > maxWidth || mobileHeight > maxHeight) {
+            const scale = Math.min(maxWidth / mobileWidth, maxHeight / mobileHeight);
+            return { width: mobileWidth * scale, height: mobileHeight * scale, scale: scale };
+        }
+        return { width: mobileWidth, height: mobileHeight, scale: 1 };
     }
 
     @action
     initMobileInkOverlay(content: MobileInkOverlayContent) {
-        const { width, height } = content;
+        const { width, height, text } = content;
         const scaledSize = this.initialSize(width ? width : 0, height ? height : 0);
         this._width = scaledSize.width;
         this._height = scaledSize.height;
-        this._scale = scaledSize.scale; //scaledSize.scale;
+        this._scale = scaledSize.scale;
         this._x = 300; // TODO: center on screen
         this._y = 25; // TODO: center on screen
+        this._text = text ? text : "";
     }
 
     @action
@@ -73,7 +78,7 @@ export default class MobileInkOverlay extends React.Component {
         };
 
         const target = document.elementFromPoint(this._x + 10, this._y + 10);
-        target?.dispatchEvent(
+        target ?.dispatchEvent(
             new CustomEvent<GestureUtils.GestureEvent>("dashOnGesture",
                 {
                     bubbles: true,
@@ -88,25 +93,13 @@ export default class MobileInkOverlay extends React.Component {
     }
 
     uploadDocument = async (content: MobileDocumentUploadContent) => {
-        const { docId, asCollection } = content;
-        console.log("receive upload document id", docId);
+        const { docId } = content;
         const doc = await DocServer.GetRefField(docId);
 
         if (doc && doc instanceof Doc) {
-            console.log("parsed upload document into doc", StrCast(doc.proto!.title));
-
             const target = document.elementFromPoint(this._x + 10, this._y + 10);
-            console.log("the target is", target);
-
-            let uploadDocs = [doc];
-            if (!asCollection) {
-                const children = await DocListCastAsync(doc.data);
-                console.log("uploading children", children);
-                uploadDocs = children ? children : [];
-            }
-            const dragData = new DragManager.DocumentDragData(uploadDocs);
+            const dragData = new DragManager.DocumentDragData([doc]);
             const complete = new DragManager.DragCompleteEvent(false, dragData);
-            console.log("the drag data is", dragData);
 
             if (target) {
                 target.dispatchEvent(
@@ -181,11 +174,11 @@ export default class MobileInkOverlay extends React.Component {
                     zIndex: 30000,
                     pointerEvents: "none",
                     borderStyle: this._isDragging ? "solid" : "dashed",
-                    backgroundColor: "rgba(255, 0, 0, 0.3)"
                 }
                 }
                 ref={this._mainCont}
             >
+                <p>{this._text}</p>
                 <div className="mobileInkOverlay-border top" onPointerDown={this.dragStart}></div>
                 <div className="mobileInkOverlay-border bottom" onPointerDown={this.dragStart}></div>
                 <div className="mobileInkOverlay-border left" onPointerDown={this.dragStart}></div>

@@ -102,9 +102,9 @@ export class CurrentUserUtils {
             { title: "use eraser", icon: "eraser", click: 'activateEraser(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this);', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "pink", activePen: doc },
             { title: "use scrubber", icon: "eraser", click: 'activateScrubber(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this);', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "green", activePen: doc },
             { title: "use drag", icon: "mouse-pointer", click: 'deactivateInk();this.activePen.pen = this;', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "white", activePen: doc },
-            { title: "draw", icon: "pen-nib", click: 'switchMobileView(setupMobileInkingDoc, renderMobileInking, onSwitchMobileInking);', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "red", activePen: doc },
+            // { title: "draw", icon: "pen-nib", click: 'switchMobileView(setupMobileInkingDoc, renderMobileInking, onSwitchMobileInking);', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "red", activePen: doc },
             { title: "upload", icon: "upload", click: 'switchMobileView(setupMobileUploadDoc, renderMobileUpload, onSwitchMobileUpload);', backgroundColor: "orange" },
-            { title: "upload", icon: "upload", click: 'uploadImageMobile();', backgroundColor: "cyan" },
+            // { title: "upload", icon: "upload", click: 'uploadImageMobile();', backgroundColor: "cyan" },
         ];
         return docProtoData.filter(d => !buttons || !buttons.includes(d.title)).map(data => Docs.Create.FontIconDocument({
             nativeWidth: 100, nativeHeight: 100, width: 100, height: 100, dropAction: data.click ? "copy" : undefined, title: data.title, icon: data.icon, ignoreClick: data.ignoreClick,
@@ -138,9 +138,7 @@ export class CurrentUserUtils {
     }
 
     static setupMobileDoc(userDoc: Doc) {
-        const webDoc = Docs.Create.WebDocument("https://wikipedia.com", { title: "Mobile Upload Web", chromeStatus: "enabled" });
-
-        return userDoc.activeMoble ?? Docs.Create.MasonryDocument([webDoc, ...CurrentUserUtils.setupMobileButtons(userDoc)], {
+        return userDoc.activeMoble ?? Docs.Create.MasonryDocument(CurrentUserUtils.setupMobileButtons(userDoc), {
             columnWidth: 100, ignoreClick: true, lockedPosition: true, chromeStatus: "disabled", title: "buttons", autoHeight: true, yMargin: 5
         });
     }
@@ -150,14 +148,15 @@ export class CurrentUserUtils {
     }
 
     static setupMobileUploadDoc(userDoc: Doc) {
-        const webDoc = Docs.Create.WebDocument("https://yahoo.com", { title: "Upload Images From the Web", chromeStatus: "enabled" });
-        const uploadDoc = Docs.Create.StackingDocument([], { title: "Mobile Upload Collection", backgroundColor: "pink" });
-        console.log("window size", window.innerWidth, window.innerHeight);
-        // return Docs.Create.StackingDocument([webDoc, uploadDoc], {
-        //     columnWidth: window.innerWidth, //ignoreClick: true, lockedPosition: true, chromeStatus: "disabled", title: "Mobile Upload", autoHeight: true, yMargin: 5
-        // });
-        return Docs.Create.StackingDocument([webDoc, uploadDoc], {//...CurrentUserUtils.setupMobileButtons(userDoc)], {
-            columnWidth: 100, lockedPosition: true, chromeStatus: "disabled", title: "Upload", autoHeight: true, yMargin: 30
+        const webDoc = Docs.Create.WebDocument("https://www.britannica.com/animal/cat", {
+            title: "Upload Images From the Web", chromeStatus: "enabled", lockedPosition: true
+        });
+        const uploadDoc = Docs.Create.StackingDocument([], {
+            title: "Mobile Upload Collection", backgroundColor: "white", lockedPosition: true
+        });
+        console.log(window.innerWidth, screen.width, window.devicePixelRatio);
+        return Docs.Create.StackingDocument([webDoc, uploadDoc], {
+            columnWidth: screen.width - 10, lockedPosition: true, chromeStatus: "disabled", title: "Upload", autoHeight: true, yMargin: 80, backgroundColor: "lightgray"
         });
     }
 

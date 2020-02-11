@@ -55,6 +55,7 @@ export interface MobileInkOverlayContent {
     readonly enableOverlay: boolean;
     readonly width?: number;
     readonly height?: number;
+    readonly text?: string;
 }
 
 export interface UpdateMobileInkOverlayPositionContent {
@@ -65,7 +66,6 @@ export interface UpdateMobileInkOverlayPositionContent {
 
 export interface MobileDocumentUploadContent {
     readonly docId: string;
-    readonly asCollection: boolean;
 }
 
 export namespace MessageStore {
