@@ -123,9 +123,7 @@ export namespace RichTextUtils {
                 const objects = Object.keys(inlineObjects).map(objectId => inlineObjects[objectId]);
                 const mediaItems: MediaItem[] = objects.map(object => {
                     const embeddedObject = object.inlineObjectProperties!.embeddedObject!;
-                    const baseUrl = embeddedObject.imageProperties!.contentUri!;
-                    const filename = `upload_${Utils.GenerateGuid()}.png`;
-                    return { baseUrl, filename };
+                    return { baseUrl: embeddedObject.imageProperties!.contentUri! };
                 });
 
                 const uploads = await Networking.PostToServer("/googlePhotosMediaDownload", { mediaItems });
@@ -136,11 +134,11 @@ export namespace RichTextUtils {
 
                 for (let i = 0; i < objects.length; i++) {
                     const object = objects[i];
-                    const { fileNames } = uploads[i];
+                    const { clientAccessPath } = uploads[i];
                     const embeddedObject = object.inlineObjectProperties!.embeddedObject!;
                     const size = embeddedObject.size!;
                     const width = size.width!.magnitude!;
-                    const url = Utils.fileUrl(fileNames.clean);
+                    const url = Utils.prepend(clientAccessPath);
 
                     inlineObjectMap.set(object.objectId!, {
                         title: embeddedObject.title || `Imported Image from ${document.title}`,
@@ -156,7 +154,6 @@ export namespace RichTextUtils {
 
         interface MediaItem {
             baseUrl: string;
-            filename: string;
         }
 
         export const Import = async (documentId: GoogleApiClientUtils.Docs.DocumentId, textNote: Doc): Promise<Opt<GoogleApiClientUtils.Docs.ImportResult>> => {
