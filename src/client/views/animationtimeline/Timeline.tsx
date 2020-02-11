@@ -574,6 +574,7 @@ export class Timeline extends React.Component<FieldViewProps> {
                 //TODO: remove undefineds and duplicates
             }
         });
+        console.log(longestTime); 
         return longestTime; 
     }
 

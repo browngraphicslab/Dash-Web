@@ -85,7 +85,7 @@ export class Track extends React.Component<IProps> {
         let lastTime:number = 0; 
         let lastRegion:(Doc | undefined); 
         DocListCast(this.regions).forEach(region => {
-            const time = NumCast(region.time); 
+            const time = NumCast(region.position); 
             if (lastTime <= time) {
                 lastTime = time; 
                 lastRegion = region; 
