@@ -95,7 +95,7 @@ export default class GooglePhotosManager extends ApiManager {
                         const { contentSize, ...attributes } = results;
                         const found: Opt<DashUploadUtils.ImageUploadInformation> = await Database.Auxiliary.QueryUploadHistory(contentSize);
                         if (!found) {
-                            const upload = await DashUploadUtils.UploadInspectedImage({ contentSize, ...attributes }, undefined, prefix).catch(error => _error(res, downloadError, error));
+                            const upload = await DashUploadUtils.UploadInspectedImage({ contentSize, ...attributes }, undefined, prefix, false).catch(error => _error(res, downloadError, error));
                             if (upload) {
                                 completed.push(upload);
                                 await Database.Auxiliary.LogUpload(upload);

@@ -1,5 +1,5 @@
 import { EditorState, Transaction, TextSelection } from "prosemirror-state";
-import { Node, Fragment, Mark, MarkType } from "prosemirror-model";
+import { Node, Fragment, Mark } from "prosemirror-model";
 import { RichTextField } from "./RichTextField";
 import { docs_v1 } from "googleapis";
 import { GoogleApiClientUtils } from "../client/apis/google_docs/GoogleApiClientUtils";
@@ -17,6 +17,7 @@ import { Id } from "./FieldSymbols";
 import { DocumentView } from "../client/views/nodes/DocumentView";
 import { AssertionError } from "assert";
 import { Networking } from "../client/Network";
+import { extname } from "path";
 
 export namespace RichTextUtils {
 
@@ -138,7 +139,8 @@ export namespace RichTextUtils {
                     const embeddedObject = object.inlineObjectProperties!.embeddedObject!;
                     const size = embeddedObject.size!;
                     const width = size.width!.magnitude!;
-                    const url = Utils.prepend(clientAccessPath);
+                    const ext = extname(clientAccessPath);
+                    const url = Utils.prepend(clientAccessPath.replace(ext, "_m" + ext));
 
                     inlineObjectMap.set(object.objectId!, {
                         title: embeddedObject.title || `Imported Image from ${document.title}`,
