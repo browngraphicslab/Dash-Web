@@ -538,7 +538,7 @@ export class Timeline extends React.Component<FieldViewProps> {
             timelineContainer.style.top = "0px";
             this.props.Document.isATOn = true;
             this._isAuthoring = true;
-            this.toAuthoring(); 
+            this.toAuthoring();
         }
     }
 
@@ -561,37 +561,37 @@ export class Timeline extends React.Component<FieldViewProps> {
 
     @action
     findLongestTime = () => {
-        let longestTime:number = 0; 
+        let longestTime: number = 0;
         this.mapOfTracks.forEach(track => {
             if (track) {
                 const lastTime = track.getLastRegionTime();
-                if (this.children.length !== 0 ){
-                    if (longestTime <= lastTime){
-                        longestTime = lastTime; 
+                if (this.children.length !== 0) {
+                    if (longestTime <= lastTime) {
+                        longestTime = lastTime;
                     }
                 }
             } else {
                 //TODO: remove undefineds and duplicates
             }
         });
-        console.log(longestTime); 
-        return longestTime; 
+        // console.log(longestTime); 
+        return longestTime;
     }
 
-    @action 
+    @action
     toAuthoring = () => {
-        let longestTime = this.findLongestTime(); 
+        let longestTime = this.findLongestTime();
         if (longestTime === 0) longestTime = 1;
-        const adjustedTime = Math.ceil(longestTime / 100000) * 100000; 
-        console.log(adjustedTime); 
-        this._totalLength = KeyframeFunc.convertPixelTime(adjustedTime, "mili", "pixel", this._tickSpacing, this._tickIncrement); 
-        this._time = adjustedTime; 
+        const adjustedTime = Math.ceil(longestTime / 100000) * 100000;
+        // console.log(adjustedTime); 
+        this._totalLength = KeyframeFunc.convertPixelTime(adjustedTime, "mili", "pixel", this._tickSpacing, this._tickIncrement);
+        this._time = adjustedTime;
     }
 
-    @action 
+    @action
     toPlay = () => {
-        const longestTime = this.findLongestTime(); 
-        this._time = longestTime; 
+        const longestTime = this.findLongestTime();
+        this._time = longestTime;
         this._totalLength = KeyframeFunc.convertPixelTime(this._time, "mili", "pixel", this._tickSpacing, this._tickIncrement);
     }
 
