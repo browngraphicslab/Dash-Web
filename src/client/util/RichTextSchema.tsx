@@ -133,6 +133,7 @@ export const nodes: { [index: string]: NodeSpec } = {
         inline: true,
         attrs: {
             src: {},
+            agnostic: { default: null },
             width: { default: 100 },
             alt: { default: null },
             title: { default: null },
