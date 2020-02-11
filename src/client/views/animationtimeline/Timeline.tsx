@@ -412,7 +412,7 @@ export class Timeline extends React.Component<FieldViewProps> {
     /**
      * tool box includes the toggle buttons at the top of the timeline (both editing mode and play mode)
      */
-    private timelineToolBox = (scale: number) => {
+    private timelineToolBox = (scale: number, totalTime: number) => {
         const size = 40 * scale; //50 is default
         const iconSize = 25;
 
@@ -459,7 +459,7 @@ export class Timeline extends React.Component<FieldViewProps> {
                         </div>
                     </div>
                     <div className="time-box overview-tool" style={{ display: this._timelineVisible ? "flex" : "none" }}>
-                        {this.timeIndicator(lengthString)}
+                        {this.timeIndicator(lengthString, totalTime)}
                         <div className="resetView-tool" title="Return to Default View" onClick={() => Doc.resetView(this.props.Document)}><FontAwesomeIcon icon="compress-arrows-alt" size="lg" /></div>
                         <div className="resetView-tool" style={{ display: this._isAuthoring ? "flex" : "none" }} title="Set Default View" onClick={() => Doc.setView(this.props.Document)}><FontAwesomeIcon icon="expand-arrows-alt" size="lg" /></div>
 
@@ -469,12 +469,11 @@ export class Timeline extends React.Component<FieldViewProps> {
         );
     }
 
-    timeIndicator(lengthString: string) {
+    timeIndicator(lengthString: string, totalTime: number) {
         if (this.props.Document.isATOn) {
             return (
                 <>
-                    <div key="time-text" className="animation-text" style={{ visibility: this.props.Document.isATOn ? "visible" : "hidden", display: this.props.Document.isATOn ? "flex" : "none" }}>{lengthString}</div>
-                    <div className="totalTime">{this.toReadTime(this._time)}</div>
+                    <div key="time-text" className="animation-text" style={{ visibility: this.props.Document.isATOn ? "visible" : "hidden", display: this.props.Document.isATOn ? "flex" : "none" }}>{`Total: ${this.toReadTime(totalTime)}`}</div>
                 </>
             );
         }
@@ -482,25 +481,11 @@ export class Timeline extends React.Component<FieldViewProps> {
             return (
                 <div style={{ flexDirection: "column" }}>
                     <div className="animation-text" style={{ fontSize: "10px", width: "100%", display: !this.props.Document.isATOn ? "block" : "none" }}>{`Current: ${this.getCurrentTime()}`}</div>
-                    <div className="animation-text" style={{ fontSize: "10px", width: "100%", display: !this.props.Document.isATOn ? "block" : "none" }}>{`Total:${this.toReadTime(this._time)}`}</div>
+                    <div className="animation-text" style={{ fontSize: "10px", width: "100%", display: !this.props.Document.isATOn ? "block" : "none" }}>{`Total: ${this.toReadTime(this._time)}`}</div>
                 </div>
             );
         }
     }
-
-    /**
-     * manual time input (kinda broken right now)
-     */
-    @action
-    private onTimeInput = (e: React.KeyboardEvent) => {
-        // if (e.keyCode === 13) {
-        //     let timeInput = this._timeInputRef.current!;
-        //     this._time = parseInt(timeInput.value, 10);
-        //     this._totalLength = KeyframeFunc.convertPixelTime(this._time, "mili", "pixel", this._tickSpacing, this._tickIncrement);
-        //     this.props.Document.AnimationLength = this._time;
-        // }
-    }
-
 
     /**
      * when the user decides to click the toggle button (either user wants to enter editing mode or play mode)
@@ -553,7 +538,10 @@ export class Timeline extends React.Component<FieldViewProps> {
 
     // @computed
     getCurrentTime = () => {
-        const current = KeyframeFunc.convertPixelTime(this._currentBarX, "mili", "time", this._tickSpacing, this._tickIncrement);
+        let current = KeyframeFunc.convertPixelTime(this._currentBarX, "mili", "time", this._tickSpacing, this._tickIncrement);
+        if (current > this._time) {
+            current = this._time;
+        }
         return this.toReadTime(current);
     }
 
@@ -603,7 +591,13 @@ export class Timeline extends React.Component<FieldViewProps> {
         runInAction(() => {
             this._panelWidth = this.props.PanelWidth();
             this.changeLengths();
+            // this.toPlay();
+
+
+            // this._time = longestTime;
         });
+
+        const longestTime = this.findLongestTime();
 
         // change visible and total width
         return (
@@ -632,7 +626,7 @@ export class Timeline extends React.Component<FieldViewProps> {
                             </div>
                         </div>
                     </div>
-                    {this.timelineToolBox(1)}
+                    {this.timelineToolBox(1, longestTime)}
                 </div>
             </div>
         );
