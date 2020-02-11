@@ -24,6 +24,7 @@ import React = require("react");
 import { DragManager } from '../util/DragManager';
 import { MetadataEntryMenu } from './MetadataEntryMenu';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
+import GoogleAuthenticationManager from '../apis/GoogleAuthenticationManager';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -162,7 +163,8 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
             title={`${published ? "Push" : "Publish"} to Google Docs`}
             className="documentButtonBar-linker"
             style={{ animation }}
-            onClick={() => {
+            onClick={async () => {
+                await GoogleAuthenticationManager.Instance.fetchOrGenerateAccessToken();
                 !published && runInAction(() => this.isAnimatingPulse = true);
                 DocumentButtonBar.hasPushedHack = false;
                 targetDoc[Pushes] = NumCast(targetDoc[Pushes]) + 1;
