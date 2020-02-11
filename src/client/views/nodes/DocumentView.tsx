@@ -277,7 +277,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             }
             preventDefault && e.preventDefault();
         }
-    })
+    });
 
     buttonClick = async (altKey: boolean, ctrlKey: boolean) => {
         const linkDocs = DocListCast(this.props.Document.links);
@@ -636,7 +636,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                         if (StrCast(tempDoc.title) === layout) {
                             foundLayout = tempDoc;
                         }
-                    })
+                    });
                 DocumentView.
                     makeCustomViewClicked(this.props.Document, this.props.DataDoc, Docs.Create.StackingDocument, layout, foundLayout);
             } else {

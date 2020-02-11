@@ -61,11 +61,14 @@ export namespace DashUploadUtils {
     const type = "content-type";
 
     export interface ImageUploadInformation {
-        clientAccessPath: string;
-        serverAccessPaths: { [key: string]: string };
+        accessPaths: AccessPathInfo;
         exifData: EnrichedExifData;
         contentSize?: number;
         contentType?: string;
+    }
+
+    export interface AccessPathInfo {
+        [suffix: string]: { client: string, server: string };
     }
 
     const { imageFormats, videoFormats, applicationFormats } = AcceptibleMedia;
@@ -94,7 +97,7 @@ export namespace DashUploadUtils {
         }
 
         console.log(red(`Ignoring unsupported file (${name}) with upload type (${type}).`));
-        return { clientAccessPath: undefined };
+        return { accessPaths: undefined };
     }
 
     async function UploadPdf(absolutePath: string) {
@@ -213,29 +216,40 @@ export namespace DashUploadUtils {
         };
     };
 
-    export async function MoveParsedFile(absolutePath: string, destination: Directory): Promise<{ clientAccessPath: Opt<string> }> {
-        return new Promise<{ clientAccessPath: Opt<string> }>(resolve => {
+    export async function MoveParsedFile(absolutePath: string, destination: Directory): Promise<Opt<AccessPathInfo>> {
+        return new Promise<Opt<AccessPathInfo>>(resolve => {
             const filename = basename(absolutePath);
             const destinationPath = serverPathToFile(destination, filename);
             rename(absolutePath, destinationPath, error => {
-                resolve({ clientAccessPath: error ? undefined : clientPathToFile(destination, filename) });
+                resolve(error ? undefined : {
+                    agnostic: getAccessPaths(destination, filename)
+                });
             });
         });
+    }
+
+    function getAccessPaths(directory: Directory, fileName: string) {
+        return {
+            client: clientPathToFile(directory, fileName),
+            server: serverPathToFile(directory, fileName)
+        };
     }
 
     export const UploadInspectedImage = async (metadata: InspectionResults, filename?: string, prefix = "", cleanUp = true): Promise<ImageUploadInformation> => {
         const { requestable, source, ...remaining } = metadata;
         const extension = `.${remaining.contentType.split("/")[1].toLowerCase()}`;
         const resolved = filename || `${prefix}upload_${Utils.GenerateGuid()}${extension}`;
+        const { images } = Directory;
         const information: ImageUploadInformation = {
-            clientAccessPath: clientPathToFile(Directory.images, resolved),
-            serverAccessPaths: {},
+            accessPaths: {
+                agnostic: getAccessPaths(images, resolved)
+            },
             ...remaining
         };
         const outputPath = pathToDirectory(Directory.images);
         const writtenFiles = await outputResizedImages(() => request(requestable), outputPath, resolved, extension);
         for (const suffix of Object.keys(writtenFiles)) {
-            information.serverAccessPaths[suffix] = serverPathToFile(Directory.images, writtenFiles[suffix]);
+            information.accessPaths[suffix] = getAccessPaths(images, writtenFiles[suffix]);
         }
         if (isLocal().test(source) && cleanUp) {
             unlinkSync(source);
@@ -270,10 +284,9 @@ export namespace DashUploadUtils {
     export async function outputResizedImages(readStreamSource: () => ReadStreamLike | Promise<ReadStreamLike>, outputPath: string, fileName: string, ext: string) {
         const writtenFiles: { [suffix: string]: string } = {};
         for (const { resizer, suffix } of resizers(ext)) {
-            const resizedPath = path.resolve(outputPath, InjectSize(fileName, suffix));
-            writtenFiles[suffix] = resizedPath;
+            const resolved = writtenFiles[suffix] = InjectSize(fileName, suffix);
             await new Promise<void>(async (resolve, reject) => {
-                const writeStream = createWriteStream(resizedPath);
+                const writeStream = createWriteStream(path.resolve(outputPath, resolved));
                 let readStream: ReadStreamLike;
                 const source = readStreamSource();
                 if (source instanceof Promise) {

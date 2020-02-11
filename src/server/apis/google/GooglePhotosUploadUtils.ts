@@ -84,6 +84,7 @@ export namespace GooglePhotosUploadUtils {
         if (!DashUploadUtils.validateExtension(url)) {
             return undefined;
         }
+        const body = await request(url, { encoding: null }); // returns a readable stream with the unencoded binary image data
         const parameters = {
             method: 'POST',
             uri: prepend('uploads'),
@@ -92,7 +93,7 @@ export namespace GooglePhotosUploadUtils {
                 'X-Goog-Upload-File-Name': filename || path.basename(url),
                 'X-Goog-Upload-Protocol': 'raw'
             },
-            body: await request(url, { encoding: null }) // returns a readable stream with the unencoded binary image data
+            body
         };
         return new Promise((resolve, reject) => request(parameters, (error, _response, body) => {
             if (error) {

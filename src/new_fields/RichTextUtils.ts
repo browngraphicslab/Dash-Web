@@ -114,6 +114,7 @@ export namespace RichTextUtils {
             width: number;
             title: string;
             url: string;
+            agnostic: string;
         }
 
         const parseInlineObjects = async (document: docs_v1.Schema$Document): Promise<Map<string, ImageTemplate>> => {
@@ -135,17 +136,17 @@ export namespace RichTextUtils {
 
                 for (let i = 0; i < objects.length; i++) {
                     const object = objects[i];
-                    const { clientAccessPath } = uploads[i];
+                    const { accessPaths } = uploads[i];
+                    const { agnostic, _m } = accessPaths;
                     const embeddedObject = object.inlineObjectProperties!.embeddedObject!;
                     const size = embeddedObject.size!;
                     const width = size.width!.magnitude!;
-                    const ext = extname(clientAccessPath);
-                    const url = Utils.prepend(clientAccessPath.replace(ext, "_m" + ext));
 
                     inlineObjectMap.set(object.objectId!, {
                         title: embeddedObject.title || `Imported Image from ${document.title}`,
                         width,
-                        url
+                        url: Utils.prepend(_m.client),
+                        agnostic: Utils.prepend(agnostic.client)
                     });
                 }
             }
@@ -267,19 +268,19 @@ export namespace RichTextUtils {
         };
 
         const imageNode = (schema: any, image: ImageTemplate, textNote: Doc) => {
-            const { url: src, width } = image;
+            const { url: src, width, agnostic } = image;
             let docid: string;
-            const guid = Utils.GenerateDeterministicGuid(src);
+            const guid = Utils.GenerateDeterministicGuid(agnostic);
             const backingDocId = StrCast(textNote[guid]);
             if (!backingDocId) {
-                const backingDoc = Docs.Create.ImageDocument(src, { _width: 300, _height: 300 });
+                const backingDoc = Docs.Create.ImageDocument(agnostic, { _width: 300, _height: 300 });
                 DocumentView.makeCustomViewClicked(backingDoc, undefined, Docs.Create.FreeformDocument);
                 docid = backingDoc[Id];
                 textNote[guid] = docid;
             } else {
                 docid = backingDocId;
             }
-            return schema.node("image", { src, width, docid, float: null, location: "onRight" });
+            return schema.node("image", { src, agnostic, width, docid, float: null, location: "onRight" });
         };
 
         const textNode = (schema: any, run: docs_v1.Schema$TextRun) => {
@@ -435,7 +436,7 @@ export namespace RichTextUtils {
                     const width = attrs.width;
                     requests.push(await EncodeImage({
                         startIndex: position + nodeSize - 1,
-                        uri: attrs.src,
+                        uri: attrs.agnostic,
                         width: Number(typeof width === "string" ? width.replace("px", "") : width)
                     }));
                 }
@@ -498,15 +499,18 @@ export namespace RichTextUtils {
             };
         };
 
-        const EncodeImage = async (information: ImageInformation) => {
-            const source = [Docs.Create.ImageDocument(information.uri)];
+        const EncodeImage = async ({ uri, width, startIndex }: ImageInformation) => {
+            if (!uri) {
+                return {};
+            }
+            const source = [Docs.Create.ImageDocument(uri)];
             const baseUrls = await GooglePhotos.Transactions.UploadThenFetch(source);
             if (baseUrls) {
                 return {
                     insertInlineImage: {
                         uri: baseUrls[0],
-                        objectSize: { width: { magnitude: information.width, unit: "PT" } },
-                        location: { index: information.startIndex }
+                        objectSize: { width: { magnitude: width, unit: "PT" } },
+                        location: { index: startIndex }
                     }
                 };
             }

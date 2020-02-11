@@ -232,8 +232,8 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                     const split = img.split("src=\"")[1].split("\"")[0];
                     let source = split;
                     if (split.startsWith("data:image") && split.includes("base64")) {
-                        const [{ clientAccessPath }] = await Networking.PostToServer("/uploadRemoteImage", { sources: [split] });
-                        source = Utils.prepend(clientAccessPath);
+                        const [{ accessPaths }] = await Networking.PostToServer("/uploadRemoteImage", { sources: [split] });
+                        source = Utils.prepend(accessPaths.agnostic.client);
                     }
                     const doc = Docs.Create.ImageDocument(source, { ...options, _width: 300 });
                     ImageUtils.ExtractExif(doc);
@@ -312,9 +312,9 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                     const dropFileName = file ? file.name : "-empty-";
                     promises.push(Networking.PostFormDataToServer("/uploadFormData", formData).then(results => {
                         results.map(action((result: any) => {
-                            const { clientAccessPath, nativeWidth, nativeHeight, contentSize } = result;
+                            const { accessPaths, nativeWidth, nativeHeight, contentSize } = result;
                             const full = { ...options, _width: 300, title: dropFileName };
-                            const pathname = Utils.prepend(clientAccessPath);
+                            const pathname = Utils.prepend(accessPaths.agnostic.client);
                             Docs.Get.DocumentFromType(type, pathname, full).then(doc => {
                                 if (doc) {
                                     const proto = Doc.GetProto(doc);

@@ -321,12 +321,12 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
                     const { dataDoc } = this;
                     const { success, failure, idle, loading } = uploadIcons;
                     runInAction(() => this.uploadIcon = loading);
-                    const [{ clientAccessPath }] = await Networking.PostToServer("/uploadRemoteImage", { sources: [primary] });
+                    const [{ accessPaths }] = await Networking.PostToServer("/uploadRemoteImage", { sources: [primary] });
                     dataDoc.originalUrl = primary;
                     let succeeded = true;
                     let data: ImageField | undefined;
                     try {
-                        data = new ImageField(Utils.prepend(clientAccessPath));
+                        data = new ImageField(Utils.prepend(accessPaths.agnostic.client));
                     } catch {
                         succeeded = false;
                     }
