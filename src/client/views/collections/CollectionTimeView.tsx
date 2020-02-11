@@ -46,7 +46,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
             this.props.Document._fitToBox = true;
         }
         if (!this.props.Document.onViewDefClick) {
-            this.props.Document.onViewDefDivClick = ScriptField.MakeScript("pivotColumnClick(this,payload)", { payload: "any" })
+            this.props.Document.onViewDefDivClick = ScriptField.MakeScript("pivotColumnClick(this,payload)", { payload: "any" });
         }
     }
 
@@ -164,7 +164,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
             typeof (pair.layout[fieldKey]) === "string").map(fieldKey => keySet.add(fieldKey)));
         Array.from(keySet).map(fieldKey =>
             docItems.push({ description: ":" + fieldKey, event: () => this.props.Document._pivotField = fieldKey, icon: "compress-arrows-alt" }));
-        docItems.push({ description: ":(null)", event: () => this.props.Document._pivotField = undefined, icon: "compress-arrows-alt" })
+        docItems.push({ description: ":(null)", event: () => this.props.Document._pivotField = undefined, icon: "compress-arrows-alt" });
         ContextMenu.Instance.addItem({ description: "Pivot Fields ...", subitems: docItems, icon: "eye" });
         const pt = this.props.ScreenToLocalTransform().inverse().transformPoint(x, y);
         ContextMenu.Instance.displayMenu(x, y, ":");
@@ -282,9 +282,9 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
         const layoutItems: ContextMenuProps[] = [];
         const doc = this.props.Document;
 
-        layoutItems.push({ description: "Force Timeline", event: () => { doc._forceRenderEngine = "timeline" }, icon: "compress-arrows-alt" });
-        layoutItems.push({ description: "Force Pivot", event: () => { doc._forceRenderEngine = "pivot" }, icon: "compress-arrows-alt" });
-        layoutItems.push({ description: "Auto Time/Pivot layout", event: () => { doc._forceRenderEngine = undefined }, icon: "compress-arrows-alt" });
+        layoutItems.push({ description: "Force Timeline", event: () => { doc._forceRenderEngine = "timeline"; }, icon: "compress-arrows-alt" });
+        layoutItems.push({ description: "Force Pivot", event: () => { doc._forceRenderEngine = "pivot"; }, icon: "compress-arrows-alt" });
+        layoutItems.push({ description: "Auto Time/Pivot layout", event: () => { doc._forceRenderEngine = undefined; }, icon: "compress-arrows-alt" });
         layoutItems.push({ description: "Sync with presentation", event: () => CollectionTimeView.SyncTimelineToPresentation(doc), icon: "compress-arrows-alt" });
 
         ContextMenu.Instance.addItem({ description: "Pivot/Time Options ...", subitems: layoutItems, icon: "eye" });
@@ -331,7 +331,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
             <div className={"collectionTimeView" + (doTimeline ? "" : "-pivot")} onContextMenu={this.specificMenu}
                 style={{ height: `calc(100%  - ${this.props.Document._chromeStatus === "enabled" ? 51 : 0}px)` }}>
                 <div className={"pivotKeyEntry"}>
-                    <button className="collectionTimeView-backBtn" style={{ width: 50, height: 20, background: "green" }}
+                    <button className="collectionTimeView-backBtn"
                         onClick={action(() => {
                             let prevFilterIndex = NumCast(this.props.Document._prevFilterIndex);
                             if (prevFilterIndex > 0) {

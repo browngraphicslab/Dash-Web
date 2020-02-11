@@ -207,7 +207,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
             return url.href;
         } else if (url.href.indexOf(window.location.origin) === -1) {
             return Utils.CorsProxy(url.href);
-        } else if (!(lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg"))) {
+        } else if (!/\.(png|jpg|jpeg|gif)$/.test(lower)) {
             return url.href;//Why is this here
         }
         const ext = path.extname(url.href);

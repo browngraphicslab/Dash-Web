@@ -14,6 +14,7 @@ import { ParsedPDF } from "../server/PdfTypes";
 const parse = require('pdf-parse');
 import { Directory, serverPathToFile, clientPathToFile, pathToDirectory } from './ApiManagers/UploadManager';
 import { red } from 'colors';
+import { Writable } from 'stream';
 const requestImageSize = require("../client/util/request-image-size");
 
 export enum SizeSuffix {
@@ -79,7 +80,7 @@ export namespace DashUploadUtils {
         switch (category) {
             case "image":
                 if (imageFormats.includes(format)) {
-                    const results = await UploadImage(path, basename(path), format);
+                    const results = await UploadImage(path, basename(path));
                     return { ...results, name, type };
                 }
             case "video":
@@ -108,8 +109,6 @@ export namespace DashUploadUtils {
         return MoveParsedFile(absolutePath, Directory.pdfs);
     }
 
-    const generate = (prefix: string, extension: string) => `${prefix}upload_${Utils.GenerateGuid()}.${extension}`;
-
     /**
      * Uploads an image specified by the @param source to Dash's /public/files/
      * directory, and returns information generated during that upload 
@@ -127,12 +126,12 @@ export namespace DashUploadUtils {
      * 3) the size of the image, in bytes (4432130)
      * 4) the content type of the image, i.e. image/(jpeg | png | ...)
      */
-    export const UploadImage = async (source: string, filename?: string, format?: string, prefix: string = ""): Promise<ImageUploadInformation | Error> => {
+    export const UploadImage = async (source: string, filename?: string, prefix: string = ""): Promise<ImageUploadInformation | Error> => {
         const metadata = await InspectImage(source);
         if (metadata instanceof Error) {
             return metadata;
         }
-        return UploadInspectedImage(metadata, filename || metadata.filename, format, prefix);
+        return UploadInspectedImage(metadata, filename || metadata.filename, prefix);
     };
 
     export interface InspectionResults {
@@ -224,43 +223,24 @@ export namespace DashUploadUtils {
         });
     }
 
-    export const UploadInspectedImage = async (metadata: InspectionResults, filename?: string, format?: string, prefix = ""): Promise<ImageUploadInformation> => {
+    export const UploadInspectedImage = async (metadata: InspectionResults, filename?: string, prefix = ""): Promise<ImageUploadInformation> => {
         const { requestable, source, ...remaining } = metadata;
-        const extension = remaining.contentType.toLowerCase().split("/")[1]; //format || sanitizeExtension(requestable || resolved);
-        const resolved = filename || generate(prefix, extension);
+        const extension = `.${remaining.contentType.split("/")[1].toLowerCase()}`;
+        const resolved = filename || `${prefix}upload_${Utils.GenerateGuid()}${extension}`;
         const information: ImageUploadInformation = {
             clientAccessPath: clientPathToFile(Directory.images, resolved),
             serverAccessPaths: {},
             ...remaining
         };
-        const { pngs, jpgs } = AcceptibleMedia;
-        return new Promise<ImageUploadInformation>(async (resolve, reject) => {
-            const resizers = [
-                { resizer: sharp().rotate(), suffix: SizeSuffix.Original },
-                ...Object.values(Sizes).map(size => ({
-                    resizer: sharp().resize(size.width, undefined, { withoutEnlargement: true }).rotate(),
-                    suffix: size.suffix
-                }))
-            ];
-            if (pngs.includes(extension)) {
-                resizers.forEach(element => element.resizer = element.resizer.png());
-            } else if (jpgs.includes(extension)) {
-                resizers.forEach(element => element.resizer = element.resizer.jpeg());
-            }
-            for (const { resizer, suffix } of resizers) {
-                await new Promise<void>(resolve => {
-                    const filename = InjectSize(resolved, suffix);
-                    information.serverAccessPaths[suffix] = serverPathToFile(Directory.images, filename);
-                    request(requestable).pipe(resizer).pipe(createWriteStream(serverPathToFile(Directory.images, filename)))
-                        .on('close', resolve)
-                        .on('error', reject);
-                });
-            }
-            if (isLocal().test(source)) {
-                unlinkSync(source);
-            }
-            resolve(information);
-        });
+        const outputPath = pathToDirectory(Directory.images);
+        const writtenFiles = await outputResizedImages(() => request(requestable), outputPath, resolved, extension);
+        for (const suffix of Object.keys(writtenFiles)) {
+            information.serverAccessPaths[suffix] = serverPathToFile(Directory.images, writtenFiles[suffix]);
+        }
+        if (isLocal().test(source)) {
+            unlinkSync(source);
+        }
+        return information;
     };
 
     const parseExifData = async (source: string): Promise<EnrichedExifData> => {
@@ -275,5 +255,61 @@ export namespace DashUploadUtils {
             });
         });
     };
+
+    const { pngs, jpgs } = AcceptibleMedia;
+    const pngOptions = {
+        compressionLevel: 9,
+        adaptiveFiltering: true,
+        force: true
+    };
+
+    export interface ReadStreamLike {
+        pipe: (dest: Writable) => Writable;
+    }
+
+    export async function outputResizedImages(readStreamSource: () => ReadStreamLike | Promise<ReadStreamLike>, outputPath: string, fileName: string, ext: string) {
+        const writtenFiles: { [suffix: string]: string } = {};
+        for (const { resizer, suffix } of resizers(ext)) {
+            const resizedPath = path.resolve(outputPath, InjectSize(fileName, suffix));
+            writtenFiles[suffix] = resizedPath;
+            await new Promise<void>(async (resolve, reject) => {
+                const writeStream = createWriteStream(resizedPath);
+                let readStream: ReadStreamLike;
+                const source = readStreamSource();
+                if (source instanceof Promise) {
+                    readStream = await source;
+                } else {
+                    readStream = source;
+                }
+                if (resizer) {
+                    readStream = readStream.pipe(resizer.withMetadata());
+                }
+                const out = readStream.pipe(writeStream);
+                out.on("close", resolve);
+                out.on("error", reject);
+            });
+        }
+        return writtenFiles;
+    }
+
+    function resizers(ext: string): DashUploadUtils.ImageResizer[] {
+        return [
+            { suffix: SizeSuffix.Original },
+            ...Object.values(DashUploadUtils.Sizes).map(size => {
+                let initial: sharp.Sharp | undefined = sharp().resize(size.width, undefined, { withoutEnlargement: true });
+                if (pngs.includes(ext)) {
+                    initial = initial.png(pngOptions);
+                } else if (jpgs.includes(ext)) {
+                    initial = initial.jpeg();
+                } else {
+                    initial = undefined;
+                }
+                return {
+                    resizer: initial,
+                    suffix: size.suffix
+                };
+            })
+        ];
+    }
 
 }

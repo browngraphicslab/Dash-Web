@@ -9,6 +9,19 @@
             "http://research.microsoft.com/en-us/um/people/bibuxton/buxtoncollection/browse.aspx",
             "3DCad_Brochure.pdf"
         ],
+        "captions": [
+            "The 3Dconnexion CadMan 3D Motion Controller, a 6DOF joystick.",
+            "Brochure for the CadMan 3D Motion Controller.(Click on image to access full document.)"
+        ],
+        "embeddedFileNames": [
+            "3DCad_0410.JPG",
+            "3DCad_Brochure.jpg"
+        ],
+        "__images": [
+            "/files/images/buxton/upload_19ce4ebd-f207-4724-b8bf-610c8e1cf322.png",
+            "/files/images/buxton/upload_4dde8de0-f1ec-4ffb-b7cc-57b8c4ae6c94.png",
+            "/files/images/buxton/upload_825e8ed8-063c-428b-917d-eb62ea218f05.png"
+        ],
         "title": "3Dconnexion CadMan 3D Motion Controller",
         "company": "3Dconnexion",
         "year": 2003,
@@ -24,77 +37,7 @@
             "dim_unit": "mm"
         },
         "shortDescription": "The CadMan is a 6 degree of freedom (DOF) joystick controller. It represented a significant step towards making this class of is controller affordable. It was mainly directed at 3D modelling and animation and was a “next generation” of the Magellan controller, which is also in the collection.",
-        "longDescription": "The CadMan is a 6 degree of freedom (DOF) joystick controller. It represented a significant step towards making this class of is controller more affordable. It was mainly directed at 3D modelling and animation and was a “next generation” of the Magellan/SpaceMouse controller, which is also in the collection. Like the Magellan, this is an isometric rate-control joystick. That is, it rests in a neutral central position, not sending and signal. When a force is applied to it, it emits a signal indicating the direction and strength of that force. This signal can then be mapped to a parameter of a selected object, such as a sphere, and – for example – cause that sphere to rotate for as long as, and as fast as, and in the direction determined by, the duration, force, and direction of the applied force. When released, it springs back to neutral position. Note that the force does not need to be directed along a single DOF. In fact, a core feature of the device is that one can simultaneously and independently apply force that asserts control over more than one DOF, and furthermore, vary those forces dynamically. As an aid to understanding, let me walk through some of the underlying concepts at play here by using a more familiar device: a computer mouse. If you move a mouse in a forward/backward direction, the mouse pointer on the screen moves between the screen’s top and bottom. If you think of the screen as a piece of graph paper, that corresponds to moving along the “Y” axis. That is one degree of freedom. On the other hand, you could move the mouse left and right, which causes the mouse to move between the left and right side of the screen. That would correspond to moving along the graph paper’s “X” axis – a second degree of freedom. Yet, you can also move the mouse diagonally. This is an example of independently controlling two degrees of freedom. Now imagine that if you lifted your mouse off your desktop, that your computer could dynamically sense its height as you did so. This would constitute a “flying mouse” (the literal translation of the German word for a “Bat”, which Canadian colleague, Colin Ware, applied to just such a mouse which he built in 1988). If you moved your Bat vertically up and down, perpendicular to the desktop, you would be controlling movement along the “Z” axis - a third degree of freedom. Having already seen that we can move a mouse diagonally, we have established that we need not be constrained to only moving along a single axis. That extends to the movement of our Bat and movement along the “Z” axis. We can control our hand movement in dependently in any or all directions in 3D space. But how does one reconcile the fact that we call the CadMan a “3D controller, and yet also describe it as having 6 degrees of freedom? Yes, as described, our bat can fly in 3D, but on the other hand, its range of movement within those 3 dimensions is much richer. To demonstrate this, move your hand in 3D space on and above your desktop. However, do so keeping your palm flat, parallel to the desktop with your fingers pointing directly forward. In so doing, you are still moving in 3D. Now, while moving, twist your wrist, while moving the hand, such that your palm is alternatively exposed to the left and right side. This constitutes rotation around the “Y” axis. A fourth DOF. Now add a waving motion to your hand, as if it were a paper airplane diving up and down, while also rocking left and right. But keep your fingers pointing forward. You have now added a fifth DOF, rotation around the “X” axis. Finally, add a twist to your wrist so that your fingers are no longer constrained to pointing forward. This is the sixth degree of freedom, rotation around the “Z” axis. Now don’t be fooled, this exercise could continue. We are not restricted to even six DOF. Imagine doing the above, but where the movement and rotations are measured relative to the Bat’s position and orientation, rather than to the holding/controlling hand, per se. One could imagine the Bat having a scroll wheel, like the one on most mice today. Furthermore, while flying your Bat around in 3D, that wheel could easily be rolled in either forward or backward, and thereby control the size of whatever was being controlled. Hence, with one hand we could assert simultaneous and independent control over 7 DOF in 3D space. This exercise has two intended take-aways. The first is a better working understanding between the notion of Degree of Freedom (DOF) and Dimension in space. Hopefully, the confusion frequently encountered when 3D and 6DOF are used in close context, can now be eliminated. Second, is that, with appropriate sensing, the human hand is capable of exercising control over far more degrees of freedom that six. And if we use the two hands together, the potential number of DOF that one can control goes even further. Finally, it is important to add one more take-away – one which both emerges from, and is frequently encountered when discussing, the previous two. That is, do not equate exercising simultaneous control over a high number of DOF with consciously doing the same number of different things all at once. The example that used to be thrown at me when I started talking about coordinated simultaneously bi-manual action went along the lines of, “Psychology tells us that we cannot do multiple things at once, for example, simultaneously tapping your head and rubbing your stomach. ”Well, first, I can tap my head with one hand while rubbing my stomach with the other. But that is not the point. The whole essence of skill – motor-sensory and cognitive – is “chunking” or task integration. When one appears to be doing many different things at once, if they are skilled, they are consciously doing only one thing. Playing a chord on the piano, for example, or skiing down the hill. Likewise, in flying your imaginary BAT in the previous exercise with the scroll wheel, were you doing 7 things at once, or one thing with 7 DOF? And if you had a Bat in each hand, does that mean you are now doing 14 things at once, or are you doing one thing with 14 DOF? Let me provide a different way of answering this question: if you have ever played air guitar, or “conducted” the orchestra that you are listening to on the radio, you are exercising control over more than 14 DOF. And you are doing exactly what I just said, “playing air guitar” or “conducting an orchestra”. One thing – at the conscious level, which is what matters – despite almost any one thing being able to be deconstructed into hundreds of sub-tasks. As I said the essence of skill: aggregation, or chunking. What is most important for both tool designers and users to be mindful of, is the overwhelming influence that our choice and design of tools impacts the degree to which such integration or chunking can take place. The degree to which the tool matches both the skills that we have already acquired through a lifetime of living in the everyday world, and the demands of the intended task, the more seamless that task can be performed, the more “natural” it will feel, and the less learning will be required. In my experience, it brought particular value when used bimanually, in combination with a mouse, where the preferred hand performed conventional pointing, selection and dragging tasks, while the non-preferred hand could manipulate the parameters of the thing being selected. First variation of the since the 2001 formation of 3Dconnextion. The CadMan came in 5 colours: smoke, orange, red, blue and green. See the notes for the LogiCad3D Magellan for more details on this class of device. It is the “parent” of the CadMan, and despite the change in company name, it comes from the same team.",
-        "__images": [
-            "/files/images/buxton/upload_921b19f8-6cba-48c4-9a0b-8b40dbe225a7.png",
-            "/files/images/buxton/upload_1838dd5c-e37d-4715-8c60-6a5272a1aa4f.png",
-            "/files/images/buxton/upload_cbb2a272-572a-4e25-8802-b88d858a685d.png"
-        ],
-        "captions": [
-            "The 3Dconnexion CadMan 3D Motion Controller, a 6DOF joystick.",
-            "Brochure for the CadMan 3D Motion Controller.(Click on image to access full document.)"
-        ],
-        "fileNames": [
-            "3DCad_0410.JPG",
-            "3DCad_Brochure.jpg"
-        ]
-    },
-    {
-        "hyperlinks": [
-            "http://research.microsoft.com/en-us/um/people/bibuxton/buxtoncollection/acknowledgements.aspx",
-            "SpaceNavigator_Press_Release.pdf",
-            "http://research.microsoft.com/en-us/um/people/bibuxton/buxtoncollection/browse.aspx",
-            "https://web.archive.org/web/20061205222533/http://www.3dconnexion.com:80/products/3a1d.php",
-            "3DConnexion_SpaceNavigator/SpaceNavigator_Launch_Web_Page.pdf",
-            "http://research.microsoft.com/en-us/um/people/bibuxton/buxtoncollection/default.aspx",
-            "https://www.pcmag.com/article2/0,2817,2082798,00.asp",
-            "http://research.microsoft.com/en-us/um/people/bibuxton/buxtoncollection/default.aspx",
-            "SpaceNavigator_Launch_Web_Page.pdf",
-            "http://research.microsoft.com/en-us/um/people/bibuxton/buxtoncollection/contact.aspx",
-            "Navigator_Data_Sheet_2006.pdf",
-            "3DConnexion_SpaceNavigator/SpaceNavigator_Press_Release.pdf"
-        ],
-        "title": "3Dconnexion SpaceNavigator ",
-        "company": "3Dconnexion",
-        "year": 2006,
-        "primaryKey": "Joystick",
-        "secondaryKey": "Dial",
-        "attribute": "Isometric",
-        "originalPrice": 59,
-        "degreesOfFreedom": 6,
-        "dimensions": {
-            "dim_length": 78,
-            "dim_width": 78,
-            "dim_height": 53,
-            "dim_unit": "mm"
-        },
-        "shortDescription": "The SpaceNavigator is an entry level 6DOF joystick for the interactive 3D market. It came in a “Personal” and “Standard” edition, at $59. 00 and $99. 00 USD, respectively. These were break-through prices which opened up this technology (which cost $1, 595. 00 in 1991) to gamers and consumers. Doing so was necessary, since the high-end professional 3D graphics market was relatively small, and not growing anywhere near as fast as the consumer and gaming market.",
-        "longDescription": "The SpaceNavigator is an entry level 6DOF joystick for the interactive 3D market. It came in a “Personal” and “Standard” edition, at $59. 00 and $99. 00 USD, respectively. These were break-through prices which opened up this technology (which cost $1, 595. 00 in 1991) to gamers and consumers. Doing so was necessary, since the high-end professional 3D graphics market was relatively small, and not growing anywhere near as fast as the consumer and gaming market. As illustrated in an accompanying image, the direction of the force which controls each of the 6 degrees of freedom of the SpaceNavigator are: Move Left-Right: Push/Pull left-right parallel to the desktop. Move Forward-Backward: Push/Pull forward-backward parallel to the desktop. Move Vertically, Up-Down: Push down vertically into the table or pull up vertically away from the tableTilt Left-Right: Tilt the joystick left-rightTilt Forward-Backward: Tilt joystick forward-backwardRotate around vertical axis: Twist the joystick clockwise or counter clockwise. Control of these 6 DOF can be combined. For example, you can rotate/roll right while spinning. Besides gaming, one of the hopes was that this device would be used in interacting with 3D programs like Google Earth. The problem was, however, that there were few such programs then, just as now, relatively speaking, and even Google Earth, while remarkable, is not used anywhere as frequently of 2D Google Maps, for example. For those of us in the 3D graphics market, it was fantastic with respect to animation, games and industrial design. But it never took off, no matter how seductive it was. And, the interesting question is, will VR and AR change that? And if so, how will this class of 6DOF device play in that market?",
-        "__images": [
-            "/files/images/buxton/upload_814d9b07-b287-4bac-a77c-c792f9a27e7f.jpg",
-            "/files/images/buxton/upload_f1784ab5-5f31-4fd8-98a7-629531d160bc.png",
-            "/files/images/buxton/upload_dcc8f7f0-9878-46b9-b4e0-a37a0b625af8.png",
-            "/files/images/buxton/upload_86205b18-0e6e-4f33-b691-329dac5fcdd4.jpg",
-            "/files/images/buxton/upload_9d4aaae9-9ba0-4cf8-b3a8-b7fd9d2535cd.png",
-            "/files/images/buxton/upload_69510cf3-0e97-40b9-98b9-bd60eb6b52bb.png",
-            "/files/images/buxton/upload_cc289bd3-2ffa-49f3-ab03-ae869ede7a19.png"
-        ],
-        "captions": [
-            "The 3Dconnexion SpaceNavigator 6DOF Joystick.",
-            "The 3Dconnexion SpaceNavigator adjacent to ruler in order to show scale.",
-            "Diagram from SpaceNavigator Data Sheet illustrating the directions of force which control each of the 6DOF.",
-            "Page 1 of the SpaceNavigarot Data Sheet.(Click on image to access full document.)",
-            "A page from the launch web site of the SpaceNavigator.(Click on image to access full document.)",
-            "Front page of the press release announcing the launch of the SpaceNavigator.(Click on image to access full document.)"
-        ],
-        "fileNames": [
-            "SpaceNavigator_01.JPG",
-            "SpaceNavigator_02.JPG",
-            "SpaceNavigator_Control_Axes.jpg",
-            "Navigator_Data_Sheet_2006.jpg",
-            "SpaceNavigator_Launch_Web_Page.jpg",
-            "SpaceNavigator_Press_Release.jpg"
-        ]
+        "longDescription": "The CadMan is a 6 degree of freedom (DOF) joystick controller. It represented a significant step towards making this class of is controller more affordable. It was mainly directed at 3D modelling and animation and was a “next generation” of the Magellan/SpaceMouse controller, which is also in the collection. Like the Magellan, this is an isometric rate-control joystick. That is, it rests in a neutral central position, not sending and signal. When a force is applied to it, it emits a signal indicating the direction and strength of that force. This signal can then be mapped to a parameter of a selected object, such as a sphere, and – for example – cause that sphere to rotate for as long as, and as fast as, and in the direction determined by, the duration, force, and direction of the applied force. When released, it springs back to neutral position. Note that the force does not need to be directed along a single DOF. In fact, a core feature of the device is that one can simultaneously and independently apply force that asserts control over more than one DOF, and furthermore, vary those forces dynamically. As an aid to understanding, let me walk through some of the underlying concepts at play here by using a more familiar device: a computer mouse. If you move a mouse in a forward/backward direction, the mouse pointer on the screen moves between the screen’s top and bottom. If you think of the screen as a piece of graph paper, that corresponds to moving along the “Y” axis. That is one degree of freedom. On the other hand, you could move the mouse left and right, which causes the mouse to move between the left and right side of the screen. That would correspond to moving along the graph paper’s “X” axis – a second degree of freedom. Yet, you can also move the mouse diagonally. This is an example of independently controlling two degrees of freedom. Now imagine that if you lifted your mouse off your desktop, that your computer could dynamically sense its height as you did so. This would constitute a “flying mouse” (the literal translation of the German word for a “Bat”, which Canadian colleague, Colin Ware, applied to just such a mouse which he built in 1988). If you moved your Bat vertically up and down, perpendicular to the desktop, you would be controlling movement along the “Z” axis - a third degree of freedom. Having already seen that we can move a mouse diagonally, we have established that we need not be constrained to only moving along a single axis. That extends to the movement of our Bat and movement along the “Z” axis. We can control our hand movement in dependently in any or all directions in 3D space. But how does one reconcile the fact that we call the CadMan a “3D controller, and yet also describe it as having 6 degrees of freedom? Yes, as described, our bat can fly in 3D, but on the other hand, its range of movement within those 3 dimensions is much richer. To demonstrate this, move your hand in 3D space on and above your desktop. However, do so keeping your palm flat, parallel to the desktop with your fingers pointing directly forward. In so doing, you are still moving in 3D. Now, while moving, twist your wrist, while moving the hand, such that your palm is alternatively exposed to the left and right side. This constitutes rotation around the “Y” axis. A fourth DOF. Now add a waving motion to your hand, as if it were a paper airplane diving up and down, while also rocking left and right. But keep your fingers pointing forward. You have now added a fifth DOF, rotation around the “X” axis. Finally, add a twist to your wrist so that your fingers are no longer constrained to pointing forward. This is the sixth degree of freedom, rotation around the “Z” axis. Now don’t be fooled, this exercise could continue. We are not restricted to even six DOF. Imagine doing the above, but where the movement and rotations are measured relative to the Bat’s position and orientation, rather than to the holding/controlling hand, per se. One could imagine the Bat having a scroll wheel, like the one on most mice today. Furthermore, while flying your Bat around in 3D, that wheel could easily be rolled in either forward or backward, and thereby control the size of whatever was being controlled. Hence, with one hand we could assert simultaneous and independent control over 7 DOF in 3D space. This exercise has two intended take-aways. The first is a better working understanding between the notion of Degree of Freedom (DOF) and Dimension in space. Hopefully, the confusion frequently encountered when 3D and 6DOF are used in close context, can now be eliminated. Second, is that, with appropriate sensing, the human hand is capable of exercising control over far more degrees of freedom that six. And if we use the two hands together, the potential number of DOF that one can control goes even further. Finally, it is important to add one more take-away – one which both emerges from, and is frequently encountered when discussing, the previous two. That is, do not equate exercising simultaneous control over a high number of DOF with consciously doing the same number of different things all at once. The example that used to be thrown at me when I started talking about coordinated simultaneously bi-manual action went along the lines of, “Psychology tells us that we cannot do multiple things at once, for example, simultaneously tapping your head and rubbing your stomach. ”Well, first, I can tap my head with one hand while rubbing my stomach with the other. But that is not the point. The whole essence of skill – motor-sensory and cognitive – is “chunking” or task integration. When one appears to be doing many different things at once, if they are skilled, they are consciously doing only one thing. Playing a chord on the piano, for example, or skiing down the hill. Likewise, in flying your imaginary BAT in the previous exercise with the scroll wheel, were you doing 7 things at once, or one thing with 7 DOF? And if you had a Bat in each hand, does that mean you are now doing 14 things at once, or are you doing one thing with 14 DOF? Let me provide a different way of answering this question: if you have ever played air guitar, or “conducted” the orchestra that you are listening to on the radio, you are exercising control over more than 14 DOF. And you are doing exactly what I just said, “playing air guitar” or “conducting an orchestra”. One thing – at the conscious level, which is what matters – despite almost any one thing being able to be deconstructed into hundreds of sub-tasks. As I said the essence of skill: aggregation, or chunking. What is most important for both tool designers and users to be mindful of, is the overwhelming influence that our choice and design of tools impacts the degree to which such integration or chunking can take place. The degree to which the tool matches both the skills that we have already acquired through a lifetime of living in the everyday world, and the demands of the intended task, the more seamless that task can be performed, the more “natural” it will feel, and the less learning will be required. In my experience, it brought particular value when used bimanually, in combination with a mouse, where the preferred hand performed conventional pointing, selection and dragging tasks, while the non-preferred hand could manipulate the parameters of the thing being selected. First variation of the since the 2001 formation of 3Dconnextion. The CadMan came in 5 colours: smoke, orange, red, blue and green. See the notes for the LogiCad3D Magellan for more details on this class of device. It is the “parent” of the CadMan, and despite the change in company name, it comes from the same team."
     },
     {
         "hyperlinks": [
@@ -106,6 +49,25 @@
             "http://research.microsoft.com/en-us/um/people/bibuxton/buxtoncollection/acknowledgements.aspx",
             "http://research.microsoft.com/en-us/um/people/bibuxton/buxtoncollection/browse.aspx",
             "SpaceMouse_Plus_Info_Sheet.pdf"
+        ],
+        "captions": [
+            "Overview of the Magellan Plus.",
+            "Overview of Magellan Plus in different colour.",
+            "Page one of the Magellan Plus / SpaceMouse Plus Data Sheet.(Click on image to access full document.)",
+            "Page one of the Magellan Plus / SpaceMouse Plus Information Sheet.(Click on image to access full document.)"
+        ],
+        "embeddedFileNames": [
+            "3DPlus_0396.JPG",
+            "3DPlus_0391.JPG",
+            "SpaceMouse_Plus_Data_Sheet.jpg",
+            "SpaceMouse_Plus_Info_Sheet.jpg"
+        ],
+        "__images": [
+            "/files/images/buxton/upload_f84cb54e-9bdb-4fbc-9503-6cfa8ddd65be.jpg",
+            "/files/images/buxton/upload_506b5361-a9fd-4440-a19b-5b4af461878a.png",
+            "/files/images/buxton/upload_60380383-3603-4624-98cf-50a0d4afe4c9.png",
+            "/files/images/buxton/upload_2fad6fb2-f1e1-4fe3-915b-33586f05fcad.png",
+            "/files/images/buxton/upload_effcd815-49eb-4cd4-82cf-2519e58eb729.png"
         ],
         "title": "3Dconnexion Magellan/SpaceMouse Plus",
         "company": "3Dconnexion",
@@ -122,26 +84,7 @@
             "dim_unit": "mm"
         },
         "shortDescription": "The Magellan/SpaceMouse Plus is a refinement of the original LogiCad3D Magellan. From the industrial design perspective, the main difference is the switch from the original round “hockey puck” shaped handle to this asymmetric one.",
-        "longDescription": "The Magellan Plus (also known as the Spacemouse Plus) is a refinement of the original LogiCad3D Magellan (LogiCad3D evolved into 3DConnexion). From the industrial design perspective, the main difference between the two is the switch from the round “hockey puck” shaped handle to this asymmetric one. Despite this rather small change, both are included in the collection since that small change is a good example of my axiom that “everything being best for something and worst for something else. ” One of the things which most attracted me to the original Magellan was its hockey-puck shaped handle. The reason is that in my mind, it shouted out, “jog-shuttle wheel”. That is, the kind of controller that I was familiar with from editing audio and video. Since we were building software for 3D animation, the shape had value as a physical icon, or “phycon”, whose affordances suggested how this new control could employ existing skills. That is the good side. On the other hand, for 3D manipulation, when gripped, that same symmetry lacked any immediate tactile feed-forward as to orientation. That is, what axis of the 3D model would be affected by tilting the handle in any direction. On the other hand, the new asymmetric handle told the user, through touch, how the orientation of the handle aligned with that of the 3D model being controlled. One of the key habits leading to design literacy is to constantly prospect for patterns, rather than just individual examples. The reg the pattern means that one can separate the superficial features of the example, and see the underlying issue. For example, compare the Magellan Plus and the LogiCad3D Magellan, respectfully, with any Apple mouse and the 1988 Apple iMac G3 “hockey puck” mouse. While mice and 3D joysticks are very different devices, the two pairings reflect the same pattern. The suggested lesson is that patterns suggest that certain things are not mere exceptions – they are something which will likely reoccur, and therefore something that one can learn from – as long as one can recognize the deep pattern hidden beneath the superficial exterior.",
-        "__images": [
-            "/files/images/buxton/upload_ea1384f6-9ab9-4a35-a252-94e066f646bc.jpg",
-            "/files/images/buxton/upload_748ba2c5-ed86-41d0-b531-7f2c18e552da.png",
-            "/files/images/buxton/upload_f45122ff-5057-4829-8659-3b8f1ecdb987.png",
-            "/files/images/buxton/upload_99cfa809-1205-4921-8616-f3a9677f4557.png",
-            "/files/images/buxton/upload_551cdd5c-1537-4a62-9cc0-b072d59546f9.png"
-        ],
-        "captions": [
-            "Overview of the Magellan Plus.",
-            "Overview of Magellan Plus in different colour.",
-            "Page one of the Magellan Plus / SpaceMouse Plus Data Sheet.(Click on image to access full document.)",
-            "Page one of the Magellan Plus / SpaceMouse Plus Information Sheet.(Click on image to access full document.)"
-        ],
-        "fileNames": [
-            "3DPlus_0396.JPG",
-            "3DPlus_0391.JPG",
-            "SpaceMouse_Plus_Data_Sheet.jpg",
-            "SpaceMouse_Plus_Info_Sheet.jpg"
-        ]
+        "longDescription": "The Magellan Plus (also known as the Spacemouse Plus) is a refinement of the original LogiCad3D Magellan (LogiCad3D evolved into 3DConnexion). From the industrial design perspective, the main difference between the two is the switch from the round “hockey puck” shaped handle to this asymmetric one. Despite this rather small change, both are included in the collection since that small change is a good example of my axiom that “everything being best for something and worst for something else. ” One of the things which most attracted me to the original Magellan was its hockey-puck shaped handle. The reason is that in my mind, it shouted out, “jog-shuttle wheel”. That is, the kind of controller that I was familiar with from editing audio and video. Since we were building software for 3D animation, the shape had value as a physical icon, or “phycon”, whose affordances suggested how this new control could employ existing skills. That is the good side. On the other hand, for 3D manipulation, when gripped, that same symmetry lacked any immediate tactile feed-forward as to orientation. That is, what axis of the 3D model would be affected by tilting the handle in any direction. On the other hand, the new asymmetric handle told the user, through touch, how the orientation of the handle aligned with that of the 3D model being controlled. One of the key habits leading to design literacy is to constantly prospect for patterns, rather than just individual examples. The reg the pattern means that one can separate the superficial features of the example, and see the underlying issue. For example, compare the Magellan Plus and the LogiCad3D Magellan, respectfully, with any Apple mouse and the 1988 Apple iMac G3 “hockey puck” mouse. While mice and 3D joysticks are very different devices, the two pairings reflect the same pattern. The suggested lesson is that patterns suggest that certain things are not mere exceptions – they are something which will likely reoccur, and therefore something that one can learn from – as long as one can recognize the deep pattern hidden beneath the superficial exterior."
     },
     {
         "hyperlinks": [
@@ -153,6 +96,31 @@
             "http://research.microsoft.com/en-us/um/people/bibuxton/buxtoncollection/acknowledgements.aspx",
             "http://research.microsoft.com/en-us/um/people/bibuxton/buxtoncollection/browse.aspx",
             "SP_SB_SM_Feature_Comparison_001.pdf"
+        ],
+        "captions": [
+            "Side view of the Spaceball 5000.",
+            "Upper-left view of the Spaceball 5000, showing the position of 9 of the 12 programable buttons.",
+            "Back view of the Spaceball 5000, showing the position of buttons on either side of the ball.",
+            "View showing bimanual use, with the SpaceBall in the left hand, mouse in right.  Note position of buttons relative to thumb and fingers.",
+            "Caption to come.(Click on image to access full document.)",
+            "Page 1 of SpaceBall 5000 Date Sheet.(Click on image to access full document.)"
+        ],
+        "embeddedFileNames": [
+            "3DSpace_5000_01.JPG",
+            "3DSpace_5000_02.JPG",
+            "3DSpace_5000_05.JPG",
+            "3DSpace_5000_06.JPG",
+            "SP_SB_SM_Feature_Comparison.jpg",
+            "SpaceBall_5000_Data_Sheet.jpg"
+        ],
+        "__images": [
+            "/files/images/buxton/upload_81972990-8cad-4299-926a-fe5d49711a80.jpg",
+            "/files/images/buxton/upload_04103620-72e4-431f-b34f-61d0f158277a.png",
+            "/files/images/buxton/upload_9bfe7c5a-1c5e-46e3-8f8d-4e0eec3e38e3.png",
+            "/files/images/buxton/upload_77da85f5-6575-4a8d-acb6-52f2df3307b0.png",
+            "/files/images/buxton/upload_1c041a33-b258-42d1-b9f2-d610a4838fb3.jpg",
+            "/files/images/buxton/upload_841f0d98-27d7-4298-a71d-c5cba72a262a.jpg",
+            "/files/images/buxton/upload_0e0eaf99-f8bb-4f02-ad46-651cd67c13b1.jpg"
         ],
         "title": "3Dconnexion Spaceball 5000",
         "company": "3Dconnexion",
@@ -169,32 +137,64 @@
             "dim_unit": "mm"
         },
         "shortDescription": "This is an improved version of the original 1991 SpaceBall, manufactured by SpaceBall Technologies. It is a good example of how products improve as the market grows, while the price goes down. The original model sold for $1, 595. 00 USD, while this for $499. 00.",
-        "longDescription": "This is an improved version of the original 1991 SpaceBall, manufactured by SpaceBall Technologies. It is a good example of how products improve as the market grows, while the price goes down. The original model sold for $1, 595. 00 USD, while this for $499. 00. This version of the SpaceBall illustrates how the form-factor of the original version has changed over time. There are now 12 programmable function keys, 9 to be operated by the fingers on one side, and 3 to be operated by the thumb on the other. Note how the button placement indicates that the device is intended to be used by the left hand, with an accompanying mouse by the right – that is, by being meant for the left hand, it is intended for a right handed person.",
-        "__images": [
-            "/files/images/buxton/upload_4be775c7-51a7-4f56-bb3b-a314330b7aca.jpg",
-            "/files/images/buxton/upload_86c5b76b-059e-42f1-bd6c-e46dd24d0247.png",
-            "/files/images/buxton/upload_39bad94f-6b05-4cf8-a801-ef12e30bc01e.png",
-            "/files/images/buxton/upload_b5a3f277-4123-4951-9cd5-5394301c783b.png",
-            "/files/images/buxton/upload_fdf810b2-dc9f-47a7-a9a1-730a0dd6c892.jpg",
-            "/files/images/buxton/upload_04cc5a6a-9481-4477-bb29-dd6959e9bf3e.jpg",
-            "/files/images/buxton/upload_061b9bec-c8da-4fdc-8587-125cfa686bc1.jpg"
+        "longDescription": "This is an improved version of the original 1991 SpaceBall, manufactured by SpaceBall Technologies. It is a good example of how products improve as the market grows, while the price goes down. The original model sold for $1, 595. 00 USD, while this for $499. 00. This version of the SpaceBall illustrates how the form-factor of the original version has changed over time. There are now 12 programmable function keys, 9 to be operated by the fingers on one side, and 3 to be operated by the thumb on the other. Note how the button placement indicates that the device is intended to be used by the left hand, with an accompanying mouse by the right – that is, by being meant for the left hand, it is intended for a right handed person."
+    },
+    {
+        "hyperlinks": [
+            "http://research.microsoft.com/en-us/um/people/bibuxton/buxtoncollection/acknowledgements.aspx",
+            "SpaceNavigator_Press_Release.pdf",
+            "http://research.microsoft.com/en-us/um/people/bibuxton/buxtoncollection/browse.aspx",
+            "https://web.archive.org/web/20061205222533/http://www.3dconnexion.com:80/products/3a1d.php",
+            "3DConnexion_SpaceNavigator/SpaceNavigator_Launch_Web_Page.pdf",
+            "http://research.microsoft.com/en-us/um/people/bibuxton/buxtoncollection/default.aspx",
+            "https://www.pcmag.com/article2/0,2817,2082798,00.asp",
+            "http://research.microsoft.com/en-us/um/people/bibuxton/buxtoncollection/default.aspx",
+            "SpaceNavigator_Launch_Web_Page.pdf",
+            "http://research.microsoft.com/en-us/um/people/bibuxton/buxtoncollection/contact.aspx",
+            "Navigator_Data_Sheet_2006.pdf",
+            "3DConnexion_SpaceNavigator/SpaceNavigator_Press_Release.pdf"
         ],
         "captions": [
-            "Side view of the Spaceball 5000.",
-            "Upper-left view of the Spaceball 5000, showing the position of 9 of the 12 programable buttons.",
-            "Back view of the Spaceball 5000, showing the position of buttons on either side of the ball.",
-            "View showing bimanual use, with the SpaceBall in the left hand, mouse in right.  Note position of buttons relative to thumb and fingers.",
-            "Caption to come.(Click on image to access full document.)",
-            "Page 1 of SpaceBall 5000 Date Sheet.(Click on image to access full document.)"
+            "The 3Dconnexion SpaceNavigator 6DOF Joystick.",
+            "The 3Dconnexion SpaceNavigator adjacent to ruler in order to show scale.",
+            "Diagram from SpaceNavigator Data Sheet illustrating the directions of force which control each of the 6DOF.",
+            "Page 1 of the SpaceNavigarot Data Sheet.(Click on image to access full document.)",
+            "A page from the launch web site of the SpaceNavigator.(Click on image to access full document.)",
+            "Front page of the press release announcing the launch of the SpaceNavigator.(Click on image to access full document.)"
         ],
-        "fileNames": [
-            "3DSpace_5000_01.JPG",
-            "3DSpace_5000_02.JPG",
-            "3DSpace_5000_05.JPG",
-            "3DSpace_5000_06.JPG",
-            "SP_SB_SM_Feature_Comparison.jpg",
-            "SpaceBall_5000_Data_Sheet.jpg"
-        ]
+        "embeddedFileNames": [
+            "SpaceNavigator_01.JPG",
+            "SpaceNavigator_02.JPG",
+            "SpaceNavigator_Control_Axes.jpg",
+            "Navigator_Data_Sheet_2006.jpg",
+            "SpaceNavigator_Launch_Web_Page.jpg",
+            "SpaceNavigator_Press_Release.jpg"
+        ],
+        "__images": [
+            "/files/images/buxton/upload_b44ec511-334e-46c0-a315-63d90fac8117.jpg",
+            "/files/images/buxton/upload_734ae360-faaf-4c78-89b4-a3f120fe233e.png",
+            "/files/images/buxton/upload_d20bbf6a-7310-407a-8b85-c607e9cf7f73.png",
+            "/files/images/buxton/upload_e9236600-dd5f-4805-92ca-805d5a301aa1.jpg",
+            "/files/images/buxton/upload_c85c977d-ef99-44be-b55c-8e8dde124e83.png",
+            "/files/images/buxton/upload_a6034d66-7de6-4d4b-bd64-ea95cc00ae8a.png",
+            "/files/images/buxton/upload_07415a65-964a-4936-aa6e-79861e8ebcbf.png"
+        ],
+        "title": "3Dconnexion SpaceNavigator ",
+        "company": "3Dconnexion",
+        "year": 2006,
+        "primaryKey": "Joystick",
+        "secondaryKey": "Dial",
+        "attribute": "Isometric",
+        "originalPrice": 59,
+        "degreesOfFreedom": 6,
+        "dimensions": {
+            "dim_length": 78,
+            "dim_width": 78,
+            "dim_height": 53,
+            "dim_unit": "mm"
+        },
+        "shortDescription": "The SpaceNavigator is an entry level 6DOF joystick for the interactive 3D market. It came in a “Personal” and “Standard” edition, at $59. 00 and $99. 00 USD, respectively. These were break-through prices which opened up this technology (which cost $1, 595. 00 in 1991) to gamers and consumers. Doing so was necessary, since the high-end professional 3D graphics market was relatively small, and not growing anywhere near as fast as the consumer and gaming market.",
+        "longDescription": "The SpaceNavigator is an entry level 6DOF joystick for the interactive 3D market. It came in a “Personal” and “Standard” edition, at $59. 00 and $99. 00 USD, respectively. These were break-through prices which opened up this technology (which cost $1, 595. 00 in 1991) to gamers and consumers. Doing so was necessary, since the high-end professional 3D graphics market was relatively small, and not growing anywhere near as fast as the consumer and gaming market. As illustrated in an accompanying image, the direction of the force which controls each of the 6 degrees of freedom of the SpaceNavigator are: Move Left-Right: Push/Pull left-right parallel to the desktop. Move Forward-Backward: Push/Pull forward-backward parallel to the desktop. Move Vertically, Up-Down: Push down vertically into the table or pull up vertically away from the tableTilt Left-Right: Tilt the joystick left-rightTilt Forward-Backward: Tilt joystick forward-backwardRotate around vertical axis: Twist the joystick clockwise or counter clockwise. Control of these 6 DOF can be combined. For example, you can rotate/roll right while spinning. Besides gaming, one of the hopes was that this device would be used in interacting with 3D programs like Google Earth. The problem was, however, that there were few such programs then, just as now, relatively speaking, and even Google Earth, while remarkable, is not used anywhere as frequently of 2D Google Maps, for example. For those of us in the 3D graphics market, it was fantastic with respect to animation, games and industrial design. But it never took off, no matter how seductive it was. And, the interesting question is, will VR and AR change that? And if so, how will this class of 6DOF device play in that market?"
     },
     {
         "hyperlinks": [
@@ -207,6 +207,28 @@
             "http://research.microsoft.com/en-us/um/people/bibuxton/buxtoncollection/browse.aspx",
             "https://web.archive.org/web/20070106100452/http://solutions.3m.com/wps/portal/3M/en_US/ergonomics/home/products/ergonomicmouse/factsheet/"
         ],
+        "captions": [
+            "A view of the 3M Ergonomic Mouse in the grasp of the right hand, with the thumb activating the button at the top of the stem.",
+            "A view of the 3M Ergonomic Mouse standing alone.",
+            "EM500 Ergonomic web page, Jan, 2007",
+            "EM500 Ergonomic Mouse Fact Sheet from 3M web site, Jan, 2007",
+            "Entry for the EM500 Ergonomic Mouse in the 2006 3M catalogue, p. 18.(To access full document, click on image.)"
+        ],
+        "embeddedFileNames": [
+            "3MErgo_01.JPG",
+            "3MErgo_02.JPG",
+            "3MErgo_Web_Jan_2007.JPG",
+            "3MErgo_Web_Fact Sheet_Jan_2007.jpg",
+            "3M_2006_Catalogue_p18.jpg"
+        ],
+        "__images": [
+            "/files/images/buxton/upload_52b83c2a-5fe4-42aa-a488-5667b0a5beae.jpg",
+            "/files/images/buxton/upload_e05d8710-d82b-4f3b-8940-3745db1c855c.jpg",
+            "/files/images/buxton/upload_557c6fc7-04a3-4698-acde-4e53ceb6793c.jpg",
+            "/files/images/buxton/upload_d9723beb-bfe3-4556-b17d-aedf2db59777.jpg",
+            "/files/images/buxton/upload_5cb15815-3cab-406f-bf95-f9410997b4f4.jpg",
+            "/files/images/buxton/upload_a7fc91e0-7672-4f81-a8f3-66072997bd44.jpg"
+        ],
         "title": "3M EM500 Ergonomic Mouse",
         "company": "3M",
         "year": 2006,
@@ -216,29 +238,7 @@
         "originalPrice": 72.5,
         "degreesOfFreedom": 2,
         "shortDescription": "Despite its form-factor suggesting that this is a joystick, it is actually a mouse. Ergonomic concerns drove this design. It forces the hand to assume a “thumb up” posture of the hand. This in turn reduces constriction of blood-flow through the relatively narrow channel of the wrist and reduces tension in the forearm. The compromise of this, however, is that one loses some fine-motion control which might otherwise have been possible using the fingers, rather than relying more on the wrist and forearm.",
-        "longDescription": "Despite its form-factor suggesting that this is a joystick, it is actually a mouse. Ergonomic concerns drove this design. It forces the hand to assume a “thumb up” posture of the hand. This in turn reduces constriction of blood-flow through the relatively narrow channel of the wrist and reduces tension in the forearm. The joystick also came in two sizes so as to better accommodate different hand sizes. There almost always trade-offs in design. Often more than one. In this case, one compromise is a loss of some fine-motion control which might otherwise have been possible using the fingers, rather than relying more on the wrist and forearm. Another is the increased time/attention required when moving from the keyboard to the mouse. To do a simple test, move your hand to a conventional mouse. Now place a water glass which is taller than it is wide in the same position as the mouse, and compare how fast you can get it “in hand” enough to control its movement as well as you could the mouse. Try the same thing while not looking – using motor memory. Then consider how often you make that change. And, by the same token, consider how many different ways you can hold your mouse while still using it, versus a joystick shaped mouse with the button on top. In none of this am I complaining about, nor criticizing this mouse design. Rather, I am trying to illustrate that there is a lot to consider, and as either a designer or consumer, these are things to train oneself to notice and question. From such experience emerges the basis for better choices in both design and purchase. .",
-        "__images": [
-            "/files/images/buxton/upload_5814f603-4190-41c8-992a-6c21feb72577.jpg",
-            "/files/images/buxton/upload_c35c732f-35de-42e3-a0e6-23eff29bc782.jpg",
-            "/files/images/buxton/upload_ea7e6086-5fdd-4974-bb43-b6a6e7cb9ee7.jpg",
-            "/files/images/buxton/upload_e02262d6-ca5c-428c-99eb-f87c2b4c02b0.jpg",
-            "/files/images/buxton/upload_f5a1c53d-813f-41ce-9823-16ebd363e4af.jpg",
-            "/files/images/buxton/upload_ec141ee2-594f-4e3f-b8b2-406a9d28438b.jpg"
-        ],
-        "captions": [
-            "A view of the 3M Ergonomic Mouse in the grasp of the right hand, with the thumb activating the button at the top of the stem.",
-            "A view of the 3M Ergonomic Mouse standing alone.",
-            "EM500 Ergonomic web page, Jan, 2007",
-            "EM500 Ergonomic Mouse Fact Sheet from 3M web site, Jan, 2007",
-            "Entry for the EM500 Ergonomic Mouse in the 2006 3M catalogue, p. 18.(To access full document, click on image.)"
-        ],
-        "fileNames": [
-            "3MErgo_01.JPG",
-            "3MErgo_02.JPG",
-            "3MErgo_Web_Jan_2007.JPG",
-            "3MErgo_Web_Fact Sheet_Jan_2007.jpg",
-            "3M_2006_Catalogue_p18.jpg"
-        ]
+        "longDescription": "Despite its form-factor suggesting that this is a joystick, it is actually a mouse. Ergonomic concerns drove this design. It forces the hand to assume a “thumb up” posture of the hand. This in turn reduces constriction of blood-flow through the relatively narrow channel of the wrist and reduces tension in the forearm. The joystick also came in two sizes so as to better accommodate different hand sizes. There almost always trade-offs in design. Often more than one. In this case, one compromise is a loss of some fine-motion control which might otherwise have been possible using the fingers, rather than relying more on the wrist and forearm. Another is the increased time/attention required when moving from the keyboard to the mouse. To do a simple test, move your hand to a conventional mouse. Now place a water glass which is taller than it is wide in the same position as the mouse, and compare how fast you can get it “in hand” enough to control its movement as well as you could the mouse. Try the same thing while not looking – using motor memory. Then consider how often you make that change. And, by the same token, consider how many different ways you can hold your mouse while still using it, versus a joystick shaped mouse with the button on top. In none of this am I complaining about, nor criticizing this mouse design. Rather, I am trying to illustrate that there is a lot to consider, and as either a designer or consumer, these are things to train oneself to notice and question. From such experience emerges the basis for better choices in both design and purchase. ."
     },
     {
         "hyperlinks": [
@@ -249,25 +249,6 @@
             "http://research.microsoft.com/en-us/um/people/bibuxton/buxtoncollection/acknowledgements.aspx",
             "http://research.microsoft.com/en-us/um/people/bibuxton/buxtoncollection/browse.aspx"
         ],
-        "title": "Abaton ProPoint Optical Trackball",
-        "company": "Abaton",
-        "year": 1989,
-        "primaryKey": "Trackball",
-        "secondaryKey": "Blank",
-        "attribute": "Blank",
-        "originalPrice": 140,
-        "degreesOfFreedom": 2,
-        "shortDescription": "A relatively early trackball for the Apple Macintosh computer. Note the positioning of the buttons, which bias the device for right-handed use, and using the thumb for the buttons and fingers for manipulating the ball.",
-        "longDescription": "A relatively early trackball for the Apple Macintosh computer. The larger button was functionally equivalent to the mouse button, and the smaller one was a ‘lock’ button. The lock button is analogous to the SHIFT LOCK or CAPS LOCK on a QWERTY keyboard: With the keyboard, it means that one does not have to hold the SHIFT key down while typing a string of upper-case characters. With the trackball, it means that you don’t have to hold the primary “mouse” button down while rolling the trackball. The need that this meets can be easily be seen if one compares the relative difficulty of drawing a line by moving a mouse while holding down its button, compared to doing the same task with a trackball. With the mouse, the wrist and forearm mainly move the mouse, and the fingers are used to hold it, as well as the button. With the trackball, the fingers are engaged in rolling the ball as well as holding the button. Hence, the probability of task interference is high, just as with typing a string of upper-case characters on a keyboard without a SHIFT LOCK key. Next, in looking at trackballs, pay attention to the position of the buttons relative to the trackball itself. How this relationship varies across devices and says a lot about how the designers envisioned the device being used. For example, the relationship may indicate the design intends for the thumb or fingers to operate the ball. How does the relationship impact the device’s ability to accommodate left and right hand usage equally well? This latter point is especially important when the trackball is used simultaneously with a mouse. An example would be if the trackball was used to scroll a spreadsheet up-down / left-right, while the mouse was used to point, select, and/or drag. In this case, for example, the trackball would usually be operated by the non-dominant hand and the mouse by the dominant one. Yet, when used alone, the same user would typically operate the trackball with the dominant hand. The lesson from this example is the recognition that handedness is a factor of use (one vs two handed), not just a factor of whether the user’s left or right hand is dominant.",
-        "__images": [
-            "/files/images/buxton/upload_2e72df74-866e-44dc-b14a-a8bc5264b2ac.jpg",
-            "/files/images/buxton/upload_e0dd8776-b458-48d0-b381-6b4e371048d4.jpg",
-            "/files/images/buxton/upload_a87b19b5-4ed8-4f5f-a0bf-66c2396a3072.jpg",
-            "/files/images/buxton/upload_03993b48-4eb8-4236-9ccf-0d5f923f0be9.jpg",
-            "/files/images/buxton/upload_a734a81a-7c36-4e7d-b6f3-3360f7b3bc6e.jpg",
-            "/files/images/buxton/upload_7823b585-5306-4347-9f83-310ad9761515.jpg",
-            "/files/images/buxton/upload_4207fd37-2593-43c3-857e-9175056f28f3.jpg"
-        ],
         "captions": [
             "An upper-left view of the Abaton ProPoint trackball.",
             "Left side view of the Abaton ProPoint trackball showing the Apple Desktop Bus (ADB) socket.",
@@ -277,7 +258,7 @@
             "View of the Abaton ProPoint with the trackball removed.  The two shaft encoders that sense rotation in X and Y, respectively can be seen.",
             "First page of the Abatron ProPoint Trackball product sheet.(Click on image to access full document.)"
         ],
-        "fileNames": [
+        "embeddedFileNames": [
             "Abaton_0105.JPG",
             "Abaton_0098.JPG",
             "Abaton_0099.JPG",
@@ -285,7 +266,26 @@
             "Abaton_0103.JPG",
             "Abaton_0106.JPG",
             "Abaton_ProPoint_Brochure.jpg"
-        ]
+        ],
+        "__images": [
+            "/files/images/buxton/upload_f6f038a9-3583-4d21-9a43-f762e1df0b52.jpg",
+            "/files/images/buxton/upload_ad5f2bbd-66be-4dde-afe4-60e353a63f74.jpg",
+            "/files/images/buxton/upload_2e384260-5d2b-47a4-9508-028462a5a1e7.jpg",
+            "/files/images/buxton/upload_4dfcd3af-f06d-4c3e-8dff-7c43acd79a16.jpg",
+            "/files/images/buxton/upload_19eea9af-abec-4617-8b8d-fcb6637420de.jpg",
+            "/files/images/buxton/upload_89702b8a-fcb5-426d-b5af-c58e62d1c8ff.jpg",
+            "/files/images/buxton/upload_44419996-994e-471c-8dc7-cda22b00ac24.jpg"
+        ],
+        "title": "Abaton ProPoint Optical Trackball",
+        "company": "Abaton",
+        "year": 1989,
+        "primaryKey": "Trackball",
+        "secondaryKey": "Blank",
+        "attribute": "Blank",
+        "originalPrice": 140,
+        "degreesOfFreedom": 2,
+        "shortDescription": "A relatively early trackball for the Apple Macintosh computer. Note the positioning of the buttons, which bias the device for right-handed use, and using the thumb for the buttons and fingers for manipulating the ball.",
+        "longDescription": "A relatively early trackball for the Apple Macintosh computer. The larger button was functionally equivalent to the mouse button, and the smaller one was a ‘lock’ button. The lock button is analogous to the SHIFT LOCK or CAPS LOCK on a QWERTY keyboard: With the keyboard, it means that one does not have to hold the SHIFT key down while typing a string of upper-case characters. With the trackball, it means that you don’t have to hold the primary “mouse” button down while rolling the trackball. The need that this meets can be easily be seen if one compares the relative difficulty of drawing a line by moving a mouse while holding down its button, compared to doing the same task with a trackball. With the mouse, the wrist and forearm mainly move the mouse, and the fingers are used to hold it, as well as the button. With the trackball, the fingers are engaged in rolling the ball as well as holding the button. Hence, the probability of task interference is high, just as with typing a string of upper-case characters on a keyboard without a SHIFT LOCK key. Next, in looking at trackballs, pay attention to the position of the buttons relative to the trackball itself. How this relationship varies across devices and says a lot about how the designers envisioned the device being used. For example, the relationship may indicate the design intends for the thumb or fingers to operate the ball. How does the relationship impact the device’s ability to accommodate left and right hand usage equally well? This latter point is especially important when the trackball is used simultaneously with a mouse. An example would be if the trackball was used to scroll a spreadsheet up-down / left-right, while the mouse was used to point, select, and/or drag. In this case, for example, the trackball would usually be operated by the non-dominant hand and the mouse by the dominant one. Yet, when used alone, the same user would typically operate the trackball with the dominant hand. The lesson from this example is the recognition that handedness is a factor of use (one vs two handed), not just a factor of whether the user’s left or right hand is dominant."
     },
     {
         "hyperlinks": [
@@ -296,6 +296,18 @@
             "http://research.microsoft.com/en-us/um/people/bibuxton/buxtoncollection/contact.aspx",
             "http://research.microsoft.com/en-us/um/people/bibuxton/buxtoncollection/acknowledgements.aspx"
         ],
+        "captions": [
+            "View of the Active Book prototype.",
+            "Front page of the Active Book brochure.(Click on image to access full document.)"
+        ],
+        "embeddedFileNames": [
+            "Active_1206.JPG",
+            "Active_Book_Brochure_p1.jpg"
+        ],
+        "__images": [
+            "/files/images/buxton/upload_2159da7b-9ebd-41ed-8b60-9eb36a6c6685.jpg",
+            "/files/images/buxton/upload_6d470914-fc41-4151-858b-f945807e62a2.png"
+        ],
         "title": "Active Book Company Active Book Prototype",
         "company": "Active Book Company",
         "year": 1991,
@@ -305,19 +317,7 @@
         "originalPrice": -1,
         "degreesOfFreedom": 2,
         "shortDescription": "This device is a prototype pen computer, The Active Book, which was developed in Cambridge, UK, by The Active Book Company. It had a strong focus on user experience, and like the equally ill-fated Momenta pen computer, was implemented using the pioneering object-oriented language Smalltalk. At about the time that this working prototype was built, near going into production, the company was bought and merged with EO, and the Active Book never went into production. This is an exceptionally rare piece of the history of pen computing.",
-        "longDescription": "This device is a prototype pen computer, The Active Book, which was developed in Cambridge, UK, by The Active Book Company. It had a strong focus on user experience, and like the equally ill-fated Momenta pen computer, was implemented using the pioneering object-oriented language Smalltalk. At about the time that this working prototype was built, near going into production, the company was bought and merged with EO, and the Active Book never went into production. This is an exceptionally rare piece of the history of pen computing. .",
-        "__images": [
-            "/files/images/buxton/upload_43360531-8b59-4c79-8c98-94f3949eb17a.jpg",
-            "/files/images/buxton/upload_1646f9f2-1afb-4d13-b773-65ef225b9670.png"
-        ],
-        "captions": [
-            "View of the Active Book prototype.",
-            "Front page of the Active Book brochure.(Click on image to access full document.)"
-        ],
-        "fileNames": [
-            "Active_1206.JPG",
-            "Active_Book_Brochure_p1.jpg"
-        ]
+        "longDescription": "This device is a prototype pen computer, The Active Book, which was developed in Cambridge, UK, by The Active Book Company. It had a strong focus on user experience, and like the equally ill-fated Momenta pen computer, was implemented using the pioneering object-oriented language Smalltalk. At about the time that this working prototype was built, near going into production, the company was bought and merged with EO, and the Active Book never went into production. This is an exceptionally rare piece of the history of pen computing. ."
     },
     {
         "hyperlinks": [
@@ -328,6 +328,25 @@
             "http://research.microsoft.com/en-us/um/people/bibuxton/buxtoncollection/browse.aspx",
             "http://research.microsoft.com/en-us/um/people/bibuxton/buxtoncollection/default.aspx",
             "https://web.archive.org/web/20030507032656/http://www.adesso.us:80/product_details.asp?dept_id=106&pf_id=KA33ACK-540PB"
+        ],
+        "captions": [
+            "Top view of the Adesso Mini-Touch Keyboard with Touchpad.",
+            "Side view of the Adesso Mini-Touch Keyboard with Touchpad.",
+            "Adesso 2003 product web page for the black 540_PB model of the Mini Touchpad Keyboard.",
+            "Adesso 2003 product web page for the white 540_PW model of the Mini Touchpad Keyboard"
+        ],
+        "embeddedFileNames": [
+            "Adesso_540_Top.JPG",
+            "Adesso_540_Side.JPG",
+            "Adesso_ACK-540PB_May_7_2003.jpg",
+            "Adesso_ACK-540PW_June 21_2003.jpg"
+        ],
+        "__images": [
+            "/files/images/buxton/upload_189469a3-1133-4a4f-8720-19c04f29684e.jpg",
+            "/files/images/buxton/upload_73f5d066-f9b5-41ce-9ce3-e27253ef51e7.jpg",
+            "/files/images/buxton/upload_498e5cbd-d65e-4b01-bed2-bcb2723ffee5.jpg",
+            "/files/images/buxton/upload_97ee9d03-07e0-448c-89f6-6ac61948de68.jpg",
+            "/files/images/buxton/upload_661e7387-dcd7-4ca1-8493-2e94f8803ef7.jpg"
         ],
         "title": "Adesso ACK-540PB PS/2 Mini PS/2 Touchpad Keyboard",
         "company": "Adesso",
@@ -344,26 +363,7 @@
             "dim_unit": "mm"
         },
         "shortDescription": "The Mini-Touch Keyboard is a small-footprint keyboard with a centrally mounted touchpad. It initially was released with a PS/2 connector, and then in 2006 the connector was updated to USB. While keyboards with integrated touchpads had been available since the mid-1980s, small-footprint ones with centrally mounted touch pads were far less common.",
-        "longDescription": "Released in 2003, this is a small add-on keyboard with an integrated touchpad. While there had been keyboards released with touchpads earlier – see the 1985 KeyTronic LT Touchpad Keyboard in the collection, for example – these were full-sized keyboard, typically with the touchpad mounted at the side, rather than the middle. Keyboards such as the Adesso ACK-540PB, were styled after the smaller foot-print keyboards then becoming standard on laptops, in terms of the central placement of the touchpad, as well as size. This central placement was significant, since it gave equal access to either right or left hand. The touchpad used was a Glidepoint, a 1994 stand-alone version of which is in the collection, the 1994 Cirque Glidepoint. This first model of the ACK-540 was released in both black (ACK-540PB) and white (ACK-540PW) and came with a PS/2 connector. In 2006, black and white versions updated with a USB connectors were released (the ACK-540UB and ACK-540UW) were released – an indication that the product had sustained a place in the market. These same keyboards were also marketed under different brand names, including SolidTek and Daltaco.",
-        "__images": [
-            "/files/images/buxton/upload_c0ded28c-3434-4782-ae83-a4d31846701a.jpg",
-            "/files/images/buxton/upload_1dc35a6f-c3d7-40e4-a633-f1ea2129c412.jpg",
-            "/files/images/buxton/upload_91f3276a-ec32-4e07-8001-35af3f16d1c3.jpg",
-            "/files/images/buxton/upload_76d9626e-1ff2-4062-8619-1e553db4cc5e.jpg",
-            "/files/images/buxton/upload_27702b70-daf7-4952-90ac-5b608d17c9eb.jpg"
-        ],
-        "captions": [
-            "Top view of the Adesso Mini-Touch Keyboard with Touchpad.",
-            "Side view of the Adesso Mini-Touch Keyboard with Touchpad.",
-            "Adesso 2003 product web page for the black 540_PB model of the Mini Touchpad Keyboard.",
-            "Adesso 2003 product web page for the white 540_PW model of the Mini Touchpad Keyboard"
-        ],
-        "fileNames": [
-            "Adesso_540_Top.JPG",
-            "Adesso_540_Side.JPG",
-            "Adesso_ACK-540PB_May_7_2003.jpg",
-            "Adesso_ACK-540PW_June 21_2003.jpg"
-        ]
+        "longDescription": "Released in 2003, this is a small add-on keyboard with an integrated touchpad. While there had been keyboards released with touchpads earlier – see the 1985 KeyTronic LT Touchpad Keyboard in the collection, for example – these were full-sized keyboard, typically with the touchpad mounted at the side, rather than the middle. Keyboards such as the Adesso ACK-540PB, were styled after the smaller foot-print keyboards then becoming standard on laptops, in terms of the central placement of the touchpad, as well as size. This central placement was significant, since it gave equal access to either right or left hand. The touchpad used was a Glidepoint, a 1994 stand-alone version of which is in the collection, the 1994 Cirque Glidepoint. This first model of the ACK-540 was released in both black (ACK-540PB) and white (ACK-540PW) and came with a PS/2 connector. In 2006, black and white versions updated with a USB connectors were released (the ACK-540UB and ACK-540UW) were released – an indication that the product had sustained a place in the market. These same keyboards were also marketed under different brand names, including SolidTek and Daltaco."
     },
     {
         "hyperlinks": [
@@ -378,35 +378,6 @@
             "https://web.archive.org/web/20071025131401/http://www.adesso.com/products_detail.asp?productid=363",
             "http://research.microsoft.com/en-us/um/people/bibuxton/buxtoncollection/default.aspx"
         ],
-        "title": "Adesso 2-in-1 Optical Keypad Calculator Mouse AKP-170",
-        "company": "Adesso Inc",
-        "year": 2007,
-        "primaryKey": "Mouse",
-        "secondaryKey": "Keypad",
-        "attribute": "",
-        "originalPrice": 29.99,
-        "degreesOfFreedom": 3,
-        "dimensions": {
-            "dim_length": 120.7,
-            "dim_width": 57.15,
-            "dim_height": 38.1,
-            "dim_unit": "mm"
-        },
-        "shortDescription": "This is a mouse / keypad hybrid. With the transparent hinged cover down, it functions like a conventional scroll-wheel optical mouse. All the while, its additional capability as a numerical keypad / calculator is visible, and physically accessed by flipping up the cover. Since the design affords access to the mouse buttons and scroll wheel with the lid open, the opportunity to select cells in a spreadsheet, for example, and enter numbers without moving between the traditional keyboard and mouse is provided.",
-        "longDescription": "This is a mouse / numerical keypad hybrid. With the transparent hinged cover down, it functions like a conventional scroll-wheel optical mouse. All the while, its additional capability as a numerical keypad / calculator is visible, and physically accessed by flipping up the cover. Since the design affords access to the mouse buttons and scroll wheel with the lid open, the opportunity to select cells in a spreadsheet, for example, and enter numbers without moving between the traditional keyboard and mouse is provided. There are a few mice with integrated keypads included in the collection. Each takes a different approach in terms of intent as well as industrial design. Comparing them is a worthwhile exercise. By the same token, the approach taken by this example echoes that taken by a very different product, but with the same intent: layer complexity. In this case the president from the collection is a TV/VCR remote control: the 1990 Sony RMT-V5A. For comparison, see the accompanying photo, and for more information, look at the Sony’s detailed device description. Finally, in drawing attention to this specific example rather than one of the hybrid mouse/keypads referred to earlier, the intent is to show that inspiration for design solutions for one class of device can come from those of very different categories. For sure, look at previous in-class solutions. But that just puts you on par with most other designers. The best exercise their creativity by looking in far less explored places. Note to the sharp eyed: If you look at the bottom of the mouse, you will see it marked model KM-1411, while I have been referring to it, as well as the Adesso Web Site, as model AKP-170. Rest assured, these are the same thing, as can be seen on the bottom right corner of the back of the box, where both numbers appear. I too am confused as to why, but also reassured. .",
-        "__images": [
-            "/files/images/buxton/upload_eb5b3f57-c610-457a-b18e-1b6f91bb3c66.jpg",
-            "/files/images/buxton/upload_1bdeb4b1-e49a-45af-b03f-60ab9012c0e2.jpg",
-            "/files/images/buxton/upload_2a3f9d15-de6c-45cc-ade3-6089fa11b0d1.jpg",
-            "/files/images/buxton/upload_f41374c2-ca7b-4502-b5b7-48100f7267a7.jpg",
-            "/files/images/buxton/upload_a7212e61-efa9-4010-ab02-da5a894d48ff.jpg",
-            "/files/images/buxton/upload_d8805592-045d-4911-a254-e7e7466f7e0a.jpg",
-            "/files/images/buxton/upload_9a75c468-9eab-4534-a64a-2bd62a890102.jpg",
-            "/files/images/buxton/upload_1af49b83-2e41-4b86-b4d4-3a7d6b6a8401.jpg",
-            "/files/images/buxton/upload_bdfe0b03-c8f4-4e07-9950-18cd6887a631.jpg",
-            "/files/images/buxton/upload_6b7f5a85-0d11-4188-a424-8c7521c17ade.jpg",
-            "/files/images/buxton/upload_773a12e4-59ae-410f-868b-e796ac050193.jpg"
-        ],
         "captions": [
             "An overview of the Adesso AKP-170 Mouse with the transparent hinged keypad cover open.  Note that the mouse controls can still be accessed.",
             "The Adesso AKP-170 Mouse with the transparent hinged keypad cover in its default closed position.",
@@ -420,7 +391,7 @@
             "Page 1 of a review of the Adesso AKP-170 from the Dec. 2007 Notebook Review web page.  (Click on image to access full document.)",
             "First page of Adesso Oct. 25, 2007 Product Web Page for the AKP-170 Mouse.(Click on image to access full document.)"
         ],
-        "fileNames": [
+        "embeddedFileNames": [
             "Adesso_KP_Mouse_01.JPG",
             "Adesso_KP_Mouse_02.JPG",
             "Adesso_KP_Mouse_03.JPG",
@@ -432,7 +403,36 @@
             "Adesso_KP_Mouse_09.JPG",
             "Adesso_KP_Mouse_10.JPG",
             "Adesso_KP_Mouse_11_Product.JPG"
-        ]
+        ],
+        "__images": [
+            "/files/images/buxton/upload_0a127e30-9014-4300-bade-07945fba940f.jpg",
+            "/files/images/buxton/upload_ca20611c-9061-4e56-9d72-4c4a3c798d3f.jpg",
+            "/files/images/buxton/upload_12b46021-eeef-47f0-9e55-ca9e9b76f9e4.jpg",
+            "/files/images/buxton/upload_5e86ad07-77af-4d3e-a82e-eaa9cafdbbe4.jpg",
+            "/files/images/buxton/upload_4be64833-53e9-4216-b7ec-d521e0b87933.jpg",
+            "/files/images/buxton/upload_7cb731b5-5c52-47e0-a33b-c113530478f2.jpg",
+            "/files/images/buxton/upload_b20407b3-3578-4fa5-8f16-e0bf729e4daa.jpg",
+            "/files/images/buxton/upload_bee2fcb8-702a-46aa-9ec3-eb9b50ef1ba7.jpg",
+            "/files/images/buxton/upload_0ee0f6d5-34fc-41f3-9c8e-cf462dbcc40b.jpg",
+            "/files/images/buxton/upload_8f442582-b901-4a38-8df6-5a9b3195df9f.jpg",
+            "/files/images/buxton/upload_3f96763c-c3af-46a7-8831-3206c8bc460e.jpg"
+        ],
+        "title": "Adesso 2-in-1 Optical Keypad Calculator Mouse AKP-170",
+        "company": "Adesso Inc",
+        "year": 2007,
+        "primaryKey": "Mouse",
+        "secondaryKey": "Keypad",
+        "attribute": "Blank",
+        "originalPrice": 29.99,
+        "degreesOfFreedom": 3,
+        "dimensions": {
+            "dim_length": 120.7,
+            "dim_width": 57.15,
+            "dim_height": 38.1,
+            "dim_unit": "mm"
+        },
+        "shortDescription": "This is a mouse / keypad hybrid. With the transparent hinged cover down, it functions like a conventional scroll-wheel optical mouse. All the while, its additional capability as a numerical keypad / calculator is visible, and physically accessed by flipping up the cover. Since the design affords access to the mouse buttons and scroll wheel with the lid open, the opportunity to select cells in a spreadsheet, for example, and enter numbers without moving between the traditional keyboard and mouse is provided.",
+        "longDescription": "This is a mouse / numerical keypad hybrid. With the transparent hinged cover down, it functions like a conventional scroll-wheel optical mouse. All the while, its additional capability as a numerical keypad / calculator is visible, and physically accessed by flipping up the cover. Since the design affords access to the mouse buttons and scroll wheel with the lid open, the opportunity to select cells in a spreadsheet, for example, and enter numbers without moving between the traditional keyboard and mouse is provided. There are a few mice with integrated keypads included in the collection. Each takes a different approach in terms of intent as well as industrial design. Comparing them is a worthwhile exercise. By the same token, the approach taken by this example echoes that taken by a very different product, but with the same intent: layer complexity. In this case the president from the collection is a TV/VCR remote control: the 1990 Sony RMT-V5A. For comparison, see the accompanying photo, and for more information, look at the Sony’s detailed device description. Finally, in drawing attention to this specific example rather than one of the hybrid mouse/keypads referred to earlier, the intent is to show that inspiration for design solutions for one class of device can come from those of very different categories. For sure, look at previous in-class solutions. But that just puts you on par with most other designers. The best exercise their creativity by looking in far less explored places. Note to the sharp eyed: If you look at the bottom of the mouse, you will see it marked model KM-1411, while I have been referring to it, as well as the Adesso Web Site, as model AKP-170. Rest assured, these are the same thing, as can be seen on the bottom right corner of the back of the box, where both numbers appear. I too am confused as to why, but also reassured. ."
     },
     {
         "hyperlinks": [
@@ -450,30 +450,6 @@
             "https://web.archive.org/web/20060211161019/http://www.a4tech.com/en/product2.asp?CID=90&SCID=92&MNO=NB-75",
             "http://research.microsoft.com/en-us/um/people/bibuxton/buxtoncollection/default.aspx"
         ],
-        "title": "A4 Tech BatteryFREE Wireless Optical Mouse Model NB-75D",
-        "company": "A4Tech",
-        "year": 2005,
-        "primaryKey": "Mouse",
-        "secondaryKey": "Scroll-wheel",
-        "attribute": "Blank",
-        "originalPrice": 35.99,
-        "degreesOfFreedom": 4,
-        "shortDescription": "This is a little-known innovative mouse worth study. It is one of the first to have wireless charging – by sitting on its mouse pad. It has two scroll wheels which are mounted at right angles – like an Etch-a-Sketch, to conform to the direction to be scrolled (up/down vs left/right. It also has a dedicated button which “double clicks” with one push.",
-        "longDescription": "This mouse fell below the radar, and yet it had remarkable innovations in its design, especially given its price. Like any mouse, it provided 2 degrees of freedom for pointing. Unlike most scroll-wheel mouse, it had two separate scroll wheels mounted at right angles. Hence, the orientation of each wheel provided a cue as to which direction the affected document would scroll – up/down or left/right. It is interesting to consider this scroll-wheel layout with that on a companion mouse, the A4 Tech Model IRW-5 4D Wireless Mouse, also in the collection, and shown side-by-side in one of the accompanying photographs. While the scroll wheels of the NF-75 are at right angles, those of the IRW-5 are parallel. Such differences should always provoke the question “Why? ” – for would-be designer and consumer alike. As a memory aid, and the conform to what psychologists call “stimulus-response (S: -R) compatibility”, the right-angle arrangement seems to be far better mapping of action to effect. On the other hand, try an experiment. First, place your hand, palm facing down, on a desktop as if you were holding a mouse. All fingers and thumb should be touching the desktop, but not your palm. Maintaining that position, left your index (scrolling) finger, and repeatedly “fold” and “unfold” it between a pointing posture, and touching your palm. Next, keeping your hand in the same position, this time, again extend your index finger. But this time, move its tip back-and-forth in a left-right motion. What I hope you quickly perceive is that the finger was “optimized” for the folding rather than lateral motion. You “feel” that from the difference in tension in the hand in the two cases of the “study”. The two conditions of our “quick” study roughly mimic the motor actions required to operate the scroll wheels. Since the brief test suggests the possibility that repeated lateral movement may accelerate the onset of repetitive stress injury, it would therefore also suggest that further studies should be undertaken before using a left-right scroll wheel – despite the acknowledged advantage with respect to S: R compatibility. In addition to the select button on virtually all mice, there was an additional button which issued a double-click on a single push. Hence, clicking one button would select, while pushing the other would select and open. While for many, the cost of an extra button may not seem worth saving the effort of a double click, those with some motor impairment may disagree. This is an example where knowing about such things may trigger useful insights to improve future designs. However, perhaps the biggest innovation with this line of A4 mice is that they were powered wirelessly. That is, there were no batteries in the mouse that might die at the wrong moment. Power was provided wirelessly from the mouse pad. Yet, one again we see that design is full of trade-offs. The cost of providing this feature is that of requiring not just the mouse pad, but a special one – something not overly attractive to road-warriors whose brief-cases were already weighted down by cables and other paraphernalia which took up more space than the laptop itself. .",
-        "__images": [
-            "/files/images/buxton/upload_7ee8bd93-1c84-4c0d-ad26-6de00b3fb54b.jpg",
-            "/files/images/buxton/upload_21bc883e-579b-4a4d-bad6-12ad864d6b2f.jpg",
-            "/files/images/buxton/upload_647d0ee6-496f-407b-a6a7-258715451ce2.jpg",
-            "/files/images/buxton/upload_2cf9a442-2385-42fd-9025-6d22e0f4892b.jpg",
-            "/files/images/buxton/upload_cf894eb9-79e4-4930-8805-34a32a62a18d.jpg",
-            "/files/images/buxton/upload_c54f6c79-f94d-4449-bc31-eff766d904f2.jpg",
-            "/files/images/buxton/upload_ca8a5100-2380-4618-b07c-083052cb3de9.jpg",
-            "/files/images/buxton/upload_510e561f-48f8-4b80-89dc-e54bfd2324c7.jpg",
-            "/files/images/buxton/upload_2854d46b-6672-471f-9608-23485c2949c0.jpg",
-            "/files/images/buxton/upload_988f4c9a-9b46-46b5-8152-ee8011ba2b9e.jpg",
-            "/files/images/buxton/upload_fc74e9b8-cb23-4be7-95f2-9efd0c1be967.jpg",
-            "/files/images/buxton/upload_6c2339a5-0f99-47ad-a082-bf2b4ca8f811.jpg"
-        ],
         "captions": [
             "The A4 Tech Model NB-75D optical mouse on its charging mouse pad.",
             "Front view of the A4 Tech NB-75D mouse beside its A4 Tech IRW-5 4D companion. Note the difference in the second scroll-wheel.  See text for discussion.",
@@ -487,7 +463,7 @@
             "Front page of Jandata sheet for the A4 BATTERYfree optical mouse product line. From A4 Tech web site.",
             "The A4 Tech Model NB-75D User’s Guide.(Click on image to access full document.)"
         ],
-        "fileNames": [
+        "embeddedFileNames": [
             "NB75D_IMG_0682.JPG",
             "NB75D_IMG_0666.JPG",
             "NB75D_IMG_0676.JPG",
@@ -499,6 +475,30 @@
             "NB75D_Product_Page.jpg",
             "BATTERYfree_Mouse_Data_Sheet.jpg",
             "NB75D_Mouse_Manual.jpg"
-        ]
+        ],
+        "__images": [
+            "/files/images/buxton/upload_dae8f950-38bf-4fdf-8db0-153e3cae9cae.jpg",
+            "/files/images/buxton/upload_3e054d83-d01f-4d3d-aad2-fa8ee1d22a97.jpg",
+            "/files/images/buxton/upload_e9c2ddb0-0684-4bb4-a88c-5ee8074e456e.jpg",
+            "/files/images/buxton/upload_9c829a69-7d45-4d25-b906-98153aa03001.jpg",
+            "/files/images/buxton/upload_4faa425c-a100-4ce4-869c-a6c6705779ee.jpg",
+            "/files/images/buxton/upload_ed20ac31-69f6-45b8-b8e0-b8ad829ba002.jpg",
+            "/files/images/buxton/upload_f3d3d8f5-01cf-4cd1-9d1c-0a11a8c3e239.jpg",
+            "/files/images/buxton/upload_af1fa3b6-4537-416a-b626-34bed1154f35.jpg",
+            "/files/images/buxton/upload_5127f377-b697-4ad7-9fb3-fd6f82017c3c.jpg",
+            "/files/images/buxton/upload_061ae6a2-e083-492a-bc8a-826c4be00790.jpg",
+            "/files/images/buxton/upload_32e91966-7f1b-4cd7-858b-9cdb63affd13.jpg",
+            "/files/images/buxton/upload_ccc9de21-b047-4f9c-89c6-08fb3d206c7a.jpg"
+        ],
+        "title": "A4 Tech BatteryFREE Wireless Optical Mouse Model NB-75D",
+        "company": "A4Tech",
+        "year": 2005,
+        "primaryKey": "Mouse",
+        "secondaryKey": "Scroll-wheel",
+        "attribute": "Blank",
+        "originalPrice": 35.99,
+        "degreesOfFreedom": 4,
+        "shortDescription": "This is a little-known innovative mouse worth study. It is one of the first to have wireless charging – by sitting on its mouse pad. It has two scroll wheels which are mounted at right angles – like an Etch-a-Sketch, to conform to the direction to be scrolled (up/down vs left/right. It also has a dedicated button which “double clicks” with one push.",
+        "longDescription": "This mouse fell below the radar, and yet it had remarkable innovations in its design, especially given its price. Like any mouse, it provided 2 degrees of freedom for pointing. Unlike most scroll-wheel mouse, it had two separate scroll wheels mounted at right angles. Hence, the orientation of each wheel provided a cue as to which direction the affected document would scroll – up/down or left/right. It is interesting to consider this scroll-wheel layout with that on a companion mouse, the A4 Tech Model IRW-5 4D Wireless Mouse, also in the collection, and shown side-by-side in one of the accompanying photographs. While the scroll wheels of the NF-75 are at right angles, those of the IRW-5 are parallel. Such differences should always provoke the question “Why? ” – for would-be designer and consumer alike. As a memory aid, and the conform to what psychologists call “stimulus-response (S: -R) compatibility”, the right-angle arrangement seems to be far better mapping of action to effect. On the other hand, try an experiment. First, place your hand, palm facing down, on a desktop as if you were holding a mouse. All fingers and thumb should be touching the desktop, but not your palm. Maintaining that position, left your index (scrolling) finger, and repeatedly “fold” and “unfold” it between a pointing posture, and touching your palm. Next, keeping your hand in the same position, this time, again extend your index finger. But this time, move its tip back-and-forth in a left-right motion. What I hope you quickly perceive is that the finger was “optimized” for the folding rather than lateral motion. You “feel” that from the difference in tension in the hand in the two cases of the “study”. The two conditions of our “quick” study roughly mimic the motor actions required to operate the scroll wheels. Since the brief test suggests the possibility that repeated lateral movement may accelerate the onset of repetitive stress injury, it would therefore also suggest that further studies should be undertaken before using a left-right scroll wheel – despite the acknowledged advantage with respect to S: R compatibility. In addition to the select button on virtually all mice, there was an additional button which issued a double-click on a single push. Hence, clicking one button would select, while pushing the other would select and open. While for many, the cost of an extra button may not seem worth saving the effort of a double click, those with some motor impairment may disagree. This is an example where knowing about such things may trigger useful insights to improve future designs. However, perhaps the biggest innovation with this line of A4 mice is that they were powered wirelessly. That is, there were no batteries in the mouse that might die at the wrong moment. Power was provided wirelessly from the mouse pad. Yet, one again we see that design is full of trade-offs. The cost of providing this feature is that of requiring not just the mouse pad, but a special one – something not overly attractive to road-warriors whose brief-cases were already weighted down by cables and other paraphernalia which took up more space than the laptop itself. ."
     }
 ]

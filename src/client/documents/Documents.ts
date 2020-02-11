@@ -355,13 +355,18 @@ export namespace Docs {
                 _LODdisable: true
             });
             Networking.FetchFromServer("/buxton").then(response => {
-                const parentProto = Doc.GetProto(parent);
-                parentProto.data = new List<Doc>();
                 const devices = JSON.parse(response);
                 if (!Array.isArray(devices)) {
-                    alert("Improper Buxton import formatting!");
+                    if ("error" in devices) {
+                        loading.title = devices.error;
+                    } else {
+                        console.log(devices);
+                        alert("The importer returned an unexpected import format. Check the console.");
+                    }
                     return;
                 }
+                const parentProto = Doc.GetProto(parent);
+                parentProto.data = new List<Doc>();
                 devices.forEach(device => {
                     const { __images } = device;
                     delete device.__images;
@@ -370,9 +375,9 @@ export namespace Docs {
                         const constructed = __images.map(relative => Utils.prepend(relative));
                         const deviceImages = constructed.map((url, i) => ImageDocument(url, { title: `image${i}.${extname(url)}` }));
                         const doc = StackingDocument(deviceImages, { title: device.title, _LODdisable: true });
-                        const protoDoc = Doc.GetProto(doc);
-                        protoDoc.hero = new ImageField(constructed[0]);
-                        Docs.Get.DocumentHierarchyFromJson(device, undefined, protoDoc);
+                        const deviceProto = Doc.GetProto(doc);
+                        deviceProto.hero = new ImageField(constructed[0]);
+                        Docs.Get.DocumentHierarchyFromJson(device, undefined, deviceProto);
                         Doc.AddDocToList(parentProto, "data", doc);
                     }
                 });
@@ -505,10 +510,6 @@ export namespace Docs {
             doc.strokeWidth = strokeWidth;
             doc.tool = tool;
             return doc;
-        }
-
-        export function IconDocument(icon: string, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.ICON), new IconField(icon), options);
         }
 
         export function PdfDocument(url: string, options: DocumentOptions = {}) {

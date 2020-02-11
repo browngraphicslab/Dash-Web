@@ -50,11 +50,11 @@ export class SliderBox extends DocComponent<FieldViewProps, SliderDocument>(Slid
     onChange = (values: readonly number[]) => runInAction(() => {
         this.Document._sliderMinThumb = values[0];
         this.Document._sliderMaxThumb = values[1];
-        Cast(this.Document.onThumbChanged, ScriptField, null)?.script.run({ range: values, this: this.props.Document })
+        Cast(this.Document.onThumbChanged, ScriptField, null)?.script.run({ range: values, this: this.props.Document });
     })
 
     render() {
-        const domain = [NumCast(this.props.Document._sliderMin), NumCast(this.props.Document._sliderMax)]
+        const domain = [NumCast(this.props.Document._sliderMin), NumCast(this.props.Document._sliderMax)];
         const defaultValues = [NumCast(this.props.Document._sliderMinThumb), NumCast(this.props.Document._sliderMaxThumb)];
         return (
             <div className="sliderBox-outerDiv" onContextMenu={this.specificContextMenu} onPointerDown={e => e.stopPropagation()}
@@ -76,15 +76,20 @@ export class SliderBox extends DocComponent<FieldViewProps, SliderDocument>(Slid
                         <Handles>
                             {({ handles, activeHandleID, getHandleProps }) => (
                                 <div className="slider-handles">
-                                    {handles.map(handle => (
-                                        <Handle
-                                            key={handle.id}
-                                            handle={handle}
-                                            domain={domain}
-                                            isActive={handle.id === activeHandleID}
-                                            getHandleProps={getHandleProps}
-                                        />
-                                    ))}
+                                    {handles.map((handle, i) => {
+                                        const value = i === 0 ? this.Document._sliderMinThumb : this.Document._sliderMaxThumb;
+                                        return (
+                                            <div title={String(value)}>
+                                                <Handle
+                                                    key={handle.id}
+                                                    handle={handle}
+                                                    domain={domain}
+                                                    isActive={handle.id === activeHandleID}
+                                                    getHandleProps={getHandleProps}
+                                                />
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             )}
                         </Handles>

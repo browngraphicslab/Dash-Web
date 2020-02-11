@@ -1,21 +1,26 @@
-.collectionTimeView, .collectionTimeView-pivot {
+.collectionTimeView,
+.collectionTimeView-pivot {
     display: flex;
     flex-direction: row;
     position: absolute;
     height: 100%;
     width: 100%;
     overflow: hidden;
+
     .collectionTimeView-backBtn {
         background: green;
         display: inline;
         margin-right: 20px;
     }
+
     .collectionFreeform-customText {
         text-align: left;
     }
+
     .collectionFreeform-customDiv {
         position: absolute;
     }
+
     .collectionTimeView-thumb {
         position: absolute;
         width: 30px;
@@ -28,14 +33,17 @@
         border-radius: 9px;
         opacity: 0.25;
     }
+
     .collectionTimeView-thumb-min {
-        margin-left:25%;
+        margin-left: 25%;
     }
+
     .collectionTimeView-thumb-max {
-        margin-left:75%;
+        margin-left: 75%;
     }
+
     .collectionTimeView-thumb-mid {
-        margin-left:50%;
+        margin-left: 50%;
     }
 
     .collectionTimeView-flyout {
@@ -118,6 +126,7 @@
         left: -10px;
     }
 }
+
 .collectionTimeView-pivot {
     .collectionFreeform-customText {
         text-align: center;

@@ -47,12 +47,12 @@ export class TooltipRail extends Component<TooltipRailProps> {
 
     onMouseEnter = () => {
         document.addEventListener("mousemove", this.onMouseMove);
-    };
+    }
 
     onMouseLeave = () => {
         this.setState({ value: null, percent: null });
         document.removeEventListener("mousemove", this.onMouseMove);
-    };
+    }
 
     onMouseMove = (e: Event) => {
         const { activeHandleID, getEventData } = this.props;
@@ -62,7 +62,7 @@ export class TooltipRail extends Component<TooltipRailProps> {
         } else {
             this.setState(getEventData(e));
         }
-    };
+    }
 
     render() {
         const { value, percent } = this.state;
@@ -120,11 +120,11 @@ export class Handle extends Component<HandleProps> {
 
     onMouseEnter = () => {
         this.setState({ mouseOver: true });
-    };
+    }
 
     onMouseLeave = () => {
         this.setState({ mouseOver: false });
-    };
+    }
 
     render() {
         const {

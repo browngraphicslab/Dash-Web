@@ -11,25 +11,26 @@ const createImageSizeStream = require("image-size-stream");
 import { parseXml } from "libxmljs";
 import { strictEqual } from "assert";
 
+interface DocumentContents {
+    body: string;
+    imageUrls: string[];
+    hyperlinks: string[];
+    captions: string[];
+    embeddedFileNames: string[];
+}
+
 export interface DeviceDocument {
     title: string;
     shortDescription: string;
     longDescription: string;
     company: string;
     year: number;
-    originalPrice: number | "NFS";
+    originalPrice: number;
     degreesOfFreedom: number;
-    dimensions: string;
+    dimensions?: string;
     primaryKey: string;
     secondaryKey: string;
     attribute: string;
-}
-
-interface DocumentContents {
-    body: string;
-    imageUrls: string[];
-    hyperlinks: string[];
-    captions: Caption[];
 }
 
 interface AnalysisResult {
@@ -37,18 +38,13 @@ interface AnalysisResult {
     errors?: any;
 }
 
-type Converter<T> = (raw: string) => { transformed?: T, error?: string };
+type Transformer<T> = (raw: string) => { transformed?: T, error?: string };
 
 interface Processor<T> {
     exp: RegExp;
     matchIndex?: number;
-    transformer?: Converter<T>;
+    transformer?: Transformer<T>;
     required?: boolean;
-}
-
-interface Caption {
-    fileName: string;
-    caption: string;
 }
 
 namespace Utilities {
@@ -56,13 +52,15 @@ namespace Utilities {
     export function numberValue(raw: string) {
         const transformed = Number(raw);
         if (isNaN(transformed)) {
-            return { error: `${transformed} cannot be parsed to a numeric value.` };
+            return { error: `${raw} cannot be parsed to a numeric value.` };
         }
         return { transformed };
     }
 
     export function collectUniqueTokens(raw: string) {
-        return { transformed: Array.from(new Set(raw.replace(/,|\s+and\s+/g, " ").split(/\s+/).map(token => token.toLowerCase().trim()))).map(capitalize).sort() };
+        const pieces = raw.replace(/,|\s+and\s+/g, " ").split(/\s+/).filter(piece => piece.length);
+        const unique = new Set(pieces.map(token => token.toLowerCase().trim()));
+        return { transformed: Array.from(unique).map(capitalize).sort() };
     }
 
     export function correctSentences(raw: string) {
@@ -77,6 +75,21 @@ namespace Utilities {
             return word;
         }
         return word.charAt(0).toUpperCase() + word.slice(1);
+    }
+
+    export async function readAndParseXml(zip: any, relativePath: string) {
+        const contents = await new Promise<string>((resolve, reject) => {
+            let body = "";
+            zip.stream(relativePath, (error: any, stream: any) => {
+                if (error) {
+                    reject(error);
+                }
+                stream.on('data', (chunk: any) => body += chunk.toString());
+                stream.on('end', () => resolve(body));
+            });
+        });
+
+        return parseXml(contents);
     }
 
 }
@@ -145,6 +158,7 @@ const RegexMap = new Map<keyof DeviceDocument, Processor<any>>([
     }],
 ]);
 
+const sourceDir = path.resolve(__dirname, "source");
 const outDir = path.resolve(__dirname, "json");
 const imageDir = path.resolve(__dirname, "../../../server/public/files/images/buxton");
 const successOut = "buxton.json";
@@ -152,19 +166,28 @@ const failOut = "incomplete.json";
 const deviceKeys = Array.from(RegexMap.keys());
 
 export default async function executeImport() {
-    [outDir, imageDir].forEach(dir => {
-        rimraf.sync(dir);
-        mkdirSync(dir);
-    });
-    return parseFiles();
+    try {
+        const contents = readdirSync(sourceDir);
+        const wordDocuments = contents.filter(file => /.*\.docx?$/.test(file)).map(file => `${sourceDir}/${file}`);
+        [outDir, imageDir].forEach(dir => {
+            rimraf.sync(dir);
+            mkdirSync(dir);
+        });
+        return parseFiles(wordDocuments);
+    } catch (e) {
+        const message = [
+            "Unable to find a source directory.",
+            "Please ensure that the following directory exists and is populated with Word documents:",
+            `${sourceDir}`
+        ].join('\n');
+        console.log(red(message));
+        return { error: message };
+    }
 }
 
-async function parseFiles(): Promise<DeviceDocument[]> {
-    const source = path.resolve(`${__dirname}/source`);
-    const candidates = readdirSync(source).filter(file => /.*\.docx?$/.test(file)).map(file => `${source}/${file}`);
-
-    const imported: any[] = [];
-    for (const filePath of candidates) {
+async function parseFiles(wordDocuments: string[]): Promise<DeviceDocument[]> {
+    const imported: { fileName: string, contents: DocumentContents }[] = [];
+    for (const filePath of wordDocuments) {
         const fileName = path.basename(filePath).replace("Bill_Notes_", "");
         console.log(cyan(`\nExtracting contents from ${fileName}...`));
         imported.push({ fileName, contents: await extractFileContents(filePath) });
@@ -183,7 +206,7 @@ async function parseFiles(): Promise<DeviceDocument[]> {
         }
     });
 
-    const total = candidates.length;
+    const total = wordDocuments.length;
     if (masterDevices.length + masterErrors.length !== total) {
         throw new Error(`Encountered a ${masterDevices.length} to ${masterErrors.length} mismatch in device / error split!`);
     }
@@ -196,47 +219,35 @@ async function parseFiles(): Promise<DeviceDocument[]> {
     return masterDevices;
 }
 
-async function readAndParseXml(zip: any, relativePath: string) {
-    const contents = await new Promise<string>((resolve, reject) => {
-        let body = "";
-        zip.stream(relativePath, (error: any, stream: any) => {
-            if (error) {
-                reject(error);
-            }
-            stream.on('data', (chunk: any) => body += chunk.toString());
-            stream.on('end', () => resolve(body));
-        });
-    });
-
-    return parseXml(contents);
-}
+const tableCellXPath = '//*[name()="w:tbl"]/*[name()="w:tr"]/*[name()="w:tc"]';
+const hyperlinkXPath = '//*[name()="Relationship" and contains(@Type, "hyperlink")]';
 
 async function extractFileContents(pathToDocument: string): Promise<DocumentContents> {
     console.log('Extracting text...');
-
     const zip = new StreamZip({ file: pathToDocument, storeEntries: true });
     await new Promise<void>(resolve => zip.on('ready', resolve));
 
     // extract the body of the document and, specifically, its captions
+    const document = await Utilities.readAndParseXml(zip, "word/document.xml");
+    const body = document.root()?.text() ?? "No body found. Check the import script's XML parser.";
+    const captions: string[] = [];
+    const embeddedFileNames: string[] = [];
+    const captionTargets = document.find(tableCellXPath).map(node => node.text());
 
-    const document = await readAndParseXml(zip, "word/document.xml");
-    const body = document.root()?.text() || "No body found.";
-    const captions: Caption[] = [];
-    const captionTargets = document.find('//*[name()="w:tbl"]/*[name()="w:tr"]/*[name()="w:tc"]').map(node => node.text());
     const { length } = captionTargets;
-
     strictEqual(length > 3, true, "No captions written.");
     strictEqual(length % 3 === 0, true, "Improper caption formatting.");
 
     for (let i = 3; i < captionTargets.length; i += 3) {
         const [image, fileName, caption] = captionTargets.slice(i, i + 3);
         strictEqual(image, "", `The image cell in one row was not the empty string: ${image}`);
-        captions.push({ fileName, caption });
+        captions.push(caption);
+        embeddedFileNames.push(fileName);
     }
 
     // extract all hyperlinks embedded in the document
-    const rels = await readAndParseXml(zip, "word/_rels/document.xml.rels");
-    const hyperlinks = rels.find('//*[name()="Relationship" and contains(@Type, "hyperlink")]').map(el => el.attrs()[2].value());
+    const rels = await Utilities.readAndParseXml(zip, "word/_rels/document.xml.rels");
+    const hyperlinks = rels.find(hyperlinkXPath).map(el => el.attrs()[2].value());
     console.log("Text extracted.");
 
     console.log("Beginning image extraction...");
@@ -245,16 +256,11 @@ async function extractFileContents(pathToDocument: string): Promise<DocumentCont
 
     zip.close();
 
-    return { body, imageUrls, captions, hyperlinks };
+    return { body, imageUrls, captions, embeddedFileNames, hyperlinks };
 }
 
 const imageEntry = /^word\/media\/\w+\.(jpeg|jpg|png|gif)/;
-const { pngs, jpgs } = AcceptibleMedia;
-const pngOptions = {
-    compressionLevel: 9,
-    adaptiveFiltering: true,
-    force: true
-};
+
 interface Dimensions {
     width: number;
     height: number;
@@ -281,46 +287,23 @@ async function writeImages(zip: any): Promise<string[]> {
 
         const ext = `.${type}`;
         const generatedFileName = `upload_${Utils.GenerateGuid()}${ext}`;
-        for (const { resizer, suffix } of resizers(ext)) {
-            const resizedPath = path.resolve(imageDir, InjectSize(generatedFileName, suffix));
-            await new Promise<void>(async (resolve, reject) => {
-                const writeStream = createWriteStream(resizedPath);
-                const readStream = await streamImage();
-                let source = readStream;
-                if (resizer) {
-                    source = readStream.pipe(resizer.withMetadata());
-                }
-                const out = source.pipe(writeStream);
-                out.on("close", resolve);
-                out.on("error", reject);
-            });
-        }
+
+        await DashUploadUtils.outputResizedImages(streamImage, imageDir, generatedFileName, ext);
+
         imageUrls.push(`/files/images/buxton/${generatedFileName}`);
     }
 
     return imageUrls;
 }
 
-function resizers(ext: string): DashUploadUtils.ImageResizer[] {
-    return [
-        { suffix: SizeSuffix.Original },
-        ...Object.values(DashUploadUtils.Sizes).map(size => {
-            let initial = sharp().resize(size.width, undefined, { withoutEnlargement: true });
-            if (pngs.includes(ext)) {
-                initial = initial.png(pngOptions);
-            } else if (jpgs.includes(ext)) {
-                initial = initial.jpeg();
-            }
-            return {
-                resizer: initial,
-                suffix: size.suffix
-            };
-        })
-    ];
-}
-
-function analyze(fileName: string, { body, imageUrls, captions, hyperlinks }: DocumentContents): AnalysisResult {
-    const device: any = { hyperlinks };
+function analyze(fileName: string, contents: DocumentContents): AnalysisResult {
+    const { body, imageUrls, captions, hyperlinks, embeddedFileNames } = contents;
+    const device: any = {
+        hyperlinks,
+        captions,
+        embeddedFileNames,
+        __images: imageUrls
+    };
     const errors: any = { fileName };
 
     for (const key of deviceKeys) {
@@ -352,15 +335,6 @@ function analyze(fileName: string, { body, imageUrls, captions, hyperlinks }: Do
         errorKeys.forEach(key => key !== "filename" && console.log(red(errors[key])));
         return { errors };
     }
-
-    device.__images = imageUrls;
-
-    device.captions = [];
-    device.fileNames = [];
-    captions.forEach(({ caption, fileName }) => {
-        device.captions.push(caption);
-        device.fileNames.push(fileName);
-    });
 
     return { device };
 }
