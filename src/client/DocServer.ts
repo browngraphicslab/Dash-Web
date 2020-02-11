@@ -84,7 +84,24 @@ export namespace DocServer {
         export function dispatchMobileDocumentUpload(content: MobileDocumentUploadContent) {
             Utils.Emit(_socket, MessageStore.MobileDocumentUpload, content);
         }
+    }
 
+    const instructions = "This page will automatically refresh after this alert is closed. Expect to reconnect after about 30 seconds.";
+    function alertUser(connectionTerminationReason: string) {
+        switch (connectionTerminationReason) {
+            case "crash":
+                alert(`Dash has temporarily crashed. Administrators have been notified and the server is restarting itself. ${instructions}`);
+                break;
+            case "temporary":
+                alert(`An administrator has chosen to restart the server. ${instructions}`);
+                break;
+            case "exit":
+                alert("An administrator has chosen to kill the server. Do not expect to reconnect until administrators start the server.");
+                break;
+            default:
+                console.log(`Received an unknown ConnectionTerminated message: ${connectionTerminationReason}`);
+        }
+        window.location.reload();
     }
 
     export function init(protocol: string, hostname: string, port: number, identifier: string) {
@@ -105,9 +122,7 @@ export namespace DocServer {
         Utils.AddServerHandler(_socket, MessageStore.UpdateField, respondToUpdate);
         Utils.AddServerHandler(_socket, MessageStore.DeleteField, respondToDelete);
         Utils.AddServerHandler(_socket, MessageStore.DeleteFields, respondToDelete);
-        Utils.AddServerHandler(_socket, MessageStore.ConnectionTerminated, () => {
-            alert("Your connection to the server has been terminated.");
-        });
+        Utils.AddServerHandler(_socket, MessageStore.ConnectionTerminated, alertUser);
 
         // mobile ink overlay socket events to communicate between mobile view and desktop view
         _socket.addEventListener("receiveGesturePoints", (content: GestureContent) => {
@@ -240,6 +255,10 @@ export namespace DocServer {
         return apiKey;
     }
 
+    export async function analyzeImage(image: string, callback: (result: any) => void) {
+        Utils.EmitCallback(_socket, MessageStore.AnalyzeInk, image, callback);
+    }
+
     export function getYoutubeVideos(videoTitle: string, callBack: (videos: any[]) => void) {
         Utils.EmitCallback(_socket, MessageStore.YoutubeApiQuery, { type: YoutubeQueryTypes.SearchVideo, userInput: videoTitle }, callBack);
     }
@@ -294,7 +313,7 @@ export namespace DocServer {
             const fieldMap: { [id: string]: RefField } = {};
             const proms: Promise<void>[] = [];
             for (const field of fields) {
-                if (field !== undefined) {
+                if (field !== undefined && field !== null) {
                     // deserialize
                     const prom = SerializationHelper.Deserialize(field).then(deserialized => {
                         fieldMap[field.id] = deserialized;

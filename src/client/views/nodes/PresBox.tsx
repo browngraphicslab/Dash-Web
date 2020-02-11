@@ -44,7 +44,7 @@ export class PresBox extends React.Component<FieldViewProps> {
                     if (item instanceof Doc && item.type !== DocumentType.PRESELEMENT) {
                         const pinDoc = Docs.Create.PresElementBoxDocument({ backgroundColor: "transparent" });
                         Doc.GetProto(pinDoc).presentationTargetDoc = item;
-                        Doc.GetProto(pinDoc).title = ComputedField.MakeFunction('(this.presentationTargetDoc instanceof Doc) && this.presentationTargetDoc.title.toString()');
+                        Doc.GetProto(pinDoc).title = ComputedField.MakeFunction('this.presentationTargetDoc?.title?.toString()');
                         value.splice(i, 1, pinDoc);
                     }
                 });
@@ -336,13 +336,13 @@ export class PresBox extends React.Component<FieldViewProps> {
      */
     @action
     initializeScaleViews = (docList: Doc[], viewtype: number) => {
-        this.props.Document.chromeStatus = "disabled";
+        this.props.Document._chromeStatus = "disabled";
         const hgt = (viewtype === CollectionViewType.Tree) ? 50 : 72;
         docList.forEach((doc: Doc) => {
             doc.presBox = this.props.Document;
             doc.presBoxKey = this.props.fieldKey;
             doc.collapsedHeight = hgt;
-            doc.height = ComputedField.MakeFunction("this.collapsedHeight + Number(this.embedOpen ? 100:0)");
+            doc._height = ComputedField.MakeFunction("this.collapsedHeight + Number(this.embedOpen ? 100:0)");
             const curScale = NumCast(doc.viewScale, null);
             if (curScale === undefined) {
                 doc.viewScale = 1;
@@ -360,7 +360,7 @@ export class PresBox extends React.Component<FieldViewProps> {
         return this.props.ScreenToLocalTransform().translate(-10, -50);// listBox padding-left and pres-box-cont minHeight
     }
     render() {
-        this.initializeScaleViews(this.childDocs, NumCast(this.props.Document.viewType));
+        this.initializeScaleViews(this.childDocs, NumCast(this.props.Document._viewType));
         return (
             <div className="presBox-cont" onContextMenu={this.specificContextMenu}>
                 <div className="presBox-buttons">

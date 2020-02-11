@@ -6,7 +6,7 @@ import { observable, action, runInAction } from "mobx";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { SearchUtil } from "../../util/SearchUtil";
 import { CollectionDockingView } from "./CollectionDockingView";
-import { NumCast } from "../../../new_fields/Types";
+import { NumCast, StrCast } from "../../../new_fields/Types";
 import { CollectionViewType } from "./CollectionView";
 import { DocumentButtonBar } from "../DocumentButtonBar";
 import { DocumentManager } from "../../util/DocumentManager";
@@ -21,7 +21,13 @@ export const Flyout = higflyout.default;
 
 library.add(faEdit);
 
-type SelectorProps = { Document: Doc, Views: DocumentView[], Stack?: any, addDocTab(doc: Doc, dataDoc: Doc | undefined, location: string): void };
+type SelectorProps = {
+    Document: Doc,
+    Views: DocumentView[],
+    Stack?: any,
+    addDocTab(doc: Doc, dataDoc: Doc | undefined, location: string): void
+};
+
 @observer
 export class SelectorContextMenu extends React.Component<SelectorProps> {
     @observable private _docs: { col: Doc, target: Doc }[] = [];
@@ -49,31 +55,22 @@ export class SelectorContextMenu extends React.Component<SelectorProps> {
     getOnClick({ col, target }: { col: Doc, target: Doc }) {
         return () => {
             col = Doc.IsPrototype(col) ? Doc.MakeDelegate(col) : col;
-            if (NumCast(col.viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
-                const newPanX = NumCast(target.x) + NumCast(target.width) / 2;
-                const newPanY = NumCast(target.y) + NumCast(target.height) / 2;
-                col.panX = newPanX;
-                col.panY = newPanY;
+            if (NumCast(col._viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
+                const newPanX = NumCast(target.x) + NumCast(target._width) / 2;
+                const newPanY = NumCast(target.y) + NumCast(target._height) / 2;
+                col._panX = newPanX;
+                col._panY = newPanY;
             }
             this.props.addDocTab(col, undefined, "inTab"); // bcz: dataDoc?
         };
     }
-    get metadataMenu() {
-        return <div className="parentDocumentSelector-metadata">
-            <Flyout anchorPoint={anchorPoints.TOP_LEFT}
-                content={<MetadataEntryMenu docs={() => this.props.Views.map(dv => dv.props.Document)} suggestWithFunction />}>{/* tfs: @bcz This might need to be the data document? */}
-                <div className="docDecs-tagButton" title="Add fields"><FontAwesomeIcon className="documentdecorations-icon" icon="tag" size="sm" /></div>
-            </Flyout>
-        </div>;
-    }
 
     render() {
         return <div >
-            <div key="metadata">Metadata: {this.metadataMenu}</div>
             <p key="contexts">Contexts:</p>
-            {this._docs.map(doc => <p key={doc.col[Id] + doc.target[Id]}><a onClick={this.getOnClick(doc)}>{doc.col.title}</a></p>)}
+            {this._docs.map(doc => <p key={doc.col[Id] + doc.target[Id]}><a onClick={this.getOnClick(doc)}>{doc.col.title?.toString()}</a></p>)}
             {this._otherDocs.length ? <hr key="hr" /> : null}
-            {this._otherDocs.map(doc => <p key="p"><a onClick={this.getOnClick(doc)}>{doc.col.title}</a></p>)}
+            {this._otherDocs.map(doc => <p key={"p" + doc.col[Id] + doc.target[Id]}><a onClick={this.getOnClick(doc)}>{doc.col.title?.toString()}</a></p>)}
         </div>;
     }
 }

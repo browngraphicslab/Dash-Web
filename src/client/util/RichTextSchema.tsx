@@ -1,4 +1,4 @@
-import { reaction, IReactionDisposer } from "mobx";
+import { reaction, IReactionDisposer, observable, runInAction } from "mobx";
 import { baseKeymap, toggleMark } from "prosemirror-commands";
 import { redo, undo } from "prosemirror-history";
 import { keymap } from "prosemirror-keymap";
@@ -8,7 +8,7 @@ import { EditorState, NodeSelection, TextSelection, Plugin } from "prosemirror-s
 import { StepMap } from "prosemirror-transform";
 import { EditorView } from "prosemirror-view";
 import * as ReactDOM from 'react-dom';
-import { Doc, WidthSym, HeightSym } from "../../new_fields/Doc";
+import { Doc, WidthSym, HeightSym, DataSym, Field } from "../../new_fields/Doc";
 import { emptyFunction, returnEmptyString, returnFalse, returnOne, Utils } from "../../Utils";
 import { DocServer } from "../DocServer";
 import { DocumentView } from "../views/nodes/DocumentView";
@@ -16,8 +16,12 @@ import { DocumentManager } from "./DocumentManager";
 import ParagraphNodeSpec from "./ParagraphNodeSpec";
 import { Transform } from "./Transform";
 import React = require("react");
-import { BoolCast, NumCast, Cast } from "../../new_fields/Types";
+import { BoolCast, NumCast, StrCast } from "../../new_fields/Types";
 import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
+import { ObjectField } from "../../new_fields/ObjectField";
+import { ComputedField } from "../../new_fields/ScriptField";
+import { observer } from "mobx-react";
+import { Id } from "../../new_fields/FieldSymbols";
 
 const blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
     preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], brDOM: DOMOutputSpecArray = ["br"], ulDOM: DOMOutputSpecArray = ["ul", 0];
@@ -165,7 +169,23 @@ export const nodes: { [index: string]: NodeSpec } = {
             float: { default: "right" },
             location: { default: "onRight" },
             hidden: { default: false },
+            fieldKey: { default: "" },
             docid: { default: "" },
+            alias: { default: "" }
+        },
+        group: "inline",
+        draggable: false,
+        toDOM(node) {
+            const attrs = { style: `width: ${node.attrs.width}, height: ${node.attrs.height}` };
+            return ["div", { ...node.attrs, ...attrs }];
+        }
+    },
+
+    dashField: {
+        inline: true,
+        attrs: {
+            fieldKey: { default: "" },
+            docid: { default: "" }
         },
         group: "inline",
         draggable: false,
@@ -306,7 +326,7 @@ export const marks: { [index: string]: MarkSpec } = {
             }
         }],
         toDOM(node: any) {
-            return node.attrs.color ? ['span', { style: 'color:' + node.attrs.color }] : ['span', { style: 'color: black' }];
+            return node.attrs.color ? ['span', { style: 'color:' + node.attrs.color }] : ['span', 0];
         }
     },
 
@@ -669,7 +689,7 @@ export class DashDocCommentView {
             if (target) {
                 const expand = target.hidden;
                 const tr = view.state.tr.setNodeMarkup(target.pos, undefined, { ...target.node.attrs, hidden: target.node.attrs.hidden ? false : true });
-                view.dispatch(tr.setSelection(TextSelection.create(tr.doc, getPos() + (expand ? 2 : 1)))); // update the attrs 
+                view.dispatch(tr.setSelection(TextSelection.create(tr.doc, getPos() + (expand ? 2 : 1)))); // update the attrs
                 setTimeout(() => {
                     expand && DocServer.GetRefField(node.attrs.docid).then(async dashDoc => dashDoc instanceof Doc && Doc.linkFollowHighlight(dashDoc));
                     try { view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.tr.doc, getPos() + (expand ? 2 : 1)))); } catch (e) { }
@@ -678,7 +698,7 @@ export class DashDocCommentView {
             e.stopPropagation();
         };
         this._collapsed.onpointerenter = (e: any) => {
-            DocServer.GetRefField(node.attrs.docid).then(async dashDoc => dashDoc instanceof Doc && Doc.linkFollowHighlight(dashDoc));
+            DocServer.GetRefField(node.attrs.docid).then(async dashDoc => dashDoc instanceof Doc && Doc.linkFollowHighlight(dashDoc, false));
             e.preventDefault();
             e.stopPropagation();
         };
@@ -703,7 +723,7 @@ export class DashDocView {
         const { scale, translateX, translateY } = Utils.GetScreenTransform(this._outer);
         return new Transform(-translateX, -translateY, 1).scale(1 / this.contentScaling() / scale);
     }
-    contentScaling = () => NumCast(this._dashDoc!.nativeWidth) > 0 && !this._dashDoc!.ignoreAspect ? this._dashDoc![WidthSym]() / NumCast(this._dashDoc!.nativeWidth) : 1;
+    contentScaling = () => NumCast(this._dashDoc!._nativeWidth) > 0 && !this._dashDoc!.ignoreAspect ? this._dashDoc![WidthSym]() / NumCast(this._dashDoc!._nativeWidth) : 1;
     outerFocus = (target: Doc) => this._textBox.props.focus(this._textBox.props.Document);  // ideally, this would scroll to show the focus target
     constructor(node: any, view: any, getPos: any, tbox: FormattedTextBox) {
         this._textBox = tbox;
@@ -721,12 +741,6 @@ export class DashDocView {
         this._dashSpan.style.height = node.attrs.height;
         this._dashSpan.style.position = "absolute";
         this._dashSpan.style.display = "inline-block";
-        const removeDoc = () => {
-            const pos = getPos();
-            const ns = new NodeSelection(view.state.doc.resolve(pos));
-            view.dispatch(view.state.tr.setSelection(ns).deleteSelection());
-            return true;
-        };
         this._dashSpan.onpointerleave = () => {
             const ele = document.getElementById("DashDocCommentView-" + node.attrs.docid);
             if (ele) {
@@ -739,47 +753,26 @@ export class DashDocView {
                 (ele as HTMLDivElement).style.backgroundColor = "orange";
             }
         };
-        DocServer.GetRefField(node.attrs.docid).then(async dashDoc => {
-            if (dashDoc instanceof Doc) {
-                self._dashDoc = dashDoc;
-                dashDoc.hideSidebar = true;
-                if (node.attrs.width !== dashDoc.width + "px" || node.attrs.height !== dashDoc.height + "px") {
-                    try { // bcz: an exception will be thrown if two aliases are open at the same time when a doc view comment is made
-                        view.dispatch(view.state.tr.setNodeMarkup(getPos(), null, { ...node.attrs, width: dashDoc.width + "px", height: dashDoc.height + "px" }));
-                    } catch (e) {
-                        console.log(e);
+        const removeDoc = () => {
+            const pos = getPos();
+            const ns = new NodeSelection(view.state.doc.resolve(pos));
+            view.dispatch(view.state.tr.setSelection(ns).deleteSelection());
+            return true;
+        };
+        const alias = node.attrs.alias;
+
+        const docid = node.attrs.docid || tbox.props.DataDoc?.[Id] || tbox.dataDoc?.[Id];
+        DocServer.GetRefField(docid + alias).then(async dashDoc => {
+            if (!(dashDoc instanceof Doc)) {
+                alias && DocServer.GetRefField(docid).then(async dashDocBase => {
+                    if (dashDocBase instanceof Doc) {
+                        const aliasedDoc = Doc.MakeDelegate(dashDocBase, docid + alias);
+                        aliasedDoc.layoutKey = "layout_" + node.attrs.fieldKey;
+                        self.doRender(aliasedDoc, removeDoc, node, view, getPos);
                     }
-                }
-                this._reactionDisposer && this._reactionDisposer();
-                this._reactionDisposer = reaction(() => dashDoc[HeightSym]() + dashDoc[WidthSym](), () => {
-                    this._dashSpan.style.height = this._outer.style.height = dashDoc[HeightSym]() + "px";
-                    this._dashSpan.style.width = this._outer.style.width = dashDoc[WidthSym]() + "px";
                 });
-                ReactDOM.render(<DocumentView
-                    Document={dashDoc}
-                    LibraryPath={tbox.props.LibraryPath}
-                    fitToBox={BoolCast(dashDoc.fitToBox)}
-                    addDocument={returnFalse}
-                    removeDocument={removeDoc}
-                    ruleProvider={undefined}
-                    ScreenToLocalTransform={this.getDocTransform}
-                    addDocTab={self._textBox.props.addDocTab}
-                    pinToPres={returnFalse}
-                    renderDepth={1}
-                    PanelWidth={self._dashDoc[WidthSym]}
-                    PanelHeight={self._dashDoc[HeightSym]}
-                    focus={self.outerFocus}
-                    backgroundColor={returnEmptyString}
-                    parentActive={returnFalse}
-                    whenActiveChanged={returnFalse}
-                    bringToFront={emptyFunction}
-                    zoomToScale={emptyFunction}
-                    getScale={returnOne}
-                    dontRegisterView={false}
-                    ContainingCollectionView={undefined}
-                    ContainingCollectionDoc={undefined}
-                    ContentScaling={this.contentScaling}
-                />, this._dashSpan);
+            } else {
+                self.doRender(dashDoc, removeDoc, node, view, getPos);
             }
         });
         const self = this;
@@ -795,8 +788,107 @@ export class DashDocView {
         this._outer.appendChild(this._dashSpan);
         (this as any).dom = this._outer;
     }
+    doRender(dashDoc: Doc, removeDoc: any, node: any, view: any, getPos: any) {
+        this._dashDoc = dashDoc;
+        dashDoc._hideSidebar = true;
+        if (node.attrs.width !== dashDoc._width + "px" || node.attrs.height !== dashDoc._height + "px") {
+            try { // bcz: an exception will be thrown if two aliases are open at the same time when a doc view comment is made
+                view.dispatch(view.state.tr.setNodeMarkup(getPos(), null, { ...node.attrs, width: dashDoc._width + "px", height: dashDoc._height + "px" }));
+            } catch (e) {
+                console.log(e);
+            }
+        }
+        const self = this;
+        const finalLayout = Doc.expandTemplateLayout(dashDoc, !Doc.AreProtosEqual(this._textBox.dataDoc, this._textBox.Document) ? this._textBox.dataDoc : undefined);
+        if (!finalLayout) setTimeout(() => self.doRender(dashDoc, removeDoc, node, view, getPos), 0);
+        else {
+            const layoutKey = StrCast(finalLayout.layoutKey);
+            const finalKey = layoutKey && StrCast(finalLayout[layoutKey]).split("'")?.[1];
+            if (finalLayout !== dashDoc && finalKey) {
+                const finalLayoutField = finalLayout[finalKey];
+                if (finalLayoutField instanceof ObjectField) {
+                    finalLayout._textTemplate = ComputedField.MakeFunction(`copyField(this.${finalKey})`, { this: Doc.name });
+                }
+            }
+            this._reactionDisposer && this._reactionDisposer();
+            this._reactionDisposer = reaction(() => [finalLayout[WidthSym](), finalLayout[HeightSym]()], (dim) => {
+                this._dashSpan.style.width = this._outer.style.width = dim[0] + "px";
+                this._dashSpan.style.height = this._outer.style.height = dim[1] + "px";
+            }, { fireImmediately: true });
+            ReactDOM.render(<DocumentView
+                Document={finalLayout}
+                DataDoc={!node.attrs.docid ? this._textBox.dataDoc : undefined}
+                LibraryPath={this._textBox.props.LibraryPath}
+                fitToBox={BoolCast(dashDoc._fitToBox)}
+                addDocument={returnFalse}
+                removeDocument={removeDoc}
+                ScreenToLocalTransform={this.getDocTransform}
+                addDocTab={this._textBox.props.addDocTab}
+                pinToPres={returnFalse}
+                renderDepth={1}
+                PanelWidth={finalLayout[WidthSym]}
+                PanelHeight={finalLayout[HeightSym]}
+                focus={this.outerFocus}
+                backgroundColor={returnEmptyString}
+                parentActive={returnFalse}
+                whenActiveChanged={returnFalse}
+                bringToFront={emptyFunction}
+                zoomToScale={emptyFunction}
+                getScale={returnOne}
+                dontRegisterView={false}
+                ContainingCollectionView={undefined}
+                ContainingCollectionDoc={undefined}
+                ContentScaling={this.contentScaling}
+            />, this._dashSpan);
+        }
+    }
     destroy() {
         this._reactionDisposer && this._reactionDisposer();
+    }
+}
+
+
+export class DashFieldView {
+    _fieldWrapper: HTMLDivElement;
+    _labelSpan: HTMLSpanElement;
+    _fieldSpan: HTMLSpanElement;
+    _reactionDisposer: IReactionDisposer | undefined;
+    _textBoxDoc: Doc;
+    @observable _dashDoc: Doc | undefined;
+
+    constructor(node: any, view: any, getPos: any, tbox: FormattedTextBox) {
+        this._textBoxDoc = tbox.props.Document;
+        this._fieldWrapper = document.createElement("div");
+        this._fieldWrapper.style.width = node.attrs.width;
+        this._fieldWrapper.style.height = node.attrs.height;
+        this._fieldWrapper.style.position = "relative";
+        this._fieldWrapper.style.display = "inline";
+
+        this._fieldSpan = document.createElement("span");
+        this._fieldSpan.style.position = "relative";
+        this._fieldSpan.style.display = "inline";
+
+        this._labelSpan = document.createElement("span");
+        this._labelSpan.style.position = "relative";
+        this._labelSpan.style.display = "inline";
+        this._labelSpan.style.fontWeight = "bold";
+        this._labelSpan.style.fontSize = "larger";
+        this._labelSpan.innerHTML = `${node.attrs.fieldKey}: `;
+        if (node.attrs.docid) {
+            const self = this;
+            DocServer.GetRefField(node.attrs.docid).then(async dashDoc => dashDoc instanceof Doc && runInAction(() => self._dashDoc = dashDoc));
+        } else {
+            this._dashDoc = tbox.props.DataDoc || tbox.dataDoc;
+        }
+        this._reactionDisposer?.();
+        this._reactionDisposer = reaction(() => this._dashDoc?.[node.attrs.fieldKey], fval => this._fieldSpan.innerHTML = Field.toString(fval as Field), { fireImmediately: true });
+
+        this._fieldWrapper.appendChild(this._labelSpan);
+        this._fieldWrapper.appendChild(this._fieldSpan);
+        (this as any).dom = this._fieldWrapper;
+    }
+    destroy() {
+        this._reactionDisposer?.();
     }
 }
 
@@ -855,7 +947,8 @@ export class FootnoteView {
                 }),
                 new Plugin({
                     view(newView) {
-                        return FormattedTextBox.getToolTip(newView);
+                        // TODO -- make this work with RichTextMenu
+                        // return FormattedTextBox.getToolTip(newView);
                     }
                 })
                 ],
@@ -963,7 +1056,7 @@ export class SummaryView {
             view.dispatch(view.state.tr.
                 setSelection(textSelection). // select the current summarized text (or where it will be if its collapsed)
                 replaceSelection(!visible ? new Slice(Fragment.fromArray([]), 0, 0) : node.attrs.text). // collapse/expand it
-                setNodeMarkup(getPos(), undefined, attrs)); // update the attrs 
+                setNodeMarkup(getPos(), undefined, attrs)); // update the attrs
             e.preventDefault();
             e.stopPropagation();
             this._collapsed.className = this.className(visible);

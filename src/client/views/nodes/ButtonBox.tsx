@@ -36,7 +36,7 @@ export class ButtonBox extends DocComponent<FieldViewProps, ButtonDocument>(Butt
 
     @computed get dataDoc() {
         return this.props.DataDoc &&
-            (this.Document.isTemplateField || BoolCast(this.props.DataDoc.isTemplateField) ||
+            (this.Document.isTemplateForField || BoolCast(this.props.DataDoc.isTemplateForField) ||
                 this.props.DataDoc.layout === this.props.Document) ? this.props.DataDoc : Doc.GetProto(this.props.Document);
     }
 
@@ -80,7 +80,10 @@ export class ButtonBox extends DocComponent<FieldViewProps, ButtonDocument>(Butt
         return (
             <div className="buttonBox-outerDiv" ref={this.createDropTarget} onContextMenu={this.specificContextMenu}
                 style={{ boxShadow: this.Document.opacity === 0 ? undefined : StrCast(this.Document.boxShadow, "") }}>
-                <div className="buttonBox-mainButton" style={{ background: this.Document.backgroundColor || "", color: this.Document.color || "black", fontSize: this.Document.fontSize }} >
+                <div className="buttonBox-mainButton" style={{
+                    background: this.Document.backgroundColor, color: this.Document.color || "black",
+                    fontSize: this.Document.fontSize, letterSpacing: this.Document.letterSpacing || "", textTransform: this.Document.textTransform || ""
+                }} >
                     <div className="buttonBox-mainButtonCenter">
                         {(this.Document.text || this.Document.title)}
                     </div>

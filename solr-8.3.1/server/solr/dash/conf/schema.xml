@@ -52,7 +52,7 @@
   <dynamicField name="*_i" type="string" indexed="true" stored="true" uninvertible="false" docValues="false"/>
   <dynamicField name="*_b" type="boolean" indexed="true" stored="true" uninvertible="false" docValues="false"/>
 
-  <dynamicField name="*_a" type="text" indexed="true" stored="false" uninvertible="false" docValues="false"/>
+  <dynamicField name="*_a" type="text" indexed="true" stored="false" uninvertible="false" docValues="false" multiValued="true"/>
 
   <copyField source="*_t" dest="text"/>
 

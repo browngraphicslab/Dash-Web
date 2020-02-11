@@ -10,6 +10,16 @@ import { GoogleCredentialsLoader } from "../credentials/CredentialsLoader";
 import { logPort } from "../ActionUtilities";
 import { timeMap } from "../ApiManagers/UserManager";
 import { green } from "colors";
+import { Image } from "canvas";
+import { write, createWriteStream } from "fs";
+import { serverPathToFile, Directory } from "../ApiManagers/UploadManager";
+const tesseract = require("node-tesseract-ocr");
+const config = {
+    lang: "eng",
+    oem: 1,
+    psm: 8
+};
+const imageDataUri = require('image-data-uri');
 
 export namespace WebSocket {
 
@@ -51,6 +61,7 @@ export namespace WebSocket {
 
             Utils.AddServerHandler(socket, MessageStore.CreateField, CreateField);
             Utils.AddServerHandlerCallback(socket, MessageStore.YoutubeApiQuery, HandleYoutubeQuery);
+            Utils.AddServerHandlerCallback(socket, MessageStore.AnalyzeInk, RecognizeImage);
             Utils.AddServerHandler(socket, MessageStore.UpdateField, diff => UpdateField(socket, diff));
             Utils.AddServerHandler(socket, MessageStore.DeleteField, id => DeleteField(socket, id));
             Utils.AddServerHandler(socket, MessageStore.DeleteFields, ids => DeleteFields(socket, ids));
@@ -88,6 +99,17 @@ export namespace WebSocket {
         socket.broadcast.emit("receiveMobileDocumentUpload", content);
     }
 
+    async function RecognizeImage([query, callback]: [string, (result: any) => any]) {
+        const path = serverPathToFile(Directory.images, "handwriting.jpg");
+        imageDataUri.outputFile(query, path).then((savedName: string) => {
+            console.log("saved " + savedName);
+            const remadePath = path.split("\\").join("\\\\");
+            tesseract.recognize(remadePath, config)
+                .then(callback)
+                .catch(console.log);
+        });
+    }
+
     function HandleYoutubeQuery([query, callback]: [YoutubeQueryInput, (result?: any[]) => void]) {
         const { ProjectCredentials } = GoogleCredentialsLoader;
         switch (query.type) {
@@ -103,16 +125,25 @@ export namespace WebSocket {
 
     export async function deleteFields() {
         await Database.Instance.deleteAll();
-        await Search.clear();
+        if (process.env.DISABLE_SEARCH !== "true") {
+            await Search.clear();
+        }
         await Database.Instance.deleteAll('newDocuments');
     }
+
+    // export async function deleteUserDocuments() {
+    //     await Database.Instance.deleteAll();
+    //     await Database.Instance.deleteAll('newDocuments');
+    // }
 
     export async function deleteAll() {
         await Database.Instance.deleteAll();
         await Database.Instance.deleteAll('newDocuments');
         await Database.Instance.deleteAll('sessions');
         await Database.Instance.deleteAll('users');
-        await Search.clear();
+        if (process.env.DISABLE_SEARCH !== "true") {
+            await Search.clear();
+        }
     }
 
     function barReceived(socket: SocketIO.Socket, userEmail: string) {
@@ -135,8 +166,6 @@ export namespace WebSocket {
             socket.broadcast.emit(MessageStore.SetField.Message, newValue));
         if (newValue.type === Types.Text) {
             Search.updateDocument({ id: newValue.id, data: (newValue as any).data });
-            console.log("set field");
-            console.log("checking in");
         }
     }
 

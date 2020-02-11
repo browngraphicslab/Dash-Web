@@ -1,31 +1,25 @@
 import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
 import { faArrowAltCircleDown, faArrowAltCircleUp, faCheckCircle, faCloudUploadAlt, faLink, faShare, faStopCircle, faSyncAlt, faTag, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, observable, reaction, runInAction } from "mobx";
+import { action, computed, observable, reaction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCastAsync } from "../../new_fields/Doc";
+import { Doc } from "../../new_fields/Doc";
 import { PositionDocument } from '../../new_fields/documentSchemas';
-import { List } from "../../new_fields/List";
 import { ObjectField } from '../../new_fields/ObjectField';
-import { Cast, NumCast, StrCast } from "../../new_fields/Types";
+import { ScriptField } from '../../new_fields/ScriptField';
+import { Cast, StrCast } from "../../new_fields/Types";
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { Utils } from "../../Utils";
-import { Docs, DocUtils } from "../documents/Documents";
-import { DocumentManager } from "../util/DocumentManager";
+import { DocUtils } from "../documents/Documents";
+import { DocumentType } from '../documents/DocumentTypes';
 import { DragManager } from "../util/DragManager";
 import { SelectionManager } from "../util/SelectionManager";
-import { TooltipTextMenu } from '../util/TooltipTextMenu';
 import { undoBatch, UndoManager } from "../util/UndoManager";
-import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
-import { CollectionView } from "./collections/CollectionView";
 import { DocumentButtonBar } from './DocumentButtonBar';
 import './DocumentDecorations.scss';
 import { DocumentView } from "./nodes/DocumentView";
-import { FieldView } from "./nodes/FieldView";
 import { IconBox } from "./nodes/IconBox";
 import React = require("react");
-import { DocumentType } from '../documents/DocumentTypes';
-import { ScriptField } from '../../new_fields/ScriptField';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -52,17 +46,13 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     private _titleHeight = 20;
     private _downX = 0;
     private _downY = 0;
-    private _iconDoc?: Doc = undefined;
     private _resizeUndo?: UndoManager.Batch;
     private _radiusDown = [0, 0];
     @observable private _accumulatedTitle = "";
-    @observable private _minimizedX = 0;
-    @observable private _minimizedY = 0;
     @observable private _titleControlString: string = "#title";
     @observable private _edtingTitle = false;
     @observable private _hidden = false;
     @observable private _opacity = 1;
-    @observable private _removeIcon = false;
     @observable public Interacting = false;
 
     @observable public pushIcon: IconProp = "arrow-alt-circle-up";
@@ -246,15 +236,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @action
     onMinimizeDown = (e: React.PointerEvent): void => {
         e.stopPropagation();
-        this._iconDoc = undefined;
         if (e.button === 0) {
-            this._downX = e.pageX;
-            this._downY = e.pageY;
-            this._removeIcon = false;
-            const selDoc = SelectionManager.SelectedDocuments()[0];
-            const selDocPos = selDoc.props.ScreenToLocalTransform().scale(selDoc.props.ContentScaling()).inverse().transformPoint(0, 0);
-            this._minimizedX = selDocPos[0] + 12;
-            this._minimizedY = selDocPos[1] + 12;
             document.removeEventListener("pointermove", this.onMinimizeMove);
             document.addEventListener("pointermove", this.onMinimizeMove);
             document.removeEventListener("pointerup", this.onMinimizeUp);
@@ -267,20 +249,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         e.stopPropagation();
         if (Math.abs(e.pageX - this._downX) > Utils.DRAG_THRESHOLD ||
             Math.abs(e.pageY - this._downY) > Utils.DRAG_THRESHOLD) {
-            const selDoc = SelectionManager.SelectedDocuments()[0];
-            const selDocPos = selDoc.props.ScreenToLocalTransform().scale(selDoc.props.ContentScaling()).inverse().transformPoint(0, 0);
-            const snapped = Math.abs(e.pageX - selDocPos[0]) < 20 && Math.abs(e.pageY - selDocPos[1]) < 20;
-            this._minimizedX = snapped ? selDocPos[0] + 4 : e.clientX;
-            this._minimizedY = snapped ? selDocPos[1] - 18 : e.clientY;
-            const selectedDocs = SelectionManager.SelectedDocuments().map(sd => sd);
-
-            if (selectedDocs.length > 1) {
-                this._iconDoc = this._iconDoc ? this._iconDoc : this.createIcon(SelectionManager.SelectedDocuments(), CollectionView.LayoutString(""));
-                this.moveIconDoc(this._iconDoc);
-            } else {
-                this.getIconDoc(selectedDocs[0]).then(icon => icon && this.moveIconDoc(this._iconDoc = icon));
-            }
-            this._removeIcon = snapped;
+            document.removeEventListener("pointermove", this.onMinimizeMove);
+            document.removeEventListener("pointerup", this.onMinimizeUp);
         }
     }
     @undoBatch
@@ -291,59 +261,19 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             document.removeEventListener("pointermove", this.onMinimizeMove);
             document.removeEventListener("pointerup", this.onMinimizeUp);
             const selectedDocs = SelectionManager.SelectedDocuments().map(sd => sd);
-            if (this._iconDoc && selectedDocs.length === 1 && this._removeIcon) {
-                selectedDocs[0].props.removeDocument && selectedDocs[0].props.removeDocument(this._iconDoc);
-            }
-            if (!this._removeIcon && selectedDocs.length === 1) { // if you click on the top-left button when just 1 doc is selected, then collapse it.  not sure why we don't do it for multiple selections
-                this.getIconDoc(selectedDocs[0]).then(async icon => {
-                    const minimizedDoc = await Cast(selectedDocs[0].props.Document.minimizedDoc, Doc);
-                    if (minimizedDoc) {
-                        const scrpt = selectedDocs[0].props.ScreenToLocalTransform().scale(selectedDocs[0].props.ContentScaling()).inverse().transformPoint(
-                            NumCast(minimizedDoc.x) - NumCast(selectedDocs[0].Document.x), NumCast(minimizedDoc.y) - NumCast(selectedDocs[0].Document.y));
-                        SelectionManager.DeselectAll();
-                        DocumentManager.Instance.animateBetweenPoint(scrpt, await DocListCastAsync(minimizedDoc.maximizedDocs));
-                    }
-                });
-            }
-            this._removeIcon = false;
+            selectedDocs.map(dv => {
+                const layoutKey = Cast(dv.props.Document.layoutKey, "string", null);
+                const collapse = layoutKey !== "layout_icon";
+                if (collapse) {
+                    if (layoutKey && layoutKey !== "layout") dv.props.Document.deiconifyLayout = layoutKey.replace("layout_", "");
+                    dv.setCustomView(collapse, "icon");
+                } else {
+                    const deiconifyLayout = Cast(dv.props.Document.deiconifyLayout, "string", null);
+                    dv.setCustomView(deiconifyLayout ? true : false, deiconifyLayout);
+                    dv.props.Document.deiconifyLayout = undefined;
+                }
+            });
         }
-        runInAction(() => this._minimizedX = this._minimizedY = 0);
-    }
-
-    @undoBatch
-    @action createIcon = (selected: DocumentView[], layoutString: string): Doc => {
-        const doc = selected[0].props.Document;
-        const iconDoc = Docs.Create.IconDocument(layoutString);
-        iconDoc.isButton = true;
-
-        IconBox.AutomaticTitle(iconDoc);
-        //iconDoc.proto![this._fieldKey] = selected.length > 1 ? "collection" : undefined;
-        iconDoc.width = Number(MINIMIZED_ICON_SIZE);
-        iconDoc.height = Number(MINIMIZED_ICON_SIZE);
-        iconDoc.x = NumCast(doc.x);
-        iconDoc.y = NumCast(doc.y) - 24;
-        iconDoc.maximizedDocs = new List<Doc>(selected.map(s => s.props.Document));
-        selected.length === 1 && (doc.minimizedDoc = iconDoc);
-        selected[0].props.addDocument && selected[0].props.addDocument(iconDoc);
-        return iconDoc;
-    }
-    @action
-    public getIconDoc = async (docView: DocumentView): Promise<Doc | undefined> => {
-        const doc = docView.props.Document;
-        let iconDoc: Doc | undefined = await Cast(doc.minimizedDoc, Doc);
-
-        if (!iconDoc || !DocumentManager.Instance.getDocumentView(iconDoc)) {
-            const layout = StrCast(doc.layout, FieldView.LayoutString(DocumentView, ""));
-            iconDoc = this.createIcon([docView], layout);
-        }
-        return iconDoc;
-    }
-    moveIconDoc(iconDoc: Doc) {
-        const selView = SelectionManager.SelectedDocuments()[0];
-        const where = (selView.props.ScreenToLocalTransform()).scale(selView.props.ContentScaling()).
-            transformPoint(this._minimizedX - 12, this._minimizedY - 12);
-        iconDoc.x = where[0] + NumCast(selView.props.Document.x);
-        iconDoc.y = where[1] + NumCast(selView.props.Document.y);
     }
 
     @action
@@ -363,14 +293,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     onRadiusMove = (e: PointerEvent): void => {
         let dist = Math.sqrt((e.clientX - this._radiusDown[0]) * (e.clientX - this._radiusDown[0]) + (e.clientY - this._radiusDown[1]) * (e.clientY - this._radiusDown[1]));
         dist = dist < 3 ? 0 : dist;
-        let usingRule = false;
-        SelectionManager.SelectedDocuments().map(dv => {
-            const ruleProvider = dv.props.ruleProvider;
-            const heading = NumCast(dv.props.Document.heading);
-            ruleProvider && heading && (Doc.GetProto(ruleProvider)["ruleRounding_" + heading] = `${Math.min(100, dist)}%`);
-            usingRule = usingRule || (ruleProvider && heading ? true : false);
-        });
-        !usingRule && SelectionManager.SelectedDocuments().map(dv => dv.props.Document.layout instanceof Doc ? dv.props.Document.layout : dv.props.Document.isTemplateField ? dv.props.Document : Doc.GetProto(dv.props.Document)).
+        SelectionManager.SelectedDocuments().map(dv => dv.props.Document.layout instanceof Doc ? dv.props.Document.layout : dv.props.Document.isTemplateForField ? dv.props.Document : Doc.GetProto(dv.props.Document)).
             map(d => d.borderRounding = `${Math.min(100, dist)}%`);
         e.stopPropagation();
         e.preventDefault();
@@ -462,10 +385,10 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             if (dX !== 0 || dY !== 0 || dW !== 0 || dH !== 0) {
                 const doc = PositionDocument(element.props.Document);
                 const layoutDoc = PositionDocument(Doc.Layout(element.props.Document));
-                let nwidth = layoutDoc.nativeWidth || 0;
-                let nheight = layoutDoc.nativeHeight || 0;
-                const width = (layoutDoc.width || 0);
-                const height = (layoutDoc.height || (nheight / nwidth * width));
+                let nwidth = layoutDoc._nativeWidth || 0;
+                let nheight = layoutDoc._nativeHeight || 0;
+                const width = (layoutDoc._width || 0);
+                const height = (layoutDoc._height || (nheight / nwidth * width));
                 const scale = element.props.ScreenToLocalTransform().Scale * element.props.ContentScaling();
                 const actualdW = Math.max(width + (dW * scale), 20);
                 const actualdH = Math.max(height + (dH * scale), 20);
@@ -474,34 +397,34 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 const fixedAspect = e.ctrlKey || (!layoutDoc.ignoreAspect && nwidth && nheight);
                 if (fixedAspect && e.ctrlKey && layoutDoc.ignoreAspect) {
                     layoutDoc.ignoreAspect = false;
-                    layoutDoc.nativeWidth = nwidth = layoutDoc.width || 0;
-                    layoutDoc.nativeHeight = nheight = layoutDoc.height || 0;
+                    layoutDoc._nativeWidth = nwidth = layoutDoc._width || 0;
+                    layoutDoc._nativeHeight = nheight = layoutDoc._height || 0;
                 }
                 if (fixedAspect && (!nwidth || !nheight)) {
-                    layoutDoc.nativeWidth = nwidth = layoutDoc.width || 0;
-                    layoutDoc.nativeHeight = nheight = layoutDoc.height || 0;
+                    layoutDoc._nativeWidth = nwidth = layoutDoc._width || 0;
+                    layoutDoc._nativeHeight = nheight = layoutDoc._height || 0;
                 }
                 if (nwidth > 0 && nheight > 0 && !layoutDoc.ignoreAspect) {
                     if (Math.abs(dW) > Math.abs(dH)) {
                         if (!fixedAspect) {
-                            layoutDoc.nativeWidth = actualdW / (layoutDoc.width || 1) * (layoutDoc.nativeWidth || 0);
+                            layoutDoc._nativeWidth = actualdW / (layoutDoc._width || 1) * (layoutDoc._nativeWidth || 0);
                         }
-                        layoutDoc.width = actualdW;
-                        if (fixedAspect && !layoutDoc.fitWidth) layoutDoc.height = nheight / nwidth * layoutDoc.width;
-                        else layoutDoc.height = actualdH;
+                        layoutDoc._width = actualdW;
+                        if (fixedAspect && !layoutDoc._fitWidth) layoutDoc._height = nheight / nwidth * layoutDoc._width;
+                        else layoutDoc._height = actualdH;
                     }
                     else {
                         if (!fixedAspect) {
-                            layoutDoc.nativeHeight = actualdH / (layoutDoc.height || 1) * (doc.nativeHeight || 0);
+                            layoutDoc._nativeHeight = actualdH / (layoutDoc._height || 1) * (doc._nativeHeight || 0);
                         }
-                        layoutDoc.height = actualdH;
-                        if (fixedAspect && !layoutDoc.fitWidth) layoutDoc.width = nwidth / nheight * layoutDoc.height;
-                        else layoutDoc.width = actualdW;
+                        layoutDoc._height = actualdH;
+                        if (fixedAspect && !layoutDoc._fitWidth) layoutDoc._width = nwidth / nheight * layoutDoc._height;
+                        else layoutDoc._width = actualdW;
                     }
                 } else {
-                    dW && (layoutDoc.width = actualdW);
-                    dH && (layoutDoc.height = actualdH);
-                    dH && layoutDoc.autoHeight && (layoutDoc.autoHeight = false);
+                    dW && (layoutDoc._width = actualdW);
+                    dH && (layoutDoc._height = actualdH);
+                    dH && layoutDoc._autoHeight && (layoutDoc._autoHeight = false);
                 }
             }
         }));
@@ -542,11 +465,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     private setTextBar = (ele: HTMLDivElement) => {
         if (ele) {
             this.TextBar = ele;
-        }
-    }
-    public showTextBar = () => {
-        if (this.TextBar && TooltipTextMenu.Toolbar && Array.from(this.TextBar.childNodes).indexOf(TooltipTextMenu.Toolbar) === -1) {
-            this.TextBar.appendChild(TooltipTextMenu.Toolbar);
         }
     }
     render() {

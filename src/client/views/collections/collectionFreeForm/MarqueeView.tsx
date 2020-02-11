@@ -1,12 +1,12 @@
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast } from "../../../../new_fields/Doc";
+import { Doc, DocListCast, DataSym, WidthSym, HeightSym } from "../../../../new_fields/Doc";
 import { InkField } from "../../../../new_fields/InkField";
 import { List } from "../../../../new_fields/List";
 import { listSpec } from "../../../../new_fields/Schema";
 import { SchemaHeaderField } from "../../../../new_fields/SchemaHeaderField";
 import { ComputedField } from "../../../../new_fields/ScriptField";
-import { Cast, NumCast, StrCast } from "../../../../new_fields/Types";
+import { Cast, NumCast, StrCast, FieldValue } from "../../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../../server/authentication/models/current_user_utils";
 import { Utils } from "../../../../Utils";
 import { Docs } from "../../../documents/Documents";
@@ -19,6 +19,8 @@ import "./MarqueeView.scss";
 import React = require("react");
 import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
 import { SubCollectionViewProps } from "../CollectionSubView";
+import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
+import { RichTextField } from "../../../../new_fields/RichTextField";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -29,7 +31,6 @@ interface MarqueeViewProps {
     removeDocument: (doc: Doc) => boolean;
     addLiveTextDocument: (doc: Doc) => void;
     isSelected: () => boolean;
-    extensionDoc: Doc;
     isAnnotationOverlay?: boolean;
     setPreviewCursor?: (func: (x: number, y: number, drag: boolean) => void) => void;
 }
@@ -85,7 +86,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
                 }
                 ns.map(line => {
                     const indent = line.search(/\S|$/);
-                    const newBox = Docs.Create.TextDocument({ width: 200, height: 35, x: x + indent / 3 * 10, y: y, documentText: "@@@" + line, title: line });
+                    const newBox = Docs.Create.TextDocument(line, { _width: 200, _height: 35, x: x + indent / 3 * 10, y: y, title: line });
                     this.props.addDocument(newBox);
                     y += 40 * this.props.getTransform().Scale;
                 });
@@ -95,17 +96,17 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             navigator.clipboard.readText().then(text => {
                 const ns = text.split("\n").filter(t => t.trim() !== "\r" && t.trim() !== "");
                 if (ns.length === 1 && text.startsWith("http")) {
-                    this.props.addDocument(Docs.Create.ImageDocument(text, { nativeWidth: 300, width: 300, x: x, y: y }));// paste an image from its URL in the paste buffer
+                    this.props.addDocument(Docs.Create.ImageDocument(text, { _nativeWidth: 300, _width: 300, x: x, y: y }));// paste an image from its URL in the paste buffer
                 } else {
                     this.pasteTable(ns, x, y);
                 }
             });
         } else if (!e.ctrlKey) {
             this.props.addLiveTextDocument(
-                Docs.Create.TextDocument({ width: 200, height: 100, x: x, y: y, autoHeight: true, title: "-typed text-" }));
+                Docs.Create.TextDocument("", { _width: 200, _height: 100, x: x, y: y, _autoHeight: true, title: "-typed text-" }));
         } else if (e.keyCode > 48 && e.keyCode <= 57) {
             const notes = DocListCast((CurrentUserUtils.UserDocument.noteTypes as Doc).data);
-            const text = Docs.Create.TextDocument({ width: 200, height: 100, x: x, y: y, autoHeight: true, title: "-typed text-" });
+            const text = Docs.Create.TextDocument("", { _width: 200, _height: 100, x: x, y: y, _autoHeight: true, title: "-typed text-" });
             text.layout = notes[(e.keyCode - 49) % notes.length];
             this.props.addLiveTextDocument(text);
         }
@@ -128,7 +129,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             let groupAttr: string | number = "";
             const rowProto = new Doc();
             rowProto.title = rowProto.Id;
-            rowProto.width = 200;
+            rowProto._width = 200;
             rowProto.isPrototype = true;
             for (let i = 1; i < ns.length - 1; i++) {
                 const values = ns[i].split("\t");
@@ -144,10 +145,10 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
                 }
                 docDataProto.title = i.toString();
                 const doc = Doc.MakeDelegate(docDataProto);
-                doc.width = 200;
+                doc._width = 200;
                 docList.push(doc);
             }
-            const newCol = Docs.Create.SchemaDocument([...(groupAttr ? [new SchemaHeaderField("_group", "#f1efeb")] : []), ...columns.filter(c => c).map(c => new SchemaHeaderField(c, "#f1efeb"))], docList, { x: x, y: y, title: "droppedTable", width: 300, height: 100 });
+            const newCol = Docs.Create.SchemaDocument([...(groupAttr ? [new SchemaHeaderField("_group", "#f1efeb")] : []), ...columns.filter(c => c).map(c => new SchemaHeaderField(c, "#f1efeb"))], docList, { x: x, y: y, title: "droppedTable", _width: 300, _height: 100 });
 
             this.props.addDocument(newCol);
         }
@@ -205,6 +206,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             MarqueeOptionsMenu.Instance.createCollection = this.collection;
             MarqueeOptionsMenu.Instance.delete = this.delete;
             MarqueeOptionsMenu.Instance.summarize = this.summary;
+            MarqueeOptionsMenu.Instance.inkToText = this.syntaxHighlight;
             MarqueeOptionsMenu.Instance.showMarquee = this.showMarquee;
             MarqueeOptionsMenu.Instance.hideMarquee = this.hideMarquee;
             MarqueeOptionsMenu.Instance.jumpTo(e.clientX, e.clientY);
@@ -267,15 +269,15 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
     }
 
     get inkDoc() {
-        return this.props.extensionDoc;
+        return this.props.Document;
     }
 
     get ink() { // ink will be stored on the extension doc for the field (fieldKey) where the container's data is stored.
-        return this.props.extensionDoc && Cast(this.props.extensionDoc.ink, InkField);
+        return Cast(this.props.Document.ink, InkField);
     }
 
     set ink(value: InkField | undefined) {
-        this.props.extensionDoc && (this.props.extensionDoc.ink = value);
+        this.props.Document.ink = value;
     }
 
     @action
@@ -300,7 +302,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         this.hideMarquee();
     }
 
-    getCollection = (selected: Doc[]) => {
+    getCollection = (selected: Doc[], asTemplate: boolean) => {
         const bounds = this.Bounds;
         const defaultPalette = ["rgb(114,229,239)", "rgb(255,246,209)", "rgb(255,188,156)", "rgb(247,220,96)", "rgb(122,176,238)",
             "rgb(209,150,226)", "rgb(127,235,144)", "rgb(252,188,189)", "rgb(247,175,81)",];
@@ -322,15 +324,17 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         const usedSequnce = Array.from(usedPaletted.keys()).sort((a, b) => usedPaletted.get(a)! < usedPaletted.get(b)! ? -1 : usedPaletted.get(a)! > usedPaletted.get(b)! ? 1 : 0);
         const chosenColor = (usedPaletted.size === 0) ? "white" : palette.length ? palette[0] : usedSequnce[0];
         // const inkData = this.ink ? this.ink.inkData : undefined;
-        const newCollection = Docs.Create.FreeformDocument(selected, {
+        const creator = asTemplate ? Docs.Create.StackingDocument : Docs.Create.FreeformDocument;
+        const newCollection = creator(selected, {
             x: bounds.left,
             y: bounds.top,
-            panX: 0,
-            panY: 0,
+            _panX: 0,
+            _panY: 0,
             backgroundColor: this.props.isAnnotationOverlay ? undefined : chosenColor,
             defaultBackgroundColor: this.props.isAnnotationOverlay ? undefined : chosenColor,
-            width: bounds.width,
-            height: bounds.height,
+            _width: bounds.width,
+            _height: bounds.height,
+            _LODdisable: true,
             title: "a nested collection",
         });
         // const dataExtensionField = Doc.CreateDocumentExtensionForField(newCollection, "data");
@@ -353,11 +357,53 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
                 return d;
             });
         }
-        const newCollection = this.getCollection(selected);
+        const newCollection = this.getCollection(selected, e.key === "t");
         this.props.addDocument(newCollection);
         this.props.selectDocuments([newCollection], []);
         MarqueeOptionsMenu.Instance.fadeOut(true);
         this.hideMarquee();
+    }
+
+    @action
+    syntaxHighlight = (e: KeyboardEvent | React.PointerEvent | undefined) => {
+        const selected = this.marqueeSelect(false);
+        if (e instanceof KeyboardEvent ? e.key === "i" : true) {
+            const inks = selected.filter(s => s.proto?.type === "ink");
+            const setDocs = selected.filter(s => s.proto?.type === "text" && s.color);
+            const sets = setDocs.map((sd) => {
+                return Cast(sd.data, RichTextField)?.Text as string;
+            });
+            const colors = setDocs.map(sd => FieldValue(sd.color) as string);
+            const wordToColor = new Map<string, string>();
+            sets.forEach((st: string, i: number) => {
+                const words = st.split(",");
+                words.forEach(word => {
+                    wordToColor.set(word, colors[i]);
+                });
+            });
+            const inkFields = inks.map(i => Cast(i.data, InkField));
+            CognitiveServices.Inking.Appliers.InterpretStrokes(inkFields.filter(i => i instanceof InkField).map(i => i!.inkData)).then((results) => {
+                const wordResults = results.filter((r: any) => r.category === "inkWord");
+                console.log(wordResults);
+                console.log(results);
+                for (const word of wordResults) {
+                    const indices: number[] = word.strokeIds;
+                    indices.forEach(i => {
+                        if (wordToColor.has(word.recognizedText.toLowerCase())) {
+                            inks[i].color = wordToColor.get(word.recognizedText.toLowerCase());
+                        }
+                        else {
+                            for (const alt of word.alternates) {
+                                if (wordToColor.has(alt.recognizedString.toLowerCase())) {
+                                    inks[i].color = wordToColor.get(alt.recognizedString.toLowerCase());
+                                    break;
+                                }
+                            }
+                        }
+                    })
+                }
+            });
+        }
     }
 
     @action
@@ -373,16 +419,17 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             d.page = -1;
             return d;
         });
-        newCollection.chromeStatus = "disabled";
-        const summary = Docs.Create.TextDocument({ x: bounds.left, y: bounds.top, width: 300, height: 100, autoHeight: true, backgroundColor: "#e2ad32" /* yellow */, title: "-summary-" });
+        newCollection._chromeStatus = "disabled";
+        const summary = Docs.Create.TextDocument("", { x: bounds.left, y: bounds.top, _width: 300, _height: 100, _autoHeight: true, backgroundColor: "#e2ad32" /* yellow */, title: "-summary-" });
         Doc.GetProto(summary).summarizedDocs = new List<Doc>([newCollection]);
         newCollection.x = bounds.left + bounds.width;
         Doc.GetProto(newCollection).summaryDoc = summary;
         Doc.GetProto(newCollection).title = ComputedField.MakeFunction(`summaryTitle(this);`);
         if (e instanceof KeyboardEvent ? e.key === "s" : true) { // summary is wrapped in an expand/collapse container that also contains the summarized documents in a free form view.
-            const container = Docs.Create.FreeformDocument([summary, newCollection], { x: bounds.left, y: bounds.top, width: 300, height: 200, chromeStatus: "disabled", title: "-summary-" });
-            container.viewType = CollectionViewType.Stacking;
-            container.autoHeight = true;
+            const container = Docs.Create.FreeformDocument([summary, newCollection], {
+                x: bounds.left, y: bounds.top, _width: 300, _height: 200, _autoHeight: true,
+                _viewType: CollectionViewType.Stacking, _chromeStatus: "disabled", title: "-summary-"
+            });
             Doc.GetProto(summary).maximizeLocation = "inPlace";  // or "onRight"
             this.props.addLiveTextDocument(container);
         } else if (e instanceof KeyboardEvent ? e.key === "S" : false) { // the summary stands alone, but is linked to a collection of the summarized documents - set the OnCLick behavior to link follow to access them
@@ -405,12 +452,12 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             this.delete();
             e.stopPropagation();
         }
-        if (e.key === "c" || e.key === "s" || e.key === "S") {
+        if (e.key === "c" || e.key === "t" || e.key === "s" || e.key === "S") {
             this._commandExecuted = true;
             e.stopPropagation();
             e.preventDefault();
             (e as any).propagationIsStopped = true;
-            if (e.key === "c") {
+            if (e.key === "c" || e.key === "t") {
                 this.collection(e);
             }
 
@@ -467,8 +514,8 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             const layoutDoc = Doc.Layout(doc);
             const x = NumCast(doc.x);
             const y = NumCast(doc.y);
-            const w = NumCast(layoutDoc.width);
-            const h = NumCast(layoutDoc.height);
+            const w = NumCast(layoutDoc._width);
+            const h = NumCast(layoutDoc._height);
             if (this.intersectRect({ left: x, top: y, width: w, height: h }, selRect)) {
                 selection.push(doc);
             }
@@ -478,8 +525,8 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
                 const layoutDoc = Doc.Layout(doc);
                 const x = NumCast(doc.x);
                 const y = NumCast(doc.y);
-                const w = NumCast(layoutDoc.width);
-                const h = NumCast(layoutDoc.height);
+                const w = NumCast(layoutDoc._width);
+                const h = NumCast(layoutDoc._height);
                 if (this.intersectRect({ left: x, top: y, width: w, height: h }, selRect)) {
                     selection.push(doc);
                 }
@@ -495,8 +542,8 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
                 const layoutDoc = Doc.Layout(doc);
                 const x = NumCast(doc.x);
                 const y = NumCast(doc.y);
-                const w = NumCast(layoutDoc.width);
-                const h = NumCast(layoutDoc.height);
+                const w = NumCast(layoutDoc._width);
+                const h = NumCast(layoutDoc._height);
                 if (this.intersectRect({ left: x, top: y, width: w, height: h }, otherBounds)) {
                     selection.push(doc);
                 }

@@ -95,7 +95,7 @@ export class Unistroke {
 
     constructor(public Name: string, useBoundedRotationInvariance: boolean, points: Point[]) {
         this.Points = Resample(points, NumPoints);
-        var radians = IndicativeAngle(this.Points);
+        const radians = IndicativeAngle(this.Points);
         this.Points = RotateBy(this.Points, -radians);
         this.Points = ScaleDimTo(this.Points, SquareSize, OneDThreshold);
         if (useBoundedRotationInvariance) {
@@ -117,14 +117,14 @@ export class Multistroke {
     {
         this.NumStrokes = strokes.length; // number of individual strokes
 
-        var order = new Array(strokes.length); // array of integer indices
+        const order = new Array(strokes.length); // array of integer indices
         for (var i = 0; i < strokes.length; i++) {
             order[i] = i; // initialize
         }
-        var orders = new Array(); // array of integer arrays
+        const orders = new Array(); // array of integer arrays
         HeapPermute(strokes.length, order, /*out*/ orders);
 
-        var unistrokes = MakeUnistrokes(strokes, orders); // returns array of point arrays
+        const unistrokes = MakeUnistrokes(strokes, orders); // returns array of point arrays
         this.Unistrokes = new Array(unistrokes.length); // unistrokes for this multistroke
         for (var j = 0; j < unistrokes.length; j++) {
             this.Unistrokes[j] = new Unistroke(this.Name, useBoundedRotationInvariance, unistrokes[j]);
@@ -142,7 +142,7 @@ export class Result {
 //
 // NDollarRecognizer constants
 //
-const NumMultistrokes = 2;
+const NumMultistrokes = 4;
 const NumPoints = 96;
 const SquareSize = 250.0;
 const OneDThreshold = 0.25; // customize to desired gesture set (usually 0.20 - 0.35)
@@ -168,10 +168,24 @@ export class NDollarRecognizer {
         //
         this.Multistrokes = new Array(NumMultistrokes);
         this.Multistrokes[0] = new Multistroke(GestureUtils.Gestures.Box, useBoundedRotationInvariance, new Array(
-            new Array(new Point(30, 146), new Point(30, 222), new Point(106, 225), new Point(106, 146), new Point(30, 146))
+            new Array(
+                new Point(30, 146), //new Point(29, 160), new Point(30, 180), new Point(31, 200),
+                new Point(30, 222), //new Point(50, 219), new Point(70, 225), new Point(90, 230),
+                new Point(106, 225), //new Point(100, 200), new Point(106, 180), new Point(110, 160),
+                new Point(106, 146), //new Point(80, 150), new Point(50, 146),
+                new Point(30, 143))
         ));
         this.Multistrokes[1] = new Multistroke(GestureUtils.Gestures.Line, useBoundedRotationInvariance, new Array(
             new Array(new Point(12, 347), new Point(119, 347))
+        ));
+        this.Multistrokes[2] = new Multistroke(GestureUtils.Gestures.StartBracket, useBoundedRotationInvariance, new Array(
+            // new Array(new Point(145, 20), new Point(30, 21), new Point(34, 150))
+            new Array(new Point(31, 25), new Point(145, 20), new Point(31, 25), new Point(34, 150))
+        ));
+        this.Multistrokes[3] = new Multistroke(GestureUtils.Gestures.EndBracket, useBoundedRotationInvariance, new Array(
+            // new Array(new Point(150, 21), new Point(149, 150), new Point(26, 152))
+            // new Array(new Point(150, 150), new Point(150, 0), new Point(150, 150), new Point(0, 150))
+            new Array(new Point(10, 100), new Point(50, 100), new Point(100, 12), new Point(150, 103), new Point(190, 100))
         ));
 
         //
@@ -247,26 +261,26 @@ export class NDollarRecognizer {
     }
 
     Recognize = (strokes: any[], useBoundedRotationInvariance: boolean = false, requireSameNoOfStrokes: boolean = false, useProtractor: boolean = true) => {
-        var t0 = Date.now();
-        var points = CombineStrokes(strokes); // make one connected unistroke from the given strokes
-        var candidate = new Unistroke("", useBoundedRotationInvariance, points);
+        const t0 = Date.now();
+        const points = CombineStrokes(strokes); // make one connected unistroke from the given strokes
+        const candidate = new Unistroke("", useBoundedRotationInvariance, points);
 
         var u = -1;
         var b = +Infinity;
         for (var i = 0; i < this.Multistrokes.length; i++) // for each multistroke template
         {
-            if (!requireSameNoOfStrokes || strokes.length == this.Multistrokes[i].NumStrokes) // optional -- only attempt match when same # of component strokes
+            if (!requireSameNoOfStrokes || strokes.length === this.Multistrokes[i].NumStrokes) // optional -- only attempt match when same # of component strokes
             {
-                for (var j = 0; j < this.Multistrokes[i].Unistrokes.length; j++) // for each unistroke within this multistroke
+                for (const unistroke of this.Multistrokes[i].Unistrokes) // for each unistroke within this multistroke
                 {
-                    if (AngleBetweenUnitVectors(candidate.StartUnitVector, this.Multistrokes[i].Unistrokes[j].StartUnitVector) <= AngleSimilarityThreshold) // strokes start in the same direction
+                    if (AngleBetweenUnitVectors(candidate.StartUnitVector, unistroke.StartUnitVector) <= AngleSimilarityThreshold) // strokes start in the same direction
                     {
                         var d;
                         if (useProtractor) {
-                            d = OptimalCosineDistance(this.Multistrokes[i].Unistrokes[j].Vector, candidate.Vector); // Protractor
+                            d = OptimalCosineDistance(unistroke.Vector, candidate.Vector); // Protractor
                         }
                         else {
-                            d = DistanceAtBestAngle(candidate.Points, this.Multistrokes[i].Unistrokes[j], -AngleRange, +AngleRange, AnglePrecision); // Golden Section Search (original $N)
+                            d = DistanceAtBestAngle(candidate.Points, unistroke, -AngleRange, +AngleRange, AnglePrecision); // Golden Section Search (original $N)
                         }
                         if (d < b) {
                             b = d; // best (least) distance
@@ -276,15 +290,15 @@ export class NDollarRecognizer {
                 }
             }
         }
-        var t1 = Date.now();
-        return (u == -1) ? null : new Result(this.Multistrokes[u].Name, useProtractor ? (1.0 - b) : (1.0 - b / HalfDiagonal), t1 - t0);
+        const t1 = Date.now();
+        return (u === -1) ? null : new Result(this.Multistrokes[u].Name, useProtractor ? (1.0 - b) : (1.0 - b / HalfDiagonal), t1 - t0);
     }
 
     AddGesture = (name: string, useBoundedRotationInvariance: boolean, strokes: any[]) => {
         this.Multistrokes[this.Multistrokes.length] = new Multistroke(name, useBoundedRotationInvariance, strokes);
         var num = 0;
-        for (var i = 0; i < this.Multistrokes.length; i++) {
-            if (this.Multistrokes[i].Name == name) {
+        for (const multistroke of this.Multistrokes) {
+            if (multistroke.Name === name) {
                 num++;
             }
         }
@@ -302,17 +316,17 @@ export class NDollarRecognizer {
 // Private helper functions from here on down
 //
 function HeapPermute(n: number, order: any[], /*out*/ orders: any[]) {
-    if (n == 1) {
+    if (n === 1) {
         orders[orders.length] = order.slice(); // append copy
     } else {
         for (var i = 0; i < n; i++) {
             HeapPermute(n - 1, order, orders);
-            if (n % 2 == 1) { // swap 0, n-1
-                var tmp = order[0];
+            if (n % 2 === 1) { // swap 0, n-1
+                const tmp = order[0];
                 order[0] = order[n - 1];
                 order[n - 1] = tmp;
             } else { // swap i, n-1
-                var tmp = order[i];
+                const tmp = order[i];
                 order[i] = order[n - 1];
                 order[n - 1] = tmp;
             }
@@ -321,21 +335,21 @@ function HeapPermute(n: number, order: any[], /*out*/ orders: any[]) {
 }
 
 function MakeUnistrokes(strokes: any, orders: any) {
-    var unistrokes = new Array(); // array of point arrays
-    for (var r = 0; r < orders.length; r++) {
-        for (var b = 0; b < Math.pow(2, orders[r].length); b++) // use b's bits for directions
+    const unistrokes = new Array(); // array of point arrays
+    for (const order of orders) {
+        for (var b = 0; b < Math.pow(2, order.length); b++) // use b's bits for directions
         {
-            var unistroke = new Array(); // array of points
-            for (var i = 0; i < orders[r].length; i++) {
+            const unistroke = new Array(); // array of points
+            for (var i = 0; i < order.length; i++) {
                 var pts;
-                if (((b >> i) & 1) == 1) {// is b's bit at index i on?
-                    pts = strokes[orders[r][i]].slice().reverse(); // copy and reverse
+                if (((b >> i) & 1) === 1) {// is b's bit at index i on?
+                    pts = strokes[order[i]].slice().reverse(); // copy and reverse
                 }
                 else {
-                    pts = strokes[orders[r][i]].slice(); // copy
+                    pts = strokes[order[i]].slice(); // copy
                 }
-                for (var p = 0; p < pts.length; p++) {
-                    unistroke[unistroke.length] = pts[p]; // append points
+                for (const point of pts) {
+                    unistroke[unistroke.length] = point; // append points
                 }
             }
             unistrokes[unistrokes.length] = unistroke; // add one unistroke to set
@@ -345,69 +359,71 @@ function MakeUnistrokes(strokes: any, orders: any) {
 }
 
 function CombineStrokes(strokes: any) {
-    var points = new Array();
-    for (var s = 0; s < strokes.length; s++) {
-        for (var p = 0; p < strokes[s].length; p++)
-            points[points.length] = new Point(strokes[s][p].X, strokes[s][p].Y);
+    const points = new Array();
+    for (const stroke of strokes) {
+        for (const { X, Y } of stroke) {
+            points[points.length] = new Point(X, Y);
+        }
     }
     return points;
 }
 function Resample(points: any, n: any) {
-    var I = PathLength(points) / (n - 1); // interval length
+    const I = PathLength(points) / (n - 1); // interval length
     var D = 0.0;
-    var newpoints = new Array(points[0]);
+    const newpoints = new Array(points[0]);
     for (var i = 1; i < points.length; i++) {
-        var d = Distance(points[i - 1], points[i]);
+        const d = Distance(points[i - 1], points[i]);
         if ((D + d) >= I) {
-            var qx = points[i - 1].X + ((I - D) / d) * (points[i].X - points[i - 1].X);
-            var qy = points[i - 1].Y + ((I - D) / d) * (points[i].Y - points[i - 1].Y);
-            var q = new Point(qx, qy);
+            const qx = points[i - 1].X + ((I - D) / d) * (points[i].X - points[i - 1].X);
+            const qy = points[i - 1].Y + ((I - D) / d) * (points[i].Y - points[i - 1].Y);
+            const q = new Point(qx, qy);
             newpoints[newpoints.length] = q; // append new point 'q'
             points.splice(i, 0, q); // insert 'q' at position i in points s.t. 'q' will be the next i
             D = 0.0;
         }
         else D += d;
     }
-    if (newpoints.length == n - 1) // somtimes we fall a rounding-error short of adding the last point, so add it if so
+    if (newpoints.length === n - 1) {// sometimes we fall a rounding-error short of adding the last point, so add it if so
         newpoints[newpoints.length] = new Point(points[points.length - 1].X, points[points.length - 1].Y);
+    }
     return newpoints;
 }
 function IndicativeAngle(points: any) {
-    var c = Centroid(points);
+    const c = Centroid(points);
     return Math.atan2(c.Y - points[0].Y, c.X - points[0].X);
 }
 function RotateBy(points: any, radians: any) // rotates points around centroid
 {
-    var c = Centroid(points);
-    var cos = Math.cos(radians);
-    var sin = Math.sin(radians);
-    var newpoints = new Array();
-    for (var i = 0; i < points.length; i++) {
-        var qx = (points[i].X - c.X) * cos - (points[i].Y - c.Y) * sin + c.X
-        var qy = (points[i].X - c.X) * sin + (points[i].Y - c.Y) * cos + c.Y;
+    const c = Centroid(points);
+    const cos = Math.cos(radians);
+    const sin = Math.sin(radians);
+    const newpoints = new Array();
+    for (const point of points) {
+        const qx = (point.X - c.X) * cos - (point.Y - c.Y) * sin + c.X;
+        const qy = (point.X - c.X) * sin + (point.Y - c.Y) * cos + c.Y;
         newpoints[newpoints.length] = new Point(qx, qy);
     }
     return newpoints;
 }
 function ScaleDimTo(points: any, size: any, ratio1D: any) // scales bbox uniformly for 1D, non-uniformly for 2D
 {
-    var B = BoundingBox(points);
-    var uniformly = Math.min(B.Width / B.Height, B.Height / B.Width) <= ratio1D; // 1D or 2D gesture test
-    var newpoints = new Array();
-    for (var i = 0; i < points.length; i++) {
-        var qx = uniformly ? points[i].X * (size / Math.max(B.Width, B.Height)) : points[i].X * (size / B.Width);
-        var qy = uniformly ? points[i].Y * (size / Math.max(B.Width, B.Height)) : points[i].Y * (size / B.Height);
+    const B = BoundingBox(points);
+    const uniformly = Math.min(B.Width / B.Height, B.Height / B.Width) <= ratio1D; // 1D or 2D gesture test
+    const newpoints = new Array();
+    for (const { X, Y } of points) {
+        const qx = uniformly ? X * (size / Math.max(B.Width, B.Height)) : X * (size / B.Width);
+        const qy = uniformly ? Y * (size / Math.max(B.Width, B.Height)) : Y * (size / B.Height);
         newpoints[newpoints.length] = new Point(qx, qy);
     }
     return newpoints;
 }
 function TranslateTo(points: any, pt: any) // translates points' centroid
 {
-    var c = Centroid(points);
-    var newpoints = new Array();
-    for (var i = 0; i < points.length; i++) {
-        var qx = points[i].X + pt.X - c.X;
-        var qy = points[i].Y + pt.Y - c.Y;
+    const c = Centroid(points);
+    const newpoints = new Array();
+    for (const { X, Y } of points) {
+        const qx = X + pt.X - c.X;
+        const qy = Y + pt.Y - c.Y;
         newpoints[newpoints.length] = new Point(qx, qy);
     }
     return newpoints;
@@ -417,21 +433,21 @@ function Vectorize(points: any, useBoundedRotationInvariance: any) // for Protra
     var cos = 1.0;
     var sin = 0.0;
     if (useBoundedRotationInvariance) {
-        var iAngle = Math.atan2(points[0].Y, points[0].X);
-        var baseOrientation = (Math.PI / 4.0) * Math.floor((iAngle + Math.PI / 8.0) / (Math.PI / 4.0));
+        const iAngle = Math.atan2(points[0].Y, points[0].X);
+        const baseOrientation = (Math.PI / 4.0) * Math.floor((iAngle + Math.PI / 8.0) / (Math.PI / 4.0));
         cos = Math.cos(baseOrientation - iAngle);
         sin = Math.sin(baseOrientation - iAngle);
     }
     var sum = 0.0;
-    var vector = new Array<number>();
+    const vector = new Array<number>();
     for (var i = 0; i < points.length; i++) {
-        var newX = points[i].X * cos - points[i].Y * sin;
-        var newY = points[i].Y * cos + points[i].X * sin;
+        const newX = points[i].X * cos - points[i].Y * sin;
+        const newY = points[i].Y * cos + points[i].X * sin;
         vector[vector.length] = newX;
         vector[vector.length] = newY;
         sum += newX * newX + newY * newY;
     }
-    var magnitude = Math.sqrt(sum);
+    const magnitude = Math.sqrt(sum);
     for (var i = 0; i < vector.length; i++) {
         vector[i] /= magnitude;
     }
@@ -445,7 +461,7 @@ function OptimalCosineDistance(v1: any, v2: any) // for Protractor
         a += v1[i] * v2[i] + v1[i + 1] * v2[i + 1];
         b += v1[i] * v2[i + 1] - v1[i + 1] * v2[i];
     }
-    var angle = Math.atan(b / a);
+    const angle = Math.atan(b / a);
     return Math.acos(a * Math.cos(angle) + b * Math.sin(angle));
 }
 function DistanceAtBestAngle(points: any, T: any, a: any, b: any, threshold: any) {
@@ -471,14 +487,14 @@ function DistanceAtBestAngle(points: any, T: any, a: any, b: any, threshold: any
     return Math.min(f1, f2);
 }
 function DistanceAtAngle(points: any, T: any, radians: any) {
-    var newpoints = RotateBy(points, radians);
+    const newpoints = RotateBy(points, radians);
     return PathDistance(newpoints, T.Points);
 }
 function Centroid(points: any) {
     var x = 0.0, y = 0.0;
-    for (var i = 0; i < points.length; i++) {
-        x += points[i].X;
-        y += points[i].Y;
+    for (const point of points) {
+        x += point.X;
+        y += point.Y;
     }
     x /= points.length;
     y /= points.length;
@@ -486,44 +502,46 @@ function Centroid(points: any) {
 }
 function BoundingBox(points: any) {
     var minX = +Infinity, maxX = -Infinity, minY = +Infinity, maxY = -Infinity;
-    for (var i = 0; i < points.length; i++) {
-        minX = Math.min(minX, points[i].X);
-        minY = Math.min(minY, points[i].Y);
-        maxX = Math.max(maxX, points[i].X);
-        maxY = Math.max(maxY, points[i].Y);
+    for (const { X, Y } of points) {
+        minX = Math.min(minX, X);
+        minY = Math.min(minY, Y);
+        maxX = Math.max(maxX, X);
+        maxY = Math.max(maxY, Y);
     }
     return new Rectangle(minX, minY, maxX - minX, maxY - minY);
 }
 function PathDistance(pts1: any, pts2: any) // average distance between corresponding points in two paths
 {
     var d = 0.0;
-    for (var i = 0; i < pts1.length; i++) // assumes pts1.length == pts2.length
+    for (var i = 0; i < pts1.length; i++) {// assumes pts1.length == pts2.length
         d += Distance(pts1[i], pts2[i]);
+    }
     return d / pts1.length;
 }
 function PathLength(points: any) // length traversed by a point path
 {
     var d = 0.0;
-    for (var i = 1; i < points.length; i++)
+    for (var i = 1; i < points.length; i++) {
         d += Distance(points[i - 1], points[i]);
+    }
     return d;
 }
 function Distance(p1: any, p2: any) // distance between two points
 {
-    var dx = p2.X - p1.X;
-    var dy = p2.Y - p1.Y;
+    const dx = p2.X - p1.X;
+    const dy = p2.Y - p1.Y;
     return Math.sqrt(dx * dx + dy * dy);
 }
 function CalcStartUnitVector(points: any, index: any) // start angle from points[0] to points[index] normalized as a unit vector
 {
-    var v = new Point(points[index].X - points[0].X, points[index].Y - points[0].Y);
-    var len = Math.sqrt(v.X * v.X + v.Y * v.Y);
+    const v = new Point(points[index].X - points[0].X, points[index].Y - points[0].Y);
+    const len = Math.sqrt(v.X * v.X + v.Y * v.Y);
     return new Point(v.X / len, v.Y / len);
 }
 function AngleBetweenUnitVectors(v1: any, v2: any) // gives acute angle between unit vectors from (0,0) to v1, and (0,0) to v2
 {
-    var n = (v1.X * v2.X + v1.Y * v2.Y);
-    var c = Math.max(-1.0, Math.min(1.0, n)); // ensure [-1,+1]
+    const n = (v1.X * v2.X + v1.Y * v2.Y);
+    const c = Math.max(-1.0, Math.min(1.0, n)); // ensure [-1,+1]
     return Math.acos(c); // arc cosine of the vector dot product
 }
 function Deg2Rad(d: any) { return (d * Math.PI / 180.0); }

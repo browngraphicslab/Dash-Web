@@ -1,20 +1,30 @@
 .palette-container {
     .palette-thumb {
-        width: 300px;
-        height: 300px;
         touch-action: pan-x;
-        overflow: scroll;
         position: absolute;
+        height: 70px;
+        overflow: hidden;
 
         .palette-thumbContent {
-            width: 100%;
-            height: 100%;
+            transition: transform .3s;
+            width: max-content;
+            overflow: hidden;
+
+            .collectionView {
+                overflow: visible;
+
+                .collectionLinearView-outer {
+                    overflow: visible;
+                }
+            }
         }
 
-        .palette-button {
-            width: 100px;
-            height: 100px;
-            background: blue;
+        .palette-cover {
+            width: 50px;
+            height: 50px;
+            position: absolute;
+            bottom: 0;
+            border: 1px solid black;
         }
     }
 }

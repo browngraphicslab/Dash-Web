@@ -137,7 +137,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
     addDocument = (value: string, shiftDown?: boolean) => {
         this._createAliasSelected = false;
         const key = StrCast(this.props.parent.props.Document.sectionFilter);
-        const newDoc = Docs.Create.TextDocument({ height: 18, width: 200, title: value });
+        const newDoc = Docs.Create.TextDocument("", { _height: 18, _width: 200, title: value });
         newDoc[key] = this.getValue(this.props.heading);
         return this.props.parent.props.addDocument(newDoc);
     }
@@ -259,7 +259,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
     @computed get contentLayout() {
         const rows = Math.max(1, Math.min(this.props.docList.length, Math.floor((this.props.parent.props.PanelWidth() - 2 * this.props.parent.xMargin) / (this.props.parent.columnWidth + this.props.parent.gridGap))));
         const style = this.props.parent; const collapsed = this._collapsed;
-        const chromeStatus = this.props.parent.props.Document.chromeStatus;
+        const chromeStatus = this.props.parent.props.Document._chromeStatus;
         const newEditableViewProps = {
             GetValue: () => "",
             SetValue: this.addDocument,

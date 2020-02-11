@@ -58,11 +58,27 @@
     overflow: hidden;
 }
 
+
+.mainView-settings {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    font-size: 8px;
+}
+
+.mainView-settings:hover {
+    transform: none !important;
+}
+
 .mainView-logout {
     position: absolute;
-    right: 5;
-    bottom: 5;
+    right: 0;
+    bottom: 0;
     font-size: 8px;
+}
+
+.mainView-logout:hover {
+    transform: none !important;
 }
 
 .mainView-libraryFlyout {

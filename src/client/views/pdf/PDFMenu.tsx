@@ -98,7 +98,7 @@ export default class PDFMenu extends AntimodeMenu {
     }
 
     render() {
-        const buttons = this.Status === "pdf"  ?
+        const buttons = this.Status === "pdf" ?
             [
                 <button key="1" className="antimodeMenu-button" title="Click to Highlight" onClick={this.highlightClicked} style={this.Highlighting ? { backgroundColor: "#121212" } : {}}>
                     <FontAwesomeIcon icon="highlighter" size="lg" style={{ transition: "transform 0.1s", transform: this.Highlighting ? "" : "rotate(-45deg)" }} /></button>,

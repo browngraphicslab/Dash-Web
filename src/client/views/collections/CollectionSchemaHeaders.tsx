@@ -286,7 +286,6 @@ class KeysDropdown extends React.Component<KeysDropdownProps> {
     }
 
     @undoBatch
-    @action
     onKeyDown = (e: React.KeyboardEvent): void => {
         if (e.key === "Enter") {
             const keyOptions = this._searchTerm === "" ? this.props.possibleKeys : this.props.possibleKeys.filter(key => key.toUpperCase().indexOf(this._searchTerm.toUpperCase()) > -1);
@@ -296,7 +295,7 @@ class KeysDropdown extends React.Component<KeysDropdownProps> {
             if (!exactFound && this._searchTerm !== "" && this.props.canAddNew) {
                 this.onSelect(this._searchTerm);
             } else {
-                this._searchTerm = this._key;
+                this.setSearchTerm(this._key);
             }
         }
     }

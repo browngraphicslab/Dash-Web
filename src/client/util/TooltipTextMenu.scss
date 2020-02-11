@@ -149,7 +149,7 @@
     }
 
     svg {
-        fill: inherit;
+        fill: white;
         width: 18px;
         height: 18px;
     }
@@ -181,7 +181,7 @@
     }
 }
 
-.colorPicker {
+#colorPicker {
     position: relative;
 
     svg {

@@ -161,12 +161,12 @@ export class PresElementBox extends DocComponent<FieldViewProps, PresDocument>(P
             return (null);
         }
 
-        const propDocWidth = NumCast(this.layoutDoc.nativeWidth);
-        const propDocHeight = NumCast(this.layoutDoc.nativeHeight);
-        const scale = () => 175 / NumCast(this.layoutDoc.nativeWidth, 175);
+        const propDocWidth = NumCast(this.layoutDoc._nativeWidth);
+        const propDocHeight = NumCast(this.layoutDoc._nativeHeight);
+        const scale = () => 175 / NumCast(this.layoutDoc._nativeWidth, 175);
         return (
             <div className="presElementBox-embedded" style={{
-                height: propDocHeight === 0 ? NumCast(this.layoutDoc.height) - NumCast(this.layoutDoc.collapsedHeight) : propDocHeight * scale(),
+                height: propDocHeight === 0 ? NumCast(this.layoutDoc._height) - NumCast(this.layoutDoc.collapsedHeight) : propDocHeight * scale(),
                 width: propDocWidth === 0 ? "auto" : propDocWidth * scale(),
             }}>
                 <ContentFittingDocumentView
@@ -175,12 +175,10 @@ export class PresElementBox extends DocComponent<FieldViewProps, PresDocument>(P
                     fitToBox={StrCast(this.targetDoc.type).indexOf(DocumentType.COL) !== -1}
                     addDocument={returnFalse}
                     removeDocument={returnFalse}
-                    ruleProvider={undefined}
                     addDocTab={returnFalse}
                     pinToPres={returnFalse}
                     PanelWidth={() => this.props.PanelWidth() - 20}
                     PanelHeight={() => 100}
-                    setPreviewScript={emptyFunction}
                     getTransform={Transform.Identity}
                     active={this.props.active}
                     moveDocument={this.props.moveDocument!}
@@ -194,7 +192,7 @@ export class PresElementBox extends DocComponent<FieldViewProps, PresDocument>(P
     }
 
     render() {
-        const treecontainer = this.props.ContainingCollectionDoc && this.props.ContainingCollectionDoc.viewType === CollectionViewType.Tree;
+        const treecontainer = this.props.ContainingCollectionDoc?._viewType === CollectionViewType.Tree;
         const className = "presElementBox-item" + (this.currentIndex === this.indexInPres ? " presElementBox-selected" : "");
         const pbi = "presElementBox-interaction";
         return (

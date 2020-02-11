@@ -2,7 +2,7 @@ import { ObjectField } from "./ObjectField";
 import { observable } from "mobx";
 import { Deserializable } from "../client/util/SerializationHelper";
 import { serializable, createSimpleSchema, object, date } from "serializr";
-import { OnUpdate, ToScriptString, Copy } from "./FieldSymbols";
+import { OnUpdate, ToScriptString, ToString, Copy } from "./FieldSymbols";
 
 export type CursorPosition = {
     x: number,
@@ -58,6 +58,9 @@ export default class CursorField extends ObjectField {
     }
 
     [ToScriptString]() {
+        return "invalid";
+    }
+    [ToString]() {
         return "invalid";
     }
 }

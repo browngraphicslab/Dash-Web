@@ -40,7 +40,7 @@ export default class UploadManager extends ApiManager {
 
         register({
             method: Method.POST,
-            subscription: "/upload",
+            subscription: "/uploadFormData",
             secureHandler: async ({ req, res }) => {
                 console.log("/upload register");
                 const form = new formidable.IncomingForm();
@@ -57,6 +57,18 @@ export default class UploadManager extends ApiManager {
                         resolve();
                     });
                 });
+            }
+        });
+
+        register({
+            method: Method.POST,
+            subscription: "/uploadRemoteImage",
+            secureHandler: async ({ req, res }) => {
+                const { sources } = req.body;
+                if (Array.isArray(sources)) {
+                    return res.send(await Promise.all(sources.map(url => DashUploadUtils.UploadImage(url))));
+                }
+                res.send();
             }
         });
 
@@ -170,8 +182,7 @@ export default class UploadManager extends ApiManager {
             secureHandler: async ({ req, res }) => {
                 const { source } = req.body;
                 if (typeof source === "string") {
-                    const { serverAccessPaths } = await DashUploadUtils.UploadImage(source);
-                    return res.send(await DashUploadUtils.InspectImage(serverAccessPaths[SizeSuffix.Original]));
+                    return res.send(await DashUploadUtils.InspectImage(source));
                 }
                 res.send({});
             }
