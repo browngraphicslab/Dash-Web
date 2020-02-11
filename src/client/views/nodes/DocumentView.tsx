@@ -43,7 +43,6 @@ import { ScriptingRepl } from '../ScriptingRepl';
 import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
 import { FormattedTextBox } from './FormattedTextBox';
-import { FormattedTextBoxComment } from './FormattedTextBoxComment';
 import React = require("react");
 
 
@@ -56,6 +55,7 @@ export interface DocumentViewProps {
     ContainingCollectionDoc: Opt<Doc>;
     Document: Doc;
     DataDoc?: Doc;
+    LayoutDoc?: () => Opt<Doc>;
     LibraryPath: Doc[];
     fitToBox?: boolean;
     onClick?: ScriptField;
@@ -834,6 +834,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             ContainingCollectionDoc={this.props.ContainingCollectionDoc}
             Document={this.props.Document}
             DataDoc={this.props.DataDoc}
+            LayoutDoc={this.props.LayoutDoc}
             fitToBox={this.props.fitToBox}
             LibraryPath={this.props.LibraryPath}
             addDocument={this.props.addDocument}

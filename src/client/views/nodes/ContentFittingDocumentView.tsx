@@ -2,7 +2,7 @@ import React = require("react");
 import { action, computed } from "mobx";
 import { observer } from "mobx-react";
 import "react-table/react-table.css";
-import { Doc } from "../../../new_fields/Doc";
+import { Doc, Opt } from "../../../new_fields/Doc";
 import { ComputedField, ScriptField } from "../../../new_fields/ScriptField";
 import { NumCast, StrCast } from "../../../new_fields/Types";
 import { emptyFunction, returnEmptyString, returnOne } from "../../../Utils";
@@ -18,6 +18,7 @@ import { TraceMobx } from "../../../new_fields/util";
 interface ContentFittingDocumentViewProps {
     Document?: Doc;
     DataDocument?: Doc;
+    LayoutDoc?: () => Opt<Doc>;
     LibraryPath: Doc[];
     childDocs?: Doc[];
     renderDepth: number;
@@ -42,7 +43,7 @@ interface ContentFittingDocumentViewProps {
 @observer
 export class ContentFittingDocumentView extends React.Component<ContentFittingDocumentViewProps>{
     public get displayName() { return "DocumentView(" + this.props.Document?.title + ")"; } // this makes mobx trace() statements more descriptive
-    private get layoutDoc() { return this.props.Document && Doc.Layout(this.props.Document); }
+    private get layoutDoc() { return this.props.Document && (this.props.LayoutDoc?.() || Doc.Layout(this.props.Document)); }
     private get nativeWidth() { return NumCast(this.layoutDoc?._nativeWidth, this.props.PanelWidth()); }
     private get nativeHeight() { return NumCast(this.layoutDoc?._nativeHeight, this.props.PanelHeight()); }
     @computed get scaling() {
@@ -97,6 +98,7 @@ export class ContentFittingDocumentView extends React.Component<ContentFittingDo
                     <DocumentView {...this.props}
                         Document={this.props.Document}
                         DataDoc={this.props.DataDocument}
+                        LayoutDoc={this.props.LayoutDoc}
                         LibraryPath={this.props.LibraryPath}
                         fitToBox={this.props.fitToBox}
                         onClick={this.props.onClick}
