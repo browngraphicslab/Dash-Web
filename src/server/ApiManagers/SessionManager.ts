@@ -56,9 +56,9 @@ export default class SessionManager extends ApiManager {
         register({
             method: Method.GET,
             subscription: this.secureSubscriber("delete"),
-            secureHandler: this.authorizedAction(({ res }) => {
-                sessionAgent.serverWorker.emit("delete");
-                res.redirect("/home");
+            secureHandler: this.authorizedAction(async ({ res }) => {
+                const { error } = await sessionAgent.serverWorker.emit("delete");
+                res.send(error ? error.message : "Your request was successful: the server successfully deleted the database. Return to /home.");
             })
         });
 
