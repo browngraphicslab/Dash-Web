@@ -26,7 +26,7 @@ import { DocumentType } from '../../documents/DocumentTypes';
 import { DictationManager } from '../../util/DictationManager';
 import { DragManager } from "../../util/DragManager";
 import buildKeymap from "../../util/ProsemirrorExampleTransfer";
-import { inpRules } from "../../util/RichTextRules";
+import { RichTextRules } from "../../util/RichTextRules";
 import { DashDocCommentView, FootnoteView, ImageResizeView, DashDocView, OrderedListView, schema, SummaryView, DashFieldView } from "../../util/RichTextSchema";
 import { SelectionManager } from "../../util/SelectionManager";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
@@ -465,13 +465,14 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     }
 
     _keymap: any = undefined;
+    _rules: RichTextRules | undefined;
     @computed get config() {
         this._keymap = buildKeymap(schema);
-        (schema as any).Document = this.props.Document;
+        this._rules = new RichTextRules(this.props.Document, this);
         return {
             schema,
             plugins: [
-                inputRules(inpRules),
+                inputRules(this._rules.inpRules),
                 this.richTextMenuPlugin(),
                 history(),
                 keymap(this._keymap),
@@ -770,7 +771,6 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                 clipboardTextSerializer: this.clipboardTextSerializer,
                 handlePaste: this.handlePaste,
             });
-            this._editorView.state.schema.Document = this.props.Document;
             const startupText = !rtfField && this._editorView && Field.toString(this.dataDoc[fieldKey] as Field);
             if (startupText) {
                 this._editorView.dispatch(this._editorView.state.tr.insertText(startupText));
@@ -1011,14 +1011,14 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         }
         const state = this._editorView!.state;
         if (!state.selection.empty && e.key === "%") {
-            state.schema.EnteringStyle = true;
+            this._rules!.EnteringStyle = true;
             e.preventDefault();
             e.stopPropagation();
             return;
         }
 
-        if (state.selection.empty || !state.schema.EnteringStyle) {
-            state.schema.EnteringStyle = false;
+        if (state.selection.empty || !this._rules!.EnteringStyle) {
+            this._rules!.EnteringStyle = false;
         }
         if (e.key === "Escape") {
             this._editorView!.dispatch(state.tr.setSelection(TextSelection.create(state.doc, state.selection.from, state.selection.from)));
