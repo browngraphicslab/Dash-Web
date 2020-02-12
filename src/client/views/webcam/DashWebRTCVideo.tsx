@@ -70,7 +70,7 @@ export class DashWebRTCVideo extends React.Component<CollectionFreeFormDocumentV
             <div className="webcam-cont" style={{ width: "100%", height: "100%" }} onWheel={this.onPostWheel} onPointerDown={this.onPostPointer} onPointerMove={this.onPostPointer} onPointerUp={this.onPostPointer}>
                 <div className="webcam-header">DashWebRTC</div>
                 <input id="roomName" type="text" placeholder="Enter room name" ref={(e) => this.roomText = e!} onKeyDown={this.onEnterKeyDown} />
-                <video id="localVideo" className={"RTCVideo" + (this.remoteVideoAdded ? " side" : " main")} autoPlay playsInline ref={(e) => {
+                <video id="localVideo" className={"RTCVideo" + (this.remoteVideoAdded ? " side" : " main")} autoPlay playsInline muted ref={(e) => {
                 }}></video>
                 <video id="remoteVideo" className="RTCVideo main" autoPlay playsInline ref={(e) => {
                 }}></video>
