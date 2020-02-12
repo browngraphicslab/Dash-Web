@@ -50,7 +50,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     @observable private _hidden: boolean = true;
 
     toggleLayout = (e: React.ChangeEvent<HTMLInputElement>, layout: string): void => {
-        this.props.docViews.map(dv => dv.setCustomView(e.target.checked, layout));
+        this.props.docViews.map(dv => dv.switchViews(e.target.checked, layout));//.setCustomView(e.target.checked, layout));
     }
 
     toggleFloat = (e: React.ChangeEvent<HTMLInputElement>): void => {
@@ -64,11 +64,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     @undoBatch
     @action
     toggleTemplate = (event: React.ChangeEvent<HTMLInputElement>, template: Template): void => {
-        if (event.target.checked) {
-            this.props.docViews.map(d => d.Document["show" + template.Name] = template.Name.toLowerCase());
-        } else {
-            this.props.docViews.map(d => d.Document["show" + template.Name] = "");
-        }
+        this.props.docViews.forEach(d => Doc.Layout(d.Document)["show" + template.Name] = event.target.checked ? template.Name.toLowerCase() : "");
     }
 
     @action
@@ -79,10 +75,8 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     @undoBatch
     @action
     toggleChrome = (): void => {
-        this.props.docViews.map(dv => {
-            const layout = Doc.Layout(dv.Document);
-            layout._chromeStatus = (layout._chromeStatus !== "disabled" ? "disabled" : StrCast(layout._replacedChrome, "enabled"));
-        });
+        this.props.docViews.map(dv => Doc.Layout(dv.Document)).forEach(layout =>
+            layout._chromeStatus = (layout._chromeStatus !== "disabled" ? "disabled" : StrCast(layout._replacedChrome, "enabled")));
     }
 
     // todo: add brushes to brushMap to save with a style name
