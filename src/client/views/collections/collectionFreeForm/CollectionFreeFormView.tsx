@@ -470,7 +470,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                             strokes.push(d.inkData.map(pd => ({ X: pd.X + x - left, Y: pd.Y + y - top })));
                         }
                     });
-                    console.log(strokes)
 
                     CognitiveServices.Inking.Appliers.InterpretStrokes(strokes).then((results) => {
                         console.log(results);
@@ -487,7 +486,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                                 if (this._wordPalette.has(word.recognizedText.toLowerCase())) {
                                     inks[i].color = this._wordPalette.get(word.recognizedText.toLowerCase());
                                 }
-                                else {
+                                else if (word.alternates) {
                                     for (const alt of word.alternates) {
                                         if (this._wordPalette.has(alt.recognizedString.toLowerCase())) {
                                             inks[i].color = this._wordPalette.get(alt.recognizedString.toLowerCase());
