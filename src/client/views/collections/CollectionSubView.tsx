@@ -51,11 +51,13 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         private gestureDisposer?: GestureUtils.GestureEventDisposer;
         protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
         private _childLayoutDisposer?: IReactionDisposer;
+        protected _mainCont?: HTMLDivElement;
         protected createDashEventsTarget = (ele: HTMLDivElement) => { //used for stacking and masonry view
             this.dropDisposer?.();
             this.gestureDisposer?.();
             this.multiTouchDisposer?.();
             if (ele) {
+                this._mainCont = ele;
                 this.dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this));
                 this.gestureDisposer = GestureUtils.MakeGestureTarget(ele, this.onGesture.bind(this));
                 this.multiTouchDisposer = InteractionUtils.MakeMultiTouchTarget(ele, this.onTouchStart.bind(this));

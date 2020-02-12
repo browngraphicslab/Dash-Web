@@ -1,6 +1,6 @@
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faEye } from "@fortawesome/free-regular-svg-icons";
-import { faBraille, faChalkboard, faCompass, faCompressArrowsAlt, faExpandArrowsAlt, faFileUpload, faPaintBrush, faTable, faUpload } from "@fortawesome/free-solid-svg-icons";
+import { faBraille, faChalkboard, faCompass, faCompressArrowsAlt, faExpandArrowsAlt, faFileUpload, faPaintBrush, faTable, faUpload, faTextHeight } from "@fortawesome/free-solid-svg-icons";
 import { action, computed, observable, ObservableMap, reaction, runInAction, IReactionDisposer } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast, HeightSym, Opt, WidthSym, DocListCastAsync, Field } from "../../../../new_fields/Doc";
@@ -47,6 +47,7 @@ import { List } from "../../../../new_fields/List";
 import { DocumentViewProps } from "../../nodes/DocumentView";
 import { CollectionDockingView } from "../CollectionDockingView";
 import { MainView } from "../../MainView";
+import { TouchScrollableMenuItem } from "../../TouchScrollableMenu";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
@@ -627,12 +628,12 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         // use the centerx and centery as the "new mouse position"
                         const centerX = Math.min(pt1.clientX, pt2.clientX) + Math.abs(pt2.clientX - pt1.clientX) / 2;
                         const centerY = Math.min(pt1.clientY, pt2.clientY) + Math.abs(pt2.clientY - pt1.clientY) / 2;
+                        // const transformed = this.getTransform().inverse().transformPoint(centerX, centerY);
 
                         if (!this._pullDirection) { // if we are not bezel movement
                             this.pan({ clientX: centerX, clientY: centerY });
                         } else {
                             this._pullCoords = [centerX, centerY];
-                            console.log(MainView.Instance.flyoutWidth);
                         }
 
                         this._lastX = centerX;
@@ -657,22 +658,28 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             if (pt1 && pt2) {
                 const centerX = Math.min(pt1.clientX, pt2.clientX) + Math.abs(pt2.clientX - pt1.clientX) / 2;
                 const centerY = Math.min(pt1.clientY, pt2.clientY) + Math.abs(pt2.clientY - pt1.clientY) / 2;
+                // const screenPoint = this.getTransform().inverse().transformPoint(centerX, centerY);
                 this._lastX = centerX;
                 this._lastY = centerY;
+                const screenBox = this._mainCont?.getBoundingClientRect();
 
+
+                // console.log(this.props.PanelWidth(), transformed[0]);
                 // determine if we are using a bezel movement
-                if ((this.props.PanelWidth() - this._lastX) < 100) {
-                    this._pullCoords = [this._lastX, this._lastY];
-                    this._pullDirection = "right";
-                } else if (this._lastX < 100) {
-                    this._pullCoords = [this._lastX, this._lastY];
-                    this._pullDirection = "left";
-                } else if (this.props.PanelHeight() - this._lastY < 100) {
-                    this._pullCoords = [this._lastX, this._lastY];
-                    this._pullDirection = "bottom";
-                } else if (this._lastY < 120) { // to account for header
-                    this._pullCoords = [this._lastX, this._lastY];
-                    this._pullDirection = "top";
+                if (screenBox) {
+                    if ((screenBox.right - centerX) < 100) {
+                        this._pullCoords = [centerX, centerY];
+                        this._pullDirection = "right";
+                    } else if (centerX - screenBox.left < 100) {
+                        this._pullCoords = [centerX, centerY];
+                        this._pullDirection = "left";
+                    } else if (screenBox.bottom - centerY < 100) {
+                        this._pullCoords = [centerX, centerY];
+                        this._pullDirection = "bottom";
+                    } else if (centerY - screenBox.top < 100) {
+                        this._pullCoords = [centerX, centerY];
+                        this._pullDirection = "top";
+                    }
                 }
 
 
@@ -708,6 +715,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             default:
                 break;
         }
+        console.log("");
 
         this._pullDirection = "";
         this._pullCoords = [0, 0];
@@ -1120,6 +1128,14 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
     render() {
         TraceMobx();
+        const clientRect = this._mainCont?.getBoundingClientRect();
+        // console.log('clientrect has upd8ed', clientRect, this._pullCoords);
+        console.log(
+            'left', clientRect ? this._pullDirection === "right" ? this._pullCoords[0] - MainView.Instance.flyoutWidth : clientRect.x - MainView.Instance.flyoutWidth : "auto",
+            'top indicator', clientRect ? this._pullDirection === "bottom" ? this._pullCoords[1] - clientRect.y : clientRect.y - 20 : "auto",
+            'width', clientRect ? this._pullDirection === "left" ? this._pullCoords[0] - clientRect.left : this._pullDirection === "right" ? clientRect.right - this._pullCoords[0] : clientRect.width : 0,
+            'height', clientRect ? this._pullDirection === "top" ? this._pullCoords[1] - clientRect.top : this._pullDirection === "bottom" ? clientRect.bottom - this._pullCoords[1] : clientRect.height : 0);
+        console.log(clientRect);
         // update the actual dimensions of the collection so that they can inquired (e.g., by a minimap)
         // this.Document.fitX = this.contentBounds && this.contentBounds.x;
         // this.Document.fitY = this.contentBounds && this.contentBounds.y;
@@ -1146,16 +1162,26 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             <div className={"pullpane-indicator"}
                 style={{
                     display: this._pullDirection ? "block" : "none",
-                    // width: this._pullDirection === "left" || this._pullDirection === "right" ? Math.abs(this.props.PanelWidth() - this._pullCoords[0]) : this.props.PanelWidth(),
-                    // height: this._pullDirection === "top" || this._pullDirection === "bottom" ? Math.abs(this.props.PanelHeight() - this._pullCoords[1]) : this.props.PanelHeight(),
-                    // top: this._pullDirection === "bottom" ? this._pullCoords[0] : 0,
-                    // left: this._pullDirection === "right" ? this._pullCoords[1] : 0
-                    width: this._pullDirection === "left" ? this._pullCoords[0] : this._pullDirection === "right" ? MainView.Instance.getPWidth() - this._pullCoords[0] + MainView.Instance.flyoutWidth : MainView.Instance.getPWidth(),
-                    height: this._pullDirection === "top" ? this._pullCoords[1] : this._pullDirection === "bottom" ? MainView.Instance.getPHeight() - this._pullCoords[1] : MainView.Instance.getPHeight(),
-                    left: this._pullDirection === "right" ? undefined : 0,
-                    right: this._pullDirection === "right" ? 0 : undefined,
-                    top: this._pullDirection === "bottom" ? undefined : 0,
-                    bottom: this._pullDirection === "bottom" ? 0 : undefined
+                    // width: clientRect ? this._pullDirection === "left" ? this._pullCoords[0] - clientRect.left : this._pullDirection === "right" ? clientRect.right - this._pullCoords[0] : clientRect.width : 0,
+                    // height: clientRect ? this._pullDirection === "top" ? this._pullCoords[0] - clientRect.top : this._pullDirection === "bottom" ? clientRect.bottom - this._pullCoords[0] : clientRect.height : 0,
+                    // left: clientRect ? this._pullDirection === "right" ? undefined : clientRect.left : 0,
+                    // right: clientRect ? this._pullDirection === "left" ? undefined : clientRect.right : 0,
+                    // top: clientRect ? this._pullDirection === "bottom" ? undefined : clientRect.top : 0,
+                    // bottom: clientRect ? this._pullDirection === "top" ? undefined : clientRect.bottom : 0,
+
+
+
+                    // hahahahahahahhahahahaa
+
+                    width: clientRect ? this._pullDirection === "left" ? this._pullCoords[0] - clientRect.left : this._pullDirection === "right" ? clientRect.right - this._pullCoords[0] : clientRect.width : 0,
+                    height: clientRect ? this._pullDirection === "top" ? this._pullCoords[1] - clientRect.top : this._pullDirection === "bottom" ? clientRect.bottom - this._pullCoords[1] : clientRect.height : 0,
+                    // left: clientRect ? this._pullDirection === "top" || this._pullDirection === "left" || this._pullDirection === "bottom" ? clientRect.left - MainView.Instance.flyoutWidth : this._pullCoords[0] - clientRect.left : undefined,
+                    // top: clientRect ? this._pullDirection === "top" || this._pullDirection === "left" ? clientRect.top - 20 : this._pullCoords[1] - clientRect.top : undefined,
+
+                    // left: x-axis, top: y-axis
+                    left: clientRect ? this._pullDirection === "right" ? this._pullCoords[0] - clientRect.x - MainView.Instance.flyoutWidth : 0 : "auto",
+                    top: clientRect ? this._pullDirection === "bottom" ? this._pullCoords[1] - clientRect.y : 0 : "auto",
+
                 }}>
             </div>
 
