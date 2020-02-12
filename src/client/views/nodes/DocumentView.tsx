@@ -144,8 +144,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     handle1PointerHoldMove = (e: Event, me: InteractionUtils.MultiTouchEvent<TouchEvent>): void => {
-        console.log(SelectionManager.SelectedDocuments());
-        console.log(SelectionManager.GetIsDragging(), this);
+
         const pt = me.touchEvent.touches[me.touchEvent.touches.length - 1];
 
         if (this._firstX === -1 || this._firstY === -1) {
@@ -339,7 +338,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     handle1PointerDown = (e: React.TouchEvent, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>) => {
         SelectionManager.DeselectAll();
         if (this.Document.onPointerDown) return;
-        const touch = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true)[0];
+        const touch = me.touchEvent.changedTouches.item(0);
         console.log("DOWN", SelectionManager.SelectedDocuments());
         console.log("down");
         if (touch) {
@@ -368,7 +367,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             this.removeMoveListeners();
         }
         else if (!e.cancelBubble && (SelectionManager.IsSelected(this, true) || this.props.parentActive(true) || this.Document.onDragStart || this.Document.onClick) && !this.Document.lockedPosition && !this.Document.inOverlay) {
-            const touch = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true)[0];
+
+            const touch = me.touchEvent.changedTouches.item(0);
             if (Math.abs(this._downX - touch.clientX) > 3 || Math.abs(this._downY - touch.clientY) > 3) {
                 if (!e.altKey && (!this.topMost || this.Document.onDragStart || this.Document.onClick)) {
                     this.cleanUpInteractions();
@@ -522,11 +522,14 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     onPointerUp = (e: PointerEvent): void => {
+        this.cleanUpInteractions();
+
         if (this.onPointerUpHandler && this.onPointerUpHandler.script && !InteractionUtils.IsType(e, InteractionUtils.PENTYPE)) {
             this.onPointerUpHandler.script.run({ this: this.Document.isTemplateForField && this.props.DataDoc ? this.props.DataDoc : this.props.Document }, console.log);
             document.removeEventListener("pointerup", this.onPointerUp);
             return;
         }
+
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
         this._doubleTap = (Date.now() - this._lastTap < 300 && e.button === 0 && Math.abs(e.clientX - this._downX) < 2 && Math.abs(e.clientY - this._downY) < 2);
