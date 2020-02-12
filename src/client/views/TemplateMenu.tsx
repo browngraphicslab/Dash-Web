@@ -64,11 +64,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     @undoBatch
     @action
     toggleTemplate = (event: React.ChangeEvent<HTMLInputElement>, template: Template): void => {
-        if (event.target.checked) {
-            this.props.docViews.map(d => Doc.Layout(d.Document)["show" + template.Name] = template.Name.toLowerCase());
-        } else {
-            this.props.docViews.map(d => Doc.Layout(d.Document)["show" + template.Name] = "");
-        }
+        this.props.docViews.forEach(d => Doc.Layout(d.Document)["show" + template.Name] = event.target.checked ? template.Name.toLowerCase() : "");
     }
 
     @action
@@ -79,10 +75,8 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     @undoBatch
     @action
     toggleChrome = (): void => {
-        this.props.docViews.map(dv => {
-            const layout = Doc.Layout(dv.Document);
-            layout._chromeStatus = (layout._chromeStatus !== "disabled" ? "disabled" : StrCast(layout._replacedChrome, "enabled"));
-        });
+        this.props.docViews.map(dv => Doc.Layout(dv.Document)).forEach(layout =>
+            layout._chromeStatus = (layout._chromeStatus !== "disabled" ? "disabled" : StrCast(layout._replacedChrome, "enabled")));
     }
 
     // todo: add brushes to brushMap to save with a style name
