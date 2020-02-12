@@ -12,6 +12,7 @@ import { timeMap } from "../ApiManagers/UserManager";
 import { green } from "colors";
 import { networkInterfaces, type } from "os";
 import { object } from "serializr";
+import executeImport from "../../scraping/buxton/final/BuxtonImporter";
 
 export namespace WebSocket {
 
@@ -106,6 +107,12 @@ export namespace WebSocket {
             Utils.AddServerHandler(socket, MessageStore.DeleteFields, ids => DeleteFields(socket, ids));
             Utils.AddServerHandlerCallback(socket, MessageStore.GetRefField, GetRefField);
             Utils.AddServerHandlerCallback(socket, MessageStore.GetRefFields, GetRefFields);
+            Utils.AddServerHandler(socket, MessageStore.BeginBuxtonImport, () => {
+                executeImport(
+                    deviceOrError => Utils.Emit(socket, MessageStore.BuxtonDocumentResult, deviceOrError),
+                    results => Utils.Emit(socket, MessageStore.BuxtonImportComplete, results)
+                );
+            });
 
             disconnect = () => {
                 socket.broadcast.emit("connection_terminated", Date.now());

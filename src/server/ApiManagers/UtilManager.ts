@@ -41,15 +41,6 @@ export default class UtilManager extends ApiManager {
 
         register({
             method: Method.GET,
-            subscription: "/buxton",
-            secureHandler: async ({ req, res }) => {
-                req.setTimeout(300000);
-                res.send(await executeImport());
-            }
-        });
-
-        register({
-            method: Method.GET,
             subscription: "/version",
             secureHandler: ({ res }) => {
                 return new Promise<void>(resolve => {

@@ -55,6 +55,7 @@ import { InkingControl } from "../views/InkingControl";
 import { RichTextField } from "../../new_fields/RichTextField";
 import { Networking } from "../Network";
 import { extname } from "path";
+import { MessageStore } from "../../server/Message";
 const requestImageSize = require('../util/request-image-size');
 const path = require('path');
 
@@ -346,6 +347,7 @@ export namespace Docs {
     export namespace Create {
 
         export function Buxton() {
+            let responded = false;
             const loading = new Doc;
             loading.title = "Please wait for the import script...";
             const parent = TreeDocument([loading], {
@@ -354,36 +356,36 @@ export namespace Docs {
                 _height: 400,
                 _LODdisable: true
             });
-            Networking.FetchFromServer("/buxton").then(response => {
-                const devices = JSON.parse(response);
-                if (!Array.isArray(devices)) {
-                    if ("error" in devices) {
-                        loading.title = devices.error;
-                    } else {
-                        console.log(devices);
-                        alert("The importer returned an unexpected import format. Check the console.");
-                    }
-                    return;
+            const parentProto = Doc.GetProto(parent);
+            const { _socket } = DocServer;
+            Utils.AddServerHandler(_socket, MessageStore.BuxtonDocumentResult, ({ device, errors }) => {
+                if (!responded) {
+                    responded = true;
+                    parentProto.data = new List<Doc>();
                 }
-                const parentProto = Doc.GetProto(parent);
-                parentProto.data = new List<Doc>();
-                devices.forEach(device => {
+                if (device) {
                     const { __images } = device;
                     delete device.__images;
                     const { ImageDocument, StackingDocument } = Docs.Create;
-                    if (Array.isArray(__images)) {
-                        const constructed = __images.map(relative => Utils.prepend(relative));
-                        const hero = constructed[0];
-                        constructed.splice(0, 1);
-                        const deviceImages = constructed.map((url, i) => ImageDocument(url, { title: `image${i}.${extname(url)}` }));
-                        const doc = StackingDocument(deviceImages, { title: device.title, _LODdisable: true });
-                        const deviceProto = Doc.GetProto(doc);
-                        deviceProto.hero = new ImageField(hero);
-                        Docs.Get.DocumentHierarchyFromJson(device, undefined, deviceProto);
-                        Doc.AddDocToList(parentProto, "data", doc);
-                    }
-                });
+                    const constructed = __images.map(relative => Utils.prepend(relative));
+                    const deviceImages = constructed.map((url, i) => ImageDocument(url, { title: `image${i}.${extname(url)}` }));
+                    const doc = StackingDocument(deviceImages, { title: device.title, _LODdisable: true });
+                    const deviceProto = Doc.GetProto(doc);
+                    deviceProto.hero = new ImageField(constructed[0]);
+                    Docs.Get.DocumentHierarchyFromJson(device, undefined, deviceProto);
+                    Doc.AddDocToList(parentProto, "data", doc);
+                } else if (errors) {
+                    console.log(errors);
+                } else {
+                    alert("A Buxton document import was completely empty (??)");
+                }
             });
+            Utils.AddServerHandler(_socket, MessageStore.BuxtonImportComplete, ({ deviceCount, errorCount }) => {
+                _socket.off(MessageStore.BuxtonDocumentResult.Message);
+                _socket.off(MessageStore.BuxtonImportComplete.Message);
+                alert(`Successfully imported ${deviceCount} device${deviceCount === 1 ? "" : "s"}, with ${errorCount} error${errorCount === 1 ? "" : "s"}.`);
+            });
+            Utils.Emit(_socket, MessageStore.BeginBuxtonImport, "");
             return parent;
         }
 

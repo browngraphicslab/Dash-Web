@@ -8,7 +8,6 @@ const StreamZip = require('node-stream-zip');
 const createImageSizeStream = require("image-size-stream");
 import { parseXml } from "libxmljs";
 import { strictEqual } from "assert";
-import { BatchedArray, TimeUnit } from "array-batcher";
 
 interface DocumentContents {
     body: string;
@@ -24,20 +23,32 @@ export interface DeviceDocument {
     longDescription: string;
     company: string;
     year: number;
-    originalPrice: number;
-    degreesOfFreedom: number;
+    originalPrice?: number;
+    degreesOfFreedom?: number;
     dimensions?: string;
     primaryKey: string;
     secondaryKey: string;
     attribute: string;
+    __images: string[];
+    hyperlinks: string[];
+    captions: string[];
+    embeddedFileNames: string[];
 }
 
-interface AnalysisResult {
+export interface AnalysisResult {
     device?: DeviceDocument;
-    errors?: any;
+    errors?: { [key: string]: string };
 }
 
 type Transformer<T> = (raw: string) => { transformed?: T, error?: string };
+
+export interface ImportResults {
+    deviceCount: number,
+    errorCount: number
+}
+
+type ResultCallback = (result: AnalysisResult) => void;
+type TerminatorCallback = (result: ImportResults) => void;
 
 interface Processor<T> {
     exp: RegExp;
@@ -168,7 +179,7 @@ const successOut = "buxton.json";
 const failOut = "incomplete.json";
 const deviceKeys = Array.from(RegexMap.keys());
 
-export default async function executeImport() {
+export default async function executeImport(emitter: ResultCallback, terminator: TerminatorCallback) {
     try {
         const contents = readdirSync(sourceDir);
         const wordDocuments = contents.filter(file => /.*\.docx?$/.test(file)).map(file => `${sourceDir}/${file}`);
@@ -176,7 +187,7 @@ export default async function executeImport() {
             rimraf.sync(dir);
             mkdirSync(dir);
         });
-        return parseFiles(wordDocuments);
+        return parseFiles(wordDocuments, emitter, terminator);
     } catch (e) {
         const message = [
             "Unable to find a source directory.",
@@ -188,23 +199,22 @@ export default async function executeImport() {
     }
 }
 
-async function parseFiles(wordDocuments: string[]): Promise<DeviceDocument[]> {
-    const imported = await BatchedArray.from(wordDocuments, { batchSize: 8 }).batchedMapPatientInterval<{ fileName: string, contents: DocumentContents }>({ magnitude: 10, unit: TimeUnit.Seconds }, async (batch, collector) => {
-        for (const filePath of batch) {
-            const fileName = path.basename(filePath).replace("Bill_Notes_", "");
-            console.log(cyan(`\nExtracting contents from ${fileName}...`));
-            collector.push({ fileName, contents: await extractFileContents(filePath) });
-        }
-    });
-    console.log(yellow("\nAnalyzing the extracted document text...\n"));
-    const results = imported.map(({ fileName, contents }) => analyze(fileName, contents));
+async function parseFiles(wordDocuments: string[], emitter: ResultCallback, terminator: TerminatorCallback): Promise<DeviceDocument[]> {
+    const results: AnalysisResult[] = [];
+    for (const filePath of wordDocuments) {
+        const fileName = path.basename(filePath).replace("Bill_Notes_", "");
+        console.log(cyan(`\nExtracting contents from ${fileName}...`));
+        const result = analyze(fileName, await extractFileContents(filePath));
+        emitter(result);
+        results.push(result);
+    }
 
     const masterDevices: DeviceDocument[] = [];
-    const masterErrors: any[] = [];
+    const masterErrors: { [key: string]: string }[] = [];
     results.forEach(({ device, errors }) => {
         if (device) {
             masterDevices.push(device);
-        } else {
+        } else if (errors) {
             masterErrors.push(errors);
         }
     });
@@ -218,6 +228,8 @@ async function parseFiles(wordDocuments: string[]): Promise<DeviceDocument[]> {
     await writeOutputFile(successOut, masterDevices, total, true);
     await writeOutputFile(failOut, masterErrors, total, false);
     console.log();
+
+    terminator({ deviceCount: masterDevices.length, errorCount: masterErrors.length });
 
     return masterDevices;
 }
@@ -311,7 +323,7 @@ function analyze(fileName: string, contents: DocumentContents): AnalysisResult {
         embeddedFileNames,
         __images: imageUrls
     };
-    const errors: any = { fileName };
+    const errors: { [key: string]: string } = { fileName };
 
     for (const key of deviceKeys) {
         const { exp, transformer, matchIndex, required } = RegexMap.get(key)!;
