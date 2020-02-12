@@ -45,6 +45,8 @@ import { CognitiveServices } from "../../../cognitive_services/CognitiveServices
 import { RichTextField } from "../../../../new_fields/RichTextField";
 import { List } from "../../../../new_fields/List";
 import { DocumentViewProps } from "../../nodes/DocumentView";
+import { CollectionDockingView } from "../CollectionDockingView";
+import { MainView } from "../../MainView";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
@@ -80,6 +82,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private _hitCluster = false;
     private _layoutComputeReaction: IReactionDisposer | undefined;
     private _layoutPoolData = new ObservableMap<string, any>();
+    @observable private _pullCoords: number[] = [0, 0];
+    @observable private _pullDirection: string = "";
 
     public get displayName() { return "CollectionFreeFormView(" + this.props.Document.title?.toString() + ")"; } // this makes mobx trace() statements more descriptive
     @observable.shallow _layoutElements: ViewDefResult[] = []; // shallow because some layout items (eg pivot labels) are just generated 'divs' and can't be frozen as observables
@@ -454,10 +458,23 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         }
                         return false;
                     });
-                    const inkFields = inks.map(i => Cast(i.data, InkField));
-                    CognitiveServices.Inking.Appliers.InterpretStrokes(inkFields.filter(i => i instanceof InkField).map(i => i!.inkData)).then((results) => {
+                    // const inkFields = inks.map(i => Cast(i.data, InkField));
+                    const strokes: InkData[] = [];
+                    inks.forEach(i => {
+                        const d = Cast(i.data, InkField);
+                        const x = NumCast(i.x);
+                        const y = NumCast(i.y);
+                        const left = Math.min(...d?.inkData.map(pd => pd.X) ?? [0]);
+                        const top = Math.min(...d?.inkData.map(pd => pd.Y) ?? [0]);
+                        if (d) {
+                            strokes.push(d.inkData.map(pd => ({ X: pd.X + x - left, Y: pd.Y + y - top })));
+                        }
+                    });
+                    console.log(strokes)
+
+                    CognitiveServices.Inking.Appliers.InterpretStrokes(strokes).then((results) => {
+                        console.log(results);
                         const wordResults = results.filter((r: any) => r.category === "inkWord");
-                        console.log(wordResults);
                         for (const word of wordResults) {
                             const indices: number[] = word.strokeIds;
                             indices.forEach(i => {
@@ -467,13 +484,13 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                                 const uniqueColors: string[] = [];
                                 Array.from(this._wordPalette.values()).forEach(c => uniqueColors.indexOf(c) === -1 && uniqueColors.push(c));
                                 inks[i].alternativeColors = new List<string>(uniqueColors);
-                                if (this._wordPalette.has(word.recognizedText)) {
-                                    inks[i].color = this._wordPalette.get(word.recognizedText);
+                                if (this._wordPalette.has(word.recognizedText.toLowerCase())) {
+                                    inks[i].color = this._wordPalette.get(word.recognizedText.toLowerCase());
                                 }
                                 else {
                                     for (const alt of word.alternates) {
-                                        if (this._wordPalette.has(alt.recognizedString)) {
-                                            inks[i].color = this._wordPalette.get(alt.recognizedString);
+                                        if (this._wordPalette.has(alt.recognizedString.toLowerCase())) {
+                                            inks[i].color = this._wordPalette.get(alt.recognizedString.toLowerCase());
                                             break;
                                         }
                                     }
@@ -596,7 +613,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             const myTouches = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true);
             const pt1 = myTouches[0];
             const pt2 = myTouches[1];
-            console.log(myTouches);
 
             if (this.prevPoints.size === 2) {
                 const oldPoint1 = this.prevPoints.get(pt1.identifier);
@@ -625,7 +641,14 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         // use the centerx and centery as the "new mouse position"
                         const centerX = Math.min(pt1.clientX, pt2.clientX) + Math.abs(pt2.clientX - pt1.clientX) / 2;
                         const centerY = Math.min(pt1.clientY, pt2.clientY) + Math.abs(pt2.clientY - pt1.clientY) / 2;
-                        this.pan({ clientX: centerX, clientY: centerY });
+
+                        if (!this._pullDirection) { // if we are not bezel movement
+                            this.pan({ clientX: centerX, clientY: centerY });
+                        } else {
+                            this._pullCoords = [centerX, centerY];
+                            console.log(MainView.Instance.flyoutWidth);
+                        }
+
                         this._lastX = centerX;
                         this._lastY = centerY;
                     }
@@ -650,6 +673,23 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 const centerY = Math.min(pt1.clientY, pt2.clientY) + Math.abs(pt2.clientY - pt1.clientY) / 2;
                 this._lastX = centerX;
                 this._lastY = centerY;
+
+                // determine if we are using a bezel movement
+                if ((this.props.PanelWidth() - this._lastX) < 100) {
+                    this._pullCoords = [this._lastX, this._lastY];
+                    this._pullDirection = "right";
+                } else if (this._lastX < 100) {
+                    this._pullCoords = [this._lastX, this._lastY];
+                    this._pullDirection = "left";
+                } else if (this.props.PanelHeight() - this._lastY < 100) {
+                    this._pullCoords = [this._lastX, this._lastY];
+                    this._pullDirection = "bottom";
+                } else if (this._lastY < 120) { // to account for header
+                    this._pullCoords = [this._lastX, this._lastY];
+                    this._pullDirection = "top";
+                }
+
+
                 this.removeMoveListeners();
                 this.addMoveListeners();
                 this.removeEndListeners();
@@ -660,11 +700,38 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     cleanUpInteractions = () => {
+
+        switch (this._pullDirection) {
+
+            case "left":
+                console.log('pulled from left');
+                CollectionDockingView.AddSplit(Docs.Create.FreeformDocument([], { title: "New Collection" }), "left", undefined);
+                break;
+            case "right":
+                console.log('pulled from right');
+                CollectionDockingView.AddSplit(Docs.Create.FreeformDocument([], { title: "New Collection" }), "right", undefined);
+                break;
+            case "top":
+                console.log('pulled from top');
+                CollectionDockingView.AddSplit(Docs.Create.FreeformDocument([], { title: "New Collection" }), "top", undefined);
+                break;
+            case "bottom":
+                console.log('pulled from bottom');
+                CollectionDockingView.AddSplit(Docs.Create.FreeformDocument([], { title: "New Collection" }), "bottom", undefined);
+                break;
+            default:
+                break;
+        }
+
+        this._pullDirection = "";
+        this._pullCoords = [0, 0];
+
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
         this.removeMoveListeners();
         this.removeEndListeners();
     }
+
 
     @action
     zoom = (pointX: number, pointY: number, deltaY: number): void => {
@@ -1089,7 +1156,24 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             {!this.Document._LODdisable && !this.props.active() && !this.props.isAnnotationOverlay && !this.props.annotationsKey && this.props.renderDepth > 0 ? // && this.props.CollectionView && lodarea < NumCast(this.Document.LODarea, 100000) ?
                 this.placeholder : this.marqueeView}
             <CollectionFreeFormOverlayView elements={this.elementFunc} />
-        </div>;
+
+            <div className={"pullpane-indicator"}
+                style={{
+                    display: this._pullDirection ? "block" : "none",
+                    // width: this._pullDirection === "left" || this._pullDirection === "right" ? Math.abs(this.props.PanelWidth() - this._pullCoords[0]) : this.props.PanelWidth(),
+                    // height: this._pullDirection === "top" || this._pullDirection === "bottom" ? Math.abs(this.props.PanelHeight() - this._pullCoords[1]) : this.props.PanelHeight(),
+                    // top: this._pullDirection === "bottom" ? this._pullCoords[0] : 0,
+                    // left: this._pullDirection === "right" ? this._pullCoords[1] : 0
+                    width: this._pullDirection === "left" ? this._pullCoords[0] : this._pullDirection === "right" ? MainView.Instance.getPWidth() - this._pullCoords[0] + MainView.Instance.flyoutWidth : MainView.Instance.getPWidth(),
+                    height: this._pullDirection === "top" ? this._pullCoords[1] : this._pullDirection === "bottom" ? MainView.Instance.getPHeight() - this._pullCoords[1] : MainView.Instance.getPHeight(),
+                    left: this._pullDirection === "right" ? undefined : 0,
+                    right: this._pullDirection === "right" ? 0 : undefined,
+                    top: this._pullDirection === "bottom" ? undefined : 0,
+                    bottom: this._pullDirection === "bottom" ? 0 : undefined
+                }}>
+            </div>
+
+        </div >;
     }
 }
 
