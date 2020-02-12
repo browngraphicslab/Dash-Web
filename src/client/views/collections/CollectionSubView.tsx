@@ -85,7 +85,10 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             this._childLayoutDisposer && this._childLayoutDisposer();
         }
 
-        @computed get dataDoc() { return this.props.DataDoc && this.props.Document.isTemplateForField ? Doc.GetProto(this.props.DataDoc) : Doc.GetProto(this.props.Document); }
+        @computed get dataDoc() {
+            return (this.props.DataDoc && this.props.Document.isTemplateForField ? Doc.GetProto(this.props.DataDoc) :
+                this.props.Document.resolvedDataDoc ? this.props.Document : Doc.GetProto(this.props.Document)); // if the layout document has a resolvedDataDoc, then we don't want to get its parent which would be the unexpanded template
+        }
 
         // The data field for rendering this collection will be on the this.props.Document unless we're rendering a template in which case we try to use props.DataDoc.
         // When a document has a DataDoc but it's not a template, then it contains its own rendering data, but needs to pass the DataDoc through

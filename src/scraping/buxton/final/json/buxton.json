@@ -18,9 +18,9 @@
             "3DCad_Brochure.jpg"
         ],
         "__images": [
-            "/files/images/buxton/upload_793981b0-d7da-45d1-a643-596cc3834166.png",
-            "/files/images/buxton/upload_6259e28a-055e-4b02-b547-e72c5e6fa3c0.png",
-            "/files/images/buxton/upload_4f4fb80f-467a-41e7-9bf5-1b1f377b2ec4.png"
+            "/files/images/buxton/upload_8396a3a2-9ec1-4707-af14-b61c08f40388.png",
+            "/files/images/buxton/upload_1c03cd29-0114-42f6-8016-467f708809e1.png",
+            "/files/images/buxton/upload_552b2a04-4c7c-453c-8153-4976f6dae47e.png"
         ],
         "title": "3Dconnexion CadMan 3D Motion Controller",
         "company": "3Dconnexion",
@@ -38,6 +38,63 @@
         },
         "shortDescription": "The CadMan is a 6 degree of freedom (DOF) joystick controller. It represented a significant step towards making this class of is controller affordable. It was mainly directed at 3D modelling and animation and was a “next generation” of the Magellan controller, which is also in the collection.",
         "longDescription": "The CadMan is a 6 degree of freedom (DOF) joystick controller. It represented a significant step towards making this class of is controller more affordable. It was mainly directed at 3D modelling and animation and was a “next generation” of the Magellan/SpaceMouse controller, which is also in the collection. Like the Magellan, this is an isometric rate-control joystick. That is, it rests in a neutral central position, not sending and signal. When a force is applied to it, it emits a signal indicating the direction and strength of that force. This signal can then be mapped to a parameter of a selected object, such as a sphere, and – for example – cause that sphere to rotate for as long as, and as fast as, and in the direction determined by, the duration, force, and direction of the applied force. When released, it springs back to neutral position. Note that the force does not need to be directed along a single DOF. In fact, a core feature of the device is that one can simultaneously and independently apply force that asserts control over more than one DOF, and furthermore, vary those forces dynamically. As an aid to understanding, let me walk through some of the underlying concepts at play here by using a more familiar device: a computer mouse. If you move a mouse in a forward/backward direction, the mouse pointer on the screen moves between the screen’s top and bottom. If you think of the screen as a piece of graph paper, that corresponds to moving along the “Y” axis. That is one degree of freedom. On the other hand, you could move the mouse left and right, which causes the mouse to move between the left and right side of the screen. That would correspond to moving along the graph paper’s “X” axis – a second degree of freedom. Yet, you can also move the mouse diagonally. This is an example of independently controlling two degrees of freedom. Now imagine that if you lifted your mouse off your desktop, that your computer could dynamically sense its height as you did so. This would constitute a “flying mouse” (the literal translation of the German word for a “Bat”, which Canadian colleague, Colin Ware, applied to just such a mouse which he built in 1988). If you moved your Bat vertically up and down, perpendicular to the desktop, you would be controlling movement along the “Z” axis - a third degree of freedom. Having already seen that we can move a mouse diagonally, we have established that we need not be constrained to only moving along a single axis. That extends to the movement of our Bat and movement along the “Z” axis. We can control our hand movement in dependently in any or all directions in 3D space. But how does one reconcile the fact that we call the CadMan a “3D controller, and yet also describe it as having 6 degrees of freedom? Yes, as described, our bat can fly in 3D, but on the other hand, its range of movement within those 3 dimensions is much richer. To demonstrate this, move your hand in 3D space on and above your desktop. However, do so keeping your palm flat, parallel to the desktop with your fingers pointing directly forward. In so doing, you are still moving in 3D. Now, while moving, twist your wrist, while moving the hand, such that your palm is alternatively exposed to the left and right side. This constitutes rotation around the “Y” axis. A fourth DOF. Now add a waving motion to your hand, as if it were a paper airplane diving up and down, while also rocking left and right. But keep your fingers pointing forward. You have now added a fifth DOF, rotation around the “X” axis. Finally, add a twist to your wrist so that your fingers are no longer constrained to pointing forward. This is the sixth degree of freedom, rotation around the “Z” axis. Now don’t be fooled, this exercise could continue. We are not restricted to even six DOF. Imagine doing the above, but where the movement and rotations are measured relative to the Bat’s position and orientation, rather than to the holding/controlling hand, per se. One could imagine the Bat having a scroll wheel, like the one on most mice today. Furthermore, while flying your Bat around in 3D, that wheel could easily be rolled in either forward or backward, and thereby control the size of whatever was being controlled. Hence, with one hand we could assert simultaneous and independent control over 7 DOF in 3D space. This exercise has two intended take-aways. The first is a better working understanding between the notion of Degree of Freedom (DOF) and Dimension in space. Hopefully, the confusion frequently encountered when 3D and 6DOF are used in close context, can now be eliminated. Second, is that, with appropriate sensing, the human hand is capable of exercising control over far more degrees of freedom that six. And if we use the two hands together, the potential number of DOF that one can control goes even further. Finally, it is important to add one more take-away – one which both emerges from, and is frequently encountered when discussing, the previous two. That is, do not equate exercising simultaneous control over a high number of DOF with consciously doing the same number of different things all at once. The example that used to be thrown at me when I started talking about coordinated simultaneously bi-manual action went along the lines of, “Psychology tells us that we cannot do multiple things at once, for example, simultaneously tapping your head and rubbing your stomach. ”Well, first, I can tap my head with one hand while rubbing my stomach with the other. But that is not the point. The whole essence of skill – motor-sensory and cognitive – is “chunking” or task integration. When one appears to be doing many different things at once, if they are skilled, they are consciously doing only one thing. Playing a chord on the piano, for example, or skiing down the hill. Likewise, in flying your imaginary BAT in the previous exercise with the scroll wheel, were you doing 7 things at once, or one thing with 7 DOF? And if you had a Bat in each hand, does that mean you are now doing 14 things at once, or are you doing one thing with 14 DOF? Let me provide a different way of answering this question: if you have ever played air guitar, or “conducted” the orchestra that you are listening to on the radio, you are exercising control over more than 14 DOF. And you are doing exactly what I just said, “playing air guitar” or “conducting an orchestra”. One thing – at the conscious level, which is what matters – despite almost any one thing being able to be deconstructed into hundreds of sub-tasks. As I said the essence of skill: aggregation, or chunking. What is most important for both tool designers and users to be mindful of, is the overwhelming influence that our choice and design of tools impacts the degree to which such integration or chunking can take place. The degree to which the tool matches both the skills that we have already acquired through a lifetime of living in the everyday world, and the demands of the intended task, the more seamless that task can be performed, the more “natural” it will feel, and the less learning will be required. In my experience, it brought particular value when used bimanually, in combination with a mouse, where the preferred hand performed conventional pointing, selection and dragging tasks, while the non-preferred hand could manipulate the parameters of the thing being selected. First variation of the since the 2001 formation of 3Dconnextion. The CadMan came in 5 colours: smoke, orange, red, blue and green. See the notes for the LogiCad3D Magellan for more details on this class of device. It is the “parent” of the CadMan, and despite the change in company name, it comes from the same team."
+    },
+    {
+        "hyperlinks": [
+            "http://research.microsoft.com/en-us/um/people/bibuxton/buxtoncollection/acknowledgements.aspx",
+            "SpaceNavigator_Press_Release.pdf",
+            "http://research.microsoft.com/en-us/um/people/bibuxton/buxtoncollection/browse.aspx",
+            "https://web.archive.org/web/20061205222533/http://www.3dconnexion.com:80/products/3a1d.php",
+            "3DConnexion_SpaceNavigator/SpaceNavigator_Launch_Web_Page.pdf",
+            "http://research.microsoft.com/en-us/um/people/bibuxton/buxtoncollection/default.aspx",
+            "https://www.pcmag.com/article2/0,2817,2082798,00.asp",
+            "http://research.microsoft.com/en-us/um/people/bibuxton/buxtoncollection/default.aspx",
+            "SpaceNavigator_Launch_Web_Page.pdf",
+            "http://research.microsoft.com/en-us/um/people/bibuxton/buxtoncollection/contact.aspx",
+            "Navigator_Data_Sheet_2006.pdf",
+            "3DConnexion_SpaceNavigator/SpaceNavigator_Press_Release.pdf"
+        ],
+        "captions": [
+            "The 3Dconnexion SpaceNavigator 6DOF Joystick.",
+            "The 3Dconnexion SpaceNavigator adjacent to ruler in order to show scale.",
+            "Diagram from SpaceNavigator Data Sheet illustrating the directions of force which control each of the 6DOF.",
+            "Page 1 of the SpaceNavigarot Data Sheet.(Click on image to access full document.)",
+            "A page from the launch web site of the SpaceNavigator.(Click on image to access full document.)",
+            "Front page of the press release announcing the launch of the SpaceNavigator.(Click on image to access full document.)"
+        ],
+        "embeddedFileNames": [
+            "SpaceNavigator_01.JPG",
+            "SpaceNavigator_02.JPG",
+            "SpaceNavigator_Control_Axes.jpg",
+            "Navigator_Data_Sheet_2006.jpg",
+            "SpaceNavigator_Launch_Web_Page.jpg",
+            "SpaceNavigator_Press_Release.jpg"
+        ],
+        "__images": [
+            "/files/images/buxton/upload_11debe1a-f991-4c2f-be98-0d42e80fd1e4.jpg",
+            "/files/images/buxton/upload_40359203-b8fc-4b9f-8ce6-a55fed65441e.png",
+            "/files/images/buxton/upload_579c375e-ebbe-46dc-bb75-9f9238b6f3ff.png",
+            "/files/images/buxton/upload_f2188d31-5397-4f21-a20e-36944eaacb89.jpg",
+            "/files/images/buxton/upload_a149da03-e294-46ab-8054-fb730f3cb8f6.png",
+            "/files/images/buxton/upload_1c77aeb0-a08c-413a-91d7-002de76a7a20.png",
+            "/files/images/buxton/upload_a0beeeb8-f7f4-41f6-bd99-be01beaae63e.png"
+        ],
+        "title": "3Dconnexion SpaceNavigator ",
+        "company": "3Dconnexion",
+        "year": 2006,
+        "primaryKey": "Joystick",
+        "secondaryKey": "Dial",
+        "attribute": "Isometric",
+        "originalPrice": 59,
+        "degreesOfFreedom": 6,
+        "dimensions": {
+            "dim_length": 78,
+            "dim_width": 78,
+            "dim_height": 53,
+            "dim_unit": "mm"
+        },
+        "shortDescription": "The SpaceNavigator is an entry level 6DOF joystick for the interactive 3D market. It came in a “Personal” and “Standard” edition, at $59. 00 and $99. 00 USD, respectively. These were break-through prices which opened up this technology (which cost $1, 595. 00 in 1991) to gamers and consumers. Doing so was necessary, since the high-end professional 3D graphics market was relatively small, and not growing anywhere near as fast as the consumer and gaming market.",
+        "longDescription": "The SpaceNavigator is an entry level 6DOF joystick for the interactive 3D market. It came in a “Personal” and “Standard” edition, at $59. 00 and $99. 00 USD, respectively. These were break-through prices which opened up this technology (which cost $1, 595. 00 in 1991) to gamers and consumers. Doing so was necessary, since the high-end professional 3D graphics market was relatively small, and not growing anywhere near as fast as the consumer and gaming market. As illustrated in an accompanying image, the direction of the force which controls each of the 6 degrees of freedom of the SpaceNavigator are: Move Left-Right: Push/Pull left-right parallel to the desktop. Move Forward-Backward: Push/Pull forward-backward parallel to the desktop. Move Vertically, Up-Down: Push down vertically into the table or pull up vertically away from the tableTilt Left-Right: Tilt the joystick left-rightTilt Forward-Backward: Tilt joystick forward-backwardRotate around vertical axis: Twist the joystick clockwise or counter clockwise. Control of these 6 DOF can be combined. For example, you can rotate/roll right while spinning. Besides gaming, one of the hopes was that this device would be used in interacting with 3D programs like Google Earth. The problem was, however, that there were few such programs then, just as now, relatively speaking, and even Google Earth, while remarkable, is not used anywhere as frequently of 2D Google Maps, for example. For those of us in the 3D graphics market, it was fantastic with respect to animation, games and industrial design. But it never took off, no matter how seductive it was. And, the interesting question is, will VR and AR change that? And if so, how will this class of 6DOF device play in that market?"
     },
     {
         "hyperlinks": [
@@ -63,11 +120,11 @@
             "SpaceMouse_Plus_Info_Sheet.jpg"
         ],
         "__images": [
-            "/files/images/buxton/upload_4a6cbfa8-964b-41d3-9f24-7d1aed22cd79.jpg",
-            "/files/images/buxton/upload_8c33d572-07da-4599-944c-eb2370b16a63.png",
-            "/files/images/buxton/upload_9afc5cca-6208-4944-a0f6-1c3fcd41fdcf.png",
-            "/files/images/buxton/upload_74e79798-9c9e-4c54-b42f-5813f218bc63.png",
-            "/files/images/buxton/upload_2bea6876-dc4e-4681-a1d3-433caec163c1.png"
+            "/files/images/buxton/upload_30f4892d-deb7-40f0-8cf6-f350aa4eb7a0.jpg",
+            "/files/images/buxton/upload_441f5294-f3fb-4d57-a58b-b6235de7a117.png",
+            "/files/images/buxton/upload_4bda82c6-00d0-4b34-8654-36461db9cea5.png",
+            "/files/images/buxton/upload_5becb1a5-aaff-4137-86c2-3e3de3250d3b.png",
+            "/files/images/buxton/upload_8411549d-d401-414c-aa37-a3d01d39101f.png"
         ],
         "title": "3Dconnexion Magellan/SpaceMouse Plus",
         "company": "3Dconnexion",
@@ -114,13 +171,13 @@
             "SpaceBall_5000_Data_Sheet.jpg"
         ],
         "__images": [
-            "/files/images/buxton/upload_94e39580-5cca-46e9-ae49-ab6cd2fe3cad.jpg",
-            "/files/images/buxton/upload_eacee8a5-9849-4401-9c38-aa46fc0f517b.png",
-            "/files/images/buxton/upload_9b0b1f35-ac7c-4160-8806-8d243223872b.png",
-            "/files/images/buxton/upload_cf0c6e39-9ae6-48ce-90bd-d9f335503439.png",
-            "/files/images/buxton/upload_b4285b9f-26cd-4de5-8e37-c4e563c3e7f6.jpg",
-            "/files/images/buxton/upload_5b6ff31b-81b2-4a74-8591-27730c24225b.jpg",
-            "/files/images/buxton/upload_64dcea06-3b35-4979-bf40-5dfa5d4668b1.jpg"
+            "/files/images/buxton/upload_aedc76dd-7be5-4320-9938-7a01411024a2.jpg",
+            "/files/images/buxton/upload_d22b6f52-b5b2-47f3-88d2-6da98ae4a7f5.png",
+            "/files/images/buxton/upload_c4a9404f-05d4-44d4-bca0-00aad6fa4698.png",
+            "/files/images/buxton/upload_2a42083d-dc57-4534-aa4f-74e775fb0041.png",
+            "/files/images/buxton/upload_0743bb48-4c98-4a80-847e-3e33ea6ec939.jpg",
+            "/files/images/buxton/upload_4bae0ed1-e854-40ec-bc5f-91522bfb3ee9.jpg",
+            "/files/images/buxton/upload_cd885d1b-1efc-4732-97de-1258bc1bce0d.jpg"
         ],
         "title": "3Dconnexion Spaceball 5000",
         "company": "3Dconnexion",
@@ -138,63 +195,6 @@
         },
         "shortDescription": "This is an improved version of the original 1991 SpaceBall, manufactured by SpaceBall Technologies. It is a good example of how products improve as the market grows, while the price goes down. The original model sold for $1, 595. 00 USD, while this for $499. 00.",
         "longDescription": "This is an improved version of the original 1991 SpaceBall, manufactured by SpaceBall Technologies. It is a good example of how products improve as the market grows, while the price goes down. The original model sold for $1, 595. 00 USD, while this for $499. 00. This version of the SpaceBall illustrates how the form-factor of the original version has changed over time. There are now 12 programmable function keys, 9 to be operated by the fingers on one side, and 3 to be operated by the thumb on the other. Note how the button placement indicates that the device is intended to be used by the left hand, with an accompanying mouse by the right – that is, by being meant for the left hand, it is intended for a right handed person."
-    },
-    {
-        "hyperlinks": [
-            "http://research.microsoft.com/en-us/um/people/bibuxton/buxtoncollection/acknowledgements.aspx",
-            "SpaceNavigator_Press_Release.pdf",
-            "http://research.microsoft.com/en-us/um/people/bibuxton/buxtoncollection/browse.aspx",
-            "https://web.archive.org/web/20061205222533/http://www.3dconnexion.com:80/products/3a1d.php",
-            "3DConnexion_SpaceNavigator/SpaceNavigator_Launch_Web_Page.pdf",
-            "http://research.microsoft.com/en-us/um/people/bibuxton/buxtoncollection/default.aspx",
-            "https://www.pcmag.com/article2/0,2817,2082798,00.asp",
-            "http://research.microsoft.com/en-us/um/people/bibuxton/buxtoncollection/default.aspx",
-            "SpaceNavigator_Launch_Web_Page.pdf",
-            "http://research.microsoft.com/en-us/um/people/bibuxton/buxtoncollection/contact.aspx",
-            "Navigator_Data_Sheet_2006.pdf",
-            "3DConnexion_SpaceNavigator/SpaceNavigator_Press_Release.pdf"
-        ],
-        "captions": [
-            "The 3Dconnexion SpaceNavigator 6DOF Joystick.",
-            "The 3Dconnexion SpaceNavigator adjacent to ruler in order to show scale.",
-            "Diagram from SpaceNavigator Data Sheet illustrating the directions of force which control each of the 6DOF.",
-            "Page 1 of the SpaceNavigarot Data Sheet.(Click on image to access full document.)",
-            "A page from the launch web site of the SpaceNavigator.(Click on image to access full document.)",
-            "Front page of the press release announcing the launch of the SpaceNavigator.(Click on image to access full document.)"
-        ],
-        "embeddedFileNames": [
-            "SpaceNavigator_01.JPG",
-            "SpaceNavigator_02.JPG",
-            "SpaceNavigator_Control_Axes.jpg",
-            "Navigator_Data_Sheet_2006.jpg",
-            "SpaceNavigator_Launch_Web_Page.jpg",
-            "SpaceNavigator_Press_Release.jpg"
-        ],
-        "__images": [
-            "/files/images/buxton/upload_73511beb-f2bf-4f28-a1ea-64ef52a00426.jpg",
-            "/files/images/buxton/upload_4e088fb4-e5ff-4a1b-ba88-5f4575c86fe3.png",
-            "/files/images/buxton/upload_876a9921-3eb1-4c35-99e3-b82924fb88c4.png",
-            "/files/images/buxton/upload_d23c2886-c2b9-4558-9bfb-966aca7be20e.jpg",
-            "/files/images/buxton/upload_aef9171b-2e19-4fcb-b2dc-2281e89d498b.png",
-            "/files/images/buxton/upload_bbdaf252-1689-4680-8b19-ec5e79088e44.png",
-            "/files/images/buxton/upload_4cf49440-cf6b-484d-8391-3a2b0fae2b7e.png"
-        ],
-        "title": "3Dconnexion SpaceNavigator ",
-        "company": "3Dconnexion",
-        "year": 2006,
-        "primaryKey": "Joystick",
-        "secondaryKey": "Dial",
-        "attribute": "Isometric",
-        "originalPrice": 59,
-        "degreesOfFreedom": 6,
-        "dimensions": {
-            "dim_length": 78,
-            "dim_width": 78,
-            "dim_height": 53,
-            "dim_unit": "mm"
-        },
-        "shortDescription": "The SpaceNavigator is an entry level 6DOF joystick for the interactive 3D market. It came in a “Personal” and “Standard” edition, at $59. 00 and $99. 00 USD, respectively. These were break-through prices which opened up this technology (which cost $1, 595. 00 in 1991) to gamers and consumers. Doing so was necessary, since the high-end professional 3D graphics market was relatively small, and not growing anywhere near as fast as the consumer and gaming market.",
-        "longDescription": "The SpaceNavigator is an entry level 6DOF joystick for the interactive 3D market. It came in a “Personal” and “Standard” edition, at $59. 00 and $99. 00 USD, respectively. These were break-through prices which opened up this technology (which cost $1, 595. 00 in 1991) to gamers and consumers. Doing so was necessary, since the high-end professional 3D graphics market was relatively small, and not growing anywhere near as fast as the consumer and gaming market. As illustrated in an accompanying image, the direction of the force which controls each of the 6 degrees of freedom of the SpaceNavigator are: Move Left-Right: Push/Pull left-right parallel to the desktop. Move Forward-Backward: Push/Pull forward-backward parallel to the desktop. Move Vertically, Up-Down: Push down vertically into the table or pull up vertically away from the tableTilt Left-Right: Tilt the joystick left-rightTilt Forward-Backward: Tilt joystick forward-backwardRotate around vertical axis: Twist the joystick clockwise or counter clockwise. Control of these 6 DOF can be combined. For example, you can rotate/roll right while spinning. Besides gaming, one of the hopes was that this device would be used in interacting with 3D programs like Google Earth. The problem was, however, that there were few such programs then, just as now, relatively speaking, and even Google Earth, while remarkable, is not used anywhere as frequently of 2D Google Maps, for example. For those of us in the 3D graphics market, it was fantastic with respect to animation, games and industrial design. But it never took off, no matter how seductive it was. And, the interesting question is, will VR and AR change that? And if so, how will this class of 6DOF device play in that market?"
     },
     {
         "hyperlinks": [
@@ -222,12 +222,12 @@
             "3M_2006_Catalogue_p18.jpg"
         ],
         "__images": [
-            "/files/images/buxton/upload_02df5121-8eff-452c-a52b-a44238afc06d.jpg",
-            "/files/images/buxton/upload_169aa4ee-4c34-43a2-8302-48bb3b7a01b6.jpg",
-            "/files/images/buxton/upload_a4d11c27-e4fa-4912-96da-3d971ec49ca0.jpg",
-            "/files/images/buxton/upload_7e9e1862-72e7-4f0d-8451-36de8c1bbe9c.jpg",
-            "/files/images/buxton/upload_76fa705f-2470-439c-acf6-03482d7a9570.jpg",
-            "/files/images/buxton/upload_7b6dd2c9-b88f-4958-a4d0-94bb42172e26.jpg"
+            "/files/images/buxton/upload_4e56b4a5-8324-47ca-9454-a8802021b652.jpg",
+            "/files/images/buxton/upload_743fe56a-d682-4ab5-b73e-f6abba2d8d3b.jpg",
+            "/files/images/buxton/upload_a8745808-f9df-4157-8cbe-e6e8ec346004.jpg",
+            "/files/images/buxton/upload_769673c7-5968-47a9-b75d-1ee047aa4c49.jpg",
+            "/files/images/buxton/upload_a08b85cf-d3ee-47f0-82ec-0527cec63e01.jpg",
+            "/files/images/buxton/upload_cf9b360a-9716-4cb1-930f-9c467a6fcd47.jpg"
         ],
         "title": "3M EM500 Ergonomic Mouse",
         "company": "3M",
@@ -268,13 +268,13 @@
             "Abaton_ProPoint_Brochure.jpg"
         ],
         "__images": [
-            "/files/images/buxton/upload_37169968-d329-40c5-9483-6bc198edc43c.jpg",
-            "/files/images/buxton/upload_64731ea4-a3aa-43ec-a56d-d4f6ecba7cf0.jpg",
-            "/files/images/buxton/upload_c41feac8-3b98-4d85-b9c7-79b3482a0695.jpg",
-            "/files/images/buxton/upload_5f67807b-f61b-4816-b93f-6d88c95b2418.jpg",
-            "/files/images/buxton/upload_a3e3cab8-48ab-43c2-bed9-5cc0ce68928d.jpg",
-            "/files/images/buxton/upload_4c3ac379-6703-4c87-a4a0-ca450a1151d2.jpg",
-            "/files/images/buxton/upload_8df14dc0-d75d-41f0-9e70-a221598d3df3.jpg"
+            "/files/images/buxton/upload_b038a3ce-6ab6-40fc-8ac9-802e8e0be599.jpg",
+            "/files/images/buxton/upload_84a23406-fc2c-4536-9894-d846c7970931.jpg",
+            "/files/images/buxton/upload_9b7b420e-ddfb-4d9d-ae63-f54b27862457.jpg",
+            "/files/images/buxton/upload_2e3fb2af-f3b9-45c5-90a9-f7986ce791d4.jpg",
+            "/files/images/buxton/upload_d4bde3ed-1712-4e47-8221-49fd2053c07a.jpg",
+            "/files/images/buxton/upload_a858df0c-e87c-4a23-a397-5fae47ff2ef2.jpg",
+            "/files/images/buxton/upload_b0b9fdcd-cd0f-4bcb-9687-bb24b9224ec9.jpg"
         ],
         "title": "Abaton ProPoint Optical Trackball",
         "company": "Abaton",
@@ -305,8 +305,8 @@
             "Active_Book_Brochure_p1.jpg"
         ],
         "__images": [
-            "/files/images/buxton/upload_9c8aa6a2-570f-4915-b840-504c8531c341.jpg",
-            "/files/images/buxton/upload_fbb7ad12-2a5d-4f76-89a9-ec30d7260031.png"
+            "/files/images/buxton/upload_27da6de1-8275-4b87-add8-5d6cf20dc353.jpg",
+            "/files/images/buxton/upload_a8df63c9-acb7-429f-9a86-8dfd53eac317.png"
         ],
         "title": "Active Book Company Active Book Prototype",
         "company": "Active Book Company",
@@ -342,11 +342,11 @@
             "Adesso_ACK-540PW_June 21_2003.jpg"
         ],
         "__images": [
-            "/files/images/buxton/upload_967656ff-44d7-4693-bcb0-dc0eab204413.jpg",
-            "/files/images/buxton/upload_9ffd4ccb-8ca5-4926-8fa2-38277b2ccfb6.jpg",
-            "/files/images/buxton/upload_22399981-f8c0-46e0-953c-89f7eb043ad2.jpg",
-            "/files/images/buxton/upload_15ad02a9-123f-4e7e-94c5-d959076520f0.jpg",
-            "/files/images/buxton/upload_8905097a-3568-4d37-9ad3-126a0e429f12.jpg"
+            "/files/images/buxton/upload_2d07ac10-f9cd-4c51-a6d6-9367699a661e.jpg",
+            "/files/images/buxton/upload_8e8a8720-ec0a-44e2-8d38-bc280cf55b08.jpg",
+            "/files/images/buxton/upload_341a5e96-59b5-4f3a-9572-5693b2f7f4fa.jpg",
+            "/files/images/buxton/upload_c6177050-e805-4ad4-ba69-f58047bde8e7.jpg",
+            "/files/images/buxton/upload_234bd02a-a0c3-4c07-933a-4457b115362c.jpg"
         ],
         "title": "Adesso ACK-540PB PS/2 Mini PS/2 Touchpad Keyboard",
         "company": "Adesso",
@@ -405,17 +405,17 @@
             "Adesso_KP_Mouse_11_Product.JPG"
         ],
         "__images": [
-            "/files/images/buxton/upload_5bc99192-0935-4f6d-8d6c-a2218d55b359.jpg",
-            "/files/images/buxton/upload_52a6212e-c79d-4ec6-86a0-a3ca4ea54387.jpg",
-            "/files/images/buxton/upload_997acb64-0e08-4af2-b0e3-0b86a18bace5.jpg",
-            "/files/images/buxton/upload_00586980-0a08-43e1-9721-c2f5dcd1079e.jpg",
-            "/files/images/buxton/upload_3f695b11-dc1d-4d54-abec-eacfac80bdc7.jpg",
-            "/files/images/buxton/upload_161f1420-9594-4dca-ba62-1ca32e9a2028.jpg",
-            "/files/images/buxton/upload_a8b4ea6e-f1f8-47db-a796-72f566e60e6f.jpg",
-            "/files/images/buxton/upload_b6365e4e-4656-4bbf-aec6-feb920be6df9.jpg",
-            "/files/images/buxton/upload_1a0e9061-39e1-4dec-8add-5cc1abd110b5.jpg",
-            "/files/images/buxton/upload_d9bba544-f2b1-4a15-81e5-0d10e60d7881.jpg",
-            "/files/images/buxton/upload_56d486df-d7bb-44b0-80ad-c41c63590bae.jpg"
+            "/files/images/buxton/upload_dc960b02-0ffb-4d43-be53-e44e79ca29d2.jpg",
+            "/files/images/buxton/upload_0d60cf7f-5bb6-4a33-b219-d04a5d6fb85e.jpg",
+            "/files/images/buxton/upload_0d3fd05f-71ad-405b-8d3b-bf66c38db405.jpg",
+            "/files/images/buxton/upload_89334d96-d365-4a11-9e88-cc93abeaf729.jpg",
+            "/files/images/buxton/upload_48d36841-0270-4697-9222-6ef53f9650b3.jpg",
+            "/files/images/buxton/upload_dd63a33a-c85d-4fd9-a54e-4dfcbdc9af92.jpg",
+            "/files/images/buxton/upload_f34c3e06-32ee-4baf-8f6d-864b3e3ed97a.jpg",
+            "/files/images/buxton/upload_98216eac-1c56-47ee-99d9-530dfb2efa2d.jpg",
+            "/files/images/buxton/upload_87dee921-aa24-4598-8d21-b16929d4fd5d.jpg",
+            "/files/images/buxton/upload_f4f73b8f-8c12-4f35-947b-258d8c88f133.jpg",
+            "/files/images/buxton/upload_f325d49e-8ebb-4428-bdbc-db89010d8e27.jpg"
         ],
         "title": "Adesso 2-in-1 Optical Keypad Calculator Mouse AKP-170",
         "company": "Adesso Inc",
@@ -477,18 +477,18 @@
             "NB75D_Mouse_Manual.jpg"
         ],
         "__images": [
-            "/files/images/buxton/upload_2db5c520-b370-4f03-8481-908e42428466.jpg",
-            "/files/images/buxton/upload_b28643eb-57a0-4602-b7cc-c41d553628b9.jpg",
-            "/files/images/buxton/upload_2478a89a-4eea-4e4c-af83-ecd292f44f3d.jpg",
-            "/files/images/buxton/upload_113d7356-f550-4491-849d-f69087c73918.jpg",
-            "/files/images/buxton/upload_44c40c44-ade6-499d-951c-4b436131e66e.jpg",
-            "/files/images/buxton/upload_d91f9756-09bc-447f-8f04-dc78344a5f11.jpg",
-            "/files/images/buxton/upload_b8c51011-5f93-43f3-85aa-b611a3b3cf93.jpg",
-            "/files/images/buxton/upload_483544a3-c3f7-4c8f-a236-def10d32f4f0.jpg",
-            "/files/images/buxton/upload_ea048294-3f57-42c3-b5b4-27062a5755dc.jpg",
-            "/files/images/buxton/upload_8eb1b9b1-9ca3-49c8-9bd4-7302a9c1f07e.jpg",
-            "/files/images/buxton/upload_029aa1d6-056d-4cf0-8eaf-b23b3d0e4317.jpg",
-            "/files/images/buxton/upload_3acc0955-da14-4a53-ac58-2e494e04ca78.jpg"
+            "/files/images/buxton/upload_7b16bc25-7d85-4da9-abc4-52ed356d2209.jpg",
+            "/files/images/buxton/upload_426c9b53-77f1-42d9-b75b-3eff2367ade3.jpg",
+            "/files/images/buxton/upload_d5d6ba18-9cf1-44d3-9301-bf37b0b1743f.jpg",
+            "/files/images/buxton/upload_de812753-cf90-4564-aad4-dd4ab798b383.jpg",
+            "/files/images/buxton/upload_1b253c1d-0bd2-42d4-a152-0ba74f854fc2.jpg",
+            "/files/images/buxton/upload_e1989f54-14e3-42b1-bff2-473c08826d56.jpg",
+            "/files/images/buxton/upload_9a1baab0-ae19-4780-b86b-9944ceda75cc.jpg",
+            "/files/images/buxton/upload_ca64659c-3df7-4686-b920-e508980e7c4a.jpg",
+            "/files/images/buxton/upload_df243abf-5e27-4f9c-93f1-9a68e81248b0.jpg",
+            "/files/images/buxton/upload_257c0440-2912-4df8-af80-7543789f4f80.jpg",
+            "/files/images/buxton/upload_1810191c-c527-4989-85ab-c83fa91439aa.jpg",
+            "/files/images/buxton/upload_101c36d0-e88e-491a-bbd6-706dd7e99261.jpg"
         ],
         "title": "A4 Tech BatteryFREE Wireless Optical Mouse Model NB-75D",
         "company": "A4Tech",
