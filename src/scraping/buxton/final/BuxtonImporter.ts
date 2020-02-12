@@ -1,15 +1,14 @@
-import { readdirSync, writeFile, mkdirSync, createWriteStream } from "fs";
+import { readdirSync, writeFile, mkdirSync } from "fs";
 import * as path from "path";
 import { red, cyan, yellow } from "colors";
 import { Utils } from "../../../Utils";
 import rimraf = require("rimraf");
-import * as sharp from 'sharp';
-import { SizeSuffix, DashUploadUtils, InjectSize } from "../../../server/DashUploadUtils";
-import { AcceptibleMedia } from "../../../server/SharedMediaTypes";
+import { DashUploadUtils } from "../../../server/DashUploadUtils";
 const StreamZip = require('node-stream-zip');
 const createImageSizeStream = require("image-size-stream");
 import { parseXml } from "libxmljs";
 import { strictEqual } from "assert";
+import { BatchedArray, TimeUnit } from "array-batcher";
 
 interface DocumentContents {
     body: string;
@@ -78,12 +77,14 @@ namespace Utilities {
     }
 
     export async function readAndParseXml(zip: any, relativePath: string) {
+        console.log(`Text streaming ${relativePath}`);
         const contents = await new Promise<string>((resolve, reject) => {
             let body = "";
             zip.stream(relativePath, (error: any, stream: any) => {
                 if (error) {
                     reject(error);
                 }
+                console.log(stream);
                 stream.on('data', (chunk: any) => body += chunk.toString());
                 stream.on('end', () => resolve(body));
             });
@@ -186,13 +187,13 @@ export default async function executeImport() {
 }
 
 async function parseFiles(wordDocuments: string[]): Promise<DeviceDocument[]> {
-    const imported: { fileName: string, contents: DocumentContents }[] = [];
-    for (const filePath of wordDocuments) {
-        const fileName = path.basename(filePath).replace("Bill_Notes_", "");
-        console.log(cyan(`\nExtracting contents from ${fileName}...`));
-        imported.push({ fileName, contents: await extractFileContents(filePath) });
-    }
-
+    const imported = await BatchedArray.from(wordDocuments, { batchSize: 8 }).batchedMapPatientInterval<{ fileName: string, contents: DocumentContents }>({ magnitude: 10, unit: TimeUnit.Seconds }, async (batch, collector) => {
+        for (const filePath of batch) {
+            const fileName = path.basename(filePath).replace("Bill_Notes_", "");
+            console.log(cyan(`\nExtracting contents from ${fileName}...`));
+            collector.push({ fileName, contents: await extractFileContents(filePath) });
+        }
+    });
     console.log(yellow("\nAnalyzing the extracted document text...\n"));
     const results = imported.map(({ fileName, contents }) => analyze(fileName, contents));
 
@@ -225,7 +226,9 @@ const hyperlinkXPath = '//*[name()="Relationship" and contains(@Type, "hyperlink
 async function extractFileContents(pathToDocument: string): Promise<DocumentContents> {
     console.log('Extracting text...');
     const zip = new StreamZip({ file: pathToDocument, storeEntries: true });
+    console.log(zip);
     await new Promise<void>(resolve => zip.on('ready', resolve));
+    console.log("Zip ready!");
 
     // extract the body of the document and, specifically, its captions
     const document = await Utilities.readAndParseXml(zip, "word/document.xml");
@@ -273,6 +276,7 @@ async function writeImages(zip: any): Promise<string[]> {
 
     const imageUrls: string[] = [];
     for (const mediaPath of imageEntries) {
+        console.log(`Considering ${mediaPath}`);
         const streamImage = () => new Promise<any>((resolve, reject) => {
             zip.stream(mediaPath, (error: any, stream: any) => error ? reject(error) : resolve(stream));
         });
@@ -285,6 +289,7 @@ async function writeImages(zip: any): Promise<string[]> {
             continue;
         }
 
+        console.log(`Streaming!`);
         const ext = `.${type}`.toLowerCase();
         const generatedFileName = `upload_${Utils.GenerateGuid()}${ext}`;
 
