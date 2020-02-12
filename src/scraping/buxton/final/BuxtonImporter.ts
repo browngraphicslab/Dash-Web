@@ -11,7 +11,7 @@ import { strictEqual } from "assert";
 
 interface DocumentContents {
     body: string;
-    imageUrls: string[];
+    imageData: ImageData[];
     hyperlinks: string[];
     captions: string[];
     embeddedFileNames: string[];
@@ -29,7 +29,7 @@ export interface DeviceDocument {
     primaryKey: string;
     secondaryKey: string;
     attribute: string;
-    __images: string[];
+    __images: ImageData[];
     hyperlinks: string[];
     captions: string[];
     embeddedFileNames: string[];
@@ -55,6 +55,12 @@ interface Processor<T> {
     matchIndex?: number;
     transformer?: Transformer<T>;
     required?: boolean;
+}
+
+interface ImageData {
+    url: string;
+    nativeWidth: number;
+    nativeHeight: number;
 }
 
 namespace Utilities {
@@ -265,12 +271,12 @@ async function extractFileContents(pathToDocument: string): Promise<DocumentCont
     console.log("Text extracted.");
 
     console.log("Beginning image extraction...");
-    const imageUrls = await writeImages(zip);
-    console.log(`Extracted ${imageUrls.length} images.`);
+    const imageData = await writeImages(zip);
+    console.log(`Extracted ${imageData.length} images.`);
 
     zip.close();
 
-    return { body, imageUrls, captions, embeddedFileNames, hyperlinks };
+    return { body, imageData, captions, embeddedFileNames, hyperlinks };
 }
 
 const imageEntry = /^word\/media\/\w+\.(jpeg|jpg|png|gif)/;
@@ -281,11 +287,11 @@ interface Dimensions {
     type: string;
 }
 
-async function writeImages(zip: any): Promise<string[]> {
+async function writeImages(zip: any): Promise<ImageData[]> {
     const allEntries = Object.values<any>(zip.entries()).map(({ name }) => name);
     const imageEntries = allEntries.filter(name => imageEntry.test(name));
 
-    const imageUrls: string[] = [];
+    const imageUrls: ImageData[] = [];
     for (const mediaPath of imageEntries) {
         const streamImage = () => new Promise<any>((resolve, reject) => {
             zip.stream(mediaPath, (error: any, stream: any) => error ? reject(error) : resolve(stream));
@@ -308,19 +314,23 @@ async function writeImages(zip: any): Promise<string[]> {
 
         await DashUploadUtils.outputResizedImages(streamImage, imageDir, generatedFileName, ext);
 
-        imageUrls.push(`/files/images/buxton/${generatedFileName}`);
+        imageUrls.push({
+            url: `/files/images/buxton/${generatedFileName}`,
+            nativeWidth: width,
+            nativeHeight: height
+        });
     }
 
     return imageUrls;
 }
 
 function analyze(fileName: string, contents: DocumentContents): AnalysisResult {
-    const { body, imageUrls, captions, hyperlinks, embeddedFileNames } = contents;
+    const { body, imageData, captions, hyperlinks, embeddedFileNames } = contents;
     const device: any = {
         hyperlinks,
         captions,
         embeddedFileNames,
-        __images: imageUrls
+        __images: imageData
     };
     const errors: { [key: string]: string } = { fileName };
 
