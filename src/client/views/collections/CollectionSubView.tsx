@@ -283,63 +283,74 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 const albumId = matches[3];
                 const mediaItems = await GooglePhotos.Query.AlbumSearch(albumId);
                 console.log(mediaItems);
+                return;
             }
-            const batch = UndoManager.StartBatch("collection view drop");
-            const promises: Promise<void>[] = [];
-            // tslint:disable-next-line:prefer-for-of
-            for (let i = 0; i < e.dataTransfer.items.length; i++) {
-                const item = e.dataTransfer.items[i];
-                if (item.kind === "string" && item.type.indexOf("uri") !== -1) {
-                    let str: string;
-                    const prom = new Promise<string>(resolve => e.dataTransfer.items[i].getAsString(resolve))
-                        .then(action((s: string) => rp.head(Utils.CorsProxy(str = s))))
-                        .then(result => {
-                            const type = result["content-type"];
-                            if (type) {
-                                Docs.Get.DocumentFromType(type, str, options)
-                                    .then(doc => doc && this.props.addDocument(doc));
-                            }
-                        });
-                    promises.push(prom);
-                }
-                const type = item.type;
-                if (item.kind === "file") {
-                    const file = item.getAsFile();
-                    const formData = new FormData();
-
-                    if (!file || !file.type) {
-                        continue;
-                    }
-
-                    formData.append('file', file);
-                    const dropFileName = file ? file.name : "-empty-";
-                    promises.push(Networking.PostFormDataToServer("/uploadFormData", formData).then(results => {
-                        results.map(action((result: any) => {
-                            const { accessPaths, nativeWidth, nativeHeight, contentSize } = result;
-                            const full = { ...options, _width: 300, title: dropFileName };
-                            const pathname = Utils.prepend(accessPaths.agnostic.client);
-                            Docs.Get.DocumentFromType(type, pathname, full).then(doc => {
-                                if (doc) {
-                                    const proto = Doc.GetProto(doc);
-                                    proto.fileUpload = basename(pathname).replace("upload_", "").replace(/\.[a-z0-9]*$/, "");
-                                    nativeWidth && (proto["data-nativeWidth"] = nativeWidth);
-                                    nativeHeight && (proto["data-nativeHeight"] = nativeHeight);
-                                    contentSize && (proto.contentSize = contentSize);
-                                    this.props?.addDocument(doc);
+            const { items } = e.dataTransfer;
+            const { length } = items;
+            if (length) {
+                const batch = UndoManager.StartBatch("collection view drop");
+                const promises: Promise<void>[] = [];
+                // tslint:disable-next-line:prefer-for-of
+                for (let i = 0; i < length; i++) {
+                    const item = e.dataTransfer.items[i];
+                    if (item.kind === "string" && item.type.indexOf("uri") !== -1) {
+                        let str: string;
+                        const prom = new Promise<string>(resolve => item.getAsString(resolve))
+                            .then(action((s: string) => rp.head(Utils.CorsProxy(str = s))))
+                            .then(result => {
+                                const type = result["content-type"];
+                                if (type) {
+                                    Docs.Get.DocumentFromType(type, str, options)
+                                        .then(doc => doc && this.props.addDocument(doc));
                                 }
                             });
-                        }));
-                    }));
-                }
-            }
+                        promises.push(prom);
+                    }
+                    const type = item.type;
+                    if (item.kind === "file") {
+                        const file = item.getAsFile();
+                        const formData = new FormData();
 
-            if (promises.length) {
-                Promise.all(promises).finally(() => { completed && completed(); batch.end(); });
-            } else {
-                if (text && !text.includes("https://")) {
-                    this.props.addDocument(Docs.Create.TextDocument(text, { ...options, _width: 400, _height: 315 }));
+                        if (!file || !file.type) {
+                            continue;
+                        }
+
+                        formData.append('file', file);
+                        const dropFileName = file ? file.name : "-empty-";
+                        promises.push(Networking.PostFormDataToServer("/uploadFormData", formData).then(results => {
+                            results.map(action((result: any) => {
+                                const { accessPaths, nativeWidth, nativeHeight, contentSize } = result;
+                                if (Object.keys(accessPaths).length) {
+                                    const full = { ...options, _width: 300, title: dropFileName };
+                                    const pathname = Utils.prepend(accessPaths.agnostic.client);
+                                    Docs.Get.DocumentFromType(type, pathname, full).then(doc => {
+                                        if (doc) {
+                                            const proto = Doc.GetProto(doc);
+                                            proto.fileUpload = basename(pathname).replace("upload_", "").replace(/\.[a-z0-9]*$/, "");
+                                            nativeWidth && (proto["data-nativeWidth"] = nativeWidth);
+                                            nativeHeight && (proto["data-nativeHeight"] = nativeHeight);
+                                            contentSize && (proto.contentSize = contentSize);
+                                            this.props?.addDocument(doc);
+                                        }
+                                    });
+                                } else {
+                                    alert("Upload failed...");
+                                }
+                            }));
+                        }));
+                    }
                 }
-                batch.end();
+
+                if (promises.length) {
+                    Promise.all(promises).finally(() => { completed && completed(); batch.end(); });
+                } else {
+                    if (text && !text.includes("https://")) {
+                        this.props.addDocument(Docs.Create.TextDocument(text, { ...options, _width: 400, _height: 315 }));
+                    }
+                    batch.end();
+                }
+            } else {
+                alert("No uploadable content found.");
             }
         }
     }
