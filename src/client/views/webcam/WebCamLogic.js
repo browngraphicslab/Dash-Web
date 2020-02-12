@@ -104,9 +104,9 @@ export function initialize(roomName, handlerUI) {
 
 
     navigator.mediaDevices.getUserMedia({
-        audio: true,
-        video: true
-    })
+            audio: true,
+            video: true
+        })
         .then(gotStream)
         .catch(function (e) {
             alert('getUserMedia() error: ' + e.name);
@@ -122,7 +122,7 @@ export function initialize(roomName, handlerUI) {
 
     if (location.hostname !== 'localhost') {
         requestTurn(
-            'https://computeengineondemand.appspot.com/turn?username=41784574&key=4080218913'
+            `${window.location.origin}/corsProxy/${encodeURIComponent("https://computeengineondemand.appspot.com/turn?username=41784574&key=4080218913")}`
         );
     }
 
