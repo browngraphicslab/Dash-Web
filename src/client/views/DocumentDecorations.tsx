@@ -509,11 +509,11 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 top: bounds.y - this._resizeBorderWidth / 2,
                 pointerEvents: this.Interacting ? "none" : "all",
                 zIndex: SelectionManager.SelectedDocuments().length > 1 ? 900 : 0,
-            }} onPointerDown={this.onBackgroundDown} onContextMenu={(e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation(); }} >
+            }} onPointerDown={this.onBackgroundDown} onContextMenu={e => { e.preventDefault(); e.stopPropagation(); }} >
             </div>
             <div className="documentDecorations-container" ref={this.setTextBar} style={{
                 width: (bounds.r - bounds.x + this._resizeBorderWidth) + "px",
-                height: (bounds.b - bounds.y + this._resizeBorderWidth + this._linkBoxHeight + this._titleHeight + 3) + "px",
+                height: (bounds.b - bounds.y + this._resizeBorderWidth + this._titleHeight) + "px",
                 left: bounds.x - this._resizeBorderWidth / 2,
                 top: bounds.y - this._resizeBorderWidth / 2 - this._titleHeight,
                 opacity: this._opacity
@@ -545,10 +545,11 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 <div id="documentDecorations-bottomResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-bottomRightResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-borderRadius" className="documentDecorations-radius" onPointerDown={this.onRadiusDown} onContextMenu={(e) => e.preventDefault()}><span className="borderRadiusTooltip" title="Drag Corner Radius"></span></div>
-                <div className="link-button-container">
-                    <DocumentButtonBar views={SelectionManager.SelectedDocuments()} />
-                </div>
+
             </div >
+            <div className="link-button-container" style={{ left: bounds.x - this._resizeBorderWidth / 2, top: bounds.b + this._resizeBorderWidth / 2 }}>
+                <DocumentButtonBar views={SelectionManager.SelectedDocuments()} />
+            </div>
         </div>
         );
     }
