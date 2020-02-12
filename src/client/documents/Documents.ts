@@ -373,10 +373,12 @@ export namespace Docs {
                     const { ImageDocument, StackingDocument } = Docs.Create;
                     if (Array.isArray(__images)) {
                         const constructed = __images.map(relative => Utils.prepend(relative));
+                        const hero = constructed[0];
+                        constructed.splice(0, 1);
                         const deviceImages = constructed.map((url, i) => ImageDocument(url, { title: `image${i}.${extname(url)}` }));
                         const doc = StackingDocument(deviceImages, { title: device.title, _LODdisable: true });
                         const deviceProto = Doc.GetProto(doc);
-                        deviceProto.hero = new ImageField(constructed[0]);
+                        deviceProto.hero = new ImageField(hero);
                         Docs.Get.DocumentHierarchyFromJson(device, undefined, deviceProto);
                         Doc.AddDocToList(parentProto, "data", doc);
                     }

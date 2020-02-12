@@ -84,7 +84,6 @@ namespace Utilities {
                 if (error) {
                     reject(error);
                 }
-                console.log(stream);
                 stream.on('data', (chunk: any) => body += chunk.toString());
                 stream.on('end', () => resolve(body));
             });
@@ -121,17 +120,20 @@ const RegexMap = new Map<keyof DeviceDocument, Processor<any>>([
         transformer: raw => ({ transformed: Utilities.collectUniqueTokens(raw).transformed[0] }),
     }],
     ["originalPrice", {
-        exp: /Original Price \(USD\)\:\s+(\$[0-9]+\.[0-9]+|NFS)/,
+        exp: /Original Price \(USD\)\:\s+(\$[0-9\,]+\.[0-9]+|NFS)/,
         transformer: (raw: string) => {
+            raw = raw.replace(/\,/g, "");
             if (raw === "NFS") {
                 return { transformed: -1 };
             }
             return Utilities.numberValue(raw.slice(1));
-        }
+        },
+        required: false
     }],
     ["degreesOfFreedom", {
         exp: /Degrees of Freedom:\s+([0-9]+)/,
-        transformer: Utilities.numberValue
+        transformer: Utilities.numberValue,
+        required: false
     }],
     ["dimensions", {
         exp: /Dimensions\s+\(L x W x H\):\s+([0-9\.]+\s+x\s+[0-9\.]+\s+x\s+[0-9\.]+\s\([A-Za-z]+\))/,
@@ -226,9 +228,7 @@ const hyperlinkXPath = '//*[name()="Relationship" and contains(@Type, "hyperlink
 async function extractFileContents(pathToDocument: string): Promise<DocumentContents> {
     console.log('Extracting text...');
     const zip = new StreamZip({ file: pathToDocument, storeEntries: true });
-    console.log(zip);
     await new Promise<void>(resolve => zip.on('ready', resolve));
-    console.log("Zip ready!");
 
     // extract the body of the document and, specifically, its captions
     const document = await Utilities.readAndParseXml(zip, "word/document.xml");
@@ -276,20 +276,22 @@ async function writeImages(zip: any): Promise<string[]> {
 
     const imageUrls: string[] = [];
     for (const mediaPath of imageEntries) {
-        console.log(`Considering ${mediaPath}`);
         const streamImage = () => new Promise<any>((resolve, reject) => {
             zip.stream(mediaPath, (error: any, stream: any) => error ? reject(error) : resolve(stream));
         });
 
         const { width, height, type } = await new Promise<Dimensions>(async resolve => {
-            const sizeStream = createImageSizeStream().on('size', resolve);
-            (await streamImage()).pipe(sizeStream);
+            const sizeStream = createImageSizeStream().on('size', (dimensions: Dimensions) => {
+                readStream.destroy();
+                resolve(dimensions)
+            });
+            const readStream = await streamImage();
+            readStream.pipe(sizeStream);
         });
         if (Math.abs(width - height) < 10) {
             continue;
         }
 
-        console.log(`Streaming!`);
         const ext = `.${type}`.toLowerCase();
         const generatedFileName = `upload_${Utils.GenerateGuid()}${ext}`;
 
