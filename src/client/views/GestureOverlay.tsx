@@ -28,6 +28,8 @@ import { List } from "../../new_fields/List";
 import { CollectionViewType } from "./collections/CollectionView";
 import TouchScrollableMenu, { TouchScrollableMenuItem } from "./TouchScrollableMenu";
 import { RadialMenu } from "./nodes/RadialMenu";
+import { SelectionManager } from "../util/SelectionManager";
+
 
 @observer
 export default class GestureOverlay extends Touchable {
@@ -105,15 +107,14 @@ export default class GestureOverlay extends Touchable {
     }
 
     onReactTouchStart = (te: React.TouchEvent) => {
-        console.log("STARTING");
-        console.log(te.touches);
-        // if (RadialMenu.Instance._display === true) {
-        //     console.log("display", RadialMenu.Instance._display);
-        //     runInAction(() => { RadialMenu.Instance._display = false; });
-        //     te.preventDefault();
-        //     te.stopPropagation();
-        //     return;
-        // }
+        document.removeEventListener("touchmove", this.onReactHoldTouchMove);
+        document.removeEventListener("touchend", this.onReactHoldTouchEnd);
+        if (RadialMenu.Instance._display === true) {
+            te.preventDefault();
+            te.stopPropagation();
+            RadialMenu.Instance.closeMenu();
+            return;
+        }
 
         const actualPts: React.Touch[] = [];
         for (let i = 0; i < te.touches.length; i++) {
@@ -138,7 +139,6 @@ export default class GestureOverlay extends Touchable {
 
         ptsToDelete.forEach(pt => this.prevPoints.delete(pt));
         const nts = this.getNewTouches(te);
-        console.log(this.prevPoints.size, nts.ntt.length, nts.nt.length, nts.nct.length);
         if (nts.nt.length < 5) {
             const target = document.elementFromPoint(te.changedTouches.item(0).clientX, te.changedTouches.item(0).clientY);
             console.log(te.touches);
@@ -156,13 +156,11 @@ export default class GestureOverlay extends Touchable {
                     }
                 )
             );
-            console.log("2");
             if (nts.nt.length === 1) {
                 console.log("started");
                 this._holdTimer = setTimeout(() => {
                     console.log("hold");
                     const target = document.elementFromPoint(te.changedTouches.item(0).clientX, te.changedTouches.item(0).clientY);
-                    console.log(this.prevPoints.size, nts.ntt.length, nts.nt.length, nts.nct.length);
                     let pt: any = te.touches[te.touches.length - 1];
                     if (nts.nt.length === 1 && pt.radiusX > 1 && pt.radiusY > 1) {
                         target?.dispatchEvent(
@@ -206,10 +204,15 @@ export default class GestureOverlay extends Touchable {
     }
 
     onReactHoldTouchMove = (e: TouchEvent) => {
+        document.removeEventListener("touchmove", this.onReactTouchMove);
+        document.removeEventListener("touchend", this.onReactTouchEnd);
+        document.removeEventListener("touchmove", this.onReactHoldTouchMove);
+        document.removeEventListener("touchend", this.onReactHoldTouchEnd);
+        document.addEventListener("touchmove", this.onReactHoldTouchMove);
+        document.addEventListener("touchend", this.onReactHoldTouchEnd);
         const nts: any = this.getNewTouches(e);
         if (this.prevPoints.size === 1 && this._holdTimer) {
             clearTimeout(this._holdTimer);
-            this._holdTimer = undefined;
         }
         document.dispatchEvent(
             new CustomEvent<InteractionUtils.MultiTouchEvent<TouchEvent>>("dashOnTouchHoldMove",
@@ -254,10 +257,9 @@ export default class GestureOverlay extends Touchable {
             }
         }
 
-        if (this.prevPoints.size === 0) {
-            document.removeEventListener("touchmove", this.onReactTouchMove);
-            document.removeEventListener("touchend", this.onReactTouchEnd);
-        }
+        document.removeEventListener("touchmove", this.onReactHoldTouchMove);
+        document.removeEventListener("touchend", this.onReactHoldTouchEnd);
+
         e.stopPropagation();
     }
 

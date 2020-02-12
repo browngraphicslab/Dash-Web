@@ -126,6 +126,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
 
     handle1PointerHoldStart = (e: Event, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>): any => {
+        this.removeMoveListeners();
+        this.removeEndListeners();
+        document.removeEventListener("pointermove", this.onPointerMove);
+        document.removeEventListener("pointerup", this.onPointerUp);
+        console.log(SelectionManager.SelectedDocuments());
         console.log("START");
         if (RadialMenu.Instance._display === false) {
             this.addHoldMoveListeners();
@@ -139,6 +144,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     handle1PointerHoldMove = (e: Event, me: InteractionUtils.MultiTouchEvent<TouchEvent>): void => {
+        console.log(SelectionManager.SelectedDocuments());
+        console.log(SelectionManager.GetIsDragging(), this);
         const pt = me.touchEvent.touches[me.touchEvent.touches.length - 1];
 
         if (this._firstX === -1 || this._firstY === -1) {
@@ -150,9 +157,17 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     handle1PointerHoldEnd = (e: Event, me: InteractionUtils.MultiTouchEvent<TouchEvent>): void => {
+        this.removeHoldMoveListeners();
+        this.removeHoldEndListeners();
         RadialMenu.Instance.closeMenu();
         this._firstX = -1;
         this._firstY = -1;
+        SelectionManager.DeselectAll();
+        me.touchEvent.stopPropagation();
+        me.touchEvent.preventDefault();
+        e.stopPropagation();
+
+
     }
 
     @action
@@ -169,9 +184,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         RadialMenu.Instance.addItem({ description: "Open in a new tab", event: () => this.props.addDocTab(this.props.Document, undefined, "onRight"), icon: "trash", selected: -1 });
         RadialMenu.Instance.addItem({ description: "Pin to Presentation", event: () => this.props.pinToPres(this.props.Document), icon: "folder", selected: -1 });
 
-        if (!SelectionManager.IsSelected(this, true)) {
-            SelectionManager.SelectDoc(this, false);
-        }
+        // if (SelectionManager.IsSelected(this, true)) {
+        //     SelectionManager.SelectDoc(this, false);
+        // }
+        SelectionManager.DeselectAll();
+
 
     }
 
@@ -320,8 +337,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     handle1PointerDown = (e: React.TouchEvent, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>) => {
+        SelectionManager.DeselectAll();
         if (this.Document.onPointerDown) return;
         const touch = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true)[0];
+        console.log("DOWN", SelectionManager.SelectedDocuments());
         console.log("down");
         if (touch) {
             this._downX = touch.clientX;
