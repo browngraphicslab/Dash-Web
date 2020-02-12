@@ -51,7 +51,6 @@ export const documentSchema = createSchema({
     showTitleHover: "string",   // the showTitle should be shown only on hover
     isButton: "boolean",        // whether document functions as a button (overiding native interactions of its content)    
     ignoreClick: "boolean",     // whether documents ignores input clicks (but does not ignore manipulation and other events) 
-    isAnimating: "string",      // whether the document is in the midst of animating between two layouts (used by icons to de/iconify documents).  value is undefined|"min"|"max"
     scrollToLinkID: "string",   // id of link being traversed. allows this doc to scroll/highlight/etc its link anchor. scrollToLinkID should be set to undefined by this doc after it sets up its scroll,etc.
     strokeWidth: "number",
     fontSize: "string",

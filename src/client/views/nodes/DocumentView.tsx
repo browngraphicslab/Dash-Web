@@ -1,6 +1,6 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import * as fa from '@fortawesome/free-solid-svg-icons';
-import { action, computed, runInAction } from "mobx";
+import { action, computed, runInAction, observable } from "mobx";
 import { observer } from "mobx-react";
 import * as rp from "request-promise";
 import { Doc, DocListCast, DocListCastAsync, Opt } from "../../../new_fields/Doc";
@@ -694,7 +694,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const existingOnClick = ContextMenu.Instance.findByDescription("OnClick...");
         const onClicks: ContextMenuProps[] = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
         onClicks.push({ description: "Enter Portal", event: this.makeIntoPortal, icon: "window-restore" });
-        onClicks.push({ description: "Toggle Detail", event: () => this.Document.onClick = ScriptField.MakeScript("toggleDetail(this)"), icon: "window-restore" });
+        onClicks.push({ description: "Toggle Detail", event: () => this.Document.onClick = ScriptField.MakeScript(`toggleDetail(this, "${this.props.Document.layoutKey}")`), icon: "window-restore" });
         onClicks.push({ description: this.Document.ignoreClick ? "Select" : "Do Nothing", event: () => this.Document.ignoreClick = !this.Document.ignoreClick, icon: this.Document.ignoreClick ? "unlock" : "lock" });
         onClicks.push({ description: this.Document.isButton || this.Document.onClick ? "Remove Click Behavior" : "Follow Link", event: this.makeBtnClicked, icon: "concierge-bell" });
         onClicks.push({ description: this.props.Document.isButton ? "Remove Select Link Behavior" : "Select Link", event: this.makeSelBtnClicked, icon: "concierge-bell" });
@@ -931,6 +931,20 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         return (this.Document.isBackground && !this.isSelected()) || (this.Document.type === DocumentType.INK && InkingControl.Instance.selectedTool !== InkTool.None);
     }
 
+    @observable _animate = 0;
+    switchViews = action((custom: boolean, view: string) => {
+        SelectionManager.SetIsDragging(true);
+        this._animate = 0.1;
+        setTimeout(action(() => {
+            this.setCustomView(custom, view);
+            this._animate = 1;
+            setTimeout(action(() => {
+                this._animate = 0;
+                SelectionManager.SetIsDragging(false);
+            }), 400);
+        }), 400);
+    });
+
     render() {
         if (!(this.props.Document instanceof Doc)) return (null);
         const colorSet = this.setsLayoutProp("backgroundColor");
@@ -951,7 +965,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
             onPointerEnter={e => Doc.BrushDoc(this.props.Document)} onPointerLeave={e => Doc.UnBrushDoc(this.props.Document)}
             style={{
-                transition: this.Document.isAnimating ? ".5s linear" : StrCast(this.Document.transition),
+                transformOrigin: this._animate ? "center center" : undefined,
+                transform: this._animate ? `scale(${this._animate})` : undefined,
+                transition: !this._animate ? StrCast(this.Document.transition) : this._animate < 1 ? "transform 0.5s ease-in" : "transform 0.5s ease-out",
                 pointerEvents: this.ignorePointerEvents ? "none" : "all",
                 color: StrCast(this.Document.color),
                 outline: highlighting && !borderRounding ? `${highlightColors[fullDegree]} ${highlightStyles[fullDegree]} ${localScale}px` : "solid 0px",
@@ -971,4 +987,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 }
 
-Scripting.addGlobal(function toggleDetail(doc: any) { doc.layoutKey = StrCast(doc.layoutKey, "layout") === "layout" ? "layout_custom" : "layout"; });
+Scripting.addGlobal(function toggleDetail(doc: any, layoutKey: string) {
+    const dv = DocumentManager.Instance.getDocumentView(doc);
+    if (dv?.props.Document.layoutKey === layoutKey) dv?.switchViews(false, "");
+    else dv?.switchViews(true, layoutKey.replace("layout_", ""));
+});
