@@ -385,8 +385,9 @@ export namespace Docs {
             Utils.AddServerHandler(_socket, MessageStore.BuxtonImportComplete, ({ deviceCount, errorCount }) => {
                 _socket.off(MessageStore.BuxtonDocumentResult.Message);
                 _socket.off(MessageStore.BuxtonImportComplete.Message);
-                alert(`Successfully imported ${deviceCount} device${deviceCount === 1 ? "" : "s"}, with ${errorCount} error${errorCount === 1 ? "" : "s"}.`);
+                alert(`Successfully imported ${deviceCount} device${deviceCount === 1 ? "" : "s"}, with ${errorCount} error${errorCount === 1 ? "" : "s"}, in ${(Date.now() - startTime) / 1000} seconds.`);
             });
+            const startTime = Date.now();
             Utils.Emit(_socket, MessageStore.BeginBuxtonImport, "");
             return parent;
         }
