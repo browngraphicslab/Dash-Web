@@ -133,7 +133,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
 
     @action.bound
     addDocument(doc: Doc): boolean {
-        const targetDataDoc = this.props.Document.resolvedDataDoc ? this.props.Document : Doc.GetProto(this.props.Document[DataSym]);
+        const targetDataDoc = this.props.Document.resolvedDataDoc && !this.props.Document.isTemplateForField ? this.props.Document : Doc.GetProto(this.props.Document[DataSym]);
         targetDataDoc[this.props.fieldKey] = new List<Doc>([...DocListCast(targetDataDoc[this.props.fieldKey]), doc]);  // DocAddToList may write to targetdataDoc's parent ... we don't want this. should really change GetProto to GetDataDoc and test for resolvedDataDoc there
         // Doc.AddDocToList(targetDataDoc, this.props.fieldKey, doc);
         targetDataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
