@@ -115,7 +115,7 @@ const RegexMap = new Map<keyof DeviceDocument, Processor<any>>([
     }],
     ["year", {
         exp: /Year:\s+([^\|]*)\s+\|/,
-        transformer: Utilities.numberValue
+        transformer: (raw: string) => Utilities.numberValue(/[0-9]{4}/.exec(raw)![0])
     }],
     ["primaryKey", {
         exp: /Primary:\s+(.*)(Secondary|Additional):/,
@@ -254,10 +254,9 @@ async function extractFileContents(pathToDocument: string): Promise<DocumentCont
     strictEqual(length % 3 === 0, true, "Improper caption formatting.");
 
     for (let i = 3; i < captionTargets.length; i += 3) {
-        const [image, fileName, caption] = captionTargets.slice(i, i + 3);
-        strictEqual(image, "", `The image cell in one row was not the empty string: ${image}`);
-        captions.push(caption);
-        embeddedFileNames.push(fileName);
+        const row = captionTargets.slice(i, i + 3);
+        captions.push(row[1]);
+        embeddedFileNames.push(row[2]);
     }
 
     // extract all hyperlinks embedded in the document
