@@ -1163,7 +1163,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 style={{
                     display: this._pullDirection ? "block" : "none",
                     top: clientRect ? this._pullDirection === "bottom" ? this._pullCoords[1] - clientRect.y : 0 : "auto",
-                    left: clientRect ? this._pullDirection === "right" ? this._pullCoords[0] - clientRect.x - MainView.Instance.flyoutWidth : 0 : "auto",
+                    // left: clientRect ? this._pullDirection === "right" ? this._pullCoords[0] - clientRect.x - MainView.Instance.flyoutWidth : 0 : "auto",
+                    left: clientRect ? this._pullDirection === "right" ? this._pullCoords[0] - clientRect.x : 0 : "auto",
                     width: clientRect ? this._pullDirection === "left" ? this._pullCoords[0] - clientRect.left : this._pullDirection === "right" ? clientRect.right - this._pullCoords[0] : clientRect.width : 0,
                     height: clientRect ? this._pullDirection === "top" ? this._pullCoords[1] - clientRect.top : this._pullDirection === "bottom" ? clientRect.bottom - this._pullCoords[1] : clientRect.height : 0,
 
