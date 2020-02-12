@@ -70,7 +70,9 @@ export interface DocumentOptions {
     _fitWidth?: boolean;
     _fitToBox?: boolean; // whether a freeformview should zoom/scale to create a shrinkwrapped view of its contents
     _LODdisable?: boolean;
-    dropAction?: dropActionType;
+    _showTitleHover?: string; // 
+    _showTitle?: string; // which field to display in the title area.  leave empty to have no title
+    _showCaption?: string; // which field to display in the caption area.  leave empty to have no caption
     _chromeStatus?: string;
     _viewType?: number;
     _gridGap?: number; // gap between items in masonry view
@@ -82,6 +84,7 @@ export interface DocumentOptions {
     x?: number;
     y?: number;
     z?: number;
+    dropAction?: dropActionType;
     layoutKey?: string;
     type?: string;
     title?: string;
@@ -109,7 +112,6 @@ export interface DocumentOptions {
     documentText?: string;
     borderRounding?: string;
     boxShadow?: string;
-    showTitle?: string;
     sectionFilter?: string; // field key used to determine headings for sections in stacking and masonry views
     schemaColumns?: List<SchemaHeaderField>;
     dockingConfig?: string;
@@ -392,7 +394,7 @@ export namespace Docs {
         Scripting.addGlobal(Buxton);
 
         const delegateKeys = ["x", "y", "layoutKey", "_width", "_height", "_panX", "_panY", "_viewType", "_nativeWidth", "_nativeHeight", "dropAction", "_annotationOn",
-            "_chromeStatus", "_forceActive", "_autoHeight", "_fitWidth", "_LODdisable", "_itemIndex", "_showSidebar", "showTitle"];
+            "_chromeStatus", "_forceActive", "_autoHeight", "_fitWidth", "_LODdisable", "_itemIndex", "_showSidebar", "_showTitle", "_showCaption", "_showTitleHover"];
 
         /**
          * This function receives the relevant document prototype and uses

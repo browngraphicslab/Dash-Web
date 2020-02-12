@@ -656,8 +656,8 @@ export class CollectionTreeView extends CollectionSubView(Document) {
 
                 const heroView = ImageDocument(fallbackImg, { title: "heroView", isTemplateDoc: true, isTemplateForField: "hero", }); // this acts like a template doc and a template field ... a little weird, but seems to work?
                 heroView.proto!.layout = ImageBox.LayoutString("hero");
-                heroView.showTitle = "title";
-                heroView.showTitleHover = "titlehover";
+                heroView._showTitle = "title";
+                heroView._showTitleHover = "titlehover";
 
                 Doc.AddDocToList(CurrentUserUtils.UserDocument.expandingButtons as Doc, "data",
                     Docs.Create.FontIconDocument({
