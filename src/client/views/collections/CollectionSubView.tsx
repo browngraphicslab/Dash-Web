@@ -315,9 +315,9 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                     const dropFileName = file ? file.name : "-empty-";
                     promises.push(Networking.PostFormDataToServer("/uploadFormData", formData).then(results => {
                         results.map(action((result: any) => {
-                            const { agnostic, accessPaths, nativeWidth, nativeHeight, contentSize } = result;
+                            const { accessPaths, nativeWidth, nativeHeight, contentSize } = result;
                             const full = { ...options, _width: 300, title: dropFileName };
-                            const pathname = Utils.prepend(accessPaths?.agnostic.client || agnostic.client);
+                            const pathname = Utils.prepend(accessPaths.agnostic.client);
                             Docs.Get.DocumentFromType(type, pathname, full).then(doc => {
                                 if (doc) {
                                     const proto = Doc.GetProto(doc);

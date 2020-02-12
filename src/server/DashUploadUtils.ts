@@ -97,7 +97,7 @@ export namespace DashUploadUtils {
         }
 
         console.log(red(`Ignoring unsupported file (${name}) with upload type (${type}).`));
-        return { accessPaths: undefined };
+        return { accessPaths: {} };
     }
 
     async function UploadPdf(absolutePath: string) {
@@ -216,13 +216,15 @@ export namespace DashUploadUtils {
         };
     };
 
-    export async function MoveParsedFile(absolutePath: string, destination: Directory): Promise<Opt<AccessPathInfo>> {
-        return new Promise<Opt<AccessPathInfo>>(resolve => {
+    export async function MoveParsedFile(absolutePath: string, destination: Directory): Promise<Opt<{ accessPaths: AccessPathInfo }>> {
+        return new Promise(resolve => {
             const filename = basename(absolutePath);
             const destinationPath = serverPathToFile(destination, filename);
             rename(absolutePath, destinationPath, error => {
                 resolve(error ? undefined : {
-                    agnostic: getAccessPaths(destination, filename)
+                    accessPaths: {
+                        agnostic: getAccessPaths(destination, filename)
+                    }
                 });
             });
         });
