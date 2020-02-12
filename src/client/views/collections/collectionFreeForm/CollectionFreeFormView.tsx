@@ -697,7 +697,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     }
 
-    setScaleToZoom = (doc: Doc, scale: number = 0.5) => {
+    setScaleToZoom = (doc: Doc, scale: number = 0.75) => {
         this.Document.scale = scale * Math.min(this.props.PanelWidth() / NumCast(doc._width), this.props.PanelHeight() / NumCast(doc._height));
     }
 
