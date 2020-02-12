@@ -5,15 +5,10 @@ import { DateField } from "../../../new_fields/DateField";
 import { Doc, FieldResult, Opt } from "../../../new_fields/Doc";
 import { IconField } from "../../../new_fields/IconField";
 import { List } from "../../../new_fields/List";
-import { RichTextField } from "../../../new_fields/RichTextField";
 import { AudioField, ImageField, VideoField } from "../../../new_fields/URLField";
 import { Transform } from "../../util/Transform";
 import { CollectionView } from "../collections/CollectionView";
 import { AudioBox } from "./AudioBox";
-import { FormattedTextBox } from "./FormattedTextBox";
-import { IconBox } from "./IconBox";
-import { ImageBox } from "./ImageBox";
-import { PDFBox } from "./PDFBox";
 import { VideoBox } from "./VideoBox";
 import { ScriptField } from "../../../new_fields/ScriptField";
 
@@ -48,6 +43,7 @@ export interface FieldViewProps {
     setVideoBox?: (player: VideoBox) => void;
     ContentScaling: () => number;
     ChromeHeight?: () => number;
+    childLayoutTemplate?: () => Opt<Doc>;
 }
 
 @observer
@@ -78,9 +74,6 @@ export class FieldView extends React.Component<FieldViewProps> {
         // else if (field instaceof PresBox) {
         //    return <PresBox {...this.props} />;
         // }
-        else if (field instanceof IconField) {
-            return <IconBox {...this.props} />;
-        }
         else if (field instanceof VideoField) {
             return <VideoBox {...this.props} />;
         }

@@ -26,7 +26,7 @@ import { DocumentType } from '../../documents/DocumentTypes';
 import { DictationManager } from '../../util/DictationManager';
 import { DragManager } from "../../util/DragManager";
 import buildKeymap from "../../util/ProsemirrorExampleTransfer";
-import { inpRules } from "../../util/RichTextRules";
+import { RichTextRules } from "../../util/RichTextRules";
 import { DashDocCommentView, FootnoteView, ImageResizeView, DashDocView, OrderedListView, schema, SummaryView, DashFieldView } from "../../util/RichTextSchema";
 import { SelectionManager } from "../../util/SelectionManager";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
@@ -197,7 +197,8 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     }
 
     updateTitle = () => {
-        if (StrCast(this.dataDoc.title).startsWith("-") && this._editorView && !this.Document.customTitle) {
+        if ((this.props.Document.isTemplateForField === "data" || !this.props.Document.isTemplateForField) && // only update the title if the data document's data field is changing
+            StrCast(this.dataDoc.title).startsWith("-") && this._editorView && !this.Document.customTitle) {
             const str = this._editorView.state.doc.textContent;
             const titlestr = str.substr(0, Math.min(40, str.length));
             this.dataDoc.title = "-" + titlestr + (str.length > 40 ? "..." : "");
@@ -464,13 +465,14 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     }
 
     _keymap: any = undefined;
+    _rules: RichTextRules | undefined;
     @computed get config() {
         this._keymap = buildKeymap(schema);
-        (schema as any).Document = this.props.Document;
+        this._rules = new RichTextRules(this.props.Document, this);
         return {
             schema,
             plugins: [
-                inputRules(inpRules),
+                inputRules(this._rules.inpRules),
                 this.richTextMenuPlugin(),
                 history(),
                 keymap(this._keymap),
@@ -574,7 +576,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                     if (ret.frag.size > 2 && ret.start >= 0) {
                         let selection = TextSelection.near(editor.state.doc.resolve(ret.start)); // default to near the start
                         if (ret.frag.firstChild) {
-                            selection = TextSelection.between(editor.state.doc.resolve(ret.start + 2), editor.state.doc.resolve(ret.start + ret.frag.firstChild.nodeSize)); // bcz: looks better to not have the target selected
+                            selection = TextSelection.between(editor.state.doc.resolve(ret.start), editor.state.doc.resolve(ret.start + ret.frag.firstChild.nodeSize)); // bcz: looks better to not have the target selected
                         }
                         editor.dispatch(editor.state.tr.setSelection(new TextSelection(selection.$from, selection.$from)).scrollIntoView());
                         const mark = editor.state.schema.mark(this._editorView.state.schema.marks.search_highlight);
@@ -769,7 +771,6 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                 clipboardTextSerializer: this.clipboardTextSerializer,
                 handlePaste: this.handlePaste,
             });
-            this._editorView.state.schema.Document = this.props.Document;
             const startupText = !rtfField && this._editorView && Field.toString(this.dataDoc[fieldKey] as Field);
             if (startupText) {
                 this._editorView.dispatch(this._editorView.state.tr.insertText(startupText));
@@ -811,7 +812,11 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     }
 
     static _downEvent: any;
+    _downX = 0;
+    _downY = 0;
     onPointerDown = (e: React.PointerEvent): void => {
+        this._downX = e.clientX;
+        this._downY = e.clientY;
         this.doLinkOnDeselect();
         FormattedTextBox._downEvent = true;
         FormattedTextBoxComment.textBox = this;
@@ -922,7 +927,9 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         //     }
         // }
 
-        this.hitBulletTargets(e.clientX, e.clientY, e.shiftKey, false);
+        if (Math.abs(e.clientX - this._downX) < 4 && Math.abs(e.clientX - this._downX) < 4) {
+            this.hitBulletTargets(e.clientX, e.clientY, e.shiftKey, false);
+        }
         if (this._recording) setTimeout(() => { this.stopDictation(true); setTimeout(() => this.recordDictation(), 500); }, 500);
     }
 
@@ -954,8 +961,9 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                     addStyleSheetRule(FormattedTextBox._bulletStyleSheet, list_node.attrs.mapStyle + list_node.attrs.bulletStyle + ":hover:before", { background: "lightgray" });
                 } else if (Math.abs(pos.pos - pos.inside) < 2) {
                     if (!highlightOnly) {
-                        this._editorView!.dispatch(this._editorView!.state.tr.setNodeMarkup(pos.inside, list_node.type, { ...list_node.attrs, visibility: !list_node.attrs.visibility }));
-                        this._editorView!.dispatch(this._editorView!.state.tr.setSelection(TextSelection.create(this._editorView!.state.doc, pos.inside)));
+                        const offset = this._editorView!.state.doc.nodeAt(pos.inside)?.type === schema.nodes.ordered_list ? 1 : 0;
+                        this._editorView!.dispatch(this._editorView!.state.tr.setNodeMarkup(pos.inside + offset, list_node.type, { ...list_node.attrs, visibility: !list_node.attrs.visibility }));
+                        this._editorView!.dispatch(this._editorView!.state.tr.setSelection(TextSelection.create(this._editorView!.state.doc, pos.inside + offset)));
                     }
                     addStyleSheetRule(FormattedTextBox._bulletStyleSheet, list_node.attrs.mapStyle + list_node.attrs.bulletStyle + ":hover:before", { background: "lightgray" });
                 }
@@ -1010,14 +1018,14 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         }
         const state = this._editorView!.state;
         if (!state.selection.empty && e.key === "%") {
-            state.schema.EnteringStyle = true;
+            this._rules!.EnteringStyle = true;
             e.preventDefault();
             e.stopPropagation();
             return;
         }
 
-        if (state.selection.empty || !state.schema.EnteringStyle) {
-            state.schema.EnteringStyle = false;
+        if (state.selection.empty || !this._rules!.EnteringStyle) {
+            this._rules!.EnteringStyle = false;
         }
         if (e.key === "Escape") {
             this._editorView!.dispatch(state.tr.setSelection(TextSelection.create(state.doc, state.selection.from, state.selection.from)));
@@ -1122,8 +1130,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                             CollectionView={undefined}
                             ScreenToLocalTransform={this.sidebarScreenToLocal}
                             renderDepth={this.props.renderDepth + 1}
-                            ContainingCollectionDoc={this.props.ContainingCollectionDoc}
-                            chromeCollapsed={true}>
+                            ContainingCollectionDoc={this.props.ContainingCollectionDoc}>
                         </CollectionFreeFormView>
                         <div className="formattedTextBox-sidebar-handle" onPointerDown={this.sidebarDown} onClick={e => this.toggleSidebar()} />
                     </div>}

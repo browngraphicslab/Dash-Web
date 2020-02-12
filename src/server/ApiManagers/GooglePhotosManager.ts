@@ -21,7 +21,6 @@ interface GooglePhotosUploadFailure {
 }
 interface MediaItem {
     baseUrl: string;
-    filename: string;
 }
 interface NewMediaItem {
     description: string;
@@ -83,12 +82,12 @@ export default class GooglePhotosManager extends ApiManager {
             method: Method.POST,
             subscription: "/googlePhotosMediaDownload",
             secureHandler: async ({ req, res }) => {
-                const contents: { mediaItems: MediaItem[] } = req.body;
+                const { mediaItems } = req.body as { mediaItems: MediaItem[] };
                 let failed = 0;
-                if (contents) {
+                if (mediaItems) {
                     const completed: Opt<DashUploadUtils.ImageUploadInformation>[] = [];
-                    for (const item of contents.mediaItems) {
-                        const results = await DashUploadUtils.InspectImage(item.baseUrl);
+                    for (const { baseUrl } of mediaItems) {
+                        const results = await DashUploadUtils.InspectImage(baseUrl);
                         if (results instanceof Error) {
                             failed++;
                             continue;
@@ -96,7 +95,7 @@ export default class GooglePhotosManager extends ApiManager {
                         const { contentSize, ...attributes } = results;
                         const found: Opt<DashUploadUtils.ImageUploadInformation> = await Database.Auxiliary.QueryUploadHistory(contentSize);
                         if (!found) {
-                            const upload = await DashUploadUtils.UploadInspectedImage({ contentSize, ...attributes }, item.filename, prefix).catch(error => _error(res, downloadError, error));
+                            const upload = await DashUploadUtils.UploadInspectedImage({ contentSize, ...attributes }, undefined, prefix, false).catch(error => _error(res, downloadError, error));
                             if (upload) {
                                 completed.push(upload);
                                 await Database.Auxiliary.LogUpload(upload);

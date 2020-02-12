@@ -1,7 +1,6 @@
 import { computed } from "mobx";
 import { observer } from "mobx-react";
 import { Doc } from "../../../new_fields/Doc";
-import { ScriptField } from "../../../new_fields/ScriptField";
 import { Cast, StrCast } from "../../../new_fields/Types";
 import { OmitKeys, Without } from "../../../Utils";
 import { HistogramBox } from "../../northstar/dash-nodes/HistogramBox";
@@ -14,13 +13,13 @@ import { LinkFollowBox } from "../linking/LinkFollowBox";
 import { YoutubeBox } from "./../../apis/youtube/YoutubeBox";
 import { AudioBox } from "./AudioBox";
 import { ButtonBox } from "./ButtonBox";
+import { SliderBox } from "./SliderBox";
 import { DocumentBox } from "./DocumentBox";
 import { DocumentViewProps } from "./DocumentView";
 import "./DocumentView.scss";
 import { FontIconBox } from "./FontIconBox";
 import { FieldView, FieldViewProps } from "./FieldView";
 import { FormattedTextBox } from "./FormattedTextBox";
-import { IconBox } from "./IconBox";
 import { ImageBox } from "./ImageBox";
 import { KeyValueBox } from "./KeyValueBox";
 import { PDFBox } from "./PDFBox";
@@ -83,10 +82,10 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         return this.props.DataDoc instanceof Promise ? undefined : this.props.DataDoc;
     }
     get layoutDoc() {
-        if (this.props.DataDoc === undefined && typeof Doc.LayoutField(this.props.Document) !== "string") {
+        if (this.props.DataDoc === undefined && (this.props.LayoutDoc || typeof Doc.LayoutField(this.props.Document) !== "string")) {
             // if there is no dataDoc (ie, we're not rendering a template layout), but this document has a layout document (not a layout string), 
             // then we render the layout document as a template and use this document as the data context for the template layout.
-            return Doc.expandTemplateLayout(Doc.Layout(this.props.Document), this.props.Document);
+            return Doc.expandTemplateLayout(this.props.LayoutDoc?.() || Doc.Layout(this.props.Document), this.props.Document);
         }
         return Doc.Layout(this.props.Document);
     }
@@ -106,7 +105,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
             <ObserverJsxParser
                 blacklistedAttrs={[]}
                 components={{
-                    FormattedTextBox, ImageBox, IconBox, DirectoryImportBox, FontIconBox: FontIconBox, ButtonBox, FieldView,
+                    FormattedTextBox, ImageBox, DirectoryImportBox, FontIconBox, ButtonBox, SliderBox, FieldView,
                     CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox,
                     PDFBox, VideoBox, AudioBox, HistogramBox, PresBox, YoutubeBox, LinkFollowBox, PresElementBox, QueryBox,
                     ColorBox, DashWebRTCVideo, DocuLinkBox, InkingStroke, DocumentBox

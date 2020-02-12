@@ -258,6 +258,8 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
         return (
             <div className={"collectionMultirowView_contents"}
                 style={{
+                    width: `calc(100% - ${2 * NumCast(this.props.Document._xMargin)}px)`,
+                    height: `calc(100% - ${2 * NumCast(this.props.Document._yMargin)}px)`,
                     marginLeft: NumCast(this.props.Document._xMargin), marginRight: NumCast(this.props.Document._xMargin),
                     marginTop: NumCast(this.props.Document._yMargin), marginBottom: NumCast(this.props.Document._yMargin)
                 }} ref={this.createDashEventsTarget}>

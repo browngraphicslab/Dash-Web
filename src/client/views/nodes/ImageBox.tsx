@@ -207,7 +207,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
             return url.href;
         } else if (url.href.indexOf(window.location.origin) === -1) {
             return Utils.CorsProxy(url.href);
-        } else if (!(lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg"))) {
+        } else if (!/\.(png|jpg|jpeg|gif)$/.test(lower)) {
             return url.href;//Why is this here
         }
         const ext = path.extname(url.href);
@@ -321,12 +321,12 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
                     const { dataDoc } = this;
                     const { success, failure, idle, loading } = uploadIcons;
                     runInAction(() => this.uploadIcon = loading);
-                    const [{ clientAccessPath }] = await Networking.PostToServer("/uploadRemoteImage", { sources: [primary] });
+                    const [{ accessPaths }] = await Networking.PostToServer("/uploadRemoteImage", { sources: [primary] });
                     dataDoc.originalUrl = primary;
                     let succeeded = true;
                     let data: ImageField | undefined;
                     try {
-                        data = new ImageField(Utils.prepend(clientAccessPath));
+                        data = new ImageField(Utils.prepend(accessPaths.agnostic.client));
                     } catch {
                         succeeded = false;
                     }
@@ -436,8 +436,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
                 CollectionView={undefined}
                 ScreenToLocalTransform={this.props.ScreenToLocalTransform}
                 renderDepth={this.props.renderDepth + 1}
-                ContainingCollectionDoc={this.props.ContainingCollectionDoc}
-                chromeCollapsed={true}>
+                ContainingCollectionDoc={this.props.ContainingCollectionDoc}>
                 {this.contentFunc}
             </CollectionFreeFormView>
         </div >);

@@ -248,7 +248,7 @@ export namespace GoogleApiClientUtils {
                 return undefined;
             }
             requests.push(...options.content.requests);
-            const replies: any = await update({ documentId: documentId, requests });
+            const replies: any = await update({ documentId, requests });
             if ("errors" in replies) {
                 console.log("Write operation failed:");
                 console.log(replies.errors.map((error: any) => error.message));

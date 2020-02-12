@@ -24,7 +24,7 @@ import { Logger } from "./ProcessFactory";
 import { yellow } from "colors";
 import { DashSessionAgent } from "./DashSession/DashSessionAgent";
 import SessionManager from "./ApiManagers/SessionManager";
-import { AppliedSessionAgent } from "resilient-server-session";
+import { AppliedSessionAgent } from "./DashSession/Session/agents/applied_session_agent";
 
 export const onWindows = process.platform === "win32";
 export let sessionAgent: AppliedSessionAgent;

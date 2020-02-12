@@ -14,7 +14,7 @@ import { ComputedField, ScriptField } from "./ScriptField";
 import { BoolCast, Cast, FieldValue, NumCast, StrCast, ToConstructor } from "./Types";
 import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, updateFunction } from "./util";
 import { intersectRect } from "../Utils";
-import { UndoManager } from "../client/util/UndoManager";
+import { UndoManager, undoBatch } from "../client/util/UndoManager";
 import { computedFn } from "mobx-utils";
 import { RichTextField } from "./RichTextField";
 import { Script } from "vm";
@@ -178,12 +178,18 @@ export class Doc extends RefField {
     private [SelfProxy]: any;
     public [WidthSym] = () => NumCast(this[SelfProxy]._width);
     public [HeightSym] = () => NumCast(this[SelfProxy]._height);
-    public get [DataSym]() { return Cast(this[SelfProxy].resolvedDataDoc, Doc, null) || this[SelfProxy]; }
+    public get [DataSym]() { return Cast(Doc.Layout(this[SelfProxy]).resolvedDataDoc, Doc, null) || this[SelfProxy]; }
     public get [LayoutSym]() { return this[SelfProxy].__LAYOUT__; }
     @computed get __LAYOUT__() {
         const templateLayoutDoc = Cast(Doc.LayoutField(this[SelfProxy]), Doc, null);
         if (templateLayoutDoc) {
-            const renderFieldKey = (templateLayoutDoc[StrCast(templateLayoutDoc.layoutKey, "layout")] as string).split("'")[1];
+            let renderFieldKey: any;
+            const layoutField = templateLayoutDoc[StrCast(templateLayoutDoc.layoutKey, "layout")];
+            if (typeof layoutField === "string") {
+                renderFieldKey = layoutField.split("'")[1];
+            } else {
+                return Cast(layoutField, Doc, null);
+            }
             return Cast(this[SelfProxy][renderFieldKey + "-layout[" + templateLayoutDoc[Id] + "]"], Doc, null) || templateLayoutDoc;
         }
         return undefined;
@@ -488,6 +494,7 @@ export namespace Doc {
             setTimeout(action(() => {
                 if (!targetDoc[expandedLayoutFieldKey]) {
                     const newLayoutDoc = Doc.MakeDelegate(templateLayoutDoc, undefined, "[" + templateLayoutDoc.title + "]");
+                    newLayoutDoc.lockedPosition = true;
                     newLayoutDoc.expandedTemplate = targetDoc;
                     targetDoc[expandedLayoutFieldKey] = newLayoutDoc;
                     const dataDoc = Doc.GetDataDoc(targetDoc);
@@ -608,8 +615,12 @@ export namespace Doc {
         }
 
         if (!Doc.AreProtosEqual(target[targetKey] as Doc, templateDoc)) {
-            titleTarget && (Doc.GetProto(target).title = titleTarget);
-            Doc.GetProto(target)[targetKey] = new PrefetchProxy(templateDoc);
+            if (target.resolvedDataDoc) {
+                target[targetKey] = new PrefetchProxy(templateDoc);
+            } else {
+                titleTarget && (Doc.GetProto(target).title = titleTarget);
+                Doc.GetProto(target)[targetKey] = new PrefetchProxy(templateDoc);
+            }
         }
         target.layoutKey = targetKey;
         return target;
@@ -690,8 +701,11 @@ export namespace Doc {
     }
 
     // the document containing the view layout information - will be the Document itself unless the Document has
-    // a layout field.  In that case, all layout information comes from there unless overriden by Document  
-    export function Layout(doc: Doc): Doc { return doc[LayoutSym] || doc; }
+    // a layout field or 'layout' is given.  
+    export function Layout(doc: Doc, layout?: Doc): Doc {
+        const overrideLayout = layout && Cast(doc["data-layout[" + layout[Id] + "]"], Doc, null);
+        return overrideLayout || doc[LayoutSym] || doc;
+    }
     export function SetLayout(doc: Doc, layout: Doc | string) { doc[StrCast(doc.layoutKey, "layout")] = layout; }
     export function LayoutField(doc: Doc) { return doc[StrCast(doc.layoutKey, "layout")]; }
     export function LayoutFieldKey(doc: Doc): string { return StrCast(Doc.Layout(doc).layout).split("'")[1]; }
@@ -801,22 +815,57 @@ export namespace Doc {
         const prevLayout = StrCast(doc.layoutKey).split("_")[1];
         const deiconify = prevLayout === "icon" && StrCast(doc.deiconifyLayout) ? "layout_" + StrCast(doc.deiconifyLayout) : "";
         doc.deiconifyLayout = undefined;
-        if (StrCast(doc.title).endsWith("_" + prevLayout)) doc.title = StrCast(doc.title).replace("_" + prevLayout, "");
+        if (StrCast(doc.title).endsWith("_" + prevLayout) && deiconify) doc.title = StrCast(doc.title).replace("_" + prevLayout, deiconify);
+        else doc.title = undefined;
         doc.layoutKey = deiconify || "layout";
     }
-    export function setDocFilter(container: Doc, key: string, value: any, modifiers?: string) {
-        const docFilters = Cast(container._docFilter, listSpec("string"), []);
+    export function setDocFilterRange(target: Doc, key: string, range?: number[]) {
+        const docRangeFilters = Cast(target._docRangeFilters, listSpec("string"), []);
+        for (let i = 0; i < docRangeFilters.length; i += 3) {
+            if (docRangeFilters[i] === key) {
+                docRangeFilters.splice(i, 3);
+                break;
+            }
+        }
+        if (range !== undefined) {
+            docRangeFilters.push(key);
+            docRangeFilters.push(range[0].toString());
+            docRangeFilters.push(range[1].toString());
+            target._docRangeFilters = new List<string>(docRangeFilters);
+        }
+    }
+    export function setDocFilter(container: Doc, key: string, value: any, modifiers?: string | number) {
+        const docFilters = Cast(container._docFilters, listSpec("string"), []);
         for (let i = 0; i < docFilters.length; i += 3) {
             if (docFilters[i] === key && docFilters[i + 1] === value) {
                 docFilters.splice(i, 3);
                 break;
             }
         }
-        if (modifiers !== undefined) {
+        if (typeof modifiers === "string") {
             docFilters.push(key);
             docFilters.push(value);
             docFilters.push(modifiers);
-            container._docFilter = new List<string>(docFilters);
+            container._docFilters = new List<string>(docFilters);
+        }
+    }
+    export function readDocRangeFilter(doc: Doc, key: string) {
+        const docRangeFilters = Cast(doc._docRangeFilters, listSpec("string"), []);
+        for (let i = 0; i < docRangeFilters.length; i += 3) {
+            if (docRangeFilters[i] === key) {
+                return [Number(docRangeFilters[i + 1]), Number(docRangeFilters[i + 2])];
+            }
+        }
+    }
+
+    @undoBatch
+    @action
+    export function freezeNativeDimensions(layoutDoc: Doc, width: number, height: number): void {
+        layoutDoc._autoHeight = false;
+        layoutDoc.ignoreAspect = false;
+        if (!layoutDoc.ignoreAspect && !layoutDoc._nativeWidth) {
+            layoutDoc._nativeWidth = NumCast(layoutDoc._width, width);
+            layoutDoc._nativeHeight = NumCast(layoutDoc._height, height);
         }
     }
 }
@@ -844,3 +893,4 @@ Scripting.addGlobal(function selectedDocs(container: Doc, excludeCollections: bo
     return docs.length ? new List(docs) : prevValue;
 });
 Scripting.addGlobal(function setDocFilter(container: Doc, key: string, value: any, modifiers?: string) { Doc.setDocFilter(container, key, value, modifiers); });
+Scripting.addGlobal(function setDocFilterRange(container: Doc, key: string, range: number[]) { Doc.setDocFilterRange(container, key, range); });

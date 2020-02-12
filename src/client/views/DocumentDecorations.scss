@@ -98,6 +98,18 @@ $linkGap : 3px;
         pointer-events: auto;
         overflow: hidden;
         text-align: center;
+        display:inline-block;
+    }
+    .publishBox {
+        width: 20px;
+        height: 22px;
+        grid-column-start: 3;
+        grid-column-end: 4;
+        pointer-events: all;
+        background: darkgray;
+        display: inline-block;
+        position: absolute;
+        right: 0;
     }
 }
 
@@ -153,11 +165,12 @@ $linkGap : 3px;
 
 .link-button-container {
     margin-top: $linkGap;
-    grid-column: 1/4;
     width: max-content;
     height: auto;
     display: flex;
     flex-direction: row;
+    z-index: 5;
+    position: absolute;
 }
 
 .linkButtonWrapper {

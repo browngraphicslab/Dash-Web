@@ -2,27 +2,25 @@ import React = require("react");
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faArrowLeft, faArrowRight, faEdit, faMinus, faPlay, faPlus, faStop, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, IReactionDisposer, reaction, observable, runInAction } from "mobx";
+import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast, DocListCastAsync } from "../../../new_fields/Doc";
-import { listSpec, makeInterface } from "../../../new_fields/Schema";
-import { Cast, FieldValue, NumCast } from "../../../new_fields/Types";
+import { InkTool } from "../../../new_fields/InkField";
+import { listSpec } from "../../../new_fields/Schema";
+import { BoolCast, Cast, FieldValue, NumCast } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
+import { returnFalse } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
 import { DocumentManager } from "../../util/DocumentManager";
 import { undoBatch } from "../../util/UndoManager";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionView, CollectionViewType } from "../collections/CollectionView";
 import { ContextMenu } from "../ContextMenu";
+import { ContextMenuProps } from "../ContextMenuItem";
+import { InkingControl } from "../InkingControl";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./PresBox.scss";
-import { CollectionCarouselView } from "../collections/CollectionCarouselView";
-import { returnFalse } from "../../../Utils";
-import { ContextMenuProps } from "../ContextMenuItem";
-import { CollectionTimeView } from "../collections/CollectionTimeView";
-import { documentSchema } from "../../../new_fields/documentSchemas";
-import { InkingControl } from "../InkingControl";
-import { InkTool } from "../../../new_fields/InkField";
+import { PrefetchProxy } from "../../../new_fields/Proxy";
 
 library.add(faArrowLeft);
 library.add(faArrowRight);
@@ -37,33 +35,14 @@ library.add(faEdit);
 export class PresBox extends React.Component<FieldViewProps> {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(PresBox, fieldKey); }
     _childReaction: IReactionDisposer | undefined;
-    _slideshowReaction: IReactionDisposer | undefined;
     @observable _isChildActive = false;
-
     componentDidMount() {
-        const userDoc = CurrentUserUtils.UserDocument;
-        this._slideshowReaction = reaction(() => this.props.Document._slideshow,
-            (slideshow) => {
-                if (!slideshow) {
-                    let presTemp = Cast(userDoc.presentationTemplate, Doc);
-                    if (presTemp instanceof Promise) {
-                        presTemp.then(presTemp => this.props.Document.childLayout = presTemp);
-                    }
-                    else if (presTemp === undefined) {
-                        presTemp = userDoc.presentationTemplate = Docs.Create.PresElementBoxDocument({ backgroundColor: "transparent", _xMargin: 5, isTemplateDoc: true, isTemplateForField: "data" });
-                    }
-                    else {
-                        this.props.Document.childLayout = presTemp;
-                    }
-                } else {
-                    this.props.Document.childLayout = undefined;
-                }
-            }, { fireImmediately: true });
+        this.props.Document._forceRenderEngine = "timeline";
+        this.props.Document._replacedChrome = "replaced";
         this._childReaction = reaction(() => this.childDocs.slice(), (children) => children.forEach((child, i) => child.presentationIndex = i), { fireImmediately: true });
     }
     componentWillUnmount() {
         this._childReaction?.();
-        this._slideshowReaction?.();
     }
 
     @computed get childDocs() { return DocListCast(this.props.Document[this.props.fieldKey]); }
@@ -343,24 +322,27 @@ export class PresBox extends React.Component<FieldViewProps> {
         });
     }
 
-    toggleMinimize = undoBatch(action((e: React.PointerEvent) => {
-        if (this.props.Document.inOverlay) {
-            Doc.RemoveDocFromList((CurrentUserUtils.UserDocument.overlays as Doc), this.props.fieldKey, this.props.Document);
-            CollectionDockingView.AddRightSplit(this.props.Document, this.props.DataDoc);
-            this.props.Document.inOverlay = false;
-        } else {
-            this.props.Document.x = e.clientX + 25;
-            this.props.Document.y = e.clientY - 25;
-            this.props.addDocTab && this.props.addDocTab(this.props.Document, this.props.DataDoc, "close");
-            Doc.AddDocToList((CurrentUserUtils.UserDocument.overlays as Doc), this.props.fieldKey, this.props.Document);
+    updateMinimize = undoBatch(action((e: React.ChangeEvent, mode: number) => {
+        const toggle = BoolCast(this.props.Document.inOverlay) !== (mode === CollectionViewType.Invalid);
+        if (toggle) {
+            if (this.props.Document.inOverlay) {
+                Doc.RemoveDocFromList((CurrentUserUtils.UserDocument.overlays as Doc), this.props.fieldKey, this.props.Document);
+                CollectionDockingView.AddRightSplit(this.props.Document, this.props.DataDoc);
+                this.props.Document.inOverlay = false;
+            } else {
+                this.props.Document.x = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0)[0];// 500;//e.clientX + 25;
+                this.props.Document.y = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0)[1];////e.clientY - 25;
+                this.props.addDocTab && this.props.addDocTab(this.props.Document, this.props.DataDoc, "close");
+                Doc.AddDocToList((CurrentUserUtils.UserDocument.overlays as Doc), this.props.fieldKey, this.props.Document);
+            }
         }
     }));
 
     specificContextMenu = (e: React.MouseEvent): void => {
         const funcs: ContextMenuProps[] = [];
-        funcs.push({ description: "Show as Slideshow", event: action(() => this.props.Document._slideshow = "slideshow"), icon: "asterisk" });
-        funcs.push({ description: "Show as Timeline", event: action(() => this.props.Document._slideshow = "timeline"), icon: "asterisk" });
-        funcs.push({ description: "Show as List", event: action(() => this.props.Document._slideshow = undefined), icon: "asterisk" });
+        funcs.push({ description: "Show as Slideshow", event: action(() => this.props.Document._viewType = CollectionViewType.Carousel), icon: "asterisk" });
+        funcs.push({ description: "Show as Timeline", event: action(() => this.props.Document._viewType = CollectionViewType.Time), icon: "asterisk" });
+        funcs.push({ description: "Show as List", event: action(() => this.props.Document._viewType = CollectionViewType.Invalid), icon: "asterisk" });
         ContextMenu.Instance.addItem({ description: "Presentation Funcs...", subitems: funcs, icon: "asterisk" });
     }
 
@@ -369,13 +351,11 @@ export class PresBox extends React.Component<FieldViewProps> {
      * that they will be displayed in a canvas with scale 1.
      */
     initializeScaleViews = (docList: Doc[], viewtype: number) => {
-        this.props.Document._chromeStatus = "disabled";
         const hgt = (viewtype === CollectionViewType.Tree) ? 50 : 46;
         docList.forEach((doc: Doc) => {
             doc.presBox = this.props.Document;
             doc.presBoxKey = this.props.fieldKey;
             doc.collapsedHeight = hgt;
-            doc._nativeWidth = doc._nativeHeight = undefined;
             const curScale = NumCast(doc.viewScale, null);
             if (curScale === undefined) {
                 doc.viewScale = 1;
@@ -389,42 +369,48 @@ export class PresBox extends React.Component<FieldViewProps> {
     }
 
     getTransform = () => {
-        return this.props.ScreenToLocalTransform().translate(0, -50);// listBox padding-left and pres-box-cont minHeight
+        return this.props.ScreenToLocalTransform().translate(-5, -65);// listBox padding-left and pres-box-cont minHeight
     }
     panelHeight = () => {
         return this.props.PanelHeight() - 20;
     }
+
+    @undoBatch
+    viewChanged = action((e: React.ChangeEvent) => {
+        //@ts-ignore
+        this.props.Document._viewType = Number(e.target.selectedOptions[0].value);
+        this.updateMinimize(e, Number(this.props.Document._viewType));
+    });
+
+    childLayoutTemplate = () => this.props.Document._viewType === CollectionViewType.Stacking ? Cast(Doc.UserDoc().presentationTemplate, Doc, null) : undefined;
     render() {
-        this.initializeScaleViews(this.childDocs, NumCast(this.props.Document._viewType));
-        return (this.props.Document._slideshow ?
-            <div className="presBox-cont" onContextMenu={this.specificContextMenu} style={{ pointerEvents: this.active() ? "all" : "none" }} >
-                {this.props.Document.inOverlay ? (null) :
-                    <div className="presBox-listCont" >
-                        {this.props.Document._slideshow === "slideshow" ?
-                            <CollectionCarouselView {...this.props} PanelHeight={this.panelHeight} chromeCollapsed={true} annotationsKey={""} CollectionView={undefined}
-                                moveDocument={returnFalse}
-                                addDocument={this.addDocument} removeDocument={returnFalse} focus={this.selectElement} ScreenToLocalTransform={this.getTransform} />
-                            :
-                            <CollectionTimeView {...this.props} PanelHeight={this.panelHeight} chromeCollapsed={true} annotationsKey={""} CollectionView={undefined}
-                                moveDocument={returnFalse}
-                                addDocument={this.addDocument} removeDocument={returnFalse} focus={this.selectElement} ScreenToLocalTransform={this.getTransform} />
-                        }
-                    </div>}
-                <button className="presBox-backward" title="Back" onClick={this.back}><FontAwesomeIcon icon={"arrow-left"} /></button>
-                <button className="presBox-forward" title="Next" onClick={this.next}><FontAwesomeIcon icon={"arrow-right"} /></button>
+        const mode = NumCast(this.props.Document._viewType, CollectionViewType.Invalid);
+        this.initializeScaleViews(this.childDocs, mode);
+        return <div className="presBox-cont" onContextMenu={this.specificContextMenu} style={{ minWidth: this.props.Document.inOverlay ? 240 : undefined, pointerEvents: this.active() || this.props.Document.inOverlay ? "all" : "none" }} >
+            <div className="presBox-buttons" style={{ display: this.props.Document._chromeStatus === "disabled" ? "none" : undefined }}>
+                <select style={{ minWidth: 50, width: "5%", height: "25", position: "relative", display: "inline-block" }}
+                    className="collectionViewBaseChrome-viewPicker"
+                    onPointerDown={e => e.stopPropagation()}
+                    onChange={this.viewChanged}
+                    value={mode}>
+                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={e => e.stopPropagation()} value={CollectionViewType.Invalid}>Min</option>
+                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={e => e.stopPropagation()} value={CollectionViewType.Stacking}>List</option>
+                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={e => e.stopPropagation()} value={CollectionViewType.Time}>Time</option>
+                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={e => e.stopPropagation()} value={CollectionViewType.Carousel}>Slides</option>
+                </select>
+                <button className="presBox-button" title="Back" onClick={this.back}><FontAwesomeIcon icon={"arrow-left"} /></button>
+                <button className="presBox-button" title={"Reset Presentation" + this.props.Document.presStatus ? "" : " From Start"} onClick={this.startOrResetPres}>
+                    <FontAwesomeIcon icon={this.props.Document.presStatus ? "stop" : "play"} />
+                </button>
+                <button className="presBox-button" title="Next" onClick={this.next}><FontAwesomeIcon icon={"arrow-right"} /></button>
             </div>
-            : <div className="presBox-cont" onContextMenu={this.specificContextMenu}>
-                <div className="presBox-buttons">
-                    <button className="presBox-button" title="Back" onClick={this.back}><FontAwesomeIcon icon={"arrow-left"} /></button>
-                    <button className="presBox-button" title={"Reset Presentation" + this.props.Document.presStatus ? "" : " From Start"} onClick={this.startOrResetPres}>
-                        <FontAwesomeIcon icon={this.props.Document.presStatus ? "stop" : "play"} />
-                    </button>
-                    <button className="presBox-button" title="Next" onClick={this.next}><FontAwesomeIcon icon={"arrow-right"} /></button>
-                    <button className="presBox-button" title={this.props.Document.inOverlay ? "Expand" : "Minimize"} onClick={this.toggleMinimize}><FontAwesomeIcon icon={"eye"} /></button>
-                    {this.props.Document.inOverlay ? (null) :
-                        <div className="presBox-listCont">
-                            <CollectionView {...this.props} whenActiveChanged={this.whenActiveChanged} PanelHeight={this.panelHeight} addDocument={this.addDocument} focus={this.selectElement} ScreenToLocalTransform={this.getTransform} />
-                        </div>}
-                </div></div>);
+            <div className="presBox-listCont" >
+                {mode !== CollectionViewType.Invalid ?
+                    <CollectionView {...this.props} PanelHeight={this.panelHeight} moveDocument={returnFalse} childLayoutTemplate={this.childLayoutTemplate}
+                        addDocument={this.addDocument} removeDocument={returnFalse} focus={this.selectElement} ScreenToLocalTransform={this.getTransform} />
+                    : (null)
+                }
+            </div>
+        </div>;
     }
 }

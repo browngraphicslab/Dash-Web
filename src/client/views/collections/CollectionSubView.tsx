@@ -1,7 +1,7 @@
 import { action, computed, IReactionDisposer, reaction, trace } from "mobx";
 import * as rp from 'request-promise';
 import CursorField from "../../../new_fields/CursorField";
-import { Doc, DocListCast, Opt } from "../../../new_fields/Doc";
+import { Doc, DocListCast, Opt, WidthSym, HeightSym } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
@@ -33,7 +33,6 @@ export interface CollectionViewProps extends FieldViewProps {
     PanelWidth: () => number;
     PanelHeight: () => number;
     VisibleHeight?: () => number;
-    chromeCollapsed: boolean;
     setPreviewCursor?: (func: (x: number, y: number, drag: boolean) => void) => void;
     fieldKey: string;
 }
@@ -86,7 +85,10 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             this._childLayoutDisposer && this._childLayoutDisposer();
         }
 
-        @computed get dataDoc() { return this.props.DataDoc && this.props.Document.isTemplateForField ? Doc.GetProto(this.props.DataDoc) : Doc.GetProto(this.props.Document); }
+        @computed get dataDoc() {
+            return (this.props.DataDoc && this.props.Document.isTemplateForField ? Doc.GetProto(this.props.DataDoc) :
+                this.props.Document.resolvedDataDoc ? this.props.Document : Doc.GetProto(this.props.Document)); // if the layout document has a resolvedDataDoc, then we don't want to get its parent which would be the unexpanded template
+        }
 
         // The data field for rendering this collection will be on the this.props.Document unless we're rendering a template in which case we try to use props.DataDoc.
         // When a document has a DataDoc but it's not a template, then it contains its own rendering data, but needs to pass the DataDoc through
@@ -167,6 +169,9 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                     return true;
                 }
                 let added = false;
+                if (this.props.Document._freezeOnDrop) {
+                    de.complete.docDragData?.droppedDocuments.forEach(drop => Doc.freezeNativeDimensions(drop, drop[WidthSym](), drop[HeightSym]()));
+                }
                 if (docDragData.dropAction || docDragData.userDropAction) {
                     added = docDragData.droppedDocuments.reduce((added: boolean, d) => this.props.addDocument(d) || added, false);
                 } else if (docDragData.moveDocument) {
@@ -230,8 +235,8 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                     const split = img.split("src=\"")[1].split("\"")[0];
                     let source = split;
                     if (split.startsWith("data:image") && split.includes("base64")) {
-                        const [{ clientAccessPath }] = await Networking.PostToServer("/uploadRemoteImage", { sources: [split] });
-                        source = Utils.prepend(clientAccessPath);
+                        const [{ accessPaths }] = await Networking.PostToServer("/uploadRemoteImage", { sources: [split] });
+                        source = Utils.prepend(accessPaths.agnostic.client);
                     }
                     const doc = Docs.Create.ImageDocument(source, { ...options, _width: 300 });
                     ImageUtils.ExtractExif(doc);
@@ -310,9 +315,9 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                     const dropFileName = file ? file.name : "-empty-";
                     promises.push(Networking.PostFormDataToServer("/uploadFormData", formData).then(results => {
                         results.map(action((result: any) => {
-                            const { clientAccessPath, nativeWidth, nativeHeight, contentSize } = result;
+                            const { accessPaths, nativeWidth, nativeHeight, contentSize } = result;
                             const full = { ...options, _width: 300, title: dropFileName };
-                            const pathname = Utils.prepend(clientAccessPath);
+                            const pathname = Utils.prepend(accessPaths.agnostic.client);
                             Docs.Get.DocumentFromType(type, pathname, full).then(doc => {
                                 if (doc) {
                                     const proto = Doc.GetProto(doc);

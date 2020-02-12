@@ -48,7 +48,7 @@ export class CurrentUserUtils {
     // setup the "creator" buttons for the sidebar-- eg. the default set of draggable document creation tools
     static setupCreatorButtons(doc: Doc, buttons?: string[]) {
         const notes = CurrentUserUtils.setupNoteTypes(doc);
-        const emptyPresentation = Docs.Create.PresDocument(new List<Doc>(), { title: "Presentation", _viewType: CollectionViewType.Stacking, showTitle: "title", boxShadow: "0 0" });
+        const emptyPresentation = Docs.Create.PresDocument(new List<Doc>(), { title: "Presentation", _viewType: CollectionViewType.Stacking, _LODdisable: true, _chromeStatus: "replaced", showTitle: "title", boxShadow: "0 0" });
         const emptyCollection = Docs.Create.FreeformDocument([], { _nativeWidth: undefined, _nativeHeight: undefined, _LODdisable: true, _width: 150, _height: 100, title: "freeform" });
         doc.noteTypes = Docs.Create.TreeDocument(notes, { title: "Note Types", _height: 75 });
         doc.activePen = doc;
@@ -58,8 +58,8 @@ export class CurrentUserUtils {
             { title: "todo item", icon: "check", ignoreClick: true, drag: 'getCopy(this.dragFactory, true)', dragFactory: notes[notes.length - 1] },
             { title: "web page", icon: "globe-asia", ignoreClick: true, drag: 'Docs.Create.WebDocument("https://en.wikipedia.org/wiki/Hedgehog", {_width: 300, _height: 300, title: "New Webpage" })' },
             { title: "cat image", icon: "cat", ignoreClick: true, drag: 'Docs.Create.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", { _width: 200, title: "an image of a cat" })' },
+            { title: "buxton", icon: "cloud-upload-alt", ignoreClick: true, drag: "Docs.Create.Buxton()" },
             { title: "webcam", icon: "video", ignoreClick: true, drag: 'Docs.Create.WebCamDocument("", { width: 400, height: 400, title: "a test cam" })' },
-            { title: "buxton", icon: "faObjectGroup", ignoreClick: true, drag: "Docs.Create.Buxton()" },
             { title: "record", icon: "microphone", ignoreClick: true, drag: `Docs.Create.AudioDocument("${nullAudio}", { _width: 200, title: "ready to record audio" })` },
             { title: "clickable button", icon: "bolt", ignoreClick: true, drag: 'Docs.Create.ButtonDocument({ _width: 150, _height: 50, title: "Button" })' },
             { title: "presentation", icon: "tv", click: 'openOnRight(Doc.UserDoc().curPresentation = getCopy(this.dragFactory, true))', drag: `Doc.UserDoc().curPresentation = getCopy(this.dragFactory,true)`, dragFactory: emptyPresentation },
@@ -234,12 +234,12 @@ export class CurrentUserUtils {
 
     /// sets up the default list of buttons to be shown in the expanding button menu at the bottom of the Dash window
     static setupExpandingButtons(doc: Doc) {
-        const slideTemplate = Docs.Create.StackingDocument(
+        const slideTemplate = Docs.Create.MultirowDocument(
             [
-                Docs.Create.MulticolumnDocument([], { title: "images", _height: 200, _xMargin: 10, _yMargin: 10 }),
+                Docs.Create.MulticolumnDocument([], { title: "images", _height: 200 }),
                 Docs.Create.TextDocument("", { title: "contents", _height: 100 })
             ],
-            { _width: 400, _height: 300, title: "slide", _chromeStatus: "disabled", backgroundColor: "lightGray", _autoHeight: true });
+            { _width: 400, _height: 300, title: "slideView", _chromeStatus: "disabled", _xMargin: 3, _yMargin: 3, backgroundColor: "lightGray", _autoHeight: true });
         slideTemplate.isTemplateDoc = makeTemplate(slideTemplate);
 
         const iconDoc = Docs.Create.TextDocument("", { title: "icon", _width: 150, _height: 30, isTemplateDoc: true, onClick: ScriptField.MakeScript("setNativeView(this)") });
@@ -270,7 +270,8 @@ export class CurrentUserUtils {
 
     // the initial presentation Doc to use
     static setupDefaultPresentation(doc: Doc) {
-        doc.curPresentation = Docs.Create.PresDocument(new List<Doc>(), { title: "Presentation", _viewType: CollectionViewType.Stacking, showTitle: "title", boxShadow: "0 0" });
+        doc.presentationTemplate = new PrefetchProxy(Docs.Create.PresElementBoxDocument({ backgroundColor: "transparent", _xMargin: 5, _height: 46, isTemplateDoc: true, isTemplateForField: "data" }));
+        doc.curPresentation = Docs.Create.PresDocument(new List<Doc>(), { title: "Presentation", _viewType: CollectionViewType.Stacking, _LODdisable: true, _chromeStatus: "replaced", showTitle: "title", boxShadow: "0 0" });
     }
 
     static setupMobileUploads(doc: Doc) {

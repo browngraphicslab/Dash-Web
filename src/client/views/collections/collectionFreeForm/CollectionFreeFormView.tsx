@@ -1,20 +1,22 @@
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faEye } from "@fortawesome/free-regular-svg-icons";
 import { faBraille, faChalkboard, faCompass, faCompressArrowsAlt, faExpandArrowsAlt, faFileUpload, faPaintBrush, faTable, faUpload } from "@fortawesome/free-solid-svg-icons";
-import { action, computed, observable, ObservableMap, reaction, runInAction, IReactionDisposer, trace } from "mobx";
+import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, HeightSym, Opt, WidthSym, DocListCastAsync, Field } from "../../../../new_fields/Doc";
+import { computedFn } from "mobx-utils";
+import { Doc, DocListCast, HeightSym, Opt, WidthSym } from "../../../../new_fields/Doc";
 import { documentSchema, positionSchema } from "../../../../new_fields/documentSchemas";
 import { Id } from "../../../../new_fields/FieldSymbols";
-import { InkTool, InkField, InkData } from "../../../../new_fields/InkField";
-import { createSchema, makeInterface, listSpec } from "../../../../new_fields/Schema";
+import { InkTool } from "../../../../new_fields/InkField";
+import { createSchema, listSpec, makeInterface } from "../../../../new_fields/Schema";
 import { ScriptField } from "../../../../new_fields/ScriptField";
-import { BoolCast, Cast, DateCast, NumCast, StrCast, ScriptCast } from "../../../../new_fields/Types";
+import { Cast, NumCast, ScriptCast, StrCast } from "../../../../new_fields/Types";
+import { TraceMobx } from "../../../../new_fields/util";
+import { GestureUtils } from "../../../../pen-gestures/GestureUtils";
 import { CurrentUserUtils } from "../../../../server/authentication/models/current_user_utils";
-import { aggregateBounds, emptyFunction, intersectRect, returnOne, Utils } from "../../../../Utils";
+import { aggregateBounds, intersectRect, returnOne, Utils } from "../../../../Utils";
 import { DocServer } from "../../../DocServer";
-import { Docs, DocUtils } from "../../../documents/Documents";
-import { DocumentType } from "../../../documents/DocumentTypes";
+import { Docs } from "../../../documents/Documents";
 import { DocumentManager } from "../../../util/DocumentManager";
 import { DragManager } from "../../../util/DragManager";
 import { HistoryUtil } from "../../../util/History";
@@ -32,15 +34,12 @@ import { FormattedTextBox } from "../../nodes/FormattedTextBox";
 import { pageSchema } from "../../nodes/ImageBox";
 import PDFMenu from "../../pdf/PDFMenu";
 import { CollectionSubView } from "../CollectionSubView";
-import { computePivotLayout, ViewDefResult, computeTimelineLayout, PoolData, ViewDefBounds } from "./CollectionFreeFormLayoutEngines";
+import { computePivotLayout, computeTimelineLayout, PoolData, ViewDefBounds, ViewDefResult } from "./CollectionFreeFormLayoutEngines";
 import { CollectionFreeFormRemoteCursors } from "./CollectionFreeFormRemoteCursors";
 import "./CollectionFreeFormView.scss";
 import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
-import { computedFn } from "mobx-utils";
-import { TraceMobx } from "../../../../new_fields/util";
-import { GestureUtils } from "../../../../pen-gestures/GestureUtils";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
@@ -698,7 +697,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     }
 
-    setScaleToZoom = (doc: Doc, scale: number = 0.5) => {
+    setScaleToZoom = (doc: Doc, scale: number = 0.75) => {
         this.Document.scale = scale * Math.min(this.props.PanelWidth() / NumCast(doc._width), this.props.PanelHeight() / NumCast(doc._height));
     }
 
@@ -807,7 +806,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     doFreeformLayout(poolData: Map<string, any>) {
         const layoutDocs = this.childLayoutPairs.map(pair => pair.layout);
         const initResult = this.Document.arrangeInit && this.Document.arrangeInit.script.run({ docs: layoutDocs, collection: this.Document }, console.log);
-        let state = initResult && initResult.success ? initResult.result.scriptState : undefined;
+        const state = initResult && initResult.success ? initResult.result.scriptState : undefined;
         const elements = initResult && initResult.success ? this.viewDefsToJSX(initResult.result.views) : [];
 
         this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)).map((pair, i) => {
@@ -827,7 +826,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     @computed get filterDocs() {
-        const docFilters = Cast(this.props.Document._docFilter, listSpec("string"), []);
+        const docFilters = Cast(this.props.Document._docFilters, listSpec("string"), []);
+        const docRangeFilters = Cast(this.props.Document._docRangeFilters, listSpec("string"), []);
         const clusters: { [key: string]: { [value: string]: string } } = {};
         for (let i = 0; i < docFilters.length; i += 3) {
             const [key, value, modifiers] = docFilters.slice(i, i + 3);
@@ -853,7 +853,19 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             }
             return true;
         }) : this.childDocs;
-        return filteredDocs;
+        const rangeFilteredDocs = filteredDocs.filter(d => {
+            for (let i = 0; i < docRangeFilters.length; i += 3) {
+                const key = docRangeFilters[i];
+                const min = Number(docRangeFilters[i + 1]);
+                const max = Number(docRangeFilters[i + 2]);
+                const val = Cast(d[key], "number", null);
+                if (val !== undefined && (val < min || val > max)) {
+                    return false;
+                }
+            }
+            return true;
+        });
+        return rangeFilteredDocs;
     }
     get doLayoutComputation() {
         const { newPool, computedElementData } = this.doInternalLayoutComputation;

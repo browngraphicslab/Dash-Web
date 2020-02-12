@@ -1,11 +1,10 @@
 import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
-import { faArrowAltCircleDown, faArrowAltCircleUp, faCheckCircle, faCloudUploadAlt, faLink, faShare, faStopCircle, faSyncAlt, faTag, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faCaretUp, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faTextHeight, faArrowAltCircleDown, faArrowAltCircleUp, faCheckCircle, faCloudUploadAlt, faLink, faShare, faStopCircle, faSyncAlt, faTag, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, reaction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc } from "../../new_fields/Doc";
 import { PositionDocument } from '../../new_fields/documentSchemas';
-import { ObjectField } from '../../new_fields/ObjectField';
 import { ScriptField } from '../../new_fields/ScriptField';
 import { Cast, StrCast } from "../../new_fields/Types";
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
@@ -18,12 +17,17 @@ import { undoBatch, UndoManager } from "../util/UndoManager";
 import { DocumentButtonBar } from './DocumentButtonBar';
 import './DocumentDecorations.scss';
 import { DocumentView } from "./nodes/DocumentView";
-import { IconBox } from "./nodes/IconBox";
 import React = require("react");
+import { Id } from '../../new_fields/FieldSymbols';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
 
+library.add(faCaretUp);
+library.add(faObjectGroup);
+library.add(faStickyNote);
+library.add(faFilePdf);
+library.add(faFilm, faTextHeight);
 library.add(faLink);
 library.add(faTag);
 library.add(faTimes);
@@ -102,27 +106,10 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (key === 13) {
             const text = e.target.value;
             if (text.startsWith("::")) {
-                const targetID = text.slice(2, text.length);
+                this._accumulatedTitle = text.slice(2, text.length);
                 const promoteDoc = SelectionManager.SelectedDocuments()[0];
-                DocUtils.Publish(promoteDoc.props.Document, targetID, promoteDoc.props.addDocument, promoteDoc.props.removeDocument);
-            } else if (text.startsWith(">")) {
-                const fieldTemplateView = SelectionManager.SelectedDocuments()[0];
-                SelectionManager.DeselectAll();
-                const fieldTemplate = fieldTemplateView.props.Document;
-                const containerView = fieldTemplateView.props.ContainingCollectionView;
-                const docTemplate = fieldTemplateView.props.ContainingCollectionDoc;
-                if (containerView && docTemplate) {
-                    const metaKey = text.startsWith(">>") ? text.slice(2, text.length) : text.slice(1, text.length);
-                    if (metaKey !== containerView.props.fieldKey && containerView.props.DataDoc) {
-                        const fd = fieldTemplate.data;
-                        fd instanceof ObjectField && (Doc.GetProto(containerView.props.DataDoc)[metaKey] = ObjectField.MakeCopy(fd));
-                    }
-                    fieldTemplate.title = metaKey;
-                    Doc.MakeMetadataFieldTemplate(fieldTemplate, Doc.GetProto(docTemplate));
-                    if (text.startsWith(">>")) {
-                        Doc.GetProto(docTemplate).layout = StrCast(fieldTemplateView.props.Document.layout).replace(/fieldKey={'[^']*'}/, `fieldKey={"${metaKey}"}`);
-                    }
-                }
+                Doc.SetInPlace(promoteDoc.props.Document, "title", this._accumulatedTitle, true);
+                DocUtils.Publish(promoteDoc.props.Document, this._accumulatedTitle, promoteDoc.props.addDocument, promoteDoc.props.removeDocument);
             }
             e.target.blur();
         }
@@ -279,11 +266,11 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 const layoutKey = Cast(dv.props.Document.layoutKey, "string", null);
                 const collapse = layoutKey !== "layout_icon";
                 if (collapse) {
-                    dv.setCustomView(collapse, "icon");
+                    dv.switchViews(collapse, "icon");
                     if (layoutKey && layoutKey !== "layout") dv.props.Document.deiconifyLayout = layoutKey.replace("layout_", "");
                 } else {
                     const deiconifyLayout = Cast(dv.props.Document.deiconifyLayout, "string", null);
-                    dv.setCustomView(deiconifyLayout ? true : false, deiconifyLayout);
+                    dv.switchViews(deiconifyLayout ? true : false, deiconifyLayout);
                     dv.props.Document.deiconifyLayout = undefined;
                 }
             });
@@ -482,6 +469,15 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             this.TextBar = ele;
         }
     }
+    public static DocumentIcon(layout: string) {
+        const button = layout.indexOf("PDFBox") !== -1 ? faFilePdf :
+            layout.indexOf("ImageBox") !== -1 ? faImage :
+                layout.indexOf("Formatted") !== -1 ? faStickyNote :
+                    layout.indexOf("Video") !== -1 ? faFilm :
+                        layout.indexOf("Collection") !== -1 ? faObjectGroup :
+                            faCaretUp;
+        return <FontAwesomeIcon icon={button} className="documentView-minimizedIcon" />;
+    }
     render() {
         const bounds = this.Bounds;
         const seldoc = SelectionManager.SelectedDocuments().length ? SelectionManager.SelectedDocuments()[0] : undefined;
@@ -491,7 +487,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         const minimizeIcon = (
             <div className="documentDecorations-minimizeButton" onPointerDown={this.onMinimizeDown}>
                 {/* Currently, this is set to be enabled if there is no ink selected. It might be interesting to think about minimizing ink if it's useful? -syip2*/}
-                {SelectionManager.SelectedDocuments().length === 1 ? IconBox.DocumentIcon(StrCast(SelectionManager.SelectedDocuments()[0].props.Document.layout, "...")) : "..."}
+                {SelectionManager.SelectedDocuments().length === 1 ? DocumentDecorations.DocumentIcon(StrCast(SelectionManager.SelectedDocuments()[0].props.Document.layout, "...")) : "..."}
             </div>);
 
         bounds.x = Math.max(0, bounds.x - this._resizeBorderWidth / 2) + this._resizeBorderWidth / 2;
@@ -513,19 +509,28 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 top: bounds.y - this._resizeBorderWidth / 2,
                 pointerEvents: this.Interacting ? "none" : "all",
                 zIndex: SelectionManager.SelectedDocuments().length > 1 ? 900 : 0,
-            }} onPointerDown={this.onBackgroundDown} onContextMenu={(e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation(); }} >
+            }} onPointerDown={this.onBackgroundDown} onContextMenu={e => { e.preventDefault(); e.stopPropagation(); }} >
             </div>
             <div className="documentDecorations-container" ref={this.setTextBar} style={{
                 width: (bounds.r - bounds.x + this._resizeBorderWidth) + "px",
-                height: (bounds.b - bounds.y + this._resizeBorderWidth + this._linkBoxHeight + this._titleHeight + 3) + "px",
+                height: (bounds.b - bounds.y + this._resizeBorderWidth + this._titleHeight) + "px",
                 left: bounds.x - this._resizeBorderWidth / 2,
                 top: bounds.y - this._resizeBorderWidth / 2 - this._titleHeight,
                 opacity: this._opacity
             }}>
                 {minimizeIcon}
 
-                {this._edtingTitle ?
-                    <input ref={this._keyinput} className="title" type="text" name="dynbox" value={this._accumulatedTitle} onBlur={e => this.titleBlur(true)} onChange={this.titleChanged} onKeyPress={this.titleEntered} /> :
+                {this._edtingTitle ? <>
+                    <input ref={this._keyinput} className="title" type="text" name="dynbox" autoComplete="on" value={this._accumulatedTitle} style={{ width: "calc(100% - 20px)" }}
+                        onBlur={e => this.titleBlur(true)} onChange={this.titleChanged} onKeyPress={this.titleEntered} />
+                    <div className="publishBox" title="make document referenceable by its title"
+                        onPointerDown={e => {
+                            const promoteDoc = SelectionManager.SelectedDocuments()[0];
+                            DocUtils.Publish(promoteDoc.props.Document, this._accumulatedTitle, promoteDoc.props.addDocument, promoteDoc.props.removeDocument);
+                        }}>
+                        <FontAwesomeIcon size="lg" color={SelectionManager.SelectedDocuments()[0].props.Document.title === SelectionManager.SelectedDocuments()[0].props.Document[Id] ? "green" : undefined} icon="sticky-note"></FontAwesomeIcon>
+                    </div>
+                </> :
                     <div className="title" onPointerDown={this.onTitleDown} ><span>{`${this.selectionTitle}`}</span></div>}
                 <div className="documentDecorations-closeButton" title="Close Document" onPointerDown={this.onCloseDown}>
                     <FontAwesomeIcon className="documentdecorations-times" icon={faTimes} size="lg" />
@@ -540,10 +545,11 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 <div id="documentDecorations-bottomResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-bottomRightResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-borderRadius" className="documentDecorations-radius" onPointerDown={this.onRadiusDown} onContextMenu={(e) => e.preventDefault()}><span className="borderRadiusTooltip" title="Drag Corner Radius"></span></div>
-                <div className="link-button-container">
-                    <DocumentButtonBar views={SelectionManager.SelectedDocuments()} />
-                </div>
+
             </div >
+            <div className="link-button-container" style={{ left: bounds.x - this._resizeBorderWidth / 2, top: bounds.b + this._resizeBorderWidth / 2 }}>
+                <DocumentButtonBar views={SelectionManager.SelectedDocuments()} />
+            </div>
         </div>
         );
     }

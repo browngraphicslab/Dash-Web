@@ -1,4 +1,5 @@
 import { Utils } from "../Utils";
+import { AnalysisResult, ImportResults } from "../scraping/buxton/final/BuxtonImporter";
 
 export class Message<T> {
     private _name: string;
@@ -56,6 +57,9 @@ export namespace MessageStore {
     export const GetDocument = new Message<string>("Get Document");
     export const DeleteAll = new Message<any>("Delete All");
     export const ConnectionTerminated = new Message<string>("Connection Terminated");
+    export const BeginBuxtonImport = new Message<string>("Begin Buxton Import");
+    export const BuxtonDocumentResult = new Message<AnalysisResult>("Buxton Document Result");
+    export const BuxtonImportComplete = new Message<ImportResults>("Buxton Import Complete");
 
     export const GetRefField = new Message<string>("Get Ref Field");
     export const GetRefFields = new Message<string[]>("Get Ref Fields");
@@ -64,6 +68,5 @@ export namespace MessageStore {
     export const YoutubeApiQuery = new Message<YoutubeQueryInput>("Youtube Api Query");
     export const DeleteField = new Message<string>("Delete field");
     export const DeleteFields = new Message<string[]>("Delete fields");
-
 
 }

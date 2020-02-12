@@ -493,7 +493,6 @@ export class MainView extends React.Component {
                     fieldKey={"data"}
                     annotationsKey={""}
                     select={emptyFunction}
-                    chromeCollapsed={true}
                     active={returnFalse}
                     isSelected={returnFalse}
                     moveDocument={this.moveButtonDoc}

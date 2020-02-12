@@ -1,27 +1,29 @@
 import { faEdit } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, observable, trace, runInAction } from "mobx";
+import { action, computed, observable, runInAction, trace } from "mobx";
 import { observer } from "mobx-react";
-import { Set } from "typescript-collections";
-import { Doc, DocListCast, Field } from "../../../new_fields/Doc";
+import { Doc, DocListCast, Field, WidthSym, HeightSym } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
+import { ObjectField } from "../../../new_fields/ObjectField";
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { listSpec } from "../../../new_fields/Schema";
 import { ComputedField, ScriptField } from "../../../new_fields/ScriptField";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { Docs } from "../../documents/Documents";
+import { DocumentType } from "../../documents/DocumentTypes";
 import { Scripting } from "../../util/Scripting";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { EditableView } from "../EditableView";
-import { anchorPoints, Flyout } from "../TemplateMenu";
 import { ViewDefBounds } from "./collectionFreeForm/CollectionFreeFormLayoutEngines";
 import { CollectionFreeFormView } from "./collectionFreeForm/CollectionFreeFormView";
 import { CollectionSubView } from "./CollectionSubView";
 import "./CollectionTimeView.scss";
-import React = require("react");
 import { CollectionTreeView } from "./CollectionTreeView";
-import { ObjectField } from "../../../new_fields/ObjectField";
+const higflyout = require("@hig/flyout");
+export const { anchorPoints } = higflyout;
+export const Flyout = higflyout.default;
+import React = require("react");
 
 @observer
 export class CollectionTimeView extends CollectionSubView(doc => doc) {
@@ -29,11 +31,12 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
     @observable _layoutEngine = "pivot";
 
     componentDidMount() {
+        this.props.Document._freezeOnDrop = true;
         const childDetailed = this.props.Document.childDetailed; // bcz: needs to be here to make sure the childDetailed layout template has been loaded when the first item is clicked;
         if (!this.props.Document._facetCollection) {
-            const facetCollection = Docs.Create.TreeDocument([], { title: "facetFilters", _yMargin: 0, treeViewHideTitle: true });
+            const facetCollection = Docs.Create.TreeDocument([], { title: "facetFilters", _yMargin: 0, treeViewHideTitle: true, treeViewHideHeaderFields: true });
             facetCollection.target = this.props.Document;
-            this.props.Document.excludeFields = new List<string>(["_facetCollection", "_docFilter"]);
+            this.props.Document.excludeFields = new List<string>(["_facetCollection", "_docFilters"]);
 
             const scriptText = "setDocFilter(containingTreeView.target, heading, this.title, checked)";
             const childText = "const alias = getAlias(this); Doc.ApplyTemplateTo(containingCollection.childDetailed, alias, 'layout_detailView'); alias.dropAction='alias'; alias.removeDropProperties=new List<string>(['dropAction']);  useRightSplit(alias, shiftKey); ";
@@ -43,7 +46,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
             this.props.Document._fitToBox = true;
         }
         if (!this.props.Document.onViewDefClick) {
-            this.props.Document.onViewDefDivClick = ScriptField.MakeScript("pivotColumnClick(this,payload)", { payload: "any" })
+            this.props.Document.onViewDefDivClick = ScriptField.MakeScript("pivotColumnClick(this,payload)", { payload: "any" });
         }
     }
 
@@ -54,7 +57,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
         const facets = new Set<string>();
         this.childDocs.forEach(child => Object.keys(Doc.GetProto(child)).forEach(key => facets.add(key)));
         Doc.AreProtosEqual(this.dataDoc, this.props.Document) && this.childDocs.forEach(child => Object.keys(child).forEach(key => facets.add(key)));
-        return facets.toArray();
+        return Array.from(facets);
     }
 
     /**
@@ -66,19 +69,58 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
             const found = DocListCast(facetCollection.data).findIndex(doc => doc.title === facetHeader);
             if (found !== -1) {
                 (facetCollection.data as List<Doc>).splice(found, 1);
-                const docFilter = Cast(this.props.Document._docFilter, listSpec("string"));
+                const docFilter = Cast(this.props.Document._docFilters, listSpec("string"));
                 if (docFilter) {
                     let index: number;
                     while ((index = docFilter.findIndex(item => item === facetHeader)) !== -1) {
                         docFilter.splice(index, 3);
                     }
                 }
+                const docRangeFilters = Cast(this.props.Document._docRangeFilters, listSpec("string"));
+                if (docRangeFilters) {
+                    let index: number;
+                    while ((index = docRangeFilters.findIndex(item => item === facetHeader)) !== -1) {
+                        docRangeFilters.splice(index, 3);
+                    }
+                }
             } else {
-                const newFacet = Docs.Create.TreeDocument([], { title: facetHeader, treeViewOpen: true, isFacetFilter: true });
-                const capturedVariables = { layoutDoc: this.props.Document, dataDoc: this.dataDoc };
-                const params = { layoutDoc: Doc.name, dataDoc: Doc.name, };
-                newFacet.data = ComputedField.MakeFunction(`readFacetData(layoutDoc, dataDoc, "${this.props.fieldKey}", "${facetHeader}")`, params, capturedVariables);
-                Doc.AddDocToList(facetCollection, "data", newFacet);
+                const allCollectionDocs = DocListCast(this.dataDoc[this.props.fieldKey]);
+                const facetValues = Array.from(allCollectionDocs.reduce((set, child) =>
+                    set.add(Field.toString(child[facetHeader] as Field)), new Set<string>()));
+
+                let nonNumbers = 0;
+                let minVal = Number.MAX_VALUE, maxVal = -Number.MAX_VALUE;
+                facetValues.map(val => {
+                    const num = Number(val);
+                    if (Number.isNaN(num)) {
+                        nonNumbers++;
+                    } else {
+                        minVal = Math.min(num, minVal);
+                        maxVal = Math.max(num, maxVal);
+                    }
+                });
+                if (nonNumbers / allCollectionDocs.length < .1) {
+                    const ranged = Doc.readDocRangeFilter(this.props.Document, facetHeader);
+                    const newFacet = Docs.Create.SliderDocument({ title: facetHeader });
+                    Doc.GetProto(newFacet).type = DocumentType.COL; // forces item to show an open/close button instead ofa checkbox
+                    newFacet.treeViewExpandedView = "layout";
+                    newFacet.treeViewOpen = true;
+                    newFacet._sliderMin = ranged === undefined ? minVal : ranged[0];
+                    newFacet._sliderMax = ranged === undefined ? maxVal : ranged[1];
+                    newFacet._sliderMinThumb = minVal;
+                    newFacet._sliderMaxThumb = maxVal;
+                    newFacet.target = this.props.Document;
+                    const scriptText = `setDocFilterRange(this.target, "${facetHeader}", range)`;
+                    newFacet.onThumbChanged = ScriptField.MakeScript(scriptText, { this: Doc.name, range: "number" });
+
+                    Doc.AddDocToList(facetCollection, "data", newFacet);
+                } else {
+                    const newFacet = Docs.Create.TreeDocument([], { title: facetHeader, treeViewOpen: true, isFacetFilter: true });
+                    const capturedVariables = { layoutDoc: this.props.Document, dataDoc: this.dataDoc };
+                    const params = { layoutDoc: Doc.name, dataDoc: Doc.name, };
+                    newFacet.data = ComputedField.MakeFunction(`readFacetData(layoutDoc, dataDoc, "${this.props.fieldKey}", "${facetHeader}")`, params, capturedVariables);
+                    Doc.AddDocToList(facetCollection, "data", newFacet);
+                }
             }
         }
     }
@@ -120,9 +162,9 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
             pair.layout[fieldKey] instanceof RichTextField ||
             typeof (pair.layout[fieldKey]) === "number" ||
             typeof (pair.layout[fieldKey]) === "string").map(fieldKey => keySet.add(fieldKey)));
-        keySet.toArray().map(fieldKey =>
+        Array.from(keySet).map(fieldKey =>
             docItems.push({ description: ":" + fieldKey, event: () => this.props.Document._pivotField = fieldKey, icon: "compress-arrows-alt" }));
-        docItems.push({ description: ":(null)", event: () => this.props.Document._pivotField = undefined, icon: "compress-arrows-alt" })
+        docItems.push({ description: ":(null)", event: () => this.props.Document._pivotField = undefined, icon: "compress-arrows-alt" });
         ContextMenu.Instance.addItem({ description: "Pivot Fields ...", subitems: docItems, icon: "eye" });
         const pt = this.props.ScreenToLocalTransform().inverse().transformPoint(x, y);
         ContextMenu.Instance.displayMenu(x, y, ":");
@@ -148,6 +190,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
         const minReq = NumCast(this.props.Document[this.props.fieldKey + "-timelineMinReq"], NumCast(this.props.Document[this.props.fieldKey + "-timelineMin"], 0));
         const maxReq = NumCast(this.props.Document[this.props.fieldKey + "-timelineMaxReq"], NumCast(this.props.Document[this.props.fieldKey + "-timelineMax"], 10));
         this.props.Document[this.props.fieldKey + "-timelineMinReq"] = minReq + (maxReq - minReq) * delta / this.props.PanelWidth();
+        this.props.Document[this.props.fieldKey + "-timelineSpan"] = undefined;
     }
     onMinUp = (e: PointerEvent) => {
         document.removeEventListener("pointermove", this.onMinMove);
@@ -170,6 +213,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
         const minReq = NumCast(this.props.Document[this.props.fieldKey + "-timelineMinReq"], NumCast(this.props.Document[this.props.fieldKey + "-timelineMin"], 0));
         const maxReq = NumCast(this.props.Document[this.props.fieldKey + "-timelineMaxReq"], NumCast(this.props.Document[this.props.fieldKey + "-timelineMax"], 10));
         this.props.Document[this.props.fieldKey + "-timelineMaxReq"] = maxReq + (maxReq - minReq) * delta / this.props.PanelWidth();
+        this.props.Document[this.props.fieldKey + "-timelineSpan"] = undefined;
     }
     onMaxUp = (e: PointerEvent) => {
         document.removeEventListener("pointermove", this.onMaxMove);
@@ -209,7 +253,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
         trace();
         const facetCollection = Cast(this.props.Document?._facetCollection, Doc, null);
         const flyout = (
-            <div className="collectionTimeView-flyout" style={{ width: `${this._facetWidth}` }}>
+            <div className="collectionTimeView-flyout" style={{ width: `${this._facetWidth}`, height: this.props.PanelHeight() - 30, display: "block" }} onWheel={e => e.stopPropagation()}>
                 {this._allFacets.map(facet => <label className="collectionTimeView-flyout-item" key={`${facet}`} onClick={e => this.facetClick(facet)}>
                     <input type="checkbox" onChange={e => { }} checked={DocListCast((this.props.Document._facetCollection as Doc)?.data).some(d => d.title === facet)} />
                     <span className="checkmark" />
@@ -227,7 +271,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
                 </Flyout>
             </div>
             <div className="collectionTimeView-tree" key="tree">
-                <CollectionTreeView {...this.props} Document={facetCollection} />
+                <CollectionTreeView {...this.props} PanelWidth={() => this._facetWidth} Document={facetCollection} />
             </div>
         </div>;
     }
@@ -240,9 +284,9 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
         const layoutItems: ContextMenuProps[] = [];
         const doc = this.props.Document;
 
-        layoutItems.push({ description: "Force Timeline", event: () => { doc._forceRenderEngine = "timeline" }, icon: "compress-arrows-alt" });
-        layoutItems.push({ description: "Force Pivot", event: () => { doc._forceRenderEngine = "pivot" }, icon: "compress-arrows-alt" });
-        layoutItems.push({ description: "Auto Time/Pivot layout", event: () => { doc._forceRenderEngine = undefined }, icon: "compress-arrows-alt" });
+        layoutItems.push({ description: "Force Timeline", event: () => { doc._forceRenderEngine = "timeline"; }, icon: "compress-arrows-alt" });
+        layoutItems.push({ description: "Force Pivot", event: () => { doc._forceRenderEngine = "pivot"; }, icon: "compress-arrows-alt" });
+        layoutItems.push({ description: "Auto Time/Pivot layout", event: () => { doc._forceRenderEngine = undefined; }, icon: "compress-arrows-alt" });
         layoutItems.push({ description: "Sync with presentation", event: () => CollectionTimeView.SyncTimelineToPresentation(doc), icon: "compress-arrows-alt" });
 
         ContextMenu.Instance.addItem({ description: "Pivot/Time Options ...", subitems: layoutItems, icon: "eye" });
@@ -289,14 +333,16 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
             <div className={"collectionTimeView" + (doTimeline ? "" : "-pivot")} onContextMenu={this.specificMenu}
                 style={{ height: `calc(100%  - ${this.props.Document._chromeStatus === "enabled" ? 51 : 0}px)` }}>
                 <div className={"pivotKeyEntry"}>
-                    <button className="collectionTimeView-backBtn" style={{ width: 50, height: 20, background: "green" }}
+                    <button className="collectionTimeView-backBtn"
                         onClick={action(() => {
-                            let pfilterIndex = NumCast(this.props.Document._pfilterIndex);
-                            if (pfilterIndex > 0) {
-                                this.props.Document._docFilter = ObjectField.MakeCopy(this.props.Document["_pfilter" + --pfilterIndex] as ObjectField);
-                                this.props.Document._pfilterIndex = pfilterIndex;
+                            let prevFilterIndex = NumCast(this.props.Document._prevFilterIndex);
+                            if (prevFilterIndex > 0) {
+                                prevFilterIndex--;
+                                this.props.Document._docFilters = ObjectField.MakeCopy(this.props.Document["_prevDocFilter" + prevFilterIndex] as ObjectField);
+                                this.props.Document._docRangeFilters = ObjectField.MakeCopy(this.props.Document["_prevDocRangeFilters" + prevFilterIndex] as ObjectField);
+                                this.props.Document._prevFilterIndex = prevFilterIndex;
                             } else {
-                                this.props.Document._docFilter = new List([]);
+                                this.props.Document._docFilters = new List([]);
                             }
                         })}>
                         back
@@ -320,11 +366,12 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
 }
 
 Scripting.addGlobal(function pivotColumnClick(pivotDoc: Doc, bounds: ViewDefBounds) {
-    let pfilterIndex = NumCast(pivotDoc._pfilterIndex);
-    pivotDoc["_pfilter" + pfilterIndex] = ObjectField.MakeCopy(pivotDoc._docFilter as ObjectField);
-    pivotDoc._pfilterIndex = ++pfilterIndex;
+    let prevFilterIndex = NumCast(pivotDoc._prevFilterIndex);
+    pivotDoc["_prevDocFilter" + prevFilterIndex] = ObjectField.MakeCopy(pivotDoc._docFilters as ObjectField);
+    pivotDoc["_prevDocRangeFilters" + prevFilterIndex] = ObjectField.MakeCopy(pivotDoc._docRangeFilters as ObjectField);
+    pivotDoc._prevFilterIndex = ++prevFilterIndex;
     runInAction(() => {
-        pivotDoc._docFilter = new List();
+        pivotDoc._docFilters = new List();
         (bounds.payload as string[]).map(filterVal =>
             Doc.setDocFilter(pivotDoc, StrCast(pivotDoc._pivotField), filterVal, "check"));
     });

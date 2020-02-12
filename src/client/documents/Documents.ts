@@ -16,9 +16,7 @@ import { action } from "mobx";
 import { ColumnAttributeModel } from "../northstar/core/attribute/AttributeModel";
 import { AttributeTransformationModel } from "../northstar/core/attribute/AttributeTransformationModel";
 import { AggregateFunction } from "../northstar/model/idea/idea";
-import { MINIMIZED_ICON_SIZE } from "../views/globalCssVariables.scss";
-import { IconBox } from "../views/nodes/IconBox";
-import { OmitKeys, JSONUtils } from "../../Utils";
+import { OmitKeys, JSONUtils, Utils } from "../../Utils";
 import { Field, Doc, Opt, DocListCastAsync, FieldResult, DocListCast } from "../../new_fields/Doc";
 import { ImageField, VideoField, AudioField, PdfField, WebField, YoutubeField } from "../../new_fields/URLField";
 import { HtmlField } from "../../new_fields/HtmlField";
@@ -37,6 +35,7 @@ import { DocumentManager } from "../util/DocumentManager";
 import DirectoryImportBox from "../util/Import & Export/DirectoryImportBox";
 import { Scripting } from "../util/Scripting";
 import { ButtonBox } from "../views/nodes/ButtonBox";
+import { SliderBox } from "../views/nodes/SliderBox";
 import { FontIconBox } from "../views/nodes/FontIconBox";
 import { SchemaHeaderField } from "../../new_fields/SchemaHeaderField";
 import { PresBox } from "../views/nodes/PresBox";
@@ -55,6 +54,8 @@ import { InkField } from "../../new_fields/InkField";
 import { InkingControl } from "../views/InkingControl";
 import { RichTextField } from "../../new_fields/RichTextField";
 import { Networking } from "../Network";
+import { extname } from "path";
+import { MessageStore } from "../../server/Message";
 const requestImageSize = require('../util/request-image-size');
 const path = require('path');
 
@@ -131,6 +132,7 @@ export interface DocumentOptions {
     strokeWidth?: number;
     color?: string;
     treeViewHideTitle?: boolean; // whether to hide the title of a tree view
+    treeViewHideHeaderFields?: boolean; // whether to hide the drop down options for tree view items.
     treeViewOpen?: boolean; // whether this document is expanded in a tree view
     treeViewChecked?: ScriptField; // script to call when a tree view checkbox is checked
     isFacetFilter?: boolean; // whether document functions as a facet filter in a tree view
@@ -213,10 +215,6 @@ export namespace Docs {
                 layout: { view: PDFBox, dataField: data },
                 options: { curPage: 1 }
             }],
-            [DocumentType.ICON, {
-                layout: { view: IconBox, dataField: data },
-                options: { _width: Number(MINIMIZED_ICON_SIZE), _height: Number(MINIMIZED_ICON_SIZE) },
-            }],
             [DocumentType.IMPORT, {
                 layout: { view: DirectoryImportBox, dataField: data },
                 options: { _height: 150 }
@@ -230,6 +228,9 @@ export namespace Docs {
             }],
             [DocumentType.BUTTON, {
                 layout: { view: ButtonBox, dataField: data },
+            }],
+            [DocumentType.SLIDER, {
+                layout: { view: SliderBox, dataField: data },
             }],
             [DocumentType.PRES, {
                 layout: { view: PresBox, dataField: data },
@@ -345,8 +346,52 @@ export namespace Docs {
      */
     export namespace Create {
 
-        export async function Buxton() {
-            console.log(await Networking.FetchFromServer("/newBuxton"));
+        export function Buxton() {
+            let responded = false;
+            const loading = new Doc;
+            loading.title = "Please wait for the import script...";
+            const parent = TreeDocument([loading], {
+                title: "The Buxton Collection",
+                _width: 400,
+                _height: 400,
+                _LODdisable: true
+            });
+            const parentProto = Doc.GetProto(parent);
+            const { _socket } = DocServer;
+            Utils.AddServerHandler(_socket, MessageStore.BuxtonDocumentResult, ({ device, errors }) => {
+                if (!responded) {
+                    responded = true;
+                    parentProto.data = new List<Doc>();
+                }
+                if (device) {
+                    const { __images } = device;
+                    delete device.__images;
+                    const { ImageDocument, StackingDocument } = Docs.Create;
+                    const constructed = __images.map(({ url, nativeWidth, nativeHeight }) => ({ url: Utils.prepend(url), nativeWidth, nativeHeight }));
+                    const deviceImages = constructed.map(({ url, nativeWidth, nativeHeight }, i) => ImageDocument(url, {
+                        title: `image${i}.${extname(url)}`,
+                        _nativeWidth: nativeWidth,
+                        _nativeHeight: nativeHeight
+                    }));
+                    const doc = StackingDocument(deviceImages, { title: device.title, _LODdisable: true });
+                    const deviceProto = Doc.GetProto(doc);
+                    deviceProto.hero = new ImageField(constructed[0].url);
+                    Docs.Get.DocumentHierarchyFromJson(device, undefined, deviceProto);
+                    Doc.AddDocToList(parentProto, "data", doc);
+                } else if (errors) {
+                    console.log(errors);
+                } else {
+                    alert("A Buxton document import was completely empty (??)");
+                }
+            });
+            Utils.AddServerHandler(_socket, MessageStore.BuxtonImportComplete, ({ deviceCount, errorCount }) => {
+                _socket.off(MessageStore.BuxtonDocumentResult.Message);
+                _socket.off(MessageStore.BuxtonImportComplete.Message);
+                alert(`Successfully imported ${deviceCount} device${deviceCount === 1 ? "" : "s"}, with ${errorCount} error${errorCount === 1 ? "" : "s"}, in ${(Date.now() - startTime) / 1000} seconds.`);
+            });
+            const startTime = Date.now();
+            Utils.Emit(_socket, MessageStore.BeginBuxtonImport, "");
+            return parent;
         }
 
         Scripting.addGlobal(Buxton);
@@ -476,10 +521,6 @@ export namespace Docs {
             return doc;
         }
 
-        export function IconDocument(icon: string, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.ICON), new IconField(icon), options);
-        }
-
         export function PdfDocument(url: string, options: DocumentOptions = {}) {
             return InstanceFromProto(Prototypes.get(DocumentType.PDF), new PdfField(new URL(url)), options);
         }
@@ -558,6 +599,10 @@ export namespace Docs {
         export function MulticolumnDocument(documents: Array<Doc>, options: DocumentOptions) {
             return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, _viewType: CollectionViewType.Multicolumn });
         }
+        export function MultirowDocument(documents: Array<Doc>, options: DocumentOptions) {
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, _viewType: CollectionViewType.Multirow });
+        }
+
 
         export function MasonryDocument(documents: Array<Doc>, options: DocumentOptions) {
             return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, _viewType: CollectionViewType.Masonry });
@@ -565,6 +610,10 @@ export namespace Docs {
 
         export function ButtonDocument(options?: DocumentOptions) {
             return InstanceFromProto(Prototypes.get(DocumentType.BUTTON), undefined, { ...(options || {}) });
+        }
+
+        export function SliderDocument(options?: DocumentOptions) {
+            return InstanceFromProto(Prototypes.get(DocumentType.SLIDER), undefined, { ...(options || {}) });
         }
 
 
@@ -636,7 +685,7 @@ export namespace Docs {
          * or the result of any JSON.parse() call.
          * @param title an optional title to give to the highest parent document in the hierarchy
          */
-        export function DocumentHierarchyFromJson(input: any, title?: string): Opt<Doc> {
+        export function DocumentHierarchyFromJson(input: any, title?: string, appendToTarget?: Doc): Opt<Doc> {
             if (input === undefined || input === null || ![...primitives, "object"].includes(typeof input)) {
                 return undefined;
             }
@@ -646,7 +695,7 @@ export namespace Docs {
             }
             let converted: Doc;
             if (typeof parsed === "object" && !(parsed instanceof Array)) {
-                converted = convertObject(parsed, title);
+                converted = convertObject(parsed, title, appendToTarget);
             } else {
                 (converted = new Doc).json = toField(parsed);
             }
@@ -661,12 +710,12 @@ export namespace Docs {
          * @returns the object mapped from JSON to field values, where each mapping 
          * might involve arbitrary recursion (since toField might itself call convertObject)
          */
-        const convertObject = (object: any, title?: string): Doc => {
-            const target = new Doc();
+        const convertObject = (object: any, title?: string, target?: Doc): Doc => {
+            const resolved = target ?? new Doc;
             let result: Opt<Field>;
-            Object.keys(object).map(key => (result = toField(object[key], key)) && (target[key] = result));
-            title && !target.title && (target.title = title);
-            return target;
+            Object.keys(object).map(key => (result = toField(object[key], key)) && (resolved[key] = result));
+            title && !resolved.title && (resolved.title = title);
+            return resolved;
         };
 
         /**
@@ -713,9 +762,6 @@ export namespace Docs {
             } else if (field instanceof PdfField) {
                 created = Docs.Create.PdfDocument((field).url.href, resolved);
                 layout = PDFBox.LayoutString;
-            } else if (field instanceof IconField) {
-                created = Docs.Create.IconDocument((field).icon, resolved);
-                layout = IconBox.LayoutString;
             } else if (field instanceof AudioField) {
                 created = Docs.Create.AudioDocument((field).url.href, resolved);
                 layout = AudioBox.LayoutString;

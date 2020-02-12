@@ -7,7 +7,7 @@ import * as React from 'react';
 import Lightbox from 'react-image-lightbox-with-rotate';
 import 'react-image-lightbox-with-rotate/style.css'; // This only needs to be imported once in your app
 import { DateField } from '../../../new_fields/DateField';
-import { Doc, DocListCast } from '../../../new_fields/Doc';
+import { Doc, DocListCast, DataSym } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { listSpec } from '../../../new_fields/Schema';
 import { BoolCast, Cast, StrCast, NumCast } from '../../../new_fields/Types';
@@ -37,6 +37,7 @@ import './CollectionView.scss';
 import { CollectionViewBaseChrome } from './CollectionViewChromes';
 import { CollectionTimeView } from './CollectionTimeView';
 import { CollectionMultirowView } from './collectionMulticolumn/CollectionMultirowView';
+import { List } from '../../../new_fields/List';
 export const COLLECTION_BORDER_WIDTH = 2;
 const path = require('path');
 library.add(faTh, faTree, faSquare, faProjectDiagram, faSignature, faThList, faFingerprint, faColumns, faEllipsisV, faImage, faEye as any, faCopy);
@@ -54,8 +55,7 @@ export enum CollectionViewType {
     Time,
     Carousel,
     Linear,
-    Staff,
-    Timeline
+    Staff
 }
 
 export namespace CollectionViewType {
@@ -116,7 +116,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
                 // chrome status is one of disabled, collapsed, or visible. this determines initial state from document
                 // chrome status may also be view-mode, in reference to stacking view's toggle mode. it is essentially disabled mode, but prevents the toggle button from showing up on the left sidebar.
                 const chromeStatus = this.props.Document._chromeStatus;
-                if (chromeStatus && (chromeStatus === "disabled" || chromeStatus === "collapsed")) {
+                if (chromeStatus && (chromeStatus === "disabled" || chromeStatus === "collapsed" || chromeStatus === "replaced")) {
                     runInAction(() => this._collapsed = true);
                 }
             });
@@ -133,8 +133,9 @@ export class CollectionView extends Touchable<FieldViewProps> {
 
     @action.bound
     addDocument(doc: Doc): boolean {
-        const targetDataDoc = Doc.GetProto(this.props.DataDoc || this.props.Document);
-        Doc.AddDocToList(targetDataDoc, this.props.fieldKey, doc);
+        const targetDataDoc = this.props.Document.resolvedDataDoc && !this.props.Document.isTemplateForField ? this.props.Document : Doc.GetProto(this.props.Document[DataSym]);
+        targetDataDoc[this.props.fieldKey] = new List<Doc>([...DocListCast(targetDataDoc[this.props.fieldKey]), doc]);  // DocAddToList may write to targetdataDoc's parent ... we don't want this. should really change GetProto to GetDataDoc and test for resolvedDataDoc there
+        // Doc.AddDocToList(targetDataDoc, this.props.fieldKey, doc);
         targetDataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
         Doc.GetProto(doc).lastOpened = new DateField;
         return true;
@@ -144,7 +145,8 @@ export class CollectionView extends Touchable<FieldViewProps> {
     removeDocument(doc: Doc): boolean {
         const docView = DocumentManager.Instance.getDocumentView(doc, this.props.ContainingCollectionView);
         docView && SelectionManager.DeselectDoc(docView);
-        const value = Cast((this.props.DataDoc || this.props.Document)[this.props.fieldKey], listSpec(Doc), []);
+        const targetDataDoc = this.props.Document.resolvedDataDoc ? this.props.Document : this.props.Document[DataSym];
+        const value = Cast(targetDataDoc[this.props.fieldKey], listSpec(Doc), []);
         let index = value.reduce((p, v, i) => (v instanceof Doc && v === doc) ? i : p, -1);
         index = index !== -1 ? index : value.reduce((p, v, i) => (v instanceof Doc && Doc.AreProtosEqual(v, doc)) ? i : p, -1);
 
@@ -176,14 +178,14 @@ export class CollectionView extends Touchable<FieldViewProps> {
     }
 
     private SubViewHelper = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
-        const props = { ...this.props, ...renderProps, chromeCollapsed: this._collapsed, ChromeHeight: this.chromeHeight, CollectionView: this, annotationsKey: "" };
+        const props = { ...this.props, ...renderProps, ChromeHeight: this.chromeHeight, CollectionView: this, annotationsKey: "" };
         switch (type) {
             case CollectionViewType.Schema: return (<CollectionSchemaView key="collview" {...props} />);
             case CollectionViewType.Docking: return (<CollectionDockingView key="collview" {...props} />);
             case CollectionViewType.Tree: return (<CollectionTreeView key="collview" {...props} />);
-            case CollectionViewType.Staff: return (<CollectionStaffView chromeCollapsed={true} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} />);
-            case CollectionViewType.Multicolumn: return (<CollectionMulticolumnView chromeCollapsed={true} key="collview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} />);
-            case CollectionViewType.Multirow: return (<CollectionMultirowView chromeCollapsed={true} key="rpwview" {...props} ChromeHeight={this.chromeHeight} CollectionView={this} />);
+            case CollectionViewType.Staff: return (<CollectionStaffView key="collview" {...props} />);
+            case CollectionViewType.Multicolumn: return (<CollectionMulticolumnView key="collview" {...props} />);
+            case CollectionViewType.Multirow: return (<CollectionMultirowView key="rpwview" {...props} />);
             case CollectionViewType.Linear: { return (<CollectionLinearView key="collview" {...props} />); }
             case CollectionViewType.Carousel: { return (<CollectionCarouselView key="collview" {...props} />); }
             case CollectionViewType.Stacking: { this.props.Document.singleColumn = true; return (<CollectionStackingView key="collview" {...props} />); }
@@ -202,7 +204,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
 
     private SubView = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
         // currently cant think of a reason for collection docking view to have a chrome. mind may change if we ever have nested docking views -syip
-        const chrome = this.props.Document._chromeStatus === "disabled" || type === CollectionViewType.Docking ? (null) :
+        const chrome = this.props.Document._chromeStatus === "disabled" || this.props.Document._chromeStatus === "replaced" || type === CollectionViewType.Docking ? (null) :
             <CollectionViewBaseChrome CollectionView={this} key="chrome" type={type} collapse={this.collapse} />;
         return [chrome, this.SubViewHelper(type, renderProps)];
     }

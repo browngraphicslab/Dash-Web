@@ -8,8 +8,11 @@ import { launchServer, onWindows } from "..";
 import { readdirSync, statSync, createWriteStream, readFileSync, unlinkSync } from "fs";
 import * as Archiver from "archiver";
 import { resolve } from "path";
-import { AppliedSessionAgent, MessageHandler, ExitHandler, Monitor, ServerWorker } from "resilient-server-session";
 import rimraf = require("rimraf");
+import { AppliedSessionAgent, ExitHandler } from "./Session/agents/applied_session_agent";
+import { ServerWorker } from "./Session/agents/server_worker";
+import { Monitor } from "./Session/agents/monitor";
+import { MessageHandler } from "./Session/agents/promisified_ipc_manager";
 
 /**
  * If we're the monitor (master) thread, we should launch the monitor logic for the session.
@@ -34,6 +37,7 @@ export class DashSessionAgent extends AppliedSessionAgent {
         monitor.addReplCommand("debug", [/\S+\@\S+/], async ([to]) => this.dispatchZippedDebugBackup(to));
         monitor.on("backup", this.backup);
         monitor.on("debug", async ({ to }) => this.dispatchZippedDebugBackup(to));
+        monitor.on("delete", WebSocket.deleteFields);
         monitor.coreHooks.onCrashDetected(this.dispatchCrashReport);
         return sessionKey;
     }
