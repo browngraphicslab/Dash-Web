@@ -267,10 +267,9 @@ export default class GestureOverlay extends Touchable {
 
     onReactTouchMove = (e: TouchEvent) => {
         const nts: any = this.getNewTouches(e);
-        if (this.prevPoints.size === 1 && this._holdTimer) {
-            clearTimeout(this._holdTimer);
-            this._holdTimer = undefined;
-        }
+        clearTimeout(this._holdTimer);
+        this._holdTimer = undefined;
+
         document.dispatchEvent(
             new CustomEvent<InteractionUtils.MultiTouchEvent<TouchEvent>>("dashOnTouchMove",
                 {
@@ -288,10 +287,9 @@ export default class GestureOverlay extends Touchable {
 
     onReactTouchEnd = (e: TouchEvent) => {
         const nts: any = this.getNewTouches(e);
-        if (this.prevPoints.size === 1 && this._holdTimer) {
-            clearTimeout(this._holdTimer);
-            this._holdTimer = undefined;
-        }
+        clearTimeout(this._holdTimer);
+        this._holdTimer = undefined;
+
         document.dispatchEvent(
             new CustomEvent<InteractionUtils.MultiTouchEvent<TouchEvent>>("dashOnTouchEnd",
                 {
