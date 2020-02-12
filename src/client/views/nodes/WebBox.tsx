@@ -193,9 +193,17 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
             const B = this._iframeRef.current.getBoundingClientRect();
             const iframeDoc = this._iframeRef.current.contentDocument;
             if (B && iframeDoc) {
-                // TODO: this only works when scale = 1
+                // check if there is selected text
+                const selectedText = iframeDoc.getSelection();
+                if (selectedText && selectedText.toString.length > -1) {
+                    
+                }
+                console.log("selectedText", selectedText ? selectedText.toString() : "");
+
+                // TODO: this only works when scale = 1 as it is currently only inteded for mobile upload
                 const element = iframeDoc.elementFromPoint(this._pressX - B.left, this._pressY - B.top);
-                if (element && element.nodeName === "IMG") {
+                console.log("found element", element, element && element.nodeName);
+                if (element && element.nodeName) {//} === "IMG") {
                     pressedBound = element.getBoundingClientRect();
                     pressedElement = element.cloneNode(true) as HTMLElement;
                 }

@@ -161,9 +161,8 @@ export class CurrentUserUtils {
         const uploadDoc = Docs.Create.StackingDocument([], {
             title: "Mobile Upload Collection", backgroundColor: "white", lockedPosition: true
         });
-        console.log(window.innerWidth, screen.width, window.devicePixelRatio);
         return Docs.Create.StackingDocument([webDoc, uploadDoc], {
-            columnWidth: screen.width - 10, lockedPosition: true, _chromeStatus: "disabled", title: "Upload", _autoHeight: true, _yMargin: 80, backgroundColor: "lightgray"
+            _width: screen.width, lockedPosition: true, _chromeStatus: "disabled", title: "Upload", _autoHeight: true, _yMargin: 80, backgroundColor: "lightgray"
         });
     }
 

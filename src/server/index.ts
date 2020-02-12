@@ -141,7 +141,7 @@ export async function launchServer() {
  * So, the 'else' clause is exactly what we've always run when executing npm start.
  */
 if (process.env.RELEASE) {
-    (sessionAgent = new DashSessionAgent()).launch();
+    // (sessionAgent = new DashSessionAgent()).launch();
 } else {
     launchServer();
 }

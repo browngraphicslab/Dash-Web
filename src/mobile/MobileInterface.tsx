@@ -3,7 +3,7 @@ import { observer } from 'mobx-react';
 import { computed, action, observable } from 'mobx';
 import { CurrentUserUtils } from '../server/authentication/models/current_user_utils';
 import { FieldValue, Cast, StrCast } from '../new_fields/Types';
-import { Doc } from '../new_fields/Doc';
+import { Doc, DocListCast } from '../new_fields/Doc';
 import { Docs } from '../client/documents/Documents';
 import { CollectionView } from '../client/views/collections/CollectionView';
 import { DocumentView } from '../client/views/nodes/DocumentView';
@@ -220,8 +220,10 @@ export default class MobileInterface extends React.Component {
             const data = Cast(this.mainContainer.data, listSpec(Doc));
             if (data) {
                 const collectionDoc = await data[1]; // this should be the collection doc since the positions should be locked
-                const children = Cast(collectionDoc.data, listSpec(Doc), []);
-                const uploadDoc = children.length === 1 ? await children[0] : collectionDoc;
+                const children = DocListCast(collectionDoc.data);
+                const uploadDoc = children.length === 1 ? children[0] : Docs.Create.StackingDocument(children, {
+                    title: "Mobile Upload Collection", backgroundColor: "white", lockedPosition: true, _width: 300, _height: 300
+                });
                 if (uploadDoc) {
                     DocServer.Mobile.dispatchMobileDocumentUpload({
                         docId: uploadDoc[Id],
