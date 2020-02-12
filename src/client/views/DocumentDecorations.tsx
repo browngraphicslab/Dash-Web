@@ -5,7 +5,6 @@ import { action, computed, observable, reaction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc } from "../../new_fields/Doc";
 import { PositionDocument } from '../../new_fields/documentSchemas';
-import { ObjectField } from '../../new_fields/ObjectField';
 import { ScriptField } from '../../new_fields/ScriptField';
 import { Cast, StrCast } from "../../new_fields/Types";
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
@@ -107,27 +106,10 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (key === 13) {
             const text = e.target.value;
             if (text.startsWith("::")) {
-                const targetID = text.slice(2, text.length);
+                this._accumulatedTitle = text.slice(2, text.length);
                 const promoteDoc = SelectionManager.SelectedDocuments()[0];
-                DocUtils.Publish(promoteDoc.props.Document, targetID, promoteDoc.props.addDocument, promoteDoc.props.removeDocument);
-            } else if (text.startsWith(">")) {
-                const fieldTemplateView = SelectionManager.SelectedDocuments()[0];
-                SelectionManager.DeselectAll();
-                const fieldTemplate = fieldTemplateView.props.Document;
-                const containerView = fieldTemplateView.props.ContainingCollectionView;
-                const docTemplate = fieldTemplateView.props.ContainingCollectionDoc;
-                if (containerView && docTemplate) {
-                    const metaKey = text.startsWith(">>") ? text.slice(2, text.length) : text.slice(1, text.length);
-                    if (metaKey !== containerView.props.fieldKey && containerView.props.DataDoc) {
-                        const fd = fieldTemplate.data;
-                        fd instanceof ObjectField && (Doc.GetProto(containerView.props.DataDoc)[metaKey] = ObjectField.MakeCopy(fd));
-                    }
-                    fieldTemplate.title = metaKey;
-                    Doc.MakeMetadataFieldTemplate(fieldTemplate, Doc.GetProto(docTemplate));
-                    if (text.startsWith(">>")) {
-                        Doc.GetProto(docTemplate).layout = StrCast(fieldTemplateView.props.Document.layout).replace(/fieldKey={'[^']*'}/, `fieldKey={"${metaKey}"}`);
-                    }
-                }
+                Doc.SetInPlace(promoteDoc.props.Document, "title", this._accumulatedTitle, true);
+                DocUtils.Publish(promoteDoc.props.Document, this._accumulatedTitle, promoteDoc.props.addDocument, promoteDoc.props.removeDocument);
             }
             e.target.blur();
         }
@@ -539,7 +521,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 {minimizeIcon}
 
                 {this._edtingTitle ? <>
-                    <input ref={this._keyinput} className="title" type="text" name="dynbox" value={this._accumulatedTitle} style={{ width: "calc(100% - 20px)" }}
+                    <input ref={this._keyinput} className="title" type="text" name="dynbox" autoComplete="on" value={this._accumulatedTitle} style={{ width: "calc(100% - 20px)" }}
                         onBlur={e => this.titleBlur(true)} onChange={this.titleChanged} onKeyPress={this.titleEntered} />
                     <div className="publishBox" title="make document referenceable by its title"
                         onPointerDown={e => {
