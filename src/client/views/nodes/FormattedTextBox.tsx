@@ -812,7 +812,11 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     }
 
     static _downEvent: any;
+    _downX = 0;
+    _downY = 0;
     onPointerDown = (e: React.PointerEvent): void => {
+        this._downX = e.clientX;
+        this._downY = e.clientY;
         this.doLinkOnDeselect();
         FormattedTextBox._downEvent = true;
         FormattedTextBoxComment.textBox = this;
@@ -923,7 +927,9 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         //     }
         // }
 
-        this.hitBulletTargets(e.clientX, e.clientY, e.shiftKey, false);
+        if (Math.abs(e.clientX - this._downX) < 4 && Math.abs(e.clientX - this._downX) < 4) {
+            this.hitBulletTargets(e.clientX, e.clientY, e.shiftKey, false);
+        }
         if (this._recording) setTimeout(() => { this.stopDictation(true); setTimeout(() => this.recordDictation(), 500); }, 500);
     }
 
@@ -955,8 +961,9 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                     addStyleSheetRule(FormattedTextBox._bulletStyleSheet, list_node.attrs.mapStyle + list_node.attrs.bulletStyle + ":hover:before", { background: "lightgray" });
                 } else if (Math.abs(pos.pos - pos.inside) < 2) {
                     if (!highlightOnly) {
-                        this._editorView!.dispatch(this._editorView!.state.tr.setNodeMarkup(pos.inside, list_node.type, { ...list_node.attrs, visibility: !list_node.attrs.visibility }));
-                        this._editorView!.dispatch(this._editorView!.state.tr.setSelection(TextSelection.create(this._editorView!.state.doc, pos.inside)));
+                        const offset = this._editorView!.state.doc.nodeAt(pos.inside)?.type === schema.nodes.ordered_list ? 1 : 0;
+                        this._editorView!.dispatch(this._editorView!.state.tr.setNodeMarkup(pos.inside + offset, list_node.type, { ...list_node.attrs, visibility: !list_node.attrs.visibility }));
+                        this._editorView!.dispatch(this._editorView!.state.tr.setSelection(TextSelection.create(this._editorView!.state.doc, pos.inside + offset)));
                     }
                     addStyleSheetRule(FormattedTextBox._bulletStyleSheet, list_node.attrs.mapStyle + list_node.attrs.bulletStyle + ":hover:before", { background: "lightgray" });
                 }
