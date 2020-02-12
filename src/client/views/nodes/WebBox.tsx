@@ -24,6 +24,7 @@ import { documentSchema } from "../../../new_fields/documentSchemas";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { DragManager } from "../../util/DragManager";
 import { ImageUtils } from "../../util/Import & Export/ImageUtils";
+import { select } from "async";
 
 library.add(faStickyNote);
 
@@ -189,30 +190,37 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
         // find the pressed element in the iframe (currently only works if its an img)
         let pressedElement: HTMLElement | undefined;
         let pressedBound: ClientRect | undefined;
+        let selectedText: string = "";
         if (this._iframeRef.current) {
             const B = this._iframeRef.current.getBoundingClientRect();
             const iframeDoc = this._iframeRef.current.contentDocument;
             if (B && iframeDoc) {
                 // check if there is selected text
-                const selectedText = iframeDoc.getSelection();
-                if (selectedText && selectedText.toString.length > -1) {
-                    
-                }
-                console.log("selectedText", selectedText ? selectedText.toString() : "");
+                const text = iframeDoc.getSelection();
+                if (text && text.toString().length > 0) {
+                    selectedText = text.toString();
 
-                // TODO: this only works when scale = 1 as it is currently only inteded for mobile upload
-                const element = iframeDoc.elementFromPoint(this._pressX - B.left, this._pressY - B.top);
-                console.log("found element", element, element && element.nodeName);
-                if (element && element.nodeName) {//} === "IMG") {
-                    pressedBound = element.getBoundingClientRect();
-                    pressedElement = element.cloneNode(true) as HTMLElement;
+                    // get html of the selected text
+                    const range = text.getRangeAt(0);
+                    const contents = range.cloneContents();
+                    const div = document.createElement("div");
+                    div.appendChild(contents);
+                    pressedElement = div;
+
+                    pressedBound = range.getBoundingClientRect();
+                } else {
+                    // TODO: this only works when scale = 1 as it is currently only inteded for mobile upload
+                    const element = iframeDoc.elementFromPoint(this._pressX - B.left, this._pressY - B.top);
+                    if (element && element.nodeName) {//} === "IMG") {
+                        pressedBound = element.getBoundingClientRect();
+                        pressedElement = element.cloneNode(true) as HTMLElement;
+                    }
                 }
             }
         }
 
         // mark the pressed element
         if (pressedElement && pressedBound) {
-            console.log("clones b", pressedElement.getBoundingClientRect(), pressedBound);
             if (this._iframeIndicatorRef.current) {
                 this._iframeIndicatorRef.current.style.top = pressedBound.top + "px";
                 this._iframeIndicatorRef.current.style.left = pressedBound.left + "px";
@@ -224,13 +232,25 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
 
         // start dragging the pressed element if long pressed
         this._longPressSecondsHack = setTimeout(() => {
-            if (pressedElement && pressedBound) {
+            if (selectedText && pressedBound && pressedElement) {
+                e.stopPropagation();
+                e.preventDefault();
+                // create doc with the selected text's html
+                const doc = Docs.Create.HtmlDocument(pressedElement.innerHTML);
+
+                // create dragging ghost with the selected text
+                if (this._iframeDragRef.current) this._iframeDragRef.current.appendChild(pressedElement);
+
+                // start the drag
+                const dragData = new DragManager.DocumentDragData([doc]);
+                DragManager.StartDocumentDrag([pressedElement], dragData, this._pressX - pressedBound.top, this._pressY - pressedBound.top, { hideSource: true });
+            } else if (pressedElement && pressedBound) {
                 e.stopPropagation();
                 e.preventDefault();
                 if (pressedElement.nodeName === "IMG") {
                     const src = pressedElement.getAttribute("src"); // TODO: may not always work
                     if (src) {
-                        const doc = Docs.Create.ImageDocument(src, { _width: 300 });
+                        const doc = Docs.Create.ImageDocument(src);
                         ImageUtils.ExtractExif(doc);
 
                         // add clone to div so that dragging ghost is placed properly

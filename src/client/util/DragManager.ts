@@ -289,7 +289,6 @@ export namespace DragManager {
             if (!ele.parentNode) dragDiv.appendChild(ele);
             const dragElement = ele.parentNode === dragDiv ? ele : ele.cloneNode(true) as HTMLElement;
             const rect = ele.getBoundingClientRect();
-            console.log("boudning", rect);
             const scaleX = rect.width / ele.offsetWidth,
                 scaleY = rect.height / ele.offsetHeight;
             xs.push(rect.left);
