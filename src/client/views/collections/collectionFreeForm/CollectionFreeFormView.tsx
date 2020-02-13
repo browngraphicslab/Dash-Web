@@ -4,7 +4,7 @@ import { faBraille, faChalkboard, faCompass, faCompressArrowsAlt, faExpandArrows
 import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { computedFn } from "mobx-utils";
-import { Doc, DocListCast, HeightSym, Opt, WidthSym } from "../../../../new_fields/Doc";
+import { Doc, DocListCast, HeightSym, Opt, WidthSym, DocCastAsync } from "../../../../new_fields/Doc";
 import { documentSchema, positionSchema } from "../../../../new_fields/documentSchemas";
 import { Id } from "../../../../new_fields/FieldSymbols";
 import { InkTool } from "../../../../new_fields/InkField";
@@ -867,6 +867,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         });
         return rangeFilteredDocs;
     }
+    childLayoutDocFunc = () => this.props.childLayoutTemplate?.() || Cast(this.props.Document.childLayoutTemplate, Doc, null) as Doc;
     get doLayoutComputation() {
         const { newPool, computedElementData } = this.doInternalLayoutComputation;
         runInAction(() =>
@@ -883,6 +884,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             computedElementData.elements.push({
                 ele: <CollectionFreeFormDocumentView key={pair.layout[Id]}  {...this.getChildDocumentViewProps(pair.layout, pair.data)}
                     dataProvider={this.childDataProvider}
+                    LayoutDoc={this.childLayoutDocFunc}
                     jitterRotation={NumCast(this.props.Document.jitterRotation)}
                     fitToBox={this.props.fitToBox || this.props.layoutEngine !== undefined} />,
                 bounds: this.childDataProvider(pair.layout)
