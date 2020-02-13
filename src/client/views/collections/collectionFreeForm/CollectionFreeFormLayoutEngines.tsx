@@ -303,7 +303,7 @@ export function computeTimelineLayout(
             docMap.set(doc, {
                 type: "doc",
                 x: x, y: -Math.sqrt(stack) * pivotAxisWidth / 2 - pivotAxisWidth + (pivotAxisWidth - hgt) / 2,
-                zIndex: (curTime === key ? 1000 : zind++), highlight: curTime === key, width: wid / (Math.max(stack, 1)), height: hgt, payload: undefined
+                zIndex: (curTime === key ? 1000 : zind++), highlight: curTime === key, width: wid / (Math.max(stack, 1)), height: hgt / (Math.max(stack, 1)), payload: undefined
             });
             stacking[stack] = x + pivotAxisWidth;
         });
