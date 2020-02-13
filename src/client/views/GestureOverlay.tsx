@@ -146,13 +146,9 @@ export default class GestureOverlay extends Touchable {
         const nts = this.getNewTouches(te);
         if (nts.nt.length < 5) {
             const target = document.elementFromPoint(te.changedTouches.item(0).clientX, te.changedTouches.item(0).clientY);
-<<<<<<< HEAD
-            target ?.dispatchEvent(
-=======
             te.changedTouches.item(0).identifier;
             console.log(te.touches);
-            target?.dispatchEvent(
->>>>>>> 33d5a12af14e1ed50e5c3164b363fbbc253506a0
+            target ?.dispatchEvent(
                 new CustomEvent<InteractionUtils.MultiTouchEvent<React.TouchEvent>>("dashOnTouchStart",
                     {
                         bubbles: true,
@@ -173,7 +169,7 @@ export default class GestureOverlay extends Touchable {
                     const target = document.elementFromPoint(te.changedTouches.item(0).clientX, te.changedTouches.item(0).clientY);
                     let pt: any = te.touches[te.touches.length - 1];
                     if (nts.nt.length === 1 && pt.radiusX > 1 && pt.radiusY > 1) {
-                        target?.dispatchEvent(
+                        target ?.dispatchEvent(
                             new CustomEvent<InteractionUtils.MultiTouchEvent<React.TouchEvent>>("dashOnTouchHoldStart",
                                 {
                                     bubbles: true,
