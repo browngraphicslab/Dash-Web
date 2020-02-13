@@ -271,7 +271,7 @@ export class CurrentUserUtils {
     // the initial presentation Doc to use
     static setupDefaultPresentation(doc: Doc) {
         doc.presentationTemplate = new PrefetchProxy(Docs.Create.PresElementBoxDocument({ backgroundColor: "transparent", _xMargin: 5, _height: 46, isTemplateDoc: true, isTemplateForField: "data" }));
-        doc.curPresentation = Docs.Create.PresDocument(new List<Doc>(), { title: "Presentation", _viewType: CollectionViewType.Stacking, _LODdisable: true, _chromeStatus: "replaced", showTitle: "title", boxShadow: "0 0" });
+        doc.curPresentation = Docs.Create.PresDocument(new List<Doc>(), { title: "Presentation", _viewType: CollectionViewType.Stacking, _LODdisable: true, _chromeStatus: "replaced", _showTitle: "title", boxShadow: "0 0" });
     }
 
     static setupMobileUploads(doc: Doc) {

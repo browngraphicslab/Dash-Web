@@ -14,6 +14,9 @@ export const documentSchema = createSchema({
     _nativeHeight: "number",    // "
     _width: "number",           // width of document in its container's coordinate system
     _height: "number",          // "
+    _showCaption: "string",      // whether editable caption text is overlayed at the bottom of the document 
+    _showTitle: "string",        // the fieldkey whose contents should be displayed at the top of the document
+    _showTitleHover: "string",   // the showTitle should be shown only on hover
     _freeformLayoutEngine: "string",// the string ID for the layout engine to use to layout freeform view documents
     _LODdisable: "boolean",     // whether to disbale LOD switching for CollectionFreeFormViews
     _pivotField: "string",      // specifies which field should be used as the timeline/pivot axis
@@ -46,9 +49,6 @@ export const documentSchema = createSchema({
     borderRounding: "string",   // border radius rounding of document
     searchFields: "string",     // the search fields to display when this document matches a search in its metadata
     heading: "number",          // the logical layout 'heading' of this document (used by rule provider to stylize h1 header elements, from h2, etc)
-    showCaption: "string",      // whether editable caption text is overlayed at the bottom of the document 
-    showTitle: "string",        // the fieldkey whose contents should be displayed at the top of the document
-    showTitleHover: "string",   // the showTitle should be shown only on hover
     isButton: "boolean",        // whether document functions as a button (overiding native interactions of its content)    
     ignoreClick: "boolean",     // whether documents ignores input clicks (but does not ignore manipulation and other events) 
     scrollToLinkID: "string",   // id of link being traversed. allows this doc to scroll/highlight/etc its link anchor. scrollToLinkID should be set to undefined by this doc after it sets up its scroll,etc.

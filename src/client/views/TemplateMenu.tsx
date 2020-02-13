@@ -64,7 +64,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     @undoBatch
     @action
     toggleTemplate = (event: React.ChangeEvent<HTMLInputElement>, template: Template): void => {
-        this.props.docViews.forEach(d => Doc.Layout(d.Document)["show" + template.Name] = event.target.checked ? template.Name.toLowerCase() : "");
+        this.props.docViews.forEach(d => Doc.Layout(d.Document)["_show" + template.Name] = event.target.checked ? template.Name.toLowerCase() : "");
     }
 
     @action

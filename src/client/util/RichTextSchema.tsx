@@ -1136,7 +1136,7 @@ const fromJson = schema.nodeFromJSON;
 
 schema.nodeFromJSON = (json: any) => {
     const node = fromJson(json);
-    if (json.type === schema.marks.summarize.name) {
+    if (json.type === schema.nodes.summary.name) {
         node.attrs.text = Slice.fromJSON(schema, node.attrs.textslice);
     }
     return node;

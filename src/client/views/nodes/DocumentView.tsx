@@ -232,7 +232,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             e.stopPropagation();
             e.preventDefault();
             if (e.key === "†" || e.key === "t") {
-                if (!StrCast(this.layoutDoc.showTitle)) this.layoutDoc.showTitle = "title";
+                if (!StrCast(this.layoutDoc._showTitle)) this.layoutDoc._showTitle = "title";
                 if (!this._titleRef.current) setTimeout(() => this._titleRef.current?.setIsFocused(true), 0);
                 else if (!this._titleRef.current.setIsFocused(true)) { // if focus didn't change, focus on interior text...
                     {
@@ -807,16 +807,16 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     // does Document set a layout prop 
     setsLayoutProp = (prop: string) => this.props.Document[prop] !== this.props.Document["default" + prop[0].toUpperCase() + prop.slice(1)] && this.props.Document["default" + prop[0].toUpperCase() + prop.slice(1)];
     // get the a layout prop by first choosing the prop from Document, then falling back to the layout doc otherwise.
-    getLayoutPropStr = (prop: string) => StrCast(this.setsLayoutProp(prop) ? this.props.Document[prop] : this.layoutDoc[prop]);
+    getLayoutPropStr = (prop: string) => {
+        return StrCast(this.setsLayoutProp(prop) ? this.props.Document[prop] : Cast(this.layoutDoc?.expandedTemplate, Doc, null)?.[prop] || this.layoutDoc[prop]);
+    }
     getLayoutPropNum = (prop: string) => NumCast(this.setsLayoutProp(prop) ? this.props.Document[prop] : this.layoutDoc[prop]);
 
     isSelected = (outsideReaction?: boolean) => SelectionManager.IsSelected(this, outsideReaction);
     select = (ctrlPressed: boolean) => { SelectionManager.SelectDoc(this, ctrlPressed); };
 
     chromeHeight = () => {
-        const showTitle = StrCast(this.layoutDoc.showTitle);
-        const showTitleHover = StrCast(this.layoutDoc.showTitleHover);
-        return (showTitle && !showTitleHover ? 0 : 0) + 1;
+        return 1;
     }
 
     @computed get finalLayoutKey() {
@@ -874,8 +874,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @computed get innards() {
         TraceMobx();
-        const showTitle = StrCast(this.getLayoutPropStr("showTitle"));
-        const showTitleHover = StrCast(this.getLayoutPropStr("showTitleHover"));
+        const showTitle = StrCast(this.getLayoutPropStr("_showTitle"));
+        const showTitleHover = StrCast(this.getLayoutPropStr("_showTitleHover"));
         const showCaption = this.getLayoutPropStr("showCaption");
         const showTextTitle = showTitle && (StrCast(this.layoutDoc.layout).indexOf("PresBox") !== -1 || StrCast(this.layoutDoc.layout).indexOf("FormattedTextBox") !== -1) ? showTitle : undefined;
         const searchHighlight = (!this.Document.searchFields ? (null) :
