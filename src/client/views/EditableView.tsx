@@ -7,6 +7,7 @@ import { SchemaHeaderField } from '../../new_fields/SchemaHeaderField';
 import { ContextMenu } from './ContextMenu';
 import { ContextMenuProps } from './ContextMenuItem';
 import "./EditableView.scss";
+import { CollectionTreeView } from './collections/CollectionTreeView';
 
 export interface EditableProps {
     /**
@@ -60,12 +61,14 @@ export interface EditableProps {
  */
 @observer
 export class EditableView extends React.Component<EditableProps> {
+    public static loadId = "";
     @observable _editing: boolean = false;
     @observable _headingsHack: number = 1;
 
     constructor(props: EditableProps) {
         super(props);
         this._editing = this.props.editing ? true : false;
+        EditableView.loadId = "";
     }
 
     @action
@@ -75,6 +78,7 @@ export class EditableView extends React.Component<EditableProps> {
         // to false. this will no longer do so -syip
         if (nextProps.editing && nextProps.editing !== this._editing) {
             this._editing = nextProps.editing;
+            EditableView.loadId = "";
         }
     }
 

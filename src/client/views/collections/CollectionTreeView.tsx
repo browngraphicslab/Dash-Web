@@ -3,7 +3,7 @@ import { faAngleRight, faArrowsAltH, faBell, faCamera, faCaretDown, faCaretRight
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, runInAction, untracked } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, Field, HeightSym, WidthSym } from '../../../new_fields/Doc';
+import { Doc, DocListCast, Field, HeightSym, WidthSym, DataSym, Opt } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { List } from '../../../new_fields/List';
 import { Document, listSpec } from '../../../new_fields/Schema';
@@ -88,7 +88,6 @@ library.add(faPlus, faMinus);
  * treeViewExpandedView : name of field whose contents are being displayed as the document's subtree
  */
 class TreeView extends React.Component<TreeViewProps> {
-    static loadId = "";
     private _header?: React.RefObject<HTMLDivElement> = React.createRef();
     private _treedropDisposer?: DragManager.DragDropDisposer;
     private _dref = React.createRef<HTMLDivElement>();
@@ -171,7 +170,7 @@ class TreeView extends React.Component<TreeViewProps> {
     editableView = (key: string, style?: string) => (<EditableView
         oneLine={true}
         display={"inline-block"}
-        editing={this.dataDoc[Id] === TreeView.loadId}
+        editing={this.dataDoc[Id] === EditableView.loadId}
         contents={StrCast(this.props.document[key])}
         height={12}
         fontStyle={style}
@@ -182,16 +181,16 @@ class TreeView extends React.Component<TreeViewProps> {
             Doc.SetInPlace(this.props.document, key, value, false);
             const layoutDoc = this.props.document.layout_custom instanceof Doc ? Doc.ApplyTemplate(Doc.GetProto(this.props.document.layout_custom)) : undefined;
             const doc = layoutDoc || Docs.Create.FreeformDocument([], { title: "", x: 0, y: 0, _width: 100, _height: 25, templates: new List<string>([Templates.Title.Layout]) });
-            TreeView.loadId = doc[Id];
+            EditableView.loadId = doc[Id];
             return this.props.addDocument(doc);
         })}
         OnTab={undoBatch((shift?: boolean) => {
-            TreeView.loadId = this.dataDoc[Id];
+            EditableView.loadId = this.dataDoc[Id];
             shift ? this.props.outdentDocument?.() : this.props.indentDocument?.();
             setTimeout(() => {  // unsetting/setting brushing for this doc will recreate & refocus this editableView after all other treeview changes have been made to the Dom (which may remove focus from this document).
                 Doc.UnBrushDoc(this.props.document);
                 Doc.BrushDoc(this.props.document);
-                TreeView.loadId = "";
+                EditableView.loadId = "";
             }, 0);
         })}
     />)
@@ -602,12 +601,26 @@ export class CollectionTreeView extends CollectionSubView(Document) {
 
     @action
     remove = (document: Document): boolean => {
-        const children = Cast(this.props.Document[this.props.fieldKey], listSpec(Doc), []);
+        const targetDataDoc = this.props.Document && !this.props.Document.isTemplateForField ? this.props.Document : Doc.GetProto(this.props.Document[DataSym] as Doc);
+        const children = Cast(targetDataDoc[this.props.fieldKey], listSpec(Doc), []);
         if (children.indexOf(document) !== -1) {
             children.splice(children.indexOf(document), 1);
             return true;
         }
         return false;
+    }
+    @action
+    addDoc = (doc: Document, relativeTo: Opt<Doc>, before?: boolean): boolean => {
+        const doAddDoc = () => {
+            const targetDataDoc = this.props.Document && !this.props.Document.isTemplateForField ? this.props.Document : Doc.GetProto(this.props.Document[DataSym] as Doc);
+            Doc.AddDocToList(targetDataDoc, this.props.fieldKey, doc, relativeTo, before, false, false, false);
+        };
+        if (this.props.Document.resolvedDataDoc instanceof Promise) {
+            this.props.Document.resolvedDataDoc.then(resolved => doAddDoc());
+        } else {
+            doAddDoc();
+        }
+        return true;
     }
     onContextMenu = (e: React.MouseEvent): void => {
         // need to test if propagation has stopped because GoldenLayout forces a parallel react hierarchy to be created for its top-level layout
@@ -701,7 +714,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
 
     render() {
         const dropAction = StrCast(this.props.Document.dropAction) as dropActionType;
-        const addDoc = (doc: Doc, relativeTo?: Doc, before?: boolean) => Doc.AddDocToList(this.props.Document, this.props.fieldKey, doc, relativeTo, before, false, false, false);
+        const addDoc = (doc: Doc, relativeTo?: Doc, before?: boolean) => this.addDoc(doc, relativeTo, before);
         const moveDoc = (d: Doc, target: Doc | undefined, addDoc: (doc: Doc) => boolean) => this.props.moveDocument(d, target, addDoc);
         return !this.childDocs ? (null) : (
             <div className="collectionTreeView-dropTarget" id="body"
@@ -712,6 +725,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
                 ref={this.createTreeDropTarget}>
                 {(this.props.Document.treeViewHideTitle ? (null) : <EditableView
                     contents={this.dataDoc.title}
+                    editing={false}
                     display={"block"}
                     maxHeight={72}
                     height={"auto"}
@@ -721,8 +735,8 @@ export class CollectionTreeView extends CollectionSubView(Document) {
                         Doc.SetInPlace(this.dataDoc, "title", value, false);
                         const layoutDoc = this.props.Document.layout_custom instanceof Doc ? Doc.ApplyTemplate(Doc.GetProto(this.props.Document.layout_custom)) : undefined;
                         const doc = layoutDoc || Docs.Create.FreeformDocument([], { title: "", x: 0, y: 0, _width: 100, _height: 25, templates: new List<string>([Templates.Title.Layout]) });
-                        TreeView.loadId = doc[Id];
-                        Doc.AddDocToList(this.props.Document, this.props.fieldKey, doc, this.childDocs.length ? this.childDocs[0] : undefined, true, false, false, false);
+                        EditableView.loadId = doc[Id];
+                        this.addDoc(doc, this.childDocs.length ? this.childDocs[0] : undefined, true);
                     })} />)}
                 {this.props.Document.allowClear ? this.renderClearButton : (null)}
                 <ul className="no-indent" style={{ width: "max-content" }} >
