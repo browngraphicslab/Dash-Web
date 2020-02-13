@@ -540,7 +540,7 @@ export class MainView extends React.Component {
             </GestureOverlay>
             <PreviewCursor />
             <ContextMenu />
-            {/* <RadialMenu /> */}
+            <RadialMenu />
             <PDFMenu />
             <MarqueeOptionsMenu />
             <RichTextMenu />

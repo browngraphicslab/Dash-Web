@@ -56,6 +56,7 @@ export namespace SelectionManager {
     export function SelectDoc(docView: DocumentView, ctrlPressed: boolean): void {
         manager.SelectDoc(docView, ctrlPressed);
     }
+    
 
     export function IsSelected(doc: DocumentView, outsideReaction?: boolean): boolean {
         return outsideReaction ?

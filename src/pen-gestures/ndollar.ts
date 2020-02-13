@@ -185,7 +185,7 @@ export class NDollarRecognizer {
         this.Multistrokes[3] = new Multistroke(GestureUtils.Gestures.EndBracket, useBoundedRotationInvariance, new Array(
             // new Array(new Point(150, 21), new Point(149, 150), new Point(26, 152))
             // new Array(new Point(150, 150), new Point(150, 0), new Point(150, 150), new Point(0, 150))
-            new Array(new Point(10, 100), new Point(50, 100), new Point(100, 12), new Point(150, 103), new Point(190, 100))
+            new Array(new Point(10, 100), new Point(100, 100), new Point(150, 12), new Point(200, 103), new Point(300, 100))
         ));
 
         //

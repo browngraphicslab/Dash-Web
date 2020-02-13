@@ -1,6 +1,6 @@
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faEye } from "@fortawesome/free-regular-svg-icons";
-import { faBraille, faChalkboard, faCompass, faCompressArrowsAlt, faExpandArrowsAlt, faFileUpload, faPaintBrush, faTable, faUpload } from "@fortawesome/free-solid-svg-icons";
+import { faBraille, faChalkboard, faCompass, faCompressArrowsAlt, faExpandArrowsAlt, faFileUpload, faPaintBrush, faTable, faUpload, faTextHeight } from "@fortawesome/free-solid-svg-icons";
 import { action, computed, observable, ObservableMap, reaction, runInAction, IReactionDisposer } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast, HeightSym, Opt, WidthSym, DocListCastAsync, Field } from "../../../../new_fields/Doc";
@@ -45,6 +45,9 @@ import { CognitiveServices } from "../../../cognitive_services/CognitiveServices
 import { RichTextField } from "../../../../new_fields/RichTextField";
 import { List } from "../../../../new_fields/List";
 import { DocumentViewProps } from "../../nodes/DocumentView";
+import { CollectionDockingView } from "../CollectionDockingView";
+import { MainView } from "../../MainView";
+import { TouchScrollableMenuItem } from "../../TouchScrollableMenu";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
@@ -80,6 +83,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private _hitCluster = false;
     private _layoutComputeReaction: IReactionDisposer | undefined;
     private _layoutPoolData = new ObservableMap<string, any>();
+    @observable private _pullCoords: number[] = [0, 0];
+    @observable private _pullDirection: string = "";
 
     public get displayName() { return "CollectionFreeFormView(" + this.props.Document.title ?.toString() + ")"; } // this makes mobx trace() statements more descriptive
     @observable.shallow _layoutElements: ViewDefResult[] = []; // shallow because some layout items (eg pivot labels) are just generated 'divs' and can't be frozen as observables
@@ -454,8 +459,21 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         }
                         return false;
                     });
-                    const inkFields = inks.map(i => Cast(i.data, InkField));
-                    CognitiveServices.Inking.Appliers.InterpretStrokes(inkFields.filter(i => i instanceof InkField).map(i => i!.inkData)).then((results) => {
+                    // const inkFields = inks.map(i => Cast(i.data, InkField));
+                    const strokes: InkData[] = [];
+                    inks.forEach(i => {
+                        const d = Cast(i.data, InkField);
+                        const x = NumCast(i.x);
+                        const y = NumCast(i.y);
+                        const left = Math.min(...d?.inkData.map(pd => pd.X) ?? [0]);
+                        const top = Math.min(...d?.inkData.map(pd => pd.Y) ?? [0]);
+                        if (d) {
+                            strokes.push(d.inkData.map(pd => ({ X: pd.X + x - left, Y: pd.Y + y - top })));
+                        }
+                    });
+
+                    CognitiveServices.Inking.Appliers.InterpretStrokes(strokes).then((results) => {
+                        console.log(results);
                         const wordResults = results.filter((r: any) => r.category === "inkWord");
                         for (const word of wordResults) {
                             const indices: number[] = word.strokeIds;
@@ -469,7 +487,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                                 if (this._wordPalette.has(word.recognizedText.toLowerCase())) {
                                     inks[i].color = this._wordPalette.get(word.recognizedText.toLowerCase());
                                 }
-                                else {
+                                else if (word.alternates) {
                                     for (const alt of word.alternates) {
                                         if (this._wordPalette.has(alt.recognizedString.toLowerCase())) {
                                             inks[i].color = this._wordPalette.get(alt.recognizedString.toLowerCase());
@@ -595,7 +613,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             const myTouches = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true);
             const pt1 = myTouches[0];
             const pt2 = myTouches[1];
-            console.log(myTouches);
 
             if (this.prevPoints.size === 2) {
                 const oldPoint1 = this.prevPoints.get(pt1.identifier);
@@ -624,7 +641,14 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         // use the centerx and centery as the "new mouse position"
                         const centerX = Math.min(pt1.clientX, pt2.clientX) + Math.abs(pt2.clientX - pt1.clientX) / 2;
                         const centerY = Math.min(pt1.clientY, pt2.clientY) + Math.abs(pt2.clientY - pt1.clientY) / 2;
-                        this.pan({ clientX: centerX, clientY: centerY });
+                        // const transformed = this.getTransform().inverse().transformPoint(centerX, centerY);
+
+                        if (!this._pullDirection) { // if we are not bezel movement
+                            this.pan({ clientX: centerX, clientY: centerY });
+                        } else {
+                            this._pullCoords = [centerX, centerY];
+                        }
+
                         this._lastX = centerX;
                         this._lastY = centerY;
                     }
@@ -649,6 +673,27 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 const centerY = Math.min(pt1.clientY, pt2.clientY) + Math.abs(pt2.clientY - pt1.clientY) / 2;
                 this._lastX = centerX;
                 this._lastY = centerY;
+                const screenBox = this._mainCont?.getBoundingClientRect();
+
+
+                // determine if we are using a bezel movement
+                if (screenBox) {
+                    if ((screenBox.right - centerX) < 100) {
+                        this._pullCoords = [centerX, centerY];
+                        this._pullDirection = "right";
+                    } else if (centerX - screenBox.left < 100) {
+                        this._pullCoords = [centerX, centerY];
+                        this._pullDirection = "left";
+                    } else if (screenBox.bottom - centerY < 100) {
+                        this._pullCoords = [centerX, centerY];
+                        this._pullDirection = "bottom";
+                    } else if (centerY - screenBox.top < 100) {
+                        this._pullCoords = [centerX, centerY];
+                        this._pullDirection = "top";
+                    }
+                }
+
+
                 this.removeMoveListeners();
                 this.addMoveListeners();
                 this.removeEndListeners();
@@ -659,11 +704,35 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     cleanUpInteractions = () => {
+
+        switch (this._pullDirection) {
+
+            case "left":
+                CollectionDockingView.AddSplit(Docs.Create.FreeformDocument([], { title: "New Collection" }), "left", undefined);
+                break;
+            case "right":
+                CollectionDockingView.AddSplit(Docs.Create.FreeformDocument([], { title: "New Collection" }), "right", undefined);
+                break;
+            case "top":
+                CollectionDockingView.AddSplit(Docs.Create.FreeformDocument([], { title: "New Collection" }), "top", undefined);
+                break;
+            case "bottom":
+                CollectionDockingView.AddSplit(Docs.Create.FreeformDocument([], { title: "New Collection" }), "bottom", undefined);
+                break;
+            default:
+                break;
+        }
+        console.log("");
+
+        this._pullDirection = "";
+        this._pullCoords = [0, 0];
+
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
         this.removeMoveListeners();
         this.removeEndListeners();
     }
+
 
     @action
     zoom = (pointX: number, pointY: number, deltaY: number): void => {
@@ -1066,6 +1135,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
     render() {
         TraceMobx();
+        const clientRect = this._mainCont?.getBoundingClientRect();
         // update the actual dimensions of the collection so that they can inquired (e.g., by a minimap)
         // this.Document.fitX = this.contentBounds && this.contentBounds.x;
         // this.Document.fitY = this.contentBounds && this.contentBounds.y;
@@ -1088,7 +1158,20 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             {!this.Document._LODdisable && !this.props.active() && !this.props.isAnnotationOverlay && !this.props.annotationsKey && this.props.renderDepth > 0 ? // && this.props.CollectionView && lodarea < NumCast(this.Document.LODarea, 100000) ?
                 this.placeholder : this.marqueeView}
             <CollectionFreeFormOverlayView elements={this.elementFunc} />
-        </div>;
+
+            <div className={"pullpane-indicator"}
+                style={{
+                    display: this._pullDirection ? "block" : "none",
+                    top: clientRect ? this._pullDirection === "bottom" ? this._pullCoords[1] - clientRect.y : 0 : "auto",
+                    // left: clientRect ? this._pullDirection === "right" ? this._pullCoords[0] - clientRect.x - MainView.Instance.flyoutWidth : 0 : "auto",
+                    left: clientRect ? this._pullDirection === "right" ? this._pullCoords[0] - clientRect.x : 0 : "auto",
+                    width: clientRect ? this._pullDirection === "left" ? this._pullCoords[0] - clientRect.left : this._pullDirection === "right" ? clientRect.right - this._pullCoords[0] : clientRect.width : 0,
+                    height: clientRect ? this._pullDirection === "top" ? this._pullCoords[1] - clientRect.top : this._pullDirection === "bottom" ? clientRect.bottom - this._pullCoords[1] : clientRect.height : 0,
+
+                }}>
+            </div>
+
+        </div >;
     }
 }
 

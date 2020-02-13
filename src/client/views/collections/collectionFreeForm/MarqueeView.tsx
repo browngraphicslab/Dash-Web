@@ -21,6 +21,7 @@ import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
 import { SubCollectionViewProps } from "../CollectionSubView";
 import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
 import { RichTextField } from "../../../../new_fields/RichTextField";
+import { InteractionUtils } from "../../../util/InteractionUtils";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -383,16 +384,39 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             });
             const inkFields = inks.map(i => Cast(i.data, InkField));
             CognitiveServices.Inking.Appliers.InterpretStrokes(inkFields.filter(i => i instanceof InkField).map(i => i!.inkData)).then((results) => {
+                // const wordResults = results.filter((r: any) => r.category === "inkWord");
+                // console.log(wordResults);
+                // console.log(results);
+                // for (const word of wordResults) {
+                //     const indices: number[] = word.strokeIds;
+                //     indices.forEach(i => {
+                //         if (wordToColor.has(word.recognizedText.toLowerCase())) {
+                //             inks[i].color = wordToColor.get(word.recognizedText.toLowerCase());
+                //         }
+                //         else {
+                //             for (const alt of word.alternates) {
+                //                 if (wordToColor.has(alt.recognizedString.toLowerCase())) {
+                //                     inks[i].color = wordToColor.get(alt.recognizedString.toLowerCase());
+                //                     break;
+                //                 }
+                //             }
+                //         }
+                //     })
+                // }
                 const wordResults = results.filter((r: any) => r.category === "inkWord");
-                console.log(wordResults);
-                console.log(results);
                 for (const word of wordResults) {
                     const indices: number[] = word.strokeIds;
                     indices.forEach(i => {
+                        const otherInks: Doc[] = [];
+                        indices.forEach(i2 => i2 !== i && otherInks.push(inks[i2]));
+                        inks[i].relatedInks = new List<Doc>(otherInks);
+                        const uniqueColors: string[] = [];
+                        Array.from(wordToColor.values()).forEach(c => uniqueColors.indexOf(c) === -1 && uniqueColors.push(c));
+                        inks[i].alternativeColors = new List<string>(uniqueColors);
                         if (wordToColor.has(word.recognizedText.toLowerCase())) {
                             inks[i].color = wordToColor.get(word.recognizedText.toLowerCase());
                         }
-                        else {
+                        else if (word.alternates) {
                             for (const alt of word.alternates) {
                                 if (wordToColor.has(alt.recognizedString.toLowerCase())) {
                                     inks[i].color = wordToColor.get(alt.recognizedString.toLowerCase());
@@ -400,7 +424,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
                                 }
                             }
                         }
-                    })
+                    });
                 }
             });
         }

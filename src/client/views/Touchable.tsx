@@ -221,8 +221,8 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
 
 
     handle1PointerHoldMove = (e: Event, me: InteractionUtils.MultiTouchEvent<TouchEvent>): void => {
-        e.stopPropagation();
-        me.touchEvent.stopPropagation();
+        // e.stopPropagation();
+        // me.touchEvent.stopPropagation();
     }
 
 
