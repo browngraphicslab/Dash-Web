@@ -44,7 +44,9 @@ export interface ViewDefResult {
 }
 function toLabel(target: FieldResult<Field>) {
     if (typeof target === "number" || Number(target)) {
-        return Number(target).toFixed(2).toString();
+        const truncated = Number(Number(target).toFixed(0));
+        const precise = Number(Number(target).toFixed(2));
+        return truncated === precise ? Number(target).toFixed(0) : Number(target).toFixed(2);
     }
     if (target instanceof ObjectField || target instanceof RefField) {
         return target[ToString]();
