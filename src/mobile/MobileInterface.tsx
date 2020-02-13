@@ -38,6 +38,7 @@ import { DocumentManager } from '../client/util/DocumentManager';
 import RichTextMenu from '../client/util/RichTextMenu';
 import { WebField } from "../new_fields/URLField";
 import { FieldResult } from "../new_fields/Doc";
+import { List } from '../new_fields/List';
 
 library.add(faLongArrowAltLeft);
 
@@ -252,18 +253,28 @@ export default class MobileInterface extends React.Component {
         Docs.Create.WebDocument(url, { _width: 300, _height: 300, title: "Mobile Upload Web Doc" });
     }
 
+    clearUpload = async () => {
+        if (this.mainContainer) {
+            const data = Cast(this.mainContainer.data, listSpec(Doc));
+            if (data) {
+                const collectionDoc = await data[1];
+                const children = DocListCast(collectionDoc.data);
+                children.forEach(doc => {
+                });
+                // collectionDoc[data] = new List<Doc>();
+            }
+        }
+    }
+
     renderUploadContent() {
         if (this.mainContainer) {
             return (
                 <div className="mobileInterface" onDragOver={this.onDragOver}>
                     <div className="mobileInterface-inkInterfaceButtons">
-                        <div className="navButtons">
-                            <button className="mobileInterface-button cancel" onClick={this.onBack} title="Back">BACK</button>
-                        </div>
-                        <div className="uploadSettings">
-                            {/* <button className="mobileInterface-button" onClick={this.addWeb} title="Add Web Doc to Upload Collection"></button> */}
-                            <button className="mobileInterface-button" onClick={this.upload} title="Upload">UPLOAD</button>
-                        </div>
+                        <button className="mobileInterface-button cancel" onClick={this.onBack} title="Back">BACK</button>
+                        {/* <button className="mobileInterface-button" onClick={this.clearUpload} title="Clear Upload">CLEAR</button> */}
+                        {/* <button className="mobileInterface-button" onClick={this.addWeb} title="Add Web Doc to Upload Collection"></button> */}
+                        <button className="mobileInterface-button" onClick={this.upload} title="Upload">UPLOAD</button>
                     </div>
                     <DocumentView
                         Document={this.mainContainer}

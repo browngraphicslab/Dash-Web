@@ -191,29 +191,31 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
         let pressedElement: HTMLElement | undefined;
         let pressedBound: ClientRect | undefined;
         let selectedText: string = "";
+        let pressedImg: boolean = false;
         if (this._iframeRef.current) {
             const B = this._iframeRef.current.getBoundingClientRect();
             const iframeDoc = this._iframeRef.current.contentDocument;
             if (B && iframeDoc) {
-                // check if there is selected text
-                const text = iframeDoc.getSelection();
-                if (text && text.toString().length > 0) {
-                    selectedText = text.toString();
-
-                    // get html of the selected text
-                    const range = text.getRangeAt(0);
-                    const contents = range.cloneContents();
-                    const div = document.createElement("div");
-                    div.appendChild(contents);
-                    pressedElement = div;
-
-                    pressedBound = range.getBoundingClientRect();
+                // TODO: this only works when scale = 1 as it is currently only inteded for mobile upload
+                const element = iframeDoc.elementFromPoint(this._pressX - B.left, this._pressY - B.top);
+                if (element && element.nodeName === "IMG") {
+                    pressedBound = element.getBoundingClientRect();
+                    pressedElement = element.cloneNode(true) as HTMLElement;
+                    pressedImg = true;
                 } else {
-                    // TODO: this only works when scale = 1 as it is currently only inteded for mobile upload
-                    const element = iframeDoc.elementFromPoint(this._pressX - B.left, this._pressY - B.top);
-                    if (element && element.nodeName) {//} === "IMG") {
-                        pressedBound = element.getBoundingClientRect();
-                        pressedElement = element.cloneNode(true) as HTMLElement;
+                    // check if there is selected text
+                    const text = iframeDoc.getSelection();
+                    if (text && text.toString().length > 0) {
+                        selectedText = text.toString();
+
+                        // get html of the selected text
+                        const range = text.getRangeAt(0);
+                        const contents = range.cloneContents();
+                        const div = document.createElement("div");
+                        div.appendChild(contents);
+                        pressedElement = div;
+
+                        pressedBound = range.getBoundingClientRect();
                     }
                 }
             }
@@ -232,19 +234,7 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
 
         // start dragging the pressed element if long pressed
         this._longPressSecondsHack = setTimeout(() => {
-            if (selectedText && pressedBound && pressedElement) {
-                e.stopPropagation();
-                e.preventDefault();
-                // create doc with the selected text's html
-                const doc = Docs.Create.HtmlDocument(pressedElement.innerHTML);
-
-                // create dragging ghost with the selected text
-                if (this._iframeDragRef.current) this._iframeDragRef.current.appendChild(pressedElement);
-
-                // start the drag
-                const dragData = new DragManager.DocumentDragData([doc]);
-                DragManager.StartDocumentDrag([pressedElement], dragData, this._pressX - pressedBound.top, this._pressY - pressedBound.top, { hideSource: true });
-            } else if (pressedElement && pressedBound) {
+            if (pressedImg && pressedElement && pressedBound) {
                 e.stopPropagation();
                 e.preventDefault();
                 if (pressedElement.nodeName === "IMG") {
@@ -260,6 +250,18 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
                         DragManager.StartDocumentDrag([pressedElement], dragData, this._pressX, this._pressY, { hideSource: true });
                     }
                 }
+            } else if (selectedText && pressedBound && pressedElement) {
+                e.stopPropagation();
+                e.preventDefault();
+                // create doc with the selected text's html
+                const doc = Docs.Create.HtmlDocument(pressedElement.innerHTML);
+
+                // create dragging ghost with the selected text
+                if (this._iframeDragRef.current) this._iframeDragRef.current.appendChild(pressedElement);
+
+                // start the drag
+                const dragData = new DragManager.DocumentDragData([doc]);
+                DragManager.StartDocumentDrag([pressedElement], dragData, this._pressX - pressedBound.top, this._pressY - pressedBound.top, { hideSource: true });
             }
         }, 1500);
     }

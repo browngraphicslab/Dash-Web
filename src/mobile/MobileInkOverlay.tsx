@@ -78,7 +78,7 @@ export default class MobileInkOverlay extends React.Component {
         };
 
         const target = document.elementFromPoint(this._x + 10, this._y + 10);
-        target ?.dispatchEvent(
+        target?.dispatchEvent(
             new CustomEvent<GestureUtils.GestureEvent>("dashOnGesture",
                 {
                     bubbles: true,
