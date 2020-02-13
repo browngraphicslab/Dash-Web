@@ -278,3 +278,15 @@ function sendMessage(message) {
     console.log('Client sending message: ', message);
     socket.emit('message', message, room);
 };
+
+export function refreshVideos() {
+    var localVideo = document.querySelector('#localVideo');
+    var remoteVideo = document.querySelector('#remoteVideo');
+    if (localVideo) {
+        localVideo.srcObject = localStream;
+    }
+    if (remoteVideo) {
+        remoteVideo.srcObject = remoteStream;
+    }
+
+}
