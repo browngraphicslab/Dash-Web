@@ -858,8 +858,6 @@ export namespace Doc {
         }
     }
 
-    @undoBatch
-    @action
     export function freezeNativeDimensions(layoutDoc: Doc, width: number, height: number): void {
         layoutDoc._autoHeight = false;
         layoutDoc.ignoreAspect = false;

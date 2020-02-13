@@ -145,7 +145,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
     removeDocument(doc: Doc): boolean {
         const docView = DocumentManager.Instance.getDocumentView(doc, this.props.ContainingCollectionView);
         docView && SelectionManager.DeselectDoc(docView);
-        const targetDataDoc = this.props.Document.resolvedDataDoc ? this.props.Document : this.props.Document[DataSym];
+        const targetDataDoc = this.props.Document.resolvedDataDoc && !this.props.Document.isTemplateForField ? this.props.Document : Doc.GetProto(this.props.Document[DataSym]);
         const value = Cast(targetDataDoc[this.props.fieldKey], listSpec(Doc), []);
         let index = value.reduce((p, v, i) => (v instanceof Doc && v === doc) ? i : p, -1);
         index = index !== -1 ? index : value.reduce((p, v, i) => (v instanceof Doc && Doc.AreProtosEqual(v, doc)) ? i : p, -1);
