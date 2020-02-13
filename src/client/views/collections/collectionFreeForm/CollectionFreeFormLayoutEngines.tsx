@@ -289,7 +289,7 @@ export function computeTimelineLayout(
         groupNames.push({ type: "text", text: Math.ceil(maxTime).toString(), x: Math.ceil(maxTime - minTime) * scaling, y: 0, height: fontHeight, fontSize, payload: undefined });
     }
 
-    const divider = { type: "div", color: "black", x: 0, y: 0, width: (maxTime - minTime) * scaling, height: 1, payload: undefined };
+    const divider = { type: "div", color: "black", x: 0, y: 0, width: panelDim[0], height: 1, payload: undefined };
     return normalizeResults(panelDim, fontHeight, childPairs, docMap, poolData, viewDefsToJSX, groupNames, (maxTime - minTime) * scaling, [divider], childDocs.filter(c => !filterDocs.includes(c)));
 
     function layoutDocsAtTime(keyDocs: Doc[], key: number) {
@@ -342,7 +342,7 @@ function normalizeResults(panelDim: number[], fontHeight: number, childPairs: { 
     extraDocs.map(ed => poolData.set(ed[Id], { x: 0, y: 0, zIndex: -99 }));
 
     return {
-        elements: viewDefsToJSX(extras.concat(groupNames.map(gname => ({
+        elements: viewDefsToJSX(extras.concat(groupNames).map(gname => ({
             type: gname.type,
             text: gname.text,
             x: gname.x * scale,
@@ -352,7 +352,7 @@ function normalizeResults(panelDim: number[], fontHeight: number, childPairs: { 
             height: Math.max(fontHeight, (gname.height || 0) * scale),
             fontSize: gname.fontSize,
             payload: gname.payload
-        }))))
+        })))
     };
 }
 
