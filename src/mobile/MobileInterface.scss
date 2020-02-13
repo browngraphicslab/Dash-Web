@@ -1,0 +1,19 @@
+.mobileInterface-inkInterfaceButtons {
+    position: absolute;
+    top: 0px;
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    z-index: 9999;
+    height: 50px;
+
+    .mobileInterface-button {
+        height: 100%;
+    }
+}
+
+.mobileInterface-container {
+    height: 100%;
+    position: relative;
+    touch-action: none;
+}

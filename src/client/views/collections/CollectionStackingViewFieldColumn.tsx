@@ -63,6 +63,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
 
     @undoBatch
     columnDrop = action((e: Event, de: DragManager.DropEvent) => {
+        console.log("column drop stacking");
         this._createAliasSelected = false;
         if (de.complete.docDragData) {
             const key = StrCast(this.props.parent.props.Document.sectionFilter);

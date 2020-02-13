@@ -56,6 +56,7 @@ export class MainView extends React.Component {
     private _flyoutSizeOnDown = 0;
     private _urlState: HistoryUtil.DocUrl;
     private _docBtnRef = React.createRef<HTMLDivElement>();
+    private _mainViewRef = React.createRef<HTMLDivElement>();
 
     @observable private _panelWidth: number = 0;
     @observable private _panelHeight: number = 0;
@@ -484,7 +485,7 @@ export class MainView extends React.Component {
         return new Transform(-translateX, -translateY, 1 / scale);
     }
     @computed get docButtons() {
-        if (CurrentUserUtils.UserDocument?.expandingButtons instanceof Doc) {
+        if (CurrentUserUtils.UserDocument ?.expandingButtons instanceof Doc) {
             return <div className="mainView-docButtons" ref={this._docBtnRef}
                 style={{ height: !CurrentUserUtils.UserDocument.expandingButtons.isExpanded ? "42px" : undefined }} >
                 <MainViewNotifs />
@@ -519,8 +520,16 @@ export class MainView extends React.Component {
         return (null);
     }
 
+    get mainViewElement() {
+        return document.getElementById("mainView-container");
+    }
+
+    get mainViewRef() {
+        return this._mainViewRef;
+    }
+
     render() {
-        return (<div id="mainView-container">
+        return (<div id="mainView-container" ref={this._mainViewRef}>
             <DictationOverlay />
             <SharingManager />
             <SettingsManager />

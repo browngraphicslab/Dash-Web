@@ -475,6 +475,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (!(InteractionUtils.IsType(e, InteractionUtils.MOUSETYPE) || InkingControl.Instance.selectedTool === InkTool.Highlighter || InkingControl.Instance.selectedTool === InkTool.Pen)) {
             if (!InteractionUtils.IsType(e, InteractionUtils.PENTYPE)) {
                 e.stopPropagation();
+                // TODO: check here for panning/inking
             }
             return;
         }

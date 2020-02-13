@@ -166,7 +166,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
             this._viewSpecsOpen = true;
 
             //@ts-ignore
-            if (!e.target?.classList[0]?.startsWith("qs")) {
+            if (!e.target ?.classList[0] ?.startsWith("qs")) {
                 this.closeDatePicker();
             }
 
@@ -315,7 +315,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     @action
     protected drop(e: Event, de: DragManager.DropEvent): boolean {
         if (de.complete.docDragData && de.complete.docDragData.draggedDocuments.length) {
-            this._buttonizableCommands.filter(c => c.title === this._currentKey).map(c => c.immediate(de.complete.docDragData?.draggedDocuments || []));
+            this._buttonizableCommands.filter(c => c.title === this._currentKey).map(c => c.immediate(de.complete.docDragData ?.draggedDocuments || []));
             e.stopPropagation();
         }
         return true;

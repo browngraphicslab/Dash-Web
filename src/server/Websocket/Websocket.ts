@@ -1,5 +1,5 @@
 import { Utils } from "../../Utils";
-import { MessageStore, Transferable, Types, Diff, YoutubeQueryInput, YoutubeQueryTypes } from "../Message";
+import { MessageStore, Transferable, Types, Diff, YoutubeQueryInput, YoutubeQueryTypes, GestureContent, MobileInkOverlayContent, UpdateMobileInkOverlayPositionContent, MobileDocumentUploadContent } from "../Message";
 import { Client } from "../Client";
 import { Socket } from "socket.io";
 import { Database } from "../database";
@@ -65,6 +65,10 @@ export namespace WebSocket {
             Utils.AddServerHandler(socket, MessageStore.UpdateField, diff => UpdateField(socket, diff));
             Utils.AddServerHandler(socket, MessageStore.DeleteField, id => DeleteField(socket, id));
             Utils.AddServerHandler(socket, MessageStore.DeleteFields, ids => DeleteFields(socket, ids));
+            Utils.AddServerHandler(socket, MessageStore.GesturePoints, content => processGesturePoints(socket, content));
+            Utils.AddServerHandler(socket, MessageStore.MobileInkOverlayTrigger, content => processOverlayTrigger(socket, content));
+            Utils.AddServerHandler(socket, MessageStore.UpdateMobileInkOverlayPosition, content => processUpdateOverlayPosition(socket, content));
+            Utils.AddServerHandler(socket, MessageStore.MobileDocumentUpload, content => processMobileDocumentUpload(socket, content));
             Utils.AddServerHandlerCallback(socket, MessageStore.GetRefField, GetRefField);
             Utils.AddServerHandlerCallback(socket, MessageStore.GetRefFields, GetRefFields);
 
@@ -77,6 +81,22 @@ export namespace WebSocket {
         const socketPort = isRelease ? Number(process.env.socketPort) : 4321;
         endpoint.listen(socketPort);
         logPort("websocket", socketPort);
+    }
+
+    function processGesturePoints(socket: Socket, content: GestureContent) {
+        socket.broadcast.emit("receiveGesturePoints", content);
+    }
+
+    function processOverlayTrigger(socket: Socket, content: MobileInkOverlayContent) {
+        socket.broadcast.emit("receiveOverlayTrigger", content);
+    }
+
+    function processUpdateOverlayPosition(socket: Socket, content: UpdateMobileInkOverlayPositionContent) {
+        socket.broadcast.emit("receiveUpdateOverlayPosition", content);
+    }
+
+    function processMobileDocumentUpload(socket: Socket, content: MobileDocumentUploadContent) {
+        socket.broadcast.emit("receiveMobileDocumentUpload", content);
     }
 
     async function RecognizeImage([query, callback]: [string, (result: any) => any]) {

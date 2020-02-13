@@ -29,7 +29,9 @@ import { CollectionViewType } from "./collections/CollectionView";
 import TouchScrollableMenu, { TouchScrollableMenuItem } from "./TouchScrollableMenu";
 import { RadialMenu } from "./nodes/RadialMenu";
 import { SelectionManager } from "../util/SelectionManager";
-
+import MobileInterface from "../../mobile/MobileInterface";
+import { MobileInkOverlayContent } from "../../server/Message";
+import MobileInkOverlay from "../../mobile/MobileInkOverlay";
 
 @observer
 export default class GestureOverlay extends Touchable {
@@ -53,8 +55,10 @@ export default class GestureOverlay extends Touchable {
     @observable private _clipboardDoc?: JSX.Element;
     @observable private _possibilities: JSX.Element[] = [];
 
-    @computed private get height(): number { return 2 * Math.max(this._pointerY && this._thumbY ? this._thumbY - this._pointerY : 300, 300); }
+    @computed private get height(): number { return 2 * Math.max(this._pointerY && this._thumbY ? this._thumbY - this._pointerY : 100, 100); }
     @computed private get showBounds() { return this.Tool !== ToolglassTools.None; }
+
+    @observable private showMobileInkOverlay: boolean = false;
 
     private _d1: Doc | undefined;
     private _inkToTextDoc: Doc | undefined;
@@ -141,8 +145,6 @@ export default class GestureOverlay extends Touchable {
         const nts = this.getNewTouches(te);
         if (nts.nt.length < 5) {
             const target = document.elementFromPoint(te.changedTouches.item(0).clientX, te.changedTouches.item(0).clientY);
-            te.changedTouches.item(0).identifier;
-            console.log(te.touches);
             target?.dispatchEvent(
                 new CustomEvent<InteractionUtils.MultiTouchEvent<React.TouchEvent>>("dashOnTouchStart",
                     {
@@ -558,6 +560,16 @@ export default class GestureOverlay extends Touchable {
             const B = this.svgBounds;
             const points = this._points.map(p => ({ X: p.X - B.left, Y: p.Y - B.top }));
 
+            if (MobileInterface.Instance && MobileInterface.Instance.drawingInk) {
+                const { selectedColor, selectedWidth } = InkingControl.Instance;
+                DocServer.Mobile.dispatchGesturePoints({
+                    points: this._points,
+                    bounds: B,
+                    color: selectedColor,
+                    width: selectedWidth
+                });
+            }
+
             const initialPoint = this._points[0.];
             const xInGlass = initialPoint.X > (this._thumbX ?? Number.MAX_SAFE_INTEGER) && initialPoint.X < (this._thumbX ?? Number.MAX_SAFE_INTEGER) + (this.height);
             const yInGlass = initialPoint.Y > (this._thumbY ?? Number.MAX_SAFE_INTEGER) - (this.height) && initialPoint.Y < (this._thumbY ?? Number.MAX_SAFE_INTEGER);
@@ -717,10 +729,16 @@ export default class GestureOverlay extends Touchable {
         this._clipboardDoc = undefined;
     }
 
+    @action
+    enableMobileInkOverlay = (content: MobileInkOverlayContent) => {
+        this.showMobileInkOverlay = content.enableOverlay;
+    }
+
     render() {
         trace();
         return (
             <div className="gestureOverlay-cont" onPointerDown={this.onPointerDown} onTouchStart={this.onReactTouchStart}>
+                {this.showMobileInkOverlay ? <MobileInkOverlay /> : <></>}
                 {this.elements}
 
                 <div className="clipboardDoc-cont" style={{

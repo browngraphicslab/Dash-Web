@@ -227,6 +227,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     @undoBatch
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
+        console.log("DROP STACKIN G2");
         const where = [de.x, de.y];
         let targInd = -1;
         let plusOne = 0;
@@ -257,6 +258,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     @undoBatch
     @action
     onDrop = async (e: React.DragEvent): Promise<void> => {
+        console.log("DROP STACKING");
         const where = [e.clientX, e.clientY];
         let targInd = -1;
         this._docXfs.map((cd, i) => {

@@ -1,4 +1,6 @@
 import { Utils } from "../Utils";
+import { Point } from "../pen-gestures/ndollar";
+import { Doc } from "../new_fields/Doc";
 import { Image } from "canvas";
 
 export class Message<T> {
@@ -43,6 +45,30 @@ export interface Diff extends Reference {
     readonly diff: any;
 }
 
+export interface GestureContent {
+    readonly points: Array<Point>;
+    readonly bounds: { right: number, left: number, bottom: number, top: number, width: number, height: number };
+    readonly width?: string;
+    readonly color?: string;
+}
+
+export interface MobileInkOverlayContent {
+    readonly enableOverlay: boolean;
+    readonly width?: number;
+    readonly height?: number;
+    readonly text?: string;
+}
+
+export interface UpdateMobileInkOverlayPositionContent {
+    readonly dx?: number;
+    readonly dy?: number;
+    readonly dsize?: number;
+}
+
+export interface MobileDocumentUploadContent {
+    readonly docId: string;
+}
+
 export namespace MessageStore {
     export const Foo = new Message<string>("Foo");
     export const Bar = new Message<string>("Bar");
@@ -52,6 +78,11 @@ export namespace MessageStore {
     export const GetDocument = new Message<string>("Get Document");
     export const DeleteAll = new Message<any>("Delete All");
     export const ConnectionTerminated = new Message<string>("Connection Terminated");
+
+    export const GesturePoints = new Message<GestureContent>("Gesture Points");
+    export const MobileInkOverlayTrigger = new Message<MobileInkOverlayContent>("Trigger Mobile Ink Overlay");
+    export const UpdateMobileInkOverlayPosition = new Message<UpdateMobileInkOverlayPositionContent>("Update Mobile Ink Overlay Position");
+    export const MobileDocumentUpload = new Message<MobileDocumentUploadContent>("Upload Document From Mobile");
 
     export const GetRefField = new Message<string>("Get Ref Field");
     export const GetRefFields = new Message<string[]>("Get Ref Fields");

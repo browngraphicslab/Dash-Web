@@ -86,7 +86,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     @observable private _pullCoords: number[] = [0, 0];
     @observable private _pullDirection: string = "";
 
-    public get displayName() { return "CollectionFreeFormView(" + this.props.Document.title?.toString() + ")"; } // this makes mobx trace() statements more descriptive
+    public get displayName() { return "CollectionFreeFormView(" + this.props.Document.title ?.toString() + ")"; } // this makes mobx trace() statements more descriptive
     @observable.shallow _layoutElements: ViewDefResult[] = []; // shallow because some layout items (eg pivot labels) are just generated 'divs' and can't be frozen as observables
     @observable _clusterSets: (Doc[])[] = [];
 
@@ -255,7 +255,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 docs.map(doc => this._clusterSets[doc.cluster = NumCast(docFirst.cluster)].push(doc));
             }
             childLayouts.map(child => !this._clusterSets.some((set, i) => Doc.IndexOf(child, set) !== -1 && child.cluster === i) && this.updateCluster(child));
-            childLayouts.map(child => Doc.GetProto(child).clusterStr = child.cluster?.toString());
+            childLayouts.map(child => Doc.GetProto(child).clusterStr = child.cluster ?.toString());
         }
     }
 
@@ -434,9 +434,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 console.log("end");
                 if (this._inkToTextStartX && this._inkToTextStartY) {
                     const end = this.getTransform().transformPoint(Math.max(...ge.points.map(p => p.X)), Math.max(...ge.points.map(p => p.Y)));
-                    const setDocs = this.getActiveDocuments().filter(s => s.proto?.type === "text" && s.color);
+                    const setDocs = this.getActiveDocuments().filter(s => s.proto ?.type === "text" && s.color);
                     const sets = setDocs.map((sd) => {
-                        return Cast(sd.data, RichTextField)?.Text as string;
+                        return Cast(sd.data, RichTextField) ?.Text as string;
                     });
                     if (sets.length && sets[0]) {
                         this._wordPalette.clear();
@@ -523,7 +523,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     @action
     pan = (e: PointerEvent | React.Touch | { clientX: number, clientY: number }): void => {
         // I think it makes sense for the marquee menu to go away when panned. -syip2
-        MarqueeOptionsMenu.Instance.fadeOut(true);
+        MarqueeOptionsMenu.Instance && MarqueeOptionsMenu.Instance.fadeOut(true);
 
         let x = this.Document._panX || 0;
         let y = this.Document._panY || 0;
@@ -883,8 +883,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     getCalculatedPositions(params: { doc: Doc, index: number, collection: Doc, docs: Doc[], state: any }): { x?: number, y?: number, z?: number, width?: number, height?: number, transition?: string, state?: any } {
-        const result = this.Document.arrangeScript?.script.run(params, console.log);
-        if (result?.success) {
+        const result = this.Document.arrangeScript ?.script.run(params, console.log);
+        if (result ?.success) {
             return { ...result, transition: "transform 1s" };
         }
         const layoutDoc = Doc.Layout(params.doc);
@@ -1114,7 +1114,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
     @computed get placeholder() {
         return <div className="collectionfreeformview-placeholder" style={{ background: this.Document.backgroundColor }}>
-            <span className="collectionfreeformview-placeholderSpan">{this.props.Document.title?.toString()}</span>
+            <span className="collectionfreeformview-placeholderSpan">{this.props.Document.title ?.toString()}</span>
         </div>;
     }
     @computed get marqueeView() {

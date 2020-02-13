@@ -6,7 +6,7 @@ import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
 import { ScriptField } from "../../../new_fields/ScriptField";
-import { Cast } from "../../../new_fields/Types";
+import { Cast, StrCast } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
@@ -53,9 +53,9 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         private _childLayoutDisposer?: IReactionDisposer;
         protected _mainCont?: HTMLDivElement;
         protected createDashEventsTarget = (ele: HTMLDivElement) => { //used for stacking and masonry view
-            this.dropDisposer?.();
-            this.gestureDisposer?.();
-            this.multiTouchDisposer?.();
+            this.dropDisposer ?.();
+            this.gestureDisposer ?.();
+            this.multiTouchDisposer ?.();
             if (ele) {
                 this._mainCont = ele;
                 this.dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this));
@@ -68,7 +68,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         }
 
         componentDidMount() {
-            this._childLayoutDisposer = reaction(() => [this.childDocs, (Cast(this.props.Document.childLayout, Doc) as Doc)?.[Id]],
+            this._childLayoutDisposer = reaction(() => [this.childDocs, (Cast(this.props.Document.childLayout, Doc) as Doc) ?.[Id]],
                 (args) => {
                     const childLayout = Cast(this.props.Document.childLayout, Doc);
                     if (childLayout instanceof Doc) {
@@ -173,7 +173,6 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
 
         @undoBatch
         protected onGesture(e: Event, ge: GestureUtils.GestureEvent) {
-
         }
 
         @undoBatch
@@ -196,7 +195,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                     const movedDocs = docDragData.draggedDocuments;
                     added = movedDocs.reduce((added: boolean, d, i) =>
                         docDragData.droppedDocuments[i] !== d ? this.props.addDocument(docDragData.droppedDocuments[i]) :
-                            docDragData.moveDocument?.(d, this.props.Document, this.props.addDocument) || added, false);
+                            docDragData.moveDocument ?.(d, this.props.Document, this.props.addDocument) || added, false);
                 } else {
                     added = docDragData.droppedDocuments.reduce((added: boolean, d) => this.props.addDocument(d) || added, false);
                 }
@@ -219,6 +218,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             }
             const html = e.dataTransfer.getData("text/html");
             const text = e.dataTransfer.getData("text/plain");
+            console.log(html);
 
             if (text && text.startsWith("<div")) {
                 return;

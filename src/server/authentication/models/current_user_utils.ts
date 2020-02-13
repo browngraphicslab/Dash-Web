@@ -14,6 +14,7 @@ import { Utils } from "../../../Utils";
 import { nullAudio } from "../../../new_fields/URLField";
 import { DragManager } from "../../../client/util/DragManager";
 import { InkingControl } from "../../../client/views/InkingControl";
+import { Scripting } from "../../../client/util/Scripting";
 import { CollectionViewType } from "../../../client/views/collections/CollectionView";
 
 export class CurrentUserUtils {
@@ -102,6 +103,9 @@ export class CurrentUserUtils {
             { title: "use eraser", icon: "eraser", click: 'activateEraser(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this);', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "pink", activePen: doc },
             { title: "use scrubber", icon: "eraser", click: 'activateScrubber(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this);', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "green", activePen: doc },
             { title: "use drag", icon: "mouse-pointer", click: 'deactivateInk();this.activePen.pen = this;', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "white", activePen: doc },
+            // { title: "draw", icon: "pen-nib", click: 'switchMobileView(setupMobileInkingDoc, renderMobileInking, onSwitchMobileInking);', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "red", activePen: doc },
+            { title: "upload", icon: "upload", click: 'switchMobileView(setupMobileUploadDoc, renderMobileUpload, onSwitchMobileUpload);', backgroundColor: "orange" },
+            // { title: "upload", icon: "upload", click: 'uploadImageMobile();', backgroundColor: "cyan" },
         ];
         return docProtoData.filter(d => !buttons || !buttons.includes(d.title)).map(data => Docs.Create.FontIconDocument({
             _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, _dropAction: data.click ? "copy" : undefined, title: data.title, icon: data.icon, ignoreClick: data.ignoreClick,
@@ -143,6 +147,22 @@ export class CurrentUserUtils {
     static setupMobileDoc(userDoc: Doc) {
         return userDoc.activeMoble ?? Docs.Create.MasonryDocument(CurrentUserUtils.setupMobileButtons(userDoc), {
             columnWidth: 100, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled", title: "buttons", _autoHeight: true, _yMargin: 5
+        });
+    }
+
+    static setupMobileInkingDoc(userDoc: Doc) {
+        return Docs.Create.FreeformDocument([], { title: "Mobile Inking", backgroundColor: "white" });
+    }
+
+    static setupMobileUploadDoc(userDoc: Doc) {
+        const webDoc = Docs.Create.WebDocument("https://www.britannica.com/animal/cat", {
+            title: "Upload Images From the Web", _chromeStatus: "enabled", lockedPosition: true
+        });
+        const uploadDoc = Docs.Create.StackingDocument([], {
+            title: "Mobile Upload Collection", backgroundColor: "white", lockedPosition: true
+        });
+        return Docs.Create.StackingDocument([webDoc, uploadDoc], {
+            _width: screen.width, lockedPosition: true, _chromeStatus: "disabled", title: "Upload", _autoHeight: true, _yMargin: 80, backgroundColor: "lightgray"
         });
     }
 
@@ -383,3 +403,6 @@ export class CurrentUserUtils {
         return recurs([] as Attribute[], schema ? schema.rootAttributeGroup : undefined);
     }
 }
+
+Scripting.addGlobal(function setupMobileInkingDoc(userDoc: Doc) { return CurrentUserUtils.setupMobileInkingDoc(userDoc); });
+Scripting.addGlobal(function setupMobileUploadDoc(userDoc: Doc) { return CurrentUserUtils.setupMobileUploadDoc(userDoc); });
