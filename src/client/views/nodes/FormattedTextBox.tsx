@@ -88,6 +88,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     private _pullReactionDisposer: Opt<IReactionDisposer>;
     private _pushReactionDisposer: Opt<IReactionDisposer>;
     private _buttonBarReactionDisposer: Opt<IReactionDisposer>;
+    private _scrollDisposer: Opt<IReactionDisposer>;
     private dropDisposer?: DragManager.DragDropDisposer;
 
     @observable private _entered = false;
@@ -578,6 +579,10 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
             { fireImmediately: true }
         );
 
+        this._scrollDisposer = reaction(() => NumCast(this.props.Document.scrollPos),
+            pos => this._scrollRef.current && this._scrollRef.current.scrollTo({ top: pos }), { fireImmediately: true }
+        );
+
         setTimeout(() => this.tryUpdateHeight(NumCast(this.layoutDoc.limitHeight, 0)));
     }
 
@@ -788,15 +793,16 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     }
 
     componentWillUnmount() {
-        this._scrollToRegionReactionDisposer && this._scrollToRegionReactionDisposer();
-        this._reactionDisposer && this._reactionDisposer();
-        this._proxyReactionDisposer && this._proxyReactionDisposer();
-        this._pushReactionDisposer && this._pushReactionDisposer();
-        this._pullReactionDisposer && this._pullReactionDisposer();
-        this._heightReactionDisposer && this._heightReactionDisposer();
-        this._searchReactionDisposer && this._searchReactionDisposer();
-        this._buttonBarReactionDisposer && this._buttonBarReactionDisposer();
-        this._editorView && this._editorView.destroy();
+        this._scrollDisposer?.();
+        this._scrollToRegionReactionDisposer?.();
+        this._reactionDisposer?.();
+        this._proxyReactionDisposer?.();
+        this._pushReactionDisposer?.();
+        this._pullReactionDisposer?.();
+        this._heightReactionDisposer?.();
+        this._searchReactionDisposer?.();
+        this._buttonBarReactionDisposer?.();
+        this._editorView?.destroy();
     }
 
     static _downEvent: any;
@@ -1037,6 +1043,9 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         }
     }
 
+    onscrolled = (ev: React.UIEvent) => {
+        this.props.Document.scrollPos = this._scrollRef.current!.scrollTop;
+    }
     @action
     tryUpdateHeight(limitHeight?: number) {
         let scrollHeight = this._ref.current?.scrollHeight;
@@ -1094,7 +1103,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                 onPointerEnter={action(() => this._entered = true)}
                 onPointerLeave={action(() => this._entered = false)}
             >
-                <div className={`formattedTextBox-outer`} style={{ width: `calc(100% - ${this.sidebarWidthPercent})`, }} ref={this._scrollRef}>
+                <div className={`formattedTextBox-outer`} style={{ width: `calc(100% - ${this.sidebarWidthPercent})`, }} onScroll={this.onscrolled} ref={this._scrollRef}>
                     <div className={`formattedTextBox-inner${rounded}`} style={{ whiteSpace: "pre-wrap", pointerEvents: ((this.Document.isButton || this.props.onClick) && !this.props.isSelected()) ? "none" : undefined }} ref={this.createDropTarget} />
                 </div>
                 {!this.props.Document._showSidebar ? (null) : this.sidebarWidthPercent === "0%" ?
