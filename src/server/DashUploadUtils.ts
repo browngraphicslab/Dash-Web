@@ -272,7 +272,7 @@ export namespace DashUploadUtils {
         });
     };
 
-    const { pngs, jpgs } = AcceptibleMedia;
+    const { pngs, jpgs, webps, tiffs } = AcceptibleMedia;
     const pngOptions = {
         compressionLevel: 9,
         adaptiveFiltering: true,
@@ -316,6 +316,10 @@ export namespace DashUploadUtils {
                     initial = initial.png(pngOptions);
                 } else if (jpgs.includes(ext)) {
                     initial = initial.jpeg();
+                } else if (webps.includes(ext)) {
+                    initial = initial.webp();
+                } else if (tiffs.includes(ext)) {
+                    initial = initial.tiff();
                 } else {
                     initial = undefined;
                 }

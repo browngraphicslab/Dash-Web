@@ -357,6 +357,8 @@ export namespace Docs {
             });
             const parentProto = Doc.GetProto(parent);
             const { _socket } = DocServer;
+            _socket.off(MessageStore.BuxtonDocumentResult.Message);
+            _socket.off(MessageStore.BuxtonImportComplete.Message);
             Utils.AddServerHandler(_socket, MessageStore.BuxtonDocumentResult, ({ device, errors }) => {
                 if (!responded) {
                     responded = true;
@@ -688,15 +690,12 @@ export namespace Docs {
             if (input === undefined || input === null || ![...primitives, "object"].includes(typeof input)) {
                 return undefined;
             }
-            let parsed = input;
-            if (typeof input === "string") {
-                parsed = JSONUtils.tryParse(input);
-            }
+            input = JSON.parse(typeof input === "string" ? input : JSON.stringify(input));
             let converted: Doc;
-            if (typeof parsed === "object" && !(parsed instanceof Array)) {
-                converted = convertObject(parsed, title, appendToTarget);
+            if (typeof input === "object" && !(input instanceof Array)) {
+                converted = convertObject(input, title, appendToTarget);
             } else {
-                (converted = new Doc).json = toField(parsed);
+                (converted = new Doc).json = toField(input);
             }
             title && (converted.title = title);
             return converted;

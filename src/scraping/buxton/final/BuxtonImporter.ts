@@ -43,8 +43,8 @@ export interface AnalysisResult {
 type Transformer<T> = (raw: string) => { transformed?: T, error?: string };
 
 export interface ImportResults {
-    deviceCount: number,
-    errorCount: number
+    deviceCount: number;
+    errorCount: number;
 }
 
 type ResultCallback = (result: AnalysisResult) => void;
@@ -300,7 +300,7 @@ async function writeImages(zip: any): Promise<ImageData[]> {
         const { width, height, type } = await new Promise<Dimensions>(async resolve => {
             const sizeStream = createImageSizeStream().on('size', (dimensions: Dimensions) => {
                 readStream.destroy();
-                resolve(dimensions)
+                resolve(dimensions);
             });
             const readStream = await streamImage();
             readStream.pipe(sizeStream);
