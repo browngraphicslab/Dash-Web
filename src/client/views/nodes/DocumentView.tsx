@@ -850,7 +850,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         TraceMobx();
         const showTitle = StrCast(this.getLayoutPropStr("_showTitle"));
         const showTitleHover = StrCast(this.getLayoutPropStr("_showTitleHover"));
-        const showCaption = this.getLayoutPropStr("showCaption");
+        const showCaption = this.getLayoutPropStr("_showCaption");
         const showTextTitle = showTitle && (StrCast(this.layoutDoc.layout).indexOf("PresBox") !== -1 || StrCast(this.layoutDoc.layout).indexOf("FormattedTextBox") !== -1) ? showTitle : undefined;
         const searchHighlight = (!this.Document.searchFields ? (null) :
             <div className="documentView-searchHighlight">
