@@ -12,6 +12,8 @@ import { CollectionSubView } from './CollectionSubView';
 import { faCaretLeft, faCaretRight } from '@fortawesome/free-solid-svg-icons';
 import { Doc } from '../../../new_fields/Doc';
 import { FormattedTextBox } from '../nodes/FormattedTextBox';
+import { ContextMenu } from '../ContextMenu';
+import { ObjectField } from '../../../new_fields/ObjectField';
 
 type CarouselDocument = makeInterface<[typeof documentSchema,]>;
 const CarouselDocument = makeInterface(documentSchema);
@@ -50,6 +52,7 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
             <div>
                 <div className="collectionCarouselView-image">
                     <ContentFittingDocumentView {...this.props}
+                        backgroundColor={this.props.backgroundColor}
                         Document={this.childLayoutPairs[index].layout}
                         DataDocument={this.childLayoutPairs[index].data}
                         PanelHeight={this.panelHeight}
@@ -70,8 +73,21 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
             </div>
         </>;
     }
+
+
+    onContextMenu = (e: React.MouseEvent): void => {
+        // need to test if propagation has stopped because GoldenLayout forces a parallel react hierarchy to be created for its top-level layout
+        if (!e.isPropagationStopped()) {
+            ContextMenu.Instance.addItem({
+                description: "Make Hero Image", event: () => {
+                    const index = NumCast(this.layoutDoc._itemIndex);
+                    (this.dataDoc || Doc.GetProto(this.props.Document)).hero = ObjectField.MakeCopy(this.childLayoutPairs[index].layout.data as ObjectField);
+                }, icon: "plus"
+            });
+        }
+    }
     render() {
-        return <div className="collectionCarouselView-outer" ref={this.createDashEventsTarget}>
+        return <div className="collectionCarouselView-outer" ref={this.createDashEventsTarget} onContextMenu={this.onContextMenu}>
             {this.content}
             {this.buttons}
         </div>;

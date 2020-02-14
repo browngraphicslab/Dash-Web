@@ -67,6 +67,7 @@
         pointer-events: all;
         padding: 5px;
         border: 1px solid black;
+        display:none;
     }
 
     .collectionTimeView-treeView {
@@ -130,5 +131,11 @@
 .collectionTimeView-pivot {
     .collectionFreeform-customText {
         text-align: center;
+    }
+}
+
+.collectionTimeView:hover, .collectionTimeView-pivot:hover {
+    .pivotKeyEntry {
+        display:unset;
     }
 }

@@ -38,6 +38,7 @@ import { CollectionViewBaseChrome } from './CollectionViewChromes';
 import { CollectionTimeView } from './CollectionTimeView';
 import { CollectionMultirowView } from './collectionMulticolumn/CollectionMultirowView';
 import { List } from '../../../new_fields/List';
+import { SubCollectionViewProps } from './CollectionSubView';
 export const COLLECTION_BORDER_WIDTH = 2;
 const path = require('path');
 library.add(faTh, faTree, faSquare, faProjectDiagram, faSignature, faThList, faFingerprint, faColumns, faEllipsisV, faImage, faEye as any, faCopy);
@@ -133,7 +134,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
 
     @action.bound
     addDocument(doc: Doc): boolean {
-        const targetDataDoc = this.props.Document.resolvedDataDoc && !this.props.Document.isTemplateForField ? this.props.Document : Doc.GetProto(this.props.Document[DataSym]);
+        const targetDataDoc = this.props.Document[DataSym];
         targetDataDoc[this.props.fieldKey] = new List<Doc>([...DocListCast(targetDataDoc[this.props.fieldKey]), doc]);  // DocAddToList may write to targetdataDoc's parent ... we don't want this. should really change GetProto to GetDataDoc and test for resolvedDataDoc there
         // Doc.AddDocToList(targetDataDoc, this.props.fieldKey, doc);
         targetDataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
@@ -145,8 +146,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
     removeDocument(doc: Doc): boolean {
         const docView = DocumentManager.Instance.getDocumentView(doc, this.props.ContainingCollectionView);
         docView && SelectionManager.DeselectDoc(docView);
-        const targetDataDoc = this.props.Document.resolvedDataDoc ? this.props.Document : this.props.Document[DataSym];
-        const value = Cast(targetDataDoc[this.props.fieldKey], listSpec(Doc), []);
+        const value = Cast(this.props.Document[DataSym][this.props.fieldKey], listSpec(Doc), []);
         let index = value.reduce((p, v, i) => (v instanceof Doc && v === doc) ? i : p, -1);
         index = index !== -1 ? index : value.reduce((p, v, i) => (v instanceof Doc && Doc.AreProtosEqual(v, doc)) ? i : p, -1);
 
@@ -178,7 +178,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
     }
 
     private SubViewHelper = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
-        const props = { ...this.props, ...renderProps, ChromeHeight: this.chromeHeight, CollectionView: this, annotationsKey: "" };
+        const props: SubCollectionViewProps = { ...this.props, ...renderProps, ChromeHeight: this.chromeHeight, CollectionView: this, annotationsKey: "" };
         switch (type) {
             case CollectionViewType.Schema: return (<CollectionSchemaView key="collview" {...props} />);
             case CollectionViewType.Docking: return (<CollectionDockingView key="collview" {...props} />);

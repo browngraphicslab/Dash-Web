@@ -134,7 +134,6 @@ export namespace DragManager {
         embedDoc?: boolean;
         moveDocument?: MoveFunction;
         isSelectionMove?: boolean; // indicates that an explicitly selected Document is being dragged.  this will suppress onDragStart scripts
-        applyAsTemplate?: boolean;
     }
     export class LinkDragData {
         constructor(linkSourceDoc: Doc) {

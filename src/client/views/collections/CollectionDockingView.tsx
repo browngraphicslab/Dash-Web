@@ -599,6 +599,7 @@ interface DockedFrameProps {
     dataDocumentId: FieldId;
     glContainer: any;
     libraryPath: (FieldId[]);
+    backgroundColor?: (doc:Doc) => string| undefined;
     //collectionDockingView: CollectionDockingView
 }
 @observer
@@ -756,7 +757,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             parentActive={returnTrue}
             whenActiveChanged={emptyFunction}
             focus={emptyFunction}
-            backgroundColor={returnEmptyString}
+            backgroundColor={CollectionDockingView.Instance.props.backgroundColor}
             addDocTab={this.addDocTab}
             pinToPres={DockedFrameRenderer.PinDoc}
             ContainingCollectionView={undefined}

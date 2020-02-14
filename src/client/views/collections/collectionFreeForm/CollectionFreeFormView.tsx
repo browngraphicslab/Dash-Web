@@ -4,13 +4,13 @@ import { faBraille, faChalkboard, faCompass, faCompressArrowsAlt, faExpandArrows
 import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { computedFn } from "mobx-utils";
-import { Doc, DocListCast, HeightSym, Opt, WidthSym } from "../../../../new_fields/Doc";
+import { Doc, DocListCast, HeightSym, Opt, WidthSym, DocCastAsync } from "../../../../new_fields/Doc";
 import { documentSchema, positionSchema } from "../../../../new_fields/documentSchemas";
 import { Id } from "../../../../new_fields/FieldSymbols";
 import { InkTool } from "../../../../new_fields/InkField";
 import { createSchema, listSpec, makeInterface } from "../../../../new_fields/Schema";
 import { ScriptField } from "../../../../new_fields/ScriptField";
-import { Cast, NumCast, ScriptCast, StrCast } from "../../../../new_fields/Types";
+import { Cast, NumCast, ScriptCast, BoolCast, StrCast } from "../../../../new_fields/Types";
 import { TraceMobx } from "../../../../new_fields/util";
 import { GestureUtils } from "../../../../pen-gestures/GestureUtils";
 import { CurrentUserUtils } from "../../../../server/authentication/models/current_user_utils";
@@ -206,6 +206,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     @undoBatch
+    @action
     updateClusters(useClusters: boolean) {
         this.props.Document.useClusters = useClusters;
         this._clusterSets.length = 0;
@@ -243,7 +244,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 docs.map(doc => this._clusterSets[doc.cluster = NumCast(docFirst.cluster)].push(doc));
             }
             childLayouts.map(child => !this._clusterSets.some((set, i) => Doc.IndexOf(child, set) !== -1 && child.cluster === i) && this.updateCluster(child));
-            childLayouts.map(child => Doc.GetProto(child).clusterStr = child.cluster?.toString());
         }
     }
 
@@ -279,16 +279,16 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     getClusterColor = (doc: Doc) => {
-        let clusterColor = "";
+        let clusterColor = this.props.backgroundColor?.(doc);
         const cluster = NumCast(doc.cluster);
         if (this.Document.useClusters) {
             if (this._clusterSets.length <= cluster) {
                 setTimeout(() => this.updateCluster(doc), 0);
             } else {
                 // choose a cluster color from a palette
-                const colors = ["#da42429e", "#31ea318c", "#8c4000", "#4a7ae2c4", "#d809ff", "#ff7601", "#1dffff", "yellow", "#1b8231f2", "#000000ad"];
+                const colors = ["#da42429e", "#31ea318c", "rgba(197, 87, 20, 0.55)", "#4a7ae2c4", "rgba(216, 9, 255, 0.5)", "#ff7601", "#1dffff", "yellow", "rgba(27, 130, 49, 0.55)", "rgba(0, 0, 0, 0.268)"];
                 clusterColor = colors[cluster % colors.length];
-                const set = this._clusterSets[cluster] && this._clusterSets[cluster].filter(s => s.backgroundColor && (s.backgroundColor !== s.defaultBackgroundColor));
+                const set = this._clusterSets[cluster]?.filter(s => s.backgroundColor);
                 // override the cluster color with an explicitly set color on a non-background document.  then override that with an explicitly set color on a background document
                 set && set.filter(s => !s.isBackground).map(s => clusterColor = StrCast(s.backgroundColor));
                 set && set.filter(s => s.isBackground).map(s => clusterColor = StrCast(s.backgroundColor));
@@ -697,7 +697,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     }
 
-    setScaleToZoom = (doc: Doc, scale: number = 0.5) => {
+    setScaleToZoom = (doc: Doc, scale: number = 0.75) => {
         this.Document.scale = scale * Math.min(this.props.PanelWidth() / NumCast(doc._width), this.props.PanelHeight() / NumCast(doc._height));
     }
 
@@ -709,6 +709,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     @computed get libraryPath() { return this.props.LibraryPath ? [...this.props.LibraryPath, this.props.Document] : []; }
     @computed get onChildClickHandler() { return ScriptCast(this.Document.onChildClick); }
+    backgroundHalo = () => BoolCast(this.Document.useClusters);
 
     getChildDocumentViewProps(childLayout: Doc, childData?: Doc): DocumentViewProps {
         return {
@@ -728,6 +729,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             ContainingCollectionDoc: this.props.Document,
             focus: this.focusDocument,
             backgroundColor: this.getClusterColor,
+            backgroundHalo: this.backgroundHalo,
             parentActive: this.props.active,
             bringToFront: this.bringToFront,
             zoomToScale: this.zoomToScale,
@@ -867,6 +869,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         });
         return rangeFilteredDocs;
     }
+    childLayoutDocFunc = () => this.props.childLayoutTemplate?.() || Cast(this.props.Document.childLayoutTemplate, Doc, null) as Doc;
     get doLayoutComputation() {
         const { newPool, computedElementData } = this.doInternalLayoutComputation;
         runInAction(() =>
@@ -883,6 +886,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             computedElementData.elements.push({
                 ele: <CollectionFreeFormDocumentView key={pair.layout[Id]}  {...this.getChildDocumentViewProps(pair.layout, pair.data)}
                     dataProvider={this.childDataProvider}
+                    LayoutDoc={this.childLayoutDocFunc}
                     jitterRotation={NumCast(this.props.Document.jitterRotation)}
                     fitToBox={this.props.fitToBox || this.props.layoutEngine !== undefined} />,
                 bounds: this.childDataProvider(pair.layout)
@@ -1072,7 +1076,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         // this.Document.fitH = this.contentBounds && (this.contentBounds.b - this.contentBounds.y);
         // if isAnnotationOverlay is set, then children will be stored in the extension document for the fieldKey.
         // otherwise, they are stored in fieldKey.  All annotations to this document are stored in the extension document
-        // let lodarea = this.Document[WidthSym]() * this.Document[HeightSym]() / this.props.ScreenToLocalTransform().Scale / this.props.ScreenToLocalTransform().Scale;
         return <div className={"collectionfreeformview-container"}
             ref={this.createDashEventsTarget}
             onWheel={this.onPointerWheel}//pointerEvents: SelectionManager.GetIsDragging() ? "all" : undefined,
@@ -1084,7 +1087,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 width: this.contentScaling ? `${100 / this.contentScaling}%` : "",
                 height: this.contentScaling ? `${100 / this.contentScaling}%` : this.isAnnotationOverlay ? (this.props.Document.scrollHeight ? this.Document.scrollHeight : "100%") : this.props.PanelHeight()
             }}>
-            {!this.Document._LODdisable && !this.props.active() && !this.props.isAnnotationOverlay && !this.props.annotationsKey && this.props.renderDepth > 0 ? // && this.props.CollectionView && lodarea < NumCast(this.Document.LODarea, 100000) ?
+            {!this.Document._LODdisable && !this.props.active() && !this.props.isAnnotationOverlay && !this.props.annotationsKey && this.props.renderDepth > 0 ?
                 this.placeholder : this.marqueeView}
             <CollectionFreeFormOverlayView elements={this.elementFunc} />
         </div>;

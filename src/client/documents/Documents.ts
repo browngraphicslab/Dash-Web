@@ -22,7 +22,6 @@ import { ImageField, VideoField, AudioField, PdfField, WebField, YoutubeField } 
 import { HtmlField } from "../../new_fields/HtmlField";
 import { List } from "../../new_fields/List";
 import { Cast, NumCast } from "../../new_fields/Types";
-import { IconField } from "../../new_fields/IconField";
 import { listSpec } from "../../new_fields/Schema";
 import { DocServer } from "../DocServer";
 import { dropActionType } from "../util/DragManager";
@@ -53,8 +52,8 @@ import { InkingStroke } from "../views/InkingStroke";
 import { InkField } from "../../new_fields/InkField";
 import { InkingControl } from "../views/InkingControl";
 import { RichTextField } from "../../new_fields/RichTextField";
-import { Networking } from "../Network";
 import { extname } from "path";
+import { MessageStore } from "../../server/Message";
 const requestImageSize = require('../util/request-image-size');
 const path = require('path');
 
@@ -69,7 +68,9 @@ export interface DocumentOptions {
     _fitWidth?: boolean;
     _fitToBox?: boolean; // whether a freeformview should zoom/scale to create a shrinkwrapped view of its contents
     _LODdisable?: boolean;
-    dropAction?: dropActionType;
+    _showTitleHover?: string; // 
+    _showTitle?: string; // which field to display in the title area.  leave empty to have no title
+    _showCaption?: string; // which field to display in the caption area.  leave empty to have no caption
     _chromeStatus?: string;
     _viewType?: number;
     _gridGap?: number; // gap between items in masonry view
@@ -81,6 +82,7 @@ export interface DocumentOptions {
     x?: number;
     y?: number;
     z?: number;
+    dropAction?: dropActionType;
     layoutKey?: string;
     type?: string;
     title?: string;
@@ -88,7 +90,6 @@ export interface DocumentOptions {
     scale?: number;
     isDisplayPanel?: boolean; // whether the panel functions as GoldenLayout "stack" used to display documents
     forceActive?: boolean;
-    preventTreeViewOpen?: boolean; // ignores the treeViewOpen Doc flag which allows a treeViewItem's expande/collapse state to be independent of other views of the same document in the tree view
     layout?: string | Doc;
     hideHeadings?: boolean; // whether stacking view column headings should be hidden
     isTemplateForField?: string; // the field key for which the containing document is a rendering template
@@ -105,10 +106,8 @@ export interface DocumentOptions {
     curPage?: number;
     currentTimecode?: number; // the current timecode of a time-based document (e.g., current time of a video)  value is in seconds
     displayTimecode?: number; // the time that a document should be displayed (e.g., time an annotation should be displayed on a video)
-    documentText?: string;
     borderRounding?: string;
     boxShadow?: string;
-    showTitle?: string;
     sectionFilter?: string; // field key used to determine headings for sections in stacking and masonry views
     schemaColumns?: List<SchemaHeaderField>;
     dockingConfig?: string;
@@ -121,15 +120,16 @@ export interface DocumentOptions {
     onChildClick?: ScriptField; // script given to children of a collection to execute when they are clicked
     onPointerDown?: ScriptField;
     onPointerUp?: ScriptField;
+    dropConverter?: ScriptField; // script to run when documents are dropped on this Document.
     dragFactory?: Doc; // document to create when dragging with a suitable onDragStart script
     onDragStart?: ScriptField; //script to execute at start of drag operation --  e.g., when a "creator" button is dragged this script generates a different document to drop
-    clipboard?: Doc; //script to execute at start of drag operation --  e.g., when a "creator" button is dragged this script generates a different document to drop
+    clipboard?: Doc;
     icon?: string;
     sourcePanel?: Doc; // panel to display in 'targetContainer' as the result of a button onClick script
     targetContainer?: Doc; // document whose proto will be set to 'panel' as the result of a onClick click script
-    dropConverter?: ScriptField; // script to run when documents are dropped on this Document.
     strokeWidth?: number;
     color?: string;
+    treeViewPreventOpen?: boolean; // ignores the treeViewOpen Doc flag which allows a treeViewItem's expand/collapse state to be independent of other views of the same document in the tree view
     treeViewHideTitle?: boolean; // whether to hide the title of a tree view
     treeViewHideHeaderFields?: boolean; // whether to hide the drop down options for tree view items.
     treeViewOpen?: boolean; // whether this document is expanded in a tree view
@@ -138,9 +138,9 @@ export interface DocumentOptions {
     limitHeight?: number; // maximum height for newly created (eg, from pasting) text documents
     // [key: string]: Opt<Field>;
     pointerHack?: boolean; // for buttons, allows onClick handler to fire onPointerDown
-    isExpanded?: boolean; // is linear view expanded
-    textTransform?: string; // is linear view expanded
-    letterSpacing?: string; // is linear view expanded
+    linearViewIsExpanded?: boolean; // is linear view expanded
+    textTransform?: string;
+    letterSpacing?: string;
 }
 
 class EmptyBox {
@@ -168,7 +168,7 @@ export namespace Docs {
         const TemplateMap: TemplateMap = new Map([
             [DocumentType.TEXT, {
                 layout: { view: FormattedTextBox, dataField: data },
-                options: { _height: 150, backgroundColor: "#f1efeb", defaultBackgroundColor: "#f1efeb" }
+                options: { _height: 150 }
             }],
             [DocumentType.HIST, {
                 layout: { view: HistogramBox, dataField: data },
@@ -346,6 +346,7 @@ export namespace Docs {
     export namespace Create {
 
         export function Buxton() {
+            let responded = false;
             const loading = new Doc;
             loading.title = "Please wait for the import script...";
             const parent = TreeDocument([loading], {
@@ -354,41 +355,48 @@ export namespace Docs {
                 _height: 400,
                 _LODdisable: true
             });
-            Networking.FetchFromServer("/buxton").then(response => {
-                const devices = JSON.parse(response);
-                if (!Array.isArray(devices)) {
-                    if ("error" in devices) {
-                        loading.title = devices.error;
-                    } else {
-                        console.log(devices);
-                        alert("The importer returned an unexpected import format. Check the console.");
-                    }
-                    return;
+            const parentProto = Doc.GetProto(parent);
+            const { _socket } = DocServer;
+            Utils.AddServerHandler(_socket, MessageStore.BuxtonDocumentResult, ({ device, errors }) => {
+                if (!responded) {
+                    responded = true;
+                    parentProto.data = new List<Doc>();
                 }
-                const parentProto = Doc.GetProto(parent);
-                parentProto.data = new List<Doc>();
-                devices.forEach(device => {
+                if (device) {
                     const { __images } = device;
                     delete device.__images;
                     const { ImageDocument, StackingDocument } = Docs.Create;
-                    if (Array.isArray(__images)) {
-                        const constructed = __images.map(relative => Utils.prepend(relative));
-                        const deviceImages = constructed.map((url, i) => ImageDocument(url, { title: `image${i}.${extname(url)}` }));
-                        const doc = StackingDocument(deviceImages, { title: device.title, _LODdisable: true });
-                        const deviceProto = Doc.GetProto(doc);
-                        deviceProto.hero = new ImageField(constructed[0]);
-                        Docs.Get.DocumentHierarchyFromJson(device, undefined, deviceProto);
-                        Doc.AddDocToList(parentProto, "data", doc);
-                    }
-                });
+                    const constructed = __images.map(({ url, nativeWidth, nativeHeight }) => ({ url: Utils.prepend(url), nativeWidth, nativeHeight }));
+                    const deviceImages = constructed.map(({ url, nativeWidth, nativeHeight }, i) => ImageDocument(url, {
+                        title: `image${i}.${extname(url)}`,
+                        _nativeWidth: nativeWidth,
+                        _nativeHeight: nativeHeight
+                    }));
+                    const doc = StackingDocument(deviceImages, { title: device.title, _LODdisable: true });
+                    const deviceProto = Doc.GetProto(doc);
+                    deviceProto.hero = new ImageField(constructed[0].url);
+                    Docs.Get.DocumentHierarchyFromJson(device, undefined, deviceProto);
+                    Doc.AddDocToList(parentProto, "data", doc);
+                } else if (errors) {
+                    console.log(errors);
+                } else {
+                    alert("A Buxton document import was completely empty (??)");
+                }
             });
+            Utils.AddServerHandler(_socket, MessageStore.BuxtonImportComplete, ({ deviceCount, errorCount }) => {
+                _socket.off(MessageStore.BuxtonDocumentResult.Message);
+                _socket.off(MessageStore.BuxtonImportComplete.Message);
+                alert(`Successfully imported ${deviceCount} device${deviceCount === 1 ? "" : "s"}, with ${errorCount} error${errorCount === 1 ? "" : "s"}, in ${(Date.now() - startTime) / 1000} seconds.`);
+            });
+            const startTime = Date.now();
+            Utils.Emit(_socket, MessageStore.BeginBuxtonImport, "");
             return parent;
         }
 
         Scripting.addGlobal(Buxton);
 
         const delegateKeys = ["x", "y", "layoutKey", "_width", "_height", "_panX", "_panY", "_viewType", "_nativeWidth", "_nativeHeight", "dropAction", "_annotationOn",
-            "_chromeStatus", "_forceActive", "_autoHeight", "_fitWidth", "_LODdisable", "_itemIndex", "_showSidebar", "showTitle"];
+            "_chromeStatus", "_forceActive", "_autoHeight", "_fitWidth", "_LODdisable", "_itemIndex", "_showSidebar", "_showTitle", "_showCaption", "_showTitleHover"];
 
         /**
          * This function receives the relevant document prototype and uses

@@ -4,7 +4,7 @@
     background: whitesmoke;
     color: grey;
     border-radius: 15px;
-    box-shadow: $intermediate-color 0.2vw 0.2vw 0.4vw;
+    box-shadow: #9c9396 0.2vw 0.2vw 0.4vw;
     border: solid #BBBBBBBB 5px;
     pointer-events: all;
     display: flex;
@@ -18,29 +18,66 @@
         letter-spacing: 2px;
         font-size: 16px;
         width: 100%;
+        margin-top: 20px;
+    }
+
+    .videoContainer {
+        position: relative;
+        width: calc(100% - 20px);
+        height: 100%;
+        /* border: 10px solid red; */
+        margin-left: 10px;
+    }
+
+    .buttonContainer {
+        display: flex;
+        width: calc(100% - 20px);
+        height: 50px;
+        justify-content: center;
+        text-align: center;
+        /* border: 1px solid black; */
+        margin-left: 10px;
+        margin-top: 0;
+        margin-bottom: 15px;
     }
 
     #roomName {
         outline: none;
         border-radius: inherit;
         border: 1px solid #BBBBBBBB;
+        margin: 10px;
+        padding: 10px;
     }
 
     .side {
         width: 25%;
         height: 20%;
         position: absolute;
-        top: 65%;
+        /* top: 65%; */
         z-index: 2;
-        right: 5%;
+        right: 0px;
+        bottom: 18px;
     }
 
     .main {
         position: absolute;
-        width: 95%;
-        height: 75%;
-        top: 20%;
+        width: 100%;
+        height: 100%;
+        /* top: 20%; */
         align-self: center;
+    }
+
+    .videoButtons {
+        border-radius: 50%;
+        height: 30px;
+        width: 30px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        justify-self: center;
+        align-self: center;
+        margin: 5px;
+        border: 1px solid black;
     }
 
 }

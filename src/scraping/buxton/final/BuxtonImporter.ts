@@ -1,11 +1,9 @@
-import { readdirSync, writeFile, mkdirSync, createWriteStream } from "fs";
+import { readdirSync, writeFile, mkdirSync } from "fs";
 import * as path from "path";
 import { red, cyan, yellow } from "colors";
 import { Utils } from "../../../Utils";
 import rimraf = require("rimraf");
-import * as sharp from 'sharp';
-import { SizeSuffix, DashUploadUtils, InjectSize } from "../../../server/DashUploadUtils";
-import { AcceptibleMedia } from "../../../server/SharedMediaTypes";
+import { DashUploadUtils } from "../../../server/DashUploadUtils";
 const StreamZip = require('node-stream-zip');
 const createImageSizeStream = require("image-size-stream");
 import { parseXml } from "libxmljs";
@@ -13,7 +11,7 @@ import { strictEqual } from "assert";
 
 interface DocumentContents {
     body: string;
-    imageUrls: string[];
+    imageData: ImageData[];
     hyperlinks: string[];
     captions: string[];
     embeddedFileNames: string[];
@@ -25,26 +23,44 @@ export interface DeviceDocument {
     longDescription: string;
     company: string;
     year: number;
-    originalPrice: number;
-    degreesOfFreedom: number;
+    originalPrice?: number;
+    degreesOfFreedom?: number;
     dimensions?: string;
     primaryKey: string;
     secondaryKey: string;
     attribute: string;
+    __images: ImageData[];
+    hyperlinks: string[];
+    captions: string[];
+    embeddedFileNames: string[];
 }
 
-interface AnalysisResult {
+export interface AnalysisResult {
     device?: DeviceDocument;
-    errors?: any;
+    errors?: { [key: string]: string };
 }
 
 type Transformer<T> = (raw: string) => { transformed?: T, error?: string };
+
+export interface ImportResults {
+    deviceCount: number,
+    errorCount: number
+}
+
+type ResultCallback = (result: AnalysisResult) => void;
+type TerminatorCallback = (result: ImportResults) => void;
 
 interface Processor<T> {
     exp: RegExp;
     matchIndex?: number;
     transformer?: Transformer<T>;
     required?: boolean;
+}
+
+interface ImageData {
+    url: string;
+    nativeWidth: number;
+    nativeHeight: number;
 }
 
 namespace Utilities {
@@ -78,6 +94,7 @@ namespace Utilities {
     }
 
     export async function readAndParseXml(zip: any, relativePath: string) {
+        console.log(`Text streaming ${relativePath}`);
         const contents = await new Promise<string>((resolve, reject) => {
             let body = "";
             zip.stream(relativePath, (error: any, stream: any) => {
@@ -104,7 +121,7 @@ const RegexMap = new Map<keyof DeviceDocument, Processor<any>>([
     }],
     ["year", {
         exp: /Year:\s+([^\|]*)\s+\|/,
-        transformer: Utilities.numberValue
+        transformer: (raw: string) => Utilities.numberValue(/[0-9]{4}/.exec(raw)![0])
     }],
     ["primaryKey", {
         exp: /Primary:\s+(.*)(Secondary|Additional):/,
@@ -120,17 +137,20 @@ const RegexMap = new Map<keyof DeviceDocument, Processor<any>>([
         transformer: raw => ({ transformed: Utilities.collectUniqueTokens(raw).transformed[0] }),
     }],
     ["originalPrice", {
-        exp: /Original Price \(USD\)\:\s+(\$[0-9]+\.[0-9]+|NFS)/,
+        exp: /Original Price \(USD\)\:\s+(\$[0-9\,]+\.[0-9]+|NFS)/,
         transformer: (raw: string) => {
+            raw = raw.replace(/\,/g, "");
             if (raw === "NFS") {
                 return { transformed: -1 };
             }
             return Utilities.numberValue(raw.slice(1));
-        }
+        },
+        required: false
     }],
     ["degreesOfFreedom", {
         exp: /Degrees of Freedom:\s+([0-9]+)/,
-        transformer: Utilities.numberValue
+        transformer: Utilities.numberValue,
+        required: false
     }],
     ["dimensions", {
         exp: /Dimensions\s+\(L x W x H\):\s+([0-9\.]+\s+x\s+[0-9\.]+\s+x\s+[0-9\.]+\s\([A-Za-z]+\))/,
@@ -165,7 +185,7 @@ const successOut = "buxton.json";
 const failOut = "incomplete.json";
 const deviceKeys = Array.from(RegexMap.keys());
 
-export default async function executeImport() {
+export default async function executeImport(emitter: ResultCallback, terminator: TerminatorCallback) {
     try {
         const contents = readdirSync(sourceDir);
         const wordDocuments = contents.filter(file => /.*\.docx?$/.test(file)).map(file => `${sourceDir}/${file}`);
@@ -173,7 +193,7 @@ export default async function executeImport() {
             rimraf.sync(dir);
             mkdirSync(dir);
         });
-        return parseFiles(wordDocuments);
+        return parseFiles(wordDocuments, emitter, terminator);
     } catch (e) {
         const message = [
             "Unable to find a source directory.",
@@ -185,23 +205,22 @@ export default async function executeImport() {
     }
 }
 
-async function parseFiles(wordDocuments: string[]): Promise<DeviceDocument[]> {
-    const imported: { fileName: string, contents: DocumentContents }[] = [];
+async function parseFiles(wordDocuments: string[], emitter: ResultCallback, terminator: TerminatorCallback): Promise<DeviceDocument[]> {
+    const results: AnalysisResult[] = [];
     for (const filePath of wordDocuments) {
         const fileName = path.basename(filePath).replace("Bill_Notes_", "");
         console.log(cyan(`\nExtracting contents from ${fileName}...`));
-        imported.push({ fileName, contents: await extractFileContents(filePath) });
+        const result = analyze(fileName, await extractFileContents(filePath));
+        emitter(result);
+        results.push(result);
     }
 
-    console.log(yellow("\nAnalyzing the extracted document text...\n"));
-    const results = imported.map(({ fileName, contents }) => analyze(fileName, contents));
-
     const masterDevices: DeviceDocument[] = [];
-    const masterErrors: any[] = [];
+    const masterErrors: { [key: string]: string }[] = [];
     results.forEach(({ device, errors }) => {
         if (device) {
             masterDevices.push(device);
-        } else {
+        } else if (errors) {
             masterErrors.push(errors);
         }
     });
@@ -215,6 +234,8 @@ async function parseFiles(wordDocuments: string[]): Promise<DeviceDocument[]> {
     await writeOutputFile(successOut, masterDevices, total, true);
     await writeOutputFile(failOut, masterErrors, total, false);
     console.log();
+
+    terminator({ deviceCount: masterDevices.length, errorCount: masterErrors.length });
 
     return masterDevices;
 }
@@ -239,10 +260,9 @@ async function extractFileContents(pathToDocument: string): Promise<DocumentCont
     strictEqual(length % 3 === 0, true, "Improper caption formatting.");
 
     for (let i = 3; i < captionTargets.length; i += 3) {
-        const [image, fileName, caption] = captionTargets.slice(i, i + 3);
-        strictEqual(image, "", `The image cell in one row was not the empty string: ${image}`);
-        captions.push(caption);
-        embeddedFileNames.push(fileName);
+        const row = captionTargets.slice(i, i + 3);
+        captions.push(row[1]);
+        embeddedFileNames.push(row[2]);
     }
 
     // extract all hyperlinks embedded in the document
@@ -251,12 +271,12 @@ async function extractFileContents(pathToDocument: string): Promise<DocumentCont
     console.log("Text extracted.");
 
     console.log("Beginning image extraction...");
-    const imageUrls = await writeImages(zip);
-    console.log(`Extracted ${imageUrls.length} images.`);
+    const imageData = await writeImages(zip);
+    console.log(`Extracted ${imageData.length} images.`);
 
     zip.close();
 
-    return { body, imageUrls, captions, embeddedFileNames, hyperlinks };
+    return { body, imageData, captions, embeddedFileNames, hyperlinks };
 }
 
 const imageEntry = /^word\/media\/\w+\.(jpeg|jpg|png|gif)/;
@@ -267,19 +287,23 @@ interface Dimensions {
     type: string;
 }
 
-async function writeImages(zip: any): Promise<string[]> {
+async function writeImages(zip: any): Promise<ImageData[]> {
     const allEntries = Object.values<any>(zip.entries()).map(({ name }) => name);
     const imageEntries = allEntries.filter(name => imageEntry.test(name));
 
-    const imageUrls: string[] = [];
+    const imageUrls: ImageData[] = [];
     for (const mediaPath of imageEntries) {
         const streamImage = () => new Promise<any>((resolve, reject) => {
             zip.stream(mediaPath, (error: any, stream: any) => error ? reject(error) : resolve(stream));
         });
 
         const { width, height, type } = await new Promise<Dimensions>(async resolve => {
-            const sizeStream = createImageSizeStream().on('size', resolve);
-            (await streamImage()).pipe(sizeStream);
+            const sizeStream = createImageSizeStream().on('size', (dimensions: Dimensions) => {
+                readStream.destroy();
+                resolve(dimensions)
+            });
+            const readStream = await streamImage();
+            readStream.pipe(sizeStream);
         });
         if (Math.abs(width - height) < 10) {
             continue;
@@ -290,21 +314,25 @@ async function writeImages(zip: any): Promise<string[]> {
 
         await DashUploadUtils.outputResizedImages(streamImage, imageDir, generatedFileName, ext);
 
-        imageUrls.push(`/files/images/buxton/${generatedFileName}`);
+        imageUrls.push({
+            url: `/files/images/buxton/${generatedFileName}`,
+            nativeWidth: width,
+            nativeHeight: height
+        });
     }
 
     return imageUrls;
 }
 
 function analyze(fileName: string, contents: DocumentContents): AnalysisResult {
-    const { body, imageUrls, captions, hyperlinks, embeddedFileNames } = contents;
+    const { body, imageData, captions, hyperlinks, embeddedFileNames } = contents;
     const device: any = {
         hyperlinks,
         captions,
         embeddedFileNames,
-        __images: imageUrls
+        __images: imageData
     };
-    const errors: any = { fileName };
+    const errors: { [key: string]: string } = { fileName };
 
     for (const key of deviceKeys) {
         const { exp, transformer, matchIndex, required } = RegexMap.get(key)!;

@@ -13,7 +13,7 @@ import { Doc, DocListCast, Field, FieldResult, Opt } from '../../new_fields/Doc'
 import { Id } from '../../new_fields/FieldSymbols';
 import { List } from '../../new_fields/List';
 import { listSpec } from '../../new_fields/Schema';
-import { Cast, FieldValue, StrCast } from '../../new_fields/Types';
+import { Cast, FieldValue, StrCast, BoolCast } from '../../new_fields/Types';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { emptyFunction, returnEmptyString, returnFalse, returnOne, returnTrue, Utils, emptyPath } from '../../Utils';
 import GoogleAuthenticationManager from '../apis/GoogleAuthenticationManager';
@@ -43,6 +43,7 @@ import SettingsManager from '../util/SettingsManager';
 import { TraceMobx } from '../../new_fields/util';
 import { RadialMenu } from './nodes/RadialMenu';
 import RichTextMenu from '../util/RichTextMenu';
+import { DocumentType } from '../documents/DocumentTypes';
 
 @observer
 export class MainView extends React.Component {
@@ -56,8 +57,9 @@ export class MainView extends React.Component {
     @observable private _panelHeight: number = 0;
     @observable private _flyoutTranslate: boolean = true;
     @observable public flyoutWidth: number = 250;
+    private get darkScheme() { return BoolCast(Cast(this.userDoc.activeWorkspace, Doc, null)?.darkScheme); }
 
-    @computed private get userDoc() { return CurrentUserUtils.UserDocument; }
+    @computed private get userDoc() { return Doc.UserDoc(); }
     @computed private get mainContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeWorkspace, Doc)) : CurrentUserUtils.GuestWorkspace; }
     @computed public get mainFreeform(): Opt<Doc> { return (docs => (docs && docs.length > 1) ? docs[1] : undefined)(DocListCast(this.mainContainer!.data)); }
     @computed public get sidebarButtonsDoc() { return Cast(CurrentUserUtils.UserDocument.sidebarButtons, Doc) as Doc; }
@@ -207,7 +209,6 @@ export class MainView extends React.Component {
             _width: this._panelWidth * .7,
             _height: this._panelHeight,
             title: "Collection " + workspaceCount,
-            backgroundColor: "white"
         };
         const freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
         Doc.AddDocToList(Doc.GetProto(CurrentUserUtils.UserDocument.documents as Doc), "data", freeformDoc);
@@ -273,6 +274,16 @@ export class MainView extends React.Component {
     getPHeight = () => this._panelHeight;
     getContentsHeight = () => this._panelHeight - this._buttonBarHeight;
 
+    childBackgroundColor = (doc: Doc) => {
+        if (this.darkScheme) {
+            return doc.type === DocumentType.TEXT ? "#112423" : "black";
+        }
+        return doc.type === DocumentType.TEXT ? "#f1efeb" :
+            doc.type === DocumentType.COL && doc._viewType === CollectionViewType.Tree ? "lightgray" : "white";
+    }
+    sidebarBackgroundColor = (doc: Doc) => {
+        return this.childBackgroundColor(doc);
+    }
     @computed get mainDocView() {
         return <DocumentView Document={this.mainContainer!}
             DataDoc={undefined}
@@ -281,13 +292,13 @@ export class MainView extends React.Component {
             addDocTab={this.addDocTabFunc}
             pinToPres={emptyFunction}
             onClick={undefined}
+            backgroundColor={this.childBackgroundColor}
             removeDocument={undefined}
             ScreenToLocalTransform={Transform.Identity}
             ContentScaling={returnOne}
             PanelWidth={this.getPWidth}
             PanelHeight={this.getPHeight}
             renderDepth={0}
-            backgroundColor={returnEmptyString}
             focus={emptyFunction}
             parentActive={returnTrue}
             whenActiveChanged={emptyFunction}
@@ -366,7 +377,7 @@ export class MainView extends React.Component {
     mainContainerXf = () => new Transform(0, -this._buttonBarHeight, 1);
 
     @computed get flyout() {
-        const sidebarContent = this.userDoc && this.userDoc.sidebarContainer;
+        const sidebarContent = this.userDoc?.sidebarContainer;
         if (!(sidebarContent instanceof Doc)) {
             return (null);
         }
@@ -388,7 +399,7 @@ export class MainView extends React.Component {
                     PanelHeight={this.getPHeight}
                     renderDepth={0}
                     focus={emptyFunction}
-                    backgroundColor={returnEmptyString}
+                    backgroundColor={this.sidebarBackgroundColor}
                     parentActive={returnTrue}
                     whenActiveChanged={emptyFunction}
                     bringToFront={emptyFunction}
@@ -414,7 +425,7 @@ export class MainView extends React.Component {
                     PanelHeight={this.getContentsHeight}
                     renderDepth={0}
                     focus={emptyFunction}
-                    backgroundColor={returnEmptyString}
+                    backgroundColor={this.sidebarBackgroundColor}
                     parentActive={returnTrue}
                     whenActiveChanged={emptyFunction}
                     bringToFront={emptyFunction}
@@ -437,7 +448,7 @@ export class MainView extends React.Component {
     @computed get mainContent() {
         const sidebar = this.userDoc && this.userDoc.sidebarContainer;
         return !this.userDoc || !(sidebar instanceof Doc) ? (null) : (
-            <div className="mainView-mainContent" >
+            <div className="mainView-mainContent" style={{ color: this.darkScheme ? "lightGray" : "black" }} >
                 <div className="mainView-flyoutContainer" onPointerLeave={this.pointerLeaveDragger} style={{ width: this.flyoutWidth }}>
                     <div className="mainView-libraryHandle" onPointerDown={this.onPointerDown} onPointerOver={this.pointerOverDragger}
                         style={{ backgroundColor: `${StrCast(sidebar.backgroundColor, "lightGray")}` }} >
@@ -482,12 +493,13 @@ export class MainView extends React.Component {
         return new Transform(-translateX, -translateY, 1 / scale);
     }
     @computed get docButtons() {
-        if (CurrentUserUtils.UserDocument?.expandingButtons instanceof Doc) {
+        const expandingBtns = Doc.UserDoc()?.expandingButtons;
+        if (expandingBtns instanceof Doc) {
             return <div className="mainView-docButtons" ref={this._docBtnRef}
-                style={{ height: !CurrentUserUtils.UserDocument.expandingButtons.isExpanded ? "42px" : undefined }} >
+                style={{ height: !expandingBtns.linearViewIsExpanded ? "42px" : undefined }} >
                 <MainViewNotifs />
                 <CollectionLinearView
-                    Document={CurrentUserUtils.UserDocument.expandingButtons}
+                    Document={expandingBtns}
                     DataDoc={undefined}
                     LibraryPath={emptyPath}
                     fieldKey={"data"}

@@ -44,7 +44,9 @@ export interface ViewDefResult {
 }
 function toLabel(target: FieldResult<Field>) {
     if (typeof target === "number" || Number(target)) {
-        return Number(target).toFixed(2).toString();
+        const truncated = Number(Number(target).toFixed(0));
+        const precise = Number(Number(target).toFixed(2));
+        return truncated === precise ? Number(target).toFixed(0) : Number(target).toFixed(2);
     }
     if (target instanceof ObjectField || target instanceof RefField) {
         return target[ToString]();
@@ -287,7 +289,7 @@ export function computeTimelineLayout(
         groupNames.push({ type: "text", text: Math.ceil(maxTime).toString(), x: Math.ceil(maxTime - minTime) * scaling, y: 0, height: fontHeight, fontSize, payload: undefined });
     }
 
-    const divider = { type: "div", color: "black", x: 0, y: 0, width: panelDim[0], height: 1, payload: undefined };
+    const divider = { type: "div", color: "black", x: 0, y: 0, width: panelDim[0], height: -1, payload: undefined };
     return normalizeResults(panelDim, fontHeight, childPairs, docMap, poolData, viewDefsToJSX, groupNames, (maxTime - minTime) * scaling, [divider], childDocs.filter(c => !filterDocs.includes(c)));
 
     function layoutDocsAtTime(keyDocs: Doc[], key: number) {
@@ -303,7 +305,7 @@ export function computeTimelineLayout(
             docMap.set(doc, {
                 type: "doc",
                 x: x, y: -Math.sqrt(stack) * pivotAxisWidth / 2 - pivotAxisWidth + (pivotAxisWidth - hgt) / 2,
-                zIndex: (curTime === key ? 1000 : zind++), highlight: curTime === key, width: wid / (Math.max(stack, 1)), height: hgt, payload: undefined
+                zIndex: (curTime === key ? 1000 : zind++), highlight: curTime === key, width: wid / (Math.max(stack, 1)), height: hgt / (Math.max(stack, 1)), payload: undefined
             });
             stacking[stack] = x + pivotAxisWidth;
         });
@@ -340,17 +342,17 @@ function normalizeResults(panelDim: number[], fontHeight: number, childPairs: { 
     extraDocs.map(ed => poolData.set(ed[Id], { x: 0, y: 0, zIndex: -99 }));
 
     return {
-        elements: viewDefsToJSX(extras.concat(groupNames.map(gname => ({
+        elements: viewDefsToJSX(extras.concat(groupNames).map(gname => ({
             type: gname.type,
             text: gname.text,
             x: gname.x * scale,
             y: gname.y * scale,
             color: gname.color,
             width: gname.width === undefined ? undefined : gname.width * scale,
-            height: Math.max(fontHeight, (gname.height || 0) * scale),
+            height: gname.height === -1 ? 1 : Math.max(fontHeight, (gname.height || 0) * scale),
             fontSize: gname.fontSize,
             payload: gname.payload
-        }))))
+        })))
     };
 }
 

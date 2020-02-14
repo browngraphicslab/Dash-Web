@@ -61,15 +61,12 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     }
 
     contentScaling = () => this.nativeWidth > 0 && !this.props.Document.ignoreAspect && !this.props.fitToBox ? this.width / this.nativeWidth : 1;
-    clusterColorFunc = (doc: Doc) => this.clusterColor;
     panelWidth = () => (this.dataProvider?.width || this.props.PanelWidth());
     panelHeight = () => (this.dataProvider?.height || this.props.PanelHeight());
     getTransform = (): Transform => this.props.ScreenToLocalTransform()
         .translate(-this.X, -this.Y)
         .scale(1 / this.contentScaling())
 
-    @computed
-    get clusterColor() { return this.props.backgroundColor(this.props.Document); }
     focusDoc = (doc: Doc) => this.props.focus(doc, false);
     render() {
         TraceMobx();
@@ -78,13 +75,13 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 boxShadow:
                     this.layoutDoc.opacity === 0 ? undefined :  // if it's not visible, then no shadow
                         this.layoutDoc.z ? `#9c9396  ${StrCast(this.layoutDoc.boxShadow, "10px 10px 0.9vw")}` :  // if it's a floating doc, give it a big shadow
-                            this.clusterColor ? (`${this.clusterColor} ${StrCast(this.layoutDoc.boxShadow, `0vw 0vw ${(this.layoutDoc.isBackground ? 100 : 50) / this.props.ContentScaling()}px`)}`) :  // if it's just in a cluster, make the shadown roughly match the cluster border extent
+                            this.props.backgroundHalo?.() ? (`${this.props.backgroundColor?.(this.props.Document)} ${StrCast(this.layoutDoc.boxShadow, `0vw 0vw ${(this.layoutDoc.isBackground ? 100 : 50) / this.props.ContentScaling()}px`)}`) :  // if it's just in a cluster, make the shadown roughly match the cluster border extent
                                 this.layoutDoc.isBackground ? undefined :  // if it's a background & has a cluster color, make the shadow spread really big
                                     StrCast(this.layoutDoc.boxShadow, ""),
                 borderRadius: StrCast(Doc.Layout(this.layoutDoc).borderRounding),
                 outline: this.Highlight ? "orange solid 2px" : "",
                 transform: this.transform,
-                transition: this.Document.isAnimating ? ".5s ease-in" : this.props.transition ? this.props.transition : this.dataProvider ? this.dataProvider.transition : StrCast(this.layoutDoc.transition),
+                transition: this.props.transition ? this.props.transition : this.dataProvider ? this.dataProvider.transition : StrCast(this.layoutDoc.transition),
                 width: this.width,
                 height: this.height,
                 zIndex: this.ZInd,
@@ -96,7 +93,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 dragDivName={"collectionFreeFormDocumentView-container"}
                 ContentScaling={this.contentScaling}
                 ScreenToLocalTransform={this.getTransform}
-                backgroundColor={this.clusterColorFunc}
+                backgroundColor={this.props.backgroundColor}
                 PanelWidth={this.panelWidth}
                 PanelHeight={this.panelHeight}
             /> : <ContentFittingDocumentView {...this.props}

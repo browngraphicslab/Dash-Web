@@ -121,8 +121,7 @@ export class RichTextRules {
             new InputRule(
                 new RegExp(/##$/),
                 (state, match, start, end) => {
-                    const schemaDoc = Doc.GetDataDoc(this.Document);
-                    const textDoc = Doc.GetProto(Cast(schemaDoc[DataSym], Doc, null)!);
+                    const textDoc = this.Document[DataSym];
                     const numInlines = NumCast(textDoc.inlineTextCount);
                     textDoc.inlineTextCount = numInlines + 1;
                     const inlineFieldKey = "inline" + numInlines; // which field on the text document this annotation will write to

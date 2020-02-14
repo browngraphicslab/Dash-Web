@@ -3,14 +3,13 @@ import { computed } from "mobx";
 import { observer } from "mobx-react";
 import { DateField } from "../../../new_fields/DateField";
 import { Doc, FieldResult, Opt } from "../../../new_fields/Doc";
-import { IconField } from "../../../new_fields/IconField";
 import { List } from "../../../new_fields/List";
-import { AudioField, ImageField, VideoField } from "../../../new_fields/URLField";
+import { ScriptField } from "../../../new_fields/ScriptField";
+import { AudioField, VideoField } from "../../../new_fields/URLField";
 import { Transform } from "../../util/Transform";
 import { CollectionView } from "../collections/CollectionView";
 import { AudioBox } from "./AudioBox";
 import { VideoBox } from "./VideoBox";
-import { ScriptField } from "../../../new_fields/ScriptField";
 
 //
 // these properties get assigned through the render() method of the DocumentView when it creates this node.
@@ -34,6 +33,7 @@ export interface FieldViewProps {
     pinToPres: (document: Doc) => void;
     removeDocument?: (document: Doc) => boolean;
     moveDocument?: (document: Doc, targetCollection: Doc | undefined, addDocument: (document: Doc) => boolean) => boolean;
+    backgroundColor?: (document: Doc) => string | undefined;
     ScreenToLocalTransform: () => Transform;
     active: (outsideReaction?: boolean) => boolean;
     whenActiveChanged: (isActive: boolean) => void;
