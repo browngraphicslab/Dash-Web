@@ -20,17 +20,12 @@ const CarouselDocument = makeInterface(documentSchema);
 
 @observer
 export class CollectionCarouselView extends CollectionSubView(CarouselDocument) {
-    @observable public addMenuToggle = React.createRef<HTMLInputElement>();
     private _dropDisposer?: DragManager.DragDropDisposer;
 
-    componentWillUnmount() {
-        this._dropDisposer && this._dropDisposer();
-    }
+    componentWillUnmount() { this._dropDisposer?.(); }
 
-    componentDidMount() {
-    }
     protected createDashEventsTarget = (ele: HTMLDivElement) => { //used for stacking and masonry view
-        this._dropDisposer && this._dropDisposer();
+        this._dropDisposer?.();
         if (ele) {
             this._dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this));
         }
@@ -46,22 +41,21 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
     }
 
     panelHeight = () => this.props.PanelHeight() - 50;
-    @computed get content() {
+    @computed get content() { 
         const index = NumCast(this.layoutDoc._itemIndex);
         return !(this.childLayoutPairs?.[index]?.layout instanceof Doc) ? (null) :
-            <div>
-                <div className="collectionCarouselView-image">
-                    <ContentFittingDocumentView {...this.props}
-                        backgroundColor={this.props.backgroundColor}
-                        Document={this.childLayoutPairs[index].layout}
-                        DataDocument={this.childLayoutPairs[index].data}
-                        PanelHeight={this.panelHeight}
-                        getTransform={this.props.ScreenToLocalTransform} />
-                </div>
-                <div className="collectionCarouselView-caption" style={{ background: `${StrCast(this.props.Document.backgroundColor)}` }}>
-                    <FormattedTextBox key={index} {...this.props} Document={this.childLayoutPairs[index].layout} DataDoc={undefined} fieldKey={"caption"}></FormattedTextBox>
-                </div>
+        <>
+            <div className="collectionCarouselView-image" key="image">
+                <ContentFittingDocumentView {...this.props}
+                    Document={this.childLayoutPairs[index].layout}
+                    DataDocument={this.childLayoutPairs[index].data}
+                    PanelHeight={this.panelHeight}
+                    getTransform={this.props.ScreenToLocalTransform} />
             </div>
+            <div className="collectionCarouselView-caption" key="caption" style={{ background: this.props.backgroundColor?.(this.props.Document) }}>
+                <FormattedTextBox key={index} {...this.props} Document={this.childLayoutPairs[index].layout} DataDoc={undefined} fieldKey={"caption"}></FormattedTextBox>
+            </div>
+        </>
     }
     @computed get buttons() {
         return <>
