@@ -52,6 +52,7 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
             <div>
                 <div className="collectionCarouselView-image">
                     <ContentFittingDocumentView {...this.props}
+                        backgroundColor={this.props.backgroundColor}
                         Document={this.childLayoutPairs[index].layout}
                         DataDocument={this.childLayoutPairs[index].data}
                         PanelHeight={this.panelHeight}

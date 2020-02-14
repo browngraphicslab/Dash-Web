@@ -159,6 +159,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         return <ContentFittingDocumentView
             Document={doc}
             DataDocument={dataDoc}
+            backgroundColor={this.props.backgroundColor}
             LayoutDoc={this.props.childLayoutTemplate}
             LibraryPath={this.props.LibraryPath}
             renderDepth={this.props.renderDepth + 1}

@@ -77,7 +77,8 @@ export interface DocumentViewProps {
     addDocTab: (doc: Doc, dataDoc: Doc | undefined, where: string, libraryPath?: Doc[]) => boolean;
     pinToPres: (document: Doc) => void;
     zoomToScale: (scale: number) => void;
-    backgroundColor: (doc: Doc) => string | undefined;
+    backgroundHalo?: () => boolean;
+    backgroundColor?: (doc: Doc) => string | undefined;
     getScale: () => number;
     animateBetweenIcon?: (maximize: boolean, target: number[]) => void;
     ChromeHeight?: () => number;
@@ -295,12 +296,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             this._downX = touch.clientX;
             this._downY = touch.clientY;
             if (!e.nativeEvent.cancelBubble) {
-                this._hitTemplateDrag = false;
-                for (let element = (e.target as any); element && !this._hitTemplateDrag; element = element.parentElement) {
-                    if (element.className && element.className.toString() === "collectionViewBaseChrome-collapse") {
-                        this._hitTemplateDrag = true;
-                    }
-                }
                 if ((this.active || this.Document.onDragStart || this.Document.onClick) && !e.ctrlKey && !this.Document.lockedPosition && !this.Document.inOverlay) e.stopPropagation();
                 this.removeMoveListeners();
                 this.addMoveListeners();
@@ -778,14 +773,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         });
     }
 
-    // does Document set a layout prop 
-    setsLayoutProp = (prop: string) => this.props.Document[prop] !== this.props.Document["default" + prop[0].toUpperCase() + prop.slice(1)] && this.props.Document["default" + prop[0].toUpperCase() + prop.slice(1)];
-    // get the a layout prop by first choosing the prop from Document, then falling back to the layout doc otherwise.
-    getLayoutPropStr = (prop: string) => {
-        return StrCast(this.setsLayoutProp(prop) ? this.props.Document[prop] : Cast(this.layoutDoc?.expandedTemplate, Doc, null)?.[prop] || this.layoutDoc[prop]);
-    }
-    getLayoutPropNum = (prop: string) => NumCast(this.setsLayoutProp(prop) ? this.props.Document[prop] : this.layoutDoc[prop]);
-
     isSelected = (outsideReaction?: boolean) => SelectionManager.IsSelected(this, outsideReaction);
     select = (ctrlPressed: boolean) => { SelectionManager.SelectDoc(this, ctrlPressed); };
 
@@ -848,9 +835,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @computed get innards() {
         TraceMobx();
-        const showTitle = StrCast(this.getLayoutPropStr("_showTitle"));
-        const showTitleHover = StrCast(this.getLayoutPropStr("_showTitleHover"));
-        const showCaption = this.getLayoutPropStr("_showCaption");
+        const showTitle = StrCast(this.layoutDoc._showTitle);
+        const showTitleHover = StrCast(this.layoutDoc._showTitleHover);
+        const showCaption = StrCast(this.layoutDoc._showCaption);
         const showTextTitle = showTitle && (StrCast(this.layoutDoc.layout).indexOf("PresBox") !== -1 || StrCast(this.layoutDoc.layout).indexOf("FormattedTextBox") !== -1) ? showTitle : undefined;
         const searchHighlight = (!this.Document.searchFields ? (null) :
             <div className="documentView-searchHighlight">
@@ -921,14 +908,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     render() {
         if (!(this.props.Document instanceof Doc)) return (null);
-        const colorSet = this.setsLayoutProp("backgroundColor");
-        const clusterCol = this.props.ContainingCollectionDoc && this.props.ContainingCollectionDoc.clusterOverridesDefaultBackground;
-        const backgroundColor = (clusterCol && !colorSet) ?
-            this.props.backgroundColor(this.Document) || StrCast(this.layoutDoc.backgroundColor) :
-            StrCast(this.layoutDoc.backgroundColor) || this.props.backgroundColor(this.Document);
-
+        const backgroundColor = StrCast(this.layoutDoc.backgroundColor) || this.props.backgroundColor?.(this.Document);
         const fullDegree = Doc.isBrushedHighlightedDegree(this.props.Document);
-        const borderRounding = this.getLayoutPropStr("borderRounding");
+        const borderRounding = this.layoutDoc.borderRounding;
         const localScale = fullDegree;
 
         const highlightColors = ["transparent", "maroon", "maroon", "yellow", "magenta", "cyan", "orange"];
@@ -943,7 +925,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 transform: this._animate ? `scale(${this._animate})` : undefined,
                 transition: !this._animate ? StrCast(this.Document.transition) : this._animate < 1 ? "transform 0.5s ease-in" : "transform 0.5s ease-out",
                 pointerEvents: this.ignorePointerEvents ? "none" : "all",
-                color: StrCast(this.Document.color),
+                color: StrCast(this.Document.color, "inherit"),
                 outline: highlighting && !borderRounding ? `${highlightColors[fullDegree]} ${highlightStyles[fullDegree]} ${localScale}px` : "solid 0px",
                 border: highlighting && borderRounding ? `${highlightStyles[fullDegree]} ${highlightColors[fullDegree]} ${localScale}px` : undefined,
                 boxShadow: this.props.Document.isTemplateForField ? "black 0.2vw 0.2vw 0.8vw" : undefined,

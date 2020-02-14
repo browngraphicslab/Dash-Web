@@ -38,6 +38,7 @@ import { CollectionViewBaseChrome } from './CollectionViewChromes';
 import { CollectionTimeView } from './CollectionTimeView';
 import { CollectionMultirowView } from './collectionMulticolumn/CollectionMultirowView';
 import { List } from '../../../new_fields/List';
+import { SubCollectionViewProps } from './CollectionSubView';
 export const COLLECTION_BORDER_WIDTH = 2;
 const path = require('path');
 library.add(faTh, faTree, faSquare, faProjectDiagram, faSignature, faThList, faFingerprint, faColumns, faEllipsisV, faImage, faEye as any, faCopy);
@@ -177,7 +178,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
     }
 
     private SubViewHelper = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
-        const props = { ...this.props, ...renderProps, ChromeHeight: this.chromeHeight, CollectionView: this, annotationsKey: "" };
+        const props: SubCollectionViewProps = { ...this.props, ...renderProps, ChromeHeight: this.chromeHeight, CollectionView: this, annotationsKey: "" };
         switch (type) {
             case CollectionViewType.Schema: return (<CollectionSchemaView key="collview" {...props} />);
             case CollectionViewType.Docking: return (<CollectionDockingView key="collview" {...props} />);

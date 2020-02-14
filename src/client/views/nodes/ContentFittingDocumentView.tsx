@@ -6,7 +6,7 @@ import { Doc, Opt } from "../../../new_fields/Doc";
 import { ScriptField } from "../../../new_fields/ScriptField";
 import { NumCast, StrCast } from "../../../new_fields/Types";
 import { TraceMobx } from "../../../new_fields/util";
-import { emptyFunction, returnEmptyString, returnOne } from "../../../Utils";
+import { emptyFunction, returnOne } from "../../../Utils";
 import { Transform } from "../../util/Transform";
 import { CollectionView } from "../collections/CollectionView";
 import '../DocumentDecorations.scss';
@@ -27,6 +27,7 @@ interface ContentFittingDocumentViewProps {
     CollectionView?: CollectionView;
     CollectionDoc?: Doc;
     onClick?: ScriptField;
+    backgroundColor?: (doc: Doc) => string | undefined;
     getTransform: () => Transform;
     addDocument?: (document: Doc) => boolean;
     moveDocument?: (document: Doc, target: Doc | undefined, addDoc: ((doc: Doc) => boolean)) => boolean;
@@ -86,6 +87,7 @@ export class ContentFittingDocumentView extends React.Component<ContentFittingDo
                         LibraryPath={this.props.LibraryPath}
                         fitToBox={this.props.fitToBox}
                         onClick={this.props.onClick}
+                        backgroundColor={this.props.backgroundColor}
                         addDocument={this.props.addDocument}
                         removeDocument={this.props.removeDocument}
                         moveDocument={this.props.moveDocument}
@@ -101,7 +103,6 @@ export class ContentFittingDocumentView extends React.Component<ContentFittingDo
                         PanelWidth={this.PanelWidth}
                         PanelHeight={this.PanelHeight}
                         focus={this.props.focus || emptyFunction}
-                        backgroundColor={returnEmptyString}
                         bringToFront={emptyFunction}
                         dontRegisterView={this.props.dontRegisterView}
                         zoomToScale={emptyFunction}

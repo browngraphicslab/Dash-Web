@@ -186,7 +186,6 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
             tsel.marks().filter(m => m.type === this._editorView!.state.schema.marks.user_mark).map(m => AudioBox.SetScrubTime(Math.max(0, m.attrs.modified * 5000 - 1000)));
             this._applyingChange = true;
             if (!this.props.Document._textTemplate || Doc.GetProto(this.props.Document) === this.dataDoc) {
-                this.dataDoc[this.props.fieldKey + "-lastModified"] && (this.dataDoc[this.props.fieldKey + "-backgroundColor"] = "lightGray");
                 this.dataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
                 this.dataDoc[this.props.fieldKey] = new RichTextField(JSON.stringify(state.toJSON()), state.doc.textBetween(0, state.doc.content.size, "\n\n"));
             }
@@ -1075,7 +1074,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
             <div className={`formattedTextBox-cont`} ref={this._ref}
                 style={{
                     height: this.layoutDoc._autoHeight ? "max-content" : undefined,
-                    background: this.props.hideOnLeave ? "rgba(0,0,0 ,0.4)" : undefined,
+                    background: this.props.hideOnLeave ? "rgba(0,0,0 ,0.4)" : StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"]),
                     opacity: this.props.hideOnLeave ? (this._entered ? 1 : 0.1) : 1,
                     color: this.props.hideOnLeave ? "white" : "inherit",
                     pointerEvents: interactive ? "none" : "all",

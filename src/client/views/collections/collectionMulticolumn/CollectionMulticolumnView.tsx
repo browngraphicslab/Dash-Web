@@ -207,6 +207,7 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
             {...this.props}
             Document={layout}
             DataDocument={layout.resolvedDataDoc as Doc}
+            backgroundColor={this.props.backgroundColor}
             CollectionDoc={this.props.Document}
             PanelWidth={width}
             PanelHeight={height}

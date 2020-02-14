@@ -208,6 +208,7 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
             {...this.props}
             Document={layout}
             DataDocument={layout.resolvedDataDoc as Doc}
+            backgroundColor={this.props.backgroundColor}
             CollectionDoc={this.props.Document}
             PanelWidth={width}
             PanelHeight={height}

@@ -168,7 +168,7 @@ export namespace Docs {
         const TemplateMap: TemplateMap = new Map([
             [DocumentType.TEXT, {
                 layout: { view: FormattedTextBox, dataField: data },
-                options: { _height: 150, backgroundColor: "#f1efeb", defaultBackgroundColor: "#f1efeb" }
+                options: { _height: 150 }
             }],
             [DocumentType.HIST, {
                 layout: { view: HistogramBox, dataField: data },

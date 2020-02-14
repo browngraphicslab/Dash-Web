@@ -10,7 +10,7 @@ import { Id } from "../../../../new_fields/FieldSymbols";
 import { InkTool } from "../../../../new_fields/InkField";
 import { createSchema, listSpec, makeInterface } from "../../../../new_fields/Schema";
 import { ScriptField } from "../../../../new_fields/ScriptField";
-import { Cast, NumCast, ScriptCast, StrCast } from "../../../../new_fields/Types";
+import { Cast, NumCast, ScriptCast, BoolCast, StrCast } from "../../../../new_fields/Types";
 import { TraceMobx } from "../../../../new_fields/util";
 import { GestureUtils } from "../../../../pen-gestures/GestureUtils";
 import { CurrentUserUtils } from "../../../../server/authentication/models/current_user_utils";
@@ -206,6 +206,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     @undoBatch
+    @action
     updateClusters(useClusters: boolean) {
         this.props.Document.useClusters = useClusters;
         this._clusterSets.length = 0;
@@ -243,7 +244,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 docs.map(doc => this._clusterSets[doc.cluster = NumCast(docFirst.cluster)].push(doc));
             }
             childLayouts.map(child => !this._clusterSets.some((set, i) => Doc.IndexOf(child, set) !== -1 && child.cluster === i) && this.updateCluster(child));
-            childLayouts.map(child => Doc.GetProto(child).clusterStr = child.cluster?.toString());
         }
     }
 
@@ -279,16 +279,16 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     getClusterColor = (doc: Doc) => {
-        let clusterColor = "";
+        let clusterColor = this.props.backgroundColor?.(doc);
         const cluster = NumCast(doc.cluster);
         if (this.Document.useClusters) {
             if (this._clusterSets.length <= cluster) {
                 setTimeout(() => this.updateCluster(doc), 0);
             } else {
                 // choose a cluster color from a palette
-                const colors = ["#da42429e", "#31ea318c", "#8c4000", "#4a7ae2c4", "#d809ff", "#ff7601", "#1dffff", "yellow", "#1b8231f2", "#000000ad"];
+                const colors = ["#da42429e", "#31ea318c", "rgba(197, 87, 20, 0.55)", "#4a7ae2c4", "rgba(216, 9, 255, 0.5)", "#ff7601", "#1dffff", "yellow", "rgba(27, 130, 49, 0.55)", "rgba(0, 0, 0, 0.268)"];
                 clusterColor = colors[cluster % colors.length];
-                const set = this._clusterSets[cluster] && this._clusterSets[cluster].filter(s => s.backgroundColor && (s.backgroundColor !== s.defaultBackgroundColor));
+                const set = this._clusterSets[cluster]?.filter(s => s.backgroundColor);
                 // override the cluster color with an explicitly set color on a non-background document.  then override that with an explicitly set color on a background document
                 set && set.filter(s => !s.isBackground).map(s => clusterColor = StrCast(s.backgroundColor));
                 set && set.filter(s => s.isBackground).map(s => clusterColor = StrCast(s.backgroundColor));
@@ -709,6 +709,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     @computed get libraryPath() { return this.props.LibraryPath ? [...this.props.LibraryPath, this.props.Document] : []; }
     @computed get onChildClickHandler() { return ScriptCast(this.Document.onChildClick); }
+    backgroundHalo = () => BoolCast(this.Document.useClusters);
 
     getChildDocumentViewProps(childLayout: Doc, childData?: Doc): DocumentViewProps {
         return {
@@ -728,6 +729,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             ContainingCollectionDoc: this.props.Document,
             focus: this.focusDocument,
             backgroundColor: this.getClusterColor,
+            backgroundHalo: this.backgroundHalo,
             parentActive: this.props.active,
             bringToFront: this.bringToFront,
             zoomToScale: this.zoomToScale,
