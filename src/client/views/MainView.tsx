@@ -482,12 +482,13 @@ export class MainView extends React.Component {
         return new Transform(-translateX, -translateY, 1 / scale);
     }
     @computed get docButtons() {
-        if (CurrentUserUtils.UserDocument?.expandingButtons instanceof Doc) {
+        const expandingBtns = Doc.UserDoc()?.expandingButtons;
+        if (expandingBtns instanceof Doc) {
             return <div className="mainView-docButtons" ref={this._docBtnRef}
-                style={{ height: !CurrentUserUtils.UserDocument.expandingButtons.isExpanded ? "42px" : undefined }} >
+                style={{ height: !expandingBtns.linearViewIsExpanded ? "42px" : undefined }} >
                 <MainViewNotifs />
                 <CollectionLinearView
-                    Document={CurrentUserUtils.UserDocument.expandingButtons}
+                    Document={expandingBtns}
                     DataDoc={undefined}
                     LibraryPath={emptyPath}
                     fieldKey={"data"}

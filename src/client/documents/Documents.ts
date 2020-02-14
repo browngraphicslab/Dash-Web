@@ -22,7 +22,6 @@ import { ImageField, VideoField, AudioField, PdfField, WebField, YoutubeField } 
 import { HtmlField } from "../../new_fields/HtmlField";
 import { List } from "../../new_fields/List";
 import { Cast, NumCast } from "../../new_fields/Types";
-import { IconField } from "../../new_fields/IconField";
 import { listSpec } from "../../new_fields/Schema";
 import { DocServer } from "../DocServer";
 import { dropActionType } from "../util/DragManager";
@@ -53,7 +52,6 @@ import { InkingStroke } from "../views/InkingStroke";
 import { InkField } from "../../new_fields/InkField";
 import { InkingControl } from "../views/InkingControl";
 import { RichTextField } from "../../new_fields/RichTextField";
-import { Networking } from "../Network";
 import { extname } from "path";
 import { MessageStore } from "../../server/Message";
 const requestImageSize = require('../util/request-image-size');
@@ -92,7 +90,6 @@ export interface DocumentOptions {
     scale?: number;
     isDisplayPanel?: boolean; // whether the panel functions as GoldenLayout "stack" used to display documents
     forceActive?: boolean;
-    preventTreeViewOpen?: boolean; // ignores the treeViewOpen Doc flag which allows a treeViewItem's expande/collapse state to be independent of other views of the same document in the tree view
     layout?: string | Doc;
     hideHeadings?: boolean; // whether stacking view column headings should be hidden
     isTemplateForField?: string; // the field key for which the containing document is a rendering template
@@ -109,7 +106,6 @@ export interface DocumentOptions {
     curPage?: number;
     currentTimecode?: number; // the current timecode of a time-based document (e.g., current time of a video)  value is in seconds
     displayTimecode?: number; // the time that a document should be displayed (e.g., time an annotation should be displayed on a video)
-    documentText?: string;
     borderRounding?: string;
     boxShadow?: string;
     sectionFilter?: string; // field key used to determine headings for sections in stacking and masonry views
@@ -124,15 +120,16 @@ export interface DocumentOptions {
     onChildClick?: ScriptField; // script given to children of a collection to execute when they are clicked
     onPointerDown?: ScriptField;
     onPointerUp?: ScriptField;
+    dropConverter?: ScriptField; // script to run when documents are dropped on this Document.
     dragFactory?: Doc; // document to create when dragging with a suitable onDragStart script
     onDragStart?: ScriptField; //script to execute at start of drag operation --  e.g., when a "creator" button is dragged this script generates a different document to drop
-    clipboard?: Doc; //script to execute at start of drag operation --  e.g., when a "creator" button is dragged this script generates a different document to drop
+    clipboard?: Doc;
     icon?: string;
     sourcePanel?: Doc; // panel to display in 'targetContainer' as the result of a button onClick script
     targetContainer?: Doc; // document whose proto will be set to 'panel' as the result of a onClick click script
-    dropConverter?: ScriptField; // script to run when documents are dropped on this Document.
     strokeWidth?: number;
     color?: string;
+    treeViewPreventOpen?: boolean; // ignores the treeViewOpen Doc flag which allows a treeViewItem's expand/collapse state to be independent of other views of the same document in the tree view
     treeViewHideTitle?: boolean; // whether to hide the title of a tree view
     treeViewHideHeaderFields?: boolean; // whether to hide the drop down options for tree view items.
     treeViewOpen?: boolean; // whether this document is expanded in a tree view
@@ -141,9 +138,9 @@ export interface DocumentOptions {
     limitHeight?: number; // maximum height for newly created (eg, from pasting) text documents
     // [key: string]: Opt<Field>;
     pointerHack?: boolean; // for buttons, allows onClick handler to fire onPointerDown
-    isExpanded?: boolean; // is linear view expanded
-    textTransform?: string; // is linear view expanded
-    letterSpacing?: string; // is linear view expanded
+    linearViewIsExpanded?: boolean; // is linear view expanded
+    textTransform?: string;
+    letterSpacing?: string;
 }
 
 class EmptyBox {

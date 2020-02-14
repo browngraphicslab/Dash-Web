@@ -133,7 +133,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
 
     @action.bound
     addDocument(doc: Doc): boolean {
-        const targetDataDoc = this.props.Document.resolvedDataDoc && !this.props.Document.isTemplateForField ? this.props.Document : Doc.GetProto(this.props.Document[DataSym]);
+        const targetDataDoc = this.props.Document[DataSym];
         targetDataDoc[this.props.fieldKey] = new List<Doc>([...DocListCast(targetDataDoc[this.props.fieldKey]), doc]);  // DocAddToList may write to targetdataDoc's parent ... we don't want this. should really change GetProto to GetDataDoc and test for resolvedDataDoc there
         // Doc.AddDocToList(targetDataDoc, this.props.fieldKey, doc);
         targetDataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
@@ -145,8 +145,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
     removeDocument(doc: Doc): boolean {
         const docView = DocumentManager.Instance.getDocumentView(doc, this.props.ContainingCollectionView);
         docView && SelectionManager.DeselectDoc(docView);
-        const targetDataDoc = this.props.Document.resolvedDataDoc && !this.props.Document.isTemplateForField ? this.props.Document : Doc.GetProto(this.props.Document[DataSym]);
-        const value = Cast(targetDataDoc[this.props.fieldKey], listSpec(Doc), []);
+        const value = Cast(this.props.Document[DataSym][this.props.fieldKey], listSpec(Doc), []);
         let index = value.reduce((p, v, i) => (v instanceof Doc && v === doc) ? i : p, -1);
         index = index !== -1 ? index : value.reduce((p, v, i) => (v instanceof Doc && Doc.AreProtosEqual(v, doc)) ? i : p, -1);
 

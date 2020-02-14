@@ -250,17 +250,6 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                     Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new RichTextField(draggedDoc.data.Data, draggedDoc.data.Text);
                     e.stopPropagation();
                 }
-                // apply as template when dragging with Meta
-            } else if (draggedDoc && draggedDoc.type === DocumentType.TEXT && !Doc.AreProtosEqual(draggedDoc, this.props.Document) && de.metaKey) {
-                draggedDoc.isTemplateDoc = true;
-                let newLayout = Doc.Layout(draggedDoc);
-                if (typeof (draggedDoc.layout) === "string") {
-                    newLayout = Doc.MakeDelegate(draggedDoc);
-                    newLayout.layout = StrCast(newLayout.layout).replace(/fieldKey={'[^']*'}/, `fieldKey={'${this.props.fieldKey}'}`);
-                }
-                this.Document.layout_custom = newLayout;
-                this.Document.layoutKey = "layout_custom";
-                e.stopPropagation();
                 // embed document when dragging with a userDropAction or an embedDoc flag set
             } else if (de.complete.docDragData.userDropAction || de.complete.docDragData.embedDoc) {
                 const target = de.complete.docDragData.droppedDocuments[0];

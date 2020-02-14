@@ -17,7 +17,6 @@ import { intersectRect } from "../Utils";
 import { UndoManager, undoBatch } from "../client/util/UndoManager";
 import { computedFn } from "mobx-utils";
 import { RichTextField } from "./RichTextField";
-import { Script } from "vm";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -112,7 +111,12 @@ export class Doc extends RefField {
             get: getter,
             // getPrototypeOf: (target) => Cast(target[SelfProxy].proto, Doc) || null, // TODO this might be able to replace the proto logic in getter
             has: (target, key) => key in target.__fields,
-            ownKeys: target => Object.keys(target.__allfields),
+            ownKeys: target => {
+                let obj = {} as any;
+                Object.assign(obj, target.___fields);
+                runInAction(() => obj.__LAYOUT__ = target.__LAYOUT__);
+                return Object.keys(obj)
+            },
             getOwnPropertyDescriptor: (target, prop) => {
                 if (prop.toString() === "__LAYOUT__") {
                     return Reflect.getOwnPropertyDescriptor(target, prop);
@@ -140,17 +144,7 @@ export class Doc extends RefField {
     [key: string]: FieldResult;
 
     @serializable(alias("fields", map(autoObject(), { afterDeserialize: afterDocDeserialize })))
-    private get __fields() {
-        return this.___fields;
-    }
-    private get __allfields() {
-        let obj = {} as any;
-        Object.assign(obj, this.___fields);
-        runInAction(() => obj.__LAYOUT__ = this.__LAYOUT__);
-        return obj;
-    }
-
-
+    private get __fields() { return this.___fields; }
     private set __fields(value) {
         this.___fields = value;
         for (const key in value) {
@@ -168,18 +162,19 @@ export class Doc extends RefField {
     private [UpdatingFromServer]: boolean = false;
 
     private [Update] = (diff: any) => {
-        if (this[UpdatingFromServer]) {
-            return;
-        }
-        DocServer.UpdateField(this[Id], diff);
+        !this[UpdatingFromServer] && DocServer.UpdateField(this[Id], diff);
     }
 
     private [Self] = this;
     private [SelfProxy]: any;
     public [WidthSym] = () => NumCast(this[SelfProxy]._width);
     public [HeightSym] = () => NumCast(this[SelfProxy]._height);
-    public get [DataSym]() { return Cast(Doc.Layout(this[SelfProxy]).resolvedDataDoc, Doc, null) || this[SelfProxy]; }
     public get [LayoutSym]() { return this[SelfProxy].__LAYOUT__; }
+    public get [DataSym]() {
+        const self = this[SelfProxy];
+        return self.resolvedDataDoc && !self.isTemplateForField ? self :
+            Doc.GetProto(Cast(Doc.Layout(self).resolvedDataDoc, Doc, null) || self);
+    }
     @computed get __LAYOUT__() {
         const templateLayoutDoc = Cast(Doc.LayoutField(this[SelfProxy]), Doc, null);
         if (templateLayoutDoc) {
@@ -195,12 +190,8 @@ export class Doc extends RefField {
         return undefined;
     }
 
-    [ToScriptString]() {
-        return "invalid";
-    }
-    [ToString]() {
-        return "Doc";
-    }
+    [ToScriptString]() { return "invalid"; }
+    [ToString]() { return "Doc"; }
 
     private [CachedUpdates]: { [key: string]: () => void | Promise<any> } = {};
     public static CurrentUserEmail: string = "";
@@ -287,8 +278,7 @@ export namespace Doc {
 
     export function Get(doc: Doc, key: string, ignoreProto: boolean = false): FieldResult {
         try {
-            const self = doc[Self];
-            return getField(self, key, ignoreProto);
+            return getField(doc[Self], key, ignoreProto);
         } catch  {
             return doc;
         }
@@ -357,13 +347,12 @@ export namespace Doc {
         return r || r2 || r3 || r4;
     }
 
-    // gets the document's prototype or returns the document if it is a prototype
-    export function GetProto(doc: Doc) {
-        return doc && (Doc.GetT(doc, "isPrototype", "boolean", true) ? doc : (doc.proto || doc));
-    }
-    export function GetDataDoc(doc: Doc): Doc {
-        const proto = Doc.GetProto(doc);
-        return proto === doc ? proto : Doc.GetDataDoc(proto);
+    // Gets the data document for the document.  Note: this is mis-named -- it does not specifically
+    // return the doc's proto, but rather recursively searches through the proto inheritance chain 
+    // and returns the document who's proto is undefined or whose proto is marked as a base prototype ('isPrototype').
+    export function GetProto(doc: Doc): Doc {
+        const proto = doc && (Doc.GetT(doc, "isPrototype", "boolean", true) ? doc : (doc.proto || doc));
+        return proto === doc ? proto : Doc.GetProto(proto);
     }
 
     export function allKeys(doc: Doc): string[] {
@@ -443,11 +432,6 @@ export namespace Doc {
         return bounds;
     }
 
-    export function MakeTitled(title: string) {
-        const doc = new Doc();
-        doc.title = title;
-        return doc;
-    }
     export function MakeAlias(doc: Doc, id?: string) {
         const alias = !GetT(doc, "isPrototype", "boolean", true) ? Doc.MakeCopy(doc, undefined, id) : Doc.MakeDelegate(doc, id);
         const layout = Doc.LayoutField(alias);
@@ -488,7 +472,7 @@ export namespace Doc {
         if (templateLayoutDoc.resolvedDataDoc instanceof Promise) {
 
             expandedTemplateLayout = undefined;
-        } else if (templateLayoutDoc.resolvedDataDoc === Doc.GetDataDoc(targetDoc)) {
+        } else if (templateLayoutDoc.resolvedDataDoc === Doc.GetProto(targetDoc)) {
             expandedTemplateLayout = templateLayoutDoc;
         } else if (expandedTemplateLayout === undefined) {
             setTimeout(action(() => {
@@ -497,7 +481,7 @@ export namespace Doc {
                     newLayoutDoc.lockedPosition = true;
                     newLayoutDoc.expandedTemplate = targetDoc;
                     targetDoc[expandedLayoutFieldKey] = newLayoutDoc;
-                    const dataDoc = Doc.GetDataDoc(targetDoc);
+                    const dataDoc = Doc.GetProto(targetDoc);
                     newLayoutDoc.resolvedDataDoc = dataDoc;
                     if (dataDoc[templateField] === undefined && templateLayoutDoc[templateField] instanceof List && Cast(templateLayoutDoc[templateField], listSpec(Doc), []).length) {
                         dataDoc[templateField] = ComputedField.MakeFunction(`ObjectField.MakeCopy(templateLayoutDoc["${templateField}"] as List)`, { templateLayoutDoc: Doc.name }, { templateLayoutDoc: templateLayoutDoc });
@@ -660,10 +644,6 @@ export namespace Doc {
         // assign the template field doc a delegate of any extension document that was previously used to render the template field (since extension doc's carry rendering informatino)
         Doc.Layout(templateField)[metadataFieldKey + "_ext"] = Doc.MakeDelegate(templateField[templateFieldLayoutString?.split("'")[1] + "_ext"] as Doc);
 
-        if (templateField.backgroundColor !== templateDoc?.defaultBackgroundColor) {
-            templateField.defaultBackgroundColor = templateField.backgroundColor;
-        }
-
         return true;
     }
 
@@ -716,26 +696,26 @@ export namespace Doc {
     export function SetUserDoc(doc: Doc) { manager._user_doc = doc; }
     export function IsBrushed(doc: Doc) {
         return computedFn(function IsBrushed(doc: Doc) {
-            return brushManager.BrushedDoc.has(doc) || brushManager.BrushedDoc.has(Doc.GetDataDoc(doc));
+            return brushManager.BrushedDoc.has(doc) || brushManager.BrushedDoc.has(Doc.GetProto(doc));
         })(doc);
     }
     // don't bother memoizing (caching) the result if called from a non-reactive context. (plus this avoids a warning message)
     export function IsBrushedDegreeUnmemoized(doc: Doc) {
-        return brushManager.BrushedDoc.has(doc) ? 2 : brushManager.BrushedDoc.has(Doc.GetDataDoc(doc)) ? 1 : 0;
+        return brushManager.BrushedDoc.has(doc) ? 2 : brushManager.BrushedDoc.has(Doc.GetProto(doc)) ? 1 : 0;
     }
     export function IsBrushedDegree(doc: Doc) {
         return computedFn(function IsBrushDegree(doc: Doc) {
-            return brushManager.BrushedDoc.has(doc) ? 2 : brushManager.BrushedDoc.has(Doc.GetDataDoc(doc)) ? 1 : 0;
+            return Doc.IsBrushedDegreeUnmemoized(doc);
         })(doc);
     }
     export function BrushDoc(doc: Doc) {
         brushManager.BrushedDoc.set(doc, true);
-        brushManager.BrushedDoc.set(Doc.GetDataDoc(doc), true);
+        brushManager.BrushedDoc.set(Doc.GetProto(doc), true);
         return doc;
     }
     export function UnBrushDoc(doc: Doc) {
         brushManager.BrushedDoc.delete(doc);
-        brushManager.BrushedDoc.delete(Doc.GetDataDoc(doc));
+        brushManager.BrushedDoc.delete(Doc.GetProto(doc));
         return doc;
     }
 
@@ -748,14 +728,14 @@ export namespace Doc {
         document.removeEventListener("pointerdown", linkFollowUnhighlight);
     }
 
-    let dt = 0;
+    let _lastDate = 0;
     export function linkFollowHighlight(destDoc: Doc, dataAndDisplayDocs = true) {
         linkFollowUnhighlight();
         Doc.HighlightDoc(destDoc, dataAndDisplayDocs);
         document.removeEventListener("pointerdown", linkFollowUnhighlight);
         document.addEventListener("pointerdown", linkFollowUnhighlight);
-        const x = dt = Date.now();
-        window.setTimeout(() => dt === x && linkFollowUnhighlight(), 5000);
+        const lastDate = _lastDate = Date.now();
+        window.setTimeout(() => _lastDate === lastDate && linkFollowUnhighlight(), 5000);
     }
 
     export class HighlightBrush {
@@ -763,18 +743,18 @@ export namespace Doc {
     }
     const highlightManager = new HighlightBrush();
     export function IsHighlighted(doc: Doc) {
-        return highlightManager.HighlightedDoc.get(doc) || highlightManager.HighlightedDoc.get(Doc.GetDataDoc(doc));
+        return highlightManager.HighlightedDoc.get(doc) || highlightManager.HighlightedDoc.get(Doc.GetProto(doc));
     }
     export function HighlightDoc(doc: Doc, dataAndDisplayDocs = true) {
         runInAction(() => {
             highlightManager.HighlightedDoc.set(doc, true);
-            dataAndDisplayDocs && highlightManager.HighlightedDoc.set(Doc.GetDataDoc(doc), true);
+            dataAndDisplayDocs && highlightManager.HighlightedDoc.set(Doc.GetProto(doc), true);
         });
     }
     export function UnHighlightDoc(doc: Doc) {
         runInAction(() => {
             highlightManager.HighlightedDoc.set(doc, false);
-            highlightManager.HighlightedDoc.set(Doc.GetDataDoc(doc), false);
+            highlightManager.HighlightedDoc.set(Doc.GetProto(doc), false);
         });
     }
     export function UnhighlightAll() {

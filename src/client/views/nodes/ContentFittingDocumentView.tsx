@@ -1,19 +1,17 @@
 import React = require("react");
-import { action, computed } from "mobx";
+import { computed } from "mobx";
 import { observer } from "mobx-react";
 import "react-table/react-table.css";
 import { Doc, Opt } from "../../../new_fields/Doc";
-import { ComputedField, ScriptField } from "../../../new_fields/ScriptField";
+import { ScriptField } from "../../../new_fields/ScriptField";
 import { NumCast, StrCast } from "../../../new_fields/Types";
+import { TraceMobx } from "../../../new_fields/util";
 import { emptyFunction, returnEmptyString, returnOne } from "../../../Utils";
-import { DragManager } from "../../util/DragManager";
 import { Transform } from "../../util/Transform";
-import { undoBatch } from "../../util/UndoManager";
+import { CollectionView } from "../collections/CollectionView";
 import '../DocumentDecorations.scss';
 import { DocumentView } from "../nodes/DocumentView";
 import "./ContentFittingDocumentView.scss";
-import { CollectionView } from "../collections/CollectionView";
-import { TraceMobx } from "../../../new_fields/util";
 
 interface ContentFittingDocumentViewProps {
     Document?: Doc;
@@ -55,20 +53,6 @@ export class ContentFittingDocumentView extends React.Component<ContentFittingDo
     }
     private contentScaling = () => this.scaling;
 
-    @undoBatch
-    @action
-    drop = (e: Event, de: DragManager.DropEvent) => {
-        const docDragData = de.complete.docDragData;
-        if (docDragData) {
-            this.props.childDocs && this.props.childDocs.map(otherdoc => {
-                const target = Doc.GetProto(otherdoc);
-                target.layout = ComputedField.MakeFunction("this.image_data[0]");
-                target.layout_custom = Doc.MakeDelegate(docDragData.draggedDocuments[0]);
-            });
-            e.stopPropagation();
-        }
-        return true;
-    }
     private PanelWidth = () => this.panelWidth;
     private PanelHeight = () => this.panelHeight;;
 

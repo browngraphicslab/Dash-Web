@@ -12,7 +12,6 @@ import { CollectionSubView } from './CollectionSubView';
 import { faCaretLeft, faCaretRight } from '@fortawesome/free-solid-svg-icons';
 import { Doc } from '../../../new_fields/Doc';
 import { FormattedTextBox } from '../nodes/FormattedTextBox';
-import { ContextMenuProps } from '../ContextMenuItem';
 import { ContextMenu } from '../ContextMenu';
 import { ObjectField } from '../../../new_fields/ObjectField';
 

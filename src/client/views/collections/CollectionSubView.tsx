@@ -159,7 +159,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             const docDragData = de.complete.docDragData;
             (this.props.Document.dropConverter instanceof ScriptField) &&
                 this.props.Document.dropConverter.script.run({ dragData: docDragData }); /// bcz: check this 
-            if (docDragData && !docDragData.applyAsTemplate) {
+            if (docDragData) {
                 if (de.altKey && docDragData.draggedDocuments.length) {
                     this.childDocs.map(doc => {
                         doc.layout_fromParent = docDragData.draggedDocuments[0];
@@ -253,7 +253,8 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                             }
                         });
                     } else {
-                        const htmlDoc = Docs.Create.HtmlDocument(html, { ...options, title: "-web page-", _width: 300, _height: 300, documentText: text });
+                        const htmlDoc = Docs.Create.HtmlDocument(html, { ...options, title: "-web page-", _width: 300, _height: 300 });
+                        Doc.GetProto(htmlDoc)["data-text"] = text;
                         this.props.addDocument(htmlDoc);
                     }
                     return;
