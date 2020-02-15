@@ -208,7 +208,7 @@ export class DocumentManager {
     @action
     zoomIntoScale = (docDelegate: Doc, scale: number) => {
         const docView = DocumentManager.Instance.getDocumentView(Doc.GetProto(docDelegate));
-        docView && docView.props.zoomToScale(scale);
+        docView?.props.zoomToScale(scale);
     }
 
     getScaleOfDocView = (docDelegate: Doc) => {

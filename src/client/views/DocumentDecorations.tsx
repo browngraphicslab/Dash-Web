@@ -479,16 +479,28 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         return <FontAwesomeIcon icon={button} className="documentView-minimizedIcon" />;
     }
     render() {
+        const darkScheme = Cast(Doc.UserDoc().activeWorkspace, Doc, null)?.darkScheme ? "dimgray" : undefined;
         const bounds = this.Bounds;
         const seldoc = SelectionManager.SelectedDocuments().length ? SelectionManager.SelectedDocuments()[0] : undefined;
         if (SelectionManager.GetIsDragging() || bounds.x === Number.MAX_VALUE || !seldoc || this._hidden || isNaN(bounds.r) || isNaN(bounds.b) || isNaN(bounds.x) || isNaN(bounds.y)) {
             return (null);
         }
         const minimizeIcon = (
-            <div className="documentDecorations-minimizeButton" onPointerDown={this.onMinimizeDown}>
+            <div className="documentDecorations-minimizeButton" style={{ background: darkScheme }} onPointerDown={this.onMinimizeDown}>
                 {/* Currently, this is set to be enabled if there is no ink selected. It might be interesting to think about minimizing ink if it's useful? -syip2*/}
-                {SelectionManager.SelectedDocuments().length === 1 ? DocumentDecorations.DocumentIcon(StrCast(SelectionManager.SelectedDocuments()[0].props.Document.layout, "...")) : "..."}
+                {SelectionManager.SelectedDocuments().length === 1 ? DocumentDecorations.DocumentIcon(StrCast(seldoc.props.Document.layout, "...")) : "..."}
             </div>);
+
+        const titleArea =  this._edtingTitle ?
+                <>
+                    <input ref={this._keyinput} className="title" type="text" name="dynbox" autoComplete="on" value={this._accumulatedTitle} style={{ width: "calc(100% - 20px)" }}
+                        onBlur={e => this.titleBlur(true)} onChange={this.titleChanged} onKeyPress={this.titleEntered} />
+                    <div className="publishBox" title="make document referenceable by its title"
+                        onPointerDown={e => DocUtils.Publish(seldoc.props.Document, this._accumulatedTitle, seldoc.props.addDocument, seldoc.props.removeDocument)}>
+                        <FontAwesomeIcon size="lg" color={SelectionManager.SelectedDocuments()[0].props.Document.title === SelectionManager.SelectedDocuments()[0].props.Document[Id] ? "green" : undefined} icon="sticky-note"></FontAwesomeIcon>
+                    </div>
+                </>:
+                <div className="title" style={{ background:darkScheme}} onPointerDown={this.onTitleDown} ><span>{`${this.selectionTitle}`}</span></div> ;
 
         bounds.x = Math.max(0, bounds.x - this._resizeBorderWidth / 2) + this._resizeBorderWidth / 2;
         bounds.y = Math.max(0, bounds.y - this._resizeBorderWidth / 2 - this._titleHeight) + this._resizeBorderWidth / 2 + this._titleHeight;
@@ -519,38 +531,36 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 opacity: this._opacity
             }}>
                 {minimizeIcon}
-
-                {this._edtingTitle ? <>
-                    <input ref={this._keyinput} className="title" type="text" name="dynbox" autoComplete="on" value={this._accumulatedTitle} style={{ width: "calc(100% - 20px)" }}
-                        onBlur={e => this.titleBlur(true)} onChange={this.titleChanged} onKeyPress={this.titleEntered} />
-                    <div className="publishBox" title="make document referenceable by its title"
-                        onPointerDown={e => {
-                            const promoteDoc = SelectionManager.SelectedDocuments()[0];
-                            DocUtils.Publish(promoteDoc.props.Document, this._accumulatedTitle, promoteDoc.props.addDocument, promoteDoc.props.removeDocument);
-                        }}>
-                        <FontAwesomeIcon size="lg" color={SelectionManager.SelectedDocuments()[0].props.Document.title === SelectionManager.SelectedDocuments()[0].props.Document[Id] ? "green" : undefined} icon="sticky-note"></FontAwesomeIcon>
-                    </div>
-                </> :
-                    <div className="title" onPointerDown={this.onTitleDown} ><span>{`${this.selectionTitle}`}</span></div>}
-                <div className="documentDecorations-closeButton" title="Close Document" onPointerDown={this.onCloseDown}>
+                {titleArea}
+                <div className="documentDecorations-closeButton" style={{ background: darkScheme }}
+                    title="Close Document" onPointerDown={this.onCloseDown}>
                     <FontAwesomeIcon className="documentdecorations-times" icon={faTimes} size="lg" />
                 </div>
-                <div id="documentDecorations-topLeftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
-                <div id="documentDecorations-topResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
-                <div id="documentDecorations-topRightResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
-                <div id="documentDecorations-leftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
+                <div id="documentDecorations-topLeftResizer" className="documentDecorations-resizer"
+                    style={{ background: darkScheme }} onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
+                <div id="documentDecorations-topResizer" className="documentDecorations-resizer"
+                    style={{ background: darkScheme}} onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
+                <div id="documentDecorations-topRightResizer" className="documentDecorations-resizer"
+                    style={{ background: darkScheme }} onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
+                <div id="documentDecorations-leftResizer" className="documentDecorations-resizer"
+                    style={{ background: darkScheme }} onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-centerCont"></div>
-                <div id="documentDecorations-rightResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
-                <div id="documentDecorations-bottomLeftResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
-                <div id="documentDecorations-bottomResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
-                <div id="documentDecorations-bottomRightResizer" className="documentDecorations-resizer" onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
-                <div id="documentDecorations-borderRadius" className="documentDecorations-radius" onPointerDown={this.onRadiusDown} onContextMenu={(e) => e.preventDefault()}><span className="borderRadiusTooltip" title="Drag Corner Radius"></span></div>
+                <div id="documentDecorations-rightResizer" className="documentDecorations-resizer"
+                    style={{ background: darkScheme }} onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
+                <div id="documentDecorations-bottomLeftResizer" className="documentDecorations-resizer"
+                    style={{ background: darkScheme }} onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
+                <div id="documentDecorations-bottomResizer" className="documentDecorations-resizer"
+                    style={{ background: darkScheme }} onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
+                <div id="documentDecorations-bottomRightResizer" className="documentDecorations-resizer"
+                    style={{ background: darkScheme }} onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
+                <div id="documentDecorations-borderRadius" className="documentDecorations-radius"
+                    style={{ background: darkScheme }} onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
 
             </div >
             <div className="link-button-container" style={{ left: bounds.x - this._resizeBorderWidth / 2, top: bounds.b + this._resizeBorderWidth / 2 }}>
                 <DocumentButtonBar views={SelectionManager.SelectedDocuments()} />
             </div>
-        </div>
+        </div >
         );
     }
 }
