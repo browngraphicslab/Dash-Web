@@ -128,7 +128,7 @@ export namespace RichTextUtils {
                     return { baseUrl: embeddedObject.imageProperties!.contentUri! };
                 });
 
-                const uploads = await Networking.PostToServer("/googlePhotosMediaDownload", { mediaItems });
+                const uploads = await Networking.PostToServer("/googlePhotosMediaGet", { mediaItems });
 
                 if (uploads.length !== mediaItems.length) {
                     throw new AssertionError({ expected: mediaItems.length, actual: uploads.length, message: "Error with internally uploading inlineObjects!" });
