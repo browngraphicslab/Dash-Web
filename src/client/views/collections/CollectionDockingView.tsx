@@ -1,9 +1,8 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faFile } from '@fortawesome/free-solid-svg-icons';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-dark-theme.css';
-import { action, Lambda, observable, reaction, computed, runInAction, trace } from "mobx";
+import { action, computed, Lambda, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import * as ReactDOM from 'react-dom';
 import Measure from "react-measure";
@@ -13,14 +12,16 @@ import { Doc, DocListCast, Field, Opt } from "../../../new_fields/Doc";
 import { Id } from '../../../new_fields/FieldSymbols';
 import { List } from '../../../new_fields/List';
 import { FieldId } from "../../../new_fields/RefField";
-import { listSpec } from "../../../new_fields/Schema";
-import { BoolCast, Cast, NumCast, StrCast } from "../../../new_fields/Types";
+import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
+import { TraceMobx } from '../../../new_fields/util';
 import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
-import { emptyFunction, returnEmptyString, returnFalse, returnOne, returnTrue, Utils } from "../../../Utils";
+import { emptyFunction, returnOne, returnTrue, Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { Docs } from '../../documents/Documents';
+import { DocumentType } from '../../documents/DocumentTypes';
 import { DocumentManager } from '../../util/DocumentManager';
 import { DragManager } from "../../util/DragManager";
+import { Scripting } from '../../util/Scripting';
 import { SelectionManager } from '../../util/SelectionManager';
 import { Transform } from '../../util/Transform';
 import { undoBatch } from "../../util/UndoManager";
@@ -28,14 +29,8 @@ import { MainView } from '../MainView';
 import { DocumentView } from "../nodes/DocumentView";
 import "./CollectionDockingView.scss";
 import { SubCollectionViewProps } from "./CollectionSubView";
+import { DockingViewButtonSelector } from './ParentDocumentSelector';
 import React = require("react");
-import { ButtonSelector } from './ParentDocumentSelector';
-import { DocumentType } from '../../documents/DocumentTypes';
-import { ComputedField } from '../../../new_fields/ScriptField';
-import { InteractionUtils } from '../../util/InteractionUtils';
-import { TraceMobx } from '../../../new_fields/util';
-import { Scripting } from '../../util/Scripting';
-import { PresElementBox } from '../presentationview/PresElementBox';
 library.add(faFile);
 const _global = (window /* browser */ || global /* node */) as any;
 
@@ -443,16 +438,11 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             const doc = await DocServer.GetRefField(tab.contentItem.config.props.documentId) as Doc;
             const dataDoc = await DocServer.GetRefField(tab.contentItem.config.props.dataDocumentId) as Doc;
             if (doc instanceof Doc) {
-                const dragSpan = document.createElement("span");
-                dragSpan.style.position = "relative";
-                dragSpan.style.bottom = "6px";
-                dragSpan.style.paddingLeft = "4px";
-                dragSpan.style.paddingRight = "2px";
                 const gearSpan = document.createElement("span");
+                gearSpan.className = "collectionDockingView-gear";
                 gearSpan.style.position = "relative";
                 gearSpan.style.paddingLeft = "0px";
                 gearSpan.style.paddingRight = "12px";
-                const upDiv = document.createElement("span");
                 const stack = tab.contentItem.parent;
                 // shifts the focus to this tab when another tab is dragged over it
                 tab.element[0].onmouseenter = (e: any) => {
@@ -470,15 +460,10 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                         e.stopPropagation();
                         const dragData = new DragManager.DocumentDragData([doc]);
                         dragData.dropAction = doc.dropAction === "alias" ? "alias" : doc.dropAction === "copy" ? "copy" : undefined;
-                        DragManager.StartDocumentDrag([dragSpan], dragData, e.clientX, e.clientY);
-                    }}>
-                    <FontAwesomeIcon icon="file" size="lg" />
-                </span>, dragSpan);
-                ReactDOM.render(<ButtonSelector Document={doc} Stack={stack} />, gearSpan);
-                tab.reactComponents = [dragSpan, gearSpan, upDiv];
-                tab.element.append(dragSpan);
+                        DragManager.StartDocumentDrag([gearSpan], dragData, e.clientX, e.clientY);
+                    }}><DockingViewButtonSelector Document={doc} Stack={stack} /></span>, gearSpan);
+                tab.reactComponents = [gearSpan];
                 tab.element.append(gearSpan);
-                tab.element.append(upDiv);
                 tab.reactionDisposer = reaction(() => [doc.title, Doc.IsBrushedDegree(doc)], () => {
                     tab.titleElement[0].textContent = doc.title, { fireImmediately: true };
                     tab.titleElement[0].style.outline = `${["transparent", "white", "white"][Doc.IsBrushedDegreeUnmemoized(doc)]} ${["none", "dashed", "solid"][Doc.IsBrushedDegreeUnmemoized(doc)]} 1px`;
@@ -599,7 +584,7 @@ interface DockedFrameProps {
     dataDocumentId: FieldId;
     glContainer: any;
     libraryPath: (FieldId[]);
-    backgroundColor?: (doc:Doc) => string| undefined;
+    backgroundColor?: (doc: Doc) => string | undefined;
     //collectionDockingView: CollectionDockingView
 }
 @observer

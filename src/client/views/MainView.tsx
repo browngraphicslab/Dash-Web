@@ -276,7 +276,7 @@ export class MainView extends React.Component {
 
     childBackgroundColor = (doc: Doc) => {
         if (this.darkScheme) {
-            return doc.type === DocumentType.TEXT ? "#112423" : "black";
+            return doc.type === DocumentType.TEXT ? "#2d2d2d" : "black";
         }
         return doc.type === DocumentType.TEXT ? "#f1efeb" :
             doc.type === DocumentType.COL && doc._viewType === CollectionViewType.Tree ? "lightgray" : "white";
@@ -448,10 +448,10 @@ export class MainView extends React.Component {
     @computed get mainContent() {
         const sidebar = this.userDoc && this.userDoc.sidebarContainer;
         return !this.userDoc || !(sidebar instanceof Doc) ? (null) : (
-            <div className="mainView-mainContent" style={{ color: this.darkScheme ? "lightGray" : "black" }} >
+            <div className="mainView-mainContent" style={{ color: this.darkScheme ? "dimGray" : "black" }} >
                 <div className="mainView-flyoutContainer" onPointerLeave={this.pointerLeaveDragger} style={{ width: this.flyoutWidth }}>
                     <div className="mainView-libraryHandle" onPointerDown={this.onPointerDown} onPointerOver={this.pointerOverDragger}
-                        style={{ backgroundColor: `${StrCast(sidebar.backgroundColor, "lightGray")}` }} >
+                        style={{ backgroundColor: `${StrCast(sidebar.backgroundColor, this.darkScheme ? "dimGray" : "black")}` }} >
                         <span title="library View Dragger" style={{
                             width: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "3vw",
                             //height: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "100vh",
@@ -529,7 +529,7 @@ export class MainView extends React.Component {
     }
 
     render() {
-        return (<div id="mainView-container">
+        return (<div className={"mainView-container" + (this.darkScheme ? "-dark" : "")}>
             <DictationOverlay />
             <SharingManager />
             <SettingsManager />
