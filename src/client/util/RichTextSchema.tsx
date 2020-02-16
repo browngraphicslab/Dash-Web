@@ -824,7 +824,7 @@ export class DashDocView {
                 ScreenToLocalTransform={this.getDocTransform}
                 addDocTab={this._textBox.props.addDocTab}
                 pinToPres={returnFalse}
-                renderDepth={1}
+                renderDepth={self._textBox.props.renderDepth + 1}
                 PanelWidth={finalLayout[WidthSym]}
                 PanelHeight={finalLayout[HeightSym]}
                 focus={this.outerFocus}
