@@ -294,7 +294,7 @@ async function writeImages(zip: any): Promise<ImageData[]> {
 
     const imageUrls: ImageData[] = [];
     for (const mediaPath of imageEntries) {
-        const streamImage = () => new Promise<Readable>((resolve, reject) => {
+        const getImageStream = () => new Promise<Readable>((resolve, reject) => {
             zip.stream(mediaPath, (error: any, stream: any) => error ? reject(error) : resolve(stream));
         });
 
@@ -303,7 +303,7 @@ async function writeImages(zip: any): Promise<ImageData[]> {
                 readStream.destroy();
                 resolve(dimensions);
             }).on("error", () => readStream.destroy());
-            const readStream = await streamImage();
+            const readStream = await getImageStream();
             readStream.pipe(sizeStream);
         });
         if (Math.abs(width - height) < 10) {
@@ -311,7 +311,7 @@ async function writeImages(zip: any): Promise<ImageData[]> {
         }
 
         const generatedFileName = `upload_${Utils.GenerateGuid()}.${type.toLowerCase()}`;
-        await DashUploadUtils.outputResizedImages(streamImage, generatedFileName, imageDir);
+        await DashUploadUtils.outputResizedImages(getImageStream, generatedFileName, imageDir);
 
         imageUrls.push({
             url: `/files/images/buxton/${generatedFileName}`,
