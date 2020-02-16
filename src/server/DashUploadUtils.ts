@@ -208,8 +208,7 @@ export namespace DashUploadUtils {
 
     export const UploadInspectedImage = async (metadata: Upload.InspectionResults, filename?: string, prefix = "", cleanUp = true): Promise<Upload.ImageInformation> => {
         const { requestable, source, ...remaining } = metadata;
-        const extension = `.${remaining.contentType.split("/")[1].toLowerCase()}`;
-        const resolved = filename || `${prefix}upload_${Utils.GenerateGuid()}${extension}`;
+        const resolved = filename || `${prefix}upload_${Utils.GenerateGuid()}.${remaining.contentType.split("/")[1].toLowerCase()}`;
         const { images } = Directory;
         const information: Upload.ImageInformation = {
             accessPaths: {
@@ -217,8 +216,7 @@ export namespace DashUploadUtils {
             },
             ...metadata
         };
-        const outputPath = pathToDirectory(Directory.images);
-        const writtenFiles = await outputResizedImages(() => request(requestable), outputPath, resolved, extension);
+        const writtenFiles = await outputResizedImages(() => request(requestable), resolved, pathToDirectory(Directory.images));
         for (const suffix of Object.keys(writtenFiles)) {
             information.accessPaths[suffix] = getAccessPaths(images, writtenFiles[suffix]);
         }
@@ -248,10 +246,10 @@ export namespace DashUploadUtils {
         force: true
     };
 
-    export async function outputResizedImages(streamProvider: () => Stream | Promise<Stream>, outputPath: string, fileName: string, ext: string) {
+    export async function outputResizedImages(streamProvider: () => Stream | Promise<Stream>, outputFileName: string, outputDirectory: string) {
         const writtenFiles: { [suffix: string]: string } = {};
-        for (const { resizer, suffix } of resizers(ext)) {
-            const resolvedOutputPath = path.resolve(outputPath, writtenFiles[suffix] = InjectSize(fileName, suffix));
+        for (const { resizer, suffix } of resizers(path.extname(outputFileName))) {
+            const outputPath = path.resolve(outputDirectory, writtenFiles[suffix] = InjectSize(outputFileName, suffix));
             await new Promise<void>(async (resolve, reject) => {
                 const source = streamProvider();
                 let readStream: Stream;
@@ -263,7 +261,7 @@ export namespace DashUploadUtils {
                 if (resizer) {
                     readStream = readStream.pipe(resizer.withMetadata());
                 }
-                readStream.pipe(createWriteStream(resolvedOutputPath)).on("close", resolve).on("error", reject);
+                readStream.pipe(createWriteStream(outputPath)).on("close", resolve).on("error", reject);
             });
         }
         return writtenFiles;

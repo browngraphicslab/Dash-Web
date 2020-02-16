@@ -310,10 +310,8 @@ async function writeImages(zip: any): Promise<ImageData[]> {
             continue;
         }
 
-        const ext = `.${type}`.toLowerCase();
-        const generatedFileName = `upload_${Utils.GenerateGuid()}${ext}`;
-
-        await DashUploadUtils.outputResizedImages(streamImage, imageDir, generatedFileName, ext);
+        const generatedFileName = `upload_${Utils.GenerateGuid()}.${type.toLowerCase()}`;
+        await DashUploadUtils.outputResizedImages(streamImage, generatedFileName, imageDir);
 
         imageUrls.push({
             url: `/files/images/buxton/${generatedFileName}`,
