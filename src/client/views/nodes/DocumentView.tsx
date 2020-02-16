@@ -249,7 +249,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
 
-    onClick = undoBatch((e: React.MouseEvent | React.PointerEvent) => {
+    onClick = (e: React.MouseEvent | React.PointerEvent) => {
         if (!e.nativeEvent.cancelBubble && !this.Document.ignoreClick && CurrentUserUtils.MainDocId !== this.props.Document[Id] &&
             (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD && Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD)) {
             e.stopPropagation();
@@ -259,24 +259,24 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 if (StrCast(fullScreenAlias.layoutKey) !== "layout_fullScreen" && fullScreenAlias.layout_fullScreen) {
                     fullScreenAlias.layoutKey = "layout_fullScreen";
                 }
-                this.props.addDocTab(fullScreenAlias, undefined, "inTab");
+                UndoManager.RunInBatch(() => this.props.addDocTab(fullScreenAlias, undefined, "inTab"), "double tap");
                 SelectionManager.DeselectAll();
                 Doc.UnBrushDoc(this.props.Document);
             } else if (this.onClickHandler && this.onClickHandler.script) {
                 SelectionManager.DeselectAll();
-                this.onClickHandler.script.run({ this: this.Document.isTemplateForField && this.props.DataDoc ? this.props.DataDoc : this.props.Document, containingCollection: this.props.ContainingCollectionDoc, shiftKey: e.shiftKey }, console.log);
+                UndoManager.RunInBatch(() => this.onClickHandler!.script.run({ this: this.Document.isTemplateForField && this.props.DataDoc ? this.props.DataDoc : this.props.Document, containingCollection: this.props.ContainingCollectionDoc, shiftKey: e.shiftKey }, console.log), "on click");
             } else if (this.Document.type === DocumentType.BUTTON) {
-                ScriptBox.EditButtonScript("On Button Clicked ...", this.props.Document, "onClick", e.clientX, e.clientY);
+                UndoManager.RunInBatch(() => ScriptBox.EditButtonScript("On Button Clicked ...", this.props.Document, "onClick", e.clientX, e.clientY), "on button click");
             } else if (this.Document.isButton) {
                 SelectionManager.SelectDoc(this, e.ctrlKey); // don't think this should happen if a button action is actually triggered.
-                this.buttonClick(e.altKey, e.ctrlKey);
+                UndoManager.RunInBatch(() => this.buttonClick(e.altKey, e.ctrlKey), "on link button follow");
             } else {
                 SelectionManager.SelectDoc(this, e.ctrlKey);
                 preventDefault = false;
             }
             preventDefault && e.preventDefault();
         }
-    });
+    };
 
     buttonClick = async (altKey: boolean, ctrlKey: boolean) => {
         const linkDocs = DocListCast(this.props.Document.links);
