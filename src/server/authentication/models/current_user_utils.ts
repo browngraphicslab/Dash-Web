@@ -227,7 +227,7 @@ export class CurrentUserUtils {
         // Finally, setup the list of buttons to display in the sidebar
         doc.sidebarButtons = Docs.Create.StackingDocument([doc.SearchBtn as Doc, doc.LibraryBtn as Doc, doc.ToolsBtn as Doc], {
             _width: 500, _height: 80, boxShadow: "0 0", sectionFilter: "title", hideHeadings: true, ignoreClick: true,
-            backgroundColor: "rgb(100, 100, 100)", _chromeStatus: "disabled", title: "library stack",
+            _chromeStatus: "disabled", title: "library stack",
             _yMargin: 10,
         });
     }

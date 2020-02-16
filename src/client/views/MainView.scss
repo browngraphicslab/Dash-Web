@@ -32,9 +32,11 @@
 }
 
 .mainView-container-dark {
-    .lm_splitter {
+    .lm_goldenlayout {
         background: dimgray;
-        opacity: 0.5;
+    }
+    .marquee {
+        border-color: white;
     }
 }
 

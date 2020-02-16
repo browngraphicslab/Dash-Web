@@ -276,10 +276,11 @@ export class MainView extends React.Component {
 
     childBackgroundColor = (doc: Doc) => {
         if (this.darkScheme) {
-            return doc.type === DocumentType.TEXT ? "#2d2d2d" : "black";
+            return doc.type === DocumentType.TEXT || doc.type === DocumentType.BUTTON ? "#2d2d2d" :
+                (doc.type === DocumentType.COL && doc._viewType !== CollectionViewType.Freeform && doc._viewType !== CollectionViewType.Time) || doc.type === DocumentType.BUTTON ? "#2d2d2d" : "black";
         }
         return doc.type === DocumentType.TEXT ? "#f1efeb" :
-            doc.type === DocumentType.COL && doc._viewType === CollectionViewType.Tree ? "lightgray" : "white";
+            (doc.type === DocumentType.COL && doc._viewType !== CollectionViewType.Freeform && doc._viewType !== CollectionViewType.Time) || doc.type === DocumentType.BUTTON ? "lightgray" : "white";
     }
     sidebarBackgroundColor = (doc: Doc) => {
         return this.childBackgroundColor(doc);

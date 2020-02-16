@@ -1,8 +1,22 @@
 @import "../../views/globalCssVariables.scss";
 
-.lm_active .messageCounter {
-    color: white;
-    background: #999999;
+.lm_title {
+    margin-top: 3px;
+    background: black;
+    border-radius: 5px;
+    border: solid 1px dimgray;
+    border-width: 2px 2px 0px;
+    height: 20px;
+    transform: translate(0px, -3px);
+}
+.lm_title_wrap {
+    overflow: hidden;
+    height: 19px;
+    margin-top: -3px;
+    display:inline-block;
+}
+.lm_active .lm_title {
+    border: solid 1px lightgray;
 }
 .lm_header .lm_tab .lm_close_tab {
     position: absolute;
