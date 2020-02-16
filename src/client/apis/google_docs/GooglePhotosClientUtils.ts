@@ -306,7 +306,7 @@ export namespace GooglePhotos {
         };
 
         export const WriteMediaItemsToServer = async (body: { mediaItems: any[] }): Promise<UploadInformation[]> => {
-            const uploads = await Networking.PostToServer("/googlePhotosMediaDownload", body);
+            const uploads = await Networking.PostToServer("/googlePhotosMediaGet", body);
             return uploads;
         };
 
@@ -344,7 +344,7 @@ export namespace GooglePhotos {
                 media.push({ url, description });
             }
             if (media.length) {
-                const results = await Networking.PostToServer("/googlePhotosMediaUpload", { media, album });
+                const results = await Networking.PostToServer("/googlePhotosMediaPost", { media, album });
                 return results;
             }
         };
