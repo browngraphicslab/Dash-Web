@@ -14,7 +14,6 @@ export enum DocumentType {
     LINKDOC = "linkdoc",
     BUTTON = "button",
     SLIDER = "slider",
-    TEMPLATE = "template",
     EXTENSION = "extension",
     YOUTUBE = "youtube",
     WEBCAM = "webcam",

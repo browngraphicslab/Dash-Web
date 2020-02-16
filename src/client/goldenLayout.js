@@ -2868,7 +2868,7 @@
 	 * @type {String}
 	 */
     lm.controls.Tab._template = '<li class="lm_tab"><i class="lm_left"></i>' +
-        '<span class="lm_title"></span><div class="lm_close_tab"></div>' +
+        '<div class="lm_title_wrap"><input class="lm_title"/></div><div class="lm_close_tab"></div>' +
         '<i class="lm_right"></i></li>';
 
     lm.utils.copy(lm.controls.Tab.prototype, {

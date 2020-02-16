@@ -379,16 +379,6 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         });
         window.addEventListener("pointerup", onPointerUp);
         const className = (e.target as any).className;
-        if (className === "messageCounter") {
-            e.stopPropagation();
-            e.preventDefault();
-            const x = e.clientX;
-            const y = e.clientY;
-            const docid = (e.target as any).DashDocId;
-            const tab = (e.target as any).parentElement as HTMLElement;
-            DocServer.GetRefField(docid).then(action(async (sourceDoc: Opt<Field>) =>
-                (sourceDoc instanceof Doc) && DragManager.StartLinkTargetsDrag(tab, x, y, sourceDoc)));
-        }
         if (className === "lm_drag_handle" || className === "lm_close" || className === "lm_maximise" || className === "lm_minimise" || className === "lm_close_tab") {
             this._flush = true;
         }
@@ -430,6 +420,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     }
 
     tabCreated = async (tab: any) => {
+        tab.titleElement[0].Tab = tab;
         if (tab.hasOwnProperty("contentItem") && tab.contentItem.config.type !== "stack") {
             if (tab.contentItem.config.fixed) {
                 tab.contentItem.parent.config.fixed = true;
@@ -438,6 +429,14 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
             const doc = await DocServer.GetRefField(tab.contentItem.config.props.documentId) as Doc;
             const dataDoc = await DocServer.GetRefField(tab.contentItem.config.props.dataDocumentId) as Doc;
             if (doc instanceof Doc) {
+                //tab.titleElement[0].outerHTML = `<input class='lm_title' style="background:black" value='${doc.title}' />`;
+                tab.titleElement[0].onclick = (e: any) => tab.titleElement[0].focus();
+                tab.titleElement[0].onchange = (e: any) => {
+                    tab.titleElement[0].size = e.currentTarget.value.length + 1;
+                    Doc.SetInPlace(doc, "title", e.currentTarget.value, true);
+                }
+                tab.titleElement[0].size = StrCast(doc.title).length + 1;
+                tab.titleElement[0].value = doc.title;
                 const gearSpan = document.createElement("span");
                 gearSpan.className = "collectionDockingView-gear";
                 gearSpan.style.position = "relative";
@@ -464,15 +463,15 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                     }}><DockingViewButtonSelector Document={doc} Stack={stack} /></span>, gearSpan);
                 tab.reactComponents = [gearSpan];
                 tab.element.append(gearSpan);
-                tab.reactionDisposer = reaction(() => [doc.title, Doc.IsBrushedDegree(doc)], () => {
-                    tab.titleElement[0].textContent = doc.title, { fireImmediately: true };
-                    tab.titleElement[0].style.outline = `${["transparent", "white", "white"][Doc.IsBrushedDegreeUnmemoized(doc)]} ${["none", "dashed", "solid"][Doc.IsBrushedDegreeUnmemoized(doc)]} 1px`;
+                tab.reactionDisposer = reaction(() => ({ title: doc.title, degree: Doc.IsBrushedDegree(doc) }), ({ title, degree }) => {
+                    tab.titleElement[0].textContent = title, { fireImmediately: true };
+                    tab.titleElement[0].style.padding = degree ? 0 : 2;
+                    tab.titleElement[0].style.border = `${["gray", "gray", "gray"][degree]} ${["none", "dashed", "solid"][degree]} 2px`;
                 });
                 //TODO why can't this just be doc instead of the id?
                 tab.titleElement[0].DashDocId = tab.contentItem.config.props.documentId;
             }
         }
-        tab.titleElement[0].Tab = tab;
         tab.closeElement.off('click') //unbind the current click handler
             .click(async function () {
                 tab.reactionDisposer && tab.reactionDisposer();

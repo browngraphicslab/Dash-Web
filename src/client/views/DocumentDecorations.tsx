@@ -491,16 +491,16 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 {SelectionManager.SelectedDocuments().length === 1 ? DocumentDecorations.DocumentIcon(StrCast(seldoc.props.Document.layout, "...")) : "..."}
             </div>);
 
-        const titleArea =  this._edtingTitle ?
-                <>
-                    <input ref={this._keyinput} className="title" type="text" name="dynbox" autoComplete="on" value={this._accumulatedTitle} style={{ width: "calc(100% - 20px)" }}
-                        onBlur={e => this.titleBlur(true)} onChange={this.titleChanged} onKeyPress={this.titleEntered} />
-                    <div className="publishBox" title="make document referenceable by its title"
-                        onPointerDown={e => DocUtils.Publish(seldoc.props.Document, this._accumulatedTitle, seldoc.props.addDocument, seldoc.props.removeDocument)}>
-                        <FontAwesomeIcon size="lg" color={SelectionManager.SelectedDocuments()[0].props.Document.title === SelectionManager.SelectedDocuments()[0].props.Document[Id] ? "green" : undefined} icon="sticky-note"></FontAwesomeIcon>
-                    </div>
-                </>:
-                <div className="title" style={{ background:darkScheme}} onPointerDown={this.onTitleDown} ><span>{`${this.selectionTitle}`}</span></div> ;
+        const titleArea = this._edtingTitle ?
+            <>
+                <input ref={this._keyinput} className="title" type="text" name="dynbox" autoComplete="on" value={this._accumulatedTitle} style={{ width: "calc(100% - 20px)" }}
+                    onBlur={e => this.titleBlur(true)} onChange={this.titleChanged} onKeyPress={this.titleEntered} />
+                <div className="publishBox" title="make document referenceable by its title"
+                    onPointerDown={e => DocUtils.Publish(seldoc.props.Document, this._accumulatedTitle, seldoc.props.addDocument, seldoc.props.removeDocument)}>
+                    <FontAwesomeIcon size="lg" color={SelectionManager.SelectedDocuments()[0].props.Document.title === SelectionManager.SelectedDocuments()[0].props.Document[Id] ? "green" : undefined} icon="sticky-note"></FontAwesomeIcon>
+                </div>
+            </> :
+            <div className="title" style={{ background: darkScheme }} onPointerDown={this.onTitleDown} ><span>{`${this.selectionTitle}`}</span></div>;
 
         bounds.x = Math.max(0, bounds.x - this._resizeBorderWidth / 2) + this._resizeBorderWidth / 2;
         bounds.y = Math.max(0, bounds.y - this._resizeBorderWidth / 2 - this._titleHeight) + this._resizeBorderWidth / 2 + this._titleHeight;
@@ -539,7 +539,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 <div id="documentDecorations-topLeftResizer" className="documentDecorations-resizer"
                     style={{ background: darkScheme }} onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-topResizer" className="documentDecorations-resizer"
-                    style={{ background: darkScheme}} onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
+                    style={{ background: darkScheme }} onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-topRightResizer" className="documentDecorations-resizer"
                     style={{ background: darkScheme }} onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-leftResizer" className="documentDecorations-resizer"
@@ -554,7 +554,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 <div id="documentDecorations-bottomRightResizer" className="documentDecorations-resizer"
                     style={{ background: darkScheme }} onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-borderRadius" className="documentDecorations-radius"
-                    style={{ background: darkScheme }} onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
+                    style={{ background: darkScheme }} onPointerDown={this.onRadiusDown} onContextMenu={(e) => e.preventDefault()}></div>
 
             </div >
             <div className="link-button-container" style={{ left: bounds.x - this._resizeBorderWidth / 2, top: bounds.b + this._resizeBorderWidth / 2 }}>
