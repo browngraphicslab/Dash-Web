@@ -248,13 +248,12 @@ export namespace DashUploadUtils {
         force: true
     };
 
-    export async function outputResizedImages(readStreamSource: () => Stream | Promise<Stream>, outputPath: string, fileName: string, ext: string) {
+    export async function outputResizedImages(streamProvider: () => Stream | Promise<Stream>, outputPath: string, fileName: string, ext: string) {
         const writtenFiles: { [suffix: string]: string } = {};
         for (const { resizer, suffix } of resizers(ext)) {
-            const resolved = writtenFiles[suffix] = InjectSize(fileName, suffix);
+            const resolvedOutputPath = path.resolve(outputPath, writtenFiles[suffix] = InjectSize(fileName, suffix));
             await new Promise<void>(async (resolve, reject) => {
-                const writeStream = createWriteStream(path.resolve(outputPath, resolved));
-                const source = readStreamSource();
+                const source = streamProvider();
                 let readStream: Stream;
                 if (source instanceof Promise) {
                     readStream = await source;
@@ -264,9 +263,7 @@ export namespace DashUploadUtils {
                 if (resizer) {
                     readStream = readStream.pipe(resizer.withMetadata());
                 }
-                const out = readStream.pipe(writeStream);
-                out.on("close", resolve);
-                out.on("error", reject);
+                readStream.pipe(createWriteStream(resolvedOutputPath)).on("close", resolve).on("error", reject);
             });
         }
         return writtenFiles;
@@ -275,8 +272,8 @@ export namespace DashUploadUtils {
     function resizers(ext: string): DashUploadUtils.ImageResizer[] {
         return [
             { suffix: SizeSuffix.Original },
-            ...Object.values(DashUploadUtils.Sizes).map(size => {
-                let initial: sharp.Sharp | undefined = sharp().resize(size.width, undefined, { withoutEnlargement: true });
+            ...Object.values(DashUploadUtils.Sizes).map(({ suffix, width }) => {
+                let initial: sharp.Sharp | undefined = sharp().resize(width, undefined, { withoutEnlargement: true });
                 if (pngs.includes(ext)) {
                     initial = initial.png(pngOptions);
                 } else if (jpgs.includes(ext)) {
@@ -290,7 +287,7 @@ export namespace DashUploadUtils {
                 }
                 return {
                     resizer: initial,
-                    suffix: size.suffix
+                    suffix
                 };
             })
         ];
