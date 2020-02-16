@@ -474,3 +474,39 @@ export function clearStyleSheetRules(sheet: any) {
     }
     return false;
 }
+
+export function setupMoveUpEvents(
+    target: object,
+    e: React.PointerEvent,
+    moveEvent: (e: PointerEvent, down: number[], delta: number[]) => boolean,
+    upEvent: (e: PointerEvent) => void,
+    clickEvent: (e: PointerEvent) => void) {
+    (target as any)._downX = (target as any)._lastX = e.clientX;
+    (target as any)._downY = (target as any)._lastY = e.clientY;
+
+    const _moveEvent = (e: PointerEvent): void => {
+        if (Math.abs(e.clientX - (target as any)._downX) > 4 || Math.abs(e.clientY - (target as any)._downY) > 4) {
+            if (moveEvent(e, [(target as any)._downX, (target as any)._downY],
+                [e.clientX - (target as any)._lastX, e.clientY - (target as any)._lastY])) {
+                document.removeEventListener("pointermove", _moveEvent);
+                document.removeEventListener("pointerup", _upEvent);
+            }
+        }
+        (target as any)._lastX = e.clientX;
+        (target as any)._lastY = e.clientY;
+        e.stopPropagation();
+    }
+    const _upEvent = (e: PointerEvent): void => {
+        upEvent(e);
+        if (Math.abs(e.clientX - (target as any)._downX) < 4 || Math.abs(e.clientY - (target as any)._downY) < 4) {
+            clickEvent(e);
+        }
+        document.removeEventListener("pointermove", _moveEvent);
+        document.removeEventListener("pointerup", _upEvent);
+    }
+    e.stopPropagation();
+    document.removeEventListener("pointermove", _moveEvent);
+    document.removeEventListener("pointerup", _upEvent);
+    document.addEventListener("pointermove", _moveEvent);
+    document.addEventListener("pointerup", _upEvent);
+}

@@ -8,7 +8,7 @@ import { PositionDocument } from '../../new_fields/documentSchemas';
 import { ScriptField } from '../../new_fields/ScriptField';
 import { Cast, StrCast } from "../../new_fields/Types";
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
-import { Utils } from "../../Utils";
+import { Utils, setupMoveUpEvents } from "../../Utils";
 import { DocUtils } from "../documents/Documents";
 import { DocumentType } from '../documents/DocumentTypes';
 import { DragManager } from "../util/DragManager";
@@ -19,9 +19,6 @@ import './DocumentDecorations.scss';
 import { DocumentView } from "./nodes/DocumentView";
 import React = require("react");
 import { Id } from '../../new_fields/FieldSymbols';
-const higflyout = require("@hig/flyout");
-export const { anchorPoints } = higflyout;
-export const Flyout = higflyout.default;
 
 library.add(faCaretUp);
 library.add(faObjectGroup);
@@ -44,16 +41,12 @@ export type CloseCall = (toBeDeleted: DocumentView[]) => void;
 @observer
 export class DocumentDecorations extends React.Component<{}, { value: string }> {
     static Instance: DocumentDecorations;
-    private _isPointerDown = false;
-    private _resizing = "";
+    private _resizeHdlId = "";
     private _keyinput: React.RefObject<HTMLInputElement>;
     private _resizeBorderWidth = 16;
     private _linkBoxHeight = 20 + 3; // link button height + margin
     private _titleHeight = 20;
-    private _downX = 0;
-    private _downY = 0;
     private _resizeUndo?: UndoManager.Batch;
-    private _radiusDown = [0, 0];
     @observable private _accumulatedTitle = "";
     @observable private _titleControlString: string = "#title";
     @observable private _edtingTitle = false;
@@ -73,72 +66,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         DocumentDecorations.Instance = this;
         this._keyinput = React.createRef();
         reaction(() => SelectionManager.SelectedDocuments().slice(), docs => this.titleBlur(false));
-    }
-
-    @action titleChanged = (event: any) => this._accumulatedTitle = event.target.value;
-
-    addCloseCall = (handler: CloseCall) => {
-        const currentOffset = this.addedCloseCalls.length - 1;
-        this.addedCloseCalls.push((toBeDeleted: DocumentView[]) => {
-            this.addedCloseCalls.splice(currentOffset, 1);
-            handler(toBeDeleted);
-        });
-    }
-
-    titleBlur = undoBatch(action((commit: boolean) => {
-        this._edtingTitle = false;
-        if (commit) {
-            if (this._accumulatedTitle.startsWith("#") || this._accumulatedTitle.startsWith("=")) {
-                this._titleControlString = this._accumulatedTitle;
-            } else if (this._titleControlString.startsWith("#")) {
-                const selectionTitleFieldKey = this._titleControlString.substring(1);
-                selectionTitleFieldKey === "title" && (SelectionManager.SelectedDocuments()[0].props.Document.customTitle = !this._accumulatedTitle.startsWith("-"));
-                selectionTitleFieldKey && SelectionManager.SelectedDocuments().forEach(d =>
-                    Doc.SetInPlace(d.props.Document, selectionTitleFieldKey, typeof d.props.Document[selectionTitleFieldKey] === "number" ? +this._accumulatedTitle : this._accumulatedTitle, true)
-                );
-            }
-        }
-    }));
-
-    @action titleEntered = (e: any) => {
-        const key = e.keyCode || e.which;
-        // enter pressed
-        if (key === 13) {
-            const text = e.target.value;
-            if (text.startsWith("::")) {
-                this._accumulatedTitle = text.slice(2, text.length);
-                const promoteDoc = SelectionManager.SelectedDocuments()[0];
-                Doc.SetInPlace(promoteDoc.props.Document, "title", this._accumulatedTitle, true);
-                DocUtils.Publish(promoteDoc.props.Document, this._accumulatedTitle, promoteDoc.props.addDocument, promoteDoc.props.removeDocument);
-            }
-            e.target.blur();
-        }
-    }
-    @action onTitleDown = (e: React.PointerEvent): void => {
-        this._downX = e.clientX;
-        this._downY = e.clientY;
-        e.stopPropagation();
-        document.removeEventListener("pointermove", this.onTitleMove);
-        document.removeEventListener("pointerup", this.onTitleUp);
-        document.addEventListener("pointermove", this.onTitleMove);
-        document.addEventListener("pointerup", this.onTitleUp);
-    }
-    @action onTitleMove = (e: PointerEvent): void => {
-        if (Math.abs(e.clientX - this._downX) > 4 || Math.abs(e.clientY - this._downY) > 4) {
-            this.Interacting = true;
-        }
-        if (this.Interacting) this.onBackgroundMove(e);
-        e.stopPropagation();
-    }
-    @action onTitleUp = (e: PointerEvent): void => {
-        if (Math.abs(e.clientX - this._downX) < 4 || Math.abs(e.clientY - this._downY) < 4) {
-            !this._edtingTitle && (this._accumulatedTitle = this._titleControlString.startsWith("#") ? this.selectionTitle : this._titleControlString);
-            this._edtingTitle = true;
-            setTimeout(() => this._keyinput.current!.focus(), 0);
-        }
-        document.removeEventListener("pointermove", this.onTitleMove);
-        document.removeEventListener("pointerup", this.onTitleUp);
-        this.onBackgroundUp(e);
     }
 
     @computed
@@ -165,16 +92,62 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         }, { x: Number.MAX_VALUE, y: Number.MAX_VALUE, r: Number.MIN_VALUE, b: Number.MIN_VALUE });
     }
 
+    addCloseCall = (handler: CloseCall) => {
+        const currentOffset = this.addedCloseCalls.length - 1;
+        this.addedCloseCalls.push((toBeDeleted: DocumentView[]) => {
+            this.addedCloseCalls.splice(currentOffset, 1);
+            handler(toBeDeleted);
+        });
+    }
+
+    titleBlur = action((commit: boolean) => {
+        this._edtingTitle = false;
+        if (commit) {
+            if (this._accumulatedTitle.startsWith("#") || this._accumulatedTitle.startsWith("=")) {
+                this._titleControlString = this._accumulatedTitle;
+            } else if (this._titleControlString.startsWith("#")) {
+                const selectionTitleFieldKey = this._titleControlString.substring(1);
+                selectionTitleFieldKey === "title" && (SelectionManager.SelectedDocuments()[0].props.Document.customTitle = !this._accumulatedTitle.startsWith("-"));
+                let didAnything = false;
+                UndoManager.RunInBatch(() => selectionTitleFieldKey && SelectionManager.SelectedDocuments().forEach(d => {
+                    const value = typeof d.props.Document[selectionTitleFieldKey] === "number" ? +this._accumulatedTitle : this._accumulatedTitle;
+                    didAnything = didAnything || d.props.Document[selectionTitleFieldKey] !== value;
+                    Doc.SetInPlace(d.props.Document, selectionTitleFieldKey, value, true)
+                }), "title blur");
+                if (!didAnything) UndoManager.Undo();
+            }
+        }
+    });
+
+    @action titleEntered = (e: any) => {
+        const key = e.keyCode || e.which;
+        // enter pressed
+        if (key === 13) {
+            const text = e.target.value;
+            if (text.startsWith("::")) {
+                this._accumulatedTitle = text.slice(2, text.length);
+                const promoteDoc = SelectionManager.SelectedDocuments()[0];
+                Doc.SetInPlace(promoteDoc.props.Document, "title", this._accumulatedTitle, true);
+                DocUtils.Publish(promoteDoc.props.Document, this._accumulatedTitle, promoteDoc.props.addDocument, promoteDoc.props.removeDocument);
+            }
+            e.target.blur();
+        }
+    }
+    @action onTitleDown = (e: React.PointerEvent): void => {
+        setupMoveUpEvents(this, e, this.onBackgroundMove, (e) => { }, this.onTitleClick);
+    }
+    @action onTitleClick = (e: PointerEvent): void => {
+        !this._edtingTitle && (this._accumulatedTitle = this._titleControlString.startsWith("#") ? this.selectionTitle : this._titleControlString);
+        this._edtingTitle = true;
+        setTimeout(() => this._keyinput.current!.focus(), 0);
+    }
+
     onBackgroundDown = (e: React.PointerEvent): void => {
-        document.removeEventListener("pointermove", this.onBackgroundMove);
-        document.removeEventListener("pointerup", this.onBackgroundUp);
-        document.addEventListener("pointermove", this.onBackgroundMove);
-        document.addEventListener("pointerup", this.onBackgroundUp);
-        e.stopPropagation();
+        setupMoveUpEvents(this, e, this.onBackgroundMove, (e) => { }, (e) => { });
     }
 
     @action
-    onBackgroundMove = (e: PointerEvent): void => {
+    onBackgroundMove = (e: PointerEvent, down: number[]): boolean => {
         const dragDocView = SelectionManager.SelectedDocuments()[0];
         const dragData = new DragManager.DocumentDragData(SelectionManager.SelectedDocuments().map(dv => dv.props.Document));
         const [left, top] = dragDocView.props.ScreenToLocalTransform().scale(dragDocView.props.ContentScaling()).inverse().transformPoint(0, 0);
@@ -183,43 +156,19 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         dragData.isSelectionMove = true;
         this.Interacting = true;
         this._hidden = true;
-        document.removeEventListener("pointermove", this.onBackgroundMove);
-        document.removeEventListener("pointerup", this.onBackgroundUp);
-        document.removeEventListener("pointermove", this.onTitleMove);
-        document.removeEventListener("pointerup", this.onTitleUp);
         DragManager.StartDocumentDrag(SelectionManager.SelectedDocuments().map(documentView => documentView.ContentDiv!), dragData, e.x, e.y, {
             dragComplete: action(e => this._hidden = this.Interacting = false),
             hideSource: true
         });
-        e.stopPropagation();
-    }
-
-    @action
-    onBackgroundUp = (e: PointerEvent): void => {
-        document.removeEventListener("pointermove", this.onBackgroundMove);
-        document.removeEventListener("pointerup", this.onBackgroundUp);
-        e.stopPropagation();
-        e.preventDefault();
+        return true;
     }
 
     onCloseDown = (e: React.PointerEvent): void => {
-        e.stopPropagation();
-        if (e.button === 0) {
-            document.removeEventListener("pointermove", this.onCloseMove);
-            document.addEventListener("pointermove", this.onCloseMove);
-            document.removeEventListener("pointerup", this.onCloseUp);
-            document.addEventListener("pointerup", this.onCloseUp);
-        }
-    }
-    onCloseMove = (e: PointerEvent): void => {
-        e.stopPropagation();
-        if (e.button === 0) {
-        }
+        setupMoveUpEvents(this, e, (e, d) => false, (e) => { }, this.onCloseClick);
     }
     @undoBatch
     @action
-    onCloseUp = async (e: PointerEvent) => {
-        e.stopPropagation();
+    onCloseClick = async (e: PointerEvent) => {
         if (e.button === 0) {
             const recent = Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc) as Doc;
             const selected = SelectionManager.SelectedDocuments().slice();
@@ -230,37 +179,16 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 recent && Doc.AddDocToList(recent, "data", dv.props.Document, undefined, true, true);
                 dv.props.removeDocument && dv.props.removeDocument(dv.props.Document);
             });
-            document.removeEventListener("pointermove", this.onCloseMove);
-            document.removeEventListener("pointerup", this.onCloseUp);
         }
     }
     @action
     onMinimizeDown = (e: React.PointerEvent): void => {
-        e.stopPropagation();
-        if (e.button === 0) {
-            document.removeEventListener("pointermove", this.onMinimizeMove);
-            document.addEventListener("pointermove", this.onMinimizeMove);
-            document.removeEventListener("pointerup", this.onMinimizeUp);
-            document.addEventListener("pointerup", this.onMinimizeUp);
-        }
-    }
-
-    @action
-    onMinimizeMove = (e: PointerEvent): void => {
-        e.stopPropagation();
-        if (Math.abs(e.pageX - this._downX) > Utils.DRAG_THRESHOLD ||
-            Math.abs(e.pageY - this._downY) > Utils.DRAG_THRESHOLD) {
-            document.removeEventListener("pointermove", this.onMinimizeMove);
-            document.removeEventListener("pointerup", this.onMinimizeUp);
-        }
+        setupMoveUpEvents(this, e, (e, d) => false, (e) => { }, this.onMinimizeClick);
     }
     @undoBatch
     @action
-    onMinimizeUp = (e: PointerEvent): void => {
-        e.stopPropagation();
+    onMinimizeClick = (e: PointerEvent): void => {
         if (e.button === 0) {
-            document.removeEventListener("pointermove", this.onMinimizeMove);
-            document.removeEventListener("pointerup", this.onMinimizeUp);
             const selectedDocs = SelectionManager.SelectedDocuments().map(sd => sd);
             selectedDocs.map(dv => {
                 const layoutKey = Cast(dv.props.Document.layoutKey, "string", null);
@@ -280,106 +208,68 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
     @action
     onRadiusDown = (e: React.PointerEvent): void => {
-        e.stopPropagation();
+        setupMoveUpEvents(this, e, this.onRadiusMove, (e) => this._resizeUndo?.end(), (e) => { });
         if (e.button === 0) {
-            this._radiusDown = [e.clientX, e.clientY];
-            this._isPointerDown = true;
             this._resizeUndo = UndoManager.StartBatch("DocDecs set radius");
-            document.removeEventListener("pointermove", this.onRadiusMove);
-            document.removeEventListener("pointerup", this.onRadiusUp);
-            document.addEventListener("pointermove", this.onRadiusMove);
-            document.addEventListener("pointerup", this.onRadiusUp);
         }
     }
 
-    onRadiusMove = (e: PointerEvent): void => {
-        let dist = Math.sqrt((e.clientX - this._radiusDown[0]) * (e.clientX - this._radiusDown[0]) + (e.clientY - this._radiusDown[1]) * (e.clientY - this._radiusDown[1]));
+    onRadiusMove = (e: PointerEvent, down: number[]): boolean => {
+        let dist = Math.sqrt((e.clientX - down[0]) * (e.clientX - down[0]) + (e.clientY - down[1]) * (e.clientY - down[1]));
         dist = dist < 3 ? 0 : dist;
-        SelectionManager.SelectedDocuments().map(dv => dv.props.Document.layout instanceof Doc ? dv.props.Document.layout : dv.props.Document.isTemplateForField ? dv.props.Document : Doc.GetProto(dv.props.Document)).
+        SelectionManager.SelectedDocuments().map(dv => dv.props.Document).map(doc => doc.layout instanceof Doc ? doc.layout : doc.isTemplateForField ? doc : Doc.GetProto(doc)).
             map(d => d.borderRounding = `${Math.min(100, dist)}%`);
-        e.stopPropagation();
-        e.preventDefault();
+        return false;
     }
 
-    onRadiusUp = (e: PointerEvent): void => {
-        e.stopPropagation();
-        e.preventDefault();
-        this._isPointerDown = false;
-        this._resizeUndo && this._resizeUndo.end();
-        document.removeEventListener("pointermove", this.onRadiusMove);
-        document.removeEventListener("pointerup", this.onRadiusUp);
-    }
-
-    _lastX = 0;
-    _lastY = 0;
     @action
     onPointerDown = (e: React.PointerEvent): void => {
-        e.stopPropagation();
+        setupMoveUpEvents(this, e, this.onPointerMove, this.onPointerUp, (e) => { });
         if (e.button === 0) {
-            this._lastX = e.clientX;
-            this._lastY = e.clientY;
-            this._isPointerDown = true;
-            this._resizing = e.currentTarget.id;
+            this._resizeHdlId = e.currentTarget.id;
             this.Interacting = true;
             this._resizeUndo = UndoManager.StartBatch("DocDecs resize");
-            document.removeEventListener("pointermove", this.onPointerMove);
-            document.addEventListener("pointermove", this.onPointerMove);
-            document.removeEventListener("pointerup", this.onPointerUp);
-            document.addEventListener("pointerup", this.onPointerUp);
         }
     }
 
-
-    onPointerMove = (e: PointerEvent): void => {
-        e.stopPropagation();
-        e.preventDefault();
-        if (!this._isPointerDown) {
-            return;
-        }
-
+    onPointerMove = (e: PointerEvent, down: number[], move: number[]): boolean => {
         let dX = 0, dY = 0, dW = 0, dH = 0;
 
-        const moveX = e.clientX - this._lastX; // e.movementX;
-        const moveY = e.clientY - this._lastY; // e.movementY;
-        this._lastX = e.clientX;
-        this._lastY = e.clientY;
-
-        switch (this._resizing) {
-            case "":
-                break;
+        switch (this._resizeHdlId) {
+            case "": break;
             case "documentDecorations-topLeftResizer":
                 dX = -1;
                 dY = -1;
-                dW = -moveX;
-                dH = -moveY;
+                dW = -move[0];
+                dH = -move[1];
                 break;
             case "documentDecorations-topRightResizer":
-                dW = moveX;
+                dW = move[0];
                 dY = -1;
-                dH = -moveY;
+                dH = -move[1];
                 break;
             case "documentDecorations-topResizer":
                 dY = -1;
-                dH = -moveY;
+                dH = -move[1];
                 break;
             case "documentDecorations-bottomLeftResizer":
                 dX = -1;
-                dW = -moveX;
-                dH = moveY;
+                dW = -move[0];
+                dH = move[1];
                 break;
             case "documentDecorations-bottomRightResizer":
-                dW = moveX;
-                dH = moveY;
+                dW = move[0];
+                dH = move[1];
                 break;
             case "documentDecorations-bottomResizer":
-                dH = moveY;
+                dH = move[1];
                 break;
             case "documentDecorations-leftResizer":
                 dX = -1;
-                dW = -moveX;
+                dW = -move[0];
                 break;
             case "documentDecorations-rightResizer":
-                dW = moveX;
+                dW = move[0];
                 break;
         }
 
@@ -430,20 +320,14 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 }
             }
         }));
+        return false;
     }
 
     @action
     onPointerUp = (e: PointerEvent): void => {
-        e.stopPropagation();
-        this._resizing = "";
+        this._resizeHdlId = "";
         this.Interacting = false;
-        if (e.button === 0) {
-            e.preventDefault();
-            this._isPointerDown = false;
-            this._resizeUndo && this._resizeUndo.end();
-            document.removeEventListener("pointermove", this.onPointerMove);
-            document.removeEventListener("pointerup", this.onPointerUp);
-        }
+        (e.button === 0) && this._resizeUndo?.end();
     }
 
     @computed
@@ -494,7 +378,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         const titleArea = this._edtingTitle ?
             <>
                 <input ref={this._keyinput} className="title" type="text" name="dynbox" autoComplete="on" value={this._accumulatedTitle} style={{ width: "calc(100% - 20px)" }}
-                    onBlur={e => this.titleBlur(true)} onChange={this.titleChanged} onKeyPress={this.titleEntered} />
+                    onBlur={e => this.titleBlur(true)} onChange={action(e => this._accumulatedTitle = e.target.value)} onKeyPress={this.titleEntered} />
                 <div className="publishBox" title="make document referenceable by its title"
                     onPointerDown={e => DocUtils.Publish(seldoc.props.Document, this._accumulatedTitle, seldoc.props.addDocument, seldoc.props.removeDocument)}>
                     <FontAwesomeIcon size="lg" color={SelectionManager.SelectedDocuments()[0].props.Document.title === SelectionManager.SelectedDocuments()[0].props.Document[Id] ? "green" : undefined} icon="sticky-note"></FontAwesomeIcon>
