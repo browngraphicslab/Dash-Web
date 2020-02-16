@@ -189,7 +189,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     }
     getDocHeight(d?: Doc) {
         if (!d) return 0;
-        let layoutDoc = Doc.Layout(d, this.props.childLayoutTemplate?.());
+        const layoutDoc = Doc.Layout(d, this.props.childLayoutTemplate?.());
         const nw = NumCast(layoutDoc._nativeWidth);
         const nh = NumCast(layoutDoc._nativeHeight);
         let wid = this.columnWidth / (this.isStackingView ? this.numGroupColumns : 1);
@@ -234,7 +234,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
 
     @undoBatch
     @action
-    drop = (e: Event, de: DragManager.DropEvent) => {
+    onInternalDrop = (e: Event, de: DragManager.DropEvent) => {
         const where = [de.x, de.y];
         let targInd = -1;
         let plusOne = 0;
@@ -248,7 +248,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                     plusOne = where[axis] > (pos[axis] + pos1[axis]) / 2 ? 1 : 0;
                 }
             });
-            if (super.drop(e, de)) {
+            if (super.onInternalDrop(e, de)) {
                 const newDoc = de.complete.docDragData.droppedDocuments[0];
                 const docs = this.childDocList;
                 if (docs) {
@@ -264,7 +264,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     }
     @undoBatch
     @action
-    onDrop = async (e: React.DragEvent): Promise<void> => {
+    onExternalDrop = async (e: React.DragEvent): Promise<void> => {
         const where = [e.clientX, e.clientY];
         let targInd = -1;
         this._docXfs.map((cd, i) => {
@@ -274,7 +274,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                 targInd = i;
             }
         });
-        super.onDrop(e, {}, () => {
+        super.onExternalDrop(e, {}, () => {
             if (targInd !== -1) {
                 const newDoc = this.childDocs[this.childDocs.length - 1];
                 const docs = this.childDocList;
@@ -405,7 +405,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                         transformOrigin: "top left",
                     }}
                     onScroll={action((e: React.UIEvent<HTMLDivElement>) => this._scroll = e.currentTarget.scrollTop)}
-                    onDrop={this.onDrop.bind(this)}
+                    onDrop={this.onExternalDrop.bind(this)}
                     onContextMenu={this.onContextMenu}
                     onWheel={e => this.props.active() && e.stopPropagation()} >
                     {this.renderedSections}

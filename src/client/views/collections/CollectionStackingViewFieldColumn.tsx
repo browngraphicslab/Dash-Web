@@ -71,7 +71,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
             else {
                 de.complete.docDragData.droppedDocuments.forEach(d => d[key] = undefined);
             }
-            this.props.parent.drop(e, de);
+            this.props.parent.onInternalDrop(e, de);
             e.stopPropagation();
         }
     });

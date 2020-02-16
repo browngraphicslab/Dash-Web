@@ -189,8 +189,8 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
 
     @undoBatch
     @action
-    drop = (e: Event, de: DragManager.DropEvent) => {
-        if (super.drop(e, de)) {
+    onInternalDrop = (e: Event, de: DragManager.DropEvent) => {
+        if (super.onInternalDrop(e, de)) {
             de.complete.docDragData?.droppedDocuments.forEach(action((d: Doc) => {
                 d.dimUnit = "*";
                 d.dimMagnitude = 1;
@@ -214,7 +214,7 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
             getTransform={dxf}
             onClick={this.onChildClickHandler}
             renderDepth={this.props.renderDepth + 1}
-        />
+        />;
     }
     /**
      * @returns the resolved list of rendered child documents, displayed

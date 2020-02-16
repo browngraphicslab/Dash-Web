@@ -117,20 +117,20 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     @action
-    onDrop = (e: React.DragEvent): Promise<void> => {
+    onExternalDrop = (e: React.DragEvent): Promise<void> => {
         const pt = this.getTransform().transformPoint(e.pageX, e.pageY);
-        return super.onDrop(e, { x: pt[0], y: pt[1] });
+        return super.onExternalDrop(e, { x: pt[0], y: pt[1] });
     }
 
     @undoBatch
     @action
-    drop = (e: Event, de: DragManager.DropEvent) => {
+    onInternalDrop = (e: Event, de: DragManager.DropEvent) => {
         if (this.props.Document.isBackground) return false;
         const xf = this.getTransform();
         const xfo = this.getTransformOverlay();
         const [xp, yp] = xf.transformPoint(de.x, de.y);
         const [xpo, ypo] = xfo.transformPoint(de.x, de.y);
-        if (super.drop(e, de)) {
+        if (super.onInternalDrop(e, de)) {
             if (de.complete.docDragData) {
                 if (de.complete.docDragData.droppedDocuments.length) {
                     const firstDoc = de.complete.docDragData.droppedDocuments[0];
@@ -1079,7 +1079,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         return <div className={"collectionfreeformview-container"}
             ref={this.createDashEventsTarget}
             onWheel={this.onPointerWheel}//pointerEvents: SelectionManager.GetIsDragging() ? "all" : undefined,
-            onPointerDown={this.onPointerDown} onPointerMove={this.onCursorMove} onDrop={this.onDrop.bind(this)} onContextMenu={this.onContextMenu}
+            onPointerDown={this.onPointerDown} onPointerMove={this.onCursorMove} onDrop={this.onExternalDrop.bind(this)} onContextMenu={this.onContextMenu}
             style={{
                 pointerEvents: SelectionManager.GetIsDragging() ? "all" : undefined,
                 transform: this.contentScaling ? `scale(${this.contentScaling})` : "",

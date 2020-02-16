@@ -80,7 +80,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
             const key = StrCast(this.props.parent.props.Document.sectionFilter);
             const castedValue = this.getValue(this._heading);
             de.complete.docDragData.droppedDocuments.forEach(d => d[key] = castedValue);
-            this.props.parent.drop(e, de);
+            this.props.parent.onInternalDrop(e, de);
             e.stopPropagation();
         }
     });

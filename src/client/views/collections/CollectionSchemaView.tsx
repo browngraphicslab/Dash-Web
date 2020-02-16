@@ -14,7 +14,6 @@ import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 import { ComputedField } from "../../../new_fields/ScriptField";
 import { Cast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
 import { Docs, DocumentOptions } from "../../documents/Documents";
-import { DocumentType } from "../../documents/DocumentTypes";
 import { Gateway } from "../../northstar/manager/Gateway";
 import { CompileScript, Transformer, ts } from "../../util/Scripting";
 import { Transform } from "../../util/Transform";
@@ -175,7 +174,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             moveDocument={this.props.moveDocument}
             ScreenToLocalTransform={this.props.ScreenToLocalTransform}
             active={this.props.active}
-            onDrop={this.onDrop}
+            onDrop={this.onExternalDrop}
             addDocTab={this.props.addDocTab}
             pinToPres={this.props.pinToPres}
             isSelected={this.props.isSelected}
@@ -199,7 +198,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     render() {
         return <div className="collectionSchemaView-container">
-            <div className="collectionSchemaView-tableContainer" onPointerDown={this.onPointerDown} onWheel={e => this.props.active(true) && e.stopPropagation()} onDrop={e => this.onDrop(e, {})} ref={this.createTarget}>
+            <div className="collectionSchemaView-tableContainer" onPointerDown={this.onPointerDown} onWheel={e => this.props.active(true) && e.stopPropagation()} onDrop={e => this.onExternalDrop(e, {})} ref={this.createTarget}>
                 {this.schemaTable}
             </div>
             {this.dividerDragger}
@@ -692,7 +691,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     onContextMenu = (e: React.MouseEvent): void => {
         if (!e.isPropagationStopped() && this.props.Document[Id] !== "mainDoc") { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
             // ContextMenu.Instance.addItem({ description: "Make DB", event: this.makeDB, icon: "table" });
-            ContextMenu.Instance.addItem({ description: "Toggle text wrapping", event: this.toggleTextwrap, icon: "table" })
+            ContextMenu.Instance.addItem({ description: "Toggle text wrapping", event: this.toggleTextwrap, icon: "table" });
         }
     }
 
