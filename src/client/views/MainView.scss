@@ -29,6 +29,9 @@
     left: 0;
     z-index: 1;
     touch-action: none;
+    .searchBox-container {
+        background: lightgray;
+    }
 }
 
 .mainView-container-dark {
@@ -37,6 +40,19 @@
     }
     .marquee {
         border-color: white;
+    }
+    #search-input {
+        background: lightgray;
+    }
+    .searchBox-container  {
+        background: rgb(45,45,45);
+    }
+    .contextMenu-cont, .contextMenu-item {
+        background: dimGray;
+        color: lightgray;
+    }
+    .contextMenu-item:hover {
+        background: gray;
     }
 }
 

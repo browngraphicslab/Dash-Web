@@ -274,16 +274,25 @@ export class MainView extends React.Component {
     getPHeight = () => this._panelHeight;
     getContentsHeight = () => this._panelHeight - this._buttonBarHeight;
 
-    childBackgroundColor = (doc: Doc) => {
+    defaultBackgroundColors = (doc: Doc) => {
         if (this.darkScheme) {
-            return doc.type === DocumentType.TEXT || doc.type === DocumentType.BUTTON ? "#2d2d2d" :
-                (doc.type === DocumentType.COL && doc._viewType !== CollectionViewType.Freeform && doc._viewType !== CollectionViewType.Time) || doc.type === DocumentType.BUTTON ? "#2d2d2d" : "black";
+            switch (doc.type) {
+                case DocumentType.TEXT || DocumentType.BUTTON: return "#2d2d2d";
+                case DocumentType.COL: {
+                    if (doc._viewType !== CollectionViewType.Freeform && doc._viewType !== CollectionViewType.Time) return "rgb(62,62,62)";
+                }
+                default: return "black";
+            }
+        } else {
+            switch (doc.type) {
+                case DocumentType.TEXT: return "#f1efeb";
+                case DocumentType.BUTTON: return "lightgray";
+                case DocumentType.COL: {
+                    if (doc._viewType !== CollectionViewType.Freeform && doc._viewType !== CollectionViewType.Time) return "lightgray";
+                }
+                default: return "white";
+            }
         }
-        return doc.type === DocumentType.TEXT ? "#f1efeb" :
-            (doc.type === DocumentType.COL && doc._viewType !== CollectionViewType.Freeform && doc._viewType !== CollectionViewType.Time) || doc.type === DocumentType.BUTTON ? "lightgray" : "white";
-    }
-    sidebarBackgroundColor = (doc: Doc) => {
-        return this.childBackgroundColor(doc);
     }
     @computed get mainDocView() {
         return <DocumentView Document={this.mainContainer!}
@@ -293,7 +302,7 @@ export class MainView extends React.Component {
             addDocTab={this.addDocTabFunc}
             pinToPres={emptyFunction}
             onClick={undefined}
-            backgroundColor={this.childBackgroundColor}
+            backgroundColor={this.defaultBackgroundColors}
             removeDocument={undefined}
             ScreenToLocalTransform={Transform.Identity}
             ContentScaling={returnOne}
@@ -384,7 +393,7 @@ export class MainView extends React.Component {
         }
         const sidebarButtonsDoc = Cast(CurrentUserUtils.UserDocument.sidebarButtons, Doc) as Doc;
         return <div className="mainView-flyoutContainer" >
-            <div className="mainView-tabButtons" style={{ height: `${this._buttonBarHeight}px` }}>
+            <div className="mainView-tabButtons" style={{ height: `${this._buttonBarHeight}px`, paddingTop: 10, backgroundColor: StrCast(sidebarButtonsDoc.backgroundColor) }}>
                 <DocumentView
                     Document={sidebarButtonsDoc}
                     DataDoc={undefined}
@@ -400,7 +409,7 @@ export class MainView extends React.Component {
                     PanelHeight={this.getPHeight}
                     renderDepth={0}
                     focus={emptyFunction}
-                    backgroundColor={this.sidebarBackgroundColor}
+                    backgroundColor={this.defaultBackgroundColors}
                     parentActive={returnTrue}
                     whenActiveChanged={emptyFunction}
                     bringToFront={emptyFunction}
@@ -426,7 +435,7 @@ export class MainView extends React.Component {
                     PanelHeight={this.getContentsHeight}
                     renderDepth={0}
                     focus={emptyFunction}
-                    backgroundColor={this.sidebarBackgroundColor}
+                    backgroundColor={this.defaultBackgroundColors}
                     parentActive={returnTrue}
                     whenActiveChanged={emptyFunction}
                     bringToFront={emptyFunction}
@@ -445,14 +454,14 @@ export class MainView extends React.Component {
             {this.docButtons}
         </div>;
     }
-
+    //`${StrCast(sidebar.backgroundColor, this.darkScheme ? "dimGray" : "black")}` }} >
     @computed get mainContent() {
         const sidebar = this.userDoc && this.userDoc.sidebarContainer;
         return !this.userDoc || !(sidebar instanceof Doc) ? (null) : (
             <div className="mainView-mainContent" style={{ color: this.darkScheme ? "dimGray" : "black" }} >
                 <div className="mainView-flyoutContainer" onPointerLeave={this.pointerLeaveDragger} style={{ width: this.flyoutWidth }}>
                     <div className="mainView-libraryHandle" onPointerDown={this.onPointerDown} onPointerOver={this.pointerOverDragger}
-                        style={{ backgroundColor: `${StrCast(sidebar.backgroundColor, this.darkScheme ? "dimGray" : "black")}` }} >
+                        style={{ backgroundColor: this.defaultBackgroundColors(sidebar) }}>
                         <span title="library View Dragger" style={{
                             width: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "3vw",
                             //height: (this.flyoutWidth !== 0 && this._flyoutTranslate) ? "100%" : "100vh",
