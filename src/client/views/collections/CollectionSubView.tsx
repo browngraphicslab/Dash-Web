@@ -1,4 +1,4 @@
-import { action, computed, IReactionDisposer, reaction, trace } from "mobx";
+import { action, computed, IReactionDisposer, reaction } from "mobx";
 import * as rp from 'request-promise';
 import CursorField from "../../../new_fields/CursorField";
 import { Doc, DocListCast, Opt, WidthSym, HeightSym } from "../../../new_fields/Doc";
@@ -25,6 +25,7 @@ import { ImageUtils } from "../../util/Import & Export/ImageUtils";
 import { Networking } from "../../Network";
 import { GestureUtils } from "../../../pen-gestures/GestureUtils";
 import { InteractionUtils } from "../../util/InteractionUtils";
+import { Upload } from "../../../server/SharedMediaTypes";
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Doc) => boolean;
@@ -288,6 +289,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             }
             const { items } = e.dataTransfer;
             const { length } = items;
+            const files: File[] = [];
             if (length) {
                 const batch = UndoManager.StartBatch("collection view drop");
                 const promises: Promise<void>[] = [];
@@ -307,41 +309,31 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                             });
                         promises.push(prom);
                     }
-                    const type = item.type;
                     if (item.kind === "file") {
                         const file = item.getAsFile();
-                        const formData = new FormData();
-
-                        if (!file || !file.type) {
-                            continue;
-                        }
-
-                        formData.append('file', file);
-                        const dropFileName = file ? file.name : "-empty-";
-                        promises.push(Networking.PostFormDataToServer("/uploadFormData", formData).then(results => {
-                            results.map(action((result: any) => {
-                                const { accessPaths, nativeWidth, nativeHeight, contentSize } = result;
-                                if (Object.keys(accessPaths).length) {
-                                    const full = { ...options, _width: 300, title: dropFileName };
-                                    const pathname = Utils.prepend(accessPaths.agnostic.client);
-                                    Docs.Get.DocumentFromType(type, pathname, full).then(doc => {
-                                        if (doc) {
-                                            const proto = Doc.GetProto(doc);
-                                            proto.fileUpload = basename(pathname).replace("upload_", "").replace(/\.[a-z0-9]*$/, "");
-                                            nativeWidth && (proto["data-nativeWidth"] = nativeWidth);
-                                            nativeHeight && (proto["data-nativeHeight"] = nativeHeight);
-                                            contentSize && (proto.contentSize = contentSize);
-                                            this.props?.addDocument(doc);
-                                        }
-                                    });
-                                } else {
-                                    alert("Upload failed...");
-                                }
-                            }));
-                        }));
+                        file && file.type && files.push(file);
                     }
                 }
-
+                (await Networking.UploadFilesToServer(files)).forEach(({ source: { name, type }, result }) => {
+                    if (result instanceof Error) {
+                        alert(`Upload failed: ${result.message}`);
+                        return;
+                    }
+                    const full = { ...options, _width: 300, title: name };
+                    const pathname = Utils.prepend(result.accessPaths.agnostic.client);
+                    Docs.Get.DocumentFromType(type, pathname, full).then(doc => {
+                        if (doc) {
+                            const proto = Doc.GetProto(doc);
+                            proto.fileUpload = basename(pathname).replace("upload_", "").replace(/\.[a-z0-9]*$/, "");
+                            if (Upload.isImageInformation(result)) {
+                                proto["data-nativeWidth"] = result.nativeWidth;
+                                proto["data-nativeHeight"] = result.nativeHeight;
+                                proto.contentSize = result.contentSize;
+                            }
+                            this.props?.addDocument(doc);
+                        }
+                    });
+                });
                 if (promises.length) {
                     Promise.all(promises).finally(() => { completed && completed(); batch.end(); });
                 } else {

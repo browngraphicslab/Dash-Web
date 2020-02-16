@@ -112,10 +112,10 @@ export class Doc extends RefField {
             // getPrototypeOf: (target) => Cast(target[SelfProxy].proto, Doc) || null, // TODO this might be able to replace the proto logic in getter
             has: (target, key) => key in target.__fields,
             ownKeys: target => {
-                let obj = {} as any;
+                const obj = {} as any;
                 Object.assign(obj, target.___fields);
                 runInAction(() => obj.__LAYOUT__ = target.__LAYOUT__);
-                return Object.keys(obj)
+                return Object.keys(obj);
             },
             getOwnPropertyDescriptor: (target, prop) => {
                 if (prop.toString() === "__LAYOUT__") {
@@ -864,7 +864,7 @@ Scripting.addGlobal(function redo() { return UndoManager.Redo(); });
 Scripting.addGlobal(function curPresentationItem() {
     const curPres = Doc.UserDoc().curPresentation as Doc;
     return curPres && DocListCast(curPres[Doc.LayoutFieldKey(curPres)])[NumCast(curPres._itemIndex)];
-})
+});
 Scripting.addGlobal(function selectDoc(doc: any) { Doc.UserDoc().SelectedDocs = new List([doc]); });
 Scripting.addGlobal(function selectedDocs(container: Doc, excludeCollections: boolean, prevValue: any) {
     const docs = DocListCast(Doc.UserDoc().SelectedDocs).filter(d => !Doc.AreProtosEqual(d, container) && !d.annotationOn && d.type !== DocumentType.DOCUMENT && d.type !== DocumentType.KVP && (!excludeCollections || !Cast(d.data, listSpec(Doc), null)));

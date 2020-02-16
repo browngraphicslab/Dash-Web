@@ -8,6 +8,7 @@ import { Opt } from "../../new_fields/Doc";
 import { DashUploadUtils, InjectSize, SizeSuffix } from "../DashUploadUtils";
 import { Database } from "../database";
 import { red } from "colors";
+import { Upload } from "../SharedMediaTypes";
 
 const prefix = "google_photos_";
 const remoteUploadError = "None of the preliminary uploads to Google's servers was successful.";
@@ -139,7 +140,7 @@ export default class GooglePhotosManager extends ApiManager {
                     return;
                 }
                 let failed = 0;
-                const completed: Opt<DashUploadUtils.ImageUploadInformation>[] = [];
+                const completed: Opt<Upload.ImageInformation>[] = [];
                 for (const { baseUrl } of mediaItems) {
                     // start by getting the content size of the remote image
                     const results = await DashUploadUtils.InspectImage(baseUrl);
@@ -151,7 +152,7 @@ export default class GooglePhotosManager extends ApiManager {
                     const { contentSize, ...attributes } = results;
                     // check to see if we have uploaded a Google user content image *specifically via this route* already
                     // that has this exact content size
-                    const found: Opt<DashUploadUtils.ImageUploadInformation> = await Database.Auxiliary.QueryUploadHistory(contentSize);
+                    const found: Opt<Upload.ImageInformation> = await Database.Auxiliary.QueryUploadHistory(contentSize);
                     if (!found) {
                         // if we haven't, then upload it locally to Dash's server
                         const upload = await DashUploadUtils.UploadInspectedImage({ contentSize, ...attributes }, undefined, prefix, false).catch(error => _error(res, downloadError, error));

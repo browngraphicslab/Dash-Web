@@ -8,6 +8,7 @@ const StreamZip = require('node-stream-zip');
 const createImageSizeStream = require("image-size-stream");
 import { parseXml } from "libxmljs";
 import { strictEqual } from "assert";
+import { Readable, PassThrough } from "stream";
 
 interface DocumentContents {
     body: string;
@@ -293,15 +294,15 @@ async function writeImages(zip: any): Promise<ImageData[]> {
 
     const imageUrls: ImageData[] = [];
     for (const mediaPath of imageEntries) {
-        const streamImage = () => new Promise<any>((resolve, reject) => {
+        const streamImage = () => new Promise<Readable>((resolve, reject) => {
             zip.stream(mediaPath, (error: any, stream: any) => error ? reject(error) : resolve(stream));
         });
 
         const { width, height, type } = await new Promise<Dimensions>(async resolve => {
-            const sizeStream = createImageSizeStream().on('size', (dimensions: Dimensions) => {
+            const sizeStream = (createImageSizeStream() as PassThrough).on('size', (dimensions: Dimensions) => {
                 readStream.destroy();
                 resolve(dimensions);
-            });
+            }).on("error", () => readStream.destroy());
             const readStream = await streamImage();
             readStream.pipe(sizeStream);
         });
