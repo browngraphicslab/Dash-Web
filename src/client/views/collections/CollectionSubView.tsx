@@ -314,7 +314,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                         file && file.type && files.push(file);
                     }
                 }
-                (await Networking.UploadFilesToServer(files)).forEach(({ source: { name, type }, result }) => {
+                promises.push(Networking.UploadFilesToServer(files).then(responses => responses.forEach(({ source: { name, type }, result }) => {
                     if (result instanceof Error) {
                         alert(`Upload failed: ${result.message}`);
                         return;
@@ -333,7 +333,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                             this.props?.addDocument(doc);
                         }
                     });
-                });
+                })));
                 if (promises.length) {
                     Promise.all(promises).finally(() => { completed && completed(); batch.end(); });
                 } else {
