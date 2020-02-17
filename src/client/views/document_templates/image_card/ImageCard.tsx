@@ -1,4 +1,4 @@
-dimport * as React from 'react';
+import * as React from 'react';
 import { FieldViewProps } from '../../nodes/FieldView';
 import { ImageBox } from '../../nodes/ImageBox';
 
