@@ -67,23 +67,24 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         }
 
         componentDidMount() {
-            this._childLayoutDisposer = reaction(() => [this.childDocs, (Cast(this.props.Document.childLayout, Doc) as Doc)?.[Id]],
-                (args) => {
-                    const childLayout = Cast(this.props.Document.childLayout, Doc);
+            this._childLayoutDisposer = reaction(() => ({ childDocs: this.childDocs, childLayout: Cast(this.props.Document.childLayout, Doc) }),
+                ({ childDocs, childLayout }) => {
                     if (childLayout instanceof Doc) {
-                        this.childDocs.map(doc => {
+                        childDocs.map(doc => {
                             doc.layout_fromParent = childLayout;
                             doc.layoutKey = "layout_fromParent";
                         });
                     }
                     else if (!(childLayout instanceof Promise)) {
-                        this.childDocs.filter(d => !d.isTemplateForField).map(doc => doc.layoutKey === "layout_fromParent" && (doc.layoutKey = "layout"));
+                        childDocs.filter(d => !d.isTemplateForField).map(doc => doc.layoutKey === "layout_fromParent" && (doc.layoutKey = "layout"));
                     }
                 }, { fireImmediately: true });
 
         }
         componentWillUnmount() {
-            this._childLayoutDisposer && this._childLayoutDisposer();
+            this.gestureDisposer?.();
+            this.multiTouchDisposer?.();
+            this._childLayoutDisposer?.();
         }
 
         @computed get dataDoc() {
@@ -96,11 +97,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         // to its children which may be templates.
         // If 'annotationField' is specified, then all children exist on that field of the extension document, otherwise, they exist directly on the data document under 'fieldKey'
         @computed get dataField() {
-            const { annotationsKey, fieldKey } = this.props;
-            if (annotationsKey) {
-                return this.dataDoc[fieldKey + "-" + annotationsKey];
-            }
-            return this.dataDoc[fieldKey];
+            return this.dataDoc[this.props.fieldKey + (this.props.annotationsKey ? "-" + this.props.annotationsKey : "")];
         }
 
         get childLayoutPairs(): { layout: Doc; data: Doc; }[] {
@@ -161,14 +158,6 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             (this.props.Document.dropConverter instanceof ScriptField) &&
                 this.props.Document.dropConverter.script.run({ dragData: docDragData }); /// bcz: check this 
             if (docDragData) {
-                if (de.altKey && docDragData.draggedDocuments.length) {
-                    this.childDocs.map(doc => {
-                        doc.layout_fromParent = docDragData.draggedDocuments[0];
-                        doc.layoutKey = "layout_fromParent";
-                    });
-                    e.stopPropagation();
-                    return true;
-                }
                 let added = false;
                 if (this.props.Document._freezeOnDrop) {
                     de.complete.docDragData?.droppedDocuments.forEach(drop => Doc.freezeNativeDimensions(drop, drop[WidthSym](), drop[HeightSym]()));

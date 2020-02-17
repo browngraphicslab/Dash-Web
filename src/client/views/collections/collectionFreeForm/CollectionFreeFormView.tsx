@@ -72,6 +72,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private _hitCluster = false;
     private _layoutComputeReaction: IReactionDisposer | undefined;
     private _layoutPoolData = observable.map<string, any>();
+    private _cachedPool: Map<string, any> = new Map();
 
     public get displayName() { return "CollectionFreeFormView(" + this.props.Document.title?.toString() + ")"; } // this makes mobx trace() statements more descriptive
     @observable.shallow _layoutElements: ViewDefResult[] = []; // shallow because some layout items (eg pivot labels) are just generated 'divs' and can't be frozen as observables
@@ -436,15 +437,15 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         const [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
         if (!this.isAnnotationOverlay && docs.length && this.childDataProvider(docs[0])) {
             PDFMenu.Instance.fadeOut(true);
-            const minx = this.childDataProvider(docs[0]).x;//docs.length ? NumCast(docs[0].x) : 0;
-            const miny = this.childDataProvider(docs[0]).y;//docs.length ? NumCast(docs[0].y) : 0;
-            const maxx = this.childDataProvider(docs[0]).width + minx;//docs.length ? NumCast(docs[0].width) + minx : minx;
-            const maxy = this.childDataProvider(docs[0]).height + miny;//docs.length ? NumCast(docs[0].height) + miny : miny;
-            const ranges = docs.filter(doc => doc).filter(doc => this.childDataProvider(doc)).reduce((range, doc) => {
-                const x = this.childDataProvider(doc).x;//NumCast(doc.x);
-                const y = this.childDataProvider(doc).y;//NumCast(doc.y);
-                const xe = this.childDataProvider(doc).width + x;//x + NumCast(layoutDoc.width);
-                const ye = this.childDataProvider(doc).height + y; //y + NumCast(layoutDoc.height);
+            const minx = this.childDataProvider(docs[0]).x;
+            const miny = this.childDataProvider(docs[0]).y;
+            const maxx = this.childDataProvider(docs[0]).width + minx;
+            const maxy = this.childDataProvider(docs[0]).height + miny;
+            const ranges = docs.filter(doc => doc && this.childDataProvider(doc)).reduce((range, doc) => {
+                const x = this.childDataProvider(doc).x;
+                const y = this.childDataProvider(doc).y;
+                const xe = this.childDataProvider(doc).width + x;
+                const ye = this.childDataProvider(doc).height + y;
                 return [[range[0][0] > x ? x : range[0][0], range[0][1] < xe ? xe : range[0][1]],
                 [range[1][0] > y ? y : range[1][0], range[1][1] < ye ? ye : range[1][1]]];
             }, [[minx, maxx], [miny, maxy]]);
@@ -743,9 +744,10 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             return { ...result, transition: "transform 1s" };
         }
         const layoutDoc = Doc.Layout(params.doc);
+        const { x, y, z, color, zIndex } = params.doc;
         return {
-            x: Cast(params.doc.x, "number"), y: Cast(params.doc.y, "number"), z: Cast(params.doc.z, "number"), color: Cast(params.doc.color, "string"),
-            zIndex: Cast(params.doc.zIndex, "number"), width: Cast(layoutDoc._width, "number"), height: Cast(layoutDoc._height, "number")
+            x: NumCast(x), y: NumCast(y), z: Cast(z, "number"), color: StrCast(color), zIndex: Cast(zIndex, "number"),
+            width: Cast(layoutDoc._width, "number"), height: Cast(layoutDoc._height, "number")
         };
     }
 
@@ -757,55 +759,46 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         (this.props.Document.onViewDefDivClick as ScriptField)?.script.run({ this: this.props.Document, payload });
     }
     private viewDefToJSX(viewDef: ViewDefBounds): Opt<ViewDefResult> {
-        const x = Cast(viewDef.x, "number");
-        const y = Cast(viewDef.y, "number");
-        const z = Cast(viewDef.z, "number");
-        const highlight = Cast(viewDef.highlight, "boolean");
-        const zIndex = Cast(viewDef.zIndex, "number");
-        const color = Cast(viewDef.color, "string");
-        const width = Cast(viewDef.width, "number", null);
-        const height = Cast(viewDef.height, "number", null);
+        const { x, y, z } = viewDef;
+        const color = StrCast(viewDef.color);
+        const width = Cast(viewDef.width, "number");
+        const height = Cast(viewDef.height, "number");
+        const transform = `translate(${x}px, ${y}px)`;
         if (viewDef.type === "text") {
             const text = Cast(viewDef.text, "string"); // don't use NumCast, StrCast, etc since we want to test for undefined below
             const fontSize = Cast(viewDef.fontSize, "number");
             return [text, x, y].some(val => val === undefined) ? undefined :
                 {
-                    ele: <div className="collectionFreeform-customText" key={(text || "") + x + y + z + color}
-                        style={{ width, height, color, fontSize, transform: `translate(${x}px, ${y}px)` }}>
+                    ele: <div className="collectionFreeform-customText" key={(text || "") + x + y + z + color} style={{ width, height, color, fontSize, transform }}>
                         {text}
                     </div>,
                     bounds: viewDef
                 };
         } else if (viewDef.type === "div") {
-            const backgroundColor = Cast(viewDef.color, "string");
             return [x, y].some(val => val === undefined) ? undefined :
                 {
                     ele: <div className="collectionFreeform-customDiv" title={viewDef.payload?.join(" ")} key={"div" + x + y + z} onClick={e => this.onViewDefDivClick(e, viewDef)}
-                        style={{ width, height, backgroundColor, transform: `translate(${x}px, ${y}px)` }} />,
+                        style={{ width, height, backgroundColor: color, transform }} />,
                     bounds: viewDef
                 };
         }
     }
 
     childDataProvider = computedFn(function childDataProvider(this: any, doc: Doc) {
-        if (!doc) {
-            console.log(doc);
-        }
         return this._layoutPoolData.get(doc[Id]);
     }.bind(this));
 
-    doTimelineLayout(poolData: Map<string, any>) {
+    doTimelineLayout(poolData: Map<string, PoolData>) {
         return computeTimelineLayout(poolData, this.props.Document, this.childDocs, this.filterDocs,
             this.childLayoutPairs, [this.props.PanelWidth(), this.props.PanelHeight()], this.viewDefsToJSX);
     }
 
-    doPivotLayout(poolData: Map<string, any>) {
+    doPivotLayout(poolData: Map<string, PoolData>) {
         return computePivotLayout(poolData, this.props.Document, this.childDocs, this.filterDocs,
             this.childLayoutPairs, [this.props.PanelWidth(), this.props.PanelHeight()], this.viewDefsToJSX);
     }
 
-    _cachedPool: Map<string, any> = new Map();
-    doFreeformLayout(poolData: Map<string, any>) {
+    doFreeformLayout(poolData: Map<string, PoolData>) {
         const layoutDocs = this.childLayoutPairs.map(pair => pair.layout);
         const initResult = this.Document.arrangeInit && this.Document.arrangeInit.script.run({ docs: layoutDocs, collection: this.Document }, console.log);
         const state = initResult && initResult.success ? initResult.result.scriptState : undefined;
@@ -830,25 +823,19 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     @computed get filterDocs() {
         const docFilters = Cast(this.props.Document._docFilters, listSpec("string"), []);
         const docRangeFilters = Cast(this.props.Document._docRangeFilters, listSpec("string"), []);
-        const clusters: { [key: string]: { [value: string]: string } } = {};
+        const filterFacets: { [key: string]: { [value: string]: string } } = {};  // maps each filter key to an object with value=>modifier fields
         for (let i = 0; i < docFilters.length; i += 3) {
             const [key, value, modifiers] = docFilters.slice(i, i + 3);
-            const cluster = clusters[key];
-            if (!cluster) {
-                const child: { [value: string]: string } = {};
-                child[value] = modifiers;
-                clusters[key] = child;
-            } else {
-                cluster[value] = modifiers;
+            if (!filterFacets[key]) {
+                filterFacets[key] = {};
             }
+            filterFacets[key][value] = modifiers;
         }
         const filteredDocs = docFilters.length ? this.childDocs.filter(d => {
-            for (const key of Object.keys(clusters)) {
-                const cluster = clusters[key];
-                const satisfiesFacet = Object.keys(cluster).some(inner => {
-                    const modifier = cluster[inner];
-                    return (modifier === "x") !== Doc.matchFieldValue(d, key, inner);
-                });
+            for (const facetKey of Object.keys(filterFacets)) {
+                const facet = filterFacets[facetKey];
+                const satisfiesFacet = Object.keys(facet).some(value =>
+                    (facet[value] === "x") !== Doc.matchFieldValue(d, facetKey, value));
                 if (!satisfiesFacet) {
                     return false;
                 }
@@ -897,8 +884,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     componentDidMount() {
         super.componentDidMount();
-        this._layoutComputeReaction = reaction(
-            () => (this.doLayoutComputation),
+        this._layoutComputeReaction = reaction(() => this.doLayoutComputation,
             (computation) => this._layoutElements = computation?.elements.slice() || [],
             { fireImmediately: true, name: "doLayout" });
     }
@@ -1028,7 +1014,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         ContextMenu.Instance.addItem({ description: "Freeform Options ...", subitems: layoutItems, icon: "eye" });
     }
 
-
     private childViews = () => {
         const children = typeof this.props.children === "function" ? (this.props.children as any)() as JSX.Element[] : [];
         return [
@@ -1037,13 +1022,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         ];
     }
 
-    // @observable private _palette?: JSX.Element;
-
     children = () => {
         const eles: JSX.Element[] = [];
         eles.push(...this.childViews());
-        // this._palette && (eles.push(this._palette));
-        // this.currentStroke && (eles.push(this.currentStroke));
         eles.push(<CollectionFreeFormRemoteCursors {...this.props} key="remoteCursors" />);
         return eles;
     }
@@ -1101,7 +1082,7 @@ interface CollectionFreeFormOverlayViewProps {
 @observer
 class CollectionFreeFormOverlayView extends React.Component<CollectionFreeFormOverlayViewProps>{
     render() {
-        return this.props.elements().filter(ele => ele.bounds && ele.bounds.z).map(ele => ele.ele);
+        return this.props.elements().filter(ele => ele.bounds?.z).map(ele => ele.ele);
     }
 }
 

@@ -51,15 +51,12 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @observable private _titleControlString: string = "#title";
     @observable private _edtingTitle = false;
     @observable private _hidden = false;
-    @observable private _opacity = 1;
-    @observable public Interacting = false;
+    @observable private _addedCloseCalls: CloseCall[] = [];
 
+    @observable public Interacting = false;
     @observable public pushIcon: IconProp = "arrow-alt-circle-up";
     @observable public pullIcon: IconProp = "arrow-alt-circle-down";
     @observable public pullColor: string = "white";
-    @observable public openHover = false;
-    @observable private addedCloseCalls: CloseCall[] = [];
-
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -93,9 +90,9 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     }
 
     addCloseCall = (handler: CloseCall) => {
-        const currentOffset = this.addedCloseCalls.length - 1;
-        this.addedCloseCalls.push((toBeDeleted: DocumentView[]) => {
-            this.addedCloseCalls.splice(currentOffset, 1);
+        const currentOffset = this._addedCloseCalls.length - 1;
+        this._addedCloseCalls.push((toBeDeleted: DocumentView[]) => {
+            this._addedCloseCalls.splice(currentOffset, 1);
             handler(toBeDeleted);
         });
     }
@@ -173,7 +170,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             const recent = Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc) as Doc;
             const selected = SelectionManager.SelectedDocuments().slice();
             SelectionManager.DeselectAll();
-            this.addedCloseCalls.forEach(handler => handler(selected));
+            this._addedCloseCalls.forEach(handler => handler(selected));
 
             selected.map(dv => {
                 recent && Doc.AddDocToList(recent, "data", dv.props.Document, undefined, true, true);
@@ -412,7 +409,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 height: (bounds.b - bounds.y + this._resizeBorderWidth + this._titleHeight) + "px",
                 left: bounds.x - this._resizeBorderWidth / 2,
                 top: bounds.y - this._resizeBorderWidth / 2 - this._titleHeight,
-                opacity: this._opacity
             }}>
                 {minimizeIcon}
                 {titleArea}
