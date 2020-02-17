@@ -83,10 +83,11 @@ export namespace DashUploadUtils {
     }
 
     async function UploadPdf(file: File) {
-        const { path, name } = file;
-        const dataBuffer = readFileSync(path);
+        const { path: sourcePath } = file;
+        const dataBuffer = readFileSync(sourcePath);
         const result: ParsedPDF = await parse(dataBuffer);
         await new Promise<void>((resolve, reject) => {
+            const name = path.basename(sourcePath);
             const textFilename = `${name.substring(0, name.length - 4)}.txt`;
             const writeStream = createWriteStream(serverPathToFile(Directory.text, textFilename));
             writeStream.write(result.text, error => error ? reject(error) : resolve());
@@ -183,7 +184,8 @@ export namespace DashUploadUtils {
     };
 
     export async function MoveParsedFile(file: File, destination: Directory): Promise<Upload.FileResponse> {
-        const { name, path: sourcePath } = file;
+        const { path: sourcePath } = file;
+        const name = path.basename(sourcePath);
         return new Promise(resolve => {
             const destinationPath = serverPathToFile(destination, name);
             rename(sourcePath, destinationPath, error => {
