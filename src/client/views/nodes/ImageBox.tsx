@@ -375,7 +375,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
         const aspect = (rotation % 180) ? this.Document[HeightSym]() / this.Document[WidthSym]() : 1;
         const shift = (rotation % 180) ? (nativeHeight - nativeWidth / aspect) / 2 : 0;
 
-        !this.Document.ignoreAspect && this.resize(srcpath);
+        this.resize(srcpath);
 
         return <div className="imageBox-cont" key={this.props.Document[Id]} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
             <div className="imageBox-fader" >

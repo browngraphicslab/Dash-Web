@@ -90,11 +90,9 @@ export interface CollectionRenderProps {
 export class CollectionView extends Touchable<FieldViewProps> {
     public static LayoutString(fieldStr: string) { return FieldView.LayoutString(CollectionView, fieldStr); }
 
-    private _reactionDisposer: IReactionDisposer | undefined;
     private _isChildActive = false;   //TODO should this be observable?
     @observable private _isLightboxOpen = false;
     @observable private _curLightboxImg = 0;
-    @observable private _collapsed = true;
     @observable private static _safeMode = false;
     public static SetSafeMode(safeMode: boolean) { this._safeMode = safeMode; }
 
@@ -110,20 +108,6 @@ export class CollectionView extends Touchable<FieldViewProps> {
         }
         return viewField;
     }
-
-    componentDidMount = () => {
-        this._reactionDisposer = reaction(() => StrCast(this.props.Document._chromeStatus),
-            () => {
-                // chrome status is one of disabled, collapsed, or visible. this determines initial state from document
-                // chrome status may also be view-mode, in reference to stacking view's toggle mode. it is essentially disabled mode, but prevents the toggle button from showing up on the left sidebar.
-                const chromeStatus = this.props.Document._chromeStatus;
-                if (chromeStatus && (chromeStatus === "disabled" || chromeStatus === "collapsed" || chromeStatus === "replaced")) {
-                    runInAction(() => this._collapsed = true);
-                }
-            });
-    }
-
-    componentWillUnmount = () => this._reactionDisposer && this._reactionDisposer();
 
     // bcz: Argh?  What's the height of the collection chromes??  
     chromeHeight = () => (this.props.Document._chromeStatus === "enabled" ? -60 : 0);
@@ -198,7 +182,6 @@ export class CollectionView extends Touchable<FieldViewProps> {
 
     @action
     private collapse = (value: boolean) => {
-        this._collapsed = value;
         this.props.Document._chromeStatus = value ? "collapsed" : "enabled";
     }
 

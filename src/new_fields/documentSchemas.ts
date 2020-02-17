@@ -34,7 +34,6 @@ export const documentSchema = createSchema({
     onDragStart: ScriptField,   // script to run when document is dragged (without being selected).  the script should return the Doc to be dropped.
     dragFactory: Doc,           // the document that serves as the "template" for the onDragStart script.  ie, to drag out copies of the dragFactory document.
     removeDropProperties: listSpec("string"), // properties that should be removed from the alias/copy/etc of this document when it is dropped
-    ignoreAspect: "boolean",    // whether aspect ratio should be ignored when laying out or manipulating the document
     isTemplateForField: "string",// when specifies a field key, then the containing document is a template that renders the specified field
     isBackground: "boolean",    // whether document is a background element and ignores input events (can only selet with marquee)
     treeViewOpen: "boolean",    //  flag denoting whether the documents sub-tree (contents) is visible or hidden

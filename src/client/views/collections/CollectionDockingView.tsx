@@ -678,8 +678,8 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     panelWidth = () => this.layoutDoc && this.layoutDoc.maxWidth ? Math.min(Math.max(NumCast(this.layoutDoc._width), NumCast(this.layoutDoc._nativeWidth)), this._panelWidth) : this._panelWidth;
     panelHeight = () => this._panelHeight;
 
-    nativeWidth = () => !this.layoutDoc!.ignoreAspect && !this.layoutDoc!._fitWidth ? NumCast(this.layoutDoc!._nativeWidth) || this._panelWidth : 0;
-    nativeHeight = () => !this.layoutDoc!.ignoreAspect && !this.layoutDoc!._fitWidth ? NumCast(this.layoutDoc!._nativeHeight) || this._panelHeight : 0;
+    nativeWidth = () => !this.layoutDoc!._fitWidth ? NumCast(this.layoutDoc!._nativeWidth) || this._panelWidth : 0;
+    nativeHeight = () => !this.layoutDoc!._fitWidth ? NumCast(this.layoutDoc!._nativeHeight) || this._panelHeight : 0;
 
     contentScaling = () => {
         if (this.layoutDoc!.type === DocumentType.PDF) {
@@ -705,8 +705,8 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         }
         return Transform.Identity();
     }
-    get previewPanelCenteringOffset() { return this.nativeWidth() && !this.layoutDoc!.ignoreAspect ? (this._panelWidth - this.nativeWidth() * this.contentScaling()) / 2 : 0; }
-    get widthpercent() { return this.nativeWidth() && !this.layoutDoc!.ignoreAspect ? `${(this.nativeWidth() * this.contentScaling()) / this.panelWidth() * 100}%` : undefined; }
+    get previewPanelCenteringOffset() { return this.nativeWidth() ? (this._panelWidth - this.nativeWidth() * this.contentScaling()) / 2 : 0; }
+    get widthpercent() { return this.nativeWidth() ? `${(this.nativeWidth() * this.contentScaling()) / this.panelWidth() * 100}%` : undefined; }
 
     addDocTab = (doc: Doc, dataDoc: Opt<Doc>, location: string, libraryPath?: Doc[]) => {
         SelectionManager.DeselectAll();

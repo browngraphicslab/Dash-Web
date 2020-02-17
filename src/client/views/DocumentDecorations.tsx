@@ -283,17 +283,12 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 const actualdH = Math.max(height + (dH * scale), 20);
                 doc.x = (doc.x || 0) + dX * (actualdW - width);
                 doc.y = (doc.y || 0) + dY * (actualdH - height);
-                const fixedAspect = e.ctrlKey || (!layoutDoc.ignoreAspect && nwidth && nheight);
-                if (fixedAspect && e.ctrlKey && layoutDoc.ignoreAspect) {
-                    layoutDoc.ignoreAspect = false;
-                    layoutDoc._nativeWidth = nwidth = layoutDoc._width || 0;
-                    layoutDoc._nativeHeight = nheight = layoutDoc._height || 0;
-                }
+                const fixedAspect = e.ctrlKey || (nwidth && nheight);
                 if (fixedAspect && (!nwidth || !nheight)) {
                     layoutDoc._nativeWidth = nwidth = layoutDoc._width || 0;
                     layoutDoc._nativeHeight = nheight = layoutDoc._height || 0;
                 }
-                if (nwidth > 0 && nheight > 0 && !layoutDoc.ignoreAspect) {
+                if (nwidth > 0 && nheight > 0) {
                     if (Math.abs(dW) > Math.abs(dH)) {
                         if (!fixedAspect) {
                             layoutDoc._nativeWidth = actualdW / (layoutDoc._width || 1) * (layoutDoc._nativeWidth || 0);

@@ -185,7 +185,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         if (!d) return 0;
         const layoutDoc = Doc.Layout(d, this.props.childLayoutTemplate?.());
         const nw = NumCast(layoutDoc._nativeWidth);
-        return Math.min(nw && !d.ignoreAspect && !this.props.Document.fillColumn ? d[WidthSym]() : Number.MAX_VALUE, this.columnWidth / this.numGroupColumns);
+        return Math.min(nw && !this.props.Document.fillColumn ? d[WidthSym]() : Number.MAX_VALUE, this.columnWidth / this.numGroupColumns);
     }
     getDocHeight(d?: Doc) {
         if (!d) return 0;
@@ -193,9 +193,9 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         const nw = NumCast(layoutDoc._nativeWidth);
         const nh = NumCast(layoutDoc._nativeHeight);
         let wid = this.columnWidth / (this.isStackingView ? this.numGroupColumns : 1);
-        if (!layoutDoc.ignoreAspect && !layoutDoc._fitWidth && nw && nh) {
+        if (!layoutDoc._fitWidth && nw && nh) {
             const aspect = nw && nh ? nh / nw : 1;
-            if (!(!layoutDoc.ignoreAspect && this.props.Document.fillColumn)) wid = Math.min(layoutDoc[WidthSym](), wid);
+            if (!(this.props.Document.fillColumn)) wid = Math.min(layoutDoc[WidthSym](), wid);
             return wid * aspect;
         }
         return layoutDoc._fitWidth ? !nh ? this.props.PanelHeight() - 2 * this.yMargin :

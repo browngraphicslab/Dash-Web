@@ -840,8 +840,7 @@ export namespace Doc {
 
     export function freezeNativeDimensions(layoutDoc: Doc, width: number, height: number): void {
         layoutDoc._autoHeight = false;
-        layoutDoc.ignoreAspect = false;
-        if (!layoutDoc.ignoreAspect && !layoutDoc._nativeWidth) {
+        if (!layoutDoc._nativeWidth) {
             layoutDoc._nativeWidth = NumCast(layoutDoc._width, width);
             layoutDoc._nativeHeight = NumCast(layoutDoc._height, height);
         }
