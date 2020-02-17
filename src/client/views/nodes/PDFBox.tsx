@@ -140,12 +140,12 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
 
     settingsPanel() {
         const pageBtns = <>
-            <button className="pdfBox-overlayButton-iconCont" key="back" title="Page Back"
-                onPointerDown={e => e.stopPropagation()} onClick={e => this.backPage()} style={{ left: 45, top: 5 }}>
+            <button className="pdfBox-overlayButton-back" key="back" title="Page Back"
+                onPointerDown={e => e.stopPropagation()} onClick={e => this.backPage()} >
                 <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-left"} size="sm" />
             </button>
-            <button className="pdfBox-overlayButton-iconCont" key="fwd" title="Page Forward"
-                onPointerDown={e => e.stopPropagation()} onClick={e => this.forwardPage()} style={{ left: 45, top: 5 }}>
+            <button className="pdfBox-overlayButton-fwd" key="fwd" title="Page Forward"
+                onPointerDown={e => e.stopPropagation()} onClick={e => this.forwardPage()} >
                 <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-right"} size="sm" />
             </button>
         </>;
