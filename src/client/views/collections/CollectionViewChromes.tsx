@@ -179,7 +179,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     @action closeViewSpecs = () => {
         this._viewSpecsOpen = false;
         document.removeEventListener("pointerdown", this.closeViewSpecs);
-    };
+    }
 
     @action
     openDatePicker = (e: React.PointerEvent) => {

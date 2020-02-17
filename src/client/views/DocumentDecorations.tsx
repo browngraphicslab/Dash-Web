@@ -109,7 +109,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 UndoManager.RunInBatch(() => selectionTitleFieldKey && SelectionManager.SelectedDocuments().forEach(d => {
                     const value = typeof d.props.Document[selectionTitleFieldKey] === "number" ? +this._accumulatedTitle : this._accumulatedTitle;
                     didAnything = didAnything || d.props.Document[selectionTitleFieldKey] !== value;
-                    Doc.SetInPlace(d.props.Document, selectionTitleFieldKey, value, true)
+                    Doc.SetInPlace(d.props.Document, selectionTitleFieldKey, value, true);
                 }), "title blur");
                 if (!didAnything) UndoManager.Undo();
             }

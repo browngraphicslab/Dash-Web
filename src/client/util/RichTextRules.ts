@@ -298,5 +298,5 @@ export class RichTextRules {
                     return null;
                 }),
         ]
-    }
+    };
 }

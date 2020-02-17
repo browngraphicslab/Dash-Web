@@ -495,7 +495,7 @@ export function setupMoveUpEvents(
         (target as any)._lastX = e.clientX;
         (target as any)._lastY = e.clientY;
         e.stopPropagation();
-    }
+    };
     const _upEvent = (e: PointerEvent): void => {
         upEvent(e);
         if (Math.abs(e.clientX - (target as any)._downX) < 4 || Math.abs(e.clientY - (target as any)._downY) < 4) {
@@ -503,7 +503,7 @@ export function setupMoveUpEvents(
         }
         document.removeEventListener("pointermove", _moveEvent);
         document.removeEventListener("pointerup", _upEvent);
-    }
+    };
     e.stopPropagation();
     document.removeEventListener("pointermove", _moveEvent);
     document.removeEventListener("pointerup", _upEvent);

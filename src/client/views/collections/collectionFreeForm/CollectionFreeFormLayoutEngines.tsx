@@ -27,15 +27,15 @@ export interface ViewDefBounds {
 }
 
 export interface PoolData {
-    x?: number,
-    y?: number,
-    z?: number,
-    zIndex?: number,
-    width?: number,
-    height?: number,
-    color?: string,
-    transition?: string,
-    highlight?: boolean,
+    x?: number;
+    y?: number;
+    z?: number;
+    zIndex?: number;
+    width?: number;
+    height?: number;
+    color?: string;
+    transition?: string;
+    highlight?: boolean;
 }
 
 export interface ViewDefResult {
@@ -63,16 +63,16 @@ function toLabel(target: FieldResult<Field>) {
  */
 function getTextWidth(text: string, font: string): number {
     // re-use canvas object for better performance
-    var canvas = (getTextWidth as any).canvas || ((getTextWidth as any).canvas = document.createElement("canvas"));
-    var context = canvas.getContext("2d");
+    const canvas = (getTextWidth as any).canvas || ((getTextWidth as any).canvas = document.createElement("canvas"));
+    const context = canvas.getContext("2d");
     context.font = font;
-    var metrics = context.measureText(text);
+    const metrics = context.measureText(text);
     return metrics.width;
 }
 
-interface pivotColumn {
-    docs: Doc[],
-    filters: string[]
+interface PivotColumn {
+    docs: Doc[];
+    filters: string[];
 }
 
 
@@ -86,7 +86,7 @@ export function computePivotLayout(
     viewDefsToJSX: (views: ViewDefBounds[]) => ViewDefResult[]
 ) {
     const fieldKey = "data";
-    const pivotColumnGroups = new Map<FieldResult<Field>, pivotColumn>();
+    const pivotColumnGroups = new Map<FieldResult<Field>, PivotColumn>();
 
     const pivotFieldKey = toLabel(pivotDoc._pivotField);
     for (const doc of filterDocs) {
@@ -123,7 +123,7 @@ export function computePivotLayout(
     const desc = `${fontSize}px ${getComputedStyle(document.body).fontFamily}`;
     const textlen = Array.from(pivotColumnGroups.keys()).map(c => getTextWidth(toLabel(c), desc)).reduce((p, c) => Math.max(p, c), 0 as number);
     const max_text = Math.min(Math.ceil(textlen / 120) * 28, panelDim[1] / 2);
-    let maxInColumn = Array.from(pivotColumnGroups.values()).reduce((p, s) => Math.max(p, s.docs.length), 1);
+    const maxInColumn = Array.from(pivotColumnGroups.values()).reduce((p, s) => Math.max(p, s.docs.length), 1);
 
     const colWidth = panelDim[0] / pivotColumnGroups.size;
     const colHeight = panelDim[1] - max_text;
@@ -223,7 +223,7 @@ export function computeTimelineLayout(
     const findStack = (time: number, stack: number[]) => {
         const index = stack.findIndex(val => val === undefined || val < x);
         return index === -1 ? stack.length : index;
-    }
+    };
 
     let minTime = minTimeReq === undefined ? Number.MAX_VALUE : minTimeReq;
     let maxTime = maxTimeReq === undefined ? -Number.MAX_VALUE : maxTimeReq;
@@ -266,7 +266,7 @@ export function computeTimelineLayout(
     }
 
     const pivotAxisWidth = NumCast(pivotDoc.pivotTimeWidth, panelDim[1] / 2.5);
-    let stacking: number[] = [];
+    const stacking: number[] = [];
     let zind = 0;
     sortedKeys.forEach(key => {
         if (curTime !== undefined && curTime > prevKey && curTime <= key) {

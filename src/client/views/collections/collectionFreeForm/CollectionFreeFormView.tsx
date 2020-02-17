@@ -856,7 +856,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         });
         return rangeFilteredDocs;
     }
-    childLayoutDocFunc = () => this.props.childLayoutTemplate?.() || Cast(this.props.Document.childLayoutTemplate, Doc, null) as Doc;
+    childLayoutDocFunc = () => this.props.childLayoutTemplate?.() || Cast(this.props.Document.childLayoutTemplate, Doc, null);
     get doLayoutComputation() {
         const { newPool, computedElementData } = this.doInternalLayoutComputation;
         runInAction(() =>

@@ -55,7 +55,7 @@ export class ContentFittingDocumentView extends React.Component<ContentFittingDo
     private contentScaling = () => this.scaling;
 
     private PanelWidth = () => this.panelWidth;
-    private PanelHeight = () => this.panelHeight;;
+    private PanelHeight = () => this.panelHeight;
 
     @computed get panelWidth() { return this.nativeWidth && (!this.props.Document || !this.props.Document._fitWidth) ? this.nativeWidth * this.contentScaling() : this.props.PanelWidth(); }
     @computed get panelHeight() { return this.nativeHeight && (!this.props.Document || !this.props.Document._fitWidth) ? this.nativeHeight * this.contentScaling() : this.props.PanelHeight(); }

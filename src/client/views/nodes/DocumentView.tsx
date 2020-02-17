@@ -271,7 +271,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             }
             preventDefault && e.preventDefault();
         }
-    };
+    }
 
     buttonClick = async (altKey: boolean, ctrlKey: boolean) => {
         const linkDocs = DocListCast(this.props.Document.links);
