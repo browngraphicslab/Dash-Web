@@ -372,6 +372,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         !this.props.Document.expandedTemplate && funcs.push({ description: "Make Template", event: () => { this.props.Document.isTemplateDoc = true; Doc.AddDocToList(Cast(Doc.UserDoc().noteTypes, Doc, null), "data", this.props.Document); }, icon: "eye" });
         funcs.push({ description: "Toggle Sidebar", event: () => { e.stopPropagation(); this.props.Document._showSidebar = !this.props.Document._showSidebar; }, icon: "expand-arrows-alt" });
         funcs.push({ description: "Record Bullet", event: () => { e.stopPropagation(); this.recordBullet(); }, icon: "expand-arrows-alt" });
+        funcs.push({ description: "Toggle Menubar", event: () => { e.stopPropagation(); this.toggleMenubar(); }, icon: "expand-arrows-alt" });
         ["My Text", "Text from Others", "Todo Items", "Important Items", "Ignore Items", "Disagree Items", "By Recent Minute", "By Recent Hour"].forEach(option =>
             funcs.push({
                 description: (FormattedTextBox._highlights.indexOf(option) === -1 ? "Highlight " : "Unhighlight ") + option, event: () => {
@@ -407,6 +408,11 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     stopDictation = (abort: boolean) => {
         runInAction(() => this._recording = false);
         DictationManager.Controls.stop(!abort);
+    }
+
+    @action
+    toggleMenubar = () => {
+        this.props.Document._chromeStatus = this.props.Document._chromeStatus == "disabled" ? "enabled" : "disabled";
     }
 
     recordBullet = async () => {
@@ -856,7 +862,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
 
         // jump rich text menu to this textbox
         const { current } = this._ref;
-        if (current) {
+        if (current && this.props.Document._chromeStatus !== "disabled") {
             const x = Math.min(Math.max(current.getBoundingClientRect().left, 0), window.innerWidth - RichTextMenu.Instance.width);
             const y = this._ref.current!.getBoundingClientRect().top - RichTextMenu.Instance.height - 50;
             RichTextMenu.Instance.jumpTo(x, y);

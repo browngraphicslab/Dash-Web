@@ -19,6 +19,7 @@ import './DocumentDecorations.scss';
 import { DocumentView } from "./nodes/DocumentView";
 import React = require("react");
 import { Id } from '../../new_fields/FieldSymbols';
+import e = require('express');
 
 library.add(faCaretUp);
 library.add(faObjectGroup);
@@ -137,6 +138,44 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         !this._edtingTitle && (this._accumulatedTitle = this._titleControlString.startsWith("#") ? this.selectionTitle : this._titleControlString);
         this._edtingTitle = true;
         setTimeout(() => this._keyinput.current!.focus(), 0);
+    }
+
+    @action onSettingsDown = (e: React.PointerEvent): void => {
+        setupMoveUpEvents(this, e, () => false, (e) => { }, this.onSettingsClick);
+    }
+
+    simulateMouseClick(element: Element, x: number, y: number, sx: number, sy: number) {
+        ["pointerdown", "pointerup"].map(event => element.dispatchEvent(
+            new PointerEvent(event, {
+                view: window,
+                bubbles: true,
+                cancelable: true,
+                button: 2,
+                pointerType: "mouse",
+                clientX: x,
+                clientY: y,
+                screenX: sx,
+                screenY: sy,
+            })));
+
+        element.dispatchEvent(
+            new MouseEvent("contextmenu", {
+                view: window,
+                bubbles: true,
+                cancelable: true,
+                button: 2,
+                clientX: x,
+                clientY: y,
+                movementX: 0,
+                movementY: 0,
+                screenX: sx,
+                screenY: sy,
+            }));
+    }
+    @action onSettingsClick = (e: PointerEvent): void => {
+        if (e.button === 0 && !e.altKey && !e.ctrlKey) {
+            this.simulateMouseClick(SelectionManager.SelectedDocuments()[0].ContentDiv!.children[0].children[0], e.clientX, e.clientY + 30, e.screenX, e.screenY + 30);
+        }
     }
 
     onBackgroundDown = (e: React.PointerEvent): void => {
@@ -377,7 +416,12 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     <FontAwesomeIcon size="lg" color={SelectionManager.SelectedDocuments()[0].props.Document.title === SelectionManager.SelectedDocuments()[0].props.Document[Id] ? "green" : undefined} icon="sticky-note"></FontAwesomeIcon>
                 </div>
             </> :
-            <div className="title" style={{ background: darkScheme }} onPointerDown={this.onTitleDown} ><span>{`${this.selectionTitle}`}</span></div>;
+            <div className="title" style={{ background: darkScheme }} onPointerDown={this.onTitleDown} >
+                <div style={{ width: "25px", height: "calc(100% + 8px)" }} onPointerDown={this.onSettingsDown}>
+                    <FontAwesomeIcon size="lg" icon="cog" />
+                </div>
+                <span style={{ width: "calc(100% - 25px)", display: "inline-block" }}>{`${this.selectionTitle}`}</span>
+            </div>;
 
         bounds.x = Math.max(0, bounds.x - this._resizeBorderWidth / 2) + this._resizeBorderWidth / 2;
         bounds.y = Math.max(0, bounds.y - this._resizeBorderWidth / 2 - this._titleHeight) + this._resizeBorderWidth / 2 + this._titleHeight;
