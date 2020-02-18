@@ -1,8 +1,9 @@
 import { action, observable } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, WidthSym, HeightSym } from "../../../new_fields/Doc";
+import { Doc } from "../../../new_fields/Doc";
+import { documentSchema } from "../../../new_fields/documentSchemas";
 import { makeInterface } from "../../../new_fields/Schema";
-import { NumCast, StrCast, Cast } from "../../../new_fields/Types";
+import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { Utils } from '../../../Utils';
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager } from "../../util/DragManager";
@@ -10,9 +11,6 @@ import { DocComponent } from "../DocComponent";
 import "./DocuLinkBox.scss";
 import { FieldView, FieldViewProps } from "./FieldView";
 import React = require("react");
-import { DocumentType } from "../../documents/DocumentTypes";
-import { documentSchema } from "../../../new_fields/documentSchemas";
-import { Id } from "../../../new_fields/FieldSymbols";
 
 type DocLinkSchema = makeInterface<[typeof documentSchema]>;
 const DocLinkDocument = makeInterface(documentSchema);
@@ -63,7 +61,7 @@ export class DocuLinkBox extends DocComponent<FieldViewProps, DocLinkSchema>(Doc
     onClick = (e: React.MouseEvent) => {
         if (!this.props.Document.onClick) {
             if (Math.abs(e.clientX - this._downx) < 3 && Math.abs(e.clientY - this._downy) < 3 && (e.button !== 2 && !e.ctrlKey && this.props.Document.isButton)) {
-                DocumentManager.Instance.FollowLink(this.props.Document, this.props.Document[this.props.fieldKey] as Doc, document => this.props.addDocTab(document, undefined, "inTab"), false);
+                DocumentManager.Instance.FollowLink(this.props.Document, this.props.ContainingCollectionDoc as Doc, document => this.props.addDocTab(document, undefined, "inTab"), false);
             }
             e.stopPropagation();
         }

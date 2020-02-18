@@ -17,6 +17,7 @@ import { SubCollectionViewProps } from "../CollectionSubView";
 import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
 import "./MarqueeView.scss";
 import React = require("react");
+import { CollectionView } from "../CollectionView";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -354,8 +355,14 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             d.page = -1;
             return d;
         });
-        const summary = Docs.Create.TextDocument("", { x: bounds.left, y: bounds.top, _width: 200, _height: 200, _fitToBox: true, _showSidebar: true, backgroundColor: "#e2ad32" /* yellow */, title: "-summary-" });
+        const summary = Docs.Create.TextDocument("", { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2, _width: 200, _height: 200, _fitToBox: true, _showSidebar: true, title: "-summary-" });
+        const portal = Doc.MakeAlias(summary);
         Doc.GetProto(summary)["data-annotations"] = new List<Doc>(selected);
+        Doc.GetProto(summary).layout_portal = CollectionView.LayoutString("data-annotations");
+        summary._backgroundColor = "#e2ad32";
+        portal.layoutKey = "layout_portal";
+        DocUtils.MakeLink({ doc: summary, ctx: this.props.ContainingCollectionDoc }, { doc: portal }, "portal link", "portal link");
+
         this.props.addLiveTextDocument(summary);
         MarqueeOptionsMenu.Instance.fadeOut(true);
     }

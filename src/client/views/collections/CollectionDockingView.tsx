@@ -433,7 +433,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 tab.titleElement[0].onclick = (e: any) => tab.titleElement[0].focus();
                 tab.titleElement[0].onchange = (e: any) => {
                     tab.titleElement[0].size = e.currentTarget.value.length + 1;
-                    Doc.SetInPlace(doc, "title", e.currentTarget.value, true);
+                    Doc.GetProto(doc).title = e.currentTarget.value, true;
                 };
                 tab.titleElement[0].size = StrCast(doc.title).length + 1;
                 tab.titleElement[0].value = doc.title;
