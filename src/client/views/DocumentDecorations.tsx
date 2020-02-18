@@ -106,13 +106,10 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             } else if (this._titleControlString.startsWith("#")) {
                 const selectionTitleFieldKey = this._titleControlString.substring(1);
                 selectionTitleFieldKey === "title" && (SelectionManager.SelectedDocuments()[0].props.Document.customTitle = !this._accumulatedTitle.startsWith("-"));
-                let didAnything = false;
                 UndoManager.RunInBatch(() => selectionTitleFieldKey && SelectionManager.SelectedDocuments().forEach(d => {
                     const value = typeof d.props.Document[selectionTitleFieldKey] === "number" ? +this._accumulatedTitle : this._accumulatedTitle;
-                    didAnything = didAnything || d.props.Document[selectionTitleFieldKey] !== value;
                     Doc.SetInPlace(d.props.Document, selectionTitleFieldKey, value, true);
                 }), "title blur");
-                if (!didAnything) UndoManager.Undo();
             }
         }
     });
@@ -402,22 +399,22 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             return (null);
         }
         const minimizeIcon = (
-            <div className="documentDecorations-minimizeButton" style={{ background: darkScheme }} onPointerDown={this.onMinimizeDown}>
+            <div className="documentDecorations-minimizeButton" title="Iconify" style={{ background: darkScheme }} onPointerDown={this.onMinimizeDown}>
                 {/* Currently, this is set to be enabled if there is no ink selected. It might be interesting to think about minimizing ink if it's useful? -syip2*/}
                 {SelectionManager.SelectedDocuments().length === 1 ? DocumentDecorations.DocumentIcon(StrCast(seldoc.props.Document.layout, "...")) : "..."}
             </div>);
 
         const titleArea = this._edtingTitle ?
             <>
-                <input ref={this._keyinput} className="title" type="text" name="dynbox" autoComplete="on" value={this._accumulatedTitle} style={{ width: "calc(100% - 20px)" }}
+                <input ref={this._keyinput} className="documentDecorations-title" type="text" name="dynbox" autoComplete="on" value={this._accumulatedTitle} style={{ width: "calc(100% - 20px)" }}
                     onBlur={e => this.titleBlur(true)} onChange={action(e => this._accumulatedTitle = e.target.value)} onKeyPress={this.titleEntered} />
                 <div className="publishBox" title="make document referenceable by its title"
                     onPointerDown={e => DocUtils.Publish(seldoc.props.Document, this._accumulatedTitle, seldoc.props.addDocument, seldoc.props.removeDocument)}>
                     <FontAwesomeIcon size="lg" color={SelectionManager.SelectedDocuments()[0].props.Document.title === SelectionManager.SelectedDocuments()[0].props.Document[Id] ? "green" : undefined} icon="sticky-note"></FontAwesomeIcon>
                 </div>
             </> :
-            <div className="title" style={{ background: darkScheme }} onPointerDown={this.onTitleDown} >
-                <div style={{ width: "25px", height: "calc(100% + 8px)" }} onPointerDown={this.onSettingsDown}>
+            <div className="documentDecorations-title" style={{ background: darkScheme }} onPointerDown={this.onTitleDown} >
+                <div className="documentDecorations-contextMenu" title="Show context menu" onPointerDown={this.onSettingsDown}>
                     <FontAwesomeIcon size="lg" icon="cog" />
                 </div>
                 <span style={{ width: "calc(100% - 25px)", display: "inline-block" }}>{`${this.selectionTitle}`}</span>

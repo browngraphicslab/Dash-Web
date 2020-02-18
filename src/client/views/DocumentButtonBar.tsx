@@ -302,7 +302,7 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
         const templates: Map<Template, boolean> = new Map();
         Array.from(Object.values(Templates.TemplateList)).map(template =>
             templates.set(template, this.props.views.reduce((checked, doc) => checked || doc?.props.Document["_show" + template.Name] ? true : false, false as boolean)));
-        return !view0 ? (null) : <div title="Customize layout" className="documentButtonBar-linkFlyout" ref={this._dragRef}>
+        return !view0 ? (null) : <div title="Tap: Customize layout.  Drag: Create alias" className="documentButtonBar-linkFlyout" ref={this._dragRef}>
             <Flyout anchorPoint={anchorPoints.LEFT_TOP}
                 content={<TemplateMenu docViews={this.props.views.filter(v => v).map(v => v as DocumentView)} templates={templates} />}>
                 <div className={"documentButtonBar-linkButton-" + "empty"} ref={this._dragRef} onPointerDown={this.onAliasButtonDown} >

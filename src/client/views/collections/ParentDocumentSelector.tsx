@@ -82,7 +82,7 @@ export class ParentDocSelector extends React.Component<SelectorProps> {
                 <SelectorContextMenu {...this.props} />
             </div>
         );
-        return <div title="Tap to View Contexts/Metadata" onPointerDown={e => e.stopPropagation()} className="parentDocumentSelector-linkFlyout">
+        return <div title="Show Contexts" onPointerDown={e => e.stopPropagation()} className="parentDocumentSelector-linkFlyout">
             <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={flyout}>
                 <span className="parentDocumentSelector-button" >
                     <FontAwesomeIcon icon={faChevronCircleUp} size={"lg"} />
