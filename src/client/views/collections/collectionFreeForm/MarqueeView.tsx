@@ -70,16 +70,31 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         let [x, y] = this.props.getTransform().transformPoint(this._downX, this._downY);
         if (e.key === ":") {
             const layoutItems: ContextMenuProps[] = [];
-            layoutItems.push({
+            ContextMenu.Instance.addItem({
                 description: "Add Note ...",
                 subitems: DocListCast((CurrentUserUtils.UserDocument.noteTypes as Doc).data).map((note, i) => ({
-                    description: ":" + (i + 1) + " " + StrCast(note.title),
+                    description: ":" + StrCast(note.title),
                     event: (args: { x: number, y: number }) => this.props.addLiveTextDocument(Docs.Create.TextDocument("", { _width: 200, x, y, _autoHeight: true, layout: note, title: StrCast(note.title) + "#" + (note.aliasCount = NumCast(note.aliasCount) + 1) })),
                     icon: "eye"
                 })) as ContextMenuProps[],
                 icon: "eye"
             });
-            ContextMenu.Instance.addItem(layoutItems[0]);
+            ContextMenu.Instance.addItem({
+                description: "Add Template Doc ...",
+                subitems: DocListCast(Cast(CurrentUserUtils.UserDocument.expandingButtons, Doc, null)?.data).map(btnDoc => Cast(btnDoc?.dragFactory, Doc, null)).filter(doc => doc).map((dragDoc, i) => ({
+                    description: ":" + StrCast(dragDoc.title),
+                    event: (args: { x: number, y: number }) => {
+                        const newDoc = Doc.ApplyTemplate(dragDoc);
+                        if (newDoc) {
+                            newDoc.x = x;
+                            newDoc.y = y;
+                            this.props.addDocument(newDoc);
+                        }
+                    },
+                    icon: "eye"
+                })) as ContextMenuProps[],
+                icon: "eye"
+            });
             ContextMenu.Instance.displayMenu(this._downX, this._downY);
         } else if (e.key === "q" && e.ctrlKey) {
             e.preventDefault();
