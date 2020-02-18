@@ -993,7 +993,9 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         });
     }
 
+    public static HadSelection: boolean = false;
     onBlur = (e: any) => {
+        FormattedTextBox.HadSelection = window.getSelection()?.toString() !== "";
         //DictationManager.Controls.stop(false);
         if (this._undoTyping) {
             this._undoTyping.end();
