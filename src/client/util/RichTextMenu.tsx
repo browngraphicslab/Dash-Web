@@ -275,6 +275,7 @@ export default class RichTextMenu extends AntimodeMenu {
     }
 
     destroy() {
+        this.fadeOut(true);
     }
 
     @action
