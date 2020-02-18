@@ -44,13 +44,15 @@ export class CurrentUserUtils {
             Docs.Create.TextDocument("", { title: "Todo", backgroundColor: "orange", isTemplateDoc: true })
         ];
     }
+    static setupDefaultDocTemplates(doc: Doc, buttons?: string[]) {
+        doc.noteTypes = new PrefetchProxy(Docs.Create.TreeDocument(CurrentUserUtils.setupNoteTypes(doc), { title: "Note Types", _height: 75 }));
+    }
 
     // setup the "creator" buttons for the sidebar-- eg. the default set of draggable document creation tools
     static setupCreatorButtons(doc: Doc, buttons?: string[]) {
-        const notes = CurrentUserUtils.setupNoteTypes(doc);
+        const notes = DocListCast(Cast(doc.noteTypes, Doc, null)?.data);
         const emptyPresentation = Docs.Create.PresDocument(new List<Doc>(), { title: "Presentation", _viewType: CollectionViewType.Stacking, _LODdisable: true, _chromeStatus: "replaced", _showTitle: "title", boxShadow: "0 0" });
         const emptyCollection = Docs.Create.FreeformDocument([], { _nativeWidth: undefined, _nativeHeight: undefined, _LODdisable: true, _width: 150, _height: 100, title: "freeform" });
-        doc.noteTypes = Docs.Create.TreeDocument(notes, { title: "Note Types", _height: 75 });
         doc.activePen = doc;
         const docProtoData: { title: string, icon: string, drag?: string, ignoreClick?: boolean, click?: string, ischecked?: string, activePen?: Doc, backgroundColor?: string, dragFactory?: Doc }[] = [
             { title: "collection", icon: "folder", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: emptyCollection },
@@ -280,6 +282,7 @@ export class CurrentUserUtils {
     static updateUserDocument(doc: Doc) {
         doc.title = Doc.CurrentUserEmail;
         new InkingControl();
+        (doc.noteTypes === undefined) && CurrentUserUtils.setupDefaultDocTemplates(doc);
         (doc.optionalRightCollection === undefined) && CurrentUserUtils.setupMobileUploads(doc);
         (doc.overlays === undefined) && CurrentUserUtils.setupOverlays(doc);
         (doc.expandingButtons === undefined) && CurrentUserUtils.setupExpandingButtons(doc);
