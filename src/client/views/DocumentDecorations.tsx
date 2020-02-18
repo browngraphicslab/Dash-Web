@@ -320,6 +320,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         this._resizeHdlId = "";
         this.Interacting = false;
         (e.button === 0) && this._resizeUndo?.end();
+        this._resizeUndo = undefined;
     }
 
     @computed

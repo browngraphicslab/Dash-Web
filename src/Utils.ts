@@ -505,6 +505,7 @@ export function setupMoveUpEvents(
         document.removeEventListener("pointerup", _upEvent);
     };
     e.stopPropagation();
+    e.preventDefault();
     document.removeEventListener("pointermove", _moveEvent);
     document.removeEventListener("pointerup", _upEvent);
     document.addEventListener("pointermove", _moveEvent);

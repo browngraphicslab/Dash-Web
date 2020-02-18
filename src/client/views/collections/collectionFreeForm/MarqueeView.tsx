@@ -74,7 +74,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
                 description: "Add Note ...",
                 subitems: DocListCast((CurrentUserUtils.UserDocument.noteTypes as Doc).data).map((note, i) => ({
                     description: ":" + (i + 1) + " " + StrCast(note.title),
-                    event: (args: { x: number, y: number }) => this.props.addLiveTextDocument(Docs.Create.TextDocument("", { _width: 200, _height: 100, x, y, _autoHeight: true, layout: note, title: StrCast(note.title) + "#" + (note.aliasCount = NumCast(note.aliasCount) + 1) })),
+                    event: (args: { x: number, y: number }) => this.props.addLiveTextDocument(Docs.Create.TextDocument("", { _width: 200, x, y, _autoHeight: true, layout: note, title: StrCast(note.title) + "#" + (note.aliasCount = NumCast(note.aliasCount) + 1) })),
                     icon: "eye"
                 })) as ContextMenuProps[],
                 icon: "eye"
