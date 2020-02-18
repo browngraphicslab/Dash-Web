@@ -77,7 +77,6 @@ export interface DocumentViewProps {
     backgroundHalo?: () => boolean;
     backgroundColor?: (doc: Doc) => string | undefined;
     getScale: () => number;
-    animateBetweenIcon?: (maximize: boolean, target: number[]) => void;
     ChromeHeight?: () => number;
     dontRegisterView?: boolean;
     layoutKey?: string;
@@ -799,7 +798,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             pinToPres={this.props.pinToPres}
             zoomToScale={this.props.zoomToScale}
             backgroundColor={this.props.backgroundColor}
-            animateBetweenIcon={this.props.animateBetweenIcon}
             getScale={this.props.getScale}
             ChromeHeight={this.chromeHeight}
             isSelected={this.isSelected}
