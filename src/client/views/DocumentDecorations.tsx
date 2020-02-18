@@ -171,7 +171,9 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     }
     @action onSettingsClick = (e: PointerEvent): void => {
         if (e.button === 0 && !e.altKey && !e.ctrlKey) {
-            this.simulateMouseClick(SelectionManager.SelectedDocuments()[0].ContentDiv!.children[0].children[0], e.clientX, e.clientY + 30, e.screenX, e.screenY + 30);
+            let child = SelectionManager.SelectedDocuments()[0].ContentDiv!.children[0];
+            while (child.children.length && child.className !== "jsx-parser") child = child.children[0];
+            this.simulateMouseClick(child.children[0], e.clientX, e.clientY + 30, e.screenX, e.screenY + 30);
         }
     }
 

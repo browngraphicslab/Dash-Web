@@ -377,7 +377,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
 
         this.resize(srcpath);
 
-        return <div className="imageBox-cont" key={this.props.Document[Id]} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
+        return <div className="imageBox-cont" key={this.props.Document[Id]} ref={this.createDropTarget}>
             <div className="imageBox-fader" >
                 <img key={this._smallRetryCount + (this._mediumRetryCount << 4) + (this._largeRetryCount << 8)} // force cache to update on retrys
                     src={srcpath}

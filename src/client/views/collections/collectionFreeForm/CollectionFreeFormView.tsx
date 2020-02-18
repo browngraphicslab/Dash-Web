@@ -965,6 +965,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     // }
 
     onContextMenu = (e: React.MouseEvent) => {
+        if (this.props.children && this.props.annotationsKey) return;
         const layoutItems: ContextMenuProps[] = [];
 
         layoutItems.push({ description: "reset view", event: () => { this.props.Document._panX = this.props.Document._panY = 0; this.props.Document.scale = 1; }, icon: "compress-arrows-alt" });

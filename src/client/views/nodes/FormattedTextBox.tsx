@@ -990,7 +990,6 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     }
 
     richTextMenuPlugin() {
-        const self = FormattedTextBox;
         return new Plugin({
             view(newView) {
                 RichTextMenu.Instance.changeView(newView);
@@ -1091,7 +1090,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         return (
             <div className={`formattedTextBox-cont`} ref={this._ref}
                 style={{
-                    height: this.layoutDoc._autoHeight ? "max-content" : undefined,
+                    height: this.layoutDoc._autoHeight && this.props.renderDepth ? "max-content" : undefined,
                     background: this.props.hideOnLeave ? "rgba(0,0,0 ,0.4)" : StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"]),
                     opacity: this.props.hideOnLeave ? (this._entered ? 1 : 0.1) : 1,
                     color: this.props.hideOnLeave ? "white" : "inherit",
