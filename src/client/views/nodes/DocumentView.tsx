@@ -628,6 +628,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
         e.preventDefault();
 
+        const templateDoc = Cast(this.props.Document[StrCast(this.props.Document.layoutKey)], Doc, null);
+
         const cm = ContextMenu.Instance;
         const subitems: ContextMenuProps[] = [];
         subitems.push({ description: "Open Full Screen", event: () => CollectionDockingView.Instance && CollectionDockingView.Instance.OpenFullScreen(this, this.props.LibraryPath), icon: "desktop" });
@@ -636,6 +638,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         subitems.push({ description: "Open Alias Tab  ", event: () => this.props.addDocTab(Doc.MakeAlias(this.props.Document), this.props.DataDoc, "inTab"), icon: "folder" });
         subitems.push({ description: "Open Alias Right", event: () => this.props.addDocTab(Doc.MakeAlias(this.props.Document), this.props.DataDoc, "onRight"), icon: "caret-square-right" });
         subitems.push({ description: "Open Fields     ", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { _width: 300, _height: 300 }), undefined, "onRight"), icon: "layer-group" });
+        templateDoc && subitems.push({ description: "Open Template   ", event: () => this.props.addDocTab(templateDoc, undefined, "onRight"), icon: "eye" });
         subitems.push({ description: "Open Repl", icon: "laptop-code", event: () => OverlayView.Instance.addWindow(<ScriptingRepl />, { x: 300, y: 100, width: 200, height: 200, title: "Scripting REPL" }) });
         cm.addItem({ description: "Open...", subitems: subitems, icon: "external-link-alt" });
 
@@ -756,7 +759,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     select = (ctrlPressed: boolean) => { SelectionManager.SelectDoc(this, ctrlPressed); };
 
     chromeHeight = () => {
-        return 1;
+        const showTitle = StrCast(this.layoutDoc._showTitle);
+        const showTextTitle = showTitle && (StrCast(this.layoutDoc.layout).indexOf("PresBox") !== -1 || StrCast(this.layoutDoc.layout).indexOf("FormattedTextBox") !== -1) ? showTitle : undefined;
+        return showTextTitle ? 25 : 1;
     }
 
     @computed get finalLayoutKey() {
@@ -857,7 +862,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     this.contents
                 :
                 <div className="documentView-styleWrapper" >
-                    <div className="documentView-styleContentWrapper" style={{ height: showTextTitle ? "calc(100% - 25px)" : "100%", top: showTextTitle ? "25px" : undefined }}>
+                    <div className="documentView-styleContentWrapper" style={{ height: showTextTitle ? `calc(100% - ${this.chromeHeight()}px)` : "100%", top: showTextTitle ? this.chromeHeight() : undefined }}>
                         {this.contents}
                     </div>
                     {titleView}

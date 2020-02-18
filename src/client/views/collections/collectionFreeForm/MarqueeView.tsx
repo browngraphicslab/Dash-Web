@@ -3,24 +3,20 @@ import { observer } from "mobx-react";
 import { Doc, DocListCast } from "../../../../new_fields/Doc";
 import { InkField } from "../../../../new_fields/InkField";
 import { List } from "../../../../new_fields/List";
-import { listSpec } from "../../../../new_fields/Schema";
 import { SchemaHeaderField } from "../../../../new_fields/SchemaHeaderField";
-import { ComputedField } from "../../../../new_fields/ScriptField";
-import { Cast, NumCast, StrCast } from "../../../../new_fields/Types";
+import { Cast, NumCast } from "../../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../../server/authentication/models/current_user_utils";
 import { Utils } from "../../../../Utils";
-import { Docs } from "../../../documents/Documents";
+import { Docs, DocUtils } from "../../../documents/Documents";
 import { SelectionManager } from "../../../util/SelectionManager";
 import { Transform } from "../../../util/Transform";
 import { undoBatch } from "../../../util/UndoManager";
+import { ContextMenu } from "../../ContextMenu";
 import { PreviewCursor } from "../../PreviewCursor";
-import { CollectionViewType } from "../CollectionView";
+import { SubCollectionViewProps } from "../CollectionSubView";
+import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
 import "./MarqueeView.scss";
 import React = require("react");
-import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
-import { SubCollectionViewProps } from "../CollectionSubView";
-import { ContextMenu } from "../../ContextMenu";
-import { ContextMenuProps } from "../../ContextMenuItem";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -69,32 +65,8 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         // tslint:disable-next-line:prefer-const
         let [x, y] = this.props.getTransform().transformPoint(this._downX, this._downY);
         if (e.key === ":") {
-            const layoutItems: ContextMenuProps[] = [];
-            ContextMenu.Instance.addItem({
-                description: "Add Note ...",
-                subitems: DocListCast((CurrentUserUtils.UserDocument.noteTypes as Doc).data).map((note, i) => ({
-                    description: ":" + StrCast(note.title),
-                    event: (args: { x: number, y: number }) => this.props.addLiveTextDocument(Docs.Create.TextDocument("", { _width: 200, x, y, _autoHeight: true, layout: note, title: StrCast(note.title) + "#" + (note.aliasCount = NumCast(note.aliasCount) + 1) })),
-                    icon: "eye"
-                })) as ContextMenuProps[],
-                icon: "eye"
-            });
-            ContextMenu.Instance.addItem({
-                description: "Add Template Doc ...",
-                subitems: DocListCast(Cast(CurrentUserUtils.UserDocument.expandingButtons, Doc, null)?.data).map(btnDoc => Cast(btnDoc?.dragFactory, Doc, null)).filter(doc => doc).map((dragDoc, i) => ({
-                    description: ":" + StrCast(dragDoc.title),
-                    event: (args: { x: number, y: number }) => {
-                        const newDoc = Doc.ApplyTemplate(dragDoc);
-                        if (newDoc) {
-                            newDoc.x = x;
-                            newDoc.y = y;
-                            this.props.addDocument(newDoc);
-                        }
-                    },
-                    icon: "eye"
-                })) as ContextMenuProps[],
-                icon: "eye"
-            });
+            DocUtils.addDocumentCreatorMenuItems(this.props.addLiveTextDocument, this.props.addDocument, x, y);
+
             ContextMenu.Instance.displayMenu(this._downX, this._downY);
         } else if (e.key === "q" && e.ctrlKey) {
             e.preventDefault();

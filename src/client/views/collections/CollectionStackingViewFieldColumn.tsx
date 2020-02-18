@@ -8,10 +8,10 @@ import { Doc, DocListCast } from "../../../new_fields/Doc";
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { PastelSchemaPalette, SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 import { ScriptField } from "../../../new_fields/ScriptField";
-import { NumCast, StrCast } from "../../../new_fields/Types";
+import { NumCast, StrCast, Cast } from "../../../new_fields/Types";
 import { ImageField } from "../../../new_fields/URLField";
 import { TraceMobx } from "../../../new_fields/util";
-import { Docs } from "../../documents/Documents";
+import { Docs, DocUtils } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
 import { SelectionManager } from "../../util/SelectionManager";
 import { Transform } from "../../util/Transform";
@@ -268,8 +268,10 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         ContextMenu.Instance.clearItems();
         const layoutItems: ContextMenuProps[] = [];
         const docItems: ContextMenuProps[] = [];
-
         const dataDoc = this.props.parent.props.DataDoc || this.props.parent.Document;
+
+        DocUtils.addDocumentCreatorMenuItems(this.props.parent.props.addDocument, this.props.parent.props.addDocument, x, y);
+
         Array.from(Object.keys(Doc.GetProto(dataDoc))).filter(fieldKey => dataDoc[fieldKey] instanceof RichTextField || dataDoc[fieldKey] instanceof ImageField || typeof (dataDoc[fieldKey]) === "string").map(fieldKey =>
             docItems.push({
                 description: ":" + fieldKey, event: () => {

@@ -21,7 +21,7 @@ import { Field, Doc, Opt, DocListCastAsync, FieldResult, DocListCast } from "../
 import { ImageField, VideoField, AudioField, PdfField, WebField, YoutubeField } from "../../new_fields/URLField";
 import { HtmlField } from "../../new_fields/HtmlField";
 import { List } from "../../new_fields/List";
-import { Cast, NumCast } from "../../new_fields/Types";
+import { Cast, NumCast, StrCast } from "../../new_fields/Types";
 import { listSpec } from "../../new_fields/Schema";
 import { DocServer } from "../DocServer";
 import { dropActionType } from "../util/DragManager";
@@ -54,6 +54,8 @@ import { InkingControl } from "../views/InkingControl";
 import { RichTextField } from "../../new_fields/RichTextField";
 import { extname } from "path";
 import { MessageStore } from "../../server/Message";
+import { ContextMenuProps } from "../views/ContextMenuItem";
+import { ContextMenu } from "../views/ContextMenu";
 const requestImageSize = require('../util/request-image-size');
 const path = require('path');
 
@@ -898,6 +900,33 @@ export namespace DocUtils {
         return linkDocProto;
     }
 
+    export function addDocumentCreatorMenuItems(docTextAdder: (d: Doc) => void, docAdder: (d: Doc) => void, x: number, y: number): void {
+        ContextMenu.Instance.addItem({
+            description: "Add Note ...",
+            subitems: DocListCast((Doc.UserDoc().noteTypes as Doc).data).map((note, i) => ({
+                description: ":" + StrCast(note.title),
+                event: (args: { x: number, y: number }) => docTextAdder(Docs.Create.TextDocument("", { _width: 200, x, y, _autoHeight: true, layout: note, title: StrCast(note.title) + "#" + (note.aliasCount = NumCast(note.aliasCount) + 1) })),
+                icon: "eye"
+            })) as ContextMenuProps[],
+            icon: "eye"
+        });
+        ContextMenu.Instance.addItem({
+            description: "Add Template Doc ...",
+            subitems: DocListCast(Cast(Doc.UserDoc().expandingButtons, Doc, null)?.data).map(btnDoc => Cast(btnDoc?.dragFactory, Doc, null)).filter(doc => doc).map((dragDoc, i) => ({
+                description: ":" + StrCast(dragDoc.title),
+                event: (args: { x: number, y: number }) => {
+                    const newDoc = Doc.ApplyTemplate(dragDoc);
+                    if (newDoc) {
+                        newDoc.x = x;
+                        newDoc.y = y;
+                        docAdder(newDoc);
+                    }
+                },
+                icon: "eye"
+            })) as ContextMenuProps[],
+            icon: "eye"
+        });
+    }
 }
 
 Scripting.addGlobal("Docs", Docs);

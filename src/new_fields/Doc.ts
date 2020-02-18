@@ -1,22 +1,22 @@
-import { observable, ObservableMap, runInAction, action, computed } from "mobx";
+import { action, computed, observable, ObservableMap, runInAction } from "mobx";
+import { computedFn } from "mobx-utils";
 import { alias, map, serializable } from "serializr";
 import { DocServer } from "../client/DocServer";
 import { DocumentType } from "../client/documents/DocumentTypes";
 import { Scripting, scriptingGlobal } from "../client/util/Scripting";
 import { afterDocDeserialize, autoObject, Deserializable, SerializationHelper } from "../client/util/SerializationHelper";
-import { Copy, HandleUpdate, Id, OnUpdate, Parent, Self, SelfProxy, ToScriptString, ToString, Update } from "./FieldSymbols";
+import { UndoManager } from "../client/util/UndoManager";
+import { intersectRect } from "../Utils";
+import { HandleUpdate, Id, OnUpdate, Parent, Self, SelfProxy, ToScriptString, ToString, Update } from "./FieldSymbols";
 import { List } from "./List";
 import { ObjectField } from "./ObjectField";
 import { PrefetchProxy, ProxyField } from "./Proxy";
 import { FieldId, RefField } from "./RefField";
-import { listSpec } from "./Schema";
-import { ComputedField, ScriptField } from "./ScriptField";
-import { BoolCast, Cast, FieldValue, NumCast, StrCast, ToConstructor } from "./Types";
-import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, updateFunction } from "./util";
-import { intersectRect } from "../Utils";
-import { UndoManager, undoBatch } from "../client/util/UndoManager";
-import { computedFn } from "mobx-utils";
 import { RichTextField } from "./RichTextField";
+import { listSpec } from "./Schema";
+import { ComputedField } from "./ScriptField";
+import { Cast, FieldValue, NumCast, StrCast, ToConstructor } from "./Types";
+import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, updateFunction } from "./util";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
