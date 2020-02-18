@@ -19,6 +19,8 @@ import "./MarqueeView.scss";
 import React = require("react");
 import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
 import { SubCollectionViewProps } from "../CollectionSubView";
+import { ContextMenu } from "../../ContextMenu";
+import { ContextMenuProps } from "../../ContextMenuItem";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -66,7 +68,20 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         //make textbox and add it to this collection
         // tslint:disable-next-line:prefer-const
         let [x, y] = this.props.getTransform().transformPoint(this._downX, this._downY);
-        if (e.key === "q" && e.ctrlKey) {
+        if (e.key === ":") {
+            const layoutItems: ContextMenuProps[] = [];
+            layoutItems.push({
+                description: "Add Note ...",
+                subitems: DocListCast((CurrentUserUtils.UserDocument.noteTypes as Doc).data).map((note, i) => ({
+                    description: ":" + (i + 1) + " " + StrCast(note.title),
+                    event: (args: { x: number, y: number }) => this.props.addLiveTextDocument(Docs.Create.TextDocument("", { _width: 200, _height: 100, x, y, _autoHeight: true, layout: note, title: StrCast(note.title) })),
+                    icon: "eye"
+                })) as ContextMenuProps[],
+                icon: "eye"
+            });
+            ContextMenu.Instance.addItem(layoutItems[0]);
+            ContextMenu.Instance.displayMenu(this._downX, this._downY);
+        } else if (e.key === "q" && e.ctrlKey) {
             e.preventDefault();
             (async () => {
                 const text: string = await navigator.clipboard.readText();
