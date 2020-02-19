@@ -17,6 +17,7 @@ import { listSpec } from "./Schema";
 import { ComputedField } from "./ScriptField";
 import { Cast, FieldValue, NumCast, StrCast, ToConstructor } from "./Types";
 import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, updateFunction } from "./util";
+import { DatasetAbout } from "../client/northstar/model/idea/idea";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -495,7 +496,8 @@ export namespace Doc {
     // if the childDoc is a template for a field, then this will return the expanded layout with its data doc.
     // otherwise, it just returns the childDoc
     export function GetLayoutDataDocPair(containerDoc: Doc, containerDataDoc: Opt<Doc>, childDoc: Doc) {
-        const resolvedDataDoc = containerDataDoc === containerDoc || !containerDataDoc || (!childDoc.isTemplateDoc && !childDoc.isTemplateForField) ? undefined : containerDataDoc;
+        const existingResolvedDataDoc = childDoc[DataSym] !== Doc.GetProto(childDoc)[DataSym] && childDoc[DataSym];
+        const resolvedDataDoc = existingResolvedDataDoc || (containerDataDoc === containerDoc || !containerDataDoc || (!childDoc.isTemplateDoc && !childDoc.isTemplateForField) ? undefined : containerDataDoc);
         return { layout: Doc.expandTemplateLayout(childDoc, resolvedDataDoc), data: resolvedDataDoc };
     }
     export function CreateDocumentExtensionForField(doc: Doc, fieldKey: string) {

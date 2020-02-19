@@ -11,7 +11,7 @@ import "./Annotation.scss";
 
 interface IAnnotationProps {
     anno: Doc;
-    addDocTab: (document: Doc, dataDoc: Opt<Doc>, where: string) => boolean;
+    addDocTab: (document: Doc, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     focus: (doc: Doc) => void;
     dataDoc: Doc;
@@ -30,7 +30,7 @@ interface IRegionAnnotationProps {
     y: number;
     width: number;
     height: number;
-    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
+    addDocTab: (document: Doc, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     document: Doc;
     dataDoc: Doc;
@@ -98,7 +98,7 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
             const annoGroup = await Cast(this.props.document.group, Doc);
             if (annoGroup) {
                 DocumentManager.Instance.FollowLink(undefined, annoGroup,
-                    (doc: Doc, maxLocation: string) => this.props.addDocTab(doc, undefined, e.ctrlKey ? "inTab" : "onRight"),
+                    (doc: Doc, maxLocation: string) => this.props.addDocTab(doc, e.ctrlKey ? "inTab" : "onRight"),
                     false, false, undefined);
                 e.stopPropagation();
             }

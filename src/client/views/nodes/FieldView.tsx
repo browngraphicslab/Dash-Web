@@ -29,7 +29,7 @@ export interface FieldViewProps {
     select: (isCtrlPressed: boolean) => void;
     renderDepth: number;
     addDocument?: (document: Doc) => boolean;
-    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
+    addDocTab: (document: Doc, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     removeDocument?: (document: Doc) => boolean;
     moveDocument?: (document: Doc, targetCollection: Doc | undefined, addDocument: (document: Doc) => boolean) => boolean;

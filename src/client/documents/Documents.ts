@@ -654,7 +654,7 @@ export namespace Docs {
                     {
                         type: type,
                         content: [
-                            ...configs.map(config => CollectionDockingView.makeDocumentConfig(config.doc, undefined, config.initialWidth, config.path))
+                            ...configs.map(config => CollectionDockingView.makeDocumentConfig(config.doc, config.initialWidth, config.path))
                         ]
                     }
                 ]

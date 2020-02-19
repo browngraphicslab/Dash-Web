@@ -916,7 +916,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         //             if (linkClicked) {
         //                 DocServer.GetRefField(linkClicked).then(async linkDoc => {
         //                     (linkDoc instanceof Doc) &&
-        //                         DocumentManager.Instance.FollowLink(linkDoc, this.props.Document, document => this.props.addDocTab(document, undefined, location ? location : "inTab"), false);
+        //                         DocumentManager.Instance.FollowLink(linkDoc, this.props.Document, document => this.props.addDocTab(document, location ? location : "inTab"), false);
         //                 });
         //             }
         //         } else {

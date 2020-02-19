@@ -20,7 +20,7 @@ interface LinkMenuItemProps {
     sourceDoc: Doc;
     destinationDoc: Doc;
     showEditor: (linkDoc: Doc) => void;
-    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
+    addDocTab: (document: Doc, where: string) => boolean;
 }
 
 @observer

@@ -1,4 +1,4 @@
-import { Doc, Opt } from '../../new_fields/Doc';
+import { Doc, Opt, DataSym } from '../../new_fields/Doc';
 import { Touchable } from './Touchable';
 import { computed, action, observable } from 'mobx';
 import { Cast } from '../../new_fields/Types';
@@ -58,7 +58,7 @@ export function DocAnnotatableComponent<P extends DocAnnotatableProps, T>(schema
         //TODO This might be pretty inefficient if doc isn't observed, because computed doesn't cache then
         @computed get Document(): T { return schemaCtor(this.props.Document); }
         @computed get layoutDoc() { return Doc.Layout(this.props.Document); }
-        @computed get dataDoc() { return (this.props.DataDoc && (this.props.Document.isTemplateForField || this.props.Document.isTemplateDoc) ? this.props.DataDoc : Cast(this.props.Document.resolvedDataDoc, Doc, null) || Doc.GetProto(this.props.Document)) as Doc; }
+        @computed get dataDoc() { return this.props.Document[DataSym]; }
 
         _annotationKey: string = "annotations";
         public set annotationKey(val: string) { this._annotationKey = val; }

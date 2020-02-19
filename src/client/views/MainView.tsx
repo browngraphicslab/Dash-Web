@@ -185,7 +185,7 @@ export class MainView extends React.Component {
                 reaction(() => CollectionDockingView.Instance && CollectionDockingView.Instance.initialized,
                     initialized => initialized && received && DocServer.GetRefField(received).then(docField => {
                         if (docField instanceof Doc && docField._viewType !== CollectionViewType.Docking) {
-                            CollectionDockingView.AddRightSplit(docField, undefined);
+                            CollectionDockingView.AddRightSplit(docField);
                         }
                     }),
                 );
@@ -379,10 +379,10 @@ export class MainView extends React.Component {
         document.removeEventListener("pointerup", this.onPointerUp);
     }
     flyoutWidthFunc = () => this.flyoutWidth;
-    addDocTabFunc = (doc: Doc, data: Opt<Doc>, where: string, libraryPath?: Doc[]): boolean => {
+    addDocTabFunc = (doc: Doc, where: string, libraryPath?: Doc[]): boolean => {
         return where === "close" ? CollectionDockingView.CloseRightSplit(doc) :
             doc.dockingConfig ? this.openWorkspace(doc) :
-                CollectionDockingView.AddRightSplit(doc, undefined, libraryPath);
+                CollectionDockingView.AddRightSplit(doc, libraryPath);
     }
     mainContainerXf = () => new Transform(0, -this._buttonBarHeight, 1);
 

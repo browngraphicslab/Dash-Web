@@ -613,7 +613,7 @@ export class ImageResizeView {
                 DocServer.GetRefField(node.attrs.docid).then(async linkDoc =>
                     (linkDoc instanceof Doc) &&
                     DocumentManager.Instance.FollowLink(linkDoc, view.state.schema.Document,
-                        document => addDocTab(document, undefined, node.attrs.location ? node.attrs.location : "inTab"), false));
+                        document => addDocTab(document, node.attrs.location ? node.attrs.location : "inTab"), false));
             }
         };
         this._handle.onpointerdown = function (e: any) {

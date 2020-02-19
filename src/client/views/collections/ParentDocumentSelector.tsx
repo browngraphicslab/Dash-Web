@@ -24,7 +24,7 @@ type SelectorProps = {
     Document: Doc,
     Views: DocumentView[],
     Stack?: any,
-    addDocTab(doc: Doc, dataDoc: Doc | undefined, location: string): void
+    addDocTab(doc: Doc, location: string): void
 };
 
 @observer
@@ -60,7 +60,7 @@ export class SelectorContextMenu extends React.Component<SelectorProps> {
                 col._panX = newPanX;
                 col._panY = newPanY;
             }
-            this.props.addDocTab(col, undefined, "inTab"); // bcz: dataDoc?
+            this.props.addDocTab(col, "inTab"); // bcz: dataDoc?
         };
     }
 

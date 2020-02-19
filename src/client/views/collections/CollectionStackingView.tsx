@@ -4,7 +4,7 @@ import { CursorProperty } from "csstype";
 import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import Switch from 'rc-switch';
-import { Doc, HeightSym, WidthSym } from "../../../new_fields/Doc";
+import { Doc, HeightSym, WidthSym, DataSym } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
@@ -62,7 +62,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             const rowSpan = Math.ceil((height() + this.gridGap) / this.gridGap);
             const style = this.isStackingView ? { width: width(), marginTop: i === 0 ? 0 : this.gridGap, height: height() } : { gridRowEnd: `span ${rowSpan}` };
             return <div className={`collectionStackingView-${this.isStackingView ? "columnDoc" : "masonryDoc"}`} key={d[Id]} ref={dref} style={style} >
-                {this.getDisplayDoc(d, Cast(d.resolvedDataDoc, Doc, null) || this.props.DataDoc, dxf, width)}
+                {this.getDisplayDoc(d, this.props.DataDoc, dxf, width)}
             </div>;
         });
     }
@@ -158,7 +158,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         const height = () => this.getDocHeight(doc);
         return <ContentFittingDocumentView
             Document={doc}
-            DataDocument={dataDoc}
+            DataDocument={doc[DataSym] !== doc && doc[DataSym]}
             backgroundColor={this.props.backgroundColor}
             LayoutDoc={this.props.childLayoutTemplate}
             LibraryPath={this.props.LibraryPath}

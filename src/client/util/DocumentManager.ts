@@ -148,7 +148,7 @@ export class DocumentManager {
             const targetDocContext = (annotatedDoc ? annotatedDoc : contextDoc);
 
             if (!targetDocContext) { // we don't have a view and there's no context specified ... create a new view of the target using the dockFunc or default
-                (dockFunc || CollectionDockingView.AddRightSplit)(Doc.BrushDoc(Doc.MakeAlias(targetDoc)), undefined);
+                (dockFunc || CollectionDockingView.AddRightSplit)(Doc.BrushDoc(Doc.MakeAlias(targetDoc)));
                 highlight();
             } else {
                 const targetDocContextView = DocumentManager.Instance.getFirstDocumentView(targetDocContext);
@@ -164,12 +164,12 @@ export class DocumentManager {
                             retryDocView.props.focus(targetDoc, willZoom); // focus on the target if it now exists in the context
                         } else {
                             if (closeContextIfNotFound && targetDocContextView.props.removeDocument) targetDocContextView.props.removeDocument(targetDocContextView.props.Document);
-                            targetDoc.layout && (dockFunc || CollectionDockingView.AddRightSplit)(Doc.BrushDoc(Doc.MakeAlias(targetDoc)), undefined); // otherwise create a new view of the target
+                            targetDoc.layout && (dockFunc || CollectionDockingView.AddRightSplit)(Doc.BrushDoc(Doc.MakeAlias(targetDoc))); // otherwise create a new view of the target
                         }
                         highlight();
                     }, 0);
                 } else {  // there's no context view so we need to create one first and try again
-                    (dockFunc || CollectionDockingView.AddRightSplit)(targetDocContext, undefined);
+                    (dockFunc || CollectionDockingView.AddRightSplit)(targetDocContext);
                     setTimeout(() => {
                         const finalDocView = DocumentManager.Instance.getFirstDocumentView(targetDoc);
                         const finalDocContextView = DocumentManager.Instance.getFirstDocumentView(targetDocContext);

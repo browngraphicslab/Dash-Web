@@ -36,7 +36,7 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
 
     showTemplate = (): void => {
         const dragFactory = Cast(this.props.Document.dragFactory, Doc, null);
-        dragFactory && this.props.addDocTab(dragFactory, undefined, "onRight");
+        dragFactory && this.props.addDocTab(dragFactory, "onRight");
     }
 
     specificContextMenu = (): void => {

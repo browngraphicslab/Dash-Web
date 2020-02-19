@@ -17,7 +17,7 @@ interface LinkMenuGroupProps {
     group: Doc[];
     groupType: string;
     showEditor: (linkDoc: Doc) => void;
-    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
+    addDocTab: (document: Doc, where: string) => boolean;
     docView: DocumentView;
 }
 

@@ -15,7 +15,7 @@ export class MainViewNotifs extends React.Component {
     @observable static NotifsCol: Opt<Doc>;
     openNotifsCol = () => {
         if (MainViewNotifs.NotifsCol) {
-            CollectionDockingView.AddRightSplit(MainViewNotifs.NotifsCol, undefined);
+            CollectionDockingView.AddRightSplit(MainViewNotifs.NotifsCol);
         }
     }
     render() {

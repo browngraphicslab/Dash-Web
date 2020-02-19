@@ -47,7 +47,7 @@ export interface TreeViewProps {
     deleteDoc: (doc: Doc) => boolean;
     moveDocument: DragManager.MoveFunction;
     dropAction: "alias" | "copy" | undefined;
-    addDocTab: (doc: Doc, dataDoc: Doc | undefined, where: string, libraryPath?: Doc[]) => boolean;
+    addDocTab: (doc: Doc, where: string, libraryPath?: Doc[]) => boolean;
     pinToPres: (document: Doc) => void;
     panelWidth: () => number;
     panelHeight: () => number;
@@ -128,7 +128,7 @@ class TreeView extends React.Component<TreeViewProps> {
     }
 
     @undoBatch delete = () => this.props.deleteDoc(this.props.document);
-    @undoBatch openRight = () => this.props.addDocTab(this.props.document, this.templateDataDoc, "onRight", this.props.libraryPath);
+    @undoBatch openRight = () => this.props.addDocTab(this.props.document, "onRight", this.props.libraryPath);
     @undoBatch indent = () => this.props.addDocument(this.props.document) && this.delete();
     @undoBatch move = (doc: Doc, target: Doc | undefined, addDoc: (doc: Doc) => boolean) => {
         return this.props.document !== target && this.props.deleteDoc(doc) && addDoc(doc);
@@ -201,8 +201,8 @@ class TreeView extends React.Component<TreeViewProps> {
                 ContextMenu.Instance.addItem({ description: "Clear All", event: () => Doc.GetProto(CurrentUserUtils.UserDocument.recentlyClosed as Doc).data = new List<Doc>(), icon: "plus" });
             } else if (this.props.document !== CurrentUserUtils.UserDocument.workspaces) {
                 ContextMenu.Instance.addItem({ description: "Pin to Presentation", event: () => this.props.pinToPres(this.props.document), icon: "tv" });
-                ContextMenu.Instance.addItem({ description: "Open Tab", event: () => this.props.addDocTab(this.props.document, this.templateDataDoc, "inTab", this.props.libraryPath), icon: "folder" });
-                ContextMenu.Instance.addItem({ description: "Open Right", event: () => this.props.addDocTab(this.props.document, this.templateDataDoc, "onRight", this.props.libraryPath), icon: "caret-square-right" });
+                ContextMenu.Instance.addItem({ description: "Open Tab", event: () => this.props.addDocTab(this.props.document, "inTab", this.props.libraryPath), icon: "folder" });
+                ContextMenu.Instance.addItem({ description: "Open Right", event: () => this.props.addDocTab(this.props.document, "onRight", this.props.libraryPath), icon: "caret-square-right" });
                 if (DocumentManager.Instance.getDocumentViews(this.dataDoc).length) {
                     ContextMenu.Instance.addItem({ description: "Focus", event: () => (view => view && view.props.focus(this.props.document, true))(DocumentManager.Instance.getFirstDocumentView(this.props.document)), icon: "camera" });
                 }
@@ -212,7 +212,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 ContextMenu.Instance.addItem({ description: "Create New Workspace", event: () => MainView.Instance.createNewWorkspace(), icon: "plus" });
             }
             ContextMenu.Instance.addItem({ description: "Toggle Theme Colors", event: () => this.props.document.darkScheme = !this.props.document.darkScheme, icon: "minus" });
-            ContextMenu.Instance.addItem({ description: "Open Fields", event: () => { const kvp = Docs.Create.KVPDocument(this.props.document, { _width: 300, _height: 300 }); this.props.addDocTab(kvp, this.props.dataDoc ? this.props.dataDoc : kvp, "onRight"); }, icon: "layer-group" });
+            ContextMenu.Instance.addItem({ description: "Open Fields", event: () => { const kvp = Docs.Create.KVPDocument(this.props.document, { _width: 300, _height: 300 }); this.props.addDocTab(kvp, "onRight"); }, icon: "layer-group" });
             ContextMenu.Instance.addItem({ description: "Publish", event: () => DocUtils.Publish(this.props.document, StrCast(this.props.document.title), () => { }, () => { }), icon: "file" });
             ContextMenu.Instance.displayMenu(e.pageX > 156 ? e.pageX - 156 : 0, e.pageY - 15);
             e.stopPropagation();
@@ -457,7 +457,7 @@ class TreeView extends React.Component<TreeViewProps> {
         remove: ((doc: Doc) => boolean),
         move: DragManager.MoveFunction,
         dropAction: dropActionType,
-        addDocTab: (doc: Doc, dataDoc: Doc | undefined, where: string) => boolean,
+        addDocTab: (doc: Doc, where: string) => boolean,
         pinToPres: (document: Doc) => void,
         backgroundColor: undefined | ((document: Doc) => string | undefined),
         screenToLocalXf: () => Transform,

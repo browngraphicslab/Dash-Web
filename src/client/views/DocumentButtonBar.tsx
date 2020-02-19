@@ -251,10 +251,10 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
 
     @computed
     get contextButton() {
-        return !this.view0 ? (null) : <ParentDocSelector Views={this.props.views.filter(v => v).map(v => v as DocumentView)} Document={this.view0.props.Document} addDocTab={(doc, data, where) => {
-            where === "onRight" ? CollectionDockingView.AddRightSplit(doc, data) :
-                this.props.stack ? CollectionDockingView.Instance.AddTab(this.props.stack, doc, data) :
-                    this.view0?.props.addDocTab(doc, data, "onRight");
+        return !this.view0 ? (null) : <ParentDocSelector Views={this.props.views.filter(v => v).map(v => v as DocumentView)} Document={this.view0.props.Document} addDocTab={(doc, where) => {
+            where === "onRight" ? CollectionDockingView.AddRightSplit(doc) :
+                this.props.stack ? CollectionDockingView.Instance.AddTab(this.props.stack, doc) :
+                    this.view0?.props.addDocTab(doc, "onRight");
             return true;
         }} />;
     }

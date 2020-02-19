@@ -16,7 +16,7 @@ library.add(faTrash);
 interface Props {
     docView: DocumentView;
     changeFlyout: () => void;
-    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
+    addDocTab: (document: Doc, where: string) => boolean;
 }
 
 @observer

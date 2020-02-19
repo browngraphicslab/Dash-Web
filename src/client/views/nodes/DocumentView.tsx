@@ -71,7 +71,7 @@ export interface DocumentViewProps {
     parentActive: (outsideReaction: boolean) => boolean;
     whenActiveChanged: (isActive: boolean) => void;
     bringToFront: (doc: Doc, sendToBack?: boolean) => void;
-    addDocTab: (doc: Doc, dataDoc: Doc | undefined, where: string, libraryPath?: Doc[]) => boolean;
+    addDocTab: (doc: Doc, where: string, libraryPath?: Doc[]) => boolean;
     pinToPres: (document: Doc) => void;
     zoomToScale: (scale: number) => void;
     backgroundHalo?: () => boolean;
@@ -152,9 +152,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     //     RadialMenu.Instance.openMenu();
 
-    //     RadialMenu.Instance.addItem({ description: "Open Fields", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), undefined, "onRight"), icon: "layer-group", selected: -1 });
+    //     RadialMenu.Instance.addItem({ description: "Open Fields", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), "onRight"), icon: "layer-group", selected: -1 });
     //     RadialMenu.Instance.addItem({ description: "Delete this document", event: () => this.props.ContainingCollectionView?.removeDocument(this.props.Document), icon: "trash", selected: -1 });
-    //     RadialMenu.Instance.addItem({ description: "Open in a new tab", event: () => this.props.addDocTab(this.props.Document, undefined, "onRight"), icon: "folder", selected: -1 });
+    //     RadialMenu.Instance.addItem({ description: "Open in a new tab", event: () => this.props.addDocTab(this.props.Document, "onRight"), icon: "folder", selected: -1 });
     //     RadialMenu.Instance.addItem({ description: "Pin to Presentation", event: () => this.props.pinToPres(this.props.Document), icon: "map-pin", selected: -1 });
 
     //     RadialMenu.Instance.displayMenu(pt.pageX - 15, pt.pageY - 15);
@@ -253,7 +253,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 if (StrCast(fullScreenAlias.layoutKey) !== "layout_fullScreen" && fullScreenAlias.layout_fullScreen) {
                     fullScreenAlias.layoutKey = "layout_fullScreen";
                 }
-                UndoManager.RunInBatch(() => this.props.addDocTab(fullScreenAlias, undefined, "inTab"), "double tap");
+                UndoManager.RunInBatch(() => this.props.addDocTab(fullScreenAlias, "inTab"), "double tap");
                 SelectionManager.DeselectAll();
                 Doc.UnBrushDoc(this.props.Document);
             } else if (this.onClickHandler && this.onClickHandler.script) {
@@ -277,7 +277,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (linkDocs.length) {
             DocumentManager.Instance.FollowLink(undefined, this.props.Document,
                 // open up target if it's not already in view ... by zooming into the button document first and setting flag to reset zoom afterwards
-                (doc: Doc, maxLocation: string) => this.props.focus(this.props.Document, true, 1, () => this.props.addDocTab(doc, undefined, maxLocation)),
+                (doc: Doc, maxLocation: string) => this.props.focus(this.props.Document, true, 1, () => this.props.addDocTab(doc, maxLocation)),
                 ctrlKey, altKey, this.props.ContainingCollectionDoc);
         }
     }
@@ -644,12 +644,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const open = ContextMenu.Instance.findByDescription("Open...");
         const openItems: ContextMenuProps[] = open && "subitems" in open ? open.subitems : [];
         openItems.push({ description: "Open Full Screen", event: () => CollectionDockingView.Instance && CollectionDockingView.Instance.OpenFullScreen(this, this.props.LibraryPath), icon: "desktop" });
-        openItems.push({ description: "Open Tab        ", event: () => this.props.addDocTab(this.props.Document, this.props.DataDoc, "inTab", this.props.LibraryPath), icon: "folder" });
-        openItems.push({ description: "Open Right      ", event: () => this.props.addDocTab(this.props.Document, this.props.DataDoc, "onRight", this.props.LibraryPath), icon: "caret-square-right" });
-        openItems.push({ description: "Open Alias Tab  ", event: () => this.props.addDocTab(Doc.MakeAlias(this.props.Document), this.props.DataDoc, "inTab"), icon: "folder" });
-        openItems.push({ description: "Open Alias Right", event: () => this.props.addDocTab(Doc.MakeAlias(this.props.Document), this.props.DataDoc, "onRight"), icon: "caret-square-right" });
-        openItems.push({ description: "Open Fields     ", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { _width: 300, _height: 300 }), undefined, "onRight"), icon: "layer-group" });
-        templateDoc && openItems.push({ description: "Open Template   ", event: () => this.props.addDocTab(templateDoc, undefined, "onRight"), icon: "eye" });
+        openItems.push({ description: "Open Tab        ", event: () => this.props.addDocTab(this.props.Document, "inTab", this.props.LibraryPath), icon: "folder" });
+        openItems.push({ description: "Open Right      ", event: () => this.props.addDocTab(this.props.Document, "onRight", this.props.LibraryPath), icon: "caret-square-right" });
+        openItems.push({ description: "Open Alias Tab  ", event: () => this.props.addDocTab(Doc.MakeAlias(this.props.Document), "inTab"), icon: "folder" });
+        openItems.push({ description: "Open Alias Right", event: () => this.props.addDocTab(Doc.MakeAlias(this.props.Document), "onRight"), icon: "caret-square-right" });
+        openItems.push({ description: "Open Fields     ", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { _width: 300, _height: 300 }), "onRight"), icon: "layer-group" });
+        templateDoc && openItems.push({ description: "Open Template   ", event: () => this.props.addDocTab(templateDoc, "onRight"), icon: "eye" });
         openItems.push({ description: "Open Repl", icon: "laptop-code", event: () => OverlayView.Instance.addWindow(<ScriptingRepl />, { x: 300, y: 100, width: 200, height: 200, title: "Scripting REPL" }) });
         !open && cm.addItem({ description: "Open...", subitems: openItems, icon: "external-link-alt" });
 

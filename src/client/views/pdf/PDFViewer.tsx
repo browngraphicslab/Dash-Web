@@ -65,7 +65,7 @@ interface IViewerProps {
     loaded: (nw: number, nh: number, np: number) => void;
     active: (outsideReaction?: boolean) => boolean;
     isChildActive: (outsideReaction?: boolean) => boolean;
-    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
+    addDocTab: (document: Doc, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     addDocument?: (doc: Doc) => boolean;
     setPdfViewer: (view: PDFViewer) => void;

@@ -34,7 +34,7 @@ interface ContentFittingDocumentViewProps {
     removeDocument?: (document: Doc) => boolean;
     active: (outsideReaction: boolean) => boolean;
     whenActiveChanged: (isActive: boolean) => void;
-    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
+    addDocTab: (document: Doc, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     dontRegisterView?: boolean;
 }
