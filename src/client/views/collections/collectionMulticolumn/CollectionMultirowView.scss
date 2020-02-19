@@ -20,7 +20,7 @@
     }
 
     .multiRowResizer {
-        cursor: ew-resize;
+        cursor: ns-resize;
         transition: 0.5s opacity ease;
         display: flex;
         flex-direction: row;
