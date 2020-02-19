@@ -929,6 +929,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         // }
 
         if (Math.abs(e.clientX - this._downX) < 4 && Math.abs(e.clientX - this._downX) < 4) {
+            this.props.select(e.ctrlKey);
             this.hitBulletTargets(e.clientX, e.clientY, e.shiftKey, false);
         }
         if (this._recording) setTimeout(() => { this.stopDictation(true); setTimeout(() => this.recordDictation(), 500); }, 500);
