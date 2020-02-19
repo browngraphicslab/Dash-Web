@@ -471,7 +471,6 @@ export namespace Doc {
         const expandedLayoutFieldKey = (templateField || layoutFielddKey) + "-layout[" + templateLayoutDoc[Id] + "]";
         let expandedTemplateLayout = targetDoc?.[expandedLayoutFieldKey];
         if (templateLayoutDoc.resolvedDataDoc instanceof Promise) {
-
             expandedTemplateLayout = undefined;
         } else if (templateLayoutDoc.resolvedDataDoc === Doc.GetProto(targetDoc)) {
             expandedTemplateLayout = templateLayoutDoc;
@@ -484,7 +483,7 @@ export namespace Doc {
                     targetDoc[expandedLayoutFieldKey] = newLayoutDoc;
                     const dataDoc = Doc.GetProto(targetDoc);
                     newLayoutDoc.resolvedDataDoc = dataDoc;
-                    if (dataDoc[templateField] === undefined && templateLayoutDoc[templateField] instanceof List && Cast(templateLayoutDoc[templateField], listSpec(Doc), []).length) {
+                    if (dataDoc[templateField] === undefined && templateLayoutDoc[templateField] instanceof List) {
                         dataDoc[templateField] = ComputedField.MakeFunction(`ObjectField.MakeCopy(templateLayoutDoc["${templateField}"] as List)`, { templateLayoutDoc: Doc.name }, { templateLayoutDoc: templateLayoutDoc });
                     }
                 }
@@ -497,24 +496,8 @@ export namespace Doc {
     // otherwise, it just returns the childDoc
     export function GetLayoutDataDocPair(containerDoc: Doc, containerDataDoc: Opt<Doc>, childDoc: Doc) {
         const existingResolvedDataDoc = childDoc[DataSym] !== Doc.GetProto(childDoc)[DataSym] && childDoc[DataSym];
-        const resolvedDataDoc = existingResolvedDataDoc || (containerDataDoc === containerDoc || !containerDataDoc || (!childDoc.isTemplateDoc && !childDoc.isTemplateForField) ? undefined : containerDataDoc);
+        const resolvedDataDoc = existingResolvedDataDoc || (Doc.AreProtosEqual(containerDataDoc, containerDoc) || !containerDataDoc || (!childDoc.isTemplateDoc && !childDoc.isTemplateForField) ? undefined : containerDataDoc);
         return { layout: Doc.expandTemplateLayout(childDoc, resolvedDataDoc), data: resolvedDataDoc };
-    }
-    export function CreateDocumentExtensionForField(doc: Doc, fieldKey: string) {
-        let proto: Doc | undefined = doc;
-        while (proto && !Doc.IsPrototype(proto) && proto.proto) {
-            proto = proto.proto;
-        }
-        let docExtensionForField = ((proto || doc)[fieldKey + "_ext"] as Doc);
-        if (!docExtensionForField) {
-            docExtensionForField = new Doc(doc[Id] + fieldKey, true);
-            docExtensionForField.title = fieldKey + ".ext"; // courtesy field--- shouldn't be needed except maybe for debugging
-            docExtensionForField.extendsDoc = doc; // this is used by search to map field matches on the extension doc back to the document it extends.
-            docExtensionForField.extendsField = fieldKey; // this can be used by search to map matches on the extension doc back to the field that was extended.
-            docExtensionForField.type = DocumentType.EXTENSION;
-            (proto || doc)[fieldKey + "_ext"] = new PrefetchProxy(docExtensionForField);
-        }
-        return docExtensionForField;
     }
 
     export function Overwrite(doc: Doc, overwrite: Doc, copyProto: boolean = false): Doc {

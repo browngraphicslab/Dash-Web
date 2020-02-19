@@ -96,7 +96,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
                 if (targetDoc[targetField] instanceof ImageField) {
                     this.dataDoc[this.props.fieldKey] = ObjectField.MakeCopy(targetDoc[targetField] as ImageField);
                     this.dataDoc[this.props.fieldKey + "-nativeWidth"] = NumCast(targetDoc[targetField + "-nativeWidth"]);
-                    this.dataDoc[this.props.fieldKey + "-nativeHeight"] = NumCast(targeDoc[targetField + "-nativeHeight"]);
+                    this.dataDoc[this.props.fieldKey + "-nativeHeight"] = NumCast(targetDoc[targetField + "-nativeHeight"]);
                     e.stopPropagation();
                 }
             }

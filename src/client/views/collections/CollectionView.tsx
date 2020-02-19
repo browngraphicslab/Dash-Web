@@ -109,9 +109,6 @@ export class CollectionView extends Touchable<FieldViewProps> {
         return viewField;
     }
 
-    // bcz: Argh?  What's the height of the collection chromes??  
-    chromeHeight = () => (this.props.Document._chromeStatus === "enabled" ? -60 : 0);
-
     active = (outsideReaction?: boolean) => this.props.isSelected(outsideReaction) || BoolCast(this.props.Document.forceActive) || this._isChildActive || this.props.renderDepth === 0;
 
     whenActiveChanged = (isActive: boolean) => { this.props.whenActiveChanged(this._isChildActive = isActive); };
@@ -128,15 +125,17 @@ export class CollectionView extends Touchable<FieldViewProps> {
 
     @action.bound
     removeDocument(doc: Doc): boolean {
+        const targetDataDoc = this.props.Document[DataSym];
         const docView = DocumentManager.Instance.getDocumentView(doc, this.props.ContainingCollectionView);
         docView && SelectionManager.DeselectDoc(docView);
-        const value = Cast(this.props.Document[DataSym][this.props.fieldKey], listSpec(Doc), []);
+        const value = DocListCast(targetDataDoc[this.props.fieldKey]);
         let index = value.reduce((p, v, i) => (v instanceof Doc && v === doc) ? i : p, -1);
         index = index !== -1 ? index : value.reduce((p, v, i) => (v instanceof Doc && Doc.AreProtosEqual(v, doc)) ? i : p, -1);
 
         ContextMenu.Instance.clearItems();
         if (index !== -1) {
             value.splice(index, 1);
+            targetDataDoc[this.props.fieldKey] = new List<Doc>(value);
             return true;
         }
         return false;
@@ -162,7 +161,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
     }
 
     private SubViewHelper = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
-        const props: SubCollectionViewProps = { ...this.props, ...renderProps, ChromeHeight: this.chromeHeight, CollectionView: this, annotationsKey: "" };
+        const props: SubCollectionViewProps = { ...this.props, ...renderProps, CollectionView: this, annotationsKey: "" };
         switch (type) {
             case CollectionViewType.Schema: return (<CollectionSchemaView key="collview" {...props} />);
             case CollectionViewType.Docking: return (<CollectionDockingView key="collview" {...props} />);

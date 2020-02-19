@@ -454,11 +454,11 @@ export class MainView extends React.Component {
             {this.docButtons}
         </div>;
     }
-    //`${StrCast(sidebar.backgroundColor, this.darkScheme ? "dimGray" : "black")}` }} >
+
     @computed get mainContent() {
         const sidebar = this.userDoc && this.userDoc.sidebarContainer;
         return !this.userDoc || !(sidebar instanceof Doc) ? (null) : (
-            <div className="mainView-mainContent" style={{ color: this.darkScheme ? "dimGray" : "black" }} >
+            <div className="mainView-mainContent" style={{ color: this.darkScheme ? "rgb(205,205,205)" : "black" }} >
                 <div className="mainView-flyoutContainer" onPointerLeave={this.pointerLeaveDragger} style={{ width: this.flyoutWidth }}>
                     <div className="mainView-libraryHandle" onPointerDown={this.onPointerDown} onPointerOver={this.pointerOverDragger}
                         style={{ backgroundColor: this.defaultBackgroundColors(sidebar) }}>
