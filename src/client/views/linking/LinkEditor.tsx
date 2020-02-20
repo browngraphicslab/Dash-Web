@@ -215,6 +215,7 @@ export class LinkGroupEditor extends React.Component<LinkGroupEditorProps> {
     @action
     setGroupType = (groupType: string): void => {
         this.props.groupDoc.type = groupType;
+        this.props.groupDoc.title = groupType;
     }
 
     removeGroupFromLink = (groupType: string): void => {
@@ -246,6 +247,7 @@ export class LinkGroupEditor extends React.Component<LinkGroupEditorProps> {
         // create new group doc with new metadata doc
         const destGroupDoc = new Doc();
         destGroupDoc.type = groupType;
+        destGroupDoc.title = groupType;
         destGroupDoc.metadata = destMdDoc;
 
         if (destDoc) {
