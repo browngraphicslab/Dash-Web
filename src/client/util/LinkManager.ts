@@ -148,7 +148,7 @@ export class LinkManager {
     public addGroupToAnchor(linkDoc: Doc, anchor: Doc, groupDoc: Doc, replace: boolean = false) {
         const groups = LinkManager.Instance.getAnchorGroups(linkDoc, anchor);
         const index = groups.findIndex(gDoc => {
-            return StrCast(groupDoc.type).toUpperCase() === StrCast(gDoc.type).toUpperCase();
+            return StrCast(groupDoc.title).toUpperCase() === StrCast(gDoc.title).toUpperCase();
         });
         if (index > -1 && replace) {
             groups[index] = groupDoc;
@@ -162,7 +162,7 @@ export class LinkManager {
     // removes group doc of given group type only from given anchor on given link
     public removeGroupFromAnchor(linkDoc: Doc, anchor: Doc, groupType: string) {
         const groups = LinkManager.Instance.getAnchorGroups(linkDoc, anchor);
-        const newGroups = groups.filter(groupDoc => StrCast(groupDoc.type).toUpperCase() !== groupType.toUpperCase());
+        const newGroups = groups.filter(groupDoc => StrCast(groupDoc.title).toUpperCase() !== groupType.toUpperCase());
         LinkManager.Instance.setAnchorGroups(linkDoc, anchor, newGroups);
     }
 
@@ -175,7 +175,7 @@ export class LinkManager {
 
             if (groups.length > 0) {
                 groups.forEach(groupDoc => {
-                    const groupType = StrCast(groupDoc.type);
+                    const groupType = StrCast(groupDoc.title);
                     if (groupType === "") {
                         const group = anchorGroups.get("*");
                         anchorGroups.set("*", group ? [...group, link] : [link]);
@@ -217,8 +217,8 @@ export class LinkManager {
         allLinks.forEach(linkDoc => {
             const anchor1Groups = LinkManager.Instance.getAnchorGroups(linkDoc, Cast(linkDoc.anchor1, Doc, null));
             const anchor2Groups = LinkManager.Instance.getAnchorGroups(linkDoc, Cast(linkDoc.anchor2, Doc, null));
-            anchor1Groups.forEach(groupDoc => { if (StrCast(groupDoc.type).toUpperCase() === groupType.toUpperCase()) { const meta = Cast(groupDoc.metadata, Doc, null); meta && md.push(meta); } });
-            anchor2Groups.forEach(groupDoc => { if (StrCast(groupDoc.type).toUpperCase() === groupType.toUpperCase()) { const meta = Cast(groupDoc.metadata, Doc, null); meta && md.push(meta); } });
+            anchor1Groups.forEach(groupDoc => { if (StrCast(groupDoc.title).toUpperCase() === groupType.toUpperCase()) { md.push(groupDoc); } });
+            anchor2Groups.forEach(groupDoc => { if (StrCast(groupDoc.title).toUpperCase() === groupType.toUpperCase()) { md.push(groupDoc); } });
         });
         return md;
     }
