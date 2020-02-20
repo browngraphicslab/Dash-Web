@@ -39,9 +39,8 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     }
 
     renderMetadata = (): JSX.Element => {
-        const groups = LinkManager.Instance.getAnchorGroups(this.props.linkDoc, this.props.sourceDoc);
-        const index = groups.findIndex(groupDoc => StrCast(groupDoc.title).toUpperCase() === this.props.groupType.toUpperCase());
-        const groupDoc = index > -1 ? groups[index] : undefined;
+        const index = StrCast(this.props.linkDoc.title).toUpperCase() === this.props.groupType.toUpperCase() ? 0 : -1;
+        const groupDoc = index > -1 ? this.props.linkDoc : undefined;
 
         let mdRows: Array<JSX.Element> = [];
         if (groupDoc) {

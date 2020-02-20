@@ -41,6 +41,8 @@ export interface CollectionViewProps extends FieldViewProps {
 export interface SubCollectionViewProps extends CollectionViewProps {
     CollectionView: Opt<CollectionView>;
     children?: never | (() => JSX.Element[]) | React.ReactNode;
+    overrideDocuments?: Doc[]; // used to override the documents shown by the sub collection to an explict list (see LinkBox)
+    ignoreFields?: string[]; // used in TreeView to ignore specified fields (see LinkBox)
     isAnnotationOverlay?: boolean;
     annotationsKey: string;
     layoutEngine?: () => string;

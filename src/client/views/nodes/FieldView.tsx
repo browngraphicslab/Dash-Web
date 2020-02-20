@@ -114,7 +114,7 @@ export class FieldView extends React.Component<FieldViewProps> {
         //     return <WebBox {...this.props} />
         // }
         else if (!(field instanceof Promise)) {
-            return <p>{field.toString()}</p>;
+            return <p>{Field.toString(field)}</p>;
         }
         else {
             return <p> {"Waiting for server..."} </p>;

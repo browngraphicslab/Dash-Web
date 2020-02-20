@@ -77,11 +77,14 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             var [sptX, sptY] = transform.transformPoint(0, 0);
             let [bptX, bptY] = transform.transformPoint(documentView.props.PanelWidth(), documentView.props.PanelHeight());
             if (documentView.props.Document.type === DocumentType.LINK) {
-                const rect = documentView.ContentDiv!.getElementsByClassName("docuLinkBox-cont")[0].getBoundingClientRect();
-                sptX = rect.left;
-                sptY = rect.top;
-                bptX = rect.right;
-                bptY = rect.bottom;
+                const docuBox = documentView.ContentDiv!.getElementsByClassName("docuLinkBox-cont");
+                if (docuBox.length) {
+                    const rect = docuBox[0].getBoundingClientRect();
+                    sptX = rect.left;
+                    sptY = rect.top;
+                    bptX = rect.right;
+                    bptY = rect.bottom;
+                }
             }
             return {
                 x: Math.min(sptX, bounds.x), y: Math.min(sptY, bounds.y),

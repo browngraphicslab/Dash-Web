@@ -408,7 +408,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             rowInfo,
             rowFocused: !this._headerIsEditing && rowInfo.index === this._focusedCell.row && this.props.isFocused(this.props.Document),
             textWrapRow: this.toggleTextWrapRow,
-            rowWrapped: this.textWrappedRows.findIndex(id => rowInfo.original[Id] === id) > -1
+            rowWrapped: this.textWrappedRows.findIndex(id => rowInfo.original[Id] === id) > -1,
+            dropAction: StrCast(this.props.Document.childDropAction)
         };
     }
 

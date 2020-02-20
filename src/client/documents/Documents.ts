@@ -26,7 +26,6 @@ import { listSpec } from "../../new_fields/Schema";
 import { DocServer } from "../DocServer";
 import { dropActionType } from "../util/DragManager";
 import { DateField } from "../../new_fields/DateField";
-import { UndoManager, undoBatch } from "../util/UndoManager";
 import { YoutubeBox } from "../apis/youtube/YoutubeBox";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import { LinkManager } from "../util/LinkManager";
@@ -56,6 +55,7 @@ import { extname } from "path";
 import { MessageStore } from "../../server/Message";
 import { ContextMenuProps } from "../views/ContextMenuItem";
 import { ContextMenu } from "../views/ContextMenu";
+import { LinkBox } from "../views/nodes/LinkBox";
 const requestImageSize = require('../util/request-image-size');
 const path = require('path');
 
@@ -85,6 +85,7 @@ export interface DocumentOptions {
     y?: number;
     z?: number;
     dropAction?: dropActionType;
+    chilDropAction?: dropActionType;
     layoutKey?: string;
     type?: string;
     title?: string;
@@ -103,6 +104,8 @@ export interface DocumentOptions {
     lockedTransform?: boolean; // lock the panx,pany and scale parameters of the document so that it be panned/zoomed
     opacity?: number;
     defaultBackgroundColor?: string;
+    isBackground?: boolean;
+    isButton?: boolean;
     columnWidth?: number;
     fontSize?: number;
     curPage?: number;
@@ -219,6 +222,10 @@ export namespace Docs {
             [DocumentType.IMPORT, {
                 layout: { view: DirectoryImportBox, dataField: data },
                 options: { _height: 150 }
+            }],
+            [DocumentType.LINK, {
+                layout: { view: LinkBox, dataField: data },
+                options: { _height: 75 }
             }],
             [DocumentType.LINKDOC, {
                 data: new List<Doc>(),
@@ -399,8 +406,8 @@ export namespace Docs {
 
         Scripting.addGlobal(Buxton);
 
-        const delegateKeys = ["x", "y", "layoutKey", "_width", "_height", "_panX", "_panY", "_viewType", "_nativeWidth", "_nativeHeight", "dropAction", "_annotationOn",
-            "_chromeStatus", "_forceActive", "_autoHeight", "_fitWidth", "_LODdisable", "_itemIndex", "_showSidebar", "_showTitle", "_showCaption", "_showTitleHover"];
+        const delegateKeys = ["x", "y", "layoutKey", "_width", "_height", "_panX", "_panY", "_viewType", "_nativeWidth", "_nativeHeight", "dropAction", "childDropAction", "_annotationOn",
+            "_chromeStatus", "_forceActive", "_autoHeight", "_fitWidth", "_LODdisable", "_itemIndex", "_showSidebar", "_showTitle", "_showCaption", "_showTitleHover", "isButton", "isBackground", "removeDropProperties"];
 
         /**
          * This function receives the relevant document prototype and uses
@@ -514,6 +521,30 @@ export namespace Docs {
 
         export function TextDocument(text: string, options: DocumentOptions = {}) {
             return InstanceFromProto(Prototypes.get(DocumentType.TEXT), text, options);
+        }
+
+        export function LinkDocument(source: { doc: Doc, ctx?: Doc }, target: { doc: Doc, ctx?: Doc }, options: DocumentOptions = {}, id?: string) {
+            const doc = InstanceFromProto(Prototypes.get(DocumentType.LINK), undefined, { isBackground: true, isButton: true, removeDropProperties: new List(["isBackground", "isButton"]), ...options });
+            const linkDocProto = Doc.GetProto(doc);
+            linkDocProto.anchor1 = source.doc;
+            linkDocProto.anchor2 = target.doc;
+            linkDocProto.anchor1Context = source.ctx;
+            linkDocProto.anchor2Context = target.ctx;
+            linkDocProto.anchor1Timecode = source.doc.currentTimecode;
+            linkDocProto.anchor2Timecode = target.doc.currentTimecode;
+
+            if (linkDocProto.layout_key1 === undefined) {
+                Cast(linkDocProto.proto, Doc, null)!.layout_key1 = DocuLinkBox.LayoutString("anchor1");
+                Cast(linkDocProto.proto, Doc, null)!.layout_key2 = DocuLinkBox.LayoutString("anchor2");
+                Cast(linkDocProto.proto, Doc, null)!.linkBoxExcludedKeys = new List(["treeViewExpandedView", "removeDropProperties", "linkBoxExcludedKeys", "treeViewOpen", "proto", "aliasNumber", "title", "isPrototype", "lastOpened", "creationDate", "author"]);
+                Cast(linkDocProto.proto, Doc, null)!.layoutKey = undefined;
+            }
+
+            LinkManager.Instance.addLink(doc);
+
+            Doc.GetProto(source.doc).links = ComputedField.MakeFunction("links(this)");
+            Doc.GetProto(target.doc).links = ComputedField.MakeFunction("links(this)");
+            return doc;
         }
 
         export function InkDocument(color: string, tool: number, strokeWidth: number, points: { X: number, Y: number }[], options: DocumentOptions = {}) {
@@ -870,34 +901,11 @@ export namespace DocUtils {
         if (sv && sv.props.ContainingCollectionDoc === target.doc) return;
         if (target.doc === CurrentUserUtils.UserDocument) return undefined;
 
-        const linkDocProto = new Doc(id, true);
-        UndoManager.RunInBatch(() => {
-            linkDocProto.type = DocumentType.LINK;
+        const linkDoc = Docs.Create.LinkDocument(source, target, { title }, id);
 
-            linkDocProto.title = title === "" ? source.doc.title + " to " + target.doc.title : title;
-            linkDocProto.linkDescription = description;
-            linkDocProto.isPrototype = true;
-
-            linkDocProto.anchor1 = source.doc;
-            linkDocProto.anchor2 = target.doc;
-            linkDocProto.anchor1Context = source.ctx;
-            linkDocProto.anchor2Context = target.ctx;
-            linkDocProto.anchor1Groups = new List<Doc>([]);
-            linkDocProto.anchor2Groups = new List<Doc>([]);
-            linkDocProto.anchor1Timecode = source.doc.currentTimecode;
-            linkDocProto.anchor2Timecode = target.doc.currentTimecode;
-            linkDocProto.layout_key1 = DocuLinkBox.LayoutString("anchor1");
-            linkDocProto.layout_key2 = DocuLinkBox.LayoutString("anchor2");
-            linkDocProto.width = linkDocProto.height = 0;
-            linkDocProto.isBackground = true;
-            linkDocProto.isButton = true;
-
-            LinkManager.Instance.addLink(linkDocProto);
-
-            Doc.GetProto(source.doc).links = ComputedField.MakeFunction("links(this)");
-            Doc.GetProto(target.doc).links = ComputedField.MakeFunction("links(this)");
-        }, "make link");
-        return linkDocProto;
+        Doc.GetProto(source.doc).links = ComputedField.MakeFunction("links(this)");
+        Doc.GetProto(target.doc).links = ComputedField.MakeFunction("links(this)");
+        return linkDoc;
     }
 
     export function addDocumentCreatorMenuItems(docTextAdder: (d: Doc) => void, docAdder: (d: Doc) => void, x: number, y: number): void {

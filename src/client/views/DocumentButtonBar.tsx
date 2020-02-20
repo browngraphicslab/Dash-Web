@@ -120,7 +120,7 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
                     const linkDoc = dropEv.linkDragData?.linkDocument as Doc; // equivalent to !dropEve.aborted since linkDocument is only assigned on a completed drop
                     if (this.view0 && linkDoc) {
                         const proto = Doc.GetProto(linkDoc);
-                        proto.sourceContext = this.view0.props.ContainingCollectionDoc;
+                        proto.anchor1Context = this.view0.props.ContainingCollectionDoc;
 
                         const anchor2Title = linkDoc.anchor2 instanceof Doc ? StrCast(linkDoc.anchor2.title) : "-untitled-";
                         const anchor2Id = linkDoc.anchor2 instanceof Doc ? linkDoc.anchor2[Id] : "";

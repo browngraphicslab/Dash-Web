@@ -166,7 +166,7 @@ class LinkMetadataEditor extends React.Component<LinkMetadataEditorProps> {
     setMetadataValue = (value: string): void => {
         if (!this._keyError) {
             this._value = value;
-            this.props.mdDoc[this._key] = value;
+            Doc.GetProto(this.props.mdDoc)[this._key] = value;
         }
     }
 
@@ -343,25 +343,10 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
         this.props.showLinks();
     }
 
-    @action
-    addGroup = (): void => {
-        // create new metadata document for group
-        // create new group document
-        const groupDoc = new Doc();
-        groupDoc.anchor1 = this.props.sourceDoc;
-        const opp = LinkManager.Instance.getOppositeAnchor(this.props.linkDoc, this.props.sourceDoc);
-        if (opp) {
-            groupDoc.anchor2 = opp;
-        }
-
-        LinkManager.Instance.addGroupToAnchor(this.props.linkDoc, this.props.sourceDoc, groupDoc);
-    }
-
     render() {
         const destination = LinkManager.Instance.getOppositeAnchor(this.props.linkDoc, this.props.sourceDoc);
 
-        const groupList = LinkManager.Instance.getAnchorGroups(this.props.linkDoc, this.props.sourceDoc);
-        const groups = groupList.map(groupDoc => {
+        const groups = [this.props.linkDoc].map(groupDoc => {
             return <LinkGroupEditor key={"gred-" + StrCast(groupDoc.title)} linkDoc={this.props.linkDoc} sourceDoc={this.props.sourceDoc} groupDoc={groupDoc} />;
         });
 
@@ -374,7 +359,6 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                 </div>
                 <div className="linkEditor-groupsLabel">
                     <b>Relationships:</b>
-                    <button className="linkEditor-button" onClick={() => this.addGroup()} title=" Add Group"><FontAwesomeIcon icon="plus" size="sm" /></button>
                 </div>
                 {groups.length > 0 ? groups : <div className="linkEditor-group">There are currently no relationships associated with this link.</div>}
             </div>

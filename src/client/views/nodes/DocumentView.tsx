@@ -198,7 +198,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             dragData.dropAction = dropAction;
             dragData.moveDocument = this.props.moveDocument;//  this.Document.onDragStart ? undefined : this.props.moveDocument;
             dragData.dragDivName = this.props.dragDivName;
-            this.props.Document.sourceContext = this.props.ContainingCollectionDoc; // bcz: !! shouldn't need this ... use search find the document's context dynamically
+            this.props.Document.anchor1Context = this.props.ContainingCollectionDoc; // bcz: !! shouldn't need this ... use search find the document's context dynamically
             DragManager.StartDocumentDrag([this._mainCont.current], dragData, x, y, { hideSource: !dropAction && !this.Document.onDragStart });
         }
     }
@@ -534,7 +534,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             // const docs = await SearchUtil.Search(`data_l:"${destDoc[Id]}"`, true);
             // const views = docs.map(d => DocumentManager.Instance.getDocumentView(d)).filter(d => d).map(d => d as DocumentView);
             de.complete.linkDragData.linkSourceDocument !== this.props.Document &&
-                (de.complete.linkDragData.linkDocument = DocUtils.MakeLink({ doc: de.complete.linkDragData.linkSourceDocument }, { doc: this.props.Document, ctx: this.props.ContainingCollectionDoc }, "in-text link being created")); // TODODO this is where in text links get passed
+                (de.complete.linkDragData.linkDocument = DocUtils.MakeLink({ doc: de.complete.linkDragData.linkSourceDocument }, { doc: this.props.Document, ctx: this.props.ContainingCollectionDoc }, "-ungrouped-")); // TODODO this is where in text links get passed
         }
     }
 
@@ -762,9 +762,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     @computed get finalLayoutKey() {
-        const { layoutKey } = this.props;
-        if (typeof layoutKey === "string") {
-            return layoutKey;
+        if (typeof this.props.layoutKey === "string") {
+            return this.props.layoutKey;
         }
         const fallback = Cast(this.props.Document.layoutKey, "string");
         return typeof fallback === "string" ? fallback : "layout";

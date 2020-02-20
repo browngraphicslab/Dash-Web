@@ -14,6 +14,7 @@ import { YoutubeBox } from "./../../apis/youtube/YoutubeBox";
 import { AudioBox } from "./AudioBox";
 import { ButtonBox } from "./ButtonBox";
 import { SliderBox } from "./SliderBox";
+import { LinkBox } from "./LinkBox";
 import { DocumentBox } from "./DocumentBox";
 import { DocumentViewProps } from "./DocumentView";
 import "./DocumentView.scss";
@@ -108,7 +109,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
                     FormattedTextBox, ImageBox, DirectoryImportBox, FontIconBox, ButtonBox, SliderBox, FieldView,
                     CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox,
                     PDFBox, VideoBox, AudioBox, HistogramBox, PresBox, YoutubeBox, LinkFollowBox, PresElementBox, QueryBox,
-                    ColorBox, DashWebRTCVideo, DocuLinkBox, InkingStroke, DocumentBox
+                    ColorBox, DashWebRTCVideo, DocuLinkBox, InkingStroke, DocumentBox, LinkBox
                 }}
                 bindings={this.CreateBindings()}
                 jsx={this.layout}

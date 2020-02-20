@@ -1,6 +1,6 @@
 import { action, observable } from "mobx";
 import { observer } from "mobx-react";
-import { Doc } from "../../../new_fields/Doc";
+import { Doc, DocListCast } from "../../../new_fields/Doc";
 import { documentSchema } from "../../../new_fields/documentSchemas";
 import { makeInterface } from "../../../new_fields/Schema";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
@@ -11,6 +11,8 @@ import { DocComponent } from "../DocComponent";
 import "./DocuLinkBox.scss";
 import { FieldView, FieldViewProps } from "./FieldView";
 import React = require("react");
+import { ContextMenuProps } from "../ContextMenuItem";
+import { ContextMenu } from "../ContextMenu";
 
 type DocLinkSchema = makeInterface<[typeof documentSchema]>;
 const DocLinkDocument = makeInterface(documentSchema);
@@ -61,10 +63,25 @@ export class DocuLinkBox extends DocComponent<FieldViewProps, DocLinkSchema>(Doc
     onClick = (e: React.MouseEvent) => {
         if (!this.props.Document.onClick) {
             if (Math.abs(e.clientX - this._downx) < 3 && Math.abs(e.clientY - this._downy) < 3 && (e.button !== 2 && !e.ctrlKey && this.props.Document.isButton)) {
-                DocumentManager.Instance.FollowLink(this.props.Document, this.props.ContainingCollectionDoc as Doc, document => this.props.addDocTab(document, "inTab"), false);
+                if (this.props.Document.linkTarget === "doc") {
+                    const alias = Doc.MakeAlias(this.props.Document);
+                    alias.isButton = undefined;
+                    alias.isBackground = undefined;
+                    this.props.addDocTab(alias, StrCast(this.props.Document.linkOpenLocation, "inTab"));
+                } else {
+                    DocumentManager.Instance.FollowLink(this.props.Document, this.props.ContainingCollectionDoc as Doc, document => this.props.addDocTab(document, StrCast(this.props.Document.linkOpenLocation, "inTab")), false);
+                }
             }
             e.stopPropagation();
         }
+    }
+
+    specificContextMenu = (e: React.MouseEvent): void => {
+        const funcs: ContextMenuProps[] = [];
+        funcs.push({ description: "Open Target " + (this.props.Document.linkOpenLocation !== "onRight" ? "on Right" : "in Tab"), event: () => { e.stopPropagation(); this.props.Document.linkOpenLocation = this.props.Document.linkOpenLocation !== "onRight" ? "onRight" : "inTab" }, icon: "eye" });
+        funcs.push({ description: this.props.Document.linkTarget === "doc" ? "Open Link Target" : "Open Link Doc", event: () => { e.stopPropagation(); this.props.Document.linkTarget = this.props.Document.linkTarget === "doc" ? "anchor" : "doc" }, icon: "eye" });
+
+        ContextMenu.Instance.addItem({ description: "Link Funcs...", subitems: funcs, icon: "asterisk" });
     }
 
     render() {
@@ -76,7 +93,7 @@ export class DocuLinkBox extends DocComponent<FieldViewProps, DocLinkSchema>(Doc
 
         const timecode = this.props.Document[anchor + "Timecode"];
         const targetTitle = StrCast((this.props.Document[anchor]! as Doc).title) + (timecode !== undefined ? ":" + timecode : "");
-        return <div className="docuLinkBox-cont" onPointerDown={this.onPointerDown} onClick={this.onClick} title={targetTitle}
+        return <div className="docuLinkBox-cont" onPointerDown={this.onPointerDown} onClick={this.onClick} title={targetTitle} onContextMenu={this.specificContextMenu}
             ref={this._ref} style={{
                 background: c, left: `calc(${x}% - 12.5px)`, top: `calc(${y}% - 12.5px)`,
                 transform: `scale(${anchorScale / this.props.ContentScaling()})`

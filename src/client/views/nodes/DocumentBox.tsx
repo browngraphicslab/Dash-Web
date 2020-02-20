@@ -9,7 +9,7 @@ import { Cast, StrCast, BoolCast } from "../../../new_fields/Types";
 import { emptyFunction, emptyPath } from "../../../Utils";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
-import { DocComponent } from "../DocComponent";
+import { DocComponent, DocAnnotatableComponent } from "../DocComponent";
 import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import "./DocumentBox.scss";
@@ -20,7 +20,7 @@ type DocBoxSchema = makeInterface<[typeof documentSchema]>;
 const DocBoxDocument = makeInterface(documentSchema);
 
 @observer
-export class DocumentBox extends DocComponent<FieldViewProps, DocBoxSchema>(DocBoxDocument) {
+export class DocumentBox extends DocAnnotatableComponent<FieldViewProps, DocBoxSchema>(DocBoxDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(DocumentBox, fieldKey); }
     _prevSelectionDisposer: IReactionDisposer | undefined;
     _selections: Doc[] = [];
@@ -80,7 +80,7 @@ export class DocumentBox extends DocComponent<FieldViewProps, DocBoxSchema>(DocB
     pheight = () => this.props.PanelHeight() - 30;
     getTransform = () => this.props.ScreenToLocalTransform().translate(-15, -15);
     render() {
-        const containedDoc = this.props.Document[this.props.fieldKey] as Doc;
+        const containedDoc = this.dataDoc[this.props.fieldKey] as Doc;
         return <div className="documentBox-container" ref={this._contRef}
             onContextMenu={this.specificContextMenu}
             onPointerDown={this.onPointerDown} onClick={this.onClick}

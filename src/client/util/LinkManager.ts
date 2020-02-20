@@ -135,35 +135,13 @@ export class LinkManager {
             return DocListCast(linkDoc.anchor2Groups);
         }
     }
-
-    // sets the groups of the given anchor in the given link
-    public setAnchorGroups(linkDoc: Doc, anchor: Doc, groups: Doc[]) {
-        if (Doc.AreProtosEqual(anchor, Cast(linkDoc.anchor1, Doc, null))) {
-            linkDoc.anchor1Groups = new List<Doc>(groups);
-        } else {
-            linkDoc.anchor2Groups = new List<Doc>(groups);
-        }
-    }
-
     public addGroupToAnchor(linkDoc: Doc, anchor: Doc, groupDoc: Doc, replace: boolean = false) {
-        const groups = LinkManager.Instance.getAnchorGroups(linkDoc, anchor);
-        const index = groups.findIndex(gDoc => {
-            return StrCast(groupDoc.title).toUpperCase() === StrCast(gDoc.title).toUpperCase();
-        });
-        if (index > -1 && replace) {
-            groups[index] = groupDoc;
-        }
-        if (index === -1) {
-            groups.push(groupDoc);
-        }
-        LinkManager.Instance.setAnchorGroups(linkDoc, anchor, groups);
+        linkDoc.title = groupDoc.title;
     }
 
     // removes group doc of given group type only from given anchor on given link
     public removeGroupFromAnchor(linkDoc: Doc, anchor: Doc, groupType: string) {
-        const groups = LinkManager.Instance.getAnchorGroups(linkDoc, anchor);
-        const newGroups = groups.filter(groupDoc => StrCast(groupDoc.title).toUpperCase() !== groupType.toUpperCase());
-        LinkManager.Instance.setAnchorGroups(linkDoc, anchor, newGroups);
+        linkDoc.title = "-ungrouped-";
     }
 
     // returns map of group type to anchor's links in that group type
@@ -171,19 +149,10 @@ export class LinkManager {
         const related = this.getAllRelatedLinks(anchor);
         const anchorGroups = new Map<string, Array<Doc>>();
         related.forEach(link => {
-            const groups = LinkManager.Instance.getAnchorGroups(link, anchor);
+            if (link.title && link.title !== "-ungrouped-") {
+                const group = anchorGroups.get(StrCast(link.title));
+                anchorGroups.set(StrCast(link.title), group ? [...group, link] : [link]);
 
-            if (groups.length > 0) {
-                groups.forEach(groupDoc => {
-                    const groupType = StrCast(groupDoc.title);
-                    if (groupType === "") {
-                        const group = anchorGroups.get("*");
-                        anchorGroups.set("*", group ? [...group, link] : [link]);
-                    } else {
-                        const group = anchorGroups.get(groupType);
-                        anchorGroups.set(groupType, group ? [...group, link] : [link]);
-                    }
-                });
             } else {
                 // if link is in no groups then put it in default group
                 const group = anchorGroups.get("*");
@@ -215,10 +184,7 @@ export class LinkManager {
         const md: Doc[] = [];
         const allLinks = LinkManager.Instance.getAllLinks();
         allLinks.forEach(linkDoc => {
-            const anchor1Groups = LinkManager.Instance.getAnchorGroups(linkDoc, Cast(linkDoc.anchor1, Doc, null));
-            const anchor2Groups = LinkManager.Instance.getAnchorGroups(linkDoc, Cast(linkDoc.anchor2, Doc, null));
-            anchor1Groups.forEach(groupDoc => { if (StrCast(groupDoc.title).toUpperCase() === groupType.toUpperCase()) { md.push(groupDoc); } });
-            anchor2Groups.forEach(groupDoc => { if (StrCast(groupDoc.title).toUpperCase() === groupType.toUpperCase()) { md.push(groupDoc); } });
+            if (StrCast(linkDoc.title).toUpperCase() === groupType.toUpperCase()) { md.push(linkDoc); }
         });
         return md;
     }
