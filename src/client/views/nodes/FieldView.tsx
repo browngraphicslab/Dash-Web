@@ -2,7 +2,7 @@ import React = require("react");
 import { computed } from "mobx";
 import { observer } from "mobx-react";
 import { DateField } from "../../../new_fields/DateField";
-import { Doc, FieldResult, Opt } from "../../../new_fields/Doc";
+import { Doc, FieldResult, Opt, Field } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
 import { ScriptField } from "../../../new_fields/ScriptField";
 import { AudioField, VideoField } from "../../../new_fields/URLField";
@@ -107,9 +107,7 @@ export class FieldView extends React.Component<FieldViewProps> {
             // );
         }
         else if (field instanceof List) {
-            return (<div>
-                {field.map(f => f instanceof Doc ? f.title : (f && f.toString && f.toString())).join(", ")}
-            </div>);
+            return <div> {field.map(f => Field.toString(f)).join(", ")}  </div>;
         }
         // bcz: this belongs here, but it doesn't render well so taking it out for now
         // else if (field instanceof HtmlField) {

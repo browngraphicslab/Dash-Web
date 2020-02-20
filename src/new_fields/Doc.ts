@@ -17,7 +17,6 @@ import { listSpec } from "./Schema";
 import { ComputedField } from "./ScriptField";
 import { Cast, FieldValue, NumCast, StrCast, ToConstructor } from "./Types";
 import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, updateFunction } from "./util";
-import { DatasetAbout } from "../client/northstar/model/idea/idea";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -191,8 +190,8 @@ export class Doc extends RefField {
         return undefined;
     }
 
-    [ToScriptString]() { return "invalid"; }
-    [ToString]() { return "Doc"; }
+    [ToScriptString]() { return `DOC-"${this[Self][Id]}"-`; }
+    [ToString]() { return `Doc(${this.title})`; }
 
     private [CachedUpdates]: { [key: string]: () => void | Promise<any> } = {};
     public static CurrentUserEmail: string = "";
@@ -845,6 +844,7 @@ Scripting.addGlobal(function sameDocs(doc1: any, doc2: any) { return Doc.AreProt
 Scripting.addGlobal(function setNativeView(doc: any) { Doc.setNativeView(doc); });
 Scripting.addGlobal(function undo() { return UndoManager.Undo(); });
 Scripting.addGlobal(function redo() { return UndoManager.Redo(); });
+Scripting.addGlobal(function DOC(id: string) { console.log("Can't parse a document id in a script"); return "invalid"; });
 Scripting.addGlobal(function curPresentationItem() {
     const curPres = Doc.UserDoc().curPresentation as Doc;
     return curPres && DocListCast(curPres[Doc.LayoutFieldKey(curPres)])[NumCast(curPres._itemIndex)];
