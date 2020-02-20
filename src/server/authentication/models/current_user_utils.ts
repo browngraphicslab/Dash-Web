@@ -232,10 +232,10 @@ export class CurrentUserUtils {
     static setupExpandingButtons(doc: Doc) {
         const slideTemplate = Docs.Create.MultirowDocument(
             [
-                Docs.Create.MulticolumnDocument([], { title: "images", _height: 200 }),
+                Docs.Create.MulticolumnDocument([], { title: "data", _height: 200 }),
                 Docs.Create.TextDocument("", { title: "contents", _height: 100 })
             ],
-            { _width: 400, _height: 300, title: "slideView", _chromeStatus: "disabled", _xMargin: 3, _yMargin: 3, _autoHeight: true });
+            { _width: 400, _height: 300, title: "slideView", _chromeStatus: "disabled", _xMargin: 3, _yMargin: 3, _autoHeight: false });
         slideTemplate.isTemplateDoc = makeTemplate(slideTemplate);
 
         const iconDoc = Docs.Create.TextDocument("", { title: "icon", _width: 150, _height: 30, isTemplateDoc: true, onClick: ScriptField.MakeScript("setNativeView(this)") });
