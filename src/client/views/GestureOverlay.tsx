@@ -333,7 +333,7 @@ export default class GestureOverlay extends Touchable {
                 this._d1 = doc;
             }
             else if (this._d1 !== doc && !LinkManager.Instance.doesLinkExist(this._d1, doc)) {
-                DocUtils.MakeLink({ doc: this._d1 }, { doc: doc });
+                DocUtils.MakeLink({ doc: this._d1 }, { doc: doc }, "gestural link");
                 actionPerformed = true;
             }
         };

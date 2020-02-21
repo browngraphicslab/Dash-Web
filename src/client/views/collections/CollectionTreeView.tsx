@@ -128,7 +128,7 @@ class TreeView extends React.Component<TreeViewProps> {
     }
 
     @undoBatch delete = () => this.props.deleteDoc(this.props.document);
-    @undoBatch openRight = () => this.props.addDocTab(this.props.document, "onRight", this.props.libraryPath);
+    @undoBatch openRight = () => this.props.addDocTab(this.props.containingCollection.childDropAction === "alias" ? Doc.MakeAlias(this.props.document) : this.props.document, "onRight", this.props.libraryPath);
     @undoBatch indent = () => this.props.addDocument(this.props.document) && this.delete();
     @undoBatch move = (doc: Doc, target: Doc | undefined, addDoc: (doc: Doc) => boolean) => {
         return this.props.document !== target && this.props.deleteDoc(doc) && addDoc(doc);
@@ -229,7 +229,7 @@ class TreeView extends React.Component<TreeViewProps> {
         if (de.complete.linkDragData) {
             const sourceDoc = de.complete.linkDragData.linkSourceDocument;
             const destDoc = this.props.document;
-            DocUtils.MakeLink({ doc: sourceDoc }, { doc: destDoc });
+            DocUtils.MakeLink({ doc: sourceDoc }, { doc: destDoc }, "tree drop link");
             e.stopPropagation();
         }
         if (de.complete.docDragData) {

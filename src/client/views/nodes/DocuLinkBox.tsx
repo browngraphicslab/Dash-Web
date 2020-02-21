@@ -67,6 +67,7 @@ export class DocuLinkBox extends DocComponent<FieldViewProps, DocLinkSchema>(Doc
                     const alias = Doc.MakeAlias(this.props.Document);
                     alias.isButton = undefined;
                     alias.isBackground = undefined;
+                    alias.layoutKey = "layout";
                     this.props.addDocTab(alias, StrCast(this.props.Document.linkOpenLocation, "inTab"));
                 } else {
                     DocumentManager.Instance.FollowLink(this.props.Document, this.props.ContainingCollectionDoc as Doc, document => this.props.addDocTab(document, StrCast(this.props.Document.linkOpenLocation, "inTab")), false);

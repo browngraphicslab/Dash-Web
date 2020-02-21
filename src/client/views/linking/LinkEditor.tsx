@@ -206,13 +206,13 @@ export class LinkGroupEditor extends React.Component<LinkGroupEditorProps> {
     constructor(props: LinkGroupEditorProps) {
         super(props);
 
-        const groupMdKeys = LinkManager.Instance.getMetadataKeysInGroup(StrCast(props.groupDoc.title));
+        const groupMdKeys = LinkManager.Instance.getMetadataKeysInGroup(StrCast(props.groupDoc.linkRelationship));
         groupMdKeys.forEach(key => this._metadataIds.set(key, Utils.GenerateGuid()));
     }
 
     @action
     setGroupType = (groupType: string): void => {
-        this.props.groupDoc.title = groupType;
+        Doc.GetProto(this.props.groupDoc).linkRelationship = groupType;
     }
 
     removeGroupFromLink = (groupType: string): void => {
@@ -241,7 +241,7 @@ export class LinkGroupEditor extends React.Component<LinkGroupEditorProps> {
     renderMetadata = (): JSX.Element[] => {
         const metadata: Array<JSX.Element> = [];
         const groupDoc = this.props.groupDoc;
-        const groupType = StrCast(groupDoc.title);
+        const groupType = StrCast(groupDoc.linkRelationship);
         const groupMdKeys = LinkManager.Instance.getMetadataKeysInGroup(groupType);
 
         groupMdKeys.forEach((key) => {
@@ -254,7 +254,7 @@ export class LinkGroupEditor extends React.Component<LinkGroupEditorProps> {
     }
 
     render() {
-        const groupType = StrCast(this.props.groupDoc.title);
+        const groupType = StrCast(this.props.groupDoc.linkRelationship);
         // if ((groupType && LinkManager.Instance.getMetadataKeysInGroup(groupType).length > 0) || groupType === "") {
         let buttons = <button className="linkEditor-button" disabled={groupType === ""} onClick={() => this.deleteGroup(groupType)} title="Delete Relationship from all links"><FontAwesomeIcon icon="trash" size="sm" /></button>;
         let addButton = <button className="linkEditor-addbutton" onClick={() => this.addMetadata(groupType)} disabled={groupType === ""} title="Add metadata to relationship"><FontAwesomeIcon icon="plus" size="sm" /></button>;
@@ -293,7 +293,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
         const destination = LinkManager.Instance.getOppositeAnchor(this.props.linkDoc, this.props.sourceDoc);
 
         const groups = [this.props.linkDoc].map(groupDoc => {
-            return <LinkGroupEditor key={"gred-" + StrCast(groupDoc.title)} linkDoc={this.props.linkDoc} sourceDoc={this.props.sourceDoc} groupDoc={groupDoc} />;
+            return <LinkGroupEditor key={"gred-" + StrCast(groupDoc.linkRelationship)} linkDoc={this.props.linkDoc} sourceDoc={this.props.sourceDoc} groupDoc={groupDoc} />;
         });
 
         return !destination ? (null) : (

@@ -534,7 +534,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             // const docs = await SearchUtil.Search(`data_l:"${destDoc[Id]}"`, true);
             // const views = docs.map(d => DocumentManager.Instance.getDocumentView(d)).filter(d => d).map(d => d as DocumentView);
             de.complete.linkDragData.linkSourceDocument !== this.props.Document &&
-                (de.complete.linkDragData.linkDocument = DocUtils.MakeLink({ doc: de.complete.linkDragData.linkSourceDocument }, { doc: this.props.Document, ctx: this.props.ContainingCollectionDoc }, "-ungrouped-")); // TODODO this is where in text links get passed
+                (de.complete.linkDragData.linkDocument = DocUtils.MakeLink({ doc: de.complete.linkDragData.linkSourceDocument },
+                    { doc: this.props.Document, ctx: this.props.ContainingCollectionDoc }, `link from ${de.complete.linkDragData.linkSourceDocument.title} to ${this.props.Document.title}`)); // TODODO this is where in text links get passed
         }
     }
 
@@ -868,7 +869,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         </>;
     }
     @computed get ignorePointerEvents() {
-        return (this.Document.isBackground && !this.isSelected()) || (this.Document.type === DocumentType.INK && InkingControl.Instance.selectedTool !== InkTool.None);
+        return (this.Document.isBackground && !this.isSelected()) || this.props.layoutKey?.includes("layout_key") || (this.Document.type === DocumentType.INK && InkingControl.Instance.selectedTool !== InkTool.None);
     }
 
     @observable _animate = 0;

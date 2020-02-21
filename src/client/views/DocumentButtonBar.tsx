@@ -25,6 +25,7 @@ import { DragManager } from '../util/DragManager';
 import { MetadataEntryMenu } from './MetadataEntryMenu';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import GoogleAuthenticationManager from '../apis/GoogleAuthenticationManager';
+import { ComputedField } from '../../new_fields/ScriptField';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -125,8 +126,8 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
                         const anchor2Title = linkDoc.anchor2 instanceof Doc ? StrCast(linkDoc.anchor2.title) : "-untitled-";
                         const anchor2Id = linkDoc.anchor2 instanceof Doc ? linkDoc.anchor2[Id] : "";
                         const text = RichTextMenu.Instance.MakeLinkToSelection(linkDoc[Id], anchor2Title, e.ctrlKey ? "onRight" : "inTab", anchor2Id);
-                        if (linkDoc.anchor2 instanceof Doc) {
-                            proto.title = text === "" ? proto.title : text + " to " + linkDoc.anchor2.title; // TODO open to more descriptive descriptions of following in text link
+                        if (linkDoc.anchor2 instanceof Doc && !proto.title) {
+                            proto.title = Doc.GetProto(linkDoc).title = ComputedField.MakeFunction('this.anchor1.title +" " + (this.linkRelationship||"to") +" "  + this.anchor2.title');
                         }
                     }
                     linkDrag?.end();

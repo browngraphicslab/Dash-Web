@@ -40,7 +40,7 @@ export class LinkManager {
     public getAllLinks(): Doc[] {
         const ldoc = LinkManager.Instance.LinkManagerDoc;
         if (ldoc) {
-            const docs = DocListCast(ldoc.allLinks);
+            const docs = DocListCast(ldoc.data);
             return docs;
         }
         return [];
@@ -50,7 +50,7 @@ export class LinkManager {
         const linkList = LinkManager.Instance.getAllLinks();
         linkList.push(linkDoc);
         if (LinkManager.Instance.LinkManagerDoc) {
-            LinkManager.Instance.LinkManagerDoc.allLinks = new List<Doc>(linkList);
+            LinkManager.Instance.LinkManagerDoc.data = new List<Doc>(linkList);
             return true;
         }
         return false;
@@ -62,7 +62,7 @@ export class LinkManager {
         if (index > -1) {
             linkList.splice(index, 1);
             if (LinkManager.Instance.LinkManagerDoc) {
-                LinkManager.Instance.LinkManagerDoc.allLinks = new List<Doc>(linkList);
+                LinkManager.Instance.LinkManagerDoc.data = new List<Doc>(linkList);
                 return true;
             }
         }
@@ -136,12 +136,12 @@ export class LinkManager {
         }
     }
     public addGroupToAnchor(linkDoc: Doc, anchor: Doc, groupDoc: Doc, replace: boolean = false) {
-        linkDoc.title = groupDoc.title;
+        linkDoc.linkRelationship = groupDoc.linkRelationship;
     }
 
     // removes group doc of given group type only from given anchor on given link
     public removeGroupFromAnchor(linkDoc: Doc, anchor: Doc, groupType: string) {
-        linkDoc.title = "-ungrouped-";
+        linkDoc.linkRelationship = "-ungrouped-";
     }
 
     // returns map of group type to anchor's links in that group type
@@ -149,9 +149,9 @@ export class LinkManager {
         const related = this.getAllRelatedLinks(anchor);
         const anchorGroups = new Map<string, Array<Doc>>();
         related.forEach(link => {
-            if (link.title && link.title !== "-ungrouped-") {
-                const group = anchorGroups.get(StrCast(link.title));
-                anchorGroups.set(StrCast(link.title), group ? [...group, link] : [link]);
+            if (!link.linkRelationship || link?.linkRelationship !== "-ungrouped-") {
+                const group = anchorGroups.get(StrCast(link.linkRelationship));
+                anchorGroups.set(StrCast(link.linkRelationship), group ? [...group, link] : [link]);
 
             } else {
                 // if link is in no groups then put it in default group
@@ -184,7 +184,7 @@ export class LinkManager {
         const md: Doc[] = [];
         const allLinks = LinkManager.Instance.getAllLinks();
         allLinks.forEach(linkDoc => {
-            if (StrCast(linkDoc.title).toUpperCase() === groupType.toUpperCase()) { md.push(linkDoc); }
+            if (StrCast(linkDoc.linkRelationship).toUpperCase() === groupType.toUpperCase()) { md.push(linkDoc); }
         });
         return md;
     }
