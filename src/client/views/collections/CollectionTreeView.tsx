@@ -197,6 +197,7 @@ class TreeView extends React.Component<TreeViewProps> {
 
     onWorkspaceContextMenu = (e: React.MouseEvent): void => {
         if (!e.isPropagationStopped()) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view
+            const sort = this.props.document[`${this.fieldKey}-sortAscending`];
             if (this.props.document === CurrentUserUtils.UserDocument.recentlyClosed) {
                 ContextMenu.Instance.addItem({ description: "Clear All", event: () => Doc.GetProto(CurrentUserUtils.UserDocument.recentlyClosed as Doc).data = new List<Doc>(), icon: "plus" });
             } else if (this.props.document !== CurrentUserUtils.UserDocument.workspaces) {
@@ -211,6 +212,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 ContextMenu.Instance.addItem({ description: "Delete Workspace", event: () => this.props.deleteDoc(this.props.document), icon: "trash-alt" });
                 ContextMenu.Instance.addItem({ description: "Create New Workspace", event: () => MainView.Instance.createNewWorkspace(), icon: "plus" });
             }
+            ContextMenu.Instance.addItem({ description: (sort ? "Sort Descending" : (sort === false ? "Unsort" : "Sort Ascending")), event: () => this.props.document[`${this.fieldKey}-sortAscending`] = (sort ? false : (sort === false ? undefined : true)), icon: "minus" });
             ContextMenu.Instance.addItem({ description: "Toggle Theme Colors", event: () => this.props.document.darkScheme = !this.props.document.darkScheme, icon: "minus" });
             ContextMenu.Instance.addItem({ description: "Open Fields", event: () => { const kvp = Docs.Create.KVPDocument(this.props.document, { _width: 300, _height: 300 }); this.props.addDocTab(kvp, "onRight"); }, icon: "layer-group" });
             ContextMenu.Instance.addItem({ description: "Publish", event: () => DocUtils.Publish(this.props.document, StrCast(this.props.document.title), () => { }, () => { }), icon: "file" });
@@ -480,10 +482,8 @@ class TreeView extends React.Component<TreeViewProps> {
         }
 
         const docs = childDocs.slice();
-        const dataExtension = containingCollection[key + "_ext"] as Doc;
-        const ascending = dataExtension && BoolCast(dataExtension.sortAscending, null);
+        const ascending = containingCollection?.[key + "-sortAscending"];
         if (ascending !== undefined) {
-
             const sortAlphaNum = (a: string, b: string): 0 | 1 | -1 => {
                 const reN = /[0-9]*$/;
                 const aA = a.replace(reN, ""); // get rid of trailing numbers
