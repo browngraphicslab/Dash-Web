@@ -12,6 +12,7 @@ import { LinkFollowBox } from './LinkFollowBox';
 import './LinkMenuItem.scss';
 import React = require("react");
 import { DocumentManager } from '../../util/DocumentManager';
+import { setupMoveUpEvents, emptyFunction } from '../../../Utils';
 library.add(faEye, faEdit, faTimes, faArrowRight, faChevronDown, faChevronUp);
 
 
@@ -30,13 +31,18 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
     private _downX = 0;
     private _downY = 0;
     private _eleClone: any;
+
+    _editRef = React.createRef<HTMLDivElement>();
     @observable private _showMore: boolean = false;
     @action toggleShowMore(e: React.PointerEvent) { e.stopPropagation(); this._showMore = !this._showMore; }
 
     onEdit = (e: React.PointerEvent): void => {
-        e.stopPropagation();
-        this.props.showEditor(this.props.linkDoc);
-        //SelectionManager.DeselectAll();
+        setupMoveUpEvents(this, e, this.editMoved, emptyFunction, () => this.props.showEditor(this.props.linkDoc));
+    }
+
+    editMoved = (e: PointerEvent) => {
+        DragManager.StartDocumentDrag([this._editRef.current!], new DragManager.DocumentDragData([this.props.linkDoc]), e.x, e.y);
+        return true;
     }
 
     renderMetadata = (): JSX.Element => {
@@ -104,7 +110,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
                         <div className="linkMenu-item-buttons">
                             {canExpand ? <div title="Show more" className="button" onPointerDown={e => this.toggleShowMore(e)}>
                                 <FontAwesomeIcon className="fa-icon" icon={this._showMore ? "chevron-up" : "chevron-down"} size="sm" /></div> : <></>}
-                            <div title="Edit link" className="button" onPointerDown={this.onEdit}><FontAwesomeIcon className="fa-icon" icon="edit" size="sm" /></div>
+                            <div title="Edit link" className="button" ref={this._editRef} onPointerDown={this.onEdit}><FontAwesomeIcon className="fa-icon" icon="edit" size="sm" /></div>
                             <div title="Follow link" className="button" onClick={this.followDefault} onContextMenu={this.onContextMenu}>
                                 <FontAwesomeIcon className="fa-icon" icon="arrow-right" size="sm" />
                             </div>
