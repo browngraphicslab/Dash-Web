@@ -81,7 +81,7 @@ export class RichTextRules {
 
             // create a text display of a metadata field on this or another document, or create a hyperlink portal to another document [[ <fieldKey> : <Doc>]]   // [[:Doc]] => hyperlink   [[fieldKey]] => show field   [[fieldKey:Doc]] => show field of doc
             new InputRule(
-                new RegExp(/\[\[([a-zA-Z_ \-0-9]*)(:[a-zA-Z_ \-0-9]+)?\]\]$/),
+                new RegExp(/\[\[([a-zA-Z_#@\? \-0-9]*)(:[a-zA-Z_#@\? \-0-9]+)?\]\]$/),
                 (state, match, start, end) => {
                     const fieldKey = match[1];
                     const docid = match[2]?.substring(1);

@@ -141,7 +141,7 @@ export class DocuLinkBox extends DocComponent<FieldViewProps, DocLinkSchema>(Doc
         );
         return <div className="docuLinkBox-cont" onPointerDown={this.onPointerDown} onClick={this.onClick} title={targetTitle} onContextMenu={this.specificContextMenu}
             ref={this._ref} style={{
-                background: c, left: `calc(${x}% - 12.5px)`, top: `calc(${y}% - 12.5px)`,
+                background: c, left: `calc(${x}% - 7.5px)`, top: `calc(${y}% - 7.5px)`,
                 transform: `scale(${anchorScale / this.props.ContentScaling()})`
             }} >
             {!this._editing && !this._forceOpen ? (null) :

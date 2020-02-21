@@ -189,8 +189,8 @@ export class FormattedTextBoxComment {
                                     pinToPres={returnFalse}
                                     dontRegisterView={true}
                                     renderDepth={1}
-                                    PanelWidth={() => Math.min(350, NumCast(target.width, 350))}
-                                    PanelHeight={() => Math.min(250, NumCast(target.height, 250))}
+                                    PanelWidth={() => Math.min(350, NumCast(target._width, 350))}
+                                    PanelHeight={() => Math.min(250, NumCast(target._height, 250))}
                                     focus={emptyFunction}
                                     whenActiveChanged={returnFalse}
                                 />, FormattedTextBoxComment.tooltipText);
@@ -211,7 +211,7 @@ export class FormattedTextBoxComment {
             // let start = view.coordsAtPos(state.selection.from), end = view.coordsAtPos(state.selection.to);
             const start = view.coordsAtPos(state.selection.from - nbef), end = view.coordsAtPos(state.selection.from - nbef);
             // The box in which the tooltip is positioned, to use as base
-            const box = (document.getElementById("mainView-container") as any).getBoundingClientRect();
+            const box = (document.getElementsByClassName("mainView-container") as any)[0].getBoundingClientRect();
             // Find a center-ish x position from the selection endpoints (when
             // crossing lines, end may be more to the left)
             const left = Math.max((start.left + end.left) / 2, start.left + 3);

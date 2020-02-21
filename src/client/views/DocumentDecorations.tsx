@@ -414,7 +414,14 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 <input ref={this._keyinput} className="documentDecorations-title" type="text" name="dynbox" autoComplete="on" value={this._accumulatedTitle} style={{ width: "calc(100% - 20px)" }}
                     onBlur={e => this.titleBlur(true)} onChange={action(e => this._accumulatedTitle = e.target.value)} onKeyPress={this.titleEntered} />
                 <div className="publishBox" title="make document referenceable by its title"
-                    onPointerDown={e => DocUtils.Publish(seldoc.props.Document, this._accumulatedTitle, seldoc.props.addDocument, seldoc.props.removeDocument)}>
+                    onPointerDown={action(e => {
+                        if (!seldoc.props.Document.customTitle) {
+                            seldoc.props.Document.customTitle = true;
+                            StrCast(Doc.GetProto(seldoc.props.Document).title).startsWith("-") && (Doc.GetProto(seldoc.props.Document).title = StrCast(seldoc.props.Document.title).substring(1));
+                            this._accumulatedTitle = StrCast(seldoc.props.Document.title);
+                        }
+                        DocUtils.Publish(seldoc.props.Document, this._accumulatedTitle, seldoc.props.addDocument, seldoc.props.removeDocument);
+                    })}>
                     <FontAwesomeIcon size="lg" color={SelectionManager.SelectedDocuments()[0].props.Document.title === SelectionManager.SelectedDocuments()[0].props.Document[Id] ? "green" : undefined} icon="sticky-note"></FontAwesomeIcon>
                 </div>
             </> :
