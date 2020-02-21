@@ -95,7 +95,7 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         const pt2 = [bpt.point.x, bpt.point.y];
         const aActive = this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document);
         const bActive = this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document);
-        const text = StrCast(this.props.A.props.Document.title);
+        const text = StrCast(this.props.A.props.Document.linkRelationship);
         return !aActive && !bActive ? (null) : (<>
             <text x={(pt1[0] + pt2[0]) / 2} y={(pt1[1] + pt2[1]) / 2}>
                 {text !== "-ungrouped-" ? text : ""}

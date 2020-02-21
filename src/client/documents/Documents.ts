@@ -539,7 +539,7 @@ export namespace Docs {
             if (linkDocProto.layout_key1 === undefined) {
                 Cast(linkDocProto.proto, Doc, null)!.layout_key1 = DocuLinkBox.LayoutString("anchor1");
                 Cast(linkDocProto.proto, Doc, null)!.layout_key2 = DocuLinkBox.LayoutString("anchor2");
-                Cast(linkDocProto.proto, Doc, null)!.linkBoxExcludedKeys = new List(["treeViewExpandedView", "removeDropProperties", "linkBoxExcludedKeys", "treeViewOpen", "proto", "aliasNumber", "isPrototype", "lastOpened", "creationDate", "author"]);
+                Cast(linkDocProto.proto, Doc, null)!.linkBoxExcludedKeys = new List(["treeViewExpandedView", "treeViewHideTitle", "removeDropProperties", "linkBoxExcludedKeys", "treeViewOpen", "proto", "aliasNumber", "isPrototype", "lastOpened", "creationDate", "author"]);
                 Cast(linkDocProto.proto, Doc, null)!.layoutKey = undefined;
             }
 

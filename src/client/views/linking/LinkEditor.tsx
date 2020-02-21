@@ -1,17 +1,14 @@
-import { observable, computed, action, trace } from "mobx";
-import React = require("react");
-import { observer } from "mobx-react";
-import './LinkEditor.scss';
-import { StrCast, Cast, FieldValue } from "../../../new_fields/Types";
-import { Doc } from "../../../new_fields/Doc";
-import { LinkManager } from "../../util/LinkManager";
-import { Docs } from "../../documents/Documents";
-import { Utils } from "../../../Utils";
-import { faArrowLeft, faEllipsisV, faTable, faTrash, faCog, faExchangeAlt, faTimes, faPlus } from '@fortawesome/free-solid-svg-icons';
 import { library } from "@fortawesome/fontawesome-svg-core";
+import { faArrowLeft, faCog, faEllipsisV, faExchangeAlt, faPlus, faTable, faTimes, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { SetupDrag } from "../../util/DragManager";
-import { SchemaHeaderField, RandomPastel } from "../../../new_fields/SchemaHeaderField";
+import { action, observable } from "mobx";
+import { observer } from "mobx-react";
+import { Doc } from "../../../new_fields/Doc";
+import { StrCast } from "../../../new_fields/Types";
+import { Utils } from "../../../Utils";
+import { LinkManager } from "../../util/LinkManager";
+import './LinkEditor.scss';
+import React = require("react");
 
 library.add(faArrowLeft, faEllipsisV, faTable, faTrash, faCog, faExchangeAlt, faTimes, faPlus);
 
@@ -279,6 +276,7 @@ interface LinkEditorProps {
     sourceDoc: Doc;
     linkDoc: Doc;
     showLinks: () => void;
+    hideback?: boolean;
 }
 @observer
 export class LinkEditor extends React.Component<LinkEditorProps> {
@@ -298,7 +296,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
 
         return !destination ? (null) : (
             <div className="linkEditor">
-                <button className="linkEditor-back" onPointerDown={() => this.props.showLinks()}><FontAwesomeIcon icon="arrow-left" size="sm" /></button>
+                {this.props.hideback ? (null) : <button className="linkEditor-back" onPointerDown={() => this.props.showLinks()}><FontAwesomeIcon icon="arrow-left" size="sm" /></button>}
                 <div className="linkEditor-info">
                     <p className="linkEditor-linkedTo">editing link to: <b>{destination.proto!.title}</b></p>
                     <button className="linkEditor-button" onPointerDown={() => this.deleteLink()} title="Delete link"><FontAwesomeIcon icon="trash" size="sm" /></button>
