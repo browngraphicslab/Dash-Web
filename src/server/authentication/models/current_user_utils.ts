@@ -18,6 +18,7 @@ import { CollectionViewType } from "../../../client/views/collections/Collection
 import { makeTemplate } from "../../../client/util/DropConverter";
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { PrefetchProxy } from "../../../new_fields/Proxy";
+import { FormattedTextBox } from "../../../client/views/nodes/FormattedTextBox";
 
 export class CurrentUserUtils {
     private static curr_id: string;
@@ -237,6 +238,9 @@ export class CurrentUserUtils {
             ],
             { _width: 400, _height: 300, title: "slideView", _chromeStatus: "disabled", _xMargin: 3, _yMargin: 3, _autoHeight: false });
         slideTemplate.isTemplateDoc = makeTemplate(slideTemplate);
+        const descriptionTemplate = Docs.Create.TextDocument("", { title: "descriptionView", _height: 100, _showTitle: "title" });
+        Doc.GetProto(descriptionTemplate).layout = FormattedTextBox.LayoutString("description");
+        descriptionTemplate.isTemplateDoc = makeTemplate(descriptionTemplate);
 
         const iconDoc = Docs.Create.TextDocument("", { title: "icon", _width: 150, _height: 30, isTemplateDoc: true, onClick: ScriptField.MakeScript("setNativeView(this)") });
         Doc.GetProto(iconDoc).data = new RichTextField('{"doc":{"type":"doc","content":[{"type":"paragraph","attrs":{"align":null,"color":null,"id":null,"indent":null,"inset":null,"lineSpacing":null,"paddingBottom":null,"paddingTop":null},"content":[{"type":"dashField","attrs":{"fieldKey":"title","docid":""}}]}]},"selection":{"type":"text","anchor":2,"head":2},"storedMarks":[]}', "");
@@ -249,10 +253,11 @@ export class CurrentUserUtils {
             { _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, dropAction: "alias", onClick: ScriptField.MakeScript("redo()"), removeDropProperties: new List<string>(["dropAction"]), title: "redo button", icon: "redo-alt" });
         doc.slidesBtn = Docs.Create.FontIconDocument(
             { _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, dropAction: "alias", onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'), dragFactory: slideTemplate, removeDropProperties: new List<string>(["dropAction"]), title: "presentation slide", icon: "sticky-note" });
-        doc.expandingButtons = Docs.Create.LinearDocument([doc.undoBtn as Doc, doc.redoBtn as Doc, doc.slidesBtn as Doc], {
+        doc.descriptionBtn = Docs.Create.FontIconDocument(
+            { _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, dropAction: "alias", onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'), dragFactory: descriptionTemplate, removeDropProperties: new List<string>(["dropAction"]), title: "description view", icon: "sticky-note" });
+        doc.expandingButtons = Docs.Create.LinearDocument([doc.undoBtn as Doc, doc.redoBtn as Doc, doc.slidesBtn as Doc, doc.descriptionBtn as Doc], {
             title: "expanding buttons", _gridGap: 5, _xMargin: 5, _yMargin: 5, _height: 42, _width: 100, boxShadow: "0 0",
             backgroundColor: "black", treeViewPreventOpen: true, forceActive: true, lockedPosition: true,
-
             dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name })
         });
     }
