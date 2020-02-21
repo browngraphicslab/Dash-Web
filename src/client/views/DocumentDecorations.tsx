@@ -256,7 +256,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         let dist = Math.sqrt((e.clientX - down[0]) * (e.clientX - down[0]) + (e.clientY - down[1]) * (e.clientY - down[1]));
         dist = dist < 3 ? 0 : dist;
         SelectionManager.SelectedDocuments().map(dv => dv.props.Document).map(doc => doc.layout instanceof Doc ? doc.layout : doc.isTemplateForField ? doc : Doc.GetProto(doc)).
-            map(d => d.borderRounding = `${Math.min(100, dist)}%`);
+            map(d => d.borderRounding = `${Math.max(0, dist)}px`);
         return false;
     }
 

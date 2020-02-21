@@ -108,7 +108,7 @@ class GroupTypesDropdown extends React.Component<GroupTypesDropdownProps> {
         if (this._isEditing || this._groupType === "") {
             return (
                 <div className="linkEditor-dropdown">
-                    <input type="text" value={this._groupType} placeholder="Search for or create a new group"
+                    <input type="text" value={this._groupType === "-ungrouped-" ? "" : this._groupType} placeholder="Search for or create a new group"
                         onChange={e => this.onChange(e.target.value)} onKeyDown={this.onKeyDown} autoFocus></input>
                     <div className="linkEditor-options-wrapper">
                         {this.renderOptions()}
@@ -187,7 +187,7 @@ class LinkMetadataEditor extends React.Component<LinkMetadataEditorProps> {
             <div className="linkEditor-metadata-row">
                 <input className={this._keyError ? "linkEditor-error" : ""} type="text" value={this._key === "new key" ? "" : this._key} placeholder="key" onChange={e => this.setMetadataKey(e.target.value)}></input>:
                 <input type="text" value={this._value} placeholder="value" onChange={e => this.setMetadataValue(e.target.value)}></input>
-                <button onClick={() => this.removeMetadata()}><FontAwesomeIcon icon="times" size="sm" /></button>
+                <button title="remove metadata from relationship" onClick={() => this.removeMetadata()}><FontAwesomeIcon icon="times" size="sm" /></button>
             </div>
         );
     }
@@ -223,29 +223,6 @@ export class LinkGroupEditor extends React.Component<LinkGroupEditorProps> {
         LinkManager.Instance.deleteGroupType(groupType);
     }
 
-    copyGroup = async (groupType: string): Promise<void> => {
-        const sourceGroupDoc = this.props.groupDoc;
-
-        const destDoc = LinkManager.Instance.getOppositeAnchor(this.props.linkDoc, this.props.sourceDoc);
-        // let destGroupList = LinkManager.Instance.getAnchorGroups(this.props.linkDoc, destDoc);
-        const keys = LinkManager.Instance.getMetadataKeysInGroup(groupType);
-
-
-        // create new group doc with new metadata doc
-        const destGroupDoc = new Doc();
-        destGroupDoc.title = groupType;
-        // create new metadata doc with copied kvp
-        destGroupDoc.anchor1 = sourceGroupDoc.anchor2;
-        destGroupDoc.anchor2 = sourceGroupDoc.anchor1;
-        keys.forEach(key => {
-            const val = sourceGroupDoc[key] === undefined ? "" : StrCast(sourceGroupDoc[key]);
-            destGroupDoc[key] = val;
-        });
-
-        if (destDoc) {
-            LinkManager.Instance.addGroupToAnchor(this.props.linkDoc, destDoc, destGroupDoc, true);
-        }
-    }
 
     @action
     addMetadata = (groupType: string): void => {
@@ -276,53 +253,22 @@ export class LinkGroupEditor extends React.Component<LinkGroupEditorProps> {
         return metadata;
     }
 
-    viewGroupAsTable = (groupType: string): JSX.Element => {
-        const keys = LinkManager.Instance.getMetadataKeysInGroup(groupType);
-        const index = keys.indexOf("");
-        if (index > -1) keys.splice(index, 1);
-        const cols = ["anchor1", "anchor2", ...[...keys]].map(c => new SchemaHeaderField(c, "#f1efeb"));
-        const docs: Doc[] = LinkManager.Instance.getAllMetadataDocsInGroup(groupType);
-        const createTable = action(() => Docs.Create.SchemaDocument(cols, docs, { _width: 500, _height: 300, title: groupType + " table" }));
-        const ref = React.createRef<HTMLDivElement>();
-        return <div ref={ref}><button className="linkEditor-button" onPointerDown={SetupDrag(ref, createTable)} title="Drag to view relationship table"><FontAwesomeIcon icon="table" size="sm" /></button></div>;
-    }
-
     render() {
         const groupType = StrCast(this.props.groupDoc.title);
         // if ((groupType && LinkManager.Instance.getMetadataKeysInGroup(groupType).length > 0) || groupType === "") {
-        let buttons;
-        if (groupType === "") {
-            buttons = (
-                <>
-                    <button className="linkEditor-button" disabled={true} title="Add KVP"><FontAwesomeIcon icon="plus" size="sm" /></button>
-                    <button className="linkEditor-button" disabled title="Copy group to opposite anchor"><FontAwesomeIcon icon="exchange-alt" size="sm" /></button>
-                    <button className="linkEditor-button" onClick={() => this.removeGroupFromLink(groupType)} title="Remove group from link"><FontAwesomeIcon icon="times" size="sm" /></button>
-                    <button className="linkEditor-button" disabled title="Delete group"><FontAwesomeIcon icon="trash" size="sm" /></button>
-                    <button className="linkEditor-button" disabled title="Drag to view relationship table"><FontAwesomeIcon icon="table" size="sm" /></button>
-                </>
-            );
-        } else {
-            buttons = (
-                <>
-                    <button className="linkEditor-button" onClick={() => this.addMetadata(groupType)} title="Add KVP"><FontAwesomeIcon icon="plus" size="sm" /></button>
-                    <button className="linkEditor-button" onClick={() => this.copyGroup(groupType)} title="Copy group to opposite anchor"><FontAwesomeIcon icon="exchange-alt" size="sm" /></button>
-                    <button className="linkEditor-button" onClick={() => this.removeGroupFromLink(groupType)} title="Remove group from link"><FontAwesomeIcon icon="times" size="sm" /></button>
-                    <button className="linkEditor-button" onClick={() => this.deleteGroup(groupType)} title="Delete group"><FontAwesomeIcon icon="trash" size="sm" /></button>
-                    {this.viewGroupAsTable(groupType)}
-                </>
-            );
-        }
+        let buttons = <button className="linkEditor-button" disabled={groupType === ""} onClick={() => this.deleteGroup(groupType)} title="Delete Relationship from all links"><FontAwesomeIcon icon="trash" size="sm" /></button>;
+        let addButton = <button className="linkEditor-addbutton" onClick={() => this.addMetadata(groupType)} disabled={groupType === ""} title="Add metadata to relationship"><FontAwesomeIcon icon="plus" size="sm" /></button>;
+
         return (
             <div className="linkEditor-group">
                 <div className="linkEditor-group-row ">
-                    <p className="linkEditor-group-row-label">type:</p>
+                    {buttons}
                     <GroupTypesDropdown groupType={groupType} setGroupType={this.setGroupType} />
+                    <button className="linkEditor-button" onClick={() => this.removeGroupFromLink(groupType)} title="Remove relationship from link"><FontAwesomeIcon icon="times" size="sm" /></button>
                 </div>
                 {this.renderMetadata().length > 0 ? <p className="linkEditor-group-row-label">metadata:</p> : <></>}
+                {addButton}
                 {this.renderMetadata()}
-                <div className="linkEditor-group-buttons">
-                    {buttons}
-                </div>
             </div>
         );
     }
@@ -356,9 +302,6 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
                 <div className="linkEditor-info">
                     <p className="linkEditor-linkedTo">editing link to: <b>{destination.proto!.title}</b></p>
                     <button className="linkEditor-button" onPointerDown={() => this.deleteLink()} title="Delete link"><FontAwesomeIcon icon="trash" size="sm" /></button>
-                </div>
-                <div className="linkEditor-groupsLabel">
-                    <b>Relationships:</b>
                 </div>
                 {groups.length > 0 ? groups : <div className="linkEditor-group">There are currently no relationships associated with this link.</div>}
             </div>
