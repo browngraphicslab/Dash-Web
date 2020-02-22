@@ -594,8 +594,8 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.RECOMMENDATION), new List<Doc>(data), options);
         }
 
-        export function SearchDocument(data: Doc[], options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.SEARCH), new List<Doc>(data), options);
+        export function SearchDocument(options: DocumentOptions = {}) {
+            return InstanceFromProto(Prototypes.get(DocumentType.SEARCH), new List<Doc>(), options);
         }
 
         export type DocConfig = {
