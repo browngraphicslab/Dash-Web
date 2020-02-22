@@ -1,24 +1,28 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faEdit, faSmile, faTextHeight, faUpload } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { isEqual } from "lodash";
-import { action, computed, IReactionDisposer, Lambda, observable, reaction, runInAction, trace, _allowStateChangesInsideComputed } from "mobx";
+import { action, computed, IReactionDisposer, Lambda, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { baseKeymap } from "prosemirror-commands";
 import { history } from "prosemirror-history";
 import { inputRules } from 'prosemirror-inputrules';
 import { keymap } from "prosemirror-keymap";
-import { Fragment, Mark, Node, Node as ProsNode, Slice } from "prosemirror-model";
+import { Fragment, Mark, Node, Slice } from "prosemirror-model";
 import { EditorState, NodeSelection, Plugin, TextSelection, Transaction } from "prosemirror-state";
 import { ReplaceStep } from 'prosemirror-transform';
 import { EditorView } from "prosemirror-view";
 import { DateField } from '../../../new_fields/DateField';
-import { Doc, DocListCastAsync, Opt, WidthSym, HeightSym, DataSym, Field } from "../../../new_fields/Doc";
-import { Copy, Id } from '../../../new_fields/FieldSymbols';
+import { DataSym, Doc, DocListCastAsync, Field, HeightSym, Opt, WidthSym } from "../../../new_fields/Doc";
+import { documentSchema } from '../../../new_fields/documentSchemas';
+import { Id } from '../../../new_fields/FieldSymbols';
+import { InkTool } from '../../../new_fields/InkField';
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { RichTextUtils } from '../../../new_fields/RichTextUtils';
 import { createSchema, makeInterface } from "../../../new_fields/Schema";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
-import { numberRange, Utils, addStyleSheet, addStyleSheetRule, clearStyleSheetRules, emptyFunction, returnOne } from '../../../Utils';
+import { TraceMobx } from '../../../new_fields/util';
+import { addStyleSheet, addStyleSheetRule, clearStyleSheetRules, emptyFunction, numberRange, returnOne, Utils } from '../../../Utils';
 import { GoogleApiClientUtils, Pulls, Pushes } from '../../apis/google_docs/GoogleApiClientUtils';
 import { DocServer } from "../../DocServer";
 import { Docs, DocUtils } from '../../documents/Documents';
@@ -26,26 +30,22 @@ import { DocumentType } from '../../documents/DocumentTypes';
 import { DictationManager } from '../../util/DictationManager';
 import { DragManager } from "../../util/DragManager";
 import buildKeymap from "../../util/ProsemirrorExampleTransfer";
+import RichTextMenu from '../../util/RichTextMenu';
 import { RichTextRules } from "../../util/RichTextRules";
-import { DashDocCommentView, FootnoteView, ImageResizeView, DashDocView, OrderedListView, schema, SummaryView, DashFieldView } from "../../util/RichTextSchema";
+import { DashDocCommentView, DashDocView, DashFieldView, FootnoteView, ImageResizeView, OrderedListView, schema, SummaryView } from "../../util/RichTextSchema";
 import { SelectionManager } from "../../util/SelectionManager";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
-import { DocAnnotatableComponent, DocAnnotatableProps } from "../DocComponent";
+import { CollectionFreeFormView } from '../collections/collectionFreeForm/CollectionFreeFormView';
+import { ContextMenu } from '../ContextMenu';
+import { ContextMenuProps } from '../ContextMenuItem';
+import { DocAnnotatableComponent } from "../DocComponent";
 import { DocumentButtonBar } from '../DocumentButtonBar';
 import { InkingControl } from "../InkingControl";
+import { AudioBox } from './AudioBox';
 import { FieldView, FieldViewProps } from "./FieldView";
 import "./FormattedTextBox.scss";
 import { FormattedTextBoxComment, formattedTextBoxCommentPlugin } from './FormattedTextBoxComment';
 import React = require("react");
-import { ContextMenuProps } from '../ContextMenuItem';
-import { ContextMenu } from '../ContextMenu';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { documentSchema } from '../../../new_fields/documentSchemas';
-import { AudioBox } from './AudioBox';
-import { CollectionFreeFormView } from '../collections/collectionFreeForm/CollectionFreeFormView';
-import { InkTool } from '../../../new_fields/InkField';
-import { TraceMobx } from '../../../new_fields/util';
-import RichTextMenu from '../../util/RichTextMenu';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -185,12 +185,20 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
 
             const tsel = this._editorView.state.selection.$from;
             tsel.marks().filter(m => m.type === this._editorView!.state.schema.marks.user_mark).map(m => AudioBox.SetScrubTime(Math.max(0, m.attrs.modified * 5000 - 1000)));
-            this._applyingChange = true;
-            if (!this.props.Document._textTemplate || Doc.GetProto(this.props.Document) === this.dataDoc) {
-                this.dataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
-                this.dataDoc[this.props.fieldKey] = new RichTextField(JSON.stringify(state.toJSON()), state.doc.textBetween(0, state.doc.content.size, "\n\n"));
+            const curText = state.doc.textBetween(0, state.doc.content.size, "\n\n");
+            const curTemp = Cast(this.props.Document._textTemplate, RichTextField);
+            if (!this._applyingChange) {
+                this._applyingChange = true;
+                if (!curTemp || curText) {
+                    if (Doc.GetProto(this.props.Document) === this.dataDoc) {
+                        this.dataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
+                        this.dataDoc[this.props.fieldKey] = new RichTextField(JSON.stringify(state.toJSON()), curText);
+                    }
+                } else {
+                    this._editorView.updateState(EditorState.fromJSON(this.config, JSON.parse(curTemp.Data)));
+                }
+                this._applyingChange = false;
             }
-            this._applyingChange = false;
             this.updateTitle();
             this.tryUpdateHeight();
         }
@@ -496,8 +504,9 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
 
         this._reactionDisposer = reaction(
             () => {
-                const field = Cast(this.props.Document._textTemplate || this.dataDoc[this.props.fieldKey], RichTextField);
-                return field ? field.Data : RichTextUtils.Initialize();
+                const curText = Cast(this.dataDoc[this.props.fieldKey], RichTextField, null);
+                const field = !curText.Text && this.props.Document._textTemplate ? Cast(this.props.Document._textTemplate, RichTextField, null) : curText;
+                return field?.Data || RichTextUtils.Initialize();
             },
             incomingValue => {
                 if (this._editorView && !this._applyingChange) {
@@ -741,7 +750,9 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     }
 
     private setupEditor(config: any, fieldKey: string) {
-        const rtfField = Cast(this.props.Document._textTemplate || this.dataDoc[fieldKey], RichTextField);
+        const curText = Cast(this.dataDoc[this.props.fieldKey], RichTextField, null);
+        const useTemplate = !curText?.Text && this.props.Document._textTemplate;
+        const rtfField = Cast((useTemplate && this.props.Document._textTemplate) || this.dataDoc[fieldKey], RichTextField);
         if (this.ProseRef) {
             const self = this;
             this._editorView?.destroy();
