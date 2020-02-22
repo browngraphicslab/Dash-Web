@@ -808,7 +808,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             const pos = this.getCalculatedPositions({ doc: pair.layout, index: i, collection: this.Document, docs: layoutDocs, state });
             poolData.set(pair.layout[Id], pos);
         });
-        return { elements: elements };
+        return elements;
     }
 
     @computed get doInternalLayoutComputation() {
@@ -869,8 +869,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             }));
         this._cachedPool.clear();
         Array.from(newPool.keys()).forEach(k => this._cachedPool.set(k, newPool.get(k)));
-        this.childLayoutPairs.filter((pair, i) => this.isCurrent(pair.layout)).forEach(pair =>
-            computedElementData.elements.push({
+        const elements:ViewDefResult[] = computedElementData.slice();
+        this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)).forEach(pair =>
+            elements.push({
                 ele: <CollectionFreeFormDocumentView key={pair.layout[Id]}  {...this.getChildDocumentViewProps(pair.layout, pair.data)}
                     dataProvider={this.childDataProvider}
                     LayoutDoc={this.childLayoutDocFunc}
@@ -879,13 +880,13 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 bounds: this.childDataProvider(pair.layout)
             }));
 
-        return computedElementData;
+        return elements;
     }
 
     componentDidMount() {
         super.componentDidMount();
         this._layoutComputeReaction = reaction(() => this.doLayoutComputation,
-            (computation) => this._layoutElements = computation?.elements.slice() || [],
+            (elements) => this._layoutElements = elements || [],
             { fireImmediately: true, name: "doLayout" });
     }
     componentWillUnmount() {

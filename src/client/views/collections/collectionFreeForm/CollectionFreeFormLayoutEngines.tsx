@@ -314,7 +314,7 @@ export function computeTimelineLayout(
 
 function normalizeResults(panelDim: number[], fontHeight: number, childPairs: { data?: Doc, layout: Doc }[], docMap: Map<Doc, ViewDefBounds>,
     poolData: Map<string, PoolData>, viewDefsToJSX: (views: ViewDefBounds[]) => ViewDefResult[], groupNames: ViewDefBounds[], minWidth: number, extras: ViewDefBounds[],
-    extraDocs: Doc[]) {
+    extraDocs: Doc[]):ViewDefResult[]  {
 
     const grpEles = groupNames.map(gn => ({ x: gn.x, y: gn.y, width: gn.width, height: gn.height }) as ViewDefBounds);
     const docEles = childPairs.filter(d => docMap.get(d.layout)).map(pair => docMap.get(pair.layout) as ViewDefBounds);
@@ -341,8 +341,7 @@ function normalizeResults(panelDim: number[], fontHeight: number, childPairs: { 
     });
     extraDocs.map(ed => poolData.set(ed[Id], { x: 0, y: 0, zIndex: -99 }));
 
-    return {
-        elements: viewDefsToJSX(extras.concat(groupNames).map(gname => ({
+    return viewDefsToJSX(extras.concat(groupNames).map(gname => ({
             type: gname.type,
             text: gname.text,
             x: gname.x * scale,
@@ -352,8 +351,7 @@ function normalizeResults(panelDim: number[], fontHeight: number, childPairs: { 
             height: gname.height === -1 ? 1 : Math.max(fontHeight, (gname.height || 0) * scale),
             fontSize: gname.fontSize,
             payload: gname.payload
-        })))
-    };
+        })));
 }
 
 export function AddCustomFreeFormLayout(doc: Doc, dataKey: string): () => void {
