@@ -34,6 +34,8 @@ import { WebBox } from "./WebBox";
 import { InkingStroke } from "../InkingStroke";
 import React = require("react");
 import { RecommendationsBox } from "../RecommendationsBox";
+import { SearchDocBox } from "../SearchDocBox";
+
 import { TraceMobx } from "../../../new_fields/util";
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
@@ -103,7 +105,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
                     FormattedTextBox, ImageBox, IconBox, DirectoryImportBox, FontIconBox: FontIconBox, ButtonBox, FieldView,
                     CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox,
                     PDFBox, VideoBox, AudioBox, HistogramBox, PresBox, YoutubeBox, LinkFollowBox, PresElementBox, QueryBox,
-                    ColorBox, DocuLinkBox, InkingStroke, DocumentBox, RecommendationsBox
+                    ColorBox, DocuLinkBox, InkingStroke, DocumentBox, RecommendationsBox, SearchDocBox,
                 }}
                 bindings={this.CreateBindings()}
                 jsx={this.layout}

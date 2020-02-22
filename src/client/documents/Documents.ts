@@ -44,6 +44,8 @@ import { ComputedField, ScriptField } from "../../new_fields/ScriptField";
 import { ProxyField } from "../../new_fields/Proxy";
 import { DocumentType } from "./DocumentTypes";
 import { RecommendationsBox } from "../views/RecommendationsBox";
+import { SearchDocBox } from "../views/SearchDocBox";
+
 //import { PresBox } from "../views/nodes/PresBox";
 //import { PresField } from "../../new_fields/PresField";
 import { LinkFollowBox } from "../views/linking/LinkFollowBox";
@@ -255,6 +257,10 @@ export namespace Docs {
             [DocumentType.INK, {
                 layout: { view: InkingStroke, dataField: data },
                 options: { backgroundColor: "transparent" }
+            }],
+            [DocumentType.SEARCH, {
+                layout: { view: SearchDocBox },
+                options: { width: 200, height: 200 },
             }]
         ]);
 
@@ -586,6 +592,10 @@ export namespace Docs {
 
         export function RecommendationsDocument(data: Doc[], options: DocumentOptions = {}) {
             return InstanceFromProto(Prototypes.get(DocumentType.RECOMMENDATION), new List<Doc>(data), options);
+        }
+
+        export function SearchDocument(data: Doc[], options: DocumentOptions = {}) {
+            return InstanceFromProto(Prototypes.get(DocumentType.SEARCH), new List<Doc>(data), options);
         }
 
         export type DocConfig = {
