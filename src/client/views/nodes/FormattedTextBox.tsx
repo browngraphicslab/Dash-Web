@@ -189,13 +189,13 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
             const curTemp = Cast(this.props.Document._textTemplate, RichTextField);
             if (!this._applyingChange) {
                 this._applyingChange = true;
-                if (!curTemp || curText) {
-                    if (Doc.GetProto(this.props.Document) === this.dataDoc) {
-                        this.dataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
-                        this.dataDoc[this.props.fieldKey] = new RichTextField(JSON.stringify(state.toJSON()), curText);
-                    }
-                } else {
+                this.dataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
+                if (!curTemp || curText) { // if no template, or there's text, write it to the document. (if this is driven by a template, then this overwrites the template text which is intended)
+                    this.dataDoc[this.props.fieldKey] = new RichTextField(JSON.stringify(state.toJSON()), curText);
+                    this.dataDoc[this.props.fieldKey +"-noTemplate"] = curTemp?.Text !== curText;
+                } else { // if we've deleted all the text in a note driven by a template, then restore the template data
                     this._editorView.updateState(EditorState.fromJSON(this.config, JSON.parse(curTemp.Data)));
+                    this.dataDoc[this.props.fieldKey +"-noTemplate"] = undefined;
                 }
                 this._applyingChange = false;
             }
@@ -504,12 +504,11 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
 
         this._reactionDisposer = reaction(
             () => {
-                const curText = Cast(this.dataDoc[this.props.fieldKey], RichTextField, null);
-                const field = !curText.Text && this.props.Document._textTemplate ? Cast(this.props.Document._textTemplate, RichTextField, null) : curText;
-                return field?.Data || RichTextUtils.Initialize();
+                if (this.dataDoc[this.props.fieldKey +"-noTemplate"] || !this.props.Document._textTemplate) return undefined;
+                return Cast(this.props.Document._textTemplate, RichTextField, null).Data;
             },
             incomingValue => {
-                if (this._editorView && !this._applyingChange) {
+                if (incomingValue !== undefined && this._editorView && !this._applyingChange) {
                     const updatedState = JSON.parse(incomingValue);
                     this._editorView.updateState(EditorState.fromJSON(this.config, updatedState));
                     this.tryUpdateHeight();
