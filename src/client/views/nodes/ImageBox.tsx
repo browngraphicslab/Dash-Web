@@ -92,10 +92,11 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
             } else if (de.altKey || !this.dataDoc[this.props.fieldKey]) {
                 const layoutDoc = de.complete.docDragData?.draggedDocuments[0];
                 const targetField = Doc.LayoutFieldKey(layoutDoc);
-                if (layoutDoc?.[DataSym][targetField] instanceof ImageField) {
-                    this.dataDoc[this.props.fieldKey] = ObjectField.MakeCopy(layoutDoc[DataSym][targetField] as ImageField);
-                    this.dataDoc[this.props.fieldKey + "-nativeWidth"] = NumCast(layoutDoc[DataSym][targetField + "-nativeWidth"]);
-                    this.dataDoc[this.props.fieldKey + "-nativeHeight"] = NumCast(layoutDoc[DataSym][targetField + "-nativeHeight"]);
+                const targetDoc = layoutDoc[DataSym];
+                if (targetDoc[targetField] instanceof ImageField) {
+                    this.dataDoc[this.props.fieldKey] = ObjectField.MakeCopy(targetDoc[targetField] as ImageField);
+                    this.dataDoc[this.props.fieldKey + "-nativeWidth"] = NumCast(targetDoc[targetField + "-nativeWidth"]);
+                    this.dataDoc[this.props.fieldKey + "-nativeHeight"] = NumCast(targetDoc[targetField + "-nativeHeight"]);
                     e.stopPropagation();
                 }
             }
@@ -374,9 +375,9 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
         const aspect = (rotation % 180) ? this.Document[HeightSym]() / this.Document[WidthSym]() : 1;
         const shift = (rotation % 180) ? (nativeHeight - nativeWidth / aspect) / 2 : 0;
 
-        !this.Document.ignoreAspect && this.resize(srcpath);
+        this.resize(srcpath);
 
-        return <div className="imageBox-cont" key={this.props.Document[Id]} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
+        return <div className="imageBox-cont" key={this.props.Document[Id]} ref={this.createDropTarget}>
             <div className="imageBox-fader" >
                 <img key={this._smallRetryCount + (this._mediumRetryCount << 4) + (this._largeRetryCount << 8)} // force cache to update on retrys
                     src={srcpath}

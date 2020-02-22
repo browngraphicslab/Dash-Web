@@ -4,7 +4,7 @@ import * as React from "react";
 import { Doc } from '../../../../new_fields/Doc';
 import { documentSchema } from '../../../../new_fields/documentSchemas';
 import { makeInterface } from '../../../../new_fields/Schema';
-import { BoolCast, NumCast, ScriptCast, StrCast } from '../../../../new_fields/Types';
+import { BoolCast, NumCast, ScriptCast, StrCast, Cast } from '../../../../new_fields/Types';
 import { DragManager } from '../../../util/DragManager';
 import { Transform } from '../../../util/Transform';
 import { undoBatch } from '../../../util/UndoManager';
@@ -13,6 +13,7 @@ import { CollectionSubView } from '../CollectionSubView';
 import "./collectionMulticolumnView.scss";
 import ResizeBar from './MulticolumnResizer';
 import WidthLabel from './MulticolumnWidthLabel';
+import { List } from '../../../../new_fields/List';
 
 type MulticolumnDocument = makeInterface<[typeof documentSchema]>;
 const MulticolumnDocument = makeInterface(documentSchema);
@@ -189,8 +190,8 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
 
     @undoBatch
     @action
-    drop = (e: Event, de: DragManager.DropEvent) => {
-        if (super.drop(e, de)) {
+    onInternalDrop = (e: Event, de: DragManager.DropEvent) => {
+        if (super.onInternalDrop(e, de)) {
             de.complete.docDragData?.droppedDocuments.forEach(action((d: Doc) => {
                 d.dimUnit = "*";
                 d.dimMagnitude = 1;
@@ -207,13 +208,14 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
             {...this.props}
             Document={layout}
             DataDocument={layout.resolvedDataDoc as Doc}
+            backgroundColor={this.props.backgroundColor}
             CollectionDoc={this.props.Document}
             PanelWidth={width}
             PanelHeight={height}
             getTransform={dxf}
             onClick={this.onChildClickHandler}
             renderDepth={this.props.renderDepth + 1}
-        />
+        />;
     }
     /**
      * @returns the resolved list of rendered child documents, displayed
@@ -221,13 +223,17 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
      */
     @computed
     private get contents(): JSX.Element[] | null {
-        const { childLayoutPairs } = this;
+        // bcz: feels like a hack ... trying to show something useful when there's no list document in the data field of a templated object
+        const expanded = Cast(this.props.Document.expandedTemplate, Doc, null);
+        let { childLayoutPairs } = this.dataDoc[this.props.fieldKey] instanceof List || !expanded ? this : { childLayoutPairs: [] } as { childLayoutPairs: { layout: Doc, data: Doc }[] };
+        const replaced = !childLayoutPairs.length && !Cast(expanded?.layout, Doc, null) && expanded;
+        childLayoutPairs = childLayoutPairs.length || !replaced ? childLayoutPairs : [{ layout: replaced, data: replaced }];
         const { Document, PanelHeight } = this.props;
         const collector: JSX.Element[] = [];
         for (let i = 0; i < childLayoutPairs.length; i++) {
             const { layout } = childLayoutPairs[i];
             const dxf = () => this.lookupIndividualTransform(layout).translate(-NumCast(Document._xMargin), -NumCast(Document._yMargin));
-            const width = () => this.lookupPixels(layout);
+            const width = () => expanded ? this.props.PanelWidth() : this.lookupPixels(layout);
             const height = () => PanelHeight() - 2 * NumCast(Document._yMargin) - (BoolCast(Document.showWidthLabels) ? 20 : 0);
             collector.push(
                 <div className={"document-wrapper"}

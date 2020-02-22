@@ -169,7 +169,7 @@ export class OverlayView extends React.Component {
                 document.addEventListener("pointermove", onPointerMove);
                 document.addEventListener("pointerup", onPointerUp);
             };
-            return <div className="overlayView-doc" key={d[Id]} onPointerDown={onPointerDown} style={{ transform: `translate(${d.x}px, ${d.y}px)`, display: d.isMinimized ? "none" : "" }}>
+            return <div className="overlayView-doc" key={d[Id]} onPointerDown={onPointerDown} style={{ transform: `translate(${d.x}px, ${d.y}px)` }}>
                 <DocumentView
                     Document={d}
                     LibraryPath={emptyPath}

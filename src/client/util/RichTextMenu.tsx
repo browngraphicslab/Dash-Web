@@ -8,11 +8,10 @@ import { EditorView } from "prosemirror-view";
 import { EditorState, NodeSelection, TextSelection } from "prosemirror-state";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
-import { faBold, faItalic, faUnderline, faStrikethrough, faSubscript, faSuperscript, faIndent, faEyeDropper, faCaretDown, faPalette, faHighlighter, faLink, faPaintRoller, faSleigh } from "@fortawesome/free-solid-svg-icons";
-import { MenuItem, Dropdown } from "prosemirror-menu";
+import { faBold, faItalic, faChevronLeft, faUnderline, faStrikethrough, faSubscript, faSuperscript, faIndent, faEyeDropper, faCaretDown, faPalette, faHighlighter, faLink, faPaintRoller, faSleigh } from "@fortawesome/free-solid-svg-icons";
 import { updateBullets } from "./ProsemirrorExampleTransfer";
 import { FieldViewProps } from "../views/nodes/FieldView";
-import { NumCast, Cast, StrCast } from "../../new_fields/Types";
+import { Cast, StrCast } from "../../new_fields/Types";
 import { FormattedTextBoxProps } from "../views/nodes/FormattedTextBox";
 import { unimplementedFunction, Utils } from "../../Utils";
 import { wrapInList } from "prosemirror-schema-list";
@@ -24,7 +23,7 @@ import { SelectionManager } from "./SelectionManager";
 import { LinkManager } from "./LinkManager";
 const { toggleMark, setBlockType } = require("prosemirror-commands");
 
-library.add(faBold, faItalic, faUnderline, faStrikethrough, faSuperscript, faSubscript, faIndent, faEyeDropper, faCaretDown, faPalette, faHighlighter, faLink, faPaintRoller);
+library.add(faBold, faItalic, faChevronLeft, faUnderline, faStrikethrough, faSuperscript, faSubscript, faIndent, faEyeDropper, faCaretDown, faPalette, faHighlighter, faLink, faPaintRoller);
 
 @observer
 export default class RichTextMenu extends AntimodeMenu {
@@ -41,6 +40,7 @@ export default class RichTextMenu extends AntimodeMenu {
     private fontColors: (string | undefined)[];
     private highlightColors: (string | undefined)[];
 
+    @observable private collapsed: boolean = false;
     @observable private boldActive: boolean = false;
     @observable private italicsActive: boolean = false;
     @observable private underlineActive: boolean = false;
@@ -275,6 +275,7 @@ export default class RichTextMenu extends AntimodeMenu {
     }
 
     destroy() {
+        this.fadeOut(true);
     }
 
     @action
@@ -755,9 +756,18 @@ export default class RichTextMenu extends AntimodeMenu {
         }
     }
 
+    @action
+    protected toggleCollapse = (e: React.MouseEvent) => {
+        this.collapsed = !this.collapsed;
+        setTimeout(() => {
+            const x = Math.min(this._left, window.innerWidth - RichTextMenu.Instance.width);
+            RichTextMenu.Instance.jumpTo(x, this._top);
+        }, 0);
+    }
+
     render() {
 
-        const row1 = <div className="antimodeMenu-row" key="row1">{[
+        const row1 = <div className="antimodeMenu-row" key="row1" style={{ display: this.collapsed ? "none" : undefined }}>{[
             this.createButton("bold", "Bold", this.boldActive, toggleMark(schema.marks.strong)),
             this.createButton("italic", "Italic", this.italicsActive, toggleMark(schema.marks.em)),
             this.createButton("underline", "Underline", this.underlineActive, toggleMark(schema.marks.underline)),
@@ -772,13 +782,18 @@ export default class RichTextMenu extends AntimodeMenu {
         ]}</div>;
 
         const row2 = <div className="antimodeMenu-row row-2" key="antimodemenu row2">
-            <div key="row">
+            <div key="row" style={{ display: this.collapsed ? "none" : undefined }}>
                 {[this.createMarksDropdown(this.activeFontSize, this.fontSizeOptions, "font size"),
                 this.createMarksDropdown(this.activeFontFamily, this.fontFamilyOptions, "font family"),
                 this.createNodesDropdown(this.activeListType, this.listTypeOptions, "nodes")]}
             </div>
             <div key="button">
-                <button className="antimodeMenu-button" key="pin menu" title="Pin menu" onClick={this.toggleMenuPin} style={this.Pinned ? { backgroundColor: "#121212" } : {}}>
+                <div key="collapser">
+                    <button className="antimodeMenu-button" key="collapse menu" title="Collapse menu" onClick={this.toggleCollapse} style={{ backgroundColor: this.collapsed ? "#121212" : "", width: 25 }}>
+                        <FontAwesomeIcon icon="chevron-left" size="lg" style={{ transition: "transform 0.3s", transform: this.collapsed ? "rotate(180deg)" : "" }} />
+                    </button>
+                </div>
+                <button className="antimodeMenu-button" key="pin menu" title="Pin menu" onClick={this.toggleMenuPin} style={{ backgroundColor: this.Pinned ? "#121212" : "", display: this.collapsed ? "none" : undefined }}>
                     <FontAwesomeIcon icon="thumbtack" size="lg" style={{ transition: "transform 0.1s", transform: this.Pinned ? "rotate(45deg)" : "" }} />
                 </button>
                 {this.getDragger()}

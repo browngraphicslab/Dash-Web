@@ -90,7 +90,7 @@ $linkGap : 3px;
         cursor: ew-resize;
     }
 
-    .title {
+    .documentDecorations-title {
         background: $alt-accent;
         opacity: 1;
         grid-column-start: 3;
@@ -98,7 +98,11 @@ $linkGap : 3px;
         pointer-events: auto;
         overflow: hidden;
         text-align: center;
-        display:inline-block;
+        display:flex;
+        .documentDecorations-contextMenu {
+            width: 25px;
+            height: calc(100% + 8px); // 8px for the height of the top resizer bar
+        }
     }
     .publishBox {
         width: 20px;
@@ -257,6 +261,10 @@ $linkGap : 3px;
         background: $main-accent;
         transform: scale(1.05);
     }
+}
+
+.documentDecorations-darkScheme {
+    background: dimgray;
 }
 
 #template-list {

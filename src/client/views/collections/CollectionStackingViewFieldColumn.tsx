@@ -8,20 +8,22 @@ import { Doc, DocListCast } from "../../../new_fields/Doc";
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { PastelSchemaPalette, SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 import { ScriptField } from "../../../new_fields/ScriptField";
-import { NumCast, StrCast } from "../../../new_fields/Types";
+import { NumCast, StrCast, Cast } from "../../../new_fields/Types";
 import { ImageField } from "../../../new_fields/URLField";
 import { TraceMobx } from "../../../new_fields/util";
-import { Docs } from "../../documents/Documents";
+import { Docs, DocUtils } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
 import { SelectionManager } from "../../util/SelectionManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
-import { anchorPoints, Flyout } from "../DocumentDecorations";
 import { EditableView } from "../EditableView";
 import { CollectionStackingView } from "./CollectionStackingView";
 import "./CollectionStackingView.scss";
+const higflyout = require("@hig/flyout");
+export const { anchorPoints } = higflyout;
+export const Flyout = higflyout.default;
 
 library.add(faPalette);
 
@@ -71,7 +73,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
             else {
                 de.complete.docDragData.droppedDocuments.forEach(d => d[key] = undefined);
             }
-            this.props.parent.drop(e, de);
+            this.props.parent.onInternalDrop(e, de);
             e.stopPropagation();
         }
     });
@@ -266,8 +268,10 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         ContextMenu.Instance.clearItems();
         const layoutItems: ContextMenuProps[] = [];
         const docItems: ContextMenuProps[] = [];
-
         const dataDoc = this.props.parent.props.DataDoc || this.props.parent.Document;
+
+        DocUtils.addDocumentCreatorMenuItems(this.props.parent.props.addDocument, this.props.parent.props.addDocument, x, y);
+
         Array.from(Object.keys(Doc.GetProto(dataDoc))).filter(fieldKey => dataDoc[fieldKey] instanceof RichTextField || dataDoc[fieldKey] instanceof ImageField || typeof (dataDoc[fieldKey]) === "string").map(fieldKey =>
             docItems.push({
                 description: ":" + fieldKey, event: () => {
@@ -360,7 +364,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                         `Documents that don't have a ${key} value will go here. This column cannot be removed.` : ""}
                     style={{
                         width: "100%",
-                        background: evContents !== `NO ${key.toUpperCase()} VALUE` ? this._color : "lightgrey",
+                        background: evContents !== `NO ${key.toUpperCase()} VALUE` ? this._color : "inherit",
                         color: "grey"
                     }}>
                     <EditableView {...headerEditableViewProps} />

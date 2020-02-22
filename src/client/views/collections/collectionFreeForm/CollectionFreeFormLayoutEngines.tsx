@@ -27,15 +27,15 @@ export interface ViewDefBounds {
 }
 
 export interface PoolData {
-    x?: number,
-    y?: number,
-    z?: number,
-    zIndex?: number,
-    width?: number,
-    height?: number,
-    color?: string,
-    transition?: string,
-    highlight?: boolean,
+    x?: number;
+    y?: number;
+    z?: number;
+    zIndex?: number;
+    width?: number;
+    height?: number;
+    color?: string;
+    transition?: string;
+    highlight?: boolean;
 }
 
 export interface ViewDefResult {
@@ -63,16 +63,16 @@ function toLabel(target: FieldResult<Field>) {
  */
 function getTextWidth(text: string, font: string): number {
     // re-use canvas object for better performance
-    var canvas = (getTextWidth as any).canvas || ((getTextWidth as any).canvas = document.createElement("canvas"));
-    var context = canvas.getContext("2d");
+    const canvas = (getTextWidth as any).canvas || ((getTextWidth as any).canvas = document.createElement("canvas"));
+    const context = canvas.getContext("2d");
     context.font = font;
-    var metrics = context.measureText(text);
+    const metrics = context.measureText(text);
     return metrics.width;
 }
 
-interface pivotColumn {
-    docs: Doc[],
-    filters: string[]
+interface PivotColumn {
+    docs: Doc[];
+    filters: string[];
 }
 
 
@@ -86,7 +86,7 @@ export function computePivotLayout(
     viewDefsToJSX: (views: ViewDefBounds[]) => ViewDefResult[]
 ) {
     const fieldKey = "data";
-    const pivotColumnGroups = new Map<FieldResult<Field>, pivotColumn>();
+    const pivotColumnGroups = new Map<FieldResult<Field>, PivotColumn>();
 
     const pivotFieldKey = toLabel(pivotDoc._pivotField);
     for (const doc of filterDocs) {
@@ -123,7 +123,7 @@ export function computePivotLayout(
     const desc = `${fontSize}px ${getComputedStyle(document.body).fontFamily}`;
     const textlen = Array.from(pivotColumnGroups.keys()).map(c => getTextWidth(toLabel(c), desc)).reduce((p, c) => Math.max(p, c), 0 as number);
     const max_text = Math.min(Math.ceil(textlen / 120) * 28, panelDim[1] / 2);
-    let maxInColumn = Array.from(pivotColumnGroups.values()).reduce((p, s) => Math.max(p, s.docs.length), 1);
+    const maxInColumn = Array.from(pivotColumnGroups.values()).reduce((p, s) => Math.max(p, s.docs.length), 1);
 
     const colWidth = panelDim[0] / pivotColumnGroups.size;
     const colHeight = panelDim[1] - max_text;
@@ -223,7 +223,7 @@ export function computeTimelineLayout(
     const findStack = (time: number, stack: number[]) => {
         const index = stack.findIndex(val => val === undefined || val < x);
         return index === -1 ? stack.length : index;
-    }
+    };
 
     let minTime = minTimeReq === undefined ? Number.MAX_VALUE : minTimeReq;
     let maxTime = maxTimeReq === undefined ? -Number.MAX_VALUE : maxTimeReq;
@@ -266,7 +266,7 @@ export function computeTimelineLayout(
     }
 
     const pivotAxisWidth = NumCast(pivotDoc.pivotTimeWidth, panelDim[1] / 2.5);
-    let stacking: number[] = [];
+    const stacking: number[] = [];
     let zind = 0;
     sortedKeys.forEach(key => {
         if (curTime !== undefined && curTime > prevKey && curTime <= key) {
@@ -289,7 +289,7 @@ export function computeTimelineLayout(
         groupNames.push({ type: "text", text: Math.ceil(maxTime).toString(), x: Math.ceil(maxTime - minTime) * scaling, y: 0, height: fontHeight, fontSize, payload: undefined });
     }
 
-    const divider = { type: "div", color: "black", x: 0, y: 0, width: panelDim[0], height: -1, payload: undefined };
+    const divider = { type: "div", color: Cast(Doc.UserDoc().activeWorkspace, Doc, null)?.darkScheme ? "dimGray" : "black", x: 0, y: 0, width: panelDim[0], height: -1, payload: undefined };
     return normalizeResults(panelDim, fontHeight, childPairs, docMap, poolData, viewDefsToJSX, groupNames, (maxTime - minTime) * scaling, [divider], childDocs.filter(c => !filterDocs.includes(c)));
 
     function layoutDocsAtTime(keyDocs: Doc[], key: number) {
@@ -314,7 +314,7 @@ export function computeTimelineLayout(
 
 function normalizeResults(panelDim: number[], fontHeight: number, childPairs: { data?: Doc, layout: Doc }[], docMap: Map<Doc, ViewDefBounds>,
     poolData: Map<string, PoolData>, viewDefsToJSX: (views: ViewDefBounds[]) => ViewDefResult[], groupNames: ViewDefBounds[], minWidth: number, extras: ViewDefBounds[],
-    extraDocs: Doc[]) {
+    extraDocs: Doc[]):ViewDefResult[]  {
 
     const grpEles = groupNames.map(gn => ({ x: gn.x, y: gn.y, width: gn.width, height: gn.height }) as ViewDefBounds);
     const docEles = childPairs.filter(d => docMap.get(d.layout)).map(pair => docMap.get(pair.layout) as ViewDefBounds);
@@ -341,8 +341,7 @@ function normalizeResults(panelDim: number[], fontHeight: number, childPairs: { 
     });
     extraDocs.map(ed => poolData.set(ed[Id], { x: 0, y: 0, zIndex: -99 }));
 
-    return {
-        elements: viewDefsToJSX(extras.concat(groupNames).map(gname => ({
+    return viewDefsToJSX(extras.concat(groupNames).map(gname => ({
             type: gname.type,
             text: gname.text,
             x: gname.x * scale,
@@ -352,8 +351,7 @@ function normalizeResults(panelDim: number[], fontHeight: number, childPairs: { 
             height: gname.height === -1 ? 1 : Math.max(fontHeight, (gname.height || 0) * scale),
             fontSize: gname.fontSize,
             payload: gname.payload
-        })))
-    };
+        })));
 }
 
 export function AddCustomFreeFormLayout(doc: Doc, dataKey: string): () => void {

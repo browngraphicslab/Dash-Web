@@ -5,11 +5,13 @@ import "./CollectionSchemaView.scss";
 import { faPlus, faFont, faHashtag, faAlignJustify, faCheckSquare, faToggleOn, faSortAmountDown, faSortAmountUp, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { library, IconProp } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { Flyout, anchorPoints } from "../DocumentDecorations";
 import { ColumnType } from "./CollectionSchemaView";
 import { faFile } from "@fortawesome/free-regular-svg-icons";
 import { SchemaHeaderField, PastelSchemaPalette } from "../../../new_fields/SchemaHeaderField";
 import { undoBatch } from "../../util/UndoManager";
+const higflyout = require("@hig/flyout");
+export const { anchorPoints } = higflyout;
+export const Flyout = higflyout.default;
 
 library.add(faPlus, faFont, faHashtag, faAlignJustify, faCheckSquare, faToggleOn, faFile as any, faSortAmountDown, faSortAmountUp, faTimes);
 

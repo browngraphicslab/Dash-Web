@@ -4,7 +4,7 @@ import { faArrowDown, faArrowUp, faFile as fileSolid, faFileDownload, faLocation
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, IReactionDisposer, reaction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc } from "../../../new_fields/Doc";
+import { Doc, DataSym } from "../../../new_fields/Doc";
 import { documentSchema } from '../../../new_fields/documentSchemas';
 import { Id } from "../../../new_fields/FieldSymbols";
 import { createSchema, makeInterface } from '../../../new_fields/Schema';
@@ -173,6 +173,7 @@ export class PresElementBox extends DocExtendableComponent<FieldViewProps, PresD
             <div className="presElementBox-embedded" style={{ height: this.embedHeight() }}>
                 <ContentFittingDocumentView
                     Document={this.targetDoc}
+                    DataDocument={this.targetDoc[DataSym] !== this.targetDoc && this.targetDoc[DataSym]}
                     LibraryPath={emptyPath}
                     fitToBox={true}
                     addDocument={returnFalse}

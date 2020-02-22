@@ -9,11 +9,11 @@ import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { CollectionSchemaView } from "../collections/CollectionSchemaView";
 import { CollectionView } from "../collections/CollectionView";
-import { LinkFollowBox } from "../linking/LinkFollowBox";
 import { YoutubeBox } from "./../../apis/youtube/YoutubeBox";
 import { AudioBox } from "./AudioBox";
 import { ButtonBox } from "./ButtonBox";
 import { SliderBox } from "./SliderBox";
+import { LinkBox } from "./LinkBox";
 import { DocumentBox } from "./DocumentBox";
 import { DocumentViewProps } from "./DocumentView";
 import "./DocumentView.scss";
@@ -82,7 +82,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         return this.props.DataDoc instanceof Promise ? undefined : this.props.DataDoc;
     }
     get layoutDoc() {
-        if (this.props.DataDoc === undefined && (this.props.LayoutDoc || typeof Doc.LayoutField(this.props.Document) !== "string")) {
+        if (this.props.LayoutDoc || (this.props.DataDoc === undefined && typeof Doc.LayoutField(this.props.Document) !== "string")) {
             // if there is no dataDoc (ie, we're not rendering a template layout), but this document has a layout document (not a layout string), 
             // then we render the layout document as a template and use this document as the data context for the template layout.
             return Doc.expandTemplateLayout(this.props.LayoutDoc?.() || Doc.Layout(this.props.Document), this.props.Document);
@@ -107,8 +107,8 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
                 components={{
                     FormattedTextBox, ImageBox, DirectoryImportBox, FontIconBox, ButtonBox, SliderBox, FieldView,
                     CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox,
-                    PDFBox, VideoBox, AudioBox, HistogramBox, PresBox, YoutubeBox, LinkFollowBox, PresElementBox, QueryBox,
-                    ColorBox, DashWebRTCVideo, DocuLinkBox, InkingStroke, DocumentBox
+                    PDFBox, VideoBox, AudioBox, HistogramBox, PresBox, YoutubeBox, PresElementBox, QueryBox,
+                    ColorBox, DashWebRTCVideo, DocuLinkBox, InkingStroke, DocumentBox, LinkBox
                 }}
                 bindings={this.CreateBindings()}
                 jsx={this.layout}

@@ -187,7 +187,7 @@ export class PresBox extends React.Component<FieldViewProps> {
 
         //docToJump stayed same meaning, it was not in the group or was the last element in the group
         const aliasOf = await Cast(docToJump.aliasOf, Doc);
-        const srcContext = aliasOf && await Cast(aliasOf.sourceContext, Doc);
+        const srcContext = aliasOf && await Cast(aliasOf.anchor1Context, Doc);
         if (docToJump === curDoc) {
             //checking if curDoc has navigation open
             const target = await Cast(curDoc.presentationTargetDoc, Doc);
@@ -327,12 +327,12 @@ export class PresBox extends React.Component<FieldViewProps> {
         if (toggle) {
             if (this.props.Document.inOverlay) {
                 Doc.RemoveDocFromList((CurrentUserUtils.UserDocument.overlays as Doc), this.props.fieldKey, this.props.Document);
-                CollectionDockingView.AddRightSplit(this.props.Document, this.props.DataDoc);
+                CollectionDockingView.AddRightSplit(this.props.Document);
                 this.props.Document.inOverlay = false;
             } else {
                 this.props.Document.x = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0)[0];// 500;//e.clientX + 25;
                 this.props.Document.y = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0)[1];////e.clientY - 25;
-                this.props.addDocTab && this.props.addDocTab(this.props.Document, this.props.DataDoc, "close");
+                this.props.addDocTab?.(this.props.Document, "close");
                 Doc.AddDocToList((CurrentUserUtils.UserDocument.overlays as Doc), this.props.fieldKey, this.props.Document);
             }
         }

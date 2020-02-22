@@ -52,7 +52,7 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
         this._initialScale = this.props.ScreenToLocalTransform().Scale;
         const nw = this.Document._nativeWidth = NumCast(this.dataDoc[this.props.fieldKey + "-nativeWidth"], NumCast(this.Document._nativeWidth, 927));
         const nh = this.Document._nativeHeight = NumCast(this.dataDoc[this.props.fieldKey + "-nativeHeight"], NumCast(this.Document._nativeHeight, 1200));
-        !this.Document._fitWidth && !this.Document.ignoreAspect && (this.Document._height = this.Document[WidthSym]() * (nh / nw));
+        !this.Document._fitWidth && (this.Document._height = this.Document[WidthSym]() * (nh / nw));
 
         const backup = "oldPath";
         const { Document } = this.props;
@@ -93,7 +93,7 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
         this.dataDoc[this.props.fieldKey + "-numPages"] = np;
         this.dataDoc[this.props.fieldKey + "-nativeWidth"] = this.Document._nativeWidth = nw * 96 / 72;
         this.dataDoc[this.props.fieldKey + "-nativeHeight"] = this.Document._nativeHeight = nh * 96 / 72;
-        !this.Document._fitWidth && !this.Document.ignoreAspect && (this.Document._height = this.Document[WidthSym]() * (nh / nw));
+        !this.Document._fitWidth && (this.Document._height = this.Document[WidthSym]() * (nh / nw));
     }
 
     public search(string: string, fwd: boolean) { this._pdfViewer && this._pdfViewer.search(string, fwd); }
@@ -140,12 +140,12 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
 
     settingsPanel() {
         const pageBtns = <>
-            <button className="pdfBox-overlayButton-iconCont" key="back" title="Page Back"
-                onPointerDown={e => e.stopPropagation()} onClick={e => this.backPage()} style={{ left: 45, top: 5 }}>
+            <button className="pdfBox-overlayButton-back" key="back" title="Page Back"
+                onPointerDown={e => e.stopPropagation()} onClick={e => this.backPage()} >
                 <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-left"} size="sm" />
             </button>
-            <button className="pdfBox-overlayButton-iconCont" key="fwd" title="Page Forward"
-                onPointerDown={e => e.stopPropagation()} onClick={e => this.forwardPage()} style={{ left: 45, top: 5 }}>
+            <button className="pdfBox-overlayButton-fwd" key="fwd" title="Page Forward"
+                onPointerDown={e => e.stopPropagation()} onClick={e => this.forwardPage()} >
                 <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-right"} size="sm" />
             </button>
         </>;
@@ -259,7 +259,7 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
             if (!this._pdfjsRequested) {
                 this._pdfjsRequested = true;
                 const promise = Pdfjs.getDocument(pdfUrl.url.href).promise;
-                promise.then(pdf => { runInAction(() => { this._pdf = pdf; console.log("promise"); }) });
+                promise.then(action(pdf => { this._pdf = pdf; console.log("promise"); }));
 
             }
         }

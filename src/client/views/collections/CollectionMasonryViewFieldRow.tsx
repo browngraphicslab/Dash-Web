@@ -2,7 +2,7 @@ import React = require("react");
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faPalette } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, observable, computed } from "mobx";
+import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import Measure from "react-measure";
 import { Doc } from "../../../new_fields/Doc";
@@ -16,10 +16,12 @@ import { CompileScript } from "../../util/Scripting";
 import { SelectionManager } from "../../util/SelectionManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
-import { anchorPoints, Flyout } from "../DocumentDecorations";
 import { EditableView } from "../EditableView";
 import { CollectionStackingView } from "./CollectionStackingView";
 import "./CollectionStackingView.scss";
+const higflyout = require("@hig/flyout");
+export const { anchorPoints } = higflyout;
+export const Flyout = higflyout.default;
 
 library.add(faPalette);
 
@@ -80,7 +82,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
             const key = StrCast(this.props.parent.props.Document.sectionFilter);
             const castedValue = this.getValue(this._heading);
             de.complete.docDragData.droppedDocuments.forEach(d => d[key] = castedValue);
-            this.props.parent.drop(e, de);
+            this.props.parent.onInternalDrop(e, de);
             e.stopPropagation();
         }
     });
@@ -257,7 +259,8 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
 
     @computed get contentLayout() {
         const rows = Math.max(1, Math.min(this.props.docList.length, Math.floor((this.props.parent.props.PanelWidth() - 2 * this.props.parent.xMargin) / (this.props.parent.columnWidth + this.props.parent.gridGap))));
-        const style = this.props.parent; const collapsed = this._collapsed;
+        const style = this.props.parent;
+        const collapsed = this._collapsed;
         const chromeStatus = this.props.parent.props.Document._chromeStatus;
         const newEditableViewProps = {
             GetValue: () => "",

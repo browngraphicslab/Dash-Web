@@ -1,4 +1,4 @@
-import { action, computed, IReactionDisposer, reaction, trace } from "mobx";
+import { action, computed, IReactionDisposer, reaction } from "mobx";
 import * as rp from 'request-promise';
 import CursorField from "../../../new_fields/CursorField";
 import { Doc, DocListCast, Opt, WidthSym, HeightSym } from "../../../new_fields/Doc";
@@ -25,6 +25,7 @@ import { ImageUtils } from "../../util/Import & Export/ImageUtils";
 import { Networking } from "../../Network";
 import { GestureUtils } from "../../../pen-gestures/GestureUtils";
 import { InteractionUtils } from "../../util/InteractionUtils";
+import { Upload } from "../../../server/SharedMediaTypes";
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Doc) => boolean;
@@ -40,6 +41,8 @@ export interface CollectionViewProps extends FieldViewProps {
 export interface SubCollectionViewProps extends CollectionViewProps {
     CollectionView: Opt<CollectionView>;
     children?: never | (() => JSX.Element[]) | React.ReactNode;
+    overrideDocuments?: Doc[]; // used to override the documents shown by the sub collection to an explict list (see LinkBox)
+    ignoreFields?: string[]; // used in TreeView to ignore specified fields (see LinkBox)
     isAnnotationOverlay?: boolean;
     annotationsKey: string;
     layoutEngine?: () => string;
@@ -56,7 +59,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             this.gestureDisposer?.();
             this.multiTouchDisposer?.();
             if (ele) {
-                this.dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this));
+                this.dropDisposer = DragManager.MakeDropTarget(ele, this.onInternalDrop.bind(this));
                 this.gestureDisposer = GestureUtils.MakeGestureTarget(ele, this.onGesture.bind(this));
                 this.multiTouchDisposer = InteractionUtils.MakeMultiTouchTarget(ele, this.onTouchStart.bind(this));
             }
@@ -66,23 +69,24 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         }
 
         componentDidMount() {
-            this._childLayoutDisposer = reaction(() => [this.childDocs, (Cast(this.props.Document.childLayout, Doc) as Doc)?.[Id]],
-                (args) => {
-                    const childLayout = Cast(this.props.Document.childLayout, Doc);
+            this._childLayoutDisposer = reaction(() => ({ childDocs: this.childDocs, childLayout: Cast(this.props.Document.childLayout, Doc) }),
+                ({ childDocs, childLayout }) => {
                     if (childLayout instanceof Doc) {
-                        this.childDocs.map(doc => {
+                        childDocs.map(doc => {
                             doc.layout_fromParent = childLayout;
                             doc.layoutKey = "layout_fromParent";
                         });
                     }
                     else if (!(childLayout instanceof Promise)) {
-                        this.childDocs.filter(d => !d.isTemplateForField).map(doc => doc.layoutKey === "layout_fromParent" && (doc.layoutKey = "layout"));
+                        childDocs.filter(d => !d.isTemplateForField).map(doc => doc.layoutKey === "layout_fromParent" && (doc.layoutKey = "layout"));
                     }
                 }, { fireImmediately: true });
 
         }
         componentWillUnmount() {
-            this._childLayoutDisposer && this._childLayoutDisposer();
+            this.gestureDisposer?.();
+            this.multiTouchDisposer?.();
+            this._childLayoutDisposer?.();
         }
 
         @computed get dataDoc() {
@@ -95,11 +99,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         // to its children which may be templates.
         // If 'annotationField' is specified, then all children exist on that field of the extension document, otherwise, they exist directly on the data document under 'fieldKey'
         @computed get dataField() {
-            const { annotationsKey, fieldKey } = this.props;
-            if (annotationsKey) {
-                return this.dataDoc[fieldKey + "-" + annotationsKey];
-            }
-            return this.dataDoc[fieldKey];
+            return this.dataDoc[this.props.fieldKey + (this.props.annotationsKey ? "-" + this.props.annotationsKey : "")];
         }
 
         get childLayoutPairs(): { layout: Doc; data: Doc; }[] {
@@ -155,19 +155,11 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
 
         @undoBatch
         @action
-        protected drop(e: Event, de: DragManager.DropEvent): boolean {
+        protected onInternalDrop(e: Event, de: DragManager.DropEvent): boolean {
             const docDragData = de.complete.docDragData;
             (this.props.Document.dropConverter instanceof ScriptField) &&
                 this.props.Document.dropConverter.script.run({ dragData: docDragData }); /// bcz: check this 
-            if (docDragData && !docDragData.applyAsTemplate) {
-                if (de.altKey && docDragData.draggedDocuments.length) {
-                    this.childDocs.map(doc => {
-                        doc.layout_fromParent = docDragData.draggedDocuments[0];
-                        doc.layoutKey = "layout_fromParent";
-                    });
-                    e.stopPropagation();
-                    return true;
-                }
+            if (docDragData) {
                 let added = false;
                 if (this.props.Document._freezeOnDrop) {
                     de.complete.docDragData?.droppedDocuments.forEach(drop => Doc.freezeNativeDimensions(drop, drop[WidthSym](), drop[HeightSym]()));
@@ -194,166 +186,172 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
 
         @undoBatch
         @action
-        protected async onDrop(e: React.DragEvent, options: DocumentOptions, completed?: () => void) {
+        protected async onExternalDrop(e: React.DragEvent, options: DocumentOptions, completed?: () => void) {
             if (e.ctrlKey) {
                 e.stopPropagation(); // bcz: this is a hack to stop propagation when dropping an image on a text document with shift+ctrl
                 return;
             }
-            const html = e.dataTransfer.getData("text/html");
-            const text = e.dataTransfer.getData("text/plain");
+
+            const { dataTransfer } = e;
+            const html = dataTransfer.getData("text/html");
+            const text = dataTransfer.getData("text/plain");
 
             if (text && text.startsWith("<div")) {
                 return;
             }
+
             e.stopPropagation();
             e.preventDefault();
+            const { addDocument } = this.props;
+            if (!addDocument) {
+                alert("this.props.addDocument does not exist. Aborting drop operation.");
+                return;
+            }
 
-            if (html && FormattedTextBox.IsFragment(html)) {
-                const href = FormattedTextBox.GetHref(html);
-                if (href) {
-                    const docid = FormattedTextBox.GetDocFromUrl(href);
-                    if (docid) { // prosemirror text containing link to dash document
-                        DocServer.GetRefField(docid).then(f => {
-                            if (f instanceof Doc) {
-                                if (options.x || options.y) { f.x = options.x; f.y = options.y; } // should be in CollectionFreeFormView
-                                (f instanceof Doc) && this.props.addDocument(f);
-                            }
-                        });
-                    } else {
-                        this.props.addDocument && this.props.addDocument(Docs.Create.WebDocument(href, { ...options, title: href }));
-                    }
-                } else if (text) {
-                    this.props.addDocument && this.props.addDocument(Docs.Create.TextDocument(text, { ...options, _width: 100, _height: 25 }));
-                }
-                return;
-            }
-            if (html && !html.startsWith("<a")) {
-                const tags = html.split("<");
-                if (tags[0] === "") tags.splice(0, 1);
-                const img = tags[0].startsWith("img") ? tags[0] : tags.length > 1 && tags[1].startsWith("img") ? tags[1] : "";
-                if (img) {
-                    const split = img.split("src=\"")[1].split("\"")[0];
-                    let source = split;
-                    if (split.startsWith("data:image") && split.includes("base64")) {
-                        const [{ accessPaths }] = await Networking.PostToServer("/uploadRemoteImage", { sources: [split] });
-                        source = Utils.prepend(accessPaths.agnostic.client);
-                    }
-                    const doc = Docs.Create.ImageDocument(source, { ...options, _width: 300 });
-                    ImageUtils.ExtractExif(doc);
-                    this.props.addDocument(doc);
-                    return;
-                } else {
-                    const path = window.location.origin + "/doc/";
-                    if (text.startsWith(path)) {
-                        const docid = text.replace(Utils.prepend("/doc/"), "").split("?")[0];
-                        DocServer.GetRefField(docid).then(f => {
-                            if (f instanceof Doc) {
-                                if (options.x || options.y) { f.x = options.x; f.y = options.y; } // should be in CollectionFreeFormView
-                                (f instanceof Doc) && this.props.addDocument(f);
-                            }
-                        });
-                    } else {
-                        const htmlDoc = Docs.Create.HtmlDocument(html, { ...options, title: "-web page-", _width: 300, _height: 300, documentText: text });
-                        this.props.addDocument(htmlDoc);
-                    }
-                    return;
-                }
-            }
-            if (text && text.indexOf("www.youtube.com/watch") !== -1) {
-                const url = text.replace("youtube.com/watch?v=", "youtube.com/embed/");
-                this.props.addDocument(Docs.Create.VideoDocument(url, { ...options, title: url, _width: 400, _height: 315, _nativeWidth: 600, _nativeHeight: 472.5 }));
-                return;
-            }
-            let matches: RegExpExecArray | null;
-            if ((matches = /(https:\/\/)?docs\.google\.com\/document\/d\/([^\\]+)\/edit/g.exec(text)) !== null) {
-                const newBox = Docs.Create.TextDocument("", { ...options, _width: 400, _height: 200, title: "Awaiting title from Google Docs..." });
-                const proto = newBox.proto!;
-                const documentId = matches[2];
-                proto[GoogleRef] = documentId;
-                proto.data = "Please select this document and then click on its pull button to load its contents from from Google Docs...";
-                proto.backgroundColor = "#eeeeff";
-                this.props.addDocument(newBox);
-                // const parent = Docs.Create.StackingDocument([newBox], { title: `Google Doc Import (${documentId})` });
-                // CollectionDockingView.Instance.AddRightSplit(parent, undefined);
-                // proto.height = parent[HeightSym]();
-                return;
-            }
-            if ((matches = /(https:\/\/)?photos\.google\.com\/(u\/3\/)?album\/([^\\]+)/g.exec(text)) !== null) {
-                const albums = await GooglePhotos.Transactions.ListAlbums();
-                const albumId = matches[3];
-                const mediaItems = await GooglePhotos.Query.AlbumSearch(albumId);
-                console.log(mediaItems);
-                return;
-            }
-            const { items } = e.dataTransfer;
-            const { length } = items;
-            if (length) {
-                const batch = UndoManager.StartBatch("collection view drop");
-                const promises: Promise<void>[] = [];
-                // tslint:disable-next-line:prefer-for-of
-                for (let i = 0; i < length; i++) {
-                    const item = e.dataTransfer.items[i];
-                    if (item.kind === "string" && item.type.indexOf("uri") !== -1) {
-                        let str: string;
-                        const prom = new Promise<string>(resolve => item.getAsString(resolve))
-                            .then(action((s: string) => rp.head(Utils.CorsProxy(str = s))))
-                            .then(result => {
-                                const type = result["content-type"];
-                                if (type) {
-                                    Docs.Get.DocumentFromType(type, str, options)
-                                        .then(doc => doc && this.props.addDocument(doc));
+            if (html) {
+                if (FormattedTextBox.IsFragment(html)) {
+                    const href = FormattedTextBox.GetHref(html);
+                    if (href) {
+                        const docid = FormattedTextBox.GetDocFromUrl(href);
+                        if (docid) { // prosemirror text containing link to dash document
+                            DocServer.GetRefField(docid).then(f => {
+                                if (f instanceof Doc) {
+                                    if (options.x || options.y) { f.x = options.x; f.y = options.y; } // should be in CollectionFreeFormView
+                                    (f instanceof Doc) && addDocument(f);
                                 }
                             });
-                        promises.push(prom);
-                    }
-                    const type = item.type;
-                    if (item.kind === "file") {
-                        const file = item.getAsFile();
-                        const formData = new FormData();
-
-                        if (!file || !file.type) {
-                            continue;
+                        } else {
+                            addDocument(Docs.Create.WebDocument(href, { ...options, title: href }));
                         }
-
-                        formData.append('file', file);
-                        const dropFileName = file ? file.name : "-empty-";
-                        promises.push(Networking.PostFormDataToServer("/uploadFormData", formData).then(results => {
-                            results.map(action((result: any) => {
-                                const { accessPaths, nativeWidth, nativeHeight, contentSize } = result;
-                                if (Object.keys(accessPaths).length) {
-                                    const full = { ...options, _width: 300, title: dropFileName };
-                                    const pathname = Utils.prepend(accessPaths.agnostic.client);
-                                    Docs.Get.DocumentFromType(type, pathname, full).then(doc => {
-                                        if (doc) {
-                                            const proto = Doc.GetProto(doc);
-                                            proto.fileUpload = basename(pathname).replace("upload_", "").replace(/\.[a-z0-9]*$/, "");
-                                            nativeWidth && (proto["data-nativeWidth"] = nativeWidth);
-                                            nativeHeight && (proto["data-nativeHeight"] = nativeHeight);
-                                            contentSize && (proto.contentSize = contentSize);
-                                            this.props?.addDocument(doc);
-                                        }
-                                    });
-                                } else {
-                                    alert("Upload failed...");
+                    } else if (text) {
+                        addDocument(Docs.Create.TextDocument(text, { ...options, _width: 100, _height: 25 }));
+                    }
+                    return;
+                }
+                if (!html.startsWith("<a")) {
+                    const tags = html.split("<");
+                    if (tags[0] === "") tags.splice(0, 1);
+                    const img = tags[0].startsWith("img") ? tags[0] : tags.length > 1 && tags[1].startsWith("img") ? tags[1] : "";
+                    if (img) {
+                        const split = img.split("src=\"")[1].split("\"")[0];
+                        let source = split;
+                        if (split.startsWith("data:image") && split.includes("base64")) {
+                            const [{ accessPaths }] = await Networking.PostToServer("/uploadRemoteImage", { sources: [split] });
+                            source = Utils.prepend(accessPaths.agnostic.client);
+                        }
+                        const doc = Docs.Create.ImageDocument(source, { ...options, _width: 300 });
+                        ImageUtils.ExtractExif(doc);
+                        addDocument(doc);
+                        return;
+                    } else {
+                        const path = window.location.origin + "/doc/";
+                        if (text.startsWith(path)) {
+                            const docid = text.replace(Utils.prepend("/doc/"), "").split("?")[0];
+                            DocServer.GetRefField(docid).then(f => {
+                                if (f instanceof Doc) {
+                                    if (options.x || options.y) { f.x = options.x; f.y = options.y; } // should be in CollectionFreeFormView
+                                    (f instanceof Doc) && this.props.addDocument(f);
                                 }
-                            }));
-                        }));
+                            });
+                        } else {
+                            const htmlDoc = Docs.Create.HtmlDocument(html, { ...options, title: "-web page-", _width: 300, _height: 300 });
+                            Doc.GetProto(htmlDoc)["data-text"] = text;
+                            this.props.addDocument(htmlDoc);
+                        }
+                        return;
                     }
                 }
-
-                if (promises.length) {
-                    Promise.all(promises).finally(() => { completed && completed(); batch.end(); });
-                } else {
-                    if (text && !text.includes("https://")) {
-                        this.props.addDocument(Docs.Create.TextDocument(text, { ...options, _width: 400, _height: 315 }));
-                    }
-                    batch.end();
-                }
-            } else {
-                alert("No uploadable content found.");
             }
+
+            if (text) {
+                if (text.includes("www.youtube.com/watch")) {
+                    const url = text.replace("youtube.com/watch?v=", "youtube.com/embed/");
+                    addDocument(Docs.Create.VideoDocument(url, {
+                        ...options,
+                        title: url,
+                        _width: 400,
+                        _height: 315,
+                        _nativeWidth: 600,
+                        _nativeHeight: 472.5
+                    }));
+                    return;
+                }
+                let matches: RegExpExecArray | null;
+                if ((matches = /(https:\/\/)?docs\.google\.com\/document\/d\/([^\\]+)\/edit/g.exec(text)) !== null) {
+                    const newBox = Docs.Create.TextDocument("", { ...options, _width: 400, _height: 200, title: "Awaiting title from Google Docs..." });
+                    const proto = newBox.proto!;
+                    const documentId = matches[2];
+                    proto[GoogleRef] = documentId;
+                    proto.data = "Please select this document and then click on its pull button to load its contents from from Google Docs...";
+                    proto.backgroundColor = "#eeeeff";
+                    addDocument(newBox);
+                    return;
+                }
+                if ((matches = /(https:\/\/)?photos\.google\.com\/(u\/3\/)?album\/([^\\]+)/g.exec(text)) !== null) {
+                    const albumId = matches[3];
+                    const mediaItems = await GooglePhotos.Query.AlbumSearch(albumId);
+                    console.log(mediaItems);
+                    return;
+                }
+            }
+
+            const { items } = e.dataTransfer;
+            const { length } = items;
+            const files: File[] = [];
+            const generatedDocuments: Doc[] = [];
+            if (!length) {
+                alert("No uploadable content found.");
+                return;
+            }
+
+            const batch = UndoManager.StartBatch("collection view drop");
+            for (let i = 0; i < length; i++) {
+                const item = e.dataTransfer.items[i];
+                if (item.kind === "string" && item.type.includes("uri")) {
+                    const stringContents = await new Promise<string>(resolve => item.getAsString(resolve));
+                    const type = (await rp.head(Utils.CorsProxy(stringContents)))["content-type"];
+                    if (type) {
+                        const doc = await Docs.Get.DocumentFromType(type, stringContents, options);
+                        doc && generatedDocuments.push(doc);
+                    }
+                }
+                if (item.kind === "file") {
+                    const file = item.getAsFile();
+                    file && file.type && files.push(file);
+                }
+            }
+            for (const { source: { name, type }, result } of await Networking.UploadFilesToServer(files)) {
+                if (result instanceof Error) {
+                    alert(`Upload failed: ${result.message}`);
+                    return;
+                }
+                const full = { ...options, _width: 300, title: name };
+                const pathname = Utils.prepend(result.accessPaths.agnostic.client);
+                const doc = await Docs.Get.DocumentFromType(type, pathname, full);
+                if (!doc) {
+                    continue;
+                }
+                const proto = Doc.GetProto(doc);
+                proto.fileUpload = basename(pathname).replace("upload_", "").replace(/\.[a-z0-9]*$/, "");
+                if (Upload.isImageInformation(result)) {
+                    proto["data-nativeWidth"] = result.nativeWidth;
+                    proto["data-nativeHeight"] = result.nativeHeight;
+                    proto.contentSize = result.contentSize;
+                }
+                generatedDocuments.push(doc);
+            }
+            if (generatedDocuments.length) {
+                generatedDocuments.forEach(addDocument);
+                completed && completed();
+            } else {
+                if (text && !text.includes("https://")) {
+                    addDocument(Docs.Create.TextDocument(text, { ...options, _width: 400, _height: 315 }));
+                }
+            }
+            batch.end();
         }
     }
+
     return CollectionSubView;
 }
 

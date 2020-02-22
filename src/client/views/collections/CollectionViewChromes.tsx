@@ -179,7 +179,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     @action closeViewSpecs = () => {
         this._viewSpecsOpen = false;
         document.removeEventListener("pointerdown", this.closeViewSpecs);
-    };
+    }
 
     @action
     openDatePicker = (e: React.PointerEvent) => {
@@ -257,6 +257,8 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     }
 
     subChrome = () => {
+        const collapsed = this.props.CollectionView.props.Document._chromeStatus !== "enabled";
+        if (collapsed) return null;
         switch (this.props.type) {
             case CollectionViewType.Stacking: return (<CollectionStackingViewChrome key="collchrome" CollectionView={this.props.CollectionView} type={this.props.type} />);
             case CollectionViewType.Schema: return (<CollectionSchemaViewChrome key="collchrome" CollectionView={this.props.CollectionView} type={this.props.type} />);
@@ -368,7 +370,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
         const collapsed = this.props.CollectionView.props.Document._chromeStatus !== "enabled";
         return (
             <div className="collectionViewChrome-cont" style={{ top: collapsed ? -70 : 0, height: collapsed ? 0 : undefined }}>
-                <div className="collectionViewChrome">
+                <div className="collectionViewChrome" style={{ border: "unset" }}>
                     <div className="collectionViewBaseChrome">
                         <button className="collectionViewBaseChrome-collapse"
                             style={{
@@ -384,6 +386,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                             className="collectionViewBaseChrome-viewPicker"
                             onPointerDown={stopPropagation}
                             onChange={this.viewChanged}
+                            style={{ display: collapsed ? "none" : undefined }}
                             value={NumCast(this.props.CollectionView.props.Document._viewType)}>
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="1">Freeform</option>
                             <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="2">Schema</option>
@@ -438,7 +441,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                                 </div>
                             </div>
                         </div>
-                        <div className="collectionViewBaseChrome-template" ref={this.createDropTarget} >
+                        <div className="collectionViewBaseChrome-template" ref={this.createDropTarget} style={{ display: collapsed ? "none" : undefined }}>
                             <div className="commandEntry-outerDiv" title="drop document to apply or drag to create button" ref={this._commandRef} onPointerDown={this.dragCommandDown}>
                                 <div className="commandEntry-drop">
                                     <FontAwesomeIcon icon="bullseye" size="2x"></FontAwesomeIcon>

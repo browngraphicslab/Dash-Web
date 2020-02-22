@@ -3,22 +3,21 @@ import { observer } from "mobx-react";
 import { Doc, DocListCast } from "../../../../new_fields/Doc";
 import { InkField } from "../../../../new_fields/InkField";
 import { List } from "../../../../new_fields/List";
-import { listSpec } from "../../../../new_fields/Schema";
 import { SchemaHeaderField } from "../../../../new_fields/SchemaHeaderField";
-import { ComputedField } from "../../../../new_fields/ScriptField";
-import { Cast, NumCast, StrCast } from "../../../../new_fields/Types";
+import { Cast, NumCast } from "../../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../../server/authentication/models/current_user_utils";
 import { Utils } from "../../../../Utils";
-import { Docs } from "../../../documents/Documents";
+import { Docs, DocUtils } from "../../../documents/Documents";
 import { SelectionManager } from "../../../util/SelectionManager";
 import { Transform } from "../../../util/Transform";
 import { undoBatch } from "../../../util/UndoManager";
+import { ContextMenu } from "../../ContextMenu";
 import { PreviewCursor } from "../../PreviewCursor";
-import { CollectionViewType } from "../CollectionView";
+import { SubCollectionViewProps } from "../CollectionSubView";
+import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
 import "./MarqueeView.scss";
 import React = require("react");
-import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
-import { SubCollectionViewProps } from "../CollectionSubView";
+import { CollectionView } from "../CollectionView";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -66,7 +65,11 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         //make textbox and add it to this collection
         // tslint:disable-next-line:prefer-const
         let [x, y] = this.props.getTransform().transformPoint(this._downX, this._downY);
-        if (e.key === "q" && e.ctrlKey) {
+        if (e.key === ":") {
+            DocUtils.addDocumentCreatorMenuItems(this.props.addLiveTextDocument, this.props.addDocument, x, y);
+
+            ContextMenu.Instance.displayMenu(this._downX, this._downY);
+        } else if (e.key === "q" && e.ctrlKey) {
             e.preventDefault();
             (async () => {
                 const text: string = await navigator.clipboard.readText();
@@ -308,8 +311,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             y: bounds.top,
             _panX: 0,
             _panY: 0,
-            backgroundColor: this.props.isAnnotationOverlay ? "#00000015" : "white",
-            defaultBackgroundColor: this.props.isAnnotationOverlay ? "#00000015" : "white",
+            backgroundColor: this.props.isAnnotationOverlay ? "#00000015" : undefined,
             _width: bounds.width,
             _height: bounds.height,
             _LODdisable: true,
@@ -353,8 +355,14 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             d.page = -1;
             return d;
         });
-        const summary = Docs.Create.TextDocument("", { x: bounds.left, y: bounds.top, _width: 200, _height: 200, _fitToBox: true, _showSidebar: true, backgroundColor: "#e2ad32" /* yellow */, title: "-summary-" });
+        const summary = Docs.Create.TextDocument("", { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2, _width: 200, _height: 200, _fitToBox: true, _showSidebar: true, title: "-summary-" });
+        const portal = Doc.MakeAlias(summary);
         Doc.GetProto(summary)["data-annotations"] = new List<Doc>(selected);
+        Doc.GetProto(summary).layout_portal = CollectionView.LayoutString("data-annotations");
+        summary._backgroundColor = "#e2ad32";
+        portal.layoutKey = "layout_portal";
+        DocUtils.MakeLink({ doc: summary, ctx: this.props.ContainingCollectionDoc }, { doc: portal }, "portal link", "portal link");
+
         this.props.addLiveTextDocument(summary);
         MarqueeOptionsMenu.Instance.fadeOut(true);
     }

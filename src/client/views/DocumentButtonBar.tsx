@@ -25,6 +25,7 @@ import { DragManager } from '../util/DragManager';
 import { MetadataEntryMenu } from './MetadataEntryMenu';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import GoogleAuthenticationManager from '../apis/GoogleAuthenticationManager';
+import { ComputedField } from '../../new_fields/ScriptField';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -120,13 +121,13 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
                     const linkDoc = dropEv.linkDragData?.linkDocument as Doc; // equivalent to !dropEve.aborted since linkDocument is only assigned on a completed drop
                     if (this.view0 && linkDoc) {
                         const proto = Doc.GetProto(linkDoc);
-                        proto.sourceContext = this.view0.props.ContainingCollectionDoc;
+                        proto.anchor1Context = this.view0.props.ContainingCollectionDoc;
 
                         const anchor2Title = linkDoc.anchor2 instanceof Doc ? StrCast(linkDoc.anchor2.title) : "-untitled-";
                         const anchor2Id = linkDoc.anchor2 instanceof Doc ? linkDoc.anchor2[Id] : "";
                         const text = RichTextMenu.Instance.MakeLinkToSelection(linkDoc[Id], anchor2Title, e.ctrlKey ? "onRight" : "inTab", anchor2Id);
-                        if (linkDoc.anchor2 instanceof Doc) {
-                            proto.title = text === "" ? proto.title : text + " to " + linkDoc.anchor2.title; // TODO open to more descriptive descriptions of following in text link
+                        if (linkDoc.anchor2 instanceof Doc && !proto.title) {
+                            proto.title = Doc.GetProto(linkDoc).title = ComputedField.MakeFunction('this.anchor1.title +" " + (this.linkRelationship||"to") +" "  + this.anchor2.title');
                         }
                     }
                     linkDrag?.end();
@@ -242,7 +243,7 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
         return !view0 ? (null) : <div title="Show metadata panel" className="documentButtonBar-linkFlyout">
             <Flyout anchorPoint={anchorPoints.LEFT_TOP}
                 content={<MetadataEntryMenu docs={() => this.props.views.filter(dv => dv).map(dv => dv!.props.Document)} suggestWithFunction />  /* tfs: @bcz This might need to be the data document? */}>
-                <div className={"documentButtonBar-linkButton-" + "empty"} >
+                <div className={"documentButtonBar-linkButton-" + "empty"} onPointerDown={e => e.stopPropagation()} >
                     {<FontAwesomeIcon className="documentdecorations-icon" icon="tag" size="sm" />}
                 </div>
             </Flyout>
@@ -251,10 +252,10 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
 
     @computed
     get contextButton() {
-        return !this.view0 ? (null) : <ParentDocSelector Views={this.props.views.filter(v => v).map(v => v as DocumentView)} Document={this.view0.props.Document} addDocTab={(doc, data, where) => {
-            where === "onRight" ? CollectionDockingView.AddRightSplit(doc, data) :
-                this.props.stack ? CollectionDockingView.Instance.AddTab(this.props.stack, doc, data) :
-                    this.view0?.props.addDocTab(doc, data, "onRight");
+        return !this.view0 ? (null) : <ParentDocSelector Views={this.props.views.filter(v => v).map(v => v as DocumentView)} Document={this.view0.props.Document} addDocTab={(doc, where) => {
+            where === "onRight" ? CollectionDockingView.AddRightSplit(doc) :
+                this.props.stack ? CollectionDockingView.Instance.AddTab(this.props.stack, doc) :
+                    this.view0?.props.addDocTab(doc, "onRight");
             return true;
         }} />;
     }
@@ -301,8 +302,8 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
         const view0 = this.view0;
         const templates: Map<Template, boolean> = new Map();
         Array.from(Object.values(Templates.TemplateList)).map(template =>
-            templates.set(template, this.props.views.reduce((checked, doc) => checked || doc?.getLayoutPropStr("_show" + template.Name) ? true : false, false as boolean)));
-        return !view0 ? (null) : <div title="Customize layout" className="documentButtonBar-linkFlyout" ref={this._dragRef}>
+            templates.set(template, this.props.views.reduce((checked, doc) => checked || doc?.props.Document["_show" + template.Name] ? true : false, false as boolean)));
+        return !view0 ? (null) : <div title="Tap: Customize layout.  Drag: Create alias" className="documentButtonBar-linkFlyout" ref={this._dragRef}>
             <Flyout anchorPoint={anchorPoints.LEFT_TOP}
                 content={<TemplateMenu docViews={this.props.views.filter(v => v).map(v => v as DocumentView)} templates={templates} />}>
                 <div className={"documentButtonBar-linkButton-" + "empty"} ref={this._dragRef} onPointerDown={this.onAliasButtonDown} >
@@ -318,7 +319,6 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
         const isText = this.view0.props.Document.data instanceof RichTextField; // bcz: Todo - can't assume layout is using the 'data' field.  need to add fieldKey to DocumentView
         const considerPull = isText && this.considerGoogleDocsPull;
         const considerPush = isText && this.considerGoogleDocsPush;
-        Doc.UserDoc().pr
         return <div className="documentButtonBar">
             <div className="documentButtonBar-button">
                 {this.linkButton}

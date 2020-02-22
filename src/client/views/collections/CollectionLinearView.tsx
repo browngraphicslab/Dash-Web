@@ -38,8 +38,8 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
 
     componentDidMount() {
         // is there any reason this needs to exist? -syip.  yes, it handles autoHeight for stacking views (masonry isn't yet supported).
-        this._widthDisposer = reaction(() => this.props.Document[HeightSym]() + this.childDocs.length + (this.props.Document.isExpanded ? 1 : 0),
-            () => this.props.Document._width = 5 + (this.props.Document.isExpanded ? this.childDocs.length * (this.props.Document[HeightSym]()) : 10),
+        this._widthDisposer = reaction(() => this.props.Document[HeightSym]() + this.childDocs.length + (this.props.Document.linearViewIsExpanded ? 1 : 0),
+            () => this.props.Document._width = 5 + (this.props.Document.linearViewIsExpanded ? this.childDocs.length * (this.props.Document[HeightSym]()) : 10),
             { fireImmediately: true }
         );
 
@@ -67,11 +67,11 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
     protected createDashEventsTarget = (ele: HTMLDivElement) => { //used for stacking and masonry view
         this._dropDisposer && this._dropDisposer();
         if (ele) {
-            this._dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this));
+            this._dropDisposer = DragManager.MakeDropTarget(ele, this.onInternalDrop.bind(this));
         }
     }
 
-    public isCurrent(doc: Doc) { return !doc.isMinimized && (Math.abs(NumCast(doc.displayTimecode, -1) - NumCast(this.Document.currentTimecode, -1)) < 1.5 || NumCast(doc.displayTimecode, -1) === -1); }
+    public isCurrent(doc: Doc) { return (Math.abs(NumCast(doc.displayTimecode, -1) - NumCast(this.Document.currentTimecode, -1)) < 1.5 || NumCast(doc.displayTimecode, -1) === -1); }
 
     dimension = () => NumCast(this.props.Document._height); // 2 * the padding
     getTransform = (ele: React.RefObject<HTMLDivElement>) => () => {
@@ -84,8 +84,8 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
         const guid = Utils.GenerateGuid();
         return <div className="collectionLinearView-outer">
             <div className="collectionLinearView" ref={this.createDashEventsTarget} >
-                <input id={`${guid}`} type="checkbox" checked={BoolCast(this.props.Document.isExpanded)} ref={this.addMenuToggle}
-                    onChange={action((e: any) => this.props.Document.isExpanded = this.addMenuToggle.current!.checked)} />
+                <input id={`${guid}`} type="checkbox" checked={BoolCast(this.props.Document.linearViewIsExpanded)} ref={this.addMenuToggle}
+                    onChange={action((e: any) => this.props.Document.linearViewIsExpanded = this.addMenuToggle.current!.checked)} />
                 <label htmlFor={`${guid}`} style={{ marginTop: "auto", marginBottom: "auto", background: StrCast(this.props.Document.backgroundColor, "black") === StrCast(this.props.Document.color, "white") ? "black" : StrCast(this.props.Document.backgroundColor, "black") }} title="Close Menu"><p>+</p></label>
 
                 <div className="collectionLinearView-content" style={{ height: this.dimension(), width: NumCast(this.props.Document._width, 25) }}>
@@ -97,7 +97,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                         return <div className={`collectionLinearView-docBtn` + (pair.layout.onClick || pair.layout.onDragStart ? "-scalable" : "")} key={pair.layout[Id]} ref={dref}
                             style={{
                                 width: nested ? pair.layout[WidthSym]() : this.dimension() - deltaSize,
-                                height: nested && pair.layout.isExpanded ? pair.layout[HeightSym]() : this.dimension() - deltaSize,
+                                height: nested && pair.layout.linearViewIsExpanded ? pair.layout[HeightSym]() : this.dimension() - deltaSize,
                             }}  >
                             <DocumentView
                                 Document={pair.layout}

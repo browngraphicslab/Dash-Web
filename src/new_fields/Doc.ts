@@ -1,23 +1,22 @@
-import { observable, ObservableMap, runInAction, action, computed } from "mobx";
+import { action, computed, observable, ObservableMap, runInAction } from "mobx";
+import { computedFn } from "mobx-utils";
 import { alias, map, serializable } from "serializr";
 import { DocServer } from "../client/DocServer";
 import { DocumentType } from "../client/documents/DocumentTypes";
 import { Scripting, scriptingGlobal } from "../client/util/Scripting";
 import { afterDocDeserialize, autoObject, Deserializable, SerializationHelper } from "../client/util/SerializationHelper";
-import { Copy, HandleUpdate, Id, OnUpdate, Parent, Self, SelfProxy, ToScriptString, ToString, Update } from "./FieldSymbols";
+import { UndoManager } from "../client/util/UndoManager";
+import { intersectRect } from "../Utils";
+import { HandleUpdate, Id, OnUpdate, Parent, Self, SelfProxy, ToScriptString, ToString, Update } from "./FieldSymbols";
 import { List } from "./List";
 import { ObjectField } from "./ObjectField";
 import { PrefetchProxy, ProxyField } from "./Proxy";
 import { FieldId, RefField } from "./RefField";
-import { listSpec } from "./Schema";
-import { ComputedField, ScriptField } from "./ScriptField";
-import { BoolCast, Cast, FieldValue, NumCast, StrCast, ToConstructor } from "./Types";
-import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, updateFunction } from "./util";
-import { intersectRect } from "../Utils";
-import { UndoManager, undoBatch } from "../client/util/UndoManager";
-import { computedFn } from "mobx-utils";
 import { RichTextField } from "./RichTextField";
-import { Script } from "vm";
+import { listSpec } from "./Schema";
+import { ComputedField } from "./ScriptField";
+import { Cast, FieldValue, NumCast, StrCast, ToConstructor } from "./Types";
+import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, updateFunction } from "./util";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -112,7 +111,12 @@ export class Doc extends RefField {
             get: getter,
             // getPrototypeOf: (target) => Cast(target[SelfProxy].proto, Doc) || null, // TODO this might be able to replace the proto logic in getter
             has: (target, key) => key in target.__fields,
-            ownKeys: target => Object.keys(target.__allfields),
+            ownKeys: target => {
+                const obj = {} as any;
+                Object.assign(obj, target.___fields);
+                runInAction(() => obj.__LAYOUT__ = target.__LAYOUT__);
+                return Object.keys(obj);
+            },
             getOwnPropertyDescriptor: (target, prop) => {
                 if (prop.toString() === "__LAYOUT__") {
                     return Reflect.getOwnPropertyDescriptor(target, prop);
@@ -140,17 +144,7 @@ export class Doc extends RefField {
     [key: string]: FieldResult;
 
     @serializable(alias("fields", map(autoObject(), { afterDeserialize: afterDocDeserialize })))
-    private get __fields() {
-        return this.___fields;
-    }
-    private get __allfields() {
-        let obj = {} as any;
-        Object.assign(obj, this.___fields);
-        runInAction(() => obj.__LAYOUT__ = this.__LAYOUT__);
-        return obj;
-    }
-
-
+    private get __fields() { return this.___fields; }
     private set __fields(value) {
         this.___fields = value;
         for (const key in value) {
@@ -168,18 +162,19 @@ export class Doc extends RefField {
     private [UpdatingFromServer]: boolean = false;
 
     private [Update] = (diff: any) => {
-        if (this[UpdatingFromServer]) {
-            return;
-        }
-        DocServer.UpdateField(this[Id], diff);
+        !this[UpdatingFromServer] && DocServer.UpdateField(this[Id], diff);
     }
 
     private [Self] = this;
     private [SelfProxy]: any;
     public [WidthSym] = () => NumCast(this[SelfProxy]._width);
     public [HeightSym] = () => NumCast(this[SelfProxy]._height);
-    public get [DataSym]() { return Cast(Doc.Layout(this[SelfProxy]).resolvedDataDoc, Doc, null) || this[SelfProxy]; }
     public get [LayoutSym]() { return this[SelfProxy].__LAYOUT__; }
+    public get [DataSym]() {
+        const self = this[SelfProxy];
+        return self.resolvedDataDoc && !self.isTemplateForField ? self :
+            Doc.GetProto(Cast(Doc.Layout(self).resolvedDataDoc, Doc, null) || self);
+    }
     @computed get __LAYOUT__() {
         const templateLayoutDoc = Cast(Doc.LayoutField(this[SelfProxy]), Doc, null);
         if (templateLayoutDoc) {
@@ -195,12 +190,8 @@ export class Doc extends RefField {
         return undefined;
     }
 
-    [ToScriptString]() {
-        return "invalid";
-    }
-    [ToString]() {
-        return "Doc";
-    }
+    [ToScriptString]() { return `DOC-"${this[Self][Id]}"-`; }
+    [ToString]() { return `Doc(${this.title})`; }
 
     private [CachedUpdates]: { [key: string]: () => void | Promise<any> } = {};
     public static CurrentUserEmail: string = "";
@@ -287,8 +278,7 @@ export namespace Doc {
 
     export function Get(doc: Doc, key: string, ignoreProto: boolean = false): FieldResult {
         try {
-            const self = doc[Self];
-            return getField(self, key, ignoreProto);
+            return getField(doc[Self], key, ignoreProto);
         } catch  {
             return doc;
         }
@@ -357,13 +347,12 @@ export namespace Doc {
         return r || r2 || r3 || r4;
     }
 
-    // gets the document's prototype or returns the document if it is a prototype
-    export function GetProto(doc: Doc) {
-        return doc && (Doc.GetT(doc, "isPrototype", "boolean", true) ? doc : (doc.proto || doc));
-    }
-    export function GetDataDoc(doc: Doc): Doc {
-        const proto = Doc.GetProto(doc);
-        return proto === doc ? proto : Doc.GetDataDoc(proto);
+    // Gets the data document for the document.  Note: this is mis-named -- it does not specifically
+    // return the doc's proto, but rather recursively searches through the proto inheritance chain 
+    // and returns the document who's proto is undefined or whose proto is marked as a base prototype ('isPrototype').
+    export function GetProto(doc: Doc): Doc {
+        const proto = doc && (Doc.GetT(doc, "isPrototype", "boolean", true) ? doc : (doc.proto || doc));
+        return proto === doc ? proto : Doc.GetProto(proto);
     }
 
     export function allKeys(doc: Doc): string[] {
@@ -443,11 +432,6 @@ export namespace Doc {
         return bounds;
     }
 
-    export function MakeTitled(title: string) {
-        const doc = new Doc();
-        doc.title = title;
-        return doc;
-    }
     export function MakeAlias(doc: Doc, id?: string) {
         const alias = !GetT(doc, "isPrototype", "boolean", true) ? Doc.MakeCopy(doc, undefined, id) : Doc.MakeDelegate(doc, id);
         const layout = Doc.LayoutField(alias);
@@ -486,9 +470,8 @@ export namespace Doc {
         const expandedLayoutFieldKey = (templateField || layoutFielddKey) + "-layout[" + templateLayoutDoc[Id] + "]";
         let expandedTemplateLayout = targetDoc?.[expandedLayoutFieldKey];
         if (templateLayoutDoc.resolvedDataDoc instanceof Promise) {
-
             expandedTemplateLayout = undefined;
-        } else if (templateLayoutDoc.resolvedDataDoc === Doc.GetDataDoc(targetDoc)) {
+        } else if (templateLayoutDoc.resolvedDataDoc === Doc.GetProto(targetDoc)) {
             expandedTemplateLayout = templateLayoutDoc;
         } else if (expandedTemplateLayout === undefined) {
             setTimeout(action(() => {
@@ -497,9 +480,9 @@ export namespace Doc {
                     newLayoutDoc.lockedPosition = true;
                     newLayoutDoc.expandedTemplate = targetDoc;
                     targetDoc[expandedLayoutFieldKey] = newLayoutDoc;
-                    const dataDoc = Doc.GetDataDoc(targetDoc);
+                    const dataDoc = Doc.GetProto(targetDoc);
                     newLayoutDoc.resolvedDataDoc = dataDoc;
-                    if (dataDoc[templateField] === undefined && templateLayoutDoc[templateField] instanceof List && Cast(templateLayoutDoc[templateField], listSpec(Doc), []).length) {
+                    if (dataDoc[templateField] === undefined && templateLayoutDoc[templateField] instanceof List) {
                         dataDoc[templateField] = ComputedField.MakeFunction(`ObjectField.MakeCopy(templateLayoutDoc["${templateField}"] as List)`, { templateLayoutDoc: Doc.name }, { templateLayoutDoc: templateLayoutDoc });
                     }
                 }
@@ -511,24 +494,13 @@ export namespace Doc {
     // if the childDoc is a template for a field, then this will return the expanded layout with its data doc.
     // otherwise, it just returns the childDoc
     export function GetLayoutDataDocPair(containerDoc: Doc, containerDataDoc: Opt<Doc>, childDoc: Doc) {
-        const resolvedDataDoc = containerDataDoc === containerDoc || !containerDataDoc || (!childDoc.isTemplateDoc && !childDoc.isTemplateForField) ? undefined : containerDataDoc;
+        if (!childDoc || !Doc.GetProto(childDoc)) {
+            console.log("No, no, no!");
+            return { layout: childDoc, data: childDoc };
+        }
+        const existingResolvedDataDoc = childDoc[DataSym] !== Doc.GetProto(childDoc)[DataSym] && childDoc[DataSym];
+        const resolvedDataDoc = existingResolvedDataDoc || (Doc.AreProtosEqual(containerDataDoc, containerDoc) || !containerDataDoc || (!childDoc.isTemplateDoc && !childDoc.isTemplateForField) ? undefined : containerDataDoc);
         return { layout: Doc.expandTemplateLayout(childDoc, resolvedDataDoc), data: resolvedDataDoc };
-    }
-    export function CreateDocumentExtensionForField(doc: Doc, fieldKey: string) {
-        let proto: Doc | undefined = doc;
-        while (proto && !Doc.IsPrototype(proto) && proto.proto) {
-            proto = proto.proto;
-        }
-        let docExtensionForField = ((proto || doc)[fieldKey + "_ext"] as Doc);
-        if (!docExtensionForField) {
-            docExtensionForField = new Doc(doc[Id] + fieldKey, true);
-            docExtensionForField.title = fieldKey + ".ext"; // courtesy field--- shouldn't be needed except maybe for debugging
-            docExtensionForField.extendsDoc = doc; // this is used by search to map field matches on the extension doc back to the document it extends.
-            docExtensionForField.extendsField = fieldKey; // this can be used by search to map matches on the extension doc back to the field that was extended.
-            docExtensionForField.type = DocumentType.EXTENSION;
-            (proto || doc)[fieldKey + "_ext"] = new PrefetchProxy(docExtensionForField);
-        }
-        return docExtensionForField;
     }
 
     export function Overwrite(doc: Doc, overwrite: Doc, copyProto: boolean = false): Doc {
@@ -660,10 +632,6 @@ export namespace Doc {
         // assign the template field doc a delegate of any extension document that was previously used to render the template field (since extension doc's carry rendering informatino)
         Doc.Layout(templateField)[metadataFieldKey + "_ext"] = Doc.MakeDelegate(templateField[templateFieldLayoutString?.split("'")[1] + "_ext"] as Doc);
 
-        if (templateField.backgroundColor !== templateDoc?.defaultBackgroundColor) {
-            templateField.defaultBackgroundColor = templateField.backgroundColor;
-        }
-
         return true;
     }
 
@@ -716,26 +684,26 @@ export namespace Doc {
     export function SetUserDoc(doc: Doc) { manager._user_doc = doc; }
     export function IsBrushed(doc: Doc) {
         return computedFn(function IsBrushed(doc: Doc) {
-            return brushManager.BrushedDoc.has(doc) || brushManager.BrushedDoc.has(Doc.GetDataDoc(doc));
+            return brushManager.BrushedDoc.has(doc) || brushManager.BrushedDoc.has(Doc.GetProto(doc));
         })(doc);
     }
     // don't bother memoizing (caching) the result if called from a non-reactive context. (plus this avoids a warning message)
     export function IsBrushedDegreeUnmemoized(doc: Doc) {
-        return brushManager.BrushedDoc.has(doc) ? 2 : brushManager.BrushedDoc.has(Doc.GetDataDoc(doc)) ? 1 : 0;
+        return brushManager.BrushedDoc.has(doc) ? 2 : brushManager.BrushedDoc.has(Doc.GetProto(doc)) ? 1 : 0;
     }
     export function IsBrushedDegree(doc: Doc) {
         return computedFn(function IsBrushDegree(doc: Doc) {
-            return brushManager.BrushedDoc.has(doc) ? 2 : brushManager.BrushedDoc.has(Doc.GetDataDoc(doc)) ? 1 : 0;
+            return Doc.IsBrushedDegreeUnmemoized(doc);
         })(doc);
     }
     export function BrushDoc(doc: Doc) {
         brushManager.BrushedDoc.set(doc, true);
-        brushManager.BrushedDoc.set(Doc.GetDataDoc(doc), true);
+        brushManager.BrushedDoc.set(Doc.GetProto(doc), true);
         return doc;
     }
     export function UnBrushDoc(doc: Doc) {
         brushManager.BrushedDoc.delete(doc);
-        brushManager.BrushedDoc.delete(Doc.GetDataDoc(doc));
+        brushManager.BrushedDoc.delete(Doc.GetProto(doc));
         return doc;
     }
 
@@ -748,14 +716,14 @@ export namespace Doc {
         document.removeEventListener("pointerdown", linkFollowUnhighlight);
     }
 
-    let dt = 0;
+    let _lastDate = 0;
     export function linkFollowHighlight(destDoc: Doc, dataAndDisplayDocs = true) {
         linkFollowUnhighlight();
         Doc.HighlightDoc(destDoc, dataAndDisplayDocs);
         document.removeEventListener("pointerdown", linkFollowUnhighlight);
         document.addEventListener("pointerdown", linkFollowUnhighlight);
-        const x = dt = Date.now();
-        window.setTimeout(() => dt === x && linkFollowUnhighlight(), 5000);
+        const lastDate = _lastDate = Date.now();
+        window.setTimeout(() => _lastDate === lastDate && linkFollowUnhighlight(), 5000);
     }
 
     export class HighlightBrush {
@@ -763,18 +731,18 @@ export namespace Doc {
     }
     const highlightManager = new HighlightBrush();
     export function IsHighlighted(doc: Doc) {
-        return highlightManager.HighlightedDoc.get(doc) || highlightManager.HighlightedDoc.get(Doc.GetDataDoc(doc));
+        return highlightManager.HighlightedDoc.get(doc) || highlightManager.HighlightedDoc.get(Doc.GetProto(doc));
     }
     export function HighlightDoc(doc: Doc, dataAndDisplayDocs = true) {
         runInAction(() => {
             highlightManager.HighlightedDoc.set(doc, true);
-            dataAndDisplayDocs && highlightManager.HighlightedDoc.set(Doc.GetDataDoc(doc), true);
+            dataAndDisplayDocs && highlightManager.HighlightedDoc.set(Doc.GetProto(doc), true);
         });
     }
     export function UnHighlightDoc(doc: Doc) {
         runInAction(() => {
             highlightManager.HighlightedDoc.set(doc, false);
-            highlightManager.HighlightedDoc.set(Doc.GetDataDoc(doc), false);
+            highlightManager.HighlightedDoc.set(Doc.GetProto(doc), false);
         });
     }
     export function UnhighlightAll() {
@@ -860,8 +828,7 @@ export namespace Doc {
 
     export function freezeNativeDimensions(layoutDoc: Doc, width: number, height: number): void {
         layoutDoc._autoHeight = false;
-        layoutDoc.ignoreAspect = false;
-        if (!layoutDoc.ignoreAspect && !layoutDoc._nativeWidth) {
+        if (!layoutDoc._nativeWidth) {
             layoutDoc._nativeWidth = NumCast(layoutDoc._width, width);
             layoutDoc._nativeHeight = NumCast(layoutDoc._height, height);
         }
@@ -881,10 +848,11 @@ Scripting.addGlobal(function sameDocs(doc1: any, doc2: any) { return Doc.AreProt
 Scripting.addGlobal(function setNativeView(doc: any) { Doc.setNativeView(doc); });
 Scripting.addGlobal(function undo() { return UndoManager.Undo(); });
 Scripting.addGlobal(function redo() { return UndoManager.Redo(); });
+Scripting.addGlobal(function DOC(id: string) { console.log("Can't parse a document id in a script"); return "invalid"; });
 Scripting.addGlobal(function curPresentationItem() {
     const curPres = Doc.UserDoc().curPresentation as Doc;
     return curPres && DocListCast(curPres[Doc.LayoutFieldKey(curPres)])[NumCast(curPres._itemIndex)];
-})
+});
 Scripting.addGlobal(function selectDoc(doc: any) { Doc.UserDoc().SelectedDocs = new List([doc]); });
 Scripting.addGlobal(function selectedDocs(container: Doc, excludeCollections: boolean, prevValue: any) {
     const docs = DocListCast(Doc.UserDoc().SelectedDocs).filter(d => !Doc.AreProtosEqual(d, container) && !d.annotationOn && d.type !== DocumentType.DOCUMENT && d.type !== DocumentType.KVP && (!excludeCollections || !Cast(d.data, listSpec(Doc), null)));

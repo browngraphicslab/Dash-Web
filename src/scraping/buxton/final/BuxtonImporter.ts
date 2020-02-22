@@ -8,6 +8,7 @@ const StreamZip = require('node-stream-zip');
 const createImageSizeStream = require("image-size-stream");
 import { parseXml } from "libxmljs";
 import { strictEqual } from "assert";
+import { Readable, PassThrough } from "stream";
 
 interface DocumentContents {
     body: string;
@@ -306,26 +307,24 @@ async function writeImages(zip: any): Promise<ImageData[]> {
 
     const imageUrls: ImageData[] = [];
     for (const mediaPath of imageEntries) {
-        const streamImage = () => new Promise<any>((resolve, reject) => {
+        const getImageStream = () => new Promise<Readable>((resolve, reject) => {
             zip.stream(mediaPath, (error: any, stream: any) => error ? reject(error) : resolve(stream));
         });
 
         const { width, height, type } = await new Promise<Dimensions>(async resolve => {
-            const sizeStream = createImageSizeStream().on('size', (dimensions: Dimensions) => {
+            const sizeStream = (createImageSizeStream() as PassThrough).on('size', (dimensions: Dimensions) => {
                 readStream.destroy();
                 resolve(dimensions);
-            });
-            const readStream = await streamImage();
+            }).on("error", () => readStream.destroy());
+            const readStream = await getImageStream();
             readStream.pipe(sizeStream);
         });
         if (Math.abs(width - height) < 10) {
             continue;
         }
 
-        const ext = `.${type}`.toLowerCase();
-        const generatedFileName = `upload_${Utils.GenerateGuid()}${ext}`;
-
-        await DashUploadUtils.outputResizedImages(streamImage, imageDir, generatedFileName, ext);
+        const generatedFileName = `upload_${Utils.GenerateGuid()}.${type.toLowerCase()}`;
+        await DashUploadUtils.outputResizedImages(getImageStream, generatedFileName, imageDir);
 
         imageUrls.push({
             url: `/files/images/buxton/${generatedFileName}`,

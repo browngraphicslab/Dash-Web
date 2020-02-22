@@ -190,8 +190,8 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
 
     @undoBatch
     @action
-    drop = (e: Event, de: DragManager.DropEvent) => {
-        if (super.drop(e, de)) {
+    onInternalDrop = (e: Event, de: DragManager.DropEvent) => {
+        if (super.onInternalDrop(e, de)) {
             de.complete.docDragData?.droppedDocuments.forEach(action((d: Doc) => {
                 d.dimUnit = "*";
                 d.dimMagnitude = 1;
@@ -208,13 +208,14 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
             {...this.props}
             Document={layout}
             DataDocument={layout.resolvedDataDoc as Doc}
+            backgroundColor={this.props.backgroundColor}
             CollectionDoc={this.props.Document}
             PanelWidth={width}
             PanelHeight={height}
             getTransform={dxf}
             onClick={this.onChildClickHandler}
             renderDepth={this.props.renderDepth + 1}
-        />
+        />;
     }
     /**
      * @returns the resolved list of rendered child documents, displayed

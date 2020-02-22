@@ -1,8 +1,34 @@
 @import "../../views/globalCssVariables.scss";
 
-.lm_active .messageCounter {
-    color: white;
-    background: #999999;
+.lm_title {
+    margin-top: 3px;
+    background: black;
+    border-radius: 5px;
+    border: solid 1px dimgray;
+    border-width: 2px 2px 0px;
+    height: 20px;
+    transform: translate(0px, -3px);
+}
+.lm_title_wrap {
+    overflow: hidden;
+    height: 19px;
+    margin-top: -3px;
+    display:inline-block;
+}
+.lm_active .lm_title {
+    border: solid 1px lightgray;
+}
+.lm_header .lm_tab .lm_close_tab {
+    position: absolute;
+    text-align: center;
+}
+
+.lm_header .lm_tab {
+    padding-right : 20px;
+}
+
+.lm_popout {
+    display:none;
 }
 
 .messageCounter {
@@ -26,9 +52,20 @@
     top: 0;
     left: 0;
     // overflow: hidden;  // bcz: menus don't show up when this is on (e.g., the parentSelectorMenu)
-
+    .collectionDockingView-gear {
+        padding-left: 5px;
+        height: 15px;
+        width: 18px;
+        display: inline-block;
+        margin: auto;
+    }
     .collectionDockingView-dragAsDocument {
         touch-action: none;
+        position: absolute;
+        padding-left: 5px;
+        display: inline-block;
+        width: 100%;
+        height: 100%;
     }
 
     .lm_content {

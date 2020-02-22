@@ -38,6 +38,7 @@ import { CollectionViewBaseChrome } from './CollectionViewChromes';
 import { CollectionTimeView } from './CollectionTimeView';
 import { CollectionMultirowView } from './collectionMulticolumn/CollectionMultirowView';
 import { List } from '../../../new_fields/List';
+import { SubCollectionViewProps } from './CollectionSubView';
 export const COLLECTION_BORDER_WIDTH = 2;
 const path = require('path');
 library.add(faTh, faTree, faSquare, faProjectDiagram, faSignature, faThList, faFingerprint, faColumns, faEllipsisV, faImage, faEye as any, faCopy);
@@ -89,11 +90,9 @@ export interface CollectionRenderProps {
 export class CollectionView extends Touchable<FieldViewProps> {
     public static LayoutString(fieldStr: string) { return FieldView.LayoutString(CollectionView, fieldStr); }
 
-    private _reactionDisposer: IReactionDisposer | undefined;
     private _isChildActive = false;   //TODO should this be observable?
     @observable private _isLightboxOpen = false;
     @observable private _curLightboxImg = 0;
-    @observable private _collapsed = true;
     @observable private static _safeMode = false;
     public static SetSafeMode(safeMode: boolean) { this._safeMode = safeMode; }
 
@@ -110,30 +109,13 @@ export class CollectionView extends Touchable<FieldViewProps> {
         return viewField;
     }
 
-    componentDidMount = () => {
-        this._reactionDisposer = reaction(() => StrCast(this.props.Document._chromeStatus),
-            () => {
-                // chrome status is one of disabled, collapsed, or visible. this determines initial state from document
-                // chrome status may also be view-mode, in reference to stacking view's toggle mode. it is essentially disabled mode, but prevents the toggle button from showing up on the left sidebar.
-                const chromeStatus = this.props.Document._chromeStatus;
-                if (chromeStatus && (chromeStatus === "disabled" || chromeStatus === "collapsed" || chromeStatus === "replaced")) {
-                    runInAction(() => this._collapsed = true);
-                }
-            });
-    }
-
-    componentWillUnmount = () => this._reactionDisposer && this._reactionDisposer();
-
-    // bcz: Argh?  What's the height of the collection chromes??  
-    chromeHeight = () => (this.props.Document._chromeStatus === "enabled" ? -60 : 0);
-
     active = (outsideReaction?: boolean) => this.props.isSelected(outsideReaction) || BoolCast(this.props.Document.forceActive) || this._isChildActive || this.props.renderDepth === 0;
 
     whenActiveChanged = (isActive: boolean) => { this.props.whenActiveChanged(this._isChildActive = isActive); };
 
     @action.bound
     addDocument(doc: Doc): boolean {
-        const targetDataDoc = this.props.Document.resolvedDataDoc && !this.props.Document.isTemplateForField ? this.props.Document : Doc.GetProto(this.props.Document[DataSym]);
+        const targetDataDoc = this.props.Document[DataSym];
         targetDataDoc[this.props.fieldKey] = new List<Doc>([...DocListCast(targetDataDoc[this.props.fieldKey]), doc]);  // DocAddToList may write to targetdataDoc's parent ... we don't want this. should really change GetProto to GetDataDoc and test for resolvedDataDoc there
         // Doc.AddDocToList(targetDataDoc, this.props.fieldKey, doc);
         targetDataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
@@ -143,16 +125,17 @@ export class CollectionView extends Touchable<FieldViewProps> {
 
     @action.bound
     removeDocument(doc: Doc): boolean {
+        const targetDataDoc = this.props.Document[DataSym];
         const docView = DocumentManager.Instance.getDocumentView(doc, this.props.ContainingCollectionView);
         docView && SelectionManager.DeselectDoc(docView);
-        const targetDataDoc = this.props.Document.resolvedDataDoc && !this.props.Document.isTemplateForField ? this.props.Document : Doc.GetProto(this.props.Document[DataSym]);
-        const value = Cast(targetDataDoc[this.props.fieldKey], listSpec(Doc), []);
+        const value = DocListCast(targetDataDoc[this.props.fieldKey]);
         let index = value.reduce((p, v, i) => (v instanceof Doc && v === doc) ? i : p, -1);
         index = index !== -1 ? index : value.reduce((p, v, i) => (v instanceof Doc && Doc.AreProtosEqual(v, doc)) ? i : p, -1);
 
         ContextMenu.Instance.clearItems();
         if (index !== -1) {
             value.splice(index, 1);
+            targetDataDoc[this.props.fieldKey] = new List<Doc>(value);
             return true;
         }
         return false;
@@ -178,7 +161,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
     }
 
     private SubViewHelper = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
-        const props = { ...this.props, ...renderProps, ChromeHeight: this.chromeHeight, CollectionView: this, annotationsKey: "" };
+        const props: SubCollectionViewProps = { ...this.props, ...renderProps, CollectionView: this, annotationsKey: "" };
         switch (type) {
             case CollectionViewType.Schema: return (<CollectionSchemaView key="collview" {...props} />);
             case CollectionViewType.Docking: return (<CollectionDockingView key="collview" {...props} />);
@@ -198,7 +181,6 @@ export class CollectionView extends Touchable<FieldViewProps> {
 
     @action
     private collapse = (value: boolean) => {
-        this._collapsed = value;
         this.props.Document._chromeStatus = value ? "collapsed" : "enabled";
     }
 
@@ -246,22 +228,27 @@ export class CollectionView extends Touchable<FieldViewProps> {
             const layoutItems = existing && "subitems" in existing ? existing.subitems : [];
             layoutItems.push({ description: `${this.props.Document.forceActive ? "Select" : "Force"} Contents Active`, event: () => this.props.Document.forceActive = !this.props.Document.forceActive, icon: "project-diagram" });
             if (this.props.Document.childLayout instanceof Doc) {
-                layoutItems.push({ description: "View Child Layout", event: () => this.props.addDocTab(this.props.Document.childLayout as Doc, undefined, "onRight"), icon: "project-diagram" });
+                layoutItems.push({ description: "View Child Layout", event: () => this.props.addDocTab(this.props.Document.childLayout as Doc, "onRight"), icon: "project-diagram" });
             }
             if (this.props.Document.childDetailed instanceof Doc) {
-                layoutItems.push({ description: "View Child Detailed Layout", event: () => this.props.addDocTab(this.props.Document.childDetailed as Doc, undefined, "onRight"), icon: "project-diagram" });
+                layoutItems.push({ description: "View Child Detailed Layout", event: () => this.props.addDocTab(this.props.Document.childDetailed as Doc, "onRight"), icon: "project-diagram" });
             }
             !existing && ContextMenu.Instance.addItem({ description: "Layout...", subitems: layoutItems, icon: "hand-point-right" });
+
+            const open = ContextMenu.Instance.findByDescription("Open...");
+            const openItems = open && "subitems" in open ? open.subitems : [];
+            !open && ContextMenu.Instance.addItem({ description: "Open...", subitems: openItems, icon: "hand-point-right" });
+
+            const existingOnClick = ContextMenu.Instance.findByDescription("OnClick...");
+            const onClicks = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
+            onClicks.push({ description: "Edit onChildClick script", icon: "edit", event: (obj: any) => ScriptBox.EditButtonScript("On Child Clicked...", this.props.Document, "onChildClick", obj.x, obj.y) });
+            !existingOnClick && ContextMenu.Instance.addItem({ description: "OnClick...", subitems: onClicks, icon: "hand-point-right" });
 
             const more = ContextMenu.Instance.findByDescription("More...");
             const moreItems = more && "subitems" in more ? more.subitems : [];
             moreItems.push({ description: "Export Image Hierarchy", icon: "columns", event: () => ImageUtils.ExportHierarchyToFileSystem(this.props.Document) });
             !more && ContextMenu.Instance.addItem({ description: "More...", subitems: moreItems, icon: "hand-point-right" });
 
-            const existingOnClick = ContextMenu.Instance.findByDescription("OnClick...");
-            const onClicks = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
-            onClicks.push({ description: "Edit onChildClick script", icon: "edit", event: (obj: any) => ScriptBox.EditButtonScript("On Child Clicked...", this.props.Document, "onChildClick", obj.x, obj.y) });
-            !existingOnClick && ContextMenu.Instance.addItem({ description: "OnClick...", subitems: onClicks, icon: "hand-point-right" });
         }
     }
 
@@ -293,7 +280,8 @@ export class CollectionView extends Touchable<FieldViewProps> {
         return (<div className={"collectionView"}
             style={{
                 pointerEvents: this.props.Document.isBackground ? "none" : "all",
-                boxShadow: this.props.Document.isBackground || this.collectionViewType === CollectionViewType.Linear ? undefined : `#9c9396 ${StrCast(this.props.Document.boxShadow, "0.2vw 0.2vw 0.8vw")}`
+                boxShadow: this.props.Document.isBackground || this.collectionViewType === CollectionViewType.Linear ? undefined :
+                    `${Cast(Doc.UserDoc().activeWorkspace, Doc, null)?.darkScheme ? "rgb(30, 32, 31)" : "#9c9396"} ${StrCast(this.props.Document.boxShadow, "0.2vw 0.2vw 0.8vw")}`
             }}
             onContextMenu={this.onContextMenu}>
             {this.showIsTagged()}

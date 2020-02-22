@@ -63,7 +63,9 @@
     font-size: 8pt;
     margin-left: 3px;
     display: none;
-    background: lightgray;
+}
+.collectionTreeView-keyHeader:hover {
+    background: #797777;
 }
 
 .collectionTreeView-subtitle {
@@ -84,8 +86,10 @@
 .treeViewItem-openRight {
     display: none;
     height: 17px;
-    background: gray;
     width: 15px;
+}
+.treeViewItem-openRight:hover {
+    background: #797777;
 }
 
 .treeViewItem-border {
@@ -101,7 +105,6 @@
     .treeViewItem-openRight {
         display: inline-block;
         height: 17px;
-        background: #a8a7a7;
         width: 15px;
 
         // display: inline;

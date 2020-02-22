@@ -12,7 +12,7 @@ import { Doc, Field, HeightSym, WidthSym } from "../../new_fields/Doc";
 import { Id } from "../../new_fields/FieldSymbols";
 import { ObjectField } from "../../new_fields/ObjectField";
 import { ComputedField } from "../../new_fields/ScriptField";
-import { BoolCast, NumCast, StrCast } from "../../new_fields/Types";
+import { BoolCast, NumCast, StrCast, Cast } from "../../new_fields/Types";
 import { emptyFunction, returnEmptyString, returnFalse, returnOne, Utils } from "../../Utils";
 import { DocServer } from "../DocServer";
 import { DocumentView } from "../views/nodes/DocumentView";
@@ -613,7 +613,7 @@ export class ImageResizeView {
                 DocServer.GetRefField(node.attrs.docid).then(async linkDoc =>
                     (linkDoc instanceof Doc) &&
                     DocumentManager.Instance.FollowLink(linkDoc, view.state.schema.Document,
-                        document => addDocTab(document, undefined, node.attrs.location ? node.attrs.location : "inTab"), false));
+                        document => addDocTab(document, node.attrs.location ? node.attrs.location : "inTab"), false));
             }
         };
         this._handle.onpointerdown = function (e: any) {
@@ -723,7 +723,7 @@ export class DashDocView {
         const { scale, translateX, translateY } = Utils.GetScreenTransform(this._outer);
         return new Transform(-translateX, -translateY, 1).scale(1 / this.contentScaling() / scale);
     }
-    contentScaling = () => NumCast(this._dashDoc!._nativeWidth) > 0 && !this._dashDoc!.ignoreAspect ? this._dashDoc![WidthSym]() / NumCast(this._dashDoc!._nativeWidth) : 1;
+    contentScaling = () => NumCast(this._dashDoc!._nativeWidth) > 0 ? this._dashDoc![WidthSym]() / NumCast(this._dashDoc!._nativeWidth) : 1;
     outerFocus = (target: Doc) => this._textBox.props.focus(this._textBox.props.Document);  // ideally, this would scroll to show the focus target
     constructor(node: any, view: any, getPos: any, tbox: FormattedTextBox) {
         this._textBox = tbox;
@@ -731,6 +731,7 @@ export class DashDocView {
         this._outer = document.createElement("span");
         this._outer.style.position = "relative";
         this._outer.style.textIndent = "0";
+        this._outer.style.border = "1px solid " + StrCast(tbox.Document.color, (Cast(Doc.UserDoc().activeWorkspace, Doc, null).darkScheme ? "dimGray" : "lightGray"));
         this._outer.style.width = node.attrs.width;
         this._outer.style.height = node.attrs.height;
         this._outer.style.display = node.attrs.hidden ? "none" : "inline-block";
@@ -810,9 +811,10 @@ export class DashDocView {
                 }
             }
             this._reactionDisposer?.();
-            this._reactionDisposer = reaction(() => [finalLayout[WidthSym](), finalLayout[HeightSym]()], (dim) => {
+            this._reactionDisposer = reaction(() => ({ dim: [finalLayout[WidthSym](), finalLayout[HeightSym]()], color: finalLayout.color }), ({ dim, color }) => {
                 this._dashSpan.style.width = this._outer.style.width = Math.max(20, dim[0]) + "px";
                 this._dashSpan.style.height = this._outer.style.height = Math.max(20, dim[1]) + "px";
+                this._outer.style.border = "1px solid " + StrCast(finalLayout.color, (Cast(Doc.UserDoc().activeWorkspace, Doc, null).darkScheme ? "dimGray" : "lightGray"));
             }, { fireImmediately: true });
             ReactDOM.render(<DocumentView
                 Document={finalLayout}
@@ -824,7 +826,7 @@ export class DashDocView {
                 ScreenToLocalTransform={this.getDocTransform}
                 addDocTab={this._textBox.props.addDocTab}
                 pinToPres={returnFalse}
-                renderDepth={1}
+                renderDepth={self._textBox.props.renderDepth + 1}
                 PanelWidth={finalLayout[WidthSym]}
                 PanelHeight={finalLayout[HeightSym]}
                 focus={this.outerFocus}
@@ -842,7 +844,7 @@ export class DashDocView {
         }
     }
     destroy() {
-        this._reactionDisposer && this._reactionDisposer();
+        this._reactionDisposer?.();
     }
 }
 

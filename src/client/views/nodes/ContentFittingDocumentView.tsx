@@ -1,19 +1,17 @@
 import React = require("react");
-import { action, computed } from "mobx";
+import { computed } from "mobx";
 import { observer } from "mobx-react";
 import "react-table/react-table.css";
 import { Doc, Opt } from "../../../new_fields/Doc";
-import { ComputedField, ScriptField } from "../../../new_fields/ScriptField";
+import { ScriptField } from "../../../new_fields/ScriptField";
 import { NumCast, StrCast } from "../../../new_fields/Types";
-import { emptyFunction, returnEmptyString, returnOne } from "../../../Utils";
-import { DragManager } from "../../util/DragManager";
+import { TraceMobx } from "../../../new_fields/util";
+import { emptyFunction, returnOne } from "../../../Utils";
 import { Transform } from "../../util/Transform";
-import { undoBatch } from "../../util/UndoManager";
+import { CollectionView } from "../collections/CollectionView";
 import '../DocumentDecorations.scss';
 import { DocumentView } from "../nodes/DocumentView";
 import "./ContentFittingDocumentView.scss";
-import { CollectionView } from "../collections/CollectionView";
-import { TraceMobx } from "../../../new_fields/util";
 
 interface ContentFittingDocumentViewProps {
     Document?: Doc;
@@ -29,13 +27,14 @@ interface ContentFittingDocumentViewProps {
     CollectionView?: CollectionView;
     CollectionDoc?: Doc;
     onClick?: ScriptField;
+    backgroundColor?: (doc: Doc) => string | undefined;
     getTransform: () => Transform;
     addDocument?: (document: Doc) => boolean;
     moveDocument?: (document: Doc, target: Doc | undefined, addDoc: ((doc: Doc) => boolean)) => boolean;
     removeDocument?: (document: Doc) => boolean;
     active: (outsideReaction: boolean) => boolean;
     whenActiveChanged: (isActive: boolean) => void;
-    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
+    addDocTab: (document: Doc, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     dontRegisterView?: boolean;
 }
@@ -55,22 +54,8 @@ export class ContentFittingDocumentView extends React.Component<ContentFittingDo
     }
     private contentScaling = () => this.scaling;
 
-    @undoBatch
-    @action
-    drop = (e: Event, de: DragManager.DropEvent) => {
-        const docDragData = de.complete.docDragData;
-        if (docDragData) {
-            this.props.childDocs && this.props.childDocs.map(otherdoc => {
-                const target = Doc.GetProto(otherdoc);
-                target.layout = ComputedField.MakeFunction("this.image_data[0]");
-                target.layout_custom = Doc.MakeDelegate(docDragData.draggedDocuments[0]);
-            });
-            e.stopPropagation();
-        }
-        return true;
-    }
     private PanelWidth = () => this.panelWidth;
-    private PanelHeight = () => this.panelHeight;;
+    private PanelHeight = () => this.panelHeight;
 
     @computed get panelWidth() { return this.nativeWidth && (!this.props.Document || !this.props.Document._fitWidth) ? this.nativeWidth * this.contentScaling() : this.props.PanelWidth(); }
     @computed get panelHeight() { return this.nativeHeight && (!this.props.Document || !this.props.Document._fitWidth) ? this.nativeHeight * this.contentScaling() : this.props.PanelHeight(); }
@@ -102,6 +87,7 @@ export class ContentFittingDocumentView extends React.Component<ContentFittingDo
                         LibraryPath={this.props.LibraryPath}
                         fitToBox={this.props.fitToBox}
                         onClick={this.props.onClick}
+                        backgroundColor={this.props.backgroundColor}
                         addDocument={this.props.addDocument}
                         removeDocument={this.props.removeDocument}
                         moveDocument={this.props.moveDocument}
@@ -117,7 +103,6 @@ export class ContentFittingDocumentView extends React.Component<ContentFittingDo
                         PanelWidth={this.PanelWidth}
                         PanelHeight={this.PanelHeight}
                         focus={this.props.focus || emptyFunction}
-                        backgroundColor={returnEmptyString}
                         bringToFront={emptyFunction}
                         dontRegisterView={this.props.dontRegisterView}
                         zoomToScale={emptyFunction}

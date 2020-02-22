@@ -4,12 +4,12 @@ import * as formidable from 'formidable';
 import v4 = require('uuid/v4');
 const AdmZip = require('adm-zip');
 import { extname, basename, dirname } from 'path';
-import { createReadStream, createWriteStream, unlink, readFileSync } from "fs";
+import { createReadStream, createWriteStream, unlink } from "fs";
 import { publicDirectory, filesDirectory } from "..";
 import { Database } from "../database";
-import { DashUploadUtils, SizeSuffix } from "../DashUploadUtils";
+import { DashUploadUtils } from "../DashUploadUtils";
 import * as sharp from 'sharp';
-import { AcceptibleMedia } from "../SharedMediaTypes";
+import { AcceptibleMedia, Upload } from "../SharedMediaTypes";
 import { normalize } from "path";
 const imageDataUri = require('image-data-uri');
 
@@ -47,7 +47,7 @@ export default class UploadManager extends ApiManager {
                 form.keepExtensions = true;
                 return new Promise<void>(resolve => {
                     form.parse(req, async (_err, _fields, files) => {
-                        const results: any[] = [];
+                        const results: Upload.FileResponse[] = [];
                         for (const key in files) {
                             const result = await DashUploadUtils.upload(files[key]);
                             result && results.push(result);

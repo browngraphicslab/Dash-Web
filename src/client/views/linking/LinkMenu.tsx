@@ -16,7 +16,7 @@ library.add(faTrash);
 interface Props {
     docView: DocumentView;
     changeFlyout: () => void;
-    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
+    addDocTab: (document: Doc, where: string) => boolean;
 }
 
 @observer
@@ -60,7 +60,7 @@ export class LinkMenu extends React.Component<Props> {
         if (this._editingLink === undefined) {
             return (
                 <div className="linkMenu">
-                    <button className="linkEditor-button linkEditor-clearButton" onClick={() => this.clearAllLinks()} title="Clear all links"><FontAwesomeIcon icon="trash" size="sm" /></button>
+                    {/* <button className="linkEditor-button linkEditor-clearButton" onClick={() => this.clearAllLinks()} title="Clear all links"><FontAwesomeIcon icon="trash" size="sm" /></button> */}
                     {/* <input id="linkMenu-searchBar" type="text" placeholder="Search..."></input> */}
                     <div className="linkMenu-list">
                         {this.renderAllGroups(groups)}

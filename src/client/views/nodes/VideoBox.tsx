@@ -90,7 +90,7 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
     @action public FullScreen() {
         this._fullScreen = true;
         this.player && this.player.requestFullscreen();
-        this._youtubePlayer && this.props.addDocTab(this.props.Document, this.props.DataDoc, "inTab");
+        this._youtubePlayer && this.props.addDocTab(this.props.Document, "inTab");
     }
 
     choosePath(url: string) {

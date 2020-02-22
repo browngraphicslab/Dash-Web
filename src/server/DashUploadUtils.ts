@@ -3,9 +3,9 @@ import { Utils } from '../Utils';
 import * as path from 'path';
 import * as sharp from 'sharp';
 import request = require('request-promise');
-import { ExifData, ExifImage } from 'exif';
+import { ExifImage } from 'exif';
 import { Opt } from '../new_fields/Doc';
-import { AcceptibleMedia } from './SharedMediaTypes';
+import { AcceptibleMedia, Upload } from './SharedMediaTypes';
 import { filesDirectory } from '.';
 import { File } from 'formidable';
 import { basename } from "path";
@@ -14,7 +14,7 @@ import { ParsedPDF } from "../server/PdfTypes";
 const parse = require('pdf-parse');
 import { Directory, serverPathToFile, clientPathToFile, pathToDirectory } from './ApiManagers/UploadManager';
 import { red } from 'colors';
-import { Writable } from 'stream';
+import { Stream } from 'stream';
 const requestImageSize = require("../client/util/request-image-size");
 
 export enum SizeSuffix {
@@ -40,13 +40,6 @@ export namespace DashUploadUtils {
         suffix: SizeSuffix;
     }
 
-    export interface ImageFileResponse {
-        name: string;
-        path: string;
-        type: string;
-        exif: Opt<DashUploadUtils.EnrichedExifData>;
-    }
-
     export const Sizes: { [size: string]: Size } = {
         SMALL: { width: 100, suffix: SizeSuffix.Small },
         MEDIUM: { width: 400, suffix: SizeSuffix.Medium },
@@ -60,20 +53,9 @@ export namespace DashUploadUtils {
     const size = "content-length";
     const type = "content-type";
 
-    export interface ImageUploadInformation {
-        accessPaths: AccessPathInfo;
-        exifData: EnrichedExifData;
-        contentSize?: number;
-        contentType?: string;
-    }
-
-    export interface AccessPathInfo {
-        [suffix: string]: { client: string, server: string };
-    }
-
     const { imageFormats, videoFormats, applicationFormats } = AcceptibleMedia;
 
-    export async function upload(file: File): Promise<any> {
+    export async function upload(file: File): Promise<Upload.FileResponse> {
         const { type, path, name } = file;
         const types = type.split("/");
 
@@ -83,33 +65,34 @@ export namespace DashUploadUtils {
         switch (category) {
             case "image":
                 if (imageFormats.includes(format)) {
-                    const results = await UploadImage(path, basename(path));
-                    return { ...results, name, type };
+                    const result = await UploadImage(path, basename(path));
+                    return { source: file, result };
                 }
             case "video":
                 if (videoFormats.includes(format)) {
-                    return MoveParsedFile(path, Directory.videos);
+                    return MoveParsedFile(file, Directory.videos);
                 }
             case "application":
                 if (applicationFormats.includes(format)) {
-                    return UploadPdf(path);
+                    return UploadPdf(file);
                 }
         }
 
         console.log(red(`Ignoring unsupported file (${name}) with upload type (${type}).`));
-        return { accessPaths: {} };
+        return { source: file, result: new Error(`Could not upload unsupported file (${name}) with upload type (${type}).`) };
     }
 
-    async function UploadPdf(absolutePath: string) {
-        const dataBuffer = readFileSync(absolutePath);
+    async function UploadPdf(file: File) {
+        const { path: sourcePath } = file;
+        const dataBuffer = readFileSync(sourcePath);
         const result: ParsedPDF = await parse(dataBuffer);
-        const parsedName = basename(absolutePath);
         await new Promise<void>((resolve, reject) => {
-            const textFilename = `${parsedName.substring(0, parsedName.length - 4)}.txt`;
+            const name = path.basename(sourcePath);
+            const textFilename = `${name.substring(0, name.length - 4)}.txt`;
             const writeStream = createWriteStream(serverPathToFile(Directory.text, textFilename));
             writeStream.write(result.text, error => error ? reject(error) : resolve());
         });
-        return MoveParsedFile(absolutePath, Directory.pdfs);
+        return MoveParsedFile(file, Directory.pdfs);
     }
 
     /**
@@ -123,35 +106,19 @@ export namespace DashUploadUtils {
      * @param {string} prefix is a string prepended to the generated image name in the
      * event that @param filename is not specified
      * 
-     * @returns {ImageUploadInformation} This method returns
+     * @returns {ImageUploadInformation | Error} This method returns
      * 1) the paths to the uploaded images (plural due to resizing)
-     * 2) the file name of each of the resized images
+     * 2) the exif data embedded in the image, or the error explaining why exif couldn't be parsed
      * 3) the size of the image, in bytes (4432130)
      * 4) the content type of the image, i.e. image/(jpeg | png | ...)
      */
-    export const UploadImage = async (source: string, filename?: string, prefix: string = ""): Promise<ImageUploadInformation | Error> => {
+    export const UploadImage = async (source: string, filename?: string, prefix: string = ""): Promise<Upload.ImageInformation | Error> => {
         const metadata = await InspectImage(source);
         if (metadata instanceof Error) {
             return metadata;
         }
         return UploadInspectedImage(metadata, filename || metadata.filename, prefix);
     };
-
-    export interface InspectionResults {
-        source: string;
-        requestable: string;
-        exifData: EnrichedExifData;
-        contentSize: number;
-        contentType: string;
-        nativeWidth: number;
-        nativeHeight: number;
-        filename?: string;
-    }
-
-    export interface EnrichedExifData {
-        data: ExifData;
-        error?: string;
-    }
 
     export async function buildFileDirectories() {
         const pending = Object.keys(Directory).map(sub => createIfNotExists(`${filesDirectory}/${sub}`));
@@ -175,7 +142,7 @@ export namespace DashUploadUtils {
      * 
      * @param source is the path or url to the image in question
      */
-    export const InspectImage = async (source: string): Promise<InspectionResults | Error> => {
+    export const InspectImage = async (source: string): Promise<Upload.InspectionResults | Error> => {
         let rawMatches: RegExpExecArray | null;
         let filename: string | undefined;
         if ((rawMatches = /^data:image\/([a-z]+);base64,(.*)/.exec(source)) !== null) {
@@ -216,14 +183,18 @@ export namespace DashUploadUtils {
         };
     };
 
-    export async function MoveParsedFile(absolutePath: string, destination: Directory): Promise<Opt<{ accessPaths: AccessPathInfo }>> {
+    export async function MoveParsedFile(file: File, destination: Directory): Promise<Upload.FileResponse> {
+        const { path: sourcePath } = file;
+        const name = path.basename(sourcePath);
         return new Promise(resolve => {
-            const filename = basename(absolutePath);
-            const destinationPath = serverPathToFile(destination, filename);
-            rename(absolutePath, destinationPath, error => {
-                resolve(error ? undefined : {
-                    accessPaths: {
-                        agnostic: getAccessPaths(destination, filename)
+            const destinationPath = serverPathToFile(destination, name);
+            rename(sourcePath, destinationPath, error => {
+                resolve({
+                    source: file,
+                    result: error ? error : {
+                        accessPaths: {
+                            agnostic: getAccessPaths(destination, name)
+                        }
                     }
                 });
             });
@@ -237,19 +208,17 @@ export namespace DashUploadUtils {
         };
     }
 
-    export const UploadInspectedImage = async (metadata: InspectionResults, filename?: string, prefix = "", cleanUp = true): Promise<ImageUploadInformation> => {
+    export const UploadInspectedImage = async (metadata: Upload.InspectionResults, filename?: string, prefix = "", cleanUp = true): Promise<Upload.ImageInformation> => {
         const { requestable, source, ...remaining } = metadata;
-        const extension = `.${remaining.contentType.split("/")[1].toLowerCase()}`;
-        const resolved = filename || `${prefix}upload_${Utils.GenerateGuid()}${extension}`;
+        const resolved = filename || `${prefix}upload_${Utils.GenerateGuid()}.${remaining.contentType.split("/")[1].toLowerCase()}`;
         const { images } = Directory;
-        const information: ImageUploadInformation = {
+        const information: Upload.ImageInformation = {
             accessPaths: {
                 agnostic: getAccessPaths(images, resolved)
             },
-            ...remaining
+            ...metadata
         };
-        const outputPath = pathToDirectory(Directory.images);
-        const writtenFiles = await outputResizedImages(() => request(requestable), outputPath, resolved, extension);
+        const writtenFiles = await outputResizedImages(() => request(requestable), resolved, pathToDirectory(Directory.images));
         for (const suffix of Object.keys(writtenFiles)) {
             information.accessPaths[suffix] = getAccessPaths(images, writtenFiles[suffix]);
         }
@@ -259,9 +228,9 @@ export namespace DashUploadUtils {
         return information;
     };
 
-    const parseExifData = async (source: string): Promise<EnrichedExifData> => {
+    const parseExifData = async (source: string): Promise<Upload.EnrichedExifData> => {
         const image = await request.get(source, { encoding: null });
-        return new Promise<EnrichedExifData>(resolve => {
+        return new Promise(resolve => {
             new ExifImage({ image }, (error, data) => {
                 let reason: Opt<string> = undefined;
                 if (error) {
@@ -272,25 +241,20 @@ export namespace DashUploadUtils {
         });
     };
 
-    const { pngs, jpgs } = AcceptibleMedia;
+    const { pngs, jpgs, webps, tiffs } = AcceptibleMedia;
     const pngOptions = {
         compressionLevel: 9,
         adaptiveFiltering: true,
         force: true
     };
 
-    export interface ReadStreamLike {
-        pipe: (dest: Writable) => Writable;
-    }
-
-    export async function outputResizedImages(readStreamSource: () => ReadStreamLike | Promise<ReadStreamLike>, outputPath: string, fileName: string, ext: string) {
+    export async function outputResizedImages(streamProvider: () => Stream | Promise<Stream>, outputFileName: string, outputDirectory: string) {
         const writtenFiles: { [suffix: string]: string } = {};
-        for (const { resizer, suffix } of resizers(ext)) {
-            const resolved = writtenFiles[suffix] = InjectSize(fileName, suffix);
+        for (const { resizer, suffix } of resizers(path.extname(outputFileName))) {
+            const outputPath = path.resolve(outputDirectory, writtenFiles[suffix] = InjectSize(outputFileName, suffix));
             await new Promise<void>(async (resolve, reject) => {
-                const writeStream = createWriteStream(path.resolve(outputPath, resolved));
-                let readStream: ReadStreamLike;
-                const source = readStreamSource();
+                const source = streamProvider();
+                let readStream: Stream;
                 if (source instanceof Promise) {
                     readStream = await source;
                 } else {
@@ -299,9 +263,7 @@ export namespace DashUploadUtils {
                 if (resizer) {
                     readStream = readStream.pipe(resizer.withMetadata());
                 }
-                const out = readStream.pipe(writeStream);
-                out.on("close", resolve);
-                out.on("error", reject);
+                readStream.pipe(createWriteStream(outputPath)).on("close", resolve).on("error", reject);
             });
         }
         return writtenFiles;
@@ -310,18 +272,22 @@ export namespace DashUploadUtils {
     function resizers(ext: string): DashUploadUtils.ImageResizer[] {
         return [
             { suffix: SizeSuffix.Original },
-            ...Object.values(DashUploadUtils.Sizes).map(size => {
-                let initial: sharp.Sharp | undefined = sharp().resize(size.width, undefined, { withoutEnlargement: true });
+            ...Object.values(DashUploadUtils.Sizes).map(({ suffix, width }) => {
+                let initial: sharp.Sharp | undefined = sharp().resize(width, undefined, { withoutEnlargement: true });
                 if (pngs.includes(ext)) {
                     initial = initial.png(pngOptions);
                 } else if (jpgs.includes(ext)) {
                     initial = initial.jpeg();
-                } else {
+                } else if (webps.includes(ext)) {
+                    initial = initial.webp();
+                } else if (tiffs.includes(ext)) {
+                    initial = initial.tiff();
+                } else if (ext === ".gif") {
                     initial = undefined;
                 }
                 return {
                     resizer: initial,
-                    suffix: size.suffix
+                    suffix
                 };
             })
         ];

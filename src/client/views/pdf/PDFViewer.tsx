@@ -65,7 +65,7 @@ interface IViewerProps {
     loaded: (nw: number, nh: number, np: number) => void;
     active: (outsideReaction?: boolean) => boolean;
     isChildActive: (outsideReaction?: boolean) => boolean;
-    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
+    addDocTab: (document: Doc, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     addDocument?: (doc: Doc) => boolean;
     setPdfViewer: (view: PDFViewer) => void;
@@ -127,9 +127,8 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
         // change the address to be the file address of the PNG version of each page
         // file address of the pdf
         const { url: { href } } = Cast(this.props.Document[this.props.fieldKey], PdfField)!;
-        this._coverPath = href.startsWith(window.location.origin) ?
-            JSON.parse(await rp.get(Utils.prepend(`/thumbnail${this.props.url.substring("files/pdfs/".length, this.props.url.length - ".pdf".length)}-${(this.Document.curPage || 1)}.png`))) :
-            { width: 100, height: 100, path: "" };
+        const addr = Utils.prepend(`/thumbnail${this.props.url.substring("files/pdfs/".length, this.props.url.length - ".pdf".length)}-${(this.Document.curPage || 1)}.png`);
+        this._coverPath = href.startsWith(window.location.origin) ? JSON.parse(await rp.get(addr)) : { width: 100, height: 100, path: "" };
         runInAction(() => this._showWaiting = this._showCover = true);
         this.props.startupLive && this.setupPdfJsViewer();
         this._searchReactionDisposer = reaction(() => this.Document.searchMatch, search => {
@@ -623,7 +622,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
         TraceMobx();
         return <div className="pdfViewer-annotationLayer" style={{ height: NumCast(this.Document.nativeHeight), transform: `scale(${this._zoomed})` }} ref={this._annotationLayer}>
             {this.nonDocAnnotations.sort((a, b) => NumCast(a.y) - NumCast(b.y)).map((anno, index) =>
-                <Annotation {...this.props} focus={this.props.focus} dataDoc={this.dataDoc!} fieldKey={this.props.fieldKey} anno={anno} key={`${anno[Id]}-annotation`} />)}
+                <Annotation {...this.props} focus={this.props.focus} dataDoc={this.dataDoc} fieldKey={this.props.fieldKey} anno={anno} key={`${anno[Id]}-annotation`} />)}
         </div>;
     }
     overlayTransform = () => this.scrollXf().scale(1 / this._zoomed);

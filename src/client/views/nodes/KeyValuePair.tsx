@@ -22,7 +22,7 @@ export interface KeyValuePairProps {
     keyWidth: number;
     PanelHeight: () => number;
     PanelWidth: () => number;
-    addDocTab: (doc: Doc, data: Opt<Doc>, where: string) => boolean;
+    addDocTab: (doc: Doc, where: string) => boolean;
 }
 @observer
 export class KeyValuePair extends React.Component<KeyValuePairProps> {
@@ -46,7 +46,7 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
         if (value instanceof Doc) {
             e.stopPropagation();
             e.preventDefault();
-            ContextMenu.Instance.addItem({ description: "Open Fields", event: () => this.props.addDocTab(Docs.Create.KVPDocument(value, { _width: 300, _height: 300 }), undefined, "onRight"), icon: "layer-group" });
+            ContextMenu.Instance.addItem({ description: "Open Fields", event: () => this.props.addDocTab(Docs.Create.KVPDocument(value, { _width: 300, _height: 300 }), "onRight"), icon: "layer-group" });
             ContextMenu.Instance.displayMenu(e.clientX, e.clientY);
         }
     }

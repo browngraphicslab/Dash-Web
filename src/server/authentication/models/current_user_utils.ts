@@ -18,6 +18,7 @@ import { CollectionViewType } from "../../../client/views/collections/Collection
 import { makeTemplate } from "../../../client/util/DropConverter";
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { PrefetchProxy } from "../../../new_fields/Proxy";
+import { FormattedTextBox } from "../../../client/views/nodes/FormattedTextBox";
 
 export class CurrentUserUtils {
     private static curr_id: string;
@@ -34,28 +35,25 @@ export class CurrentUserUtils {
     @observable public static GuestWorkspace: Doc | undefined;
     @observable public static GuestMobile: Doc | undefined;
 
-    // a default set of note types .. not being used yet...
-    static setupNoteTypes(doc: Doc) {
-        return [
+    static setupDefaultDocTemplates(doc: Doc, buttons?: string[]) {
+        const noteTemplates = [
             Docs.Create.TextDocument("", { title: "Note", backgroundColor: "yellow", isTemplateDoc: true }),
             Docs.Create.TextDocument("", { title: "Idea", backgroundColor: "pink", isTemplateDoc: true }),
             Docs.Create.TextDocument("", { title: "Topic", backgroundColor: "lightBlue", isTemplateDoc: true }),
             Docs.Create.TextDocument("", { title: "Person", backgroundColor: "lightGreen", isTemplateDoc: true }),
             Docs.Create.TextDocument("", { title: "Todo", backgroundColor: "orange", isTemplateDoc: true })
         ];
+        doc.noteTypes = new PrefetchProxy(Docs.Create.TreeDocument(noteTemplates, { title: "Note Types", _height: 75 }));
     }
 
     // setup the "creator" buttons for the sidebar-- eg. the default set of draggable document creation tools
     static setupCreatorButtons(doc: Doc, buttons?: string[]) {
-        const notes = CurrentUserUtils.setupNoteTypes(doc);
         const emptyPresentation = Docs.Create.PresDocument(new List<Doc>(), { title: "Presentation", _viewType: CollectionViewType.Stacking, _LODdisable: true, _chromeStatus: "replaced", _showTitle: "title", boxShadow: "0 0" });
         const emptyCollection = Docs.Create.FreeformDocument([], { _nativeWidth: undefined, _nativeHeight: undefined, _LODdisable: true, _width: 150, _height: 100, title: "freeform" });
-        doc.noteTypes = Docs.Create.TreeDocument(notes, { title: "Note Types", _height: 75 });
         doc.activePen = doc;
         const docProtoData: { title: string, icon: string, drag?: string, ignoreClick?: boolean, click?: string, ischecked?: string, activePen?: Doc, backgroundColor?: string, dragFactory?: Doc }[] = [
             { title: "collection", icon: "folder", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: emptyCollection },
             { title: "preview", icon: "expand", ignoreClick: true, drag: 'Docs.Create.DocumentDocument(ComputedField.MakeFunction("selectedDocs(this,true,[_last_])?.[0]"), { _width: 250, _height: 250, title: "container" })' },
-            { title: "todo item", icon: "check", ignoreClick: true, drag: 'getCopy(this.dragFactory, true)', dragFactory: notes[notes.length - 1] },
             { title: "web page", icon: "globe-asia", ignoreClick: true, drag: 'Docs.Create.WebDocument("https://en.wikipedia.org/wiki/Hedgehog", {_width: 300, _height: 300, title: "New Webpage" })' },
             { title: "cat image", icon: "cat", ignoreClick: true, drag: 'Docs.Create.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", { _width: 200, title: "an image of a cat" })' },
             { title: "buxton", icon: "cloud-upload-alt", ignoreClick: true, drag: "Docs.Create.Buxton()" },
@@ -139,7 +137,7 @@ export class CurrentUserUtils {
     static setupThumbDoc(userDoc: Doc) {
         if (!userDoc.thumbDoc) {
             userDoc.thumbDoc = Docs.Create.LinearDocument(CurrentUserUtils.setupThumbButtons(userDoc), {
-                _width: 100, _height: 50, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled", title: "buttons", _autoHeight: true, _yMargin: 5, isExpanded: true, backgroundColor: "white"
+                _width: 100, _height: 50, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled", title: "buttons", _autoHeight: true, _yMargin: 5, linearViewIsExpanded: true, backgroundColor: "white"
             });
         }
         return userDoc.thumbDoc;
@@ -164,7 +162,7 @@ export class CurrentUserUtils {
         });
 
         return Docs.Create.ButtonDocument({
-            _width: 35, _height: 25, backgroundColor: "lightgrey", color: "rgb(34, 34, 34)", title: "Tools", fontSize: 10, targetContainer: sidebarContainer,
+            _width: 35, _height: 25, title: "Tools", fontSize: 10, targetContainer: sidebarContainer,
             letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
             sourcePanel: Docs.Create.StackingDocument([dragCreators, color], {
                 _width: 500, lockedPosition: true, _chromeStatus: "disabled", title: "tools stack"
@@ -177,22 +175,22 @@ export class CurrentUserUtils {
     static setupLibraryPanel(sidebarContainer: Doc, doc: Doc) {
         // setup workspaces library item
         doc.workspaces = Docs.Create.TreeDocument([], {
-            title: "WORKSPACES", _height: 100, forceActive: true, boxShadow: "0 0", lockedPosition: true, backgroundColor: "#eeeeee"
+            title: "WORKSPACES", _height: 100, forceActive: true, boxShadow: "0 0", lockedPosition: true,
         });
 
         doc.documents = Docs.Create.TreeDocument([], {
-            title: "DOCUMENTS", _height: 42, forceActive: true, boxShadow: "0 0", preventTreeViewOpen: true, lockedPosition: true, backgroundColor: "#eeeeee"
+            title: "DOCUMENTS", _height: 42, forceActive: true, boxShadow: "0 0", treeViewPreventOpen: true, lockedPosition: true,
         });
 
         // setup Recently Closed library item
         doc.recentlyClosed = Docs.Create.TreeDocument([], {
-            title: "RECENTLY CLOSED", _height: 75, forceActive: true, boxShadow: "0 0", preventTreeViewOpen: true, lockedPosition: true, backgroundColor: "#eeeeee"
+            title: "RECENTLY CLOSED", _height: 75, forceActive: true, boxShadow: "0 0", treeViewPreventOpen: true, lockedPosition: true,
         });
 
         return Docs.Create.ButtonDocument({
-            _width: 50, _height: 25, backgroundColor: "lightgrey", color: "rgb(34, 34, 34)", title: "Library", fontSize: 10,
+            _width: 50, _height: 25, title: "Library", fontSize: 10,
             letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
-            sourcePanel: Docs.Create.TreeDocument([doc.workspaces as Doc, doc.documents as Doc, doc.recentlyClosed as Doc], {
+            sourcePanel: Docs.Create.TreeDocument([doc.workspaces as Doc, doc.documents as Doc, Docs.Prototypes.MainLinkDocument(), doc.recentlyClosed as Doc], {
                 title: "Library", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, dropAction: "alias", lockedPosition: true, boxShadow: "0 0",
             }),
             targetContainer: sidebarContainer,
@@ -203,7 +201,7 @@ export class CurrentUserUtils {
     // setup the Search button which will display the search panel.  
     static setupSearchPanel(sidebarContainer: Doc) {
         return Docs.Create.ButtonDocument({
-            _width: 50, _height: 25, backgroundColor: "lightgrey", color: "rgb(34, 34, 34)", title: "Search", fontSize: 10,
+            _width: 50, _height: 25, title: "Search", fontSize: 10,
             letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
             sourcePanel: Docs.Create.QueryDocument({
                 title: "search stack", ignoreClick: true
@@ -227,8 +225,7 @@ export class CurrentUserUtils {
         // Finally, setup the list of buttons to display in the sidebar
         doc.sidebarButtons = Docs.Create.StackingDocument([doc.SearchBtn as Doc, doc.LibraryBtn as Doc, doc.ToolsBtn as Doc], {
             _width: 500, _height: 80, boxShadow: "0 0", sectionFilter: "title", hideHeadings: true, ignoreClick: true,
-            backgroundColor: "rgb(100, 100, 100)", _chromeStatus: "disabled", title: "library stack",
-            _yMargin: 10,
+            _chromeStatus: "disabled", title: "library stack", backgroundColor: "dimGray",
         });
     }
 
@@ -236,11 +233,14 @@ export class CurrentUserUtils {
     static setupExpandingButtons(doc: Doc) {
         const slideTemplate = Docs.Create.MultirowDocument(
             [
-                Docs.Create.MulticolumnDocument([], { title: "images", _height: 200 }),
+                Docs.Create.MulticolumnDocument([], { title: "data", _height: 200 }),
                 Docs.Create.TextDocument("", { title: "contents", _height: 100 })
             ],
-            { _width: 400, _height: 300, title: "slideView", _chromeStatus: "disabled", _xMargin: 3, _yMargin: 3, backgroundColor: "lightGray", _autoHeight: true });
+            { _width: 400, _height: 300, title: "slideView", _chromeStatus: "disabled", _xMargin: 3, _yMargin: 3, _autoHeight: false });
         slideTemplate.isTemplateDoc = makeTemplate(slideTemplate);
+        const descriptionTemplate = Docs.Create.TextDocument("", { title: "descriptionView", _height: 100, _showTitle: "title" });
+        Doc.GetProto(descriptionTemplate).layout = FormattedTextBox.LayoutString("description");
+        descriptionTemplate.isTemplateDoc = makeTemplate(descriptionTemplate);
 
         const iconDoc = Docs.Create.TextDocument("", { title: "icon", _width: 150, _height: 30, isTemplateDoc: true, onClick: ScriptField.MakeScript("setNativeView(this)") });
         Doc.GetProto(iconDoc).data = new RichTextField('{"doc":{"type":"doc","content":[{"type":"paragraph","attrs":{"align":null,"color":null,"id":null,"indent":null,"inset":null,"lineSpacing":null,"paddingBottom":null,"paddingTop":null},"content":[{"type":"dashField","attrs":{"fieldKey":"title","docid":""}}]}]},"selection":{"type":"text","anchor":2,"head":2},"storedMarks":[]}', "");
@@ -253,10 +253,11 @@ export class CurrentUserUtils {
             { _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, dropAction: "alias", onClick: ScriptField.MakeScript("redo()"), removeDropProperties: new List<string>(["dropAction"]), title: "redo button", icon: "redo-alt" });
         doc.slidesBtn = Docs.Create.FontIconDocument(
             { _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, dropAction: "alias", onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'), dragFactory: slideTemplate, removeDropProperties: new List<string>(["dropAction"]), title: "presentation slide", icon: "sticky-note" });
-        doc.expandingButtons = Docs.Create.LinearDocument([doc.undoBtn as Doc, doc.redoBtn as Doc, doc.slidesBtn as Doc], {
+        doc.descriptionBtn = Docs.Create.FontIconDocument(
+            { _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, dropAction: "alias", onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'), dragFactory: descriptionTemplate, removeDropProperties: new List<string>(["dropAction"]), title: "description view", icon: "sticky-note" });
+        doc.expandingButtons = Docs.Create.LinearDocument([doc.undoBtn as Doc, doc.redoBtn as Doc, doc.slidesBtn as Doc, doc.descriptionBtn as Doc], {
             title: "expanding buttons", _gridGap: 5, _xMargin: 5, _yMargin: 5, _height: 42, _width: 100, boxShadow: "0 0",
-            backgroundColor: "black", preventTreeViewOpen: true, forceActive: true, lockedPosition: true,
-
+            backgroundColor: "black", treeViewPreventOpen: true, forceActive: true, lockedPosition: true,
             dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name })
         });
     }
@@ -264,8 +265,6 @@ export class CurrentUserUtils {
     // sets up the default set of documents to be shown in the Overlay layer
     static setupOverlays(doc: Doc) {
         doc.overlays = Docs.Create.FreeformDocument([], { title: "Overlays", backgroundColor: "#aca3a6" });
-        doc.linkFollowBox = Docs.Create.LinkFollowBoxDocument({ x: 250, y: 20, _width: 500, _height: 370, title: "Link Follower" });
-        Doc.AddDocToList(doc.overlays as Doc, "data", doc.linkFollowBox as Doc);
     }
 
     // the initial presentation Doc to use
@@ -281,6 +280,7 @@ export class CurrentUserUtils {
     static updateUserDocument(doc: Doc) {
         doc.title = Doc.CurrentUserEmail;
         new InkingControl();
+        (doc.noteTypes === undefined) && CurrentUserUtils.setupDefaultDocTemplates(doc);
         (doc.optionalRightCollection === undefined) && CurrentUserUtils.setupMobileUploads(doc);
         (doc.overlays === undefined) && CurrentUserUtils.setupOverlays(doc);
         (doc.expandingButtons === undefined) && CurrentUserUtils.setupExpandingButtons(doc);
