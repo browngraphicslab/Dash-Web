@@ -19,7 +19,8 @@ import { DocumentManager } from "../util/DocumentManager";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faBullseye, faLink } from "@fortawesome/free-solid-svg-icons";
-import { DocUtils } from "../documents/Documents";
+import { DocUtils, Docs } from "../documents/Documents";
+import { ContentFittingDocumentView } from "./nodes/ContentFittingDocumentView";
 
 export interface RecProps {
     documents: { preview: Doc, similarity: number }[];
@@ -156,26 +157,32 @@ export class SearchDocBox extends React.Component<FieldViewProps> {
 
     componentDidMount() { //TODO: invoking a computedFn from outside an reactive context won't be memoized, unless keepAlive is set
         runInAction(() => {
-            if (this._docViews.length === 0) {
-                this._docViews = DocListCast(this.props.Document.data).map(doc => {
-                    return (
-                        <div className="content">
-                            <span style={{ height: NumCast(this.props.Document.documentIconHeight) }} className="image-background">
-                                {this.DocumentIcon(doc)}
-                            </span>
-                            <span className="score">{NumCast(doc.score).toFixed(4)}</span>
-                            <div style={{ marginRight: 50 }} onClick={() => DocumentManager.Instance.jumpToDocument(doc, false)}>
-                                <FontAwesomeIcon className="documentdecorations-icon" icon={"bullseye"} size="sm" />
-                            </div>
-                            <div style={{ marginRight: 50 }} onClick={() => DocUtils.MakeLink({ doc: this.props.Document.sourceDoc as Doc }, { doc: doc }, "User Selected Link", "Generated from Recommender", undefined)}>
-                                <FontAwesomeIcon className="documentdecorations-icon" icon={"link"} size="sm" />
-                            </div>
-                        </div>
-                    );
-                });
-            }
+            //if (this._docViews.length === 0) {
+            //this._docViews =
+            this.content = (Docs.Create.TreeDocument(DocListCast(Doc.GetProto(this.props.Document).data), { _width: 200, _height: 400, backgroundColor: "grey", title: `Search Docs: "Results"` }));
+
+            // this._docViews = DocListCast(this.props.Document.data).map(doc => {
+            //     return (
+            //         <div className="content">
+            //             <span style={{ height: NumCast(this.props.Document.documentIconHeight) }} className="image-background">
+            //                 {this.DocumentIcon(doc)}
+            //             </span>
+            //             <span className="score">{NumCast(doc.score).toFixed(4)}</span>
+            //             <div style={{ marginRight: 50 }} onClick={() => DocumentManager.Instance.jumpToDocument(doc, false)}>
+            //                 <FontAwesomeIcon className="documentdecorations-icon" icon={"bullseye"} size="sm" />
+            //             </div>
+            //             <div style={{ marginRight: 50 }} onClick={() => DocUtils.MakeLink({ doc: this.props.Document.sourceDoc as Doc }, { doc: doc }, "User Selected Link", "Generated from Recommender", undefined)}>
+            //                 <FontAwesomeIcon className="documentdecorations-icon" icon={"link"} size="sm" />
+            //             </div>
+            //         </div>
+            //     );
+            // });
+            //}
         });
     }
+
+    @observable
+    private content: Doc | undefined;
 
     render() { //TODO: Invariant violation: max depth exceeded error. Occurs when images are rendered. 
         // if (!this._display) {
@@ -188,9 +195,12 @@ export class SearchDocBox extends React.Component<FieldViewProps> {
         //     title = title.substring(0, 15) + "...";
         // }
         return (
-            <div className="rec-scroll">
-                {this._docViews}
-            </div>
+            //<div className="rec-scroll">
+            <ContentFittingDocumentView {...this.props}
+                Document={this.content}
+                getTransform={this.props.ScreenToLocalTransform}>
+            </ContentFittingDocumentView>
+            //</div>
         );
     }
     // 

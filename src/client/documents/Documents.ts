@@ -46,6 +46,7 @@ import { DocumentType } from "./DocumentTypes";
 import { RecommendationsBox } from "../views/RecommendationsBox";
 import { SearchDocBox } from "../views/SearchDocBox";
 
+
 //import { PresBox } from "../views/nodes/PresBox";
 //import { PresField } from "../../new_fields/PresField";
 import { LinkFollowBox } from "../views/linking/LinkFollowBox";
@@ -258,7 +259,7 @@ export namespace Docs {
                 layout: { view: InkingStroke, dataField: data },
                 options: { backgroundColor: "transparent" }
             }],
-            [DocumentType.SEARCH, {
+            [DocumentType.SEARCHBOX, {
                 layout: { view: SearchDocBox },
                 options: { width: 200, height: 200 },
             }]
@@ -594,8 +595,8 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.RECOMMENDATION), new List<Doc>(data), options);
         }
 
-        export function SearchDocument(options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.SEARCH), new List<Doc>(), options);
+        export function SearchDocument(documents: Array<Doc>, options: DocumentOptions = {}) {
+            return InstanceFromProto(Prototypes.get(DocumentType.SEARCHBOX), new List(documents), options);
         }
 
         export type DocConfig = {

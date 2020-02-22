@@ -28,5 +28,5 @@ export enum DocumentType {
     PDFANNO = "pdfanno",
     INK = "ink",
     DOCUMENT = "document",
-    SEARCH = "search",
+    SEARCHBOX = "searchbox",
 }
