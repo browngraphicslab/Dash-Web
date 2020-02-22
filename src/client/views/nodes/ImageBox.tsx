@@ -160,6 +160,19 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
             const funcs: ContextMenuProps[] = [];
             funcs.push({ description: "Copy path", event: () => Utils.CopyText(field.url.href), icon: "expand-arrows-alt" });
             funcs.push({ description: "Rotate", event: this.rotate, icon: "expand-arrows-alt" });
+            funcs.push({
+                description: "Reset Native Dimensions", event: action(() => {
+                    const curNW = NumCast(this.dataDoc[this.props.fieldKey + "-nativeWidth"]);
+                    const curNH = NumCast(this.dataDoc[this.props.fieldKey + "-nativeHeight"]);
+                    if (this.props.PanelWidth() / this.props.PanelHeight() > curNW / curNH) {
+                        this.dataDoc[this.props.fieldKey + "-nativeWidth"] = this.props.PanelHeight() * curNW / curNH;
+                        this.dataDoc[this.props.fieldKey + "-nativeHeight"] = this.props.PanelHeight();
+                    } else {
+                        this.dataDoc[this.props.fieldKey + "-nativeWidth"] = this.props.PanelWidth();
+                        this.dataDoc[this.props.fieldKey + "-nativeHeight"] = this.props.PanelWidth() * curNH / curNW;
+                    }
+                }), icon: "expand-arrows-alt"
+            });
 
             const existingAnalyze = ContextMenu.Instance.findByDescription("Analyzers...");
             const modes: ContextMenuProps[] = existingAnalyze && "subitems" in existingAnalyze ? existingAnalyze.subitems : [];
