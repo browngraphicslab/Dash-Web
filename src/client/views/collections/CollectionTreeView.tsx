@@ -421,7 +421,6 @@ class TreeView extends React.Component<TreeViewProps> {
         return <>
             <div className="docContainer" title="click to edit title" id={`docContainer-${this.props.parentKey}`} ref={reference} onPointerDown={onItemDown}
                 style={{
-                    color: this.props.document.isMinimized ? "red" : "inherit",
                     background: Doc.IsHighlighted(this.props.document) ? "orange" : Doc.IsBrushed(this.props.document) ? "#06121212" : "0",
                     fontWeight: this.props.document.searchMatch ? "bold" : undefined,
                     outline: BoolCast(this.props.document.workspaceBrush) ? "dashed 1px #06123232" : undefined,

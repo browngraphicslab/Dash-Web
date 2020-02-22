@@ -8,7 +8,6 @@ import { Cast, StrCast } from '../../../new_fields/Types';
 import { DragManager } from '../../util/DragManager';
 import { LinkManager } from '../../util/LinkManager';
 import { ContextMenu } from '../ContextMenu';
-import { LinkFollowBox } from './LinkFollowBox';
 import './LinkMenuItem.scss';
 import React = require("react");
 import { DocumentManager } from '../../util/DocumentManager';

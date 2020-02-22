@@ -19,7 +19,6 @@ export enum DocumentType {
     WEBCAM = "webcam",
     FONTICON = "fonticonbox",
     PRES = "presentation",
-    LINKFOLLOW = "linkfollow",
     PRESELEMENT = "preselement",
     QUERY = "search",
     COLOR = "color",

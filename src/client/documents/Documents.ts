@@ -40,7 +40,6 @@ import { PresBox } from "../views/nodes/PresBox";
 import { ComputedField, ScriptField } from "../../new_fields/ScriptField";
 import { ProxyField } from "../../new_fields/Proxy";
 import { DocumentType } from "./DocumentTypes";
-import { LinkFollowBox } from "../views/linking/LinkFollowBox";
 import { PresElementBox } from "../views/presentationview/PresElementBox";
 import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
 import { QueryBox } from "../views/nodes/QueryBox";
@@ -249,9 +248,6 @@ export namespace Docs {
             [DocumentType.FONTICON, {
                 layout: { view: FontIconBox, dataField: data },
                 options: { _width: 40, _height: 40, borderRounding: "100%" },
-            }],
-            [DocumentType.LINKFOLLOW, {
-                layout: { view: LinkFollowBox, dataField: data }
             }],
             [DocumentType.WEBCAM, {
                 layout: { view: DashWebRTCVideo, dataField: data }
@@ -656,10 +652,6 @@ export namespace Docs {
 
         export function FontIconDocument(options?: DocumentOptions) {
             return InstanceFromProto(Prototypes.get(DocumentType.FONTICON), undefined, { ...(options || {}) });
-        }
-
-        export function LinkFollowBoxDocument(options?: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.LINKFOLLOW), undefined, { ...(options || {}) });
         }
 
         export function PresElementBoxDocument(options?: DocumentOptions) {

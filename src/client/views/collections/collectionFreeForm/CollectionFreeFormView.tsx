@@ -111,7 +111,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         SelectionManager.DeselectAll();
         docs.map(doc => DocumentManager.Instance.getDocumentView(doc)).map(dv => dv && SelectionManager.SelectDoc(dv, true));
     }
-    public isCurrent(doc: Doc) { return !doc.isMinimized && (Math.abs(NumCast(doc.displayTimecode, -1) - NumCast(this.Document.currentTimecode, -1)) < 1.5 || NumCast(doc.displayTimecode, -1) === -1); }
+    public isCurrent(doc: Doc) { return (Math.abs(NumCast(doc.displayTimecode, -1) - NumCast(this.Document.currentTimecode, -1)) < 1.5 || NumCast(doc.displayTimecode, -1) === -1); }
 
     public getActiveDocuments = () => {
         return this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)).map(pair => pair.layout);
@@ -433,7 +433,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
         let x = this.Document._panX || 0;
         let y = this.Document._panY || 0;
-        const docs = this.childLayoutPairs.filter(pair => pair.layout instanceof Doc && !pair.layout.isMinimized).map(pair => pair.layout);
+        const docs = this.childLayoutPairs.filter(pair => pair.layout instanceof Doc).map(pair => pair.layout);
         const [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
         if (!this.isAnnotationOverlay && docs.length && this.childDataProvider(docs[0])) {
             PDFMenu.Instance.fadeOut(true);
@@ -869,7 +869,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             }));
         this._cachedPool.clear();
         Array.from(newPool.keys()).forEach(k => this._cachedPool.set(k, newPool.get(k)));
-        const elements:ViewDefResult[] = computedElementData.slice();
+        const elements: ViewDefResult[] = computedElementData.slice();
         this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)).forEach(pair =>
             elements.push({
                 ele: <CollectionFreeFormDocumentView key={pair.layout[Id]}  {...this.getChildDocumentViewProps(pair.layout, pair.data)}

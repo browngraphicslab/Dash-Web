@@ -9,7 +9,6 @@ import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { CollectionSchemaView } from "../collections/CollectionSchemaView";
 import { CollectionView } from "../collections/CollectionView";
-import { LinkFollowBox } from "../linking/LinkFollowBox";
 import { YoutubeBox } from "./../../apis/youtube/YoutubeBox";
 import { AudioBox } from "./AudioBox";
 import { ButtonBox } from "./ButtonBox";
@@ -108,7 +107,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
                 components={{
                     FormattedTextBox, ImageBox, DirectoryImportBox, FontIconBox, ButtonBox, SliderBox, FieldView,
                     CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox,
-                    PDFBox, VideoBox, AudioBox, HistogramBox, PresBox, YoutubeBox, LinkFollowBox, PresElementBox, QueryBox,
+                    PDFBox, VideoBox, AudioBox, HistogramBox, PresBox, YoutubeBox, PresElementBox, QueryBox,
                     ColorBox, DashWebRTCVideo, DocuLinkBox, InkingStroke, DocumentBox, LinkBox
                 }}
                 bindings={this.CreateBindings()}

@@ -265,8 +265,6 @@ export class CurrentUserUtils {
     // sets up the default set of documents to be shown in the Overlay layer
     static setupOverlays(doc: Doc) {
         doc.overlays = Docs.Create.FreeformDocument([], { title: "Overlays", backgroundColor: "#aca3a6" });
-        doc.linkFollowBox = Docs.Create.LinkFollowBoxDocument({ x: 250, y: 20, _width: 500, _height: 370, title: "Link Follower" });
-        Doc.AddDocToList(doc.overlays as Doc, "data", doc.linkFollowBox as Doc);
     }
 
     // the initial presentation Doc to use

@@ -71,7 +71,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
         }
     }
 
-    public isCurrent(doc: Doc) { return !doc.isMinimized && (Math.abs(NumCast(doc.displayTimecode, -1) - NumCast(this.Document.currentTimecode, -1)) < 1.5 || NumCast(doc.displayTimecode, -1) === -1); }
+    public isCurrent(doc: Doc) { return (Math.abs(NumCast(doc.displayTimecode, -1) - NumCast(this.Document.currentTimecode, -1)) < 1.5 || NumCast(doc.displayTimecode, -1) === -1); }
 
     dimension = () => NumCast(this.props.Document._height); // 2 * the padding
     getTransform = (ele: React.RefObject<HTMLDivElement>) => () => {
