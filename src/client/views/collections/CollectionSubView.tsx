@@ -334,8 +334,8 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 const proto = Doc.GetProto(doc);
                 proto.fileUpload = basename(pathname).replace("upload_", "").replace(/\.[a-z0-9]*$/, "");
                 if (Upload.isImageInformation(result)) {
-                    proto["data-nativeWidth"] = result.nativeWidth;
-                    proto["data-nativeHeight"] = result.nativeHeight;
+                    proto["data-nativeWidth"] = (result.nativeWidth > result.nativeHeight) ? 400 * result.nativeWidth / result.nativeHeight : 400;
+                    proto["data-nativeHeight"] = (result.nativeWidth > result.nativeHeight) ? 400 : 400 / (result.nativeWidth / result.nativeHeight);
                     proto.contentSize = result.contentSize;
                 }
                 generatedDocuments.push(doc);
