@@ -6,7 +6,7 @@ import * as path from 'path';
 import { pathToDirectory, Directory } from "./UploadManager";
 import { red, cyan, yellow } from "colors";
 import RouteSubscriber from "../RouteSubscriber";
-import { exec } from "child_process";
+import { exec, execSync } from "child_process";
 import { onWindows } from "..";
 import { get } from "request-promise";
 
@@ -23,6 +23,10 @@ export class SearchManager extends ApiManager {
                     const status = req.params.action === "start";
                     const success = await SolrManager.SetRunning(status);
                     console.log(success ? `Successfully ${status ? "started" : "stopped"} Solr!` : `Uh oh! Check the console for the error that occurred while ${status ? "starting" : "stopping"} Solr`);
+                } else if (action === "update") {
+                    execSync("npx ts-node updateSearch.ts", { cwd: path.resolve(__dirname, "../"), stdio: "inherit" });
+                } else {
+                    console.log(yellow(`${action} is an unknown solr operation.`));
                 }
                 res.redirect("/home");
             }
