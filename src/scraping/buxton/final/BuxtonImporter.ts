@@ -41,7 +41,11 @@ export interface AnalysisResult {
     errors?: { [key: string]: string };
 }
 
-type Transformer<T> = (raw: string) => { transformed?: T, error?: string };
+type Transformer<T> = (raw: string) => TransformResult<T>;
+interface TransformResult<T> {
+    transformed?: T;
+    error?: string;
+}
 
 export interface ImportResults {
     deviceCount: number;
@@ -66,7 +70,7 @@ interface ImageData {
 
 namespace Utilities {
 
-    export function numberValue(raw: string) {
+    export function numberValue(raw: string): TransformResult<number> {
         const transformed = Number(raw);
         if (isNaN(transformed)) {
             return { error: `${raw} cannot be parsed to a numeric value.` };
@@ -74,13 +78,13 @@ namespace Utilities {
         return { transformed };
     }
 
-    export function collectUniqueTokens(raw: string) {
+    export function collectUniqueTokens(raw: string): TransformResult<string[]> {
         const pieces = raw.replace(/,|\s+and\s+/g, " ").split(/\s+/).filter(piece => piece.length);
         const unique = new Set(pieces.map(token => token.toLowerCase().trim()));
         return { transformed: Array.from(unique).map(capitalize).sort() };
     }
 
-    export function correctSentences(raw: string) {
+    export function correctSentences(raw: string): TransformResult<string> {
         raw = raw.replace(/\./g, ". ").replace(/\:/g, ": ").replace(/\,/g, ", ").replace(/\?/g, "? ").trimRight();
         raw = raw.replace(/\s{2,}/g, " ");
         return { transformed: raw };
@@ -126,16 +130,25 @@ const RegexMap = new Map<keyof DeviceDocument, Processor<any>>([
     }],
     ["primaryKey", {
         exp: /Primary:\s+(.*)(Secondary|Additional):/,
-        transformer: raw => ({ transformed: Utilities.collectUniqueTokens(raw).transformed[0] })
+        transformer: raw => {
+            const { transformed, error } = Utilities.collectUniqueTokens(raw);
+            return transformed ? { transformed: transformed[0] } : { error };
+        }
     }],
     ["secondaryKey", {
         exp: /(Secondary|Additional):\s+(.*)Attributes?:/,
-        transformer: raw => ({ transformed: Utilities.collectUniqueTokens(raw).transformed[0] }),
+        transformer: raw => {
+            const { transformed, error } = Utilities.collectUniqueTokens(raw);
+            return transformed ? { transformed: transformed[0] } : { error };
+        },
         matchIndex: 2
     }],
     ["attribute", {
         exp: /Attributes?:\s+(.*)Links/,
-        transformer: raw => ({ transformed: Utilities.collectUniqueTokens(raw).transformed[0] }),
+        transformer: raw => {
+            const { transformed, error } = Utilities.collectUniqueTokens(raw);
+            return transformed ? { transformed: transformed[0] } : { error };
+        },
     }],
     ["originalPrice", {
         exp: /Original Price \(USD\)\:\s+(\$[0-9\,]+\.[0-9]+|NFS)/,
