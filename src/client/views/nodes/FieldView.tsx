@@ -35,6 +35,7 @@ export interface FieldViewProps {
     moveDocument?: (document: Doc, targetCollection: Doc | undefined, addDocument: (document: Doc) => boolean) => boolean;
     backgroundColor?: (document: Doc) => string | undefined;
     ScreenToLocalTransform: () => Transform;
+    bringToFront: (doc: Doc, sendToBack?: boolean) => void;
     active: (outsideReaction?: boolean) => boolean;
     whenActiveChanged: (isActive: boolean) => void;
     focus: (doc: Doc) => void;

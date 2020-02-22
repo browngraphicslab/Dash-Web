@@ -82,6 +82,7 @@ export class DocuLinkBox extends DocComponent<FieldViewProps, DocLinkSchema>(Doc
     onClick = (e: React.MouseEvent) => {
         if (!this._doubleTap) {
             this._editing = true;
+            this.props.ContainingCollectionDoc && this.props.bringToFront(this.props.ContainingCollectionDoc, false);
             if (!this.props.Document.onClick && !this._isOpen) {
                 this._timeout = setTimeout(action(() => {
                     if (Math.abs(e.clientX - this._downX) < 3 && Math.abs(e.clientY - this._downY) < 3 && (e.button !== 2 && !e.ctrlKey && this.props.Document.isButton)) {
