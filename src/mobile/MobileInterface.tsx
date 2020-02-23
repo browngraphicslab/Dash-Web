@@ -35,6 +35,10 @@ import GoogleAuthenticationManager from '../client/apis/GoogleAuthenticationMana
 import { listSpec } from '../new_fields/Schema';
 import { Id } from '../new_fields/FieldSymbols';
 import { DocumentManager } from '../client/util/DocumentManager';
+import RichTextMenu from '../client/util/RichTextMenu';
+import { WebField } from "../new_fields/URLField";
+import { FieldResult } from "../new_fields/Doc";
+import { List } from '../new_fields/List';
 
 library.add(faLongArrowAltLeft);
 
@@ -235,17 +239,42 @@ export default class MobileInterface extends React.Component {
         e.preventDefault();
     }
 
+    addWebToCollection = async () => {
+        let url = "https://en.wikipedia.org/wiki/Hedgehog";
+        if (this.mainContainer) {
+            const data = Cast(this.mainContainer.data, listSpec(Doc));
+            if (data) {
+                const webDoc = await data[0];
+                const urlField: FieldResult<WebField> = Cast(webDoc.data, WebField);
+                url = urlField ? urlField.url.toString() : "https://en.wikipedia.org/wiki/Hedgehog";
+
+            }
+        }
+        Docs.Create.WebDocument(url, { _width: 300, _height: 300, title: "Mobile Upload Web Doc" });
+    }
+
+    clearUpload = async () => {
+        if (this.mainContainer) {
+            const data = Cast(this.mainContainer.data, listSpec(Doc));
+            if (data) {
+                const collectionDoc = await data[1];
+                const children = DocListCast(collectionDoc.data);
+                children.forEach(doc => {
+                });
+                // collectionDoc[data] = new List<Doc>();
+            }
+        }
+    }
+
     renderUploadContent() {
         if (this.mainContainer) {
             return (
                 <div className="mobileInterface" onDragOver={this.onDragOver}>
                     <div className="mobileInterface-inkInterfaceButtons">
-                        <div className="navButtons">
-                            <button className="mobileInterface-button cancel" onClick={this.onBack} title="Back">BACK</button>
-                        </div>
-                        <div className="uploadSettings">
-                            <button className="mobileInterface-button" onClick={this.upload} title="Upload">UPLOAD</button>
-                        </div>
+                        <button className="mobileInterface-button cancel" onClick={this.onBack} title="Back">BACK</button>
+                        {/* <button className="mobileInterface-button" onClick={this.clearUpload} title="Clear Upload">CLEAR</button> */}
+                        {/* <button className="mobileInterface-button" onClick={this.addWeb} title="Add Web Doc to Upload Collection"></button> */}
+                        <button className="mobileInterface-button" onClick={this.upload} title="Upload">UPLOAD</button>
                     </div>
                     <DocumentView
                         Document={this.mainContainer}
@@ -302,6 +331,7 @@ export default class MobileInterface extends React.Component {
                 <PreviewCursor />
                 {/* <ContextMenu /> */}
                 <RadialMenu />
+                <RichTextMenu />
                 {/* <PDFMenu />
                 <MarqueeOptionsMenu />
                 <OverlayView /> */}
@@ -315,4 +345,5 @@ Scripting.addGlobal(function onSwitchMobileInking() { return MobileInterface.Ins
 Scripting.addGlobal(function renderMobileInking() { return MobileInterface.Instance.renderInkingContent(); });
 Scripting.addGlobal(function onSwitchMobileUpload() { return MobileInterface.Instance.onSwitchUpload(); });
 Scripting.addGlobal(function renderMobileUpload() { return MobileInterface.Instance.renderUploadContent(); });
+Scripting.addGlobal(function addWebToMobileUpload() { return MobileInterface.Instance.addWebToCollection(); });
 

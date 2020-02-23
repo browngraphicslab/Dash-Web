@@ -28,10 +28,12 @@ import { List } from "../../new_fields/List";
 import { CollectionViewType } from "./collections/CollectionView";
 import TouchScrollableMenu, { TouchScrollableMenuItem } from "./TouchScrollableMenu";
 import { RadialMenu } from "./nodes/RadialMenu";
-import { SelectionManager } from "../util/SelectionManager";
 import MobileInterface from "../../mobile/MobileInterface";
 import { MobileInkOverlayContent } from "../../server/Message";
 import MobileInkOverlay from "../../mobile/MobileInkOverlay";
+import { RadialMenu } from "./nodes/RadialMenu";
+import { SelectionManager } from "../util/SelectionManager";
+
 
 @observer
 export default class GestureOverlay extends Touchable {

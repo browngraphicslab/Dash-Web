@@ -155,7 +155,8 @@ export class CurrentUserUtils {
     }
 
     static setupMobileUploadDoc(userDoc: Doc) {
-        const webDoc = Docs.Create.WebDocument("https://www.britannica.com/animal/cat", {
+        // const addButton = Docs.Create.FontIconDocument({ onDragStart: ScriptField.MakeScript('addWebToMobileUpload()'), title: "Add Web Doc to Upload Collection", icon: "plus", backgroundColor: "black" })
+        const webDoc = Docs.Create.WebDocument("https://www.britannica.com/biography/Miles-Davis", {
             title: "Upload Images From the Web", _chromeStatus: "enabled", lockedPosition: true
         });
         const uploadDoc = Docs.Create.StackingDocument([], {

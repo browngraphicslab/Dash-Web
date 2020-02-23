@@ -102,6 +102,7 @@ export default class MobileInkOverlay extends React.Component {
             const complete = new DragManager.DragCompleteEvent(false, dragData);
 
             if (target) {
+                console.log("dispatching upload doc!!!!", target, doc);
                 target.dispatchEvent(
                     new CustomEvent<DragManager.DropEvent>("dashOnDrop",
                         {

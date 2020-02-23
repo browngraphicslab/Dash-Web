@@ -700,7 +700,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                         setTimeout(async () => {
                             const targetField = Doc.LayoutFieldKey(pdfDoc);
                             const targetAnnotations = await DocListCastAsync(pdfDoc[DataSym][targetField + "-annotations"]);// bcz: better to have the PDF's view handle updating its own annotations
-                            targetAnnotations?.push(pdfRegion);
+                            targetAnnotations ?.push(pdfRegion);
                         });
 
                         const link = DocUtils.MakeLink({ doc: this.props.Document, ctx: this.props.ContainingCollectionDoc }, { doc: pdfRegion, ctx: pdfDoc }, "note on " + pdfDoc.title, "pasted PDF link");
@@ -742,14 +742,14 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         const rtfField = Cast(this.props.Document._textTemplate || this.dataDoc[fieldKey], RichTextField);
         if (this.ProseRef) {
             const self = this;
-            this._editorView?.destroy();
+            this._editorView ?.destroy();
             this._editorView = new EditorView(this.ProseRef, {
-                state: rtfField?.Data ? EditorState.fromJSON(config, JSON.parse(rtfField.Data)) : EditorState.create(config),
+                state: rtfField ?.Data ? EditorState.fromJSON(config, JSON.parse(rtfField.Data)) : EditorState.create(config),
                 handleScrollToSelection: (editorView) => {
                     const ref = editorView.domAtPos(editorView.state.selection.from);
                     let refNode = ref.node as any;
                     while (refNode && !("getBoundingClientRect" in refNode)) refNode = refNode.parentElement;
-                    const r1 = refNode?.getBoundingClientRect();
+                    const r1 = refNode ?.getBoundingClientRect();
                     const r3 = self._ref.current!.getBoundingClientRect();
                     if (r1.top < r3.top || r1.top > r3.bottom) {
                         r1 && (self._scrollRef.current!.scrollTop += (r1.top - r3.top) * self.props.ScreenToLocalTransform().Scale);
@@ -848,11 +848,11 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         this.tryUpdateHeight();
 
         // see if we need to preserve the insertion point
-        const prosediv = this.ProseRef?.children?.[0] as any;
-        const keeplocation = prosediv?.keeplocation;
+        const prosediv = this.ProseRef ?.children ?.[0] as any;
+        const keeplocation = prosediv ?.keeplocation;
         prosediv && (prosediv.keeplocation = undefined);
-        const pos = this._editorView?.state.selection.$from.pos || 1;
-        keeplocation && setTimeout(() => this._editorView?.dispatch(this._editorView?.state.tr.setSelection(TextSelection.create(this._editorView.state.doc, pos))));
+        const pos = this._editorView ?.state.selection.$from.pos || 1;
+        keeplocation && setTimeout(() => this._editorView ?.dispatch(this._editorView ?.state.tr.setSelection(TextSelection.create(this._editorView.state.doc, pos))));
 
         // jump rich text menu to this textbox
         const { current } = this._ref;
@@ -876,13 +876,13 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         if ((this._editorView!.root as any).getSelection().isCollapsed) { // this is a hack to allow the cursor to be placed at the end of a document when the document ends in an inline dash comment.  Apparently Chrome on Windows has a bug/feature which breaks this when clicking after the end of the text.
             const pcords = this._editorView!.posAtCoords({ left: e.clientX, top: e.clientY });
             const node = pcords && this._editorView!.state.doc.nodeAt(pcords.pos); // get what prosemirror thinks the clicked node is (if it's null, then we didn't click on any text)
-            if (pcords && node?.type === this._editorView!.state.schema.nodes.dashComment) {
+            if (pcords && node ?.type === this._editorView!.state.schema.nodes.dashComment) {
                 this._editorView!.dispatch(this._editorView!.state.tr.setSelection(TextSelection.create(this._editorView!.state.doc, pcords.pos + 2)));
                 e.preventDefault();
             }
             if (!node && this.ProseRef) {
                 const lastNode = this.ProseRef.children[this.ProseRef.children.length - 1].children[this.ProseRef.children[this.ProseRef.children.length - 1].children.length - 1]; // get the last prosemirror div
-                if (e.clientY > lastNode?.getBoundingClientRect().bottom) { // if we clicked below the last prosemirror div, then set the selection to be the end of the document
+                if (e.clientY > lastNode ?.getBoundingClientRect().bottom) { // if we clicked below the last prosemirror div, then set the selection to be the end of the document
                     this._editorView!.dispatch(this._editorView!.state.tr.setSelection(TextSelection.create(this._editorView!.state.doc, this._editorView!.state.doc.content.size)));
                 }
             }
@@ -939,7 +939,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                 for (let off = 1; off < 100; off++) {
                     const pos = this._editorView!.posAtCoords({ left: x + off, top: y });
                     const node = pos && this._editorView!.state.doc.nodeAt(pos.pos);
-                    if (node?.type === schema.nodes.list_item) {
+                    if (node ?.type === schema.nodes.list_item) {
                         list_node = node;
                         break;
                     }
@@ -984,7 +984,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         const self = FormattedTextBox;
         return new Plugin({
             view(newView) {
-                RichTextMenu.Instance.changeView(newView);
+                RichTextMenu.Instance && RichTextMenu.Instance.changeView(newView);
                 return RichTextMenu.Instance;
             }
         });
@@ -1021,7 +1021,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         }
         if (e.key === "Escape") {
             this._editorView!.dispatch(state.tr.setSelection(TextSelection.create(state.doc, state.selection.from, state.selection.from)));
-            (document.activeElement as any).blur?.();
+            (document.activeElement as any).blur ?.();
             SelectionManager.DeselectAll();
         }
         e.stopPropagation();
@@ -1043,7 +1043,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
 
     @action
     tryUpdateHeight(limitHeight?: number) {
-        let scrollHeight = this._ref.current?.scrollHeight;
+        let scrollHeight = this._ref.current ?.scrollHeight;
         if (!this.layoutDoc.animateToPos && this.layoutDoc._autoHeight && scrollHeight &&
             getComputedStyle(this._ref.current!.parentElement!).top === "0px") {  // if top === 0, then the text box is growing upward (as the overlay caption) which doesn't contribute to the height computation
             if (limitHeight && scrollHeight > limitHeight) {

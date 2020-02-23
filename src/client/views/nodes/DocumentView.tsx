@@ -165,14 +165,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         me.touchEvent.stopPropagation();
         me.touchEvent.preventDefault();
         e.stopPropagation();
-
-
+        if (RadialMenu.Instance.used) {
+            this.onContextMenu(me.touches[0]);
+        }
     }
 
     @action
     onRadialMenu = (e: Event, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>): void => {
-        console.log("DISPLAYMENUUUU");
-        console.log(me.touchEvent.touches);
         // console.log(InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true));
         // const pt = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true)[0];
         const pt = me.touchEvent.touches[me.touchEvent.touches.length - 1];
@@ -744,7 +743,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             return;
         }
         e.persist();
-        e.stopPropagation();
+        e?.stopPropagation();
         if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3 ||
             e.isDefaultPrevented()) {
             e.preventDefault();
@@ -836,12 +835,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
         ext_recommender_subitems.push({
             description: "arXiv",
-            event: () => this.externalRecommendation(e, "arxiv"),
+            event: () => this.externalRecommendation("arxiv"),
             icon: "brain"
         });
         ext_recommender_subitems.push({
             description: "Bing",
-            event: () => this.externalRecommendation(e, "bing"),
+            event: () => this.externalRecommendation("bing"),
             icon: "brain"
         });
 
@@ -891,7 +890,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
             if (!this.topMost) {
                 // DocumentViews should stop propagation of this event
-                e.stopPropagation();
+                me?.stopPropagation();
             }
             ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
             if (!SelectionManager.IsSelected(this, true)) {
@@ -964,7 +963,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     @action
-    externalRecommendation = async (e: React.MouseEvent, api: string) => {
+    externalRecommendation = async (api: string) => {
         if (!ClientRecommender.Instance) new ClientRecommender({ title: "Client Recommender" });
         ClientRecommender.Instance.reset_docs();
         const doc = Doc.GetDataDoc(this.props.Document);

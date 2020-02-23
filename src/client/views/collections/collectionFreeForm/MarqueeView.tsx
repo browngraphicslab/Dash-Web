@@ -1,7 +1,7 @@
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast, DataSym, WidthSym, HeightSym } from "../../../../new_fields/Doc";
-import { InkField } from "../../../../new_fields/InkField";
+import { InkField, InkData } from "../../../../new_fields/InkField";
 import { List } from "../../../../new_fields/List";
 import { listSpec } from "../../../../new_fields/Schema";
 import { SchemaHeaderField } from "../../../../new_fields/SchemaHeaderField";
@@ -382,8 +382,18 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
                     wordToColor.set(word, colors[i]);
                 });
             });
-            const inkFields = inks.map(i => Cast(i.data, InkField));
-            CognitiveServices.Inking.Appliers.InterpretStrokes(inkFields.filter(i => i instanceof InkField).map(i => i!.inkData)).then((results) => {
+            const strokes: InkData[] = [];
+            inks.forEach(i => {
+                const d = Cast(i.data, InkField);
+                const x = NumCast(i.x);
+                const y = NumCast(i.y);
+                const left = Math.min(...d?.inkData.map(pd => pd.X) ?? [0]);
+                const top = Math.min(...d?.inkData.map(pd => pd.Y) ?? [0]);
+                if (d) {
+                    strokes.push(d.inkData.map(pd => ({ X: pd.X + x - left, Y: pd.Y + y - top })));
+                }
+            });
+            CognitiveServices.Inking.Appliers.InterpretStrokes(strokes).then((results) => {
                 // const wordResults = results.filter((r: any) => r.category === "inkWord");
                 // console.log(wordResults);
                 // console.log(results);
@@ -403,29 +413,33 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
                 //         }
                 //     })
                 // }
-                const wordResults = results.filter((r: any) => r.category === "inkWord");
-                for (const word of wordResults) {
-                    const indices: number[] = word.strokeIds;
-                    indices.forEach(i => {
-                        const otherInks: Doc[] = [];
-                        indices.forEach(i2 => i2 !== i && otherInks.push(inks[i2]));
-                        inks[i].relatedInks = new List<Doc>(otherInks);
-                        const uniqueColors: string[] = [];
-                        Array.from(wordToColor.values()).forEach(c => uniqueColors.indexOf(c) === -1 && uniqueColors.push(c));
-                        inks[i].alternativeColors = new List<string>(uniqueColors);
-                        if (wordToColor.has(word.recognizedText.toLowerCase())) {
-                            inks[i].color = wordToColor.get(word.recognizedText.toLowerCase());
-                        }
-                        else if (word.alternates) {
-                            for (const alt of word.alternates) {
-                                if (wordToColor.has(alt.recognizedString.toLowerCase())) {
-                                    inks[i].color = wordToColor.get(alt.recognizedString.toLowerCase());
-                                    break;
-                                }
-                            }
-                        }
-                    });
-                }
+                // const wordResults = results.filter((r: any) => r.category === "inkWord");
+                // for (const word of wordResults) {
+                //     const indices: number[] = word.strokeIds;
+                //     indices.forEach(i => {
+                //         const otherInks: Doc[] = [];
+                //         indices.forEach(i2 => i2 !== i && otherInks.push(inks[i2]));
+                //         inks[i].relatedInks = new List<Doc>(otherInks);
+                //         const uniqueColors: string[] = [];
+                //         Array.from(wordToColor.values()).forEach(c => uniqueColors.indexOf(c) === -1 && uniqueColors.push(c));
+                //         inks[i].alternativeColors = new List<string>(uniqueColors);
+                //         if (wordToColor.has(word.recognizedText.toLowerCase())) {
+                //             inks[i].color = wordToColor.get(word.recognizedText.toLowerCase());
+                //         }
+                //         else if (word.alternates) {
+                //             for (const alt of word.alternates) {
+                //                 if (wordToColor.has(alt.recognizedString.toLowerCase())) {
+                //                     inks[i].color = wordToColor.get(alt.recognizedString.toLowerCase());
+                //                     break;
+                //                 }
+                //             }
+                //         }
+                //     });
+                // }
+                const lines = results.filter((r: any) => r.category === "line");
+                console.log(lines);
+                const text = lines.map((l: any) => l.recognizedText).join("\r\n");
+                this.props.addDocument(Docs.Create.TextDocument(text, { _width: this.Bounds.width, _height: this.Bounds.height, x: this.Bounds.left + this.Bounds.width, y: this.Bounds.top, title: text }));
             });
         }
     }
