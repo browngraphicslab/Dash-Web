@@ -2,10 +2,10 @@ import { observer } from "mobx-react";
 import React = require("react");
 import { observable, action, computed, runInAction } from "mobx";
 import Measure from "react-measure";
-import "./RecommendationsBox.scss";
+import "./SearchBoxDoc.scss";
 import { Doc, DocListCast, WidthSym, HeightSym } from "../../new_fields/Doc";
 import { DocumentIcon } from "./nodes/DocumentIcon";
-import { StrCast, NumCast } from "../../new_fields/Types";
+import { StrCast, NumCast, BoolCast } from "../../new_fields/Types";
 import { returnFalse, emptyFunction, returnEmptyString, returnOne } from "../../Utils";
 import { Transform } from "../util/Transform";
 import { ObjectField } from "../../new_fields/ObjectField";
@@ -21,13 +21,16 @@ import { library } from "@fortawesome/fontawesome-svg-core";
 import { faBullseye, faLink } from "@fortawesome/free-solid-svg-icons";
 import { DocUtils, Docs } from "../documents/Documents";
 import { ContentFittingDocumentView } from "./nodes/ContentFittingDocumentView";
+import { EditableView } from "./EditableView";
 
 export interface RecProps {
     documents: { preview: Doc, similarity: number }[];
     node: Doc;
+
 }
 
 library.add(faBullseye, faLink);
+export const keyPlaceholder = "Query";
 
 @observer
 export class SearchDocBox extends React.Component<FieldViewProps> {
@@ -45,164 +48,86 @@ export class SearchDocBox extends React.Component<FieldViewProps> {
 
     constructor(props: FieldViewProps) {
         super(props);
+        this.editingMetadata = this.editingMetadata || false;
     }
 
-    @action
-    private DocumentIcon(doc: Doc) {
-        let layoutresult = StrCast(doc.type);
-        let renderDoc = doc;
-        //let box: number[] = [];
-        if (layoutresult.indexOf(DocumentType.COL) !== -1) {
-            renderDoc = Doc.MakeDelegate(renderDoc);
-        }
-        let returnXDimension = () => 150;
-        let returnYDimension = () => 150;
-        let scale = () => returnXDimension() / NumCast(renderDoc.nativeWidth, returnXDimension());
-        //let scale = () => 1;
-        let newRenderDoc = Doc.MakeAlias(renderDoc); ///   newRenderDoc -> renderDoc -> render"data"Doc -> TextProt
-        newRenderDoc.height = NumCast(this.props.Document.documentIconHeight);
-        newRenderDoc.autoHeight = false;
-        const docview = <div>
-            <DocumentView
-                fitToBox={StrCast(doc.type).indexOf(DocumentType.COL) !== -1}
-                Document={newRenderDoc}
-                addDocument={returnFalse}
-                removeDocument={returnFalse}
-                ruleProvider={undefined}
-                ScreenToLocalTransform={Transform.Identity}
-                addDocTab={returnFalse}
-                pinToPres={returnFalse}
-                renderDepth={1}
-                PanelWidth={returnXDimension}
-                PanelHeight={returnYDimension}
-                focus={emptyFunction}
-                backgroundColor={returnEmptyString}
-                parentActive={returnFalse}
-                whenActiveChanged={returnFalse}
-                bringToFront={emptyFunction}
-                zoomToScale={emptyFunction}
-                getScale={returnOne}
-                ContainingCollectionView={undefined}
-                ContainingCollectionDoc={undefined}
-                ContentScaling={scale}
-            />
-        </div>;
-        return docview;
 
+    @computed
+    private get editingMetadata() {
+        return BoolCast(this.props.Document.editingMetadata);
     }
 
-    // @action
-    // closeMenu = () => {
-    //     this._display = false;
-    //     this.previewDocs.forEach(doc => DocServer.DeleteDocument(doc[Id]));
-    //     this.previewDocs = [];
-    // }
-
-    // @action
-    // resetDocuments = () => {
-    //     this._documents = [];
-    // }
-
-    // @action
-    // displayRecommendations(x: number, y: number) {
-    //     this._pageX = x;
-    //     this._pageY = y;
-    //     this._display = true;
-    // }
+    @computed
+    private set editingMetadata(value: boolean) {
+        this.props.Document.editingMetadata = value;
+    }
 
     static readonly buffer = 20;
 
-    // get pageX() {
-    //     const x = this._pageX;
-    //     if (x < 0) {
-    //         return 0;
-    //     }
-    //     const width = this._width;
-    //     if (x + width > window.innerWidth - RecommendationsBox.buffer) {
-    //         return window.innerWidth - RecommendationsBox.buffer - width;
-    //     }
-    //     return x;
-    // }
-
-    // get pageY() {
-    //     const y = this._pageY;
-    //     if (y < 0) {
-    //         return 0;
-    //     }
-    //     const height = this._height;
-    //     if (y + height > window.innerHeight - RecommendationsBox.buffer) {
-    //         return window.innerHeight - RecommendationsBox.buffer - height;
-    //     }
-    //     return y;
-    // }
-
-    // get createDocViews() {
-    //     return DocListCast(this.props.Document.data).map(doc => {
-    //         return (
-    //             <div className="content">
-    //                 <span style={{ height: NumCast(this.props.Document.documentIconHeight) }} className="image-background">
-    //                     {this.DocumentIcon(doc)}
-    //                 </span>
-    //                 <span className="score">{NumCast(doc.score).toFixed(4)}</span>
-    //                 <div style={{ marginRight: 50 }} onClick={() => DocumentManager.Instance.jumpToDocument(doc, false)}>
-    //                     <FontAwesomeIcon className="documentdecorations-icon" icon={"bullseye"} size="sm" />
-    //                 </div>
-    //                 <div style={{ marginRight: 50 }} onClick={() => DocUtils.MakeLink({ doc: this.props.Document.sourceDoc as Doc }, { doc: doc }, "User Selected Link", "Generated from Recommender", undefined)}>
-    //                     <FontAwesomeIcon className="documentdecorations-icon" icon={"link"} size="sm" />
-    //                 </div>
-    //             </div>
-    //         );
-    //     });
-    // }
-
-    componentDidMount() { //TODO: invoking a computedFn from outside an reactive context won't be memoized, unless keepAlive is set
+    componentDidMount() {
         runInAction(() => {
-            //if (this._docViews.length === 0) {
-            //this._docViews =
-            this.content = (Docs.Create.TreeDocument(DocListCast(Doc.GetProto(this.props.Document).data), { _width: 200, _height: 400, backgroundColor: "grey", title: `Search Docs: "Results"` }));
-
-            // this._docViews = DocListCast(this.props.Document.data).map(doc => {
-            //     return (
-            //         <div className="content">
-            //             <span style={{ height: NumCast(this.props.Document.documentIconHeight) }} className="image-background">
-            //                 {this.DocumentIcon(doc)}
-            //             </span>
-            //             <span className="score">{NumCast(doc.score).toFixed(4)}</span>
-            //             <div style={{ marginRight: 50 }} onClick={() => DocumentManager.Instance.jumpToDocument(doc, false)}>
-            //                 <FontAwesomeIcon className="documentdecorations-icon" icon={"bullseye"} size="sm" />
-            //             </div>
-            //             <div style={{ marginRight: 50 }} onClick={() => DocUtils.MakeLink({ doc: this.props.Document.sourceDoc as Doc }, { doc: doc }, "User Selected Link", "Generated from Recommender", undefined)}>
-            //                 <FontAwesomeIcon className="documentdecorations-icon" icon={"link"} size="sm" />
-            //             </div>
-            //         </div>
-            //     );
-            // });
-            //}
+            this.content = (Docs.Create.TreeDocument(DocListCast(Doc.GetProto(this.props.Document).data), { _width: 200, _height: 400, _chromeStatus: "disabled", title: `Search Docs: "Results"` }));
+            this.query = StrCast(this.props.Document.searchText);
         });
     }
 
     @observable
     private content: Doc | undefined;
 
-    render() { //TODO: Invariant violation: max depth exceeded error. Occurs when images are rendered. 
-        // if (!this._display) {
-        //     return null;
-        // }
-        // let style = { left: this.pageX, top: this.pageY };
-        //const transform = "translate(" + (NumCast(this.props.node.x) + 350) + "px, " + NumCast(this.props.node.y) + "px"
-        // let title = StrCast((this.props.Document.sourceDoc as Doc).title);
-        // if (title.length > 15) {
-        //     title = title.substring(0, 15) + "...";
-        // }
+    @action
+    updateKey = (newKey: string) => {
+        this.query = newKey;
+        //this.keyRef.current && this.keyRef.current.setIsFocused(false);
+        //this.query.length === 0 && (this.query = keyPlaceholder);
+        return true;
+    }
+
+    @computed
+    public get query() {
+        return StrCast(this.props.Document.query);
+    }
+
+    public set query(value: string) {
+        this.props.Document.query = value;
+    }
+
+    render() {
+        const isEditing = this.editingMetadata;
+        console.log(isEditing);
         return (
-            //<div className="rec-scroll">
-            <ContentFittingDocumentView {...this.props}
-                Document={this.content}
-                getTransform={this.props.ScreenToLocalTransform}>
-            </ContentFittingDocumentView>
-            //</div>
+            <div style={{ pointerEvents: "all" }}>
+                <div
+                    style={{
+                        position: "absolute",
+                        right: 0,
+                        width: 20,
+                        height: 20,
+                        background: "black",
+                        pointerEvents: "all",
+                        opacity: 1,
+                        transition: "0.4s opacity ease",
+                        zIndex: 99,
+                    }}
+                    title={"Add Metadata"}
+                    onClick={action(() => this.editingMetadata = !this.editingMetadata)}
+                />
+                <div className="editableclass" style={{ opacity: isEditing ? 1 : 0, pointerEvents: isEditing ? "auto" : "none", transition: "0.4s opacity ease", }}>
+                    <EditableView
+                        contents={this.query}
+                        SetValue={this.updateKey}
+                        GetValue={() => ""}
+                    />
+                </div>
+                <div style={{
+                    pointerEvents: "none",
+                }}>
+                    <ContentFittingDocumentView {...this.props}
+                        Document={this.content}
+                        getTransform={this.props.ScreenToLocalTransform}>
+                    </ContentFittingDocumentView>
+                </div>
+            </div >
         );
     }
-    // 
-    // 
+
 }
