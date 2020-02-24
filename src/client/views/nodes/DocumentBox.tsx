@@ -27,9 +27,10 @@ export class DocumentBox extends DocAnnotatableComponent<FieldViewProps, DocBoxS
     _curSelection = -1;
     componentDidMount() {
         this._prevSelectionDisposer = reaction(() => Cast(this.props.Document[this.props.fieldKey], Doc) as Doc, (data) => {
-            if (data && !this._selections.includes(data)) {
-                this._selections.length = ++this._curSelection;
+            if (data && !this.isSelectionLocked()) {
+                this._selections.indexOf(data) !== -1 && this._selections.splice(this._selections.indexOf(data), 1);
                 this._selections.push(data);
+                this._curSelection = this._selections.length - 1;
             }
         });
     }
@@ -55,24 +56,37 @@ export class DocumentBox extends DocAnnotatableComponent<FieldViewProps, DocBoxS
     }
     toggleLockSelection = () => {
         !this.isSelectionLocked() ? this.lockSelection() : this.showSelection();
+        return true;
     }
     prevSelection = () => {
+        this.lockSelection();
         if (this._curSelection > 0) {
-            Doc.UserDoc().SelectedDocs = new List([this._selections[--this._curSelection]]);
+            Doc.GetProto(this.props.Document)[this.props.fieldKey] = this._selections[--this._curSelection];
+            return true;
         }
     }
     nextSelection = () => {
         if (this._curSelection < this._selections.length - 1 && this._selections.length) {
-            Doc.UserDoc().SelectedDocs = new List([this._selections[++this._curSelection]]);
+            Doc.GetProto(this.props.Document)[this.props.fieldKey] = this._selections[++this._curSelection];
+            return true;
         }
     }
     onPointerDown = (e: React.PointerEvent) => {
+        if (e.button === 0 && !e.ctrlKey) {
+            e.stopPropagation();
+        }
     }
     onClick = (e: React.MouseEvent) => {
-        if (this._contRef.current!.getBoundingClientRect().top + 15 > e.clientY) this.toggleLockSelection();
+        let hitWidget: boolean | undefined = false;
+        if (this._contRef.current!.getBoundingClientRect().top + 15 > e.clientY) hitWidget = this.toggleLockSelection();
+        else if (this._contRef.current!.getBoundingClientRect().bottom - 15 < e.clientY) hitWidget = (() => { this.props.select(false); return true; })();
         else {
-            if (this._contRef.current!.getBoundingClientRect().left + 15 > e.clientX) this.prevSelection();
-            if (this._contRef.current!.getBoundingClientRect().right - 15 < e.clientX) this.nextSelection();
+            if (this._contRef.current!.getBoundingClientRect().left + 15 > e.clientX) hitWidget = this.prevSelection();
+            if (this._contRef.current!.getBoundingClientRect().right - 15 < e.clientX) hitWidget = this.nextSelection();
+        }
+        if (hitWidget) {
+            (e.nativeEvent as any).formattedHandled = true;
+            e.stopPropagation();
         }
     }
     _contRef = React.createRef<HTMLDivElement>();
@@ -99,7 +113,7 @@ export class DocumentBox extends DocAnnotatableComponent<FieldViewProps, DocBoxS
                 addDocTab={this.props.addDocTab}
                 pinToPres={this.props.pinToPres}
                 getTransform={this.getTransform}
-                renderDepth={this.props.Document.forceActive ? 0 : this.props.renderDepth + 1} // bcz: really need to have an 'alwaysSelected' prop that's not conflated with renderDepth
+                renderDepth={this.props.renderDepth + 1} // bcz: need a forceActive prop here ... not the same as renderDepth = 0
                 PanelWidth={this.pwidth}
                 PanelHeight={this.pheight}
                 focus={this.props.focus}
