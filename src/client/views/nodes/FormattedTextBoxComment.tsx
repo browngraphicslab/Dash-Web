@@ -83,7 +83,7 @@ export class FormattedTextBoxComment {
                 const keep = e.target && (e.target as any).type === "checkbox" ? true : false;
                 const textBox = FormattedTextBoxComment.textBox;
                 if (FormattedTextBoxComment.linkDoc && !keep && textBox) {
-                    DocumentManager.Instance.FollowLink(FormattedTextBoxComment.linkDoc, textBox.props.Document,
+                    DocumentManager.Instance.FollowLink(FormattedTextBoxComment.linkDoc, textBox.dataDoc,
                         (doc: Doc, maxLocation: string) => textBox.props.addDocTab(doc, e.ctrlKey ? "inTab" : "onRight"));
                 } else if (textBox && (FormattedTextBoxComment.tooltipText as any).href) {
                     textBox.props.addDocTab(Docs.Create.WebDocument((FormattedTextBoxComment.tooltipText as any).href, { title: (FormattedTextBoxComment.tooltipText as any).href, _width: 200, _height: 400 }), "onRight");
@@ -171,7 +171,7 @@ export class FormattedTextBoxComment {
                         if (linkDoc instanceof Doc) {
                             (FormattedTextBoxComment.tooltipText as any).href = mark.attrs.href;
                             FormattedTextBoxComment.linkDoc = linkDoc;
-                            const target = FieldValue(Doc.AreProtosEqual(FieldValue(Cast(linkDoc.anchor1, Doc)), textBox.props.Document) ? Cast(linkDoc.anchor2, Doc) : (Cast(linkDoc.anchor1, Doc)) || linkDoc);
+                            const target = FieldValue(Doc.AreProtosEqual(FieldValue(Cast(linkDoc.anchor1, Doc)), textBox.dataDoc) ? Cast(linkDoc.anchor2, Doc) : (Cast(linkDoc.anchor1, Doc)) || linkDoc);
                             try {
                                 ReactDOM.unmountComponentAtNode(FormattedTextBoxComment.tooltipText);
                             } catch (e) { }
