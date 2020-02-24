@@ -192,10 +192,10 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                 this.dataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
                 if (!curTemp || curText) { // if no template, or there's text, write it to the document. (if this is driven by a template, then this overwrites the template text which is intended)
                     this.dataDoc[this.props.fieldKey] = new RichTextField(JSON.stringify(state.toJSON()), curText);
-                    this.dataDoc[this.props.fieldKey +"-noTemplate"] = curTemp?.Text !== curText;
+                    this.dataDoc[this.props.fieldKey + "-noTemplate"] = curTemp?.Text !== curText;
                 } else { // if we've deleted all the text in a note driven by a template, then restore the template data
                     this._editorView.updateState(EditorState.fromJSON(this.config, JSON.parse(curTemp.Data)));
-                    this.dataDoc[this.props.fieldKey +"-noTemplate"] = undefined;
+                    this.dataDoc[this.props.fieldKey + "-noTemplate"] = undefined;
                 }
                 this._applyingChange = false;
             }
@@ -504,7 +504,9 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
 
         this._reactionDisposer = reaction(
             () => {
-                if (this.dataDoc[this.props.fieldKey +"-noTemplate"] || !this.props.Document._textTemplate) return undefined;
+                if (this.dataDoc[this.props.fieldKey + "-noTemplate"] || !this.props.Document._textTemplate) {
+                    return Cast(this.dataDoc[this.props.fieldKey], RichTextField, null).Data;
+                }
                 return Cast(this.props.Document._textTemplate, RichTextField, null).Data;
             },
             incomingValue => {
