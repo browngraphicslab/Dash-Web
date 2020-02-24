@@ -47,7 +47,7 @@ export class InkingControl {
                     if (StrCast(Doc.Layout(view.props.Document).layout).indexOf("FormattedTextBox") !== -1 && FormattedTextBox.HadSelection) {
                         Doc.Layout(view.props.Document).color = CurrentUserUtils.UserDocument.inkColor;
                     } else {
-                        Doc.Layout(view.props.Document).backgroundColor = CurrentUserUtils.UserDocument.inkColor;
+                        Doc.Layout(view.props.Document)._backgroundColor = CurrentUserUtils.UserDocument.inkColor; // '_backgroundColor' is template specific.  'backgroundColor' would apply to all templates, but has no UI at the moment
                     }
                 }
             });
