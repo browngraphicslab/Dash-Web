@@ -207,4 +207,5 @@ declare const Docs: {
     StackingDocument(documents: Doc[], options?: DocumentOptions): Doc;
 };
 
+declare function assignDoc(doc:Doc, field:any, id:any):string;
 declare function d(...args:any[]):any;

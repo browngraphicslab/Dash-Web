@@ -17,6 +17,7 @@ import { listSpec } from "./Schema";
 import { ComputedField } from "./ScriptField";
 import { Cast, FieldValue, NumCast, StrCast, ToConstructor } from "./Types";
 import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, updateFunction } from "./util";
+import { DocumentManager } from "../client/util/DocumentManager";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -833,6 +834,10 @@ export namespace Doc {
             layoutDoc._nativeHeight = NumCast(layoutDoc._height, height);
         }
     }
+    export function assignDocToField(doc: Doc, field: string, id: string) {
+        DocServer.GetRefField(id).then(layout => layout instanceof Doc && (doc[field] = layout));
+        return id;
+    }
 }
 
 Scripting.addGlobal(function renameAlias(doc: any, n: any) { return StrCast(Doc.GetProto(doc).title).replace(/\([0-9]*\)/, "") + `(${n})`; });
@@ -849,6 +854,7 @@ Scripting.addGlobal(function setNativeView(doc: any) { Doc.setNativeView(doc); }
 Scripting.addGlobal(function undo() { return UndoManager.Undo(); });
 Scripting.addGlobal(function redo() { return UndoManager.Redo(); });
 Scripting.addGlobal(function DOC(id: string) { console.log("Can't parse a document id in a script"); return "invalid"; });
+Scripting.addGlobal(function assignDoc(doc: Doc, field: string, id: string) { return Doc.assignDocToField(doc, field, id); });
 Scripting.addGlobal(function curPresentationItem() {
     const curPres = Doc.UserDoc().curPresentation as Doc;
     return curPres && DocListCast(curPres[Doc.LayoutFieldKey(curPres)])[NumCast(curPres._itemIndex)];
