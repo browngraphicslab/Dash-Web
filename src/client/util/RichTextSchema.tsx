@@ -21,6 +21,7 @@ import { DocumentManager } from "./DocumentManager";
 import ParagraphNodeSpec from "./ParagraphNodeSpec";
 import { Transform } from "./Transform";
 import React = require("react");
+import { CollectionSchemaBooleanCell } from "../views/collections/CollectionSchemaCells";
 
 const blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
     preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], brDOM: DOMOutputSpecArray = ["br"], ulDOM: DOMOutputSpecArray = ["ul", 0];
@@ -869,6 +870,16 @@ export class DashFieldView {
         this._fieldWrapper.style.position = "relative";
         this._fieldWrapper.style.display = "inline-block";
 
+        const onchanged = (e: any) => {
+            this._reactionDisposer?.();
+            let newText = this._fieldSpan.innerText.startsWith(":=") ? ":=-computed-" : this._fieldSpan.innerText;
+            this._options?.forEach(opt => StrCast(opt.title).startsWith(newText) && (newText = StrCast(opt.title)));
+            this._dashDoc![this._fieldKey] = newText;
+            if (newText.startsWith(":=") && this._dashDoc && e.data === null && !e.inputType.includes("delete")) {
+                Doc.Layout(tbox.props.Document)[this._fieldKey] = ComputedField.MakeFunction(this._fieldSpan.innerText.substring(2));
+            }
+        }
+
         this._fieldSpan = document.createElement("div");
         this._fieldSpan.id = Utils.GenerateGuid();
         this._fieldSpan.contentEditable = "true";
@@ -876,7 +887,7 @@ export class DashFieldView {
         this._fieldSpan.style.display = "inline-block";
         this._fieldSpan.style.minWidth = "50px";
         this._fieldSpan.style.backgroundColor = "rgba(155, 155, 155, 0.24)";
-        this._fieldSpan.addEventListener("input", this.onchanged);
+        this._fieldSpan.addEventListener("input", onchanged);
         this._fieldSpan.onkeypress = function (e: any) { e.stopPropagation(); };
         this._fieldSpan.onkeyup = function (e: any) { e.stopPropagation(); };
         this._fieldSpan.onmousedown = function (e: any) { e.stopPropagation(); };
@@ -913,20 +924,14 @@ export class DashFieldView {
             setDashDoc(tbox.props.DataDoc || tbox.dataDoc);
         }
         this._reactionDisposer?.();
-        this._reactionDisposer = reaction(() => this._dashDoc?.[node.attrs.fieldKey], fval => this._fieldSpan.innerHTML = Field.toString(fval as Field) || "(null)", { fireImmediately: true });
+        this._reactionDisposer = reaction(() => {
+            const dashVal = this._dashDoc?.[node.attrs.fieldKey];
+            return StrCast(dashVal).startsWith(":=") || !dashVal ? Doc.Layout(tbox.props.Document)[this._fieldKey] : dashVal;
+        }, fval => this._fieldSpan.innerHTML = Field.toString(fval as Field) || "(null)", { fireImmediately: true });
 
         this._fieldWrapper.appendChild(this._labelSpan);
         this._fieldWrapper.appendChild(this._fieldSpan);
         (this as any).dom = this._fieldWrapper;
-    }
-    onchanged = () => {
-        this._reactionDisposer?.();
-
-        let newText = this._fieldSpan.innerText;
-        this._options?.forEach(opt => StrCast(opt.title).startsWith(newText) && (newText = StrCast(opt.title)));
-        this._dashDoc![this._fieldKey] = newText;
-        this._reactionDisposer = reaction(() => this._dashDoc?.[this._fieldKey], fval => this._fieldSpan.innerHTML = Field.toString(fval as Field) || "(null)");
-
     }
     destroy() {
         this._reactionDisposer?.();
