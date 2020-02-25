@@ -277,16 +277,16 @@ export function computeTimelineLayout(
         const stack = findStack(x, stacking);
         prevKey = key;
         if (!stack && (curTime === undefined || Math.abs(x - (curTime - minTime) * scaling) > pivotAxisWidth)) {
-            groupNames.push({ type: "text", text: key.toString(), x: x, y: stack * 25, height: fontHeight, fontSize, payload: undefined });
+            groupNames.push({ type: "text", text: toLabel(key), x: x, y: stack * 25, height: fontHeight, fontSize, payload: undefined });
         }
         layoutDocsAtTime(keyDocs, key);
     });
     if (sortedKeys.length && curTime !== undefined && curTime > sortedKeys[sortedKeys.length - 1]) {
         x = (curTime - minTime) * scaling;
-        groupNames.push({ type: "text", text: curTime.toString(), x: x, y: 0, zIndex: 1000, color: "orange", height: fontHeight, fontSize, payload: undefined });
+        groupNames.push({ type: "text", text: toLabel(curTime), x: x, y: 0, zIndex: 1000, color: "orange", height: fontHeight, fontSize, payload: undefined });
     }
     if (Math.ceil(maxTime - minTime) * scaling > x + 25) {
-        groupNames.push({ type: "text", text: Math.ceil(maxTime).toString(), x: Math.ceil(maxTime - minTime) * scaling, y: 0, height: fontHeight, fontSize, payload: undefined });
+        groupNames.push({ type: "text", text: toLabel(Math.ceil(maxTime)), x: Math.ceil(maxTime - minTime) * scaling, y: 0, height: fontHeight, fontSize, payload: undefined });
     }
 
     const divider = { type: "div", color: Cast(Doc.UserDoc().activeWorkspace, Doc, null)?.darkScheme ? "dimGray" : "black", x: 0, y: 0, width: panelDim[0], height: -1, payload: undefined };
@@ -314,7 +314,7 @@ export function computeTimelineLayout(
 
 function normalizeResults(panelDim: number[], fontHeight: number, childPairs: { data?: Doc, layout: Doc }[], docMap: Map<Doc, ViewDefBounds>,
     poolData: Map<string, PoolData>, viewDefsToJSX: (views: ViewDefBounds[]) => ViewDefResult[], groupNames: ViewDefBounds[], minWidth: number, extras: ViewDefBounds[],
-    extraDocs: Doc[]):ViewDefResult[]  {
+    extraDocs: Doc[]): ViewDefResult[] {
 
     const grpEles = groupNames.map(gn => ({ x: gn.x, y: gn.y, width: gn.width, height: gn.height }) as ViewDefBounds);
     const docEles = childPairs.filter(d => docMap.get(d.layout)).map(pair => docMap.get(pair.layout) as ViewDefBounds);
@@ -342,16 +342,16 @@ function normalizeResults(panelDim: number[], fontHeight: number, childPairs: { 
     extraDocs.map(ed => poolData.set(ed[Id], { x: 0, y: 0, zIndex: -99 }));
 
     return viewDefsToJSX(extras.concat(groupNames).map(gname => ({
-            type: gname.type,
-            text: gname.text,
-            x: gname.x * scale,
-            y: gname.y * scale,
-            color: gname.color,
-            width: gname.width === undefined ? undefined : gname.width * scale,
-            height: gname.height === -1 ? 1 : Math.max(fontHeight, (gname.height || 0) * scale),
-            fontSize: gname.fontSize,
-            payload: gname.payload
-        })));
+        type: gname.type,
+        text: gname.text,
+        x: gname.x * scale,
+        y: gname.y * scale,
+        color: gname.color,
+        width: gname.width === undefined ? undefined : gname.width * scale,
+        height: gname.height === -1 ? 1 : Math.max(fontHeight, (gname.height || 0) * scale),
+        fontSize: gname.fontSize,
+        payload: gname.payload
+    })));
 }
 
 export function AddCustomFreeFormLayout(doc: Doc, dataKey: string): () => void {
