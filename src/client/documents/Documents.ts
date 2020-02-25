@@ -77,7 +77,6 @@ export interface DocumentOptions {
     _gridGap?: number; // gap between items in masonry view
     _xMargin?: number; // gap between left edge of document and start of masonry/stacking layouts
     _yMargin?: number; // gap between top edge of dcoument and start of masonry/stacking layouts
-    _textTemplate?: RichTextField; // template used by a formattedTextBox to create a text box to render
     _itemIndex?: number; // which item index the carousel viewer is showing
     _showSidebar?: boolean;  //whether an annotationsidebar should be displayed for text docuemnts
     x?: number;
@@ -911,7 +910,7 @@ export namespace DocUtils {
             description: "Add Note ...",
             subitems: DocListCast((Doc.UserDoc().noteTypes as Doc).data).map((note, i) => ({
                 description: ":" + StrCast(note.title),
-                event: (args: { x: number, y: number }) => docTextAdder(Docs.Create.TextDocument("", { _width: 200, x, y, _autoHeight: true, layout: note, title: StrCast(note.title) + "#" + (note.aliasCount = NumCast(note.aliasCount) + 1) })),
+                event: (args: { x: number, y: number }) => docTextAdder(Docs.Create.TextDocument("", { _width: 200, x, y, _autoHeight: note._autoHeight !== false, layout: note, title: StrCast(note.title) + "#" + (note.aliasCount = NumCast(note.aliasCount) + 1) })),
                 icon: "eye"
             })) as ContextMenuProps[],
             icon: "eye"

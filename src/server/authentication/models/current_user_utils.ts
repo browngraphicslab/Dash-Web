@@ -41,14 +41,14 @@ export class CurrentUserUtils {
             Docs.Create.TextDocument("", { title: "Idea", backgroundColor: "pink" }),
             Docs.Create.TextDocument("", { title: "Topic", backgroundColor: "lightBlue" }),
             Docs.Create.TextDocument("", { title: "Person", backgroundColor: "lightGreen" }),
-            Docs.Create.TextDocument("", { title: "Todo", backgroundColor: "orange" })
+            Docs.Create.TextDocument("", { title: "Todo", backgroundColor: "orange", _autoHeight: false, _height: 100, _showCaption: "caption" })
         ];
         const modes = [
             Docs.Create.TextDocument("", { title: "todo", _backgroundColor: "blue", color: "white" }),
             Docs.Create.TextDocument("", { title: "in progress", _backgroundColor: "yellow", color: "black" }),
             Docs.Create.TextDocument("", { title: "completed", _backgroundColor: "green", color: "white" })
         ]
-        Doc.enumeratedTextTemplate(Doc.GetProto(noteTemplates[4]), FormattedTextBox.LayoutString("Todo"), "Todo", "taskStatus", modes);
+        Doc.enumeratedTextTemplate(Doc.GetProto(noteTemplates[4]), FormattedTextBox.LayoutString("Todo"), "caption", "taskStatus", modes);
         doc.noteTypes = new PrefetchProxy(Docs.Create.TreeDocument(noteTemplates.map(nt => makeTemplate(nt) ? nt : nt), { title: "Note Types", _height: 75 }));
     }
 

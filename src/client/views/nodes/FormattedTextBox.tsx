@@ -186,13 +186,13 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
             const tsel = this._editorView.state.selection.$from;
             tsel.marks().filter(m => m.type === this._editorView!.state.schema.marks.user_mark).map(m => AudioBox.SetScrubTime(Math.max(0, m.attrs.modified * 5000 - 1000)));
             const curText = state.doc.textBetween(0, state.doc.content.size, "\n\n");
-            const curTemp = Cast(this.props.Document._textTemplate, RichTextField);
+            const curTemp = Cast(this.props.Document[this.props.fieldKey + "-textTemplate"], RichTextField);
             if (!this._applyingChange) {
                 this._applyingChange = true;
                 this.dataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
                 if (!curTemp || curText) { // if no template, or there's text, write it to the document. (if this is driven by a template, then this overwrites the template text which is intended)
                     this.dataDoc[this.props.fieldKey] = new RichTextField(JSON.stringify(state.toJSON()), curText);
-                    this.dataDoc[this.props.fieldKey + "-noTemplate"] = curTemp?.Text !== curText; // mark the data field as being split from the template if it has been edited
+                    this.dataDoc[this.props.fieldKey + "-noTemplate"] = (curTemp?.Text || "") !== curText; // mark the data field as being split from the template if it has been edited
                 } else { // if we've deleted all the text in a note driven by a template, then restore the template data
                     this._editorView.updateState(EditorState.fromJSON(this.config, JSON.parse(curTemp.Data)));
                     this.dataDoc[this.props.fieldKey + "-noTemplate"] = undefined; // mark the data field as not being split from any template it might have
@@ -504,10 +504,10 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
 
         this._reactionDisposer = reaction(
             () => {
-                if (this.dataDoc[this.props.fieldKey + "-noTemplate"] || !this.props.Document._textTemplate) {
+                if (this.dataDoc[this.props.fieldKey + "-noTemplate"] || !this.props.Document[this.props.fieldKey + "-textTemplate"]) {
                     return Cast(this.dataDoc[this.props.fieldKey], RichTextField, null)?.Data;
                 }
-                return Cast(this.props.Document._textTemplate, RichTextField, null)?.Data;
+                return Cast(this.props.Document[this.props.fieldKey + "-textTemplate"], RichTextField, null)?.Data;
             },
             incomingValue => {
                 if (incomingValue !== undefined && this._editorView && !this._applyingChange) {
@@ -752,8 +752,8 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
 
     private setupEditor(config: any, fieldKey: string) {
         const curText = Cast(this.dataDoc[this.props.fieldKey], RichTextField, null);
-        const useTemplate = !curText?.Text && this.props.Document._textTemplate;
-        const rtfField = Cast((useTemplate && this.props.Document._textTemplate) || this.dataDoc[fieldKey], RichTextField);
+        const useTemplate = !curText?.Text && this.props.Document[this.props.fieldKey + "-textTemplate"];
+        const rtfField = Cast((useTemplate && this.props.Document[this.props.fieldKey + "-textTemplate"]) || this.dataDoc[fieldKey], RichTextField);
         if (this.ProseRef) {
             const self = this;
             this._editorView?.destroy();

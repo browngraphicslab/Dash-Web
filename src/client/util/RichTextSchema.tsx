@@ -807,7 +807,7 @@ export class DashDocView {
             if (finalLayout !== dashDoc && finalKey) {
                 const finalLayoutField = finalLayout[finalKey];
                 if (finalLayoutField instanceof ObjectField) {
-                    finalLayout._textTemplate = ComputedField.MakeFunction(`copyField(this.${finalKey})`, { this: Doc.name });
+                    finalLayout[finalKey + "-textTemplate"] = ComputedField.MakeFunction(`copyField(this.${finalKey})`, { this: Doc.name });
                 }
             }
             this._reactionDisposer?.();

@@ -47,7 +47,7 @@ export namespace Field {
         } else if (field instanceof RefField) {
             return field[ToString]();
         }
-        return "(null)";
+        return "";
     }
     export function IsField(field: any): field is Field;
     export function IsField(field: any, includeUndefined: true): field is Field | undefined;
@@ -611,7 +611,8 @@ export namespace Doc {
         templateField.isTemplateForField = metadataFieldKey;
         templateField.title = metadataFieldKey;
 
-        const templateFieldValue = templateField[metadataFieldKey];
+        const templateFieldValue = templateField[metadataFieldKey] || templateField.data;
+        const templateCaptionValue = templateField.caption;
         // move any data that the template field had been rendering over to the template doc so that things will still be rendered
         // when the template field is adjusted to point to the new metadatafield key.
         // note 1: if the template field contained a list of documents, each of those documents will be converted to templates as well.
@@ -620,8 +621,11 @@ export namespace Doc {
             Cast(templateFieldValue, listSpec(Doc), [])?.map(d => d instanceof Doc && MakeMetadataFieldTemplate(d, templateDoc));
             (Doc.GetProto(templateField)[metadataFieldKey] = ObjectField.MakeCopy(templateFieldValue));
         }
+        if (templateCaptionValue instanceof RichTextField && (templateCaptionValue.Text || templateCaptionValue.Data.toString().includes("dashField"))) {
+            templateField["caption-textTemplate"] = ComputedField.MakeFunction(`copyField(this.caption)`, { this: Doc.name });
+        }
         if (templateFieldValue instanceof RichTextField && (templateFieldValue.Text || templateFieldValue.Data.toString().includes("dashField"))) {
-            templateField._textTemplate = ComputedField.MakeFunction(`copyField(this.${metadataFieldKey})`, { this: Doc.name });
+            templateField[metadataFieldKey + "-textTemplate"] = ComputedField.MakeFunction(`copyField(this.${metadataFieldKey})`, { this: Doc.name });
         }
 
         // get the layout string that the template uses to specify its layout
@@ -839,8 +843,9 @@ export namespace Doc {
         return id;
     }
 
-    export function enumeratedTextTemplate(doc: Doc, layoutString: string, dataKey: string, optionKey: string, modes: Doc[]) {
-        doc[dataKey] = RichTextField.DashField(optionKey);
+    export function enumeratedTextTemplate(doc: Doc, layoutString: string, captionKey: string, optionKey: string, modes: Doc[]) {
+        doc.caption = RichTextField.DashField(optionKey);
+        doc._showCaption = captionKey;
         doc.layout = layoutString;
         const optionsField = `${optionKey}_options`;
         doc[optionsField] = new List<Doc>(modes);

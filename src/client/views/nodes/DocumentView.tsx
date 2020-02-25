@@ -813,6 +813,25 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         return anchor.type === DocumentType.AUDIO && NumCast(ept) ? false : true;
     }
 
+    // bcz: ARGH!  these  two are the same as in DocumentContentsView (without the _).  They should be reconciled to be the same functions...
+    get _dataDoc() {
+        if (this.props.DataDoc === undefined && typeof Doc.LayoutField(this.props.Document) !== "string") {
+            // if there is no dataDoc (ie, we're not rendering a template layout), but this document has a layout document (not a layout string), 
+            // then we render the layout document as a template and use this document as the data context for the template layout.
+            const proto = Doc.GetProto(this.props.Document);
+            return proto instanceof Promise ? undefined : proto;
+        }
+        return this.props.DataDoc instanceof Promise ? undefined : this.props.DataDoc;
+    }
+    get _layoutDoc() {
+        if (this.props.LayoutDoc || (this.props.DataDoc === undefined && typeof Doc.LayoutField(this.props.Document) !== "string")) {
+            // if there is no dataDoc (ie, we're not rendering a template layout), but this document has a layout document (not a layout string), 
+            // then we render the layout document as a template and use this document as the data context for the template layout.
+            return Doc.expandTemplateLayout(this.props.LayoutDoc?.() || Doc.Layout(this.props.Document), this.props.Document);
+        }
+        return Doc.Layout(this.props.Document);
+    }
+
     @computed get innards() {
         TraceMobx();
         const showTitle = StrCast(this.layoutDoc._showTitle);
@@ -825,8 +844,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             </div>);
         const captionView = (!showCaption ? (null) :
             <div className="documentView-captionWrapper">
-                <FormattedTextBox {...this.props}
-                    onClick={this.onClickHandler} DataDoc={this.props.DataDoc} active={returnTrue}
+                <FormattedTextBox {...this.props}  onClick={this.onClickHandler}
+                     DataDoc={this._dataDoc} active={returnTrue} Document={this._layoutDoc || this.props.Document}
                     isSelected={this.isSelected} focus={emptyFunction} select={this.select}
                     hideOnLeave={true} fieldKey={showCaption}
                 />
