@@ -37,13 +37,19 @@ export class CurrentUserUtils {
 
     static setupDefaultDocTemplates(doc: Doc, buttons?: string[]) {
         const noteTemplates = [
-            Docs.Create.TextDocument("", { title: "Note", backgroundColor: "yellow", isTemplateDoc: true }),
-            Docs.Create.TextDocument("", { title: "Idea", backgroundColor: "pink", isTemplateDoc: true }),
-            Docs.Create.TextDocument("", { title: "Topic", backgroundColor: "lightBlue", isTemplateDoc: true }),
-            Docs.Create.TextDocument("", { title: "Person", backgroundColor: "lightGreen", isTemplateDoc: true }),
-            Docs.Create.TextDocument("", { title: "Todo", backgroundColor: "orange", isTemplateDoc: true })
+            Docs.Create.TextDocument("", { title: "Note", backgroundColor: "yellow" }),
+            Docs.Create.TextDocument("", { title: "Idea", backgroundColor: "pink" }),
+            Docs.Create.TextDocument("", { title: "Topic", backgroundColor: "lightBlue" }),
+            Docs.Create.TextDocument("", { title: "Person", backgroundColor: "lightGreen" }),
+            Docs.Create.TextDocument("", { title: "Todo", backgroundColor: "orange" })
         ];
-        doc.noteTypes = new PrefetchProxy(Docs.Create.TreeDocument(noteTemplates, { title: "Note Types", _height: 75 }));
+        const modes = [
+            Docs.Create.TextDocument("", { title: "todo", _backgroundColor: "blue", color: "white" }),
+            Docs.Create.TextDocument("", { title: "in progress", _backgroundColor: "yellow", color: "black" }),
+            Docs.Create.TextDocument("", { title: "completed", _backgroundColor: "green", color: "white" })
+        ]
+        Doc.enumeratedTextTemplate(Doc.GetProto(noteTemplates[4]), FormattedTextBox.LayoutString("Todo"), "Todo", "taskStatus", modes);
+        doc.noteTypes = new PrefetchProxy(Docs.Create.TreeDocument(noteTemplates.map(nt => makeTemplate(nt) ? nt : nt), { title: "Note Types", _height: 75 }));
     }
 
     // setup the "creator" buttons for the sidebar-- eg. the default set of draggable document creation tools

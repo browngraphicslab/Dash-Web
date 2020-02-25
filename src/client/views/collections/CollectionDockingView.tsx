@@ -715,7 +715,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         TraceMobx();
         if (!this._document) return (null);
         const document = this._document;
-        const resolvedDataDoc = !Doc.AreProtosEqual(this._document[DataSym], this._document) && this._document[DataSym];// document.layout instanceof Doc ? document : this._dataDoc;
+        const resolvedDataDoc = !Doc.AreProtosEqual(this._document[DataSym], this._document) ? this._document[DataSym] : undefined;// document.layout instanceof Doc ? document : this._dataDoc;
         return <DocumentView key={document[Id]}
             LibraryPath={this._libraryPath}
             Document={document}

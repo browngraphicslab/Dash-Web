@@ -192,10 +192,10 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                 this.dataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
                 if (!curTemp || curText) { // if no template, or there's text, write it to the document. (if this is driven by a template, then this overwrites the template text which is intended)
                     this.dataDoc[this.props.fieldKey] = new RichTextField(JSON.stringify(state.toJSON()), curText);
-                    this.dataDoc[this.props.fieldKey + "-noTemplate"] = curTemp?.Text !== curText;
+                    this.dataDoc[this.props.fieldKey + "-noTemplate"] = curTemp?.Text !== curText; // mark the data field as being split from the template if it has been edited
                 } else { // if we've deleted all the text in a note driven by a template, then restore the template data
                     this._editorView.updateState(EditorState.fromJSON(this.config, JSON.parse(curTemp.Data)));
-                    this.dataDoc[this.props.fieldKey + "-noTemplate"] = undefined;
+                    this.dataDoc[this.props.fieldKey + "-noTemplate"] = undefined; // mark the data field as not being split from any template it might have
                 }
                 this._applyingChange = false;
             }

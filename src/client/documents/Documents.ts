@@ -97,7 +97,10 @@ export interface DocumentOptions {
     isTemplateForField?: string; // the field key for which the containing document is a rendering template
     isTemplateDoc?: boolean;
     templates?: List<string>;
-    backgroundColor?: string | ScriptField;
+    backgroundColor?: string | ScriptField;  // background color for data doc 
+    _backgroundColor?: string | ScriptField; // background color for each template layout doc ( overrides backgroundColor )
+    color?: string; // foreground color data doc
+    _color?: string;  // foreground color for each template layout doc (overrides color)
     ignoreClick?: boolean;
     lockedPosition?: boolean; // lock the x,y coordinates of the document so that it can't be dragged
     lockedTransform?: boolean; // lock the panx,pany and scale parameters of the document so that it be panned/zoomed
@@ -133,7 +136,6 @@ export interface DocumentOptions {
     sourcePanel?: Doc; // panel to display in 'targetContainer' as the result of a button onClick script
     targetContainer?: Doc; // document whose proto will be set to 'panel' as the result of a onClick click script
     strokeWidth?: number;
-    color?: string;
     treeViewPreventOpen?: boolean; // ignores the treeViewOpen Doc flag which allows a treeViewItem's expand/collapse state to be independent of other views of the same document in the tree view
     treeViewHideTitle?: boolean; // whether to hide the title of a tree view
     treeViewHideHeaderFields?: boolean; // whether to hide the drop down options for tree view items.
@@ -405,8 +407,8 @@ export namespace Docs {
         Scripting.addGlobal(Buxton);
 
         const delegateKeys = ["x", "y", "layoutKey", "_width", "_height", "_panX", "_panY", "_viewType", "_nativeWidth", "_nativeHeight", "dropAction", "childDropAction", "_annotationOn",
-            "_chromeStatus", "_forceActive", "_autoHeight", "_fitWidth", "_LODdisable", "_itemIndex", "_showSidebar", "_showTitle", "_showCaption", "_showTitleHover",
-            "isButton", "isBackground", "removeDropProperties", "treeViewOpen"];
+            "_chromeStatus", "_forceActive", "_autoHeight", "_fitWidth", "_LODdisable", "_itemIndex", "_showSidebar", "_showTitle", "_showCaption", "_showTitleHover", "_backgroundColor",
+            "_color", "isButton", "isBackground", "removeDropProperties", "treeViewOpen"];
 
         /**
          * This function receives the relevant document prototype and uses

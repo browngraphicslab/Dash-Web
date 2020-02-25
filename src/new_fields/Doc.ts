@@ -17,7 +17,6 @@ import { listSpec } from "./Schema";
 import { ComputedField } from "./ScriptField";
 import { Cast, FieldValue, NumCast, StrCast, ToConstructor } from "./Types";
 import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, updateFunction } from "./util";
-import { DocumentManager } from "../client/util/DocumentManager";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -612,15 +611,16 @@ export namespace Doc {
         templateField.isTemplateForField = metadataFieldKey;
         templateField.title = metadataFieldKey;
 
+        const templateFieldValue = templateField[metadataFieldKey];
         // move any data that the template field had been rendering over to the template doc so that things will still be rendered
         // when the template field is adjusted to point to the new metadatafield key.
         // note 1: if the template field contained a list of documents, each of those documents will be converted to templates as well.
         // note 2: this will not overwrite any field that already exists on the template doc at the field key
-        if (!templateDoc?.[metadataFieldKey] && templateField.data instanceof ObjectField) {
-            Cast(templateField.data, listSpec(Doc), [])?.map(d => d instanceof Doc && MakeMetadataFieldTemplate(d, templateDoc));
-            (Doc.GetProto(templateField)[metadataFieldKey] = ObjectField.MakeCopy(templateField.data));
+        if (!templateDoc?.[metadataFieldKey] && templateFieldValue instanceof ObjectField) {
+            Cast(templateFieldValue, listSpec(Doc), [])?.map(d => d instanceof Doc && MakeMetadataFieldTemplate(d, templateDoc));
+            (Doc.GetProto(templateField)[metadataFieldKey] = ObjectField.MakeCopy(templateFieldValue));
         }
-        if (templateField.data instanceof RichTextField && (templateField.data.Text || templateField.data.Data.toString().includes("dashField"))) {
+        if (templateFieldValue instanceof RichTextField && (templateFieldValue.Text || templateFieldValue.Data.toString().includes("dashField"))) {
             templateField._textTemplate = ComputedField.MakeFunction(`copyField(this.${metadataFieldKey})`, { this: Doc.name });
         }
 
@@ -837,6 +837,15 @@ export namespace Doc {
     export function assignDocToField(doc: Doc, field: string, id: string) {
         DocServer.GetRefField(id).then(layout => layout instanceof Doc && (doc[field] = layout));
         return id;
+    }
+
+    export function enumeratedTextTemplate(doc: Doc, layoutString: string, dataKey: string, optionKey: string, modes: Doc[]) {
+        doc[dataKey] = RichTextField.DashField(optionKey);
+        doc.layout = layoutString;
+        const optionsField = `${optionKey}_options`;
+        doc[optionsField] = new List<Doc>(modes);
+        doc.backgroundColor = ComputedField.MakeFunction(`this['${optionsField}'].find(doc => doc.title === this.expandedTemplate.${optionKey})?._backgroundColor || "white"`);
+        doc.color = ComputedField.MakeFunction(`this['${optionsField}'].find(doc => doc.title === this.expandedTemplate.${optionKey}).color || "black"`);
     }
 }
 

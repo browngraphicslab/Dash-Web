@@ -30,4 +30,8 @@ export class RichTextField extends ObjectField {
         return this.Text;
     }
 
+    public static DashField(fieldKey:string) {
+        return new RichTextField(`{"doc":{"type":"doc","content":[{"type":"paragraph","attrs":{"align":null,"color":null,"id":null,"indent":null,"inset":null,"lineSpacing":null,"paddingBottom":null,"paddingTop":null},"content":[{"type":"dashField","attrs":{"fieldKey":"${fieldKey}","docid":""}}]}]},"selection":{"type":"text","anchor":2,"head":2},"storedMarks":[]}`, "");
+    }
+
 }

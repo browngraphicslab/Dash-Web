@@ -8,7 +8,7 @@ import { EditorState, NodeSelection, Plugin, TextSelection } from "prosemirror-s
 import { StepMap } from "prosemirror-transform";
 import { EditorView } from "prosemirror-view";
 import * as ReactDOM from 'react-dom';
-import { Doc, Field, HeightSym, WidthSym } from "../../new_fields/Doc";
+import { Doc, Field, HeightSym, WidthSym, DocListCast } from "../../new_fields/Doc";
 import { Id } from "../../new_fields/FieldSymbols";
 import { ObjectField } from "../../new_fields/ObjectField";
 import { ComputedField } from "../../new_fields/ScriptField";
@@ -850,17 +850,19 @@ export class DashDocView {
 
 
 export class DashFieldView {
-    _fieldWrapper: HTMLDivElement;
-    _labelSpan: HTMLSpanElement;
-    _fieldSpan: HTMLDivElement;
+    _fieldWrapper: HTMLDivElement; // container for label and value
+    _labelSpan: HTMLSpanElement; // field label
+    _fieldSpan: HTMLDivElement;  // field value
     _reactionDisposer: IReactionDisposer | undefined;
     _textBoxDoc: Doc;
     @observable _dashDoc: Doc | undefined;
     _fieldKey: string;
+    _options: Doc[] = [];
 
     constructor(node: any, view: any, getPos: any, tbox: FormattedTextBox) {
         this._fieldKey = node.attrs.fieldKey;
         this._textBoxDoc = tbox.props.Document;
+        this._options = DocListCast(tbox.props.Document[node.attrs.fieldKey + "_options"]);
         this._fieldWrapper = document.createElement("div");
         this._fieldWrapper.style.width = node.attrs.width;
         this._fieldWrapper.style.height = node.attrs.height;
@@ -877,11 +879,15 @@ export class DashFieldView {
         this._fieldSpan.addEventListener("input", this.onchanged);
         this._fieldSpan.onkeypress = function (e: any) { e.stopPropagation(); };
         this._fieldSpan.onkeyup = function (e: any) { e.stopPropagation(); };
-        this._fieldSpan.onmousedown = function (e: any) {
-            console.log(e);
-            e.stopPropagation();
-        };
+        this._fieldSpan.onmousedown = function (e: any) { e.stopPropagation(); };
+
         const self = this;
+        const setDashDoc = (doc: Doc) => {
+            self._dashDoc = doc;
+            if (this._dashDoc && self._options?.length && !this._dashDoc[node.attrs.fieldKey]) {
+                this._dashDoc[node.attrs.fieldKey] = StrCast(self._options[0].title);
+            }
+        }
         this._fieldSpan.onkeydown = function (e: any) {
             e.stopPropagation();
             if ((e.key === "a" && e.ctrlKey) || (e.key === "a" && e.metaKey)) {
@@ -902,10 +908,9 @@ export class DashFieldView {
         this._labelSpan.style.fontSize = "larger";
         this._labelSpan.innerHTML = `${node.attrs.fieldKey}: `;
         if (node.attrs.docid) {
-            const self = this;
-            DocServer.GetRefField(node.attrs.docid).then(async dashDoc => dashDoc instanceof Doc && runInAction(() => self._dashDoc = dashDoc));
+            DocServer.GetRefField(node.attrs.docid).then(async dashDoc => dashDoc instanceof Doc && runInAction(() => setDashDoc(dashDoc)));
         } else {
-            this._dashDoc = tbox.props.DataDoc || tbox.dataDoc;
+            setDashDoc(tbox.props.DataDoc || tbox.dataDoc);
         }
         this._reactionDisposer?.();
         this._reactionDisposer = reaction(() => this._dashDoc?.[node.attrs.fieldKey], fval => this._fieldSpan.innerHTML = Field.toString(fval as Field) || "(null)", { fireImmediately: true });
@@ -916,7 +921,10 @@ export class DashFieldView {
     }
     onchanged = () => {
         this._reactionDisposer?.();
-        this._dashDoc![this._fieldKey] = this._fieldSpan.innerText;
+
+        let newText = this._fieldSpan.innerText;
+        this._options?.forEach(opt => StrCast(opt.title).startsWith(newText) && (newText = StrCast(opt.title)));
+        this._dashDoc![this._fieldKey] = newText;
         this._reactionDisposer = reaction(() => this._dashDoc?.[this._fieldKey], fval => this._fieldSpan.innerHTML = Field.toString(fval as Field) || "(null)");
 
     }
