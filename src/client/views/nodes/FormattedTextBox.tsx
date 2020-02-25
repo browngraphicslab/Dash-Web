@@ -505,9 +505,9 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         this._reactionDisposer = reaction(
             () => {
                 if (this.dataDoc[this.props.fieldKey + "-noTemplate"] || !this.props.Document._textTemplate) {
-                    return Cast(this.dataDoc[this.props.fieldKey], RichTextField, null).Data;
+                    return Cast(this.dataDoc[this.props.fieldKey], RichTextField, null)?.Data;
                 }
-                return Cast(this.props.Document._textTemplate, RichTextField, null).Data;
+                return Cast(this.props.Document._textTemplate, RichTextField, null)?.Data;
             },
             incomingValue => {
                 if (incomingValue !== undefined && this._editorView && !this._applyingChange) {
