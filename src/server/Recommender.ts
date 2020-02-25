@@ -9,7 +9,7 @@ var arxivapi = require('arxiv-api-node');
 import requestPromise = require("request-promise");
 import * as use from '@tensorflow-models/universal-sentence-encoder';
 import { Tensor } from "@tensorflow/tfjs-core/dist/tensor";
-require('@tensorflow/tfjs-node');
+//require('@tensorflow/tfjs-node');
 
 //http://gnuwin32.sourceforge.net/packages/make.htm
 
