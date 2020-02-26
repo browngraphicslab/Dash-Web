@@ -50,10 +50,13 @@
         top: -5;
         background: black;
         pointer-events: all;
-        opacity: 0.05;
+        opacity: 0.3;
         display: flex;
+        color: gold;
         border-radius: 3px;
         justify-content: center;
+        cursor: default;
+    }
     }
     .documentView-lock:hover {
         opacity:1;
