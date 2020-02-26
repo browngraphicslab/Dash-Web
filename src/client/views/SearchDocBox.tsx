@@ -69,6 +69,8 @@ export class SearchDocBox extends React.Component<FieldViewProps> {
 
     componentDidMount() {
         runInAction(() => {
+            console.log("didit"
+            );
             this.query = StrCast(this.props.Document.searchText);
             this.content = (Docs.Create.TreeDocument(DocListCast(Doc.GetProto(this.props.Document).data), { _width: 200, _height: 400, _chromeStatus: "disabled", title: `Search Docs:` + this.query}));
 
@@ -86,16 +88,19 @@ export class SearchDocBox extends React.Component<FieldViewProps> {
 
     @action
     updateKey = async (newKey: string) => {
+        this.query = newKey;
         if (newKey.length >1){
             let newdocs= await this.getAllResults(this.query)
             let things = newdocs.docs
             console.log(things);
-            await runInAction(() => {
-                this.content=Docs.Create.TreeDocument(things, { _width: 200, _height: 400, _chromeStatus: "disabled", title: `Search Docs:` + this.query });   
-                        });     
+            console.log(this.content);
+            runInAction(() => {
+                this.content= Docs.Create.TreeDocument(things, { _width: 200, _height: 400, _chromeStatus: "disabled", title: `Search Docs:` + this.query });   
+                        });
+            console.log(this.content);     
                     }
 
-        this.query = newKey;
+
         //this.keyRef.current && this.keyRef.current.setIsFocused(false);
         //this.query.length === 0 && (this.query = keyPlaceholder);
         return true;
@@ -399,9 +404,12 @@ export class SearchDocBox extends React.Component<FieldViewProps> {
 
     render() {
         const isEditing = this.editingMetadata;
-        console.log(isEditing);
         return (
             <div style={{ pointerEvents: "all" }}>
+                <ContentFittingDocumentView {...this.props}
+                        Document={this.content}
+                        getTransform={this.props.ScreenToLocalTransform}>
+                s</ContentFittingDocumentView>
                 <div
                     style={{
                         position: "absolute",
@@ -413,24 +421,17 @@ export class SearchDocBox extends React.Component<FieldViewProps> {
                         opacity: 1,
                         transition: "0.4s opacity ease",
                         zIndex: 99,
+                        top:0,
                     }}
                     title={"Add Metadata"}
-                    onDoubleClick={action(() => {this.editingMetadata = !this.editingMetadata })}
+                    onClick={action(() => {this.editingMetadata = !this.editingMetadata })}
                 />
-                <div className="editableclass" onKeyPress={this.enter} style={{ opacity: isEditing ? 1 : 0, pointerEvents: isEditing ? "auto" : "none", transition: "0.4s opacity ease", }}>
+                <div className="editableclass" onKeyPress={this.enter} style={{ opacity: isEditing ? 1 : 0, pointerEvents: isEditing ? "auto" : "none", transition: "0.4s opacity ease",position:"absolute",top:0,left:0, height:20, width:"-webkit-fill-available" }}>
                     <EditableView
                         contents={this.query}
                         SetValue={this.updateKey}
                         GetValue={() => ""}
                     />
-                </div>
-                <div style={{
-                    pointerEvents: "none",
-                }}>
-                    <ContentFittingDocumentView {...this.props}
-                        Document={this.content}
-                        getTransform={this.props.ScreenToLocalTransform}>
-                    </ContentFittingDocumentView>
                 </div>
             </div >
         );
