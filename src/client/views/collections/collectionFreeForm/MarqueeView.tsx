@@ -302,7 +302,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         this.hideMarquee();
     }
 
-    getCollection = (selected: Doc[], asTemplate: boolean) => {
+    getCollection = (selected: Doc[], asTemplate: boolean, isBackground: boolean = false) => {
         const bounds = this.Bounds;
         // const inkData = this.ink ? this.ink.inkData : undefined;
         const creator = asTemplate ? Docs.Create.StackingDocument : Docs.Create.FreeformDocument;
@@ -311,7 +311,8 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             y: bounds.top,
             _panX: 0,
             _panY: 0,
-            backgroundColor: this.props.isAnnotationOverlay ? "#00000015" : undefined,
+            isBackground,
+            backgroundColor: this.props.isAnnotationOverlay ? "#00000015" : isBackground ? "cyan" : undefined,
             _width: bounds.width,
             _height: bounds.height,
             _LODdisable: true,
@@ -366,6 +367,14 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         this.props.addLiveTextDocument(summary);
         MarqueeOptionsMenu.Instance.fadeOut(true);
     }
+    @action
+    background = (e: KeyboardEvent | React.PointerEvent | undefined) => {
+        const newCollection = this.getCollection([], false, true);
+        this.props.addDocument(newCollection);
+        MarqueeOptionsMenu.Instance.fadeOut(true);
+        this.hideMarquee();
+        setTimeout(() => this.props.selectDocuments([newCollection], []), 0);
+    }
 
     @undoBatch
     @action
@@ -380,7 +389,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             this.delete();
             e.stopPropagation();
         }
-        if (e.key === "c" || e.key === "t" || e.key === "s" || e.key === "S") {
+        if (e.key === "c" || e.key === "b" || e.key === "t" || e.key === "s" || e.key === "S") {
             this._commandExecuted = true;
             e.stopPropagation();
             e.preventDefault();
@@ -388,9 +397,11 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             if (e.key === "c" || e.key === "t") {
                 this.collection(e);
             }
-
             if (e.key === "s" || e.key === "S") {
                 this.summary(e);
+            }
+            if (e.key === "b") {
+                this.background(e);
             }
             this.cleanupInteractions(false);
         }

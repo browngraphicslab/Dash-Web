@@ -43,6 +43,7 @@ import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
 import { FormattedTextBox } from './FormattedTextBox';
 import React = require("react");
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 
 library.add(fa.faEdit, fa.faTrash, fa.faShare, fa.faDownload, fa.faExpandArrowsAlt, fa.faCompressArrowsAlt, fa.faLayerGroup, fa.faExternalLinkAlt, fa.faAlignCenter, fa.faCaretSquareRight,
@@ -844,8 +845,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             </div>);
         const captionView = (!showCaption ? (null) :
             <div className="documentView-captionWrapper">
-                <FormattedTextBox {...this.props}  onClick={this.onClickHandler}
-                     DataDoc={this._dataDoc} active={returnTrue} Document={this._layoutDoc || this.props.Document}
+                <FormattedTextBox {...this.props} onClick={this.onClickHandler}
+                    DataDoc={this._dataDoc} active={returnTrue} Document={this._layoutDoc || this.props.Document}
                     isSelected={this.isSelected} focus={emptyFunction} select={this.select}
                     hideOnLeave={true} fieldKey={showCaption}
                 />
@@ -935,6 +936,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 height: "100%",
                 opacity: this.Document.opacity
             }}>
+            {this.Document.isBackground ? <div className="documentView-lock"> <FontAwesomeIcon icon="unlock" size="lg" /> </div> : (null)}
             {this.onClickHandler && this.props.ContainingCollectionView?.props.Document._viewType === CollectionViewType.Time ? <>
                 {this.innards}
                 <div className="documentView-contentBlocker" />

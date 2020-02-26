@@ -42,6 +42,23 @@
         z-index: 1;
     }
 
+    .documentView-lock {
+        width: 20; 
+        height: 20; 
+        position: absolute; 
+        right: -5; 
+        top: -5;
+        background: black;
+        pointer-events: all;
+        opacity: 0.05;
+        display: flex;
+        border-radius: 3px;
+        justify-content: center;
+    }
+    .documentView-lock:hover {
+        opacity:1;
+    }
+
     .documentView-contentBlocker {
         pointer-events: all;
         position: absolute;
