@@ -68,10 +68,10 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
             const key = StrCast(this.props.parent.props.Document.sectionFilter);
             const castedValue = this.getValue(this._heading);
             if (castedValue) {
-                de.complete.docDragData.droppedDocuments.forEach(d => d[key] = castedValue);
+                de.complete.docDragData.droppedDocuments.forEach(d => Doc.SetInPlace(d, key, castedValue, false));
             }
             else {
-                de.complete.docDragData.droppedDocuments.forEach(d => d[key] = undefined);
+                de.complete.docDragData.droppedDocuments.forEach(d => Doc.SetInPlace(d, key, undefined, false));
             }
             this.props.parent.onInternalDrop(e, de);
             e.stopPropagation();

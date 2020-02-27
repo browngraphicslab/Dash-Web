@@ -858,16 +858,28 @@ export namespace Doc {
         Doc.addEnumerationToTextField(doc, enumeratedFieldKey, enumeratedDocs);
     }
 
-    export function addEnumerationToTextField(doc: Doc, enumeratedFieldKey: string, enumeratedDocs: Doc[]) {
+    export async function getEnumerationTextField(enumeratedFieldKey: string) {
+        return (await DocServer.GetRefField(enumeratedFieldKey)) as Doc;
+    }
+
+    export function addEnumerationToTextField(doc: Opt<Doc>, enumeratedFieldKey: string, enumeratedDocs: Doc[]) {
         DocServer.GetRefField(enumeratedFieldKey).then(optionsCollection => {
             if (!(optionsCollection instanceof Doc)) {
                 optionsCollection = Docs.Create.StackingDocument([], { title: `${enumeratedFieldKey} field set` }, enumeratedFieldKey);
                 Doc.AddDocToList((Doc.UserDoc().fieldTypes as Doc), "data", optionsCollection as Doc);
             }
             const options = optionsCollection as Doc;
-            doc.backgroundColor = ComputedField.MakeFunction(`options.data.find(doc => doc.title === (this.expandedTemplate||this).${enumeratedFieldKey})?._backgroundColor || "white"`, undefined, { options });
-            doc.color = ComputedField.MakeFunction(`options.data.find(doc => doc.title === (this.expandedTemplate||this).${enumeratedFieldKey}).color || "black"`, undefined, { options });
-            enumeratedDocs.map(enumeratedDoc => !DocListCast(options.data).find(d => d.title === enumeratedDoc.title) && Doc.AddDocToList(options, "data", enumeratedDoc));
+            doc && (doc.backgroundColor = ComputedField.MakeFunction(`options.data.find(doc => doc.title === (this.expandedTemplate||this).${enumeratedFieldKey})?._backgroundColor || "white"`, undefined, { options }));
+            doc && (doc.color = ComputedField.MakeFunction(`options.data.find(doc => doc.title === (this.expandedTemplate||this).${enumeratedFieldKey}).color || "black"`, undefined, { options }));
+            enumeratedDocs.map(enumeratedDoc => {
+                const found = DocListCast(options.data).find(d => d.title === enumeratedDoc.title);
+                if (found) {
+                    found._backgroundColor = enumeratedDoc._backgroundColor || found._backgroundColor;
+                    found._color = enumeratedDoc._color || found._color;
+                } else {
+                    Doc.AddDocToList(options, "data", enumeratedDoc);
+                }
+            });
         });
     }
 }

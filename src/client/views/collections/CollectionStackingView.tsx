@@ -24,6 +24,7 @@ import "./CollectionStackingView.scss";
 import { CollectionStackingViewFieldColumn } from "./CollectionStackingViewFieldColumn";
 import { CollectionSubView } from "./CollectionSubView";
 import { CollectionViewType } from "./CollectionView";
+import { Docs } from "../../documents/Documents";
 
 @observer
 export class CollectionStackingView extends CollectionSubView(doc => doc) {
@@ -348,7 +349,9 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     @action
     addGroup = (value: string) => {
         if (value && this.sectionHeaders) {
-            this.sectionHeaders.push(new SchemaHeaderField(value));
+            const schemaHdrField = new SchemaHeaderField(value);
+            this.sectionHeaders.push(schemaHdrField);
+            Doc.addEnumerationToTextField(undefined, this.sectionFilter, [Docs.Create.TextDocument(value, { title: value, _backgroundColor: schemaHdrField.color })]);
             return true;
         }
         return false;

@@ -10,7 +10,6 @@ import { listSpec } from "../../../new_fields/Schema";
 import { BoolCast, Cast, FieldValue, NumCast } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { returnFalse } from "../../../Utils";
-import { Docs } from "../../documents/Documents";
 import { DocumentManager } from "../../util/DocumentManager";
 import { undoBatch } from "../../util/UndoManager";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
@@ -20,7 +19,6 @@ import { ContextMenuProps } from "../ContextMenuItem";
 import { InkingControl } from "../InkingControl";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./PresBox.scss";
-import { PrefetchProxy } from "../../../new_fields/Proxy";
 
 library.add(faArrowLeft);
 library.add(faArrowRight);
