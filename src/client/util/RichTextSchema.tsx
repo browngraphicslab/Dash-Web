@@ -22,6 +22,10 @@ import ParagraphNodeSpec from "./ParagraphNodeSpec";
 import { Transform } from "./Transform";
 import React = require("react");
 import { CollectionSchemaBooleanCell } from "../views/collections/CollectionSchemaCells";
+import { ContextMenu } from "../views/ContextMenu";
+import { ContextMenuProps } from "../views/ContextMenuItem";
+import { Docs } from "../documents/Documents";
+import { CollectionView } from "../views/collections/CollectionView";
 
 const blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
     preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], brDOM: DOMOutputSpecArray = ["br"], ulDOM: DOMOutputSpecArray = ["ul", 0];
@@ -863,23 +867,13 @@ export class DashFieldView {
     constructor(node: any, view: any, getPos: any, tbox: FormattedTextBox) {
         this._fieldKey = node.attrs.fieldKey;
         this._textBoxDoc = tbox.props.Document;
-        this._options = DocListCast(tbox.props.Document[node.attrs.fieldKey + "_options"]);
         this._fieldWrapper = document.createElement("div");
         this._fieldWrapper.style.width = node.attrs.width;
         this._fieldWrapper.style.height = node.attrs.height;
         this._fieldWrapper.style.position = "relative";
         this._fieldWrapper.style.display = "inline-block";
 
-        const onchanged = (e: any) => {
-            this._reactionDisposer?.();
-            let newText = this._fieldSpan.innerText.startsWith(":=") ? ":=-computed-" : this._fieldSpan.innerText;
-            this._options?.forEach(opt => StrCast(opt.title).startsWith(newText) && (newText = StrCast(opt.title)));
-            this._dashDoc![this._fieldKey] = newText;
-            if (newText.startsWith(":=") && this._dashDoc && e.data === null && !e.inputType.includes("delete")) {
-                Doc.Layout(tbox.props.Document)[this._fieldKey] = ComputedField.MakeFunction(this._fieldSpan.innerText.substring(2));
-            }
-        }
-
+        const self = this;
         this._fieldSpan = document.createElement("div");
         this._fieldSpan.id = Utils.GenerateGuid();
         this._fieldSpan.contentEditable = "true";
@@ -887,12 +881,18 @@ export class DashFieldView {
         this._fieldSpan.style.display = "inline-block";
         this._fieldSpan.style.minWidth = "50px";
         this._fieldSpan.style.backgroundColor = "rgba(155, 155, 155, 0.24)";
-        this._fieldSpan.addEventListener("input", onchanged);
         this._fieldSpan.onkeypress = function (e: any) { e.stopPropagation(); };
         this._fieldSpan.onkeyup = function (e: any) { e.stopPropagation(); };
         this._fieldSpan.onmousedown = function (e: any) { e.stopPropagation(); };
+        this._fieldSpan.oncontextmenu = function (e: any) {
+            ContextMenu.Instance.addItem({
+                description: "Show Enumeration Templates", event: () => {
+                    e.stopPropagation();
+                    DocServer.GetRefField(node.attrs.fieldKey).then(collview => collview instanceof Doc && tbox.props.addDocTab(collview, "onRight"));
+                }, icon: "expand-arrows-alt"
+            });
+        };
 
-        const self = this;
         const setDashDoc = (doc: Doc) => {
             self._dashDoc = doc;
             if (this._dashDoc && self._options?.length && !this._dashDoc[node.attrs.fieldKey]) {
@@ -910,6 +910,25 @@ export class DashFieldView {
                 }
                 e.preventDefault();
             }
+            if (e.key === "Enter" && e.ctrlKey) {
+                Doc.addEnumerationToTextField(self._textBoxDoc, node.attrs.fieldKey, [Docs.Create.TextDocument(self._fieldSpan.innerText, { title: self._fieldSpan.innerText })]);
+                e.preventDefault();
+            } else if (e.key === "Enter") {
+                e.preventDefault();
+                let newText = self._fieldSpan.innerText.startsWith(":=") ? ":=-computed-" : self._fieldSpan.innerText;
+                // look for a document whose id === the fieldKey being displayed.  If there's a match, then that document
+                // holds the different enumerated values for the field in the titles of its collected documents.
+                // if there's a partial match from the start of the input text, complete the text --- TODO: make this an auto suggest box and select from a drop down.
+
+                // alternatively, if the text starts with a ':=' then treat it as an expression by making a computed field from its value storing it in the key
+                DocServer.GetRefField(node.attrs.fieldKey).then(options => {
+                    (options instanceof Doc) && DocListCast(options.data).forEach(opt => StrCast(opt.title).startsWith(newText) && (newText = StrCast(opt.title)));
+                    self._fieldSpan.innerHTML = self._dashDoc![self._fieldKey] = newText;
+                    if (newText.startsWith(":=") && self._dashDoc && e.data === null && !e.inputType.includes("delete")) {
+                        Doc.Layout(tbox.props.Document)[self._fieldKey] = ComputedField.MakeFunction(self._fieldSpan.innerText.substring(2));
+                    }
+                });
+            }
         };
 
         this._labelSpan = document.createElement("span");
@@ -924,7 +943,7 @@ export class DashFieldView {
             setDashDoc(tbox.props.DataDoc || tbox.dataDoc);
         }
         this._reactionDisposer?.();
-        this._reactionDisposer = reaction(() => {
+        this._reactionDisposer = reaction(() => { // this reaction will update the displayed text whenever the document's fieldKey's value changes
             const dashVal = this._dashDoc?.[node.attrs.fieldKey];
             return StrCast(dashVal).startsWith(":=") || !dashVal ? Doc.Layout(tbox.props.Document)[this._fieldKey] : dashVal;
         }, fval => this._fieldSpan.innerHTML = Field.toString(fval as Field) || "(null)", { fireImmediately: true });

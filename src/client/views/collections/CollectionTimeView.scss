@@ -10,7 +10,6 @@
     .collectionTimeView-backBtn {
         background: green;
         display: inline;
-        margin-right: 20px;
     }
 
     .collectionFreeform-customText {
@@ -68,6 +67,9 @@
         padding: 5px;
         border: 1px solid black;
         display:none;
+        span {
+            margin-left : 10px;
+        }
     }
 
     .collectionTimeView-treeView {

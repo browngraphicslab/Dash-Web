@@ -36,6 +36,11 @@ export class CurrentUserUtils {
     @observable public static GuestMobile: Doc | undefined;
 
     static setupDefaultDocTemplates(doc: Doc, buttons?: string[]) {
+        const taskStatusValues = [
+            Docs.Create.TextDocument("todo", { title: "todo", _backgroundColor: "blue", color: "white" }),
+            Docs.Create.TextDocument("in progress", { title: "in progress", _backgroundColor: "yellow", color: "black" }),
+            Docs.Create.TextDocument("completed", { title: "completed", _backgroundColor: "green", color: "white" })
+        ];
         const noteTemplates = [
             Docs.Create.TextDocument("", { title: "Note", backgroundColor: "yellow" }),
             Docs.Create.TextDocument("", { title: "Idea", backgroundColor: "pink" }),
@@ -43,12 +48,8 @@ export class CurrentUserUtils {
             Docs.Create.TextDocument("", { title: "Person", backgroundColor: "lightGreen" }),
             Docs.Create.TextDocument("", { title: "Todo", backgroundColor: "orange", _autoHeight: false, _height: 100, _showCaption: "caption" })
         ];
-        const modes = [
-            Docs.Create.TextDocument("", { title: "todo", _backgroundColor: "blue", color: "white" }),
-            Docs.Create.TextDocument("", { title: "in progress", _backgroundColor: "yellow", color: "black" }),
-            Docs.Create.TextDocument("", { title: "completed", _backgroundColor: "green", color: "white" })
-        ]
-        Doc.enumeratedTextTemplate(Doc.GetProto(noteTemplates[4]), FormattedTextBox.LayoutString("Todo"), "caption", "taskStatus", modes);
+        doc.fieldTypes = Docs.Create.TreeDocument([], { title: "field enumerations" });
+        Doc.enumeratedTextTemplate(Doc.GetProto(noteTemplates[4]), FormattedTextBox.LayoutString("Todo"), "taskStatus", taskStatusValues);
         doc.noteTypes = new PrefetchProxy(Docs.Create.TreeDocument(noteTemplates.map(nt => makeTemplate(nt) ? nt : nt), { title: "Note Types", _height: 75 }));
     }
 
@@ -196,7 +197,7 @@ export class CurrentUserUtils {
         return Docs.Create.ButtonDocument({
             _width: 50, _height: 25, title: "Library", fontSize: 10,
             letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
-            sourcePanel: Docs.Create.TreeDocument([doc.workspaces as Doc, doc.documents as Doc, Docs.Prototypes.MainLinkDocument(), doc.recentlyClosed as Doc], {
+            sourcePanel: Docs.Create.TreeDocument([doc.workspaces as Doc, doc.documents as Doc, Docs.Prototypes.MainLinkDocument(), doc, doc.recentlyClosed as Doc], {
                 title: "Library", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, dropAction: "alias", lockedPosition: true, boxShadow: "0 0",
             }),
             targetContainer: sidebarContainer,
