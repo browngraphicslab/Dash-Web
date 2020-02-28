@@ -395,7 +395,7 @@ export class MainView extends React.Component {
         }
         const sidebarButtonsDoc = Cast(CurrentUserUtils.UserDocument.sidebarButtons, Doc) as Doc;
         return <div className="mainView-flyoutContainer" >
-            <div className="mainView-tabButtons" style={{ height: `${this._buttonBarHeight}px`, paddingTop: 10, backgroundColor: StrCast(sidebarButtonsDoc.backgroundColor) }}>
+            <div className="mainView-tabButtons" style={{ height: `${this._buttonBarHeight}px`, backgroundColor: StrCast(sidebarButtonsDoc.backgroundColor) }}>
                 <DocumentView
                     Document={sidebarButtonsDoc}
                     DataDoc={undefined}
