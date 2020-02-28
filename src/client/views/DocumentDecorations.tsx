@@ -1,12 +1,12 @@
 import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
 import { faCaretUp, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faTextHeight, faArrowAltCircleDown, faArrowAltCircleUp, faCheckCircle, faCloudUploadAlt, faLink, faShare, faStopCircle, faSyncAlt, faTag, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, observable, reaction } from "mobx";
+import { action, computed, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc } from "../../new_fields/Doc";
+import { Doc, DataSym } from "../../new_fields/Doc";
 import { PositionDocument } from '../../new_fields/documentSchemas';
 import { ScriptField } from '../../new_fields/ScriptField';
-import { Cast, StrCast } from "../../new_fields/Types";
+import { Cast, StrCast, NumCast } from "../../new_fields/Types";
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { Utils, setupMoveUpEvents } from "../../Utils";
 import { DocUtils } from "../documents/Documents";
@@ -324,12 +324,23 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 const actualdH = Math.max(height + (dH * scale), 20);
                 doc.x = (doc.x || 0) + dX * (actualdW - width);
                 doc.y = (doc.y || 0) + dY * (actualdH - height);
-                const fixedAspect = e.ctrlKey || (nwidth && nheight);
+                const fixedAspect = (nwidth && nheight);
                 if (fixedAspect && (!nwidth || !nheight)) {
                     layoutDoc._nativeWidth = nwidth = layoutDoc._width || 0;
                     layoutDoc._nativeHeight = nheight = layoutDoc._height || 0;
                 }
-                if (nwidth > 0 && nheight > 0) {
+                const anno = Cast(doc.annotationOn, Doc, null);
+                if (e.ctrlKey && anno) {
+                    dW !== 0 && runInAction(() => {
+                        const dataDoc = anno[DataSym];
+                        const fieldKey = Doc.LayoutFieldKey(anno);
+                        const nw = NumCast(dataDoc[fieldKey + "-nativeWidth"]);
+                        const nh = NumCast(dataDoc[fieldKey + "-nativeHeight"]);
+                        dataDoc[fieldKey + "-nativeWidth"] = nw + (dW > 0 ? 10 : -10);
+                        dataDoc[fieldKey + "-nativeHeight"] = nh + (dW > 0 ? 10 : -10) * nh / nw;
+                    });
+                }
+                else if (nwidth > 0 && nheight > 0) {
                     if (Math.abs(dW) > Math.abs(dH)) {
                         if (!fixedAspect) {
                             layoutDoc._nativeWidth = actualdW / (layoutDoc._width || 1) * (layoutDoc._nativeWidth || 0);

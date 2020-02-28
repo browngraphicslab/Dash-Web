@@ -164,19 +164,22 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, props: any
         marks && tx.setStoredMarks(marks.filter((val: any) => val.type !== schema.marks.metadata && val.type !== schema.marks.metadataKey && val.type !== schema.marks.metadataVal));
         return tx;
     };
-    const addTextOnRight = () => {
+    const addTextOnRight = (force: boolean) => {
         const layoutDoc = props.Document;
         const originalDoc = layoutDoc.expandedTemplate || layoutDoc;
-        const newDoc = Docs.Create.TextDocument("", { title: "", layout: FormattedTextBox.DefaultLayout, x: NumCast(originalDoc.x) + NumCast(originalDoc._width) + 10, y: NumCast(originalDoc.y), _width: NumCast(layoutDoc._width), _height: NumCast(layoutDoc._height) });
-        FormattedTextBox.SelectOnLoad = newDoc[Id];
-        props.addDocument(newDoc);
-        return true;
+        if (force || props.Document._singleLine) {
+            const newDoc = Docs.Create.TextDocument("", { title: "", layout: FormattedTextBox.DefaultLayout, x: NumCast(originalDoc.x) + NumCast(originalDoc._width) + 10, y: NumCast(originalDoc.y), _width: NumCast(layoutDoc._width), _height: NumCast(layoutDoc._height) });
+            FormattedTextBox.SelectOnLoad = newDoc[Id];
+            props.addDocument(newDoc);
+            return true;
+        }
+        return false;
     }
     bind("Alt-Enter", (state: EditorState<S>, dispatch: (tx: Transaction<Schema<any, any>>) => void) => {
-        return addTextOnRight();
+        return addTextOnRight(true);
     });
     bind("Enter", (state: EditorState<S>, dispatch: (tx: Transaction<Schema<any, any>>) => void) => {
-        if (props.Document.singleLine) return addTextOnRight();
+        if (addTextOnRight(false)) return true;
         const marks = state.storedMarks || (state.selection.$to.parentOffset && state.selection.$from.marks());
         if (!splitListItem(schema.nodes.list_item)(state, dispatch)) {
             if (!splitBlockKeepMarks(state, (tx3: Transaction) => {
