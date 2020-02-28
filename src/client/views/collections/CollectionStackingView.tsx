@@ -11,7 +11,7 @@ import { listSpec } from "../../../new_fields/Schema";
 import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from "../../../new_fields/Types";
 import { TraceMobx } from "../../../new_fields/util";
-import { Utils } from "../../../Utils";
+import { Utils, setupMoveUpEvents, emptyFunction } from "../../../Utils";
 import { DragManager } from "../../util/DragManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
@@ -61,7 +61,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             const dxf = () => this.getDocTransform(d, dref.current!);
             this._docXfs.push({ dxf: dxf, width: width, height: height });
             const rowSpan = Math.ceil((height() + this.gridGap) / this.gridGap);
-            const style = this.isStackingView ? { width: width(), marginTop: i === 0 ? 0 : this.gridGap, height: height() } : { gridRowEnd: `span ${rowSpan}` };
+            const style = this.isStackingView ? { width: width(), marginTop: this.gridGap, height: height() } : { gridRowEnd: `span ${rowSpan}` };
             return <div className={`collectionStackingView-${this.isStackingView ? "columnDoc" : "masonryDoc"}`} key={d[Id]} ref={dref} style={style} >
                 {this.getDisplayDoc(d, this.props.DataDoc, dxf, width)}
             </div>;
@@ -79,8 +79,9 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             setTimeout(() => this.props.Document.sectionHeaders = new List<SchemaHeaderField>(), 0);
             return new Map<SchemaHeaderField, Doc[]>();
         }
-        const sectionHeaders = this.sectionHeaders;
+        const sectionHeaders: SchemaHeaderField[] = Array.from(this.sectionHeaders);
         const fields = new Map<SchemaHeaderField, Doc[]>(sectionHeaders.map(sh => [sh, []] as [SchemaHeaderField, []]));
+        let changed = false;
         this.filteredChildren.map(d => {
             const sectionValue = (d[this.sectionFilter] ? d[this.sectionFilter] : `NO ${this.sectionFilter.toUpperCase()} VALUE`) as object;
             // the next five lines ensures that floating point rounding errors don't create more than one section -syip
@@ -96,8 +97,10 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                 const newSchemaHeader = new SchemaHeaderField(castedSectionValue ? castedSectionValue.toString() : `NO ${this.sectionFilter.toUpperCase()} VALUE`);
                 fields.set(newSchemaHeader, [d]);
                 sectionHeaders.push(newSchemaHeader);
+                changed = true;
             }
         });
+        changed && setTimeout(action(() => { if (this.sectionHeaders) { this.sectionHeaders.length = 0; this.sectionHeaders.push(...sectionHeaders); } }), 0);
         return fields;
     }
 
@@ -204,26 +207,13 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     }
 
     columnDividerDown = (e: React.PointerEvent) => {
-        e.stopPropagation();
-        e.preventDefault();
         runInAction(() => this._cursor = "grabbing");
-        document.addEventListener("pointermove", this.onDividerMove);
-        document.addEventListener('pointerup', this.onDividerUp);
-        this._columnStart = this.props.ScreenToLocalTransform().transformPoint(e.clientX, e.clientY)[0];
+        setupMoveUpEvents(this, e, this.onDividerMove, action(() => this._cursor = "grab"), emptyFunction);
     }
     @action
-    onDividerMove = (e: PointerEvent): void => {
-        const dragPos = this.props.ScreenToLocalTransform().transformPoint(e.clientX, e.clientY)[0];
-        const delta = dragPos - this._columnStart;
-        this._columnStart = dragPos;
-        this.layoutDoc.columnWidth = Math.max(10, this.columnWidth + delta);
-    }
-
-    @action
-    onDividerUp = (e: PointerEvent): void => {
-        runInAction(() => this._cursor = "grab");
-        document.removeEventListener("pointermove", this.onDividerMove);
-        document.removeEventListener('pointerup', this.onDividerUp);
+    onDividerMove = (e: PointerEvent, down: number[], delta: number[]) => {
+        this.layoutDoc.columnWidth = Math.max(10, this.columnWidth + delta[0]);
+        return false;
     }
 
     @computed get columnDragger() {

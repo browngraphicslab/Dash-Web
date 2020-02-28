@@ -28,6 +28,7 @@ import "./CollectionSchemaView.scss";
 import { CollectionSubView } from "./CollectionSubView";
 import { CollectionView } from "./CollectionView";
 import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
+import { setupMoveUpEvents, emptyFunction } from "../../../Utils";
 
 library.add(faCog, faPlus, faSortUp, faSortDown);
 library.add(faTable);
@@ -43,8 +44,8 @@ export enum ColumnType {
 // this map should be used for keys that should have a const type of value
 const columnTypes: Map<string, ColumnType> = new Map([
     ["title", ColumnType.String],
-    ["x", ColumnType.Number], ["y", ColumnType.Number], ["width", ColumnType.Number], ["height", ColumnType.Number],
-    ["nativeWidth", ColumnType.Number], ["nativeHeight", ColumnType.Number], ["isPrototype", ColumnType.Boolean],
+    ["x", ColumnType.Number], ["y", ColumnType.Number], ["_width", ColumnType.Number], ["_height", ColumnType.Number],
+    ["_nativeWidth", ColumnType.Number], ["_nativeHeight", ColumnType.Number], ["isPrototype", ColumnType.Boolean],
     ["page", ColumnType.Number], ["curPage", ColumnType.Number], ["currentTimecode", ColumnType.Number], ["zIndex", ColumnType.Number]
 ]);
 
@@ -54,9 +55,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     private _startPreviewWidth = 0;
     private DIVIDER_WIDTH = 4;
 
-    @observable previewScript: string = "";
     @observable previewDoc: Doc | undefined = undefined;
-    @observable private _node: HTMLDivElement | null = null;
     @observable private _focusedTable: Doc = this.props.Document;
 
     @computed get previewWidth() { return () => NumCast(this.props.Document.schemaPreviewWidth); }
@@ -75,9 +74,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     @action setPreviewDoc = (doc: Doc) => this.previewDoc = doc;
 
-    @undoBatch
-    @action setPreviewScript = (script: string) => this.previewScript = script
-
     //toggles preview side-panel of schema
     @action
     toggleExpander = () => {
@@ -86,27 +82,17 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     onDividerDown = (e: React.PointerEvent) => {
         this._startPreviewWidth = this.previewWidth();
-        e.stopPropagation();
-        e.preventDefault();
-        document.addEventListener("pointermove", this.onDividerMove);
-        document.addEventListener('pointerup', this.onDividerUp);
+        setupMoveUpEvents(this, e, this.onDividerMove, emptyFunction, action(() => this.toggleExpander()));
     }
     @action
-    onDividerMove = (e: PointerEvent): void => {
+    onDividerMove = (e: PointerEvent, down: number[], delta: number[]) => {
         const nativeWidth = this._mainCont!.getBoundingClientRect();
         const minWidth = 40;
         const maxWidth = 1000;
         const movedWidth = this.props.ScreenToLocalTransform().transformDirection(nativeWidth.right - e.clientX, 0)[0];
         const width = movedWidth < minWidth ? minWidth : movedWidth > maxWidth ? maxWidth : movedWidth;
         this.props.Document.schemaPreviewWidth = width;
-    }
-    @action
-    onDividerUp = (e: PointerEvent): void => {
-        document.removeEventListener("pointermove", this.onDividerMove);
-        document.removeEventListener('pointerup', this.onDividerUp);
-        if (this._startPreviewWidth === this.previewWidth()) {
-            this.toggleExpander();
-        }
+        return false;
     }
 
     onPointerDown = (e: React.PointerEvent): void => {
@@ -119,9 +105,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     }
 
     @computed
-    get previewDocument(): Doc | undefined {
-        return this.previewDoc ? (this.previewScript && this.previewScript !== "this" ? FieldValue(Cast(this.previewDoc[this.previewScript], Doc)) : this.previewDoc) : undefined;
-    }
+    get previewDocument(): Doc | undefined { return this.previewDoc; }
 
     getPreviewTransform = (): Transform => {
         return this.props.ScreenToLocalTransform().translate(- this.borderWidth - this.DIVIDER_WIDTH - this.tableWidth, - this.borderWidth);
@@ -477,8 +461,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
     @undoBatch
     createRow = () => {
-        const newDoc = Docs.Create.TextDocument("", { title: "", _width: 100, _height: 30 });
-        this.props.addDocument(newDoc);
+        this.props.addDocument(Docs.Create.TextDocument("", { title: "", _width: 100, _height: 30 }));
     }
 
     @undoBatch
@@ -559,16 +542,6 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             columns[index] = columnField;
             this.columns = columns;
         }
-
-        // const typesDoc = FieldValue(Cast(this.props.Document.schemaColumnTypes, Doc));
-        // if (!typesDoc) {
-        //     let newTypesDoc = new Doc();
-        //     newTypesDoc[key] = type;
-        //     this.props.Document.schemaColumnTypes = newTypesDoc;
-        //     return;
-        // } else {
-        //     typesDoc[key] = type;
-        // }
     }
 
     @undoBatch

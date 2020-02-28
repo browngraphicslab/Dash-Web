@@ -869,8 +869,8 @@ export namespace Doc {
                 Doc.AddDocToList((Doc.UserDoc().fieldTypes as Doc), "data", optionsCollection as Doc);
             }
             const options = optionsCollection as Doc;
-            doc && (doc.backgroundColor = ComputedField.MakeFunction(`options.data.find(doc => doc.title === (this.expandedTemplate||this).${enumeratedFieldKey})?._backgroundColor || "white"`, undefined, { options }));
-            doc && (doc.color = ComputedField.MakeFunction(`options.data.find(doc => doc.title === (this.expandedTemplate||this).${enumeratedFieldKey}).color || "black"`, undefined, { options }));
+            doc && (Doc.GetProto(doc).backgroundColor = ComputedField.MakeFunction(`options.data.find(doc => doc.title === (this.expandedTemplate||this).${enumeratedFieldKey})?._backgroundColor || "white"`, undefined, { options }));
+            doc && (Doc.GetProto(doc).color = ComputedField.MakeFunction(`options.data.find(doc => doc.title === (this.expandedTemplate||this).${enumeratedFieldKey}).color || "black"`, undefined, { options }));
             enumeratedDocs.map(enumeratedDoc => {
                 const found = DocListCast(options.data).find(d => d.title === enumeratedDoc.title);
                 if (found) {
