@@ -51,8 +51,8 @@ export const panZoomSchema = createSchema({
     arrangeInit: ScriptField,
     useClusters: "boolean",
     fitToBox: "boolean",
-    xPadding: "number",         // pixels of padding on left/right of collectionfreeformview contents when fitToBox is set
-    yPadding: "number",         // pixels of padding on left/right of collectionfreeformview contents when fitToBox is set
+    _xPadding: "number",         // pixels of padding on left/right of collectionfreeformview contents when fitToBox is set
+    _yPadding: "number",         // pixels of padding on left/right of collectionfreeformview contents when fitToBox is set
     panTransformType: "string",
     scrollHeight: "number",
     fitX: "number",

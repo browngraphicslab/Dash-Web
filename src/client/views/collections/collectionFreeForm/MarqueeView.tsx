@@ -18,6 +18,7 @@ import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
 import "./MarqueeView.scss";
 import React = require("react");
 import { CollectionView } from "../CollectionView";
+import { FormattedTextBox } from "../../nodes/FormattedTextBox";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -104,7 +105,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             });
         } else if (!e.ctrlKey) {
             this.props.addLiveTextDocument(
-                Docs.Create.TextDocument("", { _width: 200, _height: 100, x: x, y: y, _autoHeight: true, title: "-typed text-" }));
+                Docs.Create.TextDocument("", { _width: NumCast((FormattedTextBox.DefaultLayout as Doc)?._width) || 200, _height: 100, layout: FormattedTextBox.DefaultLayout, x: x, y: y, _autoHeight: true, title: "-typed text-" }));
         } else if (e.keyCode > 48 && e.keyCode <= 57) {
             const notes = DocListCast((CurrentUserUtils.UserDocument.noteTypes as Doc).data);
             const text = Docs.Create.TextDocument("", { _width: 200, _height: 100, x: x, y: y, _autoHeight: true, title: "-typed text-" });

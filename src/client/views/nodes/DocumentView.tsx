@@ -909,17 +909,19 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     render() {
         if (!(this.props.Document instanceof Doc)) return (null);
         const backgroundColor = StrCast(this.layoutDoc._backgroundColor) || StrCast(this.layoutDoc.backgroundColor) || StrCast(this.Document.backgroundColor) || this.props.backgroundColor?.(this.Document);
+        const finalColor = this.layoutDoc.type === DocumentType.FONTICON || this.layoutDoc._viewType === CollectionViewType.Linear ? undefined : backgroundColor;
         const fullDegree = Doc.isBrushedHighlightedDegree(this.props.Document);
         const borderRounding = this.layoutDoc.borderRounding;
         const localScale = fullDegree;
 
+        console.log("Background = " + this.props.Document.title + " " + finalColor);
         const highlightColors = Cast(Doc.UserDoc().activeWorkspace, Doc, null)?.darkScheme ?
             ["transparent", "#65350c", "#65350c", "yellow", "magenta", "cyan", "orange"] :
             ["transparent", "maroon", "maroon", "yellow", "magenta", "cyan", "orange"];
         const highlightStyles = ["solid", "dashed", "solid", "solid", "solid", "solid", "solid"];
         let highlighting = fullDegree && this.layoutDoc.type !== DocumentType.FONTICON && this.layoutDoc._viewType !== CollectionViewType.Linear;
         highlighting = highlighting && this.props.focus !== emptyFunction;  // bcz: hack to turn off highlighting onsidebar panel documents.  need to flag a document as not highlightable in a more direct way
-        return <div className={`documentView-node${this.topMost ? "-topmost" : ""}`} ref={this._mainCont} onKeyDown={this.onKeyDown}
+        return <div id={this.props.Document[Id]} className={`documentView-node${this.topMost ? "-topmost" : ""}`} ref={this._mainCont} onKeyDown={this.onKeyDown}
             onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
             onPointerEnter={e => Doc.BrushDoc(this.props.Document)} onPointerLeave={e => Doc.UnBrushDoc(this.props.Document)}
             style={{
@@ -931,7 +933,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 outline: highlighting && !borderRounding ? `${highlightColors[fullDegree]} ${highlightStyles[fullDegree]} ${localScale}px` : "solid 0px",
                 border: highlighting && borderRounding ? `${highlightStyles[fullDegree]} ${highlightColors[fullDegree]} ${localScale}px` : undefined,
                 boxShadow: this.props.Document.isTemplateForField ? "black 0.2vw 0.2vw 0.8vw" : undefined,
-                background: this.layoutDoc.type === DocumentType.FONTICON || this.layoutDoc._viewType === CollectionViewType.Linear ? undefined : backgroundColor,
+                background: finalColor,
                 width: "100%",
                 height: "100%",
                 opacity: this.Document.opacity

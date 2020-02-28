@@ -77,6 +77,8 @@ export interface DocumentOptions {
     _gridGap?: number; // gap between items in masonry view
     _xMargin?: number; // gap between left edge of document and start of masonry/stacking layouts
     _yMargin?: number; // gap between top edge of dcoument and start of masonry/stacking layouts
+    _xPadding?: number;
+    _yPadding?: number;
     _itemIndex?: number; // which item index the carousel viewer is showing
     _showSidebar?: boolean;  //whether an annotationsidebar should be displayed for text docuemnts
     x?: number;
@@ -174,7 +176,7 @@ export namespace Docs {
         const TemplateMap: TemplateMap = new Map([
             [DocumentType.TEXT, {
                 layout: { view: FormattedTextBox, dataField: data },
-                options: { _height: 150 }
+                options: { _height: 150, _xMargin: 10, _yMargin: 10 }
             }],
             [DocumentType.HIST, {
                 layout: { view: HistogramBox, dataField: data },
@@ -407,6 +409,7 @@ export namespace Docs {
 
         const delegateKeys = ["x", "y", "layoutKey", "_width", "_height", "_panX", "_panY", "_viewType", "_nativeWidth", "_nativeHeight", "dropAction", "childDropAction", "_annotationOn",
             "_chromeStatus", "_forceActive", "_autoHeight", "_fitWidth", "_LODdisable", "_itemIndex", "_showSidebar", "_showTitle", "_showCaption", "_showTitleHover", "_backgroundColor",
+            "_xMargin", "_yMargin", "_xPadding", "_yPadding",
             "_color", "isButton", "isBackground", "removeDropProperties", "treeViewOpen"];
 
         /**

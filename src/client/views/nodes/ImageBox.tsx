@@ -407,15 +407,16 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
                         ref={this._imgRef}
                         onError={this.onError} /></div>}
             </div>
-            <div className="imageBox-audioBackground"
-                onPointerDown={this.audioDown}
-                onPointerEnter={this.onPointerEnter}
-                style={{ height: `calc(${.1 * nativeHeight / nativeWidth * 100}%)` }}
-            >
-                <FontAwesomeIcon className="imageBox-audioFont"
-                    style={{ color: [DocListCast(this.dataDoc[this.props.fieldKey + "-audioAnnotations"]).length ? "blue" : "gray", "green", "red"][this._audioState] }}
-                    icon={!DocListCast(this.dataDoc[this.props.fieldKey + "-audioAnnotations"]).length ? "microphone" : faFileAudio} size="sm" />
-            </div>
+            {!this.props.Document._showAudio ? (null) :
+                <div className="imageBox-audioBackground"
+                    onPointerDown={this.audioDown}
+                    onPointerEnter={this.onPointerEnter}
+                    style={{ height: `calc(${.1 * nativeHeight / nativeWidth * 100}%)` }}
+                >
+                    <FontAwesomeIcon className="imageBox-audioFont"
+                        style={{ color: [DocListCast(this.dataDoc[this.props.fieldKey + "-audioAnnotations"]).length ? "blue" : "gray", "green", "red"][this._audioState] }}
+                        icon={!DocListCast(this.dataDoc[this.props.fieldKey + "-audioAnnotations"]).length ? "microphone" : faFileAudio} size="sm" />
+                </div>}
             {this.considerDownloadIcon}
             {this.considerGooglePhotosLink()}
             <FaceRectangles document={this.dataDoc} color={"#0000FF"} backgroundColor={"#0000FF"} />

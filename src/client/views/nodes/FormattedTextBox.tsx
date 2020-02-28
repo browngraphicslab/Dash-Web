@@ -375,12 +375,15 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
 
     toggleSidebar = () => this._sidebarMovement < 5 && (this.props.Document.sidebarWidthPercent = StrCast(this.props.Document.sidebarWidthPercent, "0%") === "0%" ? "25%" : "0%");
 
+    public static DefaultLayout: Doc | string | undefined;
     specificContextMenu = (e: React.MouseEvent): void => {
         const funcs: ContextMenuProps[] = [];
+        this.props.Document.isTemplateDoc && funcs.push({ description: "Make Default Layout", event: async () => FormattedTextBox.DefaultLayout = this.props.Document.proto as Doc, icon: "eye" });
+        funcs.push({ description: "Reset Default Layout", event: () => FormattedTextBox.DefaultLayout = undefined, icon: "eye" });
         !this.props.Document.expandedTemplate && funcs.push({ description: "Make Template", event: () => { this.props.Document.isTemplateDoc = true; Doc.AddDocToList(Cast(Doc.UserDoc().noteTypes, Doc, null), "data", this.props.Document); }, icon: "eye" });
-        funcs.push({ description: "Toggle Sidebar", event: () => { e.stopPropagation(); this.props.Document._showSidebar = !this.props.Document._showSidebar; }, icon: "expand-arrows-alt" });
-        funcs.push({ description: "Record Bullet", event: () => { e.stopPropagation(); this.recordBullet(); }, icon: "expand-arrows-alt" });
-        funcs.push({ description: "Toggle Menubar", event: () => { e.stopPropagation(); this.toggleMenubar(); }, icon: "expand-arrows-alt" });
+        funcs.push({ description: "Toggle Sidebar", event: () => this.props.Document._showSidebar = !this.props.Document._showSidebar, icon: "expand-arrows-alt" });
+        funcs.push({ description: "Record Bullet", event: () => this.recordBullet(), icon: "expand-arrows-alt" });
+        funcs.push({ description: "Toggle Menubar", event: () => this.toggleMenubar(), icon: "expand-arrows-alt" });
         ["My Text", "Text from Others", "Todo Items", "Important Items", "Ignore Items", "Disagree Items", "By Recent Minute", "By Recent Hour"].forEach(option =>
             funcs.push({
                 description: (FormattedTextBox._highlights.indexOf(option) === -1 ? "Highlight " : "Unhighlight ") + option, event: () => {
@@ -1125,7 +1128,11 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                 onPointerLeave={action(() => this._entered = false)}
             >
                 <div className={`formattedTextBox-outer`} style={{ width: `calc(100% - ${this.sidebarWidthPercent})`, }} onScroll={this.onscrolled} ref={this._scrollRef}>
-                    <div className={`formattedTextBox-inner${rounded}`} style={{ whiteSpace: "pre-wrap", pointerEvents: ((this.Document.isButton || this.props.onClick) && !this.props.isSelected()) ? "none" : undefined }} ref={this.createDropTarget} />
+                    <div className={`formattedTextBox-inner${rounded}`} ref={this.createDropTarget}
+                        style={{
+                            padding: `${NumCast(this.Document._xMargin, 0)}px  ${NumCast(this.Document._yMargin, 0)}px`,
+                            pointerEvents: ((this.Document.isButton || this.props.onClick) && !this.props.isSelected()) ? "none" : undefined
+                        }} />
                 </div>
                 {!this.props.Document._showSidebar ? (null) : this.sidebarWidthPercent === "0%" ?
                     <div className="formattedTextBox-sidebar-handle" onPointerDown={this.sidebarDown} onClick={e => this.toggleSidebar()} /> :
@@ -1152,15 +1159,16 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                         </CollectionFreeFormView>
                         <div className="formattedTextBox-sidebar-handle" onPointerDown={this.sidebarDown} onClick={e => this.toggleSidebar()} />
                     </div>}
-                <div className="formattedTextBox-dictation"
-                    onClick={e => {
-                        this._recording ? this.stopDictation(true) : this.recordDictation();
-                        setTimeout(() => this._editorView!.focus(), 500);
-                        e.stopPropagation();
-                    }} >
-                    <FontAwesomeIcon className="formattedTExtBox-audioFont"
-                        style={{ color: this._recording ? "red" : "blue", opacity: this._recording ? 1 : 0.5, display: this.props.isSelected() ? "" : "none" }} icon={"microphone"} size="sm" />
-                </div>
+                {!this.props.Document._showAudio ? (null) :
+                    <div className="formattedTextBox-dictation"
+                        onClick={e => {
+                            this._recording ? this.stopDictation(true) : this.recordDictation();
+                            setTimeout(() => this._editorView!.focus(), 500);
+                            e.stopPropagation();
+                        }} >
+                        <FontAwesomeIcon className="formattedTExtBox-audioFont"
+                            style={{ color: this._recording ? "red" : "blue", opacity: this._recording ? 1 : 0.5, display: this.props.isSelected() ? "" : "none" }} icon={"microphone"} size="sm" />
+                    </div>}
             </div>
         );
     }

@@ -910,11 +910,11 @@ export class DashFieldView {
                 }
                 e.preventDefault();
             }
-            if (e.key === "Enter" && e.ctrlKey) {
-                Doc.addEnumerationToTextField(self._textBoxDoc, node.attrs.fieldKey, [Docs.Create.TextDocument(self._fieldSpan.innerText, { title: self._fieldSpan.innerText })]);
+            if (e.key === "Enter") {
                 e.preventDefault();
-            } else if (e.key === "Enter") {
-                e.preventDefault();
+                if (e.ctrlKey) {
+                    Doc.addEnumerationToTextField(self._textBoxDoc, node.attrs.fieldKey, [Docs.Create.TextDocument(self._fieldSpan.innerText, { title: self._fieldSpan.innerText })]);
+                }
                 let newText = self._fieldSpan.innerText.startsWith(":=") ? ":=-computed-" : self._fieldSpan.innerText;
                 // look for a document whose id === the fieldKey being displayed.  If there's a match, then that document
                 // holds the different enumerated values for the field in the titles of its collected documents.
