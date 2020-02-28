@@ -160,7 +160,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
 
     startDrag = (e: PointerEvent, down: number[], delta: number[]) => {
         const alias = Doc.MakeAlias(this.props.parent.props.Document);
-        alias._width = this.props.parent.props.PanelWidth() / (Cast(this.props.parent.props.Document.schemaColumns, listSpec(SchemaHeaderField))?.length || 1);
+        alias._width = this.props.parent.props.PanelWidth() / (Cast(this.props.parent.props.Document.sectionHeaders, listSpec(SchemaHeaderField))?.length || 1);
         alias.sectionFilter = undefined;
         const key = StrCast(this.props.parent.props.Document.sectionFilter);
         let value = this.getValue(this._heading);
