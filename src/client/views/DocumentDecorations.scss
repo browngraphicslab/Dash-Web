@@ -90,6 +90,14 @@ $linkGap : 3px;
         cursor: ew-resize;
     }
 
+    .documentDecorations-contextMenu {
+        background: $alt-accent;
+        width: 25px;
+        height: calc(100% + 8px); // 8px for the height of the top resizer bar
+        grid-column-start: 1;
+        grid-column-end : 2;
+        pointer-events: all;
+    }
     .documentDecorations-title {
         background: $alt-accent;
         opacity: 1;
@@ -99,10 +107,6 @@ $linkGap : 3px;
         overflow: hidden;
         text-align: center;
         display:flex;
-        .documentDecorations-contextMenu {
-            width: 25px;
-            height: calc(100% + 8px); // 8px for the height of the top resizer bar
-        }
     }
     .publishBox {
         width: 20px;

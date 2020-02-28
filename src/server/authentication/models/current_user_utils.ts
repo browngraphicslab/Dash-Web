@@ -42,11 +42,11 @@ export class CurrentUserUtils {
             Docs.Create.TextDocument("completed", { title: "completed", _backgroundColor: "green", color: "white" })
         ];
         const noteTemplates = [
-            Docs.Create.TextDocument("", { title: "Note", backgroundColor: "yellow" }),
-            Docs.Create.TextDocument("", { title: "Idea", backgroundColor: "pink" }),
-            Docs.Create.TextDocument("", { title: "Topic", backgroundColor: "lightBlue" }),
-            Docs.Create.TextDocument("", { title: "Person", backgroundColor: "lightGreen" }),
-            Docs.Create.TextDocument("", { title: "Todo", backgroundColor: "orange", _autoHeight: false, _height: 100, _showCaption: "caption" })
+            Docs.Create.TextDocument("", { title: "Note", isTemplateDoc: true, backgroundColor: "yellow" }),
+            Docs.Create.TextDocument("", { title: "Idea", isTemplateDoc: true, backgroundColor: "pink" }),
+            Docs.Create.TextDocument("", { title: "Topic", isTemplateDoc: true, backgroundColor: "lightBlue" }),
+            Docs.Create.TextDocument("", { title: "Person", isTemplateDoc: true, backgroundColor: "lightGreen" }),
+            Docs.Create.TextDocument("", { title: "Todo", isTemplateDoc: true, backgroundColor: "orange", _autoHeight: false, _height: 100, _showCaption: "caption" })
         ];
         doc.fieldTypes = Docs.Create.TreeDocument([], { title: "field enumerations" });
         Doc.enumeratedTextTemplate(Doc.GetProto(noteTemplates[4]), FormattedTextBox.LayoutString("Todo"), "taskStatus", taskStatusValues);

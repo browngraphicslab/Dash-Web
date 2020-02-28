@@ -46,6 +46,7 @@ import { FieldView, FieldViewProps } from "./FieldView";
 import "./FormattedTextBox.scss";
 import { FormattedTextBoxComment, formattedTextBoxCommentPlugin } from './FormattedTextBoxComment';
 import React = require("react");
+import { PrefetchProxy } from '../../../new_fields/Proxy';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -376,12 +377,15 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
 
     toggleSidebar = () => this._sidebarMovement < 5 && (this.props.Document.sidebarWidthPercent = StrCast(this.props.Document.sidebarWidthPercent, "0%") === "0%" ? "25%" : "0%");
 
-    public static DefaultLayout: Doc | string | undefined;
+    public static get DefaultLayout(): Doc | string | undefined {
+        return Cast(Doc.UserDoc().defaultTextLayout, Doc, null) || StrCast(Doc.UserDoc().defaultTextLayout, null);
+    }
     specificContextMenu = (e: React.MouseEvent): void => {
         const funcs: ContextMenuProps[] = [];
-        this.props.Document.isTemplateDoc && funcs.push({ description: "Make Default Layout", event: async () => FormattedTextBox.DefaultLayout = this.props.Document.proto as Doc, icon: "eye" });
-        funcs.push({ description: "Reset Default Layout", event: () => FormattedTextBox.DefaultLayout = undefined, icon: "eye" });
+        this.props.Document.isTemplateDoc && funcs.push({ description: "Make Default Layout", event: async () => Doc.UserDoc().defaultTextLayout = new PrefetchProxy(this.props.Document.proto as Doc), icon: "eye" });
+        funcs.push({ description: "Reset Default Layout", event: () => Doc.UserDoc().defaultTextLayout = undefined, icon: "eye" });
         !this.props.Document.expandedTemplate && funcs.push({ description: "Make Template", event: () => { this.props.Document.isTemplateDoc = true; Doc.AddDocToList(Cast(Doc.UserDoc().noteTypes, Doc, null), "data", this.props.Document); }, icon: "eye" });
+        funcs.push({ description: "Toggle Single Line", event: () => this.props.Document.singleLine = !this.props.Document.singleLine, icon: "expand-arrows-alt" });
         funcs.push({ description: "Toggle Sidebar", event: () => this.props.Document._showSidebar = !this.props.Document._showSidebar, icon: "expand-arrows-alt" });
         funcs.push({ description: "Record Bullet", event: () => this.recordBullet(), icon: "expand-arrows-alt" });
         funcs.push({ description: "Toggle Menubar", event: () => this.toggleMenubar(), icon: "expand-arrows-alt" });
