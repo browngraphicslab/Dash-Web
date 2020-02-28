@@ -914,7 +914,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const borderRounding = this.layoutDoc.borderRounding;
         const localScale = fullDegree;
 
-        console.log("Background = " + this.props.Document.title + " " + finalColor);
         const highlightColors = Cast(Doc.UserDoc().activeWorkspace, Doc, null)?.darkScheme ?
             ["transparent", "#65350c", "#65350c", "yellow", "magenta", "cyan", "orange"] :
             ["transparent", "maroon", "maroon", "yellow", "magenta", "cyan", "orange"];

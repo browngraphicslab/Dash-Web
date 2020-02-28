@@ -104,6 +104,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
                 }
             });
         } else if (!e.ctrlKey) {
+            FormattedTextBox.SelectOnLoadChar = FormattedTextBox.DefaultLayout ? e.key : "";
             this.props.addLiveTextDocument(
                 Docs.Create.TextDocument("", { _width: NumCast((FormattedTextBox.DefaultLayout as Doc)?._width) || 200, _height: 100, layout: FormattedTextBox.DefaultLayout, x: x, y: y, _autoHeight: true, title: "-typed text-" }));
         } else if (e.keyCode > 48 && e.keyCode <= 57) {

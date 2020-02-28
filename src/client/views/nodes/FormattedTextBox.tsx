@@ -95,6 +95,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
 
     public static FocusedBox: FormattedTextBox | undefined;
     public static SelectOnLoad = "";
+    public static SelectOnLoadChar = "";
     public static IsFragment(html: string) {
         return html.indexOf("data-pm-slice") !== -1;
     }
@@ -474,7 +475,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     _keymap: any = undefined;
     _rules: RichTextRules | undefined;
     @computed get config() {
-        this._keymap = buildKeymap(schema);
+        this._keymap = buildKeymap(schema, this.props);
         this._rules = new RichTextRules(this.props.Document, this);
         return {
             schema,
@@ -796,6 +797,9 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         if (selectOnLoad) {
             FormattedTextBox.SelectOnLoad = "";
             this.props.select(false);
+            FormattedTextBox.SelectOnLoadChar && this._editorView!.dispatch(this._editorView!.state.tr.insertText(FormattedTextBox.SelectOnLoadChar));
+            FormattedTextBox.SelectOnLoadChar = "";
+
         }
         (selectOnLoad /* || !rtfField?.Text*/) && this._editorView!.focus();
         // add user mark for any first character that was typed since the user mark that gets set in KeyPress won't have been called yet.

@@ -6,6 +6,11 @@ import { liftListItem, sinkListItem } from "./prosemirrorPatches.js";
 import { splitListItem, wrapInList, } from "prosemirror-schema-list";
 import { EditorState, Transaction, TextSelection } from "prosemirror-state";
 import { SelectionManager } from "./SelectionManager";
+import { Docs } from "../documents/Documents";
+import { NumCast } from "../../new_fields/Types";
+import { Doc } from "../../new_fields/Doc";
+import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
+import { Id } from "../../new_fields/FieldSymbols";
 
 const mac = typeof navigator !== "undefined" ? /Mac/.test(navigator.platform) : false;
 
@@ -25,7 +30,7 @@ export let updateBullets = (tx2: Transaction, schema: Schema, mapStyle?: string)
     });
     return tx2;
 };
-export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: KeyMap): KeyMap {
+export default function buildKeymap<S extends Schema<any>>(schema: S, props: any, mapKeys?: KeyMap): KeyMap {
     const keys: { [key: string]: any } = {};
 
     function bind(key: string, cmd: any) {
@@ -144,13 +149,34 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
             console.log("bullet demote fail");
         }
     });
+    bind("Ctrl-Enter", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
+        const layoutDoc = props.Document;
+        const originalDoc = layoutDoc.expandedTemplate || layoutDoc;
+        if (originalDoc instanceof Doc) {
+            const newDoc = Docs.Create.TextDocument("", { title: "", layout: FormattedTextBox.DefaultLayout, x: NumCast(originalDoc.x), y: NumCast(originalDoc.y) + NumCast(originalDoc._height) + 10, _width: NumCast(layoutDoc._width), _height: NumCast(layoutDoc._height) });
+            FormattedTextBox.SelectOnLoad = newDoc[Id];
+            originalDoc instanceof Doc && props.addDocument(newDoc);
+        }
+    });
 
     const splitMetadata = (marks: any, tx: Transaction) => {
         marks && tx.ensureMarks(marks.filter((val: any) => val.type !== schema.marks.metadata && val.type !== schema.marks.metadataKey && val.type !== schema.marks.metadataVal));
         marks && tx.setStoredMarks(marks.filter((val: any) => val.type !== schema.marks.metadata && val.type !== schema.marks.metadataKey && val.type !== schema.marks.metadataVal));
         return tx;
     };
+    const addTextOnRight = () => {
+        const layoutDoc = props.Document;
+        const originalDoc = layoutDoc.expandedTemplate || layoutDoc;
+        const newDoc = Docs.Create.TextDocument("", { title: "", layout: FormattedTextBox.DefaultLayout, x: NumCast(originalDoc.x) + NumCast(originalDoc._width) + 10, y: NumCast(originalDoc.y), _width: NumCast(layoutDoc._width), _height: NumCast(layoutDoc._height) });
+        FormattedTextBox.SelectOnLoad = newDoc[Id];
+        props.addDocument(newDoc);
+        return true;
+    }
+    bind("Alt-Enter", (state: EditorState<S>, dispatch: (tx: Transaction<Schema<any, any>>) => void) => {
+        return addTextOnRight();
+    });
     bind("Enter", (state: EditorState<S>, dispatch: (tx: Transaction<Schema<any, any>>) => void) => {
+        if (props.Document.singleLine) return addTextOnRight();
         const marks = state.storedMarks || (state.selection.$to.parentOffset && state.selection.$from.marks());
         if (!splitListItem(schema.nodes.list_item)(state, dispatch)) {
             if (!splitBlockKeepMarks(state, (tx3: Transaction) => {
