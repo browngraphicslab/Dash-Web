@@ -69,7 +69,7 @@ export default class GooglePhotosManager extends ApiManager {
                 const interval = { magnitude: 100, unit: TimeUnit.Milliseconds };
                 const newMediaItems = await batched.batchedMapPatientInterval<NewMediaItem>(
                     interval,
-                    async (batch: any, collector: any, { completedBatches }: any) => {
+                    async (batch, collector, { completedBatches }) => {
                         for (let index = 0; index < batch.length; index++) {
                             const { url, description } = batch[index];
                             // a local function used to record failure of an upload
@@ -305,7 +305,7 @@ export namespace Uploader {
         // ...so we execute them in delayed batches and await the entire execution
         return batched.batchedMapPatientInterval(
             { magnitude: 100, unit: TimeUnit.Milliseconds },
-            async (batch: NewMediaItem[], collector: any): Promise<any> => {
+            async (batch: NewMediaItem[], collector): Promise<void> => {
                 const parameters = {
                     method: 'POST',
                     headers: headers('json', bearerToken),
