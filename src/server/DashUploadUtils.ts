@@ -53,7 +53,7 @@ export namespace DashUploadUtils {
     const size = "content-length";
     const type = "content-type";
 
-    const { imageFormats, videoFormats, applicationFormats } = AcceptibleMedia;
+    const { imageFormats, videoFormats, applicationFormats, audioFormats } = AcceptibleMedia;
 
     export async function upload(file: File): Promise<Upload.FileResponse> {
         const { type, path, name } = file;
@@ -75,6 +75,10 @@ export namespace DashUploadUtils {
             case "application":
                 if (applicationFormats.includes(format)) {
                     return UploadPdf(file);
+                }
+            case "audio":
+                if (audioFormats.includes(format)) {
+                    return UploadAudio(file);
                 }
         }
 
