@@ -12,18 +12,26 @@ import { CompileScript } from "../util/Scripting";
 import { ScriptField } from "../../new_fields/ScriptField";
 import { DragManager } from "../util/DragManager";
 import { EditableView } from "./EditableView";
-import { FieldView } from "./nodes/FieldView";
+import { FieldView, FieldViewProps } from "./nodes/FieldView";
+import { DocAnnotatableComponent } from "./DocComponent";
+import { makeInterface } from "../../new_fields/Schema";
+import { documentSchema } from "../../new_fields/documentSchemas";
+import { CompileResult } from "../northstar/model/idea/idea";
 
 export interface ScriptBoxProps {
-    onSave: (text: string, onError: (error: string) => void) => void;
+    onSave?: (text: string, onError: (error: string) => void) => void;
     onCancel?: () => void;
     initialText?: string;
     showDocumentIcons?: boolean;
     setParams?: (p: string[]) => void;
 }
 
+type ScriptDocument = makeInterface<[typeof documentSchema]>;
+const ScriptDocument = makeInterface(documentSchema);
+
 @observer
-export class ScriptBox extends React.Component<ScriptBoxProps> {
+export class ScriptBox extends DocAnnotatableComponent<FieldViewProps & ScriptBoxProps, ScriptDocument>(ScriptDocument) {
+    protected multiTouchDisposer?: import("../util/InteractionUtils").InteractionUtils.MultiTouchEventDisposer | undefined;
     public static LayoutString(fieldStr: string) { return FieldView.LayoutString(ScriptBox, fieldStr); }
 
     @observable
@@ -56,12 +64,23 @@ export class ScriptBox extends React.Component<ScriptBoxProps> {
         this.overlayDisposer && this.overlayDisposer();
     }
 
+    onCompile = () => {
+        const result = CompileScript(this._scriptText, {});
+        if (result.compiled) {
+            // this automatically saves
+            this.props.Document.data = new ScriptField(result);
+        }
+        else {
+            // error message
+        }
+    }
+
     render() {
         let onFocus: Opt<() => void> = undefined, onBlur: Opt<() => void> = undefined;
-        if (this.props.showDocumentIcons) {
-            onFocus = this.onFocus;
-            onBlur = this.onBlur;
-        }
+        //if (this.props.showDocumentIcons) {
+        onFocus = this.onFocus;
+        onBlur = this.onBlur;
+        // }
         const params = <EditableView
             contents={""}
             display={"block"}
@@ -78,8 +97,7 @@ export class ScriptBox extends React.Component<ScriptBoxProps> {
                     <div style={{ background: "beige" }} >{params}</div>
                 </div>
                 <div className="scriptBox-toolbar">
-                    <button onClick={e => { this.props.onSave(this._scriptText, this.onError); e.stopPropagation(); }}>Save</button>
-                    <button onClick={e => { this.props.onCancel && this.props.onCancel(); e.stopPropagation(); }}>Cancel</button>
+                    <button onPointerDown={e => { this.onCompile(); e.stopPropagation(); }}>Compile</button>
                 </div>
             </div>
         );
