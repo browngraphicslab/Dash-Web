@@ -26,6 +26,7 @@ import { PDFBox } from "./PDFBox";
 import { PresBox } from "./PresBox";
 import { QueryBox } from "./QueryBox";
 import { ColorBox } from "./ColorBox";
+import { ScriptBox } from "../ScriptBox"
 import { DocuLinkBox } from "./DocuLinkBox";
 import { PresElementBox } from "../presentationview/PresElementBox";
 import { VideoBox } from "./VideoBox";
@@ -85,7 +86,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         if (this.props.LayoutDoc || (this.props.DataDoc === undefined && typeof Doc.LayoutField(this.props.Document) !== "string")) {
             // if there is no dataDoc (ie, we're not rendering a template layout), but this document has a layout document (not a layout string), 
             // then we render the layout document as a template and use this document as the data context for the template layout.
-            return Doc.expandTemplateLayout(this.props.LayoutDoc?.() || Doc.Layout(this.props.Document), this.props.Document);
+            return Doc.expandTemplateLayout(this.props.LayoutDoc ?.() || Doc.Layout(this.props.Document), this.props.Document);
         }
         return Doc.Layout(this.props.Document);
     }
@@ -108,7 +109,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
                     FormattedTextBox, ImageBox, DirectoryImportBox, FontIconBox, ButtonBox, SliderBox, FieldView,
                     CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox,
                     PDFBox, VideoBox, AudioBox, HistogramBox, PresBox, YoutubeBox, PresElementBox, QueryBox,
-                    ColorBox, DashWebRTCVideo, DocuLinkBox, InkingStroke, DocumentBox, LinkBox
+                    ColorBox, DashWebRTCVideo, DocuLinkBox, InkingStroke, DocumentBox, LinkBox, ScriptBox
                 }}
                 bindings={this.CreateBindings()}
                 jsx={this.layout}

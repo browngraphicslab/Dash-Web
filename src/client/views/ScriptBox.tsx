@@ -12,6 +12,7 @@ import { CompileScript } from "../util/Scripting";
 import { ScriptField } from "../../new_fields/ScriptField";
 import { DragManager } from "../util/DragManager";
 import { EditableView } from "./EditableView";
+import { FieldView } from "./nodes/FieldView";
 
 export interface ScriptBoxProps {
     onSave: (text: string, onError: (error: string) => void) => void;
@@ -23,6 +24,8 @@ export interface ScriptBoxProps {
 
 @observer
 export class ScriptBox extends React.Component<ScriptBoxProps> {
+    public static LayoutString(fieldStr: string) { return FieldView.LayoutString(ScriptBox, fieldStr); }
+
     @observable
     private _scriptText: string;
 

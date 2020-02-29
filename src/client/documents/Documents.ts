@@ -55,6 +55,7 @@ import { MessageStore } from "../../server/Message";
 import { ContextMenuProps } from "../views/ContextMenuItem";
 import { ContextMenu } from "../views/ContextMenu";
 import { LinkBox } from "../views/nodes/LinkBox";
+import { ScriptBox } from "../views/ScriptBox";
 const requestImageSize = require('../util/request-image-size');
 const path = require('path');
 
@@ -261,6 +262,10 @@ export namespace Docs {
             }],
             [DocumentType.INK, {
                 layout: { view: InkingStroke, dataField: data },
+                options: { backgroundColor: "transparent" }
+            }],
+            [DocumentType.SCRIPT, {
+                layout: { view: ScriptBox, dataField: data },
                 options: { backgroundColor: "transparent" }
             }]
         ]);
@@ -525,6 +530,10 @@ export namespace Docs {
 
         export function TextDocument(text: string, options: DocumentOptions = {}) {
             return InstanceFromProto(Prototypes.get(DocumentType.TEXT), text, options);
+        }
+
+        export function ScriptDocument(options: DocumentOptions = {}) {
+            return InstanceFromProto(Prototypes.get(DocumentType.SCRIPT), undefined, options);
         }
 
         export function LinkDocument(source: { doc: Doc, ctx?: Doc }, target: { doc: Doc, ctx?: Doc }, options: DocumentOptions = {}, id?: string) {
@@ -810,7 +819,7 @@ export namespace Docs {
                 created = Docs.Create.TextDocument("", { ...{ _width: 200, _height: 25, _autoHeight: true }, ...resolved });
                 layout = FormattedTextBox.LayoutString;
             }
-            created.layout = layout?.(fieldKey);
+            created.layout = layout ?.(fieldKey);
             created.title = fieldKey;
             proto && (created.proto = Doc.GetProto(proto));
             return created;
@@ -921,7 +930,7 @@ export namespace DocUtils {
         });
         ContextMenu.Instance.addItem({
             description: "Add Template Doc ...",
-            subitems: DocListCast(Cast(Doc.UserDoc().expandingButtons, Doc, null)?.data).map(btnDoc => Cast(btnDoc?.dragFactory, Doc, null)).filter(doc => doc).map((dragDoc, i) => ({
+            subitems: DocListCast(Cast(Doc.UserDoc().expandingButtons, Doc, null) ?.data).map(btnDoc => Cast(btnDoc ?.dragFactory, Doc, null)).filter(doc => doc).map((dragDoc, i) => ({
                 description: ":" + StrCast(dragDoc.title),
                 event: (args: { x: number, y: number }) => {
                     const newDoc = Doc.ApplyTemplate(dragDoc);
