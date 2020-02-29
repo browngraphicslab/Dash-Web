@@ -81,6 +81,7 @@ export interface DocumentOptions {
     _yPadding?: number;
     _itemIndex?: number; // which item index the carousel viewer is showing
     _showSidebar?: boolean;  //whether an annotationsidebar should be displayed for text docuemnts
+    _singleLine?: boolean; // whether text document is restricted to a single line (carriage returns make new document)
     x?: number;
     y?: number;
     z?: number;
@@ -409,7 +410,7 @@ export namespace Docs {
 
         const delegateKeys = ["x", "y", "layoutKey", "_width", "_height", "_panX", "_panY", "_viewType", "_nativeWidth", "_nativeHeight", "dropAction", "childDropAction", "_annotationOn",
             "_chromeStatus", "_forceActive", "_autoHeight", "_fitWidth", "_LODdisable", "_itemIndex", "_showSidebar", "_showTitle", "_showCaption", "_showTitleHover", "_backgroundColor",
-            "_xMargin", "_yMargin", "_xPadding", "_yPadding",
+            "_xMargin", "_yMargin", "_xPadding", "_yPadding", "_singleLine",
             "_color", "isButton", "isBackground", "removeDropProperties", "treeViewOpen"];
 
         /**

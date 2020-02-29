@@ -7,7 +7,7 @@ import { splitListItem, wrapInList, } from "prosemirror-schema-list";
 import { EditorState, Transaction, TextSelection } from "prosemirror-state";
 import { SelectionManager } from "./SelectionManager";
 import { Docs } from "../documents/Documents";
-import { NumCast } from "../../new_fields/Types";
+import { NumCast, BoolCast, Cast } from "../../new_fields/Types";
 import { Doc } from "../../new_fields/Doc";
 import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
 import { Id } from "../../new_fields/FieldSymbols";
@@ -153,7 +153,10 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, props: any
         const layoutDoc = props.Document;
         const originalDoc = layoutDoc.expandedTemplate || layoutDoc;
         if (originalDoc instanceof Doc) {
-            const newDoc = Docs.Create.TextDocument("", { title: "", layout: FormattedTextBox.DefaultLayout, x: NumCast(originalDoc.x), y: NumCast(originalDoc.y) + NumCast(originalDoc._height) + 10, _width: NumCast(layoutDoc._width), _height: NumCast(layoutDoc._height) });
+            const newDoc = Docs.Create.TextDocument("", {
+                title: "", layout: Cast(originalDoc.layout, Doc, null) || FormattedTextBox.DefaultLayout, _singleLine: BoolCast(originalDoc._singleLine),
+                x: NumCast(originalDoc.x), y: NumCast(originalDoc.y) + NumCast(originalDoc._height) + 10, _width: NumCast(layoutDoc._width), _height: NumCast(layoutDoc._height)
+            });
             FormattedTextBox.SelectOnLoad = newDoc[Id];
             originalDoc instanceof Doc && props.addDocument(newDoc);
         }
@@ -168,7 +171,10 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, props: any
         const layoutDoc = props.Document;
         const originalDoc = layoutDoc.expandedTemplate || layoutDoc;
         if (force || props.Document._singleLine) {
-            const newDoc = Docs.Create.TextDocument("", { title: "", layout: FormattedTextBox.DefaultLayout, x: NumCast(originalDoc.x) + NumCast(originalDoc._width) + 10, y: NumCast(originalDoc.y), _width: NumCast(layoutDoc._width), _height: NumCast(layoutDoc._height) });
+            const newDoc = Docs.Create.TextDocument("", {
+                title: "", layout: Cast(originalDoc.layout, Doc, null) || FormattedTextBox.DefaultLayout, _singleLine: BoolCast(originalDoc._singleLine),
+                x: NumCast(originalDoc.x) + NumCast(originalDoc._width) + 10, y: NumCast(originalDoc.y), _width: NumCast(layoutDoc._width), _height: NumCast(layoutDoc._height)
+            });
             FormattedTextBox.SelectOnLoad = newDoc[Id];
             props.addDocument(newDoc);
             return true;
