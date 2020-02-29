@@ -82,8 +82,8 @@ export class RadialMenu extends React.Component {
         }
         this._shouldDisplay && (this._display = true);
         document.removeEventListener("pointermove", this.onPointerMove);
-        if (this._closest !== -1) {
-            this._items[this._closest]?.event();
+        if (this._closest !== -1 && this._items?.length > this._closest) {
+            this._items[this._closest].event();
         }
     }
     componentWillUnmount() {

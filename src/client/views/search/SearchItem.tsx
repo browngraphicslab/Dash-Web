@@ -4,24 +4,24 @@ import { faCaretUp, faChartBar, faFile, faFilePdf, faFilm, faFingerprint, faGlob
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast } from "../../../new_fields/Doc";
+import { Doc } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
-import { emptyFunction, returnEmptyString, returnFalse, returnOne, Utils, emptyPath } from "../../../Utils";
+import { emptyFunction, emptyPath, returnFalse, Utils } from "../../../Utils";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager, SetupDrag } from "../../util/DragManager";
 import { SearchUtil } from "../../util/SearchUtil";
 import { Transform } from "../../util/Transform";
 import { SEARCH_THUMBNAIL_SIZE } from "../../views/globalCssVariables.scss";
-import { CollectionViewType } from "../collections/CollectionView";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
+import { CollectionViewType } from "../collections/CollectionView";
+import { ParentDocSelector } from "../collections/ParentDocumentSelector";
 import { ContextMenu } from "../ContextMenu";
+import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
 import { SearchBox } from "./SearchBox";
 import "./SearchItem.scss";
 import "./SelectorContextMenu.scss";
-import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
-import { ButtonSelector, ParentDocSelector } from "../collections/ParentDocumentSelector";
 
 export interface SearchItemProps {
     doc: Doc;
@@ -74,7 +74,7 @@ export class SelectorContextMenu extends React.Component<SearchItemProps> {
                 col._panX = newPanX;
                 col._panY = newPanY;
             }
-            CollectionDockingView.AddRightSplit(col, undefined);
+            CollectionDockingView.AddRightSplit(col);
         };
     }
     render() {
@@ -108,7 +108,7 @@ export class LinkContextMenu extends React.Component<LinkMenuProps> {
 
     unHighlightDoc = (doc: Doc) => () => Doc.UnBrushDoc(doc);
 
-    getOnClick = (col: Doc) => () => CollectionDockingView.AddRightSplit(col, undefined);
+    getOnClick = (col: Doc) => () => CollectionDockingView.AddRightSplit(col);
 
     render() {
         return (
@@ -272,7 +272,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
 
     @computed
     get contextButton() {
-        return <ParentDocSelector Views={DocumentManager.Instance.DocumentViews} Document={this.props.doc} addDocTab={(doc, data, where) => CollectionDockingView.AddRightSplit(doc, data)} />;
+        return <ParentDocSelector Views={DocumentManager.Instance.DocumentViews} Document={this.props.doc} addDocTab={(doc, where) => CollectionDockingView.AddRightSplit(doc)} />;
     }
 
     render() {

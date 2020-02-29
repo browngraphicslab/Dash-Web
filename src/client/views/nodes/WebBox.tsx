@@ -339,8 +339,7 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
                 CollectionView={undefined}
                 ScreenToLocalTransform={this.props.ScreenToLocalTransform}
                 renderDepth={this.props.renderDepth + 1}
-                ContainingCollectionDoc={this.props.ContainingCollectionDoc}
-                chromeCollapsed={true}>
+                ContainingCollectionDoc={this.props.ContainingCollectionDoc}>
                 {() => [this.content]}
             </CollectionFreeFormView>
         </div >);

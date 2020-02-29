@@ -10,7 +10,6 @@ import uuid
 import datetime
 from PIL import Image
 import math
-import sys
 
 source = "./source"
 filesPath = "../../server/public/files"
@@ -116,8 +115,8 @@ def write_collection(parse_results, display_fields, storage_key, viewType):
     target_collection.insert_one(view_doc)
 
     data_doc_guid = data_doc["_id"]
-    print(f"inserted view document ({view_doc_guid})")
-    print(f"inserted data document ({data_doc_guid})\n")
+    # print(f"inserted view document ({view_doc_guid})")
+    # print(f"inserted data document ({data_doc_guid})\n")
 
     return view_doc_guid
 
@@ -189,8 +188,8 @@ def write_image(folder, name):
             "y": 10,
             "_width": min(800, native_width),
             "zIndex": 2,
-            "widthUnit": "*",
-            "widthMagnitude": 1
+            "dimUnit": "*",
+            "dimMagnitude": 1
         },
         "__type": "Doc"
     }
@@ -234,7 +233,7 @@ def parse_document(file_name: str):
     result = {}
 
     dir_path = image_dist + "/" + pure_name
-    print(dir_path)
+    # print(dir_path)
     mkdir_if_absent(dir_path)
 
     raw = str(docx2txt.process(source + "/" + file_name, dir_path))
@@ -253,13 +252,15 @@ def parse_document(file_name: str):
             medium = dir_path + "/" + image.replace(".", "_m.", 1)
             copyfile(resolved, original)
             copyfile(resolved, medium)
-    print(f"extracted {count} images...")
+    # print(f"extracted {count} images...")
 
     def sanitize(line): return re.sub("[\n\t]+", "", line).replace(u"\u00A0", " ").replace(
         u"\u2013", "-").replace(u"\u201c", '''"''').replace(u"\u201d", '''"''').strip()
 
     def sanitize_price(raw: str):
         raw = raw.replace(",", "")
+        if "x" in raw.lower():
+            return None
         start = raw.find("$")
         if start > -1:
             i = start + 1
@@ -273,6 +274,14 @@ def parse_document(file_name: str):
             return math.nan
 
     def remove_empty(line): return len(line) > 1
+
+    def try_parse(to_parse: int):
+        value: int
+        try:
+            value = int(to_parse)
+        except ValueError:
+            value = None
+        return value
 
     lines = list(map(sanitize, raw.split("\n")))
     lines = list(filter(remove_empty, lines))
@@ -293,13 +302,13 @@ def parse_document(file_name: str):
     clean = list(
         map(lambda data: data.strip().split(":"), lines[cur].split("|")))
     result["company"] = clean[0][len(clean[0]) - 1].strip()
-    result["year"] = clean[1][len(clean[1]) - 1].strip()
+    result["year"] = try_parse(clean[1][len(clean[1]) - 1].strip())
     result["original_price"] = sanitize_price(
         clean[2][len(clean[2]) - 1].strip())
 
     cur += 1
-    result["degrees_of_freedom"] = extract_value(
-        lines[cur]).replace("NA", "N/A")
+    result["degrees_of_freedom"] = try_parse(extract_value(
+        lines[cur]).replace("NA", "N/A"))
     cur += 1
 
     dimensions = lines[cur].lower()
@@ -351,7 +360,7 @@ def parse_document(file_name: str):
     if len(notes) > 0:
         result["notes"] = listify(notes)
 
-    print("writing child schema...")
+    # print("writing child schema...")
 
     return {
         "schema": {
@@ -383,7 +392,7 @@ def write_common_proto():
 
 
 if os.path.exists(image_dist):
-    shutil.rmtree(image_dist)
+    shutil.rmtree(image_dist, True)
 while os.path.exists(image_dist):
     pass
 os.mkdir(image_dist)
@@ -393,7 +402,7 @@ common_proto_id = write_common_proto()
 
 candidates = 0
 for file_name in os.listdir(source):
-    if file_name.endswith('.docx'):
+    if file_name.endswith('.docx') or file_name.endswith('.doc'):
         candidates += 1
         schema_guids.append(write_collection(
             parse_document(file_name), ["title", "data"], "data", 5))
@@ -406,7 +415,7 @@ parent_guid = write_collection({
         "__type": "Doc"
     },
     "child_guids": schema_guids
-}, ["title", "short_description", "original_price"], "data", 2)
+}, ["title", "short_description", "original_price"], "data", 4)
 
 print("appending parent schema to main workspace...\n")
 target_collection.update_one(

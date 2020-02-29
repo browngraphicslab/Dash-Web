@@ -8,8 +8,11 @@ import { launchServer, onWindows } from "..";
 import { readdirSync, statSync, createWriteStream, readFileSync, unlinkSync } from "fs";
 import * as Archiver from "archiver";
 import { resolve } from "path";
-import { AppliedSessionAgent, MessageHandler, ExitHandler, Monitor, ServerWorker } from "resilient-server-session";
 import rimraf = require("rimraf");
+import { AppliedSessionAgent, ExitHandler } from "./Session/agents/applied_session_agent";
+import { ServerWorker } from "./Session/agents/server_worker";
+import { Monitor } from "./Session/agents/monitor";
+import { MessageHandler } from "./Session/agents/promisified_ipc_manager";
 
 /**
  * If we're the monitor (master) thread, we should launch the monitor logic for the session.
@@ -25,18 +28,18 @@ export class DashSessionAgent extends AppliedSessionAgent {
      * The core method invoked when the single master thread is initialized.
      * Installs event hooks, repl commands and additional IPC listeners.
      */
-    // protected async initializeMonitor(monitor: Monitor, sessionKey: string): Promise<void> {
-    protected async initializeMonitor(monitor: Monitor): Promise<void> {
-
-        // await this.dispatchSessionPassword(sessionKey);
-        // monitor.addReplCommand("pull", [], () => monitor.exec("git pull"));
-        // monitor.addReplCommand("solr", [/start|stop|index/], this.executeSolrCommand);
-        // monitor.addReplCommand("backup", [], this.backup);
-        // monitor.addReplCommand("debug", [/\S+\@\S+/], async ([to]) => this.dispatchZippedDebugBackup(to));
-        // monitor.on("backup", this.backup);
-        // monitor.on("debug", async ({ to }) => this.dispatchZippedDebugBackup(to));
-        // monitor.coreHooks.onCrashDetected(this.dispatchCrashReport);
-        return;
+    protected async initializeMonitor(monitor: Monitor): Promise<string> {
+        const sessionKey = Utils.GenerateGuid();
+        await this.dispatchSessionPassword(sessionKey);
+        monitor.addReplCommand("pull", [], () => monitor.exec("git pull"));
+        monitor.addReplCommand("solr", [/start|stop|index/], this.executeSolrCommand);
+        monitor.addReplCommand("backup", [], this.backup);
+        monitor.addReplCommand("debug", [/\S+\@\S+/], async ([to]) => this.dispatchZippedDebugBackup(to));
+        monitor.on("backup", this.backup);
+        monitor.on("debug", async ({ to }) => this.dispatchZippedDebugBackup(to));
+        monitor.on("delete", WebSocket.deleteFields);
+        monitor.coreHooks.onCrashDetected(this.dispatchCrashReport);
+        return sessionKey;
     }
 
     /**

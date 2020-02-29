@@ -68,8 +68,8 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
                         (this.props.B.props.Document[(this.props.B.props as any).fieldKey] as Doc);
                         const m = targetAhyperlink.getBoundingClientRect();
                         const mp = this.props.B.props.ScreenToLocalTransform().transformPoint(m.right, m.top + 5);
-                        this.props.B.props.Document[afield + "_x"] = mp[0] / this.props.B.props.PanelWidth() * 100;
-                        this.props.B.props.Document[afield + "_y"] = mp[1] / this.props.B.props.PanelHeight() * 100;
+                        this.props.B.props.Document[bfield + "_x"] = mp[0] / this.props.B.props.PanelWidth() * 100;
+                        this.props.B.props.Document[bfield + "_y"] = mp[1] / this.props.B.props.PanelHeight() * 100;
                     }, 0);
                 }
             })
@@ -95,10 +95,15 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         const pt2 = [bpt.point.x, bpt.point.y];
         const aActive = this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document);
         const bActive = this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document);
-        return !aActive && !bActive ? (null) :
+        const text = StrCast(this.props.A.props.Document.linkRelationship);
+        return !aActive && !bActive ? (null) : (<>
+            <text x={(pt1[0] + pt2[0]) / 2} y={(pt1[1] + pt2[1]) / 2}>
+                {text !== "-ungrouped-" ? text : ""}
+            </text>
             <line key="linkLine" className="collectionfreeformlinkview-linkLine"
                 style={{ opacity: this._opacity, strokeDasharray: "2 2" }}
                 x1={`${pt1[0]}`} y1={`${pt1[1]}`}
-                x2={`${pt2[0]}`} y2={`${pt2[1]}`} />;
+                x2={`${pt2[0]}`} y2={`${pt2[1]}`} />
+        </>);
     }
 }

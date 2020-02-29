@@ -2,6 +2,7 @@ import { Utils } from "../Utils";
 import { Point } from "../pen-gestures/ndollar";
 import { Doc } from "../new_fields/Doc";
 import { Image } from "canvas";
+import { AnalysisResult, ImportResults } from "../scraping/buxton/final/BuxtonImporter";
 
 export class Message<T> {
     private _name: string;
@@ -69,6 +70,11 @@ export interface MobileDocumentUploadContent {
     readonly docId: string;
 }
 
+export interface RoomMessage {
+    readonly message: string;
+    readonly room: string;
+}
+
 export namespace MessageStore {
     export const Foo = new Message<string>("Foo");
     export const Bar = new Message<string>("Bar");
@@ -78,6 +84,9 @@ export namespace MessageStore {
     export const GetDocument = new Message<string>("Get Document");
     export const DeleteAll = new Message<any>("Delete All");
     export const ConnectionTerminated = new Message<string>("Connection Terminated");
+    export const BeginBuxtonImport = new Message<string>("Begin Buxton Import");
+    export const BuxtonDocumentResult = new Message<AnalysisResult>("Buxton Document Result");
+    export const BuxtonImportComplete = new Message<ImportResults>("Buxton Import Complete");
 
     export const GesturePoints = new Message<GestureContent>("Gesture Points");
     export const MobileInkOverlayTrigger = new Message<MobileInkOverlayContent>("Trigger Mobile Ink Overlay");
@@ -91,5 +100,4 @@ export namespace MessageStore {
     export const YoutubeApiQuery = new Message<YoutubeQueryInput>("Youtube Api Query");
     export const DeleteField = new Message<string>("Delete field");
     export const DeleteFields = new Message<string[]>("Delete fields");
-    export const AnalyzeInk = new Message<string>("Analyze Ink");
 }

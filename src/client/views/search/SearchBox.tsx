@@ -234,7 +234,7 @@ export class SearchBox extends React.Component {
                 y += 300;
             }
         }
-        return Docs.Create.TreeDocument(docs, { _width: 200, _height: 400, backgroundColor: "grey", title: `Search Docs: "${this._searchString}"` });
+        return Docs.Create.TreeDocument(docs, { _width: 200, _height: 400, title: `Search Docs: "${this._searchString}"` });
     }
 
     @action.bound

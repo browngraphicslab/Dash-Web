@@ -90,7 +90,7 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
     @action public FullScreen() {
         this._fullScreen = true;
         this.player && this.player.requestFullscreen();
-        this._youtubePlayer && this.props.addDocTab(this.props.Document, this.props.DataDoc, "inTab");
+        this._youtubePlayer && this.props.addDocTab(this.props.Document, "inTab");
     }
 
     choosePath(url: string) {
@@ -354,8 +354,7 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
                     CollectionView={undefined}
                     ScreenToLocalTransform={this.props.ScreenToLocalTransform}
                     renderDepth={this.props.renderDepth + 1}
-                    ContainingCollectionDoc={this.props.ContainingCollectionDoc}
-                    chromeCollapsed={true}>
+                    ContainingCollectionDoc={this.props.ContainingCollectionDoc}>
                     {this.contentFunc}
                 </CollectionFreeFormView>
             </div>

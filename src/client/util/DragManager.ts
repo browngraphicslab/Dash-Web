@@ -133,8 +133,8 @@ export namespace DragManager {
         userDropAction: dropActionType;
         embedDoc?: boolean;
         moveDocument?: MoveFunction;
-        isSelectionMove?: boolean; // indicates that an explicitly selected Document is being dragged.  this will suppress onDragStart scripts
         applyAsTemplate?: boolean;
+        isSelectionMove?: boolean; // indicates that an explicitly selected Document is being dragged.  this will suppress onDragStart scripts
     }
     export class LinkDragData {
         constructor(linkSourceDoc: Doc) {
@@ -196,8 +196,11 @@ export namespace DragManager {
                     dragData.userDropAction === "alias" || (!dragData.userDropAction && dragData.dropAction === "alias") ? Doc.MakeAlias(d) :
                         dragData.userDropAction === "copy" || (!dragData.userDropAction && dragData.dropAction === "copy") ? Doc.MakeCopy(d, true) : d)
             );
-            e.docDragData ?.droppedDocuments.forEach((drop: Doc, i: number) =>
-                Cast(dragData.draggedDocuments[i].removeDropProperties, listSpec("string"), []).map(prop => drop[prop] = undefined));
+            e.docDragData?.droppedDocuments.forEach((drop: Doc, i: number) =>
+                Cast(dragData.draggedDocuments[i].removeDropProperties, listSpec("string"), []).map(prop => {
+                    drop[prop] = undefined;
+                })
+            );
         };
         dragData.draggedDocuments.map(d => d.dragFactory); // does this help?  trying to make sure the dragFactory Doc is loaded
         StartDrag(eles, dragData, downX, downY, options, finishDrag);
@@ -306,7 +309,7 @@ export namespace DragManager {
             dragElement.style.transformOrigin = "0 0";
             dragElement.style.borderRadius = getComputedStyle(ele).borderRadius;
             dragElement.style.zIndex = globalCssVariables.contextMenuZindex;// "1000";
-            dragElement.style.transform = `translate(${rect.left + (options ?.offsetX || 0)}px, ${rect.top + (options ?.offsetY || 0)}px) scale(${scaleX}, ${scaleY})`;
+            dragElement.style.transform = `translate(${rect.left + (options?.offsetX || 0)}px, ${rect.top + (options?.offsetY || 0)}px) scale(${scaleX}, ${scaleY})`;
             dragElement.style.width = `${rect.width / scaleX}px`;
             dragElement.style.height = `${rect.height / scaleY}px`;
 
@@ -335,8 +338,8 @@ export namespace DragManager {
             return dragElement;
         });
 
-        const hideSource = options ?.hideSource ? true : false;
-        eles.map(ele => ele.parentElement && ele.parentElement ?.className === dragData.dragDivName ? (ele.parentElement.hidden = hideSource) : (ele.hidden = hideSource));
+        const hideSource = options?.hideSource ? true : false;
+        eles.map(ele => ele.parentElement && ele.parentElement?.className === dragData.dragDivName ? (ele.parentElement.hidden = hideSource) : (ele.hidden = hideSource));
 
         let lastX = downX;
         let lastY = downY;
@@ -347,7 +350,7 @@ export namespace DragManager {
             }
             if (e.shiftKey && CollectionDockingView.Instance && dragData.droppedDocuments.length === 1) {
                 AbortDrag();
-                finishDrag ?.(new DragCompleteEvent(true, dragData));
+                finishDrag?.(new DragCompleteEvent(true, dragData));
                 CollectionDockingView.Instance.StartOtherDrag({
                     pageX: e.pageX,
                     pageY: e.pageY,
@@ -361,13 +364,13 @@ export namespace DragManager {
             lastX = e.pageX;
             lastY = e.pageY;
             dragElements.map((dragElement, i) => (dragElement.style.transform =
-                `translate(${(xs[i] += moveX) + (options ?.offsetX || 0)}px, ${(ys[i] += moveY) + (options ?.offsetY || 0)}px)  scale(${scaleXs[i]}, ${scaleYs[i]})`)
+                `translate(${(xs[i] += moveX) + (options?.offsetX || 0)}px, ${(ys[i] += moveY) + (options?.offsetY || 0)}px)  scale(${scaleXs[i]}, ${scaleYs[i]})`)
             );
         };
 
         const hideDragShowOriginalElements = () => {
             dragElements.map(dragElement => dragElement.parentNode === dragDiv && dragDiv.removeChild(dragElement));
-            eles.map(ele => ele.parentElement && ele.parentElement ?.className === dragData.dragDivName ? (ele.parentElement.hidden = false) : (ele.hidden = false));
+            eles.map(ele => ele.parentElement && ele.parentElement?.className === dragData.dragDivName ? (ele.parentElement.hidden = false) : (ele.hidden = false));
         };
         const endDrag = () => {
             document.removeEventListener("pointermove", moveHandler, true);
@@ -377,14 +380,14 @@ export namespace DragManager {
         AbortDrag = () => {
             hideDragShowOriginalElements();
             SelectionManager.SetIsDragging(false);
-            options ?.dragComplete ?.(new DragCompleteEvent(true, dragData));
+            options?.dragComplete?.(new DragCompleteEvent(true, dragData));
             endDrag();
         };
         const upHandler = (e: PointerEvent) => {
             hideDragShowOriginalElements();
             dispatchDrag(eles, e, dragData, options, finishDrag);
             SelectionManager.SetIsDragging(false);
-            options ?.dragComplete ?.(new DragCompleteEvent(false, dragData));
+            options?.dragComplete?.(new DragCompleteEvent(false, dragData));
             endDrag();
         };
         document.addEventListener("pointermove", moveHandler, true);
@@ -405,7 +408,7 @@ export namespace DragManager {
         });
         if (target) {
             const complete = new DragCompleteEvent(false, dragData);
-            finishDrag ?.(complete);
+            finishDrag?.(complete);
             console.log(complete.aborted);
             target.dispatchEvent(
                 new CustomEvent<DropEvent>("dashOnDrop", {

@@ -1,7 +1,6 @@
 import ApiManager, { Registration } from "./ApiManager";
 import { Method } from "../RouteManager";
 import { exec } from 'child_process';
-import { command_line } from "../ActionUtilities";
 import RouteSubscriber from "../RouteSubscriber";
 import { red } from "colors";
 import { IBM_Recommender } from "../../client/apis/IBM_Recommender";
@@ -9,6 +8,7 @@ import { Recommender } from "../Recommender";
 
 const recommender = new Recommender();
 recommender.testModel();
+import executeImport from "../../scraping/buxton/final/BuxtonImporter";
 
 export default class UtilManager extends ApiManager {
 
@@ -63,20 +63,6 @@ export default class UtilManager extends ApiManager {
                     });
                 });
             }
-        });
-
-        register({
-            method: Method.GET,
-            subscription: "/buxton",
-            secureHandler: async ({ res }) => {
-                const cwd = './src/scraping/buxton';
-
-                const onResolved = (stdout: string) => { console.log(stdout); res.redirect("/"); };
-                const onRejected = (err: any) => { console.error(err.message); res.send(err); };
-                const tryPython3 = () => command_line('python3 scraper.py', cwd).then(onResolved, onRejected);
-
-                return command_line('python scraper.py', cwd).then(onResolved, tryPython3);
-            },
         });
 
         register({

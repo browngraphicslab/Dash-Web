@@ -1,5 +1,5 @@
 import { Utils } from "../../Utils";
-import { MessageStore, Transferable, Types, Diff, YoutubeQueryInput, YoutubeQueryTypes, GestureContent, MobileInkOverlayContent, UpdateMobileInkOverlayPositionContent, MobileDocumentUploadContent } from "../Message";
+import { MessageStore, Transferable, Types, Diff, YoutubeQueryInput, YoutubeQueryTypes, GestureContent, MobileInkOverlayContent, UpdateMobileInkOverlayPositionContent, MobileDocumentUploadContent, RoomMessage } from "../Message";
 import { Client } from "../Client";
 import { Socket } from "socket.io";
 import { Database } from "../database";
@@ -10,16 +10,9 @@ import { GoogleCredentialsLoader } from "../credentials/CredentialsLoader";
 import { logPort } from "../ActionUtilities";
 import { timeMap } from "../ApiManagers/UserManager";
 import { green } from "colors";
-import { Image } from "canvas";
-import { write, createWriteStream } from "fs";
 import { serverPathToFile, Directory } from "../ApiManagers/UploadManager";
-const tesseract = require("node-tesseract-ocr");
-const config = {
-    lang: "eng",
-    oem: 1,
-    psm: 8
-};
-const imageDataUri = require('image-data-uri');
+import { networkInterfaces } from "os";
+import executeImport from "../../scraping/buxton/final/BuxtonImporter";
 
 export namespace WebSocket {
 
@@ -28,6 +21,7 @@ export namespace WebSocket {
     export const socketMap = new Map<SocketIO.Socket, string>();
     export let disconnect: Function;
 
+
     export async function start(isRelease: boolean) {
         await preliminaryFunctions();
         initialize(isRelease);
@@ -35,7 +29,6 @@ export namespace WebSocket {
 
     async function preliminaryFunctions() {
     }
-
     function initialize(isRelease: boolean) {
         const endpoint = io();
         endpoint.on("connection", function (socket: Socket) {
@@ -47,6 +40,54 @@ export namespace WebSocket {
                     timeMap[userEmail] = Date.now();
                 }
                 next();
+            });
+
+            // convenience function to log server messages on the client
+            function log(message?: any, ...optionalParams: any[]) {
+                socket.emit('log', ['Message from server:', message, ...optionalParams]);
+            }
+
+            socket.on('message', function (message, room) {
+                console.log('Client said: ', message);
+                socket.in(room).emit('message', message);
+            });
+
+            socket.on('create or join', function (room) {
+                console.log('Received request to create or join room ' + room);
+
+                var clientsInRoom = socket.adapter.rooms[room];
+                var numClients = clientsInRoom ? Object.keys(clientsInRoom.sockets).length : 0;
+                console.log('Room ' + room + ' now has ' + numClients + ' client(s)');
+
+                if (numClients === 0) {
+                    socket.join(room);
+                    console.log('Client ID ' + socket.id + ' created room ' + room);
+                    socket.emit('created', room, socket.id);
+
+                } else if (numClients === 1) {
+                    console.log('Client ID ' + socket.id + ' joined room ' + room);
+                    socket.in(room).emit('join', room);
+                    socket.join(room);
+                    socket.emit('joined', room, socket.id);
+                    socket.in(room).emit('ready');
+                } else { // max two clients
+                    socket.emit('full', room);
+                }
+            });
+
+            socket.on('ipaddr', function () {
+                var ifaces = networkInterfaces();
+                for (var dev in ifaces) {
+                    ifaces[dev].forEach(function (details) {
+                        if (details.family === 'IPv4' && details.address !== '127.0.0.1') {
+                            socket.emit('ipaddr', details.address);
+                        }
+                    });
+                }
+            });
+
+            socket.on('bye', function () {
+                console.log('received bye');
             });
 
             Utils.Emit(socket, MessageStore.Foo, "handshooken");
@@ -61,7 +102,6 @@ export namespace WebSocket {
 
             Utils.AddServerHandler(socket, MessageStore.CreateField, CreateField);
             Utils.AddServerHandlerCallback(socket, MessageStore.YoutubeApiQuery, HandleYoutubeQuery);
-            Utils.AddServerHandlerCallback(socket, MessageStore.AnalyzeInk, RecognizeImage);
             Utils.AddServerHandler(socket, MessageStore.UpdateField, diff => UpdateField(socket, diff));
             Utils.AddServerHandler(socket, MessageStore.DeleteField, id => DeleteField(socket, id));
             Utils.AddServerHandler(socket, MessageStore.DeleteFields, ids => DeleteFields(socket, ids));
@@ -71,6 +111,12 @@ export namespace WebSocket {
             Utils.AddServerHandler(socket, MessageStore.MobileDocumentUpload, content => processMobileDocumentUpload(socket, content));
             Utils.AddServerHandlerCallback(socket, MessageStore.GetRefField, GetRefField);
             Utils.AddServerHandlerCallback(socket, MessageStore.GetRefFields, GetRefFields);
+            Utils.AddServerHandler(socket, MessageStore.BeginBuxtonImport, () => {
+                executeImport(
+                    deviceOrError => Utils.Emit(socket, MessageStore.BuxtonDocumentResult, deviceOrError),
+                    results => Utils.Emit(socket, MessageStore.BuxtonImportComplete, results)
+                );
+            });
 
             disconnect = () => {
                 socket.broadcast.emit("connection_terminated", Date.now());
@@ -97,17 +143,6 @@ export namespace WebSocket {
 
     function processMobileDocumentUpload(socket: Socket, content: MobileDocumentUploadContent) {
         socket.broadcast.emit("receiveMobileDocumentUpload", content);
-    }
-
-    async function RecognizeImage([query, callback]: [string, (result: any) => any]) {
-        const path = serverPathToFile(Directory.images, "handwriting.jpg");
-        imageDataUri.outputFile(query, path).then((savedName: string) => {
-            console.log("saved " + savedName);
-            const remadePath = path.split("\\").join("\\\\");
-            tesseract.recognize(remadePath, config)
-                .then(callback)
-                .catch(console.log);
-        });
     }
 
     function HandleYoutubeQuery([query, callback]: [YoutubeQueryInput, (result?: any[]) => void]) {

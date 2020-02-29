@@ -11,21 +11,20 @@ import { CollectionViewType } from "./CollectionView";
 import { DocumentButtonBar } from "../DocumentButtonBar";
 import { DocumentManager } from "../../util/DocumentManager";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEdit, faChevronCircleUp } from "@fortawesome/free-solid-svg-icons";
+import { faCog, faChevronCircleUp } from "@fortawesome/free-solid-svg-icons";
 import { library } from "@fortawesome/fontawesome-svg-core";
-import { MetadataEntryMenu } from "../MetadataEntryMenu";
 import { DocumentView } from "../nodes/DocumentView";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
 
-library.add(faEdit);
+library.add(faCog);
 
 type SelectorProps = {
     Document: Doc,
     Views: DocumentView[],
     Stack?: any,
-    addDocTab(doc: Doc, dataDoc: Doc | undefined, location: string): void
+    addDocTab(doc: Doc, location: string): void
 };
 
 @observer
@@ -61,7 +60,7 @@ export class SelectorContextMenu extends React.Component<SelectorProps> {
                 col._panX = newPanX;
                 col._panY = newPanY;
             }
-            this.props.addDocTab(col, undefined, "inTab"); // bcz: dataDoc?
+            this.props.addDocTab(col, "inTab"); // bcz: dataDoc?
         };
     }
 
@@ -79,13 +78,12 @@ export class SelectorContextMenu extends React.Component<SelectorProps> {
 export class ParentDocSelector extends React.Component<SelectorProps> {
     render() {
         const flyout = (
-            <div className="parentDocumentSelector-flyout" style={{}} title=" ">
+            <div className="parentDocumentSelector-flyout" title=" ">
                 <SelectorContextMenu {...this.props} />
             </div>
         );
-        return <div title="Tap to View Contexts/Metadata" onPointerDown={e => e.stopPropagation()} className="parentDocumentSelector-linkFlyout">
-            <Flyout anchorPoint={anchorPoints.LEFT_TOP}
-                content={flyout}>
+        return <div title="Show Contexts" onPointerDown={e => e.stopPropagation()} className="parentDocumentSelector-linkFlyout">
+            <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={flyout}>
                 <span className="parentDocumentSelector-button" >
                     <FontAwesomeIcon icon={faChevronCircleUp} size={"lg"} />
                 </span>
@@ -95,14 +93,9 @@ export class ParentDocSelector extends React.Component<SelectorProps> {
 }
 
 @observer
-export class ButtonSelector extends React.Component<{ Document: Doc, Stack: any }> {
+export class DockingViewButtonSelector extends React.Component<{ Document: Doc, Stack: any }> {
     @observable hover = false;
 
-    @action
-    onPointerDown = (e: React.PointerEvent) => {
-        this.hover = !this.hover;
-        e.stopPropagation();
-    }
     customStylesheet(styles: any) {
         return {
             ...styles,
@@ -120,9 +113,9 @@ export class ButtonSelector extends React.Component<{ Document: Doc, Stack: any 
                 <DocumentButtonBar views={[view]} stack={this.props.Stack} />
             </div>
         );
-        return <span title="Tap for menu" onPointerDown={e => e.stopPropagation()} className="buttonSelector">
+        return <span title="Tap for menu, drag tab as document" onPointerDown={e => !this.props.Stack && e.stopPropagation()} className="buttonSelector">
             <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={flyout} stylesheet={this.customStylesheet}>
-                <FontAwesomeIcon icon={faEdit} size={"sm"} />
+                <FontAwesomeIcon icon={"cog"} size={"sm"} />
             </Flyout>
         </span>;
     }

@@ -106,7 +106,7 @@ export class ScriptField extends ObjectField {
     }
     public static CompileScript(script: string, params: object = {}, addReturn = false, capturedVariables?: { [name: string]: Field }) {
         const compiled = CompileScript(script, {
-            params: { this: Doc.name, _last_: "any", ...params },
+            params: { this: Doc.name, source: Doc.name, _last_: "any", ...params },
             typecheck: false,
             editable: true,
             addReturn: addReturn,
@@ -114,8 +114,8 @@ export class ScriptField extends ObjectField {
         });
         return compiled;
     }
-    public static MakeFunction(script: string, params: object = {}) {
-        const compiled = ScriptField.CompileScript(script, params, true);
+    public static MakeFunction(script: string, params: object = {}, capturedVariables?: { [name: string]: Field }) {
+        const compiled = ScriptField.CompileScript(script, params, true, capturedVariables);
         return compiled.compiled ? new ScriptField(compiled) : undefined;
     }
 
@@ -130,7 +130,7 @@ export class ScriptField extends ObjectField {
 export class ComputedField extends ScriptField {
     _lastComputedResult: any;
     //TODO maybe add an observable cache based on what is passed in for doc, considering there shouldn't really be that many possible values for doc
-    value = computedFn((doc: Doc) => this._lastComputedResult = this.script.run({ this: doc, _last_: this._lastComputedResult }, console.log).result);
+    value = computedFn((doc: Doc) => this._lastComputedResult = this.script.run({ source: doc.expandedTemplate || doc, this: doc, _last_: this._lastComputedResult }, console.log).result);
     public static MakeScript(script: string, params: object = {}) {
         const compiled = ScriptField.CompileScript(script, params, false);
         return compiled.compiled ? new ComputedField(compiled) : undefined;

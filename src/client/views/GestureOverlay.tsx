@@ -27,7 +27,6 @@ import { listSpec } from "../../new_fields/Schema";
 import { List } from "../../new_fields/List";
 import { CollectionViewType } from "./collections/CollectionView";
 import TouchScrollableMenu, { TouchScrollableMenuItem } from "./TouchScrollableMenu";
-import { RadialMenu } from "./nodes/RadialMenu";
 import MobileInterface from "../../mobile/MobileInterface";
 import { MobileInkOverlayContent } from "../../server/Message";
 import MobileInkOverlay from "../../mobile/MobileInkOverlay";
@@ -536,7 +535,7 @@ export default class GestureOverlay extends Touchable {
             }
             else if (this._d1 !== doc && !LinkManager.Instance.doesLinkExist(this._d1, doc)) {
                 if (this._d1.type !== "ink" && doc.type !== "ink") {
-                    DocUtils.MakeLink({ doc: this._d1 }, { doc: doc });
+                    DocUtils.MakeLink({ doc: this._d1 }, { doc: doc }, "gestural link");
                     actionPerformed = true;
                 }
             }

@@ -22,6 +22,8 @@
 .collectionFreeform-customText {
     position: absolute;
     text-align: center;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .collectionfreeformview-container {

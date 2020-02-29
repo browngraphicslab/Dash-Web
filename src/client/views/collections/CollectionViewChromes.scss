@@ -2,7 +2,8 @@
 @import '~js-datepicker/dist/datepicker.min.css';
 
 .collectionViewChrome-cont {
-    position: relative;
+    position: absolute;
+    width:100%;
     opacity: 0.9;
     z-index: 9001;
     transition: top .5s;

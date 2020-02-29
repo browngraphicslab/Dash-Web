@@ -7,6 +7,7 @@ import { SchemaHeaderField } from '../../new_fields/SchemaHeaderField';
 import { ContextMenu } from './ContextMenu';
 import { ContextMenuProps } from './ContextMenuItem';
 import "./EditableView.scss";
+import { CollectionTreeView } from './collections/CollectionTreeView';
 
 export interface EditableProps {
     /**
@@ -46,6 +47,7 @@ export interface EditableProps {
     onClick?: (e: React.MouseEvent) => boolean;
     isEditingCallback?: (isEditing: boolean) => void;
     menuCallback?: (x: number, y: number) => void;
+    showMenuOnLoad?: boolean;
     HeadingObject?: SchemaHeaderField | undefined;
     HeadingsHack?: number;
     toggle?: () => void;
@@ -59,12 +61,14 @@ export interface EditableProps {
  */
 @observer
 export class EditableView extends React.Component<EditableProps> {
+    public static loadId = "";
     @observable _editing: boolean = false;
     @observable _headingsHack: number = 1;
 
     constructor(props: EditableProps) {
         super(props);
         this._editing = this.props.editing ? true : false;
+        EditableView.loadId = "";
     }
 
     @action
@@ -74,8 +78,11 @@ export class EditableView extends React.Component<EditableProps> {
         // to false. this will no longer do so -syip
         if (nextProps.editing && nextProps.editing !== this._editing) {
             this._editing = nextProps.editing;
+            EditableView.loadId = "";
         }
     }
+
+    _didShow = false;
 
     @action
     onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -97,16 +104,20 @@ export class EditableView extends React.Component<EditableProps> {
             this._editing = false;
             this.props.isEditingCallback?.(false);
         } else if (e.key === ":") {
-            this.props.menuCallback?.(e.currentTarget.offsetLeft, e.currentTarget.offsetTop);
+            this.props.menuCallback?.(e.currentTarget.getBoundingClientRect().x, e.currentTarget.getBoundingClientRect().y);
         }
     }
 
     @action
     onClick = (e: React.MouseEvent) => {
         e.nativeEvent.stopPropagation();
-        if (!this.props.onClick || !this.props.onClick(e)) {
-            this._editing = true;
-            this.props.isEditingCallback?.(true);
+        if (this._ref.current && this.props.showMenuOnLoad) {
+            this.props.menuCallback?.(this._ref.current.getBoundingClientRect().x, this._ref.current.getBoundingClientRect().y);
+        } else {
+            if (!this.props.onClick || !this.props.onClick(e)) {
+                this._editing = true;
+                this.props.isEditingCallback?.(true);
+            }
         }
         e.stopPropagation();
     }
@@ -130,6 +141,7 @@ export class EditableView extends React.Component<EditableProps> {
         return wasFocused !== this._editing;
     }
 
+    _ref = React.createRef<HTMLDivElement>();
     render() {
         if (this._editing && this.props.GetValue() !== undefined) {
             return this.props.autosuggestProps
@@ -156,9 +168,10 @@ export class EditableView extends React.Component<EditableProps> {
                     style={{ display: this.props.display, fontSize: this.props.fontSize }}
                 />;
         } else {
-            if (this.props.autosuggestProps) this.props.autosuggestProps.resetValue();
+            this.props.autosuggestProps?.resetValue();
             return (this.props.contents instanceof ObjectField ? (null) :
                 <div className={`editableView-container-editing${this.props.oneLine ? "-oneLine" : ""}`}
+                    ref={this._ref}
                     style={{ display: this.props.display, minHeight: "20px", height: `${this.props.height ? this.props.height : "auto"}`, maxHeight: `${this.props.maxHeight}` }}
                     onClick={this.onClick}>
                     <span style={{ fontStyle: this.props.fontStyle, fontSize: this.props.fontSize }}>{this.props.contents}</span>

@@ -6,6 +6,11 @@ import { liftListItem, sinkListItem } from "./prosemirrorPatches.js";
 import { splitListItem, wrapInList, } from "prosemirror-schema-list";
 import { EditorState, Transaction, TextSelection } from "prosemirror-state";
 import { SelectionManager } from "./SelectionManager";
+import { Docs } from "../documents/Documents";
+import { NumCast, BoolCast, Cast } from "../../new_fields/Types";
+import { Doc } from "../../new_fields/Doc";
+import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
+import { Id } from "../../new_fields/FieldSymbols";
 
 const mac = typeof navigator !== "undefined" ? /Mac/.test(navigator.platform) : false;
 
@@ -25,7 +30,7 @@ export let updateBullets = (tx2: Transaction, schema: Schema, mapStyle?: string)
     });
     return tx2;
 };
-export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: KeyMap): KeyMap {
+export default function buildKeymap<S extends Schema<any>>(schema: S, props: any, mapKeys?: KeyMap): KeyMap {
     const keys: { [key: string]: any } = {};
 
     function bind(key: string, cmd: any) {
@@ -144,13 +149,43 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
             console.log("bullet demote fail");
         }
     });
+    bind("Ctrl-Enter", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
+        const layoutDoc = props.Document;
+        const originalDoc = layoutDoc.expandedTemplate || layoutDoc;
+        if (originalDoc instanceof Doc) {
+            const newDoc = Docs.Create.TextDocument("", {
+                title: "", layout: Cast(originalDoc.layout, Doc, null) || FormattedTextBox.DefaultLayout, _singleLine: BoolCast(originalDoc._singleLine),
+                x: NumCast(originalDoc.x), y: NumCast(originalDoc.y) + NumCast(originalDoc._height) + 10, _width: NumCast(layoutDoc._width), _height: NumCast(layoutDoc._height)
+            });
+            FormattedTextBox.SelectOnLoad = newDoc[Id];
+            originalDoc instanceof Doc && props.addDocument(newDoc);
+        }
+    });
 
     const splitMetadata = (marks: any, tx: Transaction) => {
         marks && tx.ensureMarks(marks.filter((val: any) => val.type !== schema.marks.metadata && val.type !== schema.marks.metadataKey && val.type !== schema.marks.metadataVal));
         marks && tx.setStoredMarks(marks.filter((val: any) => val.type !== schema.marks.metadata && val.type !== schema.marks.metadataKey && val.type !== schema.marks.metadataVal));
         return tx;
     };
+    const addTextOnRight = (force: boolean) => {
+        const layoutDoc = props.Document;
+        const originalDoc = layoutDoc.expandedTemplate || layoutDoc;
+        if (force || props.Document._singleLine) {
+            const newDoc = Docs.Create.TextDocument("", {
+                title: "", layout: Cast(originalDoc.layout, Doc, null) || FormattedTextBox.DefaultLayout, _singleLine: BoolCast(originalDoc._singleLine),
+                x: NumCast(originalDoc.x) + NumCast(originalDoc._width) + 10, y: NumCast(originalDoc.y), _width: NumCast(layoutDoc._width), _height: NumCast(layoutDoc._height)
+            });
+            FormattedTextBox.SelectOnLoad = newDoc[Id];
+            props.addDocument(newDoc);
+            return true;
+        }
+        return false;
+    }
+    bind("Alt-Enter", (state: EditorState<S>, dispatch: (tx: Transaction<Schema<any, any>>) => void) => {
+        return addTextOnRight(true);
+    });
     bind("Enter", (state: EditorState<S>, dispatch: (tx: Transaction<Schema<any, any>>) => void) => {
+        if (addTextOnRight(false)) return true;
         const marks = state.storedMarks || (state.selection.$to.parentOffset && state.selection.$from.marks());
         if (!splitListItem(schema.nodes.list_item)(state, dispatch)) {
             if (!splitBlockKeepMarks(state, (tx3: Transaction) => {
@@ -175,13 +210,16 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, mapKeys?: 
         });
         const path = (state.doc.resolve(state.selection.from - 1) as any).path;
         const spaceSeparator = path[path.length - 3].childCount > 1 ? 0 : -1;
-        const textsel = TextSelection.create(state.doc, range!.end - path[path.length - 3].lastChild.nodeSize + spaceSeparator, range!.end);
-        const text = range ? state.doc.textBetween(textsel.from, textsel.to) : "";
-        let whitespace = text.length - 1;
-        for (; whitespace >= 0 && text[whitespace] !== " "; whitespace--) { }
-        if (text.endsWith(":")) {
-            dispatch(state.tr.addMark(textsel.from + whitespace + 1, textsel.to, schema.marks.metadata.create() as any).
-                addMark(textsel.from + whitespace + 1, textsel.to - 2, schema.marks.metadataKey.create() as any));
+        const anchor = range!.end - path[path.length - 3].lastChild.nodeSize + spaceSeparator;
+        if (anchor >= 0) {
+            const textsel = TextSelection.create(state.doc, anchor, range!.end);
+            const text = range ? state.doc.textBetween(textsel.from, textsel.to) : "";
+            let whitespace = text.length - 1;
+            for (; whitespace >= 0 && text[whitespace] !== " "; whitespace--) { }
+            if (text.endsWith(":")) {
+                dispatch(state.tr.addMark(textsel.from + whitespace + 1, textsel.to, schema.marks.metadata.create() as any).
+                    addMark(textsel.from + whitespace + 1, textsel.to - 2, schema.marks.metadataKey.create() as any));
+            }
         }
         return false;
     });

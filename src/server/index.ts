@@ -24,7 +24,7 @@ import { Logger } from "./ProcessFactory";
 import { yellow } from "colors";
 import { DashSessionAgent } from "./DashSession/DashSessionAgent";
 import SessionManager from "./ApiManagers/SessionManager";
-import { AppliedSessionAgent } from "resilient-server-session";
+import { AppliedSessionAgent } from "./DashSession/Session/agents/applied_session_agent";
 
 export const onWindows = process.platform === "win32";
 export let sessionAgent: AppliedSessionAgent;
@@ -86,11 +86,13 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
         secureHandler: ({ res }) => res.redirect("/home")
     });
 
+
     addSupervisedRoute({
         method: Method.GET,
         subscription: "/serverHeartbeat",
         secureHandler: ({ res }) => res.send(true)
     });
+
 
     const serve: PublicHandler = ({ req, res }) => {
         const detector = new mobileDetect(req.headers['user-agent'] || "");
@@ -118,6 +120,7 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
     // a field on one client, that change must be broadcast to all other clients)
     WebSocket.start(isRelease);
 }
+
 
 /**
  * This function can be used in two different ways. If not in release mode,

@@ -1,19 +1,19 @@
+import { action, computed } from 'mobx';
 import { observer } from 'mobx-react';
-import { makeInterface } from '../../../../new_fields/Schema';
-import { documentSchema } from '../../../../new_fields/documentSchemas';
-import { CollectionSubView, SubCollectionViewProps } from '../CollectionSubView';
 import * as React from "react";
 import { Doc } from '../../../../new_fields/Doc';
-import { NumCast, StrCast, BoolCast, ScriptCast } from '../../../../new_fields/Types';
-import { ContentFittingDocumentView } from '../../nodes/ContentFittingDocumentView';
-import { Utils } from '../../../../Utils';
-import "./collectionMulticolumnView.scss";
-import { computed, trace, observable, action } from 'mobx';
-import { Transform } from '../../../util/Transform';
-import WidthLabel from './MulticolumnWidthLabel';
-import ResizeBar from './MulticolumnResizer';
-import { undoBatch } from '../../../util/UndoManager';
+import { documentSchema } from '../../../../new_fields/documentSchemas';
+import { makeInterface } from '../../../../new_fields/Schema';
+import { BoolCast, NumCast, ScriptCast, StrCast, Cast } from '../../../../new_fields/Types';
 import { DragManager } from '../../../util/DragManager';
+import { Transform } from '../../../util/Transform';
+import { undoBatch } from '../../../util/UndoManager';
+import { ContentFittingDocumentView } from '../../nodes/ContentFittingDocumentView';
+import { CollectionSubView } from '../CollectionSubView';
+import "./collectionMulticolumnView.scss";
+import ResizeBar from './MulticolumnResizer';
+import WidthLabel from './MulticolumnWidthLabel';
+import { List } from '../../../../new_fields/List';
 
 type MulticolumnDocument = makeInterface<[typeof documentSchema]>;
 const MulticolumnDocument = makeInterface(documentSchema);
@@ -28,13 +28,13 @@ interface LayoutData {
     starSum: number;
 }
 
-export const WidthUnit = {
+export const DimUnit = {
     Pixel: "px",
     Ratio: "*"
 };
 
-const resolvedUnits = Object.values(WidthUnit);
-const resizerWidth = 4;
+const resolvedUnits = Object.values(DimUnit);
+const resizerWidth = 8;
 
 @observer
 export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocument) {
@@ -45,12 +45,12 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
      */
     @computed
     private get ratioDefinedDocs() {
-        return this.childLayoutPairs.map(({ layout }) => layout).filter(({ widthUnit }) => StrCast(widthUnit) === WidthUnit.Ratio);
+        return this.childLayoutPairs.map(pair => pair.layout).filter(layout => StrCast(layout.dimUnit, "*") === DimUnit.Ratio);
     }
 
     /**
-     * This loops through all childLayoutPairs and extracts the values for widthUnit
-     * and widthMagnitude, ignoring any that are malformed. Additionally, it then
+     * This loops through all childLayoutPairs and extracts the values for dimUnit
+     * and dimMagnitude, ignoring any that are malformed. Additionally, it then
      * normalizes the ratio values so that one * value is always 1, with the remaining
      * values proportionate to that easily readable metric.
      * @returns the list of the resolved width specifiers (unit and magnitude pairs)
@@ -60,11 +60,11 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
     private get resolvedLayoutInformation(): LayoutData {
         let starSum = 0;
         const widthSpecifiers: WidthSpecifier[] = [];
-        this.childLayoutPairs.map(({ layout: { widthUnit, widthMagnitude } }) => {
-            const unit = StrCast(widthUnit);
-            const magnitude = NumCast(widthMagnitude);
+        this.childLayoutPairs.map(pair => {
+            const unit = StrCast(pair.layout.dimUnit, "*");
+            const magnitude = NumCast(pair.layout.dimMagnitude, 1);
             if (unit && magnitude && magnitude > 0 && resolvedUnits.includes(unit)) {
-                (unit === WidthUnit.Ratio) && (starSum += magnitude);
+                (unit === DimUnit.Ratio) && (starSum += magnitude);
                 widthSpecifiers.push({ magnitude, unit });
             }
             /**
@@ -82,9 +82,9 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
         setTimeout(() => {
             const { ratioDefinedDocs } = this;
             if (this.childLayoutPairs.length) {
-                const minimum = Math.min(...ratioDefinedDocs.map(({ widthMagnitude }) => NumCast(widthMagnitude)));
+                const minimum = Math.min(...ratioDefinedDocs.map(doc => NumCast(doc.dimMagnitude, 1)));
                 if (minimum !== 0) {
-                    ratioDefinedDocs.forEach(layout => layout.widthMagnitude = NumCast(layout.widthMagnitude) / minimum);
+                    ratioDefinedDocs.forEach(layout => layout.dimMagnitude = NumCast(layout.dimMagnitude, 1) / minimum, 1);
                 }
             }
         });
@@ -103,7 +103,7 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
     @computed
     private get totalFixedAllocation(): number | undefined {
         return this.resolvedLayoutInformation?.widthSpecifiers.reduce(
-            (sum, { magnitude, unit }) => sum + (unit === WidthUnit.Pixel ? magnitude : 0), 0);
+            (sum, { magnitude, unit }) => sum + (unit === DimUnit.Pixel ? magnitude : 0), 0);
     }
 
     /**
@@ -119,7 +119,7 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
     private get totalRatioAllocation(): number | undefined {
         const layoutInfoLen = this.resolvedLayoutInformation.widthSpecifiers.length;
         if (layoutInfoLen > 0 && this.totalFixedAllocation !== undefined) {
-            return this.props.PanelWidth() - (this.totalFixedAllocation + resizerWidth * (layoutInfoLen - 1));
+            return this.props.PanelWidth() - (this.totalFixedAllocation + resizerWidth * (layoutInfoLen - 1)) - 2 * NumCast(this.props.Document._xMargin);
         }
     }
 
@@ -160,8 +160,8 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
         if (columnUnitLength === undefined) {
             return 0; // we're still waiting on promises to resolve
         }
-        let width = NumCast(layout.widthMagnitude);
-        if (StrCast(layout.widthUnit) === WidthUnit.Ratio) {
+        let width = NumCast(layout.dimMagnitude, 1);
+        if (StrCast(layout.dimUnit, "*") === DimUnit.Ratio) {
             width *= columnUnitLength;
         }
         return width;
@@ -190,11 +190,11 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
 
     @undoBatch
     @action
-    drop = (e: Event, de: DragManager.DropEvent) => {
-        if (super.drop(e, de)) {
+    onInternalDrop = (e: Event, de: DragManager.DropEvent) => {
+        if (super.onInternalDrop(e, de)) {
             de.complete.docDragData?.droppedDocuments.forEach(action((d: Doc) => {
-                d.widthUnit = "*";
-                d.widthMagnitude = 1;
+                d.dimUnit = "*";
+                d.dimMagnitude = 1;
             }));
         }
         return false;
@@ -203,32 +203,43 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
 
     @computed get onChildClickHandler() { return ScriptCast(this.Document.onChildClick); }
 
+    getDisplayDoc(layout: Doc, dxf: () => Transform, width: () => number, height: () => number) {
+        return <ContentFittingDocumentView
+            {...this.props}
+            Document={layout}
+            DataDocument={layout.resolvedDataDoc as Doc}
+            backgroundColor={this.props.backgroundColor}
+            CollectionDoc={this.props.Document}
+            PanelWidth={width}
+            PanelHeight={height}
+            getTransform={dxf}
+            onClick={this.onChildClickHandler}
+            renderDepth={this.props.renderDepth + 1}
+        />;
+    }
     /**
      * @returns the resolved list of rendered child documents, displayed
      * at their resolved pixel widths, each separated by a resizer. 
      */
     @computed
     private get contents(): JSX.Element[] | null {
-        const { childLayoutPairs } = this;
+        // bcz: feels like a hack ... trying to show something useful when there's no list document in the data field of a templated object
+        const expanded = Cast(this.props.Document.expandedTemplate, Doc, null);
+        let { childLayoutPairs } = this.dataDoc[this.props.fieldKey] instanceof List || !expanded ? this : { childLayoutPairs: [] } as { childLayoutPairs: { layout: Doc, data: Doc }[] };
+        const replaced = !childLayoutPairs.length && !Cast(expanded?.layout, Doc, null) && expanded;
+        childLayoutPairs = childLayoutPairs.length || !replaced ? childLayoutPairs : [{ layout: replaced, data: replaced }];
         const { Document, PanelHeight } = this.props;
         const collector: JSX.Element[] = [];
         for (let i = 0; i < childLayoutPairs.length; i++) {
             const { layout } = childLayoutPairs[i];
+            const dxf = () => this.lookupIndividualTransform(layout).translate(-NumCast(Document._xMargin), -NumCast(Document._yMargin));
+            const width = () => expanded ? this.props.PanelWidth() : this.lookupPixels(layout);
+            const height = () => PanelHeight() - 2 * NumCast(Document._yMargin) - (BoolCast(Document.showWidthLabels) ? 20 : 0);
             collector.push(
-                <div
-                    className={"document-wrapper"}
-                    key={Utils.GenerateGuid()}
-                >
-                    <ContentFittingDocumentView
-                        {...this.props}
-                        Document={layout}
-                        DataDocument={layout.resolvedDataDoc as Doc}
-                        CollectionDoc={this.props.Document}
-                        PanelWidth={() => this.lookupPixels(layout)}
-                        PanelHeight={() => PanelHeight() - (BoolCast(Document.showWidthLabels) ? 20 : 0)}
-                        getTransform={() => this.lookupIndividualTransform(layout)}
-                        onClick={this.onChildClickHandler}
-                    />
+                <div className={"document-wrapper"}
+                    key={"wrapper" + i}
+                    style={{ width: width() }} >
+                    {this.getDisplayDoc(layout, dxf, width, height)}
                     <WidthLabel
                         layout={layout}
                         collectionDoc={Document}
@@ -236,7 +247,7 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
                 </div>,
                 <ResizeBar
                     width={resizerWidth}
-                    key={Utils.GenerateGuid()}
+                    key={"resizer" + i}
                     columnUnitLength={this.getColumnUnitLength}
                     toLeft={layout}
                     toRight={childLayoutPairs[i + 1]?.layout}
@@ -249,7 +260,11 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
 
     render(): JSX.Element {
         return (
-            <div className={"collectionMulticolumnView_contents"} ref={this.createDashEventsTarget}>
+            <div className={"collectionMulticolumnView_contents"}
+                style={{
+                    marginLeft: NumCast(this.props.Document._xMargin), marginRight: NumCast(this.props.Document._xMargin),
+                    marginTop: NumCast(this.props.Document._yMargin), marginBottom: NumCast(this.props.Document._yMargin)
+                }} ref={this.createDashEventsTarget}>
                 {this.contents}
             </div>
         );

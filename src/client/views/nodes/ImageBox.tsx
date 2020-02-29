@@ -69,6 +69,7 @@ const uploadIcons = {
 
 @observer
 export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocument>(ImageDocument) {
+    protected multiTouchDisposer?: import("../../util/InteractionUtils").InteractionUtils.MultiTouchEventDisposer | undefined;
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(ImageBox, fieldKey); }
     private _imgRef: React.RefObject<HTMLImageElement> = React.createRef();
     private _dropDisposer?: DragManager.DragDropDisposer;
@@ -93,10 +94,11 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
             } else if (de.altKey || !this.dataDoc[this.props.fieldKey]) {
                 const layoutDoc = de.complete.docDragData?.draggedDocuments[0];
                 const targetField = Doc.LayoutFieldKey(layoutDoc);
-                if (layoutDoc?.[DataSym][targetField] instanceof ImageField) {
-                    this.dataDoc[this.props.fieldKey] = ObjectField.MakeCopy(layoutDoc[DataSym][targetField] as ImageField);
-                    this.dataDoc[this.props.fieldKey + "-nativeWidth"] = NumCast(layoutDoc[DataSym][targetField + "-nativeWidth"]);
-                    this.dataDoc[this.props.fieldKey + "-nativeHeight"] = NumCast(layoutDoc[DataSym][targetField + "-nativeHeight"]);
+                const targetDoc = layoutDoc[DataSym];
+                if (targetDoc[targetField] instanceof ImageField) {
+                    this.dataDoc[this.props.fieldKey] = ObjectField.MakeCopy(targetDoc[targetField] as ImageField);
+                    this.dataDoc[this.props.fieldKey + "-nativeWidth"] = NumCast(targetDoc[targetField + "-nativeWidth"]);
+                    this.dataDoc[this.props.fieldKey + "-nativeHeight"] = NumCast(targetDoc[targetField + "-nativeHeight"]);
                     e.stopPropagation();
                 }
             }
@@ -160,6 +162,19 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
             const funcs: ContextMenuProps[] = [];
             funcs.push({ description: "Copy path", event: () => Utils.CopyText(field.url.href), icon: "expand-arrows-alt" });
             funcs.push({ description: "Rotate", event: this.rotate, icon: "expand-arrows-alt" });
+            funcs.push({
+                description: "Reset Native Dimensions", event: action(() => {
+                    const curNW = NumCast(this.dataDoc[this.props.fieldKey + "-nativeWidth"]);
+                    const curNH = NumCast(this.dataDoc[this.props.fieldKey + "-nativeHeight"]);
+                    if (this.props.PanelWidth() / this.props.PanelHeight() > curNW / curNH) {
+                        this.dataDoc[this.props.fieldKey + "-nativeWidth"] = this.props.PanelHeight() * curNW / curNH;
+                        this.dataDoc[this.props.fieldKey + "-nativeHeight"] = this.props.PanelHeight();
+                    } else {
+                        this.dataDoc[this.props.fieldKey + "-nativeWidth"] = this.props.PanelWidth();
+                        this.dataDoc[this.props.fieldKey + "-nativeHeight"] = this.props.PanelWidth() * curNH / curNW;
+                    }
+                }), icon: "expand-arrows-alt"
+            });
 
             const existingAnalyze = ContextMenu.Instance.findByDescription("Analyzers...");
             const modes: ContextMenuProps[] = existingAnalyze && "subitems" in existingAnalyze ? existingAnalyze.subitems : [];
@@ -209,7 +224,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
             return url.href;
         } else if (url.href.indexOf(window.location.origin) === -1) {
             return Utils.CorsProxy(url.href);
-        } else if (!(lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg"))) {
+        } else if (!/\.(png|jpg|jpeg|gif)$/.test(lower)) {
             return url.href;//Why is this here
         }
         const ext = path.extname(url.href);
@@ -259,10 +274,12 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
                 }), 0);
             })
                 .catch((err: any) => console.log(err));
-        } else if (this.Document._nativeHeight !== cachedNativeSize.width || this.Document._nativeWidth !== cachedNativeSize.height) {
+        } else if (this.Document._nativeWidth !== cachedNativeSize.width || this.Document._nativeHeight !== cachedNativeSize.height) {
             !(this.Document[StrCast(this.props.Document.layoutKey)] instanceof Doc) && setTimeout(() => {
-                this.Document._nativeWidth = cachedNativeSize.width;
-                this.Document._nativeHeight = cachedNativeSize.height;
+                if (!(this.Document[StrCast(this.props.Document.layoutKey)] instanceof Doc)) {
+                    this.Document._nativeWidth = cachedNativeSize.width;
+                    this.Document._nativeHeight = cachedNativeSize.height;
+                }
             }, 0);
         }
     }
@@ -321,12 +338,12 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
                     const { dataDoc } = this;
                     const { success, failure, idle, loading } = uploadIcons;
                     runInAction(() => this.uploadIcon = loading);
-                    const [{ clientAccessPath }] = await Networking.PostToServer("/uploadRemoteImage", { sources: [primary] });
+                    const [{ accessPaths }] = await Networking.PostToServer("/uploadRemoteImage", { sources: [primary] });
                     dataDoc.originalUrl = primary;
                     let succeeded = true;
                     let data: ImageField | undefined;
                     try {
-                        data = new ImageField(Utils.prepend(clientAccessPath));
+                        data = new ImageField(Utils.prepend(accessPaths.agnostic.client));
                     } catch {
                         succeeded = false;
                     }
@@ -374,9 +391,9 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
         const aspect = (rotation % 180) ? this.Document[HeightSym]() / this.Document[WidthSym]() : 1;
         const shift = (rotation % 180) ? (nativeHeight - nativeWidth / aspect) / 2 : 0;
 
-        !this.Document.ignoreAspect && this.resize(srcpath);
+        this.resize(srcpath);
 
-        return <div className="imageBox-cont" key={this.props.Document[Id]} ref={this.createDropTarget} onContextMenu={this.specificContextMenu}>
+        return <div className="imageBox-cont" key={this.props.Document[Id]} ref={this.createDropTarget}>
             <div className="imageBox-fader" >
                 <img key={this._smallRetryCount + (this._mediumRetryCount << 4) + (this._largeRetryCount << 8)} // force cache to update on retrys
                     src={srcpath}
@@ -393,15 +410,16 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
                         ref={this._imgRef}
                         onError={this.onError} /></div>}
             </div>
-            <div className="imageBox-audioBackground"
-                onPointerDown={this.audioDown}
-                onPointerEnter={this.onPointerEnter}
-                style={{ height: `calc(${.1 * nativeHeight / nativeWidth * 100}%)` }}
-            >
-                <FontAwesomeIcon className="imageBox-audioFont"
-                    style={{ color: [DocListCast(this.dataDoc[this.props.fieldKey + "-audioAnnotations"]).length ? "blue" : "gray", "green", "red"][this._audioState] }}
-                    icon={!DocListCast(this.dataDoc[this.props.fieldKey + "-audioAnnotations"]).length ? "microphone" : faFileAudio} size="sm" />
-            </div>
+            {!this.props.Document._showAudio ? (null) :
+                <div className="imageBox-audioBackground"
+                    onPointerDown={this.audioDown}
+                    onPointerEnter={this.onPointerEnter}
+                    style={{ height: `calc(${.1 * nativeHeight / nativeWidth * 100}%)` }}
+                >
+                    <FontAwesomeIcon className="imageBox-audioFont"
+                        style={{ color: [DocListCast(this.dataDoc[this.props.fieldKey + "-audioAnnotations"]).length ? "blue" : "gray", "green", "red"][this._audioState] }}
+                        icon={!DocListCast(this.dataDoc[this.props.fieldKey + "-audioAnnotations"]).length ? "microphone" : faFileAudio} size="sm" />
+                </div>}
             {this.considerDownloadIcon}
             {this.considerGooglePhotosLink()}
             <FaceRectangles document={this.dataDoc} color={"#0000FF"} backgroundColor={"#0000FF"} />
@@ -416,7 +434,8 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
             style={{
                 transform: `scale(${this.props.ContentScaling()})`,
                 width: `${100 / this.props.ContentScaling()}%`,
-                height: `${100 / this.props.ContentScaling()}%`
+                height: `${100 / this.props.ContentScaling()}%`,
+                pointerEvents: this.props.Document.isBackground ? "none" : undefined
             }} >
             <CollectionFreeFormView {...this.props}
                 PanelHeight={this.props.PanelHeight}
@@ -435,8 +454,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
                 CollectionView={undefined}
                 ScreenToLocalTransform={this.props.ScreenToLocalTransform}
                 renderDepth={this.props.renderDepth + 1}
-                ContainingCollectionDoc={this.props.ContainingCollectionDoc}
-                chromeCollapsed={true}>
+                ContainingCollectionDoc={this.props.ContainingCollectionDoc}>
                 {this.contentFunc}
             </CollectionFreeFormView>
         </div >);

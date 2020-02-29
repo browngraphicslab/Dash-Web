@@ -95,8 +95,8 @@
 
 .formattedTextBox-inner-rounded,
 .formattedTextBox-inner {
-    padding: 10px 10px;
     height: 100%;
+    white-space: pre-wrap; 
 }
 
 // .menuicon {

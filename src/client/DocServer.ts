@@ -23,7 +23,7 @@ import MobileInkOverlay from '../mobile/MobileInkOverlay';
  */
 export namespace DocServer {
     let _cache: { [id: string]: RefField | Promise<Opt<RefField>> } = {};
-    let _socket: SocketIOClient.Socket;
+    export let _socket: SocketIOClient.Socket;
     // this client's distinct GUID created at initialization
     let GUID: string;
     // indicates whether or not a document is currently being udpated, and, if so, its id
@@ -253,10 +253,6 @@ export namespace DocServer {
     export async function getYoutubeChannels() {
         const apiKey = await Utils.EmitCallback(_socket, MessageStore.YoutubeApiQuery, { type: YoutubeQueryTypes.Channels });
         return apiKey;
-    }
-
-    export async function analyzeImage(image: string, callback: (result: any) => void) {
-        Utils.EmitCallback(_socket, MessageStore.AnalyzeInk, image, callback);
     }
 
     export function getYoutubeVideos(videoTitle: string, callBack: (videos: any[]) => void) {

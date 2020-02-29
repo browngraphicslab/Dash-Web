@@ -93,29 +93,33 @@ export class ScriptBox extends React.Component<ScriptBoxProps> {
         const params: string[] = [];
         const setParams = (p: string[]) => params.splice(0, params.length, ...p);
         const scriptingBox = <ScriptBox initialText={originalText} setParams={setParams} onCancel={overlayDisposer} onSave={(text, onError) => {
-            const script = CompileScript(text, {
-                params: { this: Doc.name, ...contextParams },
-                typecheck: false,
-                editable: true,
-                transformer: DocumentIconContainer.getTransformer()
-            });
-            if (!script.compiled) {
-                onError(script.errors.map(error => error.messageText).join("\n"));
-                return;
+            if (!text) {
+                doc[fieldKey] = undefined;
+            } else {
+                const script = CompileScript(text, {
+                    params: { this: Doc.name, ...contextParams },
+                    typecheck: false,
+                    editable: true,
+                    transformer: DocumentIconContainer.getTransformer()
+                });
+                if (!script.compiled) {
+                    onError(script.errors.map(error => error.messageText).join("\n"));
+                    return;
+                }
+
+                const div = document.createElement("div");
+                div.style.width = "90";
+                div.style.height = "20";
+                div.style.background = "gray";
+                div.style.position = "absolute";
+                div.style.display = "inline-block";
+                div.style.transform = `translate(${clientX}px, ${clientY}px)`;
+                div.innerHTML = "button";
+                params.length && DragManager.StartButtonDrag([div], text, doc.title + "-instance", {}, params, (button: Doc) => { }, clientX, clientY);
+
+                doc[fieldKey] = new ScriptField(script);
+                overlayDisposer();
             }
-
-            const div = document.createElement("div");
-            div.style.width = "90";
-            div.style.height = "20";
-            div.style.background = "gray";
-            div.style.position = "absolute";
-            div.style.display = "inline-block";
-            div.style.transform = `translate(${clientX}px, ${clientY}px)`;
-            div.innerHTML = "button";
-            params.length && DragManager.StartButtonDrag([div], text, doc.title + "-instance", {}, params, (button: Doc) => { }, clientX, clientY);
-
-            doc[fieldKey] = new ScriptField(script);
-            overlayDisposer();
         }} showDocumentIcons />;
         overlayDisposer = OverlayView.Instance.addWindow(scriptingBox, { x: 400, y: 200, width: 500, height: 400, title: title });
     }

@@ -4,14 +4,11 @@ import { SelectionManager } from "../util/SelectionManager";
 import { undoBatch } from "../util/UndoManager";
 import './TemplateMenu.scss';
 import { DocumentView } from "./nodes/DocumentView";
-import { Template, Templates } from "./Templates";
+import { Template } from "./Templates";
 import React = require("react");
 import { Doc, DocListCast } from "../../new_fields/Doc";
 import { StrCast, Cast } from "../../new_fields/Types";
 import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
-const higflyout = require("@hig/flyout");
-export const { anchorPoints } = higflyout;
-export const Flyout = higflyout.default;
 
 @observer
 class TemplateToggle extends React.Component<{ template: Template, checked: boolean, toggle: (event: React.ChangeEvent<HTMLInputElement>, template: Template) => void }> {
@@ -48,10 +45,12 @@ export interface TemplateMenuProps {
 
 @observer
 export class TemplateMenu extends React.Component<TemplateMenuProps> {
+    _addedKeys = new ObservableSet();
+    _customRef = React.createRef<HTMLInputElement>();
     @observable private _hidden: boolean = true;
 
     toggleLayout = (e: React.ChangeEvent<HTMLInputElement>, layout: string): void => {
-        this.props.docViews.map(dv => dv.setCustomView(e.target.checked, layout));
+        this.props.docViews.map(dv => dv.switchViews(e.target.checked, layout));//.setCustomView(e.target.checked, layout));
     }
 
     toggleFloat = (e: React.ChangeEvent<HTMLInputElement>): void => {
@@ -62,15 +61,14 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
         DocumentView.FloatDoc(topDocView, ex, ey);
     }
 
+    toggleAudio = (e: React.ChangeEvent<HTMLInputElement>): void => {
+        this.props.docViews.map(dv => dv.props.Document._showAudio = e.target.checked);
+    }
 
     @undoBatch
     @action
     toggleTemplate = (event: React.ChangeEvent<HTMLInputElement>, template: Template): void => {
-        if (event.target.checked) {
-            this.props.docViews.map(d => d.Document["show" + template.Name] = template.Name.toLowerCase());
-        } else {
-            this.props.docViews.map(d => d.Document["show" + template.Name] = "");
-        }
+        this.props.docViews.forEach(d => Doc.Layout(d.Document)["_show" + template.Name] = event.target.checked ? template.Name.toLowerCase() : "");
     }
 
     @action
@@ -81,10 +79,8 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     @undoBatch
     @action
     toggleChrome = (): void => {
-        this.props.docViews.map(dv => {
-            const layout = Doc.Layout(dv.Document);
-            layout._chromeStatus = (layout._chromeStatus !== "disabled" ? "disabled" : "enabled");
-        });
+        this.props.docViews.map(dv => Doc.Layout(dv.Document)).forEach(layout =>
+            layout._chromeStatus = (layout._chromeStatus !== "disabled" ? "disabled" : StrCast(layout._replacedChrome, "enabled")));
     }
 
     // todo: add brushes to brushMap to save with a style name
@@ -105,13 +101,12 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
         });
     }
 
-    _addedKeys = new ObservableSet();
-    _customRef = React.createRef<HTMLInputElement>();
     render() {
         const layout = Doc.Layout(this.props.docViews[0].Document);
         const templateMenu: Array<JSX.Element> = [];
         this.props.templates.forEach((checked, template) =>
             templateMenu.push(<TemplateToggle key={template.Name} template={template} checked={checked} toggle={this.toggleTemplate} />));
+        templateMenu.push(<OtherToggle key={"audio"} name={"Audio"} checked={this.props.docViews[0].Document._showAudio ? true : false} toggle={this.toggleAudio} />);
         templateMenu.push(<OtherToggle key={"float"} name={"Float"} checked={this.props.docViews[0].Document.z ? true : false} toggle={this.toggleFloat} />);
         templateMenu.push(<OtherToggle key={"chrome"} name={"Chrome"} checked={layout._chromeStatus !== "disabled"} toggle={this.toggleChrome} />);
         this._addedKeys && Array.from(this._addedKeys).map(layout =>
