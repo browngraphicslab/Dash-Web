@@ -10,6 +10,7 @@ export namespace AcceptibleMedia {
     export const imageFormats = [...pngs, ...jpgs, ...gifs, ...webps, ...tiffs];
     export const videoFormats = [".mov", ".mp4"];
     export const applicationFormats = [".pdf"];
+    export const audioFormats = [".wav", ".mp3", ".flac", ".au", ".aiff", ".m4a"];
 }
 
 export namespace Upload {

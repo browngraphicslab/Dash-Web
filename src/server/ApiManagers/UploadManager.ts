@@ -60,6 +60,14 @@ export default class UploadManager extends ApiManager {
         });
 
         register({
+            method: Method.GET,
+            subscription: "/hello",
+            secureHandler: ({ req, res }) => {
+                res.send("<h1>world!</h1>");
+            }
+        });
+
+        register({
             method: Method.POST,
             subscription: "/uploadRemoteImage",
             secureHandler: async ({ req, res }) => {
