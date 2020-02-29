@@ -1,0 +1,68 @@
+@import "globalCssVariables";
+
+.rec-content *{
+    display: inline-block;
+    margin: auto;
+    width: 50;
+    height: 150px;
+    border: 1px dashed grey;
+    padding: 10px 10px;
+}
+
+.rec-content {
+    float: left;
+    width: inherit;
+    align-content: center;
+}
+
+.rec-scroll {
+    overflow-y: scroll;
+    overflow-x: hidden;
+    position: absolute;
+    pointer-events: all;
+    // display: flex;
+    z-index: 10000;
+    box-shadow: gray 0.2vw 0.2vw 0.4vw;
+    // flex-direction: column;
+    background: whitesmoke;
+    padding-bottom: 10px;
+    padding-top: 20px;
+    // border-radius: 15px;
+    border: solid #BBBBBBBB 1px;
+    width: 100%;
+    text-align: center;
+    // max-height: 250px;
+    height: 100%;
+    text-transform: uppercase;
+    color: grey;
+    letter-spacing: 2px;
+}
+
+.content {
+    padding: 10px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+}
+
+.image-background {
+    pointer-events: none;
+    background-color: transparent;
+    width: 50%;
+    text-align: center;
+    margin-left: 5px;
+}
+
+img{
+    width: 100%;
+    height: 100%;
+}
+
+.score {
+    // margin-left: 15px;
+    width: 50%;
+    height: 100%;
+    text-align: center;
+    margin-left: 10px;
+}

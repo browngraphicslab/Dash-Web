@@ -40,6 +40,9 @@ import { PresBox } from "../views/nodes/PresBox";
 import { ComputedField, ScriptField } from "../../new_fields/ScriptField";
 import { ProxyField } from "../../new_fields/Proxy";
 import { DocumentType } from "./DocumentTypes";
+import { RecommendationsBox } from "../views/RecommendationsBox";
+//import { PresBox } from "../views/nodes/PresBox";
+//import { PresField } from "../../new_fields/PresField";
 import { PresElementBox } from "../views/presentationview/PresElementBox";
 import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
 import { QueryBox } from "../views/nodes/QueryBox";
@@ -147,9 +150,12 @@ export interface DocumentOptions {
     limitHeight?: number; // maximum height for newly created (eg, from pasting) text documents
     // [key: string]: Opt<Field>;
     pointerHack?: boolean; // for buttons, allows onClick handler to fire onPointerDown
+    textTransform?: string; // is linear view expanded
+    letterSpacing?: string; // is linear view expanded
+    flexDirection?: "unset" | "row" | "column" | "row-reverse" | "column-reverse";
+    selectedIndex?: number;
+    syntaxColor?: string; // can be applied to text for syntax highlighting all matches in the text
     linearViewIsExpanded?: boolean; // is linear view expanded
-    textTransform?: string;
-    letterSpacing?: string;
 }
 
 class EmptyBox {
@@ -252,6 +258,10 @@ export namespace Docs {
             [DocumentType.FONTICON, {
                 layout: { view: FontIconBox, dataField: data },
                 options: { _width: 40, _height: 40, borderRounding: "100%" },
+            }],
+            [DocumentType.RECOMMENDATION, {
+                layout: { view: RecommendationsBox },
+                options: { width: 200, height: 200 },
             }],
             [DocumentType.WEBCAM, {
                 layout: { view: DashWebRTCVideo, dataField: data }
@@ -538,10 +548,10 @@ export namespace Docs {
             linkDocProto.anchor2Timecode = target.doc.currentTimecode;
 
             if (linkDocProto.layout_key1 === undefined) {
-                Cast(linkDocProto.proto, Doc, null)!.layout_key1 = DocuLinkBox.LayoutString("anchor1");
-                Cast(linkDocProto.proto, Doc, null)!.layout_key2 = DocuLinkBox.LayoutString("anchor2");
-                Cast(linkDocProto.proto, Doc, null)!.linkBoxExcludedKeys = new List(["treeViewExpandedView", "treeViewHideTitle", "removeDropProperties", "linkBoxExcludedKeys", "treeViewOpen", "proto", "aliasNumber", "isPrototype", "lastOpened", "creationDate", "author"]);
-                Cast(linkDocProto.proto, Doc, null)!.layoutKey = undefined;
+                Cast(linkDocProto.proto, Doc, null).layout_key1 = DocuLinkBox.LayoutString("anchor1");
+                Cast(linkDocProto.proto, Doc, null).layout_key2 = DocuLinkBox.LayoutString("anchor2");
+                Cast(linkDocProto.proto, Doc, null).linkBoxExcludedKeys = new List(["treeViewExpandedView", "treeViewHideTitle", "removeDropProperties", "linkBoxExcludedKeys", "treeViewOpen", "proto", "aliasNumber", "isPrototype", "lastOpened", "creationDate", "author"]);
+                Cast(linkDocProto.proto, Doc, null).layoutKey = undefined;
             }
 
             LinkManager.Instance.addLink(doc);
@@ -671,6 +681,10 @@ export namespace Docs {
 
         export function DirectoryImportDocument(options: DocumentOptions = {}) {
             return InstanceFromProto(Prototypes.get(DocumentType.IMPORT), new List<Doc>(), options);
+        }
+
+        export function RecommendationsDocument(data: Doc[], options: DocumentOptions = {}) {
+            return InstanceFromProto(Prototypes.get(DocumentType.RECOMMENDATION), new List<Doc>(data), options);
         }
 
         export type DocConfig = {

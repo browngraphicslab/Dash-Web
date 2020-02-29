@@ -19,6 +19,8 @@ export enum DocumentType {
     WEBCAM = "webcam",
     FONTICON = "fonticonbox",
     PRES = "presentation",
+    RECOMMENDATION = "recommendation",
+    LINKFOLLOW = "linkfollow",
     PRESELEMENT = "preselement",
     QUERY = "search",
     COLOR = "color",

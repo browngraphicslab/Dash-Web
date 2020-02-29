@@ -133,6 +133,7 @@ export namespace DragManager {
         userDropAction: dropActionType;
         embedDoc?: boolean;
         moveDocument?: MoveFunction;
+        applyAsTemplate?: boolean;
         isSelectionMove?: boolean; // indicates that an explicitly selected Document is being dragged.  this will suppress onDragStart scripts
     }
     export class LinkDragData {
@@ -179,7 +180,7 @@ export namespace DragManager {
             );
         }
         element.dataset.canDrop = "true";
-        const handler = (e: Event) => dropFunc(e, (e as CustomEvent<DropEvent>).detail);
+        const handler = (e: Event) => { dropFunc(e, (e as CustomEvent<DropEvent>).detail); };
         element.addEventListener("dashOnDrop", handler);
         return () => {
             element.removeEventListener("dashOnDrop", handler);
@@ -266,6 +267,10 @@ export namespace DragManager {
     // drags a column from a schema view
     export function StartColumnDrag(ele: HTMLElement, dragData: ColumnDragData, downX: number, downY: number, options?: DragOptions) {
         StartDrag([ele], dragData, downX, downY, options);
+    }
+
+    export function StartImgDrag(ele: HTMLElement, downX: number, downY: number) {
+        StartDrag([ele], {}, downX, downY);
     }
 
     function StartDrag(eles: HTMLElement[], dragData: { [id: string]: any }, downX: number, downY: number, options?: DragOptions, finishDrag?: (dropData: DragCompleteEvent) => void) {
@@ -404,7 +409,7 @@ export namespace DragManager {
         if (target) {
             const complete = new DragCompleteEvent(false, dragData);
             finishDrag?.(complete);
-
+            console.log(complete.aborted);
             target.dispatchEvent(
                 new CustomEvent<DropEvent>("dashOnDrop", {
                     bubbles: true,

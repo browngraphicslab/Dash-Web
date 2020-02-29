@@ -355,6 +355,10 @@ export namespace Doc {
         const proto = doc && (Doc.GetT(doc, "isPrototype", "boolean", true) ? doc : (doc.proto || doc));
         return proto === doc ? proto : Doc.GetProto(proto);
     }
+    export function GetDataDoc(doc: Doc): Doc {
+        const proto = Doc.GetProto(doc);
+        return proto === doc ? proto : Doc.GetDataDoc(proto);
+    }
 
     export function allKeys(doc: Doc): string[] {
         const results: Set<string> = new Set;

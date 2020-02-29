@@ -21,6 +21,10 @@ import "./WebBox.scss";
 import React = require("react");
 import { DocAnnotatableComponent } from "../DocComponent";
 import { documentSchema } from "../../../new_fields/documentSchemas";
+import { Id } from "../../../new_fields/FieldSymbols";
+import { DragManager } from "../../util/DragManager";
+import { ImageUtils } from "../../util/Import & Export/ImageUtils";
+import { select } from "async";
 
 library.add(faStickyNote);
 
@@ -33,6 +37,13 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(WebBox, fieldKey); }
     @observable private collapsed: boolean = true;
     @observable private url: string = "";
+
+    private _longPressSecondsHack?: NodeJS.Timeout;
+    private _iframeRef = React.createRef<HTMLIFrameElement>();
+    private _iframeIndicatorRef = React.createRef<HTMLDivElement>();
+    private _iframeDragRef = React.createRef<HTMLDivElement>();
+    @observable private _pressX: number = 0;
+    @observable private _pressY: number = 0;
 
     componentDidMount() {
 
@@ -49,6 +60,14 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
         }
 
         this.setURL();
+
+        document.addEventListener("pointerup", this.onLongPressUp);
+        document.addEventListener("pointermove", this.onLongPressMove);
+    }
+
+    componentWillUnmount() {
+        document.removeEventListener("pointerup", this.onLongPressUp);
+        document.removeEventListener("pointermove", this.onLongPressMove);
     }
 
     @action
@@ -164,6 +183,107 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
         }
     }
 
+    onLongPressDown = (e: React.PointerEvent) => {
+        this._pressX = e.clientX;
+        this._pressY = e.clientY;
+
+        // find the pressed element in the iframe (currently only works if its an img)
+        let pressedElement: HTMLElement | undefined;
+        let pressedBound: ClientRect | undefined;
+        let selectedText: string = "";
+        let pressedImg: boolean = false;
+        if (this._iframeRef.current) {
+            const B = this._iframeRef.current.getBoundingClientRect();
+            const iframeDoc = this._iframeRef.current.contentDocument;
+            if (B && iframeDoc) {
+                // TODO: this only works when scale = 1 as it is currently only inteded for mobile upload
+                const element = iframeDoc.elementFromPoint(this._pressX - B.left, this._pressY - B.top);
+                if (element && element.nodeName === "IMG") {
+                    pressedBound = element.getBoundingClientRect();
+                    pressedElement = element.cloneNode(true) as HTMLElement;
+                    pressedImg = true;
+                } else {
+                    // check if there is selected text
+                    const text = iframeDoc.getSelection();
+                    if (text && text.toString().length > 0) {
+                        selectedText = text.toString();
+
+                        // get html of the selected text
+                        const range = text.getRangeAt(0);
+                        const contents = range.cloneContents();
+                        const div = document.createElement("div");
+                        div.appendChild(contents);
+                        pressedElement = div;
+
+                        pressedBound = range.getBoundingClientRect();
+                    }
+                }
+            }
+        }
+
+        // mark the pressed element
+        if (pressedElement && pressedBound) {
+            if (this._iframeIndicatorRef.current) {
+                this._iframeIndicatorRef.current.style.top = pressedBound.top + "px";
+                this._iframeIndicatorRef.current.style.left = pressedBound.left + "px";
+                this._iframeIndicatorRef.current.style.width = pressedBound.width + "px";
+                this._iframeIndicatorRef.current.style.height = pressedBound.height + "px";
+                this._iframeIndicatorRef.current.classList.add("active");
+            }
+        }
+
+        // start dragging the pressed element if long pressed
+        this._longPressSecondsHack = setTimeout(() => {
+            if (pressedImg && pressedElement && pressedBound) {
+                e.stopPropagation();
+                e.preventDefault();
+                if (pressedElement.nodeName === "IMG") {
+                    const src = pressedElement.getAttribute("src"); // TODO: may not always work
+                    if (src) {
+                        const doc = Docs.Create.ImageDocument(src);
+                        ImageUtils.ExtractExif(doc);
+
+                        // add clone to div so that dragging ghost is placed properly
+                        if (this._iframeDragRef.current) this._iframeDragRef.current.appendChild(pressedElement);
+
+                        const dragData = new DragManager.DocumentDragData([doc]);
+                        DragManager.StartDocumentDrag([pressedElement], dragData, this._pressX, this._pressY, { hideSource: true });
+                    }
+                }
+            } else if (selectedText && pressedBound && pressedElement) {
+                e.stopPropagation();
+                e.preventDefault();
+                // create doc with the selected text's html
+                const doc = Docs.Create.HtmlDocument(pressedElement.innerHTML);
+
+                // create dragging ghost with the selected text
+                if (this._iframeDragRef.current) this._iframeDragRef.current.appendChild(pressedElement);
+
+                // start the drag
+                const dragData = new DragManager.DocumentDragData([doc]);
+                DragManager.StartDocumentDrag([pressedElement], dragData, this._pressX - pressedBound.top, this._pressY - pressedBound.top, { hideSource: true });
+            }
+        }, 1500);
+    }
+
+    onLongPressMove = (e: PointerEvent) => {
+        // this._pressX = e.clientX;
+        // this._pressY = e.clientY;
+    }
+
+    onLongPressUp = (e: PointerEvent) => {
+        if (this._longPressSecondsHack) {
+            clearTimeout(this._longPressSecondsHack);
+        }
+        if (this._iframeIndicatorRef.current) {
+            this._iframeIndicatorRef.current.classList.remove("active");
+        }
+        if (this._iframeDragRef.current) {
+            while (this._iframeDragRef.current.firstChild) this._iframeDragRef.current.removeChild(this._iframeDragRef.current.firstChild);
+        }
+    }
+
+
     @computed
     get content() {
         const field = this.dataDoc[this.props.fieldKey];
@@ -171,9 +291,9 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
         if (field instanceof HtmlField) {
             view = <span id="webBox-htmlSpan" dangerouslySetInnerHTML={{ __html: field.html }} />;
         } else if (field instanceof WebField) {
-            view = <iframe src={Utils.CorsProxy(field.url.href)} style={{ position: "absolute", width: "100%", height: "100%", top: 0 }} />;
+            view = <iframe ref={this._iframeRef} src={Utils.CorsProxy(field.url.href)} style={{ position: "absolute", width: "100%", height: "100%", top: 0 }} />;
         } else {
-            view = <iframe src={"https://crossorigin.me/https://cs.brown.edu"} style={{ position: "absolute", width: "100%", height: "100%", top: 0 }} />;
+            view = <iframe ref={this._iframeRef} src={"https://crossorigin.me/https://cs.brown.edu"} style={{ position: "absolute", width: "100%", height: "100%", top: 0 }} />;
         }
         const content =
             <div style={{ width: "100%", height: "100%", position: "absolute" }} onWheel={this.onPostWheel} onPointerDown={this.onPostPointer} onPointerMove={this.onPostPointer} onPointerUp={this.onPostPointer}>
@@ -181,15 +301,23 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
                 {view}
             </div>;
 
-        const frozen = !this.props.isSelected() || DocumentDecorations.Instance.Interacting;
+        const decInteracting = DocumentDecorations.Instance && DocumentDecorations.Instance.Interacting;
 
-        const classname = "webBox-cont" + (this.props.isSelected() && InkingControl.Instance.selectedTool === InkTool.None && !DocumentDecorations.Instance.Interacting ? "-interactive" : "");
+        const frozen = !this.props.isSelected() || decInteracting;
+
+        const classname = "webBox-cont" + (this.props.isSelected() && InkingControl.Instance.selectedTool === InkTool.None && !decInteracting ? "-interactive" : "");
         return (
             <>
                 <div className={classname}  >
                     {content}
                 </div>
-                {!frozen ? (null) : <div className="webBox-overlay" onWheel={this.onPreWheel} onPointerDown={this.onPrePointer} onPointerMove={this.onPrePointer} onPointerUp={this.onPrePointer} />}
+                {!frozen ? (null) :
+                    <div className="webBox-overlay" onWheel={this.onPreWheel} onPointerDown={this.onPrePointer} onPointerMove={this.onPrePointer} onPointerUp={this.onPrePointer}>
+                        <div className="touch-iframe-overlay" onPointerDown={this.onLongPressDown} >
+                            <div className="indicator" ref={this._iframeIndicatorRef}></div>
+                            <div className="dragger" ref={this._iframeDragRef}></div>
+                        </div>
+                    </div>}
             </>);
     }
     render() {

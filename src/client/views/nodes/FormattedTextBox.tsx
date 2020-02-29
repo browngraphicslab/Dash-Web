@@ -1016,7 +1016,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     richTextMenuPlugin() {
         return new Plugin({
             view(newView) {
-                RichTextMenu.Instance.changeView(newView);
+                RichTextMenu.Instance && RichTextMenu.Instance.changeView(newView);
                 return RichTextMenu.Instance;
             }
         });
