@@ -82,6 +82,19 @@ export namespace DashUploadUtils {
         return { source: file, result: new Error(`Could not upload unsupported file (${name}) with upload type (${type}).`) };
     }
 
+    async function uploadAudio(file: File) {
+        const { path: sourcePath } = file;
+        const dataBuffer = readFileSync(sourcePath);
+
+        await new Promise<void>((resolve, reject) => {
+            const name = path.basename(sourcePath);
+            const audioFilename = `${name.substring(0, name.length - 4)}.mp3`;
+            const writeStream = createWriteStream(serverPathToFile(Directory.audio, audioFilename));
+            writeStream.write(result.text, error => error ? reject(error) : resolve());
+        });
+        return MoveParsedFile(file, Directory.audio);
+    }
+
     async function UploadPdf(file: File) {
         const { path: sourcePath } = file;
         const dataBuffer = readFileSync(sourcePath);

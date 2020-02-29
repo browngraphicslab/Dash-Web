@@ -19,7 +19,8 @@ export enum Directory {
     videos = "videos",
     pdfs = "pdfs",
     text = "text",
-    pdf_thumbnails = "pdf_thumbnails"
+    pdf_thumbnails = "pdf_thumbnails",
+    audio = "audio"
 }
 
 export function serverPathToFile(directory: Directory, filename: string) {
