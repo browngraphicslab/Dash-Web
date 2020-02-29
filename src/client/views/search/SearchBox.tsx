@@ -17,6 +17,7 @@ import "./FilterBox.scss";
 import "./SearchBox.scss";
 import { SearchItem } from './SearchItem';
 import { IconBar } from './IconBar';
+import { FieldFilters } from './FieldFilters';
 
 library.add(faTimes);
 
@@ -338,6 +339,9 @@ export class SearchBox extends React.Component {
     @computed
     get resultHeight() { return this._numTotalResults * 70; }
 
+    @observable private _filterOpen: boolean = false;
+
+
     render() {
         return (
             <div className="searchBox-container" onPointerDown={e => { e.stopPropagation(); e.preventDefault(); }}>
@@ -352,6 +356,49 @@ export class SearchBox extends React.Component {
                 </div>
                 <div className="searchBox-quickFilter" onPointerDown={this.openSearch}>
                     <div className="filter-panel"><IconBar /></div>
+                </div>
+                <div>
+                    <div style={{ display: "flex", flexDirection: "row-reverse" }}>
+                        <SearchBox />
+                        {/* {this.getActiveFilters()} */}
+                    </div>
+                    <div className="filter-form" onPointerDown={this.stopProp} id="filter-form" style={this._filterOpen ? { display: "flex" } : { display: "none" }}>
+                        <div className="top-filter-header" style={{ display: "flex", width: "100%" }}>
+                            <div id="header">Filter Search Results</div>
+                            <div style={{ marginLeft: "auto" }}></div>
+                            <div className="close-icon" >
+                                <span className="line line-1"></span>
+                                <span className="line line-2"></span></div>
+                        </div>
+                        <div className="filter-options">
+                            <div className="filter-div">
+                                <div className="filter-header">
+                                    <div className='filter-title words'>Required words</div>
+                                </div>
+                                <div className="filter-panel" >
+                                    <button className="all-filter">Include All Keywords</button>
+                                </div>
+                            </div>
+                            <div className="filter-div">
+                                <div className="filter-header">
+                                    <div className="filter-title icon">Filter by type of node</div>
+                                </div>
+                                <div className="filter-panel"><IconBar /></div>
+                            </div>
+                            <div className="filter-div">
+                                <div className="filter-header">
+                                    <div className="filter-title field">Filter by Basic Keys</div>
+                                </div>
+                                <div className="filter-panel"><FieldFilters
+                                    titleFieldStatus={this._titleFieldStatus} dataFieldStatus={this._deletedDocsStatus} authorFieldStatus={this._authorFieldStatus}
+                                    updateAuthorStatus={this.updateAuthorStatus} updateDataStatus={this.updateDataStatus} updateTitleStatus={this.updateTitleStatus} /> </div>
+                            </div>
+                        </div>
+                        <div className="filter-buttons" style={{ display: "flex", justifyContent: "space-around" }}>
+                            <button className="save-filter" >Save Filters</button>
+                            <button className="reset-filter" >Reset Filters</button>
+                        </div>
+                    </div>
                 </div>
                 <div className="searchBox-results" onScroll={this.resultsScrolled} style={{
                     display: this._resultsOpen ? "flex" : "none",

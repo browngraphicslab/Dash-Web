@@ -22,7 +22,7 @@ import GeneralGoogleManager from "./ApiManagers/GeneralGoogleManager";
 import GooglePhotosManager from "./ApiManagers/GooglePhotosManager";
 import { Logger } from "./ProcessFactory";
 import { yellow } from "colors";
-import { DashSessionAgent } from "./DashSession/DashSessionAgent";
+// import { DashSessionAgent } from "./DashSession/DashSessionAgent";
 import SessionManager from "./ApiManagers/SessionManager";
 import { AppliedSessionAgent } from "resilient-server-session";
 
@@ -141,7 +141,7 @@ export async function launchServer() {
  * So, the 'else' clause is exactly what we've always run when executing npm start.
  */
 if (process.env.RELEASE) {
-    (sessionAgent = new DashSessionAgent()).launch();
+    // (sessionAgent = new DashSessionAgent()).launch();
 } else {
     launchServer();
 }

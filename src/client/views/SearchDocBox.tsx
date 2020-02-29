@@ -39,6 +39,8 @@ export const keyPlaceholder = "Query";
 @observer
 export class SearchDocBox extends React.Component<FieldViewProps> {
 
+    public static LayoutString(fieldKey: string) { return FieldView.LayoutString(SearchDocBox, fieldKey); }
+
     // @observable private _display: boolean = false;
     @observable private _pageX: number = 0;
     @observable private _pageY: number = 0;
@@ -72,7 +74,7 @@ export class SearchDocBox extends React.Component<FieldViewProps> {
             console.log("didit"
             );
             this.query = StrCast(this.props.Document.searchText);
-            this.content = (Docs.Create.TreeDocument(DocListCast(Doc.GetProto(this.props.Document).data), { _width: 200, _height: 400, _chromeStatus: "disabled", title: `Search Docs:` + this.query}));
+            this.content = (Docs.Create.TreeDocument(DocListCast(Doc.GetProto(this.props.Document).data), { _width: 200, _height: 400, _chromeStatus: "disabled", title: `Search Docs:` + this.query }));
 
         });
         if (this.inputRef.current) {
@@ -89,16 +91,16 @@ export class SearchDocBox extends React.Component<FieldViewProps> {
     @action
     updateKey = async (newKey: string) => {
         this.query = newKey;
-        if (newKey.length >1){
-            let newdocs= await this.getAllResults(this.query)
+        if (newKey.length > 1) {
+            let newdocs = await this.getAllResults(this.query);
             let things = newdocs.docs
             console.log(things);
             console.log(this.content);
             runInAction(() => {
-                this.content= Docs.Create.TreeDocument(things, { _width: 200, _height: 400, _chromeStatus: "disabled", title: `Search Docs:` + this.query });   
-                        });
-            console.log(this.content);     
-                    }
+                this.content = Docs.Create.TreeDocument(things, { _width: 200, _height: 400, _chromeStatus: "disabled", title: `Search Docs:` + this.query });
+            });
+            console.log(this.content);
+        }
 
 
         //this.keyRef.current && this.keyRef.current.setIsFocused(false);
@@ -161,11 +163,11 @@ export class SearchDocBox extends React.Component<FieldViewProps> {
     enter = async (e: React.KeyboardEvent) => {
         console.log(e.key);
         if (e.key === "Enter") {
-            let newdocs= await this.getAllResults(this.query)
+            let newdocs = await this.getAllResults(this.query)
             let things = newdocs.docs
             console.log(things);
-            this.content=Docs.Create.TreeDocument(things, { _width: 200, _height: 400, _chromeStatus: "disabled", title: `Search Docs: "Results"` });
-        
+            this.content = Docs.Create.TreeDocument(things, { _width: 200, _height: 400, _chromeStatus: "disabled", title: `Search Docs: "Results"` });
+
         }
     }
 
@@ -407,9 +409,9 @@ export class SearchDocBox extends React.Component<FieldViewProps> {
         return (
             <div style={{ pointerEvents: "all" }}>
                 <ContentFittingDocumentView {...this.props}
-                        Document={this.content}
-                        getTransform={this.props.ScreenToLocalTransform}>
-                s</ContentFittingDocumentView>
+                    Document={this.content}
+                    getTransform={this.props.ScreenToLocalTransform}>
+                    s</ContentFittingDocumentView>
                 <div
                     style={{
                         position: "absolute",
@@ -421,12 +423,12 @@ export class SearchDocBox extends React.Component<FieldViewProps> {
                         opacity: 1,
                         transition: "0.4s opacity ease",
                         zIndex: 99,
-                        top:0,
+                        top: 0,
                     }}
                     title={"Add Metadata"}
-                    onClick={action(() => {this.editingMetadata = !this.editingMetadata })}
+                    onClick={action(() => { this.editingMetadata = !this.editingMetadata })}
                 />
-                <div className="editableclass" onKeyPress={this.enter} style={{ opacity: isEditing ? 1 : 0, pointerEvents: isEditing ? "auto" : "none", transition: "0.4s opacity ease",position:"absolute",top:0,left:0, height:20, width:"-webkit-fill-available" }}>
+                <div className="editableclass" onKeyPress={this.enter} style={{ opacity: isEditing ? 1 : 0, pointerEvents: isEditing ? "auto" : "none", transition: "0.4s opacity ease", position: "absolute", top: 0, left: 0, height: 20, width: "-webkit-fill-available" }}>
                     <EditableView
                         contents={this.query}
                         SetValue={this.updateKey}
