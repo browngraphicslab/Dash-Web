@@ -15,9 +15,14 @@ export const documentSchema = createSchema({
     _nativeHeight: "number",    // "
     _width: "number",           // width of document in its container's coordinate system
     _height: "number",          // "
-    _showCaption: "string",      // whether editable caption text is overlayed at the bottom of the document 
-    _showTitle: "string",        // the fieldkey whose contents should be displayed at the top of the document
-    _showTitleHover: "string",   // the showTitle should be shown only on hover
+    _xPadding: "number",        // pixels of padding on left/right of collectionfreeformview contents when fitToBox is set
+    _yPadding: "number",        // pixels of padding on top/bottom of collectionfreeformview contents when fitToBox is set
+    _xMargin: "number",         // margin added on left/right of most documents to add separation from their container
+    _yMargin: "number",         // margin added on top/bottom of most documents to add separation from their container
+    _showCaption: "string",     // whether editable caption text is overlayed at the bottom of the document 
+    _showTitle: "string",       // the fieldkey whose contents should be displayed at the top of the document
+    _showTitleHover: "string",  // the showTitle should be shown only on hover
+    _showAudio: "boolean",      // whether to show the audio record icon on documents
     _freeformLayoutEngine: "string",// the string ID for the layout engine to use to layout freeform view documents
     _LODdisable: "boolean",     // whether to disbale LOD switching for CollectionFreeFormViews
     _pivotField: "string",      // specifies which field should be used as the timeline/pivot axis
@@ -53,8 +58,6 @@ export const documentSchema = createSchema({
     strokeWidth: "number",
     fontSize: "string",
     fitToBox: "boolean",        // whether freeform view contents should be zoomed/panned to fill the area of the document view
-    xPadding: "number",         // pixels of padding on left/right of collectionfreeformview contents when fitToBox is set
-    yPadding: "number",         // pixels of padding on left/right of collectionfreeformview contents when fitToBox is set
     letterSpacing: "string",
     textTransform: "string"
 });

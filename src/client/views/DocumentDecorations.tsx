@@ -1,12 +1,12 @@
 import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
 import { faCaretUp, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faTextHeight, faArrowAltCircleDown, faArrowAltCircleUp, faCheckCircle, faCloudUploadAlt, faLink, faShare, faStopCircle, faSyncAlt, faTag, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, observable, reaction } from "mobx";
+import { action, computed, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc } from "../../new_fields/Doc";
+import { Doc, DataSym } from "../../new_fields/Doc";
 import { PositionDocument } from '../../new_fields/documentSchemas';
 import { ScriptField } from '../../new_fields/ScriptField';
-import { Cast, StrCast } from "../../new_fields/Types";
+import { Cast, StrCast, NumCast } from "../../new_fields/Types";
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { Utils, setupMoveUpEvents } from "../../Utils";
 import { DocUtils } from "../documents/Documents";
@@ -324,12 +324,23 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 const actualdH = Math.max(height + (dH * scale), 20);
                 doc.x = (doc.x || 0) + dX * (actualdW - width);
                 doc.y = (doc.y || 0) + dY * (actualdH - height);
-                const fixedAspect = e.ctrlKey || (nwidth && nheight);
+                const fixedAspect = (nwidth && nheight);
                 if (fixedAspect && (!nwidth || !nheight)) {
                     layoutDoc._nativeWidth = nwidth = layoutDoc._width || 0;
                     layoutDoc._nativeHeight = nheight = layoutDoc._height || 0;
                 }
-                if (nwidth > 0 && nheight > 0) {
+                const anno = Cast(doc.annotationOn, Doc, null);
+                if (e.ctrlKey && anno) {
+                    dW !== 0 && runInAction(() => {
+                        const dataDoc = anno[DataSym];
+                        const fieldKey = Doc.LayoutFieldKey(anno);
+                        const nw = NumCast(dataDoc[fieldKey + "-nativeWidth"]);
+                        const nh = NumCast(dataDoc[fieldKey + "-nativeHeight"]);
+                        dataDoc[fieldKey + "-nativeWidth"] = nw + (dW > 0 ? 10 : -10);
+                        dataDoc[fieldKey + "-nativeHeight"] = nh + (dW > 0 ? 10 : -10) * nh / nw;
+                    });
+                }
+                else if (nwidth > 0 && nheight > 0) {
                     if (Math.abs(dW) > Math.abs(dH)) {
                         if (!fixedAspect) {
                             layoutDoc._nativeWidth = actualdW / (layoutDoc._width || 1) * (layoutDoc._nativeWidth || 0);
@@ -403,17 +414,21 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (SelectionManager.GetIsDragging() || bounds.x === Number.MAX_VALUE || !seldoc || this._hidden || isNaN(bounds.r) || isNaN(bounds.b) || isNaN(bounds.x) || isNaN(bounds.y)) {
             return (null);
         }
-        const minimizeIcon = (
-            <div className="documentDecorations-minimizeButton" title="Iconify" style={{ background: darkScheme }} onPointerDown={this.onMinimizeDown}>
-                {/* Currently, this is set to be enabled if there is no ink selected. It might be interesting to think about minimizing ink if it's useful? -syip2*/}
-                {SelectionManager.SelectedDocuments().length === 1 ? DocumentDecorations.DocumentIcon(StrCast(seldoc.props.Document.layout, "...")) : "..."}
-            </div>);
+        const minimal = bounds.r - bounds.x < 100 ? true : false;
+        const minimizeIcon = minimal ? (
+            <div className="documentDecorations-contextMenu" title="Show context menu" onPointerDown={this.onSettingsDown}>
+                <FontAwesomeIcon size="lg" icon="cog" />
+            </div>) : (
+                <div className="documentDecorations-minimizeButton" title="Iconify" onPointerDown={this.onMinimizeDown}>
+                    {/* Currently, this is set to be enabled if there is no ink selected. It might be interesting to think about minimizing ink if it's useful? -syip2*/}
+                    {SelectionManager.SelectedDocuments().length === 1 ? DocumentDecorations.DocumentIcon(StrCast(seldoc.props.Document.layout, "...")) : "..."}
+                </div>);
 
         const titleArea = this._edtingTitle ?
             <>
-                <input ref={this._keyinput} className="documentDecorations-title" type="text" name="dynbox" autoComplete="on" value={this._accumulatedTitle} style={{ width: "calc(100% - 20px)" }}
+                <input ref={this._keyinput} className="documentDecorations-title" type="text" name="dynbox" autoComplete="on" value={this._accumulatedTitle} style={{ width: minimal ? "100%" : "calc(100% - 20px)" }}
                     onBlur={e => this.titleBlur(true)} onChange={action(e => this._accumulatedTitle = e.target.value)} onKeyPress={this.titleEntered} />
-                <div className="publishBox" title="make document referenceable by its title"
+                {minimal ? (null) : <div className="publishBox" title="make document referenceable by its title"
                     onPointerDown={action(e => {
                         if (!seldoc.props.Document.customTitle) {
                             seldoc.props.Document.customTitle = true;
@@ -423,12 +438,12 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                         DocUtils.Publish(seldoc.props.Document, this._accumulatedTitle, seldoc.props.addDocument, seldoc.props.removeDocument);
                     })}>
                     <FontAwesomeIcon size="lg" color={SelectionManager.SelectedDocuments()[0].props.Document.title === SelectionManager.SelectedDocuments()[0].props.Document[Id] ? "green" : undefined} icon="sticky-note"></FontAwesomeIcon>
-                </div>
+                </div>}
             </> :
-            <div className="documentDecorations-title" style={{ background: darkScheme }} onPointerDown={this.onTitleDown} >
-                <div className="documentDecorations-contextMenu" title="Show context menu" onPointerDown={this.onSettingsDown}>
+            <div className="documentDecorations-title" onPointerDown={this.onTitleDown} >
+                {minimal ? (null) : <div className="documentDecorations-contextMenu" title="Show context menu" onPointerDown={this.onSettingsDown}>
                     <FontAwesomeIcon size="lg" icon="cog" />
-                </div>
+                </div>}
                 <span style={{ width: "calc(100% - 25px)", display: "inline-block" }}>{`${this.selectionTitle}`}</span>
             </div>;
 
@@ -443,7 +458,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (bounds.y > bounds.b) {
             bounds.y = bounds.b - (this._resizeBorderWidth + this._linkBoxHeight + this._titleHeight);
         }
-        return (<div className="documentDecorations">
+        return (<div className="documentDecorations" style={{ background: darkScheme }} >
             <div className="documentDecorations-background" style={{
                 width: (bounds.r - bounds.x + this._resizeBorderWidth) + "px",
                 height: (bounds.b - bounds.y + this._resizeBorderWidth) + "px",
@@ -461,29 +476,28 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             }}>
                 {minimizeIcon}
                 {titleArea}
-                <div className="documentDecorations-closeButton" style={{ background: darkScheme }}
-                    title="Close Document" onPointerDown={this.onCloseDown}>
+                <div className="documentDecorations-closeButton" title="Close Document" onPointerDown={this.onCloseDown}>
                     <FontAwesomeIcon className="documentdecorations-times" icon={faTimes} size="lg" />
                 </div>
                 <div id="documentDecorations-topLeftResizer" className="documentDecorations-resizer"
-                    style={{ background: darkScheme }} onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
+                    onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-topResizer" className="documentDecorations-resizer"
-                    style={{ background: darkScheme }} onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
+                    onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-topRightResizer" className="documentDecorations-resizer"
-                    style={{ background: darkScheme }} onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
+                    onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-leftResizer" className="documentDecorations-resizer"
-                    style={{ background: darkScheme }} onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
+                    onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-centerCont"></div>
                 <div id="documentDecorations-rightResizer" className="documentDecorations-resizer"
-                    style={{ background: darkScheme }} onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
+                    onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-bottomLeftResizer" className="documentDecorations-resizer"
-                    style={{ background: darkScheme }} onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
+                    onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-bottomResizer" className="documentDecorations-resizer"
-                    style={{ background: darkScheme }} onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
+                    onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-bottomRightResizer" className="documentDecorations-resizer"
-                    style={{ background: darkScheme }} onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
+                    onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-borderRadius" className="documentDecorations-radius"
-                    style={{ background: darkScheme }} onPointerDown={this.onRadiusDown} onContextMenu={(e) => e.preventDefault()}></div>
+                    onPointerDown={this.onRadiusDown} onContextMenu={(e) => e.preventDefault()}></div>
 
             </div >
             <div className="link-button-container" style={{ left: bounds.x - this._resizeBorderWidth / 2, top: bounds.b + this._resizeBorderWidth / 2 }}>

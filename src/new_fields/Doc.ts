@@ -17,7 +17,7 @@ import { listSpec } from "./Schema";
 import { ComputedField } from "./ScriptField";
 import { Cast, FieldValue, NumCast, StrCast, ToConstructor } from "./Types";
 import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, updateFunction } from "./util";
-import { DocumentManager } from "../client/util/DocumentManager";
+import { Docs } from "../client/documents/Documents";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -48,7 +48,7 @@ export namespace Field {
         } else if (field instanceof RefField) {
             return field[ToString]();
         }
-        return "(null)";
+        return "";
     }
     export function IsField(field: any): field is Field;
     export function IsField(field: any, includeUndefined: true): field is Field | undefined;
@@ -355,6 +355,10 @@ export namespace Doc {
         const proto = doc && (Doc.GetT(doc, "isPrototype", "boolean", true) ? doc : (doc.proto || doc));
         return proto === doc ? proto : Doc.GetProto(proto);
     }
+    export function GetDataDoc(doc: Doc): Doc {
+        const proto = Doc.GetProto(doc);
+        return proto === doc ? proto : Doc.GetDataDoc(proto);
+    }
 
     export function allKeys(doc: Doc): string[] {
         const results: Set<string> = new Set;
@@ -572,7 +576,7 @@ export namespace Doc {
     export function ApplyTemplate(templateDoc: Doc) {
         if (templateDoc) {
             const applied = ApplyTemplateTo(templateDoc, Doc.MakeDelegate(new Doc()), "layout", templateDoc.title + "(..." + _applyCount++ + ")");
-            applied && (Doc.GetProto(applied).layout = applied.layout);
+            applied && (Doc.GetProto(applied).type = templateDoc.type);
             return applied;
         }
         return undefined;
@@ -612,16 +616,21 @@ export namespace Doc {
         templateField.isTemplateForField = metadataFieldKey;
         templateField.title = metadataFieldKey;
 
+        const templateFieldValue = templateField[metadataFieldKey] || templateField.data;
+        const templateCaptionValue = templateField.caption;
         // move any data that the template field had been rendering over to the template doc so that things will still be rendered
         // when the template field is adjusted to point to the new metadatafield key.
         // note 1: if the template field contained a list of documents, each of those documents will be converted to templates as well.
         // note 2: this will not overwrite any field that already exists on the template doc at the field key
-        if (!templateDoc?.[metadataFieldKey] && templateField.data instanceof ObjectField) {
-            Cast(templateField.data, listSpec(Doc), [])?.map(d => d instanceof Doc && MakeMetadataFieldTemplate(d, templateDoc));
-            (Doc.GetProto(templateField)[metadataFieldKey] = ObjectField.MakeCopy(templateField.data));
+        if (!templateDoc?.[metadataFieldKey] && templateFieldValue instanceof ObjectField) {
+            Cast(templateFieldValue, listSpec(Doc), [])?.map(d => d instanceof Doc && MakeMetadataFieldTemplate(d, templateDoc));
+            (Doc.GetProto(templateField)[metadataFieldKey] = ObjectField.MakeCopy(templateFieldValue));
         }
-        if (templateField.data instanceof RichTextField && (templateField.data.Text || templateField.data.Data.toString().includes("dashField"))) {
-            templateField._textTemplate = ComputedField.MakeFunction(`copyField(this.${metadataFieldKey})`, { this: Doc.name });
+        if (templateCaptionValue instanceof RichTextField && (templateCaptionValue.Text || templateCaptionValue.Data.toString().includes("dashField"))) {
+            templateField["caption-textTemplate"] = ComputedField.MakeFunction(`copyField(this.caption)`, { this: Doc.name });
+        }
+        if (templateFieldValue instanceof RichTextField && (templateFieldValue.Text || templateFieldValue.Data.toString().includes("dashField"))) {
+            templateField[metadataFieldKey + "-textTemplate"] = ComputedField.MakeFunction(`copyField(this.${metadataFieldKey})`, { this: Doc.name });
         }
 
         // get the layout string that the template uses to specify its layout
@@ -837,6 +846,45 @@ export namespace Doc {
     export function assignDocToField(doc: Doc, field: string, id: string) {
         DocServer.GetRefField(id).then(layout => layout instanceof Doc && (doc[field] = layout));
         return id;
+    }
+
+    // setup a document to use enumerated values for a specified field name:
+    //  doc: text document
+    //  layoutString: species which text field receives the document's main text (e.g., FormattedTextBox.LayoutString("Todo") )
+    //  enumeratedFieldKey : specifies which enumerated field of the document is displayed in the caption (e.g., taskStatus)
+    //  captionKey: specifies which field holds the caption template (e.g., caption) -- ideally this wouldn't be needed but would be derived from the layoutString's target field key
+    //
+    export function enumeratedTextTemplate(doc: Doc, layoutString: string, enumeratedFieldKey: string, enumeratedDocs: Doc[], captionKey: string = "caption") {
+        doc.caption = RichTextField.DashField(enumeratedFieldKey);
+        doc._showCaption = captionKey;
+        doc.layout = layoutString;
+
+        Doc.addEnumerationToTextField(doc, enumeratedFieldKey, enumeratedDocs);
+    }
+
+    export async function getEnumerationTextField(enumeratedFieldKey: string) {
+        return (await DocServer.GetRefField(enumeratedFieldKey)) as Doc;
+    }
+
+    export function addEnumerationToTextField(doc: Opt<Doc>, enumeratedFieldKey: string, enumeratedDocs: Doc[]) {
+        DocServer.GetRefField(enumeratedFieldKey).then(optionsCollection => {
+            if (!(optionsCollection instanceof Doc)) {
+                optionsCollection = Docs.Create.StackingDocument([], { title: `${enumeratedFieldKey} field set` }, enumeratedFieldKey);
+                Doc.AddDocToList((Doc.UserDoc().fieldTypes as Doc), "data", optionsCollection as Doc);
+            }
+            const options = optionsCollection as Doc;
+            doc && (Doc.GetProto(doc).backgroundColor = ComputedField.MakeFunction(`options.data.find(doc => doc.title === (this.expandedTemplate||this).${enumeratedFieldKey})?._backgroundColor || "white"`, undefined, { options }));
+            doc && (Doc.GetProto(doc).color = ComputedField.MakeFunction(`options.data.find(doc => doc.title === (this.expandedTemplate||this).${enumeratedFieldKey}).color || "black"`, undefined, { options }));
+            enumeratedDocs.map(enumeratedDoc => {
+                const found = DocListCast(options.data).find(d => d.title === enumeratedDoc.title);
+                if (found) {
+                    found._backgroundColor = enumeratedDoc._backgroundColor || found._backgroundColor;
+                    found._color = enumeratedDoc._color || found._color;
+                } else {
+                    Doc.AddDocToList(options, "data", enumeratedDoc);
+                }
+            });
+        });
     }
 }
 

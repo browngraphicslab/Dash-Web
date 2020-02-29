@@ -1,4 +1,7 @@
 import { Utils } from "../Utils";
+import { Point } from "../pen-gestures/ndollar";
+import { Doc } from "../new_fields/Doc";
+import { Image } from "canvas";
 import { AnalysisResult, ImportResults } from "../scraping/buxton/final/BuxtonImporter";
 
 export class Message<T> {
@@ -43,6 +46,30 @@ export interface Diff extends Reference {
     readonly diff: any;
 }
 
+export interface GestureContent {
+    readonly points: Array<Point>;
+    readonly bounds: { right: number, left: number, bottom: number, top: number, width: number, height: number };
+    readonly width?: string;
+    readonly color?: string;
+}
+
+export interface MobileInkOverlayContent {
+    readonly enableOverlay: boolean;
+    readonly width?: number;
+    readonly height?: number;
+    readonly text?: string;
+}
+
+export interface UpdateMobileInkOverlayPositionContent {
+    readonly dx?: number;
+    readonly dy?: number;
+    readonly dsize?: number;
+}
+
+export interface MobileDocumentUploadContent {
+    readonly docId: string;
+}
+
 export interface RoomMessage {
     readonly message: string;
     readonly room: string;
@@ -61,6 +88,11 @@ export namespace MessageStore {
     export const BuxtonDocumentResult = new Message<AnalysisResult>("Buxton Document Result");
     export const BuxtonImportComplete = new Message<ImportResults>("Buxton Import Complete");
 
+    export const GesturePoints = new Message<GestureContent>("Gesture Points");
+    export const MobileInkOverlayTrigger = new Message<MobileInkOverlayContent>("Trigger Mobile Ink Overlay");
+    export const UpdateMobileInkOverlayPosition = new Message<UpdateMobileInkOverlayPositionContent>("Update Mobile Ink Overlay Position");
+    export const MobileDocumentUpload = new Message<MobileDocumentUploadContent>("Upload Document From Mobile");
+
     export const GetRefField = new Message<string>("Get Ref Field");
     export const GetRefFields = new Message<string[]>("Get Ref Fields");
     export const UpdateField = new Message<Diff>("Update Ref Field");
@@ -68,5 +100,4 @@ export namespace MessageStore {
     export const YoutubeApiQuery = new Message<YoutubeQueryInput>("Youtube Api Query");
     export const DeleteField = new Message<string>("Delete field");
     export const DeleteFields = new Message<string[]>("Delete fields");
-
 }

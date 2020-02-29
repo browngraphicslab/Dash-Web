@@ -29,8 +29,7 @@ export class InkingControl {
         if (number < 0) {
             number = 0xFFFFFFFF + number + 1;
         }
-
-        return number.toString(16).toUpperCase();
+        return (number < 16 ? "0" : "") + number.toString(16).toUpperCase();
     }
 
     @undoBatch

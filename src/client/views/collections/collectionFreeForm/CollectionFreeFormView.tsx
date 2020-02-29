@@ -1,16 +1,16 @@
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faEye } from "@fortawesome/free-regular-svg-icons";
-import { faBraille, faChalkboard, faCompass, faCompressArrowsAlt, faExpandArrowsAlt, faFileUpload, faPaintBrush, faTable, faUpload } from "@fortawesome/free-solid-svg-icons";
-import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
+import { faBraille, faChalkboard, faCompass, faCompressArrowsAlt, faExpandArrowsAlt, faFileUpload, faPaintBrush, faTable, faUpload, faTextHeight } from "@fortawesome/free-solid-svg-icons";
+import { action, computed, observable, ObservableMap, reaction, runInAction, IReactionDisposer } from "mobx";
 import { observer } from "mobx-react";
 import { computedFn } from "mobx-utils";
 import { Doc, DocListCast, HeightSym, Opt, WidthSym, DocCastAsync } from "../../../../new_fields/Doc";
 import { documentSchema, positionSchema } from "../../../../new_fields/documentSchemas";
 import { Id } from "../../../../new_fields/FieldSymbols";
-import { InkTool } from "../../../../new_fields/InkField";
+import { InkTool, InkField, InkData } from "../../../../new_fields/InkField";
 import { createSchema, listSpec, makeInterface } from "../../../../new_fields/Schema";
 import { ScriptField } from "../../../../new_fields/ScriptField";
-import { Cast, NumCast, ScriptCast, BoolCast, StrCast } from "../../../../new_fields/Types";
+import { Cast, NumCast, ScriptCast, BoolCast, StrCast, FieldValue } from "../../../../new_fields/Types";
 import { TraceMobx } from "../../../../new_fields/util";
 import { GestureUtils } from "../../../../pen-gestures/GestureUtils";
 import { CurrentUserUtils } from "../../../../server/authentication/models/current_user_utils";
@@ -29,7 +29,7 @@ import { ContextMenu } from "../../ContextMenu";
 import { ContextMenuProps } from "../../ContextMenuItem";
 import { InkingControl } from "../../InkingControl";
 import { CollectionFreeFormDocumentView } from "../../nodes/CollectionFreeFormDocumentView";
-import { DocumentViewProps } from "../../nodes/DocumentView";
+import { DocumentContentsView } from "../../nodes/DocumentContentsView";
 import { FormattedTextBox } from "../../nodes/FormattedTextBox";
 import { pageSchema } from "../../nodes/ImageBox";
 import PDFMenu from "../../pdf/PDFMenu";
@@ -40,6 +40,13 @@ import "./CollectionFreeFormView.scss";
 import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
+import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
+import { RichTextField } from "../../../../new_fields/RichTextField";
+import { List } from "../../../../new_fields/List";
+import { DocumentViewProps } from "../../nodes/DocumentView";
+import { CollectionDockingView } from "../CollectionDockingView";
+import { MainView } from "../../MainView";
+import { TouchScrollableMenuItem } from "../../TouchScrollableMenu";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
@@ -51,8 +58,8 @@ export const panZoomSchema = createSchema({
     arrangeInit: ScriptField,
     useClusters: "boolean",
     fitToBox: "boolean",
-    xPadding: "number",         // pixels of padding on left/right of collectionfreeformview contents when fitToBox is set
-    yPadding: "number",         // pixels of padding on left/right of collectionfreeformview contents when fitToBox is set
+    _xPadding: "number",         // pixels of padding on left/right of collectionfreeformview contents when fitToBox is set
+    _yPadding: "number",         // pixels of padding on left/right of collectionfreeformview contents when fitToBox is set
     panTransformType: "string",
     scrollHeight: "number",
     fitX: "number",
@@ -68,11 +75,16 @@ const PanZoomDocument = makeInterface(panZoomSchema, documentSchema, positionSch
 export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private _lastX: number = 0;
     private _lastY: number = 0;
+    private _inkToTextStartX: number | undefined;
+    private _inkToTextStartY: number | undefined;
+    private _wordPalette: Map<string, string> = new Map<string, string>();
     private _clusterDistance: number = 75;
     private _hitCluster = false;
     private _layoutComputeReaction: IReactionDisposer | undefined;
-    private _layoutPoolData = observable.map<string, any>();
+    private _layoutPoolData = new ObservableMap<string, any>();
     private _cachedPool: Map<string, any> = new Map();
+    @observable private _pullCoords: number[] = [0, 0];
+    @observable private _pullDirection: string = "";
 
     public get displayName() { return "CollectionFreeFormView(" + this.props.Document.title?.toString() + ")"; } // this makes mobx trace() statements more descriptive
     @observable.shallow _layoutElements: ViewDefResult[] = []; // shallow because some layout items (eg pivot labels) are just generated 'divs' and can't be frozen as observables
@@ -411,8 +423,91 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 });
                 this.addDocument(Docs.Create.FreeformDocument(sel, { title: "nested collection", x: bounds.x, y: bounds.y, _width: bWidth, _height: bHeight, _panX: 0, _panY: 0 }));
                 sel.forEach(d => this.props.removeDocument(d));
+                e.stopPropagation();
                 break;
+            case GestureUtils.Gestures.StartBracket:
+                const start = this.getTransform().transformPoint(Math.min(...ge.points.map(p => p.X)), Math.min(...ge.points.map(p => p.Y)));
+                this._inkToTextStartX = start[0];
+                this._inkToTextStartY = start[1];
+                console.log("start");
+                break;
+            case GestureUtils.Gestures.EndBracket:
+                console.log("end");
+                if (this._inkToTextStartX && this._inkToTextStartY) {
+                    const end = this.getTransform().transformPoint(Math.max(...ge.points.map(p => p.X)), Math.max(...ge.points.map(p => p.Y)));
+                    const setDocs = this.getActiveDocuments().filter(s => s.proto?.type === "text" && s.color);
+                    const sets = setDocs.map((sd) => {
+                        return Cast(sd.data, RichTextField)?.Text as string;
+                    });
+                    if (sets.length && sets[0]) {
+                        this._wordPalette.clear();
+                        const colors = setDocs.map(sd => FieldValue(sd.color) as string);
+                        sets.forEach((st: string, i: number) => {
+                            const words = st.split(",");
+                            words.forEach(word => {
+                                this._wordPalette.set(word, colors[i]);
+                            });
+                        });
+                    }
+                    const inks = this.getActiveDocuments().filter(doc => {
+                        if (doc.type === "ink") {
+                            const l = NumCast(doc.x);
+                            const r = l + doc[WidthSym]();
+                            const t = NumCast(doc.y);
+                            const b = t + doc[HeightSym]();
+                            const pass = !(this._inkToTextStartX! > r || end[0] < l || this._inkToTextStartY! > b || end[1] < t);
+                            return pass;
+                        }
+                        return false;
+                    });
+                    // const inkFields = inks.map(i => Cast(i.data, InkField));
+                    const strokes: InkData[] = [];
+                    inks.forEach(i => {
+                        const d = Cast(i.data, InkField);
+                        const x = NumCast(i.x);
+                        const y = NumCast(i.y);
+                        const left = Math.min(...d?.inkData.map(pd => pd.X) ?? [0]);
+                        const top = Math.min(...d?.inkData.map(pd => pd.Y) ?? [0]);
+                        if (d) {
+                            strokes.push(d.inkData.map(pd => ({ X: pd.X + x - left, Y: pd.Y + y - top })));
+                        }
+                    });
 
+                    CognitiveServices.Inking.Appliers.InterpretStrokes(strokes).then((results) => {
+                        console.log(results);
+                        const wordResults = results.filter((r: any) => r.category === "inkWord");
+                        for (const word of wordResults) {
+                            const indices: number[] = word.strokeIds;
+                            indices.forEach(i => {
+                                const otherInks: Doc[] = [];
+                                indices.forEach(i2 => i2 !== i && otherInks.push(inks[i2]));
+                                inks[i].relatedInks = new List<Doc>(otherInks);
+                                const uniqueColors: string[] = [];
+                                Array.from(this._wordPalette.values()).forEach(c => uniqueColors.indexOf(c) === -1 && uniqueColors.push(c));
+                                inks[i].alternativeColors = new List<string>(uniqueColors);
+                                if (this._wordPalette.has(word.recognizedText.toLowerCase())) {
+                                    inks[i].color = this._wordPalette.get(word.recognizedText.toLowerCase());
+                                }
+                                else if (word.alternates) {
+                                    for (const alt of word.alternates) {
+                                        if (this._wordPalette.has(alt.recognizedString.toLowerCase())) {
+                                            inks[i].color = this._wordPalette.get(alt.recognizedString.toLowerCase());
+                                            break;
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                    });
+                    this._inkToTextStartX = end[0];
+                }
+                break;
+            case GestureUtils.Gestures.Text:
+                if (ge.text) {
+                    const B = this.getTransform().transformPoint(ge.points[0].X, ge.points[0].Y);
+                    this.addDocument(Docs.Create.TextDocument(ge.text, { title: ge.text, x: B[0], y: B[1] }));
+                    e.stopPropagation();
+                }
         }
     }
 
@@ -429,7 +524,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     @action
     pan = (e: PointerEvent | React.Touch | { clientX: number, clientY: number }): void => {
         // I think it makes sense for the marquee menu to go away when panned. -syip2
-        MarqueeOptionsMenu.Instance.fadeOut(true);
+        MarqueeOptionsMenu.Instance && MarqueeOptionsMenu.Instance.fadeOut(true);
 
         let x = this.Document._panX || 0;
         let y = this.Document._panY || 0;
@@ -547,7 +642,14 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                         // use the centerx and centery as the "new mouse position"
                         const centerX = Math.min(pt1.clientX, pt2.clientX) + Math.abs(pt2.clientX - pt1.clientX) / 2;
                         const centerY = Math.min(pt1.clientY, pt2.clientY) + Math.abs(pt2.clientY - pt1.clientY) / 2;
-                        this.pan({ clientX: centerX, clientY: centerY });
+                        // const transformed = this.getTransform().inverse().transformPoint(centerX, centerY);
+
+                        if (!this._pullDirection) { // if we are not bezel movement
+                            this.pan({ clientX: centerX, clientY: centerY });
+                        } else {
+                            this._pullCoords = [centerX, centerY];
+                        }
+
                         this._lastX = centerX;
                         this._lastY = centerY;
                     }
@@ -572,6 +674,27 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 const centerY = Math.min(pt1.clientY, pt2.clientY) + Math.abs(pt2.clientY - pt1.clientY) / 2;
                 this._lastX = centerX;
                 this._lastY = centerY;
+                const screenBox = this._mainCont?.getBoundingClientRect();
+
+
+                // determine if we are using a bezel movement
+                if (screenBox) {
+                    if ((screenBox.right - centerX) < 100) {
+                        this._pullCoords = [centerX, centerY];
+                        this._pullDirection = "right";
+                    } else if (centerX - screenBox.left < 100) {
+                        this._pullCoords = [centerX, centerY];
+                        this._pullDirection = "left";
+                    } else if (screenBox.bottom - centerY < 100) {
+                        this._pullCoords = [centerX, centerY];
+                        this._pullDirection = "bottom";
+                    } else if (centerY - screenBox.top < 100) {
+                        this._pullCoords = [centerX, centerY];
+                        this._pullDirection = "top";
+                    }
+                }
+
+
                 this.removeMoveListeners();
                 this.addMoveListeners();
                 this.removeEndListeners();
@@ -582,11 +705,35 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     cleanUpInteractions = () => {
+
+        switch (this._pullDirection) {
+
+            case "left":
+                CollectionDockingView.AddSplit(Docs.Create.FreeformDocument([], { title: "New Collection" }), "left", undefined);
+                break;
+            case "right":
+                CollectionDockingView.AddSplit(Docs.Create.FreeformDocument([], { title: "New Collection" }), "right", undefined);
+                break;
+            case "top":
+                CollectionDockingView.AddSplit(Docs.Create.FreeformDocument([], { title: "New Collection" }), "top", undefined);
+                break;
+            case "bottom":
+                CollectionDockingView.AddSplit(Docs.Create.FreeformDocument([], { title: "New Collection" }), "bottom", undefined);
+                break;
+            default:
+                break;
+        }
+        console.log("");
+
+        this._pullDirection = "";
+        this._pullCoords = [0, 0];
+
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
         this.removeMoveListeners();
         this.removeEndListeners();
     }
+
 
     @action
     zoom = (pointX: number, pointY: number, deltaY: number): void => {
@@ -1035,6 +1182,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             </CollectionFreeFormViewPannableContents>
         </MarqueeView>;
     }
+
     @computed get contentScaling() {
         if (this.props.annotationsKey) return 0;
         const hscale = this.nativeHeight ? this.props.PanelHeight() / this.nativeHeight : 1;
@@ -1043,6 +1191,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
     render() {
         TraceMobx();
+        const clientRect = this._mainCont?.getBoundingClientRect();
         // update the actual dimensions of the collection so that they can inquired (e.g., by a minimap)
         // this.Document.fitX = this.contentBounds && this.contentBounds.x;
         // this.Document.fitY = this.contentBounds && this.contentBounds.y;
@@ -1064,7 +1213,20 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             {!this.Document._LODdisable && !this.props.active() && !this.props.isAnnotationOverlay && !this.props.annotationsKey && this.props.renderDepth > 0 ?
                 this.placeholder : this.marqueeView}
             <CollectionFreeFormOverlayView elements={this.elementFunc} />
-        </div>;
+
+            <div className={"pullpane-indicator"}
+                style={{
+                    display: this._pullDirection ? "block" : "none",
+                    top: clientRect ? this._pullDirection === "bottom" ? this._pullCoords[1] - clientRect.y : 0 : "auto",
+                    // left: clientRect ? this._pullDirection === "right" ? this._pullCoords[0] - clientRect.x - MainView.Instance.flyoutWidth : 0 : "auto",
+                    left: clientRect ? this._pullDirection === "right" ? this._pullCoords[0] - clientRect.x : 0 : "auto",
+                    width: clientRect ? this._pullDirection === "left" ? this._pullCoords[0] - clientRect.left : this._pullDirection === "right" ? clientRect.right - this._pullCoords[0] : clientRect.width : 0,
+                    height: clientRect ? this._pullDirection === "top" ? this._pullCoords[1] - clientRect.top : this._pullDirection === "bottom" ? clientRect.bottom - this._pullCoords[1] : clientRect.height : 0,
+
+                }}>
+            </div>
+
+        </div >;
     }
 }
 

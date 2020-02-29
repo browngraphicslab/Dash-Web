@@ -14,6 +14,7 @@ import { Utils } from "../../../Utils";
 import { nullAudio } from "../../../new_fields/URLField";
 import { DragManager } from "../../../client/util/DragManager";
 import { InkingControl } from "../../../client/views/InkingControl";
+import { Scripting } from "../../../client/util/Scripting";
 import { CollectionViewType } from "../../../client/views/collections/CollectionView";
 import { makeTemplate } from "../../../client/util/DropConverter";
 import { RichTextField } from "../../../new_fields/RichTextField";
@@ -36,14 +37,21 @@ export class CurrentUserUtils {
     @observable public static GuestMobile: Doc | undefined;
 
     static setupDefaultDocTemplates(doc: Doc, buttons?: string[]) {
-        const noteTemplates = [
-            Docs.Create.TextDocument("", { title: "Note", backgroundColor: "yellow", isTemplateDoc: true }),
-            Docs.Create.TextDocument("", { title: "Idea", backgroundColor: "pink", isTemplateDoc: true }),
-            Docs.Create.TextDocument("", { title: "Topic", backgroundColor: "lightBlue", isTemplateDoc: true }),
-            Docs.Create.TextDocument("", { title: "Person", backgroundColor: "lightGreen", isTemplateDoc: true }),
-            Docs.Create.TextDocument("", { title: "Todo", backgroundColor: "orange", isTemplateDoc: true })
+        const taskStatusValues = [
+            Docs.Create.TextDocument("todo", { title: "todo", _backgroundColor: "blue", color: "white" }),
+            Docs.Create.TextDocument("in progress", { title: "in progress", _backgroundColor: "yellow", color: "black" }),
+            Docs.Create.TextDocument("completed", { title: "completed", _backgroundColor: "green", color: "white" })
         ];
-        doc.noteTypes = new PrefetchProxy(Docs.Create.TreeDocument(noteTemplates, { title: "Note Types", _height: 75 }));
+        const noteTemplates = [
+            Docs.Create.TextDocument("", { title: "Note", isTemplateDoc: true, backgroundColor: "yellow" }),
+            Docs.Create.TextDocument("", { title: "Idea", isTemplateDoc: true, backgroundColor: "pink" }),
+            Docs.Create.TextDocument("", { title: "Topic", isTemplateDoc: true, backgroundColor: "lightBlue" }),
+            Docs.Create.TextDocument("", { title: "Person", isTemplateDoc: true, backgroundColor: "lightGreen" }),
+            Docs.Create.TextDocument("", { title: "Todo", isTemplateDoc: true, backgroundColor: "orange", _autoHeight: false, _height: 100, _showCaption: "caption" })
+        ];
+        doc.fieldTypes = Docs.Create.TreeDocument([], { title: "field enumerations" });
+        Doc.enumeratedTextTemplate(Doc.GetProto(noteTemplates[4]), FormattedTextBox.LayoutString("Todo"), "taskStatus", taskStatusValues);
+        doc.noteTypes = new PrefetchProxy(Docs.Create.TreeDocument(noteTemplates.map(nt => makeTemplate(nt) ? nt : nt), { title: "Note Types", _height: 75 }));
     }
 
     // setup the "creator" buttons for the sidebar-- eg. the default set of draggable document creation tools
@@ -107,6 +115,9 @@ export class CurrentUserUtils {
             { title: "use eraser", icon: "eraser", click: 'activateEraser(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this);', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "pink", activePen: doc },
             { title: "use scrubber", icon: "eraser", click: 'activateScrubber(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this);', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "green", activePen: doc },
             { title: "use drag", icon: "mouse-pointer", click: 'deactivateInk();this.activePen.pen = this;', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "white", activePen: doc },
+            // { title: "draw", icon: "pen-nib", click: 'switchMobileView(setupMobileInkingDoc, renderMobileInking, onSwitchMobileInking);', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "red", activePen: doc },
+            { title: "upload", icon: "upload", click: 'switchMobileView(setupMobileUploadDoc, renderMobileUpload, onSwitchMobileUpload);', backgroundColor: "orange" },
+            // { title: "upload", icon: "upload", click: 'uploadImageMobile();', backgroundColor: "cyan" },
         ];
         return docProtoData.filter(d => !buttons || !buttons.includes(d.title)).map(data => Docs.Create.FontIconDocument({
             _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, dropAction: data.click ? "copy" : undefined, title: data.title, icon: data.icon, ignoreClick: data.ignoreClick,
@@ -136,16 +147,35 @@ export class CurrentUserUtils {
 
     static setupThumbDoc(userDoc: Doc) {
         if (!userDoc.thumbDoc) {
-            userDoc.thumbDoc = Docs.Create.LinearDocument(CurrentUserUtils.setupThumbButtons(userDoc), {
+            const thumbDoc = Docs.Create.LinearDocument(CurrentUserUtils.setupThumbButtons(userDoc), {
                 _width: 100, _height: 50, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled", title: "buttons", _autoHeight: true, _yMargin: 5, linearViewIsExpanded: true, backgroundColor: "white"
             });
+            thumbDoc.inkToTextDoc = Docs.Create.LinearDocument([], { _width: 300, _height: 25, _autoHeight: true, _chromeStatus: "disabled", linearViewIsExpanded: true, flexDirection: "column" });
+            userDoc.thumbDoc = thumbDoc;
         }
-        return userDoc.thumbDoc;
+        return Cast(userDoc.thumbDoc, Doc);
     }
 
     static setupMobileDoc(userDoc: Doc) {
         return userDoc.activeMoble ?? Docs.Create.MasonryDocument(CurrentUserUtils.setupMobileButtons(userDoc), {
             columnWidth: 100, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled", title: "buttons", _autoHeight: true, _yMargin: 5
+        });
+    }
+
+    static setupMobileInkingDoc(userDoc: Doc) {
+        return Docs.Create.FreeformDocument([], { title: "Mobile Inking", backgroundColor: "white" });
+    }
+
+    static setupMobileUploadDoc(userDoc: Doc) {
+        // const addButton = Docs.Create.FontIconDocument({ onDragStart: ScriptField.MakeScript('addWebToMobileUpload()'), title: "Add Web Doc to Upload Collection", icon: "plus", backgroundColor: "black" })
+        const webDoc = Docs.Create.WebDocument("https://www.britannica.com/biography/Miles-Davis", {
+            title: "Upload Images From the Web", _chromeStatus: "enabled", lockedPosition: true
+        });
+        const uploadDoc = Docs.Create.StackingDocument([], {
+            title: "Mobile Upload Collection", backgroundColor: "white", lockedPosition: true
+        });
+        return Docs.Create.StackingDocument([webDoc, uploadDoc], {
+            _width: screen.width, lockedPosition: true, _chromeStatus: "disabled", title: "Upload", _autoHeight: true, _yMargin: 80, backgroundColor: "lightgray"
         });
     }
 
@@ -190,7 +220,7 @@ export class CurrentUserUtils {
         return Docs.Create.ButtonDocument({
             _width: 50, _height: 25, title: "Library", fontSize: 10,
             letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
-            sourcePanel: Docs.Create.TreeDocument([doc.workspaces as Doc, doc.documents as Doc, Docs.Prototypes.MainLinkDocument(), doc.recentlyClosed as Doc], {
+            sourcePanel: Docs.Create.TreeDocument([doc.workspaces as Doc, doc.documents as Doc, Docs.Prototypes.MainLinkDocument(), doc, doc.recentlyClosed as Doc], {
                 title: "Library", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, dropAction: "alias", lockedPosition: true, boxShadow: "0 0",
             }),
             targetContainer: sidebarContainer,
@@ -413,3 +443,6 @@ export class CurrentUserUtils {
         return recurs([] as Attribute[], schema ? schema.rootAttributeGroup : undefined);
     }
 }
+
+Scripting.addGlobal(function setupMobileInkingDoc(userDoc: Doc) { return CurrentUserUtils.setupMobileInkingDoc(userDoc); });
+Scripting.addGlobal(function setupMobileUploadDoc(userDoc: Doc) { return CurrentUserUtils.setupMobileUploadDoc(userDoc); });

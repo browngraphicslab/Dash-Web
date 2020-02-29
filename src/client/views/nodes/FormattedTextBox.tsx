@@ -46,6 +46,7 @@ import { FieldView, FieldViewProps } from "./FieldView";
 import "./FormattedTextBox.scss";
 import { FormattedTextBoxComment, formattedTextBoxCommentPlugin } from './FormattedTextBoxComment';
 import React = require("react");
+import { PrefetchProxy } from '../../../new_fields/Proxy';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -95,6 +96,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
 
     public static FocusedBox: FormattedTextBox | undefined;
     public static SelectOnLoad = "";
+    public static SelectOnLoadChar = "";
     public static IsFragment(html: string) {
         return html.indexOf("data-pm-slice") !== -1;
     }
@@ -186,16 +188,16 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
             const tsel = this._editorView.state.selection.$from;
             tsel.marks().filter(m => m.type === this._editorView!.state.schema.marks.user_mark).map(m => AudioBox.SetScrubTime(Math.max(0, m.attrs.modified * 5000 - 1000)));
             const curText = state.doc.textBetween(0, state.doc.content.size, "\n\n");
-            const curTemp = Cast(this.props.Document._textTemplate, RichTextField);
+            const curTemp = Cast(this.props.Document[this.props.fieldKey + "-textTemplate"], RichTextField);
             if (!this._applyingChange) {
                 this._applyingChange = true;
                 this.dataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
                 if (!curTemp || curText) { // if no template, or there's text, write it to the document. (if this is driven by a template, then this overwrites the template text which is intended)
                     this.dataDoc[this.props.fieldKey] = new RichTextField(JSON.stringify(state.toJSON()), curText);
-                    this.dataDoc[this.props.fieldKey + "-noTemplate"] = curTemp?.Text !== curText;
+                    this.dataDoc[this.props.fieldKey + "-noTemplate"] = (curTemp?.Text || "") !== curText; // mark the data field as being split from the template if it has been edited
                 } else { // if we've deleted all the text in a note driven by a template, then restore the template data
                     this._editorView.updateState(EditorState.fromJSON(this.config, JSON.parse(curTemp.Data)));
-                    this.dataDoc[this.props.fieldKey + "-noTemplate"] = undefined;
+                    this.dataDoc[this.props.fieldKey + "-noTemplate"] = undefined; // mark the data field as not being split from any template it might have
                 }
                 this._applyingChange = false;
             }
@@ -375,12 +377,18 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
 
     toggleSidebar = () => this._sidebarMovement < 5 && (this.props.Document.sidebarWidthPercent = StrCast(this.props.Document.sidebarWidthPercent, "0%") === "0%" ? "25%" : "0%");
 
+    public static get DefaultLayout(): Doc | string | undefined {
+        return Cast(Doc.UserDoc().defaultTextLayout, Doc, null) || StrCast(Doc.UserDoc().defaultTextLayout, null);
+    }
     specificContextMenu = (e: React.MouseEvent): void => {
         const funcs: ContextMenuProps[] = [];
+        this.props.Document.isTemplateDoc && funcs.push({ description: "Make Default Layout", event: async () => Doc.UserDoc().defaultTextLayout = new PrefetchProxy(this.props.Document.proto as Doc), icon: "eye" });
+        funcs.push({ description: "Reset Default Layout", event: () => Doc.UserDoc().defaultTextLayout = undefined, icon: "eye" });
         !this.props.Document.expandedTemplate && funcs.push({ description: "Make Template", event: () => { this.props.Document.isTemplateDoc = true; Doc.AddDocToList(Cast(Doc.UserDoc().noteTypes, Doc, null), "data", this.props.Document); }, icon: "eye" });
-        funcs.push({ description: "Toggle Sidebar", event: () => { e.stopPropagation(); this.props.Document._showSidebar = !this.props.Document._showSidebar; }, icon: "expand-arrows-alt" });
-        funcs.push({ description: "Record Bullet", event: () => { e.stopPropagation(); this.recordBullet(); }, icon: "expand-arrows-alt" });
-        funcs.push({ description: "Toggle Menubar", event: () => { e.stopPropagation(); this.toggleMenubar(); }, icon: "expand-arrows-alt" });
+        funcs.push({ description: "Toggle Single Line", event: () => this.props.Document._singleLine = !this.props.Document._singleLine, icon: "expand-arrows-alt" });
+        funcs.push({ description: "Toggle Sidebar", event: () => this.props.Document._showSidebar = !this.props.Document._showSidebar, icon: "expand-arrows-alt" });
+        funcs.push({ description: "Record Bullet", event: () => this.recordBullet(), icon: "expand-arrows-alt" });
+        funcs.push({ description: "Toggle Menubar", event: () => this.toggleMenubar(), icon: "expand-arrows-alt" });
         ["My Text", "Text from Others", "Todo Items", "Important Items", "Ignore Items", "Disagree Items", "By Recent Minute", "By Recent Hour"].forEach(option =>
             funcs.push({
                 description: (FormattedTextBox._highlights.indexOf(option) === -1 ? "Highlight " : "Unhighlight ") + option, event: () => {
@@ -471,7 +479,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     _keymap: any = undefined;
     _rules: RichTextRules | undefined;
     @computed get config() {
-        this._keymap = buildKeymap(schema);
+        this._keymap = buildKeymap(schema, this.props);
         this._rules = new RichTextRules(this.props.Document, this);
         return {
             schema,
@@ -504,10 +512,10 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
 
         this._reactionDisposer = reaction(
             () => {
-                if (this.dataDoc[this.props.fieldKey + "-noTemplate"] || !this.props.Document._textTemplate) {
+                if (this.dataDoc[this.props.fieldKey + "-noTemplate"] || !this.props.Document[this.props.fieldKey + "-textTemplate"]) {
                     return Cast(this.dataDoc[this.props.fieldKey], RichTextField, null)?.Data;
                 }
-                return Cast(this.props.Document._textTemplate, RichTextField, null)?.Data;
+                return Cast(this.props.Document[this.props.fieldKey + "-textTemplate"], RichTextField, null)?.Data;
             },
             incomingValue => {
                 if (incomingValue !== undefined && this._editorView && !this._applyingChange) {
@@ -752,8 +760,8 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
 
     private setupEditor(config: any, fieldKey: string) {
         const curText = Cast(this.dataDoc[this.props.fieldKey], RichTextField, null);
-        const useTemplate = !curText?.Text && this.props.Document._textTemplate;
-        const rtfField = Cast((useTemplate && this.props.Document._textTemplate) || this.dataDoc[fieldKey], RichTextField);
+        const useTemplate = !curText?.Text && this.props.Document[this.props.fieldKey + "-textTemplate"];
+        const rtfField = Cast((useTemplate && this.props.Document[this.props.fieldKey + "-textTemplate"]) || this.dataDoc[fieldKey], RichTextField);
         if (this.ProseRef) {
             const self = this;
             this._editorView?.destroy();
@@ -793,6 +801,9 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         if (selectOnLoad) {
             FormattedTextBox.SelectOnLoad = "";
             this.props.select(false);
+            FormattedTextBox.SelectOnLoadChar && this._editorView!.dispatch(this._editorView!.state.tr.insertText(FormattedTextBox.SelectOnLoadChar));
+            FormattedTextBox.SelectOnLoadChar = "";
+
         }
         (selectOnLoad /* || !rtfField?.Text*/) && this._editorView!.focus();
         // add user mark for any first character that was typed since the user mark that gets set in KeyPress won't have been called yet.
@@ -1005,7 +1016,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     richTextMenuPlugin() {
         return new Plugin({
             view(newView) {
-                RichTextMenu.Instance.changeView(newView);
+                RichTextMenu.Instance && RichTextMenu.Instance.changeView(newView);
                 return RichTextMenu.Instance;
             }
         });
@@ -1125,7 +1136,11 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                 onPointerLeave={action(() => this._entered = false)}
             >
                 <div className={`formattedTextBox-outer`} style={{ width: `calc(100% - ${this.sidebarWidthPercent})`, }} onScroll={this.onscrolled} ref={this._scrollRef}>
-                    <div className={`formattedTextBox-inner${rounded}`} style={{ whiteSpace: "pre-wrap", pointerEvents: ((this.Document.isButton || this.props.onClick) && !this.props.isSelected()) ? "none" : undefined }} ref={this.createDropTarget} />
+                    <div className={`formattedTextBox-inner${rounded}`} ref={this.createDropTarget}
+                        style={{
+                            padding: `${NumCast(this.Document._xMargin, 0)}px  ${NumCast(this.Document._yMargin, 0)}px`,
+                            pointerEvents: ((this.Document.isButton || this.props.onClick) && !this.props.isSelected()) ? "none" : undefined
+                        }} />
                 </div>
                 {!this.props.Document._showSidebar ? (null) : this.sidebarWidthPercent === "0%" ?
                     <div className="formattedTextBox-sidebar-handle" onPointerDown={this.sidebarDown} onClick={e => this.toggleSidebar()} /> :
@@ -1152,15 +1167,16 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                         </CollectionFreeFormView>
                         <div className="formattedTextBox-sidebar-handle" onPointerDown={this.sidebarDown} onClick={e => this.toggleSidebar()} />
                     </div>}
-                <div className="formattedTextBox-dictation"
-                    onClick={e => {
-                        this._recording ? this.stopDictation(true) : this.recordDictation();
-                        setTimeout(() => this._editorView!.focus(), 500);
-                        e.stopPropagation();
-                    }} >
-                    <FontAwesomeIcon className="formattedTExtBox-audioFont"
-                        style={{ color: this._recording ? "red" : "blue", opacity: this._recording ? 1 : 0.5, display: this.props.isSelected() ? "" : "none" }} icon={"microphone"} size="sm" />
-                </div>
+                {!this.props.Document._showAudio ? (null) :
+                    <div className="formattedTextBox-dictation"
+                        onClick={e => {
+                            this._recording ? this.stopDictation(true) : this.recordDictation();
+                            setTimeout(() => this._editorView!.focus(), 500);
+                            e.stopPropagation();
+                        }} >
+                        <FontAwesomeIcon className="formattedTExtBox-audioFont"
+                            style={{ color: this._recording ? "red" : "blue", opacity: this._recording ? 1 : 0.5, display: this.props.isSelected() ? "" : "none" }} icon={"microphone"} size="sm" />
+                    </div>}
             </div>
         );
     }

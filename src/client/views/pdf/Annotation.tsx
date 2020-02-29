@@ -1,7 +1,7 @@
 import React = require("react");
 import { action, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, HeightSym, WidthSym, Opt, DocListCastAsync } from "../../../new_fields/Doc";
+import { Doc, DocListCast, HeightSym, WidthSym } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { Cast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";

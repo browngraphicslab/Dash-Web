@@ -32,9 +32,14 @@ import KeyManager from './GlobalKeyHandler';
 import "./MainView.scss";
 import { MainViewNotifs } from './MainViewNotifs';
 import { DocumentView } from './nodes/DocumentView';
-import { OverlayView } from './OverlayView';
 import PDFMenu from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
+import { FilterBox } from './search/FilterBox';
+import { SchemaHeaderField, RandomPastel } from '../../new_fields/SchemaHeaderField';
+//import { DocumentManager } from '../util/DocumentManager';
+import { RecommendationsBox } from './RecommendationsBox';
+import { PresBox } from './nodes/PresBox';
+import { OverlayView } from './OverlayView';
 import MarqueeOptionsMenu from './collections/collectionFreeForm/MarqueeOptionsMenu';
 import GestureOverlay from './GestureOverlay';
 import { Scripting } from '../util/Scripting';
@@ -52,6 +57,7 @@ export class MainView extends React.Component {
     private _flyoutSizeOnDown = 0;
     private _urlState: HistoryUtil.DocUrl;
     private _docBtnRef = React.createRef<HTMLDivElement>();
+    private _mainViewRef = React.createRef<HTMLDivElement>();
 
     @observable private _panelWidth: number = 0;
     @observable private _panelHeight: number = 0;
@@ -395,7 +401,7 @@ export class MainView extends React.Component {
         }
         const sidebarButtonsDoc = Cast(CurrentUserUtils.UserDocument.sidebarButtons, Doc) as Doc;
         return <div className="mainView-flyoutContainer" >
-            <div className="mainView-tabButtons" style={{ height: `${this._buttonBarHeight}px`, paddingTop: 10, backgroundColor: StrCast(sidebarButtonsDoc.backgroundColor) }}>
+            <div className="mainView-tabButtons" style={{ height: `${this._buttonBarHeight}px`, backgroundColor: StrCast(sidebarButtonsDoc.backgroundColor) }}>
                 <DocumentView
                     Document={sidebarButtonsDoc}
                     DataDoc={undefined}
@@ -540,8 +546,16 @@ export class MainView extends React.Component {
         return (null);
     }
 
+    get mainViewElement() {
+        return document.getElementById("mainView-container");
+    }
+
+    get mainViewRef() {
+        return this._mainViewRef;
+    }
+
     render() {
-        return (<div className={"mainView-container" + (this.darkScheme ? "-dark" : "")}>
+        return (<div className={"mainView-container" + (this.darkScheme ? "-dark" : "")} ref={this._mainViewRef}>
             <DictationOverlay />
             <SharingManager />
             <SettingsManager />

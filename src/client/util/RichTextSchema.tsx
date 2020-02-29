@@ -8,7 +8,7 @@ import { EditorState, NodeSelection, Plugin, TextSelection } from "prosemirror-s
 import { StepMap } from "prosemirror-transform";
 import { EditorView } from "prosemirror-view";
 import * as ReactDOM from 'react-dom';
-import { Doc, Field, HeightSym, WidthSym } from "../../new_fields/Doc";
+import { Doc, Field, HeightSym, WidthSym, DocListCast } from "../../new_fields/Doc";
 import { Id } from "../../new_fields/FieldSymbols";
 import { ObjectField } from "../../new_fields/ObjectField";
 import { ComputedField } from "../../new_fields/ScriptField";
@@ -21,6 +21,11 @@ import { DocumentManager } from "./DocumentManager";
 import ParagraphNodeSpec from "./ParagraphNodeSpec";
 import { Transform } from "./Transform";
 import React = require("react");
+import { CollectionSchemaBooleanCell } from "../views/collections/CollectionSchemaCells";
+import { ContextMenu } from "../views/ContextMenu";
+import { ContextMenuProps } from "../views/ContextMenuItem";
+import { Docs } from "../documents/Documents";
+import { CollectionView } from "../views/collections/CollectionView";
 
 const blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
     preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], brDOM: DOMOutputSpecArray = ["br"], ulDOM: DOMOutputSpecArray = ["ul", 0];
@@ -807,7 +812,7 @@ export class DashDocView {
             if (finalLayout !== dashDoc && finalKey) {
                 const finalLayoutField = finalLayout[finalKey];
                 if (finalLayoutField instanceof ObjectField) {
-                    finalLayout._textTemplate = ComputedField.MakeFunction(`copyField(this.${finalKey})`, { this: Doc.name });
+                    finalLayout[finalKey + "-textTemplate"] = ComputedField.MakeFunction(`copyField(this.${finalKey})`, { this: Doc.name });
                 }
             }
             this._reactionDisposer?.();
@@ -850,13 +855,14 @@ export class DashDocView {
 
 
 export class DashFieldView {
-    _fieldWrapper: HTMLDivElement;
-    _labelSpan: HTMLSpanElement;
-    _fieldSpan: HTMLDivElement;
+    _fieldWrapper: HTMLDivElement; // container for label and value
+    _labelSpan: HTMLSpanElement; // field label
+    _fieldSpan: HTMLDivElement;  // field value
     _reactionDisposer: IReactionDisposer | undefined;
     _textBoxDoc: Doc;
     @observable _dashDoc: Doc | undefined;
     _fieldKey: string;
+    _options: Doc[] = [];
 
     constructor(node: any, view: any, getPos: any, tbox: FormattedTextBox) {
         this._fieldKey = node.attrs.fieldKey;
@@ -867,6 +873,7 @@ export class DashFieldView {
         this._fieldWrapper.style.position = "relative";
         this._fieldWrapper.style.display = "inline-block";
 
+        const self = this;
         this._fieldSpan = document.createElement("div");
         this._fieldSpan.id = Utils.GenerateGuid();
         this._fieldSpan.contentEditable = "true";
@@ -874,14 +881,24 @@ export class DashFieldView {
         this._fieldSpan.style.display = "inline-block";
         this._fieldSpan.style.minWidth = "50px";
         this._fieldSpan.style.backgroundColor = "rgba(155, 155, 155, 0.24)";
-        this._fieldSpan.addEventListener("input", this.onchanged);
         this._fieldSpan.onkeypress = function (e: any) { e.stopPropagation(); };
         this._fieldSpan.onkeyup = function (e: any) { e.stopPropagation(); };
-        this._fieldSpan.onmousedown = function (e: any) {
-            console.log(e);
-            e.stopPropagation();
+        this._fieldSpan.onmousedown = function (e: any) { e.stopPropagation(); };
+        this._fieldSpan.oncontextmenu = function (e: any) {
+            ContextMenu.Instance.addItem({
+                description: "Show Enumeration Templates", event: () => {
+                    e.stopPropagation();
+                    DocServer.GetRefField(node.attrs.fieldKey).then(collview => collview instanceof Doc && tbox.props.addDocTab(collview, "onRight"));
+                }, icon: "expand-arrows-alt"
+            });
         };
-        const self = this;
+
+        const setDashDoc = (doc: Doc) => {
+            self._dashDoc = doc;
+            if (this._dashDoc && self._options?.length && !this._dashDoc[node.attrs.fieldKey]) {
+                this._dashDoc[node.attrs.fieldKey] = StrCast(self._options[0].title);
+            }
+        }
         this._fieldSpan.onkeydown = function (e: any) {
             e.stopPropagation();
             if ((e.key === "a" && e.ctrlKey) || (e.key === "a" && e.metaKey)) {
@@ -893,6 +910,25 @@ export class DashFieldView {
                 }
                 e.preventDefault();
             }
+            if (e.key === "Enter") {
+                e.preventDefault();
+                if (e.ctrlKey) {
+                    Doc.addEnumerationToTextField(self._textBoxDoc, node.attrs.fieldKey, [Docs.Create.TextDocument(self._fieldSpan.innerText, { title: self._fieldSpan.innerText })]);
+                }
+                let newText = self._fieldSpan.innerText.startsWith(":=") ? ":=-computed-" : self._fieldSpan.innerText;
+                // look for a document whose id === the fieldKey being displayed.  If there's a match, then that document
+                // holds the different enumerated values for the field in the titles of its collected documents.
+                // if there's a partial match from the start of the input text, complete the text --- TODO: make this an auto suggest box and select from a drop down.
+
+                // alternatively, if the text starts with a ':=' then treat it as an expression by making a computed field from its value storing it in the key
+                DocServer.GetRefField(node.attrs.fieldKey).then(options => {
+                    (options instanceof Doc) && DocListCast(options.data).forEach(opt => StrCast(opt.title).startsWith(newText) && (newText = StrCast(opt.title)));
+                    self._fieldSpan.innerHTML = self._dashDoc![self._fieldKey] = newText;
+                    if (newText.startsWith(":=") && self._dashDoc && e.data === null && !e.inputType.includes("delete")) {
+                        Doc.Layout(tbox.props.Document)[self._fieldKey] = ComputedField.MakeFunction(self._fieldSpan.innerText.substring(2));
+                    }
+                });
+            }
         };
 
         this._labelSpan = document.createElement("span");
@@ -902,23 +938,19 @@ export class DashFieldView {
         this._labelSpan.style.fontSize = "larger";
         this._labelSpan.innerHTML = `${node.attrs.fieldKey}: `;
         if (node.attrs.docid) {
-            const self = this;
-            DocServer.GetRefField(node.attrs.docid).then(async dashDoc => dashDoc instanceof Doc && runInAction(() => self._dashDoc = dashDoc));
+            DocServer.GetRefField(node.attrs.docid).then(async dashDoc => dashDoc instanceof Doc && runInAction(() => setDashDoc(dashDoc)));
         } else {
-            this._dashDoc = tbox.props.DataDoc || tbox.dataDoc;
+            setDashDoc(tbox.props.DataDoc || tbox.dataDoc);
         }
         this._reactionDisposer?.();
-        this._reactionDisposer = reaction(() => this._dashDoc?.[node.attrs.fieldKey], fval => this._fieldSpan.innerHTML = Field.toString(fval as Field) || "(null)", { fireImmediately: true });
+        this._reactionDisposer = reaction(() => { // this reaction will update the displayed text whenever the document's fieldKey's value changes
+            const dashVal = this._dashDoc?.[node.attrs.fieldKey];
+            return StrCast(dashVal).startsWith(":=") || !dashVal ? Doc.Layout(tbox.props.Document)[this._fieldKey] : dashVal;
+        }, fval => this._fieldSpan.innerHTML = Field.toString(fval as Field) || "(null)", { fireImmediately: true });
 
         this._fieldWrapper.appendChild(this._labelSpan);
         this._fieldWrapper.appendChild(this._fieldSpan);
         (this as any).dom = this._fieldWrapper;
-    }
-    onchanged = () => {
-        this._reactionDisposer?.();
-        this._dashDoc![this._fieldKey] = this._fieldSpan.innerText;
-        this._reactionDisposer = reaction(() => this._dashDoc?.[this._fieldKey], fval => this._fieldSpan.innerHTML = Field.toString(fval as Field) || "(null)");
-
     }
     destroy() {
         this._reactionDisposer?.();

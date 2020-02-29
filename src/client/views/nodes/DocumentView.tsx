@@ -1,6 +1,6 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import * as fa from '@fortawesome/free-solid-svg-icons';
-import { action, computed, observable, runInAction } from "mobx";
+import { action, computed, runInAction, trace, observable } from "mobx";
 import { observer } from "mobx-react";
 import * as rp from "request-promise";
 import { Doc, DocListCast, Opt } from "../../../new_fields/Doc";
@@ -43,7 +43,14 @@ import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
 import { FormattedTextBox } from './FormattedTextBox';
 import React = require("react");
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
+import { CollectionStackingView } from '../collections/CollectionStackingView';
+import { SchemaHeaderField } from '../../../new_fields/SchemaHeaderField';
+import { ClientRecommender } from '../../ClientRecommender';
+import { SearchUtil } from '../../util/SearchUtil';
+import { RadialMenu } from './RadialMenu';
+import { KeyphraseQueryView } from '../KeyphraseQueryView';
 
 library.add(fa.faEdit, fa.faTrash, fa.faShare, fa.faDownload, fa.faExpandArrowsAlt, fa.faCompressArrowsAlt, fa.faLayerGroup, fa.faExternalLinkAlt, fa.faAlignCenter, fa.faCaretSquareRight,
     fa.faSquare, fa.faConciergeBell, fa.faWindowRestore, fa.faFolder, fa.faMapPin, fa.faLink, fa.faFingerprint, fa.faCrosshairs, fa.faDesktop, fa.faUnlock, fa.faLock, fa.faLaptopCode, fa.faMale,
@@ -58,6 +65,8 @@ export interface DocumentViewProps {
     LibraryPath: Doc[];
     fitToBox?: boolean;
     onClick?: ScriptField;
+    onPointerDown?: ScriptField;
+    onPointerUp?: ScriptField;
     dragDivName?: string;
     addDocument?: (doc: Doc) => boolean;
     removeDocument?: (doc: Doc) => boolean;
@@ -91,10 +100,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     private _doubleTap = false;
     private _mainCont = React.createRef<HTMLDivElement>();
     private _dropDisposer?: DragManager.DragDropDisposer;
+    private _showKPQuery: boolean = false;
+    private _queries: string = "";
     private _gestureEventDisposer?: GestureUtils.GestureEventDisposer;
     private _titleRef = React.createRef<EditableView>();
 
     protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
+    private holdDisposer?: InteractionUtils.MultiTouchEventDisposer;
 
     public get displayName() { return "DocumentView(" + this.props.Document.title + ")"; } // this makes mobx trace() statements more descriptive
     public get ContentDiv() { return this._mainCont.current; }
@@ -103,72 +115,85 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @computed get nativeWidth() { return this.layoutDoc._nativeWidth || 0; }
     @computed get nativeHeight() { return this.layoutDoc._nativeHeight || 0; }
     @computed get onClickHandler() { return this.props.onClick || this.layoutDoc.onClick || this.Document.onClick; }
+    @computed get onPointerDownHandler() { return this.props.onPointerDown ? this.props.onPointerDown : this.Document.onPointerDown; }
+    @computed get onPointerUpHandler() { return this.props.onPointerUp ? this.props.onPointerUp : this.Document.onPointerUp; }
 
-    private _firstX: number = 0;
-    private _firstY: number = 0;
+    private _firstX: number = -1;
+    private _firstY: number = -1;
 
 
-    // handle1PointerHoldStart = (e: React.TouchEvent): any => {
-    //     this.onRadialMenu(e);
-    //     const pt = InteractionUtils.GetMyTargetTouches(e, this.prevPoints, true)[0];
-    //     this._firstX = pt.pageX;
-    //     this._firstY = pt.pageY;
-    //     e.stopPropagation();
-    //     e.preventDefault();
 
-    //     document.removeEventListener("touchmove", this.onTouch);
-    //     document.removeEventListener("touchmove", this.handle1PointerHoldMove);
-    //     document.addEventListener("touchmove", this.handle1PointerHoldMove);
-    //     document.removeEventListener("touchend", this.handle1PointerHoldEnd);
-    //     document.addEventListener("touchend", this.handle1PointerHoldEnd);
-    // }
+    handle1PointerHoldStart = (e: Event, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>): any => {
+        this.removeMoveListeners();
+        this.removeEndListeners();
+        document.removeEventListener("pointermove", this.onPointerMove);
+        document.removeEventListener("pointerup", this.onPointerUp);
+        console.log(SelectionManager.SelectedDocuments());
+        console.log("START");
+        if (RadialMenu.Instance._display === false) {
+            this.addHoldMoveListeners();
+            this.addHoldEndListeners();
+            this.onRadialMenu(e, me);
+            const pt = me.touchEvent.touches[me.touchEvent.touches.length - 1];
+            this._firstX = pt.pageX;
+            this._firstY = pt.pageY;
+        }
 
-    // handle1PointerHoldMove = (e: TouchEvent): void => {
-    //     const pt = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true)[0];
-    //     if (Math.abs(pt.pageX - this._firstX) > 150 || Math.abs(pt.pageY - this._firstY) > 150) {
-    //         this.handleRelease();
-    //     }
-    //     document.removeEventListener("touchmove", this.handle1PointerHoldMove);
-    //     document.addEventListener("touchmove", this.handle1PointerHoldMove);
-    //     document.removeEventListener("touchend", this.handle1PointerHoldEnd);
-    //     document.addEventListener("touchend", this.handle1PointerHoldEnd);
-    // }
+    }
 
-    // handleRelease() {
-    //     RadialMenu.Instance.closeMenu();
-    //     document.removeEventListener("touchmove", this.handle1PointerHoldMove);
-    //     document.removeEventListener("touchend", this.handle1PointerHoldEnd);
-    // }
+    handle1PointerHoldMove = (e: Event, me: InteractionUtils.MultiTouchEvent<TouchEvent>): void => {
 
-    // handle1PointerHoldEnd = (e: TouchEvent): void => {
-    //     RadialMenu.Instance.closeMenu();
-    //     document.removeEventListener("touchmove", this.handle1PointerHoldMove);
-    //     document.removeEventListener("touchend", this.handle1PointerHoldEnd);
-    // }
+        const pt = me.touchEvent.touches[me.touchEvent.touches.length - 1];
 
-    // @action
-    // onRadialMenu = (e: React.TouchEvent): void => {
-    //     const pt = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true)[0];
+        if (this._firstX === -1 || this._firstY === -1) {
+            return;
+        }
+        if (Math.abs(pt.pageX - this._firstX) > 150 || Math.abs(pt.pageY - this._firstY) > 150) {
+            this.handle1PointerHoldEnd(e, me);
+        }
+    }
 
-    //     RadialMenu.Instance.openMenu();
+    handle1PointerHoldEnd = (e: Event, me: InteractionUtils.MultiTouchEvent<TouchEvent>): void => {
+        this.removeHoldMoveListeners();
+        this.removeHoldEndListeners();
+        RadialMenu.Instance.closeMenu();
+        this._firstX = -1;
+        this._firstY = -1;
+        SelectionManager.DeselectAll();
+        me.touchEvent.stopPropagation();
+        me.touchEvent.preventDefault();
+        e.stopPropagation();
+        if (RadialMenu.Instance.used) {
+            this.onContextMenu(me.touches[0]);
+        }
+    }
 
-    //     RadialMenu.Instance.addItem({ description: "Open Fields", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { width: 300, height: 300 }), "onRight"), icon: "layer-group", selected: -1 });
-    //     RadialMenu.Instance.addItem({ description: "Delete this document", event: () => this.props.ContainingCollectionView?.removeDocument(this.props.Document), icon: "trash", selected: -1 });
-    //     RadialMenu.Instance.addItem({ description: "Open in a new tab", event: () => this.props.addDocTab(this.props.Document, "onRight"), icon: "folder", selected: -1 });
-    //     RadialMenu.Instance.addItem({ description: "Pin to Presentation", event: () => this.props.pinToPres(this.props.Document), icon: "map-pin", selected: -1 });
+    @action
+    onRadialMenu = (e: Event, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>): void => {
+        // console.log(InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true));
+        // const pt = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true)[0];
+        const pt = me.touchEvent.touches[me.touchEvent.touches.length - 1];
+        RadialMenu.Instance.openMenu(pt.pageX - 15, pt.pageY - 15);
 
-    //     RadialMenu.Instance.displayMenu(pt.pageX - 15, pt.pageY - 15);
-    //     if (!SelectionManager.IsSelected(this, true)) {
-    //         SelectionManager.SelectDoc(this, false);
-    //     }
-    //     e.stopPropagation();
-    // }
+        RadialMenu.Instance.addItem({ description: "Open Fields", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { _width: 300, _height: 300 }), "onRight"), icon: "map-pin", selected: -1 });
+        RadialMenu.Instance.addItem({ description: "Delete this document", event: () => { this.props.ContainingCollectionView?.removeDocument(this.props.Document), RadialMenu.Instance.closeMenu(); }, icon: "layer-group", selected: -1 });
+        RadialMenu.Instance.addItem({ description: "Open in a new tab", event: () => this.props.addDocTab(this.props.Document, "onRight"), icon: "trash", selected: -1 });
+        RadialMenu.Instance.addItem({ description: "Pin to Presentation", event: () => this.props.pinToPres(this.props.Document), icon: "folder", selected: -1 });
+
+        // if (SelectionManager.IsSelected(this, true)) {
+        //     SelectionManager.SelectDoc(this, false);
+        // }
+        SelectionManager.DeselectAll();
+
+
+    }
 
     @action
     componentDidMount() {
         this._mainCont.current && (this._dropDisposer = DragManager.MakeDropTarget(this._mainCont.current, this.drop.bind(this)));
         this._mainCont.current && (this._gestureEventDisposer = GestureUtils.MakeGestureTarget(this._mainCont.current, this.onGesture.bind(this)));
         this._mainCont.current && (this.multiTouchDisposer = InteractionUtils.MakeMultiTouchTarget(this._mainCont.current, this.onTouchStart.bind(this)));
+        // this._mainCont.current && (this.holdDisposer = InteractionUtils.MakeHoldTouchTarget(this._mainCont.current, this.handle1PointerHoldStart.bind(this)));
 
         !this.props.dontRegisterView && DocumentManager.Instance.DocumentViews.push(this);
     }
@@ -178,14 +203,19 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this._dropDisposer && this._dropDisposer();
         this._gestureEventDisposer && this._gestureEventDisposer();
         this.multiTouchDisposer && this.multiTouchDisposer();
+        this.holdDisposer && this.holdDisposer();
         this._mainCont.current && (this._dropDisposer = DragManager.MakeDropTarget(this._mainCont.current, this.drop.bind(this)));
         this._mainCont.current && (this._gestureEventDisposer = GestureUtils.MakeGestureTarget(this._mainCont.current, this.onGesture.bind(this)));
         this._mainCont.current && (this.multiTouchDisposer = InteractionUtils.MakeMultiTouchTarget(this._mainCont.current, this.onTouchStart.bind(this)));
+        this._mainCont.current && (this.holdDisposer = InteractionUtils.MakeHoldTouchTarget(this._mainCont.current, this.handle1PointerHoldStart.bind(this)));
     }
 
     @action
     componentWillUnmount() {
         this._dropDisposer && this._dropDisposer();
+        this._gestureEventDisposer && this._gestureEventDisposer();
+        this.multiTouchDisposer && this.multiTouchDisposer();
+        this.holdDisposer && this.holdDisposer();
         Doc.UnBrushDoc(this.props.Document);
         !this.props.dontRegisterView && DocumentManager.Instance.DocumentViews.splice(DocumentManager.Instance.DocumentViews.indexOf(this), 1);
     }
@@ -283,9 +313,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     handle1PointerDown = (e: React.TouchEvent, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>) => {
+        SelectionManager.DeselectAll();
         if (this.Document.onPointerDown) return;
-        const touch = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true)[0];
-        console.log("down");
+        const touch = me.touchEvent.changedTouches.item(0);
         if (touch) {
             this._downX = touch.clientX;
             this._downY = touch.clientY;
@@ -306,8 +336,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             this.removeMoveListeners();
         }
         else if (!e.cancelBubble && (SelectionManager.IsSelected(this, true) || this.props.parentActive(true) || this.Document.onDragStart || this.Document.onClick) && !this.Document.lockedPosition && !this.Document.inOverlay) {
-            const touch = InteractionUtils.GetMyTargetTouches(me, this.prevPoints, true)[0];
-            if (Math.abs(this._downX - touch.clientX) > 3 || Math.abs(this._downY - touch.clientY) > 3) {
+
+            const touch = me.touchEvent.changedTouches.item(0);
+            if (touch && (Math.abs(this._downX - touch.clientX) > 3 || Math.abs(this._downY - touch.clientY) > 3)) {
                 if (!e.altKey && (!this.topMost || this.Document.onDragStart || this.Document.onClick)) {
                     this.cleanUpInteractions();
                     this.startDragging(this._downX, this._downY, this.Document.dropAction ? this.Document.dropAction as any : e.ctrlKey || e.altKey ? "alias" : undefined);
@@ -403,6 +434,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (!(InteractionUtils.IsType(e, InteractionUtils.MOUSETYPE) || InkingControl.Instance.selectedTool === InkTool.Highlighter || InkingControl.Instance.selectedTool === InkTool.Pen)) {
             if (!InteractionUtils.IsType(e, InteractionUtils.PENTYPE)) {
                 e.stopPropagation();
+                // TODO: check here for panning/inking
             }
             return;
         }
@@ -446,6 +478,14 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     onPointerUp = (e: PointerEvent): void => {
+        this.cleanUpInteractions();
+
+        if (this.onPointerUpHandler && this.onPointerUpHandler.script && !InteractionUtils.IsType(e, InteractionUtils.PENTYPE)) {
+            this.onPointerUpHandler.script.run({ this: this.Document.isTemplateForField && this.props.DataDoc ? this.props.DataDoc : this.props.Document }, console.log);
+            document.removeEventListener("pointerup", this.onPointerUp);
+            return;
+        }
+
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
         this._doubleTap = (Date.now() - this._lastTap < 300 && e.button === 0 && Math.abs(e.clientX - this._downX) < 2 && Math.abs(e.clientY - this._downY) < 2);
@@ -528,6 +568,29 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
             DocUtils.MakeLink({ doc: de.complete.annoDragData.annotationDocument }, { doc: this.props.Document, ctx: this.props.ContainingCollectionDoc },
                 `Link from ${StrCast(de.complete.annoDragData.annotationDocument.title)}`);
+        }
+        if (de.complete.docDragData) {
+            if (de.complete.docDragData.applyAsTemplate) {
+                Doc.ApplyTemplateTo(de.complete.docDragData.draggedDocuments[0], this.props.Document, "layout_custom", undefined);
+                e.stopPropagation();
+            }
+            else if (de.complete.docDragData.draggedDocuments[0].type === "text") {
+                const text = Cast(de.complete.docDragData.draggedDocuments[0].data, RichTextField)?.Text;
+                if (text && text[0] === "{" && text[text.length - 1] === "}" && text.includes(":")) {
+                    let loc = text.indexOf(":");
+                    let key = text.slice(1, loc);
+                    let value = text.slice(loc + 1, text.length - 1);
+                    console.log(key);
+                    console.log(value);
+                    console.log(this.props.Document);
+                    this.props.Document[key] = value;
+                    console.log(de.complete.docDragData.draggedDocuments[0].x);
+                    console.log(de.complete.docDragData.draggedDocuments[0].x);
+                    e.preventDefault();
+                    e.stopPropagation();
+                    de.complete.aborted = true;
+                }
+            }
         }
         if (de.complete.linkDragData) {
             e.stopPropagation();
@@ -617,7 +680,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             return;
         }
         e.persist();
-        e.stopPropagation();
+        e?.stopPropagation();
         if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3 ||
             e.isDefaultPrevented()) {
             e.preventDefault();
@@ -699,6 +762,35 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             // a.download = `DocExport-${this.props.Document[Id]}.zip`;
             // a.click();
         });
+        let recommender_subitems: ContextMenuProps[] = [];
+
+        recommender_subitems.push({
+            description: "Internal recommendations",
+            event: () => this.recommender(e),
+            icon: "brain"
+        });
+
+        let ext_recommender_subitems: ContextMenuProps[] = [];
+
+        ext_recommender_subitems.push({
+            description: "arXiv",
+            event: () => this.externalRecommendation("arxiv"),
+            icon: "brain"
+        });
+        ext_recommender_subitems.push({
+            description: "Bing",
+            event: () => this.externalRecommendation("bing"),
+            icon: "brain"
+        });
+
+        recommender_subitems.push({
+            description: "External recommendations",
+            subitems: ext_recommender_subitems,
+            icon: "brain"
+        });
+
+        cm.addItem({ description: "Recommender System", subitems: recommender_subitems, icon: "brain" });
+
 
         moreItems.push({ description: "Publish", event: () => DocUtils.Publish(this.props.Document, this.Document.title || "", this.props.addDocument, this.props.removeDocument), icon: "file" });
         moreItems.push({ description: "Delete", event: this.deleteClicked, icon: "trash" });
@@ -737,7 +829,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
             if (!this.topMost) {
                 // DocumentViews should stop propagation of this event
-                e.stopPropagation();
+                me?.stopPropagation();
             }
             ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
             if (!SelectionManager.IsSelected(this, true)) {
@@ -752,6 +844,110 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             }, icon: "check"
         });
     }
+
+    recommender = async (e: React.MouseEvent) => {
+        if (!ClientRecommender.Instance) new ClientRecommender({ title: "Client Recommender" });
+        const documents: Doc[] = [];
+        const allDocs = await SearchUtil.GetAllDocs();
+        // allDocs.forEach(doc => console.log(doc.title));
+        // clears internal representation of documents as vectors
+        ClientRecommender.Instance.reset_docs();
+        //ClientRecommender.Instance.arxivrequest("electrons");
+        await Promise.all(allDocs.map((doc: Doc) => {
+            let isMainDoc: boolean = false;
+            const dataDoc = Doc.GetProto(doc);
+            if (doc.type === DocumentType.TEXT) {
+                if (dataDoc === Doc.GetProto(this.props.Document)) {
+                    isMainDoc = true;
+                }
+                if (!documents.includes(dataDoc)) {
+                    documents.push(dataDoc);
+                    const extdoc = doc.data_ext as Doc;
+                    return ClientRecommender.Instance.extractText(doc, extdoc ? extdoc : doc, true, "", isMainDoc);
+                }
+            }
+            if (doc.type === DocumentType.IMG) {
+                if (dataDoc === Doc.GetProto(this.props.Document)) {
+                    isMainDoc = true;
+                }
+                if (!documents.includes(dataDoc)) {
+                    documents.push(dataDoc);
+                    const extdoc = doc.data_ext as Doc;
+                    return ClientRecommender.Instance.extractText(doc, extdoc ? extdoc : doc, true, "", isMainDoc, true);
+                }
+            }
+        }));
+        const doclist = ClientRecommender.Instance.computeSimilarities("cosine");
+        let recDocs: { preview: Doc, score: number }[] = [];
+        // tslint:disable-next-line: prefer-for-of
+        for (let i = 0; i < doclist.length; i++) {
+            recDocs.push({ preview: doclist[i].actualDoc, score: doclist[i].score });
+        }
+
+        const data = recDocs.map(unit => {
+            unit.preview.score = unit.score;
+            return unit.preview;
+        });
+
+        console.log(recDocs.map(doc => doc.score));
+
+        const title = `Showing ${data.length} recommendations for "${StrCast(this.props.Document.title)}"`;
+        const recommendations = Docs.Create.RecommendationsDocument(data, { title });
+        recommendations.documentIconHeight = 150;
+        recommendations.sourceDoc = this.props.Document;
+        recommendations.sourceDocContext = this.props.ContainingCollectionView!.props.Document;
+        CollectionDockingView.AddRightSplit(recommendations, undefined);
+
+        // RecommendationsBox.Instance.displayRecommendations(e.pageX + 100, e.pageY);
+    }
+
+    @action
+    externalRecommendation = async (api: string) => {
+        if (!ClientRecommender.Instance) new ClientRecommender({ title: "Client Recommender" });
+        ClientRecommender.Instance.reset_docs();
+        const doc = Doc.GetDataDoc(this.props.Document);
+        const extdoc = doc.data_ext as Doc;
+        const recs_and_kps = await ClientRecommender.Instance.extractText(doc, extdoc ? extdoc : doc, false, api);
+        let recs: any;
+        let kps: any;
+        if (recs_and_kps) {
+            recs = recs_and_kps.recs;
+            kps = recs_and_kps.keyterms;
+        }
+        else {
+            console.log("recommender system failed :(");
+            return;
+        }
+        console.log("ibm keyterms: ", kps.toString());
+        const headers = [new SchemaHeaderField("title"), new SchemaHeaderField("href")];
+        const bodies: Doc[] = [];
+        const titles = recs.title_vals;
+        const urls = recs.url_vals;
+        for (let i = 0; i < 5; i++) {
+            const body = Docs.Create.FreeformDocument([], { title: titles[i] });
+            body.href = urls[i];
+            bodies.push(body);
+        }
+        CollectionDockingView.AddRightSplit(Docs.Create.SchemaDocument(headers, bodies, { title: `Showing External Recommendations for "${StrCast(doc.title)}"` }), undefined);
+        this._showKPQuery = true;
+        this._queries = kps.toString();
+    }
+
+    onPointerEnter = (e: React.PointerEvent): void => { Doc.BrushDoc(this.props.Document); };
+    onPointerLeave = (e: React.PointerEvent): void => { Doc.UnBrushDoc(this.props.Document); };
+
+    // the document containing the view layout information - will be the Document itself unless the Document has
+    // a layout field.  In that case, all layout information comes from there unless overriden by Document
+    get layoutDoc(): Document {
+        return Document(Doc.Layout(this.props.Document));
+    }
+
+    // does Document set a layout prop
+    // does Document set a layout prop 
+    setsLayoutProp = (prop: string) => this.props.Document[prop] !== this.props.Document["default" + prop[0].toUpperCase() + prop.slice(1)] && this.props.Document["default" + prop[0].toUpperCase() + prop.slice(1)];
+    // get the a layout prop by first choosing the prop from Document, then falling back to the layout doc otherwise.
+    getLayoutPropStr = (prop: string) => StrCast(this.setsLayoutProp(prop) ? this.props.Document[prop] : this.layoutDoc[prop]);
+    getLayoutPropNum = (prop: string) => NumCast(this.setsLayoutProp(prop) ? this.props.Document[prop] : this.layoutDoc[prop]);
 
     isSelected = (outsideReaction?: boolean) => SelectionManager.IsSelected(this, outsideReaction);
     select = (ctrlPressed: boolean) => { SelectionManager.SelectDoc(this, ctrlPressed); };
@@ -813,6 +1009,25 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         return anchor.type === DocumentType.AUDIO && NumCast(ept) ? false : true;
     }
 
+    // bcz: ARGH!  these  two are the same as in DocumentContentsView (without the _).  They should be reconciled to be the same functions...
+    get _dataDoc() {
+        if (this.props.DataDoc === undefined && typeof Doc.LayoutField(this.props.Document) !== "string") {
+            // if there is no dataDoc (ie, we're not rendering a template layout), but this document has a layout document (not a layout string), 
+            // then we render the layout document as a template and use this document as the data context for the template layout.
+            const proto = Doc.GetProto(this.props.Document);
+            return proto instanceof Promise ? undefined : proto;
+        }
+        return this.props.DataDoc instanceof Promise ? undefined : this.props.DataDoc;
+    }
+    get _layoutDoc() {
+        if (this.props.LayoutDoc || (this.props.DataDoc === undefined && typeof Doc.LayoutField(this.props.Document) !== "string")) {
+            // if there is no dataDoc (ie, we're not rendering a template layout), but this document has a layout document (not a layout string), 
+            // then we render the layout document as a template and use this document as the data context for the template layout.
+            return Doc.expandTemplateLayout(this.props.LayoutDoc?.() || Doc.Layout(this.props.Document), this.props.Document);
+        }
+        return Doc.Layout(this.props.Document);
+    }
+
     @computed get innards() {
         TraceMobx();
         const showTitle = StrCast(this.layoutDoc._showTitle);
@@ -825,8 +1040,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             </div>);
         const captionView = (!showCaption ? (null) :
             <div className="documentView-captionWrapper">
-                <FormattedTextBox {...this.props}
-                    onClick={this.onClickHandler} DataDoc={this.props.DataDoc} active={returnTrue}
+                <FormattedTextBox {...this.props} onClick={this.onClickHandler}
+                    DataDoc={this._dataDoc} active={returnTrue} Document={this._layoutDoc || this.props.Document}
                     isSelected={this.isSelected} focus={emptyFunction} select={this.select}
                     hideOnLeave={true} fieldKey={showCaption}
                 />
@@ -888,7 +1103,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     render() {
         if (!(this.props.Document instanceof Doc)) return (null);
-        const backgroundColor = StrCast(this.layoutDoc._backgroundColor) || StrCast(this.layoutDoc.backgroundColor) || this.props.backgroundColor?.(this.Document);
+        const backgroundColor = StrCast(this.layoutDoc._backgroundColor) || StrCast(this.layoutDoc.backgroundColor) || StrCast(this.Document.backgroundColor) || this.props.backgroundColor?.(this.Document);
+        const finalColor = this.layoutDoc.type === DocumentType.FONTICON || this.layoutDoc._viewType === CollectionViewType.Linear ? undefined : backgroundColor;
         const fullDegree = Doc.isBrushedHighlightedDegree(this.props.Document);
         const borderRounding = this.layoutDoc.borderRounding;
         const localScale = fullDegree;
@@ -899,7 +1115,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const highlightStyles = ["solid", "dashed", "solid", "solid", "solid", "solid", "solid"];
         let highlighting = fullDegree && this.layoutDoc.type !== DocumentType.FONTICON && this.layoutDoc._viewType !== CollectionViewType.Linear;
         highlighting = highlighting && this.props.focus !== emptyFunction;  // bcz: hack to turn off highlighting onsidebar panel documents.  need to flag a document as not highlightable in a more direct way
-        return <div className={`documentView-node${this.topMost ? "-topmost" : ""}`} ref={this._mainCont} onKeyDown={this.onKeyDown}
+        return <div id={this.props.Document[Id]} className={`documentView-node${this.topMost ? "-topmost" : ""}`} ref={this._mainCont} onKeyDown={this.onKeyDown}
             onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
             onPointerEnter={e => Doc.BrushDoc(this.props.Document)} onPointerLeave={e => Doc.UnBrushDoc(this.props.Document)}
             style={{
@@ -911,17 +1127,19 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 outline: highlighting && !borderRounding ? `${highlightColors[fullDegree]} ${highlightStyles[fullDegree]} ${localScale}px` : "solid 0px",
                 border: highlighting && borderRounding ? `${highlightStyles[fullDegree]} ${highlightColors[fullDegree]} ${localScale}px` : undefined,
                 boxShadow: this.props.Document.isTemplateForField ? "black 0.2vw 0.2vw 0.8vw" : undefined,
-                background: this.layoutDoc.type === DocumentType.FONTICON || this.layoutDoc._viewType === CollectionViewType.Linear ? undefined : backgroundColor,
+                background: finalColor,
                 width: "100%",
                 height: "100%",
                 opacity: this.Document.opacity
             }}>
+            {this.Document.isBackground ? <div className="documentView-lock"> <FontAwesomeIcon icon="unlock" size="lg" /> </div> : (null)}
             {this.onClickHandler && this.props.ContainingCollectionView?.props.Document._viewType === CollectionViewType.Time ? <>
                 {this.innards}
                 <div className="documentView-contentBlocker" />
             </> :
                 this.innards}
         </div>;
+        { this._showKPQuery ? <KeyphraseQueryView keyphrases={this._queries}></KeyphraseQueryView> : undefined }
     }
 }
 

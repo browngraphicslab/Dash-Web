@@ -40,6 +40,9 @@ import { PresBox } from "../views/nodes/PresBox";
 import { ComputedField, ScriptField } from "../../new_fields/ScriptField";
 import { ProxyField } from "../../new_fields/Proxy";
 import { DocumentType } from "./DocumentTypes";
+import { RecommendationsBox } from "../views/RecommendationsBox";
+//import { PresBox } from "../views/nodes/PresBox";
+//import { PresField } from "../../new_fields/PresField";
 import { PresElementBox } from "../views/presentationview/PresElementBox";
 import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
 import { QueryBox } from "../views/nodes/QueryBox";
@@ -77,9 +80,11 @@ export interface DocumentOptions {
     _gridGap?: number; // gap between items in masonry view
     _xMargin?: number; // gap between left edge of document and start of masonry/stacking layouts
     _yMargin?: number; // gap between top edge of dcoument and start of masonry/stacking layouts
-    _textTemplate?: RichTextField; // template used by a formattedTextBox to create a text box to render
+    _xPadding?: number;
+    _yPadding?: number;
     _itemIndex?: number; // which item index the carousel viewer is showing
     _showSidebar?: boolean;  //whether an annotationsidebar should be displayed for text docuemnts
+    _singleLine?: boolean; // whether text document is restricted to a single line (carriage returns make new document)
     x?: number;
     y?: number;
     z?: number;
@@ -97,7 +102,10 @@ export interface DocumentOptions {
     isTemplateForField?: string; // the field key for which the containing document is a rendering template
     isTemplateDoc?: boolean;
     templates?: List<string>;
-    backgroundColor?: string | ScriptField;
+    backgroundColor?: string | ScriptField;  // background color for data doc 
+    _backgroundColor?: string | ScriptField; // background color for each template layout doc ( overrides backgroundColor )
+    color?: string; // foreground color data doc
+    _color?: string;  // foreground color for each template layout doc (overrides color)
     ignoreClick?: boolean;
     lockedPosition?: boolean; // lock the x,y coordinates of the document so that it can't be dragged
     lockedTransform?: boolean; // lock the panx,pany and scale parameters of the document so that it be panned/zoomed
@@ -133,7 +141,6 @@ export interface DocumentOptions {
     sourcePanel?: Doc; // panel to display in 'targetContainer' as the result of a button onClick script
     targetContainer?: Doc; // document whose proto will be set to 'panel' as the result of a onClick click script
     strokeWidth?: number;
-    color?: string;
     treeViewPreventOpen?: boolean; // ignores the treeViewOpen Doc flag which allows a treeViewItem's expand/collapse state to be independent of other views of the same document in the tree view
     treeViewHideTitle?: boolean; // whether to hide the title of a tree view
     treeViewHideHeaderFields?: boolean; // whether to hide the drop down options for tree view items.
@@ -143,9 +150,12 @@ export interface DocumentOptions {
     limitHeight?: number; // maximum height for newly created (eg, from pasting) text documents
     // [key: string]: Opt<Field>;
     pointerHack?: boolean; // for buttons, allows onClick handler to fire onPointerDown
+    textTransform?: string; // is linear view expanded
+    letterSpacing?: string; // is linear view expanded
+    flexDirection?: "unset" | "row" | "column" | "row-reverse" | "column-reverse";
+    selectedIndex?: number;
+    syntaxColor?: string; // can be applied to text for syntax highlighting all matches in the text
     linearViewIsExpanded?: boolean; // is linear view expanded
-    textTransform?: string;
-    letterSpacing?: string;
 }
 
 class EmptyBox {
@@ -173,7 +183,7 @@ export namespace Docs {
         const TemplateMap: TemplateMap = new Map([
             [DocumentType.TEXT, {
                 layout: { view: FormattedTextBox, dataField: data },
-                options: { _height: 150 }
+                options: { _height: 150, _xMargin: 10, _yMargin: 10 }
             }],
             [DocumentType.HIST, {
                 layout: { view: HistogramBox, dataField: data },
@@ -248,6 +258,10 @@ export namespace Docs {
             [DocumentType.FONTICON, {
                 layout: { view: FontIconBox, dataField: data },
                 options: { _width: 40, _height: 40, borderRounding: "100%" },
+            }],
+            [DocumentType.RECOMMENDATION, {
+                layout: { view: RecommendationsBox },
+                options: { width: 200, height: 200 },
             }],
             [DocumentType.WEBCAM, {
                 layout: { view: DashWebRTCVideo, dataField: data }
@@ -405,8 +419,9 @@ export namespace Docs {
         Scripting.addGlobal(Buxton);
 
         const delegateKeys = ["x", "y", "layoutKey", "_width", "_height", "_panX", "_panY", "_viewType", "_nativeWidth", "_nativeHeight", "dropAction", "childDropAction", "_annotationOn",
-            "_chromeStatus", "_forceActive", "_autoHeight", "_fitWidth", "_LODdisable", "_itemIndex", "_showSidebar", "_showTitle", "_showCaption", "_showTitleHover",
-            "isButton", "isBackground", "removeDropProperties", "treeViewOpen"];
+            "_chromeStatus", "_forceActive", "_autoHeight", "_fitWidth", "_LODdisable", "_itemIndex", "_showSidebar", "_showTitle", "_showCaption", "_showTitleHover", "_backgroundColor",
+            "_xMargin", "_yMargin", "_xPadding", "_yPadding", "_singleLine",
+            "_color", "isButton", "isBackground", "removeDropProperties", "treeViewOpen"];
 
         /**
          * This function receives the relevant document prototype and uses
@@ -533,10 +548,10 @@ export namespace Docs {
             linkDocProto.anchor2Timecode = target.doc.currentTimecode;
 
             if (linkDocProto.layout_key1 === undefined) {
-                Cast(linkDocProto.proto, Doc, null)!.layout_key1 = DocuLinkBox.LayoutString("anchor1");
-                Cast(linkDocProto.proto, Doc, null)!.layout_key2 = DocuLinkBox.LayoutString("anchor2");
-                Cast(linkDocProto.proto, Doc, null)!.linkBoxExcludedKeys = new List(["treeViewExpandedView", "treeViewHideTitle", "removeDropProperties", "linkBoxExcludedKeys", "treeViewOpen", "proto", "aliasNumber", "isPrototype", "lastOpened", "creationDate", "author"]);
-                Cast(linkDocProto.proto, Doc, null)!.layoutKey = undefined;
+                Cast(linkDocProto.proto, Doc, null).layout_key1 = DocuLinkBox.LayoutString("anchor1");
+                Cast(linkDocProto.proto, Doc, null).layout_key2 = DocuLinkBox.LayoutString("anchor2");
+                Cast(linkDocProto.proto, Doc, null).linkBoxExcludedKeys = new List(["treeViewExpandedView", "treeViewHideTitle", "removeDropProperties", "linkBoxExcludedKeys", "treeViewOpen", "proto", "aliasNumber", "isPrototype", "lastOpened", "creationDate", "author"]);
+                Cast(linkDocProto.proto, Doc, null).layoutKey = undefined;
             }
 
             LinkManager.Instance.addLink(doc);
@@ -621,12 +636,12 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", schemaColumns: new List(schemaColumns), ...options, _viewType: CollectionViewType.Schema });
         }
 
-        export function TreeDocument(documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, _viewType: CollectionViewType.Tree });
+        export function TreeDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, _viewType: CollectionViewType.Tree }, id);
         }
 
-        export function StackingDocument(documents: Array<Doc>, options: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, _viewType: CollectionViewType.Stacking });
+        export function StackingDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, _viewType: CollectionViewType.Stacking }, id);
         }
 
         export function MulticolumnDocument(documents: Array<Doc>, options: DocumentOptions) {
@@ -666,6 +681,10 @@ export namespace Docs {
 
         export function DirectoryImportDocument(options: DocumentOptions = {}) {
             return InstanceFromProto(Prototypes.get(DocumentType.IMPORT), new List<Doc>(), options);
+        }
+
+        export function RecommendationsDocument(data: Doc[], options: DocumentOptions = {}) {
+            return InstanceFromProto(Prototypes.get(DocumentType.RECOMMENDATION), new List<Doc>(data), options);
         }
 
         export type DocConfig = {
@@ -909,7 +928,7 @@ export namespace DocUtils {
             description: "Add Note ...",
             subitems: DocListCast((Doc.UserDoc().noteTypes as Doc).data).map((note, i) => ({
                 description: ":" + StrCast(note.title),
-                event: (args: { x: number, y: number }) => docTextAdder(Docs.Create.TextDocument("", { _width: 200, x, y, _autoHeight: true, layout: note, title: StrCast(note.title) + "#" + (note.aliasCount = NumCast(note.aliasCount) + 1) })),
+                event: (args: { x: number, y: number }) => docTextAdder(Docs.Create.TextDocument("", { _width: 200, x, y, _autoHeight: note._autoHeight !== false, layout: note, title: StrCast(note.title) + "#" + (note.aliasCount = NumCast(note.aliasCount) + 1) })),
                 icon: "eye"
             })) as ContextMenuProps[],
             icon: "eye"

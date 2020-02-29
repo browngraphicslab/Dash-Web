@@ -1,6 +1,6 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faEye } from '@fortawesome/free-regular-svg-icons';
-import { faAsterisk, faFileAudio, faImage, faPaintBrush } from '@fortawesome/free-solid-svg-icons';
+import { faAsterisk, faFileAudio, faImage, faPaintBrush, faBrain } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, runInAction, trace } from 'mobx';
 import { observer } from "mobx-react";
@@ -22,6 +22,8 @@ import FaceRectangles from './FaceRectangles';
 import { FieldView, FieldViewProps } from './FieldView';
 import "./ImageBox.scss";
 import React = require("react");
+import { SearchUtil } from '../../util/SearchUtil';
+import { ClientRecommender } from '../../ClientRecommender';
 import { CollectionFreeFormView } from '../collections/collectionFreeForm/CollectionFreeFormView';
 import { documentSchema } from '../../../new_fields/documentSchemas';
 import { Id, Copy } from '../../../new_fields/FieldSymbols';
@@ -35,7 +37,7 @@ const path = require('path');
 const { Howl } = require('howler');
 
 
-library.add(faImage, faEye as any, faPaintBrush);
+library.add(faImage, faEye as any, faPaintBrush, faBrain);
 library.add(faFileAudio, faAsterisk);
 
 
@@ -178,6 +180,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
             const modes: ContextMenuProps[] = existingAnalyze && "subitems" in existingAnalyze ? existingAnalyze.subitems : [];
             modes.push({ description: "Generate Tags", event: this.generateMetadata, icon: "tag" });
             modes.push({ description: "Find Faces", event: this.extractFaces, icon: "camera" });
+            //modes.push({ description: "Recommend", event: this.extractText, icon: "brain" });
             !existingAnalyze && ContextMenu.Instance.addItem({ description: "Analyzers...", subitems: modes, icon: "hand-point-right" });
 
             ContextMenu.Instance.addItem({ description: "Image Funcs...", subitems: funcs, icon: "asterisk" });
@@ -407,15 +410,16 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
                         ref={this._imgRef}
                         onError={this.onError} /></div>}
             </div>
-            <div className="imageBox-audioBackground"
-                onPointerDown={this.audioDown}
-                onPointerEnter={this.onPointerEnter}
-                style={{ height: `calc(${.1 * nativeHeight / nativeWidth * 100}%)` }}
-            >
-                <FontAwesomeIcon className="imageBox-audioFont"
-                    style={{ color: [DocListCast(this.dataDoc[this.props.fieldKey + "-audioAnnotations"]).length ? "blue" : "gray", "green", "red"][this._audioState] }}
-                    icon={!DocListCast(this.dataDoc[this.props.fieldKey + "-audioAnnotations"]).length ? "microphone" : faFileAudio} size="sm" />
-            </div>
+            {!this.props.Document._showAudio ? (null) :
+                <div className="imageBox-audioBackground"
+                    onPointerDown={this.audioDown}
+                    onPointerEnter={this.onPointerEnter}
+                    style={{ height: `calc(${.1 * nativeHeight / nativeWidth * 100}%)` }}
+                >
+                    <FontAwesomeIcon className="imageBox-audioFont"
+                        style={{ color: [DocListCast(this.dataDoc[this.props.fieldKey + "-audioAnnotations"]).length ? "blue" : "gray", "green", "red"][this._audioState] }}
+                        icon={!DocListCast(this.dataDoc[this.props.fieldKey + "-audioAnnotations"]).length ? "microphone" : faFileAudio} size="sm" />
+                </div>}
             {this.considerDownloadIcon}
             {this.considerGooglePhotosLink()}
             <FaceRectangles document={this.dataDoc} color={"#0000FF"} backgroundColor={"#0000FF"} />

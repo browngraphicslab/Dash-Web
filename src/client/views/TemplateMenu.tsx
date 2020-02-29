@@ -61,6 +61,10 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
         DocumentView.FloatDoc(topDocView, ex, ey);
     }
 
+    toggleAudio = (e: React.ChangeEvent<HTMLInputElement>): void => {
+        this.props.docViews.map(dv => dv.props.Document._showAudio = e.target.checked);
+    }
+
     @undoBatch
     @action
     toggleTemplate = (event: React.ChangeEvent<HTMLInputElement>, template: Template): void => {
@@ -102,6 +106,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
         const templateMenu: Array<JSX.Element> = [];
         this.props.templates.forEach((checked, template) =>
             templateMenu.push(<TemplateToggle key={template.Name} template={template} checked={checked} toggle={this.toggleTemplate} />));
+        templateMenu.push(<OtherToggle key={"audio"} name={"Audio"} checked={this.props.docViews[0].Document._showAudio ? true : false} toggle={this.toggleAudio} />);
         templateMenu.push(<OtherToggle key={"float"} name={"Float"} checked={this.props.docViews[0].Document.z ? true : false} toggle={this.toggleFloat} />);
         templateMenu.push(<OtherToggle key={"chrome"} name={"Chrome"} checked={layout._chromeStatus !== "disabled"} toggle={this.toggleChrome} />);
         this._addedKeys && Array.from(this._addedKeys).map(layout =>
