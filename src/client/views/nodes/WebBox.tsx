@@ -32,7 +32,7 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
 
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(WebBox, fieldKey); }
     @observable private collapsed: boolean = true;
-    @observable private url: string = "";
+    @observable private url: string = "hello";
 
     componentDidMount() {
 
