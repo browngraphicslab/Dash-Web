@@ -1,7 +1,7 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import {
     faFileAlt, faStickyNote, faArrowDown, faBullseye, faFilter, faArrowUp, faBolt, faCaretUp, faCat, faCheck, faChevronRight, faClone, faCloudUploadAlt, faCommentAlt, faCut, faEllipsisV, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faLongArrowAltRight,
-    faMusic, faObjectGroup, faPause, faMousePointer, faPenNib, faFileAudio, faPen, faEraser, faPlay, faPortrait, faRedoAlt, faThumbtack, faTree, faTv, faUndoAlt, faHighlighter, faMicrophone, faCompressArrowsAlt, faPhone, faStamp, faClipboard, faVideo,
+    faMusic, faObjectGroup, faPause, faMousePointer, faPenNib, faFileAudio, faPen, faEraser, faPlay, faPortrait, faRedoAlt, faThumbtack, faTree, faTv, faUndoAlt, faHighlighter, faMicrophone, faCompressArrowsAlt, faPhone, faStamp, faClipboard, faVideo, faTerminal,
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, reaction, runInAction } from 'mobx';
@@ -57,7 +57,7 @@ export class MainView extends React.Component {
     @observable private _panelHeight: number = 0;
     @observable private _flyoutTranslate: boolean = true;
     @observable public flyoutWidth: number = 250;
-    private get darkScheme() { return BoolCast(Cast(this.userDoc.activeWorkspace, Doc, null)?.darkScheme); }
+    private get darkScheme() { return BoolCast(Cast(this.userDoc.activeWorkspace, Doc, null) ?.darkScheme); }
 
     @computed private get userDoc() { return Doc.UserDoc(); }
     @computed private get mainContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeWorkspace, Doc)) : CurrentUserUtils.GuestWorkspace; }
@@ -148,6 +148,7 @@ export class MainView extends React.Component {
         library.add(faPhone);
         library.add(faClipboard);
         library.add(faStamp);
+        library.add(faTerminal);
         this.initEventListeners();
         this.initAuthenticationRouters();
     }
@@ -389,7 +390,7 @@ export class MainView extends React.Component {
     mainContainerXf = () => new Transform(0, -this._buttonBarHeight, 1);
 
     @computed get flyout() {
-        const sidebarContent = this.userDoc?.sidebarContainer;
+        const sidebarContent = this.userDoc ?.sidebarContainer;
         if (!(sidebarContent instanceof Doc)) {
             return (null);
         }
@@ -505,7 +506,7 @@ export class MainView extends React.Component {
         return new Transform(-translateX, -translateY, 1 / scale);
     }
     @computed get docButtons() {
-        const expandingBtns = Doc.UserDoc()?.expandingButtons;
+        const expandingBtns = Doc.UserDoc() ?.expandingButtons;
         if (expandingBtns instanceof Doc) {
             return <div className="mainView-docButtons" ref={this._docBtnRef}
                 style={{ height: !expandingBtns.linearViewIsExpanded ? "42px" : undefined }} >

@@ -89,9 +89,9 @@ const _scriptingGlobals: { [name: string]: any } = {};
 let scriptingGlobals: { [name: string]: any } = _scriptingGlobals;
 
 function Run(script: string | undefined, customParams: string[], diagnostics: any[], originalScript: string, options: ScriptOptions): CompileResult {
-    const errors = diagnostics.some(diag => diag.category === ts.DiagnosticCategory.Error);
-    if ((options.typecheck !== false && errors) || !script) {
-        return { compiled: false, errors: diagnostics };
+    const errors = diagnostics.filter(diag => diag.category === ts.DiagnosticCategory.Error);
+    if ((options.typecheck !== false && errors.length) || !script) {
+        return { compiled: false, errors };
     }
 
     const paramNames = Object.keys(scriptingGlobals);
@@ -272,6 +272,7 @@ export function CompileScript(script: string, options: ScriptOptions = {}): Comp
     const diagnostics = ts.getPreEmitDiagnostics(program).concat(testResult.diagnostics);
 
     const result = Run(outputText, paramNames, diagnostics, script, options);
+
 
     if (options.globals) {
         Scripting.resetScriptingGlobals();

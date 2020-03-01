@@ -7,7 +7,7 @@ import { OverlayView } from "./OverlayView";
 import { DocumentIconContainer } from "./nodes/DocumentIcon";
 import { Opt, Doc } from "../../new_fields/Doc";
 import { emptyFunction } from "../../Utils";
-import { ScriptCast } from "../../new_fields/Types";
+import { ScriptCast, StrCast } from "../../new_fields/Types";
 import { CompileScript } from "../util/Scripting";
 import { ScriptField } from "../../new_fields/ScriptField";
 import { DragManager } from "../util/DragManager";
@@ -17,6 +17,8 @@ import { DocAnnotatableComponent } from "./DocComponent";
 import { makeInterface } from "../../new_fields/Schema";
 import { documentSchema } from "../../new_fields/documentSchemas";
 import { CompileResult } from "../northstar/model/idea/idea";
+import { red } from "colors";
+import { forEach } from "typescript-collections/dist/lib/arrays";
 
 export interface ScriptBoxProps {
     onSave?: (text: string, onError: (error: string) => void) => void;
@@ -37,9 +39,18 @@ export class ScriptBox extends DocAnnotatableComponent<FieldViewProps & ScriptBo
     @observable
     private _scriptText: string;
 
+    @observable
+    private _errorMessage: string;
+
     constructor(props: ScriptBoxProps) {
         super(props);
         this._scriptText = props.initialText || "";
+        this._errorMessage = "";
+    }
+
+    @action
+    componentDidMount() {
+        this._scriptText = StrCast(this.props.Document.documentText) || this.props.initialText || "";
     }
 
     @action
@@ -48,8 +59,10 @@ export class ScriptBox extends DocAnnotatableComponent<FieldViewProps & ScriptBo
     }
 
     @action
-    onError = (error: string) => {
-        console.log(error);
+    onError = (error: any) => {
+        for (const entry of error) {
+            this._errorMessage = this._errorMessage + "   " + entry.messageText;
+        }
     }
 
     overlayDisposer?: () => void;
@@ -64,15 +77,35 @@ export class ScriptBox extends DocAnnotatableComponent<FieldViewProps & ScriptBo
         this.overlayDisposer && this.overlayDisposer();
     }
 
+    @action
     onCompile = () => {
         const result = CompileScript(this._scriptText, {});
+        this._errorMessage = "";
         if (result.compiled) {
-            // this automatically saves
+            this._errorMessage = "";
             this.props.Document.data = new ScriptField(result);
         }
         else {
-            // error message
+            this.onError(result.errors);
         }
+        this.props.Document.documentText = this._scriptText;
+    }
+
+    @action
+    onRun = () => {
+        const result = CompileScript(this._scriptText, {});
+        this._errorMessage = "";
+        if (result.compiled) {
+            result.run({}, (err: any) => {
+                this._errorMessage = "";
+                this.onError(err);
+            });
+            this.props.Document.data = new ScriptField(result);
+        }
+        else {
+            this.onError(result.errors);
+        }
+        this.props.Document.documentText = this._scriptText;
     }
 
     render() {
@@ -93,11 +126,13 @@ export class ScriptBox extends DocAnnotatableComponent<FieldViewProps & ScriptBo
         return (
             <div className="scriptBox-outerDiv">
                 <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-                    <textarea className="scriptBox-textarea" onChange={this.onChange} value={this._scriptText} onFocus={onFocus} onBlur={onBlur}></textarea>
+                    <textarea className="scriptBox-textarea" placeholder="write your script here" onChange={this.onChange} value={this._scriptText} onFocus={onFocus} onBlur={onBlur}></textarea>
+                    <div className="errorMessage">{this._errorMessage}</div>
                     <div style={{ background: "beige" }} >{params}</div>
                 </div>
                 <div className="scriptBox-toolbar">
-                    <button onPointerDown={e => { this.onCompile(); e.stopPropagation(); }}>Compile</button>
+                    <button className="scriptBox-button" onPointerDown={e => { this.onCompile(); e.stopPropagation(); }}>Compile</button>
+                    <button className="scriptBox-button" onPointerDown={e => { this.onRun(); e.stopPropagation(); }}>Run</button>
                 </div>
             </div>
         );
