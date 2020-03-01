@@ -44,8 +44,7 @@ import { ComputedField, ScriptField } from "../../new_fields/ScriptField";
 import { ProxyField } from "../../new_fields/Proxy";
 import { DocumentType } from "./DocumentTypes";
 import { RecommendationsBox } from "../views/RecommendationsBox";
-import { SearchDocBox } from "../views/SearchDocBox";
-
+import { SearchBox } from "../views/search/SearchBox";
 
 //import { PresBox } from "../views/nodes/PresBox";
 //import { PresField } from "../../new_fields/PresField";
@@ -262,7 +261,7 @@ export namespace Docs {
                 options: { backgroundColor: "transparent" }
             }],
             [DocumentType.SEARCHBOX, {
-                layout: { view: SearchDocBox },
+                layout: { view: SearchBox },
                 options: { width: 200, height: 200 },
             }]
         ]);

@@ -12,12 +12,13 @@ import { Utils } from '../../../Utils';
 import { Docs } from '../../documents/Documents';
 import { SetupDrag } from '../../util/DragManager';
 import { SearchUtil } from '../../util/SearchUtil';
-import { FilterBox } from './FilterBox';
-import "./FilterBox.scss";
+// import { FilterBox } from './FilterBox';
+// import "./FilterBox.scss";
 import "./SearchBox.scss";
 import { SearchItem } from './SearchItem';
 import { IconBar } from './IconBar';
 import { FieldFilters } from './FieldFilters';
+import { FieldView } from '../nodes/FieldView';
 
 library.add(faTimes);
 
@@ -43,6 +44,7 @@ export class SearchBox extends React.Component {
 
     private _maxSearchIndex: number = 0;
     private _curRequest?: Promise<any> = undefined;
+    public static LayoutString(fieldKey: string) { return FieldView.LayoutString(SearchBox, fieldKey); }
 
     constructor(props: any) {
         super(props);
@@ -110,12 +112,12 @@ export class SearchBox extends React.Component {
     @action
     submitSearch = async () => {
         let query = this._searchString;
-        query = FilterBox.Instance.getFinalQuery(query);
+        // query = FilterBox.Instance.getFinalQuery(query);
         this._results = [];
         this._resultsSet.clear();
         this._isSearch = [];
         this._visibleElements = [];
-        FilterBox.Instance.closeFilter();
+        // FilterBox.Instance.closeFilter();
 
         //if there is no query there should be no result
         if (query === "") {
@@ -137,14 +139,16 @@ export class SearchBox extends React.Component {
     }
 
     getAllResults = async (query: string) => {
-        return SearchUtil.Search(query, true, { fq: this.filterQuery, start: 0, rows: 10000000 });
+        return SearchUtil.Search(query, true, { start: 0, rows: 10000000 });
+
+        //return SearchUtil.Search(query, true, { fq: this.filterQuery, start: 0, rows: 10000000 });
     }
 
-    private get filterQuery() {
-        const types = FilterBox.Instance.filterTypes;
-        const includeDeleted = FilterBox.Instance.getDataStatus();
-        return "NOT baseProto_b:true" + (includeDeleted ? "" : " AND NOT deleted_b:true") + (types ? ` AND (${types.map(type => `({!join from=id to=proto_i}type_t:"${type}" AND NOT type_t:*) OR type_t:"${type}" OR type_t:"extension"`).join(" ")})` : "");
-    }
+    // private get filterQuery() {
+    //     const types = FilterBox.Instance.filterTypes;
+    //     const includeDeleted = FilterBox.Instance.getDataStatus();
+    //     return "NOT baseProto_b:true" + (includeDeleted ? "" : " AND NOT deleted_b:true") + (types ? ` AND (${types.map(type => `({!join from=id to=proto_i}type_t:"${type}" AND NOT type_t:*) OR type_t:"${type}" OR type_t:"extension"`).join(" ")})` : "");
+    // }
 
 
     private NumResults = 25;
@@ -155,7 +159,8 @@ export class SearchBox extends React.Component {
         }
         this.lockPromise = new Promise(async res => {
             while (this._results.length <= this._endIndex && (this._numTotalResults === -1 || this._maxSearchIndex < this._numTotalResults)) {
-                this._curRequest = SearchUtil.Search(query, true, { fq: this.filterQuery, start: this._maxSearchIndex, rows: this.NumResults, hl: true, "hl.fl": "*" }).then(action(async (res: SearchUtil.DocSearchResult) => {
+                //this._curRequest = SearchUtil.Search(query, true, { fq: this.filterQuery, start: this._maxSearchIndex, rows: this.NumResults, hl: true, "hl.fl": "*" }).then(action(async (res: SearchUtil.DocSearchResult) => {
+                this._curRequest = SearchUtil.Search(query, true, { start: this._maxSearchIndex, rows: this.NumResults, hl: true, "hl.fl": "*" }).then(action(async (res: SearchUtil.DocSearchResult) => {
 
                     // happens at the beginning
                     if (res.numFound !== this._numTotalResults && this._numTotalResults === -1) {
@@ -169,7 +174,8 @@ export class SearchBox extends React.Component {
                     const docs = await Promise.all(res.docs.map(async doc => (await Cast(doc.extendsDoc, Doc)) || doc));
                     const highlights: typeof res.highlighting = {};
                     docs.forEach((doc, index) => highlights[doc[Id]] = highlightList[index]);
-                    const filteredDocs = FilterBox.Instance.filterDocsByType(docs);
+                    //const filteredDocs = FilterBox.Instance.filterDocsByType(docs);
+                    const filteredDocs = docs;
                     runInAction(() => {
                         // this._results.push(...filteredDocs);
                         filteredDocs.forEach(doc => {
@@ -201,8 +207,11 @@ export class SearchBox extends React.Component {
 
     collectionRef = React.createRef<HTMLSpanElement>();
     startDragCollection = async () => {
-        const res = await this.getAllResults(FilterBox.Instance.getFinalQuery(this._searchString));
-        const filtered = FilterBox.Instance.filterDocsByType(res.docs);
+        //const res = await this.getAllResults(FilterBox.Instance.getFinalQuery(this._searchString));
+        const res = await this.getAllResults(this._searchString);
+
+        //const filtered = FilterBox.Instance.filterDocsByType(res.docs);
+        const filtered = res.docs;
         // console.log(this._results)
         const docs = filtered.map(doc => {
             const isProto = Doc.GetT(doc, "isPrototype", "boolean", true);
@@ -236,22 +245,24 @@ export class SearchBox extends React.Component {
             }
         }
         //return Docs.Create.TreeDocument(docs, { _width: 200, _height: 400, backgroundColor: "grey", title: `Search Docs: "${this._searchString}"` });
-        return Docs.Create.SearchDocument(docs, { _width: 200, _height: 400, searchText: this._searchString, title: `Search Docs: "${this._searchString}"` });
+        //return Docs.Create.SearchDocument(docs, { _width: 200, _height: 400, searchText: this._searchString, title: `Search Docs: "${this._searchString}"` });
+        return Docs.Create.QueryDocument({
+        });
     }
 
     @action.bound
     openSearch(e: React.SyntheticEvent) {
         e.stopPropagation();
         this._openNoResults = false;
-        FilterBox.Instance.closeFilter();
+        //FilterBox.Instance.closeFilter();
         this._resultsOpen = true;
         this._searchbarOpen = true;
-        FilterBox.Instance._pointerTime = e.timeStamp;
+        //FilterBox.Instance._pointerTime = e.timeStamp;
     }
 
     @action.bound
     closeSearch = () => {
-        FilterBox.Instance.closeFilter();
+        //FilterBox.Instance.closeFilter();
         this.closeResults();
         this._searchbarOpen = false;
     }
@@ -352,17 +363,11 @@ export class SearchBox extends React.Component {
                     <input value={this._searchString} onChange={this.onChange} type="text" placeholder="Search..." id="search-input" ref={this.inputRef}
                         className="searchBox-barChild searchBox-input" onPointerDown={this.openSearch} onKeyPress={this.enter} onFocus={this.openSearch}
                         style={{ width: this._searchbarOpen ? "500px" : "100px" }} />
-                    <button className="searchBox-barChild searchBox-filter" title="Advanced Filtering Options" onClick={FilterBox.Instance.openFilter} onPointerDown={FilterBox.Instance.stopProp}><FontAwesomeIcon icon="ellipsis-v" color="white" /></button>
+                    <button className="searchBox-barChild searchBox-filter" title="Advanced Filtering Options" onClick={() => runInAction(() => this._filterOpen = !this._filterOpen)}><FontAwesomeIcon icon="ellipsis-v" color="white" /></button>
                 </div>
-                <div className="searchBox-quickFilter" onPointerDown={this.openSearch}>
-                    <div className="filter-panel"><IconBar /></div>
-                </div>
-                <div>
-                    <div style={{ display: "flex", flexDirection: "row-reverse" }}>
-                        <SearchBox />
-                        {/* {this.getActiveFilters()} */}
-                    </div>
-                    <div className="filter-form" onPointerDown={this.stopProp} id="filter-form" style={this._filterOpen ? { display: "flex" } : { display: "none" }}>
+
+                <div style={{ display: "flex", flexDirection: "row-reverse" }}>
+                    <div className="filter-form" style={this._filterOpen ? { display: "flex" } : { display: "none" }}>
                         <div className="top-filter-header" style={{ display: "flex", width: "100%" }}>
                             <div id="header">Filter Search Results</div>
                             <div style={{ marginLeft: "auto" }}></div>
@@ -383,20 +388,22 @@ export class SearchBox extends React.Component {
                                 <div className="filter-header">
                                     <div className="filter-title icon">Filter by type of node</div>
                                 </div>
-                                <div className="filter-panel"><IconBar /></div>
+                                <div className="filter-panel"></div>
                             </div>
                             <div className="filter-div">
                                 <div className="filter-header">
                                     <div className="filter-title field">Filter by Basic Keys</div>
                                 </div>
-                                <div className="filter-panel"><FieldFilters
+                                <div className="filter-panel">
+                                    {/* <FieldFilters
                                     titleFieldStatus={this._titleFieldStatus} dataFieldStatus={this._deletedDocsStatus} authorFieldStatus={this._authorFieldStatus}
-                                    updateAuthorStatus={this.updateAuthorStatus} updateDataStatus={this.updateDataStatus} updateTitleStatus={this.updateTitleStatus} /> </div>
+                                    updateAuthorStatus={this.updateAuthorStatus} updateDataStatus={this.updateDataStatus} updateTitleStatus={this.updateTitleStatus} /> </div> */}
+                                </div>
                             </div>
-                        </div>
-                        <div className="filter-buttons" style={{ display: "flex", justifyContent: "space-around" }}>
-                            <button className="save-filter" >Save Filters</button>
-                            <button className="reset-filter" >Reset Filters</button>
+                            <div className="filter-buttons" style={{ display: "flex", justifyContent: "space-around" }}>
+                                <button className="save-filter" >Save Filters</button>
+                                <button className="reset-filter" >Reset Filters</button>
+                            </div>
                         </div>
                     </div>
                 </div>
