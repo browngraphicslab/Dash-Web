@@ -4,7 +4,7 @@ import * as Pdfjs from "pdfjs-dist";
 import "pdfjs-dist/web/pdf_viewer.css";
 import { Dictionary } from "typescript-collections";
 import { Doc, DocListCast, FieldResult, WidthSym, Opt, HeightSym } from "../../../new_fields/Doc";
-import { Id } from "../../../new_fields/FieldSymbols";
+import { Id, Copy } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { makeInterface, createSchema } from "../../../new_fields/Schema";
 import { ScriptField } from "../../../new_fields/ScriptField";
@@ -31,6 +31,7 @@ import { InkingControl } from "../InkingControl";
 import { InkTool } from "../../../new_fields/InkField";
 import { TraceMobx } from "../../../new_fields/util";
 import { PdfField } from "../../../new_fields/URLField";
+import { PDFBox } from "../nodes/PDFBox";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 const pdfjsLib = require("pdfjs-dist");
 
@@ -101,6 +102,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
     private _reactionDisposer?: IReactionDisposer;
     private _selectionReactionDisposer?: IReactionDisposer;
     private _annotationReactionDisposer?: IReactionDisposer;
+    private _scrollTopReactionDisposer?: IReactionDisposer;
     private _filterReactionDisposer?: IReactionDisposer;
     private _searchReactionDisposer?: IReactionDisposer;
     private _viewer: React.RefObject<HTMLDivElement> = React.createRef();
@@ -126,7 +128,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
         !this.props.Document.lockedTransform && (this.props.Document.lockedTransform = true);
         // change the address to be the file address of the PNG version of each page
         // file address of the pdf
-        const { url: { href } } = Cast(this.props.Document[this.props.fieldKey], PdfField)!;
+        const { url: { href } } = Cast(this.dataDoc[this.props.fieldKey], PdfField)!;
         const addr = Utils.prepend(`/thumbnail${this.props.url.substring("files/pdfs/".length, this.props.url.length - ".pdf".length)}-${(this.Document.curPage || 1)}.png`);
         this._coverPath = href.startsWith(window.location.origin) ? JSON.parse(await rp.get(addr)) : { width: 100, height: 100, path: "" };
         runInAction(() => this._showWaiting = this._showCover = true);
@@ -162,10 +164,11 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
 
     componentWillUnmount = () => {
         this._reactionDisposer && this._reactionDisposer();
-        this._annotationReactionDisposer && this._annotationReactionDisposer();
-        this._filterReactionDisposer && this._filterReactionDisposer();
-        this._selectionReactionDisposer && this._selectionReactionDisposer();
-        this._searchReactionDisposer && this._searchReactionDisposer();
+        this._scrollTopReactionDisposer?.();
+        this._annotationReactionDisposer?.();
+        this._filterReactionDisposer?.();
+        this._selectionReactionDisposer?.();
+        this._searchReactionDisposer?.();
         document.removeEventListener("copy", this.copy);
     }
 
@@ -206,6 +209,13 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
         this.props.setPdfViewer(this);
         await this.initialLoad();
 
+        this._scrollTopReactionDisposer = reaction(() => Cast(this.props.Document._scrollTop, "number", null),
+            (stop) => {
+                if (stop !== undefined) {
+                    const offset = this.visibleHeight() / 2 * 96 / 72;
+                    this._mainCont.current && smoothScroll(500, this._mainCont.current, stop);
+                }
+            }, { fireImmediately: true });
         this._annotationReactionDisposer = reaction(
             () => DocListCast(this.dataDoc[this.props.fieldKey + "-annotations"]),
             annotations => annotations?.length && (this._annotations = annotations),
@@ -267,7 +277,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
         let minY = Number.MAX_VALUE;
         if ((this._savedAnnotations.values()[0][0] as any).marqueeing) {
             const anno = this._savedAnnotations.values()[0][0];
-            const annoDoc = Docs.Create.FreeformDocument([], { backgroundColor: color, title: "Annotation on " + this.Document.title });
+            const annoDoc = Docs.Create.FreeformDocument([], { backgroundColor: color, _LODdisable: true, title: "Annotation on " + this.Document.title });
             if (anno.style.left) annoDoc.x = parseInt(anno.style.left);
             if (anno.style.top) annoDoc.y = parseInt(anno.style.top);
             if (anno.style.height) annoDoc._height = parseInt(anno.style.height);
@@ -558,26 +568,21 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
         e.preventDefault();
         e.stopPropagation();
         const targetDoc = Docs.Create.TextDocument("", { _width: 200, _height: 200, title: "Note linked to " + this.props.Document.title });
+        Doc.GetProto(targetDoc).snipped = this.dataDoc[this.props.fieldKey][Copy]();
+        const snipLayout = Docs.Create.PdfDocument("http://www.msn.com", { title: "snippetView", isTemplateDoc: true, isTemplateForField: "snipped", _fitWidth: true, _width: this.marqueeWidth(), _height: this.marqueeHeight(), _scrollTop: this.marqueeY() });
+        Doc.GetProto(snipLayout).layout = PDFBox.LayoutString("snipped");
+        Doc.GetProto(targetDoc).layout_snipped = snipLayout;
         const annotationDoc = this.highlight("rgba(146, 245, 95, 0.467)"); // yellowish highlight color when dragging out a text selection
         if (annotationDoc) {
             DragManager.StartPdfAnnoDrag([ele], new DragManager.PdfAnnoDragData(this.props.Document, annotationDoc, targetDoc), e.pageX, e.pageY, {
-                dragComplete: e => !e.aborted && e.annoDragData && !e.annoDragData.linkedToDoc &&
-                    DocUtils.MakeLink({ doc: annotationDoc }, { doc: e.annoDragData.dropDocument, ctx: e.annoDragData.targetContext }, `Annotation from ${this.Document.title}`, "link from PDF")
+                dragComplete: e => {
+                    if (!e.aborted && e.annoDragData && !e.annoDragData.linkedToDoc) {
+                        const link = DocUtils.MakeLink({ doc: annotationDoc }, { doc: e.annoDragData.dropDocument, ctx: e.annoDragData.targetContext }, `Annotation from ${this.Document.title}`, "link from PDF");
+                        if (link) link.maximizeLocation = "onRight";
+                    }
+                }
             });
         }
-    }
-
-    createSnippet = (marquee: { left: number, top: number, width: number, height: number }): void => {
-        const view = Doc.MakeAlias(this.props.Document);
-        const data = Doc.MakeDelegate(Doc.GetProto(this.props.Document));
-        data.title = StrCast(data.title) + "_snippet";
-        view.proto = data;
-        view._nativeHeight = marquee.height;
-        view._height = (this.Document[WidthSym]() / (this.Document._nativeWidth || 1)) * marquee.height;
-        view._nativeWidth = this.Document._nativeWidth;
-        view.startY = marquee.top;
-        view._width = this.Document[WidthSym]();
-        DragManager.StartDocumentDrag([], new DragManager.DocumentDragData([view]), 0, 0);
     }
 
     scrollXf = () => {
@@ -643,6 +648,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
                 select={emptyFunction}
                 active={this.annotationsActive}
                 ContentScaling={this.contentZoom}
+                bringToFront={emptyFunction}
                 whenActiveChanged={this.whenActiveChanged}
                 removeDocument={this.removeDocument}
                 moveDocument={this.moveDocument}

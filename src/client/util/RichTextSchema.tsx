@@ -796,15 +796,8 @@ export class DashDocView {
     }
     doRender(dashDoc: Doc, removeDoc: any, node: any, view: any, getPos: any) {
         this._dashDoc = dashDoc;
-        if (node.attrs.width !== dashDoc._width + "px" || node.attrs.height !== dashDoc._height + "px") {
-            try { // bcz: an exception will be thrown if two aliases are open at the same time when a doc view comment is made
-                view.dispatch(view.state.tr.setNodeMarkup(getPos(), null, { ...node.attrs, width: dashDoc._width + "px", height: dashDoc._height + "px" }));
-            } catch (e) {
-                console.log(e);
-            }
-        }
         const self = this;
-        const finalLayout = Doc.expandTemplateLayout(dashDoc, !Doc.AreProtosEqual(this._textBox.dataDoc, this._textBox.Document) ? this._textBox.dataDoc : undefined);
+        const finalLayout = this._textBox.props.Document instanceof Doc && (Doc.expandTemplateLayout(dashDoc, !Doc.AreProtosEqual(this._textBox.dataDoc, this._textBox.props.Document) ? this._textBox.dataDoc : undefined));
         if (!finalLayout) setTimeout(() => self.doRender(dashDoc, removeDoc, node, view, getPos), 0);
         else {
             const layoutKey = StrCast(finalLayout.layoutKey);
@@ -846,9 +839,17 @@ export class DashDocView {
                 ContainingCollectionDoc={undefined}
                 ContentScaling={this.contentScaling}
             />, this._dashSpan);
+            if (node.attrs.width !== dashDoc._width + "px" || node.attrs.height !== dashDoc._height + "px") {
+                try { // bcz: an exception will be thrown if two aliases are open at the same time when a doc view comment is made
+                    view.dispatch(view.state.tr.setNodeMarkup(getPos(), null, { ...node.attrs, width: dashDoc._width + "px", height: dashDoc._height + "px" }));
+                } catch (e) {
+                    console.log(e);
+                }
+            }
         }
     }
     destroy() {
+        ReactDOM.unmountComponentAtNode(this._dashSpan);
         this._reactionDisposer?.();
     }
 }

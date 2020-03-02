@@ -56,7 +56,7 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
 
         const backup = "oldPath";
         const { Document } = this.props;
-        const { url: { href } } = Cast(Document[this.props.fieldKey], PdfField)!;
+        const { url: { href } } = Cast(this.dataDoc[this.props.fieldKey], PdfField)!;
         const pathCorrectionTest = /upload\_[a-z0-9]{32}.(.*)/g;
         const matches = pathCorrectionTest.exec(href);
         console.log("\nHere's the { url } being fed into the outer regex:");
@@ -78,9 +78,7 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
         }
     }
 
-    componentWillUnmount() {
-        this._selectReactionDisposer && this._selectReactionDisposer();
-    }
+    componentWillUnmount() { this._selectReactionDisposer?.(); }
     componentDidMount() {
         this._selectReactionDisposer = reaction(() => this.props.isSelected(),
             () => {
@@ -96,11 +94,11 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
         !this.Document._fitWidth && (this.Document._height = this.Document[WidthSym]() * (nh / nw));
     }
 
-    public search(string: string, fwd: boolean) { this._pdfViewer && this._pdfViewer.search(string, fwd); }
-    public prevAnnotation() { this._pdfViewer && this._pdfViewer.prevAnnotation(); }
-    public nextAnnotation() { this._pdfViewer && this._pdfViewer.nextAnnotation(); }
-    public backPage() { this._pdfViewer!.gotoPage((this.Document.curPage || 1) - 1); }
-    public forwardPage() { this._pdfViewer!.gotoPage((this.Document.curPage || 1) + 1); }
+    public search = (string: string, fwd: boolean) => { this._pdfViewer?.search(string, fwd); }
+    public prevAnnotation = () => { this._pdfViewer?.prevAnnotation(); }
+    public nextAnnotation = () => { this._pdfViewer?.nextAnnotation(); }
+    public backPage = () => { this._pdfViewer!.gotoPage((this.Document.curPage || 1) - 1); }
+    public forwardPage = () => { this._pdfViewer!.gotoPage((this.Document.curPage || 1) + 1); }
     public gotoPage = (p: number) => { this._pdfViewer!.gotoPage(p); };
 
     @undoBatch
@@ -233,7 +231,7 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
     isChildActive = (outsideReaction?: boolean) => this._isChildActive;
     @computed get renderPdfView() {
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
-        return <div className={"pdfBox"} onContextMenu={this.specificContextMenu}>
+        return <div className={"pdfBox"} onContextMenu={this.specificContextMenu} style={{ height: this.props.Document._scrollTop ? NumCast(this.Document._height) * this.props.PanelWidth() / NumCast(this.Document._width) : undefined }}>
             <PDFViewer {...this.props} pdf={this._pdf!} url={pdfUrl!.url.pathname} active={this.props.active} loaded={this.loaded}
                 setPdfViewer={this.setPdfViewer} ContainingCollectionView={this.props.ContainingCollectionView}
                 renderDepth={this.props.renderDepth} PanelHeight={this.props.PanelHeight} PanelWidth={this.props.PanelWidth}

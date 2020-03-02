@@ -817,6 +817,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 const offset = annotOn && (contextHgt / 2 * 96 / 72);
                 this.props.Document.scrollY = NumCast(doc.y) - offset;
             }
+
+            afterFocus && setTimeout(() => afterFocus?.(), 1000);
         } else {
             const layoutdoc = Doc.Layout(doc);
             const newPanX = NumCast(doc.x) + NumCast(layoutdoc._width) / 2;
@@ -834,7 +836,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             Doc.linkFollowHighlight(doc);
 
             afterFocus && setTimeout(() => {
-                if (afterFocus && afterFocus()) {
+                if (afterFocus?.()) {
                     this.Document._panX = savedState.px;
                     this.Document._panY = savedState.py;
                     this.Document.scale = savedState.s;

@@ -387,8 +387,8 @@ export namespace DragManager {
             hideDragShowOriginalElements();
             dispatchDrag(eles, e, dragData, options, finishDrag);
             SelectionManager.SetIsDragging(false);
-            options?.dragComplete?.(new DragCompleteEvent(false, dragData));
             endDrag();
+            options?.dragComplete?.(new DragCompleteEvent(false, dragData));
         };
         document.addEventListener("pointermove", moveHandler, true);
         document.addEventListener("pointerup", upHandler);

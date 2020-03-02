@@ -217,7 +217,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this.multiTouchDisposer && this.multiTouchDisposer();
         this.holdDisposer && this.holdDisposer();
         Doc.UnBrushDoc(this.props.Document);
-        !this.props.dontRegisterView && DocumentManager.Instance.DocumentViews.splice(DocumentManager.Instance.DocumentViews.indexOf(this), 1);
+        if (!this.props.dontRegisterView) {
+            const index = DocumentManager.Instance.DocumentViews.indexOf(this);
+            index !== -1 && DocumentManager.Instance.DocumentViews.splice(index, 1);
+        }
     }
 
     startDragging(x: number, y: number, dropAction: dropActionType) {
@@ -829,7 +832,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
             if (!this.topMost) {
                 // DocumentViews should stop propagation of this event
-                me?.stopPropagation();
+                e.stopPropagation();
             }
             ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
             if (!SelectionManager.IsSelected(this, true)) {

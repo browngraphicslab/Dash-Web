@@ -75,6 +75,7 @@ export interface DocumentOptions {
     _showTitleHover?: string; // 
     _showTitle?: string; // which field to display in the title area.  leave empty to have no title
     _showCaption?: string; // which field to display in the caption area.  leave empty to have no caption
+    _scrollTop?: number; // scroll location for pdfs
     _chromeStatus?: string;
     _viewType?: number;
     _gridGap?: number; // gap between items in masonry view
@@ -420,7 +421,7 @@ export namespace Docs {
 
         const delegateKeys = ["x", "y", "layoutKey", "_width", "_height", "_panX", "_panY", "_viewType", "_nativeWidth", "_nativeHeight", "dropAction", "childDropAction", "_annotationOn",
             "_chromeStatus", "_forceActive", "_autoHeight", "_fitWidth", "_LODdisable", "_itemIndex", "_showSidebar", "_showTitle", "_showCaption", "_showTitleHover", "_backgroundColor",
-            "_xMargin", "_yMargin", "_xPadding", "_yPadding", "_singleLine",
+            "_xMargin", "_yMargin", "_xPadding", "_yPadding", "_singleLine", "_scrollTop",
             "_color", "isButton", "isBackground", "removeDropProperties", "treeViewOpen"];
 
         /**
