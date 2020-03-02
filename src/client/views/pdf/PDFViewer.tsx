@@ -32,6 +32,7 @@ import { InkTool } from "../../../new_fields/InkField";
 import { TraceMobx } from "../../../new_fields/util";
 import { PdfField } from "../../../new_fields/URLField";
 import { PDFBox } from "../nodes/PDFBox";
+import { FormattedTextBox } from "../nodes/FormattedTextBox";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 const pdfjsLib = require("pdfjs-dist");
 
@@ -210,12 +211,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
         await this.initialLoad();
 
         this._scrollTopReactionDisposer = reaction(() => Cast(this.props.Document._scrollTop, "number", null),
-            (stop) => {
-                if (stop !== undefined) {
-                    const offset = this.visibleHeight() / 2 * 96 / 72;
-                    this._mainCont.current && smoothScroll(500, this._mainCont.current, stop);
-                }
-            }, { fireImmediately: true });
+            (stop) => (stop !== undefined) && this._mainCont.current && smoothScroll(500, this._mainCont.current, stop) , { fireImmediately: true });
         this._annotationReactionDisposer = reaction(
             () => DocListCast(this.dataDoc[this.props.fieldKey + "-annotations"]),
             annotations => annotations?.length && (this._annotations = annotations),
@@ -237,6 +233,12 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
         this.createPdfViewer();
     }
 
+    pagesinit = action(() => {
+        this._pdfViewer.currentScaleValue = this._zoomed = 1;
+        this.gotoPage(this.Document.curPage || 1);
+        document.removeEventListener("pagesinit", this.pagesinit);
+    })
+
     createPdfViewer() {
         if (!this._mainCont.current) { // bcz: I don't think this is ever triggered or needed
             if (this._retries < 5) {
@@ -247,10 +249,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
         }
         document.removeEventListener("copy", this.copy);
         document.addEventListener("copy", this.copy);
-        document.addEventListener("pagesinit", action(() => {
-            this._pdfViewer.currentScaleValue = this._zoomed = 1;
-            this.gotoPage(this.Document.curPage || 1);
-        }));
+        document.addEventListener("pagesinit", this.pagesinit);
         document.addEventListener("pagerendered", action(() => this._showCover = this._showWaiting = false));
         const pdfLinkService = new PDFJSViewer.PDFLinkService();
         const pdfFindController = new PDFJSViewer.PDFFindController({ linkService: pdfLinkService });
@@ -330,7 +329,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
 
     @action
     gotoPage = (p: number) => {
-        this._pdfViewer && this._pdfViewer.scrollPageIntoView({ pageNumber: Math.min(Math.max(1, p), this._pageSizes.length) });
+        this._pdfViewer?.scrollPageIntoView({ pageNumber: Math.min(Math.max(1, p), this._pageSizes.length) });
     }
 
     @action
@@ -564,14 +563,20 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
      * start a drag event and create or put the necessary info into the drag event.
      */
     @action
-    startDrag = (e: PointerEvent, ele: HTMLElement): void => {
+    startDrag = async (e: PointerEvent, ele: HTMLElement) => {
         e.preventDefault();
         e.stopPropagation();
+
+        const clipDoc = Docs.Create.PdfDocument(Cast(this.dataDoc[this.props.fieldKey], PdfField, null)?.url.href || "http://www.msn.com", { title: "snippetView", _fitWidth: true, _width: this.marqueeWidth(), _height: this.marqueeHeight(), _scrollTop: this.marqueeY() });
         const targetDoc = Docs.Create.TextDocument("", { _width: 200, _height: 200, title: "Note linked to " + this.props.Document.title });
-        Doc.GetProto(targetDoc).snipped = this.dataDoc[this.props.fieldKey][Copy]();
-        const snipLayout = Docs.Create.PdfDocument("http://www.msn.com", { title: "snippetView", isTemplateDoc: true, isTemplateForField: "snipped", _fitWidth: true, _width: this.marqueeWidth(), _height: this.marqueeHeight(), _scrollTop: this.marqueeY() });
-        Doc.GetProto(snipLayout).layout = PDFBox.LayoutString("snipped");
-        Doc.GetProto(targetDoc).layout_snipped = snipLayout;
+        Doc.GetProto(targetDoc).layout = FormattedTextBox.LayoutString("contents");
+        Doc.GetProto(targetDoc).data = new List<Doc>([clipDoc]);
+        Doc.GetProto(targetDoc).layout_slideView = (await Cast(Doc.UserDoc().slidesBtn, Doc))?.dragFactory;
+        targetDoc.layoutKey = "layout_slideView";
+        // const targetDoc = Docs.Create.TextDocument("", { _width: 200, _height: 200, title: "Note linked to " + this.props.Document.title });
+        // Doc.GetProto(targetDoc).snipped = this.dataDoc[this.props.fieldKey][Copy]();
+        // const snipLayout = Docs.Create.PdfDocument("http://www.msn.com", { title: "snippetView", isTemplateDoc: true, isTemplateForField: "snipped", _fitWidth: true, _width: this.marqueeWidth(), _height: this.marqueeHeight(), _scrollTop: this.marqueeY() });
+        // Doc.GetProto(snipLayout).layout = PDFBox.LayoutString("snipped");
         const annotationDoc = this.highlight("rgba(146, 245, 95, 0.467)"); // yellowish highlight color when dragging out a text selection
         if (annotationDoc) {
             DragManager.StartPdfAnnoDrag([ele], new DragManager.PdfAnnoDragData(this.props.Document, annotationDoc, targetDoc), e.pageX, e.pageY, {
@@ -679,9 +684,10 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
     contentZoom = () => this._zoomed;
     render() {
         TraceMobx();
-        return <div className={"pdfViewer" + (this._zoomed !== 1 ? "-zoomed" : "")} ref={this._mainCont}
+        return <div className={"pdfViewer" + (this.active() ? "-interactive" : "")} ref={this._mainCont}
             onScroll={this.onScroll} onWheel={this.onZoomWheel} onPointerDown={this.onPointerDown} onClick={this.onClick}
             style={{
+                overflowX: this._zoomed !== 1 ? "scroll" : undefined,
                 width: !this.props.Document._fitWidth ? NumCast(this.props.Document._nativeWidth) : `${100 / this.contentScaling}%`,
                 height: !this.props.Document._fitWidth ? NumCast(this.props.Document._nativeHeight) : `${100 / this.contentScaling}%`,
                 transform: `scale(${this.props.ContentScaling()})`

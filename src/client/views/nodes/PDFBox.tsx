@@ -241,7 +241,7 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
                 ScreenToLocalTransform={this.props.ScreenToLocalTransform} select={this.props.select}
                 isSelected={this.props.isSelected} whenActiveChanged={this.whenActiveChanged}
                 isChildActive={this.isChildActive}
-                fieldKey={this.props.fieldKey} startupLive={this._initialScale < 2.5 ? true : false} />
+                fieldKey={this.props.fieldKey} startupLive={this._initialScale < 2.5 || this.props.Document._scrollTop ? true : false} />
             {this.settingsPanel()}
         </div>;
     }
@@ -250,7 +250,7 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
     render() {
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField, null);
         if (this.props.isSelected() || this.props.Document.scrollY !== undefined) this._everActive = true;
-        if (pdfUrl && (this._everActive || (this.dataDoc[this.props.fieldKey + "-nativeWidth"] && this.props.ScreenToLocalTransform().Scale < 2.5))) {
+        if (pdfUrl && (this._everActive || this.props.Document._scrollTop || (this.dataDoc[this.props.fieldKey + "-nativeWidth"] && this.props.ScreenToLocalTransform().Scale < 2.5))) {
             if (pdfUrl instanceof PdfField && this._pdf) {
                 return this.renderPdfView;
             }

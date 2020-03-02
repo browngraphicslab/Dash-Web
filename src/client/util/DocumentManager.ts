@@ -134,7 +134,7 @@ export class DocumentManager {
             finalDocView && Doc.linkFollowHighlight(finalDocView.props.Document);
         };
         const docView = DocumentManager.Instance.getFirstDocumentView(targetDoc, originatingDoc);
-        let annotatedDoc = await Cast(docView?.props.Document.annotationOn, Doc);
+        let annotatedDoc = await Cast(targetDoc.annotationOn, Doc);
         if (annotatedDoc) {
             const first = DocumentManager.Instance.getFirstDocumentView(annotatedDoc);
             if (first) annotatedDoc = first.props.Document;
