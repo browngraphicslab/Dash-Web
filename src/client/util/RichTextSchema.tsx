@@ -942,9 +942,8 @@ export class DashFieldView {
         this._labelSpan = document.createElement("span");
         this._labelSpan.style.backgroundColor = "rgba(155, 155, 155, 0.44)";
         this._labelSpan.style.position = "relative";
-        this._labelSpan.style.display = "inline";
-        this._labelSpan.style.fontWeight = "bold";
-        this._labelSpan.style.fontSize = "larger";
+        this._labelSpan.style.display = "inline-block";
+        this._labelSpan.style.fontSize = "small";
         this._labelSpan.title = "click to see related tags";
         this._labelSpan.onpointerdown = function (e: any) {
             e.stopPropagation();
