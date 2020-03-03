@@ -81,10 +81,11 @@ export class RichTextRules {
 
             // create a text display of a metadata field on this or another document, or create a hyperlink portal to another document [[ <fieldKey> : <Doc>]]   // [[:Doc]] => hyperlink   [[fieldKey]] => show field   [[fieldKey:Doc]] => show field of doc
             new InputRule(
-                new RegExp(/\[\[([a-zA-Z_#@\? \-0-9]*)(:[a-zA-Z_#@\? \-0-9]+)?\]\]$/),
+                new RegExp(/\[\[([a-zA-Z_#@\? \-0-9]*)(=[a-zA-Z_#@\? \-0-9]*)?(:[a-zA-Z_#@\? \-0-9]+)?\]\]$/),
                 (state, match, start, end) => {
                     const fieldKey = match[1];
-                    const docid = match[2]?.substring(1);
+                    const docid = match[3]?.substring(1);
+                    const value = match[2]?.substring(1);
                     if (!fieldKey) {
                         if (docid) {
                             DocServer.GetRefField(docid).then(docx => {
@@ -96,6 +97,9 @@ export class RichTextRules {
                             return state.tr.deleteRange(end - 1, end).deleteRange(start, start + 2).addMark(start, end - 3, link);
                         }
                         return state.tr;
+                    }
+                    if (value !== "") {
+                        this.Document[DataSym][fieldKey] = value;
                     }
                     const fieldView = state.schema.nodes.dashField.create({ fieldKey, docid });
                     return state.tr.deleteRange(start, end).insert(start, fieldView);

@@ -77,7 +77,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
     getTransform = (ele: React.RefObject<HTMLDivElement>) => () => {
         if (!ele.current) return Transform.Identity();
         const { scale, translateX, translateY } = Utils.GetScreenTransform(ele.current);
-        return new Transform(-translateX, -translateY, 1 / scale);
+        return new Transform(-translateX, -translateY, 1);
     }
 
     render() {

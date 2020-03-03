@@ -865,25 +865,25 @@ export namespace Doc {
         return (await DocServer.GetRefField(enumeratedFieldKey)) as Doc;
     }
 
-    export function addEnumerationToTextField(doc: Opt<Doc>, enumeratedFieldKey: string, enumeratedDocs: Doc[]) {
-        DocServer.GetRefField(enumeratedFieldKey).then(optionsCollection => {
-            if (!(optionsCollection instanceof Doc)) {
-                optionsCollection = Docs.Create.StackingDocument([], { title: `${enumeratedFieldKey} field set` }, enumeratedFieldKey);
-                Doc.AddDocToList((Doc.UserDoc().fieldTypes as Doc), "data", optionsCollection as Doc);
+    export async function addEnumerationToTextField(doc: Opt<Doc>, enumeratedFieldKey: string, enumeratedDocs: Doc[]) {
+        let optionsCollection = await DocServer.GetRefField(enumeratedFieldKey);
+        if (!(optionsCollection instanceof Doc)) {
+            optionsCollection = Docs.Create.StackingDocument([], { title: `${enumeratedFieldKey} field set` }, enumeratedFieldKey);
+            Doc.AddDocToList((Doc.UserDoc().fieldTypes as Doc), "data", optionsCollection as Doc);
+        }
+        const options = optionsCollection as Doc;
+        doc && (Doc.GetProto(doc).backgroundColor = ComputedField.MakeFunction(`options.data.find(doc => doc.title === (this.expandedTemplate||this).${enumeratedFieldKey})?._backgroundColor || "white"`, undefined, { options }));
+        doc && (Doc.GetProto(doc).color = ComputedField.MakeFunction(`options.data.find(doc => doc.title === (this.expandedTemplate||this).${enumeratedFieldKey}).color || "black"`, undefined, { options }));
+        enumeratedDocs.map(enumeratedDoc => {
+            const found = DocListCast(options.data).find(d => d.title === enumeratedDoc.title);
+            if (found) {
+                found._backgroundColor = enumeratedDoc._backgroundColor || found._backgroundColor;
+                found._color = enumeratedDoc._color || found._color;
+            } else {
+                Doc.AddDocToList(options, "data", enumeratedDoc);
             }
-            const options = optionsCollection as Doc;
-            doc && (Doc.GetProto(doc).backgroundColor = ComputedField.MakeFunction(`options.data.find(doc => doc.title === (this.expandedTemplate||this).${enumeratedFieldKey})?._backgroundColor || "white"`, undefined, { options }));
-            doc && (Doc.GetProto(doc).color = ComputedField.MakeFunction(`options.data.find(doc => doc.title === (this.expandedTemplate||this).${enumeratedFieldKey}).color || "black"`, undefined, { options }));
-            enumeratedDocs.map(enumeratedDoc => {
-                const found = DocListCast(options.data).find(d => d.title === enumeratedDoc.title);
-                if (found) {
-                    found._backgroundColor = enumeratedDoc._backgroundColor || found._backgroundColor;
-                    found._color = enumeratedDoc._color || found._color;
-                } else {
-                    Doc.AddDocToList(options, "data", enumeratedDoc);
-                }
-            });
         });
+        return optionsCollection;
     }
 }
 

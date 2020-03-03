@@ -27,6 +27,17 @@ $linkGap : 3px;
         opacity: 1;
     }
 
+    .documentDecorations-selector {
+        pointer-events: auto;
+        height: 15px;
+        width: 15px;
+        left: -20px;
+        top: 20px;
+        display: inline-block;
+        position: absolute;
+        opacity: 0.5;
+    }
+
     .documentDecorations-radius {
         pointer-events: auto;
         background: black;
