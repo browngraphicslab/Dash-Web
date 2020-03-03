@@ -11,7 +11,7 @@ export enum DocumentType {
     PDF = "pdf",
     IMPORT = "import",
     LINK = "link",
-    LINKDOC = "linkdoc",
+    LINKDB = "linkdb",
     BUTTON = "button",
     SLIDER = "slider",
     EXTENSION = "extension",

@@ -76,6 +76,8 @@ export namespace DashUploadUtils {
                 if (applicationFormats.includes(format)) {
                     return UploadPdf(file);
                 }
+            default: //  "blob":
+                return MoveParsedFile(file, Directory.videos);
         }
 
         console.log(red(`Ignoring unsupported file (${name}) with upload type (${type}).`));

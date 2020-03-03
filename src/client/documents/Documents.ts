@@ -239,7 +239,7 @@ export namespace Docs {
                 layout: { view: LinkBox, dataField: data },
                 options: { _height: 150 }
             }],
-            [DocumentType.LINKDOC, {
+            [DocumentType.LINKDB, {
                 data: new List<Doc>(),
                 layout: { view: EmptyBox, dataField: data },
                 options: { childDropAction: "alias", title: "LINK DB" }
@@ -327,7 +327,7 @@ export namespace Docs {
          * A collection of all links in the database.  Ideally, this would be a search, but for now all links are cached here.
          */
         export function MainLinkDocument() {
-            return Prototypes.get(DocumentType.LINKDOC);
+            return Prototypes.get(DocumentType.LINKDB);
         }
 
         /**
@@ -459,7 +459,7 @@ export namespace Docs {
             const dataDoc = MakeDataDelegate(proto, protoProps, data, fieldKey);
             const viewDoc = Doc.MakeDelegate(dataDoc, delegId);
 
-            AudioBox.ActiveRecordings.map(d => DocUtils.MakeLink({ doc: viewDoc }, { doc: d }, "audio link", "link to audio: " + d.title));
+            viewDoc.type !== DocumentType.LINK && AudioBox.ActiveRecordings.map(d => DocUtils.MakeLink({ doc: viewDoc }, { doc: d }, "audio link", "link to audio: " + d.title));
 
             return Doc.assign(viewDoc, delegateProps, true);
         }
@@ -520,7 +520,9 @@ export namespace Docs {
         }
 
         export function AudioDocument(url: string, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.AUDIO), new AudioField(new URL(url)), options);
+            const instance = InstanceFromProto(Prototypes.get(DocumentType.AUDIO), new AudioField(new URL(url)), options);
+            Doc.GetProto(instance).backgroundColor = ComputedField.MakeFunction("this._audioState === 'playing' ? 'green':'gray'");
+            return instance;
         }
 
         export function HistogramDocument(histoOp: HistogramOperation, options: DocumentOptions = {}) {

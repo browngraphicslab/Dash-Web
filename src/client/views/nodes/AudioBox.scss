@@ -9,7 +9,6 @@
         width:20px;
         height:100%;
         display:inline-block;
-        background: gray;
     }
     .audiobox-control, .audiobox-control-interactive {
         top:0;
@@ -37,7 +36,6 @@
         position: relative;
         display: flex;
         padding-left: 2px;
-        border: gray solid 3px;
         .audiobox-player {
             margin-top:auto;
             margin-bottom:auto;

@@ -47,30 +47,34 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
 
     @observable private static _scrubTime = 0;
     @observable private _audioState: "unrecorded" | "recording" | "recorded" = "unrecorded";
-    @observable private _playing = false;
     public static SetScrubTime = action((timeInMillisFrom1970: number) => AudioBox._scrubTime = timeInMillisFrom1970);
     public static ActiveRecordings: Doc[] = [];
 
+    @computed get recordingStart() { return Cast(this.dataDoc[this.props.fieldKey + "-recordingStart"], DateField)?.date.getTime(); }
+
+    componentWillUnmount() {
+        this._reactionDisposer?.();
+        this._linkPlayDisposer?.();
+        this._scrubbingDisposer?.();
+    }
     componentDidMount() {
         runInAction(() => this._audioState = this.path ? "recorded" : "unrecorded");
         this._linkPlayDisposer = reaction(() => this.layoutDoc.scrollToLinkID,
             scrollLinkId => {
-                scrollLinkId && DocListCast(this.dataDoc.links).filter(l => l[Id] === scrollLinkId).map(l => {
-                    const la1 = l.anchor1 as Doc;
-                    const linkTime = Doc.AreProtosEqual(la1, this.dataDoc) ? NumCast(l.anchor1Timecode) : NumCast(l.anchor2Timecode);
-                    setTimeout(() => { this.playFrom(linkTime); Doc.linkFollowHighlight(l); }, 250);
-                });
-                scrollLinkId && Doc.SetInPlace(this.layoutDoc, "scrollToLinkID", undefined, false);
+                if (scrollLinkId) {
+                    DocListCast(this.dataDoc.links).filter(l => l[Id] === scrollLinkId).map(l => {
+                        const linkTime = Doc.AreProtosEqual(l.anchor1 as Doc, this.dataDoc) ? NumCast(l.anchor1Timecode) : NumCast(l.anchor2Timecode);
+                        setTimeout(() => { this.playFromTime(linkTime); Doc.linkFollowHighlight(l); }, 250);
+                    });
+                    Doc.SetInPlace(this.layoutDoc, "scrollToLinkID", undefined, false);
+                }
             }, { fireImmediately: true });
         this._reactionDisposer = reaction(() => SelectionManager.SelectedDocuments(),
             selected => {
                 const sel = selected.length ? selected[0].props.Document : undefined;
-                this.Document.playOnSelect && sel && !Doc.AreProtosEqual(sel, this.props.Document) && this.playFrom(DateCast(sel.creationTime).date.getTime());
+                this.Document.playOnSelect && this.recordingStart && sel && !Doc.AreProtosEqual(sel, this.props.Document) && this.playFromTime(DateCast(sel.creationDate).date.getTime());
             });
-        this._scrubbingDisposer = reaction(() => AudioBox._scrubTime, timeInMillisecondsFrom1970 => {
-            const start = DateCast(this.dataDoc[this.props.fieldKey + "-recordingStart"]);
-            start && this.playFrom((timeInMillisecondsFrom1970 - start.date.getTime()) / 1000);
-        });
+        this._scrubbingDisposer = reaction(() => AudioBox._scrubTime, (time) => this.Document.playOnSelect && this.playFromTime(AudioBox._scrubTime));
     }
 
     timecodeChanged = () => {
@@ -94,9 +98,12 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
 
     pause = action(() => {
         this._ele!.pause();
-        this._playing = false;
+        this.props.Document._audioState = "paused";
     });
 
+    playFromTime = (absoluteTime: number) => {
+        this.recordingStart && this.playFrom((absoluteTime - this.recordingStart) / 1000);
+    }
     playFrom = (seekTimeInSeconds: number) => {
         if (this._ele && AudioBox.Enabled) {
             if (seekTimeInSeconds < 0) {
@@ -104,17 +111,11 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
             } else if (seekTimeInSeconds <= this._ele.duration) {
                 this._ele.currentTime = seekTimeInSeconds;
                 this._ele.play();
-                runInAction(() => this._playing = true);
+                runInAction(() => this.props.Document._audioState = "playing");
             } else {
                 this.pause();
             }
         }
-    }
-
-    componentWillUnmount() {
-        this._reactionDisposer && this._reactionDisposer();
-        this._linkPlayDisposer && this._linkPlayDisposer();
-        this._scrubbingDisposer && this._scrubbingDisposer();
     }
 
 
@@ -142,10 +143,13 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
                     method: 'POST',
                     body: formData
                 });
-                const files = await res.json();
-                const url = Utils.prepend(files[0].path);
-                // upload to server with known URL 
-                self.props.Document[self.props.fieldKey] = new AudioField(url);
+                const json = await res.json();
+                json.map(async (file: any) => {
+                    const path = file.result.accessPaths.agnostic.client;
+                    const url = Utils.prepend(path);
+                    // upload to server with known URL 
+                    self.props.Document[self.props.fieldKey] = new AudioField(url);
+                });
             };
             runInAction(() => self._audioState = "recording");
             self._recordStart = new Date().getTime();
@@ -191,8 +195,8 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
     }
 
     setRef = (e: HTMLAudioElement | null) => {
-        e && e.addEventListener("timeupdate", this.timecodeChanged);
-        e && e.addEventListener("ended", this.pause);
+        e?.addEventListener("timeupdate", this.timecodeChanged);
+        e?.addEventListener("ended", this.pause);
         this._ele = e;
     }
 
@@ -214,14 +218,14 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
         const interactive = this.active() ? "-interactive" : "";
         return <div className={`audiobox-container`} onContextMenu={this.specificContextMenu}
             onClick={!this.path ? this.recordClick : undefined}>
-            <div className="audiobox-handle"></div>
+            <div className="audiobox-handle" style={{ backgroundColor: this._audioState === "recording" ? "green" : undefined }} />
             {!this.path ?
                 <button className={`audiobox-record${interactive}`} style={{ backgroundColor: this._audioState === "recording" ? "red" : "black" }}>
                     {this._audioState === "recording" ? "STOP" : "RECORD"}
                 </button> :
                 <div className="audiobox-controls">
                     <div className="audiobox-player" onClick={this.onPlay}>
-                        <div className="audiobox-playhead"> <FontAwesomeIcon style={{ width: "100%" }} icon={this._playing ? "pause" : "play"} size={this.props.PanelHeight() < 36 ? "1x" : "2x"} /></div>
+                        <div className="audiobox-playhead"> <FontAwesomeIcon style={{ width: "100%" }} icon={this.props.Document._audioState === "paused" ? "play" : "pause"} size={this.props.PanelHeight() < 36 ? "1x" : "2x"} /></div>
                         <div className="audiobox-playhead" onClick={this.onStop}><FontAwesomeIcon style={{ width: "100%" }} icon="stop" size={this.props.PanelHeight() < 36 ? "1x" : "2x"} /></div>
                         <div className="audiobox-timeline" onClick={e => e.stopPropagation()}
                             onPointerDown={e => {
