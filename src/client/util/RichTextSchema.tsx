@@ -25,7 +25,11 @@ import { CollectionSchemaBooleanCell } from "../views/collections/CollectionSche
 import { ContextMenu } from "../views/ContextMenu";
 import { ContextMenuProps } from "../views/ContextMenuItem";
 import { Docs } from "../documents/Documents";
-import { CollectionView } from "../views/collections/CollectionView";
+import { CollectionView, CollectionViewType } from "../views/collections/CollectionView";
+import { toBlob } from "html-to-image";
+import { listSpec } from "../../new_fields/Schema";
+import { List } from "../../new_fields/List";
+import { SchemaHeaderField } from "../../new_fields/SchemaHeaderField";
 
 const blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
     preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], brDOM: DOMOutputSpecArray = ["br"], ulDOM: DOMOutputSpecArray = ["ul", 0];
@@ -880,7 +884,7 @@ export class DashFieldView {
         this._fieldSpan.contentEditable = "true";
         this._fieldSpan.style.position = "relative";
         this._fieldSpan.style.display = "inline-block";
-        this._fieldSpan.style.minWidth = "50px";
+        this._fieldSpan.style.minWidth = "5px";
         this._fieldSpan.style.backgroundColor = "rgba(155, 155, 155, 0.24)";
         this._fieldSpan.onkeypress = function (e: any) { e.stopPropagation(); };
         this._fieldSpan.onkeyup = function (e: any) { e.stopPropagation(); };
@@ -893,6 +897,21 @@ export class DashFieldView {
                 }, icon: "expand-arrows-alt"
             });
         };
+        this._fieldSpan.onblur = function (e: any) {
+            let newText = self._fieldSpan.innerText.startsWith(":=") ? ":=-computed-" : self._fieldSpan.innerText;
+            // look for a document whose id === the fieldKey being displayed.  If there's a match, then that document
+            // holds the different enumerated values for the field in the titles of its collected documents.
+            // if there's a partial match from the start of the input text, complete the text --- TODO: make this an auto suggest box and select from a drop down.
+
+            // alternatively, if the text starts with a ':=' then treat it as an expression by making a computed field from its value storing it in the key
+            DocServer.GetRefField(node.attrs.fieldKey).then(options => {
+                (options instanceof Doc) && DocListCast(options.data).forEach(opt => StrCast(opt.title).startsWith(newText) && (newText = StrCast(opt.title)));
+                self._fieldSpan.innerHTML = self._dashDoc![self._fieldKey] = newText;
+                if (newText.startsWith(":=") && self._dashDoc && e.data === null && !e.inputType.includes("delete")) {
+                    Doc.Layout(tbox.props.Document)[self._fieldKey] = ComputedField.MakeFunction(self._fieldSpan.innerText.substring(2));
+                }
+            });
+        }
 
         const setDashDoc = (doc: Doc) => {
             self._dashDoc = doc;
@@ -916,19 +935,7 @@ export class DashFieldView {
                 if (e.ctrlKey) {
                     Doc.addEnumerationToTextField(self._textBoxDoc, node.attrs.fieldKey, [Docs.Create.TextDocument(self._fieldSpan.innerText, { title: self._fieldSpan.innerText })]);
                 }
-                let newText = self._fieldSpan.innerText.startsWith(":=") ? ":=-computed-" : self._fieldSpan.innerText;
-                // look for a document whose id === the fieldKey being displayed.  If there's a match, then that document
-                // holds the different enumerated values for the field in the titles of its collected documents.
-                // if there's a partial match from the start of the input text, complete the text --- TODO: make this an auto suggest box and select from a drop down.
-
-                // alternatively, if the text starts with a ':=' then treat it as an expression by making a computed field from its value storing it in the key
-                DocServer.GetRefField(node.attrs.fieldKey).then(options => {
-                    (options instanceof Doc) && DocListCast(options.data).forEach(opt => StrCast(opt.title).startsWith(newText) && (newText = StrCast(opt.title)));
-                    self._fieldSpan.innerHTML = self._dashDoc![self._fieldKey] = newText;
-                    if (newText.startsWith(":=") && self._dashDoc && e.data === null && !e.inputType.includes("delete")) {
-                        Doc.Layout(tbox.props.Document)[self._fieldKey] = ComputedField.MakeFunction(self._fieldSpan.innerText.substring(2));
-                    }
-                });
+                self._fieldSpan.onblur?.(undefined as any);
             }
         };
 
@@ -937,6 +944,21 @@ export class DashFieldView {
         this._labelSpan.style.display = "inline";
         this._labelSpan.style.fontWeight = "bold";
         this._labelSpan.style.fontSize = "larger";
+        this._labelSpan.onpointerdown = function (e: any) {
+            e.stopPropagation();
+            if (tbox.props.ContainingCollectionDoc) {
+                const alias = Doc.MakeAlias(tbox.props.ContainingCollectionDoc);
+                alias.viewType = CollectionViewType.Time;
+                let list = Cast(alias.schemaColumns, listSpec(SchemaHeaderField));
+                if (!list) {
+                    alias.schemaColumns = list = new List<SchemaHeaderField>();
+                }
+                list.map(c => c.heading).indexOf("#") === -1 && list.push(new SchemaHeaderField("#", "#f1efeb"));
+                list.map(c => c.heading).indexOf("text") === -1 && list.push(new SchemaHeaderField("text", "#f1efeb"));
+                alias._pivotField = "#";
+                tbox.props.addDocTab(alias, "onRight");
+            }
+        }
         this._labelSpan.innerHTML = `${node.attrs.fieldKey}: `;
         if (node.attrs.docid) {
             DocServer.GetRefField(node.attrs.docid).then(async dashDoc => dashDoc instanceof Doc && runInAction(() => setDashDoc(dashDoc)));

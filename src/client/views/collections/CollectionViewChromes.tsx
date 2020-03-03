@@ -166,7 +166,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
             this._viewSpecsOpen = true;
 
             //@ts-ignore
-            if (!e.target ?.classList[0] ?.startsWith("qs")) {
+            if (!e.target?.classList[0]?.startsWith("qs")) {
                 this.closeDatePicker();
             }
 
@@ -291,7 +291,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     @action
     protected drop(e: Event, de: DragManager.DropEvent): boolean {
         if (de.complete.docDragData && de.complete.docDragData.draggedDocuments.length) {
-            this._buttonizableCommands.filter(c => c.title === this._currentKey).map(c => c.immediate(de.complete.docDragData ?.draggedDocuments || []));
+            this._buttonizableCommands.filter(c => c.title === this._currentKey).map(c => c.immediate(de.complete.docDragData?.draggedDocuments || []));
             e.stopPropagation();
         }
         return true;
@@ -472,7 +472,7 @@ export class CollectionStackingViewChrome extends React.Component<CollectionView
     @observable private suggestions: string[] = [];
 
     @computed private get descending() { return BoolCast(this.props.CollectionView.props.Document.stackingHeadersSortDescending); }
-    @computed get sectionFilter() { return StrCast(this.props.CollectionView.props.Document.sectionFilter); }
+    @computed get pivotField() { return StrCast(this.props.CollectionView.props.Document._pivotField); }
 
     getKeySuggestions = async (value: string): Promise<string[]> => {
         value = value.toLowerCase();
@@ -510,26 +510,26 @@ export class CollectionStackingViewChrome extends React.Component<CollectionView
     }
 
     setValue = (value: string) => {
-        this.props.CollectionView.props.Document.sectionFilter = value;
+        this.props.CollectionView.props.Document._pivotField = value;
         return true;
     }
 
     @action toggleSort = () => { this.props.CollectionView.props.Document.stackingHeadersSortDescending = !this.props.CollectionView.props.Document.stackingHeadersSortDescending; };
-    @action resetValue = () => { this._currentKey = this.sectionFilter; };
+    @action resetValue = () => { this._currentKey = this.pivotField; };
 
     render() {
         return (
             <div className="collectionStackingViewChrome-cont">
-                <div className="collectionStackingViewChrome-sectionFilter-cont">
-                    <div className="collectionStackingViewChrome-sectionFilter-label">
+                <div className="collectionStackingViewChrome-pivotField-cont">
+                    <div className="collectionStackingViewChrome-pivotField-label">
                         GROUP ITEMS BY:
                     </div>
                     <div className="collectionStackingViewChrome-sortIcon" onClick={this.toggleSort} style={{ transform: `rotate(${this.descending ? "180" : "0"}deg)` }}>
                         <FontAwesomeIcon icon="caret-up" size="2x" color="white" />
                     </div>
-                    <div className="collectionStackingViewChrome-sectionFilter">
+                    <div className="collectionStackingViewChrome-pivotField">
                         <EditableView
-                            GetValue={() => this.sectionFilter}
+                            GetValue={() => this.pivotField}
                             autosuggestProps={
                                 {
                                     resetValue: this.resetValue,
@@ -551,7 +551,7 @@ export class CollectionStackingViewChrome extends React.Component<CollectionView
                                 }}
                             oneLine
                             SetValue={this.setValue}
-                            contents={this.sectionFilter ? this.sectionFilter : "N/A"}
+                            contents={this.pivotField ? this.pivotField : "N/A"}
                         />
                     </div>
                 </div>

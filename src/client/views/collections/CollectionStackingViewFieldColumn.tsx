@@ -23,7 +23,6 @@ import { CollectionStackingView } from "./CollectionStackingView";
 import { setupMoveUpEvents, emptyFunction } from "../../../Utils";
 import "./CollectionStackingView.scss";
 import { listSpec } from "../../../new_fields/Schema";
-import { Schema } from "prosemirror-model";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -62,7 +61,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
     @undoBatch
     columnDrop = action((e: Event, de: DragManager.DropEvent) => {
         if (de.complete.docDragData) {
-            const key = StrCast(this.props.parent.props.Document.sectionFilter);
+            const key = StrCast(this.props.parent.props.Document._pivotField);
             const castedValue = this.getValue(this._heading);
             de.complete.docDragData.droppedDocuments.forEach(d => Doc.SetInPlace(d, key, castedValue, false));
             this.props.parent.onInternalDrop(e, de);
@@ -85,7 +84,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
 
     @action
     headingChanged = (value: string, shiftDown?: boolean) => {
-        const key = StrCast(this.props.parent.props.Document.sectionFilter);
+        const key = StrCast(this.props.parent.props.Document._pivotField);
         const castedValue = this.getValue(value);
         if (castedValue) {
             if (this.props.parent.sectionHeaders) {
@@ -126,7 +125,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
     @action
     addDocument = (value: string, shiftDown?: boolean) => {
         if (!value) return false;
-        const key = StrCast(this.props.parent.props.Document.sectionFilter);
+        const key = StrCast(this.props.parent.props.Document._pivotField);
         const newDoc = Docs.Create.TextDocument(value, { _height: 18, _width: 200, title: value, _autoHeight: true });
         newDoc[key] = this.getValue(this.props.heading);
         const maxHeading = this.props.docList.reduce((maxHeading, doc) => NumCast(doc.heading) > maxHeading ? NumCast(doc.heading) : maxHeading, 0);
@@ -137,7 +136,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
 
     @action
     deleteColumn = () => {
-        const key = StrCast(this.props.parent.props.Document.sectionFilter);
+        const key = StrCast(this.props.parent.props.Document._pivotField);
         this.props.docList.forEach(d => d[key] = undefined);
         if (this.props.parent.sectionHeaders && this.props.headingObject) {
             const index = this.props.parent.sectionHeaders.indexOf(this.props.headingObject);
@@ -161,8 +160,8 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
     startDrag = (e: PointerEvent, down: number[], delta: number[]) => {
         const alias = Doc.MakeAlias(this.props.parent.props.Document);
         alias._width = this.props.parent.props.PanelWidth() / (Cast(this.props.parent.props.Document.sectionHeaders, listSpec(SchemaHeaderField))?.length || 1);
-        alias.sectionFilter = undefined;
-        const key = StrCast(this.props.parent.props.Document.sectionFilter);
+        alias._pivotField = undefined;
+        const key = StrCast(this.props.parent.props.Document._pivotField);
         let value = this.getValue(this._heading);
         value = typeof value === "string" ? `"${value}"` : value;
         alias.viewSpecScript = ScriptField.MakeFunction(`doc.${key} === ${value}`, { doc: Doc.name });
@@ -277,7 +276,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
     render() {
         TraceMobx();
         const cols = this.props.cols();
-        const key = StrCast(this.props.parent.props.Document.sectionFilter);
+        const key = StrCast(this.props.parent.props.Document._pivotField);
         let templatecols = "";
         const headings = this.props.headings();
         const heading = this._heading;

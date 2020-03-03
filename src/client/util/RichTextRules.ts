@@ -100,6 +100,16 @@ export class RichTextRules {
                     const fieldView = state.schema.nodes.dashField.create({ fieldKey, docid });
                     return state.tr.deleteRange(start, end).insert(start, fieldView);
                 }),
+            // create an inline view of a tag stored under the '#' field
+            new InputRule(
+                new RegExp(/#([a-zA-Z_\-0-9]+)\s$/),
+                (state, match, start, end) => {
+                    const tag = match[1];
+                    if (!tag) return state.tr;
+                    this.Document[DataSym]["#"] = tag;
+                    const fieldView = state.schema.nodes.dashField.create({ fieldKey: "#" });
+                    return state.tr.deleteRange(start, end).insert(start, fieldView);
+                }),
             // create an inline view of a document {{ <layoutKey> : <Doc> }}  // {{:Doc}} => show default view of document   {{<layout>}} => show layout for this doc   {{<layout> : Doc}} => show layout for another doc
             new InputRule(
                 new RegExp(/\{\{([a-zA-Z_ \-0-9]*)(:[a-zA-Z_ \-0-9]+)?\}\}$/),
