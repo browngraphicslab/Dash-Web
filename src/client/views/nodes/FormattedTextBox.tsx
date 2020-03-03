@@ -207,7 +207,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     }
 
     updateTitle = () => {
-        if ((this.props.Document.isTemplateForField === "data" || !this.props.Document.isTemplateForField) && // only update the title if the data document's data field is changing
+        if ((this.props.Document.isTemplateForField === "text" || !this.props.Document.isTemplateForField) && // only update the title if the data document's data field is changing
             StrCast(this.dataDoc.title).startsWith("-") && this._editorView && !this.Document.customTitle) {
             const str = this._editorView.state.doc.textContent;
             const titlestr = str.substr(0, Math.min(40, str.length));

@@ -73,21 +73,11 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     }
 
     get dataDoc() {
-        if (this.props.DataDoc === undefined && typeof Doc.LayoutField(this.props.Document) !== "string") {
-            // if there is no dataDoc (ie, we're not rendering a template layout), but this document has a layout document (not a layout string), 
-            // then we render the layout document as a template and use this document as the data context for the template layout.
-            const proto = Doc.GetProto(this.props.Document);
-            return proto instanceof Promise ? undefined : proto;
-        }
-        return this.props.DataDoc instanceof Promise ? undefined : this.props.DataDoc;
+        const proto = this.props.DataDoc || Doc.GetProto(this.props.Document);
+        return proto instanceof Promise ? undefined : proto;
     }
     get layoutDoc() {
-        if (this.props.LayoutDoc || (this.props.DataDoc === undefined && typeof Doc.LayoutField(this.props.Document) !== "string")) {
-            // if there is no dataDoc (ie, we're not rendering a template layout), but this document has a layout document (not a layout string), 
-            // then we render the layout document as a template and use this document as the data context for the template layout.
-            return Doc.expandTemplateLayout(this.props.LayoutDoc?.() || Doc.Layout(this.props.Document), this.props.Document);
-        }
-        return Doc.Layout(this.props.Document);
+        return Doc.expandTemplateLayout(this.props.LayoutDoc?.() || Doc.Layout(this.props.Document), this.props.Document);
     }
 
     CreateBindings(): JsxBindings {

@@ -449,12 +449,11 @@ export namespace Doc {
     }
 
     //
-    // Determines whether the combination of the layoutDoc and dataDoc represents
-    // a template relationship :  there is a dataDoc and it doesn't match the layoutDoc an
-    // the lyouatDoc's layout is layout string (not a document) 
+    // Determines whether the layout needs to be expanded (as a template).
+    // template expansion is rquired when the layout is a template doc/field and there's a datadoc which isn't equal to the layout template
     //
     export function WillExpandTemplateLayout(layoutDoc: Doc, dataDoc?: Doc) {
-        return (layoutDoc.isTemplateForField || layoutDoc.isTemplateDoc) && dataDoc && layoutDoc !== dataDoc && !(Doc.LayoutField(layoutDoc) instanceof Doc);
+        return (layoutDoc.isTemplateForField || layoutDoc.isTemplateDoc) && dataDoc && layoutDoc !== dataDoc;
     }
 
     //
@@ -610,7 +609,7 @@ export namespace Doc {
     export function MakeMetadataFieldTemplate(templateField: Doc, templateDoc: Opt<Doc>): boolean {
 
         // find the metadata field key that this template field doc will display (indicated by its title)
-        const metadataFieldKey = StrCast(templateField.title).replace(/^-/, "");
+        const metadataFieldKey = StrCast(templateField.isTemplateForField) || StrCast(templateField.title).replace(/^-/, "");
 
         // update the original template to mark it as a template
         templateField.isTemplateForField = metadataFieldKey;

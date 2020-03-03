@@ -43,15 +43,15 @@ export class CurrentUserUtils {
             Docs.Create.TextDocument("completed", { title: "completed", _backgroundColor: "green", color: "white" })
         ];
         const noteTemplates = [
-            Docs.Create.TextDocument("", { title: "Note", isTemplateDoc: true, backgroundColor: "yellow" }),
-            Docs.Create.TextDocument("", { title: "Idea", isTemplateDoc: true, backgroundColor: "pink" }),
-            Docs.Create.TextDocument("", { title: "Topic", isTemplateDoc: true, backgroundColor: "lightBlue" }),
-            Docs.Create.TextDocument("", { title: "Person", isTemplateDoc: true, backgroundColor: "lightGreen" }),
-            Docs.Create.TextDocument("", { title: "Todo", isTemplateDoc: true, backgroundColor: "orange", _autoHeight: false, _height: 100, _showCaption: "caption" })
+            Docs.Create.TextDocument("", { title: "text", style: "Note", isTemplateDoc: true, backgroundColor: "yellow" }),
+            Docs.Create.TextDocument("", { title: "text", style: "Idea", isTemplateDoc: true, backgroundColor: "pink" }),
+            Docs.Create.TextDocument("", { title: "text", style: "Topic", isTemplateDoc: true, backgroundColor: "lightBlue" }),
+            Docs.Create.TextDocument("", { title: "text", style: "Person", isTemplateDoc: true, backgroundColor: "lightGreen" }),
+            Docs.Create.TextDocument("", { title: "text", style: "Todo", isTemplateDoc: true, backgroundColor: "orange", _autoHeight: false, _height: 100, _showCaption: "caption" })
         ];
         doc.fieldTypes = Docs.Create.TreeDocument([], { title: "field enumerations" });
         Doc.enumeratedTextTemplate(Doc.GetProto(noteTemplates[4]), FormattedTextBox.LayoutString("Todo"), "taskStatus", taskStatusValues);
-        doc.noteTypes = new PrefetchProxy(Docs.Create.TreeDocument(noteTemplates.map(nt => makeTemplate(nt) ? nt : nt), { title: "Note Types", _height: 75 }));
+        doc.noteTypes = new PrefetchProxy(Docs.Create.TreeDocument(noteTemplates.map(nt => makeTemplate(nt, true, StrCast(nt.style)) ? nt : nt), { title: "Note Types", _height: 75 }));
     }
 
     // setup the "creator" buttons for the sidebar-- eg. the default set of draggable document creation tools
@@ -285,7 +285,8 @@ export class CurrentUserUtils {
             { _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, dropAction: "alias", onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'), dragFactory: slideTemplate, removeDropProperties: new List<string>(["dropAction"]), title: "presentation slide", icon: "sticky-note" });
         doc.descriptionBtn = Docs.Create.FontIconDocument(
             { _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, dropAction: "alias", onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'), dragFactory: descriptionTemplate, removeDropProperties: new List<string>(["dropAction"]), title: "description view", icon: "sticky-note" });
-        doc.expandingButtons = Docs.Create.LinearDocument([doc.undoBtn as Doc, doc.redoBtn as Doc, doc.slidesBtn as Doc, doc.descriptionBtn as Doc], {
+        doc.expandingButtons = Docs.Create.LinearDocument([doc.undoBtn as Doc, doc.redoBtn as Doc, doc.slidesBtn as Doc, doc.descriptionBtn as Doc,
+        ...DocListCast(Cast(doc.noteTypes, Doc, null))], {
             title: "expanding buttons", _gridGap: 5, _xMargin: 5, _yMargin: 5, _height: 42, _width: 100, boxShadow: "0 0",
             backgroundColor: "black", treeViewPreventOpen: true, forceActive: true, lockedPosition: true,
             dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name })

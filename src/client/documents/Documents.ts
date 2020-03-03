@@ -94,6 +94,7 @@ export interface DocumentOptions {
     layoutKey?: string;
     type?: string;
     title?: string;
+    style?: string;
     page?: number;
     scale?: number;
     isDisplayPanel?: boolean; // whether the panel functions as GoldenLayout "stack" used to display documents
@@ -183,7 +184,7 @@ export namespace Docs {
 
         const TemplateMap: TemplateMap = new Map([
             [DocumentType.TEXT, {
-                layout: { view: FormattedTextBox, dataField: data },
+                layout: { view: FormattedTextBox, dataField: "text" },
                 options: { _height: 150, _xMargin: 10, _yMargin: 10 }
             }],
             [DocumentType.HIST, {
@@ -442,7 +443,7 @@ export namespace Docs {
          * only when creating a DockDocument from the current user's already existing
          * main document.
          */
-        export function InstanceFromProto(proto: Doc, data: Field | undefined, options: DocumentOptions, delegId?: string) {
+        export function InstanceFromProto(proto: Doc, data: Field | undefined, options: DocumentOptions, delegId?: string, fieldKey: string = "data") {
             const { omit: protoProps, extract: delegateProps } = OmitKeys(options, delegateKeys);
 
             if (!("author" in protoProps)) {
@@ -455,7 +456,7 @@ export namespace Docs {
 
             protoProps.isPrototype = true;
 
-            const dataDoc = MakeDataDelegate(proto, protoProps, data);
+            const dataDoc = MakeDataDelegate(proto, protoProps, data, fieldKey);
             const viewDoc = Doc.MakeDelegate(dataDoc, delegId);
 
             AudioBox.ActiveRecordings.map(d => DocUtils.MakeLink({ doc: viewDoc }, { doc: d }, "audio link", "link to audio: " + d.title));
@@ -473,10 +474,10 @@ export namespace Docs {
          * @param options initial values to apply to this new delegate
          * @param value the data to store in this new delegate
          */
-        function MakeDataDelegate<D extends Field>(proto: Doc, options: DocumentOptions, value?: D) {
+        function MakeDataDelegate<D extends Field>(proto: Doc, options: DocumentOptions, value?: D, fieldKey: string = "data") {
             const deleg = Doc.MakeDelegate(proto);
             if (value !== undefined) {
-                deleg.data = value;
+                deleg[fieldKey] = value;
             }
             return Doc.assign(deleg, options);
         }
@@ -535,7 +536,7 @@ export namespace Docs {
         }
 
         export function TextDocument(text: string, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.TEXT), text, options);
+            return InstanceFromProto(Prototypes.get(DocumentType.TEXT), text, options, undefined, "text");
         }
 
         export function LinkDocument(source: { doc: Doc, ctx?: Doc }, target: { doc: Doc, ctx?: Doc }, options: DocumentOptions = {}, id?: string) {
@@ -929,7 +930,15 @@ export namespace DocUtils {
             description: "Add Note ...",
             subitems: DocListCast((Doc.UserDoc().noteTypes as Doc).data).map((note, i) => ({
                 description: ":" + StrCast(note.title),
-                event: (args: { x: number, y: number }) => docTextAdder(Docs.Create.TextDocument("", { _width: 200, x, y, _autoHeight: note._autoHeight !== false, layout: note, title: StrCast(note.title) + "#" + (note.aliasCount = NumCast(note.aliasCount) + 1) })),
+                event: (args: { x: number, y: number }) => {
+                    const textDoc = Docs.Create.TextDocument("", {
+                        _width: 200, x, y, _autoHeight: note._autoHeight !== false,
+                        title: StrCast(note.title) + "#" + (note.aliasCount = NumCast(note.aliasCount) + 1)
+                    });
+                    textDoc.layoutKey = "layout_" + note.title;
+                    textDoc[textDoc.layoutKey] = note;
+                    docTextAdder(textDoc);
+                },
                 icon: "eye"
             })) as ContextMenuProps[],
             icon: "eye"

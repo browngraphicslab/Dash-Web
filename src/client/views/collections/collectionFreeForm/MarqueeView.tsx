@@ -109,12 +109,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             FormattedTextBox.SelectOnLoadChar = FormattedTextBox.DefaultLayout ? e.key : "";
             this.props.addLiveTextDocument(
                 Docs.Create.TextDocument("", { _width: NumCast((FormattedTextBox.DefaultLayout as Doc)?._width) || 200, _height: 100, layout: FormattedTextBox.DefaultLayout, x: x, y: y, _autoHeight: true, title: "-typed text-" }));
-        } else if (e.keyCode > 48 && e.keyCode <= 57) {
-            const notes = DocListCast((CurrentUserUtils.UserDocument.noteTypes as Doc).data);
-            const text = Docs.Create.TextDocument("", { _width: 200, _height: 100, x: x, y: y, _autoHeight: true, title: "-typed text-" });
-            text.layout = notes[(e.keyCode - 49) % notes.length];
-            this.props.addLiveTextDocument(text);
-        }
+        } 
         e.stopPropagation();
     }
     //heuristically converts pasted text into a table.
