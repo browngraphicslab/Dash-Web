@@ -340,7 +340,7 @@ export class PresBox extends React.Component<FieldViewProps> {
         const funcs: ContextMenuProps[] = [];
         funcs.push({ description: "Show as Slideshow", event: action(() => this.props.Document._viewType = CollectionViewType.Carousel), icon: "asterisk" });
         funcs.push({ description: "Show as Timeline", event: action(() => this.props.Document._viewType = CollectionViewType.Time), icon: "asterisk" });
-        funcs.push({ description: "Show as List", event: action(() => this.props.Document._viewType = CollectionViewType.Invalid), icon: "asterisk" });
+        funcs.push({ description: "Show as List", event: action(() => { this.props.Document._viewType = CollectionViewType.Stacking; this.props.Document._pivotField = undefined; }), icon: "asterisk" });
         ContextMenu.Instance.addItem({ description: "Presentation Funcs...", subitems: funcs, icon: "asterisk" });
     }
 
@@ -377,6 +377,7 @@ export class PresBox extends React.Component<FieldViewProps> {
     viewChanged = action((e: React.ChangeEvent) => {
         //@ts-ignore
         this.props.Document._viewType = Number(e.target.selectedOptions[0].value);
+        this.props.Document._viewType === CollectionViewType.Stacking && (this.props.Document._pivotField = undefined);
         this.updateMinimize(e, Number(this.props.Document._viewType));
     });
 

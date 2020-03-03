@@ -55,7 +55,7 @@ export class DocumentManager {
     }
 
     public getDocumentViewById(id: string, preferredCollection?: CollectionView): DocumentView | undefined {
-
+        if (!id) return undefined;
         let toReturn: DocumentView | undefined;
         const passes = preferredCollection ? [preferredCollection, undefined] : [undefined];
 

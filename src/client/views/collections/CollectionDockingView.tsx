@@ -127,36 +127,22 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     @undoBatch
     @action
     public static CloseRightSplit(document: Opt<Doc>): boolean {
-        if (!CollectionDockingView.Instance) return false;
         const instance = CollectionDockingView.Instance;
-        let retVal = false;
-        if (instance._goldenLayout.root.contentItems[0].isRow) {
-            retVal = Array.from(instance._goldenLayout.root.contentItems[0].contentItems).some((child: any) => {
-                if (child.contentItems.length === 1 && child.contentItems[0].config.component === "DocumentFrameRenderer" &&
-                    DocumentManager.Instance.getDocumentViewById(child.contentItems[0].config.props.documentId) &&
-                    ((!document && DocumentManager.Instance.getDocumentViewById(child.contentItems[0].config.props.documentId)!.Document.isDisplayPanel) ||
-                        (document && Doc.AreProtosEqual(DocumentManager.Instance.getDocumentViewById(child.contentItems[0].config.props.documentId)!.Document, document)))) {
-                    child.contentItems[0].remove();
+        const tryClose = (childItem: any) => {
+            if (childItem.config?.component === "DocumentFrameRenderer") {
+                const docView = DocumentManager.Instance.getDocumentViewById(childItem.config.props.documentId);
+                if (docView && ((!document && docView.Document.isDisplayPanel) || (document && Doc.AreProtosEqual(docView.props.Document, document)))) {
+                    childItem.remove();
                     instance.layoutChanged(document);
                     return true;
-                } else {
-                    Array.from(child.contentItems).filter((tab: any) => tab.config.component === "DocumentFrameRenderer").some((tab: any, j: number) => {
-                        if (DocumentManager.Instance.getDocumentViewById(tab.config.props.documentId) &&
-                            ((!document && DocumentManager.Instance.getDocumentViewById(tab.config.props.documentId)!.Document.isDisplayPanel) ||
-                                (document && Doc.AreProtosEqual(DocumentManager.Instance.getDocumentViewById(tab.config.props.documentId)!.Document, document)))) {
-                            child.contentItems[j].remove();
-                            child.config.activeItemIndex = Math.max(child.contentItems.length - 1, 0);
-                            return true;
-                        }
-                        return false;
-                    });
                 }
-                return false;
-            });
+            }
+            return false;
         }
-        if (retVal) {
-            instance.stateChanged();
-        }
+        let retVal = !instance?._goldenLayout.root.contentItems[0].isRow ? false :
+            Array.from(instance._goldenLayout.root.contentItems[0].contentItems).some((child: any) => Array.from(child.contentItems).some(tryClose));
+
+        retVal && instance.stateChanged();
         return retVal;
     }
 
@@ -240,16 +226,16 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
 
 
     //
-    //  Creates a split on the any side of the docking view, based on the passed input pullSide and then adds the Document to the requested side
+    //  Creates a split on any side of the docking view based on the passed input pullSide and then adds the Document to the requested side
     //
     @undoBatch
     @action
-    public static AddSplit(document: Doc, pullSide: string, dataDoc: Doc | undefined, libraryPath?: Doc[]) {
+    public static AddSplit(document: Doc, pullSide: string, libraryPath?: Doc[]) {
         if (!CollectionDockingView.Instance) return false;
         const instance = CollectionDockingView.Instance;
         const newItemStackConfig = {
             type: 'stack',
-            content: [CollectionDockingView.makeDocumentConfig(document, dataDoc, undefined, libraryPath)]
+            content: [CollectionDockingView.makeDocumentConfig(document, undefined, libraryPath)]
         };
 
         const newContentItem = instance._goldenLayout.root.layoutManager.createContentItem(newItemStackConfig, instance._goldenLayout);

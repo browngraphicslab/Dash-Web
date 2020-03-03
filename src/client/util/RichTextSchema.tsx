@@ -940,10 +940,12 @@ export class DashFieldView {
         };
 
         this._labelSpan = document.createElement("span");
+        this._labelSpan.style.backgroundColor = "rgba(155, 155, 155, 0.44)";
         this._labelSpan.style.position = "relative";
         this._labelSpan.style.display = "inline";
         this._labelSpan.style.fontWeight = "bold";
         this._labelSpan.style.fontSize = "larger";
+        this._labelSpan.title = "click to see related tags";
         this._labelSpan.onpointerdown = function (e: any) {
             e.stopPropagation();
             if (tbox.props.ContainingCollectionDoc) {
@@ -953,9 +955,9 @@ export class DashFieldView {
                 if (!list) {
                     alias.schemaColumns = list = new List<SchemaHeaderField>();
                 }
-                list.map(c => c.heading).indexOf("#") === -1 && list.push(new SchemaHeaderField("#", "#f1efeb"));
+                list.map(c => c.heading).indexOf(self._fieldKey) === -1 && list.push(new SchemaHeaderField(self._fieldKey, "#f1efeb"));
                 list.map(c => c.heading).indexOf("text") === -1 && list.push(new SchemaHeaderField("text", "#f1efeb"));
-                alias._pivotField = "#";
+                alias._pivotField = self._fieldKey;
                 tbox.props.addDocTab(alias, "onRight");
             }
         }

@@ -701,25 +701,13 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     cleanUpInteractions = () => {
-
         switch (this._pullDirection) {
-
             case "left":
-                CollectionDockingView.AddSplit(Docs.Create.FreeformDocument([], { title: "New Collection" }), "left", undefined);
-                break;
             case "right":
-                CollectionDockingView.AddSplit(Docs.Create.FreeformDocument([], { title: "New Collection" }), "right", undefined);
-                break;
             case "top":
-                CollectionDockingView.AddSplit(Docs.Create.FreeformDocument([], { title: "New Collection" }), "top", undefined);
-                break;
             case "bottom":
-                CollectionDockingView.AddSplit(Docs.Create.FreeformDocument([], { title: "New Collection" }), "bottom", undefined);
-                break;
-            default:
-                break;
+                CollectionDockingView.AddSplit(Docs.Create.FreeformDocument([], { title: "New Collection" }), this._pullDirection);
         }
-        console.log("");
 
         this._pullDirection = "";
         this._pullCoords = [0, 0];
