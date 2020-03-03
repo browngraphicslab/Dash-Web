@@ -122,13 +122,11 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
                     if (this.view0 && linkDoc) {
                         const proto = Doc.GetProto(linkDoc);
                         proto.anchor1Context = this.view0.props.ContainingCollectionDoc;
+                        Doc.GetProto(linkDoc).linkRelationship = "hyperlink";
 
                         const anchor2Title = linkDoc.anchor2 instanceof Doc ? StrCast(linkDoc.anchor2.title) : "-untitled-";
                         const anchor2Id = linkDoc.anchor2 instanceof Doc ? linkDoc.anchor2[Id] : "";
                         const text = RichTextMenu.Instance.MakeLinkToSelection(linkDoc[Id], anchor2Title, e.ctrlKey ? "onRight" : "inTab", anchor2Id);
-                        if (linkDoc.anchor2 instanceof Doc && !proto.title) {
-                            proto.title = Doc.GetProto(linkDoc).title = ComputedField.MakeFunction('this.anchor1.title +" " + (this.linkRelationship||"to") +" "  + this.anchor2.title');
-                        }
                     }
                     linkDrag?.end();
                 },

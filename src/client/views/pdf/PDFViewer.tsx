@@ -211,7 +211,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
         await this.initialLoad();
 
         this._scrollTopReactionDisposer = reaction(() => Cast(this.props.Document._scrollTop, "number", null),
-            (stop) => (stop !== undefined) && this._mainCont.current && smoothScroll(500, this._mainCont.current, stop) , { fireImmediately: true });
+            (stop) => (stop !== undefined) && this._mainCont.current && smoothScroll(500, this._mainCont.current, stop), { fireImmediately: true });
         this._annotationReactionDisposer = reaction(
             () => DocListCast(this.dataDoc[this.props.fieldKey + "-annotations"]),
             annotations => annotations?.length && (this._annotations = annotations),
@@ -582,7 +582,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
             DragManager.StartPdfAnnoDrag([ele], new DragManager.PdfAnnoDragData(this.props.Document, annotationDoc, targetDoc), e.pageX, e.pageY, {
                 dragComplete: e => {
                     if (!e.aborted && e.annoDragData && !e.annoDragData.linkedToDoc) {
-                        const link = DocUtils.MakeLink({ doc: annotationDoc }, { doc: e.annoDragData.dropDocument, ctx: e.annoDragData.targetContext }, `Annotation from ${this.Document.title}`, "link from PDF");
+                        const link = DocUtils.MakeLink({ doc: annotationDoc }, { doc: e.annoDragData.dropDocument, ctx: e.annoDragData.targetContext }, "Annotation");
                         if (link) link.maximizeLocation = "onRight";
                     }
                 }

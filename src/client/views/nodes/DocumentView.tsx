@@ -569,8 +569,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             e.stopPropagation();
             de.complete.annoDragData.linkedToDoc = true;
 
-            DocUtils.MakeLink({ doc: de.complete.annoDragData.annotationDocument }, { doc: this.props.Document, ctx: this.props.ContainingCollectionDoc },
-                `Link from ${StrCast(de.complete.annoDragData.annotationDocument.title)}`);
+            DocUtils.MakeLink({ doc: de.complete.annoDragData.annotationDocument }, { doc: this.props.Document, ctx: this.props.ContainingCollectionDoc }, "link");
         }
         if (de.complete.docDragData) {
             if (de.complete.docDragData.applyAsTemplate) {
@@ -601,13 +600,14 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             // const views = docs.map(d => DocumentManager.Instance.getDocumentView(d)).filter(d => d).map(d => d as DocumentView);
             de.complete.linkDragData.linkSourceDocument !== this.props.Document &&
                 (de.complete.linkDragData.linkDocument = DocUtils.MakeLink({ doc: de.complete.linkDragData.linkSourceDocument },
-                    { doc: this.props.Document, ctx: this.props.ContainingCollectionDoc }, `link from ${de.complete.linkDragData.linkSourceDocument.title} to ${this.props.Document.title}`)); // TODODO this is where in text links get passed
+                    { doc: this.props.Document, ctx: this.props.ContainingCollectionDoc }, `link`)); // TODODO this is where in text links get passed
         }
     }
 
     @undoBatch
     @action
     public static unfreezeNativeDimensions(layoutDoc: Doc) {
+        m
         layoutDoc._nativeWidth = undefined;
         layoutDoc._nativeHeight = undefined;
     }
@@ -627,7 +627,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const portalLink = DocListCast(this.Document.links).find(d => d.anchor1 === this.props.Document);
         if (!portalLink) {
             const portal = Docs.Create.FreeformDocument([], { _width: (this.layoutDoc._width || 0) + 10, _height: this.layoutDoc._height || 0, title: StrCast(this.props.Document.title) + ".portal" });
-            DocUtils.MakeLink({ doc: this.props.Document, ctx: this.props.ContainingCollectionDoc }, { doc: portal }, "portal link", "portal link");
+            DocUtils.MakeLink({ doc: this.props.Document, ctx: this.props.ContainingCollectionDoc }, { doc: portal }, "portal to");
         }
         this.Document.isButton = true;
     }
@@ -1118,7 +1118,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const highlightStyles = ["solid", "dashed", "solid", "solid", "solid", "solid", "solid"];
         let highlighting = fullDegree && this.layoutDoc.type !== DocumentType.FONTICON && this.layoutDoc._viewType !== CollectionViewType.Linear;
         highlighting = highlighting && this.props.focus !== emptyFunction;  // bcz: hack to turn off highlighting onsidebar panel documents.  need to flag a document as not highlightable in a more direct way
-        return <div id={this.props.Document[Id]} className={`documentView-node${this.topMost ? "-topmost" : ""}`} ref={this._mainCont} onKeyDown={this.onKeyDown}
+        return <div className={`documentView-node${this.topMost ? "-topmost" : ""}`} ref={this._mainCont} onKeyDown={this.onKeyDown}
             onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
             onPointerEnter={e => Doc.BrushDoc(this.props.Document)} onPointerLeave={e => Doc.UnBrushDoc(this.props.Document)}
             style={{

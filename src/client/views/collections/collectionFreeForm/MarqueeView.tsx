@@ -109,7 +109,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             FormattedTextBox.SelectOnLoadChar = FormattedTextBox.DefaultLayout ? e.key : "";
             this.props.addLiveTextDocument(
                 Docs.Create.TextDocument("", { _width: NumCast((FormattedTextBox.DefaultLayout as Doc)?._width) || 200, _height: 100, layout: FormattedTextBox.DefaultLayout, x: x, y: y, _autoHeight: true, title: "-typed text-" }));
-        } 
+        }
         e.stopPropagation();
     }
     //heuristically converts pasted text into a table.
@@ -435,13 +435,14 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             d.page = -1;
             return d;
         });
-        const summary = Docs.Create.TextDocument("", { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2, _width: 200, _height: 200, _fitToBox: true, _showSidebar: true, title: "-summary-" });
+        const summary = Docs.Create.TextDocument("", { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2, _width: 200, _height: 200, _fitToBox: true, _showSidebar: true, title: "overview" });
         const portal = Doc.MakeAlias(summary);
-        Doc.GetProto(summary)["data-annotations"] = new List<Doc>(selected);
-        Doc.GetProto(summary).layout_portal = CollectionView.LayoutString("data-annotations");
+        Doc.GetProto(summary)[Doc.LayoutFieldKey(summary) + "-annotations"] = new List<Doc>(selected);
+        Doc.GetProto(summary).layout_portal = CollectionView.LayoutString(Doc.LayoutFieldKey(summary) + "-annotations");
         summary._backgroundColor = "#e2ad32";
         portal.layoutKey = "layout_portal";
-        DocUtils.MakeLink({ doc: summary, ctx: this.props.ContainingCollectionDoc }, { doc: portal }, "portal link", "portal link");
+        portal.title = "document collection";
+        DocUtils.MakeLink({ doc: summary, ctx: this.props.ContainingCollectionDoc }, { doc: portal }, "summarizing");
 
         this.props.addLiveTextDocument(summary);
         MarqueeOptionsMenu.Instance.fadeOut(true);

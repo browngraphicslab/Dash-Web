@@ -91,7 +91,7 @@ export class RichTextRules {
                             DocServer.GetRefField(docid).then(docx => {
                                 const target = ((docx instanceof Doc) && docx) || Docs.Create.FreeformDocument([], { title: docid, _width: 500, _height: 500, _LODdisable: true, }, docid);
                                 DocUtils.Publish(target, docid, returnFalse, returnFalse);
-                                DocUtils.MakeLink({ doc: this.Document }, { doc: target }, "portal link", "");
+                                DocUtils.MakeLink({ doc: this.Document }, { doc: target }, "portal to");
                             });
                             const link = state.schema.marks.link.create({ href: Utils.prepend("/doc/" + docid), location: "onRight", title: docid, targetId: docid });
                             return state.tr.deleteRange(end - 1, end).deleteRange(start, start + 2).addMark(start, end - 3, link);

@@ -72,6 +72,7 @@
                     margin-left:-2.55px;
                     background:gray;
                     border-radius: 100%;
+                    opacity:0.9;
                     background-color: transparent;
                     box-shadow: black 2px 2px 1px;
                     .docuLinkBox-cont {
@@ -98,7 +99,7 @@
                     }
                 }
                 .audiobox-linker:hover, .audiobox-linker-mini:hover {
-                    transform:scale(1.5);
+                    opacity:1;
                 }
                 .audiobox-marker-container, .audiobox-marker-minicontainer {
                     position:absolute;

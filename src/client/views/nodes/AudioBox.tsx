@@ -249,6 +249,7 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
                                     <div className={this.props.PanelHeight() < 32 ? "audiobox-marker-minicontainer" : "audiobox-marker-container"} key={l[Id]} style={{ left: `${linkTime / NumCast(this.dataDoc.duration, 1) * 100}%` }}>
                                         <div className={this.props.PanelHeight() < 32 ? "audioBox-linker-mini" : "audioBox-linker"} key={"linker" + i}>
                                             <DocumentView {...this.props} Document={l} layoutKey={Doc.LinkEndpoint(l, la2)}
+                                                ContainingCollectionDoc={this.props.Document}
                                                 parentActive={returnTrue} bringToFront={emptyFunction} zoomToScale={emptyFunction} getScale={returnOne}
                                                 backgroundColor={returnTransparent} />
                                         </div>

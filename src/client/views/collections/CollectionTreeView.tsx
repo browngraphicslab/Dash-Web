@@ -231,7 +231,7 @@ class TreeView extends React.Component<TreeViewProps> {
         if (de.complete.linkDragData) {
             const sourceDoc = de.complete.linkDragData.linkSourceDocument;
             const destDoc = this.props.document;
-            DocUtils.MakeLink({ doc: sourceDoc }, { doc: destDoc }, "tree drop link");
+            DocUtils.MakeLink({ doc: sourceDoc }, { doc: destDoc }, "tree link");
             e.stopPropagation();
         }
         if (de.complete.docDragData) {

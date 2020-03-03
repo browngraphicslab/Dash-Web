@@ -146,7 +146,7 @@ export default class RichTextMenu extends AntimodeMenu {
 
     public MakeLinkToSelection = (linkDocId: string, title: string, location: string, targetDocId: string): string => {
         if (this.view) {
-            const link = this.view.state.schema.marks.link.create({ href: Utils.prepend("/doc/" + linkDocId), title: title, location: location, targetId: targetDocId });
+            const link = this.view.state.schema.marks.link.create({ href: Utils.prepend("/doc/" + linkDocId), title: title, location: location, linkId: linkDocId, targetId: targetDocId });
             this.view.dispatch(this.view.state.tr.removeMark(this.view.state.selection.from, this.view.state.selection.to, this.view.state.schema.marks.link).
                 addMark(this.view.state.selection.from, this.view.state.selection.to, link));
             return this.view.state.selection.$from.nodeAfter?.text || "";

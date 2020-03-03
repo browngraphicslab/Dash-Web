@@ -459,7 +459,7 @@ export namespace Docs {
             const dataDoc = MakeDataDelegate(proto, protoProps, data, fieldKey);
             const viewDoc = Doc.MakeDelegate(dataDoc, delegId);
 
-            viewDoc.type !== DocumentType.LINK && AudioBox.ActiveRecordings.map(d => DocUtils.MakeLink({ doc: viewDoc }, { doc: d }, "audio link", "link to audio: " + d.title));
+            viewDoc.type !== DocumentType.LINK && AudioBox.ActiveRecordings.map(d => DocUtils.MakeLink({ doc: viewDoc }, { doc: d }, "audio link", "audio timeline"));
 
             return Doc.assign(viewDoc, delegateProps, true);
         }
@@ -914,13 +914,13 @@ export namespace DocUtils {
         });
     }
 
-    export function MakeLink(source: { doc: Doc, ctx?: Doc }, target: { doc: Doc, ctx?: Doc }, title: string = "", linkRelationship: string = "", id?: string) {
+    export function MakeLink(source: { doc: Doc, ctx?: Doc }, target: { doc: Doc, ctx?: Doc }, linkRelationship: string = "", id?: string) {
         const sv = DocumentManager.Instance.getDocumentView(source.doc);
         if (sv && sv.props.ContainingCollectionDoc === target.doc) return;
         if (target.doc === CurrentUserUtils.UserDocument) return undefined;
 
-        const linkDoc = Docs.Create.LinkDocument(source, target, { title, linkRelationship }, id);
-        Doc.GetProto(linkDoc).title = ComputedField.MakeFunction('this.anchor1.title +" " + (this.linkRelationship||"to") +" "  + this.anchor2.title');
+        const linkDoc = Docs.Create.LinkDocument(source, target, { linkRelationship }, id);
+        Doc.GetProto(linkDoc).title = ComputedField.MakeFunction('this.anchor1.title +" (" + (this.linkRelationship||"to") +") "  + this.anchor2.title');
 
         Doc.GetProto(source.doc).links = ComputedField.MakeFunction("links(this)");
         Doc.GetProto(target.doc).links = ComputedField.MakeFunction("links(this)");

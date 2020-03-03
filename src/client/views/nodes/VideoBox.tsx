@@ -134,7 +134,7 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
                     });
                     imageSummary.isButton = true;
                     this.props.addDocument && this.props.addDocument(imageSummary);
-                    DocUtils.MakeLink({ doc: imageSummary }, { doc: this.props.Document }, "snapshot from " + this.Document.title, "video frame snapshot");
+                    DocUtils.MakeLink({ doc: imageSummary }, { doc: this.props.Document }, "video snapshot");
                 }
             });
         }
