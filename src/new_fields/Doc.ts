@@ -7,7 +7,7 @@ import { Scripting, scriptingGlobal } from "../client/util/Scripting";
 import { afterDocDeserialize, autoObject, Deserializable, SerializationHelper } from "../client/util/SerializationHelper";
 import { UndoManager } from "../client/util/UndoManager";
 import { intersectRect } from "../Utils";
-import { HandleUpdate, Id, OnUpdate, Parent, Self, SelfProxy, ToScriptString, ToString, Update } from "./FieldSymbols";
+import { HandleUpdate, Id, OnUpdate, Parent, Self, SelfProxy, ToScriptString, ToString, Update, Copy } from "./FieldSymbols";
 import { List } from "./List";
 import { ObjectField } from "./ObjectField";
 import { PrefetchProxy, ProxyField } from "./Proxy";
@@ -15,7 +15,7 @@ import { FieldId, RefField } from "./RefField";
 import { RichTextField } from "./RichTextField";
 import { listSpec } from "./Schema";
 import { ComputedField } from "./ScriptField";
-import { Cast, FieldValue, NumCast, StrCast, ToConstructor } from "./Types";
+import { Cast, FieldValue, NumCast, StrCast, ToConstructor, ScriptCast } from "./Types";
 import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, updateFunction } from "./util";
 import { Docs } from "../client/documents/Documents";
 
@@ -574,7 +574,7 @@ export namespace Doc {
     let _applyCount: number = 0;
     export function ApplyTemplate(templateDoc: Doc) {
         if (templateDoc) {
-            const applied = ApplyTemplateTo(templateDoc, Doc.MakeDelegate(new Doc()), "layout", templateDoc.title + "(..." + _applyCount++ + ")");
+            const applied = ApplyTemplateTo(templateDoc, Doc.MakeDelegate(new Doc()), StrCast(templateDoc.layoutKey, "layout"), templateDoc.title + "(..." + _applyCount++ + ")");
             applied && (Doc.GetProto(applied).type = templateDoc.type);
             return applied;
         }
@@ -585,8 +585,8 @@ export namespace Doc {
             target.layout = undefined;
             target._nativeWidth = undefined;
             target._nativeHeight = undefined;
-            target.onClick = undefined;
             target.type = undefined;
+            target.onClick = undefined;
             return;
         }
 
@@ -597,6 +597,8 @@ export namespace Doc {
                 titleTarget && (Doc.GetProto(target).title = titleTarget);
                 Doc.GetProto(target)[targetKey] = new PrefetchProxy(templateDoc);
             }
+            const scriptField = ScriptCast(templateDoc.onClick);
+            scriptField && (target.onClick = scriptField[Copy]());
         }
         target.layoutKey = targetKey;
         return target;
@@ -615,7 +617,7 @@ export namespace Doc {
         templateField.isTemplateForField = metadataFieldKey;
         templateField.title = metadataFieldKey;
 
-        const templateFieldValue = templateField[metadataFieldKey] || templateField.data;
+        const templateFieldValue = templateField[metadataFieldKey] || templateField[Doc.LayoutFieldKey(templateField)];
         const templateCaptionValue = templateField.caption;
         // move any data that the template field had been rendering over to the template doc so that things will still be rendered
         // when the template field is adjusted to point to the new metadatafield key.
@@ -635,7 +637,7 @@ export namespace Doc {
         // get the layout string that the template uses to specify its layout
         const templateFieldLayoutString = StrCast(Doc.LayoutField(Doc.Layout(templateField)));
 
-        // change itto render the target metadata field instead of what it was rendering before and assign it to the template field layout document.
+        // change it to render the target metadata field instead of what it was rendering before and assign it to the template field layout document.
         Doc.Layout(templateField).layout = templateFieldLayoutString.replace(/fieldKey={'[^']*'}/, `fieldKey={'${metadataFieldKey}'}`);
 
         // assign the template field doc a delegate of any extension document that was previously used to render the template field (since extension doc's carry rendering informatino)

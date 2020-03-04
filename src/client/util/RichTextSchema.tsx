@@ -892,7 +892,7 @@ export class DashFieldView {
         }
         const updateText = (forceMatch: boolean) => {
             self._enumerables.style.display = "none";
-            let newText = self._fieldSpan.innerText.startsWith(":=") ? ":=-computed-" : self._fieldSpan.innerText;
+            let newText = self._fieldSpan.innerText.startsWith(":=") || self._fieldSpan.innerText.startsWith("=:=") ? ":=-computed-" : self._fieldSpan.innerText;
 
             // look for a document whose id === the fieldKey being displayed.  If there's a match, then that document
             // holds the different enumerated values for the field in the titles of its collected documents.
@@ -903,11 +903,15 @@ export class DashFieldView {
                 if (modText) {
                     self._fieldSpan.innerHTML = self._dashDoc![self._fieldKey] = modText;
                     Doc.addFieldEnumerations(self._textBoxDoc, node.attrs.fieldKey, []);
+                } else if (!self._fieldSpan.innerText.startsWith(":=") && !self._fieldSpan.innerText.startsWith("=:=")) {
+                    self._dashDoc![self._fieldKey] = newText;
                 }
 
                 // if the text starts with a ':=' then treat it as an expression by making a computed field from its value storing it in the key
-                if (newText.startsWith(":=") && self._dashDoc && e.data === null && !e.inputType.includes("delete")) {
-                    Doc.Layout(tbox.props.Document)[self._fieldKey] = ComputedField.MakeFunction(self._fieldSpan.innerText.substring(2));
+                if (self._fieldSpan.innerText.startsWith(":=") && self._dashDoc) {
+                    self._dashDoc![self._fieldKey] = ComputedField.MakeFunction(self._fieldSpan.innerText.substring(2));
+                } else if (self._fieldSpan.innerText.startsWith("=:=") && self._dashDoc) {
+                    Doc.Layout(tbox.props.Document)[self._fieldKey] = ComputedField.MakeFunction(self._fieldSpan.innerText.substring(3));
                 }
             });
         }
@@ -917,7 +921,7 @@ export class DashFieldView {
         this._fieldSpan.contentEditable = "true";
         this._fieldSpan.style.position = "relative";
         this._fieldSpan.style.display = "inline-block";
-        this._fieldSpan.style.minWidth = "5px";
+        this._fieldSpan.style.minWidth = "12px";
         this._fieldSpan.style.backgroundColor = "rgba(155, 155, 155, 0.24)";
         this._fieldSpan.onkeypress = function (e: any) { e.stopPropagation(); };
         this._fieldSpan.onkeyup = function (e: any) { e.stopPropagation(); };
@@ -983,7 +987,7 @@ export class DashFieldView {
         this._reactionDisposer = reaction(() => { // this reaction will update the displayed text whenever the document's fieldKey's value changes
             const dashVal = this._dashDoc?.[node.attrs.fieldKey];
             return StrCast(dashVal).startsWith(":=") || !dashVal ? Doc.Layout(tbox.props.Document)[this._fieldKey] : dashVal;
-        }, fval => this._fieldSpan.innerHTML = Field.toString(fval as Field) || "(null)", { fireImmediately: true });
+        }, fval => this._fieldSpan.innerHTML = Field.toString(fval as Field) || "", { fireImmediately: true });
 
         this._fieldWrapper.appendChild(this._labelSpan);
         this._fieldWrapper.appendChild(this._fieldSpan);
