@@ -282,8 +282,7 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
                                                 backgroundColor={returnTransparent} />
                                         </div>
                                         <div key={i} className="audiobox-marker" onPointerEnter={() => Doc.linkFollowHighlight(la1)}
-                                            onPointerDown={e => { if (e.button === 0 && !e.ctrlKey) { this.playFrom(linkTime); e.stopPropagation(); } }}
-                                            onClick={e => { if (e.button === 0 && !e.ctrlKey) { this.pause(); e.stopPropagation(); } }} />
+                                            onPointerDown={e => { if (e.button === 0 && !e.ctrlKey) { const wasPaused = this.audioState === "paused"; this.playFrom(linkTime); wasPaused && this.pause(); e.stopPropagation(); } }} />
                                     </div>;
                             })}
                             <div className="audiobox-current" style={{ left: `${NumCast(this.Document.currentTimecode) / NumCast(this.dataDoc.duration, 1) * 100}%` }} />

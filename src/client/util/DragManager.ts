@@ -7,13 +7,14 @@ import { DocumentManager } from "./DocumentManager";
 import { LinkManager } from "./LinkManager";
 import { SelectionManager } from "./SelectionManager";
 import { SchemaHeaderField } from "../../new_fields/SchemaHeaderField";
-import { Docs } from "../documents/Documents";
+import { Docs, DocUtils } from "../documents/Documents";
 import { ScriptField } from "../../new_fields/ScriptField";
 import { List } from "../../new_fields/List";
 import { PrefetchProxy } from "../../new_fields/Proxy";
 import { listSpec } from "../../new_fields/Schema";
 import { Scripting } from "./Scripting";
 import { convertDropDataToButtons } from "./DropConverter";
+import { AudioBox } from "../views/nodes/AudioBox";
 
 export type dropActionType = "alias" | "copy" | undefined;
 export function SetupDrag(
@@ -190,9 +191,13 @@ export namespace DragManager {
 
     // drag a document and drop it (or make an alias/copy on drop)
     export function StartDocumentDrag(eles: HTMLElement[], dragData: DocumentDragData, downX: number, downY: number, options?: DragOptions) {
+        const addAudioTag = (dropDoc: any) => {
+            dropDoc instanceof Doc && AudioBox.ActiveRecordings.map(d => DocUtils.MakeLink({ doc: dropDoc }, { doc: d }, "audio link", "audio timeline"));
+            return dropDoc;
+        }
         const finishDrag = (e: DragCompleteEvent) => {
             e.docDragData && (e.docDragData.droppedDocuments =
-                dragData.draggedDocuments.map(d => !dragData.isSelectionMove && !dragData.userDropAction && ScriptCast(d.onDragStart) ? ScriptCast(d.onDragStart).script.run({ this: d }).result :
+                dragData.draggedDocuments.map(d => !dragData.isSelectionMove && !dragData.userDropAction && ScriptCast(d.onDragStart) ? addAudioTag(ScriptCast(d.onDragStart).script.run({ this: d }).result) :
                     dragData.userDropAction === "alias" || (!dragData.userDropAction && dragData.dropAction === "alias") ? Doc.MakeAlias(d) :
                         dragData.userDropAction === "copy" || (!dragData.userDropAction && dragData.dropAction === "copy") ? Doc.MakeCopy(d, true) : d)
             );
