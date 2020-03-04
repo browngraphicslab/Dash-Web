@@ -1,6 +1,6 @@
 import React = require("react");
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faArrowLeft, faArrowRight, faEdit, faMinus, faPlay, faPlus, faStop, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faArrowLeft, faArrowRight, faEdit, faMinus, faPlay, faPlus, faStop, faHandPointLeft, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
@@ -24,6 +24,7 @@ library.add(faArrowLeft);
 library.add(faArrowRight);
 library.add(faPlay);
 library.add(faStop);
+library.add(faHandPointLeft);
 library.add(faPlus);
 library.add(faTimes);
 library.add(faMinus);

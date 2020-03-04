@@ -511,7 +511,7 @@ export const marks: { [index: string]: MarkSpec } = {
     user_mark: {
         attrs: {
             userid: { default: "" },
-            modified: { default: "when?" }, // 5 second intervals since 1970
+            modified: { default: "when?" }, // 1 second intervals since 1970
         },
         group: "inline",
         toDOM(node: any) {
@@ -527,7 +527,7 @@ export const marks: { [index: string]: MarkSpec } = {
     user_tag: {
         attrs: {
             userid: { default: "" },
-            modified: { default: "when?" }, // 5 second intervals since 1970
+            modified: { default: "when?" }, // 1 second intervals since 1970
             tag: { default: "" }
         },
         group: "inline",

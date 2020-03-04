@@ -859,6 +859,7 @@ export namespace Doc {
         const targetDoc = doc && Doc.GetProto(Cast(doc.expandedTemplate, Doc, null) || doc);
         targetDoc && (targetDoc.backgroundColor = ComputedField.MakeFunction(`options.data.find(doc => doc.title === (this.expandedTemplate||this)["${enumeratedFieldKey}"])?._backgroundColor || "white"`, undefined, { options }));
         targetDoc && (targetDoc.color = ComputedField.MakeFunction(`options.data.find(doc => doc.title === (this.expandedTemplate||this)["${enumeratedFieldKey}"]).color || "black"`, undefined, { options }));
+        targetDoc && (targetDoc.color = ComputedField.MakeFunction(`options.data.find(doc => doc.title === (this.expandedTemplate||this)["${enumeratedFieldKey}"]).borderRounding`, undefined, { options }));
         enumerations.map(enumeration => {
             const found = DocListCast(options.data).find(d => d.title === enumeration.title);
             if (found) {
