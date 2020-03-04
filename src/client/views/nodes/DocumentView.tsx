@@ -518,28 +518,20 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (doc[customName] === undefined) {
             const _width = NumCast(doc._width);
             const _height = NumCast(doc._height);
-            const options = { title: "data", _width, x: -_width / 2, y: - _height / 2, _showSidebar: false };
+            const options = { title: "data", backgroundColor: StrCast(doc.backgroundColor), _autoHeight: true, _width, x: -_width / 2, y: - _height / 2, _showSidebar: false };
 
-            const field = doc.data;
             let fieldTemplate: Opt<Doc>;
-            if (field instanceof RichTextField || typeof (field) === "string") {
+            if (doc.data instanceof RichTextField || typeof (doc.data) === "string") {
                 fieldTemplate = Docs.Create.TextDocument("", options);
-            } else if (field instanceof PdfField) {
+            } else if (doc.data instanceof PdfField) {
                 fieldTemplate = Docs.Create.PdfDocument("http://www.msn.com", options);
-            } else if (field instanceof VideoField) {
+            } else if (doc.data instanceof VideoField) {
                 fieldTemplate = Docs.Create.VideoDocument("http://www.cs.brown.edu", options);
-            } else if (field instanceof AudioField) {
+            } else if (doc.data instanceof AudioField) {
                 fieldTemplate = Docs.Create.AudioDocument("http://www.cs.brown.edu", options);
-            } else if (field instanceof ImageField) {
+            } else if (doc.data instanceof ImageField) {
                 fieldTemplate = Docs.Create.ImageDocument("http://www.cs.brown.edu", options);
             }
-
-            if (fieldTemplate) {
-                fieldTemplate.backgroundColor = doc.backgroundColor;
-                fieldTemplate.heading = 1;
-                fieldTemplate._autoHeight = true;
-            }
-
             const docTemplate = docLayoutTemplate || creator(fieldTemplate ? [fieldTemplate] : [], { title: customName + "(" + doc.title + ")", isTemplateDoc: true, _width: _width + 20, _height: Math.max(100, _height + 45) });
 
             fieldTemplate && Doc.MakeMetadataFieldTemplate(fieldTemplate, Doc.GetProto(docTemplate));
@@ -607,7 +599,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @undoBatch
     @action
     public static unfreezeNativeDimensions(layoutDoc: Doc) {
-        m
         layoutDoc._nativeWidth = undefined;
         layoutDoc._nativeHeight = undefined;
     }
@@ -939,12 +930,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     onPointerEnter = (e: React.PointerEvent): void => { Doc.BrushDoc(this.props.Document); };
     onPointerLeave = (e: React.PointerEvent): void => { Doc.UnBrushDoc(this.props.Document); };
 
-    // the document containing the view layout information - will be the Document itself unless the Document has
-    // a layout field.  In that case, all layout information comes from there unless overriden by Document
-    get layoutDoc(): Document {
-        return Document(Doc.Layout(this.props.Document));
-    }
-
     // does Document set a layout prop
     // does Document set a layout prop 
     setsLayoutProp = (prop: string) => this.props.Document[prop] !== this.props.Document["default" + prop[0].toUpperCase() + prop.slice(1)] && this.props.Document["default" + prop[0].toUpperCase() + prop.slice(1)];
@@ -1146,8 +1131,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 }
 
-Scripting.addGlobal(function toggleDetail(doc: any, layoutKey: string) {
+Scripting.addGlobal(function toggleDetail(doc: any, layoutKey: string, otherKey: string="layout") {
     const dv = DocumentManager.Instance.getDocumentView(doc);
-    if (dv?.props.Document.layoutKey === layoutKey) dv?.switchViews(false, "");
+    if (dv?.props.Document.layoutKey === layoutKey) dv?.switchViews(otherKey !== "layout", otherKey.replace("layout_", ""));
     else dv?.switchViews(true, layoutKey.replace("layout_", ""));
 });
