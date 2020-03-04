@@ -847,40 +847,23 @@ export namespace Doc {
         return id;
     }
 
-    // setup a document to use enumerated values for a specified field name:
-    //  doc: text document
-    //  layoutString: species which text field receives the document's main text (e.g., FormattedTextBox.LayoutString("Todo") )
-    //  enumeratedFieldKey : specifies which enumerated field of the document is displayed in the caption (e.g., taskStatus)
-    //  captionKey: specifies which field holds the caption template (e.g., caption) -- ideally this wouldn't be needed but would be derived from the layoutString's target field key
-    //
-    export function enumeratedTextTemplate(doc: Doc, layoutString: string, enumeratedFieldKey: string, enumeratedDocs: Doc[], captionKey: string = "caption") {
-        doc.caption = RichTextField.DashField(enumeratedFieldKey);
-        doc._showCaption = captionKey;
-        doc.layout = layoutString;
-
-        Doc.addEnumerationToTextField(doc, enumeratedFieldKey, enumeratedDocs);
-    }
-
-    export async function getEnumerationTextField(enumeratedFieldKey: string) {
-        return (await DocServer.GetRefField(enumeratedFieldKey)) as Doc;
-    }
-
-    export async function addEnumerationToTextField(doc: Opt<Doc>, enumeratedFieldKey: string, enumeratedDocs: Doc[]) {
+    export async function addFieldEnumerations(doc: Opt<Doc>, enumeratedFieldKey: string, enumerations: { title: string, _backgroundColor?: string, color?: string }[]) {
         let optionsCollection = await DocServer.GetRefField(enumeratedFieldKey);
         if (!(optionsCollection instanceof Doc)) {
             optionsCollection = Docs.Create.StackingDocument([], { title: `${enumeratedFieldKey} field set` }, enumeratedFieldKey);
             Doc.AddDocToList((Doc.UserDoc().fieldTypes as Doc), "data", optionsCollection as Doc);
         }
         const options = optionsCollection as Doc;
-        doc && (Doc.GetProto(doc).backgroundColor = ComputedField.MakeFunction(`options.data.find(doc => doc.title === (this.expandedTemplate||this).${enumeratedFieldKey})?._backgroundColor || "white"`, undefined, { options }));
-        doc && (Doc.GetProto(doc).color = ComputedField.MakeFunction(`options.data.find(doc => doc.title === (this.expandedTemplate||this).${enumeratedFieldKey}).color || "black"`, undefined, { options }));
-        enumeratedDocs.map(enumeratedDoc => {
-            const found = DocListCast(options.data).find(d => d.title === enumeratedDoc.title);
+        const targetDoc = doc && Doc.GetProto(Cast(doc.expandedTemplate, Doc, null) || doc);
+        targetDoc && (targetDoc.backgroundColor = ComputedField.MakeFunction(`options.data.find(doc => doc.title === (this.expandedTemplate||this)["${enumeratedFieldKey}"])?._backgroundColor || "white"`, undefined, { options }));
+        targetDoc && (targetDoc.color = ComputedField.MakeFunction(`options.data.find(doc => doc.title === (this.expandedTemplate||this)["${enumeratedFieldKey}"]).color || "black"`, undefined, { options }));
+        enumerations.map(enumeration => {
+            const found = DocListCast(options.data).find(d => d.title === enumeration.title);
             if (found) {
-                found._backgroundColor = enumeratedDoc._backgroundColor || found._backgroundColor;
-                found._color = enumeratedDoc._color || found._color;
+                found._backgroundColor = enumeration._backgroundColor || found._backgroundColor;
+                found._color = enumeration.color || found._color;
             } else {
-                Doc.AddDocToList(options, "data", enumeratedDoc);
+                Doc.AddDocToList(options, "data", Docs.Create.TextDocument(enumeration.title, enumeration));
             }
         });
         return optionsCollection;

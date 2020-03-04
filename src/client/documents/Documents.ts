@@ -108,6 +108,7 @@ export interface DocumentOptions {
     _backgroundColor?: string | ScriptField; // background color for each template layout doc ( overrides backgroundColor )
     color?: string; // foreground color data doc
     _color?: string;  // foreground color for each template layout doc (overrides color)
+    caption?: RichTextField;
     ignoreClick?: boolean;
     lockedPosition?: boolean; // lock the x,y coordinates of the document so that it can't be dragged
     lockedTransform?: boolean; // lock the panx,pany and scale parameters of the document so that it be panned/zoomed

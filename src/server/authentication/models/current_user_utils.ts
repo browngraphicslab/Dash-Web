@@ -37,20 +37,20 @@ export class CurrentUserUtils {
     @observable public static GuestMobile: Doc | undefined;
 
     static setupDefaultDocTemplates(doc: Doc, buttons?: string[]) {
-        const taskStatusValues = [
-            Docs.Create.TextDocument("todo", { title: "todo", _backgroundColor: "blue", color: "white" }),
-            Docs.Create.TextDocument("in progress", { title: "in progress", _backgroundColor: "yellow", color: "black" }),
-            Docs.Create.TextDocument("completed", { title: "completed", _backgroundColor: "green", color: "white" })
+        const taskStatusValues = [  { title: "todo", _backgroundColor: "blue", color: "white" },
+                                    { title: "in progress", _backgroundColor: "yellow", color: "black" },
+                                    { title: "completed", _backgroundColor: "green", color: "white" }
         ];
         const noteTemplates = [
             Docs.Create.TextDocument("", { title: "text", style: "Note", isTemplateDoc: true, backgroundColor: "yellow" }),
             Docs.Create.TextDocument("", { title: "text", style: "Idea", isTemplateDoc: true, backgroundColor: "pink" }),
             Docs.Create.TextDocument("", { title: "text", style: "Topic", isTemplateDoc: true, backgroundColor: "lightBlue" }),
             Docs.Create.TextDocument("", { title: "text", style: "Person", isTemplateDoc: true, backgroundColor: "lightGreen" }),
-            Docs.Create.TextDocument("", { title: "text", style: "Todo", isTemplateDoc: true, backgroundColor: "orange", _autoHeight: false, _height: 100, _showCaption: "caption" })
+            Docs.Create.TextDocument("", { title: "text", style: "Todo", isTemplateDoc: true, backgroundColor: "orange",_autoHeight: false, 
+                layout:FormattedTextBox.LayoutString("Todo"), _height: 100, _showCaption: "caption",caption: RichTextField.DashField("taskStatus") })
         ];
         doc.fieldTypes = Docs.Create.TreeDocument([], { title: "field enumerations" });
-        Doc.enumeratedTextTemplate(Doc.GetProto(noteTemplates[4]), FormattedTextBox.LayoutString("Todo"), "taskStatus", taskStatusValues);
+        Doc.addFieldEnumerations(Doc.GetProto(noteTemplates[4]), "taskStatus", taskStatusValues);
         doc.noteTypes = new PrefetchProxy(Docs.Create.TreeDocument(noteTemplates.map(nt => makeTemplate(nt, true, StrCast(nt.style)) ? nt : nt), { title: "Note Types", _height: 75 }));
     }
 
@@ -268,9 +268,9 @@ export class CurrentUserUtils {
             ],
             { _width: 400, _height: 300, title: "slideView", _chromeStatus: "disabled", _xMargin: 3, _yMargin: 3, _autoHeight: false });
         slideTemplate.isTemplateDoc = makeTemplate(slideTemplate);
-        const descriptionTemplate = Docs.Create.TextDocument("", { title: "descriptionView", _height: 100, _showTitle: "title" });
+        const descriptionTemplate = Docs.Create.TextDocument("", { title: "text", _height: 100, _showTitle: "title" });
         Doc.GetProto(descriptionTemplate).layout = FormattedTextBox.LayoutString("description");
-        descriptionTemplate.isTemplateDoc = makeTemplate(descriptionTemplate);
+        descriptionTemplate.isTemplateDoc = makeTemplate(descriptionTemplate, true, "descriptionView");
 
         const iconDoc = Docs.Create.TextDocument("", { title: "icon", _width: 150, _height: 30, isTemplateDoc: true, onClick: ScriptField.MakeScript("setNativeView(this)") });
         Doc.GetProto(iconDoc).data = new RichTextField('{"doc":{"type":"doc","content":[{"type":"paragraph","attrs":{"align":null,"color":null,"id":null,"indent":null,"inset":null,"lineSpacing":null,"paddingBottom":null,"paddingTop":null},"content":[{"type":"dashField","attrs":{"fieldKey":"title","docid":""}}]}]},"selection":{"type":"text","anchor":2,"head":2},"storedMarks":[]}', "");

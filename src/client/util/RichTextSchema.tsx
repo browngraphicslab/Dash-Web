@@ -887,8 +887,29 @@ export class DashFieldView {
 
         this._enumerables.onpointerdown = async (e) => {
             e.stopPropagation();
-            const collview = await Doc.addEnumerationToTextField(self._textBoxDoc, node.attrs.fieldKey, [Docs.Create.TextDocument(self._fieldSpan.innerText, { title: self._fieldSpan.innerText })]);
+            const collview = await Doc.addFieldEnumerations(self._textBoxDoc, node.attrs.fieldKey, [{ title: self._fieldSpan.innerText }]);
             collview instanceof Doc && tbox.props.addDocTab(collview, "onRight");
+        }
+        const updateText = (forceMatch: boolean) => {
+            self._enumerables.style.display = "none";
+            let newText = self._fieldSpan.innerText.startsWith(":=") ? ":=-computed-" : self._fieldSpan.innerText;
+
+            // look for a document whose id === the fieldKey being displayed.  If there's a match, then that document
+            // holds the different enumerated values for the field in the titles of its collected documents.
+            // if there's a partial match from the start of the input text, complete the text --- TODO: make this an auto suggest box and select from a drop down.
+            DocServer.GetRefField(node.attrs.fieldKey).then(options => {
+                let modText = "";
+                (options instanceof Doc) && DocListCast(options.data).forEach(opt => (forceMatch ? StrCast(opt.title).startsWith(newText) : StrCast(opt.title) === newText) && (modText = StrCast(opt.title)));
+                if (modText) {
+                    self._fieldSpan.innerHTML = self._dashDoc![self._fieldKey] = modText;
+                    Doc.addFieldEnumerations(self._textBoxDoc, node.attrs.fieldKey, []);
+                }
+
+                // if the text starts with a ':=' then treat it as an expression by making a computed field from its value storing it in the key
+                if (newText.startsWith(":=") && self._dashDoc && e.data === null && !e.inputType.includes("delete")) {
+                    Doc.Layout(tbox.props.Document)[self._fieldKey] = ComputedField.MakeFunction(self._fieldSpan.innerText.substring(2));
+                }
+            });
         }
 
         this._fieldSpan = document.createElement("div");
@@ -900,40 +921,13 @@ export class DashFieldView {
         this._fieldSpan.style.backgroundColor = "rgba(155, 155, 155, 0.24)";
         this._fieldSpan.onkeypress = function (e: any) { e.stopPropagation(); };
         this._fieldSpan.onkeyup = function (e: any) { e.stopPropagation(); };
-        this._fieldSpan.onmousedown = function (e: any) {
-            e.stopPropagation();
-            self._enumerables.style.display = "inline-block";
-        };
-        this._fieldSpan.oncontextmenu = function (e: any) {
-            ContextMenu.Instance.addItem({
-                description: "Show Enumeration Templates", event: () => {
-                    e.stopPropagation();
-                    DocServer.GetRefField(node.attrs.fieldKey).then(collview => collview instanceof Doc && tbox.props.addDocTab(collview, "onRight"));
-                }, icon: "expand-arrows-alt"
-            });
-        };
-        this._fieldSpan.onblur = function (e: any) {
-            self._enumerables.style.display = "none";
-            let newText = self._fieldSpan.innerText.startsWith(":=") ? ":=-computed-" : self._fieldSpan.innerText;
-
-            // look for a document whose id === the fieldKey being displayed.  If there's a match, then that document
-            // holds the different enumerated values for the field in the titles of its collected documents.
-            // if there's a partial match from the start of the input text, complete the text --- TODO: make this an auto suggest box and select from a drop down.
-            DocServer.GetRefField(node.attrs.fieldKey).then(options => {
-                (options instanceof Doc) && DocListCast(options.data).forEach(opt => StrCast(opt.title).startsWith(newText) && (newText = StrCast(opt.title)));
-                self._fieldSpan.innerHTML = self._dashDoc![self._fieldKey] = newText;
-
-                // if the text starts with a ':=' then treat it as an expression by making a computed field from its value storing it in the key
-                if (newText.startsWith(":=") && self._dashDoc && e.data === null && !e.inputType.includes("delete")) {
-                    Doc.Layout(tbox.props.Document)[self._fieldKey] = ComputedField.MakeFunction(self._fieldSpan.innerText.substring(2));
-                }
-            });
-        }
+        this._fieldSpan.onmousedown = function (e: any) { e.stopPropagation(); self._enumerables.style.display = "inline-block"; };
+        this._fieldSpan.onblur = function (e: any) { updateText(false); }
 
         const setDashDoc = (doc: Doc) => {
             self._dashDoc = doc;
-            if (this._dashDoc && self._options?.length && !this._dashDoc[node.attrs.fieldKey]) {
-                this._dashDoc[node.attrs.fieldKey] = StrCast(self._options[0].title);
+            if (self._dashDoc && self._options?.length && !self._dashDoc[node.attrs.fieldKey]) {
+                self._dashDoc[node.attrs.fieldKey] = StrCast(self._options[0].title);
             }
         }
         this._fieldSpan.onkeydown = function (e: any) {
@@ -949,10 +943,8 @@ export class DashFieldView {
             }
             if (e.key === "Enter") {
                 e.preventDefault();
-                if (e.ctrlKey) {
-                    Doc.addEnumerationToTextField(self._textBoxDoc, node.attrs.fieldKey, [Docs.Create.TextDocument(self._fieldSpan.innerText, { title: self._fieldSpan.innerText })]);
-                }
-                self._fieldSpan.onblur?.(undefined as any);
+                e.ctrlKey && Doc.addFieldEnumerations(self._textBoxDoc, node.attrs.fieldKey, [{ title: self._fieldSpan.innerText }]);
+                updateText(true);
             }
         };
 
@@ -997,6 +989,7 @@ export class DashFieldView {
         this._fieldWrapper.appendChild(this._fieldSpan);
         this._fieldWrapper.appendChild(this._enumerables);
         (this as any).dom = this._fieldWrapper;
+        updateText(false);
     }
     destroy() {
         this._reactionDisposer?.();

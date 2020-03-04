@@ -341,7 +341,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         if (value && this.sectionHeaders) {
             const schemaHdrField = new SchemaHeaderField(value);
             this.sectionHeaders.push(schemaHdrField);
-            Doc.addEnumerationToTextField(undefined, this.pivotField, [Docs.Create.TextDocument(value, { title: value, _backgroundColor: schemaHdrField.color })]);
+            Doc.addFieldEnumerations(undefined, this.pivotField, [{ title: value, _backgroundColor: schemaHdrField.color }]);
             return true;
         }
         return false;
