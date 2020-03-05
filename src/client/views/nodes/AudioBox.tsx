@@ -129,7 +129,6 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
     }
 
     recordAudioAnnotation = () => {
-        let gumStream: any;
         const self = this;
         navigator.mediaDevices.getUserMedia({
             audio: true
