@@ -78,7 +78,8 @@ export namespace DashUploadUtils {
                 }
             case "audio":
                 if (audioFormats.includes(format)) {
-                    return UploadAudio(file);
+                    console.log("1");
+                    return MoveParsedFile(file, Directory.audio);
                 }
         }
 
@@ -86,16 +87,9 @@ export namespace DashUploadUtils {
         return { source: file, result: new Error(`Could not upload unsupported file (${name}) with upload type (${type}).`) };
     }
 
-    async function uploadAudio(file: File) {
+    async function UploadAudio(file: File) {
         const { path: sourcePath } = file;
-        const dataBuffer = readFileSync(sourcePath);
 
-        await new Promise<void>((resolve, reject) => {
-            const name = path.basename(sourcePath);
-            const audioFilename = `${name.substring(0, name.length - 4)}.mp3`;
-            const writeStream = createWriteStream(serverPathToFile(Directory.audio, audioFilename));
-            writeStream.write(result.text, error => error ? reject(error) : resolve());
-        });
         return MoveParsedFile(file, Directory.audio);
     }
 
@@ -109,6 +103,7 @@ export namespace DashUploadUtils {
             const writeStream = createWriteStream(serverPathToFile(Directory.text, textFilename));
             writeStream.write(result.text, error => error ? reject(error) : resolve());
         });
+        console.log(MoveParsedFile(file, Directory.pdfs));
         return MoveParsedFile(file, Directory.pdfs);
     }
 
@@ -212,8 +207,10 @@ export namespace DashUploadUtils {
                         accessPaths: {
                             agnostic: getAccessPaths(destination, name)
                         }
+
                     }
-                });
+                }
+                );
             });
         });
     }

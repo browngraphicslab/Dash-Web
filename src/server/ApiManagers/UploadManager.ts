@@ -72,6 +72,7 @@ export default class UploadManager extends ApiManager {
             method: Method.POST,
             subscription: "/uploadRemoteImage",
             secureHandler: async ({ req, res }) => {
+
                 const { sources } = req.body;
                 if (Array.isArray(sources)) {
                     const results = await Promise.all(sources.map(source => DashUploadUtils.UploadImage(source)));
@@ -85,6 +86,7 @@ export default class UploadManager extends ApiManager {
             method: Method.POST,
             subscription: "/uploadDoc",
             secureHandler: ({ req, res }) => {
+
                 const form = new formidable.IncomingForm();
                 form.keepExtensions = true;
                 // let path = req.body.path;
@@ -189,6 +191,7 @@ export default class UploadManager extends ApiManager {
             method: Method.POST,
             subscription: "/inspectImage",
             secureHandler: async ({ req, res }) => {
+
                 const { source } = req.body;
                 if (typeof source === "string") {
                     return res.send(await DashUploadUtils.InspectImage(source));

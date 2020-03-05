@@ -44,6 +44,7 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
     _ele: HTMLAudioElement | null = null;
     _recorder: any;
     _recordStart = 0;
+    _stream: MediaStream | undefined;
 
     @observable private static _scrubTime = 0;
     @observable private _audioState: "unrecorded" | "recording" | "recorded" = "unrecorded";
@@ -131,7 +132,7 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
         navigator.mediaDevices.getUserMedia({
             audio: true
         }).then(function (stream) {
-            gumStream = stream;
+            self._stream = stream;
             self._recorder = new MediaRecorder(stream);
             self.dataDoc[self.props.fieldKey + "-recordingStart"] = new DateField(new Date());
             AudioBox.ActiveRecordings.push(self.props.Document);
@@ -143,7 +144,7 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
                     body: formData
                 });
                 const files = await res.json();
-                const url = Utils.prepend(files[0].path);
+                const url = Utils.prepend(files[0].result.accessPaths.agnostic.client);
                 // upload to server with known URL 
                 self.props.Document[self.props.fieldKey] = new AudioField(url);
             };
@@ -153,8 +154,8 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
             self._recorder.start();
             setTimeout(() => {
                 self.stopRecording();
-                gumStream.getAudioTracks()[0].stop();
-            }, 60 * 60 * 1000); // stop after an hour?
+                self._stream?.getAudioTracks()[0].stop();
+            }, 60 * 1000); // stop after a minute
         });
     }
 
@@ -169,6 +170,7 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
         this._recorder.stop();
         this.dataDoc.duration = (new Date().getTime() - this._recordStart) / 1000;
         this._audioState = "recorded";
+        this._stream?.getAudioTracks()[0].stop();
         const ind = AudioBox.ActiveRecordings.indexOf(this.props.Document);
         ind !== -1 && (AudioBox.ActiveRecordings.splice(ind, 1));
     });
@@ -185,7 +187,7 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
         e.stopPropagation();
     }
     onStop = (e: any) => {
-        this.pause();
+        this.stopRecording();
         this._ele!.currentTime = 0;
         e.stopPropagation();
     }
@@ -210,6 +212,7 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
         </audio>;
     }
 
+    // line 226 is stop button but it doesn't do anything 
     render() {
         const interactive = this.active() ? "-interactive" : "";
         return <div className={`audiobox-container`} onContextMenu={this.specificContextMenu}
