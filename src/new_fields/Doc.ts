@@ -813,7 +813,11 @@ export namespace Doc {
             target._docRangeFilters = new List<string>(docRangeFilters);
         }
     }
-    export function setDocFilter(container: Doc, key: string, value: any, modifiers?: string | number) {
+
+    // filters document in a container collection:
+    // all documents with the specified value for the specified key are included/excluded 
+    // based on the modifiers :"check", "x", undefined
+    export function setDocFilter(container: Doc, key: string, value: any, modifiers?: "check" | "x" | undefined) {
         const docFilters = Cast(container._docFilters, listSpec("string"), []);
         for (let i = 0; i < docFilters.length; i += 3) {
             if (docFilters[i] === key && docFilters[i + 1] === value) {
@@ -897,5 +901,5 @@ Scripting.addGlobal(function selectedDocs(container: Doc, excludeCollections: bo
     const docs = DocListCast(Doc.UserDoc().SelectedDocs).filter(d => !Doc.AreProtosEqual(d, container) && !d.annotationOn && d.type !== DocumentType.DOCUMENT && d.type !== DocumentType.KVP && (!excludeCollections || !Cast(d.data, listSpec(Doc), null)));
     return docs.length ? new List(docs) : prevValue;
 });
-Scripting.addGlobal(function setDocFilter(container: Doc, key: string, value: any, modifiers?: string) { Doc.setDocFilter(container, key, value, modifiers); });
+Scripting.addGlobal(function setDocFilter(container: Doc, key: string, value: any, modifiers?: "check" | "x" | undefined) { Doc.setDocFilter(container, key, value, modifiers); });
 Scripting.addGlobal(function setDocFilterRange(container: Doc, key: string, range: number[]) { Doc.setDocFilterRange(container, key, range); });

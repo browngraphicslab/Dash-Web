@@ -30,21 +30,25 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
     _changing = false;
     @observable _layoutEngine = "pivot";
 
+    componentWillUnmount() {
+        this.props.Document.onChildClick = undefined;
+    }
     componentDidMount() {
         this.props.Document._freezeOnDrop = true;
-        const childDetailed = this.props.Document.childDetailed; // bcz: needs to be here to make sure the childDetailed layout template has been loaded when the first item is clicked;
         if (!this.props.Document._facetCollection) {
+            const scriptText = "setDocFilter(containingTreeView.target, heading, this.title, checked)";
             const facetCollection = Docs.Create.TreeDocument([], { title: "facetFilters", _yMargin: 0, treeViewHideTitle: true, treeViewHideHeaderFields: true });
             facetCollection.target = this.props.Document;
+            facetCollection.onCheckedClick = ScriptField.MakeScript(scriptText, { this: Doc.name, heading: "string", checked: "string", containingTreeView: Doc.name });
             this.props.Document.excludeFields = new List<string>(["_facetCollection", "_docFilters"]);
 
-            const scriptText = "setDocFilter(containingTreeView.target, heading, this.title, checked)";
-            const childText = "const alias = getAlias(this); Doc.ApplyTemplateTo(containingCollection.childDetailed, alias, 'layout_detailView'); alias.dropAction='alias'; alias.removeDropProperties=new List<string>(['dropAction']);  useRightSplit(alias, shiftKey); ";
-            facetCollection.onCheckedClick = ScriptField.MakeScript(scriptText, { this: Doc.name, heading: "boolean", checked: "boolean", containingTreeView: Doc.name });
-            this.props.Document.onChildClick = ScriptField.MakeScript(childText, { this: Doc.name, heading: "boolean", containingCollection: Doc.name, shiftKey: "boolean" });
             this.props.Document._facetCollection = facetCollection;
             this.props.Document._fitToBox = true;
         }
+        const childDetailed = this.props.Document.childDetailed; // bcz: needs to be here to make sure the childDetailed layout template has been loaded when the first item is clicked;
+        const childText = "const alias = getAlias(this); Doc.ApplyTemplateTo(containingCollection.childDetailed, alias, 'layout_detailView'); alias.dropAction='alias'; alias.removeDropProperties=new List<string>(['dropAction']);  useRightSplit(alias, shiftKey); ";
+        this.props.Document.onChildClick = ScriptField.MakeScript(childText, { this: Doc.name, heading: "string", containingCollection: Doc.name, shiftKey: "boolean" });
+
         if (!this.props.Document.onViewDefClick) {
             this.props.Document.onViewDefDivClick = ScriptField.MakeScript("pivotColumnClick(this,payload)", { payload: "any" });
         }
