@@ -7,7 +7,7 @@ import { extname, basename, dirname } from 'path';
 import { createReadStream, createWriteStream, unlink } from "fs";
 import { publicDirectory, filesDirectory } from "..";
 import { Database } from "../database";
-import { DashUploadUtils } from "../DashUploadUtils";
+import { DashUploadUtils, InjectSize, SizeSuffix } from "../DashUploadUtils";
 import * as sharp from 'sharp';
 import { AcceptibleMedia, Upload } from "../SharedMediaTypes";
 import { normalize } from "path";
@@ -199,14 +199,13 @@ export default class UploadManager extends ApiManager {
                     res.status(401).send("incorrect parameters specified");
                     return;
                 }
-                return imageDataUri.outputFile(uri, serverPathToFile(Directory.images, filename)).then((savedName: string) => {
+                return imageDataUri.outputFile(uri, serverPathToFile(Directory.images, InjectSize(filename, SizeSuffix.Original))).then((savedName: string) => {
                     const ext = extname(savedName).toLowerCase();
                     const { pngs, jpgs } = AcceptibleMedia;
                     const resizers = [
                         { resizer: sharp().resize(100, undefined, { withoutEnlargement: true }), suffix: "_s" },
                         { resizer: sharp().resize(400, undefined, { withoutEnlargement: true }), suffix: "_m" },
                         { resizer: sharp().resize(900, undefined, { withoutEnlargement: true }), suffix: "_l" },
-                        { resizer: sharp().resize(1200, undefined, { withoutEnlargement: true }), suffix: "_o" }, // bcz: this should just be the original image, not a resized version
                     ];
                     let isImage = false;
                     if (pngs.includes(ext)) {
@@ -225,7 +224,7 @@ export default class UploadManager extends ApiManager {
                             const path = serverPathToFile(Directory.images, filename + resizer.suffix + ext);
                             createReadStream(savedName).pipe(resizer.resizer).pipe(createWriteStream(path));
                         });
-                                        
+
                     }
                     res.send(clientPathToFile(Directory.images, filename + ext));
                 });

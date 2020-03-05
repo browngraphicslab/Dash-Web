@@ -8,7 +8,7 @@ import Measure from "react-measure";
 import { Doc } from "../../../new_fields/Doc";
 import { PastelSchemaPalette, SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 import { ScriptField } from "../../../new_fields/ScriptField";
-import { StrCast } from "../../../new_fields/Types";
+import { StrCast, NumCast } from "../../../new_fields/Types";
 import { numberRange } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
@@ -139,9 +139,10 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
     addDocument = (value: string, shiftDown?: boolean) => {
         this._createAliasSelected = false;
         const key = StrCast(this.props.parent.props.Document._pivotField);
-        const newDoc = Docs.Create.TextDocument("", { _height: 18, _width: 200, title: value });
+        const newDoc = Docs.Create.TextDocument(value, { _autoHeight: true, _width: 200, title: value });
         newDoc[key] = this.getValue(this.props.heading);
-        return this.props.parent.props.addDocument(newDoc);
+        const docs = this.props.parent.childDocList;
+        return docs ? (docs.splice(0, 0, newDoc) ? true : false) : this.props.parent.props.addDocument(newDoc);
     }
 
     deleteRow = undoBatch(action(() => {
@@ -274,6 +275,15 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
         };
         return collapsed ? (null) :
             <div style={{ position: "relative" }}>
+                {(chromeStatus !== 'view-mode' && chromeStatus !== 'disabled') ?
+                    <div className="collectionStackingView-addDocumentButton"
+                        style={{
+                            width: style.columnWidth / style.numGroupColumns,
+                            padding: NumCast(this.props.parent.layoutDoc._yPadding)
+                        }}>
+                        <EditableView {...newEditableViewProps} />
+                    </div> : null
+                }
                 <div className={`collectionStackingView-masonryGrid`}
                     ref={this._contRef}
                     style={{
@@ -285,12 +295,6 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
                     {this.props.parent.children(this.props.docList)}
                     {this.props.parent.columnDragger}
                 </div>
-                {(chromeStatus !== 'view-mode' && chromeStatus !== 'disabled') ?
-                    <div className="collectionStackingView-addDocumentButton"
-                        style={{ width: style.columnWidth / style.numGroupColumns }}>
-                        <EditableView {...newEditableViewProps} />
-                    </div> : null
-                }
             </div>;
     }
 
@@ -317,7 +321,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
                     <div className="collectionStackingView-sectionHeader-subCont" onPointerDown={this.headerDown}
                         title={evContents === `NO ${key.toUpperCase()} VALUE` ?
                             `Documents that don't have a ${key} value will go here. This column cannot be removed.` : ""}
-                        style={{ background: evContents !== `NO ${key.toUpperCase()} VALUE` ? this._color : "lightgrey", }}>
+                        style={{ background: evContents !== `NO ${key.toUpperCase()} VALUE` ? this._color : "lightgrey" }}>
                         <EditableView {...headerEditableViewProps} />
                         {evContents === `NO ${key.toUpperCase()} VALUE` ? (null) :
                             <div className="collectionStackingView-sectionColor">
