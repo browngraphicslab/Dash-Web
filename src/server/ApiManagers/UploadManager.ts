@@ -206,6 +206,7 @@ export default class UploadManager extends ApiManager {
                         { resizer: sharp().resize(100, undefined, { withoutEnlargement: true }), suffix: "_s" },
                         { resizer: sharp().resize(400, undefined, { withoutEnlargement: true }), suffix: "_m" },
                         { resizer: sharp().resize(900, undefined, { withoutEnlargement: true }), suffix: "_l" },
+                        { resizer: sharp().resize(1200, undefined, { withoutEnlargement: true }), suffix: "_o" }, // bcz: this should just be the original image, not a resized version
                     ];
                     let isImage = false;
                     if (pngs.includes(ext)) {
@@ -224,6 +225,7 @@ export default class UploadManager extends ApiManager {
                             const path = serverPathToFile(Directory.images, filename + resizer.suffix + ext);
                             createReadStream(savedName).pipe(resizer.resizer).pipe(createWriteStream(path));
                         });
+                                        
                     }
                     res.send(clientPathToFile(Directory.images, filename + ext));
                 });

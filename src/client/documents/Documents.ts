@@ -549,8 +549,8 @@ export namespace Docs {
             linkDocProto.anchor2 = target.doc;
             linkDocProto.anchor1Context = source.ctx;
             linkDocProto.anchor2Context = target.ctx;
-            linkDocProto.anchor1Timecode = source.doc.currentTimecode;
-            linkDocProto.anchor2Timecode = target.doc.currentTimecode;
+            linkDocProto.anchor1Timecode = source.doc.currentTimecode || source.doc.displayTimecode;
+            linkDocProto.anchor2Timecode = target.doc.currentTimecode || source.doc.displayTimecode;
 
             if (linkDocProto.layout_key1 === undefined) {
                 Cast(linkDocProto.proto, Doc, null).layout_key1 = DocuLinkBox.LayoutString("anchor1");

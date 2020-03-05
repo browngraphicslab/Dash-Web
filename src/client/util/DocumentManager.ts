@@ -158,16 +158,20 @@ export class DocumentManager {
                     targetDocContextView.props.focus(targetDocContextView.props.Document, willZoom);
 
                     // now find the target document within the context
-                    setTimeout(() => {
-                        const retryDocView = DocumentManager.Instance.getDocumentView(targetDoc);
-                        if (retryDocView) {
-                            retryDocView.props.focus(targetDoc, willZoom); // focus on the target if it now exists in the context
-                        } else {
-                            if (closeContextIfNotFound && targetDocContextView.props.removeDocument) targetDocContextView.props.removeDocument(targetDocContextView.props.Document);
-                            targetDoc.layout && (dockFunc || CollectionDockingView.AddRightSplit)(Doc.BrushDoc(Doc.MakeAlias(targetDoc))); // otherwise create a new view of the target
-                        }
-                        highlight();
-                    }, 0);
+                    if (targetDoc.displayTimecode) {  // the target should show up once the video scrubs to the display timecode;
+                        targetDocContext.currentTimecode = targetDoc.displayTimecode;
+                    } else {
+                        setTimeout(() => {
+                            const retryDocView = DocumentManager.Instance.getDocumentView(targetDoc);
+                            if (retryDocView) {
+                                retryDocView.props.focus(targetDoc, willZoom); // focus on the target if it now exists in the context
+                            } else {
+                                if (closeContextIfNotFound && targetDocContextView.props.removeDocument) targetDocContextView.props.removeDocument(targetDocContextView.props.Document);
+                                targetDoc.layout && (dockFunc || CollectionDockingView.AddRightSplit)(Doc.BrushDoc(Doc.MakeAlias(targetDoc))); // otherwise create a new view of the target
+                            }
+                            highlight();
+                        }, 0);
+                    }
                 } else {  // there's no context view so we need to create one first and try again
                     (dockFunc || CollectionDockingView.AddRightSplit)(targetDocContext);
                     setTimeout(() => {

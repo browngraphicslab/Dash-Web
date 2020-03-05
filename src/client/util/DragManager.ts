@@ -193,7 +193,7 @@ export namespace DragManager {
     // drag a document and drop it (or make an alias/copy on drop)
     export function StartDocumentDrag(eles: HTMLElement[], dragData: DocumentDragData, downX: number, downY: number, options?: DragOptions) {
         const addAudioTag = (dropDoc: any) => {
-            !dropDoc.creationDate && (dropDoc.creationDate = new DateField);
+            dropDoc && !dropDoc.creationDate && (dropDoc.creationDate = new DateField);
             dropDoc instanceof Doc && AudioBox.ActiveRecordings.map(d => DocUtils.MakeLink({ doc: dropDoc }, { doc: d }, "audio link", "audio timeline"));
             return dropDoc;
         }
