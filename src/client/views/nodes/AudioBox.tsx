@@ -77,7 +77,7 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
         this._reactionDisposer = reaction(() => SelectionManager.SelectedDocuments(),
             selected => {
                 const sel = selected.length ? selected[0].props.Document : undefined;
-                this.Document.playOnSelect && this.recordingStart && sel && !Doc.AreProtosEqual(sel, this.props.Document) && this.playFromTime(DateCast(sel.creationDate).date.getTime());
+                this.Document.playOnSelect && this.recordingStart && sel && sel.creationDate && !Doc.AreProtosEqual(sel, this.props.Document) && this.playFromTime(DateCast(sel.creationDate).date.getTime());
                 this.Document.playOnSelect && this.recordingStart && !sel && this.pause();
             });
         this._scrubbingDisposer = reaction(() => AudioBox._scrubTime, (time) => this.Document.playOnSelect && this.playFromTime(AudioBox._scrubTime));

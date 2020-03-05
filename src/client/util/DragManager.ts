@@ -15,6 +15,7 @@ import { listSpec } from "../../new_fields/Schema";
 import { Scripting } from "./Scripting";
 import { convertDropDataToButtons } from "./DropConverter";
 import { AudioBox } from "../views/nodes/AudioBox";
+import { DateField } from "../../new_fields/DateField";
 
 export type dropActionType = "alias" | "copy" | undefined;
 export function SetupDrag(
@@ -192,6 +193,7 @@ export namespace DragManager {
     // drag a document and drop it (or make an alias/copy on drop)
     export function StartDocumentDrag(eles: HTMLElement[], dragData: DocumentDragData, downX: number, downY: number, options?: DragOptions) {
         const addAudioTag = (dropDoc: any) => {
+            !dropDoc.creationDate && (dropDoc.creationDate = new DateField);
             dropDoc instanceof Doc && AudioBox.ActiveRecordings.map(d => DocUtils.MakeLink({ doc: dropDoc }, { doc: d }, "audio link", "audio timeline"));
             return dropDoc;
         }
