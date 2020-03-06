@@ -162,14 +162,10 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
                 self.props.Document[self.props.fieldKey] = new AudioField(url);
             };
             self._recordStart = new Date().getTime();
-            console.log("RECORD START = " + self._recordStart);
             runInAction(() => self.audioState = "recording");
             setTimeout(self.updateRecordTime, 0);
             self._recorder.start();
-            setTimeout(() => {
-                self.stopRecording();
-                self._stream?.getAudioTracks()[0].stop();
-            }, 60 * 1000); // stop after a minute
+            setTimeout(() => self._recorder && self.stopRecording(), 60 * 1000); // stop after an hour
         });
     }
 
@@ -182,6 +178,7 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
 
     stopRecording = action(() => {
         this._recorder.stop();
+        this._recorder = undefined;
         this.dataDoc.duration = (new Date().getTime() - this._recordStart) / 1000;
         this.audioState = "paused";
         this._stream?.getAudioTracks()[0].stop();
