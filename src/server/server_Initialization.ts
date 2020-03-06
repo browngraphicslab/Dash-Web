@@ -42,18 +42,18 @@ export default async function InitializeServer(routeSetter: RouteSetter) {
         }
     };
     app.use(cors(corsOptions));
-    app.use("*", ({ user, originalUrl }, res, next) => {
-        if (user && !originalUrl.includes("Heartbeat")) {
-            const userEmail = (user as any).email;
-            if (userEmail) {
-                timeMap[userEmail] = Date.now();
-            }
-        }
-        if (!user && originalUrl === "/") {
-            return res.redirect("/login");
-        }
-        next();
-    });
+    // app.use("*", ({ user, originalUrl }, res, next) => {
+    //     if (user && !originalUrl.includes("Heartbeat")) {
+    //         const userEmail = (user as any).email;
+    //         if (userEmail) {
+    //             timeMap[userEmail] = Date.now();
+    //         }
+    //     }
+    //     if (!user && originalUrl === "/") {
+    //         return res.redirect("/login");
+    //     }
+    //     next();
+    // });
 
     app.use(wdm(compiler, { publicPath: config.output.publicPath }));
     app.use(whm(compiler));

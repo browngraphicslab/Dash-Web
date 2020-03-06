@@ -78,7 +78,6 @@ export namespace DashUploadUtils {
                 }
             case "audio":
                 if (audioFormats.includes(format)) {
-                    console.log("1");
                     return MoveParsedFile(file, Directory.audio);
                 }
         }

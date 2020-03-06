@@ -8,7 +8,7 @@ import { PositionDocument } from '../../new_fields/documentSchemas';
 import { ScriptField } from '../../new_fields/ScriptField';
 import { Cast, StrCast, NumCast } from "../../new_fields/Types";
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
-import { Utils, setupMoveUpEvents } from "../../Utils";
+import { Utils, setupMoveUpEvents, emptyFunction, returnFalse } from "../../Utils";
 import { DocUtils } from "../documents/Documents";
 import { DocumentType } from '../documents/DocumentTypes';
 import { DragManager } from "../util/DragManager";
@@ -242,6 +242,16 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             });
         }
         SelectionManager.DeselectAll();
+    }
+
+    @action
+    onSelectorUp = (e: React.PointerEvent): void => {
+        setupMoveUpEvents(this, e, returnFalse, emptyFunction, action((e) => {
+            const selDoc = SelectionManager.SelectedDocuments()?.[0];
+            if (selDoc) {
+                selDoc.props.ContainingCollectionView?.props.select(false);
+            }
+        }));
     }
 
     @action
@@ -496,6 +506,10 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-bottomRightResizer" className="documentDecorations-resizer"
                     onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
+                {seldoc.props.renderDepth <= 1 || !seldoc.props.ContainingCollectionView ? (null) : <div id="documentDecorations-levelSelector" className="documentDecorations-selector" title="tap to select containing document"
+                    onPointerDown={this.onSelectorUp} onContextMenu={(e) => e.preventDefault()}>
+                    <FontAwesomeIcon className="documentdecorations-times" icon={faArrowAltCircleUp} size="lg" />
+                </div>}
                 <div id="documentDecorations-borderRadius" className="documentDecorations-radius"
                     onPointerDown={this.onRadiusDown} onContextMenu={(e) => e.preventDefault()}></div>
 

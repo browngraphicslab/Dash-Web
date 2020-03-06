@@ -55,7 +55,7 @@ export class DocumentManager {
     }
 
     public getDocumentViewById(id: string, preferredCollection?: CollectionView): DocumentView | undefined {
-
+        if (!id) return undefined;
         let toReturn: DocumentView | undefined;
         const passes = preferredCollection ? [preferredCollection, undefined] : [undefined];
 
@@ -134,7 +134,7 @@ export class DocumentManager {
             finalDocView && Doc.linkFollowHighlight(finalDocView.props.Document);
         };
         const docView = DocumentManager.Instance.getFirstDocumentView(targetDoc, originatingDoc);
-        let annotatedDoc = await Cast(docView?.props.Document.annotationOn, Doc);
+        let annotatedDoc = await Cast(targetDoc.annotationOn, Doc);
         if (annotatedDoc) {
             const first = DocumentManager.Instance.getFirstDocumentView(annotatedDoc);
             if (first) annotatedDoc = first.props.Document;
@@ -158,16 +158,20 @@ export class DocumentManager {
                     targetDocContextView.props.focus(targetDocContextView.props.Document, willZoom);
 
                     // now find the target document within the context
-                    setTimeout(() => {
-                        const retryDocView = DocumentManager.Instance.getDocumentView(targetDoc);
-                        if (retryDocView) {
-                            retryDocView.props.focus(targetDoc, willZoom); // focus on the target if it now exists in the context
-                        } else {
-                            if (closeContextIfNotFound && targetDocContextView.props.removeDocument) targetDocContextView.props.removeDocument(targetDocContextView.props.Document);
-                            targetDoc.layout && (dockFunc || CollectionDockingView.AddRightSplit)(Doc.BrushDoc(Doc.MakeAlias(targetDoc))); // otherwise create a new view of the target
-                        }
-                        highlight();
-                    }, 0);
+                    if (targetDoc.displayTimecode) {  // the target should show up once the video scrubs to the display timecode;
+                        targetDocContext.currentTimecode = targetDoc.displayTimecode;
+                    } else {
+                        setTimeout(() => {
+                            const retryDocView = DocumentManager.Instance.getDocumentView(targetDoc);
+                            if (retryDocView) {
+                                retryDocView.props.focus(targetDoc, willZoom); // focus on the target if it now exists in the context
+                            } else {
+                                if (closeContextIfNotFound && targetDocContextView.props.removeDocument) targetDocContextView.props.removeDocument(targetDocContextView.props.Document);
+                                targetDoc.layout && (dockFunc || CollectionDockingView.AddRightSplit)(Doc.BrushDoc(Doc.MakeAlias(targetDoc))); // otherwise create a new view of the target
+                            }
+                            highlight();
+                        }, 0);
+                    }
                 } else {  // there's no context view so we need to create one first and try again
                     (dockFunc || CollectionDockingView.AddRightSplit)(targetDocContext);
                     setTimeout(() => {
@@ -195,7 +199,7 @@ export class DocumentManager {
         const linkFollowDocContexts = first.length ? [await first[0].anchor2Context as Doc, await first[0].anchor1Context as Doc] : second.length ? [await second[0].anchor1Context as Doc, await second[0].anchor2Context as Doc] : [undefined, undefined];
         const linkFollowTimecodes = first.length ? [NumCast(first[0].anchor2Timecode), NumCast(first[0].anchor1Timecode)] : second.length ? [NumCast(second[0].anchor1Timecode), NumCast(second[0].anchor2Timecode)] : [undefined, undefined];
         if (linkFollowDocs && linkDoc) {
-            const maxLocation = StrCast(linkFollowDocs[0].maximizeLocation, "inTab");
+            const maxLocation = StrCast(linkDoc.maximizeLocation, "inTab");
             const targetContext = !Doc.AreProtosEqual(linkFollowDocContexts[reverse ? 1 : 0], currentContext) ? linkFollowDocContexts[reverse ? 1 : 0] : undefined;
             const target = linkFollowDocs[reverse ? 1 : 0];
             target.currentTimecode !== undefined && (target.currentTimecode = linkFollowTimecodes[reverse ? 1 : 0]);

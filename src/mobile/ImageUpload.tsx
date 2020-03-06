@@ -13,6 +13,7 @@ import { observable } from 'mobx';
 import { Utils } from '../Utils';
 import MobileInterface from './MobileInterface';
 import { CurrentUserUtils } from '../server/authentication/models/current_user_utils';
+import { Scripting } from '../client/util/Scripting';
 
 
 
@@ -27,12 +28,11 @@ const inputRef = React.createRef<HTMLInputElement>();
 
 @observer
 class Uploader extends React.Component {
-    @observable
-    error: string = "";
-    @observable
-    status: string = "";
+    @observable error: string = "";
+    @observable status: string = "";
 
     onClick = async () => {
+        console.log("uploader click");
         try {
             this.status = "initializing protos";
             await Docs.Prototypes.initialize();
@@ -47,6 +47,7 @@ class Uploader extends React.Component {
 
                     const upload = window.location.origin + "/uploadFormData";
                     this.status = "uploading image";
+                    console.log("uploading image", formData);
                     const res = await fetch(upload, {
                         method: 'POST',
                         body: formData

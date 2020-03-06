@@ -169,21 +169,21 @@
         }
 
 
-        .collectionStackingViewChrome-sectionFilter-cont,
-        .collectionTreeViewChrome-sectionFilter-cont {
+        .collectionStackingViewChrome-pivotField-cont,
+        .collectionTreeViewChrome-pivotField-cont {
             justify-self: right;
             display: flex;
             font-size: 75%;
             letter-spacing: 2px;
 
-            .collectionStackingViewChrome-sectionFilter-label,
-            .collectionTreeViewChrome-sectionFilter-label {
+            .collectionStackingViewChrome-pivotField-label,
+            .collectionTreeViewChrome-pivotField-label {
                 vertical-align: center;
                 padding: 10px;
             }
 
-            .collectionStackingViewChrome-sectionFilter,
-            .collectionTreeViewChrome-sectionFilter {
+            .collectionStackingViewChrome-pivotField,
+            .collectionTreeViewChrome-pivotField {
                 color: white;
                 width: 100px;
                 text-align: center;
@@ -210,8 +210,8 @@
             }
         }
 
-        .collectionStackingViewChrome-sectionFilter:hover,
-        .collectionTreeViewChrome-sectionFilter:hover {
+        .collectionStackingViewChrome-pivotField:hover,
+        .collectionTreeViewChrome-pivotField:hover {
             cursor: text;
         }
     }
@@ -278,7 +278,7 @@
     display:flex;
     flex-direction: row;
     width: 150px;
-    margin: auto 0 auto auto;
+    margin: auto auto auto auto;
 }
 
 .react-autosuggest__container {

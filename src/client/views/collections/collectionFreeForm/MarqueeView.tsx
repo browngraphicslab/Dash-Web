@@ -1,10 +1,10 @@
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast } from "../../../../new_fields/Doc";
-import { InkField } from "../../../../new_fields/InkField";
+import { Doc, DocListCast, DataSym, WidthSym, HeightSym } from "../../../../new_fields/Doc";
+import { InkField, InkData } from "../../../../new_fields/InkField";
 import { List } from "../../../../new_fields/List";
 import { SchemaHeaderField } from "../../../../new_fields/SchemaHeaderField";
-import { Cast, NumCast } from "../../../../new_fields/Types";
+import { Cast, NumCast, FieldValue } from "../../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../../server/authentication/models/current_user_utils";
 import { Utils } from "../../../../Utils";
 import { Docs, DocUtils } from "../../../documents/Documents";
@@ -17,6 +17,8 @@ import { SubCollectionViewProps } from "../CollectionSubView";
 import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
 import "./MarqueeView.scss";
 import React = require("react");
+import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
+import { RichTextField } from "../../../../new_fields/RichTextField";
 import { CollectionView } from "../CollectionView";
 import { FormattedTextBox } from "../../nodes/FormattedTextBox";
 
@@ -107,11 +109,6 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             FormattedTextBox.SelectOnLoadChar = FormattedTextBox.DefaultLayout ? e.key : "";
             this.props.addLiveTextDocument(
                 Docs.Create.TextDocument("", { _width: NumCast((FormattedTextBox.DefaultLayout as Doc)?._width) || 200, _height: 100, layout: FormattedTextBox.DefaultLayout, x: x, y: y, _autoHeight: true, title: "-typed text-" }));
-        } else if (e.keyCode > 48 && e.keyCode <= 57) {
-            const notes = DocListCast((CurrentUserUtils.UserDocument.noteTypes as Doc).data);
-            const text = Docs.Create.TextDocument("", { _width: 200, _height: 100, x: x, y: y, _autoHeight: true, title: "-typed text-" });
-            text.layout = notes[(e.keyCode - 49) % notes.length];
-            this.props.addLiveTextDocument(text);
         }
         e.stopPropagation();
     }
@@ -209,6 +206,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             MarqueeOptionsMenu.Instance.createCollection = this.collection;
             MarqueeOptionsMenu.Instance.delete = this.delete;
             MarqueeOptionsMenu.Instance.summarize = this.summary;
+            MarqueeOptionsMenu.Instance.inkToText = this.syntaxHighlight;
             MarqueeOptionsMenu.Instance.showMarquee = this.showMarquee;
             MarqueeOptionsMenu.Instance.hideMarquee = this.hideMarquee;
             MarqueeOptionsMenu.Instance.jumpTo(e.clientX, e.clientY);
@@ -348,6 +346,85 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
     }
 
     @action
+    syntaxHighlight = (e: KeyboardEvent | React.PointerEvent | undefined) => {
+        const selected = this.marqueeSelect(false);
+        if (e instanceof KeyboardEvent ? e.key === "i" : true) {
+            const inks = selected.filter(s => s.proto?.type === "ink");
+            const setDocs = selected.filter(s => s.proto?.type === "text" && s.color);
+            const sets = setDocs.map((sd) => {
+                return Cast(sd.data, RichTextField)?.Text as string;
+            });
+            const colors = setDocs.map(sd => FieldValue(sd.color) as string);
+            const wordToColor = new Map<string, string>();
+            sets.forEach((st: string, i: number) => {
+                const words = st.split(",");
+                words.forEach(word => {
+                    wordToColor.set(word, colors[i]);
+                });
+            });
+            const strokes: InkData[] = [];
+            inks.forEach(i => {
+                const d = Cast(i.data, InkField);
+                const x = NumCast(i.x);
+                const y = NumCast(i.y);
+                const left = Math.min(...d?.inkData.map(pd => pd.X) ?? [0]);
+                const top = Math.min(...d?.inkData.map(pd => pd.Y) ?? [0]);
+                if (d) {
+                    strokes.push(d.inkData.map(pd => ({ X: pd.X + x - left, Y: pd.Y + y - top })));
+                }
+            });
+            CognitiveServices.Inking.Appliers.InterpretStrokes(strokes).then((results) => {
+                // const wordResults = results.filter((r: any) => r.category === "inkWord");
+                // console.log(wordResults);
+                // console.log(results);
+                // for (const word of wordResults) {
+                //     const indices: number[] = word.strokeIds;
+                //     indices.forEach(i => {
+                //         if (wordToColor.has(word.recognizedText.toLowerCase())) {
+                //             inks[i].color = wordToColor.get(word.recognizedText.toLowerCase());
+                //         }
+                //         else {
+                //             for (const alt of word.alternates) {
+                //                 if (wordToColor.has(alt.recognizedString.toLowerCase())) {
+                //                     inks[i].color = wordToColor.get(alt.recognizedString.toLowerCase());
+                //                     break;
+                //                 }
+                //             }
+                //         }
+                //     })
+                // }
+                // const wordResults = results.filter((r: any) => r.category === "inkWord");
+                // for (const word of wordResults) {
+                //     const indices: number[] = word.strokeIds;
+                //     indices.forEach(i => {
+                //         const otherInks: Doc[] = [];
+                //         indices.forEach(i2 => i2 !== i && otherInks.push(inks[i2]));
+                //         inks[i].relatedInks = new List<Doc>(otherInks);
+                //         const uniqueColors: string[] = [];
+                //         Array.from(wordToColor.values()).forEach(c => uniqueColors.indexOf(c) === -1 && uniqueColors.push(c));
+                //         inks[i].alternativeColors = new List<string>(uniqueColors);
+                //         if (wordToColor.has(word.recognizedText.toLowerCase())) {
+                //             inks[i].color = wordToColor.get(word.recognizedText.toLowerCase());
+                //         }
+                //         else if (word.alternates) {
+                //             for (const alt of word.alternates) {
+                //                 if (wordToColor.has(alt.recognizedString.toLowerCase())) {
+                //                     inks[i].color = wordToColor.get(alt.recognizedString.toLowerCase());
+                //                     break;
+                //                 }
+                //             }
+                //         }
+                //     });
+                // }
+                const lines = results.filter((r: any) => r.category === "line");
+                console.log(lines);
+                const text = lines.map((l: any) => l.recognizedText).join("\r\n");
+                this.props.addDocument(Docs.Create.TextDocument(text, { _width: this.Bounds.width, _height: this.Bounds.height, x: this.Bounds.left + this.Bounds.width, y: this.Bounds.top, title: text }));
+            });
+        }
+    }
+
+    @action
     summary = (e: KeyboardEvent | React.PointerEvent | undefined) => {
         const bounds = this.Bounds;
         const selected = this.marqueeSelect(false);
@@ -358,13 +435,14 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             d.page = -1;
             return d;
         });
-        const summary = Docs.Create.TextDocument("", { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2, _width: 200, _height: 200, _fitToBox: true, _showSidebar: true, title: "-summary-" });
+        const summary = Docs.Create.TextDocument("", { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2, _width: 200, _height: 200, _fitToBox: true, _showSidebar: true, title: "overview" });
         const portal = Doc.MakeAlias(summary);
-        Doc.GetProto(summary)["data-annotations"] = new List<Doc>(selected);
-        Doc.GetProto(summary).layout_portal = CollectionView.LayoutString("data-annotations");
+        Doc.GetProto(summary)[Doc.LayoutFieldKey(summary) + "-annotations"] = new List<Doc>(selected);
+        Doc.GetProto(summary).layout_portal = CollectionView.LayoutString(Doc.LayoutFieldKey(summary) + "-annotations");
         summary._backgroundColor = "#e2ad32";
         portal.layoutKey = "layout_portal";
-        DocUtils.MakeLink({ doc: summary, ctx: this.props.ContainingCollectionDoc }, { doc: portal }, "portal link", "portal link");
+        portal.title = "document collection";
+        DocUtils.MakeLink({ doc: summary, ctx: this.props.ContainingCollectionDoc }, { doc: portal }, "summarizing");
 
         this.props.addLiveTextDocument(summary);
         MarqueeOptionsMenu.Instance.fadeOut(true);

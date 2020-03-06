@@ -1,5 +1,5 @@
 import { Utils } from "../../Utils";
-import { MessageStore, Transferable, Types, Diff, YoutubeQueryInput, YoutubeQueryTypes, RoomMessage } from "../Message";
+import { MessageStore, Transferable, Types, Diff, YoutubeQueryInput, YoutubeQueryTypes, GestureContent, MobileInkOverlayContent, UpdateMobileInkOverlayPositionContent, MobileDocumentUploadContent, RoomMessage } from "../Message";
 import { Client } from "../Client";
 import { Socket } from "socket.io";
 import { Database } from "../database";
@@ -10,7 +10,8 @@ import { GoogleCredentialsLoader } from "../credentials/CredentialsLoader";
 import { logPort } from "../ActionUtilities";
 import { timeMap } from "../ApiManagers/UserManager";
 import { green } from "colors";
-import { networkInterfaces, type } from "os";
+import { serverPathToFile, Directory } from "../ApiManagers/UploadManager";
+import { networkInterfaces } from "os";
 import executeImport from "../../scraping/buxton/final/BuxtonImporter";
 
 export namespace WebSocket {
@@ -104,6 +105,10 @@ export namespace WebSocket {
             Utils.AddServerHandler(socket, MessageStore.UpdateField, diff => UpdateField(socket, diff));
             Utils.AddServerHandler(socket, MessageStore.DeleteField, id => DeleteField(socket, id));
             Utils.AddServerHandler(socket, MessageStore.DeleteFields, ids => DeleteFields(socket, ids));
+            Utils.AddServerHandler(socket, MessageStore.GesturePoints, content => processGesturePoints(socket, content));
+            Utils.AddServerHandler(socket, MessageStore.MobileInkOverlayTrigger, content => processOverlayTrigger(socket, content));
+            Utils.AddServerHandler(socket, MessageStore.UpdateMobileInkOverlayPosition, content => processUpdateOverlayPosition(socket, content));
+            Utils.AddServerHandler(socket, MessageStore.MobileDocumentUpload, content => processMobileDocumentUpload(socket, content));
             Utils.AddServerHandlerCallback(socket, MessageStore.GetRefField, GetRefField);
             Utils.AddServerHandlerCallback(socket, MessageStore.GetRefFields, GetRefFields);
             Utils.AddServerHandler(socket, MessageStore.BeginBuxtonImport, () => {
@@ -122,6 +127,22 @@ export namespace WebSocket {
         const socketPort = isRelease ? Number(process.env.socketPort) : 4321;
         endpoint.listen(socketPort);
         logPort("websocket", socketPort);
+    }
+
+    function processGesturePoints(socket: Socket, content: GestureContent) {
+        socket.broadcast.emit("receiveGesturePoints", content);
+    }
+
+    function processOverlayTrigger(socket: Socket, content: MobileInkOverlayContent) {
+        socket.broadcast.emit("receiveOverlayTrigger", content);
+    }
+
+    function processUpdateOverlayPosition(socket: Socket, content: UpdateMobileInkOverlayPositionContent) {
+        socket.broadcast.emit("receiveUpdateOverlayPosition", content);
+    }
+
+    function processMobileDocumentUpload(socket: Socket, content: MobileDocumentUploadContent) {
+        socket.broadcast.emit("receiveMobileDocumentUpload", content);
     }
 
     function HandleYoutubeQuery([query, callback]: [YoutubeQueryInput, (result?: any[]) => void]) {

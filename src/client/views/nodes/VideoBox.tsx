@@ -134,7 +134,7 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
                     });
                     imageSummary.isButton = true;
                     this.props.addDocument && this.props.addDocument(imageSummary);
-                    DocUtils.MakeLink({ doc: imageSummary }, { doc: this.props.Document }, "snapshot from " + this.Document.title, "video frame snapshot");
+                    DocUtils.MakeLink({ doc: imageSummary }, { doc: this.props.Document }, "video snapshot");
                 }
             });
         }
@@ -261,7 +261,6 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
 
     }
     private get uIButtons() {
-        const scaling = Math.min(1.8, this.props.ScreenToLocalTransform().Scale);
         const curTime = (this.Document.currentTimecode || 0);
         return ([<div className="videoBox-time" key="time" onPointerDown={this.onResetDown} >
             <span>{"" + Math.round(curTime)}</span>

@@ -8,7 +8,7 @@ import Measure from "react-measure";
 import { Doc } from "../../../new_fields/Doc";
 import { PastelSchemaPalette, SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 import { ScriptField } from "../../../new_fields/ScriptField";
-import { StrCast } from "../../../new_fields/Types";
+import { StrCast, NumCast } from "../../../new_fields/Types";
 import { numberRange } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
@@ -75,11 +75,12 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
 
     @undoBatch
     rowDrop = action((e: Event, de: DragManager.DropEvent) => {
+        console.log("masronry row drop");
         this._createAliasSelected = false;
         if (de.complete.docDragData) {
             (this.props.parent.Document.dropConverter instanceof ScriptField) &&
                 this.props.parent.Document.dropConverter.script.run({ dragData: de.complete.docDragData });
-            const key = StrCast(this.props.parent.props.Document.sectionFilter);
+            const key = StrCast(this.props.parent.props.Document._pivotField);
             const castedValue = this.getValue(this._heading);
             de.complete.docDragData.droppedDocuments.forEach(d => d[key] = castedValue);
             this.props.parent.onInternalDrop(e, de);
@@ -98,7 +99,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
     @action
     headingChanged = (value: string, shiftDown?: boolean) => {
         this._createAliasSelected = false;
-        const key = StrCast(this.props.parent.props.Document.sectionFilter);
+        const key = StrCast(this.props.parent.props.Document._pivotField);
         const castedValue = this.getValue(value);
         if (castedValue) {
             if (this.props.parent.sectionHeaders) {
@@ -137,15 +138,16 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
     @action
     addDocument = (value: string, shiftDown?: boolean) => {
         this._createAliasSelected = false;
-        const key = StrCast(this.props.parent.props.Document.sectionFilter);
-        const newDoc = Docs.Create.TextDocument("", { _height: 18, _width: 200, title: value });
+        const key = StrCast(this.props.parent.props.Document._pivotField);
+        const newDoc = Docs.Create.TextDocument(value, { _autoHeight: true, _width: 200, title: value });
         newDoc[key] = this.getValue(this.props.heading);
-        return this.props.parent.props.addDocument(newDoc);
+        const docs = this.props.parent.childDocList;
+        return docs ? (docs.splice(0, 0, newDoc) ? true : false) : this.props.parent.props.addDocument(newDoc);
     }
 
     deleteRow = undoBatch(action(() => {
         this._createAliasSelected = false;
-        const key = StrCast(this.props.parent.props.Document.sectionFilter);
+        const key = StrCast(this.props.parent.props.Document._pivotField);
         this.props.docList.forEach(d => d[key] = undefined);
         if (this.props.parent.sectionHeaders && this.props.headingObject) {
             const index = this.props.parent.sectionHeaders.indexOf(this.props.headingObject);
@@ -167,7 +169,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
         const [dx, dy] = this.props.screenToLocalTransform().transformDirection(e.clientX - this._startDragPosition.x, e.clientY - this._startDragPosition.y);
         if (Math.abs(dx) + Math.abs(dy) > this._sensitivity) {
             const alias = Doc.MakeAlias(this.props.parent.props.Document);
-            const key = StrCast(this.props.parent.props.Document.sectionFilter);
+            const key = StrCast(this.props.parent.props.Document._pivotField);
             let value = this.getValue(this._heading);
             value = typeof value === "string" ? `"${value}"` : value;
             const script = `return doc.${key} === ${value}`;
@@ -273,6 +275,15 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
         };
         return collapsed ? (null) :
             <div style={{ position: "relative" }}>
+                {(chromeStatus !== 'view-mode' && chromeStatus !== 'disabled') ?
+                    <div className="collectionStackingView-addDocumentButton"
+                        style={{
+                            width: style.columnWidth / style.numGroupColumns,
+                            padding: NumCast(this.props.parent.layoutDoc._yPadding)
+                        }}>
+                        <EditableView {...newEditableViewProps} />
+                    </div> : null
+                }
                 <div className={`collectionStackingView-masonryGrid`}
                     ref={this._contRef}
                     style={{
@@ -284,18 +295,12 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
                     {this.props.parent.children(this.props.docList)}
                     {this.props.parent.columnDragger}
                 </div>
-                {(chromeStatus !== 'view-mode' && chromeStatus !== 'disabled') ?
-                    <div className="collectionStackingView-addDocumentButton"
-                        style={{ width: style.columnWidth / style.numGroupColumns }}>
-                        <EditableView {...newEditableViewProps} />
-                    </div> : null
-                }
             </div>;
     }
 
     @computed get headingView() {
         const heading = this._heading;
-        const key = StrCast(this.props.parent.props.Document.sectionFilter);
+        const key = StrCast(this.props.parent.props.Document._pivotField);
         const evContents = heading ? heading : this.props.type && this.props.type === "number" ? "0" : `NO ${key.toUpperCase()} VALUE`;
         const headerEditableViewProps = {
             GetValue: () => evContents,
@@ -316,7 +321,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
                     <div className="collectionStackingView-sectionHeader-subCont" onPointerDown={this.headerDown}
                         title={evContents === `NO ${key.toUpperCase()} VALUE` ?
                             `Documents that don't have a ${key} value will go here. This column cannot be removed.` : ""}
-                        style={{ background: evContents !== `NO ${key.toUpperCase()} VALUE` ? this._color : "lightgrey", }}>
+                        style={{ background: evContents !== `NO ${key.toUpperCase()} VALUE` ? this._color : "lightgrey" }}>
                         <EditableView {...headerEditableViewProps} />
                         {evContents === `NO ${key.toUpperCase()} VALUE` ? (null) :
                             <div className="collectionStackingView-sectionColor">

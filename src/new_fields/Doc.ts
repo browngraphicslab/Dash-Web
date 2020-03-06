@@ -7,7 +7,7 @@ import { Scripting, scriptingGlobal } from "../client/util/Scripting";
 import { afterDocDeserialize, autoObject, Deserializable, SerializationHelper } from "../client/util/SerializationHelper";
 import { UndoManager } from "../client/util/UndoManager";
 import { intersectRect } from "../Utils";
-import { HandleUpdate, Id, OnUpdate, Parent, Self, SelfProxy, ToScriptString, ToString, Update } from "./FieldSymbols";
+import { HandleUpdate, Id, OnUpdate, Parent, Self, SelfProxy, ToScriptString, ToString, Update, Copy } from "./FieldSymbols";
 import { List } from "./List";
 import { ObjectField } from "./ObjectField";
 import { PrefetchProxy, ProxyField } from "./Proxy";
@@ -15,7 +15,7 @@ import { FieldId, RefField } from "./RefField";
 import { RichTextField } from "./RichTextField";
 import { listSpec } from "./Schema";
 import { ComputedField } from "./ScriptField";
-import { Cast, FieldValue, NumCast, StrCast, ToConstructor } from "./Types";
+import { Cast, FieldValue, NumCast, StrCast, ToConstructor, ScriptCast } from "./Types";
 import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, updateFunction } from "./util";
 import { Docs } from "../client/documents/Documents";
 
@@ -355,6 +355,10 @@ export namespace Doc {
         const proto = doc && (Doc.GetT(doc, "isPrototype", "boolean", true) ? doc : (doc.proto || doc));
         return proto === doc ? proto : Doc.GetProto(proto);
     }
+    export function GetDataDoc(doc: Doc): Doc {
+        const proto = Doc.GetProto(doc);
+        return proto === doc ? proto : Doc.GetDataDoc(proto);
+    }
 
     export function allKeys(doc: Doc): string[] {
         const results: Set<string> = new Set;
@@ -445,12 +449,11 @@ export namespace Doc {
     }
 
     //
-    // Determines whether the combination of the layoutDoc and dataDoc represents
-    // a template relationship :  there is a dataDoc and it doesn't match the layoutDoc an
-    // the lyouatDoc's layout is layout string (not a document) 
+    // Determines whether the layout needs to be expanded (as a template).
+    // template expansion is rquired when the layout is a template doc/field and there's a datadoc which isn't equal to the layout template
     //
     export function WillExpandTemplateLayout(layoutDoc: Doc, dataDoc?: Doc) {
-        return (layoutDoc.isTemplateForField || layoutDoc.isTemplateDoc) && dataDoc && layoutDoc !== dataDoc && !(Doc.LayoutField(layoutDoc) instanceof Doc);
+        return (layoutDoc.isTemplateForField || layoutDoc.isTemplateDoc) && dataDoc && layoutDoc !== dataDoc;
     }
 
     //
@@ -571,7 +574,7 @@ export namespace Doc {
     let _applyCount: number = 0;
     export function ApplyTemplate(templateDoc: Doc) {
         if (templateDoc) {
-            const applied = ApplyTemplateTo(templateDoc, Doc.MakeDelegate(new Doc()), "layout", templateDoc.title + "(..." + _applyCount++ + ")");
+            const applied = ApplyTemplateTo(templateDoc, Doc.MakeDelegate(new Doc()), StrCast(templateDoc.layoutKey, "layout"), templateDoc.title + "(..." + _applyCount++ + ")");
             applied && (Doc.GetProto(applied).type = templateDoc.type);
             return applied;
         }
@@ -582,8 +585,8 @@ export namespace Doc {
             target.layout = undefined;
             target._nativeWidth = undefined;
             target._nativeHeight = undefined;
-            target.onClick = undefined;
             target.type = undefined;
+            target.onClick = undefined;
             return;
         }
 
@@ -594,6 +597,8 @@ export namespace Doc {
                 titleTarget && (Doc.GetProto(target).title = titleTarget);
                 Doc.GetProto(target)[targetKey] = new PrefetchProxy(templateDoc);
             }
+            const scriptField = ScriptCast(templateDoc.onClick);
+            scriptField && (target.onClick = scriptField[Copy]());
         }
         target.layoutKey = targetKey;
         return target;
@@ -606,13 +611,13 @@ export namespace Doc {
     export function MakeMetadataFieldTemplate(templateField: Doc, templateDoc: Opt<Doc>): boolean {
 
         // find the metadata field key that this template field doc will display (indicated by its title)
-        const metadataFieldKey = StrCast(templateField.title).replace(/^-/, "");
+        const metadataFieldKey = StrCast(templateField.isTemplateForField) || StrCast(templateField.title).replace(/^-/, "");
 
         // update the original template to mark it as a template
         templateField.isTemplateForField = metadataFieldKey;
         templateField.title = metadataFieldKey;
 
-        const templateFieldValue = templateField[metadataFieldKey] || templateField.data;
+        const templateFieldValue = templateField[metadataFieldKey] || templateField[Doc.LayoutFieldKey(templateField)];
         const templateCaptionValue = templateField.caption;
         // move any data that the template field had been rendering over to the template doc so that things will still be rendered
         // when the template field is adjusted to point to the new metadatafield key.
@@ -632,7 +637,7 @@ export namespace Doc {
         // get the layout string that the template uses to specify its layout
         const templateFieldLayoutString = StrCast(Doc.LayoutField(Doc.Layout(templateField)));
 
-        // change itto render the target metadata field instead of what it was rendering before and assign it to the template field layout document.
+        // change it to render the target metadata field instead of what it was rendering before and assign it to the template field layout document.
         Doc.Layout(templateField).layout = templateFieldLayoutString.replace(/fieldKey={'[^']*'}/, `fieldKey={'${metadataFieldKey}'}`);
 
         // assign the template field doc a delegate of any extension document that was previously used to render the template field (since extension doc's carry rendering informatino)
@@ -808,7 +813,11 @@ export namespace Doc {
             target._docRangeFilters = new List<string>(docRangeFilters);
         }
     }
-    export function setDocFilter(container: Doc, key: string, value: any, modifiers?: string | number) {
+
+    // filters document in a container collection:
+    // all documents with the specified value for the specified key are included/excluded 
+    // based on the modifiers :"check", "x", undefined
+    export function setDocFilter(container: Doc, key: string, value: any, modifiers?: "check" | "x" | undefined) {
         const docFilters = Cast(container._docFilters, listSpec("string"), []);
         for (let i = 0; i < docFilters.length; i += 3) {
             if (docFilters[i] === key && docFilters[i + 1] === value) {
@@ -844,43 +853,27 @@ export namespace Doc {
         return id;
     }
 
-    // setup a document to use enumerated values for a specified field name:
-    //  doc: text document
-    //  layoutString: species which text field receives the document's main text (e.g., FormattedTextBox.LayoutString("Todo") )
-    //  enumeratedFieldKey : specifies which enumerated field of the document is displayed in the caption (e.g., taskStatus)
-    //  captionKey: specifies which field holds the caption template (e.g., caption) -- ideally this wouldn't be needed but would be derived from the layoutString's target field key
-    //
-    export function enumeratedTextTemplate(doc: Doc, layoutString: string, enumeratedFieldKey: string, enumeratedDocs: Doc[], captionKey: string = "caption") {
-        doc.caption = RichTextField.DashField(enumeratedFieldKey);
-        doc._showCaption = captionKey;
-        doc.layout = layoutString;
-
-        Doc.addEnumerationToTextField(doc, enumeratedFieldKey, enumeratedDocs);
-    }
-
-    export async function getEnumerationTextField(enumeratedFieldKey: string) {
-        return (await DocServer.GetRefField(enumeratedFieldKey)) as Doc;
-    }
-
-    export function addEnumerationToTextField(doc: Opt<Doc>, enumeratedFieldKey: string, enumeratedDocs: Doc[]) {
-        DocServer.GetRefField(enumeratedFieldKey).then(optionsCollection => {
-            if (!(optionsCollection instanceof Doc)) {
-                optionsCollection = Docs.Create.StackingDocument([], { title: `${enumeratedFieldKey} field set` }, enumeratedFieldKey);
-                Doc.AddDocToList((Doc.UserDoc().fieldTypes as Doc), "data", optionsCollection as Doc);
+    export async function addFieldEnumerations(doc: Opt<Doc>, enumeratedFieldKey: string, enumerations: { title: string, _backgroundColor?: string, color?: string }[]) {
+        let optionsCollection = await DocServer.GetRefField(enumeratedFieldKey);
+        if (!(optionsCollection instanceof Doc)) {
+            optionsCollection = Docs.Create.StackingDocument([], { title: `${enumeratedFieldKey} field set` }, enumeratedFieldKey);
+            Doc.AddDocToList((Doc.UserDoc().fieldTypes as Doc), "data", optionsCollection as Doc);
+        }
+        const options = optionsCollection as Doc;
+        const targetDoc = doc && Doc.GetProto(Cast(doc.expandedTemplate, Doc, null) || doc);
+        targetDoc && (targetDoc.backgroundColor = ComputedField.MakeFunction(`options.data.find(doc => doc.title === (this.expandedTemplate||this)["${enumeratedFieldKey}"])?._backgroundColor || "white"`, undefined, { options }));
+        targetDoc && (targetDoc.color = ComputedField.MakeFunction(`options.data.find(doc => doc.title === (this.expandedTemplate||this)["${enumeratedFieldKey}"]).color || "black"`, undefined, { options }));
+        targetDoc && (targetDoc.borderRounding = ComputedField.MakeFunction(`options.data.find(doc => doc.title === (this.expandedTemplate||this)["${enumeratedFieldKey}"]).borderRounding`, undefined, { options }));
+        enumerations.map(enumeration => {
+            const found = DocListCast(options.data).find(d => d.title === enumeration.title);
+            if (found) {
+                found._backgroundColor = enumeration._backgroundColor || found._backgroundColor;
+                found._color = enumeration.color || found._color;
+            } else {
+                Doc.AddDocToList(options, "data", Docs.Create.TextDocument(enumeration.title, enumeration));
             }
-            const options = optionsCollection as Doc;
-            doc && (Doc.GetProto(doc).backgroundColor = ComputedField.MakeFunction(`options.data.find(doc => doc.title === (this.expandedTemplate||this).${enumeratedFieldKey})?._backgroundColor || "white"`, undefined, { options }));
-            doc && (Doc.GetProto(doc).color = ComputedField.MakeFunction(`options.data.find(doc => doc.title === (this.expandedTemplate||this).${enumeratedFieldKey}).color || "black"`, undefined, { options }));
-            enumeratedDocs.map(enumeratedDoc => {
-                const found = DocListCast(options.data).find(d => d.title === enumeratedDoc.title);
-                if (found) {
-                    found._backgroundColor = enumeratedDoc._backgroundColor || found._backgroundColor;
-                    found._color = enumeratedDoc._color || found._color;
-                } else {
-                    Doc.AddDocToList(options, "data", enumeratedDoc);
-                }
-            });
         });
+        return optionsCollection;
     }
 }
 
@@ -908,5 +901,5 @@ Scripting.addGlobal(function selectedDocs(container: Doc, excludeCollections: bo
     const docs = DocListCast(Doc.UserDoc().SelectedDocs).filter(d => !Doc.AreProtosEqual(d, container) && !d.annotationOn && d.type !== DocumentType.DOCUMENT && d.type !== DocumentType.KVP && (!excludeCollections || !Cast(d.data, listSpec(Doc), null)));
     return docs.length ? new List(docs) : prevValue;
 });
-Scripting.addGlobal(function setDocFilter(container: Doc, key: string, value: any, modifiers?: string) { Doc.setDocFilter(container, key, value, modifiers); });
+Scripting.addGlobal(function setDocFilter(container: Doc, key: string, value: any, modifiers?: "check" | "x" | undefined) { Doc.setDocFilter(container, key, value, modifiers); });
 Scripting.addGlobal(function setDocFilterRange(container: Doc, key: string, range: number[]) { Doc.setDocFilterRange(container, key, range); });

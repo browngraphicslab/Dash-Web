@@ -14,6 +14,7 @@ import { Utils } from "../../../Utils";
 import { nullAudio } from "../../../new_fields/URLField";
 import { DragManager } from "../../../client/util/DragManager";
 import { InkingControl } from "../../../client/views/InkingControl";
+import { Scripting } from "../../../client/util/Scripting";
 import { CollectionViewType } from "../../../client/views/collections/CollectionView";
 import { makeTemplate } from "../../../client/util/DropConverter";
 import { RichTextField } from "../../../new_fields/RichTextField";
@@ -36,21 +37,21 @@ export class CurrentUserUtils {
     @observable public static GuestMobile: Doc | undefined;
 
     static setupDefaultDocTemplates(doc: Doc, buttons?: string[]) {
-        const taskStatusValues = [
-            Docs.Create.TextDocument("todo", { title: "todo", _backgroundColor: "blue", color: "white" }),
-            Docs.Create.TextDocument("in progress", { title: "in progress", _backgroundColor: "yellow", color: "black" }),
-            Docs.Create.TextDocument("completed", { title: "completed", _backgroundColor: "green", color: "white" })
+        const taskStatusValues = [  { title: "todo", _backgroundColor: "blue", color: "white" },
+                                    { title: "in progress", _backgroundColor: "yellow", color: "black" },
+                                    { title: "completed", _backgroundColor: "green", color: "white" }
         ];
         const noteTemplates = [
-            Docs.Create.TextDocument("", { title: "Note", isTemplateDoc: true, backgroundColor: "yellow" }),
-            Docs.Create.TextDocument("", { title: "Idea", isTemplateDoc: true, backgroundColor: "pink" }),
-            Docs.Create.TextDocument("", { title: "Topic", isTemplateDoc: true, backgroundColor: "lightBlue" }),
-            Docs.Create.TextDocument("", { title: "Person", isTemplateDoc: true, backgroundColor: "lightGreen" }),
-            Docs.Create.TextDocument("", { title: "Todo", isTemplateDoc: true, backgroundColor: "orange", _autoHeight: false, _height: 100, _showCaption: "caption" })
+            Docs.Create.TextDocument("", { title: "text", style: "Note", isTemplateDoc: true, backgroundColor: "yellow" }),
+            Docs.Create.TextDocument("", { title: "text", style: "Idea", isTemplateDoc: true, backgroundColor: "pink" }),
+            Docs.Create.TextDocument("", { title: "text", style: "Topic", isTemplateDoc: true, backgroundColor: "lightBlue" }),
+            Docs.Create.TextDocument("", { title: "text", style: "Person", isTemplateDoc: true, backgroundColor: "lightGreen" }),
+            Docs.Create.TextDocument("", { title: "text", style: "Todo", isTemplateDoc: true, backgroundColor: "orange",_autoHeight: false, 
+                layout:FormattedTextBox.LayoutString("Todo"), _height: 100, _showCaption: "caption",caption: RichTextField.DashField("taskStatus") })
         ];
         doc.fieldTypes = Docs.Create.TreeDocument([], { title: "field enumerations" });
-        Doc.enumeratedTextTemplate(Doc.GetProto(noteTemplates[4]), FormattedTextBox.LayoutString("Todo"), "taskStatus", taskStatusValues);
-        doc.noteTypes = new PrefetchProxy(Docs.Create.TreeDocument(noteTemplates.map(nt => makeTemplate(nt) ? nt : nt), { title: "Note Types", _height: 75 }));
+        Doc.addFieldEnumerations(Doc.GetProto(noteTemplates[4]), "taskStatus", taskStatusValues);
+        doc.noteTypes = new PrefetchProxy(Docs.Create.TreeDocument(noteTemplates.map(nt => makeTemplate(nt, true, StrCast(nt.style)) ? nt : nt), { title: "Note Types", _height: 75 }));
     }
 
     // setup the "creator" buttons for the sidebar-- eg. the default set of draggable document creation tools
@@ -114,6 +115,9 @@ export class CurrentUserUtils {
             { title: "use eraser", icon: "eraser", click: 'activateEraser(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this);', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "pink", activePen: doc },
             { title: "use scrubber", icon: "eraser", click: 'activateScrubber(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this);', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "green", activePen: doc },
             { title: "use drag", icon: "mouse-pointer", click: 'deactivateInk();this.activePen.pen = this;', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "white", activePen: doc },
+            // { title: "draw", icon: "pen-nib", click: 'switchMobileView(setupMobileInkingDoc, renderMobileInking, onSwitchMobileInking);', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "red", activePen: doc },
+            { title: "upload", icon: "upload", click: 'switchMobileView(setupMobileUploadDoc, renderMobileUpload, onSwitchMobileUpload);', backgroundColor: "orange" },
+            // { title: "upload", icon: "upload", click: 'uploadImageMobile();', backgroundColor: "cyan" },
         ];
         return docProtoData.filter(d => !buttons || !buttons.includes(d.title)).map(data => Docs.Create.FontIconDocument({
             _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, dropAction: data.click ? "copy" : undefined, title: data.title, icon: data.icon, ignoreClick: data.ignoreClick,
@@ -143,16 +147,35 @@ export class CurrentUserUtils {
 
     static setupThumbDoc(userDoc: Doc) {
         if (!userDoc.thumbDoc) {
-            userDoc.thumbDoc = Docs.Create.LinearDocument(CurrentUserUtils.setupThumbButtons(userDoc), {
+            const thumbDoc = Docs.Create.LinearDocument(CurrentUserUtils.setupThumbButtons(userDoc), {
                 _width: 100, _height: 50, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled", title: "buttons", _autoHeight: true, _yMargin: 5, linearViewIsExpanded: true, backgroundColor: "white"
             });
+            thumbDoc.inkToTextDoc = Docs.Create.LinearDocument([], { _width: 300, _height: 25, _autoHeight: true, _chromeStatus: "disabled", linearViewIsExpanded: true, flexDirection: "column" });
+            userDoc.thumbDoc = thumbDoc;
         }
-        return userDoc.thumbDoc;
+        return Cast(userDoc.thumbDoc, Doc);
     }
 
     static setupMobileDoc(userDoc: Doc) {
         return userDoc.activeMoble ?? Docs.Create.MasonryDocument(CurrentUserUtils.setupMobileButtons(userDoc), {
             columnWidth: 100, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled", title: "buttons", _autoHeight: true, _yMargin: 5
+        });
+    }
+
+    static setupMobileInkingDoc(userDoc: Doc) {
+        return Docs.Create.FreeformDocument([], { title: "Mobile Inking", backgroundColor: "white" });
+    }
+
+    static setupMobileUploadDoc(userDoc: Doc) {
+        // const addButton = Docs.Create.FontIconDocument({ onDragStart: ScriptField.MakeScript('addWebToMobileUpload()'), title: "Add Web Doc to Upload Collection", icon: "plus", backgroundColor: "black" })
+        const webDoc = Docs.Create.WebDocument("https://www.britannica.com/biography/Miles-Davis", {
+            title: "Upload Images From the Web", _chromeStatus: "enabled", lockedPosition: true
+        });
+        const uploadDoc = Docs.Create.StackingDocument([], {
+            title: "Mobile Upload Collection", backgroundColor: "white", lockedPosition: true
+        });
+        return Docs.Create.StackingDocument([webDoc, uploadDoc], {
+            _width: screen.width, lockedPosition: true, _chromeStatus: "disabled", title: "Upload", _autoHeight: true, _yMargin: 80, backgroundColor: "lightgray"
         });
     }
 
@@ -231,7 +254,7 @@ export class CurrentUserUtils {
 
         // Finally, setup the list of buttons to display in the sidebar
         doc.sidebarButtons = Docs.Create.StackingDocument([doc.SearchBtn as Doc, doc.LibraryBtn as Doc, doc.ToolsBtn as Doc], {
-            _width: 500, _height: 80, boxShadow: "0 0", sectionFilter: "title", hideHeadings: true, ignoreClick: true,
+            _width: 500, _height: 80, boxShadow: "0 0", _pivotField: "title", hideHeadings: true, ignoreClick: true,
             _chromeStatus: "disabled", title: "library stack", backgroundColor: "dimGray",
         });
     }
@@ -245,9 +268,9 @@ export class CurrentUserUtils {
             ],
             { _width: 400, _height: 300, title: "slideView", _chromeStatus: "disabled", _xMargin: 3, _yMargin: 3, _autoHeight: false });
         slideTemplate.isTemplateDoc = makeTemplate(slideTemplate);
-        const descriptionTemplate = Docs.Create.TextDocument("", { title: "descriptionView", _height: 100, _showTitle: "title" });
+        const descriptionTemplate = Docs.Create.TextDocument("", { title: "text", _height: 100, _showTitle: "title" });
         Doc.GetProto(descriptionTemplate).layout = FormattedTextBox.LayoutString("description");
-        descriptionTemplate.isTemplateDoc = makeTemplate(descriptionTemplate);
+        descriptionTemplate.isTemplateDoc = makeTemplate(descriptionTemplate, true, "descriptionView");
 
         const iconDoc = Docs.Create.TextDocument("", { title: "icon", _width: 150, _height: 30, isTemplateDoc: true, onClick: ScriptField.MakeScript("setNativeView(this)") });
         Doc.GetProto(iconDoc).data = new RichTextField('{"doc":{"type":"doc","content":[{"type":"paragraph","attrs":{"align":null,"color":null,"id":null,"indent":null,"inset":null,"lineSpacing":null,"paddingBottom":null,"paddingTop":null},"content":[{"type":"dashField","attrs":{"fieldKey":"title","docid":""}}]}]},"selection":{"type":"text","anchor":2,"head":2},"storedMarks":[]}', "");
@@ -262,7 +285,8 @@ export class CurrentUserUtils {
             { _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, dropAction: "alias", onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'), dragFactory: slideTemplate, removeDropProperties: new List<string>(["dropAction"]), title: "presentation slide", icon: "sticky-note" });
         doc.descriptionBtn = Docs.Create.FontIconDocument(
             { _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, dropAction: "alias", onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'), dragFactory: descriptionTemplate, removeDropProperties: new List<string>(["dropAction"]), title: "description view", icon: "sticky-note" });
-        doc.expandingButtons = Docs.Create.LinearDocument([doc.undoBtn as Doc, doc.redoBtn as Doc, doc.slidesBtn as Doc, doc.descriptionBtn as Doc], {
+        doc.expandingButtons = Docs.Create.LinearDocument([doc.undoBtn as Doc, doc.redoBtn as Doc, doc.slidesBtn as Doc, doc.descriptionBtn as Doc,
+        ...DocListCast(Cast(doc.noteTypes, Doc, null))], {
             title: "expanding buttons", _gridGap: 5, _xMargin: 5, _yMargin: 5, _height: 42, _width: 100, boxShadow: "0 0",
             backgroundColor: "black", treeViewPreventOpen: true, forceActive: true, lockedPosition: true,
             dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name })
@@ -420,3 +444,6 @@ export class CurrentUserUtils {
         return recurs([] as Attribute[], schema ? schema.rootAttributeGroup : undefined);
     }
 }
+
+Scripting.addGlobal(function setupMobileInkingDoc(userDoc: Doc) { return CurrentUserUtils.setupMobileInkingDoc(userDoc); });
+Scripting.addGlobal(function setupMobileUploadDoc(userDoc: Doc) { return CurrentUserUtils.setupMobileUploadDoc(userDoc); });

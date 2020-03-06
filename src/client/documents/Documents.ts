@@ -40,6 +40,9 @@ import { PresBox } from "../views/nodes/PresBox";
 import { ComputedField, ScriptField } from "../../new_fields/ScriptField";
 import { ProxyField } from "../../new_fields/Proxy";
 import { DocumentType } from "./DocumentTypes";
+import { RecommendationsBox } from "../views/RecommendationsBox";
+//import { PresBox } from "../views/nodes/PresBox";
+//import { PresField } from "../../new_fields/PresField";
 import { PresElementBox } from "../views/presentationview/PresElementBox";
 import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
 import { QueryBox } from "../views/nodes/QueryBox";
@@ -72,6 +75,7 @@ export interface DocumentOptions {
     _showTitleHover?: string; // 
     _showTitle?: string; // which field to display in the title area.  leave empty to have no title
     _showCaption?: string; // which field to display in the caption area.  leave empty to have no caption
+    _scrollTop?: number; // scroll location for pdfs
     _chromeStatus?: string;
     _viewType?: number;
     _gridGap?: number; // gap between items in masonry view
@@ -90,6 +94,7 @@ export interface DocumentOptions {
     layoutKey?: string;
     type?: string;
     title?: string;
+    style?: string;
     page?: number;
     scale?: number;
     isDisplayPanel?: boolean; // whether the panel functions as GoldenLayout "stack" used to display documents
@@ -103,6 +108,7 @@ export interface DocumentOptions {
     _backgroundColor?: string | ScriptField; // background color for each template layout doc ( overrides backgroundColor )
     color?: string; // foreground color data doc
     _color?: string;  // foreground color for each template layout doc (overrides color)
+    caption?: RichTextField;
     ignoreClick?: boolean;
     lockedPosition?: boolean; // lock the x,y coordinates of the document so that it can't be dragged
     lockedTransform?: boolean; // lock the panx,pany and scale parameters of the document so that it be panned/zoomed
@@ -117,7 +123,7 @@ export interface DocumentOptions {
     displayTimecode?: number; // the time that a document should be displayed (e.g., time an annotation should be displayed on a video)
     borderRounding?: string;
     boxShadow?: string;
-    sectionFilter?: string; // field key used to determine headings for sections in stacking and masonry views
+    _pivotField?: string; // field key used to determine headings for sections in stacking, masonry, pivot views
     schemaColumns?: List<SchemaHeaderField>;
     dockingConfig?: string;
     annotationOn?: Doc;
@@ -147,9 +153,12 @@ export interface DocumentOptions {
     limitHeight?: number; // maximum height for newly created (eg, from pasting) text documents
     // [key: string]: Opt<Field>;
     pointerHack?: boolean; // for buttons, allows onClick handler to fire onPointerDown
+    textTransform?: string; // is linear view expanded
+    letterSpacing?: string; // is linear view expanded
+    flexDirection?: "unset" | "row" | "column" | "row-reverse" | "column-reverse";
+    selectedIndex?: number;
+    syntaxColor?: string; // can be applied to text for syntax highlighting all matches in the text
     linearViewIsExpanded?: boolean; // is linear view expanded
-    textTransform?: string;
-    letterSpacing?: string;
 }
 
 class EmptyBox {
@@ -176,7 +185,7 @@ export namespace Docs {
 
         const TemplateMap: TemplateMap = new Map([
             [DocumentType.TEXT, {
-                layout: { view: FormattedTextBox, dataField: data },
+                layout: { view: FormattedTextBox, dataField: "text" },
                 options: { _height: 150, _xMargin: 10, _yMargin: 10 }
             }],
             [DocumentType.HIST, {
@@ -231,7 +240,7 @@ export namespace Docs {
                 layout: { view: LinkBox, dataField: data },
                 options: { _height: 150 }
             }],
-            [DocumentType.LINKDOC, {
+            [DocumentType.LINKDB, {
                 data: new List<Doc>(),
                 layout: { view: EmptyBox, dataField: data },
                 options: { childDropAction: "alias", title: "LINK DB" }
@@ -252,6 +261,10 @@ export namespace Docs {
             [DocumentType.FONTICON, {
                 layout: { view: FontIconBox, dataField: data },
                 options: { _width: 40, _height: 40, borderRounding: "100%" },
+            }],
+            [DocumentType.RECOMMENDATION, {
+                layout: { view: RecommendationsBox },
+                options: { width: 200, height: 200 },
             }],
             [DocumentType.WEBCAM, {
                 layout: { view: DashWebRTCVideo, dataField: data }
@@ -315,7 +328,7 @@ export namespace Docs {
          * A collection of all links in the database.  Ideally, this would be a search, but for now all links are cached here.
          */
         export function MainLinkDocument() {
-            return Prototypes.get(DocumentType.LINKDOC);
+            return Prototypes.get(DocumentType.LINKDB);
         }
 
         /**
@@ -410,7 +423,7 @@ export namespace Docs {
 
         const delegateKeys = ["x", "y", "layoutKey", "_width", "_height", "_panX", "_panY", "_viewType", "_nativeWidth", "_nativeHeight", "dropAction", "childDropAction", "_annotationOn",
             "_chromeStatus", "_forceActive", "_autoHeight", "_fitWidth", "_LODdisable", "_itemIndex", "_showSidebar", "_showTitle", "_showCaption", "_showTitleHover", "_backgroundColor",
-            "_xMargin", "_yMargin", "_xPadding", "_yPadding", "_singleLine",
+            "_xMargin", "_yMargin", "_xPadding", "_yPadding", "_singleLine", "_scrollTop",
             "_color", "isButton", "isBackground", "removeDropProperties", "treeViewOpen"];
 
         /**
@@ -431,7 +444,7 @@ export namespace Docs {
          * only when creating a DockDocument from the current user's already existing
          * main document.
          */
-        export function InstanceFromProto(proto: Doc, data: Field | undefined, options: DocumentOptions, delegId?: string) {
+        export function InstanceFromProto(proto: Doc, data: Field | undefined, options: DocumentOptions, delegId?: string, fieldKey: string = "data") {
             const { omit: protoProps, extract: delegateProps } = OmitKeys(options, delegateKeys);
 
             if (!("author" in protoProps)) {
@@ -444,10 +457,10 @@ export namespace Docs {
 
             protoProps.isPrototype = true;
 
-            const dataDoc = MakeDataDelegate(proto, protoProps, data);
+            const dataDoc = MakeDataDelegate(proto, protoProps, data, fieldKey);
             const viewDoc = Doc.MakeDelegate(dataDoc, delegId);
 
-            AudioBox.ActiveRecordings.map(d => DocUtils.MakeLink({ doc: viewDoc }, { doc: d }, "audio link", "link to audio: " + d.title));
+            viewDoc.type !== DocumentType.LINK && AudioBox.ActiveRecordings.map(d => DocUtils.MakeLink({ doc: viewDoc }, { doc: d }, "audio link", "audio timeline"));
 
             return Doc.assign(viewDoc, delegateProps, true);
         }
@@ -462,10 +475,10 @@ export namespace Docs {
          * @param options initial values to apply to this new delegate
          * @param value the data to store in this new delegate
          */
-        function MakeDataDelegate<D extends Field>(proto: Doc, options: DocumentOptions, value?: D) {
+        function MakeDataDelegate<D extends Field>(proto: Doc, options: DocumentOptions, value?: D, fieldKey: string = "data") {
             const deleg = Doc.MakeDelegate(proto);
             if (value !== undefined) {
-                deleg.data = value;
+                deleg[fieldKey] = value;
             }
             return Doc.assign(deleg, options);
         }
@@ -508,7 +521,9 @@ export namespace Docs {
         }
 
         export function AudioDocument(url: string, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.AUDIO), new AudioField(new URL(url)), options);
+            const instance = InstanceFromProto(Prototypes.get(DocumentType.AUDIO), new AudioField(new URL(url)), options);
+            Doc.GetProto(instance).backgroundColor = ComputedField.MakeFunction("this._audioState === 'playing' ? 'green':'gray'");
+            return instance;
         }
 
         export function HistogramDocument(histoOp: HistogramOperation, options: DocumentOptions = {}) {
@@ -524,7 +539,7 @@ export namespace Docs {
         }
 
         export function TextDocument(text: string, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.TEXT), text, options);
+            return InstanceFromProto(Prototypes.get(DocumentType.TEXT), text, options, undefined, "text");
         }
 
         export function LinkDocument(source: { doc: Doc, ctx?: Doc }, target: { doc: Doc, ctx?: Doc }, options: DocumentOptions = {}, id?: string) {
@@ -534,14 +549,14 @@ export namespace Docs {
             linkDocProto.anchor2 = target.doc;
             linkDocProto.anchor1Context = source.ctx;
             linkDocProto.anchor2Context = target.ctx;
-            linkDocProto.anchor1Timecode = source.doc.currentTimecode;
-            linkDocProto.anchor2Timecode = target.doc.currentTimecode;
+            linkDocProto.anchor1Timecode = source.doc.currentTimecode || source.doc.displayTimecode;
+            linkDocProto.anchor2Timecode = target.doc.currentTimecode || source.doc.displayTimecode;
 
             if (linkDocProto.layout_key1 === undefined) {
-                Cast(linkDocProto.proto, Doc, null)!.layout_key1 = DocuLinkBox.LayoutString("anchor1");
-                Cast(linkDocProto.proto, Doc, null)!.layout_key2 = DocuLinkBox.LayoutString("anchor2");
-                Cast(linkDocProto.proto, Doc, null)!.linkBoxExcludedKeys = new List(["treeViewExpandedView", "treeViewHideTitle", "removeDropProperties", "linkBoxExcludedKeys", "treeViewOpen", "proto", "aliasNumber", "isPrototype", "lastOpened", "creationDate", "author"]);
-                Cast(linkDocProto.proto, Doc, null)!.layoutKey = undefined;
+                Cast(linkDocProto.proto, Doc, null).layout_key1 = DocuLinkBox.LayoutString("anchor1");
+                Cast(linkDocProto.proto, Doc, null).layout_key2 = DocuLinkBox.LayoutString("anchor2");
+                Cast(linkDocProto.proto, Doc, null).linkBoxExcludedKeys = new List(["treeViewExpandedView", "treeViewHideTitle", "removeDropProperties", "linkBoxExcludedKeys", "treeViewOpen", "proto", "aliasNumber", "isPrototype", "lastOpened", "creationDate", "author"]);
+                Cast(linkDocProto.proto, Doc, null).layoutKey = undefined;
             }
 
             LinkManager.Instance.addLink(doc);
@@ -671,6 +686,10 @@ export namespace Docs {
 
         export function DirectoryImportDocument(options: DocumentOptions = {}) {
             return InstanceFromProto(Prototypes.get(DocumentType.IMPORT), new List<Doc>(), options);
+        }
+
+        export function RecommendationsDocument(data: Doc[], options: DocumentOptions = {}) {
+            return InstanceFromProto(Prototypes.get(DocumentType.RECOMMENDATION), new List<Doc>(data), options);
         }
 
         export type DocConfig = {
@@ -896,13 +915,13 @@ export namespace DocUtils {
         });
     }
 
-    export function MakeLink(source: { doc: Doc, ctx?: Doc }, target: { doc: Doc, ctx?: Doc }, title: string = "", linkRelationship: string = "", id?: string) {
+    export function MakeLink(source: { doc: Doc, ctx?: Doc }, target: { doc: Doc, ctx?: Doc }, linkRelationship: string = "", id?: string) {
         const sv = DocumentManager.Instance.getDocumentView(source.doc);
         if (sv && sv.props.ContainingCollectionDoc === target.doc) return;
         if (target.doc === CurrentUserUtils.UserDocument) return undefined;
 
-        const linkDoc = Docs.Create.LinkDocument(source, target, { title, linkRelationship }, id);
-        Doc.GetProto(linkDoc).title = ComputedField.MakeFunction('this.anchor1.title +" " + (this.linkRelationship||"to") +" "  + this.anchor2.title');
+        const linkDoc = Docs.Create.LinkDocument(source, target, { linkRelationship }, id);
+        Doc.GetProto(linkDoc).title = ComputedField.MakeFunction('this.anchor1.title +" (" + (this.linkRelationship||"to") +") "  + this.anchor2.title');
 
         Doc.GetProto(source.doc).links = ComputedField.MakeFunction("links(this)");
         Doc.GetProto(target.doc).links = ComputedField.MakeFunction("links(this)");
@@ -914,7 +933,15 @@ export namespace DocUtils {
             description: "Add Note ...",
             subitems: DocListCast((Doc.UserDoc().noteTypes as Doc).data).map((note, i) => ({
                 description: ":" + StrCast(note.title),
-                event: (args: { x: number, y: number }) => docTextAdder(Docs.Create.TextDocument("", { _width: 200, x, y, _autoHeight: note._autoHeight !== false, layout: note, title: StrCast(note.title) + "#" + (note.aliasCount = NumCast(note.aliasCount) + 1) })),
+                event: (args: { x: number, y: number }) => {
+                    const textDoc = Docs.Create.TextDocument("", {
+                        _width: 200, x, y, _autoHeight: note._autoHeight !== false,
+                        title: StrCast(note.title) + "#" + (note.aliasCount = NumCast(note.aliasCount) + 1)
+                    });
+                    textDoc.layoutKey = "layout_" + note.title;
+                    textDoc[textDoc.layoutKey] = note;
+                    docTextAdder(textDoc);
+                },
                 icon: "eye"
             })) as ContextMenuProps[],
             icon: "eye"

@@ -1,6 +1,6 @@
 import React = require("react");
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faArrowLeft, faArrowRight, faEdit, faMinus, faPlay, faPlus, faStop, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faArrowLeft, faArrowRight, faEdit, faMinus, faPlay, faPlus, faStop, faHandPointLeft, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
@@ -24,6 +24,7 @@ library.add(faArrowLeft);
 library.add(faArrowRight);
 library.add(faPlay);
 library.add(faStop);
+library.add(faHandPointLeft);
 library.add(faPlus);
 library.add(faTimes);
 library.add(faMinus);
@@ -340,7 +341,7 @@ export class PresBox extends React.Component<FieldViewProps> {
         const funcs: ContextMenuProps[] = [];
         funcs.push({ description: "Show as Slideshow", event: action(() => this.props.Document._viewType = CollectionViewType.Carousel), icon: "asterisk" });
         funcs.push({ description: "Show as Timeline", event: action(() => this.props.Document._viewType = CollectionViewType.Time), icon: "asterisk" });
-        funcs.push({ description: "Show as List", event: action(() => this.props.Document._viewType = CollectionViewType.Invalid), icon: "asterisk" });
+        funcs.push({ description: "Show as List", event: action(() => { this.props.Document._viewType = CollectionViewType.Stacking; this.props.Document._pivotField = undefined; }), icon: "asterisk" });
         ContextMenu.Instance.addItem({ description: "Presentation Funcs...", subitems: funcs, icon: "asterisk" });
     }
 
@@ -377,6 +378,7 @@ export class PresBox extends React.Component<FieldViewProps> {
     viewChanged = action((e: React.ChangeEvent) => {
         //@ts-ignore
         this.props.Document._viewType = Number(e.target.selectedOptions[0].value);
+        this.props.Document._viewType === CollectionViewType.Stacking && (this.props.Document._pivotField = undefined);
         this.updateMinimize(e, Number(this.props.Document._viewType));
     });
 

@@ -77,18 +77,19 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
     getTransform = (ele: React.RefObject<HTMLDivElement>) => () => {
         if (!ele.current) return Transform.Identity();
         const { scale, translateX, translateY } = Utils.GetScreenTransform(ele.current);
-        return new Transform(-translateX, -translateY, 1 / scale);
+        return new Transform(-translateX, -translateY, 1);
     }
 
     render() {
         const guid = Utils.GenerateGuid();
+        const flexDir: any = StrCast(this.Document.flexDirection);
         return <div className="collectionLinearView-outer">
             <div className="collectionLinearView" ref={this.createDashEventsTarget} >
                 <input id={`${guid}`} type="checkbox" checked={BoolCast(this.props.Document.linearViewIsExpanded)} ref={this.addMenuToggle}
                     onChange={action((e: any) => this.props.Document.linearViewIsExpanded = this.addMenuToggle.current!.checked)} />
                 <label htmlFor={`${guid}`} style={{ marginTop: "auto", marginBottom: "auto", background: StrCast(this.props.Document.backgroundColor, "black") === StrCast(this.props.Document.color, "white") ? "black" : StrCast(this.props.Document.backgroundColor, "black") }} title="Close Menu"><p>+</p></label>
 
-                <div className="collectionLinearView-content" style={{ height: this.dimension(), width: NumCast(this.props.Document._width, 25) }}>
+                <div className="collectionLinearView-content" style={{ height: this.dimension(), width: NumCast(this.props.Document._width, 25), flexDirection: flexDir }}>
                     {this.childLayoutPairs.filter((pair) => this.isCurrent(pair.layout)).map((pair, ind) => {
                         const nested = pair.layout._viewType === CollectionViewType.Linear;
                         const dref = React.createRef<HTMLDivElement>();

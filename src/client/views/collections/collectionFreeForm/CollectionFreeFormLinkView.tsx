@@ -46,8 +46,8 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
                 // really hacky stuff to make the DocuLinkBox display where we want it to:
                 //   if there's an element in the DOM with the id of the opposite anchor, then that DOM element is a hyperlink source for the current anchor and we want to place our link box at it's top right
                 //   otherwise, we just use the computed nearest point on the document boundary to the target Document
-                const targetAhyperlink = window.document.getElementById((this.props.LinkDocs[0][afield] as Doc)[Id]);
-                const targetBhyperlink = window.document.getElementById((this.props.LinkDocs[0][bfield] as Doc)[Id]);
+                const targetAhyperlink = window.document.getElementById(this.props.LinkDocs[0][Id] + (this.props.LinkDocs[0][afield] as Doc)[Id]);
+                const targetBhyperlink = window.document.getElementById(this.props.LinkDocs[0][Id] + (this.props.LinkDocs[0][bfield] as Doc)[Id]);
                 if (!targetBhyperlink) {
                     this.props.A.props.Document[afield + "_x"] = (apt.point.x - abounds.left) / abounds.width * 100;
                     this.props.A.props.Document[afield + "_y"] = (apt.point.y - abounds.top) / abounds.height * 100;

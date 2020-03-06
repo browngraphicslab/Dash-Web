@@ -7,13 +7,15 @@ import { DocumentManager } from "./DocumentManager";
 import { LinkManager } from "./LinkManager";
 import { SelectionManager } from "./SelectionManager";
 import { SchemaHeaderField } from "../../new_fields/SchemaHeaderField";
-import { Docs } from "../documents/Documents";
+import { Docs, DocUtils } from "../documents/Documents";
 import { ScriptField } from "../../new_fields/ScriptField";
 import { List } from "../../new_fields/List";
 import { PrefetchProxy } from "../../new_fields/Proxy";
 import { listSpec } from "../../new_fields/Schema";
 import { Scripting } from "./Scripting";
 import { convertDropDataToButtons } from "./DropConverter";
+import { AudioBox } from "../views/nodes/AudioBox";
+import { DateField } from "../../new_fields/DateField";
 
 export type dropActionType = "alias" | "copy" | undefined;
 export function SetupDrag(
@@ -133,6 +135,7 @@ export namespace DragManager {
         userDropAction: dropActionType;
         embedDoc?: boolean;
         moveDocument?: MoveFunction;
+        applyAsTemplate?: boolean;
         isSelectionMove?: boolean; // indicates that an explicitly selected Document is being dragged.  this will suppress onDragStart scripts
     }
     export class LinkDragData {
@@ -179,7 +182,7 @@ export namespace DragManager {
             );
         }
         element.dataset.canDrop = "true";
-        const handler = (e: Event) => dropFunc(e, (e as CustomEvent<DropEvent>).detail);
+        const handler = (e: Event) => { dropFunc(e, (e as CustomEvent<DropEvent>).detail); };
         element.addEventListener("dashOnDrop", handler);
         return () => {
             element.removeEventListener("dashOnDrop", handler);
@@ -189,9 +192,14 @@ export namespace DragManager {
 
     // drag a document and drop it (or make an alias/copy on drop)
     export function StartDocumentDrag(eles: HTMLElement[], dragData: DocumentDragData, downX: number, downY: number, options?: DragOptions) {
+        const addAudioTag = (dropDoc: any) => {
+            dropDoc && !dropDoc.creationDate && (dropDoc.creationDate = new DateField);
+            dropDoc instanceof Doc && AudioBox.ActiveRecordings.map(d => DocUtils.MakeLink({ doc: dropDoc }, { doc: d }, "audio link", "audio timeline"));
+            return dropDoc;
+        }
         const finishDrag = (e: DragCompleteEvent) => {
             e.docDragData && (e.docDragData.droppedDocuments =
-                dragData.draggedDocuments.map(d => !dragData.isSelectionMove && !dragData.userDropAction && ScriptCast(d.onDragStart) ? ScriptCast(d.onDragStart).script.run({ this: d }).result :
+                dragData.draggedDocuments.map(d => !dragData.isSelectionMove && !dragData.userDropAction && ScriptCast(d.onDragStart) ? addAudioTag(ScriptCast(d.onDragStart).script.run({ this: d }).result) :
                     dragData.userDropAction === "alias" || (!dragData.userDropAction && dragData.dropAction === "alias") ? Doc.MakeAlias(d) :
                         dragData.userDropAction === "copy" || (!dragData.userDropAction && dragData.dropAction === "copy") ? Doc.MakeCopy(d, true) : d)
             );
@@ -266,6 +274,10 @@ export namespace DragManager {
     // drags a column from a schema view
     export function StartColumnDrag(ele: HTMLElement, dragData: ColumnDragData, downX: number, downY: number, options?: DragOptions) {
         StartDrag([ele], dragData, downX, downY, options);
+    }
+
+    export function StartImgDrag(ele: HTMLElement, downX: number, downY: number) {
+        StartDrag([ele], {}, downX, downY);
     }
 
     function StartDrag(eles: HTMLElement[], dragData: { [id: string]: any }, downX: number, downY: number, options?: DragOptions, finishDrag?: (dropData: DragCompleteEvent) => void) {
@@ -382,8 +394,8 @@ export namespace DragManager {
             hideDragShowOriginalElements();
             dispatchDrag(eles, e, dragData, options, finishDrag);
             SelectionManager.SetIsDragging(false);
-            options?.dragComplete?.(new DragCompleteEvent(false, dragData));
             endDrag();
+            options?.dragComplete?.(new DragCompleteEvent(false, dragData));
         };
         document.addEventListener("pointermove", moveHandler, true);
         document.addEventListener("pointerup", upHandler);
@@ -404,7 +416,7 @@ export namespace DragManager {
         if (target) {
             const complete = new DragCompleteEvent(false, dragData);
             finishDrag?.(complete);
-
+            console.log(complete.aborted);
             target.dispatchEvent(
                 new CustomEvent<DropEvent>("dashOnDrop", {
                     bubbles: true,

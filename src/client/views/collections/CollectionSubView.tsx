@@ -6,7 +6,7 @@ import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
 import { ScriptField } from "../../../new_fields/ScriptField";
-import { Cast } from "../../../new_fields/Types";
+import { Cast, StrCast } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
@@ -54,11 +54,13 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         private gestureDisposer?: GestureUtils.GestureEventDisposer;
         protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
         private _childLayoutDisposer?: IReactionDisposer;
+        protected _mainCont?: HTMLDivElement;
         protected createDashEventsTarget = (ele: HTMLDivElement) => { //used for stacking and masonry view
             this.dropDisposer?.();
             this.gestureDisposer?.();
             this.multiTouchDisposer?.();
             if (ele) {
+                this._mainCont = ele;
                 this.dropDisposer = DragManager.MakeDropTarget(ele, this.onInternalDrop.bind(this));
                 this.gestureDisposer = GestureUtils.MakeGestureTarget(ele, this.onGesture.bind(this));
                 this.multiTouchDisposer = InteractionUtils.MakeMultiTouchTarget(ele, this.onTouchStart.bind(this));
@@ -111,7 +113,9 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             return Cast(this.dataField, listSpec(Doc));
         }
         get childDocs() {
-            const docs = DocListCast(this.dataField);
+            const dfield = this.dataField;
+            const rawdocs = (dfield instanceof Doc) ? [dfield] : Cast(dfield, listSpec(Doc), this.props.Document.expandedTemplate && !this.props.annotationsKey ? [Cast(this.props.Document.expandedTemplate, Doc, null)] : []);
+            const docs = rawdocs.filter(d => !(d instanceof Promise)).map(d => d as Doc);
             const viewSpecScript = Cast(this.props.Document.viewSpecScript, ScriptField);
             return viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
         }
@@ -150,7 +154,6 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
 
         @undoBatch
         protected onGesture(e: Event, ge: GestureUtils.GestureEvent) {
-
         }
 
         @undoBatch

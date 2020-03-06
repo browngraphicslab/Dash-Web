@@ -28,6 +28,7 @@ export const documentSchema = createSchema({
     _pivotField: "string",      // specifies which field should be used as the timeline/pivot axis
     _replacedChrome: "string",  // what the default chrome is replaced with. Currently only supports the value of 'replaced' for PresBox's.
     _chromeStatus: "string",    // determines the state of the collection chrome. values allowed are 'replaced', 'enabled', 'disabled', 'collapsed'
+    _freezeOnDrop: "boolean",    // whether a document without native dimensions should have its width/height frozen as native dimensions on drop.  Used by Timeline view to make sure documents are scaled to fit the display thumbnail
     color: "string",            // foreground color of document
     backgroundColor: "string",  // background color of document
     opacity: "number",          // opacity of document
