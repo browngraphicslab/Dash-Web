@@ -289,9 +289,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 UndoManager.RunInBatch(() => this.props.addDocTab(fullScreenAlias, "inTab"), "double tap");
                 SelectionManager.DeselectAll();
                 Doc.UnBrushDoc(this.props.Document);
-            } else if (this.onClickHandler && this.onClickHandler.script) {
+            } else if (this.onClickHandler?.script) {
                 SelectionManager.DeselectAll();
-                UndoManager.RunInBatch(() => this.onClickHandler!.script.run({ this: this.Document.isTemplateForField && this.props.DataDoc ? this.props.DataDoc : this.props.Document, containingCollection: this.props.ContainingCollectionDoc, shiftKey: e.shiftKey }, console.log), "on click");
+                UndoManager.RunInBatch(() => this.onClickHandler!.script.run({ this: this.Document.isTemplateForField && this.props.DataDoc ? this.props.DataDoc : this.props.Document, containingCollection: this.props.ContainingCollectionDoc, shiftKey: e.shiftKey }, console.log) && this.select(false), "on click");
             } else if (this.Document.type === DocumentType.BUTTON) {
                 UndoManager.RunInBatch(() => ScriptBox.EditButtonScript("On Button Clicked ...", this.props.Document, "onClick", e.clientX, e.clientY), "on button click");
             } else if (this.Document.isButton) {
