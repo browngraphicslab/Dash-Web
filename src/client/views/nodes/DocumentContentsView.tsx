@@ -91,7 +91,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
 
     render() {
         TraceMobx();
-        return (this.props.renderDepth > 7 || !this.layout || !this.layoutDoc) ? (null) :
+        return (this.props.renderDepth > 12 || !this.layout || !this.layoutDoc) ? (null) :
             <ObserverJsxParser
                 blacklistedAttrs={[]}
                 components={{

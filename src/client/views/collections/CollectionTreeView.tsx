@@ -184,6 +184,11 @@ class TreeView extends React.Component<TreeViewProps> {
             EditableView.loadId = doc[Id];
             return this.props.addDocument(doc);
         })}
+        onClick={() => {
+            SelectionManager.DeselectAll();
+            Doc.UserDoc().SelectedDocs = new List([this.props.document]);
+            return false;
+        }}
         OnTab={undoBatch((shift?: boolean) => {
             EditableView.loadId = this.dataDoc[Id];
             shift ? this.props.outdentDocument?.() : this.props.indentDocument?.();
