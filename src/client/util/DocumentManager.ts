@@ -92,10 +92,17 @@ export class DocumentManager {
     public getDocumentViews(toFind: Doc): DocumentView[] {
         const toReturn: DocumentView[] = [];
 
+        // heurstic to return the "best" documents first:
+        //   choose an exact match over an alias match
+        //   choose documents that have a PanelWidth() over those that don't (the treeview documents have no panelWidth)
         DocumentManager.Instance.DocumentViews.map(view =>
-            view.props.Document.presBox === undefined && view.props.Document === toFind && toReturn.push(view));
+            view.props.Document.presBox === undefined && view.props.PanelWidth() > 1 && view.props.Document === toFind && toReturn.push(view));
         DocumentManager.Instance.DocumentViews.map(view =>
-            view.props.Document.presBox === undefined && view.props.Document !== toFind && Doc.AreProtosEqual(view.props.Document, toFind) && toReturn.push(view));
+            view.props.Document.presBox === undefined && view.props.PanelWidth() <= 1 && view.props.Document === toFind && toReturn.push(view));
+        DocumentManager.Instance.DocumentViews.map(view =>
+            view.props.Document.presBox === undefined && view.props.PanelWidth() > 1 && view.props.Document !== toFind && Doc.AreProtosEqual(view.props.Document, toFind) && toReturn.push(view));
+        DocumentManager.Instance.DocumentViews.map(view =>
+            view.props.Document.presBox === undefined && view.props.PanelWidth() <= 1 && view.props.Document !== toFind && Doc.AreProtosEqual(view.props.Document, toFind) && toReturn.push(view));
 
         return toReturn;
     }

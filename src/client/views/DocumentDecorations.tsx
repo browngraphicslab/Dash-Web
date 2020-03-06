@@ -43,7 +43,7 @@ export type CloseCall = (toBeDeleted: DocumentView[]) => void;
 export class DocumentDecorations extends React.Component<{}, { value: string }> {
     static Instance: DocumentDecorations;
     private _resizeHdlId = "";
-    private _keyinput: React.RefObject<HTMLInputElement>;
+    private _keyinput = React.createRef<HTMLInputElement>();
     private _resizeBorderWidth = 16;
     private _linkBoxHeight = 20 + 3; // link button height + margin
     private _titleHeight = 20;
@@ -62,7 +62,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     constructor(props: Readonly<{}>) {
         super(props);
         DocumentDecorations.Instance = this;
-        this._keyinput = React.createRef();
         reaction(() => SelectionManager.SelectedDocuments().slice(), docs => this.titleBlur(false));
     }
 

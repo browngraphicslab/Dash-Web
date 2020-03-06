@@ -1018,6 +1018,16 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @computed get innards() {
         TraceMobx();
+        if (!this.props.PanelWidth()) {
+            return <div style={{ display: "flex" }}>
+                {StrCast(this.props.Document.title)}
+                {this.Document.links && DocListCast(this.Document.links).filter(d => !d.hidden).filter(this.isNonTemporalLink).map((d, i) =>
+                    <div className="documentView-docuLinkWrapper" style={{ position: "absolute", top: 0, left: 0 }} key={`${d[Id]}`}>
+                        <DocumentView {...this.props} ContentScaling={returnOne} ContainingCollectionDoc={this.props.Document}
+                            PanelWidth={returnOne} PanelHeight={returnOne} Document={d} layoutKey={this.linkEndpoint(d)} backgroundColor={returnTransparent} removeDocument={undoBatch(doc => doc.hidden = true)} />
+                    </div>)}
+            </div>;
+        }
         const showTitle = StrCast(this.layoutDoc._showTitle);
         const showTitleHover = StrCast(this.layoutDoc._showTitleHover);
         const showCaption = StrCast(this.layoutDoc._showCaption);
@@ -1116,8 +1126,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 border: highlighting && borderRounding ? `${highlightStyles[fullDegree]} ${highlightColors[fullDegree]} ${localScale}px` : undefined,
                 boxShadow: this.props.Document.isTemplateForField ? "black 0.2vw 0.2vw 0.8vw" : undefined,
                 background: finalColor,
-                width: "100%",
-                height: "100%",
                 opacity: this.Document.opacity
             }}>
             {this.Document.isBackground ? <div className="documentView-lock"> <FontAwesomeIcon icon="unlock" size="lg" /> </div> : (null)}
@@ -1131,7 +1139,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 }
 
-Scripting.addGlobal(function toggleDetail(doc: any, layoutKey: string, otherKey: string="layout") {
+Scripting.addGlobal(function toggleDetail(doc: any, layoutKey: string, otherKey: string = "layout") {
     const dv = DocumentManager.Instance.getDocumentView(doc);
     if (dv?.props.Document.layoutKey === layoutKey) dv?.switchViews(otherKey !== "layout", otherKey.replace("layout_", ""));
     else dv?.switchViews(true, layoutKey.replace("layout_", ""));

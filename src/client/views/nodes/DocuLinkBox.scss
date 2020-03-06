@@ -1,4 +1,4 @@
-.docuLinkBox-cont {
+.docuLinkBox-cont, .docuLinkBox-cont-small {
     cursor: default;
     position: absolute;
     width: 15;
@@ -21,4 +21,9 @@
         padding-left: 2px;
         padding-top: 1px;
     }
+}
+
+.docuLinkBox-cont-small {
+    width:5px;
+    height:5px;
 }

@@ -123,6 +123,7 @@ export interface DocumentOptions {
     displayTimecode?: number; // the time that a document should be displayed (e.g., time an annotation should be displayed on a video)
     borderRounding?: string;
     boxShadow?: string;
+    dontRegisterChildren?: boolean;
     _pivotField?: string; // field key used to determine headings for sections in stacking, masonry, pivot views
     schemaColumns?: List<SchemaHeaderField>;
     dockingConfig?: string;

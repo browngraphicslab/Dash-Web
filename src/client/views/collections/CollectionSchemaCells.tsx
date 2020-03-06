@@ -77,7 +77,8 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
 
     @action
     isEditingCallback = (isEditing: boolean): void => {
-        document.addEventListener("keydown", this.onKeyDown);
+        document.removeEventListener("keydown", this.onKeyDown);
+        isEditing && document.addEventListener("keydown", this.onKeyDown);
         this._isEditing = isEditing;
         this.props.setIsEditing(isEditing);
         this.props.changeFocusedCellByIndex(this.props.row, this.props.col);
