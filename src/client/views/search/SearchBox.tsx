@@ -46,6 +46,14 @@ export class SearchBox extends React.Component {
     private _curRequest?: Promise<any> = undefined;
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(SearchBox, fieldKey); }
 
+
+    //if true, any keywords can be used. if false, all keywords are required.
+    //this also serves as an indicator if the word status filter is applied
+    @observable private _basicWordStatus: boolean = false;
+    @observable private _nodeStatus: boolean = false;
+    @observable private _keyStatus: boolean = false;
+
+
     constructor(props: any) {
         super(props);
 
@@ -352,6 +360,22 @@ export class SearchBox extends React.Component {
 
     @observable private _filterOpen: boolean = false;
 
+    //if true, any keywords can be used. if false, all keywords are required.
+    @action.bound
+    handleWordQueryChange = () => {
+        this._basicWordStatus = !this._basicWordStatus;
+    }
+
+    @action.bound
+    handleNodeChange = () => {
+        this._nodeStatus = !this._nodeStatus;
+    }
+
+    @action.bound
+    handleKeyChange = () => {
+        this._keyStatus = !this._keyStatus;
+    }
+
 
     render() {
         return (
@@ -366,16 +390,22 @@ export class SearchBox extends React.Component {
                     <button className="searchBox-barChild searchBox-filter" title="Advanced Filtering Options" onClick={() => runInAction(() => this._filterOpen = !this._filterOpen)}><FontAwesomeIcon icon="ellipsis-v" color="white" /></button>
                 </div>
 
-                <div style={{ display: "flex", flexDirection: "row-reverse" }}>
-                    <div className="filter-form" style={this._filterOpen ? { display: "flex" } : { display: "none" }}>
-                        <div className="top-filter-header" style={{ display: "flex", width: "100%" }}>
-                            <div id="header">Filter Search Results</div>
-                            <div style={{ marginLeft: "auto" }}></div>
-                            <div className="close-icon" >
-                                <span className="line line-1"></span>
-                                <span className="line line-2"></span></div>
-                        </div>
-                        <div className="filter-options">
+                <div className="filter-form" style={this._filterOpen ? { display: "flex" } : { display: "none" }}>
+                    <div className="filter-header">
+                        <button className="filter-item" onClick={this.handleWordQueryChange}>Keywords</button>
+                        <button className="filter-item" onClick={this.handleKeyChange}>Keys</button>
+                        <button className="filter-item" onClick={this.handleNodeChange}>Nodes</button>
+                    </div>
+                    <div className="filter-body" style={this._nodeStatus ? { display: "flex" } : { display: "none" }}>
+                        <IconBar />
+
+                    </div>
+                    <div style={this._keyStatus ? { display: "flex" } : { display: "none" }}>
+
+                    </div>
+
+
+                    {/* <div className="filter-options">
                             <div className="filter-div">
                                 <div className="filter-header">
                                     <div className='filter-title words'>Required words</div>
@@ -395,17 +425,12 @@ export class SearchBox extends React.Component {
                                     <div className="filter-title field">Filter by Basic Keys</div>
                                 </div>
                                 <div className="filter-panel">
-                                    {/* <FieldFilters
+                                <FieldFilters
                                     titleFieldStatus={this._titleFieldStatus} dataFieldStatus={this._deletedDocsStatus} authorFieldStatus={this._authorFieldStatus}
-                                    updateAuthorStatus={this.updateAuthorStatus} updateDataStatus={this.updateDataStatus} updateTitleStatus={this.updateTitleStatus} /> </div> */}
+                                    updateAuthorStatus={this.updateAuthorStatus} updateDataStatus={this.updateDataStatus} updateTitleStatus={this.updateTitleStatus} /> </div>
                                 </div>
                             </div>
-                            <div className="filter-buttons" style={{ display: "flex", justifyContent: "space-around" }}>
-                                <button className="save-filter" >Save Filters</button>
-                                <button className="reset-filter" >Reset Filters</button>
-                            </div>
-                        </div>
-                    </div>
+                        </div> */}
                 </div>
                 <div className="searchBox-results" onScroll={this.resultsScrolled} style={{
                     display: this._resultsOpen ? "flex" : "none",

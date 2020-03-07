@@ -9,7 +9,8 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { library } from '@fortawesome/fontawesome-svg-core';
 import * as _ from "lodash";
 import { IconButton } from './IconButton';
-import { FilterBox } from './FilterBox';
+import { DocumentType } from "../../documents/DocumentTypes";
+
 
 library.add(faSearch);
 library.add(faObjectGroup);
@@ -25,6 +26,9 @@ library.add(faBan);
 
 @observer
 export class IconBar extends React.Component {
+    public _allIcons: string[] = [DocumentType.AUDIO, DocumentType.COL, DocumentType.IMG, DocumentType.LINK, DocumentType.PDF, DocumentType.TEXT, DocumentType.VID, DocumentType.WEB, DocumentType.TEMPLATE];
+
+    @observable private _icons: string[] = this._allIcons;
 
     static Instance: IconBar;
 
@@ -33,16 +37,22 @@ export class IconBar extends React.Component {
     @observable public _reset: number = 0;
     @observable public _select: number = 0;
 
+    @action.bound
+    updateIcon(newArray: string[]) { this._icons = newArray; }
+
+    @action.bound
+    getIcons(): string[] { return this._icons; }
+
     constructor(props: any) {
         super(props);
         IconBar.Instance = this;
     }
 
     @action.bound
-    getList(): string[] { return FilterBox.Instance.getIcons(); }
+    getList(): string[] { return this.getIcons(); }
 
     @action.bound
-    updateList(newList: string[]) { FilterBox.Instance.updateIcon(newList); }
+    updateList(newList: string[]) { this.updateIcon(newList); }
 
     @action.bound
     resetSelf = () => {
@@ -53,13 +63,13 @@ export class IconBar extends React.Component {
     @action.bound
     selectAll = () => {
         this._selectAllClicked = true;
-        this.updateList(FilterBox.Instance._allIcons);
+        this.updateList(this._allIcons);
     }
 
     render() {
         return (
             <div className="icon-bar">
-                {FilterBox.Instance._allIcons.map((type: string) =>
+                {this._allIcons.map((type: string) =>
                     <IconButton key={type.toString()} type={type} />
                 )}
             </div>

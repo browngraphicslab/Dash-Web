@@ -11,7 +11,6 @@ import '../globalCssVariables.scss';
 import * as _ from "lodash";
 import { IconBar } from './IconBar';
 import { props } from 'bluebird';
-import { FilterBox } from './FilterBox';
 import { Search } from '../../../server/Search';
 import { gravity } from 'sharp';
 
@@ -34,7 +33,7 @@ interface IconButtonProps {
 @observer
 export class IconButton extends React.Component<IconButtonProps>{
 
-    @observable private _isSelected: boolean = FilterBox.Instance.getIcons().indexOf(this.props.type) !== -1;
+    @observable private _isSelected: boolean = IconBar.Instance.getIcons().indexOf(this.props.type) !== -1;
     @observable private _hover = false;
     private _resetReaction?: IReactionDisposer;
     private _selectAllReaction?: IReactionDisposer;
@@ -108,7 +107,7 @@ export class IconButton extends React.Component<IconButtonProps>{
 
     @action.bound
     onClick = () => {
-        const newList: string[] = FilterBox.Instance.getIcons();
+        const newList: string[] = IconBar.Instance.getIcons();
 
         if (!this._isSelected) {
             this._isSelected = true;
@@ -119,7 +118,7 @@ export class IconButton extends React.Component<IconButtonProps>{
             _.pull(newList, this.props.type);
         }
 
-        FilterBox.Instance.updateIcon(newList);
+        IconBar.Instance.updateIcon(newList);
     }
 
     selected = {
@@ -186,7 +185,7 @@ export class IconButton extends React.Component<IconButtonProps>{
                 >
                     {this.getFA()}
                 </div>
-                <div className="filter-description">{this.props.type}</div>
+                {/* <div className="filter-description">{this.props.type}</div> */}
             </div>
         );
     }
