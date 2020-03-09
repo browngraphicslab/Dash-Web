@@ -956,30 +956,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     childScaling = () => (this.layoutDoc._fitWidth ? this.props.PanelWidth() / this.nativeWidth : this.props.ContentScaling());
     @computed get contents() {
         TraceMobx();
-        return (<DocumentContentsView ContainingCollectionView={this.props.ContainingCollectionView}
-            ContainingCollectionDoc={this.props.ContainingCollectionDoc}
-            Document={this.props.Document}
-            DataDoc={this.props.DataDoc}
-            LayoutDoc={this.props.LayoutDoc}
-            fitToBox={this.props.fitToBox}
-            LibraryPath={this.props.LibraryPath}
-            addDocument={this.props.addDocument}
-            removeDocument={this.props.removeDocument}
-            moveDocument={this.props.moveDocument}
-            ScreenToLocalTransform={this.props.ScreenToLocalTransform}
-            renderDepth={this.props.renderDepth}
+        return (<DocumentContentsView {...this.props}
             ContentScaling={this.childScaling}
-            PanelWidth={this.props.PanelWidth}
-            PanelHeight={this.props.PanelHeight}
-            focus={this.props.focus}
-            parentActive={this.props.parentActive}
-            whenActiveChanged={this.props.whenActiveChanged}
-            bringToFront={this.props.bringToFront}
-            addDocTab={this.props.addDocTab}
-            pinToPres={this.props.pinToPres}
-            zoomToScale={this.props.zoomToScale}
-            backgroundColor={this.props.backgroundColor}
-            getScale={this.props.getScale}
             ChromeHeight={this.chromeHeight}
             isSelected={this.isSelected}
             select={this.select}
@@ -1019,7 +997,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @computed get innards() {
         TraceMobx();
         if (!this.props.PanelWidth()) {
-            return <div style={{ display: "flex" }}>
+            return <div style={{ display: "flex", overflow: "hidden" }}>
                 {StrCast(this.props.Document.title)}
                 {this.Document.links && DocListCast(this.Document.links).filter(d => !d.hidden).filter(this.isNonTemporalLink).map((d, i) =>
                     <div className="documentView-docuLinkWrapper" style={{ position: "absolute", top: 0, left: 0 }} key={`${d[Id]}`}>

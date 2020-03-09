@@ -14,6 +14,7 @@ import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
 import "./DocumentBox.scss";
 import { FieldView, FieldViewProps } from "./FieldView";
 import React = require("react");
+import { TraceMobx } from "../../../new_fields/util";
 
 type DocBoxSchema = makeInterface<[typeof documentSchema]>;
 const DocBoxDocument = makeInterface(documentSchema);
@@ -97,6 +98,7 @@ export class DocumentBox extends DocAnnotatableComponent<FieldViewProps, DocBoxS
     pheight = () => this.props.PanelHeight() - 30;
     getTransform = () => this.props.ScreenToLocalTransform().translate(-15, -15);
     render() {
+        TraceMobx();
         const containedDoc = this.contentDoc[this.props.fieldKey];
         return <div className="documentBox-container" ref={this._contRef}
             onContextMenu={this.specificContextMenu}
@@ -121,6 +123,7 @@ export class DocumentBox extends DocAnnotatableComponent<FieldViewProps, DocBoxS
                 PanelHeight={this.pheight}
                 focus={this.props.focus}
                 active={this.props.active}
+                dontRegisterView={!this.isSelectionLocked()}
                 whenActiveChanged={this.props.whenActiveChanged}
             />}
         </div>;
