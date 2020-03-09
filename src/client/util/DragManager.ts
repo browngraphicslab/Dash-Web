@@ -16,6 +16,7 @@ import { Scripting } from "./Scripting";
 import { convertDropDataToButtons } from "./DropConverter";
 import { AudioBox } from "../views/nodes/AudioBox";
 import { DateField } from "../../new_fields/DateField";
+import { DocumentView } from "../views/nodes/DocumentView";
 
 export type dropActionType = "alias" | "copy" | undefined;
 export function SetupDrag(
@@ -132,6 +133,7 @@ export namespace DragManager {
         dontHideOnDrop?: boolean;
         offset: number[];
         dropAction: dropActionType;
+        removeDropProperties?: string[];
         userDropAction: dropActionType;
         embedDoc?: boolean;
         moveDocument?: MoveFunction;
@@ -204,9 +206,7 @@ export namespace DragManager {
                         dragData.userDropAction === "copy" || (!dragData.userDropAction && dragData.dropAction === "copy") ? Doc.MakeCopy(d, true) : d)
             );
             e.docDragData?.droppedDocuments.forEach((drop: Doc, i: number) =>
-                Cast(dragData.draggedDocuments[i].removeDropProperties, listSpec("string"), []).map(prop => {
-                    drop[prop] = undefined;
-                })
+                (dragData?.removeDropProperties || []).concat(Cast(dragData.draggedDocuments[i].removeDropProperties, listSpec("string"), [])).map(prop => drop[prop] = undefined)
             );
         };
         dragData.draggedDocuments.map(d => d.dragFactory); // does this help?  trying to make sure the dragFactory Doc is loaded
@@ -227,7 +227,7 @@ export namespace DragManager {
     }
 
     // drag links and drop link targets (aliasing them if needed)
-    export async function StartLinkTargetsDrag(dragEle: HTMLElement, downX: number, downY: number, sourceDoc: Doc, specificLinks?: Doc[]) {
+    export async function StartLinkTargetsDrag(dragEle: HTMLElement, docView: DocumentView, downX: number, downY: number, sourceDoc: Doc, specificLinks?: Doc[]) {
         const draggedDocs = (specificLinks ? specificLinks : DocListCast(sourceDoc.links)).map(link => LinkManager.Instance.getOppositeAnchor(link, sourceDoc)).filter(l => l) as Doc[];
 
         if (draggedDocs.length) {
@@ -239,12 +239,11 @@ export namespace DragManager {
 
             const dragData = new DragManager.DocumentDragData(moddrag.length ? moddrag : draggedDocs);
             dragData.moveDocument = (doc: Doc, targetCollection: Doc | undefined, addDocument: (doc: Doc) => boolean): boolean => {
-                const document = SelectionManager.SelectedDocuments()[0];
-                document && document.props.removeDocument && document.props.removeDocument(doc);
+                docView.props.removeDocument?.(doc);
                 addDocument(doc);
                 return true;
             };
-            const containingView = SelectionManager.SelectedDocuments()[0] ? SelectionManager.SelectedDocuments()[0].props.ContainingCollectionView : undefined;
+            const containingView = docView.props.ContainingCollectionView;
             const finishDrag = (e: DragCompleteEvent) =>
                 e.docDragData && (e.docDragData.droppedDocuments =
                     dragData.draggedDocuments.reduce((droppedDocs, d) => {

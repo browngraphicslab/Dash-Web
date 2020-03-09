@@ -548,10 +548,10 @@ export namespace Docs {
             const linkDocProto = Doc.GetProto(doc);
             linkDocProto.anchor1 = source.doc;
             linkDocProto.anchor2 = target.doc;
-            linkDocProto.anchor1Context = source.ctx;
-            linkDocProto.anchor2Context = target.ctx;
-            linkDocProto.anchor1Timecode = source.doc.currentTimecode || source.doc.displayTimecode;
-            linkDocProto.anchor2Timecode = target.doc.currentTimecode || source.doc.displayTimecode;
+            linkDocProto.anchor1_context = source.ctx;
+            linkDocProto.anchor2_context = target.ctx;
+            linkDocProto.anchor1_timecode = source.doc.currentTimecode || source.doc.displayTimecode;
+            linkDocProto.anchor2_timecode = target.doc.currentTimecode || source.doc.displayTimecode;
 
             if (linkDocProto.layout_key1 === undefined) {
                 Cast(linkDocProto.proto, Doc, null).layout_key1 = DocuLinkBox.LayoutString("anchor1");

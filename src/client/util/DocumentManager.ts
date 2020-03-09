@@ -203,8 +203,8 @@ export class DocumentManager {
         const second = secondDocWithoutView ? [secondDocWithoutView] : secondDocs;
         const linkDoc = first.length ? first[0] : second.length ? second[0] : undefined;
         const linkFollowDocs = first.length ? [await first[0].anchor2 as Doc, await first[0].anchor1 as Doc] : second.length ? [await second[0].anchor1 as Doc, await second[0].anchor2 as Doc] : undefined;
-        const linkFollowDocContexts = first.length ? [await first[0].anchor2Context as Doc, await first[0].anchor1Context as Doc] : second.length ? [await second[0].anchor1Context as Doc, await second[0].anchor2Context as Doc] : [undefined, undefined];
-        const linkFollowTimecodes = first.length ? [NumCast(first[0].anchor2Timecode), NumCast(first[0].anchor1Timecode)] : second.length ? [NumCast(second[0].anchor1Timecode), NumCast(second[0].anchor2Timecode)] : [undefined, undefined];
+        const linkFollowDocContexts = first.length ? [await first[0].anchor2_context as Doc, await first[0].anchor1_context as Doc] : second.length ? [await second[0].anchor1_context as Doc, await second[0].anchor2_context as Doc] : [undefined, undefined];
+        const linkFollowTimecodes = first.length ? [NumCast(first[0].anchor2_timecode), NumCast(first[0].anchor1_timecode)] : second.length ? [NumCast(second[0].anchor1_timecode), NumCast(second[0].anchor2_timecode)] : [undefined, undefined];
         if (linkFollowDocs && linkDoc) {
             const maxLocation = StrCast(linkDoc.maximizeLocation, "inTab");
             const targetContext = !Doc.AreProtosEqual(linkFollowDocContexts[reverse ? 1 : 0], currentContext) ? linkFollowDocContexts[reverse ? 1 : 0] : undefined;

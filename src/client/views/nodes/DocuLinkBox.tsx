@@ -59,6 +59,7 @@ export class DocuLinkBox extends DocComponent<FieldViewProps, DocLinkSchema>(Doc
                 //DragManager.StartLinkTargetsDrag(this._ref.current!, pt[0], pt[1], Cast(this.props.Document[this.props.fieldKey], Doc) as Doc, [this.props.Document]); // Containging collection is the document, not a collection... hack.
                 const dragData = new DragManager.DocumentDragData([this.props.Document]);
                 dragData.dropAction = "alias";
+                dragData.removeDropProperties = ["anchor1_x", "anchor1_y", "anchor2_x", "anchor2_y"];
                 DragManager.StartDocumentDrag([this._ref.current!], dragData, this._downX, this._downY);
                 document.removeEventListener("pointermove", this.onPointerMove);
                 document.removeEventListener("pointerup", this.onPointerUp);

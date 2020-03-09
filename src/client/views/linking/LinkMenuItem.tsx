@@ -12,12 +12,14 @@ import './LinkMenuItem.scss';
 import React = require("react");
 import { DocumentManager } from '../../util/DocumentManager';
 import { setupMoveUpEvents, emptyFunction } from '../../../Utils';
+import { DocumentView } from '../nodes/DocumentView';
 library.add(faEye, faEdit, faTimes, faArrowRight, faChevronDown, faChevronUp);
 
 
 interface LinkMenuItemProps {
     groupType: string;
     linkDoc: Doc;
+    docView: DocumentView;
     sourceDoc: Doc;
     destinationDoc: Doc;
     showEditor: (linkDoc: Doc) => void;
@@ -81,7 +83,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
             document.removeEventListener("pointerup", this.onLinkButtonUp);
 
             this._eleClone.style.transform = `translate(${e.x}px, ${e.y}px)`;
-            DragManager.StartLinkTargetsDrag(this._eleClone, e.x, e.y, this.props.sourceDoc, [this.props.linkDoc]);
+            DragManager.StartLinkTargetsDrag(this._eleClone, this.props.docView, e.x, e.y, this.props.sourceDoc, [this.props.linkDoc]);
         }
         e.stopPropagation();
     }

@@ -231,7 +231,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             dragData.dropAction = dropAction;
             dragData.moveDocument = this.props.moveDocument;//  this.Document.onDragStart ? undefined : this.props.moveDocument;
             dragData.dragDivName = this.props.dragDivName;
-            this.props.Document.anchor1Context = this.props.ContainingCollectionDoc; // bcz: !! shouldn't need this ... use search find the document's context dynamically
+            this.props.Document.anchor1_context = this.props.ContainingCollectionDoc; // bcz: !! shouldn't need this ... use search find the document's context dynamically
             DragManager.StartDocumentDrag([this._mainCont.current], dragData, x, y, { hideSource: !dropAction && !this.Document.onDragStart });
         }
     }
@@ -971,7 +971,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     // would be good to generalize this some way.
     isNonTemporalLink = (linkDoc: Doc) => {
         const anchor = Cast(Doc.AreProtosEqual(this.props.Document, Cast(linkDoc.anchor1, Doc) as Doc) ? linkDoc.anchor1 : linkDoc.anchor2, Doc) as Doc;
-        const ept = Doc.AreProtosEqual(this.props.Document, Cast(linkDoc.anchor1, Doc) as Doc) ? linkDoc.anchor1Timecode : linkDoc.anchor2Timecode;
+        const ept = Doc.AreProtosEqual(this.props.Document, Cast(linkDoc.anchor1, Doc) as Doc) ? linkDoc.anchor1_timecode : linkDoc.anchor2_timecode;
         return anchor.type === DocumentType.AUDIO && NumCast(ept) ? false : true;
     }
 
