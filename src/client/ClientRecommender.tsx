@@ -5,10 +5,10 @@ import { CognitiveServices, Confidence, Tag, Service } from "./cognitive_service
 import React = require("react");
 import { observer } from "mobx-react";
 import { observable, action, computed, reaction } from "mobx";
-var assert = require('assert');
-var sw = require('stopword');
-var FeedParser = require('feedparser');
-var https = require('https');
+// var assert = require('assert');
+// var sw = require('stopword');
+// var FeedParser = require('feedparser');
+// var https = require('https');
 import "./ClientRecommender.scss";
 import { JSXElement } from "babel-types";
 import { RichTextField } from "../new_fields/RichTextField";

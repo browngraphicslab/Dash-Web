@@ -20,7 +20,7 @@ import { InkTool } from '../../../new_fields/InkField';
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { RichTextUtils } from '../../../new_fields/RichTextUtils';
 import { createSchema, makeInterface } from "../../../new_fields/Schema";
-import { Cast, NumCast, StrCast, BoolCast } from "../../../new_fields/Types";
+import { Cast, NumCast, StrCast, BoolCast, DateCast } from "../../../new_fields/Types";
 import { TraceMobx } from '../../../new_fields/util';
 import { addStyleSheet, addStyleSheetRule, clearStyleSheetRules, emptyFunction, numberRange, returnOne, Utils, returnTrue } from '../../../Utils';
 import { GoogleApiClientUtils, Pulls, Pushes } from '../../apis/google_docs/GoogleApiClientUtils';
@@ -420,11 +420,11 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
             //this._editorView!.focus();
         });
     }
-    stopDictation = (abort: boolean) => { DictationManager.Controls.stop(!abort); }
+    stopDictation = (abort: boolean) => { DictationManager.Controls.stop(!abort); };
 
     @action
     toggleMenubar = () => {
-        this.props.Document._chromeStatus = this.props.Document._chromeStatus == "disabled" ? "enabled" : "disabled";
+        this.props.Document._chromeStatus = this.props.Document._chromeStatus === "disabled" ? "enabled" : "disabled";
     }
 
     recordBullet = async () => {
@@ -444,12 +444,8 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
 
     setCurrentBulletContent = (value: string) => {
         if (this._editorView) {
-            let state = this._editorView.state;
-            let now = Date.now();
-            if (NumCast(this.props.Document.recordingStart, -1) === 0) {
-                this.props.Document.recordingStart = now = AudioBox.START;
-            }
-            console.log("NOW = " + (now - AudioBox.START) / 1000);
+            const state = this._editorView.state;
+            const now = Date.now();
             let mark = schema.marks.user_mark.create({ userid: Doc.CurrentUserEmail, modified: Math.floor(now / 1000) });
             if (!this._break && state.selection.to !== state.selection.from) {
                 for (let i = state.selection.from; i <= state.selection.to; i++) {
@@ -461,9 +457,9 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                     }
                 }
             }
+            const recordingStart = DateCast(this.props.Document.recordingStart).date.getTime();
             this._break = false;
-            console.log("start = " + (mark.attrs.modified * 1000 - AudioBox.START) / 1000);
-            value = "" + (mark.attrs.modified * 1000 - AudioBox.START) / 1000 + value;
+            value = "" + (mark.attrs.modified * 1000 - recordingStart) / 1000 + value;
             const from = state.selection.from;
             const inserted = state.tr.insertText(value).addMark(from, from + value.length + 1, mark);
             this._editorView.dispatch(inserted.setSelection(TextSelection.create(inserted.doc, from, from + value.length + 1)));
@@ -867,7 +863,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         if (this._recording && !e.ctrlKey && e.button === 0) {
             this.stopDictation(true);
             this._break = true;
-            let state = this._editorView!.state;
+            const state = this._editorView!.state;
             const to = state.selection.to;
             const updated = TextSelection.create(state.doc, to, to);
             this._editorView!.dispatch(this._editorView!.state.tr.setSelection(updated).insertText("\n", to));

@@ -53,7 +53,7 @@ export namespace DashUploadUtils {
     const size = "content-length";
     const type = "content-type";
 
-    const { imageFormats, videoFormats, applicationFormats } = AcceptibleMedia;
+    const { imageFormats, videoFormats, applicationFormats, audioFormats } = AcceptibleMedia;
 
     export async function upload(file: File): Promise<Upload.FileResponse> {
         const { type, path, name } = file;
@@ -76,12 +76,20 @@ export namespace DashUploadUtils {
                 if (applicationFormats.includes(format)) {
                     return UploadPdf(file);
                 }
-            default: //  "blob":
-                return MoveParsedFile(file, Directory.videos);
+            case "audio":
+                if (audioFormats.includes(format)) {
+                    return MoveParsedFile(file, Directory.audio);
+                }
         }
 
         console.log(red(`Ignoring unsupported file (${name}) with upload type (${type}).`));
         return { source: file, result: new Error(`Could not upload unsupported file (${name}) with upload type (${type}).`) };
+    }
+
+    async function UploadAudio(file: File) {
+        const { path: sourcePath } = file;
+
+        return MoveParsedFile(file, Directory.audio);
     }
 
     async function UploadPdf(file: File) {
@@ -94,6 +102,7 @@ export namespace DashUploadUtils {
             const writeStream = createWriteStream(serverPathToFile(Directory.text, textFilename));
             writeStream.write(result.text, error => error ? reject(error) : resolve());
         });
+        console.log(MoveParsedFile(file, Directory.pdfs));
         return MoveParsedFile(file, Directory.pdfs);
     }
 
@@ -197,8 +206,10 @@ export namespace DashUploadUtils {
                         accessPaths: {
                             agnostic: getAccessPaths(destination, name)
                         }
+
                     }
-                });
+                }
+                );
             });
         });
     }

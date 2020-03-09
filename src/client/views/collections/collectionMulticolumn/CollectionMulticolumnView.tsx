@@ -223,7 +223,7 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
      */
     @computed
     private get contents(): JSX.Element[] | null {
-        let { childLayoutPairs } = this;
+        const { childLayoutPairs } = this;
         const { Document, PanelHeight } = this.props;
         const collector: JSX.Element[] = [];
         for (let i = 0; i < childLayoutPairs.length; i++) {

@@ -113,7 +113,7 @@ export class DocuLinkBox extends DocComponent<FieldViewProps, DocLinkSchema>(Doc
     openLinkEditor = action((e: React.MouseEvent) => {
         SelectionManager.DeselectAll();
         this._editing = this._forceOpen = true;
-    })
+    });
 
     specificContextMenu = (e: React.MouseEvent): void => {
         const funcs: ContextMenuProps[] = [];
@@ -135,7 +135,7 @@ export class DocuLinkBox extends DocComponent<FieldViewProps, DocLinkSchema>(Doc
         const targetTitle = StrCast((this.props.Document[anchor]! as Doc).title) + (timecode !== undefined ? ":" + timecode : "");
         const flyout = (
             <div className="docuLinkBox-flyout" title=" " onPointerOver={() => Doc.UnBrushDoc(this.props.Document)}>
-                <LinkEditor sourceDoc={Cast(this.props.Document[this.props.fieldKey], Doc, null)!} hideback={true} linkDoc={this.props.Document} showLinks={action(() => { })} />
+                <LinkEditor sourceDoc={Cast(this.props.Document[this.props.fieldKey], Doc, null)} hideback={true} linkDoc={this.props.Document} showLinks={action(() => { })} />
                 {!this._forceOpen ? (null) : <div className="docuLinkBox-linkCloser" onPointerDown={action(() => this._isOpen = this._editing = this._forceOpen = false)}>
                     <FontAwesomeIcon color="dimGray" icon={"times"} size={"sm"} />
                 </div>}

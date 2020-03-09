@@ -94,11 +94,11 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
         !this.Document._fitWidth && (this.Document._height = this.Document[WidthSym]() * (nh / nw));
     }
 
-    public search = (string: string, fwd: boolean) => { this._pdfViewer?.search(string, fwd); }
-    public prevAnnotation = () => { this._pdfViewer?.prevAnnotation(); }
-    public nextAnnotation = () => { this._pdfViewer?.nextAnnotation(); }
-    public backPage = () => { this._pdfViewer!.gotoPage((this.Document.curPage || 1) - 1); }
-    public forwardPage = () => { this._pdfViewer!.gotoPage((this.Document.curPage || 1) + 1); }
+    public search = (string: string, fwd: boolean) => { this._pdfViewer?.search(string, fwd); };
+    public prevAnnotation = () => { this._pdfViewer?.prevAnnotation(); };
+    public nextAnnotation = () => { this._pdfViewer?.nextAnnotation(); };
+    public backPage = () => { this._pdfViewer!.gotoPage((this.Document.curPage || 1) - 1); };
+    public forwardPage = () => { this._pdfViewer!.gotoPage((this.Document.curPage || 1) + 1); };
     public gotoPage = (p: number) => { this._pdfViewer!.gotoPage(p); };
 
     @undoBatch
