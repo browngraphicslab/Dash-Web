@@ -76,13 +76,18 @@ export class DocumentBox extends DocAnnotatableComponent<FieldViewProps, DocBoxS
         }
     }
     onPointerDown = (e: React.PointerEvent) => {
-        if (e.button === 0 && !e.ctrlKey) {
+        if (this.active() && e.button === 0 && !e.ctrlKey) {
             e.stopPropagation();
         }
     }
+    onLockClick = (e: React.MouseEvent) => {
+        this.toggleLockSelection();
+        (e.nativeEvent as any).formattedHandled = true;
+        e.stopPropagation();
+    }
     onClick = (e: React.MouseEvent) => {
         let hitWidget: boolean | undefined = false;
-        if (this._contRef.current!.getBoundingClientRect().top + 15 > e.clientY) hitWidget = this.toggleLockSelection();
+        if (this._contRef.current!.getBoundingClientRect().top + 15 > e.clientY) hitWidget = (() => { this.props.select(false); return true; })();
         else if (this._contRef.current!.getBoundingClientRect().bottom - 15 < e.clientY) hitWidget = (() => { this.props.select(false); return true; })();
         else {
             if (this._contRef.current!.getBoundingClientRect().left + 15 > e.clientX) hitWidget = this.prevSelection();
@@ -104,7 +109,7 @@ export class DocumentBox extends DocAnnotatableComponent<FieldViewProps, DocBoxS
             onContextMenu={this.specificContextMenu}
             onPointerDown={this.onPointerDown} onClick={this.onClick}
             style={{ background: StrCast(this.props.Document.backgroundColor) }}>
-            <div className="documentBox-lock">
+            <div className="documentBox-lock" onClick={this.onLockClick}>
                 <FontAwesomeIcon icon={this.isSelectionLocked() ? "lock" : "unlock"} size="sm" />
             </div>
             {!(containedDoc instanceof Doc) ? (null) : <ContentFittingDocumentView
