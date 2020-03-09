@@ -198,7 +198,7 @@ export namespace DragManager {
             dropDoc && !dropDoc.creationDate && (dropDoc.creationDate = new DateField);
             dropDoc instanceof Doc && AudioBox.ActiveRecordings.map(d => DocUtils.MakeLink({ doc: dropDoc }, { doc: d }, "audio link", "audio timeline"));
             return dropDoc;
-        }
+        };
         const finishDrag = (e: DragCompleteEvent) => {
             e.docDragData && (e.docDragData.droppedDocuments =
                 dragData.draggedDocuments.map(d => !dragData.isSelectionMove && !dragData.userDropAction && ScriptCast(d.onDragStart) ? addAudioTag(ScriptCast(d.onDragStart).script.run({ this: d }).result) :

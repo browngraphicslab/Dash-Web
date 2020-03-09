@@ -180,7 +180,7 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, props: any
             return true;
         }
         return false;
-    }
+    };
     bind("Alt-Enter", (state: EditorState<S>, dispatch: (tx: Transaction<Schema<any, any>>) => void) => {
         return addTextOnRight(true);
     });

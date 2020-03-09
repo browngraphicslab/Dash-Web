@@ -209,7 +209,7 @@ export class DocumentManager {
             const maxLocation = StrCast(linkDoc.maximizeLocation, "inTab");
             const targetContext = !Doc.AreProtosEqual(linkFollowDocContexts[reverse ? 1 : 0], currentContext) ? linkFollowDocContexts[reverse ? 1 : 0] : undefined;
             const target = linkFollowDocs[reverse ? 1 : 0];
-            let annotatedDoc = await Cast(target.annotationOn, Doc);
+            const annotatedDoc = await Cast(target.annotationOn, Doc);
             if (annotatedDoc) {
                 annotatedDoc.currentTimecode !== undefined && (target.currentTimecode = linkFollowTimecodes[reverse ? 1 : 0]);
             } else {

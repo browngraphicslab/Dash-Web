@@ -50,7 +50,6 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
     _recordStart = 0;
     _stream: MediaStream | undefined;
 
-    public static START = 0;
     @observable private static _scrubTime = 0;
     @computed get audioState(): undefined | "recording" | "paused" | "playing" { return this.dataDoc.audioState as (undefined | "recording" | "paused" | "playing"); }
     set audioState(value) { this.dataDoc.audioState = value; }
@@ -146,8 +145,7 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
         }).then(function (stream) {
             self._stream = stream;
             self._recorder = new MediaRecorder(stream);
-            self.dataDoc[self.props.fieldKey + "-recordingStart"] = new DateField(new Date());
-            AudioBox.START = new DateField(new Date()).date.getTime();
+            self.dataDoc[self.props.fieldKey + "-recordingStart"] = new DateField(new Date()); \
             AudioBox.ActiveRecordings.push(self.props.Document);
             self._recorder.ondataavailable = async function (e: any) {
                 const formData = new FormData();
@@ -208,7 +206,7 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
             _width: NumCast(this.props.Document._width), _height: 3 * NumCast(this.props.Document._height)
         });
         Doc.GetProto(newDoc).recordingSource = this.dataDoc;
-        Doc.GetProto(newDoc).recordingStart = 0;
+        Doc.GetProto(newDoc).recordingStart = ComputedField.MakeFunction(`this.recordingSource[${this.props.fieldKey}+"-recordingStart"]`);
         Doc.GetProto(newDoc).audioState = ComputedField.MakeFunction("this.recordingSource.audioState");
         this.props.addDocument?.(newDoc);
         e.stopPropagation();
