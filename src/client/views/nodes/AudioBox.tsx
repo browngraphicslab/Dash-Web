@@ -234,17 +234,15 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
         </audio>;
     }
 
-    // line 226 is stop button but it doesn't do anything 
     render() {
         const interactive = this.active() ? "-interactive" : "";
-        return <div className={`audiobox-container`} onContextMenu={this.specificContextMenu}
-            onClick={!this.path ? this.recordClick : undefined}>
+        return <div className={`audiobox-container`} onContextMenu={this.specificContextMenu} onClick={!this.path ? this.recordClick : undefined}>
             {!this.path ?
-                <div style={{ display: "flex", width: "100%", alignItems: "center" }}>
-                    <div className="audiobox-playhead" style={{ alignItems: "center", display: "inherit", background: "dimgray" }} onClick={this.onFile}>
+                <div className="audiobox-buttons">
+                    <div className="audiobox-dictation" onClick={this.onFile}>
                         <FontAwesomeIcon style={{ width: "30px", background: this.Document.playOnSelect ? "yellow" : "dimGray" }} icon="file-alt" size={this.props.PanelHeight() < 36 ? "1x" : "2x"} />
                     </div>
-                    <button className={`audiobox-record${interactive}`} style={{ position: "relative", backgroundColor: this.audioState === "recording" ? "red" : "black" }}>
+                    <button className={`audiobox-record${interactive}`} style={{ backgroundColor: this.audioState === "recording" ? "red" : "black" }}>
                         {this.audioState === "recording" ? "STOP" : "RECORD"}
                     </button>
                 </div> :
