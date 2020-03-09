@@ -186,7 +186,7 @@ export class PresBox extends React.Component<FieldViewProps> {
 
         //docToJump stayed same meaning, it was not in the group or was the last element in the group
         const aliasOf = await Cast(docToJump.aliasOf, Doc);
-        const srcContext = aliasOf && await Cast(aliasOf.anchor1Context, Doc);
+        const srcContext = aliasOf && await Cast(aliasOf.anchor1_context, Doc);
         if (docToJump === curDoc) {
             //checking if curDoc has navigation open
             const target = await Cast(curDoc.presentationTargetDoc, Doc);

@@ -37,17 +37,19 @@ export class CurrentUserUtils {
     @observable public static GuestMobile: Doc | undefined;
 
     static setupDefaultDocTemplates(doc: Doc, buttons?: string[]) {
-        const taskStatusValues = [  { title: "todo", _backgroundColor: "blue", color: "white" },
-                                    { title: "in progress", _backgroundColor: "yellow", color: "black" },
-                                    { title: "completed", _backgroundColor: "green", color: "white" }
+        const taskStatusValues = [{ title: "todo", _backgroundColor: "blue", color: "white" },
+        { title: "in progress", _backgroundColor: "yellow", color: "black" },
+        { title: "completed", _backgroundColor: "green", color: "white" }
         ];
         const noteTemplates = [
             Docs.Create.TextDocument("", { title: "text", style: "Note", isTemplateDoc: true, backgroundColor: "yellow" }),
             Docs.Create.TextDocument("", { title: "text", style: "Idea", isTemplateDoc: true, backgroundColor: "pink" }),
             Docs.Create.TextDocument("", { title: "text", style: "Topic", isTemplateDoc: true, backgroundColor: "lightBlue" }),
             Docs.Create.TextDocument("", { title: "text", style: "Person", isTemplateDoc: true, backgroundColor: "lightGreen" }),
-            Docs.Create.TextDocument("", { title: "text", style: "Todo", isTemplateDoc: true, backgroundColor: "orange",_autoHeight: false, 
-                layout:FormattedTextBox.LayoutString("Todo"), _height: 100, _showCaption: "caption",caption: RichTextField.DashField("taskStatus") })
+            Docs.Create.TextDocument("", {
+                title: "text", style: "Todo", isTemplateDoc: true, backgroundColor: "orange", _autoHeight: false,
+                layout: FormattedTextBox.LayoutString("Todo"), _height: 100, _showCaption: "caption", caption: RichTextField.DashField("taskStatus")
+            })
         ];
         doc.fieldTypes = Docs.Create.TreeDocument([], { title: "field enumerations" });
         Doc.addFieldEnumerations(Doc.GetProto(noteTemplates[4]), "taskStatus", taskStatusValues);
@@ -221,7 +223,7 @@ export class CurrentUserUtils {
             _width: 50, _height: 25, title: "Library", fontSize: 10,
             letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
             sourcePanel: Docs.Create.TreeDocument([doc.workspaces as Doc, doc.documents as Doc, Docs.Prototypes.MainLinkDocument(), doc, doc.recentlyClosed as Doc], {
-                title: "Library", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, dropAction: "alias", lockedPosition: true, boxShadow: "0 0",
+                title: "Library", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, dropAction: "alias", lockedPosition: true, boxShadow: "0 0", dontRegisterChildren: true
             }),
             targetContainer: sidebarContainer,
             onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel;")

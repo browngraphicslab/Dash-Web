@@ -231,7 +231,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             dragData.dropAction = dropAction;
             dragData.moveDocument = this.props.moveDocument;//  this.Document.onDragStart ? undefined : this.props.moveDocument;
             dragData.dragDivName = this.props.dragDivName;
-            this.props.Document.anchor1Context = this.props.ContainingCollectionDoc; // bcz: !! shouldn't need this ... use search find the document's context dynamically
+            this.props.Document.anchor1_context = this.props.ContainingCollectionDoc; // bcz: !! shouldn't need this ... use search find the document's context dynamically
             DragManager.StartDocumentDrag([this._mainCont.current], dragData, x, y, { hideSource: !dropAction && !this.Document.onDragStart });
         }
     }
@@ -289,9 +289,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 UndoManager.RunInBatch(() => this.props.addDocTab(fullScreenAlias, "inTab"), "double tap");
                 SelectionManager.DeselectAll();
                 Doc.UnBrushDoc(this.props.Document);
-            } else if (this.onClickHandler && this.onClickHandler.script) {
+            } else if (this.onClickHandler?.script) {
                 SelectionManager.DeselectAll();
-                UndoManager.RunInBatch(() => this.onClickHandler!.script.run({ this: this.Document.isTemplateForField && this.props.DataDoc ? this.props.DataDoc : this.props.Document, containingCollection: this.props.ContainingCollectionDoc, shiftKey: e.shiftKey }, console.log), "on click");
+                UndoManager.RunInBatch(() => this.onClickHandler!.script.run({ this: this.Document.isTemplateForField && this.props.DataDoc ? this.props.DataDoc : this.props.Document, containingCollection: this.props.ContainingCollectionDoc, shiftKey: e.shiftKey }, console.log) && this.select(false), "on click");
             } else if (this.Document.type === DocumentType.BUTTON) {
                 UndoManager.RunInBatch(() => ScriptBox.EditButtonScript("On Button Clicked ...", this.props.Document, "onClick", e.clientX, e.clientY), "on button click");
             } else if (this.Document.isButton) {
@@ -956,30 +956,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     childScaling = () => (this.layoutDoc._fitWidth ? this.props.PanelWidth() / this.nativeWidth : this.props.ContentScaling());
     @computed get contents() {
         TraceMobx();
-        return (<DocumentContentsView ContainingCollectionView={this.props.ContainingCollectionView}
-            ContainingCollectionDoc={this.props.ContainingCollectionDoc}
-            Document={this.props.Document}
-            DataDoc={this.props.DataDoc}
-            LayoutDoc={this.props.LayoutDoc}
-            fitToBox={this.props.fitToBox}
-            LibraryPath={this.props.LibraryPath}
-            addDocument={this.props.addDocument}
-            removeDocument={this.props.removeDocument}
-            moveDocument={this.props.moveDocument}
-            ScreenToLocalTransform={this.props.ScreenToLocalTransform}
-            renderDepth={this.props.renderDepth}
+        return (<DocumentContentsView {...this.props}
             ContentScaling={this.childScaling}
-            PanelWidth={this.props.PanelWidth}
-            PanelHeight={this.props.PanelHeight}
-            focus={this.props.focus}
-            parentActive={this.props.parentActive}
-            whenActiveChanged={this.props.whenActiveChanged}
-            bringToFront={this.props.bringToFront}
-            addDocTab={this.props.addDocTab}
-            pinToPres={this.props.pinToPres}
-            zoomToScale={this.props.zoomToScale}
-            backgroundColor={this.props.backgroundColor}
-            getScale={this.props.getScale}
             ChromeHeight={this.chromeHeight}
             isSelected={this.isSelected}
             select={this.select}
@@ -993,7 +971,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     // would be good to generalize this some way.
     isNonTemporalLink = (linkDoc: Doc) => {
         const anchor = Cast(Doc.AreProtosEqual(this.props.Document, Cast(linkDoc.anchor1, Doc) as Doc) ? linkDoc.anchor1 : linkDoc.anchor2, Doc) as Doc;
-        const ept = Doc.AreProtosEqual(this.props.Document, Cast(linkDoc.anchor1, Doc) as Doc) ? linkDoc.anchor1Timecode : linkDoc.anchor2Timecode;
+        const ept = Doc.AreProtosEqual(this.props.Document, Cast(linkDoc.anchor1, Doc) as Doc) ? linkDoc.anchor1_timecode : linkDoc.anchor2_timecode;
         return anchor.type === DocumentType.AUDIO && NumCast(ept) ? false : true;
     }
 
@@ -1018,6 +996,16 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @computed get innards() {
         TraceMobx();
+        if (!this.props.PanelWidth()) {
+            return <div style={{ display: "flex", overflow: "hidden" }}>
+                {StrCast(this.props.Document.title)}
+                {this.Document.links && DocListCast(this.Document.links).filter(d => !d.hidden).filter(this.isNonTemporalLink).map((d, i) =>
+                    <div className="documentView-docuLinkWrapper" style={{ position: "absolute", top: 0, left: 0 }} key={`${d[Id]}`}>
+                        <DocumentView {...this.props} ContentScaling={returnOne} ContainingCollectionDoc={this.props.Document}
+                            PanelWidth={returnOne} PanelHeight={returnOne} Document={d} layoutKey={this.linkEndpoint(d)} backgroundColor={returnTransparent} removeDocument={undoBatch(doc => doc.hidden = true)} />
+                    </div>)}
+            </div>;
+        }
         const showTitle = StrCast(this.layoutDoc._showTitle);
         const showTitleHover = StrCast(this.layoutDoc._showTitleHover);
         const showCaption = StrCast(this.layoutDoc._showCaption);
@@ -1116,8 +1104,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 border: highlighting && borderRounding ? `${highlightStyles[fullDegree]} ${highlightColors[fullDegree]} ${localScale}px` : undefined,
                 boxShadow: this.props.Document.isTemplateForField ? "black 0.2vw 0.2vw 0.8vw" : undefined,
                 background: finalColor,
-                width: "100%",
-                height: "100%",
                 opacity: this.Document.opacity
             }}>
             {this.Document.isBackground ? <div className="documentView-lock"> <FontAwesomeIcon icon="unlock" size="lg" /> </div> : (null)}
@@ -1131,7 +1117,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 }
 
-Scripting.addGlobal(function toggleDetail(doc: any, layoutKey: string, otherKey: string="layout") {
+Scripting.addGlobal(function toggleDetail(doc: any, layoutKey: string, otherKey: string = "layout") {
     const dv = DocumentManager.Instance.getDocumentView(doc);
     if (dv?.props.Document.layoutKey === layoutKey) dv?.switchViews(otherKey !== "layout", otherKey.replace("layout_", ""));
     else dv?.switchViews(true, layoutKey.replace("layout_", ""));

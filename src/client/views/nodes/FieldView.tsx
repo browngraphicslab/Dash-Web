@@ -38,6 +38,7 @@ export interface FieldViewProps {
     bringToFront: (doc: Doc, sendToBack?: boolean) => void;
     active: (outsideReaction?: boolean) => boolean;
     whenActiveChanged: (isActive: boolean) => void;
+    dontRegisterView?: boolean;
     focus: (doc: Doc) => void;
     PanelWidth: () => number;
     PanelHeight: () => number;

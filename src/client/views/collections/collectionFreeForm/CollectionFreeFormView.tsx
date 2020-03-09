@@ -542,8 +542,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             }, [[minx, maxx], [miny, maxy]]);
 
             const cscale = this.props.ContainingCollectionDoc ? NumCast(this.props.ContainingCollectionDoc.scale) : 1;
-            const panelDim = this.props.ScreenToLocalTransform().transformDirection(this.props.PanelWidth() / this.zoomScaling() * cscale,
-                this.props.PanelHeight() / this.zoomScaling() * cscale);
+            const panelDim = [this.props.PanelWidth() * cscale / this.zoomScaling(), this.props.PanelHeight() * cscale / this.zoomScaling()];
             if (ranges[0][0] - dx > (this.panX() + panelDim[0] / 2)) x = ranges[0][1] + panelDim[0] / 2;
             if (ranges[0][1] - dx < (this.panX() - panelDim[0] / 2)) x = ranges[0][0] - panelDim[0] / 2;
             if (ranges[1][0] - dy > (this.panY() + panelDim[1] / 2)) y = ranges[1][1] + panelDim[1] / 2;

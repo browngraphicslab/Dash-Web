@@ -123,6 +123,7 @@ export interface DocumentOptions {
     displayTimecode?: number; // the time that a document should be displayed (e.g., time an annotation should be displayed on a video)
     borderRounding?: string;
     boxShadow?: string;
+    dontRegisterChildren?: boolean;
     _pivotField?: string; // field key used to determine headings for sections in stacking, masonry, pivot views
     schemaColumns?: List<SchemaHeaderField>;
     dockingConfig?: string;
@@ -547,10 +548,10 @@ export namespace Docs {
             const linkDocProto = Doc.GetProto(doc);
             linkDocProto.anchor1 = source.doc;
             linkDocProto.anchor2 = target.doc;
-            linkDocProto.anchor1Context = source.ctx;
-            linkDocProto.anchor2Context = target.ctx;
-            linkDocProto.anchor1Timecode = source.doc.currentTimecode || source.doc.displayTimecode;
-            linkDocProto.anchor2Timecode = target.doc.currentTimecode || source.doc.displayTimecode;
+            linkDocProto.anchor1_context = source.ctx;
+            linkDocProto.anchor2_context = target.ctx;
+            linkDocProto.anchor1_timecode = source.doc.currentTimecode || source.doc.displayTimecode;
+            linkDocProto.anchor2_timecode = target.doc.currentTimecode || source.doc.displayTimecode;
 
             if (linkDocProto.layout_key1 === undefined) {
                 Cast(linkDocProto.proto, Doc, null).layout_key1 = DocuLinkBox.LayoutString("anchor1");

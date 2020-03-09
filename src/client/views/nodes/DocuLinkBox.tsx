@@ -59,6 +59,7 @@ export class DocuLinkBox extends DocComponent<FieldViewProps, DocLinkSchema>(Doc
                 //DragManager.StartLinkTargetsDrag(this._ref.current!, pt[0], pt[1], Cast(this.props.Document[this.props.fieldKey], Doc) as Doc, [this.props.Document]); // Containging collection is the document, not a collection... hack.
                 const dragData = new DragManager.DocumentDragData([this.props.Document]);
                 dragData.dropAction = "alias";
+                dragData.removeDropProperties = ["anchor1_x", "anchor1_y", "anchor2_x", "anchor2_y"];
                 DragManager.StartDocumentDrag([this._ref.current!], dragData, this._downX, this._downY);
                 document.removeEventListener("pointermove", this.onPointerMove);
                 document.removeEventListener("pointerup", this.onPointerUp);
@@ -124,8 +125,8 @@ export class DocuLinkBox extends DocComponent<FieldViewProps, DocLinkSchema>(Doc
     }
 
     render() {
-        const x = NumCast(this.props.Document[this.props.fieldKey + "_x"], 100);
-        const y = NumCast(this.props.Document[this.props.fieldKey + "_y"], 100);
+        const x = this.props.PanelWidth() > 1 ? NumCast(this.props.Document[this.props.fieldKey + "_x"], 100) : 0;
+        const y = this.props.PanelWidth() > 1 ? NumCast(this.props.Document[this.props.fieldKey + "_y"], 100) : 0;
         const c = StrCast(this.props.Document.backgroundColor, "lightblue");
         const anchor = this.props.fieldKey === "anchor1" ? "anchor2" : "anchor1";
         const anchorScale = (x === 0 || x === 100 || y === 0 || y === 100) ? 1 : .15;
@@ -140,9 +141,12 @@ export class DocuLinkBox extends DocComponent<FieldViewProps, DocLinkSchema>(Doc
                 </div>}
             </div>
         );
-        return <div className="docuLinkBox-cont" onPointerDown={this.onPointerDown} onClick={this.onClick} title={targetTitle} onContextMenu={this.specificContextMenu}
+        const small = this.props.PanelWidth() <= 1;
+        return <div className={`docuLinkBox-cont${small ? "-small" : ""}`} onPointerDown={this.onPointerDown} onClick={this.onClick} title={targetTitle} onContextMenu={this.specificContextMenu}
             ref={this._ref} style={{
-                background: c, left: `calc(${x}% - 7.5px)`, top: `calc(${y}% - 7.5px)`,
+                background: c,
+                left: !small ? `calc(${x}% - 7.5px)` : undefined,
+                top: !small ? `calc(${y}% - 7.5px)` : undefined,
                 transform: `scale(${anchorScale / this.props.ContentScaling()})`
             }} >
             {!this._editing && !this._forceOpen ? (null) :

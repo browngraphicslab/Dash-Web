@@ -43,7 +43,7 @@ export type CloseCall = (toBeDeleted: DocumentView[]) => void;
 export class DocumentDecorations extends React.Component<{}, { value: string }> {
     static Instance: DocumentDecorations;
     private _resizeHdlId = "";
-    private _keyinput: React.RefObject<HTMLInputElement>;
+    private _keyinput = React.createRef<HTMLInputElement>();
     private _resizeBorderWidth = 16;
     private _linkBoxHeight = 20 + 3; // link button height + margin
     private _titleHeight = 20;
@@ -62,7 +62,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     constructor(props: Readonly<{}>) {
         super(props);
         DocumentDecorations.Instance = this;
-        this._keyinput = React.createRef();
         reaction(() => SelectionManager.SelectedDocuments().slice(), docs => this.titleBlur(false));
     }
 
@@ -421,7 +420,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         const darkScheme = Cast(Doc.UserDoc().activeWorkspace, Doc, null)?.darkScheme ? "dimgray" : undefined;
         const bounds = this.Bounds;
         const seldoc = SelectionManager.SelectedDocuments().length ? SelectionManager.SelectedDocuments()[0] : undefined;
-        if (SelectionManager.GetIsDragging() || bounds.x === Number.MAX_VALUE || !seldoc || this._hidden || isNaN(bounds.r) || isNaN(bounds.b) || isNaN(bounds.x) || isNaN(bounds.y)) {
+        if (SelectionManager.GetIsDragging() || bounds.r - bounds.x < 2 || bounds.x === Number.MAX_VALUE || !seldoc || this._hidden || isNaN(bounds.r) || isNaN(bounds.b) || isNaN(bounds.x) || isNaN(bounds.y)) {
             return (null);
         }
         const minimal = bounds.r - bounds.x < 100 ? true : false;
