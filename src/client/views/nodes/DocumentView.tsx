@@ -15,7 +15,7 @@ import { AudioField, ImageField, PdfField, VideoField } from '../../../new_field
 import { TraceMobx } from '../../../new_fields/util';
 import { GestureUtils } from '../../../pen-gestures/GestureUtils';
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
-import { emptyFunction, returnOne, returnTransparent, returnTrue, Utils } from "../../../Utils";
+import { emptyFunction, returnOne, returnTransparent, returnTrue, Utils, OmitKeys } from "../../../Utils";
 import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
 import { DocServer } from "../../DocServer";
 import { Docs, DocumentOptions, DocUtils } from "../../documents/Documents";
@@ -956,7 +956,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     childScaling = () => (this.layoutDoc._fitWidth ? this.props.PanelWidth() / this.nativeWidth : this.props.ContentScaling());
     @computed get contents() {
         TraceMobx();
-        return (<DocumentContentsView {...this.props}
+        return (<DocumentContentsView {...OmitKeys(this.props, ['children']).omit}
             ContentScaling={this.childScaling}
             ChromeHeight={this.chromeHeight}
             isSelected={this.isSelected}
