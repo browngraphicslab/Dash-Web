@@ -11,7 +11,7 @@ import { listSpec } from "../../../new_fields/Schema";
 import { ScriptField, ComputedField } from "../../../new_fields/ScriptField";
 import { Cast, PromiseValue, StrCast } from "../../../new_fields/Types";
 import { Utils } from "../../../Utils";
-import { nullAudio } from "../../../new_fields/URLField";
+import { nullAudio, ImageField } from "../../../new_fields/URLField";
 import { DragManager } from "../../../client/util/DragManager";
 import { InkingControl } from "../../../client/views/InkingControl";
 import { Scripting } from "../../../client/util/Scripting";
@@ -194,7 +194,7 @@ export class CurrentUserUtils {
         });
 
         return Docs.Create.ButtonDocument({
-            _width: 35, _height: 25, title: "Tools", fontSize: 10, targetContainer: sidebarContainer,
+            _width: 35, _height: 25, title: "Tools", fontSize: 10, targetContainer: sidebarContainer, dontSelect: true,
             letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
             sourcePanel: Docs.Create.StackingDocument([dragCreators, color], {
                 _width: 500, lockedPosition: true, _chromeStatus: "disabled", title: "tools stack"
@@ -220,7 +220,7 @@ export class CurrentUserUtils {
         });
 
         return Docs.Create.ButtonDocument({
-            _width: 50, _height: 25, title: "Library", fontSize: 10,
+            _width: 50, _height: 25, title: "Library", fontSize: 10, dontSelect: true,
             letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
             sourcePanel: Docs.Create.TreeDocument([doc.workspaces as Doc, doc.documents as Doc, Docs.Prototypes.MainLinkDocument(), doc, doc.recentlyClosed as Doc], {
                 title: "Library", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, dropAction: "alias", lockedPosition: true, boxShadow: "0 0", dontRegisterChildren: true
@@ -233,7 +233,7 @@ export class CurrentUserUtils {
     // setup the Search button which will display the search panel.  
     static setupSearchPanel(sidebarContainer: Doc) {
         return Docs.Create.ButtonDocument({
-            _width: 50, _height: 25, title: "Search", fontSize: 10,
+            _width: 50, _height: 25, title: "Search", fontSize: 10, dontSelect: true,
             letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
             sourcePanel: Docs.Create.QueryDocument({
                 title: "search stack", ignoreClick: true
@@ -275,9 +275,15 @@ export class CurrentUserUtils {
         descriptionTemplate.isTemplateDoc = makeTemplate(descriptionTemplate, true, "descriptionView");
 
         const iconDoc = Docs.Create.TextDocument("", { title: "icon", _width: 150, _height: 30, isTemplateDoc: true, onClick: ScriptField.MakeScript("setNativeView(this)") });
-        Doc.GetProto(iconDoc).data = new RichTextField('{"doc":{"type":"doc","content":[{"type":"paragraph","attrs":{"align":null,"color":null,"id":null,"indent":null,"inset":null,"lineSpacing":null,"paddingBottom":null,"paddingTop":null},"content":[{"type":"dashField","attrs":{"fieldKey":"title","docid":""}}]}]},"selection":{"type":"text","anchor":2,"head":2},"storedMarks":[]}', "");
+        Doc.GetProto(iconDoc).icon = new RichTextField('{"doc":{"type":"doc","content":[{"type":"paragraph","attrs":{"align":null,"color":null,"id":null,"indent":null,"inset":null,"lineSpacing":null,"paddingBottom":null,"paddingTop":null},"content":[{"type":"dashField","attrs":{"fieldKey":"title","docid":""}}]}]},"selection":{"type":"text","anchor":2,"head":2},"storedMarks":[]}', "");
         doc.isTemplateDoc = makeTemplate(iconDoc);
         doc.iconView = new PrefetchProxy(iconDoc);
+        const imgIconDoc = Docs.Create.ImageDocument("http://www.cs.brown.edu/~bcz/face.gif", { title: "data", _width: 50, isTemplateDoc: true, onClick: ScriptField.MakeScript("setNativeView(this)") });
+        doc.isTemplateDoc = makeTemplate(imgIconDoc, true, "image_icon");
+        doc.iconImageView = new PrefetchProxy(imgIconDoc);
+        const colIconDoc = Docs.Create.TreeDocument([], { title: "data", _width: 180, _height: 80, isTemplateDoc: true, onClick: ScriptField.MakeScript("setNativeView(this)") });
+        doc.isTemplateDoc = makeTemplate(colIconDoc, true, "collection_icon");
+        doc.iconColView = new PrefetchProxy(colIconDoc);
 
         doc.undoBtn = Docs.Create.FontIconDocument(
             { _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, dropAction: "alias", onClick: ScriptField.MakeScript("undo()"), removeDropProperties: new List<string>(["dropAction"]), title: "undo button", icon: "undo-alt" });

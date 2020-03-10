@@ -114,6 +114,7 @@ export interface DocumentOptions {
     lockedTransform?: boolean; // lock the panx,pany and scale parameters of the document so that it be panned/zoomed
     opacity?: number;
     defaultBackgroundColor?: string;
+    dontSelect?: boolean; // whether document decorations should be displayed when the document is selected
     isBackground?: boolean;
     isButton?: boolean;
     columnWidth?: number;

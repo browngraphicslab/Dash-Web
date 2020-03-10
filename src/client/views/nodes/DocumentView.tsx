@@ -281,6 +281,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD && Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD)) {
             e.stopPropagation();
             let preventDefault = true;
+            this.props.bringToFront(this.props.Document);
             if (this._doubleTap && this.props.renderDepth && !this.onClickHandler?.script) { // disable double-click to show full screen for things that have an on click behavior since clicking them twice can be misinterpreted as a double click
                 const fullScreenAlias = Doc.MakeAlias(this.props.Document);
                 if (StrCast(fullScreenAlias.layoutKey) !== "layout_fullScreen" && fullScreenAlias.layout_fullScreen) {
@@ -291,7 +292,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 Doc.UnBrushDoc(this.props.Document);
             } else if (this.onClickHandler?.script) {
                 SelectionManager.DeselectAll();
-                UndoManager.RunInBatch(() => this.onClickHandler!.script.run({ this: this.Document.isTemplateForField && this.props.DataDoc ? this.props.DataDoc : this.props.Document, containingCollection: this.props.ContainingCollectionDoc, shiftKey: e.shiftKey }, console.log) && this.select(false), "on click");
+                UndoManager.RunInBatch(() => this.onClickHandler!.script.run({
+                    this: this.Document.isTemplateForField && this.props.DataDoc ? this.props.DataDoc : this.props.Document, // try this.props.Document.expandedTemplate || this.props.Document
+                    containingCollection: this.props.ContainingCollectionDoc, shiftKey: e.shiftKey
+                }, console.log) && !BoolCast(this.props.Document.dontSelect) && this.select(false), "on click");
             } else if (this.Document.type === DocumentType.BUTTON) {
                 UndoManager.RunInBatch(() => ScriptBox.EditButtonScript("On Button Clicked ...", this.props.Document, "onClick", e.clientX, e.clientY), "on button click");
             } else if (this.Document.isButton) {
@@ -633,13 +637,23 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             if (custom) {
                 DocumentView.makeNativeViewClicked(this.props.Document);
 
+                const imgView = Cast(Doc.UserDoc().iconView, Doc, null);
+                const iconImgView = Cast(Doc.UserDoc().iconImageView, Doc, null);
+                const iconColView = Cast(Doc.UserDoc().iconColView, Doc, null);
+                const iconViews = [imgView, iconImgView, iconColView];
+                const expandingButtons = DocListCast(Cast(Doc.UserDoc().expandingButtons, Doc, null)?.data);
+                const allTemplates = iconViews.concat(expandingButtons);
                 let foundLayout: Opt<Doc>;
-                DocListCast(Cast(Doc.UserDoc().expandingButtons, Doc, null)?.data)?.concat([Cast(Doc.UserDoc().iconView, Doc, null)]).
-                    map(btnDoc => (btnDoc.dragFactory as Doc) || btnDoc).filter(doc => doc.isTemplateDoc).forEach(tempDoc => {
-                        if (StrCast(tempDoc.title) === layout) {
-                            foundLayout = tempDoc;
-                        }
-                    });
+                allTemplates.map(btnDoc => (btnDoc.dragFactory as Doc) || btnDoc).filter(doc => doc.isTemplateDoc).forEach(tempDoc => {
+                    if (StrCast(tempDoc.title) === this.props.Document.type + "_" + layout) {
+                        foundLayout = tempDoc;
+                    }
+                });
+                !foundLayout && allTemplates.map(btnDoc => (btnDoc.dragFactory as Doc) || btnDoc).filter(doc => doc.isTemplateDoc).forEach(tempDoc => {
+                    if (StrCast(tempDoc.title) === layout) {
+                        foundLayout = tempDoc;
+                    }
+                });
                 DocumentView.
                     makeCustomViewClicked(this.props.Document, this.props.DataDoc, Docs.Create.StackingDocument, layout, foundLayout);
             } else {

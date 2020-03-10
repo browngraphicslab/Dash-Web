@@ -792,7 +792,7 @@ export namespace Doc {
     export function setNativeView(doc: any) {
         const prevLayout = StrCast(doc.layoutKey).split("_")[1];
         const deiconify = prevLayout === "icon" && StrCast(doc.deiconifyLayout) ? "layout_" + StrCast(doc.deiconifyLayout) : "";
-        doc.deiconifyLayout = undefined;
+        prevLayout === "icon" && (doc.deiconifyLayout = undefined);
         if (StrCast(doc.title).endsWith("_" + prevLayout) && deiconify) doc.title = StrCast(doc.title).replace("_" + prevLayout, deiconify);
         else doc.title = undefined;
         doc.layoutKey = deiconify || "layout";

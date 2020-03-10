@@ -258,7 +258,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
             height: NumCast(this.dataDoc[this.props.fieldKey + "-nativeHeight"])
         };
         const cachedImgPath = this.dataDoc[this.props.fieldKey + "-imgPath"];
-        if (!cachedNativeSize.width || !cachedNativeSize.height || imgPath !== cachedImgPath) {
+        if (!cachedNativeSize.width || !cachedNativeSize.height || Math.abs(NumCast(this.layoutDoc._width) / NumCast(this.layoutDoc._height) - cachedNativeSize.width / cachedNativeSize.height) > 0.05 || imgPath !== cachedImgPath) {
             (!this.layoutDoc.isTemplateDoc || this.dataDoc !== this.layoutDoc) && requestImageSize(imgPath).then((inquiredSize: any) => {
                 const rotation = NumCast(this.dataDoc[this.props.fieldKey + "-rotation"]) % 180;
                 const rotatedNativeSize = rotation === 90 || rotation === 270 ? { height: inquiredSize.width, width: inquiredSize.height } : inquiredSize;

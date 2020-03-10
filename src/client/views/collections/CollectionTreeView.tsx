@@ -185,8 +185,10 @@ class TreeView extends React.Component<TreeViewProps> {
         })}
         OnFillDown={undoBatch((value: string) => {
             Doc.SetInPlace(this.props.document, key, value, false);
-            const doc = Docs.Create.FreeformDocument([], { title: "", x: 0, y: 0, _width: 100, _height: 25, templates: new List<string>([Templates.Title.Layout]) });
-            EditableView.loadId = doc[Id];
+            const doc = Docs.Create.FreeformDocument([], { title: "-", x: 0, y: 0, _width: 100, _height: 25, templates: new List<string>([Templates.Title.Layout]) });
+            //EditableView.loadId = doc[Id];
+            this.props.document.editTitle = undefined;
+            doc.editTitle = true;
             return this.props.addDocument(doc);
         })}
         onClick={() => {
