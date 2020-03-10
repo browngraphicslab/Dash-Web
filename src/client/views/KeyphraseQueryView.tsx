@@ -15,8 +15,8 @@ export class KeyphraseQueryView extends React.Component<KP_Props>{
     }
 
     render() {
-        let kps = this.props.keyphrases.toString();
-        let keyterms = this.props.keyphrases.split(',');
+        const kps = this.props.keyphrases.toString();
+        const keyterms = this.props.keyphrases.split(',');
         return (
             <div>
                 <h5>Select queries to send:</h5>

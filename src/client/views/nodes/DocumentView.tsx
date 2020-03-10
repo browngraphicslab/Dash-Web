@@ -15,7 +15,7 @@ import { AudioField, ImageField, PdfField, VideoField } from '../../../new_field
 import { TraceMobx } from '../../../new_fields/util';
 import { GestureUtils } from '../../../pen-gestures/GestureUtils';
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
-import { emptyFunction, returnOne, returnTransparent, returnTrue, Utils } from "../../../Utils";
+import { emptyFunction, returnOne, returnTransparent, returnTrue, Utils, OmitKeys } from "../../../Utils";
 import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
 import { DocServer } from "../../DocServer";
 import { Docs, DocumentOptions, DocUtils } from "../../documents/Documents";
@@ -575,9 +575,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             else if (de.complete.docDragData.draggedDocuments[0].type === "text") {
                 const text = Cast(de.complete.docDragData.draggedDocuments[0].data, RichTextField)?.Text;
                 if (text && text[0] === "{" && text[text.length - 1] === "}" && text.includes(":")) {
-                    let loc = text.indexOf(":");
-                    let key = text.slice(1, loc);
-                    let value = text.slice(loc + 1, text.length - 1);
+                    const loc = text.indexOf(":");
+                    const key = text.slice(1, loc);
+                    const value = text.slice(loc + 1, text.length - 1);
                     console.log(key);
                     console.log(value);
                     console.log(this.props.Document);
@@ -770,7 +770,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             // a.download = `DocExport-${this.props.Document[Id]}.zip`;
             // a.click();
         });
-        let recommender_subitems: ContextMenuProps[] = [];
+        const recommender_subitems: ContextMenuProps[] = [];
 
         recommender_subitems.push({
             description: "Internal recommendations",
@@ -778,7 +778,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             icon: "brain"
         });
 
-        let ext_recommender_subitems: ContextMenuProps[] = [];
+        const ext_recommender_subitems: ContextMenuProps[] = [];
 
         ext_recommender_subitems.push({
             description: "arXiv",
@@ -886,7 +886,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             }
         }));
         const doclist = ClientRecommender.Instance.computeSimilarities("cosine");
-        let recDocs: { preview: Doc, score: number }[] = [];
+        const recDocs: { preview: Doc, score: number }[] = [];
         // tslint:disable-next-line: prefer-for-of
         for (let i = 0; i < doclist.length; i++) {
             recDocs.push({ preview: doclist[i].actualDoc, score: doclist[i].score });
@@ -970,7 +970,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     childScaling = () => (this.layoutDoc._fitWidth ? this.props.PanelWidth() / this.nativeWidth : this.props.ContentScaling());
     @computed get contents() {
         TraceMobx();
-        return (<DocumentContentsView {...this.props}
+        return (<DocumentContentsView {...OmitKeys(this.props, ['children']).omit}
             ContentScaling={this.childScaling}
             ChromeHeight={this.chromeHeight}
             isSelected={this.isSelected}
@@ -1127,7 +1127,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             </> :
                 this.innards}
         </div>;
-        { this._showKPQuery ? <KeyphraseQueryView keyphrases={this._queries}></KeyphraseQueryView> : undefined }
+        { this._showKPQuery ? <KeyphraseQueryView keyphrases={this._queries}></KeyphraseQueryView> : undefined; }
     }
 }
 

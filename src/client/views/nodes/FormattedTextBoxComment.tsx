@@ -83,7 +83,7 @@ export class FormattedTextBoxComment {
                 const keep = e.target && (e.target as any).type === "checkbox" ? true : false;
                 const textBox = FormattedTextBoxComment.textBox;
                 if (FormattedTextBoxComment.linkDoc && !keep && textBox) {
-                    DocumentManager.Instance.FollowLink(FormattedTextBoxComment.linkDoc, textBox.dataDoc,
+                    DocumentManager.Instance.FollowLink(FormattedTextBoxComment.linkDoc, textBox.props.Document,
                         (doc: Doc, maxLocation: string) => textBox.props.addDocTab(doc, e.ctrlKey ? "inTab" : "onRight"));
                 } else if (textBox && (FormattedTextBoxComment.tooltipText as any).href) {
                     textBox.props.addDocTab(Docs.Create.WebDocument((FormattedTextBoxComment.tooltipText as any).href, { title: (FormattedTextBoxComment.tooltipText as any).href, _width: 200, _height: 400 }), "onRight");

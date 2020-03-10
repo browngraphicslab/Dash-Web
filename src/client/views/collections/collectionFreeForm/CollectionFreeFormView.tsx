@@ -801,7 +801,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 this.props.Document.scrollY = NumCast(doc.y) - offset;
             }
 
-            afterFocus && setTimeout(() => afterFocus?.(), 1000);
+            afterFocus && setTimeout(afterFocus, 1000);
         } else {
             const layoutdoc = Doc.Layout(doc);
             const newPanX = NumCast(doc.x) + NumCast(layoutdoc._width) / 2;

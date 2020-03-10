@@ -20,6 +20,8 @@ import { DocumentView } from "./DocumentView";
 import { Docs } from "../../documents/Documents";
 import { ComputedField } from "../../../new_fields/ScriptField";
 
+// testing testing 
+
 interface Window {
     MediaRecorder: MediaRecorder;
 }
@@ -46,8 +48,8 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
     _ele: HTMLAudioElement | null = null;
     _recorder: any;
     _recordStart = 0;
+    _stream: MediaStream | undefined;
 
-    public static START = 0;
     @observable private static _scrubTime = 0;
     @computed get audioState(): undefined | "recording" | "paused" | "playing" { return this.dataDoc.audioState as (undefined | "recording" | "paused" | "playing"); }
     set audioState(value) { this.dataDoc.audioState = value; }
@@ -137,15 +139,13 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
     }
 
     recordAudioAnnotation = () => {
-        let gumStream: any;
         const self = this;
         navigator.mediaDevices.getUserMedia({
             audio: true
         }).then(function (stream) {
-            gumStream = stream;
+            self._stream = stream;
             self._recorder = new MediaRecorder(stream);
             self.dataDoc[self.props.fieldKey + "-recordingStart"] = new DateField(new Date());
-            AudioBox.START = new DateField(new Date()).date.getTime();
             AudioBox.ActiveRecordings.push(self.props.Document);
             self._recorder.ondataavailable = async function (e: any) {
                 const formData = new FormData();
@@ -154,23 +154,16 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
                     method: 'POST',
                     body: formData
                 });
-                const json = await res.json();
-                json.map(async (file: any) => {
-                    const path = file.result.accessPaths.agnostic.client;
-                    const url = Utils.prepend(path);
-                    // upload to server with known URL 
-                    self.props.Document[self.props.fieldKey] = new AudioField(url);
-                });
+                const files = await res.json();
+                const url = Utils.prepend(files[0].result.accessPaths.agnostic.client);
+                // upload to server with known URL 
+                self.props.Document[self.props.fieldKey] = new AudioField(url);
             };
             self._recordStart = new Date().getTime();
-            console.log("RECORD START = " + self._recordStart);
             runInAction(() => self.audioState = "recording");
             setTimeout(self.updateRecordTime, 0);
             self._recorder.start();
-            setTimeout(() => {
-                self.stopRecording();
-                gumStream.getAudioTracks()[0].stop();
-            }, 60 * 60 * 1000); // stop after an hour?
+            setTimeout(() => self._recorder && self.stopRecording(), 60 * 1000); // stop after an hour
         });
     }
 
@@ -183,8 +176,10 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
 
     stopRecording = action(() => {
         this._recorder.stop();
+        this._recorder = undefined;
         this.dataDoc.duration = (new Date().getTime() - this._recordStart) / 1000;
         this.audioState = "paused";
+        this._stream?.getAudioTracks()[0].stop();
         const ind = AudioBox.ActiveRecordings.indexOf(this.props.Document);
         ind !== -1 && (AudioBox.ActiveRecordings.splice(ind, 1));
     });
@@ -211,7 +206,7 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
             _width: NumCast(this.props.Document._width), _height: 3 * NumCast(this.props.Document._height)
         });
         Doc.GetProto(newDoc).recordingSource = this.dataDoc;
-        Doc.GetProto(newDoc).recordingStart = 0;
+        Doc.GetProto(newDoc).recordingStart = ComputedField.MakeFunction(`this.recordingSource["${this.props.fieldKey}-recordingStart"]`);
         Doc.GetProto(newDoc).audioState = ComputedField.MakeFunction("this.recordingSource.audioState");
         this.props.addDocument?.(newDoc);
         e.stopPropagation();
@@ -239,14 +234,13 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
 
     render() {
         const interactive = this.active() ? "-interactive" : "";
-        return <div className={`audiobox-container`} onContextMenu={this.specificContextMenu}
-            onClick={!this.path ? this.recordClick : undefined}>
+        return <div className={`audiobox-container`} onContextMenu={this.specificContextMenu} onClick={!this.path ? this.recordClick : undefined}>
             {!this.path ?
-                <div style={{ display: "flex", width: "100%", alignItems: "center" }}>
-                    <div className="audiobox-playhead" style={{ alignItems: "center", display: "inherit", background: "dimgray" }} onClick={this.onFile}>
+                <div className="audiobox-buttons">
+                    <div className="audiobox-dictation" onClick={this.onFile}>
                         <FontAwesomeIcon style={{ width: "30px", background: this.Document.playOnSelect ? "yellow" : "dimGray" }} icon="file-alt" size={this.props.PanelHeight() < 36 ? "1x" : "2x"} />
                     </div>
-                    <button className={`audiobox-record${interactive}`} style={{ position: "relative", backgroundColor: this.audioState === "recording" ? "red" : "black" }}>
+                    <button className={`audiobox-record${interactive}`} style={{ backgroundColor: this.audioState === "recording" ? "red" : "black" }}>
                         {this.audioState === "recording" ? "STOP" : "RECORD"}
                     </button>
                 </div> :

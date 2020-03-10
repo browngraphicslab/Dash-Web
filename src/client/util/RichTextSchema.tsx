@@ -889,10 +889,10 @@ export class DashFieldView {
             e.stopPropagation();
             const collview = await Doc.addFieldEnumerations(self._textBoxDoc, node.attrs.fieldKey, [{ title: self._fieldSpan.innerText }]);
             collview instanceof Doc && tbox.props.addDocTab(collview, "onRight");
-        }
+        };
         const updateText = (forceMatch: boolean) => {
             self._enumerables.style.display = "none";
-            let newText = self._fieldSpan.innerText.startsWith(":=") || self._fieldSpan.innerText.startsWith("=:=") ? ":=-computed-" : self._fieldSpan.innerText;
+            const newText = self._fieldSpan.innerText.startsWith(":=") || self._fieldSpan.innerText.startsWith("=:=") ? ":=-computed-" : self._fieldSpan.innerText;
 
             // look for a document whose id === the fieldKey being displayed.  If there's a match, then that document
             // holds the different enumerated values for the field in the titles of its collected documents.
@@ -909,12 +909,12 @@ export class DashFieldView {
 
                 // if the text starts with a ':=' then treat it as an expression by making a computed field from its value storing it in the key
                 if (self._fieldSpan.innerText.startsWith(":=") && self._dashDoc) {
-                    self._dashDoc![self._fieldKey] = ComputedField.MakeFunction(self._fieldSpan.innerText.substring(2));
+                    self._dashDoc[self._fieldKey] = ComputedField.MakeFunction(self._fieldSpan.innerText.substring(2));
                 } else if (self._fieldSpan.innerText.startsWith("=:=") && self._dashDoc) {
                     Doc.Layout(tbox.props.Document)[self._fieldKey] = ComputedField.MakeFunction(self._fieldSpan.innerText.substring(3));
                 }
             });
-        }
+        };
 
         this._fieldSpan = document.createElement("div");
         this._fieldSpan.id = Utils.GenerateGuid();
@@ -926,14 +926,14 @@ export class DashFieldView {
         this._fieldSpan.onkeypress = function (e: any) { e.stopPropagation(); };
         this._fieldSpan.onkeyup = function (e: any) { e.stopPropagation(); };
         this._fieldSpan.onmousedown = function (e: any) { e.stopPropagation(); self._enumerables.style.display = "inline-block"; };
-        this._fieldSpan.onblur = function (e: any) { updateText(false); }
+        this._fieldSpan.onblur = function (e: any) { updateText(false); };
 
         const setDashDoc = (doc: Doc) => {
             self._dashDoc = doc;
             if (self._dashDoc && self._options?.length && !self._dashDoc[node.attrs.fieldKey]) {
                 self._dashDoc[node.attrs.fieldKey] = StrCast(self._options[0].title);
             }
-        }
+        };
         this._fieldSpan.onkeydown = function (e: any) {
             e.stopPropagation();
             if ((e.key === "a" && e.ctrlKey) || (e.key === "a" && e.metaKey)) {
@@ -976,7 +976,7 @@ export class DashFieldView {
                 alias._pivotField = self._fieldKey;
                 tbox.props.addDocTab(alias, "onRight");
             }
-        }
+        };
         this._labelSpan.innerHTML = `${node.attrs.fieldKey}: `;
         if (node.attrs.docid) {
             DocServer.GetRefField(node.attrs.docid).then(async dashDoc => dashDoc instanceof Doc && runInAction(() => setDashDoc(dashDoc)));

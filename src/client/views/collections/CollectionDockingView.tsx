@@ -138,8 +138,8 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 }
             }
             return false;
-        }
-        let retVal = !instance?._goldenLayout.root.contentItems[0].isRow ? false :
+        };
+        const retVal = !instance?._goldenLayout.root.contentItems[0].isRow ? false :
             Array.from(instance._goldenLayout.root.contentItems[0].contentItems).some((child: any) => Array.from(child.contentItems).some(tryClose));
 
         retVal && instance.stateChanged();

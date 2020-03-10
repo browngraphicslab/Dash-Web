@@ -5,6 +5,11 @@
     display:flex;
     pointer-events: all;
     cursor:default;
+    .audiobox-buttons {
+        display: flex;
+        width: 100%;
+        align-items: center;
+    }
     .audiobox-handle {
         width:20px;
         height:100%;
@@ -24,13 +29,14 @@
         pointer-events: all;
         width:100%;
         height:100%;
-        position: absolute;
+        position: relative;
         pointer-events: none;
     }
     .audiobox-record-interactive {
         pointer-events: all;
         width:100%;
         height:100%;
+        position: relative;
     }
     .audiobox-controls {
         width:100%;
@@ -46,12 +52,17 @@
             position: relative;
             padding-right: 5px;
             display: flex;
-            .audiobox-playhead {
+            .audiobox-playhead, .audiobox-dictation {
                 position: relative;
                 margin-top: auto;
                 margin-bottom: auto;
                 width: 25px;
                 padding: 2px;
+            }
+            .audiobox-dictation {
+                align-items: center;
+                display: inherit;
+                background: dimgray;
             }
             .audiobox-timeline {
                 position:relative;

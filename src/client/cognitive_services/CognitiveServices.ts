@@ -371,9 +371,9 @@ export namespace CognitiveServices {
                 let args = { method: 'POST', uri: Utils.prepend("/recommender"), body: { keyphrases: keyterms }, json: true };
                 await requestPromise.post(args).then(async (wordvecs) => {
                     if (wordvecs) {
-                        let indices = Object.keys(wordvecs);
+                        const indices = Object.keys(wordvecs);
                         console.log("successful vectorization!");
-                        var vectorValues = new List<number>();
+                        const vectorValues = new List<number>();
                         indices.forEach((ind: any) => {
                             //console.log(wordvec.word);
                             vectorValues.push(wordvecs[ind]);
@@ -389,9 +389,9 @@ export namespace CognitiveServices {
             }
 
             export const analyzer = async (dataDoc: Doc, target: Doc, keys: string[], data: string, converter: TextConverter, isMainDoc: boolean = false, isInternal: boolean = true) => {
-                let results = await ExecuteQuery(Service.Text, Manager, data);
+                const results = await ExecuteQuery(Service.Text, Manager, data);
                 console.log("Cognitive Services keyphrases: ", results);
-                let { keyterms, external_recommendations, kp_string } = await converter(results, data);
+                const { keyterms, external_recommendations, kp_string } = await converter(results, data);
                 target[keys[0]] = keyterms;
                 if (isInternal) {
                     //await vectorize([data], dataDoc, isMainDoc);
