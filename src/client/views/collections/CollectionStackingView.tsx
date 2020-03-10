@@ -100,6 +100,14 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                 changed = true;
             }
         });
+        // remove all empty columns if hideHeadings is set
+        if (this.props.Document.hideHeadings) {
+            Array.from(fields.keys()).filter(key => !fields.get(key)!.length).map(header => {
+                fields.delete(header);
+                sectionHeaders.splice(sectionHeaders.indexOf(header), 1);
+                changed = true;
+            })
+        }
         changed && setTimeout(action(() => { if (this.sectionHeaders) { this.sectionHeaders.length = 0; this.sectionHeaders.push(...sectionHeaders); } }), 0);
         return fields;
     }
@@ -276,7 +284,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             }
         });
     }
-    headings = () => Array.from(this.Sections.keys());
+    headings = () => Array.from(this.Sections);
     sectionStacking = (heading: SchemaHeaderField | undefined, docList: Doc[]) => {
         const key = this.pivotField;
         let type: "string" | "number" | "bigint" | "boolean" | "symbol" | "undefined" | "object" | "function" | undefined = undefined;
@@ -407,7 +415,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                             style={{ width: !this.isStackingView ? "100%" : this.columnWidth / this.numGroupColumns - 10, marginTop: 10 }}>
                             <EditableView {...editableViewProps} />
                         </div>}
-                    {this.props.Document._chromeStatus !== 'disabled' ? <Switch
+                    {this.props.Document._chromeStatus !== 'disabled' && this.props.isSelected() ? <Switch
                         onChange={this.onToggle}
                         onClick={this.onToggle}
                         defaultChecked={this.props.Document._chromeStatus !== 'view-mode'}
