@@ -387,7 +387,7 @@ export class FilterBox extends React.Component {
                     {/* {this.getActiveFilters()} */}
                 </div>
                 {this._filterOpen ? (
-                    <div className="filter-form" onPointerDown={this.stopProp} id="filter-form" style={this._filterOpen ? { display: "flex" } : { display: "none" }}>
+                    <div className="filter-form" onPointerDown={this.stopProp} id="filter-form" style={this._filterOpen ? { display: "flex", background: "black" } : { display: "none" }}>
                         <div className="top-filter-header" style={{ display: "flex", width: "100%" }}>
                             <div id="header">Filter Search Results</div>
                             <div style={{ marginLeft: "auto" }}></div>

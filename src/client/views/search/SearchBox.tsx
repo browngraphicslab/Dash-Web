@@ -391,14 +391,13 @@ export class SearchBox extends React.Component {
                 </div>
 
                 <div className="filter-form" style={this._filterOpen ? { display: "flex" } : { display: "none" }}>
-                    <div className="filter-header">
-                        <button className="filter-item" onClick={this.handleWordQueryChange}>Keywords</button>
-                        <button className="filter-item" onClick={this.handleKeyChange}>Keys</button>
-                        <button className="filter-item" onClick={this.handleNodeChange}>Nodes</button>
+                    <div className="filter-header" style={this._filterOpen ? {} : { display: "none" }}>
+                        <button className="filter-item" style={this._basicWordStatus ? { background: "#aaaaa3", } : {}} onClick={this.handleWordQueryChange}>Keywords</button>
+                        <button className="filter-item" style={this._keyStatus ? { background: "#aaaaa3" } : {}} onClick={this.handleKeyChange}>Keys</button>
+                        <button className="filter-item" style={this._nodeStatus ? { background: "#aaaaa3" } : {}} onClick={this.handleNodeChange}>Nodes</button>
                     </div>
                     <div className="filter-body" style={this._nodeStatus ? { display: "flex" } : { display: "none" }}>
                         <IconBar />
-
                     </div>
                     <div style={this._keyStatus ? { display: "flex" } : { display: "none" }}>
 

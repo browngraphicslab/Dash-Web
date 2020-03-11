@@ -10,6 +10,7 @@
     font-size: 10px;
     line-height: 1;
     overflow: hidden;
+    background: lightgrey,
 }
 
 .searchBox-bar {
@@ -18,7 +19,6 @@
     justify-content: flex-end;
     align-items: center;
     padding-left: 2px;
-    padding-right: 2px;
 
     .searchBox-barChild {
 
@@ -34,8 +34,7 @@
             -webkit-transition: width 0.4s;
             transition: width 0.4s;
             align-self: stretch;
-            margin-left: 2px;
-            margin-right: 2px
+
         }
 
         .searchBox-input:focus {
@@ -89,12 +88,12 @@
 
 .filter-form {
     position: relative;
-    right: 1px;
-    color: grey;
+    background: black;
     flex-direction: column;
     transform-origin: top;
     border-bottom: solid grey 1px;
-    margin: 5px;
+    padding: 5px;
+    transition: height 0.5s ease, display 0.5s ease;
 
     .filter-header {
         display: flex;
