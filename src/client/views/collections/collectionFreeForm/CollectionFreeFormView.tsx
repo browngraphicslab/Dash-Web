@@ -330,31 +330,12 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                 this._lastX = e.pageX;
                 this._lastY = e.pageY;
             }
-            // eraser or scrubber plus anything else mode
+            // eraser plus anything else mode
             else {
                 e.stopPropagation();
                 e.preventDefault();
             }
         }
-        // if (e.button === 0 && !e.shiftKey && !e.altKey && !e.ctrlKey && this.props.active(true)) {
-        //     document.removeEventListener("pointermove", this.onPointerMove);
-        //     document.removeEventListener("pointerup", this.onPointerUp);
-        //     document.addEventListener("pointermove", this.onPointerMove);
-        //     document.addEventListener("pointerup", this.onPointerUp);
-        //     if (InkingControl.Instance.selectedTool === InkTool.None) {
-        //         this._lastX = e.pageX;
-        //         this._lastY = e.pageY;
-        //     }
-        //     else {
-        //         e.stopPropagation();
-        //         e.preventDefault();
-
-        //         if (InkingControl.Instance.selectedTool !== InkTool.Eraser && InkingControl.Instance.selectedTool !== InkTool.Scrubber) {
-        //             let point = this.getTransform().transformPoint(e.pageX, e.pageY);
-        //             this._points.push({ x: point[0], y: point[1] });
-        //         }
-        //     }
-        // }
     }
 
     @action

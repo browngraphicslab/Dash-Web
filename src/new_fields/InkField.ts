@@ -8,7 +8,6 @@ export enum InkTool {
     Pen,
     Highlighter,
     Eraser,
-    Scrubber,
     Stamp
 }
 
