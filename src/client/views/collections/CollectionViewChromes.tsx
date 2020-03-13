@@ -38,25 +38,30 @@ const stopPropagation = (e: React.SyntheticEvent) => e.stopPropagation();
 export class CollectionViewBaseChrome extends React.Component<CollectionViewChromeProps> {
     //(!)?\(\(\(doc.(\w+) && \(doc.\w+ as \w+\).includes\(\"(\w+)\"\)
 
+    get target() { return this.props.CollectionView.props.Document; }
     _templateCommand = {
-        title: "=> item view", script: "setChildLayout(this.target, this.source?.[0])", params: ["target", "source"],
+        params: ["target", "source"], title: "=> item view",
+        script: "setChildLayout(this.target, this.source?.[0])",
+        immediate: (source: Doc[]) => Doc.setChildLayout(this.target, source?.[0]),
         initialize: emptyFunction,
-        immediate: (draggedDocs: Doc[]) => Doc.setChildLayout(this.props.CollectionView.props.Document, draggedDocs.length ? draggedDocs[0] : undefined)
     };
     _narrativeCommand = {
-        title: "=> click item view", script: "setChildDetailedLayout(this.target, this.source?.[0])", params: ["target", "source"],
+        params: ["target", "source"], title: "=> click item view",
+        script: "setChildDetailedLayout(this.target, this.source?.[0])",
+        immediate: (source: Doc[]) => Doc.setChildDetailedLayout(this.target, source?.[0]),
         initialize: emptyFunction,
-        immediate: (draggedDocs: Doc[]) => Doc.setChildDetailedLayout(this.props.CollectionView.props.Document, draggedDocs.length ? draggedDocs[0] : undefined)
     };
     _contentCommand = {
-        title: "=> content", script: "getProto(this.target).data = aliasDocs(this.source);", params: ["target", "source"],
+        params: ["target", "source"], title: "=> content",
+        script: "getProto(this.target).data = aliasDocs(this.source);",
+        immediate: (source: Doc[]) => Doc.GetProto(this.target).data = Doc.aliasDocs(source),
         initialize: emptyFunction,
-        immediate: (draggedDocs: Doc[]) => Doc.GetProto(this.props.CollectionView.props.Document).data = new List<Doc>(draggedDocs.map((d: any) => Doc.MakeAlias(d)))
     };
     _viewCommand = {
-        title: "=> saved view", script: "this.target._panX = this.restoredPanX; this.target._panY = this.restoredPanY; this.target.scale = this.restoredScale;", params: ["target"],
-        initialize: (button: Doc) => { button.restoredPanX = this.props.CollectionView.props.Document._panX; button.restoredPanY = this.props.CollectionView.props.Document._panY; button.restoredScale = this.props.CollectionView.props.Document.scale; },
-        immediate: (draggedDocs: Doc[]) => { this.props.CollectionView.props.Document._panX = 0; this.props.CollectionView.props.Document._panY = 0; this.props.CollectionView.props.Document.scale = 1; },
+        params: ["target"], title: "=> saved view",
+        script: "this.target._panX = this.restoredPanX; this.target._panY = this.restoredPanY; this.target.scale = this.restoredScale;",
+        immediate: (source: Doc[]) => { this.target._panX = 0; this.target._panY = 0; this.target.scale = 1; },
+        initialize: (button: Doc) => { button.restoredPanX = this.target._panX; button.restoredPanY = this.target._panY; button.restoredScale = this.target.scale; },
     };
     _freeform_commands = [this._contentCommand, this._templateCommand, this._narrativeCommand, this._viewCommand];
     _stacking_commands = [this._contentCommand, this._templateCommand];
