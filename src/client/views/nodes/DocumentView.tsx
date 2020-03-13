@@ -44,8 +44,6 @@ import "./DocumentView.scss";
 import { FormattedTextBox } from './FormattedTextBox';
 import React = require("react");
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-
-import { CollectionStackingView } from '../collections/CollectionStackingView';
 import { SchemaHeaderField } from '../../../new_fields/SchemaHeaderField';
 import { ClientRecommender } from '../../ClientRecommender';
 import { SearchUtil } from '../../util/SearchUtil';
