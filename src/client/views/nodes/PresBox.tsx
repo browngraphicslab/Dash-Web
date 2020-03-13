@@ -5,7 +5,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast } from "../../../new_fields/Doc";
-import { InkTool } from "../../../new_fields/InkField";]
+import { InkTool } from "../../../new_fields/InkField";
 import { BoolCast, Cast, FieldValue, NumCast } from "../../../new_fields/Types";
 import { returnFalse } from "../../../Utils";
 import { DocumentManager } from "../../util/DocumentManager";
