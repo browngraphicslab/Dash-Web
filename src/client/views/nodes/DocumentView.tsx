@@ -293,7 +293,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 UndoManager.RunInBatch(() => this.onClickHandler!.script.run({
                     this: this.Document.isTemplateForField && this.props.DataDoc ? this.props.DataDoc : this.props.Document, // try this.props.Document.expandedTemplate || this.props.Document
                     containingCollection: this.props.ContainingCollectionDoc, shiftKey: e.shiftKey
-                }, console.log) && !BoolCast(this.props.Document.dontSelect) && this.select(false), "on click");
+                }, console.log) && !this.props.Document.dontSelect && !this.props.Document.isButton && this.select(false), "on click");
             } else if (this.Document.type === DocumentType.BUTTON) {
                 UndoManager.RunInBatch(() => ScriptBox.EditButtonScript("On Button Clicked ...", this.props.Document, "onClick", e.clientX, e.clientY), "on button click");
             } else if (this.Document.isButton) {

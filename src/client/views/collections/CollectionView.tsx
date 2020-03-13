@@ -9,7 +9,6 @@ import 'react-image-lightbox-with-rotate/style.css'; // This only needs to be im
 import { DateField } from '../../../new_fields/DateField';
 import { Doc, DocListCast, DataSym } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
-import { listSpec } from '../../../new_fields/Schema';
 import { BoolCast, Cast, StrCast, NumCast } from '../../../new_fields/Types';
 import { ImageField } from '../../../new_fields/URLField';
 import { TraceMobx } from '../../../new_fields/util';
@@ -76,6 +75,7 @@ export namespace CollectionViewType {
     ]);
 
     export const valueOf = (value: string) => stringMapping.get(value.toLowerCase());
+    export const stringFor = (value: number) => Array.from(stringMapping.entries()).find(entry => entry[1] === value)[0];
 }
 
 export interface CollectionRenderProps {

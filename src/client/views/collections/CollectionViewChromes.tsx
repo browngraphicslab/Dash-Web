@@ -8,7 +8,7 @@ import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
 import { ScriptField } from "../../../new_fields/ScriptField";
 import { BoolCast, Cast, NumCast, StrCast } from "../../../new_fields/Types";
-import { Utils, emptyFunction } from "../../../Utils";
+import { Utils, emptyFunction, setupMoveUpEvents } from "../../../Utils";
 import { DragManager } from "../../util/DragManager";
 import { undoBatch } from "../../util/UndoManager";
 import { EditableView } from "../EditableView";
@@ -82,6 +82,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     }
     private _picker: any;
     private _commandRef = React.createRef<HTMLInputElement>();
+    private _viewRef = React.createRef<HTMLInputElement>();
     private _autosuggestRef = React.createRef<Autosuggest>();
     @observable private _currentKey: string = "";
     @observable private _viewSpecsOpen: boolean = false;
@@ -344,8 +345,21 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     private _startDragPosition: { x: number, y: number } = { x: 0, y: 0 };
     private _sensitivity: number = 16;
 
+    dragViewDown = (e: React.PointerEvent) => {
+        setupMoveUpEvents(this, e, (e, down, delta) => {
+            const vtype = NumCast(this.props.CollectionView.props.Document._viewType) as CollectionViewType;
+            const c = {
+                params: ["target"], title: CollectionViewType.stringFor(vtype),
+                script: `this.target._viewType = ${NumCast(this.props.CollectionView.props.Document._viewType)}`,
+                immediate: (source: Doc[]) => Doc.setChildLayout(this.target, source?.[0]),
+                initialize: emptyFunction,
+            };
+            DragManager.StartButtonDrag([this._viewRef.current!], c.script, c.title,
+                { target: this.props.CollectionView.props.Document }, c.params, c.initialize, e.clientX, e.clientY);
+            return true;
+        }, emptyFunction, emptyFunction);
+    }
     dragCommandDown = (e: React.PointerEvent) => {
-
         this._startDragPosition = { x: e.clientX, y: e.clientY };
         document.addEventListener("pointermove", this.dragPointerMove);
         document.addEventListener("pointerup", this.dragPointerUp);
@@ -368,13 +382,17 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     dragPointerUp = (e: PointerEvent) => {
         document.removeEventListener("pointermove", this.dragPointerMove);
         document.removeEventListener("pointerup", this.dragPointerUp);
-
     }
 
     render() {
         const collapsed = this.props.CollectionView.props.Document._chromeStatus !== "enabled";
         return (
-            <div className="collectionViewChrome-cont" style={{ top: collapsed ? -70 : 0, height: collapsed ? 0 : undefined }}>
+            <div className="collectionViewChrome-cont" style={{
+                top: collapsed ? -70 : 0, height: collapsed ? 0 : undefined,
+                transform: collapsed ? "" : `scale(${Math.min(1, this.props.CollectionView.props.ScreenToLocalTransform().Scale)})`,
+                transformOrigin: "top left",
+                width: `${100 / Math.min(1, this.props.CollectionView.props.ScreenToLocalTransform().Scale)}%`
+            }}>
                 <div className="collectionViewChrome" style={{ border: "unset" }}>
                     <div className="collectionViewBaseChrome">
                         <button className="collectionViewBaseChrome-collapse"
@@ -386,23 +404,29 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                             }}
                             title="Collapse collection chrome" onClick={this.toggleCollapse}>
                             <FontAwesomeIcon icon="caret-up" size="2x" />
-                        </button>
-                        <select
-                            className="collectionViewBaseChrome-viewPicker"
-                            onPointerDown={stopPropagation}
-                            onChange={this.viewChanged}
-                            style={{ display: collapsed ? "none" : undefined }}
-                            value={NumCast(this.props.CollectionView.props.Document._viewType)}>
-                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="1">Freeform</option>
-                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="2">Schema</option>
-                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="4">Tree</option>
-                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="5">Stacking</option>
-                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="6">Masonry</option>
-                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="7">MultiCol</option>
-                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="8">MultiRow</option>
-                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="9">Pivot/Time</option>
-                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="10">Carousel</option>
-                        </select>
+                        </button><div className="collectionViewBaseChrome-template" style={{ marginLeft: 50, display: collapsed ? "none" : undefined }}>
+                            <div className="commandEntry-outerDiv" title="drop document to apply or drag to create button" ref={this._viewRef} onPointerDown={this.dragViewDown}>
+                                <div className="commandEntry-drop">
+                                    <FontAwesomeIcon icon="bullseye" size="2x"></FontAwesomeIcon>
+                                </div>
+                                <select
+                                    className="collectionViewBaseChrome-viewPicker"
+                                    onPointerDown={stopPropagation}
+                                    onChange={this.viewChanged}
+                                    style={{ display: collapsed ? "none" : undefined }}
+                                    value={NumCast(this.props.CollectionView.props.Document._viewType)}>
+                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="1">Freeform</option>
+                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="2">Schema</option>
+                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="4">Tree</option>
+                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="5">Stacking</option>
+                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="6">Masonry</option>
+                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="7">MultiCol</option>
+                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="8">MultiRow</option>
+                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="9">Pivot/Time</option>
+                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="10">Carousel</option>
+                                </select>
+                            </div>
+                        </div>
                         <div className="collectionViewBaseChrome-viewSpecs" title="filter documents to show" style={{ display: collapsed ? "none" : "grid" }}>
                             <div className="collectionViewBaseChrome-filterIcon" onPointerDown={this.openViewSpecs} >
                                 <FontAwesomeIcon icon="filter" size="2x" />
@@ -449,7 +473,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                         <div className="collectionViewBaseChrome-template" ref={this.createDropTarget} style={{ display: collapsed ? "none" : undefined }}>
                             <div className="commandEntry-outerDiv" title="drop document to apply or drag to create button" ref={this._commandRef} onPointerDown={this.dragCommandDown}>
                                 <div className="commandEntry-drop">
-                                    <FontAwesomeIcon icon="bullseye" size="2x"></FontAwesomeIcon>
+                                    <FontAwesomeIcon icon="bullseye" size="2x" />
                                 </div>
                                 <select
                                     className="collectionViewBaseChrome-cmdPicker"
