@@ -377,7 +377,8 @@ export namespace Doc {
         index = allowProtos && index !== -1 ? index : list.reduce((p, v, i) => (v instanceof Doc && Doc.AreProtosEqual(v, toFind)) ? i : p, -1);
         return index; // list.findIndex(doc => doc === toFind || Doc.AreProtosEqual(doc, toFind));
     }
-    export function RemoveDocFromList(listDoc: Doc, key: string, doc: Doc) {
+    export function RemoveDocFromList(listDoc: Doc, fieldKey: string | undefined, doc: Doc) {
+        const key = fieldKey ? fieldKey : Doc.LayoutFieldKey(listDoc);
         if (listDoc[key] === undefined) {
             Doc.GetProto(listDoc)[key] = new List<Doc>();
         }
@@ -391,7 +392,8 @@ export namespace Doc {
         }
         return false;
     }
-    export function AddDocToList(listDoc: Doc, key: string, doc: Doc, relativeTo?: Doc, before?: boolean, first?: boolean, allowDuplicates?: boolean, reversed?: boolean) {
+    export function AddDocToList(listDoc: Doc, fieldKey: string | undefined, doc: Doc, relativeTo?: Doc, before?: boolean, first?: boolean, allowDuplicates?: boolean, reversed?: boolean) {
+        const key = fieldKey ? fieldKey : Doc.LayoutFieldKey(listDoc);
         if (listDoc[key] === undefined) {
             Doc.GetProto(listDoc)[key] = new List<Doc>();
         }

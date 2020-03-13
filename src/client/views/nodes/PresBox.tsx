@@ -5,10 +5,8 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast } from "../../../new_fields/Doc";
-import { InkTool } from "../../../new_fields/InkField";
-import { listSpec } from "../../../new_fields/Schema";
+import { InkTool } from "../../../new_fields/InkField";]
 import { BoolCast, Cast, FieldValue, NumCast } from "../../../new_fields/Types";
-import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { returnFalse } from "../../../Utils";
 import { DocumentManager } from "../../util/DocumentManager";
 import { undoBatch } from "../../util/UndoManager";
@@ -203,15 +201,7 @@ export class PresBox extends React.Component<FieldViewProps> {
 
     @undoBatch
     public removeDocument = (doc: Doc) => {
-        const value = FieldValue(Cast(this.props.Document[this.props.fieldKey], listSpec(Doc)));
-        if (value) {
-            const indexOfDoc = value.indexOf(doc);
-            if (indexOfDoc !== - 1) {
-                value.splice(indexOfDoc, 1)[0];
-                return true;
-            }
-        }
-        return false;
+        return Doc.RemoveDocFromList(this.props.Document, this.props.fieldKey, doc);
     }
 
     //The function that is called when a document is clicked or reached through next or back.
@@ -280,17 +270,16 @@ export class PresBox extends React.Component<FieldViewProps> {
     }
 
     updateMinimize = undoBatch(action((e: React.ChangeEvent, mode: number) => {
-        const toggle = BoolCast(this.props.Document.inOverlay) !== (mode === CollectionViewType.Invalid);
-        if (toggle) {
+        if (BoolCast(this.props.Document.inOverlay) !== (mode === CollectionViewType.Invalid)) {
             if (this.props.Document.inOverlay) {
-                Doc.RemoveDocFromList((CurrentUserUtils.UserDocument.overlays as Doc), this.props.fieldKey, this.props.Document);
+                Doc.RemoveDocFromList((Doc.UserDoc().overlays as Doc), undefined, this.props.Document);
                 CollectionDockingView.AddRightSplit(this.props.Document);
                 this.props.Document.inOverlay = false;
             } else {
                 this.props.Document.x = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0)[0];// 500;//e.clientX + 25;
                 this.props.Document.y = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0)[1];////e.clientY - 25;
                 this.props.addDocTab?.(this.props.Document, "close");
-                Doc.AddDocToList((CurrentUserUtils.UserDocument.overlays as Doc), this.props.fieldKey, this.props.Document);
+                Doc.AddDocToList((Doc.UserDoc().overlays as Doc), undefined, this.props.Document);
             }
         }
     }));
@@ -301,12 +290,10 @@ export class PresBox extends React.Component<FieldViewProps> {
      */
     initializeScaleViews = (docList: Doc[], viewtype: number) => {
         const hgt = (viewtype === CollectionViewType.Tree) ? 50 : 46;
-        docList.forEach((doc: Doc) => {
-            doc.presBox = this.props.Document;
-            doc.collapsedHeight = hgt;
-            if (!NumCast(doc.viewScale)) {
-                doc.viewScale = 1;
-            }
+        docList.forEach(doc => {
+            doc.presBox = this.props.Document; // give contained documents a reference to the presentation
+            doc.collapsedHeight = hgt;  //  set the collpased height for documents based on the type of view (Tree or Stack) they will be displaye din
+            !NumCast(doc.viewScale) && (doc.viewScale = 1);
         });
     }
 
