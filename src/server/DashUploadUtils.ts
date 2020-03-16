@@ -102,7 +102,6 @@ export namespace DashUploadUtils {
             const writeStream = createWriteStream(serverPathToFile(Directory.text, textFilename));
             writeStream.write(result.text, error => error ? reject(error) : resolve());
         });
-        console.log(MoveParsedFile(file, Directory.pdfs));
         return MoveParsedFile(file, Directory.pdfs);
     }
 

@@ -2,6 +2,7 @@ import RouteSubscriber from "./RouteSubscriber";
 import { DashUserModel } from "./authentication/models/user_model";
 import { Request, Response, Express } from 'express';
 import { cyan, red, green } from 'colors';
+import { Utils } from "../client/northstar/utils/Utils";
 
 export enum Method {
     GET,
@@ -86,6 +87,7 @@ export default class RouteManager {
         const { method, subscription, secureHandler, publicHandler, errorHandler } = initializer;
 
         const isRelease = this._isRelease;
+        let redirected = "";
         const supervised = async (req: Request, res: Response) => {
             let { user } = req;
             const { originalUrl: target } = req;
@@ -118,13 +120,33 @@ export default class RouteManager {
                     res.redirect("/login");
                 }
             }
-            setTimeout(() => {
-                if (!res.headersSent) {
-                    console.log(red(`Initiating fallback for ${target}. Please remove dangling promise from route handler`));
+            if (!res.headersSent && req.headers.referer?.includes("corsProxy")) {
+                const url = decodeURIComponent(req.headers.referer!);
+                const start = url.match(/.*corsProxy\//)![0];
+                const original = url.replace(start, "");
+                const theurl = original.match(/http[s]?:\/\/[^\/]*/)![0];
+                const newdirect = start + encodeURIComponent(theurl + target);
+                if (newdirect !== redirected) {
+                    redirected = newdirect;
+                    console.log("redirect relative path: " + (theurl + target));
+                    res.redirect(redirected);
+                }
+            }
+            else {
+                if (target.startsWith("/doc/")) {
+                    !res.headersSent && setTimeout(() => {
+                        if (!res.headersSent) {
+                            res.redirect("/login");
+                            console.log(red(`Initiating fallback for ${target}. Please remove dangling promise from route handler`));
+                            const warning = `request to ${target} fell through - this is a fallback response`;
+                            res.send({ warning });
+                        }
+                    }, 1000);
+                } else {
                     const warning = `request to ${target} fell through - this is a fallback response`;
                     res.send({ warning });
                 }
-            }, 1000);
+            }
         };
         const subscribe = (subscriber: RouteSubscriber | string) => {
             let route: string;
@@ -133,7 +155,7 @@ export default class RouteManager {
             } else {
                 route = subscriber.build;
             }
-            if (!/^\/$|^\/[A-Za-z]+(\/\:[A-Za-z?_]+)*$/g.test(route)) {
+            if (!/^\/$|^\/[A-Za-z\*]+(\/\:[A-Za-z?_\*]+)*$/g.test(route)) {
                 this.failedRegistrations.push({
                     reason: RegistrationError.Malformed,
                     route

@@ -1,30 +1,31 @@
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faStickyNote } from '@fortawesome/free-solid-svg-icons';
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, FieldResult } from "../../../new_fields/Doc";
+import { documentSchema } from "../../../new_fields/documentSchemas";
 import { HtmlField } from "../../../new_fields/HtmlField";
 import { InkTool } from "../../../new_fields/InkField";
 import { makeInterface } from "../../../new_fields/Schema";
 import { Cast, NumCast } from "../../../new_fields/Types";
 import { WebField } from "../../../new_fields/URLField";
-import { emptyFunction, returnOne, Utils } from "../../../Utils";
+import { Utils, returnOne, emptyFunction } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
+import { DragManager } from "../../util/DragManager";
+import { ImageUtils } from "../../util/Import & Export/ImageUtils";
 import { SelectionManager } from "../../util/SelectionManager";
-import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
+import { DocAnnotatableComponent } from "../DocComponent";
 import { DocumentDecorations } from "../DocumentDecorations";
 import { InkingControl } from "../InkingControl";
 import { FieldView, FieldViewProps } from './FieldView';
 import { KeyValueBox } from "./KeyValueBox";
 import "./WebBox.scss";
 import React = require("react");
-import { DocAnnotatableComponent } from "../DocComponent";
-import { documentSchema } from "../../../new_fields/documentSchemas";
-import { Id } from "../../../new_fields/FieldSymbols";
-import { DragManager } from "../../util/DragManager";
-import { ImageUtils } from "../../util/Import & Export/ImageUtils";
-import { select } from "async";
+import * as WebRequest from 'web-request';
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
+const htmlToText = require("html-to-text");
+
 
 library.add(faStickyNote);
 
@@ -45,10 +46,14 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
     @observable private _pressX: number = 0;
     @observable private _pressY: number = 0;
 
-    componentDidMount() {
+    async componentDidMount() {
 
+        this.setURL();
+
+        document.addEventListener("pointerup", this.onLongPressUp);
+        document.addEventListener("pointermove", this.onLongPressMove);
         const field = Cast(this.props.Document[this.props.fieldKey], WebField);
-        if (field && field.url.href.indexOf("youtube") !== -1) {
+        if (field?.url.href.indexOf("youtube") !== -1) {
             const youtubeaspect = 400 / 315;
             const nativeWidth = NumCast(this.layoutDoc._nativeWidth);
             const nativeHeight = NumCast(this.layoutDoc._nativeHeight);
@@ -57,12 +62,11 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
                 this.layoutDoc._nativeHeight = NumCast(this.layoutDoc._nativeWidth) / youtubeaspect;
                 this.layoutDoc._height = NumCast(this.layoutDoc._width) / youtubeaspect;
             }
+        } else if (field?.url) {
+            var result = await WebRequest.get(Utils.CorsProxy(field.url.href));
+            this.dataDoc.text = htmlToText.fromString(result.content);
         }
 
-        this.setURL();
-
-        document.addEventListener("pointerup", this.onLongPressUp);
-        document.addEventListener("pointermove", this.onLongPressMove);
     }
 
     componentWillUnmount() {
