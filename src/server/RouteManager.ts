@@ -79,6 +79,7 @@ export default class RouteManager {
         }
     }
 
+    static routes: string[] = [];
     /**
      * 
      * @param initializer 
@@ -86,11 +87,18 @@ export default class RouteManager {
     addSupervisedRoute = (initializer: RouteInitializer): void => {
         const { method, subscription, secureHandler, publicHandler, errorHandler } = initializer;
 
+        typeof (initializer.subscription) === "string" && RouteManager.routes.push(initializer.subscription);
+        initializer.subscription instanceof RouteSubscriber && RouteManager.routes.push(initializer.subscription.root);
+        initializer.subscription instanceof Array && initializer.subscription.map(sub => {
+            typeof (sub) === "string" && RouteManager.routes.push(sub);
+            sub instanceof RouteSubscriber && RouteManager.routes.push(sub.root);
+        });
         const isRelease = this._isRelease;
         let redirected = "";
         const supervised = async (req: Request, res: Response) => {
             let { user } = req;
             const { originalUrl: target } = req;
+            console.log("TARGET: " + target);
             if (process.env.DB === "MEM" && !user) {
                 user = { id: "guest", email: "", userDocumentId: "guestDocId" };
             }
@@ -126,26 +134,30 @@ export default class RouteManager {
                 const original = url.replace(start, "");
                 const theurl = original.match(/http[s]?:\/\/[^\/]*/)![0];
                 const newdirect = start + encodeURIComponent(theurl + target);
-                if (newdirect !== redirected) {
-                    redirected = newdirect;
-                    console.log("redirect relative path: " + (theurl + target));
-                    res.redirect(redirected);
-                }
+                console.log("REDIRECT: " + (theurl + target));
+                res.redirect(newdirect);
             }
-            else {
-                if (target.startsWith("/doc/")) {
-                    !res.headersSent && setTimeout(() => {
+            else if (!res.headersSent) {
+                const which2 = RouteManager.routes.findIndex(r => (r !== "/" || r === target) && target.startsWith(r));
+                const which = Array.from(registered.keys()).findIndex(r => (r !== "/" || r === target) && target.startsWith(r));
+                console.log("WHICH = " + (which === -1 ? "" : Array.from(registered.keys())[which]));
+                if (which !== -1) {
+                    setTimeout(() => {
+                        console.log("handled:" + target);
                         if (!res.headersSent) {
-                            res.redirect("/login");
                             console.log(red(`Initiating fallback for ${target}. Please remove dangling promise from route handler`));
                             const warning = `request to ${target} fell through - this is a fallback response`;
                             res.send({ warning });
                         }
                     }, 1000);
-                } else {
-                    const warning = `request to ${target} fell through - this is a fallback response`;
-                    res.send({ warning });
                 }
+                else {
+                    console.log("unhandled:" + target);
+                    res.end();
+                }
+            } else {
+                console.log("pre-sent:" + target);
+                res.end();
             }
         };
         const subscribe = (subscriber: RouteSubscriber | string) => {

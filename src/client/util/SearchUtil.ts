@@ -34,7 +34,7 @@ export namespace SearchUtil {
     export function Search(query: string, returnDocs: false, options?: SearchParams): Promise<IdSearchResult>;
     export async function Search(query: string, returnDocs: boolean, options: SearchParams = {}) {
         query = query || "*"; //If we just have a filter query, search for * as the query
-        const rpquery = Utils.prepend("/search");
+        const rpquery = Utils.prepend("/dashsearch");
         const gotten = await rp.get(rpquery, { qs: { ...options, q: query } });
         const result: IdSearchResult = gotten.startsWith("<") ? { ids: [], docs: [], numFound: 0, lines: [] } : JSON.parse(gotten);
         if (!returnDocs) {
@@ -52,7 +52,7 @@ export namespace SearchUtil {
         const newLines: string[][] = [];
         await Promise.all(fileids.map(async (tr: string, i: number) => {
             const docQuery = "fileUpload_t:" + tr.substr(0, 7); //If we just have a filter query, search for * as the query
-            const docResult = JSON.parse(await rp.get(Utils.prepend("/search"), { qs: { ...options, q: docQuery } }));
+            const docResult = JSON.parse(await rp.get(Utils.prepend("/dashsearch"), { qs: { ...options, q: docQuery } }));
             newIds.push(...docResult.ids);
             newLines.push(...docResult.ids.map((dr: any) => txtresult.lines[i]));
         }));
@@ -121,7 +121,7 @@ export namespace SearchUtil {
 
     export async function GetAllDocs() {
         const query = "*";
-        const response = await rp.get(Utils.prepend('/search'), {
+        const response = await rp.get(Utils.prepend('/dashsearch'), {
             qs:
                 { start: 0, rows: 10000, q: query },
 

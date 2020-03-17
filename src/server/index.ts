@@ -117,7 +117,8 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
     addSupervisedRoute({
         method: Method.GET,
         subscription: "/*",
-        secureHandler: ({ res }) => { }
+        secureHandler: ({ res }) => {
+        }
     });
     logRegistrationOutcome();
 
