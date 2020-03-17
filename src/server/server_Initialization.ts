@@ -129,7 +129,7 @@ function registerCorsProxy(server: express.Express) {
         // if the referer is a cors page and the cors() route (I think) redirected to /corsProxy/<path> and the requested url path was relative, 
         // then we redirect again to the cors referer and just add the relative path.
         if (!requrl.startsWith("http") && req.originalUrl.startsWith("/corsProxy") && referer?.includes("corsProxy")) {
-            res.redirect(referer + requrl);
+            res.redirect(referer + (referer.endsWith("/") ? "" : "/") + requrl);
         }
         else {
             req.pipe(request(requrl)).on("response", res => {

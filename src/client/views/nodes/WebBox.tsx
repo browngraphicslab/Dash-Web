@@ -81,14 +81,12 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
 
     @action
     submitURL = () => {
-        const script = KeyValueBox.CompileKVPScript(`new WebField("${this.url}")`);
-        if (!script) return;
-        KeyValueBox.ApplyKVPScript(this.props.Document, "data", script);
+        this.dataDoc[this.props.fieldKey] = new WebField(new URL(this.url));
     }
 
     @action
     setURL() {
-        const urlField: FieldResult<WebField> = Cast(this.props.Document.data, WebField);
+        const urlField: FieldResult<WebField> = Cast(this.dataDoc[this.props.fieldKey], WebField);
         if (urlField) this.url = urlField.url.toString();
         else this.url = "";
     }

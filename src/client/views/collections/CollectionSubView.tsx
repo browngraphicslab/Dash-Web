@@ -234,7 +234,9 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 if (!html.startsWith("<a")) {
                     const tags = html.split("<");
                     if (tags[0] === "") tags.splice(0, 1);
-                    const img = tags[0].startsWith("img") ? tags[0] : tags.length > 1 && tags[1].startsWith("img") ? tags[1] : "";
+                    let img = tags[0].startsWith("img") ? tags[0] : tags.length > 1 && tags[1].startsWith("img") ? tags[1] : "";
+                    const cors = img.includes("corsProxy") ? img.match(/http.*corsProxy\//)![0] : "";
+                    img = cors ? img.replace(cors, "") : img;
                     if (img) {
                         const split = img.split("src=\"")[1].split("\"")[0];
                         let source = split;
@@ -242,9 +244,11 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                             const [{ accessPaths }] = await Networking.PostToServer("/uploadRemoteImage", { sources: [split] });
                             source = Utils.prepend(accessPaths.agnostic.client);
                         }
-                        const doc = Docs.Create.ImageDocument(source, { ...options, _width: 300 });
-                        ImageUtils.ExtractExif(doc);
-                        addDocument(doc);
+                        if (source.startsWith("http")) {
+                            const doc = Docs.Create.ImageDocument(source, { ...options, _width: 300 });
+                            ImageUtils.ExtractExif(doc);
+                            addDocument(doc);
+                        }
                         return;
                     } else {
                         const path = window.location.origin + "/doc/";
