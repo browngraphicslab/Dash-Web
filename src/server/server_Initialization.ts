@@ -20,7 +20,7 @@ import * as request from 'request';
 import RouteSubscriber from './RouteSubscriber';
 import { publicDirectory } from '.';
 import { logPort, } from './ActionUtilities';
-import { timeMap } from './ApiManagers/UserManager';
+import { Utils } from '../Utils';
 import { blue, yellow } from 'colors';
 import * as cors from "cors";
 
@@ -61,9 +61,11 @@ export default async function InitializeServer(routeSetter: RouteSetter) {
     registerAuthenticationRoutes(app);
     registerCorsProxy(app);
 
+
     const isRelease = determineEnvironment();
 
     routeSetter(new RouteManager(app, isRelease));
+    registerRelativePath(app);
 
     const serverPort = isRelease ? Number(process.env.serverPort) : 1050;
     const server = app.listen(serverPort, () => {
@@ -151,5 +153,25 @@ function registerCorsProxy(server: express.Express) {
                 }
             });
         }).pipe(res);
+    });
+}
+
+function registerRelativePath(server: express.Express) {
+    server.use("*", (req, res) => {
+        const target = req.originalUrl;
+        if (!res.headersSent && req.headers.referer?.includes("corsProxy")) {
+            const url = decodeURIComponent(req.headers.referer);
+            const start = url.match(/.*corsProxy\//)![0];
+            const original = url.replace(start, "");
+            const theurl = original.match(/http[s]?:\/\/[^\/]*/)![0];
+            const newdirect = start + encodeURIComponent(theurl + target);
+            res.redirect(newdirect);
+            return;
+        } else if (target.startsWith("/search")) {
+            const newdirect = req.headers.referer + "corsProxy/" + encodeURIComponent("http://www.google.com" + target);
+            res.redirect(newdirect);
+            return;
+        }
+        res.end();
     });
 }

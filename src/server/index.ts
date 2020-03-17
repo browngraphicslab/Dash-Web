@@ -114,12 +114,6 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
         }
     });
 
-    addSupervisedRoute({
-        method: Method.GET,
-        subscription: "/*",
-        secureHandler: ({ res }) => {
-        }
-    });
     logRegistrationOutcome();
 
     // initialize the web socket (bidirectional communication: if a user changes
