@@ -24,12 +24,14 @@ const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
 import React = require("react");
+import { setupMoveUpEvents, returnFalse, emptyFunction } from "../../../Utils";
 
 @observer
 export class CollectionTimeView extends CollectionSubView(doc => doc) {
     _changing = false;
     @observable _layoutEngine = "pivot";
-
+    @observable _facetWidth = 0;
+    @observable _collapsed: boolean = false;
     componentWillUnmount() {
         this.props.Document.onChildClick = undefined;
     }
@@ -56,6 +58,9 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
 
     bodyPanelWidth = () => this.props.PanelWidth() - this._facetWidth;
     getTransform = () => this.props.ScreenToLocalTransform().translate(-this._facetWidth, 0);
+    layoutEngine = () => this._layoutEngine;
+    facetWidth = () => this._facetWidth;
+    toggleVisibility = action(() => this._collapsed = !this._collapsed);
 
     @computed get _allFacets() {
         const facets = new Set<string>();
@@ -128,34 +133,6 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
             }
         }
     }
-    _canClick = false;
-    _facetWidthOnDown = 0;
-    @observable _facetWidth = 0;
-    onPointerDown = (e: React.PointerEvent) => {
-        this._canClick = true;
-        this._facetWidthOnDown = e.screenX;
-        document.removeEventListener("pointermove", this.onPointerMove);
-        document.removeEventListener("pointerup", this.onPointerUp);
-        document.addEventListener("pointermove", this.onPointerMove);
-        document.addEventListener("pointerup", this.onPointerUp);
-        e.stopPropagation();
-        e.preventDefault();
-    }
-
-
-    @action
-    onPointerMove = (e: PointerEvent) => {
-        this._facetWidth = Math.max(this.props.ScreenToLocalTransform().transformPoint(e.clientX, 0)[0], 0);
-        Math.abs(e.movementX) > 6 && (this._canClick = false);
-    }
-    @action
-    onPointerUp = (e: PointerEvent) => {
-        if (Math.abs(e.screenX - this._facetWidthOnDown) < 6 && this._canClick) {
-            this._facetWidth = this._facetWidth < 15 ? 200 : 0;
-        }
-        document.removeEventListener("pointermove", this.onPointerMove);
-        document.removeEventListener("pointerup", this.onPointerUp);
-    }
 
     menuCallback = (x: number, y: number) => {
         ContextMenu.Instance.clearItems();
@@ -174,86 +151,47 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
         ContextMenu.Instance.displayMenu(x, y, ":");
     }
 
-    @observable private collapsed: boolean = false;
-    private toggleVisibility = action(() => this.collapsed = !this.collapsed);
+    onPointerDown = (e: React.PointerEvent) => {
+        setupMoveUpEvents(this, e, action((e: PointerEvent, down: number[], delta: number[]) => {
+            this._facetWidth = Math.max(this.props.ScreenToLocalTransform().transformPoint(e.clientX,0)[0], 0);
+            return false;
+        }), returnFalse, () => this._facetWidth = this._facetWidth < 15 ? 200 : 0);
+    }
 
-    _downX = 0;
     onMinDown = (e: React.PointerEvent) => {
-        document.removeEventListener("pointermove", this.onMinMove);
-        document.removeEventListener("pointerup", this.onMinUp);
-        document.addEventListener("pointermove", this.onMinMove);
-        document.addEventListener("pointerup", this.onMinUp);
-        this._downX = e.clientX;
-        e.stopPropagation();
-        e.preventDefault();
-    }
-    @action
-    onMinMove = (e: PointerEvent) => {
-        const delta = e.clientX - this._downX;
-        this._downX = e.clientX;
-        const minReq = NumCast(this.props.Document[this.props.fieldKey + "-timelineMinReq"], NumCast(this.props.Document[this.props.fieldKey + "-timelineMin"], 0));
-        const maxReq = NumCast(this.props.Document[this.props.fieldKey + "-timelineMaxReq"], NumCast(this.props.Document[this.props.fieldKey + "-timelineMax"], 10));
-        this.props.Document[this.props.fieldKey + "-timelineMinReq"] = minReq + (maxReq - minReq) * delta / this.props.PanelWidth();
-        this.props.Document[this.props.fieldKey + "-timelineSpan"] = undefined;
-    }
-    onMinUp = (e: PointerEvent) => {
-        document.removeEventListener("pointermove", this.onMinMove);
-        document.removeEventListener("pointermove", this.onMinUp);
+        setupMoveUpEvents(this, e, action((e: PointerEvent, down: number[], delta: number[]) => {
+            const minReq = NumCast(this.props.Document[this.props.fieldKey + "-timelineMinReq"], NumCast(this.props.Document[this.props.fieldKey + "-timelineMin"], 0));
+            const maxReq = NumCast(this.props.Document[this.props.fieldKey + "-timelineMaxReq"], NumCast(this.props.Document[this.props.fieldKey + "-timelineMax"], 10));
+            this.props.Document[this.props.fieldKey + "-timelineMinReq"] = minReq + (maxReq - minReq) * delta[0] / this.props.PanelWidth();
+            this.props.Document[this.props.fieldKey + "-timelineSpan"] = undefined;
+            return false;
+        }), returnFalse, emptyFunction);
     }
 
     onMaxDown = (e: React.PointerEvent) => {
-        document.removeEventListener("pointermove", this.onMaxMove);
-        document.removeEventListener("pointermove", this.onMaxUp);
-        document.addEventListener("pointermove", this.onMaxMove);
-        document.addEventListener("pointerup", this.onMaxUp);
-        this._downX = e.clientX;
-        e.stopPropagation();
-        e.preventDefault();
-    }
-    @action
-    onMaxMove = (e: PointerEvent) => {
-        const delta = e.clientX - this._downX;
-        this._downX = e.clientX;
-        const minReq = NumCast(this.props.Document[this.props.fieldKey + "-timelineMinReq"], NumCast(this.props.Document[this.props.fieldKey + "-timelineMin"], 0));
-        const maxReq = NumCast(this.props.Document[this.props.fieldKey + "-timelineMaxReq"], NumCast(this.props.Document[this.props.fieldKey + "-timelineMax"], 10));
-        this.props.Document[this.props.fieldKey + "-timelineMaxReq"] = maxReq + (maxReq - minReq) * delta / this.props.PanelWidth();
-        this.props.Document[this.props.fieldKey + "-timelineSpan"] = undefined;
-    }
-    onMaxUp = (e: PointerEvent) => {
-        document.removeEventListener("pointermove", this.onMaxMove);
-        document.removeEventListener("pointermove", this.onMaxUp);
+        setupMoveUpEvents(this, e, action((e: PointerEvent, down: number[], delta: number[]) => {
+            const minReq = NumCast(this.props.Document[this.props.fieldKey + "-timelineMinReq"], NumCast(this.props.Document[this.props.fieldKey + "-timelineMin"], 0));
+            const maxReq = NumCast(this.props.Document[this.props.fieldKey + "-timelineMaxReq"], NumCast(this.props.Document[this.props.fieldKey + "-timelineMax"], 10));
+            this.props.Document[this.props.fieldKey + "-timelineMaxReq"] = maxReq + (maxReq - minReq) * delta[0] / this.props.PanelWidth();
+            return false;
+        }), returnFalse, emptyFunction);
     }
 
     onMidDown = (e: React.PointerEvent) => {
-        document.removeEventListener("pointermove", this.onMidMove);
-        document.removeEventListener("pointermove", this.onMidUp);
-        document.addEventListener("pointermove", this.onMidMove);
-        document.addEventListener("pointerup", this.onMidUp);
-        this._downX = e.clientX;
-        e.stopPropagation();
-        e.preventDefault();
-    }
-    @action
-    onMidMove = (e: PointerEvent) => {
-        const delta = e.clientX - this._downX;
-        this._downX = e.clientX;
-        const minReq = NumCast(this.props.Document[this.props.fieldKey + "-timelineMinReq"], NumCast(this.props.Document[this.props.fieldKey + "-timelineMin"], 0));
-        const maxReq = NumCast(this.props.Document[this.props.fieldKey + "-timelineMaxReq"], NumCast(this.props.Document[this.props.fieldKey + "-timelineMax"], 10));
-        this.props.Document[this.props.fieldKey + "-timelineMinReq"] = minReq - (maxReq - minReq) * delta / this.props.PanelWidth();
-        this.props.Document[this.props.fieldKey + "-timelineMaxReq"] = maxReq - (maxReq - minReq) * delta / this.props.PanelWidth();
-    }
-    onMidUp = (e: PointerEvent) => {
-        document.removeEventListener("pointermove", this.onMidMove);
-        document.removeEventListener("pointermove", this.onMidUp);
+        setupMoveUpEvents(this, e, action((e: PointerEvent, down: number[], delta: number[]) => {
+            const minReq = NumCast(this.props.Document[this.props.fieldKey + "-timelineMinReq"], NumCast(this.props.Document[this.props.fieldKey + "-timelineMin"], 0));
+            const maxReq = NumCast(this.props.Document[this.props.fieldKey + "-timelineMaxReq"], NumCast(this.props.Document[this.props.fieldKey + "-timelineMax"], 10));
+            this.props.Document[this.props.fieldKey + "-timelineMinReq"] = minReq - (maxReq - minReq) * delta[0] / this.props.PanelWidth();
+            this.props.Document[this.props.fieldKey + "-timelineMaxReq"] = maxReq - (maxReq - minReq) * delta[0] / this.props.PanelWidth();
+            return false;
+        }), returnFalse, emptyFunction);
     }
 
-    layoutEngine = () => this._layoutEngine;
     @computed get contents() {
         return <div className="collectionTimeView-innards" key="timeline" style={{ width: this.bodyPanelWidth() }}>
             <CollectionFreeFormView  {...this.props} layoutEngine={this.layoutEngine} ScreenToLocalTransform={this.getTransform} PanelWidth={this.bodyPanelWidth} />
         </div>;
     }
-    facetWidth = () => { return this._facetWidth }
     @computed get filterView() {
         trace();
         const facetCollection = Cast(this.props.Document?._facetCollection, Doc, null);
