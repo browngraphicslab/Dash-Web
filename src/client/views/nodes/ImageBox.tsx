@@ -1,37 +1,34 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faEye } from '@fortawesome/free-regular-svg-icons';
-import { faAsterisk, faFileAudio, faImage, faPaintBrush, faBrain } from '@fortawesome/free-solid-svg-icons';
+import { faAsterisk, faBrain, faFileAudio, faImage, faPaintBrush } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, observable, runInAction, trace } from 'mobx';
+import { action, computed, observable, runInAction } from 'mobx';
 import { observer } from "mobx-react";
-import { Doc, DocListCast, HeightSym, WidthSym, DataSym } from '../../../new_fields/Doc';
+import { DataSym, Doc, DocListCast, HeightSym, WidthSym } from '../../../new_fields/Doc';
+import { documentSchema } from '../../../new_fields/documentSchemas';
+import { Id } from '../../../new_fields/FieldSymbols';
 import { List } from '../../../new_fields/List';
+import { ObjectField } from '../../../new_fields/ObjectField';
 import { createSchema, listSpec, makeInterface } from '../../../new_fields/Schema';
 import { ComputedField } from '../../../new_fields/ScriptField';
 import { Cast, NumCast, StrCast } from '../../../new_fields/Types';
 import { AudioField, ImageField } from '../../../new_fields/URLField';
-import { Utils, returnOne, emptyFunction } from '../../../Utils';
+import { TraceMobx } from '../../../new_fields/util';
+import { emptyFunction, returnOne, Utils } from '../../../Utils';
 import { CognitiveServices, Confidence, Service, Tag } from '../../cognitive_services/CognitiveServices';
 import { Docs } from '../../documents/Documents';
+import { Networking } from '../../Network';
 import { DragManager } from '../../util/DragManager';
+import { SelectionManager } from '../../util/SelectionManager';
 import { undoBatch } from '../../util/UndoManager';
 import { ContextMenu } from "../../views/ContextMenu";
+import { CollectionFreeFormView } from '../collections/collectionFreeForm/CollectionFreeFormView';
 import { ContextMenuProps } from '../ContextMenuItem';
 import { DocAnnotatableComponent } from '../DocComponent';
 import FaceRectangles from './FaceRectangles';
 import { FieldView, FieldViewProps } from './FieldView';
 import "./ImageBox.scss";
 import React = require("react");
-import { SearchUtil } from '../../util/SearchUtil';
-import { ClientRecommender } from '../../ClientRecommender';
-import { CollectionFreeFormView } from '../collections/collectionFreeForm/CollectionFreeFormView';
-import { documentSchema } from '../../../new_fields/documentSchemas';
-import { Id, Copy } from '../../../new_fields/FieldSymbols';
-import { TraceMobx } from '../../../new_fields/util';
-import { SelectionManager } from '../../util/SelectionManager';
-import { cache } from 'sharp';
-import { ObjectField } from '../../../new_fields/ObjectField';
-import { Networking } from '../../Network';
 const requestImageSize = require('../../util/request-image-size');
 const path = require('path');
 const { Howl } = require('howler');
@@ -163,7 +160,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
             funcs.push({ description: "Copy path", event: () => Utils.CopyText(field.url.href), icon: "expand-arrows-alt" });
             funcs.push({ description: "Rotate", event: this.rotate, icon: "expand-arrows-alt" });
             funcs.push({
-                description: "Reset Native Dimensions", event: action(() => {
+                description: "Reset Native Dimensions", event: action(async () => {
                     const curNW = NumCast(this.dataDoc[this.props.fieldKey + "-nativeWidth"]);
                     const curNH = NumCast(this.dataDoc[this.props.fieldKey + "-nativeHeight"]);
                     if (this.props.PanelWidth() / this.props.PanelHeight() > curNW / curNH) {

@@ -58,6 +58,7 @@ import { MessageStore } from "../../server/Message";
 import { ContextMenuProps } from "../views/ContextMenuItem";
 import { ContextMenu } from "../views/ContextMenu";
 import { LinkBox } from "../views/nodes/LinkBox";
+import { ScreenshotBox } from "../views/nodes/ScreenshotBox";
 const requestImageSize = require('../util/request-image-size');
 const path = require('path');
 
@@ -277,6 +278,10 @@ export namespace Docs {
             [DocumentType.INK, {
                 layout: { view: InkingStroke, dataField: data },
                 options: { backgroundColor: "transparent" }
+            }],
+            [DocumentType.SCREENSHOT, {
+                layout: { view: ScreenshotBox, dataField: data },
+                options: {}
             }]
         ]);
 
@@ -520,6 +525,10 @@ export namespace Docs {
 
         export function WebCamDocument(url: string, options: DocumentOptions = {}) {
             return InstanceFromProto(Prototypes.get(DocumentType.WEBCAM), "", options);
+        }
+
+        export function ScreenshotDocument(url: string, options: DocumentOptions = {}) {
+            return InstanceFromProto(Prototypes.get(DocumentType.SCREENSHOT), "", options);
         }
 
         export function AudioDocument(url: string, options: DocumentOptions = {}) {

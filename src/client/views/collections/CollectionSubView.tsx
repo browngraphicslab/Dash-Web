@@ -316,7 +316,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 const item = e.dataTransfer.items[i];
                 if (item.kind === "string" && item.type.includes("uri")) {
                     const stringContents = await new Promise<string>(resolve => item.getAsString(resolve));
-                    const type = (await rp.head(Utils.CorsProxy(stringContents)))["content-type"];
+                    const type = "html";// (await rp.head(Utils.CorsProxy(stringContents)))["content-type"];
                     if (type) {
                         const doc = await Docs.Get.DocumentFromType(type, stringContents, options);
                         doc && generatedDocuments.push(doc);

@@ -27,5 +27,6 @@ export enum DocumentType {
     DOCULINK = "doculink",
     PDFANNO = "pdfanno",
     INK = "ink",
-    DOCUMENT = "document"
+    DOCUMENT = "document",
+    SCREENSHOT = "screenshot",
 }

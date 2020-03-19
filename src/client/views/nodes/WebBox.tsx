@@ -323,7 +323,14 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
             </>);
     }
     render() {
-        return (<div className={"webBox-container"} >
+        const dragging = "";//</div>!SelectionManager.GetIsDragging() ? "" : "-dragging";
+        return (<div className={`webBox-container${dragging}`}
+            style={{
+                transform: `scale(${this.props.ContentScaling()})`,
+                width: `${100 / this.props.ContentScaling()}%`,
+                height: `${100 / this.props.ContentScaling()}%`,
+                pointerEvents: this.props.Document.isBackground ? "none" : undefined
+            }} >
             <CollectionFreeFormView {...this.props}
                 PanelHeight={this.props.PanelHeight}
                 PanelWidth={this.props.PanelWidth}

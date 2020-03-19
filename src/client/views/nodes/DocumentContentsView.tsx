@@ -29,6 +29,7 @@ import { ColorBox } from "./ColorBox";
 import { DashWebRTCVideo } from "../webcam/DashWebRTCVideo";
 import { DocuLinkBox } from "./DocuLinkBox";
 import { PresElementBox } from "../presentationview/PresElementBox";
+import { ScreenshotBox } from "./ScreenshotBox";
 import { VideoBox } from "./VideoBox";
 import { WebBox } from "./WebBox";
 import { InkingStroke } from "../InkingStroke";
@@ -99,7 +100,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
                     CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox,
                     PDFBox, VideoBox, AudioBox, HistogramBox, PresBox, YoutubeBox, PresElementBox, QueryBox,
                     ColorBox, DashWebRTCVideo, DocuLinkBox, InkingStroke, DocumentBox, LinkBox,
-                    RecommendationsBox,
+                    RecommendationsBox, ScreenshotBox
                 }}
                 bindings={this.CreateBindings()}
                 jsx={this.layout}

@@ -1,0 +1,46 @@
+.screenshotBox {
+    pointer-events: all;
+    transform-origin: top left;
+    background: white;
+    color: black;
+    // .screenshotBox-viewer {
+    //     opacity: 0.99;  // hack!  overcomes some kind of Chrome weirdness where buttons (e.g., snapshot) disappear at some point as the video is resized larger
+    // }
+    // .inkingCanvas-paths-markers {
+    //     opacity : 0.4; // we shouldn't have to do this, but since chrome crawls to a halt with z-index unset in videoBox-content, this is a workaround
+    // }
+}
+
+.screenshotBox-content, .screenshotBox-content-interactive, .screenshotBox-cont-fullScreen {
+    width: 100%;
+    z-index: -1; // 0;  // logically this should be 0 (or unset) which would give us transparent brush strokes over videos.  However, this makes Chrome crawl to a halt
+    position: absolute;
+}
+
+.screenshotBox-content, .screenshotBox-content-interactive, .screenshotBox-content-fullScreen {
+    height: Auto; 
+}
+
+.screenshotBox-content-interactive, .screenshotBox-content-fullScreen  {
+    pointer-events: all;
+}
+
+.screenshotBox-snapshot{
+    color : white;
+    top :25px;
+    right : 25px;
+    position: absolute;
+    background-color:rgba(50, 50, 50, 0.2);
+    transform-origin: left top;
+    pointer-events:all;
+}
+
+.screenshotBox-recorder{
+    color : white;
+    top :25px;
+    right : 50px;
+    position: absolute;
+    background-color:rgba(50, 50, 50, 0.2);
+    transform-origin: left top;
+    pointer-events:all;
+}
