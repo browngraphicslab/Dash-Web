@@ -275,7 +275,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     onClick = (e: React.MouseEvent | React.PointerEvent) => {
-        if (!e.nativeEvent.cancelBubble && !this.Document.ignoreClick && //CurrentUserUtils.MainDocId !== this.props.Document[Id] &&
+        if (!e.nativeEvent.cancelBubble && !this.Document.ignoreClick &&
             (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD && Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD)) {
             e.stopPropagation();
             let preventDefault = true;

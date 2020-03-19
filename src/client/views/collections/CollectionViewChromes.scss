@@ -177,13 +177,16 @@
             .collectionStackingViewChrome-pivotField-label,
             .collectionTreeViewChrome-pivotField-label {
                 vertical-align: center;
-                padding: 10px;
+                padding-left: 10px;
+                padding-top: 10px;
+                padding-bottom: 10px;
             }
 
             .collectionStackingViewChrome-pivotField,
             .collectionTreeViewChrome-pivotField {
                 color: white;
-                width: 100px;
+                width:100%;
+                min-width: 100px;
                 text-align: center;
                 background: rgb(238, 238, 238);
 

@@ -398,13 +398,13 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                         <button className="collectionViewBaseChrome-collapse"
                             style={{
                                 top: collapsed ? 70 : 10,
-                                transform: `rotate(${collapsed ? 180 : 0}deg) scale(${collapsed ? 0.5 : 1}) translate(${collapsed ? "-100%, -100%" : "0, 0"})`,
+                                transform: `rotate(${collapsed ? 180 : 0}deg) scale(0.5) translate(${collapsed ? "-100%, -100%" : "0, 0"})`,
                                 opacity: (collapsed && !this.props.CollectionView.props.isSelected()) ? 0 : 0.9,
                                 left: (collapsed ? 0 : "unset"),
                             }}
                             title="Collapse collection chrome" onClick={this.toggleCollapse}>
                             <FontAwesomeIcon icon="caret-up" size="2x" />
-                        </button><div className="collectionViewBaseChrome-template" style={{ marginLeft: 50, display: collapsed ? "none" : undefined }}>
+                        </button><div className="collectionViewBaseChrome-template" style={{ marginLeft: 25, display: collapsed ? "none" : undefined }}>
                             <div className="commandEntry-outerDiv" title="drop document to apply or drag to create button" ref={this._viewRef} onPointerDown={this.dragViewDown}>
                                 <div className="commandEntry-drop">
                                     <FontAwesomeIcon icon="bullseye" size="2x"></FontAwesomeIcon>
@@ -551,7 +551,7 @@ export class CollectionStackingViewChrome extends React.Component<CollectionView
             <div className="collectionStackingViewChrome-cont">
                 <div className="collectionStackingViewChrome-pivotField-cont">
                     <div className="collectionStackingViewChrome-pivotField-label">
-                        GROUP ITEMS BY:
+                        GROUP BY:
                     </div>
                     <div className="collectionStackingViewChrome-sortIcon" onClick={this.toggleSort} style={{ transform: `rotate(${this.descending ? "180" : "0"}deg)` }}>
                         <FontAwesomeIcon icon="caret-up" size="2x" color="white" />
