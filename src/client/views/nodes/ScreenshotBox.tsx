@@ -41,7 +41,7 @@ export class ScreenshotBox extends DocAnnotatableComponent<FieldViewProps, Scree
         const nativeWidth = (this.Document._nativeWidth || 0);
         const nativeHeight = (this.Document._nativeHeight || 0);
         if (!nativeWidth || !nativeHeight) {
-            if (!this.Document._nativeWidth) this.Document._nativeWidth = this.player!.videoWidth;
+            if (!this.Document._nativeWidth) this.Document._nativeWidth = 400;
             this.Document._nativeHeight = (this.Document._nativeWidth || 0) / aspect;
             this.Document._height = (this.Document._width || 0) / aspect;
         }
