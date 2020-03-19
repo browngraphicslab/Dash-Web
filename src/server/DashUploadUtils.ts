@@ -60,7 +60,7 @@ export namespace DashUploadUtils {
         const types = type.split("/");
 
         const category = types[0];
-        const format = `.${types[1]}`;
+        let format = `.${types[1]}`;
 
         switch (category) {
             case "image":
@@ -77,19 +77,17 @@ export namespace DashUploadUtils {
                     return UploadPdf(file);
                 }
             case "audio":
+                const components = format.split(";");
+                if (components.length > 1) {
+                    format = components[0];
+                }
                 if (audioFormats.includes(format)) {
-                    return MoveParsedFile(file, Directory.audio);
+                    return UploadAudio(file, format);
                 }
         }
 
         console.log(red(`Ignoring unsupported file (${name}) with upload type (${type}).`));
         return { source: file, result: new Error(`Could not upload unsupported file (${name}) with upload type (${type}).`) };
-    }
-
-    async function UploadAudio(file: File) {
-        const { path: sourcePath } = file;
-
-        return MoveParsedFile(file, Directory.audio);
     }
 
     async function UploadPdf(file: File) {
@@ -103,6 +101,13 @@ export namespace DashUploadUtils {
             writeStream.write(result.text, error => error ? reject(error) : resolve());
         });
         return MoveParsedFile(file, Directory.pdfs);
+    }
+
+    const manualSuffixes = [".webm"];
+
+    async function UploadAudio(file: File, format: string) {
+        const suffix = manualSuffixes.includes(format) ? format : undefined;
+        return MoveParsedFile(file, Directory.audio, suffix);
     }
 
     /**
