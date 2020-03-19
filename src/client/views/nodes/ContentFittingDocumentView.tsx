@@ -12,6 +12,7 @@ import { CollectionView } from "../collections/CollectionView";
 import '../DocumentDecorations.scss';
 import { DocumentView } from "../nodes/DocumentView";
 import "./ContentFittingDocumentView.scss";
+import { dropActionType } from "../../util/DragManager";
 
 interface ContentFittingDocumentViewProps {
     Document?: Doc;
@@ -21,6 +22,7 @@ interface ContentFittingDocumentViewProps {
     childDocs?: Doc[];
     renderDepth: number;
     fitToBox?: boolean;
+    dropAction?: dropActionType;
     PanelWidth: () => number;
     PanelHeight: () => number;
     focus?: (doc: Doc) => void;
@@ -86,6 +88,7 @@ export class ContentFittingDocumentView extends React.Component<ContentFittingDo
                         LayoutDoc={this.props.LayoutDoc}
                         LibraryPath={this.props.LibraryPath}
                         fitToBox={this.props.fitToBox}
+                        dropAction={this.props.dropAction}
                         onClick={this.props.onClick}
                         backgroundColor={this.props.backgroundColor}
                         addDocument={this.props.addDocument}

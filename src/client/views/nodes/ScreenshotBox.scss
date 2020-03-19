@@ -25,22 +25,31 @@
     pointer-events: all;
 }
 
-.screenshotBox-snapshot{
-    color : white;
-    top :25px;
-    right : 25px;
+.screenshotBox-uiButtons {
+    background:dimgray;
+    border: orange solid 1px;
     position: absolute;
-    background-color:rgba(50, 50, 50, 0.2);
-    transform-origin: left top;
-    pointer-events:all;
-}
+    right: 25;
+    top: 0;
+    width:50;
+    height: 25;
+    .screenshotBox-snapshot{
+        color : white;
+        top :0px;
+        right : 5px;
+        position: absolute;
+        background-color:rgba(50, 50, 50, 0.2);
+        transform-origin: left top;
+        pointer-events:all;
+    }
 
-.screenshotBox-recorder{
-    color : white;
-    top :25px;
-    right : 50px;
-    position: absolute;
-    background-color:rgba(50, 50, 50, 0.2);
-    transform-origin: left top;
-    pointer-events:all;
+    .screenshotBox-recorder{
+        color : white;
+        top :0px;
+        left: 5px;
+        position: absolute;
+        background-color:rgba(50, 50, 50, 0.2);
+        transform-origin: left top;
+        pointer-events:all;
+    }
 }

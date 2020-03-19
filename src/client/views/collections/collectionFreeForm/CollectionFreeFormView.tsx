@@ -20,7 +20,7 @@ import { CognitiveServices } from "../../../cognitive_services/CognitiveServices
 import { DocServer } from "../../../DocServer";
 import { Docs } from "../../../documents/Documents";
 import { DocumentManager } from "../../../util/DocumentManager";
-import { DragManager } from "../../../util/DragManager";
+import { DragManager, dropActionType } from "../../../util/DragManager";
 import { HistoryUtil } from "../../../util/History";
 import { InteractionUtils } from "../../../util/InteractionUtils";
 import { SelectionManager } from "../../../util/SelectionManager";
@@ -832,6 +832,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             Document: childLayout,
             LibraryPath: this.libraryPath,
             layoutKey: undefined,
+            dropAction: StrCast(this.props.Document.childDropAction) as dropActionType,
             //onClick: undefined, // this.props.onClick,  // bcz: check this out -- I don't think we want to inherit click handlers, or we at least need a way to ignore them
             onClick: this.onChildClickHandler,
             ScreenToLocalTransform: childLayout.z ? this.getTransformOverlay : this.getTransform,

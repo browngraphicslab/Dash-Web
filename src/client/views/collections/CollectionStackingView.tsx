@@ -12,7 +12,7 @@ import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from "../../../new_fields/Types";
 import { TraceMobx } from "../../../new_fields/util";
 import { Utils, setupMoveUpEvents, emptyFunction } from "../../../Utils";
-import { DragManager } from "../../util/DragManager";
+import { DragManager, dropActionType } from "../../util/DragManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
 import { ContextMenu } from "../ContextMenu";
@@ -176,6 +176,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             LibraryPath={this.props.LibraryPath}
             renderDepth={this.props.renderDepth + 1}
             fitToBox={this.props.fitToBox}
+            dropAction={StrCast(this.props.Document.childDropAction) as dropActionType}
             onClick={layoutDoc.isTemplateDoc ? this.onClickHandler : this.onChildClickHandler}
             PanelWidth={width}
             PanelHeight={height}

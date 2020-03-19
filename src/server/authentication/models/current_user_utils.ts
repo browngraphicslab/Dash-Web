@@ -222,7 +222,7 @@ export class CurrentUserUtils {
             _width: 50, _height: 25, title: "Library", fontSize: 10, dontSelect: true,
             letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
             sourcePanel: Docs.Create.TreeDocument([doc.workspaces as Doc, doc.documents as Doc, Docs.Prototypes.MainLinkDocument(), doc, doc.recentlyClosed as Doc], {
-                title: "Library", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, dropAction: "alias", lockedPosition: true, boxShadow: "0 0", dontRegisterChildren: true
+                title: "Library", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "place", lockedPosition: true, boxShadow: "0 0", dontRegisterChildren: true
             }),
             targetContainer: sidebarContainer,
             onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel;")

@@ -1,18 +1,17 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faEye } from '@fortawesome/free-regular-svg-icons';
 import { faColumns, faCopy, faEllipsisV, faFingerprint, faImage, faProjectDiagram, faSignature, faSquare, faTh, faThList, faTree } from '@fortawesome/free-solid-svg-icons';
-import { action, IReactionDisposer, observable, reaction, runInAction, computed } from 'mobx';
+import { action, observable } from 'mobx';
 import { observer } from "mobx-react";
 import * as React from 'react';
 import Lightbox from 'react-image-lightbox-with-rotate';
 import 'react-image-lightbox-with-rotate/style.css'; // This only needs to be imported once in your app
 import { DateField } from '../../../new_fields/DateField';
-import { Doc, DocListCast, DataSym } from '../../../new_fields/Doc';
-import { Id } from '../../../new_fields/FieldSymbols';
-import { BoolCast, Cast, StrCast, NumCast } from '../../../new_fields/Types';
+import { DataSym, Doc, DocListCast } from '../../../new_fields/Doc';
+import { List } from '../../../new_fields/List';
+import { BoolCast, Cast, NumCast, StrCast } from '../../../new_fields/Types';
 import { ImageField } from '../../../new_fields/URLField';
 import { TraceMobx } from '../../../new_fields/util';
-import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
 import { Utils } from '../../../Utils';
 import { DocumentType } from '../../documents/DocumentTypes';
 import { DocumentManager } from '../../util/DocumentManager';
@@ -22,22 +21,23 @@ import { ContextMenu } from "../ContextMenu";
 import { FieldView, FieldViewProps } from '../nodes/FieldView';
 import { ScriptBox } from '../ScriptBox';
 import { Touchable } from '../Touchable';
+import { CollectionCarouselView } from './CollectionCarouselView';
 import { CollectionDockingView } from "./CollectionDockingView";
 import { AddCustomFreeFormLayout } from './collectionFreeForm/CollectionFreeFormLayoutEngines';
 import { CollectionFreeFormView } from './collectionFreeForm/CollectionFreeFormView';
-import { CollectionCarouselView } from './CollectionCarouselView';
 import { CollectionLinearView } from './CollectionLinearView';
 import { CollectionMulticolumnView } from './collectionMulticolumn/CollectionMulticolumnView';
+import { CollectionMultirowView } from './collectionMulticolumn/CollectionMultirowView';
 import { CollectionSchemaView } from "./CollectionSchemaView";
 import { CollectionStackingView } from './CollectionStackingView';
 import { CollectionStaffView } from './CollectionStaffView';
+import { SubCollectionViewProps } from './CollectionSubView';
+import { CollectionTimeView } from './CollectionTimeView';
 import { CollectionTreeView } from "./CollectionTreeView";
 import './CollectionView.scss';
 import { CollectionViewBaseChrome } from './CollectionViewChromes';
-import { CollectionTimeView } from './CollectionTimeView';
-import { CollectionMultirowView } from './collectionMulticolumn/CollectionMultirowView';
-import { List } from '../../../new_fields/List';
-import { SubCollectionViewProps } from './CollectionSubView';
+import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
+import { Id } from '../../../new_fields/FieldSymbols';
 export const COLLECTION_BORDER_WIDTH = 2;
 const path = require('path');
 library.add(faTh, faTree, faSquare, faProjectDiagram, faSignature, faThList, faFingerprint, faColumns, faEllipsisV, faImage, faEye as any, faCopy);
@@ -75,7 +75,7 @@ export namespace CollectionViewType {
     ]);
 
     export const valueOf = (value: string) => stringMapping.get(value.toLowerCase());
-    export const stringFor = (value: number) => Array.from(stringMapping.entries()).find(entry => entry[1] === value)[0];
+    export const stringFor = (value: number) => Array.from(stringMapping.entries()).find(entry => entry[1] === value)?.[0];
 }
 
 export interface CollectionRenderProps {
@@ -116,7 +116,8 @@ export class CollectionView extends Touchable<FieldViewProps> {
     @action.bound
     addDocument(doc: Doc): boolean {
         const targetDataDoc = this.props.Document[DataSym];
-        targetDataDoc[this.props.fieldKey] = new List<Doc>([...DocListCast(targetDataDoc[this.props.fieldKey]), doc]);  // DocAddToList may write to targetdataDoc's parent ... we don't want this. should really change GetProto to GetDataDoc and test for resolvedDataDoc there
+        const docList = DocListCast(targetDataDoc[this.props.fieldKey]);
+        !docList.includes(doc) && (targetDataDoc[this.props.fieldKey] = new List<Doc>([...docList, doc]));  // DocAddToList may write to targetdataDoc's parent ... we don't want this. should really change GetProto to GetDataDoc and test for resolvedDataDoc there
         // Doc.AddDocToList(targetDataDoc, this.props.fieldKey, doc);
         targetDataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
         Doc.GetProto(doc).lastOpened = new DateField;

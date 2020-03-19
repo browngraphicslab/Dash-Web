@@ -14,7 +14,6 @@ import { BoolCast, Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { AudioField, ImageField, PdfField, VideoField } from '../../../new_fields/URLField';
 import { TraceMobx } from '../../../new_fields/util';
 import { GestureUtils } from '../../../pen-gestures/GestureUtils';
-import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { emptyFunction, returnOne, returnTransparent, returnTrue, Utils, OmitKeys } from "../../../Utils";
 import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
 import { DocServer } from "../../DocServer";
@@ -65,6 +64,7 @@ export interface DocumentViewProps {
     onClick?: ScriptField;
     onPointerDown?: ScriptField;
     onPointerUp?: ScriptField;
+    dropAction?: dropActionType;
     dragDivName?: string;
     addDocument?: (doc: Doc) => boolean;
     removeDocument?: (doc: Doc) => boolean;
@@ -275,7 +275,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     onClick = (e: React.MouseEvent | React.PointerEvent) => {
-        if (!e.nativeEvent.cancelBubble && !this.Document.ignoreClick && CurrentUserUtils.MainDocId !== this.props.Document[Id] &&
+        if (!e.nativeEvent.cancelBubble && !this.Document.ignoreClick && //CurrentUserUtils.MainDocId !== this.props.Document[Id] &&
             (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD && Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD)) {
             e.stopPropagation();
             let preventDefault = true;
@@ -474,7 +474,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 if (!e.altKey && (!this.topMost || this.Document.onDragStart || this.onClickHandler) && (e.buttons === 1 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE))) {
                     document.removeEventListener("pointermove", this.onPointerMove);
                     document.removeEventListener("pointerup", this.onPointerUp);
-                    this.startDragging(this._downX, this._downY, this.props.ContainingCollectionDoc?.childDropAction ? this.props.ContainingCollectionDoc?.childDropAction : this.Document.dropAction ? this.Document.dropAction as any : e.ctrlKey || e.altKey ? "alias" : undefined);
+                    this.startDragging(this._downX, this._downY, this.props.dropAction ? this.props.dropAction : this.Document.dropAction ? this.Document.dropAction as any : e.ctrlKey || e.altKey ? "alias" : undefined);
                 }
             }
             e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers

@@ -130,7 +130,7 @@ class TreeView extends React.Component<TreeViewProps> {
     }
 
     @undoBatch delete = () => this.props.deleteDoc(this.props.document);
-    @undoBatch openRight = () => this.props.addDocTab(this.props.containingCollection.childDropAction === "alias" ? Doc.MakeAlias(this.props.document) : this.props.document, "onRight", this.props.libraryPath);
+    @undoBatch openRight = () => this.props.addDocTab(this.props.dropAction === "alias" ? Doc.MakeAlias(this.props.document) : this.props.document, "onRight", this.props.libraryPath);
     @undoBatch indent = () => this.props.addDocument(this.props.document) && this.delete();
     @undoBatch move = (doc: Doc, target: Doc | undefined, addDoc: (doc: Doc) => boolean) => {
         return this.props.document !== target && this.props.deleteDoc(doc) && addDoc(doc);
@@ -455,6 +455,7 @@ class TreeView extends React.Component<TreeViewProps> {
                         addDocTab={this.props.addDocTab}
                         pinToPres={emptyFunction}
                         onClick={editTitle}
+                        dropAction={this.props.dropAction}
                         moveDocument={this.props.moveDocument}
                         removeDocument={undefined}
                         ScreenToLocalTransform={this.getTransform}
@@ -761,7 +762,7 @@ export class CollectionTreeView extends CollectionSubView(Document) {
     }
 
     render() {
-        const dropAction = StrCast(this.props.Document.dropAction) as dropActionType;
+        const dropAction = StrCast(this.props.Document.childDropAction) as dropActionType;
         const addDoc = (doc: Doc, relativeTo?: Doc, before?: boolean) => this.addDoc(doc, relativeTo, before);
         const moveDoc = (d: Doc, target: Doc | undefined, addDoc: (doc: Doc) => boolean) => this.props.moveDocument(d, target, addDoc);
         const childDocs = this.props.overrideDocuments ? this.props.overrideDocuments : this.childDocs;

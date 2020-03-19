@@ -145,13 +145,14 @@ export class ScreenshotBox extends DocAnnotatableComponent<FieldViewProps, Scree
     })
 
     private get uIButtons() {
-        return ([
+        return (<div className="screenshotBox-uiButtons">
             <div className="screenshotBox-recorder" key="snap" onPointerDown={this.toggleRecording} >
                 <FontAwesomeIcon icon="file" size="lg" />
             </div>,
             <div className="screenshotBox-snapshot" key="snap" onPointerDown={this.onSnapshot} >
                 <FontAwesomeIcon icon="camera" size="lg" />
-            </div>]);
+            </div>
+        </div>);
     }
 
     onSnapshot = (e: React.PointerEvent) => {
@@ -187,7 +188,7 @@ export class ScreenshotBox extends DocAnnotatableComponent<FieldViewProps, Scree
                     {this.contentFunc}
                 </CollectionFreeFormView>
             </div>
-            {this.uIButtons}
+            {this.active() ? this.uIButtons : (null)}
         </div >);
     }
 }

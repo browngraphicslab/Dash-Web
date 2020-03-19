@@ -18,7 +18,7 @@ import { AudioBox } from "../views/nodes/AudioBox";
 import { DateField } from "../../new_fields/DateField";
 import { DocumentView } from "../views/nodes/DocumentView";
 
-export type dropActionType = "alias" | "copy" | undefined;
+export type dropActionType = "place" | "alias" | "copy" | undefined;
 export function SetupDrag(
     _reference: React.RefObject<HTMLElement>,
     docFunc: () => Doc | Promise<Doc> | undefined,

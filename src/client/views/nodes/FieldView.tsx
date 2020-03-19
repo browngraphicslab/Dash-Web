@@ -25,6 +25,7 @@ export interface FieldViewProps {
     DataDoc?: Doc;
     LibraryPath: Doc[];
     onClick?: ScriptField;
+    dropAction: dropAction;
     isSelected: (outsideReaction?: boolean) => boolean;
     select: (isCtrlPressed: boolean) => void;
     renderDepth: number;
