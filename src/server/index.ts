@@ -25,6 +25,7 @@ import { yellow } from "colors";
 import { DashSessionAgent } from "./DashSession/DashSessionAgent";
 import SessionManager from "./ApiManagers/SessionManager";
 import { AppliedSessionAgent } from "./DashSession/Session/agents/applied_session_agent";
+import { Utils } from "../Utils";
 
 export const onWindows = process.platform === "win32";
 export let sessionAgent: AppliedSessionAgent;
@@ -37,6 +38,7 @@ export const filesDirectory = path.resolve(publicDirectory, "files");
  * before clients can access the server should be run or awaited here.
  */
 async function preliminaryFunctions() {
+    // Utils.TraceConsoleLog();
     await Logger.initialize();
     await GoogleCredentialsLoader.loadCredentials();
     GoogleApiServerUtils.processProjectCredentials();

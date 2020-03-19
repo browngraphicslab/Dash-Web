@@ -19,6 +19,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { DocumentView } from "./DocumentView";
 import { Docs } from "../../documents/Documents";
 import { ComputedField } from "../../../new_fields/ScriptField";
+import { Networking } from "../../Network";
 
 // testing testing 
 
@@ -138,33 +139,20 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
         }
     }
 
-    recordAudioAnnotation = () => {
-        const self = this;
-        navigator.mediaDevices.getUserMedia({
-            audio: true
-        }).then(function (stream) {
-            self._stream = stream;
-            self._recorder = new MediaRecorder(stream);
-            self.dataDoc[self.props.fieldKey + "-recordingStart"] = new DateField(new Date());
-            AudioBox.ActiveRecordings.push(self.props.Document);
-            self._recorder.ondataavailable = async function (e: any) {
-                const formData = new FormData();
-                formData.append("file", e.data);
-                const res = await fetch(Utils.prepend("/uploadFormData"), {
-                    method: 'POST',
-                    body: formData
-                });
-                const files = await res.json();
-                const url = Utils.prepend(files[0].result.accessPaths.agnostic.client);
-                // upload to server with known URL 
-                self.props.Document[self.props.fieldKey] = new AudioField(url);
-            };
-            self._recordStart = new Date().getTime();
-            runInAction(() => self.audioState = "recording");
-            setTimeout(self.updateRecordTime, 0);
-            self._recorder.start();
-            setTimeout(() => self._recorder && self.stopRecording(), 60 * 1000); // stop after an hour
-        });
+    recordAudioAnnotation = async () => {
+        this._stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        this._recorder = new MediaRecorder(this._stream);
+        this.dataDoc[this.props.fieldKey + "-recordingStart"] = new DateField(new Date());
+        AudioBox.ActiveRecordings.push(this.props.Document);
+        this._recorder.ondataavailable = async (e: any) => {
+            const [{ result }] = await Networking.UploadFilesToServer(e.data);
+            this.props.Document[this.props.fieldKey] = new AudioField(Utils.prepend(result.accessPaths.agnostic.client));
+        };
+        this._recordStart = new Date().getTime();
+        runInAction(() => this.audioState = "recording");
+        setTimeout(this.updateRecordTime, 0);
+        this._recorder.start();
+        setTimeout(() => this._recorder && this.stopRecording(), 60 * 1000); // stop after an hour
     }
 
     specificContextMenu = (e: React.MouseEvent): void => {
