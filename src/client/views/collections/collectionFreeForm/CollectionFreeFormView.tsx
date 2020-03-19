@@ -903,12 +903,12 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }.bind(this));
 
     doTimelineLayout(poolData: Map<string, PoolData>) {
-        return computeTimelineLayout(poolData, this.props.Document, this.childDocs, this.filterDocs,
+        return computeTimelineLayout(poolData, this.props.Document, this.childDocs, this.childDocs,
             this.childLayoutPairs, [this.props.PanelWidth(), this.props.PanelHeight()], this.viewDefsToJSX);
     }
 
     doPivotLayout(poolData: Map<string, PoolData>) {
-        return computePivotLayout(poolData, this.props.Document, this.childDocs, this.filterDocs,
+        return computePivotLayout(poolData, this.props.Document, this.childDocs, this.childDocs,
             this.childLayoutPairs, [this.props.PanelWidth(), this.props.PanelHeight()], this.viewDefsToJSX);
     }
 
@@ -934,42 +934,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         return { newPool, computedElementData: this.doFreeformLayout(newPool) };
     }
 
-    @computed get filterDocs() {
-        const docFilters = Cast(this.props.Document._docFilters, listSpec("string"), []);
-        const docRangeFilters = Cast(this.props.Document._docRangeFilters, listSpec("string"), []);
-        const filterFacets: { [key: string]: { [value: string]: string } } = {};  // maps each filter key to an object with value=>modifier fields
-        for (let i = 0; i < docFilters.length; i += 3) {
-            const [key, value, modifiers] = docFilters.slice(i, i + 3);
-            if (!filterFacets[key]) {
-                filterFacets[key] = {};
-            }
-            filterFacets[key][value] = modifiers;
-        }
-        const filteredDocs = docFilters.length ? this.childDocs.filter(d => {
-            for (const facetKey of Object.keys(filterFacets)) {
-                const facet = filterFacets[facetKey];
-                const satisfiesFacet = Object.keys(facet).some(value =>
-                    (facet[value] === "x") !== Doc.matchFieldValue(d, facetKey, value));
-                if (!satisfiesFacet) {
-                    return false;
-                }
-            }
-            return true;
-        }) : this.childDocs;
-        const rangeFilteredDocs = filteredDocs.filter(d => {
-            for (let i = 0; i < docRangeFilters.length; i += 3) {
-                const key = docRangeFilters[i];
-                const min = Number(docRangeFilters[i + 1]);
-                const max = Number(docRangeFilters[i + 2]);
-                const val = Cast(d[key], "number", null);
-                if (val !== undefined && (val < min || val > max)) {
-                    return false;
-                }
-            }
-            return true;
-        });
-        return rangeFilteredDocs;
-    }
     childLayoutDocFunc = () => this.props.childLayoutTemplate?.() || Cast(this.props.Document.childLayoutTemplate, Doc, null);
     get doLayoutComputation() {
         const { newPool, computedElementData } = this.doInternalLayoutComputation;

@@ -1,18 +1,19 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faEye } from '@fortawesome/free-regular-svg-icons';
+import { faEye, faEdit } from '@fortawesome/free-regular-svg-icons';
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faColumns, faCopy, faEllipsisV, faFingerprint, faImage, faProjectDiagram, faSignature, faSquare, faTh, faThList, faTree } from '@fortawesome/free-solid-svg-icons';
-import { action, observable } from 'mobx';
+import { action, observable, computed } from 'mobx';
 import { observer } from "mobx-react";
 import * as React from 'react';
 import Lightbox from 'react-image-lightbox-with-rotate';
 import 'react-image-lightbox-with-rotate/style.css'; // This only needs to be imported once in your app
 import { DateField } from '../../../new_fields/DateField';
-import { DataSym, Doc, DocListCast } from '../../../new_fields/Doc';
+import { DataSym, Doc, DocListCast, Field } from '../../../new_fields/Doc';
 import { List } from '../../../new_fields/List';
 import { BoolCast, Cast, NumCast, StrCast } from '../../../new_fields/Types';
 import { ImageField } from '../../../new_fields/URLField';
 import { TraceMobx } from '../../../new_fields/util';
-import { Utils } from '../../../Utils';
+import { Utils, setupMoveUpEvents, returnFalse } from '../../../Utils';
 import { DocumentType } from '../../documents/DocumentTypes';
 import { DocumentManager } from '../../util/DocumentManager';
 import { ImageUtils } from '../../util/Import & Export/ImageUtils';
@@ -38,6 +39,12 @@ import './CollectionView.scss';
 import { CollectionViewBaseChrome } from './CollectionViewChromes';
 import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
 import { Id } from '../../../new_fields/FieldSymbols';
+import { listSpec } from '../../../new_fields/Schema';
+import { Docs } from '../../documents/Documents';
+import { ScriptField, ComputedField } from '../../../new_fields/ScriptField';
+const higflyout = require("@hig/flyout");
+export const { anchorPoints } = higflyout;
+export const Flyout = higflyout.default;
 export const COLLECTION_BORDER_WIDTH = 2;
 const path = require('path');
 library.add(faTh, faTree, faSquare, faProjectDiagram, faSignature, faThList, faFingerprint, faColumns, faEllipsisV, faImage, faEye as any, faCopy);
@@ -84,6 +91,7 @@ export interface CollectionRenderProps {
     moveDocument: (document: Doc, targetCollection: Doc | undefined, addDocument: (document: Doc) => boolean) => boolean;
     active: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
+    PanelWidth: () => number;
 }
 
 @observer
@@ -268,6 +276,158 @@ export class CollectionView extends Touchable<FieldViewProps> {
             onMovePrevRequest={action(() => this._curLightboxImg = (this._curLightboxImg + images.length - 1) % images.length)}
             onMoveNextRequest={action(() => this._curLightboxImg = (this._curLightboxImg + 1) % images.length)} />);
     }
+    @observable _facetWidth = 0;
+
+    bodyPanelWidth = () => this.props.PanelWidth() - this._facetWidth;
+    getTransform = () => this.props.ScreenToLocalTransform().translate(-this._facetWidth, 0);
+    facetWidth = () => this._facetWidth;
+
+    @computed get dataDoc() {
+        return (this.props.DataDoc && this.props.Document.isTemplateForField ? Doc.GetProto(this.props.DataDoc) :
+            this.props.Document.resolvedDataDoc ? this.props.Document : Doc.GetProto(this.props.Document)); // if the layout document has a resolvedDataDoc, then we don't want to get its parent which would be the unexpanded template
+    }
+    // The data field for rendering this collection will be on the this.props.Document unless we're rendering a template in which case we try to use props.DataDoc.
+    // When a document has a DataDoc but it's not a template, then it contains its own rendering data, but needs to pass the DataDoc through
+    // to its children which may be templates.
+    // If 'annotationField' is specified, then all children exist on that field of the extension document, otherwise, they exist directly on the data document under 'fieldKey'
+    @computed get dataField() {
+        return this.dataDoc[this.props.fieldKey];
+    }
+
+    get childLayoutPairs(): { layout: Doc; data: Doc; }[] {
+        const { Document, DataDoc } = this.props;
+        const validPairs = this.childDocs.map(doc => Doc.GetLayoutDataDocPair(Document, DataDoc, doc)).filter(pair => pair.layout);
+        return validPairs.map(({ data, layout }) => ({ data, layout: layout! })); // this mapping is a bit of a hack to coerce types
+    }
+    get childDocList() {
+        return Cast(this.dataField, listSpec(Doc));
+    }
+    get childDocs() {
+        const dfield = this.dataField;
+        const rawdocs = (dfield instanceof Doc) ? [dfield] : Cast(dfield, listSpec(Doc), this.props.Document.expandedTemplate ? [Cast(this.props.Document.expandedTemplate, Doc, null)] : []);
+        const docs = rawdocs.filter(d => !(d instanceof Promise)).map(d => d as Doc);
+        const viewSpecScript = Cast(this.props.Document.viewSpecScript, ScriptField);
+        return viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
+    }
+    @computed get _allFacets() {
+        const facets = new Set<string>();
+        this.childDocs.forEach(child => Object.keys(Doc.GetProto(child)).forEach(key => facets.add(key)));
+        Doc.AreProtosEqual(this.dataDoc, this.props.Document) && this.childDocs.forEach(child => Object.keys(child).forEach(key => facets.add(key)));
+        return Array.from(facets);
+    }
+
+    /**
+     * Responds to clicking the check box in the flyout menu
+     */
+    facetClick = (facetHeader: string) => {
+        const facetCollection = this.props.Document._facetCollection;
+        if (facetCollection instanceof Doc) {
+            const found = DocListCast(facetCollection.data).findIndex(doc => doc.title === facetHeader);
+            if (found !== -1) {
+                (facetCollection.data as List<Doc>).splice(found, 1);
+                const docFilter = Cast(this.props.Document._docFilters, listSpec("string"));
+                if (docFilter) {
+                    let index: number;
+                    while ((index = docFilter.findIndex(item => item === facetHeader)) !== -1) {
+                        docFilter.splice(index, 3);
+                    }
+                }
+                const docRangeFilters = Cast(this.props.Document._docRangeFilters, listSpec("string"));
+                if (docRangeFilters) {
+                    let index: number;
+                    while ((index = docRangeFilters.findIndex(item => item === facetHeader)) !== -1) {
+                        docRangeFilters.splice(index, 3);
+                    }
+                }
+            } else {
+                const allCollectionDocs = DocListCast(this.dataDoc[this.props.fieldKey]);
+                const facetValues = Array.from(allCollectionDocs.reduce((set, child) =>
+                    set.add(Field.toString(child[facetHeader] as Field)), new Set<string>()));
+
+                let nonNumbers = 0;
+                let minVal = Number.MAX_VALUE, maxVal = -Number.MAX_VALUE;
+                facetValues.map(val => {
+                    const num = Number(val);
+                    if (Number.isNaN(num)) {
+                        nonNumbers++;
+                    } else {
+                        minVal = Math.min(num, minVal);
+                        maxVal = Math.max(num, maxVal);
+                    }
+                });
+                if (nonNumbers / allCollectionDocs.length < .1) {
+                    const ranged = Doc.readDocRangeFilter(this.props.Document, facetHeader);
+                    const newFacet = Docs.Create.SliderDocument({ title: facetHeader });
+                    Doc.GetProto(newFacet).type = DocumentType.COL; // forces item to show an open/close button instead ofa checkbox
+                    newFacet.treeViewExpandedView = "layout";
+                    newFacet.treeViewOpen = true;
+                    newFacet._sliderMin = ranged === undefined ? minVal : ranged[0];
+                    newFacet._sliderMax = ranged === undefined ? maxVal : ranged[1];
+                    newFacet._sliderMinThumb = minVal;
+                    newFacet._sliderMaxThumb = maxVal;
+                    newFacet.target = this.props.Document;
+                    const scriptText = `setDocFilterRange(this.target, "${facetHeader}", range)`;
+                    newFacet.onThumbChanged = ScriptField.MakeScript(scriptText, { this: Doc.name, range: "number" });
+
+                    Doc.AddDocToList(facetCollection, "data", newFacet);
+                } else {
+                    const newFacet = Docs.Create.TreeDocument([], { title: facetHeader, treeViewOpen: true, isFacetFilter: true });
+                    const capturedVariables = { layoutDoc: this.props.Document, dataDoc: this.dataDoc };
+                    const params = { layoutDoc: Doc.name, dataDoc: Doc.name, };
+                    newFacet.data = ComputedField.MakeFunction(`readFacetData(layoutDoc, dataDoc, "${this.props.fieldKey}", "${facetHeader}")`, params, capturedVariables);
+                    Doc.AddDocToList(facetCollection, "data", newFacet);
+                }
+            }
+        }
+    }
+
+
+    onPointerDown = (e: React.PointerEvent) => {
+        setupMoveUpEvents(this, e, action((e: PointerEvent, down: number[], delta: number[]) => {
+            this._facetWidth = Math.max(this.props.ScreenToLocalTransform().transformPoint(e.clientX, 0)[0], 0);
+            return false;
+        }), returnFalse, action(() => this._facetWidth = this._facetWidth < 15 ? 200 : 0));
+    }
+    @computed get filterView() {
+        const facetCollection = Cast(this.props.Document?._facetCollection, Doc);
+        if (this._facetWidth && facetCollection === undefined) setTimeout(() => {
+            const scriptText = "setDocFilter(containingTreeView.target, heading, this.title, checked)";
+            const facetCollection = Docs.Create.TreeDocument([], { title: "facetFilters", _yMargin: 0, treeViewHideTitle: true, treeViewHideHeaderFields: true });
+            facetCollection.target = this.props.Document;
+            facetCollection.onCheckedClick = ScriptField.MakeScript(scriptText, { this: Doc.name, heading: "string", checked: "string", containingTreeView: Doc.name });
+            this.props.Document.excludeFields = new List<string>(["_facetCollection", "_docFilters"]);
+
+            this.props.Document._facetCollection = facetCollection;
+        }, 0);
+        const flyout = (
+            <div className="collectionTimeView-flyout" style={{ width: `${this._facetWidth}`, height: this.props.PanelHeight() - 30 }} onWheel={e => e.stopPropagation()}>
+                {this._allFacets.map(facet => <label className="collectionTimeView-flyout-item" key={`${facet}`} onClick={e => this.facetClick(facet)}>
+                    <input type="checkbox" onChange={e => { }} checked={DocListCast((this.props.Document._facetCollection as Doc)?.data).some(d => d.title === facet)} />
+                    <span className="checkmark" />
+                    {facet}
+                </label>)}
+            </div>
+        );
+        return !facetCollection ? (null) :
+            <div className="collectionTimeView-treeView" style={{ width: `${this._facetWidth}px`, overflow: this._facetWidth < 15 ? "hidden" : undefined }}>
+                <div className="collectionTimeView-addFacet" style={{ width: `${this._facetWidth}px` }} onPointerDown={e => e.stopPropagation()}>
+                    <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={flyout}>
+                        <div className="collectionTimeView-button">
+                            <span className="collectionTimeView-span">Facet Filters</span>
+                            <FontAwesomeIcon icon={faEdit} size={"lg"} />
+                        </div>
+                    </Flyout>
+                </div>
+                <div className="collectionTimeView-tree" key="tree">
+                    <CollectionTreeView {...this.props} CollectionView={this} annotationsKey={""} PanelWidth={this.facetWidth}
+                        DataDoc={undefined} Document={facetCollection}
+                        moveDocument={(doc: Doc) => false}
+                        removeDocument={(doc: Doc) => false}
+                        addDocument={(doc: Doc) => false} />
+                </div>
+            </div>;
+    }
+
     render() {
         TraceMobx();
         const props: CollectionRenderProps = {
@@ -276,6 +436,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
             moveDocument: this.moveDocument,
             active: this.active,
             whenActiveChanged: this.whenActiveChanged,
+            PanelWidth: this.bodyPanelWidth
         };
         return (<div className={"collectionView"}
             style={{
@@ -292,6 +453,12 @@ export class CollectionView extends Touchable<FieldViewProps> {
                         Utils.CorsProxy(Cast(d.data, ImageField)!.url.href) : Cast(d.data, ImageField)!.url.href
                     :
                     ""))}
+            {!this.props.isSelected() || this.props.PanelHeight() < 100 ? (null) :
+                <div className="collectionTimeView-dragger" key="dragger" onPointerDown={this.onPointerDown} style={{ transform: `translate(${this._facetWidth}px, 0px)` }} >
+                    <span title="library View Dragger" style={{ width: "5px", position: "absolute", top: "0" }} />
+                </div>
+            }
+            {this.filterView}
         </div>);
     }
 }

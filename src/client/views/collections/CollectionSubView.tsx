@@ -112,12 +112,48 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         get childDocList() {
             return Cast(this.dataField, listSpec(Doc));
         }
-        get childDocs() {
+        @computed get childDocs() {
+            const docFilters = Cast(this.props.Document._docFilters, listSpec("string"), []);
+            const docRangeFilters = Cast(this.props.Document._docRangeFilters, listSpec("string"), []);
+            const filterFacets: { [key: string]: { [value: string]: string } } = {};  // maps each filter key to an object with value=>modifier fields
+            for (let i = 0; i < docFilters.length; i += 3) {
+                const [key, value, modifiers] = docFilters.slice(i, i + 3);
+                if (!filterFacets[key]) {
+                    filterFacets[key] = {};
+                }
+                filterFacets[key][value] = modifiers;
+            }
+
             const dfield = this.dataField;
             const rawdocs = (dfield instanceof Doc) ? [dfield] : Cast(dfield, listSpec(Doc), this.props.Document.expandedTemplate && !this.props.annotationsKey ? [Cast(this.props.Document.expandedTemplate, Doc, null)] : []);
             const docs = rawdocs.filter(d => !(d instanceof Promise)).map(d => d as Doc);
             const viewSpecScript = Cast(this.props.Document.viewSpecScript, ScriptField);
-            return viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
+            const childDocs = viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
+
+            const filteredDocs = docFilters.length ? childDocs.filter(d => {
+                for (const facetKey of Object.keys(filterFacets)) {
+                    const facet = filterFacets[facetKey];
+                    const satisfiesFacet = Object.keys(facet).some(value =>
+                        (facet[value] === "x") !== Doc.matchFieldValue(d, facetKey, value));
+                    if (!satisfiesFacet) {
+                        return false;
+                    }
+                }
+                return true;
+            }) : childDocs;
+            const rangeFilteredDocs = filteredDocs.filter(d => {
+                for (let i = 0; i < docRangeFilters.length; i += 3) {
+                    const key = docRangeFilters[i];
+                    const min = Number(docRangeFilters[i + 1]);
+                    const max = Number(docRangeFilters[i + 2]);
+                    const val = Cast(d[key], "number", null);
+                    if (val !== undefined && (val < min || val > max)) {
+                        return false;
+                    }
+                }
+                return true;
+            });
+            return rangeFilteredDocs;
         }
 
         @action
