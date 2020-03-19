@@ -253,11 +253,12 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
             <CollectionFreeFormView  {...this.props} layoutEngine={this.layoutEngine} ScreenToLocalTransform={this.getTransform} PanelWidth={this.bodyPanelWidth} />
         </div>;
     }
+    facetWidth = () => { return this._facetWidth }
     @computed get filterView() {
         trace();
         const facetCollection = Cast(this.props.Document?._facetCollection, Doc, null);
         const flyout = (
-            <div className="collectionTimeView-flyout" style={{ width: `${this._facetWidth}`, height: this.props.PanelHeight() - 30, display: "block" }} onWheel={e => e.stopPropagation()}>
+            <div className="collectionTimeView-flyout" style={{ width: `${this._facetWidth}`, height: this.props.PanelHeight() - 30 }} onWheel={e => e.stopPropagation()}>
                 {this._allFacets.map(facet => <label className="collectionTimeView-flyout-item" key={`${facet}`} onClick={e => this.facetClick(facet)}>
                     <input type="checkbox" onChange={e => { }} checked={DocListCast((this.props.Document._facetCollection as Doc)?.data).some(d => d.title === facet)} />
                     <span className="checkmark" />
@@ -275,7 +276,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
                 </Flyout>
             </div>
             <div className="collectionTimeView-tree" key="tree">
-                <CollectionTreeView {...this.props} PanelWidth={() => this._facetWidth} Document={facetCollection} />
+                <CollectionTreeView {...this.props} PanelWidth={this.facetWidth} DataDoc={undefined} Document={facetCollection} />
             </div>
         </div>;
     }
