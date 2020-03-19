@@ -193,9 +193,10 @@ export namespace DashUploadUtils {
         };
     };
 
-    export async function MoveParsedFile(file: File, destination: Directory): Promise<Upload.FileResponse> {
+    export async function MoveParsedFile(file: File, destination: Directory, suffix: string | undefined = undefined): Promise<Upload.FileResponse> {
         const { path: sourcePath } = file;
-        const name = path.basename(sourcePath);
+        let name = path.basename(sourcePath);
+        suffix && (name += suffix);
         return new Promise(resolve => {
             const destinationPath = serverPathToFile(destination, name);
             rename(sourcePath, destinationPath, error => {
