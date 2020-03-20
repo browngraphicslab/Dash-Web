@@ -389,12 +389,11 @@ export class CollectionView extends Touchable<FieldViewProps> {
     }
     filterBackground = () => "dimGray";
     @computed get scriptField() {
-        const scriptText = "setDocFilter(containingTreeView.target, heading, this.title, checked)";
+        const scriptText = "setDocFilter(containingTreeView, heading, this.title, checked)";
         return ScriptField.MakeScript(scriptText, { this: Doc.name, heading: "string", checked: "string", containingTreeView: Doc.name });
     }
     @computed get filterView() {
         const facetCollection = this.props.Document;
-        this._facetWidth && setTimeout(() => facetCollection.target = this.props.Document, 0);
         const flyout = (
             <div className="collectionTimeView-flyout" style={{ width: `${this._facetWidth}`, height: this.props.PanelHeight() - 30 }} onWheel={e => e.stopPropagation()}>
                 {this._allFacets.map(facet => <label className="collectionTimeView-flyout-item" key={`${facet}`} onClick={e => this.facetClick(facet)}>
