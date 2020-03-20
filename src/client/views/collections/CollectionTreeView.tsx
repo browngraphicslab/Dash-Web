@@ -638,10 +638,8 @@ export type collectionTreeViewProps = {
     onCheckedClick?: ScriptField;
 };
 
-let xx: collectionTreeViewProps = {};
-
 @observer
-export class CollectionTreeView extends CollectionSubView(Document, xx) {
+export class CollectionTreeView extends CollectionSubView(Document, undefined as any as collectionTreeViewProps) {
     private treedropDisposer?: DragManager.DragDropDisposer;
     private _mainEle?: HTMLDivElement;
 
