@@ -48,8 +48,8 @@ export interface SubCollectionViewProps extends CollectionViewProps {
     layoutEngine?: () => string;
 }
 
-export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
-    class CollectionSubView extends DocComponent<SubCollectionViewProps, T>(schemaCtor) {
+export function CollectionSubView<T,X>(schemaCtor: (doc: Doc) => T, moreProps?:X) {
+    class CollectionSubView extends DocComponent<X&SubCollectionViewProps, T>(schemaCtor) {
         private dropDisposer?: DragManager.DragDropDisposer;
         private gestureDisposer?: GestureUtils.GestureEventDisposer;
         protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
@@ -130,7 +130,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
             const viewSpecScript = Cast(this.props.Document.viewSpecScript, ScriptField);
             const childDocs = viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
 
-            const filteredDocs = docFilters.length ? childDocs.filter(d => {
+            const filteredDocs = docFilters.length && !this.props.dontRegisterView ? childDocs.filter(d => {
                 for (const facetKey of Object.keys(filterFacets)) {
                     const facet = filterFacets[facetKey];
                     const satisfiesFacet = Object.keys(facet).some(value =>
@@ -195,7 +195,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         @undoBatch
         @action
         protected onInternalDrop(e: Event, de: DragManager.DropEvent): boolean {
-            const docDragData = de.complete.docDragData;
+        const docDragData = de.complete.docDragData;
             (this.props.Document.dropConverter instanceof ScriptField) &&
                 this.props.Document.dropConverter.script.run({ dragData: docDragData }); /// bcz: check this 
             if (docDragData) {

@@ -498,7 +498,7 @@ export function setupMoveUpEvents(
     };
     const _upEvent = (e: PointerEvent): void => {
         upEvent(e);
-        if (Math.abs(e.clientX - (target as any)._downX) < 4 || Math.abs(e.clientY - (target as any)._downY) < 4) {
+        if (Math.abs(e.clientX - (target as any)._downX) < 4 && Math.abs(e.clientY - (target as any)._downY) < 4) {
             clickEvent(e);
         }
         document.removeEventListener("pointermove", _moveEvent);

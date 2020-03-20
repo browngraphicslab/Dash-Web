@@ -10,6 +10,7 @@ import { Transform } from "../../util/Transform";
 import { CollectionView } from "../collections/CollectionView";
 import { AudioBox } from "./AudioBox";
 import { VideoBox } from "./VideoBox";
+import { dropActionType } from "../../util/DragManager";
 
 //
 // these properties get assigned through the render() method of the DocumentView when it creates this node.
@@ -25,7 +26,7 @@ export interface FieldViewProps {
     DataDoc?: Doc;
     LibraryPath: Doc[];
     onClick?: ScriptField;
-    dropAction: dropAction;
+    dropAction: dropActionType;
     isSelected: (outsideReaction?: boolean) => boolean;
     select: (isCtrlPressed: boolean) => void;
     renderDepth: number;

@@ -8,7 +8,7 @@ import * as React from 'react';
 import Lightbox from 'react-image-lightbox-with-rotate';
 import 'react-image-lightbox-with-rotate/style.css'; // This only needs to be imported once in your app
 import { DateField } from '../../../new_fields/DateField';
-import { DataSym, Doc, DocListCast, Field } from '../../../new_fields/Doc';
+import { DataSym, Doc, DocListCast, Field, Opt } from '../../../new_fields/Doc';
 import { List } from '../../../new_fields/List';
 import { BoolCast, Cast, NumCast, StrCast } from '../../../new_fields/Types';
 import { ImageField } from '../../../new_fields/URLField';
@@ -320,64 +320,63 @@ export class CollectionView extends Touchable<FieldViewProps> {
      * Responds to clicking the check box in the flyout menu
      */
     facetClick = (facetHeader: string) => {
-        const facetCollection = this.props.Document._facetCollection;
-        if (facetCollection instanceof Doc) {
-            const found = DocListCast(facetCollection.data).findIndex(doc => doc.title === facetHeader);
-            if (found !== -1) {
-                (facetCollection.data as List<Doc>).splice(found, 1);
-                const docFilter = Cast(this.props.Document._docFilters, listSpec("string"));
-                if (docFilter) {
-                    let index: number;
-                    while ((index = docFilter.findIndex(item => item === facetHeader)) !== -1) {
-                        docFilter.splice(index, 3);
-                    }
-                }
-                const docRangeFilters = Cast(this.props.Document._docRangeFilters, listSpec("string"));
-                if (docRangeFilters) {
-                    let index: number;
-                    while ((index = docRangeFilters.findIndex(item => item === facetHeader)) !== -1) {
-                        docRangeFilters.splice(index, 3);
-                    }
-                }
-            } else {
-                const allCollectionDocs = DocListCast(this.dataDoc[this.props.fieldKey]);
-                const facetValues = Array.from(allCollectionDocs.reduce((set, child) =>
-                    set.add(Field.toString(child[facetHeader] as Field)), new Set<string>()));
-
-                let nonNumbers = 0;
-                let minVal = Number.MAX_VALUE, maxVal = -Number.MAX_VALUE;
-                facetValues.map(val => {
-                    const num = Number(val);
-                    if (Number.isNaN(num)) {
-                        nonNumbers++;
-                    } else {
-                        minVal = Math.min(num, minVal);
-                        maxVal = Math.max(num, maxVal);
-                    }
-                });
-                if (nonNumbers / allCollectionDocs.length < .1) {
-                    const ranged = Doc.readDocRangeFilter(this.props.Document, facetHeader);
-                    const newFacet = Docs.Create.SliderDocument({ title: facetHeader });
-                    Doc.GetProto(newFacet).type = DocumentType.COL; // forces item to show an open/close button instead ofa checkbox
-                    newFacet.treeViewExpandedView = "layout";
-                    newFacet.treeViewOpen = true;
-                    newFacet._sliderMin = ranged === undefined ? minVal : ranged[0];
-                    newFacet._sliderMax = ranged === undefined ? maxVal : ranged[1];
-                    newFacet._sliderMinThumb = minVal;
-                    newFacet._sliderMaxThumb = maxVal;
-                    newFacet.target = this.props.Document;
-                    const scriptText = `setDocFilterRange(this.target, "${facetHeader}", range)`;
-                    newFacet.onThumbChanged = ScriptField.MakeScript(scriptText, { this: Doc.name, range: "number" });
-
-                    Doc.AddDocToList(facetCollection, "data", newFacet);
-                } else {
-                    const newFacet = Docs.Create.TreeDocument([], { title: facetHeader, treeViewOpen: true, isFacetFilter: true });
-                    const capturedVariables = { layoutDoc: this.props.Document, dataDoc: this.dataDoc };
-                    const params = { layoutDoc: Doc.name, dataDoc: Doc.name, };
-                    newFacet.data = ComputedField.MakeFunction(`readFacetData(layoutDoc, dataDoc, "${this.props.fieldKey}", "${facetHeader}")`, params, capturedVariables);
-                    Doc.AddDocToList(facetCollection, "data", newFacet);
+        const facetCollection = this.props.Document;
+        const found = DocListCast(facetCollection[this.props.fieldKey + "-filter"]).findIndex(doc => doc.title === facetHeader);
+        if (found !== -1) {
+            (facetCollection[this.props.fieldKey + "-filter"] as List<Doc>).splice(found, 1);
+            const docFilter = Cast(this.props.Document._docFilters, listSpec("string"));
+            if (docFilter) {
+                let index: number;
+                while ((index = docFilter.findIndex(item => item === facetHeader)) !== -1) {
+                    docFilter.splice(index, 3);
                 }
             }
+            const docRangeFilters = Cast(this.props.Document._docRangeFilters, listSpec("string"));
+            if (docRangeFilters) {
+                let index: number;
+                while ((index = docRangeFilters.findIndex(item => item === facetHeader)) !== -1) {
+                    docRangeFilters.splice(index, 3);
+                }
+            }
+        } else {
+            const allCollectionDocs = DocListCast(this.dataDoc[this.props.fieldKey]);
+            const facetValues = Array.from(allCollectionDocs.reduce((set, child) =>
+                set.add(Field.toString(child[facetHeader] as Field)), new Set<string>()));
+
+            let nonNumbers = 0;
+            let minVal = Number.MAX_VALUE, maxVal = -Number.MAX_VALUE;
+            facetValues.map(val => {
+                const num = Number(val);
+                if (Number.isNaN(num)) {
+                    nonNumbers++;
+                } else {
+                    minVal = Math.min(num, minVal);
+                    maxVal = Math.max(num, maxVal);
+                }
+            });
+            let newFacet: Opt<Doc>;
+            if (nonNumbers / allCollectionDocs.length < .1) {
+                newFacet = Docs.Create.SliderDocument({ title: facetHeader });
+                const ranged = Doc.readDocRangeFilter(this.props.Document, facetHeader);
+                Doc.GetProto(newFacet).type = DocumentType.COL; // forces item to show an open/close button instead ofa checkbox
+                newFacet.treeViewExpandedView = "layout";
+                newFacet.treeViewOpen = true;
+                newFacet._sliderMin = ranged === undefined ? minVal : ranged[0];
+                newFacet._sliderMax = ranged === undefined ? maxVal : ranged[1];
+                newFacet._sliderMinThumb = minVal;
+                newFacet._sliderMaxThumb = maxVal;
+                newFacet.target = this.props.Document;
+                const scriptText = `setDocFilterRange(this.target, "${facetHeader}", range)`;
+                newFacet.onThumbChanged = ScriptField.MakeScript(scriptText, { this: Doc.name, range: "number" });
+
+                Doc.AddDocToList(facetCollection, this.props.fieldKey + "-filter", newFacet);
+            } else {
+                newFacet = Docs.Create.TreeDocument([], { title: facetHeader, treeViewOpen: true, isFacetFilter: true });
+                const capturedVariables = { layoutDoc: this.props.Document, dataDoc: this.dataDoc };
+                const params = { layoutDoc: Doc.name, dataDoc: Doc.name, };
+                newFacet.data = ComputedField.MakeFunction(`readFacetData(layoutDoc, dataDoc, "${this.props.fieldKey}", "${facetHeader}")`, params, capturedVariables);
+            }
+            Doc.AddDocToList(facetCollection, this.props.fieldKey + "-filter", newFacet);
         }
     }
 
@@ -388,27 +387,24 @@ export class CollectionView extends Touchable<FieldViewProps> {
             return false;
         }), returnFalse, action(() => this._facetWidth = this._facetWidth < 15 ? 200 : 0));
     }
+    filterBackground = () => "dimGray";
+    @computed get scriptField() {
+        const scriptText = "setDocFilter(containingTreeView.target, heading, this.title, checked)";
+        return ScriptField.MakeScript(scriptText, { this: Doc.name, heading: "string", checked: "string", containingTreeView: Doc.name });
+    }
     @computed get filterView() {
-        const facetCollection = Cast(this.props.Document?._facetCollection, Doc);
-        if (this._facetWidth && facetCollection === undefined) setTimeout(() => {
-            const scriptText = "setDocFilter(containingTreeView.target, heading, this.title, checked)";
-            const facetCollection = Docs.Create.TreeDocument([], { title: "facetFilters", _yMargin: 0, treeViewHideTitle: true, treeViewHideHeaderFields: true });
-            facetCollection.target = this.props.Document;
-            facetCollection.onCheckedClick = ScriptField.MakeScript(scriptText, { this: Doc.name, heading: "string", checked: "string", containingTreeView: Doc.name });
-            this.props.Document.excludeFields = new List<string>(["_facetCollection", "_docFilters"]);
-
-            this.props.Document._facetCollection = facetCollection;
-        }, 0);
+        const facetCollection = this.props.Document;
+        this._facetWidth && setTimeout(() => facetCollection.target = this.props.Document, 0);
         const flyout = (
             <div className="collectionTimeView-flyout" style={{ width: `${this._facetWidth}`, height: this.props.PanelHeight() - 30 }} onWheel={e => e.stopPropagation()}>
                 {this._allFacets.map(facet => <label className="collectionTimeView-flyout-item" key={`${facet}`} onClick={e => this.facetClick(facet)}>
-                    <input type="checkbox" onChange={e => { }} checked={DocListCast((this.props.Document._facetCollection as Doc)?.data).some(d => d.title === facet)} />
+                    <input type="checkbox" onChange={e => { }} checked={DocListCast(this.props.Document[this.props.fieldKey + "-filter"]).some(d => d.title === facet)} />
                     <span className="checkmark" />
                     {facet}
                 </label>)}
             </div>
         );
-        return !facetCollection ? (null) :
+        return !this._facetWidth || this.props.dontRegisterView ? (null) :
             <div className="collectionTimeView-treeView" style={{ width: `${this._facetWidth}px`, overflow: this._facetWidth < 15 ? "hidden" : undefined }}>
                 <div className="collectionTimeView-addFacet" style={{ width: `${this._facetWidth}px` }} onPointerDown={e => e.stopPropagation()}>
                     <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={flyout}>
@@ -419,8 +415,19 @@ export class CollectionView extends Touchable<FieldViewProps> {
                     </Flyout>
                 </div>
                 <div className="collectionTimeView-tree" key="tree">
-                    <CollectionTreeView {...this.props} CollectionView={this} annotationsKey={""} PanelWidth={this.facetWidth}
-                        DataDoc={undefined} Document={facetCollection}
+                    <CollectionTreeView {...this.props}
+                        CollectionView={this}
+                        treeViewHideTitle={true}
+                        treeViewHideHeaderFields={true}
+                        onCheckedClick={this.scriptField!}
+                        ignoreFields={["_facetCollection", "_docFilters"]}
+                        annotationsKey={""}
+                        dontRegisterView={true}
+                        PanelWidth={this.facetWidth}
+                        DataDoc={facetCollection}
+                        Document={facetCollection}
+                        backgroundColor={this.filterBackground}
+                        fieldKey={`${this.props.fieldKey}-filter`}
                         moveDocument={(doc: Doc) => false}
                         removeDocument={(doc: Doc) => false}
                         addDocument={(doc: Doc) => false} />
