@@ -516,7 +516,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     static makeCustomViewClicked = (doc: Doc, dataDoc: Opt<Doc>, creator: (documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc, name: string = "custom", docLayoutTemplate?: Doc) => {
         const batch = UndoManager.StartBatch("CustomViewClicked");
         const customName = "layout_" + name;
-        if (!StrCast(doc.title).endsWith(name)) doc.title = doc.title + "_" + name;
         if (doc[customName] === undefined) {
             const _width = NumCast(doc._width);
             const _height = NumCast(doc._height);
@@ -634,13 +633,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             // } else 
             if (custom) {
                 DocumentView.makeNativeViewClicked(this.props.Document);
+                const userDoc = Doc.UserDoc();
 
-                const imgView = Cast(Doc.UserDoc().iconView, Doc, null);
-                const iconImgView = Cast(Doc.UserDoc().iconImageView, Doc, null);
-                const iconColView = Cast(Doc.UserDoc().iconColView, Doc, null);
+                const imgView = Cast(userDoc.iconView, Doc, null);
+                const iconImgView = Cast(userDoc.iconImageView, Doc, null);
+                const iconColView = Cast(userDoc.iconColView, Doc, null);
                 const iconViews = [imgView, iconImgView, iconColView];
-                const expandingButtons = DocListCast(Cast(Doc.UserDoc().expandingButtons, Doc, null)?.data);
-                const allTemplates = iconViews.concat(expandingButtons);
+                const templateButtons = DocListCast(Cast(userDoc.templateButtons, Doc, null)?.data);
+                const noteTypes = DocListCast(Cast(userDoc.noteTypes, Doc, null)?.data);
+                const allTemplates = iconViews.concat(templateButtons).concat(noteTypes);
                 let foundLayout: Opt<Doc>;
                 allTemplates.map(btnDoc => (btnDoc.dragFactory as Doc) || btnDoc).filter(doc => doc.isTemplateDoc).forEach(tempDoc => {
                     if (StrCast(tempDoc.title) === this.props.Document.type + "_" + layout) {
@@ -1028,7 +1029,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             </div>);
         const captionView = (!showCaption ? (null) :
             <div className="documentView-captionWrapper">
-                <FormattedTextBox {...this.props} onClick={this.onClickHandler}
+                <FormattedTextBox {...this.props} onClick={this.onClickHandler} dropAction="alias"
                     DataDoc={this._dataDoc} active={returnTrue} Document={this._layoutDoc || this.props.Document}
                     isSelected={this.isSelected} focus={emptyFunction} select={this.select}
                     hideOnLeave={true} fieldKey={showCaption}

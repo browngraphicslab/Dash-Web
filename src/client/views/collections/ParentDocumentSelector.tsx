@@ -2,7 +2,7 @@ import * as React from "react";
 import './ParentDocumentSelector.scss';
 import { Doc } from "../../../new_fields/Doc";
 import { observer } from "mobx-react";
-import { observable, action, runInAction } from "mobx";
+import { observable, action, runInAction, trace, computed } from "mobx";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { SearchUtil } from "../../util/SearchUtil";
 import { CollectionDockingView } from "./CollectionDockingView";
@@ -14,6 +14,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCog, faChevronCircleUp } from "@fortawesome/free-solid-svg-icons";
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { DocumentView } from "../nodes/DocumentView";
+import { SelectionManager } from "../../util/SelectionManager";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -22,7 +23,6 @@ library.add(faCog);
 
 type SelectorProps = {
     Document: Doc,
-    Views: DocumentView[],
     Stack?: any,
     addDocTab(doc: Doc, location: string): void
 };
@@ -93,7 +93,7 @@ export class ParentDocSelector extends React.Component<SelectorProps> {
 }
 
 @observer
-export class DockingViewButtonSelector extends React.Component<{ Document: Doc, Stack: any }> {
+export class DockingViewButtonSelector extends React.Component<{ views: DocumentView[], Stack: any }> {
     @observable hover = false;
 
     customStylesheet(styles: any) {
@@ -106,15 +106,19 @@ export class DockingViewButtonSelector extends React.Component<{ Document: Doc, 
         };
     }
 
-    render() {
-        const view = DocumentManager.Instance.getDocumentView(this.props.Document);
-        const flyout = (
+    @computed get flyout() {
+        trace();
+        return (
             <div className="ParentDocumentSelector-flyout" title=" ">
-                <DocumentButtonBar views={[view]} stack={this.props.Stack} />
+                <DocumentButtonBar views={this.props.views} stack={this.props.Stack} />
             </div>
         );
-        return <span title="Tap for menu, drag tab as document" onPointerDown={e => !this.props.Stack && e.stopPropagation()} className="buttonSelector">
-            <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={flyout} stylesheet={this.customStylesheet}>
+    }
+
+    render() {
+        trace();
+        return <span title="Tap for menu, drag tab as document" onPointerDown={e => { this.props.views[0].select(false); e.stopPropagation(); }} className="buttonSelector">
+            <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={this.flyout} stylesheet={this.customStylesheet}>
                 <FontAwesomeIcon icon={"cog"} size={"sm"} />
             </Flyout>
         </span>;

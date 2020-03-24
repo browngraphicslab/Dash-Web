@@ -49,7 +49,7 @@ export function convertDropDataToButtons(data: DragManager.DocumentDragData) {
                 (layoutDoc.layout instanceof Doc) && !data.userDropAction;
             }
             layoutDoc.isTemplateDoc = true;
-            dbox = Docs.Create.FontIconDocument({ _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, backgroundColor: StrCast(doc.backgroundColor), title: "Custom", icon: layoutDoc.isTemplateDoc ? "font" : "bolt" });
+            dbox = Docs.Create.FontIconDocument({ _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, backgroundColor: StrCast(doc.backgroundColor), title: StrCast(layoutDoc.title), icon: layoutDoc.isTemplateDoc ? "font" : "bolt" });
             dbox.dragFactory = layoutDoc;
             dbox.removeDropProperties = doc.removeDropProperties instanceof ObjectField ? ObjectField.MakeCopy(doc.removeDropProperties) : undefined;
             dbox.onDragStart = ScriptField.MakeFunction('getCopy(this.dragFactory, true)');

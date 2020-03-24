@@ -795,8 +795,6 @@ export namespace Doc {
         const prevLayout = StrCast(doc.layoutKey).split("_")[1];
         const deiconify = prevLayout === "icon" && StrCast(doc.deiconifyLayout) ? "layout_" + StrCast(doc.deiconifyLayout) : "";
         prevLayout === "icon" && (doc.deiconifyLayout = undefined);
-        if (StrCast(doc.title).endsWith("_" + prevLayout) && deiconify) doc.title = StrCast(doc.title).replace("_" + prevLayout, deiconify);
-        else doc.title = undefined;
         doc.layoutKey = deiconify || "layout";
     }
     export function setDocFilterRange(target: Doc, key: string, range?: number[]) {

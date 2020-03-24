@@ -119,8 +119,8 @@ export class ScriptField extends ObjectField {
         return compiled.compiled ? new ScriptField(compiled) : undefined;
     }
 
-    public static MakeScript(script: string, params: object = {}) {
-        const compiled = ScriptField.CompileScript(script, params, false);
+    public static MakeScript(script: string, params: object = {}, capturedVariables?: { [name: string]: Field }) {
+        const compiled = ScriptField.CompileScript(script, params, false, capturedVariables);
         return compiled.compiled ? new ScriptField(compiled) : undefined;
     }
 }

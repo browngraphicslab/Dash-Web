@@ -2,7 +2,7 @@ import { library } from '@fortawesome/fontawesome-svg-core';
 import { faFile } from '@fortawesome/free-solid-svg-icons';
 import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-dark-theme.css';
-import { action, computed, Lambda, observable, reaction, runInAction } from "mobx";
+import { action, computed, Lambda, observable, reaction, runInAction, trace } from "mobx";
 import { observer } from "mobx-react";
 import * as ReactDOM from 'react-dom';
 import Measure from "react-measure";
@@ -20,7 +20,7 @@ import { DocServer } from "../../DocServer";
 import { Docs } from '../../documents/Documents';
 import { DocumentType } from '../../documents/DocumentTypes';
 import { DocumentManager } from '../../util/DocumentManager';
-import { DragManager } from "../../util/DragManager";
+import { DragManager, dropActionType } from "../../util/DragManager";
 import { Scripting } from '../../util/Scripting';
 import { SelectionManager } from '../../util/SelectionManager';
 import { Transform } from '../../util/Transform';
@@ -504,15 +504,25 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                     }
                     tab.setActive(true);
                 };
-                ReactDOM.render(<span title="Drag as document"
-                    className="collectionDockingView-dragAsDocument"
-                    onPointerDown={e => {
+                const onDown = (e: React.PointerEvent) => {
+                    if (!(e.nativeEvent as any).defaultPrevented) {
                         e.preventDefault();
                         e.stopPropagation();
                         const dragData = new DragManager.DocumentDragData([doc]);
-                        dragData.dropAction = doc.dropAction === "alias" ? "alias" : doc.dropAction === "copy" ? "copy" : undefined;
+                        dragData.dropAction = doc.dropAction as dropActionType;
                         DragManager.StartDocumentDrag([gearSpan], dragData, e.clientX, e.clientY);
-                    }}><DockingViewButtonSelector Document={doc} Stack={stack} /></span>, gearSpan);
+                    }
+                }
+                let rendered = false;
+                tab.buttonDisposer = reaction(() => ((view: Opt<DocumentView>) => view ? [view] : [])(DocumentManager.Instance.getDocumentView(doc)),
+                    (views) => {
+                        !rendered && ReactDOM.render(<span title="Drag as document" className="collectionDockingView-dragAsDocument" onPointerDown={onDown} >
+                            <DockingViewButtonSelector views={views} Stack={stack} />
+                        </span>,
+                            gearSpan);
+                        rendered = true;
+                    });
+
                 tab.reactComponents = [gearSpan];
                 tab.element.append(gearSpan);
                 tab.reactionDisposer = reaction(() => ({ title: doc.title, degree: Doc.IsBrushedDegree(doc) }), ({ title, degree }) => {
@@ -526,7 +536,8 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         }
         tab.closeElement.off('click') //unbind the current click handler
             .click(async function () {
-                tab.reactionDisposer && tab.reactionDisposer();
+                tab.reactionDisposer?.();
+                tab.buttonDisposer?.();
                 const doc = await DocServer.GetRefField(tab.contentItem.config.props.documentId);
                 if (doc instanceof Doc) {
                     const theDoc = doc;

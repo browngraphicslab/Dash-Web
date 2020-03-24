@@ -53,7 +53,7 @@ export class CurrentUserUtils {
         ];
         doc.fieldTypes = Docs.Create.TreeDocument([], { title: "field enumerations" });
         Doc.addFieldEnumerations(Doc.GetProto(noteTemplates[4]), "taskStatus", taskStatusValues);
-        doc.noteTypes = new PrefetchProxy(Docs.Create.TreeDocument(noteTemplates.map(nt => makeTemplate(nt, true, StrCast(nt.style)) ? nt : nt), { title: "Note Types", _height: 75 }));
+        doc.noteTypes = new PrefetchProxy(Docs.Create.TreeDocument(noteTemplates.map(nt => makeTemplate(nt, true, StrCast(nt.style)) ? nt : nt), { title: "Note Layouts", _height: 75 }));
     }
 
     // setup the "creator" buttons for the sidebar-- eg. the default set of draggable document creation tools
@@ -292,12 +292,20 @@ export class CurrentUserUtils {
             { _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, dropAction: "alias", onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'), dragFactory: slideTemplate, removeDropProperties: new List<string>(["dropAction"]), title: "presentation slide", icon: "sticky-note" });
         doc.descriptionBtn = Docs.Create.FontIconDocument(
             { _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, dropAction: "alias", onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'), dragFactory: descriptionTemplate, removeDropProperties: new List<string>(["dropAction"]), title: "description view", icon: "sticky-note" });
-        doc.expandingButtons = Docs.Create.LinearDocument([doc.undoBtn as Doc, doc.redoBtn as Doc, doc.slidesBtn as Doc, doc.descriptionBtn as Doc,
-        ...DocListCast(Cast(doc.noteTypes, Doc, null))], {
-            title: "expanding buttons", _gridGap: 5, _xMargin: 5, _yMargin: 5, _height: 42, _width: 100, boxShadow: "0 0",
-            backgroundColor: "black", treeViewPreventOpen: true, forceActive: true, lockedPosition: true,
+        doc.templateButtons = Docs.Create.LinearDocument([doc.slidesBtn as Doc, doc.descriptionBtn as Doc], {
+            title: "template buttons", _gridGap: 5, _xMargin: 5, _yMargin: 5, _height: 42, _width: 100, boxShadow: "0 0", dontSelect: true,
+            backgroundColor: "black", treeViewPreventOpen: true, forceActive: true, lockedPosition: true, _chromeStatus: "disabled", linearViewIsExpanded: true,
             dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name })
         });
+        doc.expandingButtons = Docs.Create.LinearDocument([doc.undoBtn as Doc, doc.redoBtn as Doc, doc.templateButtons as Doc], {
+            title: "expanding buttons", _gridGap: 5, _xMargin: 5, _yMargin: 5, _height: 42, _width: 100, boxShadow: "0 0",
+            backgroundColor: "black", treeViewPreventOpen: true, forceActive: true, lockedPosition: true, linearViewIsExpanded: true,
+            dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name })
+        });
+        doc.templateDocs = new PrefetchProxy(Docs.Create.TreeDocument([doc.noteTypes as Doc, doc.templateButtons as Doc], {
+            title: "template layouts", _xPadding: 0, dropConverter: ScriptField.MakeScript("convertToButtons(dragData)",
+                { dragData: DragManager.DocumentDragData.name })
+        }));
     }
 
     // sets up the default set of documents to be shown in the Overlay layer

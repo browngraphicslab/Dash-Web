@@ -778,7 +778,12 @@ export class CollectionTreeView extends CollectionSubView(Document, undefined as
         const childDocs = this.props.overrideDocuments ? this.props.overrideDocuments : this.childDocs;
         return !childDocs ? (null) : (
             <div className="collectionTreeView-dropTarget" id="body"
-                style={{ background: this.props.backgroundColor?.(this.props.Document), paddingTop: `${NumCast(this.props.Document._yMargin, 20)}px` }}
+                style={{
+                    background: this.props.backgroundColor?.(this.props.Document),
+                    paddingLeft: `${NumCast(this.props.Document._xPadding, 10)}px`,
+                    paddingRight: `${NumCast(this.props.Document._xPadding, 10)}px`,
+                    paddingTop: `${NumCast(this.props.Document._yPadding, 20)}px`
+                }}
                 onContextMenu={this.onContextMenu}
                 onWheel={(e: React.WheelEvent) => this._mainEle && this._mainEle.scrollHeight > this._mainEle.clientHeight && e.stopPropagation()}
                 onDrop={this.onTreeDrop}

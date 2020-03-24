@@ -272,7 +272,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
 
     @computed
     get contextButton() {
-        return <ParentDocSelector Views={DocumentManager.Instance.DocumentViews} Document={this.props.doc} addDocTab={(doc, where) => CollectionDockingView.AddRightSplit(doc)} />;
+        return <ParentDocSelector Document={this.props.doc} addDocTab={(doc, where) => CollectionDockingView.AddRightSplit(doc)} />;
     }
 
     render() {

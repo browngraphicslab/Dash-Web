@@ -107,8 +107,14 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             });
         } else if (!e.ctrlKey) {
             FormattedTextBox.SelectOnLoadChar = FormattedTextBox.DefaultLayout ? e.key : "";
-            this.props.addLiveTextDocument(
-                Docs.Create.TextDocument("", { _width: NumCast((FormattedTextBox.DefaultLayout as Doc)?._width) || 200, _height: 100, layout: FormattedTextBox.DefaultLayout, x: x, y: y, _autoHeight: true, title: "-typed text-" }));
+            let tbox = Docs.Create.TextDocument("", { _width: 200, _height: 100, x: x, y: y, _autoHeight: true, title: "-typed text-" });
+            const template = FormattedTextBox.DefaultLayout;
+            if (template instanceof Doc) {
+                tbox._width = NumCast(template._width);
+                tbox.layoutKey = "layout_"+StrCast(template.title);
+                tbox[StrCast(tbox.layoutKey)] = template;
+            }
+            this.props.addLiveTextDocument(tbox);
         }
         e.stopPropagation();
     }
@@ -334,7 +340,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
                 this.props.removeDocument(d);
                 d.x = NumCast(d.x) - bounds.left - bounds.width / 2;
                 d.y = NumCast(d.y) - bounds.top - bounds.height / 2;
-                d.displayTimecode = undefined;
+                d.displayTimecode = undefined;  // bcz: this should be automatic somehow.. along with any other properties that were logically associated with the original collection
                 return d;
             });
         }

@@ -266,7 +266,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         let dist = Math.sqrt((e.clientX - down[0]) * (e.clientX - down[0]) + (e.clientY - down[1]) * (e.clientY - down[1]));
         dist = dist < 3 ? 0 : dist;
         SelectionManager.SelectedDocuments().map(dv => dv.props.Document).map(doc => doc.layout instanceof Doc ? doc.layout : doc.isTemplateForField ? doc : Doc.GetProto(doc)).
-            map(d => d.borderRounding = `${Math.max(0, dist)}px`);
+            map(d => d.borderRounding = `${Math.max(0, dist)}%`);
         return false;
     }
 
@@ -330,6 +330,10 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 const width = (layoutDoc._width || 0);
                 const height = (layoutDoc._height || (nheight / nwidth * width));
                 const scale = element.props.ScreenToLocalTransform().Scale * element.props.ContentScaling();
+                if (nwidth && nheight) {
+                    if (Math.abs(dW) > Math.abs(dH)) dH = dW * nheight / nwidth;
+                    else dW = dH * nwidth / nheight;
+                }
                 const actualdW = Math.max(width + (dW * scale), 20);
                 const actualdH = Math.max(height + (dH * scale), 20);
                 doc.x = (doc.x || 0) + dX * (actualdW - width);

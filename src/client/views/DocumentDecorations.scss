@@ -80,6 +80,7 @@ $linkGap : 3px;
     #documentDecorations-topLeftResizer,
     #documentDecorations-bottomRightResizer {
         cursor: nwse-resize;
+        background: dimGray;
     }
 
     #documentDecorations-bottomRightResizer {
@@ -89,6 +90,7 @@ $linkGap : 3px;
     #documentDecorations-topRightResizer,
     #documentDecorations-bottomLeftResizer {
         cursor: nesw-resize;
+        background: dimGray;
     }
 
     #documentDecorations-topResizer,
@@ -158,6 +160,7 @@ $linkGap : 3px;
     padding-top: 5px;
     width: $MINIMIZED_ICON_SIZE;
     height: $MINIMIZED_ICON_SIZE;
+    max-height: 20px;
 }
 
 .documentDecorations-background {
