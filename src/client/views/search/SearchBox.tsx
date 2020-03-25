@@ -1,7 +1,7 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, observable, runInAction } from 'mobx';
+import { action, computed, observable, runInAction, IReactionDisposer, reaction } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
 import * as rp from 'request-promise';
@@ -59,7 +59,11 @@ export class SearchBox extends React.Component {
 
         SearchBox.Instance = this;
         this.resultsScrolled = this.resultsScrolled.bind(this);
+        //reaction(()=>document.getElementById("node")?.scrollHeight,()=>{console.log("longer")})
+
     }
+
+    private _reactionDisposer?: IReactionDisposer;
 
     componentDidMount = () => {
         if (this.inputRef.current) {
@@ -67,8 +71,10 @@ export class SearchBox extends React.Component {
             runInAction(() => {
                 this._searchbarOpen = true;
             });
+
         }
     }
+
 
     @action
     getViews = async (doc: Doc) => {
@@ -369,6 +375,12 @@ export class SearchBox extends React.Component {
     @action.bound
     handleNodeChange = () => {
         this._nodeStatus = !this._nodeStatus;
+        if (this._nodeStatus){
+            this.expandSection("node")
+        }
+        else{
+            this.collapseSection("node")
+        }
     }
 
     @action.bound
@@ -376,8 +388,95 @@ export class SearchBox extends React.Component {
         this._keyStatus = !this._keyStatus;
     }
 
+    @action.bound  
+    handleFilterChange=() =>{
+        this._filterOpen=!this._filterOpen;
+        if (this._filterOpen){
+            this.expandSection("filterhead");
+            document.getElementById("filterhead")!.style.padding="5";        
+        }
+        else{
+            this.collapseSection("filterhead");
+                    
+
+        }
+    }
+    // @observable
+    // private menuHeight= 0;
+
+    @computed
+    get menuHeight(){
+        return document.getElementById("hi")?.clientHeight;
+    }
+
+
+    collapseSection(thing:string) {
+        let element= document.getElementById(thing)!;
+        // get the height of the element's inner content, regardless of its actual size
+        var sectionHeight = element.scrollHeight;
+        
+        // temporarily disable all css transitions
+        var elementTransition = element.style.transition;
+        element.style.transition = '';
+        
+        // on the next frame (as soon as the previous style change has taken effect),
+        // explicitly set the element's height to its current pixel height, so we 
+        // aren't transitioning out of 'auto'
+        requestAnimationFrame(function() {
+          element.style.height = sectionHeight + 'px';
+          element.style.transition = elementTransition;
+          
+          // on the next frame (as soon as the previous style change has taken effect),
+          // have the element transition to height: 0
+          requestAnimationFrame(function() {
+            element.style.height = 0 + 'px';
+            thing == "filterhead"? document.getElementById("filterhead")!.style.padding="0" : null;
+          });
+        });
+        
+        // mark the section as "currently collapsed"
+        element.setAttribute('data-collapsed', 'true');
+      }
+      
+      expandSection(thing:string) {
+        console.log("expand");
+        let element= document.getElementById(thing)!;
+        // get the height of the element's inner content, regardless of its actual size
+        var sectionHeight = element.scrollHeight;
+        
+        // have the element transition to the height of its inner content
+        let  temp = element.style.height;
+        element.style.height = sectionHeight + 'px';
+      
+        // when the next css transition finishes (which should be the one we just triggered)
+        element.addEventListener('transitionend', function handler(e) {
+          // remove this event listener so it only gets triggered once
+          console.log("autoset");
+          element.removeEventListener('transitionend', handler);
+          
+          // remove "height" from the element's inline styles, so it can return to its initial value
+          element.style.height="auto";
+          //element.style.height = undefined;
+        });
+        
+        // mark the section as "currently not collapsed"
+        element.setAttribute('data-collapsed', 'false');
+        
+      }
+
+      autoset(thing: string){
+        let element= document.getElementById(thing)!;
+        console.log("autoset");
+        element.removeEventListener('transitionend', function(e){});
+        
+        // remove "height" from the element's inline styles, so it can return to its initial value
+        element.style.height="auto";
+        //element.style.height = undefined;
+
+      }
 
     render() {
+
         return (
             <div className="searchBox-container" onPointerDown={e => { e.stopPropagation(); e.preventDefault(); }}>
                 <div className="searchBox-bar">
@@ -387,16 +486,16 @@ export class SearchBox extends React.Component {
                     <input value={this._searchString} onChange={this.onChange} type="text" placeholder="Search..." id="search-input" ref={this.inputRef}
                         className="searchBox-barChild searchBox-input" onPointerDown={this.openSearch} onKeyPress={this.enter} onFocus={this.openSearch}
                         style={{ width: this._searchbarOpen ? "500px" : "100px" }} />
-                    <button className="searchBox-barChild searchBox-filter" title="Advanced Filtering Options" onClick={() => runInAction(() => this._filterOpen = !this._filterOpen)}><FontAwesomeIcon icon="ellipsis-v" color="white" /></button>
+                    <button className="searchBox-barChild searchBox-filter" title="Advanced Filtering Options" onClick={() => this.handleFilterChange()}><FontAwesomeIcon icon="ellipsis-v" color="white" /></button>
                 </div>
 
-                <div className="filter-form" style={this._filterOpen ? { display: "flex" } : { display: "none" }}>
-                    <div className="filter-header" style={this._filterOpen ? {} : { display: "none" }}>
+                <div id="filterhead" className="filter-form" >
+                    <div id="filterhead2" className="filter-header" style={this._filterOpen ? { } : { }}>
                         <button className="filter-item" style={this._basicWordStatus ? { background: "#aaaaa3", } : {}} onClick={this.handleWordQueryChange}>Keywords</button>
                         <button className="filter-item" style={this._keyStatus ? { background: "#aaaaa3" } : {}} onClick={this.handleKeyChange}>Keys</button>
                         <button className="filter-item" style={this._nodeStatus ? { background: "#aaaaa3" } : {}} onClick={this.handleNodeChange}>Nodes</button>
                     </div>
-                    <div className="filter-body" style={this._nodeStatus ? { display: "flex" } : { display: "none" }}>
+                    <div id="node" className="filter-body" style={this._nodeStatus ? {  } : { }}>
                         <IconBar />
                     </div>
                     <div style={this._keyStatus ? { display: "flex" } : { display: "none" }}>

@@ -411,7 +411,7 @@ export class SearchDocBox extends React.Component<FieldViewProps> {
                 <ContentFittingDocumentView {...this.props}
                     Document={this.content}
                     getTransform={this.props.ScreenToLocalTransform}>
-                    s</ContentFittingDocumentView>
+                    </ContentFittingDocumentView>
                 <div
                     style={{
                         position: "absolute",
