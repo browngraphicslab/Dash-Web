@@ -489,6 +489,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 };
                 tab.titleElement[0].size = StrCast(doc.title).length + 1;
                 tab.titleElement[0].value = doc.title;
+                tab.titleElement[0].style["max-width"] = "100px";
                 const gearSpan = document.createElement("span");
                 gearSpan.className = "collectionDockingView-gear";
                 gearSpan.style.position = "relative";

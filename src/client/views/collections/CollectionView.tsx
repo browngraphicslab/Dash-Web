@@ -196,7 +196,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
     private SubView = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
         // currently cant think of a reason for collection docking view to have a chrome. mind may change if we ever have nested docking views -syip
         const chrome = this.props.Document._chromeStatus === "disabled" || this.props.Document._chromeStatus === "replaced" || type === CollectionViewType.Docking ? (null) :
-            <CollectionViewBaseChrome CollectionView={this} key="chrome" type={type} collapse={this.collapse} />;
+            <CollectionViewBaseChrome CollectionView={this} key="chrome" PanelWidth={this.bodyPanelWidth} type={type} collapse={this.collapse} />;
         return [chrome, this.SubViewHelper(type, renderProps)];
     }
 
@@ -278,9 +278,9 @@ export class CollectionView extends Touchable<FieldViewProps> {
     }
     @observable _facetWidth = 0;
 
-    bodyPanelWidth = () => this.props.PanelWidth() - this._facetWidth;
-    getTransform = () => this.props.ScreenToLocalTransform().translate(-this._facetWidth, 0);
-    facetWidth = () => this._facetWidth;
+    bodyPanelWidth = () => this.props.PanelWidth() - this.facetWidth();
+    getTransform = () => this.props.ScreenToLocalTransform().translate(-this.facetWidth(), 0);
+    facetWidth = () => Math.min(this.props.PanelWidth() - 25, this._facetWidth);
 
     @computed get dataDoc() {
         return (this.props.DataDoc && this.props.Document.isTemplateForField ? Doc.GetProto(this.props.DataDoc) :
@@ -385,7 +385,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
         setupMoveUpEvents(this, e, action((e: PointerEvent, down: number[], delta: number[]) => {
             this._facetWidth = Math.max(this.props.ScreenToLocalTransform().transformPoint(e.clientX, 0)[0], 0);
             return false;
-        }), returnFalse, action(() => this._facetWidth = this._facetWidth < 15 ? 200 : 0));
+        }), returnFalse, action(() => this._facetWidth = this.facetWidth() < 15 ? Math.min(this.props.PanelWidth() - 25, 200) : 0));
     }
     filterBackground = () => "dimGray";
     @computed get scriptField() {
@@ -395,7 +395,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
     @computed get filterView() {
         const facetCollection = this.props.Document;
         const flyout = (
-            <div className="collectionTimeView-flyout" style={{ width: `${this._facetWidth}`, height: this.props.PanelHeight() - 30 }} onWheel={e => e.stopPropagation()}>
+            <div className="collectionTimeView-flyout" style={{ width: `${this.facetWidth()}`, height: this.props.PanelHeight() - 30 }} onWheel={e => e.stopPropagation()}>
                 {this._allFacets.map(facet => <label className="collectionTimeView-flyout-item" key={`${facet}`} onClick={e => this.facetClick(facet)}>
                     <input type="checkbox" onChange={e => { }} checked={DocListCast(this.props.Document[this.props.fieldKey + "-filter"]).some(d => d.title === facet)} />
                     <span className="checkmark" />
@@ -404,8 +404,8 @@ export class CollectionView extends Touchable<FieldViewProps> {
             </div>
         );
         return !this._facetWidth || this.props.dontRegisterView ? (null) :
-            <div className="collectionTimeView-treeView" style={{ width: `${this._facetWidth}px`, overflow: this._facetWidth < 15 ? "hidden" : undefined }}>
-                <div className="collectionTimeView-addFacet" style={{ width: `${this._facetWidth}px` }} onPointerDown={e => e.stopPropagation()}>
+            <div className="collectionTimeView-treeView" style={{ width: `${this.facetWidth()}px`, overflow: this.facetWidth() < 15 ? "hidden" : undefined }}>
+                <div className="collectionTimeView-addFacet" style={{ width: `${this.facetWidth()}px` }} onPointerDown={e => e.stopPropagation()}>
                     <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={flyout}>
                         <div className="collectionTimeView-button">
                             <span className="collectionTimeView-span">Facet Filters</span>
@@ -452,7 +452,9 @@ export class CollectionView extends Touchable<FieldViewProps> {
             }}
             onContextMenu={this.onContextMenu}>
             {this.showIsTagged()}
-            {this.collectionViewType !== undefined ? this.SubView(this.collectionViewType, props) : (null)}
+            <div style={{ width: `calc(100% - ${this.facetWidth()}px)`, marginLeft: `${this.facetWidth()}px` }}>
+                {this.collectionViewType !== undefined ? this.SubView(this.collectionViewType, props) : (null)}
+            </div>
             {this.lightbox(DocListCast(this.props.Document[this.props.fieldKey]).filter(d => d.type === DocumentType.IMG).map(d =>
                 Cast(d.data, ImageField) ?
                     (Cast(d.data, ImageField)!.url.href.indexOf(window.location.origin) === -1) ?
@@ -460,7 +462,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
                     :
                     ""))}
             {!this.props.isSelected() || this.props.PanelHeight() < 100 ? (null) :
-                <div className="collectionTimeView-dragger" key="dragger" onPointerDown={this.onPointerDown} style={{ transform: `translate(${this._facetWidth}px, 0px)` }} >
+                <div className="collectionTimeView-dragger" key="dragger" onPointerDown={this.onPointerDown} style={{ transform: `translate(${this.facetWidth()}px, 0px)` }} >
                     <span title="library View Dragger" style={{ width: "5px", position: "absolute", top: "0" }} />
                 </div>
             }

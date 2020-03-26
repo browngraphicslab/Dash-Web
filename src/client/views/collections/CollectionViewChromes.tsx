@@ -24,6 +24,7 @@ interface CollectionViewChromeProps {
     CollectionView: CollectionView;
     type: CollectionViewType;
     collapse?: (value: boolean) => any;
+    PanelWidth: () => number;
 }
 
 interface Filter {
@@ -391,7 +392,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                 top: collapsed ? -70 : 0, height: collapsed ? 0 : undefined,
                 transform: collapsed ? "" : `scale(${Math.min(1, this.props.CollectionView.props.ScreenToLocalTransform().Scale)})`,
                 transformOrigin: "top left",
-                width: `${100 / Math.min(1, this.props.CollectionView.props.ScreenToLocalTransform().Scale)}%`
+                width: `${this.props.PanelWidth() / Math.min(1, this.props.CollectionView.props.ScreenToLocalTransform().Scale)}px`
             }}>
                 <div className="collectionViewChrome" style={{ border: "unset" }}>
                     <div className="collectionViewBaseChrome">
@@ -598,7 +599,7 @@ export class CollectionSchemaViewChrome extends React.Component<CollectionViewCh
     togglePreview = () => {
         const dividerWidth = 4;
         const borderWidth = Number(COLLECTION_BORDER_WIDTH);
-        const panelWidth = this.props.CollectionView.props.PanelWidth();
+        const panelWidth = this.props.PanelWidth();
         const previewWidth = NumCast(this.props.CollectionView.props.Document.schemaPreviewWidth);
         const tableWidth = panelWidth - 2 * borderWidth - dividerWidth - previewWidth;
         this.props.CollectionView.props.Document.schemaPreviewWidth = previewWidth === 0 ? Math.min(tableWidth / 3, 200) : 0;
