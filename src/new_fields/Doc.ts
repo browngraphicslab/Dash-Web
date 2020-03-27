@@ -587,7 +587,6 @@ export namespace Doc {
             target._nativeWidth = undefined;
             target._nativeHeight = undefined;
             target.type = undefined;
-            target.onClick = undefined;
             return;
         }
 
@@ -598,8 +597,6 @@ export namespace Doc {
                 titleTarget && (Doc.GetProto(target).title = titleTarget);
                 Doc.GetProto(target)[targetKey] = new PrefetchProxy(templateDoc);
             }
-            const scriptField = ScriptCast(templateDoc.onClick);
-            scriptField && (target.onClick = scriptField[Copy]());
         }
         target.layoutKey = targetKey;
         return target;
@@ -791,6 +788,10 @@ export namespace Doc {
         return fieldStr === value;
     }
 
+    export function deiconifyView(doc: any) {
+        StrCast(doc.layoutKey).split("_")[1] === "icon" && setNativeView(doc);
+    }
+
     export function setNativeView(doc: any) {
         const prevLayout = StrCast(doc.layoutKey).split("_")[1];
         const deiconify = prevLayout === "icon" && StrCast(doc.deiconifyLayout) ? "layout_" + StrCast(doc.deiconifyLayout) : "";
@@ -813,8 +814,8 @@ export namespace Doc {
         }
     }
 
-    export function aliasDocs(field:any) {
-        return new List<Doc>(field.map((d: any) => Doc.MakeAlias(d))); 
+    export function aliasDocs(field: any) {
+        return new List<Doc>(field.map((d: any) => Doc.MakeAlias(d)));
     }
 
     // filters document in a container collection:
@@ -890,7 +891,7 @@ Scripting.addGlobal(function copyField(field: any) { return ObjectField.MakeCopy
 Scripting.addGlobal(function aliasDocs(field: any) { return Doc.aliasDocs(field); });
 Scripting.addGlobal(function docList(field: any) { return DocListCast(field); });
 Scripting.addGlobal(function sameDocs(doc1: any, doc2: any) { return Doc.AreProtosEqual(doc1, doc2); });
-Scripting.addGlobal(function setNativeView(doc: any) { Doc.setNativeView(doc); });
+Scripting.addGlobal(function deiconifyView(doc: any) { Doc.deiconifyView(doc); });
 Scripting.addGlobal(function undo() { return UndoManager.Undo(); });
 Scripting.addGlobal(function redo() { return UndoManager.Redo(); });
 Scripting.addGlobal(function DOC(id: string) { console.log("Can't parse a document id in a script"); return "invalid"; });

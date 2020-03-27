@@ -273,14 +273,14 @@ export class CurrentUserUtils {
         Doc.GetProto(descriptionTemplate).layout = FormattedTextBox.LayoutString("description");
         descriptionTemplate.isTemplateDoc = makeTemplate(descriptionTemplate, true, "descriptionView");
 
-        const iconDoc = Docs.Create.TextDocument("", { title: "icon", _width: 150, _height: 30, isTemplateDoc: true, onClick: ScriptField.MakeScript("setNativeView(this)") });
+        const iconDoc = Docs.Create.TextDocument("", { title: "icon", _width: 150, _height: 30, isTemplateDoc: true, onClick: ScriptField.MakeScript("deiconifyView(this)") });
         Doc.GetProto(iconDoc).icon = new RichTextField('{"doc":{"type":"doc","content":[{"type":"paragraph","attrs":{"align":null,"color":null,"id":null,"indent":null,"inset":null,"lineSpacing":null,"paddingBottom":null,"paddingTop":null},"content":[{"type":"dashField","attrs":{"fieldKey":"title","docid":""}}]}]},"selection":{"type":"text","anchor":2,"head":2},"storedMarks":[]}', "");
         doc.isTemplateDoc = makeTemplate(iconDoc);
         doc.iconView = new PrefetchProxy(iconDoc);
-        const imgIconDoc = Docs.Create.ImageDocument("http://www.cs.brown.edu/~bcz/face.gif", { title: "data", _width: 50, isTemplateDoc: true, onClick: ScriptField.MakeScript("setNativeView(this)") });
+        const imgIconDoc = Docs.Create.ImageDocument("http://www.cs.brown.edu/~bcz/face.gif", { title: "data", _width: 50, isTemplateDoc: true, onClick: ScriptField.MakeScript("deiconifyView(this)") });
         doc.isTemplateDoc = makeTemplate(imgIconDoc, true, "image_icon");
         doc.iconImageView = new PrefetchProxy(imgIconDoc);
-        const colIconDoc = Docs.Create.TreeDocument([], { title: "data", _width: 180, _height: 80, isTemplateDoc: true, onClick: ScriptField.MakeScript("setNativeView(this)") });
+        const colIconDoc = Docs.Create.TreeDocument([], { title: "data", _width: 180, _height: 80, isTemplateDoc: true, onClick: ScriptField.MakeScript("deiconifyView(this)") });
         doc.isTemplateDoc = makeTemplate(colIconDoc, true, "collection_icon");
         doc.iconColView = new PrefetchProxy(colIconDoc);
 

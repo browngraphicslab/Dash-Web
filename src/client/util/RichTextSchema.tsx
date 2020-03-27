@@ -875,7 +875,7 @@ export class DashFieldView {
         this._fieldWrapper.style.width = node.attrs.width;
         this._fieldWrapper.style.height = node.attrs.height;
         this._fieldWrapper.style.position = "relative";
-        this._fieldWrapper.style.display = "inline-block";
+        this._fieldWrapper.style.display = "inline-flex";
 
         const self = this;
         this._enumerables = document.createElement("div");
