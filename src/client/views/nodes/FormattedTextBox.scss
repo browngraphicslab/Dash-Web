@@ -29,6 +29,7 @@
     max-height: 100%;
     display: flex;
     flex-direction: row;
+    transition: opacity 1s;
 
     .formattedTextBox-dictation {
         height: 12px;
