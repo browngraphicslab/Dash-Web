@@ -99,7 +99,7 @@ export class RichTextRules {
                         return state.tr;
                     }
                     if (value !== "" && value !== undefined) {
-                        this.Document[DataSym][fieldKey] = value;
+                        this.Document[DataSym][fieldKey] = value === "true" ? true : value === "false" ? false : value;
                     }
                     const fieldView = state.schema.nodes.dashField.create({ fieldKey, docid });
                     return state.tr.deleteRange(start, end).insert(start, fieldView);
