@@ -98,7 +98,7 @@ export class RichTextRules {
                         }
                         return state.tr;
                     }
-                    if (value !== "") {
+                    if (value !== "" && value !== undefined) {
                         this.Document[DataSym][fieldKey] = value;
                     }
                     const fieldView = state.schema.nodes.dashField.create({ fieldKey, docid });

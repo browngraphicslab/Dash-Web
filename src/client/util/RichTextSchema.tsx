@@ -861,6 +861,7 @@ export class DashFieldView {
     _fieldWrapper: HTMLDivElement; // container for label and value
     _labelSpan: HTMLSpanElement; // field label
     _fieldSpan: HTMLDivElement;  // field value
+    _fieldCheck: HTMLInputElement;
     _enumerables: HTMLDivElement;  // field value
     _reactionDisposer: IReactionDisposer | undefined;
     _textBoxDoc: Doc;
@@ -915,6 +916,22 @@ export class DashFieldView {
                 }
             });
         };
+
+
+        this._fieldCheck = document.createElement("input");
+        this._fieldCheck.id = Utils.GenerateGuid();
+        this._fieldCheck.type = "checkbox";
+        this._fieldCheck.style.position = "relative";
+        this._fieldCheck.style.display = "inline-block";
+        this._fieldCheck.style.minWidth = "12px";
+        this._fieldCheck.style.backgroundColor = "rgba(155, 155, 155, 0.24)";
+        this._fieldCheck.onchange = function (e: any) {
+            // look for a document whose id === the fieldKey being displayed.  If there's a match, then that document
+            // holds the different enumerated values for the field in the titles of its collected documents.
+            // if there's a partial match from the start of the input text, complete the text --- TODO: make this an auto suggest box and select from a drop down.
+            DocServer.GetRefField(node.attrs.fieldKey).then(options => self._dashDoc![self._fieldKey] = e.target.checked);
+        }
+
 
         this._fieldSpan = document.createElement("div");
         this._fieldSpan.id = Utils.GenerateGuid();
@@ -987,10 +1004,19 @@ export class DashFieldView {
         this._reactionDisposer = reaction(() => { // this reaction will update the displayed text whenever the document's fieldKey's value changes
             const dashVal = this._dashDoc?.[node.attrs.fieldKey];
             return StrCast(dashVal).startsWith(":=") || !dashVal ? Doc.Layout(tbox.props.Document)[this._fieldKey] : dashVal;
-        }, fval => this._fieldSpan.innerHTML = Field.toString(fval as Field) || "", { fireImmediately: true });
+        }, fval => {
+            const boolVal = Cast(fval, "boolean", null);
+            if (boolVal === true || boolVal === false) {
+                this._fieldCheck.checked = boolVal;
+            } else {
+                this._fieldSpan.innerHTML = Field.toString(fval as Field) || "";
+            }
+        }, { fireImmediately: true });
 
+        const fieldVal = Cast(this._dashDoc?.[node.attrs.fieldKey], "boolean", null);
         this._fieldWrapper.appendChild(this._labelSpan);
-        this._fieldWrapper.appendChild(this._fieldSpan);
+        (fieldVal === true || fieldVal === false) && this._fieldWrapper.appendChild(this._fieldCheck);
+        !(fieldVal === true || fieldVal === false) && this._fieldWrapper.appendChild(this._fieldSpan);
         this._fieldWrapper.appendChild(this._enumerables);
         (this as any).dom = this._fieldWrapper;
         updateText(false);
