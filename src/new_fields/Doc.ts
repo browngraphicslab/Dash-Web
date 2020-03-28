@@ -475,7 +475,7 @@ export namespace Doc {
         // If it doesn't find the expanded layout, then it makes a delegate of the template layout and
         // saves it on the data doc indexed by the template layout's id.
         //
-        const params = templateParams?.match(/\(([a-zA-Z0-9_-]*)\)/)?.[1]
+        const params = templateParams?.match(/\(([a-zA-Z0-9_-]*)\)/)?.[1].replace("()", "") || "";
         const layoutFielddKey = Doc.LayoutFieldKey(templateLayoutDoc);
         const expandedLayoutFieldKey = (templateField || layoutFielddKey) + "-layout[" + templateLayoutDoc[Id] + params + "]";
         let expandedTemplateLayout = targetDoc?.[expandedLayoutFieldKey];
