@@ -84,9 +84,10 @@ export class DocuLinkBox extends DocComponent<FieldViewProps, DocLinkSchema>(Doc
         if (!this._doubleTap) {
             this._editing = true;
             this.props.ContainingCollectionDoc && this.props.bringToFront(this.props.ContainingCollectionDoc, false);
+            const {clientX, clientY} = e;
             if (!this.props.Document.onClick && !this._isOpen) {
                 this._timeout = setTimeout(action(() => {
-                    if (Math.abs(e.clientX - this._downX) < 3 && Math.abs(e.clientY - this._downY) < 3 && (e.button !== 2 && !e.ctrlKey && this.props.Document.isButton)) {
+                    if (Math.abs(clientX - this._downX) < 3 && Math.abs(clientY - this._downY) < 3 && (e.button !== 2 && !e.ctrlKey && this.props.Document.isButton)) {
                         DocumentManager.Instance.FollowLink(this.props.Document, this.props.ContainingCollectionDoc as Doc, document => this.props.addDocTab(document, StrCast(this.props.Document.linkOpenLocation, "inTab")), false);
                     }
                     this._editing = false;

@@ -229,7 +229,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             dragData.dropAction = dropAction;
             dragData.moveDocument = this.props.moveDocument;//  this.Document.onDragStart ? undefined : this.props.moveDocument;
             dragData.dragDivName = this.props.dragDivName;
-            this.props.Document.anchor1_context = this.props.ContainingCollectionDoc; // bcz: !! shouldn't need this ... use search find the document's context dynamically
             DragManager.StartDocumentDrag([this._mainCont.current], dragData, x, y, { hideSource: !dropAction && !this.Document.onDragStart });
         }
     }
@@ -582,7 +581,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             e.stopPropagation();
             de.complete.annoDragData.linkedToDoc = true;
 
-            DocUtils.MakeLink({ doc: de.complete.annoDragData.annotationDocument }, { doc: this.props.Document, ctx: this.props.ContainingCollectionDoc }, "link");
+            DocUtils.MakeLink({ doc: de.complete.annoDragData.annotationDocument }, { doc: this.props.Document }, "link");
         }
         if (de.complete.docDragData) {
             if (de.complete.docDragData.applyAsTemplate) {
@@ -613,7 +612,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             // const views = docs.map(d => DocumentManager.Instance.getDocumentView(d)).filter(d => d).map(d => d as DocumentView);
             de.complete.linkDragData.linkSourceDocument !== this.props.Document &&
                 (de.complete.linkDragData.linkDocument = DocUtils.MakeLink({ doc: de.complete.linkDragData.linkSourceDocument },
-                    { doc: this.props.Document, ctx: this.props.ContainingCollectionDoc }, `link`)); // TODODO this is where in text links get passed
+                    { doc: this.props.Document }, `link`)); // TODODO this is where in text links get passed
         }
     }
 
@@ -639,7 +638,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const portalLink = DocListCast(this.Document.links).find(d => d.anchor1 === this.props.Document);
         if (!portalLink) {
             const portal = Docs.Create.FreeformDocument([], { _width: (this.layoutDoc._width || 0) + 10, _height: this.layoutDoc._height || 0, title: StrCast(this.props.Document.title) + ".portal" });
-            DocUtils.MakeLink({ doc: this.props.Document, ctx: this.props.ContainingCollectionDoc }, { doc: portal }, "portal to");
+            DocUtils.MakeLink({ doc: this.props.Document }, { doc: portal }, "portal to");
         }
         this.Document.isButton = true;
     }

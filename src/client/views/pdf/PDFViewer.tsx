@@ -7,7 +7,7 @@ import { Doc, DocListCast, FieldResult, WidthSym, Opt, HeightSym } from "../../.
 import { Id, Copy } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { makeInterface, createSchema } from "../../../new_fields/Schema";
-import { ScriptField } from "../../../new_fields/ScriptField";
+import { ScriptField, ComputedField } from "../../../new_fields/ScriptField";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { smoothScroll, Utils, emptyFunction, returnOne, intersectRect, addStyleSheet, addStyleSheetRule, clearStyleSheetRules } from "../../../Utils";
 import { Docs, DocUtils } from "../../documents/Documents";
@@ -33,6 +33,7 @@ import { TraceMobx } from "../../../new_fields/util";
 import { PdfField } from "../../../new_fields/URLField";
 import { PDFBox } from "../nodes/PDFBox";
 import { FormattedTextBox } from "../nodes/FormattedTextBox";
+import { DocumentView } from "../nodes/DocumentView";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 const pdfjsLib = require("pdfjs-dist");
 
@@ -210,7 +211,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
         this.props.setPdfViewer(this);
         await this.initialLoad();
 
-        this._scrollTopReactionDisposer = reaction(() => Cast(this.props.Document._scrollTop, "number", null),
+        this._scrollTopReactionDisposer = reaction(() => Cast(this.layoutDoc._scrollTop, "number", null),
             (stop) => (stop !== undefined) && this._mainCont.current && smoothScroll(500, this._mainCont.current, stop), { fireImmediately: true });
         this._annotationReactionDisposer = reaction(
             () => DocListCast(this.dataDoc[this.props.fieldKey + "-annotations"]),
@@ -567,12 +568,14 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
         e.preventDefault();
         e.stopPropagation();
 
-        const clipDoc = Docs.Create.PdfDocument(Cast(this.dataDoc[this.props.fieldKey], PdfField, null)?.url.href || "http://www.msn.com", { title: "snippetView", _fitWidth: true, _width: this.marqueeWidth(), _height: this.marqueeHeight(), _scrollTop: this.marqueeY() });
+        const clipDoc = Doc.MakeAlias(this.dataDoc);
+        clipDoc._fitWidth = true;
+        clipDoc._width = this.marqueeWidth();
+        clipDoc._height = this.marqueeHeight();
+        clipDoc._scrollTop = this.marqueeY();
         const targetDoc = Docs.Create.TextDocument("", { _width: 200, _height: 200, title: "Note linked to " + this.props.Document.title });
-        Doc.GetProto(targetDoc).layout = FormattedTextBox.LayoutString("contents");
         Doc.GetProto(targetDoc).data = new List<Doc>([clipDoc]);
-        Doc.GetProto(targetDoc).layout_slideView = (await Cast(Doc.UserDoc().slidesBtn, Doc))?.dragFactory;
-        targetDoc.layoutKey = "layout_slideView";
+        DocumentView.makeCustomViewClicked(targetDoc, undefined, Docs.Create.StackingDocument, "slideView", undefined);
         // const targetDoc = Docs.Create.TextDocument("", { _width: 200, _height: 200, title: "Note linked to " + this.props.Document.title });
         // Doc.GetProto(targetDoc).snipped = this.dataDoc[this.props.fieldKey][Copy]();
         // const snipLayout = Docs.Create.PdfDocument("http://www.msn.com", { title: "snippetView", isTemplateDoc: true, isTemplateForField: "snipped", _fitWidth: true, _width: this.marqueeWidth(), _height: this.marqueeHeight(), _scrollTop: this.marqueeY() });
@@ -582,7 +585,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
             DragManager.StartPdfAnnoDrag([ele], new DragManager.PdfAnnoDragData(this.props.Document, annotationDoc, targetDoc), e.pageX, e.pageY, {
                 dragComplete: e => {
                     if (!e.aborted && e.annoDragData && !e.annoDragData.linkedToDoc) {
-                        const link = DocUtils.MakeLink({ doc: annotationDoc }, { doc: e.annoDragData.dropDocument, ctx: e.annoDragData.targetContext }, "Annotation");
+                        const link = DocUtils.MakeLink({ doc: annotationDoc }, { doc: e.annoDragData.dropDocument }, "Annotation");
                         if (link) link.maximizeLocation = "onRight";
                     }
                 }
@@ -646,6 +649,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
                 setPreviewCursor={this.setPreviewCursor}
                 PanelHeight={this.panelWidth}
                 PanelWidth={this.panelHeight}
+                dropAction={"alias"}
                 VisibleHeight={this.visibleHeight}
                 focus={this.props.focus}
                 isSelected={this.props.isSelected}

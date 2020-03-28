@@ -265,7 +265,7 @@ export class CurrentUserUtils {
         const slideTemplate = Docs.Create.MultirowDocument(
             [
                 Docs.Create.MulticolumnDocument([], { title: "data", _height: 200 }),
-                Docs.Create.TextDocument("", { title: "contents", _height: 100 })
+                Docs.Create.TextDocument("", { title: "text", _height: 100 })
             ],
             { _width: 400, _height: 300, title: "slideView", _chromeStatus: "disabled", _xMargin: 3, _yMargin: 3, _autoHeight: false });
         slideTemplate.isTemplateDoc = makeTemplate(slideTemplate);

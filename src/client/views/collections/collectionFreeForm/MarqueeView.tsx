@@ -111,7 +111,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             const template = FormattedTextBox.DefaultLayout;
             if (template instanceof Doc) {
                 tbox._width = NumCast(template._width);
-                tbox.layoutKey = "layout_"+StrCast(template.title);
+                tbox.layoutKey = "layout_" + StrCast(template.title);
                 tbox[StrCast(tbox.layoutKey)] = template;
             }
             this.props.addLiveTextDocument(tbox);
@@ -448,7 +448,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         summary._backgroundColor = "#e2ad32";
         portal.layoutKey = "layout_portal";
         portal.title = "document collection";
-        DocUtils.MakeLink({ doc: summary, ctx: this.props.ContainingCollectionDoc }, { doc: portal }, "summarizing");
+        DocUtils.MakeLink({ doc: summary }, { doc: portal }, "summarizing");
 
         this.props.addLiveTextDocument(summary);
         MarqueeOptionsMenu.Instance.fadeOut(true);

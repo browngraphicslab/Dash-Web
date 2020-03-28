@@ -155,7 +155,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                     this.dataDoc[key] = doc || Docs.Create.FreeformDocument([], { title: value, _width: 500, _height: 500 }, value);
                     DocUtils.Publish(this.dataDoc[key] as Doc, value, this.props.addDocument, this.props.removeDocument);
                     if (linkDoc) { (linkDoc as Doc).anchor2 = this.dataDoc[key] as Doc; }
-                    else DocUtils.MakeLink({ doc: this.dataDoc, ctx: this.props.ContainingCollectionDoc }, { doc: this.dataDoc[key] as Doc }, "link to named target", id);
+                    else DocUtils.MakeLink({ doc: this.props.Document }, { doc: this.dataDoc[key] as Doc }, "link to named target", id);
                 });
             });
         });
@@ -748,7 +748,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                             targetAnnotations?.push(pdfRegion);
                         });
 
-                        const link = DocUtils.MakeLink({ doc: this.props.Document, ctx: this.props.ContainingCollectionDoc }, { doc: pdfRegion, ctx: pdfDoc }, "PDF pasted");
+                        const link = DocUtils.MakeLink({ doc: this.props.Document }, { doc: pdfRegion }, "PDF pasted");
                         if (link) {
                             cbe.clipboardData!.setData("dash/linkDoc", link[Id]);
                             const linkId = link[Id];
