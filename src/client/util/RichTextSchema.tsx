@@ -20,7 +20,6 @@ import { emptyFunction, returnEmptyString, returnFalse, returnOne, Utils } from 
 import { DocServer } from "../DocServer";
 import { Docs } from "../documents/Documents";
 import { CollectionViewType } from "../views/collections/CollectionView";
-import { ContextMenu } from "../views/ContextMenu";
 import { DocumentView } from "../views/nodes/DocumentView";
 import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
 import { DocumentManager } from "./DocumentManager";
@@ -952,7 +951,8 @@ export class DashFieldView {
                 self._dashDoc[self._fieldKey] = StrCast(self._options[0].title);
             }
             const layout = tbox.props.Document;
-            self._fieldKey = self._fieldKey.startsWith("@") ? StrCast(layout[StrCast(self._fieldKey).substring(1)]) : self._fieldKey;
+            // NOTE: if the field key starts with "@", then the actual field key is stored in the "@"fieldKey.  Dereferencing these fields happens in ImageBox and RichTextSchema
+            self._fieldKey = self._fieldKey.startsWith("@") ? StrCast(layout[StrCast(self._fieldKey)]) : self._fieldKey;
             this._labelSpan.innerHTML = `${self._fieldKey}: `;
             const fieldVal = Cast(this._dashDoc?.[self._fieldKey], "boolean", null);
             this._fieldCheck.style.display = (fieldVal === true || fieldVal === false) ? "inline-block" : "none";

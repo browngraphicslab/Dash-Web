@@ -484,7 +484,9 @@ export namespace Doc {
                 if (!targetDoc[expandedLayoutFieldKey]) {
                     const newLayoutDoc = Doc.MakeDelegate(templateLayoutDoc, undefined, "[" + templateLayoutDoc.title + "]");
                     newLayoutDoc.expandedTemplate = targetDoc;
-                    newLayoutDoc.params = templateParams?.match(/\(([a-zA-Z0-9_-]*)\)/)?.[1];
+                    // the template's parameters are stored in params which are derefenced to find
+                    // the actual field key where the template data is stored.  Currently this is only used in RichTextSchema's docView
+                    newLayoutDoc["@params"] = templateParams?.match(/\(([a-zA-Z0-9_-]*)\)/)?.[1];
                     targetDoc[expandedLayoutFieldKey] = newLayoutDoc;
                     const dataDoc = Doc.GetProto(targetDoc);
                     newLayoutDoc.resolvedDataDoc = dataDoc;
