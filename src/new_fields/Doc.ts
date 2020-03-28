@@ -487,7 +487,7 @@ export namespace Doc {
             setTimeout(action(() => {
                 if (!targetDoc[expandedLayoutFieldKey]) {
                     const newLayoutDoc = Doc.MakeDelegate(templateLayoutDoc, undefined, "[" + templateLayoutDoc.title + "]");
-                    newLayoutDoc["@params"] = params;
+                    newLayoutDoc["params"] = params;
                     newLayoutDoc.expandedTemplate = targetDoc;
                     // the template's parameters are stored in params which are derefenced to find
                     // the actual field key where the template data is stored.  Currently this is only used in RichTextSchema's docView
@@ -512,7 +512,7 @@ export namespace Doc {
         }
         const existingResolvedDataDoc = childDoc[DataSym] !== Doc.GetProto(childDoc)[DataSym] && childDoc[DataSym];
         const resolvedDataDoc = existingResolvedDataDoc || (Doc.AreProtosEqual(containerDataDoc, containerDoc) || !containerDataDoc || (!childDoc.isTemplateDoc && !childDoc.isTemplateForField) ? undefined : containerDataDoc);
-        return { layout: Doc.expandTemplateLayout(childDoc, resolvedDataDoc, "(" + StrCast(containerDoc["@params"]) + ")"), data: resolvedDataDoc };
+        return { layout: Doc.expandTemplateLayout(childDoc, resolvedDataDoc, "(" + StrCast(containerDoc["params"]) + ")"), data: resolvedDataDoc };
     }
 
     export function Overwrite(doc: Doc, overwrite: Doc, copyProto: boolean = false): Doc {

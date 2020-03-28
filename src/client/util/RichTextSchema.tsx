@@ -799,7 +799,9 @@ export class DashDocView {
     doRender(dashDoc: Doc, removeDoc: any, node: any, view: any, getPos: any) {
         this._dashDoc = dashDoc;
         const self = this;
-        const finalLayout = this._textBox.props.Document instanceof Doc && (Doc.expandTemplateLayout(dashDoc, !Doc.AreProtosEqual(this._textBox.dataDoc, this._textBox.props.Document) ? this._textBox.dataDoc : undefined));
+        const dashLayoutDoc = Doc.Layout(dashDoc);
+        const finalLayout = this._textBox.props.Document instanceof Doc && (Doc.expandTemplateLayout(dashLayoutDoc,
+            dashLayoutDoc !== dashDoc || !Doc.AreProtosEqual(this._textBox.dataDoc, this._textBox.props.Document) ? this._textBox.dataDoc : undefined, node.attrs.fieldKey));
         if (!finalLayout) setTimeout(() => self.doRender(dashDoc, removeDoc, node, view, getPos), 0);
         else {
             const layoutKey = StrCast(finalLayout.layoutKey);
@@ -929,7 +931,8 @@ export class DashFieldView {
             // look for a document whose id === the fieldKey being displayed.  If there's a match, then that document
             // holds the different enumerated values for the field in the titles of its collected documents.
             // if there's a partial match from the start of the input text, complete the text --- TODO: make this an auto suggest box and select from a drop down.
-            DocServer.GetRefField(self._fieldKey).then(options => self._dashDoc![self._fieldKey] = e.target.checked);
+            const checked = e.target.checked;
+            DocServer.GetRefField(self._fieldKey).then(options => self._dashDoc![self._fieldKey] = checked);
         }
 
 
@@ -952,7 +955,7 @@ export class DashFieldView {
             }
             const layout = tbox.props.Document;
             // NOTE: if the field key starts with "@", then the actual field key is stored in the "@"fieldKey.  Dereferencing these fields happens in ImageBox and RichTextSchema
-            self._fieldKey = self._fieldKey.startsWith("@") ? StrCast(layout[StrCast(self._fieldKey)]) : self._fieldKey;
+            self._fieldKey = self._fieldKey.startsWith("@") ? StrCast(layout[StrCast(self._fieldKey).substring(1)]) : self._fieldKey;
             this._labelSpan.innerHTML = `${self._fieldKey}: `;
             const fieldVal = Cast(this._dashDoc?.[self._fieldKey], "boolean", null);
             this._fieldCheck.style.display = (fieldVal === true || fieldVal === false) ? "inline-block" : "none";
@@ -1010,7 +1013,7 @@ export class DashFieldView {
         this._reactionDisposer?.();
         this._reactionDisposer = reaction(() => { // this reaction will update the displayed text whenever the document's fieldKey's value changes
             const dashVal = this._dashDoc?.[self._fieldKey];
-            return StrCast(dashVal).startsWith(":=") || !dashVal ? Doc.Layout(tbox.props.Document)[self._fieldKey] : dashVal;
+            return StrCast(dashVal).startsWith(":=") || dashVal === "" ? Doc.Layout(tbox.props.Document)[self._fieldKey] : dashVal;
         }, fval => {
             const boolVal = Cast(fval, "boolean", null);
             if (boolVal === true || boolVal === false) {
@@ -1018,6 +1021,8 @@ export class DashFieldView {
             } else {
                 this._fieldSpan.innerHTML = Field.toString(fval as Field) || "";
             }
+            this._fieldCheck.style.display = (boolVal === true || boolVal === false) ? "inline-block" : "none";
+            this._fieldSpan.style.display = !(boolVal === true || boolVal === false) ? "inline-block" : "none";
         }, { fireImmediately: true });
 
         this._fieldWrapper.appendChild(this._labelSpan);
