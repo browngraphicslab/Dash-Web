@@ -306,7 +306,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
     }
     get childDocs() {
         const dfield = this.dataField;
-        const rawdocs = (dfield instanceof Doc) ? [dfield] : Cast(dfield, listSpec(Doc), this.props.Document.expandedTemplate ? [Cast(this.props.Document.expandedTemplate, Doc, null)] : []);
+        const rawdocs = (dfield instanceof Doc) ? [dfield] : Cast(dfield, listSpec(Doc), Cast(this.props.Document.expandedTemplate, Doc, null) ? [Cast(this.props.Document.expandedTemplate, Doc, null)] : []);
         const docs = rawdocs.filter(d => !(d instanceof Promise)).map(d => d as Doc);
         const viewSpecScript = Cast(this.props.Document.viewSpecScript, ScriptField);
         return viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;

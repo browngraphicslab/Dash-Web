@@ -1,7 +1,7 @@
 import { action, computed, observable, reaction } from "mobx";
 import * as rp from 'request-promise';
 import { DocServer } from "../../../client/DocServer";
-import { Docs } from "../../../client/documents/Documents";
+import { Docs, DocumentOptions } from "../../../client/documents/Documents";
 import { Attribute, AttributeGroup, Catalog, Schema } from "../../../client/northstar/model/idea/idea";
 import { ArrayUtil } from "../../../client/northstar/utils/ArrayUtil";
 import { UndoManager } from "../../../client/util/UndoManager";
@@ -81,7 +81,11 @@ export class CurrentUserUtils {
             { title: "use drag", icon: "mouse-pointer", click: 'deactivateInk();this.activePen.pen = this;', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "white", activePen: doc },
         ];
         return docProtoData.filter(d => !buttons || !buttons.includes(d.title)).map(data => Docs.Create.FontIconDocument({
-            _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, dropAction: data.click ? "copy" : undefined, title: data.title, icon: data.icon, ignoreClick: data.ignoreClick,
+            _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100,
+            icon: data.icon,
+            title: data.title,
+            ignoreClick: data.ignoreClick,
+            dropAction: data.click ? "copy" : undefined,
             onDragStart: data.drag ? ScriptField.MakeFunction(data.drag) : undefined, onClick: data.click ? ScriptField.MakeScript(data.click) : undefined,
             ischecked: data.ischecked ? ComputedField.MakeFunction(data.ischecked) : undefined, activePen: data.activePen, dontSelect: true,
             backgroundColor: data.backgroundColor, removeDropProperties: new List<string>(["dropAction"]), dragFactory: data.dragFactory,
@@ -137,7 +141,8 @@ export class CurrentUserUtils {
             { title: "ignore gestures", icon: "signature", pointerUp: "setToolglass('none')", pointerDown: "setToolglass('ignoregesture')", backgroundColor: "green", ischecked: `sameDocs(this.activePen.pen, this)`, activePen: doc },
         ];
         return docProtoData.map(data => Docs.Create.FontIconDocument({
-            _nativeWidth: 10, _nativeHeight: 10, _width: 10, _height: 10, dropAction: data.pointerDown ? "copy" : undefined, title: data.title, icon: data.icon, ignoreClick: data.ignoreClick,
+            _nativeWidth: 10, _nativeHeight: 10, _width: 10, _height: 10, title: data.title, icon: data.icon,
+            dropAction: data.pointerDown ? "copy" : undefined, ignoreClick: data.ignoreClick,
             onDragStart: data.drag ? ScriptField.MakeFunction(data.drag) : undefined,
             clipboard: data.clipboard,
             onPointerUp: data.pointerUp ? ScriptField.MakeScript(data.pointerUp) : undefined, onPointerDown: data.pointerDown ? ScriptField.MakeScript(data.pointerDown) : undefined,
@@ -245,19 +250,20 @@ export class CurrentUserUtils {
 
     // setup the list of sidebar mode buttons which determine what is displayed in the sidebar
     static setupSidebarButtons(doc: Doc) {
-        doc.sidebarContainer = new Doc();
-        (doc.sidebarContainer as Doc)._chromeStatus = "disabled";
-        (doc.sidebarContainer as Doc).onClick = ScriptField.MakeScript("freezeSidebar()");
+        const sidebarContainer = new Doc();
+        doc.sidebarContainer = new PrefetchProxy(sidebarContainer);
+        sidebarContainer._chromeStatus = "disabled";
+        sidebarContainer.onClick = ScriptField.MakeScript("freezeSidebar()");
 
-        doc.ToolsBtn = this.setupToolsPanel(doc.sidebarContainer as Doc, doc);
-        doc.LibraryBtn = this.setupLibraryPanel(doc.sidebarContainer as Doc, doc);
-        doc.SearchBtn = this.setupSearchPanel(doc.sidebarContainer as Doc);
+        doc.ToolsBtn = new PrefetchProxy(this.setupToolsPanel(sidebarContainer, doc));
+        doc.LibraryBtn = new PrefetchProxy(this.setupLibraryPanel(sidebarContainer, doc));
+        doc.SearchBtn = new PrefetchProxy(this.setupSearchPanel(sidebarContainer));
 
         // Finally, setup the list of buttons to display in the sidebar
-        doc.sidebarButtons = Docs.Create.StackingDocument([doc.SearchBtn as Doc, doc.LibraryBtn as Doc, doc.ToolsBtn as Doc], {
+        doc.sidebarButtons = new PrefetchProxy(Docs.Create.StackingDocument([doc.SearchBtn as any as Doc, doc.LibraryBtn as any as Doc, doc.ToolsBtn as any as Doc], {
             _width: 500, _height: 80, boxShadow: "0 0", _pivotField: "title", hideHeadings: true, ignoreClick: true, _chromeStatus: "view-mode",
             title: "sidebar btn row stack", backgroundColor: "dimGray",
-        });
+        }));
     }
 
     /// sets up the default list of buttons to be shown in the expanding button menu at the bottom of the Dash window
@@ -273,35 +279,26 @@ export class CurrentUserUtils {
         Doc.GetProto(descriptionTemplate).layout = FormattedTextBox.LayoutString("description");
         descriptionTemplate.isTemplateDoc = makeTemplate(descriptionTemplate, true, "descriptionView");
 
-        const iconDoc = Docs.Create.TextDocument("", { title: "icon", _width: 150, _height: 30, isTemplateDoc: true, onClick: ScriptField.MakeScript("deiconifyView(this)") });
-        Doc.GetProto(iconDoc).icon = new RichTextField('{"doc":{"type":"doc","content":[{"type":"paragraph","attrs":{"align":null,"color":null,"id":null,"indent":null,"inset":null,"lineSpacing":null,"paddingBottom":null,"paddingTop":null},"content":[{"type":"dashField","attrs":{"fieldKey":"title","docid":""}}]}]},"selection":{"type":"text","anchor":2,"head":2},"storedMarks":[]}', "");
-        doc.isTemplateDoc = makeTemplate(iconDoc);
-        doc.iconView = new PrefetchProxy(iconDoc);
-        const imgIconDoc = Docs.Create.ImageDocument("http://www.cs.brown.edu/~bcz/face.gif", { title: "data", _width: 50, isTemplateDoc: true, onClick: ScriptField.MakeScript("deiconifyView(this)") });
-        doc.isTemplateDoc = makeTemplate(imgIconDoc, true, "image_icon");
-        doc.iconImageView = new PrefetchProxy(imgIconDoc);
-        const colIconDoc = Docs.Create.TreeDocument([], { title: "data", _width: 180, _height: 80, isTemplateDoc: true, onClick: ScriptField.MakeScript("deiconifyView(this)") });
-        doc.isTemplateDoc = makeTemplate(colIconDoc, true, "collection_icon");
-        doc.iconColView = new PrefetchProxy(colIconDoc);
+        doc.iconView = new PrefetchProxy(Docs.Create.TextDocument("", { title: "icon", _width: 150, _height: 30, isTemplateDoc: true, onClick: ScriptField.MakeScript("deiconifyView(this)") }));
+        Doc.GetProto(doc.iconView as any as Doc).icon = new RichTextField('{"doc":{"type":"doc","content":[{"type":"paragraph","attrs":{"align":null,"color":null,"id":null,"indent":null,"inset":null,"lineSpacing":null,"paddingBottom":null,"paddingTop":null},"content":[{"type":"dashField","attrs":{"fieldKey":"title","docid":""}}]}]},"selection":{"type":"text","anchor":2,"head":2},"storedMarks":[]}', "");
+        doc.isTemplateDoc = makeTemplate(doc.iconView as any as Doc);
+        doc.ImageIconView = new PrefetchProxy(Docs.Create.ImageDocument("http://www.cs.brown.edu/~bcz/face.gif", { title: "data", _width: 50, isTemplateDoc: true, onClick: ScriptField.MakeScript("deiconifyView(this)") }));
+        doc.isTemplateDoc = makeTemplate(doc.ImageIconView as any as Doc, true, "image_icon");
+        doc.iconColView = new PrefetchProxy(Docs.Create.TreeDocument([], { title: "data", _width: 180, _height: 80, isTemplateDoc: true, onClick: ScriptField.MakeScript("deiconifyView(this)") }));
+        doc.isTemplateDoc = makeTemplate(doc.iconColView as any as Doc, true, "collection_icon");
 
-        doc.undoBtn = Docs.Create.FontIconDocument(
-            { _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, dropAction: "alias", onClick: ScriptField.MakeScript("undo()"), removeDropProperties: new List<string>(["dropAction"]), title: "undo button", icon: "undo-alt" });
-        doc.redoBtn = Docs.Create.FontIconDocument(
-            { _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, dropAction: "alias", onClick: ScriptField.MakeScript("redo()"), removeDropProperties: new List<string>(["dropAction"]), title: "redo button", icon: "redo-alt" });
-        doc.slidesBtn = Docs.Create.FontIconDocument(
-            { _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, dropAction: "alias", onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'), dragFactory: slideTemplate, removeDropProperties: new List<string>(["dropAction"]), title: "presentation slide", icon: "sticky-note" });
-        doc.descriptionBtn = Docs.Create.FontIconDocument(
-            { _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, dropAction: "alias", onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'), dragFactory: descriptionTemplate, removeDropProperties: new List<string>(["dropAction"]), title: "description view", icon: "sticky-note" });
-        doc.templateButtons = Docs.Create.LinearDocument([doc.slidesBtn as Doc, doc.descriptionBtn as Doc], {
-            title: "template buttons", _gridGap: 5, _xMargin: 5, _yMargin: 5, _height: 42, _width: 100, boxShadow: "0 0", dontSelect: true,
-            backgroundColor: "black", treeViewPreventOpen: true, forceActive: true, lockedPosition: true, _chromeStatus: "disabled", linearViewIsExpanded: true,
-            dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name })
-        });
-        doc.expandingButtons = Docs.Create.LinearDocument([doc.undoBtn as Doc, doc.redoBtn as Doc, doc.templateButtons as Doc], {
-            title: "expanding buttons", _gridGap: 5, _xMargin: 5, _yMargin: 5, _height: 42, _width: 100, boxShadow: "0 0",
-            backgroundColor: "black", treeViewPreventOpen: true, forceActive: true, lockedPosition: true, linearViewIsExpanded: true,
-            dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name })
-        });
+        const ficon = (opts:DocumentOptions) => new PrefetchProxy(Docs.Create.FontIconDocument({...opts, dontSelect: true, dropAction: "alias", removeDropProperties: new List<string>(["dropAction"]), _nativeWidth:100, _nativeHeight:100, _width:100, _height:100})) as any as Doc;
+        const blist = (opts:DocumentOptions, docs:Doc[]) => new PrefetchProxy(Docs.Create.LinearDocument(docs, {...opts,  
+            _gridGap: 5, _xMargin: 5, _yMargin: 5, _height: 42, _width: 100, boxShadow: "0 0", dontSelect: true,
+            dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }),
+            backgroundColor: "black", treeViewPreventOpen: true, forceActive: true, lockedPosition: true, _chromeStatus: "disabled", linearViewIsExpanded: true})) as any as Doc;
+
+        doc.undoBtn = ficon({ onClick: ScriptField.MakeScript("undo()"), title: "undo button", icon: "undo-alt" });
+        doc.redoBtn = ficon({ onClick: ScriptField.MakeScript("redo()"), title: "redo button", icon: "redo-alt" });
+        doc.slidesBtn = ficon({ onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'), dragFactory: slideTemplate, removeDropProperties: new List<string>(["dropAction"]), title: "presentation slide", icon: "sticky-note" });
+        doc.descriptionBtn = ficon({ onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'), dragFactory: descriptionTemplate, removeDropProperties: new List<string>(["dropAction"]), title: "description view", icon: "sticky-note" });
+        doc.templateButtons = blist({title: "template buttons"}, [doc.slidesBtn as Doc, doc.descriptionBtn as Doc]);
+        doc.expandingButtons = blist({ title: "expanding buttons"}, [doc.undoBtn as Doc, doc.redoBtn as Doc, doc.templateButtons as Doc]);
         doc.templateDocs = new PrefetchProxy(Docs.Create.TreeDocument([doc.noteTypes as Doc, doc.templateButtons as Doc], {
             title: "template layouts", _xPadding: 0, dropConverter: ScriptField.MakeScript("convertToButtons(dragData)",
                 { dragData: DragManager.DocumentDragData.name })
@@ -310,7 +307,7 @@ export class CurrentUserUtils {
 
     // sets up the default set of documents to be shown in the Overlay layer
     static setupOverlays(doc: Doc) {
-        doc.overlays = Docs.Create.FreeformDocument([], { title: "Overlays", backgroundColor: "#aca3a6" });
+        doc.overlays = new PrefetchProxy(Docs.Create.FreeformDocument([], { title: "Overlays", backgroundColor: "#aca3a6" }));
     }
 
     // the initial presentation Doc to use
@@ -320,7 +317,7 @@ export class CurrentUserUtils {
     }
 
     static setupMobileUploads(doc: Doc) {
-        doc.optionalRightCollection = Docs.Create.StackingDocument([], { title: "New mobile uploads" });
+        doc.optionalRightCollection = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "New mobile uploads" }));
     }
 
     static updateUserDocument(doc: Doc) {

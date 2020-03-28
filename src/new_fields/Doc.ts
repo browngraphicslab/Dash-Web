@@ -352,6 +352,9 @@ export namespace Doc {
     // return the doc's proto, but rather recursively searches through the proto inheritance chain 
     // and returns the document who's proto is undefined or whose proto is marked as a base prototype ('isPrototype').
     export function GetProto(doc: Doc): Doc {
+        if (doc instanceof Promise) {
+            console.log("GetProto: error: got Promise insead of Doc")
+        }
         const proto = doc && (Doc.GetT(doc, "isPrototype", "boolean", true) ? doc : (doc.proto || doc));
         return proto === doc ? proto : Doc.GetProto(proto);
     }
@@ -502,7 +505,7 @@ export namespace Doc {
     // if the childDoc is a template for a field, then this will return the expanded layout with its data doc.
     // otherwise, it just returns the childDoc
     export function GetLayoutDataDocPair(containerDoc: Doc, containerDataDoc: Opt<Doc>, childDoc: Doc) {
-        if (!childDoc || !Doc.GetProto(childDoc)) {
+        if (!childDoc || childDoc instanceof Promise || !Doc.GetProto(childDoc)) {
             console.log("No, no, no!");
             return { layout: childDoc, data: childDoc };
         }
