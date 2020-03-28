@@ -463,7 +463,7 @@ export namespace Doc {
     // between the two. If so, the layoutDoc is expanded into a new document that inherits the properties 
     // of the original layout while allowing for individual layout properties to be overridden in the expanded layout.
     //
-    export function expandTemplateLayout(templateLayoutDoc: Doc, targetDoc?: Doc) {
+    export function expandTemplateLayout(templateLayoutDoc: Doc, targetDoc?: Doc, templateParams?: string) {
         if (!WillExpandTemplateLayout(templateLayoutDoc, targetDoc) || !targetDoc) return templateLayoutDoc;
 
         const templateField = StrCast(templateLayoutDoc.isTemplateForField);  // the field that the template renders
@@ -484,6 +484,7 @@ export namespace Doc {
                 if (!targetDoc[expandedLayoutFieldKey]) {
                     const newLayoutDoc = Doc.MakeDelegate(templateLayoutDoc, undefined, "[" + templateLayoutDoc.title + "]");
                     newLayoutDoc.expandedTemplate = targetDoc;
+                    newLayoutDoc.params = templateParams?.match(/\(([a-zA-Z0-9_-]*)\)/)?.[1];
                     targetDoc[expandedLayoutFieldKey] = newLayoutDoc;
                     const dataDoc = Doc.GetProto(targetDoc);
                     newLayoutDoc.resolvedDataDoc = dataDoc;

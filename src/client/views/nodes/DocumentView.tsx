@@ -513,9 +513,29 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         undoBatch(() => Doc.setNativeView(doc))();
     }
 
-    static makeCustomViewClicked = (doc: Doc, dataDoc: Opt<Doc>, creator: (documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc, name: string = "custom", docLayoutTemplate?: Doc) => {
+    static makeCustomViewClicked = (doc: Doc, dataDoc: Opt<Doc>, creator: (documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc, templateSignature: string = "custom", docLayoutTemplate?: Doc) => {
+        const userDoc = Doc.UserDoc();
+        const imgView = Cast(userDoc.iconView, Doc, null);
+        const iconImgView = Cast(userDoc.iconImageView, Doc, null);
+        const iconColView = Cast(userDoc.iconColView, Doc, null);
+        const iconViews = [imgView, iconImgView, iconColView];
+        const templateButtons = DocListCast(Cast(userDoc.templateButtons, Doc, null)?.data);
+        const noteTypes = DocListCast(Cast(userDoc.noteTypes, Doc, null)?.data);
+        const allTemplates = iconViews.concat(templateButtons).concat(noteTypes);
+        const templateName = templateSignature.replace(/\(.*\)/, "");
+        !docLayoutTemplate && allTemplates.map(btnDoc => (btnDoc.dragFactory as Doc) || btnDoc).filter(doc => doc.isTemplateDoc).forEach(tempDoc => {
+            if (StrCast(tempDoc.title) === doc.type + "_" + templateName) {
+                docLayoutTemplate = tempDoc;
+            }
+        });
+        !docLayoutTemplate && allTemplates.map(btnDoc => (btnDoc.dragFactory as Doc) || btnDoc).filter(doc => doc.isTemplateDoc).forEach(tempDoc => {
+            if (StrCast(tempDoc.title) === templateName) {
+                docLayoutTemplate = tempDoc;
+            }
+        });
+
         const batch = UndoManager.StartBatch("CustomViewClicked");
-        const customName = "layout_" + name;
+        const customName = "layout_" + templateSignature;
         if (doc[customName] === undefined) {
             const _width = NumCast(doc._width);
             const _height = NumCast(doc._height);
@@ -626,39 +646,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @undoBatch
     @action
-    setCustomView =
-        (custom: boolean, layout: string): void => {
-            // if (this.props.ContainingCollectionView?.props.DataDoc || this.props.ContainingCollectionView?.props.Document.isTemplateDoc) {
-            //     Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.ContainingCollectionView.props.Document);
-            // } else 
-            if (custom) {
-                DocumentView.makeNativeViewClicked(this.props.Document);
-                const userDoc = Doc.UserDoc();
-
-                const imgView = Cast(userDoc.iconView, Doc, null);
-                const iconImgView = Cast(userDoc.iconImageView, Doc, null);
-                const iconColView = Cast(userDoc.iconColView, Doc, null);
-                const iconViews = [imgView, iconImgView, iconColView];
-                const templateButtons = DocListCast(Cast(userDoc.templateButtons, Doc, null)?.data);
-                const noteTypes = DocListCast(Cast(userDoc.noteTypes, Doc, null)?.data);
-                const allTemplates = iconViews.concat(templateButtons).concat(noteTypes);
-                let foundLayout: Opt<Doc>;
-                allTemplates.map(btnDoc => (btnDoc.dragFactory as Doc) || btnDoc).filter(doc => doc.isTemplateDoc).forEach(tempDoc => {
-                    if (StrCast(tempDoc.title) === this.props.Document.type + "_" + layout) {
-                        foundLayout = tempDoc;
-                    }
-                });
-                !foundLayout && allTemplates.map(btnDoc => (btnDoc.dragFactory as Doc) || btnDoc).filter(doc => doc.isTemplateDoc).forEach(tempDoc => {
-                    if (StrCast(tempDoc.title) === layout) {
-                        foundLayout = tempDoc;
-                    }
-                });
-                DocumentView.
-                    makeCustomViewClicked(this.props.Document, this.props.DataDoc, Docs.Create.StackingDocument, layout, foundLayout);
-            } else {
-                DocumentView.makeNativeViewClicked(this.props.Document);
-            }
+    setCustomView = (custom: boolean, layout: string): void => {
+        DocumentView.makeNativeViewClicked(this.props.Document);
+        if (custom) {
+            DocumentView.makeCustomViewClicked(this.props.Document, this.props.DataDoc, Docs.Create.StackingDocument, layout, undefined);
         }
+    }
 
     @undoBatch
     @action

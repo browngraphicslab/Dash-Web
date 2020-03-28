@@ -775,7 +775,8 @@ export class DashDocView {
                 alias && DocServer.GetRefField(docid).then(async dashDocBase => {
                     if (dashDocBase instanceof Doc) {
                         const aliasedDoc = Doc.MakeAlias(dashDocBase, docid + alias);
-                        aliasedDoc.layoutKey = node.attrs.fieldKey === "layout" ? "layout" : "layout" + (node.attrs.fieldKey ? "_" + node.attrs.fieldKey : "");
+                        aliasedDoc.layoutKey = "layout";
+                        node.attrs.fieldKey !== "layout" && DocumentView.makeCustomViewClicked(aliasedDoc, undefined, Docs.Create.StackingDocument, node.attrs.fieldKey, undefined);
                         self.doRender(aliasedDoc, removeDoc, node, view, getPos);
                     }
                 });
@@ -888,7 +889,7 @@ export class DashFieldView {
 
         this._enumerables.onpointerdown = async (e) => {
             e.stopPropagation();
-            const collview = await Doc.addFieldEnumerations(self._textBoxDoc, node.attrs.fieldKey, [{ title: self._fieldSpan.innerText }]);
+            const collview = await Doc.addFieldEnumerations(self._textBoxDoc, self._fieldKey, [{ title: self._fieldSpan.innerText }]);
             collview instanceof Doc && tbox.props.addDocTab(collview, "onRight");
         };
         const updateText = (forceMatch: boolean) => {
@@ -898,12 +899,12 @@ export class DashFieldView {
             // look for a document whose id === the fieldKey being displayed.  If there's a match, then that document
             // holds the different enumerated values for the field in the titles of its collected documents.
             // if there's a partial match from the start of the input text, complete the text --- TODO: make this an auto suggest box and select from a drop down.
-            DocServer.GetRefField(node.attrs.fieldKey).then(options => {
+            DocServer.GetRefField(self._fieldKey).then(options => {
                 let modText = "";
                 (options instanceof Doc) && DocListCast(options.data).forEach(opt => (forceMatch ? StrCast(opt.title).startsWith(newText) : StrCast(opt.title) === newText) && (modText = StrCast(opt.title)));
                 if (modText) {
                     self._fieldSpan.innerHTML = self._dashDoc![self._fieldKey] = modText;
-                    Doc.addFieldEnumerations(self._textBoxDoc, node.attrs.fieldKey, []);
+                    Doc.addFieldEnumerations(self._textBoxDoc, self._fieldKey, []);
                 } else if (!self._fieldSpan.innerText.startsWith(":=") && !self._fieldSpan.innerText.startsWith("=:=")) {
                     self._dashDoc![self._fieldKey] = newText;
                 }
@@ -922,14 +923,14 @@ export class DashFieldView {
         this._fieldCheck.id = Utils.GenerateGuid();
         this._fieldCheck.type = "checkbox";
         this._fieldCheck.style.position = "relative";
-        this._fieldCheck.style.display = "inline-block";
+        this._fieldCheck.style.display = "none";
         this._fieldCheck.style.minWidth = "12px";
         this._fieldCheck.style.backgroundColor = "rgba(155, 155, 155, 0.24)";
         this._fieldCheck.onchange = function (e: any) {
             // look for a document whose id === the fieldKey being displayed.  If there's a match, then that document
             // holds the different enumerated values for the field in the titles of its collected documents.
             // if there's a partial match from the start of the input text, complete the text --- TODO: make this an auto suggest box and select from a drop down.
-            DocServer.GetRefField(node.attrs.fieldKey).then(options => self._dashDoc![self._fieldKey] = e.target.checked);
+            DocServer.GetRefField(self._fieldKey).then(options => self._dashDoc![self._fieldKey] = e.target.checked);
         }
 
 
@@ -937,7 +938,7 @@ export class DashFieldView {
         this._fieldSpan.id = Utils.GenerateGuid();
         this._fieldSpan.contentEditable = "true";
         this._fieldSpan.style.position = "relative";
-        this._fieldSpan.style.display = "inline-block";
+        this._fieldSpan.style.display = "none";
         this._fieldSpan.style.minWidth = "12px";
         this._fieldSpan.style.backgroundColor = "rgba(155, 155, 155, 0.24)";
         this._fieldSpan.onkeypress = function (e: any) { e.stopPropagation(); };
@@ -947,9 +948,15 @@ export class DashFieldView {
 
         const setDashDoc = (doc: Doc) => {
             self._dashDoc = doc;
-            if (self._dashDoc && self._options?.length && !self._dashDoc[node.attrs.fieldKey]) {
-                self._dashDoc[node.attrs.fieldKey] = StrCast(self._options[0].title);
+            if (self._dashDoc && self._options?.length && !self._dashDoc[self._fieldKey]) {
+                self._dashDoc[self._fieldKey] = StrCast(self._options[0].title);
             }
+            const layout = tbox.props.Document;
+            self._fieldKey = self._fieldKey.startsWith("@") ? StrCast(layout[StrCast(self._fieldKey).substring(1)]) : self._fieldKey;
+            this._labelSpan.innerHTML = `${self._fieldKey}: `;
+            const fieldVal = Cast(this._dashDoc?.[self._fieldKey], "boolean", null);
+            this._fieldCheck.style.display = (fieldVal === true || fieldVal === false) ? "inline-block" : "none";
+            this._fieldSpan.style.display = !(fieldVal === true || fieldVal === false) ? "inline-block" : "none";
         };
         this._fieldSpan.onkeydown = function (e: any) {
             e.stopPropagation();
@@ -964,7 +971,7 @@ export class DashFieldView {
             }
             if (e.key === "Enter") {
                 e.preventDefault();
-                e.ctrlKey && Doc.addFieldEnumerations(self._textBoxDoc, node.attrs.fieldKey, [{ title: self._fieldSpan.innerText }]);
+                e.ctrlKey && Doc.addFieldEnumerations(self._textBoxDoc, self._fieldKey, [{ title: self._fieldSpan.innerText }]);
                 updateText(true);
             }
         };
@@ -994,7 +1001,7 @@ export class DashFieldView {
                 tbox.props.addDocTab(alias, "onRight");
             }
         };
-        this._labelSpan.innerHTML = `${node.attrs.fieldKey}: `;
+        this._labelSpan.innerHTML = `${self._fieldKey}: `;
         if (node.attrs.docid) {
             DocServer.GetRefField(node.attrs.docid).then(async dashDoc => dashDoc instanceof Doc && runInAction(() => setDashDoc(dashDoc)));
         } else {
@@ -1002,8 +1009,8 @@ export class DashFieldView {
         }
         this._reactionDisposer?.();
         this._reactionDisposer = reaction(() => { // this reaction will update the displayed text whenever the document's fieldKey's value changes
-            const dashVal = this._dashDoc?.[node.attrs.fieldKey];
-            return StrCast(dashVal).startsWith(":=") || !dashVal ? Doc.Layout(tbox.props.Document)[this._fieldKey] : dashVal;
+            const dashVal = this._dashDoc?.[self._fieldKey];
+            return StrCast(dashVal).startsWith(":=") || !dashVal ? Doc.Layout(tbox.props.Document)[self._fieldKey] : dashVal;
         }, fval => {
             const boolVal = Cast(fval, "boolean", null);
             if (boolVal === true || boolVal === false) {
@@ -1013,10 +1020,9 @@ export class DashFieldView {
             }
         }, { fireImmediately: true });
 
-        const fieldVal = Cast(this._dashDoc?.[node.attrs.fieldKey], "boolean", null);
         this._fieldWrapper.appendChild(this._labelSpan);
-        (fieldVal === true || fieldVal === false) && this._fieldWrapper.appendChild(this._fieldCheck);
-        !(fieldVal === true || fieldVal === false) && this._fieldWrapper.appendChild(this._fieldSpan);
+        this._fieldWrapper.appendChild(this._fieldCheck);
+        this._fieldWrapper.appendChild(this._fieldSpan);
         this._fieldWrapper.appendChild(this._enumerables);
         (this as any).dom = this._fieldWrapper;
         updateText(false);

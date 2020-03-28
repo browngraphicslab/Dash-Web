@@ -116,10 +116,11 @@ export class RichTextRules {
                 }),
             // create an inline view of a document {{ <layoutKey> : <Doc> }}  // {{:Doc}} => show default view of document   {{<layout>}} => show layout for this doc   {{<layout> : Doc}} => show layout for another doc
             new InputRule(
-                new RegExp(/\{\{([a-zA-Z_ \-0-9]*)(:[a-zA-Z_ \-0-9]+)?\}\}$/),
+                new RegExp(/\{\{([a-zA-Z_ \-0-9]*)(\([a-zA-Z_ \-0-9]*\))(:[a-zA-Z_ \-0-9]+)?\}\}$/),
                 (state, match, start, end) => {
                     const fieldKey = match[1];
-                    const docid = match[2]?.substring(1);
+                    const fieldParam = match[2];
+                    const docid = match[3]?.substring(1);
                     if (!fieldKey && !docid) return state.tr;
                     docid && DocServer.GetRefField(docid).then(docx => {
                         if (!(docx instanceof Doc && docx)) {
@@ -128,7 +129,7 @@ export class RichTextRules {
                         }
                     });
                     const node = (state.doc.resolve(start) as any).nodeAfter;
-                    const dashDoc = schema.nodes.dashDoc.create({ width: 75, height: 75, title: "dashDoc", docid, fieldKey, float: "right", alias: Utils.GenerateGuid() });
+                    const dashDoc = schema.nodes.dashDoc.create({ width: 75, height: 75, title: "dashDoc", docid, fieldKey: fieldKey + fieldParam, float: "right", alias: Utils.GenerateGuid() });
                     const sm = state.storedMarks || undefined;
                     return node ? state.tr.replaceRangeWith(start, end, dashDoc).setStoredMarks([...node.marks, ...(sm ? sm : [])]) : state.tr;
                 }),
