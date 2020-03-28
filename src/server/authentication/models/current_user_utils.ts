@@ -57,7 +57,7 @@ export class CurrentUserUtils {
     }
 
     // setup the "creator" buttons for the sidebar-- eg. the default set of draggable document creation tools
-    static setupCreatorButtons(doc: Doc, buttons?: string[]) {
+    static setupCreatorButtons(doc: Doc, alreadyCreatedButtons?: string[]) {
         const emptyPresentation = Docs.Create.PresDocument(new List<Doc>(), { title: "Presentation", _viewType: CollectionViewType.Stacking, _LODdisable: true, _chromeStatus: "replaced", _showTitle: "title", boxShadow: "0 0" });
         const emptyCollection = Docs.Create.FreeformDocument([], { _nativeWidth: undefined, _nativeHeight: undefined, _LODdisable: true, _width: 150, _height: 100, title: "freeform" });
         doc.activePen = doc;
@@ -67,7 +67,7 @@ export class CurrentUserUtils {
             { title: "web page", icon: "globe-asia", ignoreClick: true, drag: 'Docs.Create.WebDocument("https://en.wikipedia.org/wiki/Hedgehog", {_width: 300, _height: 300, title: "New Webpage" })' },
             { title: "cat image", icon: "cat", ignoreClick: true, drag: 'Docs.Create.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", { _width: 200, title: "an image of a cat" })' },
             { title: "buxton", icon: "cloud-upload-alt", ignoreClick: true, drag: "Docs.Create.Buxton()" },
-            { title: "screenshot", icon: "frame", ignoreClick: true, drag: 'Docs.Create.ScreenshotDocument("", { _width: 400, _height: 200, title: "screen snapshot" })' },
+            { title: "screenshot", icon: "photo-video", ignoreClick: true, drag: 'Docs.Create.ScreenshotDocument("", { _width: 400, _height: 200, title: "screen snapshot" })' },
             { title: "webcam", icon: "video", ignoreClick: true, drag: 'Docs.Create.WebCamDocument("", { _width: 400, _height: 400, title: "a test cam" })' },
             { title: "record", icon: "microphone", ignoreClick: true, drag: `Docs.Create.AudioDocument("${nullAudio}", { _width: 200, title: "ready to record audio" })` },
             { title: "clickable button", icon: "bolt", ignoreClick: true, drag: 'Docs.Create.ButtonDocument({ _width: 150, _height: 50, title: "Button" })' },
@@ -80,7 +80,7 @@ export class CurrentUserUtils {
             { title: "use eraser", icon: "eraser", click: 'activateEraser(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this);', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "pink", activePen: doc },
             { title: "use drag", icon: "mouse-pointer", click: 'deactivateInk();this.activePen.pen = this;', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "white", activePen: doc },
         ];
-        return docProtoData.filter(d => !buttons || !buttons.includes(d.title)).map(data => Docs.Create.FontIconDocument({
+        return docProtoData.filter(d => !alreadyCreatedButtons?.includes(d.title)).map(data => Docs.Create.FontIconDocument({
             _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100,
             icon: data.icon,
             title: data.title,
@@ -104,8 +104,7 @@ export class CurrentUserUtils {
                         const dragdocs = await Cast(dragset.data, listSpec(Doc));
                         if (dragdocs) {
                             const dragDocs = await Promise.all(dragdocs);
-                            const newButtons = this.setupCreatorButtons(doc, dragDocs.map(d => StrCast(d.title)));
-                            newButtons.map(nb => Doc.AddDocToList(dragset, "data", nb));
+                            this.setupCreatorButtons(doc, dragDocs.map(d => StrCast(d.title))).map(nb => Doc.AddDocToList(dragset, "data", nb));
                         }
                     }
                 }

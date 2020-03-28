@@ -1,5 +1,5 @@
 import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
-import { faArrowAltCircleDown, faArrowAltCircleUp, faCheckCircle, faCloudUploadAlt, faLink, faShare, faStopCircle, faSyncAlt, faTag, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faArrowAltCircleDown, faPhotoVideo, faArrowAltCircleUp, faCheckCircle, faCloudUploadAlt, faLink, faShare, faStopCircle, faSyncAlt, faTag, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
@@ -25,7 +25,6 @@ import { DragManager } from '../util/DragManager';
 import { MetadataEntryMenu } from './MetadataEntryMenu';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import GoogleAuthenticationManager from '../apis/GoogleAuthenticationManager';
-import { ComputedField } from '../../new_fields/ScriptField';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -40,6 +39,7 @@ library.add(faCheckCircle);
 library.add(faCloudUploadAlt);
 library.add(faSyncAlt);
 library.add(faShare);
+library.add(faPhotoVideo)
 
 const cloud: IconProp = "cloud-upload-alt";
 const fetch: IconProp = "sync-alt";
