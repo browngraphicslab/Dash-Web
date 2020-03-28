@@ -282,26 +282,28 @@ export class CurrentUserUtils {
         doc.iconView = new PrefetchProxy(Docs.Create.TextDocument("", { title: "icon", _width: 150, _height: 30, isTemplateDoc: true, onClick: ScriptField.MakeScript("deiconifyView(this)") }));
         Doc.GetProto(doc.iconView as any as Doc).icon = new RichTextField('{"doc":{"type":"doc","content":[{"type":"paragraph","attrs":{"align":null,"color":null,"id":null,"indent":null,"inset":null,"lineSpacing":null,"paddingBottom":null,"paddingTop":null},"content":[{"type":"dashField","attrs":{"fieldKey":"title","docid":""}}]}]},"selection":{"type":"text","anchor":2,"head":2},"storedMarks":[]}', "");
         doc.isTemplateDoc = makeTemplate(doc.iconView as any as Doc);
-        doc.ImageIconView = new PrefetchProxy(Docs.Create.ImageDocument("http://www.cs.brown.edu/~bcz/face.gif", { title: "data", _width: 50, isTemplateDoc: true, onClick: ScriptField.MakeScript("deiconifyView(this)") }));
-        doc.isTemplateDoc = makeTemplate(doc.ImageIconView as any as Doc, true, "image_icon");
+        doc.iconImageView = new PrefetchProxy(Docs.Create.ImageDocument("http://www.cs.brown.edu/~bcz/face.gif", { title: "data", _width: 50, isTemplateDoc: true, onClick: ScriptField.MakeScript("deiconifyView(this)") }));
+        doc.isTemplateDoc = makeTemplate(doc.iconImageView as any as Doc, true, "image_icon");
         doc.iconColView = new PrefetchProxy(Docs.Create.TreeDocument([], { title: "data", _width: 180, _height: 80, isTemplateDoc: true, onClick: ScriptField.MakeScript("deiconifyView(this)") }));
         doc.isTemplateDoc = makeTemplate(doc.iconColView as any as Doc, true, "collection_icon");
 
-        const ficon = (opts:DocumentOptions) => new PrefetchProxy(Docs.Create.FontIconDocument({...opts, dontSelect: true, dropAction: "alias", removeDropProperties: new List<string>(["dropAction"]), _nativeWidth:100, _nativeHeight:100, _width:100, _height:100})) as any as Doc;
-        const blist = (opts:DocumentOptions, docs:Doc[]) => new PrefetchProxy(Docs.Create.LinearDocument(docs, {...opts,  
-            _gridGap: 5, _xMargin: 5, _yMargin: 5, _height: 42, _width: 100, boxShadow: "0 0", dontSelect: true,
+        const ficon = (opts: DocumentOptions) => new PrefetchProxy(Docs.Create.FontIconDocument({ ...opts, dontSelect: true, dropAction: "alias", removeDropProperties: new List<string>(["dropAction"]), _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100 })) as any as Doc;
+        const blist = (opts: DocumentOptions, docs: Doc[]) => new PrefetchProxy(Docs.Create.LinearDocument(docs, {
+            ...opts,
+            _gridGap: 5, _xMargin: 5, _yMargin: 5, _height: 42, _width: 100, boxShadow: "0 0", dontSelect: true, forceActive: true,
             dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }),
-            backgroundColor: "black", treeViewPreventOpen: true, forceActive: true, lockedPosition: true, _chromeStatus: "disabled", linearViewIsExpanded: true})) as any as Doc;
+            backgroundColor: "black", treeViewPreventOpen: true, lockedPosition: true, _chromeStatus: "disabled", linearViewIsExpanded: true
+        })) as any as Doc;
 
         doc.undoBtn = ficon({ onClick: ScriptField.MakeScript("undo()"), title: "undo button", icon: "undo-alt" });
         doc.redoBtn = ficon({ onClick: ScriptField.MakeScript("redo()"), title: "redo button", icon: "redo-alt" });
         doc.slidesBtn = ficon({ onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'), dragFactory: slideTemplate, removeDropProperties: new List<string>(["dropAction"]), title: "presentation slide", icon: "sticky-note" });
         doc.descriptionBtn = ficon({ onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'), dragFactory: descriptionTemplate, removeDropProperties: new List<string>(["dropAction"]), title: "description view", icon: "sticky-note" });
-        doc.templateButtons = blist({title: "template buttons"}, [doc.slidesBtn as Doc, doc.descriptionBtn as Doc]);
-        doc.expandingButtons = blist({ title: "expanding buttons"}, [doc.undoBtn as Doc, doc.redoBtn as Doc, doc.templateButtons as Doc]);
+        doc.templateButtons = blist({ title: "template buttons" }, [doc.slidesBtn as Doc, doc.descriptionBtn as Doc]);
+        doc.expandingButtons = blist({ title: "expanding buttons" }, [doc.undoBtn as Doc, doc.redoBtn as Doc, doc.templateButtons as Doc]);
         doc.templateDocs = new PrefetchProxy(Docs.Create.TreeDocument([doc.noteTypes as Doc, doc.templateButtons as Doc], {
-            title: "template layouts", _xPadding: 0, dropConverter: ScriptField.MakeScript("convertToButtons(dragData)",
-                { dragData: DragManager.DocumentDragData.name })
+            title: "template layouts", _xPadding: 0,
+            dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name })
         }));
     }
 
