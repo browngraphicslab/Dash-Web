@@ -475,8 +475,9 @@ export namespace Doc {
         // If it doesn't find the expanded layout, then it makes a delegate of the template layout and
         // saves it on the data doc indexed by the template layout's id.
         //
+        const params = templateParams?.match(/\(([a-zA-Z0-9_-]*)\)/)?.[1]
         const layoutFielddKey = Doc.LayoutFieldKey(templateLayoutDoc);
-        const expandedLayoutFieldKey = (templateField || layoutFielddKey) + "-layout[" + templateLayoutDoc[Id] + "]";
+        const expandedLayoutFieldKey = (templateField || layoutFielddKey) + "-layout[" + templateLayoutDoc[Id] + params + "]";
         let expandedTemplateLayout = targetDoc?.[expandedLayoutFieldKey];
         if (templateLayoutDoc.resolvedDataDoc instanceof Promise) {
             expandedTemplateLayout = undefined;
@@ -486,10 +487,10 @@ export namespace Doc {
             setTimeout(action(() => {
                 if (!targetDoc[expandedLayoutFieldKey]) {
                     const newLayoutDoc = Doc.MakeDelegate(templateLayoutDoc, undefined, "[" + templateLayoutDoc.title + "]");
+                    newLayoutDoc["@params"] = params;
                     newLayoutDoc.expandedTemplate = targetDoc;
                     // the template's parameters are stored in params which are derefenced to find
                     // the actual field key where the template data is stored.  Currently this is only used in RichTextSchema's docView
-                    newLayoutDoc["@params"] = templateParams?.match(/\(([a-zA-Z0-9_-]*)\)/)?.[1];
                     targetDoc[expandedLayoutFieldKey] = newLayoutDoc;
                     const dataDoc = Doc.GetProto(targetDoc);
                     newLayoutDoc.resolvedDataDoc = dataDoc;
@@ -511,7 +512,7 @@ export namespace Doc {
         }
         const existingResolvedDataDoc = childDoc[DataSym] !== Doc.GetProto(childDoc)[DataSym] && childDoc[DataSym];
         const resolvedDataDoc = existingResolvedDataDoc || (Doc.AreProtosEqual(containerDataDoc, containerDoc) || !containerDataDoc || (!childDoc.isTemplateDoc && !childDoc.isTemplateForField) ? undefined : containerDataDoc);
-        return { layout: Doc.expandTemplateLayout(childDoc, resolvedDataDoc), data: resolvedDataDoc };
+        return { layout: Doc.expandTemplateLayout(childDoc, resolvedDataDoc, "(" + StrCast(containerDoc["@params"]) + ")"), data: resolvedDataDoc };
     }
 
     export function Overwrite(doc: Doc, overwrite: Doc, copyProto: boolean = false): Doc {

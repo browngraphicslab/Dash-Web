@@ -48,8 +48,8 @@ export interface SubCollectionViewProps extends CollectionViewProps {
     layoutEngine?: () => string;
 }
 
-export function CollectionSubView<T,X>(schemaCtor: (doc: Doc) => T, moreProps?:X) {
-    class CollectionSubView extends DocComponent<X&SubCollectionViewProps, T>(schemaCtor) {
+export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?: X) {
+    class CollectionSubView extends DocComponent<X & SubCollectionViewProps, T>(schemaCtor) {
         private dropDisposer?: DragManager.DragDropDisposer;
         private gestureDisposer?: GestureUtils.GestureEventDisposer;
         protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
@@ -92,7 +92,7 @@ export function CollectionSubView<T,X>(schemaCtor: (doc: Doc) => T, moreProps?:X
         }
 
         @computed get dataDoc() {
-            return (this.props.DataDoc && this.props.Document.isTemplateForField ? Doc.GetProto(this.props.DataDoc) :
+            return (this.props.DataDoc instanceof Doc && this.props.Document.isTemplateForField ? Doc.GetProto(this.props.DataDoc) :
                 this.props.Document.resolvedDataDoc ? this.props.Document : Doc.GetProto(this.props.Document)); // if the layout document has a resolvedDataDoc, then we don't want to get its parent which would be the unexpanded template
         }
 
@@ -195,7 +195,7 @@ export function CollectionSubView<T,X>(schemaCtor: (doc: Doc) => T, moreProps?:X
         @undoBatch
         @action
         protected onInternalDrop(e: Event, de: DragManager.DropEvent): boolean {
-        const docDragData = de.complete.docDragData;
+            const docDragData = de.complete.docDragData;
             (this.props.Document.dropConverter instanceof ScriptField) &&
                 this.props.Document.dropConverter.script.run({ dragData: docDragData }); /// bcz: check this 
             if (docDragData) {

@@ -1025,7 +1025,7 @@ export class DashFieldView {
         this._fieldWrapper.appendChild(this._fieldSpan);
         this._fieldWrapper.appendChild(this._enumerables);
         (this as any).dom = this._fieldWrapper;
-        updateText(false);
+        //updateText(false);
     }
     destroy() {
         this._reactionDisposer?.();
