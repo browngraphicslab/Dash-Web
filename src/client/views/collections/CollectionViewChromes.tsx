@@ -400,13 +400,13 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                             style={{
                                 top: collapsed ? 70 : 10,
                                 transform: `rotate(${collapsed ? 180 : 0}deg) scale(0.5) translate(${collapsed ? "-100%, -100%" : "0, 0"})`,
-                                pointerEvents: collapsed ? "none" : undefined,
                                 opacity: (collapsed && !this.props.CollectionView.props.isSelected()) ? 0 : 0.9,
                                 left: (collapsed ? 0 : "unset"),
                             }}
                             title="Collapse collection chrome" onClick={this.toggleCollapse}>
                             <FontAwesomeIcon icon="caret-up" size="2x" />
-                        </button><div className="collectionViewBaseChrome-template" style={{ marginLeft: 25, display: collapsed ? "none" : undefined }}>
+                        </button>
+                        <div className="collectionViewBaseChrome-template" style={{ marginLeft: 25, display: collapsed ? "none" : undefined }}>
                             <div className="commandEntry-outerDiv" title="drop document to apply or drag to create button" ref={this._viewRef} onPointerDown={this.dragViewDown}>
                                 <div className="commandEntry-drop">
                                     <FontAwesomeIcon icon="bullseye" size="2x"></FontAwesomeIcon>
@@ -415,7 +415,6 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                                     className="collectionViewBaseChrome-viewPicker"
                                     onPointerDown={stopPropagation}
                                     onChange={this.viewChanged}
-                                    style={{ display: collapsed ? "none" : undefined }}
                                     value={NumCast(this.props.CollectionView.props.Document._viewType)}>
                                     <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="1">Freeform</option>
                                     <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="2">Schema</option>
