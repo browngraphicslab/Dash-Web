@@ -400,6 +400,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                             style={{
                                 top: collapsed ? 70 : 10,
                                 transform: `rotate(${collapsed ? 180 : 0}deg) scale(0.5) translate(${collapsed ? "-100%, -100%" : "0, 0"})`,
+                                pointerEvents: collapsed ? "none" : undefined,
                                 opacity: (collapsed && !this.props.CollectionView.props.isSelected()) ? 0 : 0.9,
                                 left: (collapsed ? 0 : "unset"),
                             }}

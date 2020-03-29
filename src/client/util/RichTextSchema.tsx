@@ -906,15 +906,13 @@ export class DashFieldView {
                 if (modText) {
                     self._fieldSpan.innerHTML = self._dashDoc![self._fieldKey] = modText;
                     Doc.addFieldEnumerations(self._textBoxDoc, self._fieldKey, []);
-                } else if (!self._fieldSpan.innerText.startsWith(":=") && !self._fieldSpan.innerText.startsWith("=:=")) {
-                    self._dashDoc![self._fieldKey] = newText;
-                }
-
-                // if the text starts with a ':=' then treat it as an expression by making a computed field from its value storing it in the key
-                if (self._fieldSpan.innerText.startsWith(":=") && self._dashDoc) {
-                    self._dashDoc[self._fieldKey] = ComputedField.MakeFunction(self._fieldSpan.innerText.substring(2));
-                } else if (self._fieldSpan.innerText.startsWith("=:=") && self._dashDoc) {
+                } // if the text starts with a ':=' then treat it as an expression by making a computed field from its value storing it in the key
+                else if (self._fieldSpan.innerText.startsWith(":=")) {
+                    self._dashDoc![self._fieldKey] = ComputedField.MakeFunction(self._fieldSpan.innerText.substring(2));
+                } else if (self._fieldSpan.innerText.startsWith("=:=")) {
                     Doc.Layout(tbox.props.Document)[self._fieldKey] = ComputedField.MakeFunction(self._fieldSpan.innerText.substring(3));
+                } else {
+                    self._dashDoc![self._fieldKey] = newText;
                 }
             });
         };
@@ -928,13 +926,8 @@ export class DashFieldView {
         this._fieldCheck.style.minWidth = "12px";
         this._fieldCheck.style.backgroundColor = "rgba(155, 155, 155, 0.24)";
         this._fieldCheck.onchange = function (e: any) {
-            // look for a document whose id === the fieldKey being displayed.  If there's a match, then that document
-            // holds the different enumerated values for the field in the titles of its collected documents.
-            // if there's a partial match from the start of the input text, complete the text --- TODO: make this an auto suggest box and select from a drop down.
-            const checked = e.target.checked;
-            DocServer.GetRefField(self._fieldKey).then(options => self._dashDoc![self._fieldKey] = checked);
+            self._dashDoc![self._fieldKey] = e.target.checked;
         }
-
 
         this._fieldSpan = document.createElement("div");
         this._fieldSpan.id = Utils.GenerateGuid();
@@ -950,12 +943,11 @@ export class DashFieldView {
 
         const setDashDoc = (doc: Doc) => {
             self._dashDoc = doc;
-            if (self._dashDoc && self._options?.length && !self._dashDoc[self._fieldKey]) {
+            if (self._options?.length && !self._dashDoc[self._fieldKey]) {
                 self._dashDoc[self._fieldKey] = StrCast(self._options[0].title);
             }
-            const layout = tbox.props.Document;
-            // NOTE: if the field key starts with "@", then the actual field key is stored in the "@"fieldKey.  Dereferencing these fields happens in ImageBox and RichTextSchema
-            self._fieldKey = self._fieldKey.startsWith("@") ? StrCast(layout[StrCast(self._fieldKey).substring(1)]) : self._fieldKey;
+            // NOTE: if the field key starts with "@", then the actual field key is stored in the field 'fieldKey' (removing the @).
+            self._fieldKey = self._fieldKey.startsWith("@") ? StrCast(tbox.props.Document[StrCast(self._fieldKey).substring(1)]) : self._fieldKey;
             this._labelSpan.innerHTML = `${self._fieldKey}: `;
             const fieldVal = Cast(this._dashDoc?.[self._fieldKey], "boolean", null);
             this._fieldCheck.style.display = (fieldVal === true || fieldVal === false) ? "inline-block" : "none";
