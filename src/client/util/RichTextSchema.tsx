@@ -723,6 +723,7 @@ export class DashDocView {
     _outer: HTMLElement;
     _dashDoc: Doc | undefined;
     _reactionDisposer: IReactionDisposer | undefined;
+    _renderDisposer: IReactionDisposer | undefined;
     _textBox: FormattedTextBox;
 
     getDocTransform = () => {
@@ -804,55 +805,64 @@ export class DashDocView {
             dashLayoutDoc !== dashDoc || !Doc.AreProtosEqual(this._textBox.dataDoc, this._textBox.props.Document) ? this._textBox.dataDoc : undefined, node.attrs.fieldKey));
         if (!finalLayout) setTimeout(() => self.doRender(dashDoc, removeDoc, node, view, getPos), 0);
         else {
-            if (!Doc.AreProtosEqual(finalLayout, dashDoc)) {
-                finalLayout.expandedTemplate = dashDoc.aliasOf;
-            }
-            const layoutKey = StrCast(finalLayout.layoutKey);
-            const finalKey = layoutKey && StrCast(finalLayout[layoutKey]).split("'")?.[1];
-            if (finalLayout !== dashDoc && finalKey) {
-                const finalLayoutField = finalLayout[finalKey];
-                if (finalLayoutField instanceof ObjectField) {
-                    finalLayout[finalKey + "-textTemplate"] = ComputedField.MakeFunction(`copyField(this.${finalKey})`, { this: Doc.name });
-                }
-            }
             this._reactionDisposer?.();
             this._reactionDisposer = reaction(() => ({ dim: [finalLayout[WidthSym](), finalLayout[HeightSym]()], color: finalLayout.color }), ({ dim, color }) => {
                 this._dashSpan.style.width = this._outer.style.width = Math.max(20, dim[0]) + "px";
                 this._dashSpan.style.height = this._outer.style.height = Math.max(20, dim[1]) + "px";
                 this._outer.style.border = "1px solid " + StrCast(finalLayout.color, (Cast(Doc.UserDoc().activeWorkspace, Doc, null).darkScheme ? "dimGray" : "lightGray"));
             }, { fireImmediately: true });
-            ReactDOM.render(<DocumentView
-                Document={finalLayout}
-                DataDoc={Cast(finalLayout.resolvedDataDoc, Doc, null)}
-                LibraryPath={this._textBox.props.LibraryPath}
-                fitToBox={BoolCast(dashDoc._fitToBox)}
-                addDocument={returnFalse}
-                removeDocument={removeDoc}
-                ScreenToLocalTransform={this.getDocTransform}
-                addDocTab={this._textBox.props.addDocTab}
-                pinToPres={returnFalse}
-                renderDepth={self._textBox.props.renderDepth + 1}
-                PanelWidth={finalLayout[WidthSym]}
-                PanelHeight={finalLayout[HeightSym]}
-                focus={this.outerFocus}
-                backgroundColor={returnEmptyString}
-                parentActive={returnFalse}
-                whenActiveChanged={returnFalse}
-                bringToFront={emptyFunction}
-                zoomToScale={emptyFunction}
-                getScale={returnOne}
-                dontRegisterView={false}
-                ContainingCollectionView={this._textBox.props.ContainingCollectionView}
-                ContainingCollectionDoc={this._textBox.props.ContainingCollectionDoc}
-                ContentScaling={this.contentScaling}
-            />, this._dashSpan);
-            if (node.attrs.width !== dashDoc._width + "px" || node.attrs.height !== dashDoc._height + "px") {
-                try { // bcz: an exception will be thrown if two aliases are open at the same time when a doc view comment is made
-                    view.dispatch(view.state.tr.setNodeMarkup(getPos(), null, { ...node.attrs, width: dashDoc._width + "px", height: dashDoc._height + "px" }));
-                } catch (e) {
-                    console.log(e);
+            let doReactRender = (finalLayout: Doc, resolvedDataDoc: Doc) => {
+                ReactDOM.unmountComponentAtNode(this._dashSpan);
+                ReactDOM.render(<DocumentView
+                    Document={finalLayout}
+                    DataDoc={resolvedDataDoc}
+                    LibraryPath={this._textBox.props.LibraryPath}
+                    fitToBox={BoolCast(dashDoc._fitToBox)}
+                    addDocument={returnFalse}
+                    removeDocument={removeDoc}
+                    ScreenToLocalTransform={this.getDocTransform}
+                    addDocTab={this._textBox.props.addDocTab}
+                    pinToPres={returnFalse}
+                    renderDepth={self._textBox.props.renderDepth + 1}
+                    PanelWidth={finalLayout[WidthSym]}
+                    PanelHeight={finalLayout[HeightSym]}
+                    focus={this.outerFocus}
+                    backgroundColor={returnEmptyString}
+                    parentActive={returnFalse}
+                    whenActiveChanged={returnFalse}
+                    bringToFront={emptyFunction}
+                    zoomToScale={emptyFunction}
+                    getScale={returnOne}
+                    dontRegisterView={false}
+                    ContainingCollectionView={this._textBox.props.ContainingCollectionView}
+                    ContainingCollectionDoc={this._textBox.props.ContainingCollectionDoc}
+                    ContentScaling={this.contentScaling}
+                />, this._dashSpan);
+                if (node.attrs.width !== dashDoc._width + "px" || node.attrs.height !== dashDoc._height + "px") {
+                    try { // bcz: an exception will be thrown if two aliases are open at the same time when a doc view comment is made
+                        view.dispatch(view.state.tr.setNodeMarkup(getPos(), null, { ...node.attrs, width: dashDoc._width + "px", height: dashDoc._height + "px" }));
+                    } catch (e) {
+                        console.log(e);
+                    }
                 }
             }
+            this._renderDisposer?.();
+            this._renderDisposer = reaction(() => {
+                if (!Doc.AreProtosEqual(finalLayout, dashDoc)) {
+                    finalLayout.expandedTemplate = dashDoc.aliasOf;
+                }
+                const layoutKey = StrCast(finalLayout.layoutKey);
+                const finalKey = layoutKey && StrCast(finalLayout[layoutKey]).split("'")?.[1];
+                if (finalLayout !== dashDoc && finalKey) {
+                    const finalLayoutField = finalLayout[finalKey];
+                    if (finalLayoutField instanceof ObjectField) {
+                        finalLayout[finalKey + "-textTemplate"] = ComputedField.MakeFunction(`copyField(this.${finalKey})`, { this: Doc.name });
+                    }
+                }
+                return { finalLayout, resolvedDataDoc: Cast(finalLayout.resolvedDataDoc, Doc, null) };
+            },
+                (res) => doReactRender(res.finalLayout, res.resolvedDataDoc),
+                { fireImmediately: true });
         }
     }
     destroy() {
