@@ -170,7 +170,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         const height = () => this.getDocHeight(doc);
         return <ContentFittingDocumentView
             Document={doc}
-            DataDocument={doc[DataSym] !== doc && doc[DataSym]}
+            DataDocument={dataDoc || (doc[DataSym] !== doc && doc[DataSym])}
             backgroundColor={this.props.backgroundColor}
             LayoutDoc={this.props.childLayoutTemplate}
             LibraryPath={this.props.LibraryPath}

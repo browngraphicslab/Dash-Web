@@ -128,10 +128,6 @@ export function getter(target: any, in_prop: string | symbol | number, receiver:
         }
         if (target.__LAYOUT__) return target.__LAYOUT__[prop];
     }
-    if (typeof prop === "string" && prop.startsWith("@")) {
-        const expanded = target.__fields["expandedTemplate"];
-        if (expanded) return expanded.cache[target.__fields[prop.substring(1)]];
-    }
     if (prop === "then") {//If we're being awaited
         return undefined;
     }

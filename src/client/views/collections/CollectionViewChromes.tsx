@@ -394,13 +394,14 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                 transformOrigin: "top left",
                 width: `${this.props.PanelWidth() / Math.min(1, this.props.CollectionView.props.ScreenToLocalTransform().Scale)}px`
             }}>
-                <div className="collectionViewChrome" style={{ border: "unset" }}>
+                <div className="collectionViewChrome" style={{ border: "unset", pointerEvents: collapsed ? "none" : undefined }}>
                     <div className="collectionViewBaseChrome">
                         <button className="collectionViewBaseChrome-collapse"
                             style={{
                                 top: collapsed ? 70 : 10,
                                 transform: `rotate(${collapsed ? 180 : 0}deg) scale(0.5) translate(${collapsed ? "-100%, -100%" : "0, 0"})`,
-                                opacity: (collapsed && !this.props.CollectionView.props.isSelected()) ? 0 : 0.9,
+                                opacity: 0.9,
+                                display: (collapsed && !this.props.CollectionView.props.isSelected()) ? "none" : undefined,
                                 left: (collapsed ? 0 : "unset"),
                             }}
                             title="Collapse collection chrome" onClick={this.toggleCollapse}>
