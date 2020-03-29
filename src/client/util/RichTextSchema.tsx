@@ -768,7 +768,7 @@ export class DashDocView {
         };
         const alias = node.attrs.alias;
 
-        const docid = node.attrs.docid || tbox.props.DataDoc?.[Id] || tbox.dataDoc?.[Id];
+        const docid = node.attrs.docid || tbox.props.Document[Id];// tbox.props.DataDoc?.[Id] || tbox.dataDoc?.[Id];
         DocServer.GetRefField(docid + alias).then(async dashDoc => {
             if (!(dashDoc instanceof Doc)) {
                 alias && DocServer.GetRefField(docid).then(async dashDocBase => {
@@ -800,10 +800,13 @@ export class DashDocView {
         this._dashDoc = dashDoc;
         const self = this;
         const dashLayoutDoc = Doc.Layout(dashDoc);
-        const finalLayout = this._textBox.props.Document instanceof Doc && (Doc.expandTemplateLayout(dashLayoutDoc,
+        const finalLayout = node.attrs.docid ? dashDoc : this._textBox.props.Document instanceof Doc && (Doc.expandTemplateLayout(dashLayoutDoc,
             dashLayoutDoc !== dashDoc || !Doc.AreProtosEqual(this._textBox.dataDoc, this._textBox.props.Document) ? this._textBox.dataDoc : undefined, node.attrs.fieldKey));
         if (!finalLayout) setTimeout(() => self.doRender(dashDoc, removeDoc, node, view, getPos), 0);
         else {
+            if (!Doc.AreProtosEqual(finalLayout, dashDoc)) {
+                finalLayout.expandedTemplate = dashDoc.aliasOf;
+            }
             const layoutKey = StrCast(finalLayout.layoutKey);
             const finalKey = layoutKey && StrCast(finalLayout[layoutKey]).split("'")?.[1];
             if (finalLayout !== dashDoc && finalKey) {
@@ -820,7 +823,7 @@ export class DashDocView {
             }, { fireImmediately: true });
             ReactDOM.render(<DocumentView
                 Document={finalLayout}
-                DataDoc={!node.attrs.docid ? this._textBox.dataDoc : undefined}
+                DataDoc={Cast(finalLayout.resolvedDataDoc, Doc, null)}
                 LibraryPath={this._textBox.props.LibraryPath}
                 fitToBox={BoolCast(dashDoc._fitToBox)}
                 addDocument={returnFalse}

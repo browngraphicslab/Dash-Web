@@ -472,7 +472,7 @@ export namespace Doc {
     // in the future, field references could be written as @<someparam> and then arguments would be passed in the layout key as:
     //   layout_mytemplate(somparam=somearg).   
     // then any references to @someparam would be rewritten as accesses to 'somearg' on the expandedTemplate
-    export function expandTemplateLayout(templateLayoutDoc: Doc, targetDoc?: Doc, templateArgs?: string) {
+    export function expandTemplateLayout(templateLayoutDoc: Doc, targetDoc?: Doc, templateArgs?: string, templateParent?: Doc) {
         if (!WillExpandTemplateLayout(templateLayoutDoc, targetDoc) || !targetDoc) return templateLayoutDoc;
 
         const templateField = StrCast(templateLayoutDoc.isTemplateForField);  // the field that the template renders
@@ -497,7 +497,7 @@ export namespace Doc {
                     // the template's arguments are stored in params which is derefenced to find
                     // the actual field key where the parameterized template data is stored.
                     newLayoutDoc[params] = args;
-                    newLayoutDoc.expandedTemplate = targetDoc;
+                    newLayoutDoc.expandedTemplate = templateParent || targetDoc;
                     targetDoc[expandedLayoutFieldKey] = newLayoutDoc;
                     const dataDoc = Doc.GetProto(targetDoc);
                     newLayoutDoc.resolvedDataDoc = dataDoc;
@@ -519,7 +519,7 @@ export namespace Doc {
         }
         const existingResolvedDataDoc = childDoc[DataSym] !== Doc.GetProto(childDoc)[DataSym] && childDoc[DataSym];
         const resolvedDataDoc = existingResolvedDataDoc || (Doc.AreProtosEqual(containerDataDoc, containerDoc) || !containerDataDoc || (!childDoc.isTemplateDoc && !childDoc.isTemplateForField) ? undefined : containerDataDoc);
-        return { layout: Doc.expandTemplateLayout(childDoc, resolvedDataDoc, "(" + StrCast(containerDoc["PARAMS"]) + ")"), data: resolvedDataDoc };
+        return { layout: Doc.expandTemplateLayout(childDoc, resolvedDataDoc, "(" + StrCast(containerDoc["PARAMS"]) + ")", Cast(containerDoc.expandedTemplate, Doc, null)), data: resolvedDataDoc };
     }
 
     export function Overwrite(doc: Doc, overwrite: Doc, copyProto: boolean = false): Doc {

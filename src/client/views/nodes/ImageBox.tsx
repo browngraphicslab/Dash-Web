@@ -258,10 +258,9 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
             width: NumCast(this.dataDoc[this.fieldKey + "-nativeWidth"]),
             height: NumCast(this.dataDoc[this.fieldKey + "-nativeHeight"])
         };
-        const cachedImgPath = this.dataDoc[this.fieldKey + "-imgPath"];
         const docAspect = this.Document[HeightSym]() / this.Document[WidthSym]();
         const cachedAspect = cachedNativeSize.height / cachedNativeSize.width;
-        if (!cachedNativeSize.width || !cachedNativeSize.height || Math.abs(NumCast(this.layoutDoc._width) / NumCast(this.layoutDoc._height) - cachedNativeSize.width / cachedNativeSize.height) > 0.05 || imgPath !== cachedImgPath) {
+        if (!cachedNativeSize.width || !cachedNativeSize.height || Math.abs(NumCast(this.layoutDoc._width) / NumCast(this.layoutDoc._height) - cachedNativeSize.width / cachedNativeSize.height) > 0.05) {
             if (!this.layoutDoc.isTemplateDoc || this.dataDoc !== this.layoutDoc) {
                 requestImageSize(imgPath).then((inquiredSize: any) => {
                     const rotation = NumCast(this.dataDoc[this.fieldKey + "-rotation"]) % 180;
@@ -273,7 +272,6 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
                             this.dataDoc[this.fieldKey + "-nativeWidth"] = this.Document._nativeWidth = rotatedNativeSize.width;
                             this.dataDoc[this.fieldKey + "-nativeHeight"] = this.Document._nativeHeight = rotatedNativeSize.height;
                         }
-                        this.dataDoc[this.fieldKey + "-imgPath"] = imgPath;
                     }), 0);
                 }).catch((err: any) => console.log(err));
             } else if (Math.abs(1 - docAspect / cachedAspect) > 0.1) {
