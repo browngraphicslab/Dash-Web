@@ -15,6 +15,7 @@ import { ImageField } from "../../new_fields/URLField";
 // after it has been converted to
 export function makeTemplate(doc: Doc, first: boolean = true, rename: Opt<string> = undefined): boolean {
     const layoutDoc = doc.layout instanceof Doc && doc.layout.isTemplateForField ? doc.layout : doc;
+    if (layoutDoc.layout instanceof Doc) return true;
     const layout = StrCast(layoutDoc.layout).match(/fieldKey={'[^']*'}/)![0];
     const fieldKey = layout.replace("fieldKey={'", "").replace(/'}$/, "");
     const docs = DocListCast(layoutDoc[fieldKey]);
