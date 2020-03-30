@@ -57,6 +57,8 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     isSelected: (outsideReaction: boolean) => boolean,
     select: (ctrl: boolean) => void,
     layoutKey: string,
+    forceLayout?: string,
+    forceFieldKey?: string
 }> {
     @computed get layout(): string {
         TraceMobx();
@@ -94,20 +96,23 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     render() {
         TraceMobx();
         return (this.props.renderDepth > 12 || !this.layout || !this.layoutDoc) ? (null) :
-            <ObserverJsxParser
-                blacklistedAttrs={[]}
-                components={{
-                    FormattedTextBox, ImageBox, DirectoryImportBox, FontIconBox, ButtonBox, SliderBox, FieldView,
-                    CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox,
-                    PDFBox, VideoBox, AudioBox, HistogramBox, PresBox, YoutubeBox, PresElementBox, QueryBox,
-                    ColorBox, DashWebRTCVideo, DocuLinkBox, InkingStroke, DocumentBox, LinkBox,
-                    RecommendationsBox, ScreenshotBox
-                }}
-                bindings={this.CreateBindings()}
-                jsx={this.layout}
-                showWarnings={true}
+            this.props.forceLayout === "FormattedTextBox" && this.props.forceFieldKey ?
+                <FormattedTextBox {...this.CreateBindings().props} fieldKey={this.props.forceFieldKey} />
+                :
+                <ObserverJsxParser
+                    blacklistedAttrs={[]}
+                    components={{
+                        FormattedTextBox, ImageBox, DirectoryImportBox, FontIconBox, ButtonBox, SliderBox, FieldView,
+                        CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox,
+                        PDFBox, VideoBox, AudioBox, HistogramBox, PresBox, YoutubeBox, PresElementBox, QueryBox,
+                        ColorBox, DashWebRTCVideo, DocuLinkBox, InkingStroke, DocumentBox, LinkBox,
+                        RecommendationsBox, ScreenshotBox
+                    }}
+                    bindings={this.CreateBindings()}
+                    jsx={this.layout}
+                    showWarnings={true}
 
-                onError={(test: any) => { console.log(test); }}
-            />;
+                    onError={(test: any) => { console.log(test); }}
+                />;
     }
 }

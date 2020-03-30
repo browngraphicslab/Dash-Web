@@ -776,7 +776,7 @@ export class DashDocView {
                     if (dashDocBase instanceof Doc) {
                         const aliasedDoc = Doc.MakeAlias(dashDocBase, docid + alias);
                         aliasedDoc.layoutKey = "layout";
-                        node.attrs.fieldKey !== "layout" && DocumentView.makeCustomViewClicked(aliasedDoc, undefined, Docs.Create.StackingDocument, node.attrs.fieldKey, undefined);
+                        node.attrs.fieldKey && DocumentView.makeCustomViewClicked(aliasedDoc, undefined, Docs.Create.StackingDocument, node.attrs.fieldKey, undefined);
                         self.doRender(aliasedDoc, removeDoc, node, view, getPos);
                     }
                 });
@@ -801,8 +801,7 @@ export class DashDocView {
         this._dashDoc = dashDoc;
         const self = this;
         const dashLayoutDoc = Doc.Layout(dashDoc);
-        const finalLayout = node.attrs.docid ? dashDoc : this._textBox.props.Document instanceof Doc && (Doc.expandTemplateLayout(dashLayoutDoc,
-            dashLayoutDoc !== dashDoc || !Doc.AreProtosEqual(this._textBox.dataDoc, this._textBox.props.Document) ? this._textBox.dataDoc : undefined, node.attrs.fieldKey));
+        const finalLayout = node.attrs.docid ? dashDoc : Doc.expandTemplateLayout(dashLayoutDoc, dashDoc, node.attrs.fieldKey);
         if (!finalLayout) setTimeout(() => self.doRender(dashDoc, removeDoc, node, view, getPos), 0);
         else {
             this._reactionDisposer?.();

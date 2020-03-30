@@ -118,8 +118,8 @@ export class RichTextRules {
             new InputRule(
                 new RegExp(/\{\{([a-zA-Z_ \-0-9]*)(\([a-zA-Z0-9…._\-]*\))?(:[a-zA-Z_ \-0-9]+)?\}\}$/),
                 (state, match, start, end) => {
-                    const fieldKey = match[1];
-                    const fieldParam = match[2]?.replace("…", "...");
+                    const fieldKey = match[1] || "";
+                    const fieldParam = match[2]?.replace("…", "...") || "";
                     const docid = match[3]?.substring(1);
                     if (!fieldKey && !docid) return state.tr;
                     docid && DocServer.GetRefField(docid).then(docx => {

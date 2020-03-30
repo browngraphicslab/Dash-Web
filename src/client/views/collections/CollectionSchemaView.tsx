@@ -119,11 +119,10 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     @computed
     get previewPanel() {
-        const layoutDoc = this.previewDocument ? Doc.expandTemplateLayout(this.previewDocument, this.props.DataDoc) : undefined;
         return <div ref={this.createTarget}>
             <ContentFittingDocumentView
-                Document={layoutDoc}
-                DataDocument={this.previewDocument !== this.props.DataDoc ? this.props.DataDoc : undefined}
+                Document={this.previewDocument}
+                DataDocument={undefined}
                 LibraryPath={this.props.LibraryPath}
                 childDocs={this.childDocs}
                 renderDepth={this.props.renderDepth}

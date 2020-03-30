@@ -28,7 +28,6 @@ export class DocumentManager {
 
     //private constructor so no other class can create a nodemanager
     private constructor() {
-        // this.DocumentViews = new Array<DocumentView>();
     }
 
     //gets all views
