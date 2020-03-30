@@ -24,7 +24,7 @@ export function makeTemplate(doc: Doc, first: boolean = true, rename: Opt<string
     let any = false;
     docs.forEach(d => {
         if (!StrCast(d.title).startsWith("-")) {
-            const params = StrCast(d.title).match(/\(([a-zA-Z0-9_-]*)\)/)?.[1].replace("()", "");
+            const params = StrCast(d.title).match(/\(([a-zA-Z0-9._\-]*)\)/)?.[1].replace("()", "");
             if (params) {
                 any = makeTemplate(d, false) || any;
                 d.PARAMS = params;
