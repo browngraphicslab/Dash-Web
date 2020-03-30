@@ -490,9 +490,10 @@ export namespace Doc {
             expandedTemplateLayout = undefined;
         }
         else if (expandedTemplateLayout === undefined) {
-            if (templateLayoutDoc.resolvedDataDoc === Doc.GetProto(targetDoc)) {
-                expandedTemplateLayout = templateLayoutDoc;
+            if (templateLayoutDoc.resolvedDataDoc === Doc.GetProto(targetDoc) && templateLayoutDoc.PARAMS === StrCast(targetDoc.PARAMS)) {
+                expandedTemplateLayout = templateLayoutDoc; // reuse an existing template layout if its for the same document with the same params
             } else {
+                templateLayoutDoc.resolvedDataDoc && (templateLayoutDoc = Cast(templateLayoutDoc.proto, Doc, null) || templateLayoutDoc); // if the template has already been applied (ie, a nested template), then use the template's prototype
                 setTimeout(action(() => {
                     if (!targetDoc[expandedLayoutFieldKey]) {
                         const newLayoutDoc = Doc.MakeDelegate(templateLayoutDoc, undefined, "[" + templateLayoutDoc.title + "]");
@@ -504,7 +505,7 @@ export namespace Doc {
                         const dataDoc = Doc.GetProto(targetDoc);
                         newLayoutDoc.resolvedDataDoc = dataDoc;
                         if (dataDoc[templateField] === undefined && templateLayoutDoc[templateField] instanceof List) {
-                            dataDoc[templateField] = ComputedField.MakeFunction(`ObjectField.MakeCopy(templateLayoutDoc["${templateField}"] as List)`, { templateLayoutDoc: Doc.name }, { templateLayoutDoc: templateLayoutDoc });
+                            dataDoc[templateField] = ComputedField.MakeFunction(`ObjectField.MakeCopy(templateLayoutDoc["${templateField}"] as List)`, { templateLayoutDoc: Doc.name }, { templateLayoutDoc });
                         }
                     }
                 }), 0);
