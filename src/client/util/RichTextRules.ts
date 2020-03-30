@@ -116,7 +116,7 @@ export class RichTextRules {
                 }),
             // create an inline view of a document {{ <layoutKey> : <Doc> }}  // {{:Doc}} => show default view of document   {{<layout>}} => show layout for this doc   {{<layout> : Doc}} => show layout for another doc
             new InputRule(
-                new RegExp(/\{\{([a-zA-Z_ \-0-9]*)(\(([a-zA-Z0-9…._\-]*)\))?(:[a-zA-Z_ \-0-9]+)?\}\}$/),
+                new RegExp(/\{\{([a-zA-Z_ \-0-9]*)(\([a-zA-Z0-9…._\-]*\))?(:[a-zA-Z_ \-0-9]+)?\}\}$/),
                 (state, match, start, end) => {
                     const fieldKey = match[1];
                     const fieldParam = match[2]?.replace("…", "...");
