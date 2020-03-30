@@ -125,7 +125,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             }
 
             const dfield = this.dataField;
-            const rawdocs = (dfield instanceof Doc) ? [dfield] : Cast(dfield, listSpec(Doc), this.props.Document.expandedTemplate && !this.props.annotationsKey ? [Cast(this.props.Document.expandedTemplate, Doc, null)] : []);
+            const rawdocs = (dfield instanceof Doc) ? [dfield] : Cast(dfield, listSpec(Doc), this.props.Document.rootDocument && !this.props.annotationsKey ? [Cast(this.props.Document.rootDocument, Doc, null)] : []);
             const docs = rawdocs.filter(d => !(d instanceof Promise)).map(d => d as Doc);
             const viewSpecScript = Cast(this.props.Document.viewSpecScript, ScriptField);
             const childDocs = viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;

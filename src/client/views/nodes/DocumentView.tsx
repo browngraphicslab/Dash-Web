@@ -291,7 +291,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 SelectionManager.DeselectAll();
                 UndoManager.RunInBatch(() => this.onClickHandler!.script.run({
                     this: this.props.Document,
-                    self: Cast(this.props.Document.expandedTemplate, Doc, null) || this.props.Document,
+                    self: Cast(this.props.Document.rootDocument, Doc, null) || this.props.Document,
                     containingCollection: this.props.ContainingCollectionDoc, shiftKey: e.shiftKey
                 }, console.log) && !this.props.Document.dontSelect && !this.props.Document.isButton && this.select(false), "on click");
             } else if (this.Document.type === DocumentType.BUTTON) {

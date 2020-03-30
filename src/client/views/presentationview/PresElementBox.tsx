@@ -50,7 +50,7 @@ export class PresElementBox extends DocExtendableComponent<FieldViewProps, PresD
     _heightDisposer: IReactionDisposer | undefined;
     @computed get indexInPres() { return NumCast(this.presElementDoc?.presentationIndex); }
     @computed get presBoxDoc() { return Cast(this.presElementDoc?.presBox, Doc) as Doc; }
-    @computed get presElementDoc() { return this.props.Document.expandedTemplate as Doc; }
+    @computed get presElementDoc() { return this.props.Document.rootDocument as Doc; }
     @computed get presLayoutDoc() { return this.props.Document; }
     @computed get targetDoc() { return this.presElementDoc?.presentationTargetDoc as Doc; }
     @computed get currentIndex() { return NumCast(this.presBoxDoc?._itemIndex); }

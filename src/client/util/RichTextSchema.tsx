@@ -849,7 +849,7 @@ export class DashDocView {
             this._renderDisposer?.();
             this._renderDisposer = reaction(() => {
                 if (!Doc.AreProtosEqual(finalLayout, dashDoc)) {
-                    finalLayout.expandedTemplate = dashDoc.aliasOf;
+                    finalLayout.rootDocument = dashDoc.aliasOf;
                 }
                 const layoutKey = StrCast(finalLayout.layoutKey);
                 const finalKey = layoutKey && StrCast(finalLayout[layoutKey]).split("'")?.[1];

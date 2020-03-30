@@ -389,7 +389,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         const funcs: ContextMenuProps[] = [];
         this.props.Document.isTemplateDoc && funcs.push({ description: "Make Default Layout", event: async () => Doc.UserDoc().defaultTextLayout = new PrefetchProxy(this.props.Document), icon: "eye" });
         funcs.push({ description: "Reset Default Layout", event: () => Doc.UserDoc().defaultTextLayout = undefined, icon: "eye" });
-        !this.props.Document.expandedTemplate && funcs.push({
+        !this.props.Document.rootDocument && funcs.push({
             description: "Make Template", event: () => {
                 this.props.Document.isTemplateDoc = makeTemplate(this.props.Document, true);
                 Doc.AddDocToList(Cast(Doc.UserDoc().noteTypes, Doc, null), "data", this.props.Document);
@@ -822,7 +822,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
             }
         }
 
-        const selectOnLoad = (Cast(this.props.Document.expandedTemplate, Doc, null) || this.props.Document)[Id] === FormattedTextBox.SelectOnLoad;
+        const selectOnLoad = (Cast(this.props.Document.rootDocument, Doc, null) || this.props.Document)[Id] === FormattedTextBox.SelectOnLoad;
         if (selectOnLoad && !this.props.dontRegisterView) {
             FormattedTextBox.SelectOnLoad = "";
             this.props.select(false);

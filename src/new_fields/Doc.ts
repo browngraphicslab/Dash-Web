@@ -468,10 +468,10 @@ export namespace Doc {
     // templateArgs should be equivalent to the layout key that generates the template since that's where the template parameters are stored in ()'s at the end of the key.
     // NOTE:  the template will have references to "@params" -- the template arguments will be assigned to the '@params' field
     // so that when the @params key is accessed, it will be rewritten as the key that is stored in the 'params' field and
-    // the derefence will then occur on the expandedTemplate (the original document).
+    // the derefence will then occur on the rootDocument (the original document).
     // in the future, field references could be written as @<someparam> and then arguments would be passed in the layout key as:
     //   layout_mytemplate(somparam=somearg).   
-    // then any references to @someparam would be rewritten as accesses to 'somearg' on the expandedTemplate
+    // then any references to @someparam would be rewritten as accesses to 'somearg' on the rootDocument
     export function expandTemplateLayout(templateLayoutDoc: Doc, targetDoc?: Doc, templateArgs?: string) {
         const args = templateArgs?.match(/\(([a-zA-Z0-9._\-]*)\)/)?.[1].replace("()", "") || StrCast(templateLayoutDoc.PARAMS);
         if (!args && !WillExpandTemplateLayout(templateLayoutDoc, targetDoc) || !targetDoc) return templateLayoutDoc;
@@ -499,8 +499,8 @@ export namespace Doc {
                         const newLayoutDoc = Doc.MakeDelegate(templateLayoutDoc, undefined, "[" + templateLayoutDoc.title + "]");
                         // the template's arguments are stored in params which is derefenced to find
                         // the actual field key where the parameterized template data is stored.
-                        newLayoutDoc[params] = args !== "..." ? args : ""; // ... signifies the layout has sub template(s) -- so we have to expand the layout for them so that they can get the correct 'expandedTemplate' field, but we don't need to reassign their params.  it would be better if the 'expandedTemplate' field could be passed dynamically to avoid have to create instances
-                        newLayoutDoc.expandedTemplate = targetDoc;
+                        newLayoutDoc[params] = args !== "..." ? args : ""; // ... signifies the layout has sub template(s) -- so we have to expand the layout for them so that they can get the correct 'rootDocument' field, but we don't need to reassign their params.  it would be better if the 'rootDocument' field could be passed dynamically to avoid have to create instances
+                        newLayoutDoc.rootDocument = targetDoc;
                         targetDoc[expandedLayoutFieldKey] = newLayoutDoc;
                         const dataDoc = Doc.GetProto(targetDoc);
                         newLayoutDoc.resolvedDataDoc = dataDoc;
@@ -511,7 +511,7 @@ export namespace Doc {
                 }), 0);
             }
         }
-        return expandedTemplateLayout instanceof Doc ? expandedTemplateLayout : undefined; // layout is undefined if the expandedTemplate is pending.
+        return expandedTemplateLayout instanceof Doc ? expandedTemplateLayout : undefined; // layout is undefined if the expandedTemplateLayout is pending.
     }
 
     // if the childDoc is a template for a field, then this will return the expanded layout with its data doc.
@@ -882,10 +882,10 @@ export namespace Doc {
             Doc.AddDocToList((Doc.UserDoc().fieldTypes as Doc), "data", optionsCollection as Doc);
         }
         const options = optionsCollection as Doc;
-        const targetDoc = doc && Doc.GetProto(Cast(doc.expandedTemplate, Doc, null) || doc);
-        targetDoc && (targetDoc.backgroundColor = ComputedField.MakeFunction(`options.data.find(doc => doc.title === (this.expandedTemplate||this)["${enumeratedFieldKey}"])?._backgroundColor || "white"`, undefined, { options }));
-        targetDoc && (targetDoc.color = ComputedField.MakeFunction(`options.data.find(doc => doc.title === (this.expandedTemplate||this)["${enumeratedFieldKey}"]).color || "black"`, undefined, { options }));
-        targetDoc && (targetDoc.borderRounding = ComputedField.MakeFunction(`options.data.find(doc => doc.title === (this.expandedTemplate||this)["${enumeratedFieldKey}"]).borderRounding`, undefined, { options }));
+        const targetDoc = doc && Doc.GetProto(Cast(doc.rootDocument, Doc, null) || doc);
+        targetDoc && (targetDoc.backgroundColor = ComputedField.MakeFunction(`options.data.find(doc => doc.title === (this.rootDocument||this)["${enumeratedFieldKey}"])?._backgroundColor || "white"`, undefined, { options }));
+        targetDoc && (targetDoc.color = ComputedField.MakeFunction(`options.data.find(doc => doc.title === (this.rootDocument||this)["${enumeratedFieldKey}"]).color || "black"`, undefined, { options }));
+        targetDoc && (targetDoc.borderRounding = ComputedField.MakeFunction(`options.data.find(doc => doc.title === (this.rootDocument||this)["${enumeratedFieldKey}"]).borderRounding`, undefined, { options }));
         enumerations.map(enumeration => {
             const found = DocListCast(options.data).find(d => d.title === enumeration.title);
             if (found) {
