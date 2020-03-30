@@ -175,7 +175,8 @@ Scripting.addGlobal(function switchView(doc: Doc, template: Doc) {
 });
 
 Scripting.addGlobal(function templateIsUsed(templateDoc: Doc, firstDocTitlte: string) {
-    const firstDoc = SelectionManager.SelectedDocuments()[0].props.Document;
+    const firstDoc = SelectionManager.SelectedDocuments().length ? SelectionManager.SelectedDocuments()[0].props.Document : undefined;
+    if (!firstDoc) return false;
     const template = StrCast(templateDoc.dragFactory ? Cast(templateDoc.dragFactory, Doc, null)?.title : templateDoc.title);
     return StrCast(firstDoc.layoutKey) === "layout_" + template ? 'check' : 'unchecked';
     // return SelectionManager.SelectedDocuments().some(view => StrCast(view.props.Document.layoutKey) === "layout_" + template) ? 'check' : 'unchecked'

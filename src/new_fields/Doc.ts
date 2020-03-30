@@ -473,7 +473,8 @@ export namespace Doc {
     //   layout_mytemplate(somparam=somearg).   
     // then any references to @someparam would be rewritten as accesses to 'somearg' on the expandedTemplate
     export function expandTemplateLayout(templateLayoutDoc: Doc, targetDoc?: Doc, templateArgs?: string, templateParent?: Doc) {
-        if (!WillExpandTemplateLayout(templateLayoutDoc, targetDoc) || !targetDoc) return templateLayoutDoc;
+        const args = templateArgs?.match(/\(([a-zA-Z0-9_-]*)\)/)?.[1].replace("()", "") || StrCast(templateLayoutDoc.PARAMS);
+        if (!args && !WillExpandTemplateLayout(templateLayoutDoc, targetDoc) || !targetDoc) return templateLayoutDoc;
 
         const templateField = StrCast(templateLayoutDoc.isTemplateForField);  // the field that the template renders
         // First it checks if an expanded layout already exists -- if so it will be stored on the dataDoc
@@ -481,15 +482,14 @@ export namespace Doc {
         // If it doesn't find the expanded layout, then it makes a delegate of the template layout and
         // saves it on the data doc indexed by the template layout's id.
         //
-        const args = templateArgs?.match(/\(([a-zA-Z0-9_-]*)\)/)?.[1].replace("()", "") || "";
         const params = args.split("=").length > 1 ? args.split("=")[0] : "PARAMS";
         const layoutFielddKey = Doc.LayoutFieldKey(templateLayoutDoc);
         const expandedLayoutFieldKey = (templateField || layoutFielddKey) + "-layout[" + templateLayoutDoc[Id] + args + "]";
         let expandedTemplateLayout = targetDoc?.[expandedLayoutFieldKey];
         if (templateLayoutDoc.resolvedDataDoc instanceof Promise) {
             expandedTemplateLayout = undefined;
-        } else if (templateLayoutDoc.resolvedDataDoc === Doc.GetProto(targetDoc)) {
-            expandedTemplateLayout = templateLayoutDoc;
+            // } else if (templateLayoutDoc.resolvedDataDoc === Doc.GetProto(targetDoc)) {
+            //     expandedTemplateLayout = templateLayoutDoc;
         } else if (expandedTemplateLayout === undefined) {
             setTimeout(action(() => {
                 if (!targetDoc[expandedLayoutFieldKey]) {
@@ -497,7 +497,7 @@ export namespace Doc {
                     // the template's arguments are stored in params which is derefenced to find
                     // the actual field key where the parameterized template data is stored.
                     newLayoutDoc[params] = args;
-                    newLayoutDoc.expandedTemplate = templateParent || targetDoc;
+                    newLayoutDoc.expandedTemplate = targetDoc || templateParent;
                     targetDoc[expandedLayoutFieldKey] = newLayoutDoc;
                     const dataDoc = Doc.GetProto(targetDoc);
                     newLayoutDoc.resolvedDataDoc = dataDoc;
@@ -518,7 +518,7 @@ export namespace Doc {
             return { layout: childDoc, data: childDoc };
         }
         const existingResolvedDataDoc = childDoc[DataSym] !== Doc.GetProto(childDoc)[DataSym] && childDoc[DataSym];
-        const resolvedDataDoc = existingResolvedDataDoc || (Doc.AreProtosEqual(containerDataDoc, containerDoc) || !containerDataDoc || (!childDoc.isTemplateDoc && !childDoc.isTemplateForField) ? undefined : containerDataDoc);
+        const resolvedDataDoc = existingResolvedDataDoc || (Doc.AreProtosEqual(containerDataDoc, containerDoc) || !containerDataDoc || (!childDoc.isTemplateDoc && !childDoc.isTemplateForField && !childDoc.PARAMS) ? undefined : containerDataDoc);
         return { layout: Doc.expandTemplateLayout(childDoc, resolvedDataDoc, "(" + StrCast(containerDoc["PARAMS"]) + ")", Cast(containerDoc.expandedTemplate, Doc, null)), data: resolvedDataDoc };
     }
 

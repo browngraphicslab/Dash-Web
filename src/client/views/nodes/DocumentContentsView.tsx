@@ -78,7 +78,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         return proto instanceof Promise ? undefined : proto;
     }
     get layoutDoc() {
-        return Doc.expandTemplateLayout(this.props.LayoutDoc?.() || Doc.Layout(this.props.Document), this.props.Document, StrCast(this.props.Document.layoutKey));
+        return Doc.expandTemplateLayout(this.props.LayoutDoc?.() || Doc.Layout(this.props.Document), this.props.Document, "(" + StrCast(this.props.Document.PARAMS) + ")");
     }
 
     CreateBindings(): JsxBindings {

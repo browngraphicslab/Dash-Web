@@ -15,14 +15,22 @@ import { ImageField } from "../../new_fields/URLField";
 // after it has been converted to
 export function makeTemplate(doc: Doc, first: boolean = true, rename: Opt<string> = undefined): boolean {
     const layoutDoc = doc.layout instanceof Doc && doc.layout.isTemplateForField ? doc.layout : doc;
-    if (layoutDoc.layout instanceof Doc) return true;
+    if (layoutDoc.layout instanceof Doc) { // its already a template
+        return true;
+    }
     const layout = StrCast(layoutDoc.layout).match(/fieldKey={'[^']*'}/)![0];
     const fieldKey = layout.replace("fieldKey={'", "").replace(/'}$/, "");
     const docs = DocListCast(layoutDoc[fieldKey]);
     let any = false;
     docs.forEach(d => {
         if (!StrCast(d.title).startsWith("-")) {
-            any = Doc.MakeMetadataFieldTemplate(d, Doc.GetProto(layoutDoc)) || any;
+            const params = StrCast(d.title).match(/\(([a-zA-Z0-9_-]*)\)/)?.[1].replace("()", "");
+            if (params) {
+                any = makeTemplate(d, false) || any;
+                d.PARAMS = params;
+            } else {
+                any = Doc.MakeMetadataFieldTemplate(d, Doc.GetProto(layoutDoc)) || any;
+            }
         } else if (d.type === DocumentType.COL || d.data instanceof RichTextField) {
             any = makeTemplate(d, false) || any;
         }

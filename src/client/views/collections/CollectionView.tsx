@@ -313,8 +313,8 @@ export class CollectionView extends Touchable<FieldViewProps> {
     }
     @computed get _allFacets() {
         const facets = new Set<string>();
-        this.childDocs.forEach(child => Object.keys(Doc.GetProto(child)).forEach(key => facets.add(key)));
-        Doc.AreProtosEqual(this.dataDoc, this.props.Document) && this.childDocs.forEach(child => Object.keys(child).forEach(key => facets.add(key)));
+        this.childDocs.filter(child => child).forEach(child => Object.keys(Doc.GetProto(child)).forEach(key => facets.add(key)));
+        Doc.AreProtosEqual(this.dataDoc, this.props.Document) && this.childDocs.filter(child => child).forEach(child => Object.keys(child).forEach(key => facets.add(key)));
         return Array.from(facets);
     }
 
