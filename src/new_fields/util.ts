@@ -12,8 +12,9 @@ function _readOnlySetter(): never {
     throw new Error("Documents can't be modified in read-only mode");
 }
 
+let tracing = false;
 export function TraceMobx() {
-    // trace();
+    tracing && trace();
 }
 
 export interface GetterResult {

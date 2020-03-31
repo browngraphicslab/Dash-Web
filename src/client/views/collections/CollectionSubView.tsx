@@ -124,8 +124,17 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 filterFacets[key][value] = modifiers;
             }
 
-            const dfield = this.dataField;
-            const rawdocs = (dfield instanceof Doc) ? [dfield] : Cast(dfield, listSpec(Doc), this.props.Document.rootDocument && !this.props.annotationsKey ? [Cast(this.props.Document.rootDocument, Doc, null)] : []);
+            let rawdocs: (Doc | Promise<Doc>)[] = [];
+            if (this.dataField instanceof Doc) { // if collection data is just a document, then promote it to a singleton list;
+                rawdocs = [this.dataField];
+            } else if (Cast(this.dataField, listSpec(Doc), null)) { // otherwise, if the collection data is a list, then use it.  
+                rawdocs = Cast(this.dataField, listSpec(Doc), null);
+            } else {   // Finally, if it's not a doc or a list and the document is a template, we try to render the root doc.
+                // For example, if an image doc is rendered with a slide template, the template will try to render the data field as a collection.
+                // Since the data field is actually an image, we set the list of documents to the singleton of root document's proto which will be an image.
+                const rootDoc = Cast(this.props.Document.rootDocument, Doc, null);
+                rawdocs = rootDoc && !this.props.annotationsKey ? [Doc.GetProto(rootDoc)] : [];
+            }
             const docs = rawdocs.filter(d => !(d instanceof Promise)).map(d => d as Doc);
             const viewSpecScript = Cast(this.props.Document.viewSpecScript, ScriptField);
             const childDocs = viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;

@@ -883,9 +883,10 @@ export namespace Doc {
         }
         const options = optionsCollection as Doc;
         const targetDoc = doc && Doc.GetProto(Cast(doc.rootDocument, Doc, null) || doc);
-        targetDoc && (targetDoc.backgroundColor = ComputedField.MakeFunction(`options.data.find(doc => doc.title === (this.rootDocument||this)["${enumeratedFieldKey}"])?._backgroundColor || "white"`, undefined, { options }));
-        targetDoc && (targetDoc.color = ComputedField.MakeFunction(`options.data.find(doc => doc.title === (this.rootDocument||this)["${enumeratedFieldKey}"]).color || "black"`, undefined, { options }));
-        targetDoc && (targetDoc.borderRounding = ComputedField.MakeFunction(`options.data.find(doc => doc.title === (this.rootDocument||this)["${enumeratedFieldKey}"]).borderRounding`, undefined, { options }));
+        const docFind = `options.data.find(doc => doc.title === (this.rootDocument||this)["${enumeratedFieldKey}"])?`;
+        targetDoc && (targetDoc.backgroundColor = ComputedField.MakeFunction(docFind + `._backgroundColor || "white"`, undefined, { options }));
+        targetDoc && (targetDoc.color = ComputedField.MakeFunction(docFind + `.color || "black"`, undefined, { options }));
+        targetDoc && (targetDoc.borderRounding = ComputedField.MakeFunction(docFind + `.borderRounding`, undefined, { options }));
         enumerations.map(enumeration => {
             const found = DocListCast(options.data).find(d => d.title === enumeration.title);
             if (found) {
