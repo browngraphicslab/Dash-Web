@@ -123,16 +123,19 @@ export class IconButton extends React.Component<IconButtonProps>{
 
     selected = {
         opacity: 1,
-        backgroundColor: "rgb(128, 128, 128)"
+        backgroundColor: "#121721",
+        //backgroundColor: "rgb(128, 128, 128)"
     };
 
     notSelected = {
         opacity: 0.2,
+        backgroundColor: "#121721",
     };
 
     hoverStyle = {
         opacity: 1,
-        backgroundColor: "rgb(178, 206, 248)" //$darker-alt-accent
+        backgroundColor: "rgb(128, 128, 128)"
+        //backgroundColor: "rgb(178, 206, 248)" //$darker-alt-accent
     };
 
     @action.bound

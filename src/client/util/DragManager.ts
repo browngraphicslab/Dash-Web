@@ -267,6 +267,7 @@ export namespace DragManager {
     }
 
     function StartDrag(eles: HTMLElement[], dragData: { [id: string]: any }, downX: number, downY: number, options?: DragOptions, finishDrag?: (dropData: DragCompleteEvent) => void) {
+        console.log("drag");
         eles = eles.filter(e => e);
         if (!dragDiv) {
             dragDiv = document.createElement("div");

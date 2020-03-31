@@ -204,7 +204,7 @@ export class CurrentUserUtils {
             _width: 50, _height: 25, backgroundColor: "lightgrey", color: "rgb(34, 34, 34)", title: "Search", fontSize: 10,
             letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
             sourcePanel: Docs.Create.QueryDocument({
-                title: "search stack", ignoreClick: true
+                title: "search stack",
             }),
             targetContainer: sidebarContainer,
             lockedPosition: true,

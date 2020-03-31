@@ -261,7 +261,7 @@ export namespace Docs {
                 options: { backgroundColor: "transparent" }
             }],
             [DocumentType.SEARCHBOX, {
-                layout: { view: SearchBox },
+                layout: { view: SearchBox, dataField:data},
                 options: { width: 200, height: 200 },
             }]
         ]);

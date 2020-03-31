@@ -44,6 +44,10 @@
 
         &.searchBox-filter {
             align-self: stretch;
+            button:hover{
+                transform:scale(1.0);
+                background:"#121721";
+            }
         }
 
         &.searchBox-submit {
@@ -88,7 +92,7 @@
 
 .filter-form {
     position: relative;
-    background: black;
+    background: #121721;
     flex-direction: column;
     transform-origin: top;
     transition: height 0.3s ease, display 0.6s ease;
@@ -112,6 +116,8 @@
 
         .filter-item {
             position: relative;
+            border:1px solid grey;
+            border-radius: 16px;
 
         }
     }

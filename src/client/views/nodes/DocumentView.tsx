@@ -277,8 +277,16 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     onClick = async (e: React.MouseEvent | React.PointerEvent) => {
+        console.log(this.props.Document[Id])
+        console.log(e.nativeEvent.cancelBubble);
+        console.log(CurrentUserUtils.MainDocId !== this.props.Document[Id]);
+        console.log(Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD);
+        console.log(Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD);
+
         if (!e.nativeEvent.cancelBubble && !this.Document.ignoreClick && CurrentUserUtils.MainDocId !== this.props.Document[Id] &&
             (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD && Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD)) {
+            console.log("click");
+
             e.stopPropagation();
             let preventDefault = true;
             if (this._doubleTap && this.props.renderDepth && !this.onClickHandler?.script) { // disable double-click to show full screen for things that have an on click behavior since clicking them twice can be misinterpreted as a double click
@@ -292,11 +300,17 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             } else if (this.onClickHandler && this.onClickHandler.script) {
                 this.onClickHandler.script.run({ this: this.Document.isTemplateForField && this.props.DataDoc ? this.props.DataDoc : this.props.Document, containingCollection: this.props.ContainingCollectionDoc }, console.log);
             } else if (this.Document.type === DocumentType.BUTTON) {
+                console.log("button");
+
                 ScriptBox.EditButtonScript("On Button Clicked ...", this.props.Document, "onClick", e.clientX, e.clientY);
             } else if (this.props.Document.isButton === "Selector") {  // this should be moved to an OnClick script
                 FormattedTextBoxComment.Hide();
+                console.log("button2");
+
                 this.Document.links?.[0] instanceof Doc && (Doc.UserDoc().SelectedDocs = new List([Doc.LinkOtherAnchor(this.Document.links[0], this.props.Document)]));
             } else if (this.Document.isButton) {
+                console.log("button3");
+
                 SelectionManager.SelectDoc(this, e.ctrlKey); // don't think this should happen if a button action is actually triggered.
                 this.buttonClick(e.altKey, e.ctrlKey);
             } else {
@@ -465,6 +479,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     onPointerDown = (e: React.PointerEvent): void => {
+        console.log("ting");
         if (this.onPointerDownHandler && this.onPointerDownHandler.script) {
             this.onPointerDownHandler.script.run({ this: this.Document.isTemplateForField && this.props.DataDoc ? this.props.DataDoc : this.props.Document }, console.log);
             document.removeEventListener("pointerup", this.onPointerUp);

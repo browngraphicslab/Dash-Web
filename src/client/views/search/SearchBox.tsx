@@ -22,8 +22,11 @@ import { FieldView } from '../nodes/FieldView';
 
 library.add(faTimes);
 
+export interface SearchProps {
+    id:string;
+}
 @observer
-export class SearchBox extends React.Component {
+export class SearchBox extends React.Component<SearchProps> {
 
     @observable private _searchString: string = "";
     @observable private _resultsOpen: boolean = false;
@@ -260,7 +263,7 @@ export class SearchBox extends React.Component {
         }
         //return Docs.Create.TreeDocument(docs, { _width: 200, _height: 400, backgroundColor: "grey", title: `Search Docs: "${this._searchString}"` });
         //return Docs.Create.SearchDocument(docs, { _width: 200, _height: 400, searchText: this._searchString, title: `Search Docs: "${this._searchString}"` });
-        return Docs.Create.QueryDocument({
+        return Docs.Create.QueryDocument({_autoHeight: true, title: "-typed text-"
         });
     }
 
@@ -376,10 +379,10 @@ export class SearchBox extends React.Component {
     handleNodeChange = () => {
         this._nodeStatus = !this._nodeStatus;
         if (this._nodeStatus){
-            this.expandSection("node")
+            this.expandSection(`node${this.props.id}`)
         }
         else{
-            this.collapseSection("node")
+            this.collapseSection(`node${this.props.id}`)
         }
     }
 
@@ -392,11 +395,11 @@ export class SearchBox extends React.Component {
     handleFilterChange=() =>{
         this._filterOpen=!this._filterOpen;
         if (this._filterOpen){
-            this.expandSection("filterhead");
-            document.getElementById("filterhead")!.style.padding="5";        
+            this.expandSection(`filterhead${this.props.id}`);
+            document.getElementById(`filterhead${this.props.id}`)!.style.padding="5";        
         }
         else{
-            this.collapseSection("filterhead");
+            this.collapseSection(`filterhead${this.props.id}`);
                     
 
         }
@@ -411,6 +414,7 @@ export class SearchBox extends React.Component {
 
 
     collapseSection(thing:string) {
+        let id = this.props.id;
         let element= document.getElementById(thing)!;
         // get the height of the element's inner content, regardless of its actual size
         var sectionHeight = element.scrollHeight;
@@ -430,7 +434,7 @@ export class SearchBox extends React.Component {
           // have the element transition to height: 0
           requestAnimationFrame(function() {
             element.style.height = 0 + 'px';
-            thing == "filterhead"? document.getElementById("filterhead")!.style.padding="0" : null;
+            thing == `filterhead${id}`? document.getElementById(`filterhead${id}`)!.style.padding="0" : null;
           });
         });
         
@@ -478,7 +482,7 @@ export class SearchBox extends React.Component {
     render() {
 
         return (
-            <div className="searchBox-container" onPointerDown={e => { e.stopPropagation(); e.preventDefault(); }}>
+            <div className="searchBox-container">
                 <div className="searchBox-bar">
                     <span className="searchBox-barChild searchBox-collection" onPointerDown={SetupDrag(this.collectionRef, () => this._searchString ? this.startDragCollection() : undefined)} ref={this.collectionRef} title="Drag Results as Collection">
                         <FontAwesomeIcon icon="object-group" size="lg" />
@@ -489,13 +493,13 @@ export class SearchBox extends React.Component {
                     <button className="searchBox-barChild searchBox-filter" title="Advanced Filtering Options" onClick={() => this.handleFilterChange()}><FontAwesomeIcon icon="ellipsis-v" color="white" /></button>
                 </div>
 
-                <div id="filterhead" className="filter-form" >
-                    <div id="filterhead2" className="filter-header" style={this._filterOpen ? { } : { }}>
+                <div id={`filterhead${this.props.id}`} className="filter-form" >
+                    <div id={`filterhead2${this.props.id}`} className="filter-header" style={this._filterOpen ? { } : { }}>
                         <button className="filter-item" style={this._basicWordStatus ? { background: "#aaaaa3", } : {}} onClick={this.handleWordQueryChange}>Keywords</button>
                         <button className="filter-item" style={this._keyStatus ? { background: "#aaaaa3" } : {}} onClick={this.handleKeyChange}>Keys</button>
                         <button className="filter-item" style={this._nodeStatus ? { background: "#aaaaa3" } : {}} onClick={this.handleNodeChange}>Nodes</button>
                     </div>
-                    <div id="node" className="filter-body" style={this._nodeStatus ? {  } : { }}>
+                    <div id={`node${this.props.id}`} className="filter-body" style={this._nodeStatus ? {  } : { }}>
                         <IconBar />
                     </div>
                     <div style={this._keyStatus ? { display: "flex" } : { display: "none" }}>
