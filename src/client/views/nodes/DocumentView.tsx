@@ -962,7 +962,29 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     childScaling = () => (this.layoutDoc._fitWidth ? this.props.PanelWidth() / this.nativeWidth : this.props.ContentScaling());
     @computed get contents() {
         TraceMobx();
-        return (<DocumentContentsView {...OmitKeys(this.props, ['children']).omit}
+        return (<DocumentContentsView ContainingCollectionView={this.props.ContainingCollectionView}
+            ContainingCollectionDoc={this.props.ContainingCollectionDoc}
+            Document={this.props.Document}
+            DataDoc={this.props.DataDoc}
+            LayoutDoc={this.props.LayoutDoc}
+            fitToBox={this.props.fitToBox}
+            LibraryPath={this.props.LibraryPath}
+            addDocument={this.props.addDocument}
+            removeDocument={this.props.removeDocument}
+            moveDocument={this.props.moveDocument}
+            ScreenToLocalTransform={this.props.ScreenToLocalTransform}
+            renderDepth={this.props.renderDepth}
+            PanelWidth={this.props.PanelWidth}
+            PanelHeight={this.props.PanelHeight}
+            focus={this.props.focus}
+            parentActive={this.props.parentActive}
+            whenActiveChanged={this.props.whenActiveChanged}
+            bringToFront={this.props.bringToFront}
+            addDocTab={this.props.addDocTab}
+            pinToPres={this.props.pinToPres}
+            zoomToScale={this.props.zoomToScale}
+            backgroundColor={this.props.backgroundColor}
+            getScale={this.props.getScale}
             ContentScaling={this.childScaling}
             ChromeHeight={this.chromeHeight}
             isSelected={this.isSelected}
