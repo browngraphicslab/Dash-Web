@@ -521,8 +521,7 @@ export namespace Doc {
             console.log("No, no, no!");
             return { layout: childDoc, data: childDoc };
         }
-        const existingResolvedDataDoc = childDoc[DataSym] !== Doc.GetProto(childDoc)[DataSym] && childDoc[DataSym];
-        const resolvedDataDoc = existingResolvedDataDoc || (Doc.AreProtosEqual(containerDataDoc, containerDoc) || !containerDataDoc || (!childDoc.isTemplateDoc && !childDoc.isTemplateForField && !childDoc.PARAMS) ? undefined : containerDataDoc);
+        const resolvedDataDoc = (Doc.AreProtosEqual(containerDataDoc, containerDoc) || (!childDoc.isTemplateDoc && !childDoc.isTemplateForField && !childDoc.PARAMS) ? undefined : containerDataDoc);
         return { layout: Doc.expandTemplateLayout(childDoc, resolvedDataDoc, "(" + StrCast(containerDoc.PARAMS) + ")"), data: resolvedDataDoc };
     }
 
