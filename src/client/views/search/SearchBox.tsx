@@ -7,24 +7,34 @@ import * as React from 'react';
 import * as rp from 'request-promise';
 import { Doc } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
-import { Cast, NumCast } from '../../../new_fields/Types';
+import { Cast, NumCast, StrCast } from '../../../new_fields/Types';
 import { Utils } from '../../../Utils';
 import { Docs } from '../../documents/Documents';
 import { SetupDrag } from '../../util/DragManager';
 import { SearchUtil } from '../../util/SearchUtil';
-// import { FilterBox } from './FilterBox';
-// import "./FilterBox.scss";
 import "./SearchBox.scss";
 import { SearchItem } from './SearchItem';
 import { IconBar } from './IconBar';
 import { FieldFilters } from './FieldFilters';
 import { FieldView } from '../nodes/FieldView';
+import { DocumentType } from "../../documents/DocumentTypes";
+import { DocumentView } from '../nodes/DocumentView';
+import { SelectionManager } from '../../util/SelectionManager';
+
+
 
 library.add(faTimes);
 
 export interface SearchProps {
     id:string;
 }
+
+export enum Keys {
+    TITLE = "title",
+    AUTHOR = "author",
+    DATA = "data"
+}
+
 @observer
 export class SearchBox extends React.Component<SearchProps> {
 
@@ -59,11 +69,8 @@ export class SearchBox extends React.Component<SearchProps> {
 
     constructor(props: any) {
         super(props);
-
         SearchBox.Instance = this;
         this.resultsScrolled = this.resultsScrolled.bind(this);
-        //reaction(()=>document.getElementById("node")?.scrollHeight,()=>{console.log("longer")})
-
     }
 
     private _reactionDisposer?: IReactionDisposer;
@@ -74,7 +81,6 @@ export class SearchBox extends React.Component<SearchProps> {
             runInAction(() => {
                 this._searchbarOpen = true;
             });
-
         }
     }
 
@@ -126,17 +132,174 @@ export class SearchBox extends React.Component<SearchProps> {
         }
     }
 
+    public _allIcons: string[] = [DocumentType.AUDIO, DocumentType.COL, DocumentType.IMG, DocumentType.LINK, DocumentType.PDF, DocumentType.TEXT, DocumentType.VID, DocumentType.WEB, DocumentType.TEMPLATE];
+    //if true, any keywords can be used. if false, all keywords are required.
+    //this also serves as an indicator if the word status filter is applied
+    @observable private _filterOpen: boolean = false;
+    //if icons = all icons, then no icon filter is applied
+    @observable private _icons: string[] = this._allIcons;
+    //if all of these are true, no key filter is applied
+    @observable private _anyKeywordStatus: boolean = true;
+    @observable private _allKeywordStatus: boolean = true;
+    @observable private _titleFieldStatus: boolean = true;
+    @observable private _authorFieldStatus: boolean = true;
+    @observable private _dataFieldStatus: boolean = true;
+    //this also serves as an indicator if the collection status filter is applied
+    @observable public _deletedDocsStatus: boolean = false;
+    @observable private _collectionStatus = false;
+    @observable private _collectionSelfStatus = true;
+    @observable private _collectionParentStatus = true;
+
+
+    getFinalQuery(query: string): string {
+        //alters the query so it looks in the correct fields
+        //if this is true, then not all of the field boxes are checked
+        //TODO: data
+        if (this.fieldFiltersApplied) {
+            query = this.applyBasicFieldFilters(query);
+            query = query.replace(/\s+/g, ' ').trim();
+        }
+
+        //alters the query based on if all words or any words are required
+        //if this._wordstatus is false, all words are required and a + is added before each
+        if (!this._basicWordStatus) {
+            query = this.basicRequireWords(query);
+            query = query.replace(/\s+/g, ' ').trim();
+        }
+
+        //if should be searched in a specific collection
+        if (this._collectionStatus) {
+            query = this.addCollectionFilter(query);
+            query = query.replace(/\s+/g, ' ').trim();
+        }
+        return query;
+    }
+
+    basicRequireWords(query: string): string {
+        const oldWords = query.split(" ");
+        const newWords: string[] = [];
+        oldWords.forEach(word => {
+            const newWrd = "+" + word;
+            newWords.push(newWrd);
+        });
+        query = newWords.join(" ");
+
+        return query;
+    }
+
+    @action
+    filterDocsByType(docs: Doc[]) {
+        if (this._icons.length === 9) {
+            return docs;
+        }
+        const finalDocs: Doc[] = [];
+        docs.forEach(doc => {
+            const layoutresult = Cast(doc.type, "string");
+            if (layoutresult && this._icons.includes(layoutresult)) {
+                finalDocs.push(doc);
+            }
+        });
+        return finalDocs;
+    }
+
+    addCollectionFilter(query: string): string {
+        const collections: Doc[] = this.getCurCollections();
+        const oldWords = query.split(" ");
+
+        const collectionString: string[] = [];
+        collections.forEach(doc => {
+            const proto = doc.proto;
+            const protoId = (proto || doc)[Id];
+            const colString: string = "{!join from=data_l to=id}id:" + protoId + " ";
+            collectionString.push(colString);
+        });
+
+        let finalColString = collectionString.join(" ");
+        finalColString = finalColString.trim();
+        return "+(" + finalColString + ")" + query;
+    }
+
+    get filterTypes() {
+        return this._icons.length === 9 ? undefined : this._icons;
+    }
+
+
+//TODO: basically all of this
+    //gets all of the collections of all the docviews that are selected
+    //if a collection is the only thing selected, search only in that collection (not its container)
+    getCurCollections(): Doc[] {
+        const selectedDocs: DocumentView[] = SelectionManager.SelectedDocuments();
+        const collections: Doc[] = [];
+
+        selectedDocs.forEach(async element => {
+            const layout: string = StrCast(element.props.Document.layout);
+            //checks if selected view (element) is a collection. if it is, adds to list to search through
+            if (layout.indexOf("Collection") > -1) {
+                //makes sure collections aren't added more than once
+                if (!collections.includes(element.props.Document)) {
+                    collections.push(element.props.Document);
+                }
+            }
+            //makes sure collections aren't added more than once
+            if (element.props.ContainingCollectionDoc && !collections.includes(element.props.ContainingCollectionDoc)) {
+                collections.push(element.props.ContainingCollectionDoc);
+            }
+        });
+
+        return collections;
+    }
+
+
+    applyBasicFieldFilters(query: string) {
+        let finalQuery = "";
+
+        if (this._titleFieldStatus) {
+            finalQuery = finalQuery + this.basicFieldFilters(query, Keys.TITLE);
+        }
+        if (this._authorFieldStatus) {
+            finalQuery = finalQuery + this.basicFieldFilters(query, Keys.AUTHOR);
+        }
+        if (this._deletedDocsStatus) {
+            finalQuery = finalQuery + this.basicFieldFilters(query, Keys.DATA);
+        }
+        return finalQuery;
+    }
+
+    basicFieldFilters(query: string, type: string): string {
+        const oldWords = query.split(" ");
+        let mod = "";
+
+        if (type === Keys.AUTHOR) {
+            mod = " author_t:";
+        } if (type === Keys.DATA) {
+            //TODO
+        } if (type === Keys.TITLE) {
+            mod = " title_t:";
+        }
+
+        const newWords: string[] = [];
+        oldWords.forEach(word => {
+            const newWrd = mod + word;
+            newWords.push(newWrd);
+        });
+
+        query = newWords.join(" ");
+
+        return query;
+    }
+
+    get fieldFiltersApplied() { return !(this._authorFieldStatus && this._titleFieldStatus); }
+
+
+
     @action
     submitSearch = async () => {
         let query = this._searchString;
-        // query = FilterBox.Instance.getFinalQuery(query);
+        this.getFinalQuery(query);
         this._results = [];
         this._resultsSet.clear();
         this._isSearch = [];
         this._visibleElements = [];
-        // FilterBox.Instance.closeFilter();
-
-        //if there is no query there should be no result
         if (query === "") {
             return;
         }
@@ -156,16 +319,16 @@ export class SearchBox extends React.Component<SearchProps> {
     }
 
     getAllResults = async (query: string) => {
-        return SearchUtil.Search(query, true, { start: 0, rows: 10000000 });
-
-        //return SearchUtil.Search(query, true, { fq: this.filterQuery, start: 0, rows: 10000000 });
+        return SearchUtil.Search(query, true, { fq: this.filterQuery, start: 0, rows: 10000000 });
     }
 
-    // private get filterQuery() {
-    //     const types = FilterBox.Instance.filterTypes;
-    //     const includeDeleted = FilterBox.Instance.getDataStatus();
-    //     return "NOT baseProto_b:true" + (includeDeleted ? "" : " AND NOT deleted_b:true") + (types ? ` AND (${types.map(type => `({!join from=id to=proto_i}type_t:"${type}" AND NOT type_t:*) OR type_t:"${type}" OR type_t:"extension"`).join(" ")})` : "");
-    // }
+    private get filterQuery() {
+        const types = this.filterTypes;
+        const includeDeleted = this.getDataStatus();
+        return "NOT baseProto_b:true" + (includeDeleted ? "" : " AND NOT deleted_b:true") + (types ? ` AND (${types.map(type => `({!join from=id to=proto_i}type_t:"${type}" AND NOT type_t:*) OR type_t:"${type}" OR type_t:"extension"`).join(" ")})` : "");
+    }
+    getDataStatus() { return this._deletedDocsStatus; }
+
 
 
     private NumResults = 25;
@@ -176,9 +339,7 @@ export class SearchBox extends React.Component<SearchProps> {
         }
         this.lockPromise = new Promise(async res => {
             while (this._results.length <= this._endIndex && (this._numTotalResults === -1 || this._maxSearchIndex < this._numTotalResults)) {
-                //this._curRequest = SearchUtil.Search(query, true, { fq: this.filterQuery, start: this._maxSearchIndex, rows: this.NumResults, hl: true, "hl.fl": "*" }).then(action(async (res: SearchUtil.DocSearchResult) => {
-                this._curRequest = SearchUtil.Search(query, true, { start: this._maxSearchIndex, rows: this.NumResults, hl: true, "hl.fl": "*" }).then(action(async (res: SearchUtil.DocSearchResult) => {
-
+                this._curRequest = SearchUtil.Search(query, true, { fq: this.filterQuery, start: this._maxSearchIndex, rows: this.NumResults, hl: true, "hl.fl": "*" }).then(action(async (res: SearchUtil.DocSearchResult) => {
                     // happens at the beginning
                     if (res.numFound !== this._numTotalResults && this._numTotalResults === -1) {
                         this._numTotalResults = res.numFound;
@@ -191,10 +352,9 @@ export class SearchBox extends React.Component<SearchProps> {
                     const docs = await Promise.all(res.docs.map(async doc => (await Cast(doc.extendsDoc, Doc)) || doc));
                     const highlights: typeof res.highlighting = {};
                     docs.forEach((doc, index) => highlights[doc[Id]] = highlightList[index]);
-                    //const filteredDocs = FilterBox.Instance.filterDocsByType(docs);
-                    const filteredDocs = docs;
+                    const filteredDocs = this.filterDocsByType(docs);
                     runInAction(() => {
-                        // this._results.push(...filteredDocs);
+                        //this._results.push(...filteredDocs);
                         filteredDocs.forEach(doc => {
                             const index = this._resultsSet.get(doc);
                             const highlight = highlights[doc[Id]];
@@ -224,12 +384,8 @@ export class SearchBox extends React.Component<SearchProps> {
 
     collectionRef = React.createRef<HTMLSpanElement>();
     startDragCollection = async () => {
-        //const res = await this.getAllResults(FilterBox.Instance.getFinalQuery(this._searchString));
-        const res = await this.getAllResults(this._searchString);
-
-        //const filtered = FilterBox.Instance.filterDocsByType(res.docs);
-        const filtered = res.docs;
-        // console.log(this._results)
+        const res = await this.getAllResults(this.getFinalQuery(this._searchString));
+        const filtered = this.filterDocsByType(res.docs);
         const docs = filtered.map(doc => {
             const isProto = Doc.GetT(doc, "isPrototype", "boolean", true);
             if (isProto) {
@@ -271,15 +427,12 @@ export class SearchBox extends React.Component<SearchProps> {
     openSearch(e: React.SyntheticEvent) {
         e.stopPropagation();
         this._openNoResults = false;
-        //FilterBox.Instance.closeFilter();
         this._resultsOpen = true;
         this._searchbarOpen = true;
-        //FilterBox.Instance._pointerTime = e.timeStamp;
     }
 
     @action.bound
     closeSearch = () => {
-        //FilterBox.Instance.closeFilter();
         this.closeResults();
         this._searchbarOpen = false;
     }
@@ -367,8 +520,6 @@ export class SearchBox extends React.Component<SearchProps> {
     @computed
     get resultHeight() { return this._numTotalResults * 70; }
 
-    @observable private _filterOpen: boolean = false;
-
     //if true, any keywords can be used. if false, all keywords are required.
     @action.bound
     handleWordQueryChange = () => {
@@ -389,6 +540,12 @@ export class SearchBox extends React.Component<SearchProps> {
     @action.bound
     handleKeyChange = () => {
         this._keyStatus = !this._keyStatus;
+        if (this._keyStatus){
+            this.expandSection(`key${this.props.id}`);
+        }
+        else{
+            this.collapseSection(`key${this.props.id}`);
+        }
     }
 
     @action.bound  
@@ -499,11 +656,15 @@ export class SearchBox extends React.Component<SearchProps> {
                         <button className="filter-item" style={this._keyStatus ? { background: "#aaaaa3" } : {}} onClick={this.handleKeyChange}>Keys</button>
                         <button className="filter-item" style={this._nodeStatus ? { background: "#aaaaa3" } : {}} onClick={this.handleNodeChange}>Nodes</button>
                     </div>
-                    <div id={`node${this.props.id}`} className="filter-body" style={this._nodeStatus ? {  } : { }}>
+                    <div id={`node${this.props.id}`} className="filter-body" style={this._nodeStatus ? { borderTop: "grey 1px solid" }: {borderTop: "0px"}}>
                         <IconBar />
                     </div>
-                    <div style={this._keyStatus ? { display: "flex" } : { display: "none" }}>
-
+                    <div className="filter-key" id={`key${this.props.id}`} style={this._keyStatus ? { borderTop: "grey 1px solid" }: {borderTop: "0px"}}>
+                        <div className="filter-keybar">
+                            <button className="filter-item" >Title</button>
+                            <button className="filter-item" >Deleted Docs</button>
+                            <button className="filter-item" >Author</button>
+                        </div>
                     </div>
 
 

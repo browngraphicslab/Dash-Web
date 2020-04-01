@@ -103,6 +103,7 @@
     .filter-header {
         display: flex;
         position: relative;
+        flex-wrap:wrap;
         right: 1px;
         color: grey;
         flex-direction: row-reverse;
@@ -127,13 +128,44 @@
         right: 1px;
         color: grey;
         transform-origin: top;
-        border-top: grey 1px solid;
-        padding-top: 5px;
+        border-top: 0px;
+        //padding-top: 5px;
         margin-left: 10px;
         margin-right: 10px;
         overflow:hidden;
         transition:height 0.3s ease-out;
         height:0px;
+
+    }
+    .filter-key {
+        position: relative;
+        right: 1px;
+        color: grey;
+        transform-origin: top;
+        border-top: 0px;
+        //padding-top: 5px;
+        margin-left: 10px;
+        margin-right: 10px;
+        overflow:hidden;
+        transition:height 0.3s ease-out;
+        height:0px;
+        .filter-keybar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-evenly;
+            height: auto;
+            width: 100%;
+            flex-direction: row-reverse;
+            margin-top:5px;
+            
+            .filter-item {
+                position: relative;
+                border:1px solid grey;
+                border-radius: 16px;
+    
+            }
+        }
+
 
     }
 }
