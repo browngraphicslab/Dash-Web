@@ -1010,8 +1010,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 {StrCast(this.props.Document.title)}
                 {this.Document.links && DocListCast(this.Document.links).filter(d => !d.hidden).filter(this.isNonTemporalLink).map((d, i) =>
                     <div className="documentView-docuLinkWrapper" style={{ position: "absolute", top: 0, left: 0 }} key={`${d[Id]}`}>
-                        <DocumentView {...this.props} ContentScaling={returnOne} ContainingCollectionDoc={this.props.Document}
-                            PanelWidth={returnOne} PanelHeight={returnOne} Document={d} layoutKey={this.linkEndpoint(d)} backgroundColor={returnTransparent} removeDocument={undoBatch(doc => doc.hidden = true)} />
+                        <DocumentView {...this.props} Document={d} ContainingCollectionDoc={this.props.Document}
+                            PanelWidth={returnOne} PanelHeight={returnOne} layoutKey={this.linkEndpoint(d)} ContentScaling={returnOne}
+                            backgroundColor={returnTransparent} removeDocument={undoBatch(doc => doc.hidden = true)} />
                     </div>)}
             </div>;
         }
