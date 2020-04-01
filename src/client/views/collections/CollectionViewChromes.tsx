@@ -600,7 +600,7 @@ export class CollectionSchemaViewChrome extends React.Component<CollectionViewCh
     togglePreview = () => {
         const dividerWidth = 4;
         const borderWidth = Number(COLLECTION_BORDER_WIDTH);
-        const panelWidth = this.props.PanelWidth();
+        const panelWidth = this.props.CollectionView.props.PanelWidth();
         const previewWidth = NumCast(this.props.CollectionView.props.Document.schemaPreviewWidth);
         const tableWidth = panelWidth - 2 * borderWidth - dividerWidth - previewWidth;
         this.props.CollectionView.props.Document.schemaPreviewWidth = previewWidth === 0 ? Math.min(tableWidth / 3, 200) : 0;
