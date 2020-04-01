@@ -328,7 +328,7 @@ export namespace Database {
 
         export const LogUpload = async (information: Upload.ImageInformation) => {
             const bundle = {
-                _id: Utils.GenerateDeterministicGuid(String(information.contentSize!)),
+                _id: Utils.GenerateDeterministicGuid(String(information.contentSize)),
                 ...information
             };
             return Instance.insert(bundle, AuxiliaryCollections.GooglePhotosUploadHistory);

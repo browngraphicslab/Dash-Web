@@ -106,7 +106,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                 fields.delete(header);
                 sectionHeaders.splice(sectionHeaders.indexOf(header), 1);
                 changed = true;
-            })
+            });
         }
         changed && setTimeout(action(() => { if (this.sectionHeaders) { this.sectionHeaders.length = 0; this.sectionHeaders.push(...sectionHeaders); } }), 0);
         return fields;

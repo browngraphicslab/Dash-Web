@@ -63,7 +63,7 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
                 this.layoutDoc._height = NumCast(this.layoutDoc._width) / youtubeaspect;
             }
         } else if (field?.url) {
-            var result = await WebRequest.get(Utils.CorsProxy(field.url.href));
+            const result = await WebRequest.get(Utils.CorsProxy(field.url.href));
             this.dataDoc.text = htmlToText.fromString(result.content);
         }
 

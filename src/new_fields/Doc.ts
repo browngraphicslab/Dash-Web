@@ -353,7 +353,7 @@ export namespace Doc {
     // and returns the document who's proto is undefined or whose proto is marked as a base prototype ('isPrototype').
     export function GetProto(doc: Doc): Doc {
         if (doc instanceof Promise) {
-            console.log("GetProto: error: got Promise insead of Doc")
+            console.log("GetProto: error: got Promise insead of Doc");
         }
         const proto = doc && (Doc.GetT(doc, "isPrototype", "boolean", true) ? doc : (doc.proto || doc));
         return proto === doc ? proto : Doc.GetProto(proto);
@@ -697,7 +697,7 @@ export namespace Doc {
     // the document containing the view layout information - will be the Document itself unless the Document has
     // a layout field or 'layout' is given.  
     export function Layout(doc: Doc, layout?: Doc): Doc {
-        const overrideLayout = layout && Cast(doc["data-layout[" + layout[Id] + "]"], Doc, null);
+        const overrideLayout = layout && Cast(doc[`${StrCast(layout.isTemplateForField, "data")}-layout[` + layout[Id] + "]"], Doc, null);
         return overrideLayout || doc[LayoutSym] || doc;
     }
     export function SetLayout(doc: Doc, layout: Doc | string) { doc[StrCast(doc.layoutKey, "layout")] = layout; }

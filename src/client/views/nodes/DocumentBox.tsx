@@ -117,13 +117,14 @@ export class DocumentBox extends DocAnnotatableComponent<FieldViewProps, DocBoxS
                 DataDocument={undefined}
                 LibraryPath={emptyPath}
                 fitToBox={this.props.fitToBox}
+                layoutKey={StrCast(this.props.Document.childLayoutKey)}
                 addDocument={this.props.addDocument}
                 moveDocument={this.props.moveDocument}
                 removeDocument={this.props.removeDocument}
                 addDocTab={this.props.addDocTab}
                 pinToPres={this.props.pinToPres}
                 getTransform={this.getTransform}
-                renderDepth={this.props.renderDepth + 1} // bcz: need a forceActive prop here ... not the same as renderDepth = 0
+                renderDepth={this.props.renderDepth + 1}
                 PanelWidth={this.pwidth}
                 PanelHeight={this.pheight}
                 focus={this.props.focus}

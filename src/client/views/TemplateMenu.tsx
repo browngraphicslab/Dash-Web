@@ -114,7 +114,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
         const templateName = StrCast(firstDoc.layoutKey, "layout").replace("layout_", "");
         const noteTypesDoc = Cast(Doc.UserDoc().noteTypes, Doc, null);
         const noteTypes = DocListCast(noteTypesDoc?.data);
-        const addedTypes = DocListCast(Cast(Doc.UserDoc().templateButtons, Doc, null)?.data)
+        const addedTypes = DocListCast(Cast(Doc.UserDoc().templateButtons, Doc, null)?.data);
         const layout = Doc.Layout(firstDoc);
         const templateMenu: Array<JSX.Element> = [];
         this.props.templates.forEach((checked, template) =>
@@ -170,8 +170,8 @@ Scripting.addGlobal(function switchView(doc: Doc, template: Doc) {
     if (template.dragFactory) {
         template = Cast(template.dragFactory, Doc, null);
     }
-    let templateTitle = StrCast(template?.title);
-    return templateTitle && DocumentView.makeCustomViewClicked(doc, undefined, Docs.Create.FreeformDocument, templateTitle, template)
+    const templateTitle = StrCast(template?.title);
+    return templateTitle && DocumentView.makeCustomViewClicked(doc, undefined, Docs.Create.FreeformDocument, templateTitle, template);
 });
 
 Scripting.addGlobal(function templateIsUsed(templateDoc: Doc, firstDocTitlte: string) {
@@ -180,4 +180,4 @@ Scripting.addGlobal(function templateIsUsed(templateDoc: Doc, firstDocTitlte: st
     const template = StrCast(templateDoc.dragFactory ? Cast(templateDoc.dragFactory, Doc, null)?.title : templateDoc.title);
     return StrCast(firstDoc.layoutKey) === "layout_" + template ? 'check' : 'unchecked';
     // return SelectionManager.SelectedDocuments().some(view => StrCast(view.props.Document.layoutKey) === "layout_" + template) ? 'check' : 'unchecked'
-})
+});

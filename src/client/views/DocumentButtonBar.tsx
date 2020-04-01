@@ -39,7 +39,7 @@ library.add(faCheckCircle);
 library.add(faCloudUploadAlt);
 library.add(faSyncAlt);
 library.add(faShare);
-library.add(faPhotoVideo)
+library.add(faPhotoVideo);
 
 const cloud: IconProp = "cloud-upload-alt";
 const fetch: IconProp = "sync-alt";

@@ -146,7 +146,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
                 back
             </button>
             <EditableView {...newEditableViewProps} display={"inline"} menuCallback={this.menuCallback} />
-        </div>
+        </div>;
     }
 
     render() {

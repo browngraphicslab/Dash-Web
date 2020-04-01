@@ -36,7 +36,7 @@ export class DashWebRTCVideo extends React.Component<CollectionFreeFormDocumentV
       */
     private onEnterKeyDown = (e: React.KeyboardEvent) => {
         if (e.keyCode === 13) {
-            let submittedTitle = this.roomText!.value;
+            const submittedTitle = this.roomText!.value;
             this.roomText!.value = "";
             this.roomText!.blur();
             initialize(submittedTitle, this.changeUILook);
@@ -56,7 +56,7 @@ export class DashWebRTCVideo extends React.Component<CollectionFreeFormDocumentV
     }
 
     render() {
-        let content =
+        const content =
             <div className="webcam-cont" style={{ width: "100%", height: "100%" }}>
                 <div className="webcam-header">DashWebRTC</div>
                 <input id="roomName" type="text" placeholder="Enter room name" ref={(e) => this.roomText = e!} onKeyDown={this.onEnterKeyDown} />
@@ -72,8 +72,8 @@ export class DashWebRTCVideo extends React.Component<CollectionFreeFormDocumentV
                 </div>
             </div >;
 
-        let frozen = !this.props.isSelected() || DocumentDecorations.Instance.Interacting;
-        let classname = "webBox-cont" + (this.props.isSelected() && !InkingControl.Instance.selectedTool && !DocumentDecorations.Instance.Interacting ? "-interactive" : "");
+        const frozen = !this.props.isSelected() || DocumentDecorations.Instance.Interacting;
+        const classname = "webBox-cont" + (this.props.isSelected() && !InkingControl.Instance.selectedTool && !DocumentDecorations.Instance.Interacting ? "-interactive" : "");
 
 
         return (

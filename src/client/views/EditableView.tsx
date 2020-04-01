@@ -4,10 +4,7 @@ import { observer } from 'mobx-react';
 import * as Autosuggest from 'react-autosuggest';
 import { ObjectField } from '../../new_fields/ObjectField';
 import { SchemaHeaderField } from '../../new_fields/SchemaHeaderField';
-import { ContextMenu } from './ContextMenu';
-import { ContextMenuProps } from './ContextMenuItem';
 import "./EditableView.scss";
-import { CollectionTreeView } from './collections/CollectionTreeView';
 
 export interface EditableProps {
     /**
@@ -88,12 +85,12 @@ export class EditableView extends React.Component<EditableProps> {
     onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === "Tab") {
             e.stopPropagation();
-            this.finalizeEdit(e.currentTarget.value, e.shiftKey);
+            this.finalizeEdit(e.currentTarget.value, e.shiftKey, false);
             this.props.OnTab && this.props.OnTab(e.shiftKey);
         } else if (e.key === "Enter") {
             e.stopPropagation();
             if (!e.ctrlKey) {
-                this.finalizeEdit(e.currentTarget.value, e.shiftKey);
+                this.finalizeEdit(e.currentTarget.value, e.shiftKey, false);
             } else if (this.props.OnFillDown) {
                 this.props.OnFillDown(e.currentTarget.value);
                 this._editing = false;
@@ -123,10 +120,17 @@ export class EditableView extends React.Component<EditableProps> {
     }
 
     @action
-    private finalizeEdit(value: string, shiftDown: boolean) {
-        this._editing = false;
+    private finalizeEdit(value: string, shiftDown: boolean, lostFocus: boolean) {
         if (this.props.SetValue(value, shiftDown)) {
+            this._editing = false;
             this.props.isEditingCallback?.(false);
+        } else {
+            this._editing = false;
+            this.props.isEditingCallback?.(false);
+            !lostFocus && setTimeout(action(() => {
+                this._editing = true;
+                this.props.isEditingCallback?.(true);
+            }), 0);
         }
     }
 
@@ -151,7 +155,7 @@ export class EditableView extends React.Component<EditableProps> {
                         className: "editableView-input",
                         onKeyDown: this.onKeyDown,
                         autoFocus: true,
-                        onBlur: e => this.finalizeEdit(e.currentTarget.value, false),
+                        onBlur: e => this.finalizeEdit(e.currentTarget.value, false, true),
                         onPointerDown: this.stopPropagation,
                         onClick: this.stopPropagation,
                         onPointerUp: this.stopPropagation,
@@ -163,7 +167,7 @@ export class EditableView extends React.Component<EditableProps> {
                     defaultValue={this.props.GetValue()}
                     onKeyDown={this.onKeyDown}
                     autoFocus={true}
-                    onBlur={e => this.finalizeEdit(e.currentTarget.value, false)}
+                    onBlur={e => this.finalizeEdit(e.currentTarget.value, false, true)}
                     onPointerDown={this.stopPropagation} onClick={this.stopPropagation} onPointerUp={this.stopPropagation}
                     style={{ display: this.props.display, fontSize: this.props.fontSize }}
                 />;

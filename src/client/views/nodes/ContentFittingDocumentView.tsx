@@ -22,6 +22,7 @@ interface ContentFittingDocumentViewProps {
     childDocs?: Doc[];
     renderDepth: number;
     fitToBox?: boolean;
+    layoutKey?: string;
     dropAction?: dropActionType;
     PanelWidth: () => number;
     PanelHeight: () => number;
@@ -88,6 +89,7 @@ export class ContentFittingDocumentView extends React.Component<ContentFittingDo
                         LayoutDoc={this.props.LayoutDoc}
                         LibraryPath={this.props.LibraryPath}
                         fitToBox={this.props.fitToBox}
+                        layoutKey={this.props.layoutKey}
                         dropAction={this.props.dropAction}
                         onClick={this.props.onClick}
                         backgroundColor={this.props.backgroundColor}

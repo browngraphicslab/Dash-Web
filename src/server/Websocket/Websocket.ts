@@ -55,8 +55,8 @@ export namespace WebSocket {
             socket.on('create or join', function (room) {
                 console.log('Received request to create or join room ' + room);
 
-                var clientsInRoom = socket.adapter.rooms[room];
-                var numClients = clientsInRoom ? Object.keys(clientsInRoom.sockets).length : 0;
+                const clientsInRoom = socket.adapter.rooms[room];
+                const numClients = clientsInRoom ? Object.keys(clientsInRoom.sockets).length : 0;
                 console.log('Room ' + room + ' now has ' + numClients + ' client(s)');
 
                 if (numClients === 0) {
@@ -76,8 +76,8 @@ export namespace WebSocket {
             });
 
             socket.on('ipaddr', function () {
-                var ifaces = networkInterfaces();
-                for (var dev in ifaces) {
+                const ifaces = networkInterfaces();
+                for (const dev in ifaces) {
                     ifaces[dev].forEach(function (details) {
                         if (details.family === 'IPv4' && details.address !== '127.0.0.1') {
                             socket.emit('ipaddr', details.address);

@@ -106,8 +106,8 @@ export default class KeyManager {
     });
 
     private shift = async (keyname: string) => {
-        let stopPropagation = false;
-        let preventDefault = false;
+        const stopPropagation = false;
+        const preventDefault = false;
 
         switch (keyname) {
             // case "~":

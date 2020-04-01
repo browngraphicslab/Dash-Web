@@ -299,7 +299,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
     get childLayoutPairs(): { layout: Doc; data: Doc; }[] {
         const { Document, DataDoc } = this.props;
         const validPairs = this.childDocs.map(doc => Doc.GetLayoutDataDocPair(Document, DataDoc, doc)).filter(pair => pair.layout);
-        return validPairs.map(({ data, layout }) => ({ data, layout: layout! })); // this mapping is a bit of a hack to coerce types
+        return validPairs.map(({ data, layout }) => ({ data: data as Doc, layout: layout! })); // this mapping is a bit of a hack to coerce types
     }
     get childDocList() {
         return Cast(this.dataField, listSpec(Doc));

@@ -238,7 +238,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
         this._pdfViewer.currentScaleValue = this._zoomed = 1;
         this.gotoPage(this.Document.curPage || 1);
         document.removeEventListener("pagesinit", this.pagesinit);
-    })
+    });
 
     createPdfViewer() {
         if (!this._mainCont.current) { // bcz: I don't think this is ever triggered or needed

@@ -6,7 +6,7 @@ import "./RecommendationsBox.scss";
 import { Doc, DocListCast, WidthSym, HeightSym } from "../../new_fields/Doc";
 import { DocumentIcon } from "./nodes/DocumentIcon";
 import { StrCast, NumCast } from "../../new_fields/Types";
-import { returnFalse, emptyFunction, returnEmptyString, returnOne } from "../../Utils";
+import { returnFalse, emptyFunction, returnEmptyString, returnOne, emptyPath } from "../../Utils";
 import { Transform } from "../util/Transform";
 import { ObjectField } from "../../new_fields/ObjectField";
 import { DocumentView } from "./nodes/DocumentView";
@@ -31,7 +31,7 @@ library.add(faBullseye, faLink);
 @observer
 export class RecommendationsBox extends React.Component<FieldViewProps> {
 
-    public static LayoutString(fieldKey?: string) { return FieldView.LayoutString(RecommendationsBox, fieldKey); }
+    public static LayoutString(fieldKey: string) { return FieldView.LayoutString(RecommendationsBox, fieldKey); }
 
     // @observable private _display: boolean = false;
     @observable private _pageX: number = 0;
@@ -48,17 +48,17 @@ export class RecommendationsBox extends React.Component<FieldViewProps> {
 
     @action
     private DocumentIcon(doc: Doc) {
-        let layoutresult = StrCast(doc.type);
+        const layoutresult = StrCast(doc.type);
         let renderDoc = doc;
         //let box: number[] = [];
         if (layoutresult.indexOf(DocumentType.COL) !== -1) {
             renderDoc = Doc.MakeDelegate(renderDoc);
         }
-        let returnXDimension = () => 150;
-        let returnYDimension = () => 150;
-        let scale = () => returnXDimension() / NumCast(renderDoc.nativeWidth, returnXDimension());
+        const returnXDimension = () => 150;
+        const returnYDimension = () => 150;
+        const scale = () => returnXDimension() / NumCast(renderDoc.nativeWidth, returnXDimension());
         //let scale = () => 1;
-        let newRenderDoc = Doc.MakeAlias(renderDoc); ///   newRenderDoc -> renderDoc -> render"data"Doc -> TextProt
+        const newRenderDoc = Doc.MakeAlias(renderDoc); ///   newRenderDoc -> renderDoc -> render"data"Doc -> TextProt
         newRenderDoc.height = NumCast(this.props.Document.documentIconHeight);
         newRenderDoc.autoHeight = false;
         const docview = <div>
@@ -66,8 +66,8 @@ export class RecommendationsBox extends React.Component<FieldViewProps> {
                 fitToBox={StrCast(doc.type).indexOf(DocumentType.COL) !== -1}
                 Document={newRenderDoc}
                 addDocument={returnFalse}
+                LibraryPath={emptyPath}
                 removeDocument={returnFalse}
-                ruleProvider={undefined}
                 ScreenToLocalTransform={Transform.Identity}
                 addDocTab={returnFalse}
                 pinToPres={returnFalse}

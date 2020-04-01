@@ -123,7 +123,7 @@ function registerCorsProxy(server: express.Express) {
     const headerCharRegex = /[^\t\x20-\x7e\x80-\xff]/;
     server.use("/corsProxy", (req, res) => {
 
-        let requrl = decodeURIComponent(req.url.substring(1));
+        const requrl = decodeURIComponent(req.url.substring(1));
         const referer = req.headers.referer ? decodeURIComponent(req.headers.referer) : "";
         // cors weirdness here... 
         // if the referer is a cors page and the cors() route (I think) redirected to /corsProxy/<path> and the requested url path was relative, 

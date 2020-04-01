@@ -165,7 +165,7 @@ export default class GestureOverlay extends Touchable {
                 this._holdTimer = setTimeout(() => {
                     console.log("hold");
                     const target = document.elementFromPoint(te.changedTouches.item(0).clientX, te.changedTouches.item(0).clientY);
-                    let pt: any = te.touches[te.touches.length - 1];
+                    const pt: any = te.touches[te.touches.length - 1];
                     if (nts.nt.length === 1 && pt.radiusX > 1 && pt.radiusY > 1) {
                         target?.dispatchEvent(
                             new CustomEvent<InteractionUtils.MultiTouchEvent<React.TouchEvent>>("dashOnTouchHoldStart",
@@ -589,7 +589,7 @@ export default class GestureOverlay extends Touchable {
                             for (const wR of wordResults) {
                                 console.log(wR);
                                 if (wR?.recognizedText) {
-                                    possibilities.push(wR?.recognizedText)
+                                    possibilities.push(wR?.recognizedText);
                                 }
                                 possibilities.push(...wR?.alternates?.map((a: any) => a.recognizedString));
                             }
@@ -743,16 +743,16 @@ export default class GestureOverlay extends Touchable {
                 {this.elements}
 
                 <div className="clipboardDoc-cont" style={{
-                    transform: `translate(${this._thumbX}px, ${(this._thumbY ?? 0) - this.height}px)`,
                     height: this.height,
                     width: this.height,
                     pointerEvents: this._clipboardDoc ? "unset" : "none",
                     touchAction: this._clipboardDoc ? "unset" : "none",
+                    transform: `translate(${this._thumbX}px, ${(this._thumbY || 0) - this.height} px)`,
                 }}>
                     {this._clipboardDoc}
                 </div>
                 <div className="filter-cont" style={{
-                    transform: `translate(${this._thumbX}px, ${(this._thumbY ?? 0) - this.height}px)`,
+                    transform: `translate(${this._thumbX}px, ${(this._thumbY || 0) - this.height}px)`,
                     height: this.height,
                     width: this.height,
                     pointerEvents: "none",

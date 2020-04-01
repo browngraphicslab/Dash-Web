@@ -1,5 +1,4 @@
 import { action, computed, IReactionDisposer, reaction } from "mobx";
-import * as rp from 'request-promise';
 import CursorField from "../../../new_fields/CursorField";
 import { Doc, DocListCast, Opt, WidthSym, HeightSym } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
@@ -107,7 +106,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
         get childLayoutPairs(): { layout: Doc; data: Doc; }[] {
             const { Document, DataDoc } = this.props;
             const validPairs = this.childDocs.map(doc => Doc.GetLayoutDataDocPair(Document, !this.props.annotationsKey ? DataDoc : undefined, doc)).filter(pair => pair.layout);
-            return validPairs.map(({ data, layout }) => ({ data, layout: layout! })); // this mapping is a bit of a hack to coerce types
+            return validPairs.map(({ data, layout }) => ({ data: data as Doc, layout: layout! })); // this mapping is a bit of a hack to coerce types
         }
         get childDocList() {
             return Cast(this.dataField, listSpec(Doc));
