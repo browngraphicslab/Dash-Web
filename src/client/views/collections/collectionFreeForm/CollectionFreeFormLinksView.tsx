@@ -87,10 +87,10 @@ export class CollectionFreeFormLinksView extends React.Component {
             }
             return drawnPairs;
         }, [] as { a: DocumentView, b: DocumentView, l: Doc[] }[]);
-        return connections.filter(c => c.a.props.layoutKey && c.b.props.layoutKey && c.a.props.Document.type === DocumentType.LINK &&
-            c.a.props.bringToFront !== emptyFunction && c.b.props.bringToFront !== emptyFunction
-        )//&& StrCast(c.a.props.Document.layout).includes("LinkBox")) // get rid of the filter to show links to documents in addition to document anchors
-            .map(c => <CollectionFreeFormLinkView key={Utils.GenerateGuid()} A={c.a} B={c.b} LinkDocs={c.l} />);
+        return connections.filter(c =>
+            c.a.props.layoutKey && c.b.props.layoutKey && c.a.props.Document.type === DocumentType.LINK &&
+            c.a.props.bringToFront !== emptyFunction && c.b.props.bringToFront !== emptyFunction // this prevents links to be drawn to anchors in CollectionTree views -- this is a hack that should be fixed
+        ).map(c => <CollectionFreeFormLinkView key={Utils.GenerateGuid()} A={c.a} B={c.b} LinkDocs={c.l} />);
     }
 
     render() {
