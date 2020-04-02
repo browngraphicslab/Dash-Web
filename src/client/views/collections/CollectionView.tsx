@@ -429,9 +429,9 @@ export class CollectionView extends Touchable<FieldViewProps> {
                         Document={facetCollection}
                         backgroundColor={this.filterBackground}
                         fieldKey={`${this.props.fieldKey}-filter`}
-                        moveDocument={(doc: Doc) => false}
-                        removeDocument={(doc: Doc) => false}
-                        addDocument={(doc: Doc) => false} />
+                        moveDocument={returnFalse}
+                        removeDocument={returnFalse}
+                        addDocument={returnFalse} />
                 </div>
             </div>;
     }
