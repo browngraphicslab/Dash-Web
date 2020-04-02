@@ -3,13 +3,9 @@
     height: 100%;
     pointer-events: all;
     background: gray;
-    border: #00000021 solid 15px;
-    border-top: #0000005e inset 15px;
-    border-bottom: #0000005e outset 15px;
     .documentBox-lock {
         margin: auto;
         color: white;
-        margin-top: -15px;
         position: absolute;
     }
 }

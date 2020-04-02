@@ -5,7 +5,7 @@ import { Doc, Field } from "../../../new_fields/Doc";
 import { documentSchema } from "../../../new_fields/documentSchemas";
 import { makeInterface } from "../../../new_fields/Schema";
 import { ComputedField } from "../../../new_fields/ScriptField";
-import { Cast, StrCast } from "../../../new_fields/Types";
+import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { emptyPath } from "../../../Utils";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
@@ -85,13 +85,15 @@ export class DocumentBox extends DocAnnotatableComponent<FieldViewProps, DocBoxS
         (e.nativeEvent as any).formattedHandled = true;
         e.stopPropagation();
     }
+    get xPad() { return NumCast(this.props.Document._xPadding); }
+    get yPad() { return NumCast(this.props.Document._yPadding); }
     onClick = (e: React.MouseEvent) => {
         let hitWidget: boolean | undefined = false;
-        if (this._contRef.current!.getBoundingClientRect().top + 15 > e.clientY) hitWidget = (() => { this.props.select(false); return true; })();
-        else if (this._contRef.current!.getBoundingClientRect().bottom - 15 < e.clientY) hitWidget = (() => { this.props.select(false); return true; })();
+        if (this._contRef.current!.getBoundingClientRect().top + this.yPad > e.clientY) hitWidget = (() => { this.props.select(false); return true; })();
+        else if (this._contRef.current!.getBoundingClientRect().bottom - this.yPad < e.clientY) hitWidget = (() => { this.props.select(false); return true; })();
         else {
-            if (this._contRef.current!.getBoundingClientRect().left + 15 > e.clientX) hitWidget = this.prevSelection();
-            if (this._contRef.current!.getBoundingClientRect().right - 15 < e.clientX) hitWidget = this.nextSelection();
+            if (this._contRef.current!.getBoundingClientRect().left + this.xPad > e.clientX) hitWidget = this.prevSelection();
+            if (this._contRef.current!.getBoundingClientRect().right - this.xPad < e.clientX) hitWidget = this.nextSelection();
         }
         if (hitWidget) {
             (e.nativeEvent as any).formattedHandled = true;
@@ -99,39 +101,50 @@ export class DocumentBox extends DocAnnotatableComponent<FieldViewProps, DocBoxS
         }
     }
     _contRef = React.createRef<HTMLDivElement>();
-    pwidth = () => this.props.PanelWidth() - 30;
-    pheight = () => this.props.PanelHeight() - 30;
-    getTransform = () => this.props.ScreenToLocalTransform().translate(-15, -15);
+    pwidth = () => this.props.PanelWidth() - 2 * this.xPad;
+    pheight = () => this.props.PanelHeight() - 2 * this.yPad;
+    getTransform = () => this.props.ScreenToLocalTransform().translate(-this.xPad, -this.yPad);
+    get renderContents() {
+        const containedDoc = this.contentDoc[this.props.fieldKey];
+        const contents = !(containedDoc instanceof Doc) ? (null) : <ContentFittingDocumentView
+            Document={containedDoc}
+            DataDocument={undefined}
+            LibraryPath={emptyPath}
+            CollectionView={this as any} // bcz: hack!  need to pass a prop that can be used to select the container (ie, 'this') when the up selector in document decorations is clicked.  currently, the up selector allows only a containing collection to be selected
+            fitToBox={this.props.fitToBox}
+            layoutKey={StrCast(this.props.Document.childLayoutKey)}
+            addDocument={this.props.addDocument}
+            moveDocument={this.props.moveDocument}
+            removeDocument={this.props.removeDocument}
+            addDocTab={this.props.addDocTab}
+            pinToPres={this.props.pinToPres}
+            getTransform={this.getTransform}
+            renderDepth={this.props.renderDepth + 1}
+            PanelWidth={this.pwidth}
+            PanelHeight={this.pheight}
+            focus={this.props.focus}
+            active={this.props.active}
+            dontRegisterView={!this.isSelectionLocked()}
+            whenActiveChanged={this.props.whenActiveChanged}
+        />;
+        return contents;
+    }
     render() {
         TraceMobx();
-        const containedDoc = this.contentDoc[this.props.fieldKey];
         return <div className="documentBox-container" ref={this._contRef}
             onContextMenu={this.specificContextMenu}
             onPointerDown={this.onPointerDown} onClick={this.onClick}
-            style={{ background: StrCast(this.props.Document.backgroundColor) }}>
-            <div className="documentBox-lock" onClick={this.onLockClick}>
+            style={{
+                background: StrCast(this.props.Document.backgroundColor),
+                border: `#00000021 solid ${this.xPad}px`,
+                borderTop: `#0000005e solid ${this.yPad}px`,
+                borderBottom: `#0000005e solid ${this.yPad}px`,
+            }}>
+            <div className="documentBox-lock" onClick={this.onLockClick}
+                style={{ marginTop: - this.yPad }}>
                 <FontAwesomeIcon icon={this.isSelectionLocked() ? "lock" : "unlock"} size="sm" />
             </div>
-            {!(containedDoc instanceof Doc) ? (null) : <ContentFittingDocumentView
-                Document={containedDoc}
-                DataDocument={undefined}
-                LibraryPath={emptyPath}
-                fitToBox={this.props.fitToBox}
-                layoutKey={StrCast(this.props.Document.childLayoutKey)}
-                addDocument={this.props.addDocument}
-                moveDocument={this.props.moveDocument}
-                removeDocument={this.props.removeDocument}
-                addDocTab={this.props.addDocTab}
-                pinToPres={this.props.pinToPres}
-                getTransform={this.getTransform}
-                renderDepth={this.props.renderDepth + 1}
-                PanelWidth={this.pwidth}
-                PanelHeight={this.pheight}
-                focus={this.props.focus}
-                active={this.props.active}
-                dontRegisterView={!this.isSelectionLocked()}
-                whenActiveChanged={this.props.whenActiveChanged}
-            />}
-        </div>;
+            {this.renderContents}
+        </div >;
     }
 }
