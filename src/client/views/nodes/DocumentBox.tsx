@@ -15,6 +15,8 @@ import "./DocumentBox.scss";
 import { FieldView, FieldViewProps } from "./FieldView";
 import React = require("react");
 import { TraceMobx } from "../../../new_fields/util";
+import { DocumentView } from "./DocumentView";
+import { Docs } from "../../documents/Documents";
 
 type DocBoxSchema = makeInterface<[typeof documentSchema]>;
 const DocBoxDocument = makeInterface(documentSchema);
@@ -35,12 +37,12 @@ export class DocumentBox extends DocAnnotatableComponent<FieldViewProps, DocBoxS
         });
     }
     componentWillUnmount() {
-        this._prevSelectionDisposer && this._prevSelectionDisposer();
+        this._prevSelectionDisposer?.();
     }
     specificContextMenu = (e: React.MouseEvent): void => {
         const funcs: ContextMenuProps[] = [];
         funcs.push({ description: (this.isSelectionLocked() ? "Show" : "Lock") + " Selection", event: () => this.toggleLockSelection, icon: "expand-arrows-alt" });
-        funcs.push({ description: (this.props.Document.excludeCollections ? "Include" : "Exclude") + " Collections", event: () => this.props.Document.excludeCollections = !this.props.Document.excludeCollections, icon: "expand-arrows-alt" });
+        funcs.push({ description: (this.props.Document.excludeCollections ? "Include" : "Exclude") + " Collections", event: () => Doc.GetProto(this.props.Document).excludeCollections = !this.props.Document.excludeCollections, icon: "expand-arrows-alt" });
         funcs.push({ description: `${this.props.Document.forceActive ? "Select" : "Force"} Contents Active`, event: () => this.props.Document.forceActive = !this.props.Document.forceActive, icon: "project-diagram" });
 
         ContextMenu.Instance.addItem({ description: "DocumentBox Funcs...", subitems: funcs, icon: "asterisk" });
@@ -105,14 +107,21 @@ export class DocumentBox extends DocAnnotatableComponent<FieldViewProps, DocBoxS
     pheight = () => this.props.PanelHeight() - 2 * this.yPad;
     getTransform = () => this.props.ScreenToLocalTransform().translate(-this.xPad, -this.yPad);
     get renderContents() {
-        const containedDoc = this.contentDoc[this.props.fieldKey];
+        const containedDoc = Cast(this.contentDoc[this.props.fieldKey], Doc, null);
+        const childTemplateName = StrCast(this.props.Document.childTemplateName);
+        if (containedDoc && childTemplateName && !containedDoc["layout_" + childTemplateName]) {
+            setTimeout(() => {
+                DocumentView.createCustomView(containedDoc, Docs.Create.StackingDocument, childTemplateName);
+                Doc.expandTemplateLayout(Cast(containedDoc["layout_" + childTemplateName], Doc, null)!, containedDoc, undefined);
+            }, 0);
+        }
         const contents = !(containedDoc instanceof Doc) ? (null) : <ContentFittingDocumentView
             Document={containedDoc}
             DataDocument={undefined}
             LibraryPath={emptyPath}
             CollectionView={this as any} // bcz: hack!  need to pass a prop that can be used to select the container (ie, 'this') when the up selector in document decorations is clicked.  currently, the up selector allows only a containing collection to be selected
             fitToBox={this.props.fitToBox}
-            layoutKey={StrCast(this.props.Document.childLayoutKey)}
+            layoutKey={"layout_" + childTemplateName}
             addDocument={this.props.addDocument}
             moveDocument={this.props.moveDocument}
             removeDocument={this.props.removeDocument}
@@ -140,11 +149,11 @@ export class DocumentBox extends DocAnnotatableComponent<FieldViewProps, DocBoxS
                 borderTop: `#0000005e solid ${this.yPad}px`,
                 borderBottom: `#0000005e solid ${this.yPad}px`,
             }}>
+            {this.renderContents}
             <div className="documentBox-lock" onClick={this.onLockClick}
                 style={{ marginTop: - this.yPad }}>
                 <FontAwesomeIcon icon={this.isSelectionLocked() ? "lock" : "unlock"} size="sm" />
             </div>
-            {this.renderContents}
         </div >;
     }
 }

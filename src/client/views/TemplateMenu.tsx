@@ -171,7 +171,7 @@ Scripting.addGlobal(function switchView(doc: Doc, template: Doc) {
         template = Cast(template.dragFactory, Doc, null);
     }
     const templateTitle = StrCast(template?.title);
-    return templateTitle && DocumentView.makeCustomViewClicked(doc, undefined, Docs.Create.FreeformDocument, templateTitle, template);
+    return templateTitle && DocumentView.makeCustomViewClicked(doc, Docs.Create.FreeformDocument, templateTitle, template);
 });
 
 Scripting.addGlobal(function templateIsUsed(templateDoc: Doc, firstDocTitlte: string) {

@@ -592,7 +592,10 @@ export namespace Doc {
     let _applyCount: number = 0;
     export function ApplyTemplate(templateDoc: Doc) {
         if (templateDoc) {
-            const applied = ApplyTemplateTo(templateDoc, Doc.MakeDelegate(new Doc()), StrCast(templateDoc.layoutKey, "layout"), templateDoc.title + "(..." + _applyCount++ + ")");
+            const target = Doc.MakeDelegate(new Doc());
+            const targetKey = StrCast(templateDoc.layoutKey, "layout");
+            const applied = ApplyTemplateTo(templateDoc, target, targetKey, templateDoc.title + "(..." + _applyCount++ + ")");
+            target.layoutKey = targetKey;
             applied && (Doc.GetProto(applied).type = templateDoc.type);
             return applied;
         }
@@ -615,7 +618,6 @@ export namespace Doc {
                 Doc.GetProto(target)[targetKey] = new PrefetchProxy(templateDoc);
             }
         }
-        target.layoutKey = targetKey;
         return target;
     }
 
@@ -920,7 +922,9 @@ Scripting.addGlobal(function curPresentationItem() {
 });
 Scripting.addGlobal(function selectDoc(doc: any) { Doc.UserDoc().SelectedDocs = new List([doc]); });
 Scripting.addGlobal(function selectedDocs(container: Doc, excludeCollections: boolean, prevValue: any) {
-    const docs = DocListCast(Doc.UserDoc().SelectedDocs).filter(d => !Doc.AreProtosEqual(d, container) && !d.annotationOn && d.type !== DocumentType.DOCUMENT && d.type !== DocumentType.KVP && (!excludeCollections || !Cast(d.data, listSpec(Doc), null)));
+    const docs = DocListCast(Doc.UserDoc().SelectedDocs).
+        filter(d => !Doc.AreProtosEqual(d, container) && !d.annotationOn && d.type !== DocumentType.DOCUMENT && d.type !== DocumentType.KVP &&
+            (!excludeCollections || d.type !== DocumentType.COL || !Cast(d.data, listSpec(Doc), null)));
     return docs.length ? new List(docs) : prevValue;
 });
 Scripting.addGlobal(function setDocFilter(container: Doc, key: string, value: any, modifiers?: "check" | "x" | undefined) { Doc.setDocFilter(container, key, value, modifiers); });

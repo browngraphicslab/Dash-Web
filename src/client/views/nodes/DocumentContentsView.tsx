@@ -59,7 +59,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     layoutKey: string,
     forceLayout?: string,
     forceFieldKey?: string,
-    hideOnLeave?:boolean,
+    hideOnLeave?: boolean,
     makeLink?: () => Opt<Doc>;
 }> {
     @computed get layout(): string {

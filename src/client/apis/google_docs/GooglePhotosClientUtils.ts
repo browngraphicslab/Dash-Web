@@ -340,7 +340,7 @@ export namespace GooglePhotos {
                 const url = data.url.href;
                 const target = Doc.MakeAlias(source);
                 const description = parseDescription(target, descriptionKey);
-                await DocumentView.makeCustomViewClicked(target, undefined, Docs.Create.FreeformDocument);
+                await DocumentView.makeCustomViewClicked(target, Docs.Create.FreeformDocument);
                 media.push({ url, description });
             }
             if (media.length) {
