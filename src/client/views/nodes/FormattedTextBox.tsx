@@ -54,6 +54,7 @@ library.add(faSmile, faTextHeight, faUpload);
 
 export interface FormattedTextBoxProps {
     hideOnLeave?: boolean;
+    makeLink?: () => Opt<Doc>;
 }
 
 const richTextSchema = createSchema({
@@ -91,6 +92,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
     private _pullReactionDisposer: Opt<IReactionDisposer>;
     private _pushReactionDisposer: Opt<IReactionDisposer>;
     private _buttonBarReactionDisposer: Opt<IReactionDisposer>;
+    private _linkMakerDisposer: Opt<IReactionDisposer>;
     private _scrollDisposer: Opt<IReactionDisposer>;
     private dropDisposer?: DragManager.DragDropDisposer;
 
@@ -282,7 +284,15 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                 e.stopPropagation();
                 // }
             } // otherwise, fall through to outer collection to handle drop
+        } else if (de.complete.linkDragData) {
+            de.complete.linkDragData.linkDropCallback = this.linkDrop;
         }
+    }
+    linkDrop = (data: DragManager.LinkDragData) => {
+        const linkDoc = data.linkDocument!;
+        const anchor1Title = linkDoc.anchor1 instanceof Doc ? StrCast(linkDoc.anchor1.title) : "-untitled-";
+        const anchor1Id = linkDoc.anchor1 instanceof Doc ? linkDoc.anchor1[Id] : "";
+        this.makeLinkToSelection(linkDoc[Id], anchor1Title, "onRight", anchor1Id)
     }
 
     getNodeEndpoints(context: Node, node: Node): { from: number, to: number } | null {
@@ -513,6 +523,13 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         };
     }
 
+    makeLinkToSelection(linkDocId: string, title: string, location: string, targetDocId: string) {
+        if (this._editorView) {
+            const link = this._editorView.state.schema.marks.link.create({ href: Utils.prepend("/doc/" + linkDocId), title: title, location: location, linkId: linkDocId, targetId: targetDocId });
+            this._editorView.dispatch(this._editorView.state.tr.removeMark(this._editorView.state.selection.from, this._editorView.state.selection.to, this._editorView.state.schema.marks.link).
+                addMark(this._editorView.state.selection.from, this._editorView.state.selection.to, link));
+        }
+    }
     componentDidMount() {
         this._buttonBarReactionDisposer = reaction(
             () => DocumentButtonBar.Instance,
@@ -522,6 +539,17 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                     this.dataDoc[GoogleRef] && this.dataDoc.unchanged && runInAction(() => instance.isAnimatingFetch = true);
                 }
             }
+        );
+        this._linkMakerDisposer = reaction(
+            () => this.props.makeLink?.(),
+            (linkDoc: Opt<Doc>) => {
+                if (linkDoc) {
+                    const anchor2Title = linkDoc.anchor2 instanceof Doc ? StrCast(linkDoc.anchor2.title) : "-untitled-";
+                    const anchor2Id = linkDoc.anchor2 instanceof Doc ? linkDoc.anchor2[Id] : "";
+                    this.makeLinkToSelection(linkDoc[Id], anchor2Title, "onRight", anchor2Id);
+                }
+            },
+            { fireImmediately: true }
         );
 
         this._reactionDisposer = reaction(
@@ -858,6 +886,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         this._searchReactionDisposer?.();
         this._recordReactionDisposer?.();
         this._buttonBarReactionDisposer?.();
+        this._linkMakerDisposer?.();
         this._editorView?.destroy();
     }
 

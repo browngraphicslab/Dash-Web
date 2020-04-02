@@ -40,7 +40,6 @@ import { ScriptBox } from '../ScriptBox';
 import { ScriptingRepl } from '../ScriptingRepl';
 import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
-import { FormattedTextBox } from './FormattedTextBox';
 import React = require("react");
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { SchemaHeaderField } from '../../../new_fields/SchemaHeaderField';
@@ -967,6 +966,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             Document={this.props.Document}
             DataDoc={this.props.DataDoc}
             LayoutDoc={this.props.LayoutDoc}
+            makeLink={this.makeLink}
             fitToBox={this.props.fitToBox}
             LibraryPath={this.props.LibraryPath}
             addDocument={this.props.addDocument}
@@ -1001,6 +1001,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const anchor = Cast(Doc.AreProtosEqual(this.props.Document, Cast(linkDoc.anchor1, Doc) as Doc) ? linkDoc.anchor1 : linkDoc.anchor2, Doc) as Doc;
         const ept = Doc.AreProtosEqual(this.props.Document, Cast(linkDoc.anchor1, Doc) as Doc) ? linkDoc.anchor1_timecode : linkDoc.anchor2_timecode;
         return anchor.type === DocumentType.AUDIO && NumCast(ept) ? false : true;
+    }
+c
+    @observable _link:Opt<Doc>;
+    makeLink = () => { 
+        return this._link;
     }
 
     @computed get innards() {

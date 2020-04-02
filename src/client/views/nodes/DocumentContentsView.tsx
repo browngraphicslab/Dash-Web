@@ -58,7 +58,9 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     select: (ctrl: boolean) => void,
     layoutKey: string,
     forceLayout?: string,
-    forceFieldKey?: string
+    forceFieldKey?: string,
+    hideOnLeave?:boolean,
+    makeLink?: () => Opt<Doc>;
 }> {
     @computed get layout(): string {
         TraceMobx();

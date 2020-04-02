@@ -4,12 +4,10 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast } from "../../new_fields/Doc";
-import { Id } from '../../new_fields/FieldSymbols';
 import { RichTextField } from '../../new_fields/RichTextField';
 import { NumCast, StrCast } from "../../new_fields/Types";
 import { emptyFunction } from "../../Utils";
 import { Pulls, Pushes } from '../apis/google_docs/GoogleApiClientUtils';
-import RichTextMenu from '../util/RichTextMenu';
 import { UndoManager } from "../util/UndoManager";
 import { CollectionDockingView, DockedFrameRenderer } from './collections/CollectionDockingView';
 import { ParentDocSelector } from './collections/ParentDocumentSelector';
@@ -121,10 +119,9 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
                     const linkDoc = dropEv.linkDragData?.linkDocument as Doc; // equivalent to !dropEve.aborted since linkDocument is only assigned on a completed drop
                     if (this.view0 && linkDoc) {
                         Doc.GetProto(linkDoc).linkRelationship = "hyperlink";
-
-                        const anchor2Title = linkDoc.anchor2 instanceof Doc ? StrCast(linkDoc.anchor2.title) : "-untitled-";
-                        const anchor2Id = linkDoc.anchor2 instanceof Doc ? linkDoc.anchor2[Id] : "";
-                        const text = RichTextMenu.Instance.MakeLinkToSelection(linkDoc[Id], anchor2Title, e.ctrlKey ? "onRight" : "inTab", anchor2Id);
+                        dropEv.linkDragData?.linkDropCallback?.(dropEv.linkDragData);
+                        runInAction(() => this.view0!._link = linkDoc);
+                        setTimeout(action(() => this.view0!._link = undefined), 0);
                     }
                     linkDrag?.end();
                 },

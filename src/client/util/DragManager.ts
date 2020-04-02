@@ -148,6 +148,7 @@ export namespace DragManager {
         linkSourceDocument: Doc;
         dontClearTextBox?: boolean;
         linkDocument?: Doc;
+        linkDropCallback?: (data: LinkDragData) => void;
     }
     export class ColumnDragData {
         constructor(colKey: SchemaHeaderField) {
