@@ -3,7 +3,6 @@ import { library } from '@fortawesome/fontawesome-svg-core';
 import { faArrowLeft, faArrowRight, faEdit, faMinus, faPlay, faPlus, faStop, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { IReactionDisposer, computed } from "mobx";
 import { observer } from "mobx-react";
-import { FilterBox } from "../search/FilterBox";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./PresBox.scss";
 import { SearchBox } from "../search/SearchBox";
@@ -15,6 +14,7 @@ import { makeInterface, createSchema } from "../../../new_fields/Schema";
 import { documentSchema } from "../../../new_fields/documentSchemas";
 import { TraceMobx } from "../../../new_fields/util";
 import { Id } from '../../../new_fields/FieldSymbols';
+import { StrCast } from "../../../new_fields/Types";
 
 
 
@@ -51,7 +51,18 @@ export class QueryBox extends DocAnnotatableComponent<FieldViewProps, QueryDocum
 
     @computed get content() {
         let key = this.props.Document[Id];
-        return <SearchBox id={key}/>
+        let sq = StrCast(this.props.Document.sq);
+        let fq= StrCast(this.props.Document.fq);
+        if (this.props.Document.sq){
+            console.log("yes");
+            console.log(sq);
+            console.log(fq);
+            return <SearchBox id={key} sq={sq} fq={fq}/>
+        }
+        else {
+            console.log("no");
+        return <SearchBox id={key} />
+        }
     }
     contentFunc = () => [this.content];
 

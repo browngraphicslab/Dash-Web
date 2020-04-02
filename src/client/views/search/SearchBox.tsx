@@ -27,6 +27,8 @@ library.add(faTimes);
 
 export interface SearchProps {
     id:string;
+    sq?:string;
+    fq?:string;
 }
 
 export enum Keys {
@@ -80,6 +82,16 @@ export class SearchBox extends React.Component<SearchProps> {
             this.inputRef.current.focus();
             runInAction(() => {
                 this._searchbarOpen = true;
+            });
+        }
+        if (this.props.sq && this.props.fq){
+            console.log(this.props.sq);
+            let sq= this.props.sq
+            
+            let fq =this.props.fq;
+            runInAction(() => {
+                this._searchString=sq;
+                this.submitSearch();
             });
         }
     }
@@ -223,6 +235,11 @@ export class SearchBox extends React.Component<SearchProps> {
         return this._icons.length === 9 ? undefined : this._icons;
     }
 
+    @action.bound
+    updateIcon(newArray: string[]) { this._icons = newArray; }
+
+    @action.bound
+    getIcons(): string[] { return this._icons; }
 
 //TODO: basically all of this
     //gets all of the collections of all the docviews that are selected
@@ -327,6 +344,7 @@ export class SearchBox extends React.Component<SearchProps> {
         const includeDeleted = this.getDataStatus();
         return "NOT baseProto_b:true" + (includeDeleted ? "" : " AND NOT deleted_b:true") + (types ? ` AND (${types.map(type => `({!join from=id to=proto_i}type_t:"${type}" AND NOT type_t:*) OR type_t:"${type}" OR type_t:"extension"`).join(" ")})` : "");
     }
+
     getDataStatus() { return this._deletedDocsStatus; }
 
 
@@ -417,9 +435,10 @@ export class SearchBox extends React.Component<SearchProps> {
                 y += 300;
             }
         }
+        console.log("create");
         //return Docs.Create.TreeDocument(docs, { _width: 200, _height: 400, backgroundColor: "grey", title: `Search Docs: "${this._searchString}"` });
         //return Docs.Create.SearchDocument(docs, { _width: 200, _height: 400, searchText: this._searchString, title: `Search Docs: "${this._searchString}"` });
-        return Docs.Create.QueryDocument({_autoHeight: true, title: "-typed text-"
+        return Docs.Create.QueryDocument({_autoHeight: true, title: this._searchString, fq: this.filterQuery, sq: this._searchString,
         });
     }
 
@@ -633,8 +652,16 @@ export class SearchBox extends React.Component<SearchProps> {
         // remove "height" from the element's inline styles, so it can return to its initial value
         element.style.height="auto";
         //element.style.height = undefined;
-
       }
+
+      @action.bound
+      updateTitleStatus() { this._titleFieldStatus = !this._titleFieldStatus; }
+  
+      @action.bound
+      updateAuthorStatus() { this._authorFieldStatus = !this._authorFieldStatus; }
+  
+      @action.bound
+      updateDataStatus() { this._deletedDocsStatus = !this._deletedDocsStatus; }
 
     render() {
 
@@ -661,9 +688,9 @@ export class SearchBox extends React.Component<SearchProps> {
                     </div>
                     <div className="filter-key" id={`key${this.props.id}`} style={this._keyStatus ? { borderTop: "grey 1px solid" }: {borderTop: "0px"}}>
                         <div className="filter-keybar">
-                            <button className="filter-item" >Title</button>
-                            <button className="filter-item" >Deleted Docs</button>
-                            <button className="filter-item" >Author</button>
+                            <button className="filter-item" style={this._titleFieldStatus ? { background: "#aaaaa3", } : {}} onClick={this.updateTitleStatus}>Title</button>
+                            <button className="filter-item"  style={this._deletedDocsStatus ? { background: "#aaaaa3", } : {}} onClick={this.updateDataStatus}>Deleted Docs</button>
+                            <button className="filter-item"  style={this._authorFieldStatus ? { background: "#aaaaa3", } : {}} onClick={this.updateAuthorStatus}>Author</button>
                         </div>
                     </div>
 

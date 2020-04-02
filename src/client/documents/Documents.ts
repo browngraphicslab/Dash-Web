@@ -146,7 +146,8 @@ export interface DocumentOptions {
     selectedIndex?: number;
     syntaxColor?: string; // can be applied to text for syntax highlighting all matches in the text
     searchText?: string, //for searchbox
-
+    sq?: string,
+    fq?: string,
 }
 
 class EmptyBox {
@@ -459,6 +460,7 @@ export namespace Docs {
         }
 
         export function QueryDocument(options: DocumentOptions = {}) {
+            console.log("yuh");
             return InstanceFromProto(Prototypes.get(DocumentType.QUERY), "", options);
         }
 
