@@ -439,7 +439,8 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
                 transform: `scale(${this.props.ContentScaling()})`,
                 width: `${100 / this.props.ContentScaling()}%`,
                 height: `${100 / this.props.ContentScaling()}%`,
-                pointerEvents: this.props.Document.isBackground ? "none" : undefined
+                pointerEvents: this.props.Document.isBackground ? "none" : undefined,
+                borderRadius: `${Number(StrCast(this.layoutDoc.borderRounding).replace("px", "")) / this.props.ContentScaling()}px`
             }} >
             <CollectionFreeFormView {...this.props}
                 PanelHeight={this.props.PanelHeight}

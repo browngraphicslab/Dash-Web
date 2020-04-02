@@ -351,7 +351,7 @@ export namespace DragManager {
         const moveHandler = (e: PointerEvent) => {
             e.preventDefault(); // required or dragging text menu link item ends up dragging the link button as native drag/drop
             if (dragData instanceof DocumentDragData) {
-                dragData.userDropAction = e.ctrlKey ? "alias" : undefined;
+                dragData.userDropAction = e.ctrlKey && e.altKey ? "copy" : e.ctrlKey ? "alias" : undefined;
             }
             if (e.shiftKey && CollectionDockingView.Instance && dragData.droppedDocuments.length === 1) {
                 AbortDrag();
