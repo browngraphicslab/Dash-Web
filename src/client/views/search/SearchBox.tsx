@@ -15,20 +15,17 @@ import { SearchUtil } from '../../util/SearchUtil';
 import "./SearchBox.scss";
 import { SearchItem } from './SearchItem';
 import { IconBar } from './IconBar';
-import { FieldFilters } from './FieldFilters';
 import { FieldView } from '../nodes/FieldView';
 import { DocumentType } from "../../documents/DocumentTypes";
 import { DocumentView } from '../nodes/DocumentView';
 import { SelectionManager } from '../../util/SelectionManager';
 
-
-
 library.add(faTimes);
 
 export interface SearchProps {
-    id:string;
-    sq?:string;
-    fq?:string;
+    id: string;
+    searchQuery?: string;
+    filterQquery?: string;
 }
 
 export enum Keys {
@@ -44,11 +41,11 @@ export class SearchBox extends React.Component<SearchProps> {
     @observable private _resultsOpen: boolean = false;
     @observable private _searchbarOpen: boolean = false;
     @observable private _results: [Doc, string[], string[]][] = [];
-    private _resultsSet = new Map<Doc, number>();
     @observable private _openNoResults: boolean = false;
     @observable private _visibleElements: JSX.Element[] = [];
 
-    private resultsRef = React.createRef<HTMLDivElement>();
+    private _resultsSet = new Map<Doc, number>();
+    private _resultsRef = React.createRef<HTMLDivElement>();
     public inputRef = React.createRef<HTMLInputElement>();
 
     private _isSearch: ("search" | "placeholder" | undefined)[] = [];
@@ -75,22 +72,16 @@ export class SearchBox extends React.Component<SearchProps> {
         this.resultsScrolled = this.resultsScrolled.bind(this);
     }
 
-    private _reactionDisposer?: IReactionDisposer;
-
     componentDidMount = () => {
         if (this.inputRef.current) {
             this.inputRef.current.focus();
-            runInAction(() => {
-                this._searchbarOpen = true;
-            });
+            runInAction(() => this._searchbarOpen = true);
         }
-        if (this.props.sq && this.props.fq){
-            console.log(this.props.sq);
-            let sq= this.props.sq
-            
-            let fq =this.props.fq;
+        if (this.props.searchQuery && this.props.filterQquery) {
+            console.log(this.props.searchQuery);
+            const sq = this.props.searchQuery;
             runInAction(() => {
-                this._searchString=sq;
+                this._searchString = sq;
                 this.submitSearch();
             });
         }
@@ -99,12 +90,7 @@ export class SearchBox extends React.Component<SearchProps> {
 
     @action
     getViews = async (doc: Doc) => {
-        const results = await SearchUtil.GetViewsOfDocument(doc);
-        let toReturn: Doc[] = [];
-        await runInAction(() => {
-            toReturn = results;
-        });
-        return toReturn;
+        return await SearchUtil.GetViewsOfDocument(doc);
     }
 
     @action.bound
@@ -241,7 +227,7 @@ export class SearchBox extends React.Component<SearchProps> {
     @action.bound
     getIcons(): string[] { return this._icons; }
 
-//TODO: basically all of this
+    //TODO: basically all of this
     //gets all of the collections of all the docviews that are selected
     //if a collection is the only thing selected, search only in that collection (not its container)
     getCurCollections(): Doc[] {
@@ -308,7 +294,6 @@ export class SearchBox extends React.Component<SearchProps> {
     get fieldFiltersApplied() { return !(this._authorFieldStatus && this._titleFieldStatus); }
 
 
-
     @action
     submitSearch = async () => {
         let query = this._searchString;
@@ -317,22 +302,19 @@ export class SearchBox extends React.Component<SearchProps> {
         this._resultsSet.clear();
         this._isSearch = [];
         this._visibleElements = [];
-        if (query === "") {
-            return;
-        }
-        else {
+        if (query !== "") {
             this._endIndex = 12;
             this._maxSearchIndex = 0;
             this._numTotalResults = -1;
             await this.getResults(query);
-        }
 
-        runInAction(() => {
-            this._resultsOpen = true;
-            this._searchbarOpen = true;
-            this._openNoResults = true;
-            this.resultsScrolled();
-        });
+            runInAction(() => {
+                this._resultsOpen = true;
+                this._searchbarOpen = true;
+                this._openNoResults = true;
+                this.resultsScrolled();
+            });
+        }
     }
 
     getAllResults = async (query: string) => {
@@ -346,7 +328,6 @@ export class SearchBox extends React.Component<SearchProps> {
     }
 
     getDataStatus() { return this._deletedDocsStatus; }
-
 
 
     private NumResults = 25;
@@ -438,8 +419,7 @@ export class SearchBox extends React.Component<SearchProps> {
         console.log("create");
         //return Docs.Create.TreeDocument(docs, { _width: 200, _height: 400, backgroundColor: "grey", title: `Search Docs: "${this._searchString}"` });
         //return Docs.Create.SearchDocument(docs, { _width: 200, _height: 400, searchText: this._searchString, title: `Search Docs: "${this._searchString}"` });
-        return Docs.Create.QueryDocument({_autoHeight: true, title: this._searchString, fq: this.filterQuery, sq: this._searchString,
-        });
+        return Docs.Create.QueryDocument({ _autoHeight: true, title: this._searchString, filterQuery: this.filterQuery, searchQuery: this._searchString });
     }
 
     @action.bound
@@ -469,11 +449,11 @@ export class SearchBox extends React.Component<SearchProps> {
 
     @action
     resultsScrolled = (e?: React.UIEvent<HTMLDivElement>) => {
-        if (!this.resultsRef.current) return;
-        const scrollY = e ? e.currentTarget.scrollTop : this.resultsRef.current ? this.resultsRef.current.scrollTop : 0;
+        if (!this._resultsRef.current) return;
+        const scrollY = e ? e.currentTarget.scrollTop : this._resultsRef.current ? this._resultsRef.current.scrollTop : 0;
         const itemHght = 53;
         const startIndex = Math.floor(Math.max(0, scrollY / itemHght));
-        const endIndex = Math.ceil(Math.min(this._numTotalResults - 1, startIndex + (this.resultsRef.current.getBoundingClientRect().height / itemHght)));
+        const endIndex = Math.ceil(Math.min(this._numTotalResults - 1, startIndex + (this._resultsRef.current.getBoundingClientRect().height / itemHght)));
 
         this._endIndex = endIndex === -1 ? 12 : endIndex;
 
@@ -548,10 +528,10 @@ export class SearchBox extends React.Component<SearchProps> {
     @action.bound
     handleNodeChange = () => {
         this._nodeStatus = !this._nodeStatus;
-        if (this._nodeStatus){
+        if (this._nodeStatus) {
             this.expandSection(`node${this.props.id}`)
         }
-        else{
+        else {
             this.collapseSection(`node${this.props.id}`)
         }
     }
@@ -559,109 +539,107 @@ export class SearchBox extends React.Component<SearchProps> {
     @action.bound
     handleKeyChange = () => {
         this._keyStatus = !this._keyStatus;
-        if (this._keyStatus){
+        if (this._keyStatus) {
             this.expandSection(`key${this.props.id}`);
         }
-        else{
+        else {
             this.collapseSection(`key${this.props.id}`);
         }
     }
 
-    @action.bound  
-    handleFilterChange=() =>{
-        this._filterOpen=!this._filterOpen;
-        if (this._filterOpen){
+    @action.bound
+    handleFilterChange = () => {
+        this._filterOpen = !this._filterOpen;
+        if (this._filterOpen) {
             this.expandSection(`filterhead${this.props.id}`);
-            document.getElementById(`filterhead${this.props.id}`)!.style.padding="5";        
+            document.getElementById(`filterhead${this.props.id}`)!.style.padding = "5";
         }
-        else{
+        else {
             this.collapseSection(`filterhead${this.props.id}`);
-                    
+
 
         }
     }
-    // @observable
-    // private menuHeight= 0;
 
     @computed
-    get menuHeight(){
+    get menuHeight() {
         return document.getElementById("hi")?.clientHeight;
     }
 
 
-    collapseSection(thing:string) {
+    collapseSection(thing: string) {
         let id = this.props.id;
-        let element= document.getElementById(thing)!;
+        let element = document.getElementById(thing)!;
         // get the height of the element's inner content, regardless of its actual size
         var sectionHeight = element.scrollHeight;
-        
+
         // temporarily disable all css transitions
         var elementTransition = element.style.transition;
         element.style.transition = '';
-        
+
         // on the next frame (as soon as the previous style change has taken effect),
         // explicitly set the element's height to its current pixel height, so we 
         // aren't transitioning out of 'auto'
-        requestAnimationFrame(function() {
-          element.style.height = sectionHeight + 'px';
-          element.style.transition = elementTransition;
-          
-          // on the next frame (as soon as the previous style change has taken effect),
-          // have the element transition to height: 0
-          requestAnimationFrame(function() {
-            element.style.height = 0 + 'px';
-            thing == `filterhead${id}`? document.getElementById(`filterhead${id}`)!.style.padding="0" : null;
-          });
+        requestAnimationFrame(function () {
+            element.style.height = sectionHeight + 'px';
+            element.style.transition = elementTransition;
+
+            // on the next frame (as soon as the previous style change has taken effect),
+            // have the element transition to height: 0
+            requestAnimationFrame(function () {
+                element.style.height = 0 + 'px';
+                thing == `filterhead${id}` ? document.getElementById(`filterhead${id}`)!.style.padding = "0" : null;
+            });
         });
-        
+
         // mark the section as "currently collapsed"
         element.setAttribute('data-collapsed', 'true');
-      }
-      
-      expandSection(thing:string) {
+    }
+
+    expandSection(thing: string) {
         console.log("expand");
-        let element= document.getElementById(thing)!;
+        let element = document.getElementById(thing)!;
         // get the height of the element's inner content, regardless of its actual size
         var sectionHeight = element.scrollHeight;
-        
+
         // have the element transition to the height of its inner content
-        let  temp = element.style.height;
+        let temp = element.style.height;
         element.style.height = sectionHeight + 'px';
-      
+
         // when the next css transition finishes (which should be the one we just triggered)
         element.addEventListener('transitionend', function handler(e) {
-          // remove this event listener so it only gets triggered once
-          console.log("autoset");
-          element.removeEventListener('transitionend', handler);
-          
-          // remove "height" from the element's inline styles, so it can return to its initial value
-          element.style.height="auto";
-          //element.style.height = undefined;
+            // remove this event listener so it only gets triggered once
+            console.log("autoset");
+            element.removeEventListener('transitionend', handler);
+
+            // remove "height" from the element's inline styles, so it can return to its initial value
+            element.style.height = "auto";
+            //element.style.height = undefined;
         });
-        
+
         // mark the section as "currently not collapsed"
         element.setAttribute('data-collapsed', 'false');
-        
-      }
 
-      autoset(thing: string){
-        let element= document.getElementById(thing)!;
+    }
+
+    autoset(thing: string) {
+        let element = document.getElementById(thing)!;
         console.log("autoset");
-        element.removeEventListener('transitionend', function(e){});
-        
-        // remove "height" from the element's inline styles, so it can return to its initial value
-        element.style.height="auto";
-        //element.style.height = undefined;
-      }
+        element.removeEventListener('transitionend', function (e) { });
 
-      @action.bound
-      updateTitleStatus() { this._titleFieldStatus = !this._titleFieldStatus; }
-  
-      @action.bound
-      updateAuthorStatus() { this._authorFieldStatus = !this._authorFieldStatus; }
-  
-      @action.bound
-      updateDataStatus() { this._deletedDocsStatus = !this._deletedDocsStatus; }
+        // remove "height" from the element's inline styles, so it can return to its initial value
+        element.style.height = "auto";
+        //element.style.height = undefined;
+    }
+
+    @action.bound
+    updateTitleStatus() { this._titleFieldStatus = !this._titleFieldStatus; }
+
+    @action.bound
+    updateAuthorStatus() { this._authorFieldStatus = !this._authorFieldStatus; }
+
+    @action.bound
+    updateDataStatus() { this._deletedDocsStatus = !this._deletedDocsStatus; }
 
     render() {
 
@@ -678,55 +656,27 @@ export class SearchBox extends React.Component<SearchProps> {
                 </div>
 
                 <div id={`filterhead${this.props.id}`} className="filter-form" >
-                    <div id={`filterhead2${this.props.id}`} className="filter-header" style={this._filterOpen ? { } : { }}>
+                    <div id={`filterhead2${this.props.id}`} className="filter-header" style={this._filterOpen ? {} : {}}>
                         <button className="filter-item" style={this._basicWordStatus ? { background: "#aaaaa3", } : {}} onClick={this.handleWordQueryChange}>Keywords</button>
                         <button className="filter-item" style={this._keyStatus ? { background: "#aaaaa3" } : {}} onClick={this.handleKeyChange}>Keys</button>
                         <button className="filter-item" style={this._nodeStatus ? { background: "#aaaaa3" } : {}} onClick={this.handleNodeChange}>Nodes</button>
                     </div>
-                    <div id={`node${this.props.id}`} className="filter-body" style={this._nodeStatus ? { borderTop: "grey 1px solid" }: {borderTop: "0px"}}>
+                    <div id={`node${this.props.id}`} className="filter-body" style={this._nodeStatus ? { borderTop: "grey 1px solid" } : { borderTop: "0px" }}>
                         <IconBar />
                     </div>
-                    <div className="filter-key" id={`key${this.props.id}`} style={this._keyStatus ? { borderTop: "grey 1px solid" }: {borderTop: "0px"}}>
+                    <div className="filter-key" id={`key${this.props.id}`} style={this._keyStatus ? { borderTop: "grey 1px solid" } : { borderTop: "0px" }}>
                         <div className="filter-keybar">
                             <button className="filter-item" style={this._titleFieldStatus ? { background: "#aaaaa3", } : {}} onClick={this.updateTitleStatus}>Title</button>
-                            <button className="filter-item"  style={this._deletedDocsStatus ? { background: "#aaaaa3", } : {}} onClick={this.updateDataStatus}>Deleted Docs</button>
-                            <button className="filter-item"  style={this._authorFieldStatus ? { background: "#aaaaa3", } : {}} onClick={this.updateAuthorStatus}>Author</button>
+                            <button className="filter-item" style={this._deletedDocsStatus ? { background: "#aaaaa3", } : {}} onClick={this.updateDataStatus}>Deleted Docs</button>
+                            <button className="filter-item" style={this._authorFieldStatus ? { background: "#aaaaa3", } : {}} onClick={this.updateAuthorStatus}>Author</button>
                         </div>
                     </div>
-
-
-                    {/* <div className="filter-options">
-                            <div className="filter-div">
-                                <div className="filter-header">
-                                    <div className='filter-title words'>Required words</div>
-                                </div>
-                                <div className="filter-panel" >
-                                    <button className="all-filter">Include All Keywords</button>
-                                </div>
-                            </div>
-                            <div className="filter-div">
-                                <div className="filter-header">
-                                    <div className="filter-title icon">Filter by type of node</div>
-                                </div>
-                                <div className="filter-panel"></div>
-                            </div>
-                            <div className="filter-div">
-                                <div className="filter-header">
-                                    <div className="filter-title field">Filter by Basic Keys</div>
-                                </div>
-                                <div className="filter-panel">
-                                <FieldFilters
-                                    titleFieldStatus={this._titleFieldStatus} dataFieldStatus={this._deletedDocsStatus} authorFieldStatus={this._authorFieldStatus}
-                                    updateAuthorStatus={this.updateAuthorStatus} updateDataStatus={this.updateDataStatus} updateTitleStatus={this.updateTitleStatus} /> </div>
-                                </div>
-                            </div>
-                        </div> */}
                 </div>
                 <div className="searchBox-results" onScroll={this.resultsScrolled} style={{
                     display: this._resultsOpen ? "flex" : "none",
                     height: this.resFull ? "auto" : this.resultHeight,
                     overflow: "visibile" // this.resFull ? "auto" : "visible"
-                }} ref={this.resultsRef}>
+                }} ref={this._resultsRef}>
                     {this._visibleElements}
                 </div>
             </div>

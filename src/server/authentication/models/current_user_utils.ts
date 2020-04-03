@@ -280,6 +280,13 @@ export class CurrentUserUtils {
 
     /// sets up the default list of buttons to be shown in the expanding button menu at the bottom of the Dash window
     static setupExpandingButtons(doc: Doc) {
+        const queryTemplate = Docs.Create.MultirowDocument(
+            [
+                Docs.Create.QueryDocument({ title: "query", _height: 200 }),
+                Docs.Create.FreeformDocument([], { title: "data", _height: 100 })
+            ],
+            { _width: 400, _height: 300, title: "queryView", _chromeStatus: "disabled", _xMargin: 3, _yMargin: 3, _autoHeight: false });
+        queryTemplate.isTemplateDoc = makeTemplate(queryTemplate);
         const slideTemplate = Docs.Create.MultirowDocument(
             [
                 Docs.Create.MulticolumnDocument([], { title: "data", _height: 200 }),
@@ -303,7 +310,8 @@ export class CurrentUserUtils {
         doc.redoBtn = ficon({ onClick: ScriptField.MakeScript("redo()"), title: "redo button", icon: "redo-alt" });
         doc.slidesBtn = ficon({ onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'), dragFactory: slideTemplate, removeDropProperties: new List<string>(["dropAction"]), title: "presentation slide", icon: "sticky-note" });
         doc.descriptionBtn = ficon({ onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'), dragFactory: descriptionTemplate, removeDropProperties: new List<string>(["dropAction"]), title: "description view", icon: "sticky-note" });
-        doc.templateButtons = blist({ title: "template buttons" }, [doc.slidesBtn as Doc, doc.descriptionBtn as Doc]);
+        doc.queryBtn = ficon({ onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'), dragFactory: queryTemplate, removeDropProperties: new List<string>(["dropAction"]), title: "query view", icon: "sticky-note" });
+        doc.templateButtons = blist({ title: "template buttons" }, [doc.slidesBtn as Doc, doc.descriptionBtn as Doc, doc.queryBtn as Doc]);
         doc.expandingButtons = blist({ title: "expanding buttons" }, [doc.undoBtn as Doc, doc.redoBtn as Doc, doc.templateButtons as Doc]);
         doc.templateDocs = new PrefetchProxy(Docs.Create.TreeDocument([doc.noteTypes as Doc, doc.templateButtons as Doc], {
             title: "template layouts", _xPadding: 0,

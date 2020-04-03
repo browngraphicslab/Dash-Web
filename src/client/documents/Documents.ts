@@ -164,8 +164,8 @@ export interface DocumentOptions {
     selectedIndex?: number;
     syntaxColor?: string; // can be applied to text for syntax highlighting all matches in the text
     searchText?: string, //for searchbox
-    sq?: string,
-    fq?: string,
+    searchQuery?: string, // for queryBox
+    filterQuery?: string,
     linearViewIsExpanded?: boolean; // is linear view expanded
 }
 
@@ -548,7 +548,6 @@ export namespace Docs {
         }
 
         export function QueryDocument(options: DocumentOptions = {}) {
-            console.log("yuh");
             return InstanceFromProto(Prototypes.get(DocumentType.QUERY), "", options);
         }
 
