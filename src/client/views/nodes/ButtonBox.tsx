@@ -42,9 +42,7 @@ export class ButtonBox extends DocComponent<FieldViewProps, ButtonDocument>(Butt
 
 
     protected createDropTarget = (ele: HTMLDivElement) => {
-        if (this.dropDisposer) {
-            this.dropDisposer();
-        }
+        this.dropDisposer?.();
         if (ele) {
             this.dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this));
         }
@@ -55,7 +53,7 @@ export class ButtonBox extends DocComponent<FieldViewProps, ButtonDocument>(Butt
         funcs.push({
             description: "Clear Script Params", event: () => {
                 const params = FieldValue(this.Document.buttonParams);
-                params && params.map(p => this.props.Document[p] = undefined);
+                params?.map(p => this.props.Document[p] = undefined);
             }, icon: "trash"
         });
 
@@ -66,7 +64,9 @@ export class ButtonBox extends DocComponent<FieldViewProps, ButtonDocument>(Butt
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
         const docDragData = de.complete.docDragData;
-        if (docDragData && e.target) {
+        const params = this.Document.buttonParams;
+        const missingParams = params?.filter(p => this.props.Document[p] === undefined);
+        if (docDragData && missingParams?.includes((e.target as any).textContent)) {
             this.props.Document[(e.target as any).textContent] = new List<Doc>(docDragData.droppedDocuments.map((d, i) =>
                 d.onDragStart ? docDragData.draggedDocuments[i] : d));
             e.stopPropagation();
@@ -75,8 +75,8 @@ export class ButtonBox extends DocComponent<FieldViewProps, ButtonDocument>(Butt
     // (!missingParams || !missingParams.length ? "" : "(" + missingParams.map(m => m + ":").join(" ") + ")")
     render() {
         const params = this.Document.buttonParams;
-        const missingParams = params && params.filter(p => this.props.Document[p] === undefined);
-        params && params.map(p => DocListCast(this.props.Document[p])); // bcz: really hacky form of prefetching ... 
+        const missingParams = params?.filter(p => this.props.Document[p] === undefined);
+        params?.map(p => DocListCast(this.props.Document[p])); // bcz: really hacky form of prefetching ... 
         return (
             <div className="buttonBox-outerDiv" ref={this.createDropTarget} onContextMenu={this.specificContextMenu}
                 style={{ boxShadow: this.Document.opacity === 0 ? undefined : StrCast(this.Document.boxShadow, "") }}>

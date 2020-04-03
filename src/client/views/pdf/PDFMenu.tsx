@@ -61,11 +61,10 @@ export default class PDFMenu extends AntimodeMenu {
         e.preventDefault();
     }
 
-    @action
-    togglePin = (e: React.MouseEvent) => {
+    togglePin = action((e: React.MouseEvent) => {
         this.Pinned = !this.Pinned;
         !this.Pinned && (this.Highlighting = false);
-    }
+    })
 
     @action
     highlightClicked = (e: React.MouseEvent) => {
