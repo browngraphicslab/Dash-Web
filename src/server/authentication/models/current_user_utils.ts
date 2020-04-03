@@ -100,7 +100,7 @@ export class CurrentUserUtils {
             ignoreClick: data.ignoreClick,
             dropAction: data.click ? "copy" : undefined,
             onDragStart: data.drag ? ScriptField.MakeFunction(data.drag) : undefined, onClick: data.click ? ScriptField.MakeScript(data.click) : undefined,
-            ischecked: data.ischecked ? ComputedField.MakeFunction(data.ischecked) : undefined, activePen: data.activePen, dontSelect: true,
+            ischecked: data.ischecked ? ComputedField.MakeFunction(data.ischecked) : undefined, activePen: data.activePen, dontDecorateSelection: true,
             backgroundColor: data.backgroundColor, removeDropProperties: new List<string>(["dropAction"]), dragFactory: data.dragFactory,
         }));
     }
@@ -210,7 +210,7 @@ export class CurrentUserUtils {
         });
 
         return Docs.Create.ButtonDocument({
-            _width: 35, _height: 25, title: "Tools", fontSize: 10, targetContainer: sidebarContainer, dontSelect: true,
+            _width: 35, _height: 25, title: "Tools", fontSize: 10, targetContainer: sidebarContainer, dontDecorateSelection: true,
             letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
             sourcePanel: Docs.Create.StackingDocument([dragCreators, color], {
                 _width: 500, lockedPosition: true, _chromeStatus: "disabled", title: "tools stack"
@@ -236,7 +236,7 @@ export class CurrentUserUtils {
         });
 
         return Docs.Create.ButtonDocument({
-            _width: 50, _height: 25, title: "Library", fontSize: 10, dontSelect: true,
+            _width: 50, _height: 25, title: "Library", fontSize: 10, dontDecorateSelection: true,
             letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
             sourcePanel: Docs.Create.TreeDocument([doc.workspaces as Doc, doc.documents as Doc, Docs.Prototypes.MainLinkDocument(), doc, doc.recentlyClosed as Doc], {
                 title: "Library", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "place", lockedPosition: true, boxShadow: "0 0", dontRegisterChildren: true
@@ -249,7 +249,7 @@ export class CurrentUserUtils {
     // setup the Search button which will display the search panel.  
     static setupSearchPanel(sidebarContainer: Doc) {
         return Docs.Create.ButtonDocument({
-            _width: 50, _height: 25, title: "Search", fontSize: 10, dontSelect: true,
+            _width: 50, _height: 25, title: "Search", fontSize: 10, dontDecorateSelection: true,
             letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
             sourcePanel: Docs.Create.QueryDocument({
                 title: "search stack",
@@ -283,7 +283,7 @@ export class CurrentUserUtils {
         const queryTemplate = Docs.Create.MultirowDocument(
             [
                 Docs.Create.QueryDocument({ title: "query", _height: 200 }),
-                Docs.Create.FreeformDocument([], { title: "data", _height: 100 })
+                Docs.Create.FreeformDocument([], { title: "data", _height: 100, _LODdisable: true })
             ],
             { _width: 400, _height: 300, title: "queryView", _chromeStatus: "disabled", _xMargin: 3, _yMargin: 3, _autoHeight: false });
         queryTemplate.isTemplateDoc = makeTemplate(queryTemplate);
@@ -298,10 +298,10 @@ export class CurrentUserUtils {
         Doc.GetProto(descriptionTemplate).layout = FormattedTextBox.LayoutString("description");
         descriptionTemplate.isTemplateDoc = makeTemplate(descriptionTemplate, true, "descriptionView");
 
-        const ficon = (opts: DocumentOptions) => new PrefetchProxy(Docs.Create.FontIconDocument({ ...opts, dontSelect: true, dropAction: "alias", removeDropProperties: new List<string>(["dropAction"]), _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100 })) as any as Doc;
+        const ficon = (opts: DocumentOptions) => new PrefetchProxy(Docs.Create.FontIconDocument({ ...opts, dontDecorateSelection: true, dropAction: "alias", removeDropProperties: new List<string>(["dropAction"]), _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100 })) as any as Doc;
         const blist = (opts: DocumentOptions, docs: Doc[]) => new PrefetchProxy(Docs.Create.LinearDocument(docs, {
             ...opts,
-            _gridGap: 5, _xMargin: 5, _yMargin: 5, _height: 42, _width: 100, boxShadow: "0 0", dontSelect: true, forceActive: true,
+            _gridGap: 5, _xMargin: 5, _yMargin: 5, _height: 42, _width: 100, boxShadow: "0 0", dontDecorateSelection: true, forceActive: true,
             dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }),
             backgroundColor: "black", treeViewPreventOpen: true, lockedPosition: true, _chromeStatus: "disabled", linearViewIsExpanded: true
         })) as any as Doc;
