@@ -33,7 +33,7 @@ export enum Keys {
 export class FilterBox extends React.Component {
 
     static Instance: FilterBox;
-    public _allIcons: string[] = [DocumentType.AUDIO, DocumentType.COL, DocumentType.IMG, DocumentType.LINK, DocumentType.PDF, DocumentType.TEXT, DocumentType.VID, DocumentType.WEB, DocumentType.TEMPLATE];
+    public _allIcons: string[] = [DocumentType.AUDIO, DocumentType.COL, DocumentType.IMG, DocumentType.LINK, DocumentType.PDF, DocumentType.TEXT, DocumentType.VID, DocumentType.WEB];
 
     //if true, any keywords can be used. if false, all keywords are required.
     //this also serves as an indicator if the word status filter is applied

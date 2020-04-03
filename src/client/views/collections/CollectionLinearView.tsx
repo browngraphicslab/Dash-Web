@@ -31,15 +31,15 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
         this._dropDisposer && this._dropDisposer();
         this._widthDisposer && this._widthDisposer();
         this._selectedDisposer && this._selectedDisposer();
-        this.childLayoutPairs.filter((pair) => this.isCurrent(pair.layout)).map((pair, ind) => {
+        this.childLayoutPairs.map((pair, ind) => {
             Cast(pair.layout.proto?.onPointerUp, ScriptField)?.script.run({ this: pair.layout.proto }, console.log);
         });
     }
 
     componentDidMount() {
         // is there any reason this needs to exist? -syip.  yes, it handles autoHeight for stacking views (masonry isn't yet supported).
-        this._widthDisposer = reaction(() => this.props.Document[HeightSym]() + this.childDocs.length + (this.props.Document.isExpanded ? 1 : 0),
-            () => this.props.Document._width = 5 + (this.props.Document.isExpanded ? this.childDocs.length * (this.props.Document[HeightSym]()) : 10),
+        this._widthDisposer = reaction(() => this.props.Document[HeightSym]() + this.childDocs.length + (this.props.Document.linearViewIsExpanded ? 1 : 0),
+            () => this.props.Document._width = 5 + (this.props.Document.linearViewIsExpanded ? this.childDocs.length * (this.props.Document[HeightSym]()) : 10),
             { fireImmediately: true }
         );
 
@@ -48,7 +48,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
             (i) => runInAction(() => {
                 this._selectedIndex = i;
                 let selected: any = undefined;
-                this.childLayoutPairs.filter((pair) => this.isCurrent(pair.layout)).map(async (pair, ind) => {
+                this.childLayoutPairs.map(async (pair, ind) => {
                     const isSelected = this._selectedIndex === ind;
                     if (isSelected) {
                         selected = pair;
@@ -67,17 +67,15 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
     protected createDashEventsTarget = (ele: HTMLDivElement) => { //used for stacking and masonry view
         this._dropDisposer && this._dropDisposer();
         if (ele) {
-            this._dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this));
+            this._dropDisposer = DragManager.MakeDropTarget(ele, this.onInternalDrop.bind(this));
         }
     }
-
-    public isCurrent(doc: Doc) { return !doc.isMinimized && (Math.abs(NumCast(doc.displayTimecode, -1) - NumCast(this.Document.currentTimecode, -1)) < 1.5 || NumCast(doc.displayTimecode, -1) === -1); }
 
     dimension = () => NumCast(this.props.Document._height); // 2 * the padding
     getTransform = (ele: React.RefObject<HTMLDivElement>) => () => {
         if (!ele.current) return Transform.Identity();
         const { scale, translateX, translateY } = Utils.GetScreenTransform(ele.current);
-        return new Transform(-translateX, -translateY, 1 / scale);
+        return new Transform(-translateX, -translateY, 1);
     }
 
     render() {
@@ -85,20 +83,24 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
         const flexDir: any = StrCast(this.Document.flexDirection);
         return <div className="collectionLinearView-outer">
             <div className="collectionLinearView" ref={this.createDashEventsTarget} >
-                <input id={`${guid}`} type="checkbox" checked={BoolCast(this.props.Document.isExpanded)} ref={this.addMenuToggle}
-                    onChange={action((e: any) => this.props.Document.isExpanded = this.addMenuToggle.current!.checked)} />
-                <label htmlFor={`${guid}`} style={{ marginTop: "auto", marginBottom: "auto", background: StrCast(this.props.Document.backgroundColor, "black") === StrCast(this.props.Document.color, "white") ? "black" : StrCast(this.props.Document.backgroundColor, "black") }} title="Close Menu"><p>+</p></label>
+                <input id={`${guid}`} type="checkbox" checked={BoolCast(this.props.Document.linearViewIsExpanded)} ref={this.addMenuToggle}
+                    onChange={action((e: any) => this.props.Document.linearViewIsExpanded = this.addMenuToggle.current!.checked)} />
+                <label htmlFor={`${guid}`} title="Close Menu" style={{ marginTop: "auto", marginBottom: "auto", 
+                background: StrCast(this.props.Document.backgroundColor, "black") === StrCast(this.props.Document.color, "white") ? "black" : StrCast(this.props.Document.backgroundColor, "black") }} >
+                    <p>+</p>
+                </label>
 
-                <div className="collectionLinearView-content" style={{ height: this.dimension(), width: NumCast(this.props.Document._width, 25), flexDirection: flexDir }}>
-                    {this.childLayoutPairs.filter((pair) => this.isCurrent(pair.layout)).map((pair, ind) => {
+                <div className="collectionLinearView-content" style={{ height: this.dimension(), flexDirection: flexDir }}>
+                    {this.childLayoutPairs.map((pair, ind) => {
                         const nested = pair.layout._viewType === CollectionViewType.Linear;
                         const dref = React.createRef<HTMLDivElement>();
                         const nativeWidth = NumCast(pair.layout._nativeWidth, this.dimension());
                         const deltaSize = nativeWidth * .15 / 2;
-                        return <div className={`collectionLinearView-docBtn` + (pair.layout.onClick || pair.layout.onDragStart ? "-scalable" : "")} key={pair.layout[Id]} ref={dref}
+                        const scalable = pair.layout.onClick || pair.layout.onDragStart;
+                        return <div className={`collectionLinearView-docBtn` + (scalable ? "-scalable" : "")} key={pair.layout[Id]} ref={dref}
                             style={{
-                                width: nested ? pair.layout[WidthSym]() : this.dimension() - deltaSize,
-                                height: nested && pair.layout.isExpanded ? pair.layout[HeightSym]() : this.dimension() - deltaSize,
+                                width: scalable ? (nested ? pair.layout[WidthSym]() : this.dimension() - deltaSize) : undefined,
+                                height: nested && pair.layout.linearViewIsExpanded ? pair.layout[HeightSym]() : this.dimension() - deltaSize,
                             }}  >
                             <DocumentView
                                 Document={pair.layout}

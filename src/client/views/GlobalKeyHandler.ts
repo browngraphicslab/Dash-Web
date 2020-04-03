@@ -6,7 +6,6 @@ import { DragManager } from "../util/DragManager";
 import { action, runInAction } from "mobx";
 import { Doc } from "../../new_fields/Doc";
 import { DictationManager } from "../util/DictationManager";
-import { RecommendationsBox } from "./RecommendationsBox";
 import SharingManager from "../util/SharingManager";
 import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
 import { Cast, PromiseValue } from "../../new_fields/Types";
@@ -107,14 +106,14 @@ export default class KeyManager {
     });
 
     private shift = async (keyname: string) => {
-        let stopPropagation = false;
-        let preventDefault = false;
+        const stopPropagation = false;
+        const preventDefault = false;
 
         switch (keyname) {
-            case "~":
-                DictationManager.Controls.listen({ useOverlay: true, tryExecute: true });
-                stopPropagation = true;
-                preventDefault = true;
+            // case "~":
+            //     DictationManager.Controls.listen({ useOverlay: true, tryExecute: true });
+            //     stopPropagation = true;
+            //     preventDefault = true;
         }
 
         return {
@@ -158,7 +157,7 @@ export default class KeyManager {
                         return { stopPropagation: false, preventDefault: false };
                     }
                 }
-                MainView.Instance.mainFreeform && CollectionDockingView.AddRightSplit(MainView.Instance.mainFreeform, undefined);
+                MainView.Instance.mainFreeform && CollectionDockingView.AddRightSplit(MainView.Instance.mainFreeform);
                 break;
             case "arrowleft":
                 if (document.activeElement) {

@@ -24,7 +24,7 @@ export namespace ImageUtils {
         const proto = Doc.GetProto(document);
         proto["data-nativeWidth"] = nativeWidth;
         proto["data-nativeHeight"] = nativeHeight;
-        proto.contentSize = contentSize;
+        proto.contentSize = contentSize ? contentSize : undefined;
         return data !== undefined;
     };
 

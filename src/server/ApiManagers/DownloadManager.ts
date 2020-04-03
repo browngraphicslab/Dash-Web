@@ -254,11 +254,13 @@ async function writeHierarchyRecursive(file: Archiver.Archiver, hierarchy: Hiera
                 // and dropped in the browser and thus hosted remotely) so we upload it
                 // to our server and point the zip file to it, so it can bundle up the bytes
                 const information = await DashUploadUtils.UploadImage(result);
-                path = information.serverAccessPaths[SizeSuffix.Original];
+                path = information instanceof Error ? "" : information.accessPaths[SizeSuffix.Original].server;
             }
             // write the file specified by the path to the directory in the
             // zip file given by the prefix.
-            file.file(path, { name: documentTitle, prefix });
+            if (path) {
+                file.file(path, { name: documentTitle, prefix });
+            }
         } else {
             // we've hit a collection, so we have to recurse
             await writeHierarchyRecursive(file, result, `${prefix}/${documentTitle}`);

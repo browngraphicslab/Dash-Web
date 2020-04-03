@@ -1,22 +1,20 @@
 import { CollectionSubView } from "./CollectionSubView";
-import { Transform } from "../../util/Transform";
 import React = require("react");
 import { computed, action, IReactionDisposer, reaction, runInAction, observable } from "mobx";
-import { Doc } from "../../../new_fields/Doc";
 import { NumCast } from "../../../new_fields/Types";
 import "./CollectionStaffView.scss";
 import { observer } from "mobx-react";
 
 @observer
 export class CollectionStaffView extends CollectionSubView(doc => doc) {
-    private getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(0, -this._mainCont.current!.scrollTop);
-    private _mainCont = React.createRef<HTMLDivElement>();
     private _reactionDisposer: IReactionDisposer | undefined;
     @observable private _staves = NumCast(this.props.Document.staves);
 
+    componentWillUnmount() {
+        this._reactionDisposer?.();
+    }
     componentDidMount = () => {
-        this._reactionDisposer = reaction(
-            () => NumCast(this.props.Document.staves),
+        this._reactionDisposer = reaction(() => NumCast(this.props.Document.staves),
             (staves) => runInAction(() => this._staves = staves)
         );
 
@@ -47,7 +45,7 @@ export class CollectionStaffView extends CollectionSubView(doc => doc) {
     }
 
     render() {
-        return <div className="collectionStaffView" ref={this._mainCont}>
+        return <div className="collectionStaffView">
             {this.staves}
             {this.addStaffButton}
         </div>;

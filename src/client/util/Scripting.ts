@@ -215,6 +215,8 @@ function forEachNode(node: ts.Node, onEnter: Traverser, onExit?: Traverser, inde
 
 export function CompileScript(script: string, options: ScriptOptions = {}): CompileResult {
     const { requiredType = "", addReturn = false, params = {}, capturedVariables = {}, typecheck = true } = options;
+    if (options.params && !options.params.this) options.params.this = Doc.name;
+    if (options.params && !options.params.self) options.params.self = Doc.name;
     if (options.globals) {
         Scripting.setScriptingGlobals(options.globals);
     }

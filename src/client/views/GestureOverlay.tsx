@@ -27,6 +27,9 @@ import { listSpec } from "../../new_fields/Schema";
 import { List } from "../../new_fields/List";
 import { CollectionViewType } from "./collections/CollectionView";
 import TouchScrollableMenu, { TouchScrollableMenuItem } from "./TouchScrollableMenu";
+import MobileInterface from "../../mobile/MobileInterface";
+import { MobileInkOverlayContent } from "../../server/Message";
+import MobileInkOverlay from "../../mobile/MobileInkOverlay";
 import { RadialMenu } from "./nodes/RadialMenu";
 import { SelectionManager } from "../util/SelectionManager";
 
@@ -53,8 +56,10 @@ export default class GestureOverlay extends Touchable {
     @observable private _clipboardDoc?: JSX.Element;
     @observable private _possibilities: JSX.Element[] = [];
 
-    @computed private get height(): number { return 2 * Math.max(this._pointerY && this._thumbY ? this._thumbY - this._pointerY : 300, 300); }
+    @computed private get height(): number { return 2 * Math.max(this._pointerY && this._thumbY ? this._thumbY - this._pointerY : 100, 100); }
     @computed private get showBounds() { return this.Tool !== ToolglassTools.None; }
+
+    @observable private showMobileInkOverlay: boolean = false;
 
     private _d1: Doc | undefined;
     private _inkToTextDoc: Doc | undefined;
@@ -141,8 +146,6 @@ export default class GestureOverlay extends Touchable {
         const nts = this.getNewTouches(te);
         if (nts.nt.length < 5) {
             const target = document.elementFromPoint(te.changedTouches.item(0).clientX, te.changedTouches.item(0).clientY);
-            te.changedTouches.item(0).identifier;
-            console.log(te.touches);
             target?.dispatchEvent(
                 new CustomEvent<InteractionUtils.MultiTouchEvent<React.TouchEvent>>("dashOnTouchStart",
                     {
@@ -162,7 +165,7 @@ export default class GestureOverlay extends Touchable {
                 this._holdTimer = setTimeout(() => {
                     console.log("hold");
                     const target = document.elementFromPoint(te.changedTouches.item(0).clientX, te.changedTouches.item(0).clientY);
-                    let pt: any = te.touches[te.touches.length - 1];
+                    const pt: any = te.touches[te.touches.length - 1];
                     if (nts.nt.length === 1 && pt.radiusX > 1 && pt.radiusY > 1) {
                         target?.dispatchEvent(
                             new CustomEvent<InteractionUtils.MultiTouchEvent<React.TouchEvent>>("dashOnTouchHoldStart",
@@ -532,7 +535,7 @@ export default class GestureOverlay extends Touchable {
             }
             else if (this._d1 !== doc && !LinkManager.Instance.doesLinkExist(this._d1, doc)) {
                 if (this._d1.type !== "ink" && doc.type !== "ink") {
-                    DocUtils.MakeLink({ doc: this._d1 }, { doc: doc });
+                    DocUtils.MakeLink({ doc: this._d1 }, { doc: doc }, "gestural link");
                     actionPerformed = true;
                 }
             }
@@ -558,6 +561,16 @@ export default class GestureOverlay extends Touchable {
             const B = this.svgBounds;
             const points = this._points.map(p => ({ X: p.X - B.left, Y: p.Y - B.top }));
 
+            if (MobileInterface.Instance && MobileInterface.Instance.drawingInk) {
+                const { selectedColor, selectedWidth } = InkingControl.Instance;
+                DocServer.Mobile.dispatchGesturePoints({
+                    points: this._points,
+                    bounds: B,
+                    color: selectedColor,
+                    width: selectedWidth
+                });
+            }
+
             const initialPoint = this._points[0.];
             const xInGlass = initialPoint.X > (this._thumbX ?? Number.MAX_SAFE_INTEGER) && initialPoint.X < (this._thumbX ?? Number.MAX_SAFE_INTEGER) + (this.height);
             const yInGlass = initialPoint.Y > (this._thumbY ?? Number.MAX_SAFE_INTEGER) - (this.height) && initialPoint.Y < (this._thumbY ?? Number.MAX_SAFE_INTEGER);
@@ -576,7 +589,7 @@ export default class GestureOverlay extends Touchable {
                             for (const wR of wordResults) {
                                 console.log(wR);
                                 if (wR?.recognizedText) {
-                                    possibilities.push(wR?.recognizedText)
+                                    possibilities.push(wR?.recognizedText);
                                 }
                                 possibilities.push(...wR?.alternates?.map((a: any) => a.recognizedString));
                             }
@@ -717,23 +730,29 @@ export default class GestureOverlay extends Touchable {
         this._clipboardDoc = undefined;
     }
 
+    @action
+    enableMobileInkOverlay = (content: MobileInkOverlayContent) => {
+        this.showMobileInkOverlay = content.enableOverlay;
+    }
+
     render() {
         trace();
         return (
             <div className="gestureOverlay-cont" onPointerDown={this.onPointerDown} onTouchStart={this.onReactTouchStart}>
+                {this.showMobileInkOverlay ? <MobileInkOverlay /> : <></>}
                 {this.elements}
 
                 <div className="clipboardDoc-cont" style={{
-                    transform: `translate(${this._thumbX}px, ${(this._thumbY ?? 0) - this.height}px)`,
                     height: this.height,
                     width: this.height,
                     pointerEvents: this._clipboardDoc ? "unset" : "none",
                     touchAction: this._clipboardDoc ? "unset" : "none",
+                    transform: `translate(${this._thumbX}px, ${(this._thumbY || 0) - this.height} px)`,
                 }}>
                     {this._clipboardDoc}
                 </div>
                 <div className="filter-cont" style={{
-                    transform: `translate(${this._thumbX}px, ${(this._thumbY ?? 0) - this.height}px)`,
+                    transform: `translate(${this._thumbX}px, ${(this._thumbY || 0) - this.height}px)`,
                     height: this.height,
                     width: this.height,
                     pointerEvents: "none",

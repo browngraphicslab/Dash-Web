@@ -2,12 +2,12 @@ import * as mongodb from 'mongodb';
 import { Transferable } from './Message';
 import { Opt } from '../new_fields/Doc';
 import { Utils, emptyFunction } from '../Utils';
-import { DashUploadUtils } from './DashUploadUtils';
 import { Credentials } from 'google-auth-library';
 import { GoogleApiServerUtils } from './apis/google/GoogleApiServerUtils';
 import { IDatabase } from './IDatabase';
 import { MemoryDatabase } from './MemoryDatabase';
 import * as mongoose from 'mongoose';
+import { Upload } from './SharedMediaTypes';
 
 export namespace Database {
 
@@ -297,7 +297,7 @@ export namespace Database {
         };
 
         export const QueryUploadHistory = async (contentSize: number) => {
-            return SanitizedSingletonQuery<DashUploadUtils.ImageUploadInformation>({ contentSize }, AuxiliaryCollections.GooglePhotosUploadHistory);
+            return SanitizedSingletonQuery<Upload.ImageInformation>({ contentSize }, AuxiliaryCollections.GooglePhotosUploadHistory);
         };
 
         export namespace GoogleAuthenticationToken {
@@ -326,9 +326,9 @@ export namespace Database {
 
         }
 
-        export const LogUpload = async (information: DashUploadUtils.ImageUploadInformation) => {
+        export const LogUpload = async (information: Upload.ImageInformation) => {
             const bundle = {
-                _id: Utils.GenerateDeterministicGuid(String(information.contentSize!)),
+                _id: Utils.GenerateDeterministicGuid(String(information.contentSize)),
                 ...information
             };
             return Instance.insert(bundle, AuxiliaryCollections.GooglePhotosUploadHistory);

@@ -306,7 +306,7 @@ export namespace GooglePhotos {
         };
 
         export const WriteMediaItemsToServer = async (body: { mediaItems: any[] }): Promise<UploadInformation[]> => {
-            const uploads = await Networking.PostToServer("/googlePhotosMediaDownload", body);
+            const uploads = await Networking.PostToServer("/googlePhotosMediaGet", body);
             return uploads;
         };
 
@@ -340,11 +340,11 @@ export namespace GooglePhotos {
                 const url = data.url.href;
                 const target = Doc.MakeAlias(source);
                 const description = parseDescription(target, descriptionKey);
-                await DocumentView.makeCustomViewClicked(target, undefined, Docs.Create.FreeformDocument);
+                await DocumentView.makeCustomViewClicked(target, Docs.Create.FreeformDocument);
                 media.push({ url, description });
             }
             if (media.length) {
-                const results = await Networking.PostToServer("/googlePhotosMediaUpload", { media, album });
+                const results = await Networking.PostToServer("/googlePhotosMediaPost", { media, album });
                 return results;
             }
         };

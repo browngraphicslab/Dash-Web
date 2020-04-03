@@ -14,7 +14,6 @@ import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 import { ComputedField } from "../../../new_fields/ScriptField";
 import { Cast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
 import { Docs, DocumentOptions } from "../../documents/Documents";
-import { DocumentType } from "../../documents/DocumentTypes";
 import { Gateway } from "../../northstar/manager/Gateway";
 import { CompileScript, Transformer, ts } from "../../util/Scripting";
 import { Transform } from "../../util/Transform";
@@ -29,6 +28,7 @@ import "./CollectionSchemaView.scss";
 import { CollectionSubView } from "./CollectionSubView";
 import { CollectionView } from "./CollectionView";
 import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
+import { setupMoveUpEvents, emptyFunction } from "../../../Utils";
 
 library.add(faCog, faPlus, faSortUp, faSortDown);
 library.add(faTable);
@@ -44,20 +44,17 @@ export enum ColumnType {
 // this map should be used for keys that should have a const type of value
 const columnTypes: Map<string, ColumnType> = new Map([
     ["title", ColumnType.String],
-    ["x", ColumnType.Number], ["y", ColumnType.Number], ["width", ColumnType.Number], ["height", ColumnType.Number],
-    ["nativeWidth", ColumnType.Number], ["nativeHeight", ColumnType.Number], ["isPrototype", ColumnType.Boolean],
+    ["x", ColumnType.Number], ["y", ColumnType.Number], ["_width", ColumnType.Number], ["_height", ColumnType.Number],
+    ["_nativeWidth", ColumnType.Number], ["_nativeHeight", ColumnType.Number], ["isPrototype", ColumnType.Boolean],
     ["page", ColumnType.Number], ["curPage", ColumnType.Number], ["currentTimecode", ColumnType.Number], ["zIndex", ColumnType.Number]
 ]);
 
 @observer
 export class CollectionSchemaView extends CollectionSubView(doc => doc) {
-    private _mainCont?: HTMLDivElement;
-    private _startPreviewWidth = 0;
+    private _previewCont?: HTMLDivElement;
     private DIVIDER_WIDTH = 4;
 
-    @observable previewScript: string = "";
     @observable previewDoc: Doc | undefined = undefined;
-    @observable private _node: HTMLDivElement | null = null;
     @observable private _focusedTable: Doc = this.props.Document;
 
     @computed get previewWidth() { return () => NumCast(this.props.Document.schemaPreviewWidth); }
@@ -66,7 +63,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @computed get borderWidth() { return Number(COLLECTION_BORDER_WIDTH); }
 
     private createTarget = (ele: HTMLDivElement) => {
-        this._mainCont = ele;
+        this._previewCont = ele;
         super.CreateDropTarget(ele);
     }
 
@@ -76,9 +73,6 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     @action setPreviewDoc = (doc: Doc) => this.previewDoc = doc;
 
-    @undoBatch
-    @action setPreviewScript = (script: string) => this.previewScript = script
-
     //toggles preview side-panel of schema
     @action
     toggleExpander = () => {
@@ -86,28 +80,17 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     }
 
     onDividerDown = (e: React.PointerEvent) => {
-        this._startPreviewWidth = this.previewWidth();
-        e.stopPropagation();
-        e.preventDefault();
-        document.addEventListener("pointermove", this.onDividerMove);
-        document.addEventListener('pointerup', this.onDividerUp);
+        setupMoveUpEvents(this, e, this.onDividerMove, emptyFunction, action(() => this.toggleExpander()));
     }
     @action
-    onDividerMove = (e: PointerEvent): void => {
-        const nativeWidth = this._mainCont!.getBoundingClientRect();
+    onDividerMove = (e: PointerEvent, down: number[], delta: number[]) => {
+        const nativeWidth = this._previewCont!.getBoundingClientRect();
         const minWidth = 40;
         const maxWidth = 1000;
         const movedWidth = this.props.ScreenToLocalTransform().transformDirection(nativeWidth.right - e.clientX, 0)[0];
         const width = movedWidth < minWidth ? minWidth : movedWidth > maxWidth ? maxWidth : movedWidth;
         this.props.Document.schemaPreviewWidth = width;
-    }
-    @action
-    onDividerUp = (e: PointerEvent): void => {
-        document.removeEventListener("pointermove", this.onDividerMove);
-        document.removeEventListener('pointerup', this.onDividerUp);
-        if (this._startPreviewWidth === this.previewWidth()) {
-            this.toggleExpander();
-        }
+        return false;
     }
 
     onPointerDown = (e: React.PointerEvent): void => {
@@ -120,9 +103,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     }
 
     @computed
-    get previewDocument(): Doc | undefined {
-        return this.previewDoc ? (this.previewScript && this.previewScript !== "this" ? FieldValue(Cast(this.previewDoc[this.previewScript], Doc)) : this.previewDoc) : undefined;
-    }
+    get previewDocument(): Doc | undefined { return this.previewDoc; }
 
     getPreviewTransform = (): Transform => {
         return this.props.ScreenToLocalTransform().translate(- this.borderWidth - this.DIVIDER_WIDTH - this.tableWidth, - this.borderWidth);
@@ -136,11 +117,10 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     @computed
     get previewPanel() {
-        const layoutDoc = this.previewDocument ? Doc.expandTemplateLayout(this.previewDocument, this.props.DataDoc) : undefined;
         return <div ref={this.createTarget}>
             <ContentFittingDocumentView
-                Document={layoutDoc}
-                DataDocument={this.previewDocument !== this.props.DataDoc ? this.props.DataDoc : undefined}
+                Document={this.previewDocument}
+                DataDocument={undefined}
                 LibraryPath={this.props.LibraryPath}
                 childDocs={this.childDocs}
                 renderDepth={this.props.renderDepth}
@@ -175,7 +155,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             moveDocument={this.props.moveDocument}
             ScreenToLocalTransform={this.props.ScreenToLocalTransform}
             active={this.props.active}
-            onDrop={this.onDrop}
+            onDrop={this.onExternalDrop}
             addDocTab={this.props.addDocTab}
             pinToPres={this.props.pinToPres}
             isSelected={this.props.isSelected}
@@ -199,7 +179,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     render() {
         return <div className="collectionSchemaView-container">
-            <div className="collectionSchemaView-tableContainer" onPointerDown={this.onPointerDown} onWheel={e => this.props.active(true) && e.stopPropagation()} onDrop={e => this.onDrop(e, {})} ref={this.createTarget}>
+            <div className="collectionSchemaView-tableContainer" onPointerDown={this.onPointerDown} onWheel={e => this.props.active(true) && e.stopPropagation()} onDrop={e => this.onExternalDrop(e, {})} ref={this.createTarget}>
                 {this.schemaTable}
             </div>
             {this.dividerDragger}
@@ -225,7 +205,7 @@ export interface SchemaTableProps {
     ScreenToLocalTransform: () => Transform;
     active: (outsideReaction: boolean) => boolean;
     onDrop: (e: React.DragEvent<Element>, options: DocumentOptions, completed?: (() => void) | undefined) => void;
-    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
+    addDocTab: (document: Doc, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     isSelected: (outsideReaction?: boolean) => boolean;
     isFocused: (document: Doc) => boolean;
@@ -409,7 +389,8 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             rowInfo,
             rowFocused: !this._headerIsEditing && rowInfo.index === this._focusedCell.row && this.props.isFocused(this.props.Document),
             textWrapRow: this.toggleTextWrapRow,
-            rowWrapped: this.textWrappedRows.findIndex(id => rowInfo.original[Id] === id) > -1
+            rowWrapped: this.textWrappedRows.findIndex(id => rowInfo.original[Id] === id) > -1,
+            dropAction: StrCast(this.props.Document.childDropAction)
         };
     }
 
@@ -477,8 +458,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
 
     @undoBatch
     createRow = () => {
-        const newDoc = Docs.Create.TextDocument("", { title: "", _width: 100, _height: 30 });
-        this.props.addDocument(newDoc);
+        this.props.addDocument(Docs.Create.TextDocument("", { title: "", _width: 100, _height: 30 }));
     }
 
     @undoBatch
@@ -559,16 +539,6 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
             columns[index] = columnField;
             this.columns = columns;
         }
-
-        // const typesDoc = FieldValue(Cast(this.props.Document.schemaColumnTypes, Doc));
-        // if (!typesDoc) {
-        //     let newTypesDoc = new Doc();
-        //     newTypesDoc[key] = type;
-        //     this.props.Document.schemaColumnTypes = newTypesDoc;
-        //     return;
-        // } else {
-        //     typesDoc[key] = type;
-        // }
     }
 
     @undoBatch
@@ -692,7 +662,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
     onContextMenu = (e: React.MouseEvent): void => {
         if (!e.isPropagationStopped() && this.props.Document[Id] !== "mainDoc") { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
             // ContextMenu.Instance.addItem({ description: "Make DB", event: this.makeDB, icon: "table" });
-            ContextMenu.Instance.addItem({ description: "Toggle text wrapping", event: this.toggleTextwrap, icon: "table" })
+            ContextMenu.Instance.addItem({ description: "Toggle text wrapping", event: this.toggleTextwrap, icon: "table" });
         }
     }
 

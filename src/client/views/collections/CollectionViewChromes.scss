@@ -2,7 +2,8 @@
 @import '~js-datepicker/dist/datepicker.min.css';
 
 .collectionViewChrome-cont {
-    position: relative;
+    position: absolute;
+    width:100%;
     opacity: 0.9;
     z-index: 9001;
     transition: top .5s;
@@ -26,7 +27,6 @@
                 outline-color: black;
                 border: none;
                 padding: 12px 10px 11px 10px;
-                margin-left: 50px;
             }
 
             .collectionViewBaseChrome-viewPicker:active {
@@ -58,10 +58,10 @@
                 position: absolute;
                 width: 40px;
                 transform-origin: top left;
+                pointer-events: all;
                 // margin-top: 10px;
             }
             .collectionViewBaseChrome-template {
-                margin-left: 10px;
                 display: grid;
                 background: rgb(238, 238, 238);
                 color:grey;
@@ -168,23 +168,26 @@
         }
 
 
-        .collectionStackingViewChrome-sectionFilter-cont,
-        .collectionTreeViewChrome-sectionFilter-cont {
+        .collectionStackingViewChrome-pivotField-cont,
+        .collectionTreeViewChrome-pivotField-cont {
             justify-self: right;
             display: flex;
             font-size: 75%;
             letter-spacing: 2px;
 
-            .collectionStackingViewChrome-sectionFilter-label,
-            .collectionTreeViewChrome-sectionFilter-label {
+            .collectionStackingViewChrome-pivotField-label,
+            .collectionTreeViewChrome-pivotField-label {
                 vertical-align: center;
-                padding: 10px;
+                padding-left: 10px;
+                padding-top: 10px;
+                padding-bottom: 10px;
             }
 
-            .collectionStackingViewChrome-sectionFilter,
-            .collectionTreeViewChrome-sectionFilter {
+            .collectionStackingViewChrome-pivotField,
+            .collectionTreeViewChrome-pivotField {
                 color: white;
-                width: 100px;
+                width:100%;
+                min-width: 100px;
                 text-align: center;
                 background: rgb(238, 238, 238);
 
@@ -209,8 +212,8 @@
             }
         }
 
-        .collectionStackingViewChrome-sectionFilter:hover,
-        .collectionTreeViewChrome-sectionFilter:hover {
+        .collectionStackingViewChrome-pivotField:hover,
+        .collectionTreeViewChrome-pivotField:hover {
             cursor: text;
         }
     }

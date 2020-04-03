@@ -5,6 +5,8 @@ import { RadialMenuItem, RadialMenuProps } from "./RadialMenuItem";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Measure from "react-measure";
 import "./RadialMenu.scss";
+import MobileInkOverlay from "../../../mobile/MobileInkOverlay";
+import MobileInterface from "../../../mobile/MobileInterface";
 
 @observer
 export class RadialMenu extends React.Component {
@@ -23,6 +25,8 @@ export class RadialMenu extends React.Component {
     @observable private _mouseDown: boolean = false;
     private _reactionDisposer?: IReactionDisposer;
 
+    public used: boolean = false;
+
 
     catchTouch = (te: React.TouchEvent) => {
         console.log("caught");
@@ -35,6 +39,7 @@ export class RadialMenu extends React.Component {
         this._mouseDown = true;
         this._mouseX = e.clientX;
         this._mouseY = e.clientY;
+        this.used = false;
         document.addEventListener("pointermove", this.onPointerMove);
 
     }
@@ -68,6 +73,7 @@ export class RadialMenu extends React.Component {
     }
     @action
     onPointerUp = (e: PointerEvent) => {
+        this.used = true;
         this._mouseDown = false;
         const curX = e.clientX;
         const curY = e.clientY;
@@ -76,8 +82,8 @@ export class RadialMenu extends React.Component {
         }
         this._shouldDisplay && (this._display = true);
         document.removeEventListener("pointermove", this.onPointerMove);
-        if (this._closest !== -1) {
-            this._items[this._closest]?.event();
+        if (this._closest !== -1 && this._items?.length > this._closest) {
+            this._items[this._closest].event();
         }
     }
     componentWillUnmount() {
@@ -213,7 +219,7 @@ export class RadialMenu extends React.Component {
 
 
     render() {
-        if (!this._display) {
+        if (!this._display || MobileInterface.Instance) {
             return null;
         }
         const style = this._yRelativeToTop ? { left: this._pageX - 130, top: this._pageY - 130 } :

@@ -1,17 +1,15 @@
 import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
-import { faArrowAltCircleDown, faArrowAltCircleUp, faCheckCircle, faCloudUploadAlt, faLink, faShare, faStopCircle, faSyncAlt, faTag, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faArrowAltCircleDown, faPhotoVideo, faArrowAltCircleUp, faCheckCircle, faCloudUploadAlt, faLink, faShare, faStopCircle, faSyncAlt, faTag, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast } from "../../new_fields/Doc";
-import { Id } from '../../new_fields/FieldSymbols';
 import { RichTextField } from '../../new_fields/RichTextField';
 import { NumCast, StrCast } from "../../new_fields/Types";
 import { emptyFunction } from "../../Utils";
 import { Pulls, Pushes } from '../apis/google_docs/GoogleApiClientUtils';
-import RichTextMenu from '../util/RichTextMenu';
 import { UndoManager } from "../util/UndoManager";
-import { CollectionDockingView } from './collections/CollectionDockingView';
+import { CollectionDockingView, DockedFrameRenderer } from './collections/CollectionDockingView';
 import { ParentDocSelector } from './collections/ParentDocumentSelector';
 import './collections/ParentDocumentSelector.scss';
 import './DocumentButtonBar.scss';
@@ -23,6 +21,8 @@ import { Template, Templates } from "./Templates";
 import React = require("react");
 import { DragManager } from '../util/DragManager';
 import { MetadataEntryMenu } from './MetadataEntryMenu';
+import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
+import GoogleAuthenticationManager from '../apis/GoogleAuthenticationManager';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -37,6 +37,7 @@ library.add(faCheckCircle);
 library.add(faCloudUploadAlt);
 library.add(faSyncAlt);
 library.add(faShare);
+library.add(faPhotoVideo);
 
 const cloud: IconProp = "cloud-upload-alt";
 const fetch: IconProp = "sync-alt";
@@ -105,7 +106,7 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
         this._pullColorAnimating = false;
     });
 
-    get view0() { return this.props.views && this.props.views.length ? this.props.views[0] : undefined; }
+    get view0() { return this.props.views?.[0]; }
 
     @action
     onLinkButtonMoved = (e: PointerEvent): void => {
@@ -117,15 +118,10 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
                 dragComplete: dropEv => {
                     const linkDoc = dropEv.linkDragData?.linkDocument as Doc; // equivalent to !dropEve.aborted since linkDocument is only assigned on a completed drop
                     if (this.view0 && linkDoc) {
-                        const proto = Doc.GetProto(linkDoc);
-                        proto.sourceContext = this.view0.props.ContainingCollectionDoc;
-
-                        const anchor2Title = linkDoc.anchor2 instanceof Doc ? StrCast(linkDoc.anchor2.title) : "-untitled-";
-                        const anchor2Id = linkDoc.anchor2 instanceof Doc ? linkDoc.anchor2[Id] : "";
-                        const text = RichTextMenu.Instance.MakeLinkToSelection(linkDoc[Id], anchor2Title, e.ctrlKey ? "onRight" : "inTab", anchor2Id);
-                        if (linkDoc.anchor2 instanceof Doc) {
-                            proto.title = text === "" ? proto.title : text + " to " + linkDoc.anchor2.title; // TODO open to more descriptive descriptions of following in text link
-                        }
+                        Doc.GetProto(linkDoc).linkRelationship = "hyperlink";
+                        dropEv.linkDragData?.linkDropCallback?.(dropEv.linkDragData);
+                        runInAction(() => this.view0!._link = linkDoc);
+                        setTimeout(action(() => this.view0!._link = undefined), 0);
                     }
                     linkDrag?.end();
                 },
@@ -161,7 +157,8 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
             title={`${published ? "Push" : "Publish"} to Google Docs`}
             className="documentButtonBar-linker"
             style={{ animation }}
-            onClick={() => {
+            onClick={async () => {
+                await GoogleAuthenticationManager.Instance.fetchOrGenerateAccessToken();
                 !published && runInAction(() => this.isAnimatingPulse = true);
                 DocumentButtonBar.hasPushedHack = false;
                 targetDoc[Pushes] = NumCast(targetDoc[Pushes]) + 1;
@@ -197,6 +194,27 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
             />
         </div>;
     }
+    @computed
+    get pinButton() {
+        const targetDoc = this.view0?.props.Document;
+        const isPinned = targetDoc && CurrentUserUtils.IsDocPinned(targetDoc);
+        return !targetDoc ? (null) : <div className="documentButtonBar-linker"
+            title={CurrentUserUtils.IsDocPinned(targetDoc) ? "Unpin from presentation" : "Pin to presentation"}
+            style={{ backgroundColor: isPinned ? "black" : "white", color: isPinned ? "white" : "black" }}
+
+            onClick={e => {
+                if (isPinned) {
+                    DockedFrameRenderer.UnpinDoc(targetDoc);
+                }
+                else {
+                    targetDoc.sourceContext = this.view0?.props.ContainingCollectionDoc; // bcz: !! Shouldn't need this ... use search to lookup contexts dynamically
+                    DockedFrameRenderer.PinDoc(targetDoc);
+                }
+            }}>
+            <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="map-pin"
+            />
+        </div>;
+    }
 
     @computed
     get linkButton() {
@@ -215,10 +233,10 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
     @computed
     get metadataButton() {
         const view0 = this.view0;
-        return !view0 ? (null) : <div title="Show metadata panel" className="documentButtonBar-linkFlyout" ref={this._linkButton}>
+        return !view0 ? (null) : <div title="Show metadata panel" className="documentButtonBar-linkFlyout">
             <Flyout anchorPoint={anchorPoints.LEFT_TOP}
                 content={<MetadataEntryMenu docs={() => this.props.views.filter(dv => dv).map(dv => dv!.props.Document)} suggestWithFunction />  /* tfs: @bcz This might need to be the data document? */}>
-                <div className={"documentButtonBar-linkButton-" + "empty"} >
+                <div className={"documentButtonBar-linkButton-" + "empty"} onPointerDown={e => e.stopPropagation()} >
                     {<FontAwesomeIcon className="documentdecorations-icon" icon="tag" size="sm" />}
                 </div>
             </Flyout>
@@ -227,10 +245,10 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
 
     @computed
     get contextButton() {
-        return !this.view0 ? (null) : <ParentDocSelector Views={this.props.views.filter(v => v).map(v => v as DocumentView)} Document={this.view0.props.Document} addDocTab={(doc, data, where) => {
-            where === "onRight" ? CollectionDockingView.AddRightSplit(doc, data) :
-                this.props.stack ? CollectionDockingView.Instance.AddTab(this.props.stack, doc, data) :
-                    this.view0?.props.addDocTab(doc, data, "onRight");
+        return !this.view0 ? (null) : <ParentDocSelector Document={this.view0.props.Document} addDocTab={(doc, where) => {
+            where === "onRight" ? CollectionDockingView.AddRightSplit(doc) :
+                this.props.stack ? CollectionDockingView.Instance.AddTab(this.props.stack, doc) :
+                    this.view0?.props.addDocTab(doc, "onRight");
             return true;
         }} />;
     }
@@ -277,8 +295,8 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
         const view0 = this.view0;
         const templates: Map<Template, boolean> = new Map();
         Array.from(Object.values(Templates.TemplateList)).map(template =>
-            templates.set(template, this.props.views.reduce((checked, doc) => checked || doc?.getLayoutPropStr("show" + template.Name) ? true : false, false as boolean)));
-        return !view0 ? (null) : <div title="Customize layout" className="documentButtonBar-linkFlyout" ref={this._dragRef}>
+            templates.set(template, this.props.views.reduce((checked, doc) => checked || doc?.props.Document["_show" + template.Name] ? true : false, false as boolean)));
+        return !view0 ? (null) : <div title="Tap: Customize layout.  Drag: Create alias" className="documentButtonBar-linkFlyout" ref={this._dragRef}>
             <Flyout anchorPoint={anchorPoints.LEFT_TOP}
                 content={<TemplateMenu docViews={this.props.views.filter(v => v).map(v => v as DocumentView)} templates={templates} />}>
                 <div className={"documentButtonBar-linkButton-" + "empty"} ref={this._dragRef} onPointerDown={this.onAliasButtonDown} >
@@ -291,7 +309,7 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
     render() {
         if (!this.view0) return (null);
 
-        const isText = this.view0.props.Document.data instanceof RichTextField; // bcz: Todo - can't assume layout is using the 'data' field.  need to add fieldKey to DocumentView
+        const isText = this.view0.props.Document[Doc.LayoutFieldKey(this.view0.props.Document)] instanceof RichTextField;
         const considerPull = isText && this.considerGoogleDocsPull;
         const considerPush = isText && this.considerGoogleDocsPush;
         return <div className="documentButtonBar">
@@ -306,6 +324,9 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
             </div>
             <div className="documentButtonBar-button">
                 {this.contextButton}
+            </div>
+            <div className="documentButtonBar-button">
+                {this.pinButton}
             </div>
             <div className="documentButtonBar-button" style={{ display: !considerPush ? "none" : "" }}>
                 {this.considerGoogleDocsPush}

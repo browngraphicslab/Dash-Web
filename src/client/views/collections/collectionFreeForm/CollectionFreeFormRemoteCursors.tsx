@@ -8,74 +8,65 @@ import { CollectionViewProps } from "../CollectionSubView";
 import "./CollectionFreeFormView.scss";
 import React = require("react");
 import v5 = require("uuid/v5");
+import { computed } from "mobx";
+import { FieldResult } from "../../../../new_fields/Doc";
+import { List } from "../../../../new_fields/List";
 
 @observer
 export class CollectionFreeFormRemoteCursors extends React.Component<CollectionViewProps> {
 
-    protected getCursors(): CursorField[] {
+    @computed protected get cursors(): CursorField[] {
         const doc = this.props.Document;
 
-        const id = CurrentUserUtils.id;
-        if (!id) {
+        let cursors: FieldResult<List<CursorField>>;
+        const { id } = CurrentUserUtils;
+        if (!id || !(cursors = Cast(doc.cursors, listSpec(CursorField)))) {
             return [];
         }
-
-        const cursors = Cast(doc.cursors, listSpec(CursorField));
-
         const now = mobxUtils.now();
-        // const now = Date.now();
-        return (cursors || []).filter(cursor => cursor.data.metadata.id !== id && (now - cursor.data.metadata.timestamp) < 1000);
+        return (cursors || []).filter(({ data: { metadata } }) => metadata.id !== id && (now - metadata.timestamp) < 1000);
     }
 
-    private crosshairs?: HTMLCanvasElement;
-    drawCrosshairs = (backgroundColor: string) => {
-        if (this.crosshairs) {
-            const ctx = this.crosshairs.getContext('2d');
-            if (ctx) {
-                ctx.fillStyle = backgroundColor;
-                ctx.fillRect(0, 0, 20, 20);
-
-                ctx.fillStyle = "black";
-                ctx.lineWidth = 0.5;
-
-                ctx.beginPath();
-
-                ctx.moveTo(10, 0);
-                ctx.lineTo(10, 8);
-
-                ctx.moveTo(10, 20);
-                ctx.lineTo(10, 12);
-
-                ctx.moveTo(0, 10);
-                ctx.lineTo(8, 10);
-
-                ctx.moveTo(20, 10);
-                ctx.lineTo(12, 10);
-
-                ctx.stroke();
-
-                // ctx.font = "10px Arial";
-                // ctx.fillText(Doc.CurrentUserEmail[0].toUpperCase(), 10, 10);
-            }
-        }
-    }
-
-    get sharedCursors() {
-        return this.getCursors().map(c => {
-            const m = c.data.metadata;
-            const l = c.data.position;
-            this.drawCrosshairs("#" + v5(m.id, v5.URL).substring(0, 6).toUpperCase() + "22");
+    @computed get renderedCursors() {
+        return this.cursors.map(({ data: { metadata, position: { x, y } } }) => {
             return (
-                <div key={m.id} className="collectionFreeFormRemoteCursors-cont"
-                    style={{ transform: `translate(${l.x - 10}px, ${l.y - 10}px)` }}
+                <div key={metadata.id} className="collectionFreeFormRemoteCursors-cont"
+                    style={{ transform: `translate(${x - 10}px, ${y - 10}px)` }}
                 >
                     <canvas className="collectionFreeFormRemoteCursors-canvas"
-                        ref={(el) => { if (el) this.crosshairs = el; }}
+                        ref={(el) => {
+                            if (el) {
+                                const ctx = el.getContext('2d');
+                                if (ctx) {
+                                    ctx.fillStyle = "#" + v5(metadata.id, v5.URL).substring(0, 6).toUpperCase() + "22";
+                                    ctx.fillRect(0, 0, 20, 20);
+
+                                    ctx.fillStyle = "black";
+                                    ctx.lineWidth = 0.5;
+
+                                    ctx.beginPath();
+
+                                    ctx.moveTo(10, 0);
+                                    ctx.lineTo(10, 8);
+
+                                    ctx.moveTo(10, 20);
+                                    ctx.lineTo(10, 12);
+
+                                    ctx.moveTo(0, 10);
+                                    ctx.lineTo(8, 10);
+
+                                    ctx.moveTo(20, 10);
+                                    ctx.lineTo(12, 10);
+
+                                    ctx.stroke();
+                                }
+                            }
+                        }}
                         width={20}
                         height={20}
                     />
                     <p className="collectionFreeFormRemoteCursors-symbol">
-                        {m.identifier[0].toUpperCase()}
+                        {metadata.identifier[0].toUpperCase()}
                     </p>
                 </div>
             );
@@ -83,6 +74,6 @@ export class CollectionFreeFormRemoteCursors extends React.Component<CollectionV
     }
 
     render() {
-        return this.sharedCursors;
+        return this.renderedCursors;
     }
 }

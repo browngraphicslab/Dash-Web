@@ -26,7 +26,7 @@ library.add(faBan);
 
 @observer
 export class IconBar extends React.Component {
-    public _allIcons: string[] = [DocumentType.AUDIO, DocumentType.COL, DocumentType.IMG, DocumentType.LINK, DocumentType.PDF, DocumentType.TEXT, DocumentType.VID, DocumentType.WEB, DocumentType.TEMPLATE];
+    public _allIcons: string[] = [DocumentType.AUDIO, DocumentType.COL, DocumentType.IMG, DocumentType.LINK, DocumentType.PDF, DocumentType.TEXT, DocumentType.VID, DocumentType.WEB];
 
     @observable private _icons: string[] = this._allIcons;
 

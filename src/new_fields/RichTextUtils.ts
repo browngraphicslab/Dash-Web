@@ -1,5 +1,5 @@
 import { EditorState, Transaction, TextSelection } from "prosemirror-state";
-import { Node, Fragment, Mark, MarkType } from "prosemirror-model";
+import { Node, Fragment, Mark } from "prosemirror-model";
 import { RichTextField } from "./RichTextField";
 import { docs_v1 } from "googleapis";
 import { GoogleApiClientUtils } from "../client/apis/google_docs/GoogleApiClientUtils";
@@ -17,6 +17,7 @@ import { Id } from "./FieldSymbols";
 import { DocumentView } from "../client/views/nodes/DocumentView";
 import { AssertionError } from "assert";
 import { Networking } from "../client/Network";
+import { extname } from "path";
 
 export namespace RichTextUtils {
 
@@ -113,6 +114,7 @@ export namespace RichTextUtils {
             width: number;
             title: string;
             url: string;
+            agnostic: string;
         }
 
         const parseInlineObjects = async (document: docs_v1.Schema$Document): Promise<Map<string, ImageTemplate>> => {
@@ -123,12 +125,10 @@ export namespace RichTextUtils {
                 const objects = Object.keys(inlineObjects).map(objectId => inlineObjects[objectId]);
                 const mediaItems: MediaItem[] = objects.map(object => {
                     const embeddedObject = object.inlineObjectProperties!.embeddedObject!;
-                    const baseUrl = embeddedObject.imageProperties!.contentUri!;
-                    const filename = `upload_${Utils.GenerateGuid()}.png`;
-                    return { baseUrl, filename };
+                    return { baseUrl: embeddedObject.imageProperties!.contentUri! };
                 });
 
-                const uploads = await Networking.PostToServer("/googlePhotosMediaDownload", { mediaItems });
+                const uploads = await Networking.PostToServer("/googlePhotosMediaGet", { mediaItems });
 
                 if (uploads.length !== mediaItems.length) {
                     throw new AssertionError({ expected: mediaItems.length, actual: uploads.length, message: "Error with internally uploading inlineObjects!" });
@@ -136,16 +136,17 @@ export namespace RichTextUtils {
 
                 for (let i = 0; i < objects.length; i++) {
                     const object = objects[i];
-                    const { fileNames } = uploads[i];
+                    const { accessPaths } = uploads[i];
+                    const { agnostic, _m } = accessPaths;
                     const embeddedObject = object.inlineObjectProperties!.embeddedObject!;
                     const size = embeddedObject.size!;
                     const width = size.width!.magnitude!;
-                    const url = Utils.fileUrl(fileNames.clean);
 
                     inlineObjectMap.set(object.objectId!, {
                         title: embeddedObject.title || `Imported Image from ${document.title}`,
                         width,
-                        url
+                        url: Utils.prepend(_m.client),
+                        agnostic: Utils.prepend(agnostic.client)
                     });
                 }
             }
@@ -156,7 +157,6 @@ export namespace RichTextUtils {
 
         interface MediaItem {
             baseUrl: string;
-            filename: string;
         }
 
         export const Import = async (documentId: GoogleApiClientUtils.Docs.DocumentId, textNote: Doc): Promise<Opt<GoogleApiClientUtils.Docs.ImportResult>> => {
@@ -268,19 +268,19 @@ export namespace RichTextUtils {
         };
 
         const imageNode = (schema: any, image: ImageTemplate, textNote: Doc) => {
-            const { url: src, width } = image;
+            const { url: src, width, agnostic } = image;
             let docid: string;
-            const guid = Utils.GenerateDeterministicGuid(src);
+            const guid = Utils.GenerateDeterministicGuid(agnostic);
             const backingDocId = StrCast(textNote[guid]);
             if (!backingDocId) {
-                const backingDoc = Docs.Create.ImageDocument(src, { _width: 300, _height: 300 });
-                DocumentView.makeCustomViewClicked(backingDoc, undefined, Docs.Create.FreeformDocument);
+                const backingDoc = Docs.Create.ImageDocument(agnostic, { _width: 300, _height: 300 });
+                DocumentView.makeCustomViewClicked(backingDoc, Docs.Create.FreeformDocument);
                 docid = backingDoc[Id];
                 textNote[guid] = docid;
             } else {
                 docid = backingDocId;
             }
-            return schema.node("image", { src, width, docid, float: null, location: "onRight" });
+            return schema.node("image", { src, agnostic, width, docid, float: null, location: "onRight" });
         };
 
         const textNode = (schema: any, run: docs_v1.Schema$TextRun) => {
@@ -403,7 +403,7 @@ export namespace RichTextUtils {
                                     let exported = (await Cast(linkDoc.anchor2, Doc))!;
                                     if (!exported.customLayout) {
                                         exported = Doc.MakeAlias(exported);
-                                        DocumentView.makeCustomViewClicked(exported, undefined, Docs.Create.FreeformDocument);
+                                        DocumentView.makeCustomViewClicked(exported, Docs.Create.FreeformDocument);
                                         linkDoc.anchor2 = exported;
                                     }
                                     url = Utils.shareUrl(exported[Id]);
@@ -436,7 +436,7 @@ export namespace RichTextUtils {
                     const width = attrs.width;
                     requests.push(await EncodeImage({
                         startIndex: position + nodeSize - 1,
-                        uri: attrs.src,
+                        uri: attrs.agnostic,
                         width: Number(typeof width === "string" ? width.replace("px", "") : width)
                     }));
                 }
@@ -499,15 +499,18 @@ export namespace RichTextUtils {
             };
         };
 
-        const EncodeImage = async (information: ImageInformation) => {
-            const source = [Docs.Create.ImageDocument(information.uri)];
+        const EncodeImage = async ({ uri, width, startIndex }: ImageInformation) => {
+            if (!uri) {
+                return {};
+            }
+            const source = [Docs.Create.ImageDocument(uri)];
             const baseUrls = await GooglePhotos.Transactions.UploadThenFetch(source);
             if (baseUrls) {
                 return {
                     insertInlineImage: {
                         uri: baseUrls[0],
-                        objectSize: { width: { magnitude: information.width, unit: "PT" } },
-                        location: { index: information.startIndex }
+                        objectSize: { width: { magnitude: width, unit: "PT" } },
+                        location: { index: startIndex }
                     }
                 };
             }

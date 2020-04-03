@@ -144,7 +144,7 @@ export class OverlayView extends React.Component {
             return (null);
         }
         return CurrentUserUtils.UserDocument.overlays instanceof Doc && DocListCast(CurrentUserUtils.UserDocument.overlays.data).map(d => {
-            d.inOverlay = true;
+            setTimeout(() => d.inOverlay = true, 0);
             let offsetx = 0, offsety = 0;
             const onPointerMove = action((e: PointerEvent) => {
                 if (e.buttons === 1) {
@@ -169,7 +169,7 @@ export class OverlayView extends React.Component {
                 document.addEventListener("pointermove", onPointerMove);
                 document.addEventListener("pointerup", onPointerUp);
             };
-            return <div className="overlayView-doc" key={d[Id]} onPointerDown={onPointerDown} style={{ transform: `translate(${d.x}px, ${d.y}px)`, display: d.isMinimized ? "none" : "" }}>
+            return <div className="overlayView-doc" key={d[Id]} onPointerDown={onPointerDown} style={{ transform: `translate(${d.x}px, ${d.y}px)` }}>
                 <DocumentView
                     Document={d}
                     LibraryPath={emptyPath}

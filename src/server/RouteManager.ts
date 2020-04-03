@@ -2,6 +2,7 @@ import RouteSubscriber from "./RouteSubscriber";
 import { DashUserModel } from "./authentication/models/user_model";
 import { Request, Response, Express } from 'express';
 import { cyan, red, green } from 'colors';
+import { Utils } from "../client/northstar/utils/Utils";
 
 export enum Method {
     GET,
@@ -78,6 +79,7 @@ export default class RouteManager {
         }
     }
 
+    static routes: string[] = [];
     /**
      * 
      * @param initializer 
@@ -85,6 +87,12 @@ export default class RouteManager {
     addSupervisedRoute = (initializer: RouteInitializer): void => {
         const { method, subscription, secureHandler, publicHandler, errorHandler } = initializer;
 
+        typeof (initializer.subscription) === "string" && RouteManager.routes.push(initializer.subscription);
+        initializer.subscription instanceof RouteSubscriber && RouteManager.routes.push(initializer.subscription.root);
+        initializer.subscription instanceof Array && initializer.subscription.map(sub => {
+            typeof (sub) === "string" && RouteManager.routes.push(sub);
+            sub instanceof RouteSubscriber && RouteManager.routes.push(sub.root);
+        });
         const isRelease = this._isRelease;
         const supervised = async (req: Request, res: Response) => {
             let { user } = req;
@@ -133,7 +141,7 @@ export default class RouteManager {
             } else {
                 route = subscriber.build;
             }
-            if (!/^\/$|^\/[A-Za-z]+(\/\:[A-Za-z?_]+)*$/g.test(route)) {
+            if (!/^\/$|^\/[A-Za-z\*]+(\/\:[A-Za-z?_\*]+)*$/g.test(route)) {
                 this.failedRegistrations.push({
                     reason: RegistrationError.Malformed,
                     route

@@ -46,8 +46,8 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
                 // really hacky stuff to make the DocuLinkBox display where we want it to:
                 //   if there's an element in the DOM with the id of the opposite anchor, then that DOM element is a hyperlink source for the current anchor and we want to place our link box at it's top right
                 //   otherwise, we just use the computed nearest point on the document boundary to the target Document
-                const targetAhyperlink = window.document.getElementById((this.props.LinkDocs[0][afield] as Doc)[Id]);
-                const targetBhyperlink = window.document.getElementById((this.props.LinkDocs[0][bfield] as Doc)[Id]);
+                const targetAhyperlink = window.document.getElementById(this.props.LinkDocs[0][Id] + (this.props.LinkDocs[0][afield] as Doc)[Id]);
+                const targetBhyperlink = window.document.getElementById(this.props.LinkDocs[0][Id] + (this.props.LinkDocs[0][bfield] as Doc)[Id]);
                 if (!targetBhyperlink) {
                     this.props.A.props.Document[afield + "_x"] = (apt.point.x - abounds.left) / abounds.width * 100;
                     this.props.A.props.Document[afield + "_y"] = (apt.point.y - abounds.top) / abounds.height * 100;
@@ -68,8 +68,8 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
                         (this.props.B.props.Document[(this.props.B.props as any).fieldKey] as Doc);
                         const m = targetAhyperlink.getBoundingClientRect();
                         const mp = this.props.B.props.ScreenToLocalTransform().transformPoint(m.right, m.top + 5);
-                        this.props.B.props.Document[afield + "_x"] = mp[0] / this.props.B.props.PanelWidth() * 100;
-                        this.props.B.props.Document[afield + "_y"] = mp[1] / this.props.B.props.PanelHeight() * 100;
+                        this.props.B.props.Document[bfield + "_x"] = mp[0] / this.props.B.props.PanelWidth() * 100;
+                        this.props.B.props.Document[bfield + "_y"] = mp[1] / this.props.B.props.PanelHeight() * 100;
                     }, 0);
                 }
             })
@@ -95,10 +95,15 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         const pt2 = [bpt.point.x, bpt.point.y];
         const aActive = this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document);
         const bActive = this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document);
-        return !aActive && !bActive ? (null) :
+        const text = StrCast(this.props.A.props.Document.linkRelationship);
+        return !aActive && !bActive ? (null) : (<>
+            <text x={(pt1[0] + pt2[0]) / 2} y={(pt1[1] + pt2[1]) / 2}>
+                {text !== "-ungrouped-" ? text : ""}
+            </text>
             <line key="linkLine" className="collectionfreeformlinkview-linkLine"
                 style={{ opacity: this._opacity, strokeDasharray: "2 2" }}
                 x1={`${pt1[0]}`} y1={`${pt1[1]}`}
-                x2={`${pt2[0]}`} y2={`${pt2[1]}`} />;
+                x2={`${pt2[0]}`} y2={`${pt2[1]}`} />
+        </>);
     }
 }

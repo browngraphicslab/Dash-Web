@@ -1,0 +1,93 @@
+.collectionTimeView,
+.collectionTimeView-pivot {
+    display: flex;
+    flex-direction: row;
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+
+    .collectionTimeView-backBtn {
+        background: green;
+        display: inline;
+    }
+
+    .collectionFreeform-customText {
+        text-align: left;
+    }
+
+    .collectionFreeform-customDiv {
+        position: absolute;
+    }
+
+    .collectionTimeView-thumb {
+        position: absolute;
+        width: 30px;
+        height: 30px;
+        transform: rotate(45deg);
+        display: inline-block;
+        background: gray;
+        bottom: 0;
+        margin-bottom: -17px;
+        border-radius: 9px;
+        opacity: 0.25;
+    }
+
+    .collectionTimeView-thumb-min {
+        margin-left: 25%;
+    }
+
+    .collectionTimeView-thumb-max {
+        margin-left: 75%;
+    }
+
+    .collectionTimeView-thumb-mid {
+        margin-left: 50%;
+    }
+
+    .collectionTimeView-flyout {
+        width: 400px;
+        display: block;
+        text-align: left;
+
+        .collectionTimeView-flyout-item {
+            background-color: lightgray;
+            text-align: left;
+            display: inline-block;
+            position: relative;
+            width: 100%;
+        }
+    }
+
+    .pivotKeyEntry {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        z-index: 10;
+        pointer-events: all;
+        padding: 5px;
+        border: 1px solid black;
+        display:none;
+        span {
+            margin-left : 10px;
+        }
+    }
+
+    .collectionTimeView-innards {
+        display: inline-block;
+        width: calc(100% - 200px);
+        height: 100%;
+    }
+}
+
+.collectionTimeView-pivot {
+    .collectionFreeform-customText {
+        text-align: center;
+    }
+}
+
+.collectionTimeView:hover, .collectionTimeView-pivot:hover {
+    .pivotKeyEntry {
+        display:unset;
+    }
+}

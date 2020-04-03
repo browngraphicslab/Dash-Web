@@ -84,9 +84,9 @@ export class FormattedTextBoxComment {
                 const textBox = FormattedTextBoxComment.textBox;
                 if (FormattedTextBoxComment.linkDoc && !keep && textBox) {
                     DocumentManager.Instance.FollowLink(FormattedTextBoxComment.linkDoc, textBox.props.Document,
-                        (doc: Doc, maxLocation: string) => textBox.props.addDocTab(doc, undefined, e.ctrlKey ? "inTab" : "onRight"));
+                        (doc: Doc, maxLocation: string) => textBox.props.addDocTab(doc, e.ctrlKey ? "inTab" : "onRight"));
                 } else if (textBox && (FormattedTextBoxComment.tooltipText as any).href) {
-                    textBox.props.addDocTab(Docs.Create.WebDocument((FormattedTextBoxComment.tooltipText as any).href, { title: (FormattedTextBoxComment.tooltipText as any).href, _width: 200, _height: 400 }), undefined, "onRight");
+                    textBox.props.addDocTab(Docs.Create.WebDocument((FormattedTextBoxComment.tooltipText as any).href, { title: (FormattedTextBoxComment.tooltipText as any).href, _width: 200, _height: 400 }), "onRight");
                 }
                 keep && textBox && FormattedTextBoxComment.start !== undefined && textBox.adoptAnnotation(
                     FormattedTextBoxComment.start, FormattedTextBoxComment.end, FormattedTextBoxComment.mark);
@@ -171,7 +171,7 @@ export class FormattedTextBoxComment {
                         if (linkDoc instanceof Doc) {
                             (FormattedTextBoxComment.tooltipText as any).href = mark.attrs.href;
                             FormattedTextBoxComment.linkDoc = linkDoc;
-                            const target = FieldValue(Doc.AreProtosEqual(FieldValue(Cast(linkDoc.anchor1, Doc)), textBox.props.Document) ? Cast(linkDoc.anchor2, Doc) : (Cast(linkDoc.anchor1, Doc)) || linkDoc);
+                            const target = FieldValue(Doc.AreProtosEqual(FieldValue(Cast(linkDoc.anchor1, Doc)), textBox.dataDoc) ? Cast(linkDoc.anchor2, Doc) : (Cast(linkDoc.anchor1, Doc)) || linkDoc);
                             try {
                                 ReactDOM.unmountComponentAtNode(FormattedTextBoxComment.tooltipText);
                             } catch (e) { }
@@ -189,8 +189,8 @@ export class FormattedTextBoxComment {
                                     pinToPres={returnFalse}
                                     dontRegisterView={true}
                                     renderDepth={1}
-                                    PanelWidth={() => Math.min(350, NumCast(target.width, 350))}
-                                    PanelHeight={() => Math.min(250, NumCast(target.height, 250))}
+                                    PanelWidth={() => Math.min(350, NumCast(target._width, 350))}
+                                    PanelHeight={() => Math.min(250, NumCast(target._height, 250))}
                                     focus={emptyFunction}
                                     whenActiveChanged={returnFalse}
                                 />, FormattedTextBoxComment.tooltipText);
@@ -211,7 +211,7 @@ export class FormattedTextBoxComment {
             // let start = view.coordsAtPos(state.selection.from), end = view.coordsAtPos(state.selection.to);
             const start = view.coordsAtPos(state.selection.from - nbef), end = view.coordsAtPos(state.selection.from - nbef);
             // The box in which the tooltip is positioned, to use as base
-            const box = (document.getElementById("mainView-container") as any).getBoundingClientRect();
+            const box = (document.getElementsByClassName("mainView-container") as any)[0].getBoundingClientRect();
             // Find a center-ish x position from the selection endpoints (when
             // crossing lines, end may be more to the left)
             const left = Math.max((start.left + end.left) / 2, start.left + 3);

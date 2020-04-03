@@ -5,10 +5,10 @@ import { CognitiveServices, Confidence, Tag, Service } from "./cognitive_service
 import React = require("react");
 import { observer } from "mobx-react";
 import { observable, action, computed, reaction } from "mobx";
-var assert = require('assert');
-var sw = require('stopword');
-var FeedParser = require('feedparser');
-var https = require('https');
+// var assert = require('assert');
+// var sw = require('stopword');
+// var FeedParser = require('feedparser');
+// var https = require('https');
 import "./ClientRecommender.scss";
 import { JSXElement } from "babel-types";
 import { RichTextField } from "../new_fields/RichTextField";
@@ -69,7 +69,7 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
      */
 
     private distance(vector1: number[], vector2: number[], metric: string = "cosine") {
-        assert(vector1.length === vector2.length, "Vectors are not the same length");
+        // assert(vector1.length === vector2.length, "Vectors are not the same length");
         let similarity: number;
         switch (metric) {
             case "cosine":
@@ -113,7 +113,7 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
             }
         }
         );
-        let doclist = Array.from(ClientRecommender.Instance.docVectors);
+        const doclist = Array.from(ClientRecommender.Instance.docVectors);
         if (distance_metric === "euclidian") {
             doclist.sort((a: RecommenderDocument, b: RecommenderDocument) => a.score - b.score);
         }
@@ -169,12 +169,12 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
      */
 
     generateMetadata = async (dataDoc: Doc, extDoc: Doc, threshold: Confidence = Confidence.Excellent) => {
-        let converter = (results: any) => {
-            let tagDoc = new Doc;
-            let tagsList = new List();
+        const converter = (results: any) => {
+            const tagDoc = new Doc;
+            const tagsList = new List();
             results.tags.map((tag: Tag) => {
                 tagsList.push(tag.name);
-                let sanitized = tag.name.replace(" ", "_");
+                const sanitized = tag.name.replace(" ", "_");
                 tagDoc[sanitized] = ComputedField.MakeFunction(`(${tag.confidence} >= this.confidence) ? ${tag.confidence} : "${ComputedField.undefined}"`);
             });
             extDoc.generatedTags = tagsList;
@@ -193,7 +193,7 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
      */
 
     private url(dataDoc: Doc) {
-        let data = Cast(Doc.GetProto(dataDoc)[fieldkey], ImageField);
+        const data = Cast(Doc.GetProto(dataDoc)[fieldkey], ImageField);
         return data ? data.url.href : undefined;
     }
 
@@ -215,14 +215,14 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
             }
         }
         else {
-            let fielddata = Cast(dataDoc.data, RichTextField);
-            fielddata ? data = fielddata[ToPlainText]() : data = "";
+            const fielddata = Cast(dataDoc.data, RichTextField, null);
+            data = fielddata?.Text || "";
         }
 
         // STEP 2. Upon receiving response from Text Cognitive Services, do additional processing on keywords.
         // Currently we are still using Cognitive Services for internal recommendations, but in the future this might not be necessary. 
 
-        let converter = async (results: any, data: string, isImage: boolean = false) => {
+        const converter = async (results: any, data: string, isImage: boolean = false) => {
             let keyterms = new List<string>(); // raw keywords
             let kp_string: string = ""; // keywords*frequency concatenated into a string. input into TF
             let highKP: string[] = [""]; // most frequent keyphrase
@@ -237,7 +237,7 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
             }
             else { // text processing
                 results.documents.forEach((doc: any) => {
-                    let keyPhrases = doc.keyPhrases; // returned by Cognitive Services
+                    const keyPhrases = doc.keyPhrases; // returned by Cognitive Services
                     keyPhrases.map((kp: string) => {
                         keyterms.push(kp);
                         const frequency = this.countFrequencies(kp, data); // frequency of keyphrase in paragraph
@@ -308,10 +308,10 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
      */
 
     private countFrequencies(keyphrase: string, paragraph: string) {
-        let data = paragraph.split(/ |\n/); // splits by new lines and spaces
-        let kp_array = keyphrase.split(" ");
-        let num_keywords = kp_array.length;
-        let par_length = data.length;
+        const data = paragraph.split(/ |\n/); // splits by new lines and spaces
+        const kp_array = keyphrase.split(" ");
+        const num_keywords = kp_array.length;
+        const par_length = data.length;
         let frequency = 0;
         // slides keyphrase windows across paragraph and checks if it matches with corresponding paragraph slice
         for (let i = 0; i <= par_length - num_keywords; i++) {
@@ -353,8 +353,8 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
 
     bingWebSearch = async (query: string) => {
         const converter = async (results: any) => {
-            let title_vals: string[] = [];
-            let url_vals: string[] = [];
+            const title_vals: string[] = [];
+            const url_vals: string[] = [];
             results.webPages.value.forEach((doc: any) => {
                 title_vals.push(doc.name);
                 url_vals.push(doc.url);
@@ -369,23 +369,23 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
      */
 
     arxivrequest = async (query: string) => {
-        let xhttp = new XMLHttpRequest();
-        let serveraddress = "http://export.arxiv.org/api";
+        const xhttp = new XMLHttpRequest();
+        const serveraddress = "http://export.arxiv.org/api";
         const maxresults = 5;
-        let endpoint = serveraddress + "/query?search_query=all:" + query + "&start=0&max_results=" + maxresults.toString();
-        let promisified = (resolve: any, reject: any) => {
+        const endpoint = serveraddress + "/query?search_query=all:" + query + "&start=0&max_results=" + maxresults.toString();
+        const promisified = (resolve: any, reject: any) => {
             xhttp.onreadystatechange = function () {
                 if (this.readyState === 4) {
-                    let result = xhttp.response;
-                    let xml = xhttp.responseXML;
+                    const result = xhttp.response;
+                    const xml = xhttp.responseXML;
                     console.log("arXiv Result: ", xml);
                     switch (this.status) {
                         case 200:
-                            let title_vals: string[] = [];
-                            let url_vals: string[] = [];
+                            const title_vals: string[] = [];
+                            const url_vals: string[] = [];
                             //console.log(result);
                             if (xml) {
-                                let titles = xml.getElementsByTagName("title");
+                                const titles = xml.getElementsByTagName("title");
                                 let counter = 1;
                                 if (titles && titles.length > 1) {
                                     while (counter <= maxresults) {
@@ -394,7 +394,7 @@ export class ClientRecommender extends React.Component<RecommenderProps> {
                                         counter++;
                                     }
                                 }
-                                let ids = xml.getElementsByTagName("id");
+                                const ids = xml.getElementsByTagName("id");
                                 counter = 1;
                                 if (ids && ids.length > 1) {
                                     while (counter <= maxresults) {

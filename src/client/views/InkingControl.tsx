@@ -8,6 +8,7 @@ import { Scripting } from "../util/Scripting";
 import { SelectionManager } from "../util/SelectionManager";
 import { undoBatch } from "../util/UndoManager";
 import GestureOverlay from "./GestureOverlay";
+import { FormattedTextBox } from "./nodes/FormattedTextBox";
 
 export class InkingControl {
     @observable static Instance: InkingControl;
@@ -28,8 +29,7 @@ export class InkingControl {
         if (number < 0) {
             number = 0xFFFFFFFF + number + 1;
         }
-
-        return number.toString(16).toUpperCase();
+        return (number < 16 ? "0" : "") + number.toString(16).toUpperCase();
     }
 
     @undoBatch
@@ -42,7 +42,13 @@ export class InkingControl {
                 const targetDoc = view.props.Document.dragFactory instanceof Doc ? view.props.Document.dragFactory :
                     view.props.Document.layout instanceof Doc ? view.props.Document.layout :
                         view.props.Document.isTemplateForField ? view.props.Document : Doc.GetProto(view.props.Document);
-                targetDoc && (Doc.Layout(view.props.Document).backgroundColor = CurrentUserUtils.UserDocument.inkColor);
+                if (targetDoc) {
+                    if (StrCast(Doc.Layout(view.props.Document).layout).indexOf("FormattedTextBox") !== -1 && FormattedTextBox.HadSelection) {
+                        Doc.Layout(view.props.Document).color = CurrentUserUtils.UserDocument.inkColor;
+                    } else {
+                        Doc.Layout(view.props.Document)._backgroundColor = CurrentUserUtils.UserDocument.inkColor; // '_backgroundColor' is template specific.  'backgroundColor' would apply to all templates, but has no UI at the moment
+                    }
+                }
             });
         } else {
             CurrentUserUtils.ActivePen && (CurrentUserUtils.ActivePen.backgroundColor = this._selectedColor);
@@ -79,7 +85,6 @@ export class InkingControl {
 Scripting.addGlobal(function activatePen(pen: any, width: any, color: any) { InkingControl.Instance.switchTool(pen ? InkTool.Pen : InkTool.None); InkingControl.Instance.switchWidth(width); InkingControl.Instance.updateSelectedColor(color); });
 Scripting.addGlobal(function activateBrush(pen: any, width: any, color: any) { InkingControl.Instance.switchTool(pen ? InkTool.Highlighter : InkTool.None); InkingControl.Instance.switchWidth(width); InkingControl.Instance.updateSelectedColor(color); });
 Scripting.addGlobal(function activateEraser(pen: any) { return InkingControl.Instance.switchTool(pen ? InkTool.Eraser : InkTool.None); });
-Scripting.addGlobal(function activateScrubber(pen: any) { return InkingControl.Instance.switchTool(pen ? InkTool.Scrubber : InkTool.None); });
 Scripting.addGlobal(function activateStamp(pen: any) { return InkingControl.Instance.switchTool(pen ? InkTool.Stamp : InkTool.None); });
 Scripting.addGlobal(function deactivateInk() { return InkingControl.Instance.switchTool(InkTool.None); });
 Scripting.addGlobal(function setInkWidth(width: any) { return InkingControl.Instance.switchWidth(width); });

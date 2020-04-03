@@ -4,12 +4,12 @@ import * as formidable from 'formidable';
 import v4 = require('uuid/v4');
 const AdmZip = require('adm-zip');
 import { extname, basename, dirname } from 'path';
-import { createReadStream, createWriteStream, unlink, readFileSync } from "fs";
+import { createReadStream, createWriteStream, unlink } from "fs";
 import { publicDirectory, filesDirectory } from "..";
 import { Database } from "../database";
-import { DashUploadUtils, SizeSuffix } from "../DashUploadUtils";
+import { DashUploadUtils, InjectSize, SizeSuffix } from "../DashUploadUtils";
 import * as sharp from 'sharp';
-import { AcceptibleMedia } from "../SharedMediaTypes";
+import { AcceptibleMedia, Upload } from "../SharedMediaTypes";
 import { normalize } from "path";
 const imageDataUri = require('image-data-uri');
 
@@ -19,7 +19,8 @@ export enum Directory {
     videos = "videos",
     pdfs = "pdfs",
     text = "text",
-    pdf_thumbnails = "pdf_thumbnails"
+    pdf_thumbnails = "pdf_thumbnails",
+    audio = "audio"
 }
 
 export function serverPathToFile(directory: Directory, filename: string) {
@@ -47,7 +48,7 @@ export default class UploadManager extends ApiManager {
                 form.keepExtensions = true;
                 return new Promise<void>(resolve => {
                     form.parse(req, async (_err, _fields, files) => {
-                        const results: any[] = [];
+                        const results: Upload.FileResponse[] = [];
                         for (const key in files) {
                             const result = await DashUploadUtils.upload(files[key]);
                             result && results.push(result);
@@ -60,12 +61,22 @@ export default class UploadManager extends ApiManager {
         });
 
         register({
+            method: Method.GET,
+            subscription: "/hello",
+            secureHandler: ({ req, res }) => {
+                res.send("<h1>world!</h1>");
+            }
+        });
+
+        register({
             method: Method.POST,
             subscription: "/uploadRemoteImage",
             secureHandler: async ({ req, res }) => {
+
                 const { sources } = req.body;
                 if (Array.isArray(sources)) {
-                    return res.send(await Promise.all(sources.map(url => DashUploadUtils.UploadImage(url))));
+                    const results = await Promise.all(sources.map(source => DashUploadUtils.UploadImage(source)));
+                    return res.send(results);
                 }
                 res.send();
             }
@@ -75,6 +86,7 @@ export default class UploadManager extends ApiManager {
             method: Method.POST,
             subscription: "/uploadDoc",
             secureHandler: ({ req, res }) => {
+
                 const form = new formidable.IncomingForm();
                 form.keepExtensions = true;
                 // let path = req.body.path;
@@ -179,6 +191,7 @@ export default class UploadManager extends ApiManager {
             method: Method.POST,
             subscription: "/inspectImage",
             secureHandler: async ({ req, res }) => {
+
                 const { source } = req.body;
                 if (typeof source === "string") {
                     return res.send(await DashUploadUtils.InspectImage(source));
@@ -197,7 +210,7 @@ export default class UploadManager extends ApiManager {
                     res.status(401).send("incorrect parameters specified");
                     return;
                 }
-                return imageDataUri.outputFile(uri, serverPathToFile(Directory.images, filename)).then((savedName: string) => {
+                return imageDataUri.outputFile(uri, serverPathToFile(Directory.images, InjectSize(filename, SizeSuffix.Original))).then((savedName: string) => {
                     const ext = extname(savedName).toLowerCase();
                     const { pngs, jpgs } = AcceptibleMedia;
                     const resizers = [
@@ -222,6 +235,7 @@ export default class UploadManager extends ApiManager {
                             const path = serverPathToFile(Directory.images, filename + resizer.suffix + ext);
                             createReadStream(savedName).pipe(resizer.resizer).pipe(createWriteStream(path));
                         });
+
                     }
                     res.send(clientPathToFile(Directory.images, filename + ext));
                 });

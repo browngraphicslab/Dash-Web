@@ -36,9 +36,10 @@ export interface CellProps {
     Document: Doc;
     fieldKey: string;
     renderDepth: number;
-    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
+    addDocTab: (document: Doc, where: string) => boolean;
     pinToPres: (document: Doc) => void;
-    moveDocument: (document: Doc, targetCollection: Doc | undefined, addDocument: (document: Doc) => boolean) => boolean;
+    moveDocument: (document: Doc, targetCollection: Doc | undefined,
+        addDocument: (document: Doc) => boolean) => boolean;
     isFocused: boolean;
     changeFocusedCellByIndex: (row: number, col: number) => void;
     setIsEditing: (isEditing: boolean) => void;
@@ -76,7 +77,8 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
 
     @action
     isEditingCallback = (isEditing: boolean): void => {
-        document.addEventListener("keydown", this.onKeyDown);
+        document.removeEventListener("keydown", this.onKeyDown);
+        isEditing && document.addEventListener("keydown", this.onKeyDown);
         this._isEditing = isEditing;
         this.props.setIsEditing(isEditing);
         this.props.changeFocusedCellByIndex(this.props.row, this.props.col);
@@ -155,6 +157,8 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             Document: this.props.rowProps.original,
             DataDoc: this.props.rowProps.original,
             LibraryPath: [],
+            dropAction: "alias",
+            bringToFront: emptyFunction,
             fieldKey: this.props.rowProps.column.id as string,
             ContainingCollectionView: this.props.CollectionView,
             ContainingCollectionDoc: this.props.CollectionView && this.props.CollectionView.props.Document,
@@ -246,7 +250,9 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                                 const script = CompileScript(value, { requiredType: type, typecheck: false, editable: true, addReturn: true, params: { this: Doc.name, $r: "number", $c: "number", $: "any" } });
                                 if (script.compiled) {
                                     DocListCast(this.props.Document[this.props.fieldKey]).
-                                        forEach((doc, i) => this.applyToDoc(doc, i, this.props.col, script.run));
+                                        forEach((doc, i) => value.startsWith(":=") ?
+                                            this.props.setComputed(value.substring(2), doc, this.props.rowProps.column.id!, i, this.props.col) :
+                                            this.applyToDoc(doc, i, this.props.col, script.run));
                                 }
                             }}
                         />

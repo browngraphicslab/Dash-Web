@@ -1,6 +1,6 @@
 import v4 = require('uuid/v4');
 import v5 = require("uuid/v5");
-import { Socket } from 'socket.io';
+import { Socket, Room } from 'socket.io';
 import { Message } from './server/Message';
 
 export namespace Utils {
@@ -24,6 +24,22 @@ export namespace Utils {
         const translateY = rect.top;
 
         return { scale, translateX, translateY };
+    }
+
+    export function TraceConsoleLog() {
+        ['log', 'warn'].forEach(function (method) {
+            const old = (console as any)[method];
+            (console as any)[method] = function () {
+                let stack = new Error("").stack?.split(/\n/);
+                // Chrome includes a single "Error" line, FF doesn't.
+                if (stack && stack[0].indexOf('Error') === 0) {
+                    stack = stack.slice(1);
+                }
+                const message = (stack?.[1] || "Stack undefined!").trim();
+                const args = ([] as any[]).slice.apply(arguments).concat([message]);
+                return old.apply(console, args);
+            };
+        });
     }
 
     /**
@@ -294,6 +310,12 @@ export namespace Utils {
             handler([arg, loggingCallback('S sending', fn, message.Name)]);
         });
     }
+    export type RoomHandler = (socket: Socket, room: string) => any;
+    export type UsedSockets = Socket | SocketIOClient.Socket;
+    export type RoomMessage = "create or join" | "created" | "joined";
+    export function AddRoomHandler(socket: Socket, message: RoomMessage, handler: RoomHandler) {
+        socket.on(message, room => handler(socket, room));
+    }
 }
 
 export function OmitKeys(obj: any, keys: string[], addKeyFunc?: (dup: any) => void): { omit: any, extract: any } {
@@ -328,16 +350,15 @@ export function timenow() {
     return now.toLocaleDateString() + ' ' + h + ':' + m + ' ' + ampm;
 }
 
-export function aggregateBounds(boundsList: { x: number, y: number, width: number, height: number }[], xpad: number, ypad: number) {
-    const bounds = boundsList.reduce((bounds, b) => {
-        const [sptX, sptY] = [b.x, b.y];
-        const [bptX, bptY] = [sptX + b.width, sptY + b.height];
-        return {
-            x: Math.min(sptX, bounds.x), y: Math.min(sptY, bounds.y),
-            r: Math.max(bptX, bounds.r), b: Math.max(bptY, bounds.b)
-        };
-    }, { x: Number.MAX_VALUE, y: Number.MAX_VALUE, r: -Number.MAX_VALUE, b: -Number.MAX_VALUE });
-    return { x: bounds.x !== Number.MAX_VALUE ? bounds.x - xpad : bounds.x, y: bounds.y !== Number.MAX_VALUE ? bounds.y - ypad : bounds.y, r: bounds.r !== -Number.MAX_VALUE ? bounds.r + xpad : bounds.r, b: bounds.b !== -Number.MAX_VALUE ? bounds.b + ypad : bounds.b };
+export function aggregateBounds(boundsList: { x: number, y: number, width?: number, height?: number }[], xpad: number, ypad: number) {
+    const bounds = boundsList.map(b => ({ x: b.x, y: b.y, r: b.x + (b.width || 0), b: b.y + (b.height || 0) })).reduce((bounds, b) => ({
+        x: Math.min(b.x, bounds.x), y: Math.min(b.y, bounds.y),
+        r: Math.max(b.r, bounds.r), b: Math.max(b.b, bounds.b)
+    }), { x: Number.MAX_VALUE, y: Number.MAX_VALUE, r: -Number.MAX_VALUE, b: -Number.MAX_VALUE });
+    return {
+        x: bounds.x !== Number.MAX_VALUE ? bounds.x - xpad : bounds.x, y: bounds.y !== Number.MAX_VALUE ? bounds.y - ypad : bounds.y,
+        r: bounds.r !== -Number.MAX_VALUE ? bounds.r + xpad : bounds.r, b: bounds.b !== -Number.MAX_VALUE ? bounds.b + ypad : bounds.b
+    };
 }
 export function intersectRect(r1: { left: number, top: number, width: number, height: number },
     r2: { left: number, top: number, width: number, height: number }) {
@@ -348,7 +369,7 @@ export function percent2frac(percent: string) {
     return Number(percent.substr(0, percent.length - 1)) / 100;
 }
 
-export function numberRange(num: number) { return Array.from(Array(num)).map((v, i) => i); }
+export function numberRange(num: number) { return num > 0 && num < 1000 ? Array.from(Array(num)).map((v, i) => i) : []; }
 
 export function returnTransparent() { return "transparent"; }
 
@@ -452,4 +473,41 @@ export function clearStyleSheetRules(sheet: any) {
         return true;
     }
     return false;
+}
+
+export function setupMoveUpEvents(
+    target: object,
+    e: React.PointerEvent,
+    moveEvent: (e: PointerEvent, down: number[], delta: number[]) => boolean,
+    upEvent: (e: PointerEvent) => void,
+    clickEvent: (e: PointerEvent) => void) {
+    (target as any)._downX = (target as any)._lastX = e.clientX;
+    (target as any)._downY = (target as any)._lastY = e.clientY;
+
+    const _moveEvent = (e: PointerEvent): void => {
+        if (Math.abs(e.clientX - (target as any)._downX) > 4 || Math.abs(e.clientY - (target as any)._downY) > 4) {
+            if (moveEvent(e, [(target as any)._downX, (target as any)._downY],
+                [e.clientX - (target as any)._lastX, e.clientY - (target as any)._lastY])) {
+                document.removeEventListener("pointermove", _moveEvent);
+                document.removeEventListener("pointerup", _upEvent);
+            }
+        }
+        (target as any)._lastX = e.clientX;
+        (target as any)._lastY = e.clientY;
+        e.stopPropagation();
+    };
+    const _upEvent = (e: PointerEvent): void => {
+        upEvent(e);
+        if (Math.abs(e.clientX - (target as any)._downX) < 4 && Math.abs(e.clientY - (target as any)._downY) < 4) {
+            clickEvent(e);
+        }
+        document.removeEventListener("pointermove", _moveEvent);
+        document.removeEventListener("pointerup", _upEvent);
+    };
+    e.stopPropagation();
+    e.preventDefault();
+    document.removeEventListener("pointermove", _moveEvent);
+    document.removeEventListener("pointerup", _upEvent);
+    document.addEventListener("pointermove", _moveEvent);
+    document.addEventListener("pointerup", _upEvent);
 }

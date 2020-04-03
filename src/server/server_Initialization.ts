@@ -20,7 +20,7 @@ import * as request from 'request';
 import RouteSubscriber from './RouteSubscriber';
 import { publicDirectory } from '.';
 import { logPort, } from './ActionUtilities';
-import { timeMap } from './ApiManagers/UserManager';
+import { Utils } from '../Utils';
 import { blue, yellow } from 'colors';
 import * as cors from "cors";
 
@@ -36,24 +36,7 @@ export default async function InitializeServer(routeSetter: RouteSetter) {
         setHeaders: res => res.setHeader("Access-Control-Allow-Origin", "*")
     }));
     app.use("/images", express.static(publicDirectory));
-    const corsOptions = {
-        origin: function (_origin: any, callback: any) {
-            callback(null, true);
-        }
-    };
-    app.use(cors(corsOptions));
-    app.use("*", ({ user, originalUrl }, res, next) => {
-        if (user && !originalUrl.includes("Heartbeat")) {
-            const userEmail = (user as any).email;
-            if (userEmail) {
-                timeMap[userEmail] = Date.now();
-            }
-        }
-        if (!user && originalUrl === "/") {
-            return res.redirect("/login");
-        }
-        next();
-    });
+    app.use(cors({ origin: (_origin: any, callback: any) => callback(null, true) }));
 
     app.use(wdm(compiler, { publicPath: config.output.publicPath }));
     app.use(whm(compiler));
@@ -64,10 +47,11 @@ export default async function InitializeServer(routeSetter: RouteSetter) {
     const isRelease = determineEnvironment();
 
     routeSetter(new RouteManager(app, isRelease));
+    registerRelativePath(app);
 
     const serverPort = isRelease ? Number(process.env.serverPort) : 1050;
     const server = app.listen(serverPort, () => {
-        logPort("server", Number(serverPort));
+        logPort("server", serverPort);
         console.log();
     });
     disconnect = async () => new Promise<Error>(resolve => server.close(resolve));
@@ -138,18 +122,47 @@ function registerAuthenticationRoutes(server: express.Express) {
 function registerCorsProxy(server: express.Express) {
     const headerCharRegex = /[^\t\x20-\x7e\x80-\xff]/;
     server.use("/corsProxy", (req, res) => {
-        req.pipe(request(decodeURIComponent(req.url.substring(1)))).on("response", res => {
-            const headers = Object.keys(res.headers);
-            headers.forEach(headerName => {
-                const header = res.headers[headerName];
-                if (Array.isArray(header)) {
-                    res.headers[headerName] = header.filter(h => !headerCharRegex.test(h));
-                } else if (header) {
-                    if (headerCharRegex.test(header as any)) {
-                        delete res.headers[headerName];
+
+        const requrl = decodeURIComponent(req.url.substring(1));
+        const referer = req.headers.referer ? decodeURIComponent(req.headers.referer) : "";
+        // cors weirdness here... 
+        // if the referer is a cors page and the cors() route (I think) redirected to /corsProxy/<path> and the requested url path was relative, 
+        // then we redirect again to the cors referer and just add the relative path.
+        if (!requrl.startsWith("http") && req.originalUrl.startsWith("/corsProxy") && referer?.includes("corsProxy")) {
+            res.redirect(referer + (referer.endsWith("/") ? "" : "/") + requrl);
+        }
+        else {
+            req.pipe(request(requrl)).on("response", res => {
+                const headers = Object.keys(res.headers);
+                headers.forEach(headerName => {
+                    const header = res.headers[headerName];
+                    if (Array.isArray(header)) {
+                        res.headers[headerName] = header.filter(h => !headerCharRegex.test(h));
+                    } else if (header) {
+                        if (headerCharRegex.test(header as any)) {
+                            delete res.headers[headerName];
+                        }
                     }
-                }
-            });
-        }).pipe(res);
+                });
+            }).pipe(res);
+        }
+    });
+}
+
+function registerRelativePath(server: express.Express) {
+    server.use("*", (req, res) => {
+        const relativeUrl = req.originalUrl;
+        if (!res.headersSent && req.headers.referer?.includes("corsProxy")) { // a request for something by a proxied referrer means it must be a relative reference.  So construct a proxied absolute reference here.
+            const proxiedRefererUrl = decodeURIComponent(req.headers.referer); // (e.g., http://localhost:1050/corsProxy/https://en.wikipedia.org/wiki/Engelbart)
+            const dashServerUrl = proxiedRefererUrl.match(/.*corsProxy\//)![0]; // the dash server url (e.g.: http://localhost:1050/corsProxy/ )
+            const actualReferUrl = proxiedRefererUrl.replace(dashServerUrl, ""); // the url of the referer without the proxy (e.g., : http:s//en.wikipedia.org/wiki/Engelbart)
+            const absoluteTargetBaseUrl = actualReferUrl.match(/http[s]?:\/\/[^\/]*/)![0]; // the base of the original url (e.g.,  https://en.wikipedia.org)
+            const redirectedProxiedUrl = dashServerUrl + encodeURIComponent(absoluteTargetBaseUrl + relativeUrl); // the new proxied full url (e..g, http://localhost:1050/corsProxy/https://en.wikipedia.org/<somethingelse>)
+            res.redirect(redirectedProxiedUrl);
+        } else if (relativeUrl.startsWith("/search")) { // detect search query and use default search engine
+            res.redirect(req.headers.referer + "corsProxy/" + encodeURIComponent("http://www.google.com" + relativeUrl));
+        } else {
+            res.end();
+        }
     });
 }

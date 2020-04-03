@@ -8,7 +8,7 @@ import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
 import { ScriptField } from "../../../new_fields/ScriptField";
 import { BoolCast, Cast, NumCast, StrCast } from "../../../new_fields/Types";
-import { Utils, emptyFunction } from "../../../Utils";
+import { Utils, emptyFunction, setupMoveUpEvents } from "../../../Utils";
 import { DragManager } from "../../util/DragManager";
 import { undoBatch } from "../../util/UndoManager";
 import { EditableView } from "../EditableView";
@@ -24,6 +24,7 @@ interface CollectionViewChromeProps {
     CollectionView: CollectionView;
     type: CollectionViewType;
     collapse?: (value: boolean) => any;
+    PanelWidth: () => number;
 }
 
 interface Filter {
@@ -38,25 +39,30 @@ const stopPropagation = (e: React.SyntheticEvent) => e.stopPropagation();
 export class CollectionViewBaseChrome extends React.Component<CollectionViewChromeProps> {
     //(!)?\(\(\(doc.(\w+) && \(doc.\w+ as \w+\).includes\(\"(\w+)\"\)
 
+    get target() { return this.props.CollectionView.props.Document; }
     _templateCommand = {
-        title: "=> item view", script: "setChildLayout(this.target, this.source?.[0])", params: ["target", "source"],
+        params: ["target", "source"], title: "=> item view",
+        script: "setChildLayout(this.target, this.source?.[0])",
+        immediate: (source: Doc[]) => Doc.setChildLayout(this.target, source?.[0]),
         initialize: emptyFunction,
-        immediate: (draggedDocs: Doc[]) => Doc.setChildLayout(this.props.CollectionView.props.Document, draggedDocs.length ? draggedDocs[0] : undefined)
     };
     _narrativeCommand = {
-        title: "=> click item view", script: "setChildDetailedLayout(this.target, this.source?.[0])", params: ["target", "source"],
+        params: ["target", "source"], title: "=> click item view",
+        script: "setChildDetailedLayout(this.target, this.source?.[0])",
+        immediate: (source: Doc[]) => Doc.setChildDetailedLayout(this.target, source?.[0]),
         initialize: emptyFunction,
-        immediate: (draggedDocs: Doc[]) => Doc.setChildDetailedLayout(this.props.CollectionView.props.Document, draggedDocs.length ? draggedDocs[0] : undefined)
     };
     _contentCommand = {
-        title: "=> content", script: "getProto(this.target).data = aliasDocs(this.source);", params: ["target", "source"],
+        params: ["target", "source"], title: "=> content",
+        script: "getProto(this.target).data = aliasDocs(this.source);",
+        immediate: (source: Doc[]) => Doc.GetProto(this.target).data = Doc.aliasDocs(source),
         initialize: emptyFunction,
-        immediate: (draggedDocs: Doc[]) => Doc.GetProto(this.props.CollectionView.props.Document).data = new List<Doc>(draggedDocs.map((d: any) => Doc.MakeAlias(d)))
     };
     _viewCommand = {
-        title: "=> saved view", script: "this.target._panX = this.restoredPanX; this.target._panY = this.restoredPanY; this.target.scale = this.restoredScale;", params: ["target"],
-        initialize: (button: Doc) => { button.restoredPanX = this.props.CollectionView.props.Document._panX; button.restoredPanY = this.props.CollectionView.props.Document._panY; button.restoredScale = this.props.CollectionView.props.Document.scale; },
-        immediate: (draggedDocs: Doc[]) => { this.props.CollectionView.props.Document._panX = 0; this.props.CollectionView.props.Document._panY = 0; this.props.CollectionView.props.Document.scale = 1; },
+        params: ["target"], title: "=> saved view",
+        script: "this.target._panX = this.restoredPanX; this.target._panY = this.restoredPanY; this.target.scale = this.restoredScale;",
+        immediate: (source: Doc[]) => { this.target._panX = 0; this.target._panY = 0; this.target.scale = 1; },
+        initialize: (button: Doc) => { button.restoredPanX = this.target._panX; button.restoredPanY = this.target._panY; button.restoredScale = this.target.scale; },
     };
     _freeform_commands = [this._contentCommand, this._templateCommand, this._narrativeCommand, this._viewCommand];
     _stacking_commands = [this._contentCommand, this._templateCommand];
@@ -70,13 +76,14 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
             case CollectionViewType.Stacking: return this._stacking_commands;
             case CollectionViewType.Masonry: return this._stacking_commands;
             case CollectionViewType.Freeform: return this._freeform_commands;
-            case CollectionViewType.Pivot: return this._freeform_commands;
+            case CollectionViewType.Time: return this._freeform_commands;
             case CollectionViewType.Carousel: return this._freeform_commands;
         }
         return [];
     }
     private _picker: any;
     private _commandRef = React.createRef<HTMLInputElement>();
+    private _viewRef = React.createRef<HTMLInputElement>();
     private _autosuggestRef = React.createRef<Autosuggest>();
     @observable private _currentKey: string = "";
     @observable private _viewSpecsOpen: boolean = false;
@@ -179,7 +186,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     @action closeViewSpecs = () => {
         this._viewSpecsOpen = false;
         document.removeEventListener("pointerdown", this.closeViewSpecs);
-    };
+    }
 
     @action
     openDatePicker = (e: React.PointerEvent) => {
@@ -257,43 +264,19 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     }
 
     subChrome = () => {
+        const collapsed = this.props.CollectionView.props.Document._chromeStatus !== "enabled";
+        if (collapsed) return null;
         switch (this.props.type) {
-            case CollectionViewType.Stacking: return (<CollectionStackingViewChrome key="collchrome" CollectionView={this.props.CollectionView} type={this.props.type} />);
-            case CollectionViewType.Schema: return (<CollectionSchemaViewChrome key="collchrome" CollectionView={this.props.CollectionView} type={this.props.type} />);
-            case CollectionViewType.Tree: return (<CollectionTreeViewChrome key="collchrome" CollectionView={this.props.CollectionView} type={this.props.type} />);
-            case CollectionViewType.Masonry: return (<CollectionStackingViewChrome key="collchrome" CollectionView={this.props.CollectionView} type={this.props.type} />);
+            case CollectionViewType.Stacking: return (<CollectionStackingViewChrome key="collchrome" PanelWidth={this.props.PanelWidth} CollectionView={this.props.CollectionView} type={this.props.type} />);
+            case CollectionViewType.Schema: return (<CollectionSchemaViewChrome key="collchrome" PanelWidth={this.props.PanelWidth} CollectionView={this.props.CollectionView} type={this.props.type} />);
+            case CollectionViewType.Tree: return (<CollectionTreeViewChrome key="collchrome" PanelWidth={this.props.PanelWidth} CollectionView={this.props.CollectionView} type={this.props.type} />);
+            case CollectionViewType.Masonry: return (<CollectionStackingViewChrome key="collchrome" PanelWidth={this.props.PanelWidth} CollectionView={this.props.CollectionView} type={this.props.type} />);
             default: return null;
         }
     }
 
     private get document() {
         return this.props.CollectionView.props.Document;
-    }
-
-    private get pivotKey() {
-        return StrCast(this.document.pivotField);
-    }
-
-    private set pivotKey(value: string) {
-        this.document.pivotField = value;
-    }
-
-    @observable private pivotKeyDisplay = this.pivotKey;
-    getPivotInput = () => {
-        if (StrCast(this.document._freeformLayoutEngine) !== "pivot") {
-            return (null);
-        }
-        return (<input className="collectionViewBaseChrome-viewSpecsInput"
-            placeholder="PIVOT ON..."
-            value={this.pivotKeyDisplay}
-            onChange={action((e: React.ChangeEvent<HTMLInputElement>) => this.pivotKeyDisplay = e.currentTarget.value)}
-            onKeyPress={action((e: React.KeyboardEvent<HTMLInputElement>) => {
-                const value = e.currentTarget.value;
-                if (e.which === 13) {
-                    this.pivotKey = value;
-                    this.pivotKeyDisplay = "";
-                }
-            })} />);
     }
 
     @action.bound
@@ -363,8 +346,21 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     private _startDragPosition: { x: number, y: number } = { x: 0, y: 0 };
     private _sensitivity: number = 16;
 
+    dragViewDown = (e: React.PointerEvent) => {
+        setupMoveUpEvents(this, e, (e, down, delta) => {
+            const vtype = NumCast(this.props.CollectionView.props.Document._viewType) as CollectionViewType;
+            const c = {
+                params: ["target"], title: CollectionViewType.stringFor(vtype),
+                script: `this.target._viewType = ${NumCast(this.props.CollectionView.props.Document._viewType)}`,
+                immediate: (source: Doc[]) => Doc.setChildLayout(this.target, source?.[0]),
+                initialize: emptyFunction,
+            };
+            DragManager.StartButtonDrag([this._viewRef.current!], c.script, StrCast(c.title),
+                { target: this.props.CollectionView.props.Document }, c.params, c.initialize, e.clientX, e.clientY);
+            return true;
+        }, emptyFunction, emptyFunction);
+    }
     dragCommandDown = (e: React.PointerEvent) => {
-
         this._startDragPosition = { x: e.clientX, y: e.clientY };
         document.addEventListener("pointermove", this.dragPointerMove);
         document.addEventListener("pointerup", this.dragPointerUp);
@@ -387,40 +383,52 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     dragPointerUp = (e: PointerEvent) => {
         document.removeEventListener("pointermove", this.dragPointerMove);
         document.removeEventListener("pointerup", this.dragPointerUp);
-
     }
 
     render() {
         const collapsed = this.props.CollectionView.props.Document._chromeStatus !== "enabled";
         return (
-            <div className="collectionViewChrome-cont" style={{ top: collapsed ? -70 : 0, height: collapsed ? 0 : undefined }}>
-                <div className="collectionViewChrome">
+            <div className="collectionViewChrome-cont" style={{
+                top: collapsed ? -70 : 0, height: collapsed ? 0 : undefined,
+                transform: collapsed ? "" : `scale(${Math.min(1, this.props.CollectionView.props.ScreenToLocalTransform().Scale)})`,
+                transformOrigin: "top left",
+                width: `${this.props.PanelWidth() / Math.min(1, this.props.CollectionView.props.ScreenToLocalTransform().Scale)}px`
+            }}>
+                <div className="collectionViewChrome" style={{ border: "unset", pointerEvents: collapsed ? "none" : undefined }}>
                     <div className="collectionViewBaseChrome">
                         <button className="collectionViewBaseChrome-collapse"
                             style={{
                                 top: collapsed ? 70 : 10,
-                                transform: `rotate(${collapsed ? 180 : 0}deg) scale(${collapsed ? 0.5 : 1}) translate(${collapsed ? "-100%, -100%" : "0, 0"})`,
-                                opacity: (collapsed && !this.props.CollectionView.props.isSelected()) ? 0 : 0.9,
+                                transform: `rotate(${collapsed ? 180 : 0}deg) scale(0.5) translate(${collapsed ? "-100%, -100%" : "0, 0"})`,
+                                opacity: 0.9,
+                                display: (collapsed && !this.props.CollectionView.props.isSelected()) ? "none" : undefined,
                                 left: (collapsed ? 0 : "unset"),
                             }}
                             title="Collapse collection chrome" onClick={this.toggleCollapse}>
                             <FontAwesomeIcon icon="caret-up" size="2x" />
                         </button>
-                        <select
-                            className="collectionViewBaseChrome-viewPicker"
-                            onPointerDown={stopPropagation}
-                            onChange={this.viewChanged}
-                            value={NumCast(this.props.CollectionView.props.Document._viewType)}>
-                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="1">Freeform</option>
-                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="2">schema</option>
-                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="4">Tree</option>
-                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="5">Stacking</option>
-                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="6">Masonry</option>
-                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="7">Multicolumn</option>
-                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="8">Pivot</option>
-                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="9">Carousel</option>
-                            <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="10">Linear</option>
-                        </select>
+                        <div className="collectionViewBaseChrome-template" style={{ marginLeft: 25, display: collapsed ? "none" : undefined }}>
+                            <div className="commandEntry-outerDiv" title="drop document to apply or drag to create button" ref={this._viewRef} onPointerDown={this.dragViewDown}>
+                                <div className="commandEntry-drop">
+                                    <FontAwesomeIcon icon="bullseye" size="2x"></FontAwesomeIcon>
+                                </div>
+                                <select
+                                    className="collectionViewBaseChrome-viewPicker"
+                                    onPointerDown={stopPropagation}
+                                    onChange={this.viewChanged}
+                                    value={NumCast(this.props.CollectionView.props.Document._viewType)}>
+                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="1">Freeform</option>
+                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="2">Schema</option>
+                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="4">Tree</option>
+                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="5">Stacking</option>
+                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="6">Masonry</option>
+                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="7">MultiCol</option>
+                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="8">MultiRow</option>
+                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="9">Pivot/Time</option>
+                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="10">Carousel</option>
+                                </select>
+                            </div>
+                        </div>
                         <div className="collectionViewBaseChrome-viewSpecs" title="filter documents to show" style={{ display: collapsed ? "none" : "grid" }}>
                             <div className="collectionViewBaseChrome-filterIcon" onPointerDown={this.openViewSpecs} >
                                 <FontAwesomeIcon icon="filter" size="2x" />
@@ -464,10 +472,10 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                                 </div>
                             </div>
                         </div>
-                        <div className="collectionViewBaseChrome-template" ref={this.createDropTarget} >
+                        <div className="collectionViewBaseChrome-template" ref={this.createDropTarget} style={{ display: collapsed ? "none" : undefined }}>
                             <div className="commandEntry-outerDiv" title="drop document to apply or drag to create button" ref={this._commandRef} onPointerDown={this.dragCommandDown}>
                                 <div className="commandEntry-drop">
-                                    <FontAwesomeIcon icon="bullseye" size="2x"></FontAwesomeIcon>
+                                    <FontAwesomeIcon icon="bullseye" size="2x" />
                                 </div>
                                 <select
                                     className="collectionViewBaseChrome-cmdPicker"
@@ -495,7 +503,7 @@ export class CollectionStackingViewChrome extends React.Component<CollectionView
     @observable private suggestions: string[] = [];
 
     @computed private get descending() { return BoolCast(this.props.CollectionView.props.Document.stackingHeadersSortDescending); }
-    @computed get sectionFilter() { return StrCast(this.props.CollectionView.props.Document.sectionFilter); }
+    @computed get pivotField() { return StrCast(this.props.CollectionView.props.Document._pivotField); }
 
     getKeySuggestions = async (value: string): Promise<string[]> => {
         value = value.toLowerCase();
@@ -533,26 +541,26 @@ export class CollectionStackingViewChrome extends React.Component<CollectionView
     }
 
     setValue = (value: string) => {
-        this.props.CollectionView.props.Document.sectionFilter = value;
+        this.props.CollectionView.props.Document._pivotField = value;
         return true;
     }
 
     @action toggleSort = () => { this.props.CollectionView.props.Document.stackingHeadersSortDescending = !this.props.CollectionView.props.Document.stackingHeadersSortDescending; };
-    @action resetValue = () => { this._currentKey = this.sectionFilter; };
+    @action resetValue = () => { this._currentKey = this.pivotField; };
 
     render() {
         return (
             <div className="collectionStackingViewChrome-cont">
-                <div className="collectionStackingViewChrome-sectionFilter-cont">
-                    <div className="collectionStackingViewChrome-sectionFilter-label">
-                        GROUP ITEMS BY:
+                <div className="collectionStackingViewChrome-pivotField-cont">
+                    <div className="collectionStackingViewChrome-pivotField-label">
+                        GROUP BY:
                     </div>
                     <div className="collectionStackingViewChrome-sortIcon" onClick={this.toggleSort} style={{ transform: `rotate(${this.descending ? "180" : "0"}deg)` }}>
                         <FontAwesomeIcon icon="caret-up" size="2x" color="white" />
                     </div>
-                    <div className="collectionStackingViewChrome-sectionFilter">
+                    <div className="collectionStackingViewChrome-pivotField">
                         <EditableView
-                            GetValue={() => this.sectionFilter}
+                            GetValue={() => this.pivotField}
                             autosuggestProps={
                                 {
                                     resetValue: this.resetValue,
@@ -574,7 +582,7 @@ export class CollectionStackingViewChrome extends React.Component<CollectionView
                                 }}
                             oneLine
                             SetValue={this.setValue}
-                            contents={this.sectionFilter ? this.sectionFilter : "N/A"}
+                            contents={this.pivotField ? this.pivotField : "N/A"}
                         />
                     </div>
                 </div>

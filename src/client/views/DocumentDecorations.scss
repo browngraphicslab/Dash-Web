@@ -27,6 +27,17 @@ $linkGap : 3px;
         opacity: 1;
     }
 
+    .documentDecorations-selector {
+        pointer-events: auto;
+        height: 15px;
+        width: 15px;
+        left: -20px;
+        top: 20px;
+        display: inline-block;
+        position: absolute;
+        opacity: 0.5;
+    }
+
     .documentDecorations-radius {
         pointer-events: auto;
         background: black;
@@ -69,6 +80,7 @@ $linkGap : 3px;
     #documentDecorations-topLeftResizer,
     #documentDecorations-bottomRightResizer {
         cursor: nwse-resize;
+        background: dimGray;
     }
 
     #documentDecorations-bottomRightResizer {
@@ -78,6 +90,7 @@ $linkGap : 3px;
     #documentDecorations-topRightResizer,
     #documentDecorations-bottomLeftResizer {
         cursor: nesw-resize;
+        background: dimGray;
     }
 
     #documentDecorations-topResizer,
@@ -90,7 +103,15 @@ $linkGap : 3px;
         cursor: ew-resize;
     }
 
-    .title {
+    .documentDecorations-contextMenu {
+        background: $alt-accent;
+        width: 25px;
+        height: calc(100% + 8px); // 8px for the height of the top resizer bar
+        grid-column-start: 1;
+        grid-column-end : 2;
+        pointer-events: all;
+    }
+    .documentDecorations-title {
         background: $alt-accent;
         opacity: 1;
         grid-column-start: 3;
@@ -98,6 +119,18 @@ $linkGap : 3px;
         pointer-events: auto;
         overflow: hidden;
         text-align: center;
+        display:flex;
+    }
+    .publishBox {
+        width: 20px;
+        height: 22px;
+        grid-column-start: 3;
+        grid-column-end: 4;
+        pointer-events: all;
+        background: darkgray;
+        display: inline-block;
+        position: absolute;
+        right: 0;
     }
 }
 
@@ -127,6 +160,7 @@ $linkGap : 3px;
     padding-top: 5px;
     width: $MINIMIZED_ICON_SIZE;
     height: $MINIMIZED_ICON_SIZE;
+    max-height: 20px;
 }
 
 .documentDecorations-background {
@@ -153,11 +187,12 @@ $linkGap : 3px;
 
 .link-button-container {
     margin-top: $linkGap;
-    grid-column: 1/4;
     width: max-content;
     height: auto;
     display: flex;
     flex-direction: row;
+    z-index: 998;
+    position: absolute;
 }
 
 .linkButtonWrapper {
@@ -244,6 +279,10 @@ $linkGap : 3px;
         background: $main-accent;
         transform: scale(1.05);
     }
+}
+
+.documentDecorations-darkScheme {
+    background: dimgray;
 }
 
 #template-list {

@@ -81,8 +81,8 @@ export class ButtonBox extends DocComponent<FieldViewProps, ButtonDocument>(Butt
             <div className="buttonBox-outerDiv" ref={this.createDropTarget} onContextMenu={this.specificContextMenu}
                 style={{ boxShadow: this.Document.opacity === 0 ? undefined : StrCast(this.Document.boxShadow, "") }}>
                 <div className="buttonBox-mainButton" style={{
-                    background: this.Document.backgroundColor, color: this.Document.color || "black",
-                    fontSize: this.Document.fontSize, letterSpacing: this.Document.letterSpacing || "", textTransform: this.Document.textTransform || ""
+                    background: this.Document.backgroundColor, color: this.Document.color || "inherit",
+                    fontSize: this.Document.fontSize, letterSpacing: this.Document.letterSpacing || "", textTransform: (this.Document.textTransform as any) || ""
                 }} >
                     <div className="buttonBox-mainButtonCenter">
                         {(this.Document.text || this.Document.title)}

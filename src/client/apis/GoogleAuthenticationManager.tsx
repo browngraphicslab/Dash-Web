@@ -12,8 +12,8 @@ const prompt = "Paste authorization code here...";
 @observer
 export default class GoogleAuthenticationManager extends React.Component<{}> {
     public static Instance: GoogleAuthenticationManager;
-    @observable private openState = false;
     private authenticationLink: Opt<string> = undefined;
+    @observable private openState = false;
     @observable private authenticationCode: Opt<string> = undefined;
     @observable private clickedState = false;
     @observable private success: Opt<boolean> = undefined;
@@ -39,24 +39,18 @@ export default class GoogleAuthenticationManager extends React.Component<{}> {
                 const disposer = reaction(
                     () => this.authenticationCode,
                     async authenticationCode => {
-                        if (!authenticationCode) {
-                            return;
+                        if (authenticationCode) {
+                            disposer();
+                            const { access_token, avatar, name } = await Networking.PostToServer("/writeGoogleAccessToken", { authenticationCode });
+                            runInAction(() => {
+                                this.avatar = avatar;
+                                this.username = name;
+                                this.hasBeenClicked = false;
+                                this.success = false;
+                            });
+                            this.beginFadeout();
+                            resolve(access_token);
                         }
-                        const { access_token, avatar, name } = await Networking.PostToServer(
-                            "/writeGoogleAccessToken",
-                            { authenticationCode }
-                        );
-                        runInAction(() => {
-                            this.avatar = avatar;
-                            this.username = name;
-                        });
-                        this.beginFadeout();
-                        disposer();
-                        resolve(access_token);
-                        action(() => {
-                            this.hasBeenClicked = false;
-                            this.success = false;
-                        });
                     }
                 );
             });
@@ -86,26 +80,20 @@ export default class GoogleAuthenticationManager extends React.Component<{}> {
         GoogleAuthenticationManager.Instance = this;
     }
 
-    private handleClick = () => {
-        window.open(this.authenticationLink);
-        setTimeout(() => this.hasBeenClicked = true, 500);
-    }
-
-    private handlePaste = action((e: React.ChangeEvent<HTMLInputElement>) => {
-        this.authenticationCode = e.currentTarget.value;
-    });
-
     private get renderPrompt() {
         return (
             <div className={'authorize-container'}>
                 {this.displayLauncher ? <button
                     className={"dispatch"}
-                    onClick={this.handleClick}
+                    onClick={() => {
+                        window.open(this.authenticationLink);
+                        setTimeout(() => this.hasBeenClicked = true, 500);
+                    }}
                     style={{ marginBottom: this.clickedState ? 15 : 0 }}
                 >Authorize a Google account...</button> : (null)}
                 {this.clickedState ? <input
                     className={'paste-target'}
-                    onChange={this.handlePaste}
+                    onChange={action(e => this.authenticationCode = e.currentTarget.value)}
                     placeholder={prompt}
                 /> : (null)}
                 {this.avatar ? <img

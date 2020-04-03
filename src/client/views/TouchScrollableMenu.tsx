@@ -44,7 +44,7 @@ export default class TouchScrollableMenu extends React.Component<TouchScrollable
                 <div className="shadow" style={{ height: `calc(100% - 25px - ${this.selectedIndex * 25}px)` }}>
                 </div>
             </div>
-        )
+        );
     }
 }
 
@@ -54,6 +54,6 @@ export class TouchScrollableMenuItem extends React.Component<TouchScrollableMenu
             <div className="menuItem-cont" onClick={this.props.onClick}>
                 {this.props.text}
             </div>
-        )
+        );
     }
 }

@@ -33,20 +33,8 @@ export class RichTextField extends ObjectField {
         return this.Text;
     }
 
-    [ToPlainText]() {
-        // Because we're working with plain text, just concatenate all paragraphs
-        let content = JSON.parse(this.Data).doc.content;
-        let paragraphs = content.filter((item: any) => item.type === "paragraph");
-
-        // Functions to flatten ProseMirror paragraph objects (and their components) to plain text
-        // While this function already exists in state.doc.textBeteen(), it doesn't account for newlines 
-        let blockText = (block: any) => block.text;
-        let concatenateParagraph = (p: any) => (p.content ? p.content.map(blockText).join(joiner) : "") + delimiter;
-
-        // Concatentate paragraphs and string the result together
-        let textParagraphs: string[] = paragraphs.map(concatenateParagraph);
-        let plainText = textParagraphs.join(joiner);
-        return plainText.substring(0, plainText.length - 1);
+    public static DashField(fieldKey: string) {
+        return new RichTextField(`{"doc":{"type":"doc","content":[{"type":"paragraph","attrs":{"align":null,"color":null,"id":null,"indent":null,"inset":null,"lineSpacing":null,"paddingBottom":null,"paddingTop":null},"content":[{"type":"dashField","attrs":{"fieldKey":"${fieldKey}","docid":""}}]}]},"selection":{"type":"text","anchor":2,"head":2},"storedMarks":[]}`, "");
     }
 
 }

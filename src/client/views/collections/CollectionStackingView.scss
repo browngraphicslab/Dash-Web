@@ -19,6 +19,7 @@
     position: absolute;
     top: 0;
     overflow-y: auto;
+    overflow-x: hidden;
     flex-wrap: wrap;
     transition: top .5s;
     >div {
@@ -159,9 +160,7 @@
     }
     .collectionStackingView-sectionHeader {
         text-align: center;
-        margin-left: 2px;
-        margin-right: 2px;
-        margin-top: 10px;
+        margin: auto;
         background: $main-accent;
         // overflow: hidden; overflow is visible so the color menu isn't hidden -ftong
 
@@ -213,6 +212,7 @@
             left: 0;
             top: 0;
             height: 100%;
+            display: none;
 
             [class*="css"] {
                 max-width: 102px;
@@ -250,6 +250,7 @@
             right: 0;
             top: 0;
             height: 100%;
+            display: none;
 
             [class*="css"] {
                 max-width: 102px;
@@ -284,6 +285,18 @@
             right: 25px;
             top: 0;
             height: 100%;
+            display: none;
+        }
+    }
+    .collectionStackingView-sectionHeader:hover {
+        .collectionStackingView-sectionColor {
+            display:unset;
+        }
+        .collectionStackingView-sectionOptions {
+            display:unset;
+        }
+        .collectionStackingView-sectionDelete {
+            display:unset;
         }
     }
 
@@ -293,7 +306,6 @@
         overflow: hidden;
         margin: auto;
         width: 90%;
-        color: lightgrey;
         overflow: ellipses;
 
         .editableView-container-editing-oneLine,
