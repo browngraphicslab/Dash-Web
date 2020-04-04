@@ -721,8 +721,6 @@ export default class GestureOverlay extends Touchable {
                 bringToFront={emptyFunction}
                 ContainingCollectionView={undefined}
                 ContainingCollectionDoc={undefined}
-                zoomToScale={emptyFunction}
-                getScale={returnOne}
             />;
     }
 

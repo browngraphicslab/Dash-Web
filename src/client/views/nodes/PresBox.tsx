@@ -49,14 +49,15 @@ export class PresBox extends React.Component<FieldViewProps> {
         this.updateCurrentPresentation();
         if (this.childDocs[this.currentIndex + 1] !== undefined) {
             let nextSelected = this.currentIndex + 1;
+            this.gotoDocument(nextSelected, this.currentIndex);
 
-            for (; nextSelected < this.childDocs.length - 1; nextSelected++) {
-                if (!this.childDocs[nextSelected + 1].groupButton) {
+            for (nextSelected = nextSelected + 1; nextSelected < this.childDocs.length; nextSelected++) {
+                if (!this.childDocs[nextSelected].groupButton) {
                     break;
+                } else {
+                    this.gotoDocument(nextSelected, this.currentIndex);
                 }
             }
-
-            this.gotoDocument(nextSelected, this.currentIndex);
         }
     }
     back = () => {
@@ -72,13 +73,6 @@ export class PresBox extends React.Component<FieldViewProps> {
             }
             prevSelected = Math.max(0, prevSelected - 1);
 
-            if (this.currentIndex > 0 && didZoom) {
-                const prevScale = NumCast(this.childDocs[prevSelected].viewScale);
-                const curScale = DocumentManager.Instance.getScaleOfDocView(docAtCurrent);
-                if (prevScale && prevScale !== curScale) {
-                    DocumentManager.Instance.zoomIntoScale(docAtCurrent, prevScale);
-                }
-            }
             this.gotoDocument(prevSelected, this.currentIndex);
         }
     }
@@ -171,31 +165,15 @@ export class PresBox extends React.Component<FieldViewProps> {
             if (curDoc.navButton && target) {
                 DocumentManager.Instance.jumpToDocument(target, false, undefined, srcContext);
             } else if (curDoc.zoomButton && target) {
-                const curScale = DocumentManager.Instance.getScaleOfDocView(fromDoc);
                 //awaiting jump so that new scale can be found, since jumping is async
                 await DocumentManager.Instance.jumpToDocument(target, true, undefined, srcContext);
-                curDoc.viewScale = DocumentManager.Instance.getScaleOfDocView(target);
-
-                //saving the scale user was on before zooming in
-                if (curScale !== 1) {
-                    fromDoc.viewScale = curScale;
-                }
-
             }
             return;
         }
-        const curScale = DocumentManager.Instance.getScaleOfDocView(fromDoc);
 
         //awaiting jump so that new scale can be found, since jumping is async
         const presTargetDoc = await docToJump.presentationTargetDoc as Doc;
         await DocumentManager.Instance.jumpToDocument(presTargetDoc, willZoom, undefined, srcContext);
-        const newScale = DocumentManager.Instance.getScaleOfDocView(await curDoc.presentationTargetDoc as Doc);
-        curDoc.viewScale = newScale;
-        //saving the scale that user was on
-        if (curScale !== 1) {
-            fromDoc.viewScale = curScale;
-        }
-
     }
 
 
@@ -246,10 +224,9 @@ export class PresBox extends React.Component<FieldViewProps> {
     //stops the presentaton.
     resetPresentation = () => {
         this.updateCurrentPresentation();
-        this.childDocs.forEach(doc => doc.opacity = doc.viewScale = 1);
+        this.childDocs.forEach(doc => (doc.presentationTargetDoc as Doc).opacity = 1);
         this.props.Document._itemIndex = 0;
         this.props.Document.presStatus = false;
-        this.childDocs.length && DocumentManager.Instance.zoomIntoScale(this.childDocs[0], 1);
     }
 
     //The function that starts the presentation, also checking if actions should be applied
@@ -258,13 +235,13 @@ export class PresBox extends React.Component<FieldViewProps> {
         this.updateCurrentPresentation();
         this.childDocs.map(doc => {
             if (doc.hideTillShownButton && this.childDocs.indexOf(doc) > startIndex) {
-                doc.opacity = 0;
+                (doc.presentationTargetDoc as Doc).opacity = 0;
             }
             if (doc.hideAfterButton && this.childDocs.indexOf(doc) < startIndex) {
-                doc.opacity = 0;
+                (doc.presentationTargetDoc as Doc).opacity = 0;
             }
             if (doc.fadeButton && this.childDocs.indexOf(doc) < startIndex) {
-                doc.opacity = 0.5;
+                (doc.presentationTargetDoc as Doc).opacity = 0.5;
             }
         });
     }
@@ -284,16 +261,11 @@ export class PresBox extends React.Component<FieldViewProps> {
         }
     }));
 
-    /**
-     * Initially every document starts with a viewScale 1, which means
-     * that they will be displayed in a canvas with scale 1.
-     */
-    initializeScaleViews = (docList: Doc[], viewtype: number) => {
+    initializeViewAliases = (docList: Doc[], viewtype: number) => {
         const hgt = (viewtype === CollectionViewType.Tree) ? 50 : 46;
         docList.forEach(doc => {
             doc.presBox = this.props.Document; // give contained documents a reference to the presentation
             doc.collapsedHeight = hgt;  //  set the collpased height for documents based on the type of view (Tree or Stack) they will be displaye din
-            !NumCast(doc.viewScale) && (doc.viewScale = 1);
         });
     }
 
@@ -319,7 +291,7 @@ export class PresBox extends React.Component<FieldViewProps> {
     childLayoutTemplate = () => this.props.Document._viewType === CollectionViewType.Stacking ? Cast(Doc.UserDoc().presentationTemplate, Doc, null) : undefined;
     render() {
         const mode = NumCast(this.props.Document._viewType, CollectionViewType.Invalid);
-        this.initializeScaleViews(this.childDocs, mode);
+        this.initializeViewAliases(this.childDocs, mode);
         return <div className="presBox-cont" style={{ minWidth: this.props.Document.inOverlay ? 240 : undefined, pointerEvents: this.active() || this.props.Document.inOverlay ? "all" : "none" }} >
             <div className="presBox-buttons" style={{ display: this.props.Document._chromeStatus === "disabled" ? "none" : undefined }}>
                 <select className="collectionViewBaseChrome-viewPicker"

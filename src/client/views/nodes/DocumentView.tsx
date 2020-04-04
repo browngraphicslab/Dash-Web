@@ -80,10 +80,8 @@ export interface DocumentViewProps {
     bringToFront: (doc: Doc, sendToBack?: boolean) => void;
     addDocTab: (doc: Doc, where: string, libraryPath?: Doc[]) => boolean;
     pinToPres: (document: Doc) => void;
-    zoomToScale: (scale: number) => void;
     backgroundHalo?: () => boolean;
     backgroundColor?: (doc: Doc) => string | undefined;
-    getScale: () => number;
     ChromeHeight?: () => number;
     dontRegisterView?: boolean;
     layoutKey?: string;
@@ -959,9 +957,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             bringToFront={this.props.bringToFront}
             addDocTab={this.props.addDocTab}
             pinToPres={this.props.pinToPres}
-            zoomToScale={this.props.zoomToScale}
             backgroundColor={this.props.backgroundColor}
-            getScale={this.props.getScale}
             ContentScaling={this.childScaling}
             ChromeHeight={this.chromeHeight}
             isSelected={this.isSelected}

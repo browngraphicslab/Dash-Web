@@ -219,22 +219,5 @@ export class DocumentManager {
             DocumentManager.Instance.jumpToDocument(link, zoom, (doc: Doc) => focus(doc, "onRight"), undefined, undefined);
         }
     }
-
-    @action
-    zoomIntoScale = (docDelegate: Doc, scale: number) => {
-        const docView = DocumentManager.Instance.getDocumentView(Doc.GetProto(docDelegate));
-        docView?.props.zoomToScale(scale);
-    }
-
-    getScaleOfDocView = (docDelegate: Doc) => {
-        const doc = Doc.GetProto(docDelegate);
-
-        const docView = DocumentManager.Instance.getDocumentView(doc);
-        if (docView) {
-            return docView.props.getScale();
-        } else {
-            return 1;
-        }
-    }
 }
 Scripting.addGlobal(function focus(doc: any) { DocumentManager.Instance.getDocumentViews(Doc.GetProto(doc)).map(view => view.props.focus(doc, true)); });

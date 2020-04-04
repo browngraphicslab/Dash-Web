@@ -111,8 +111,6 @@ export class ContentFittingDocumentView extends React.Component<ContentFittingDo
                         focus={this.props.focus || emptyFunction}
                         bringToFront={emptyFunction}
                         dontRegisterView={this.props.dontRegisterView}
-                        zoomToScale={emptyFunction}
-                        getScale={returnOne}
                     />
                 </div>)}
         </div>);

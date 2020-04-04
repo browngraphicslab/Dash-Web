@@ -123,10 +123,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                                 whenActiveChanged={emptyFunction}
                                 bringToFront={emptyFunction}
                                 ContainingCollectionView={undefined}
-                                ContainingCollectionDoc={undefined}
-                                zoomToScale={emptyFunction}
-                                getScale={returnOne}>
-                            </DocumentView>
+                                ContainingCollectionDoc={undefined}/>
                         </div>;
                     })}
                 </div>

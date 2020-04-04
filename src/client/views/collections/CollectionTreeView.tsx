@@ -473,8 +473,6 @@ class TreeView extends React.Component<TreeViewProps> {
                         dontRegisterView={BoolCast(this.props.treeViewId.dontRegisterChildren)}
                         ContainingCollectionView={undefined}
                         ContainingCollectionDoc={undefined}
-                        zoomToScale={emptyFunction}
-                        getScale={returnOne}
                     />}
             </div >
             {this.props.treeViewHideHeaderFields() ? (null) : headerElements}

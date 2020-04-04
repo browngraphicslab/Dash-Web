@@ -138,10 +138,7 @@ export default class MobileInterface extends React.Component {
                 whenActiveChanged={emptyFunction}
                 bringToFront={emptyFunction}
                 ContainingCollectionView={undefined}
-                ContainingCollectionDoc={undefined}
-                zoomToScale={emptyFunction}
-                getScale={returnOne}>
-            </DocumentView>;
+                ContainingCollectionDoc={undefined} />
         }
         return "hello";
     }
@@ -300,10 +297,7 @@ export default class MobileInterface extends React.Component {
                         whenActiveChanged={emptyFunction}
                         bringToFront={emptyFunction}
                         ContainingCollectionView={undefined}
-                        ContainingCollectionDoc={undefined}
-                        zoomToScale={emptyFunction}
-                        getScale={returnOne}>
-                    </DocumentView>
+                        ContainingCollectionDoc={undefined} />
                 </div>
             );
         }

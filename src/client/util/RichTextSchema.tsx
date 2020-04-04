@@ -831,8 +831,6 @@ export class DashDocView {
                     parentActive={returnFalse}
                     whenActiveChanged={returnFalse}
                     bringToFront={emptyFunction}
-                    zoomToScale={emptyFunction}
-                    getScale={returnOne}
                     dontRegisterView={false}
                     ContainingCollectionView={this._textBox.props.ContainingCollectionView}
                     ContainingCollectionDoc={this._textBox.props.ContainingCollectionDoc}

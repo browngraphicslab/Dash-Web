@@ -815,12 +815,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         this.Document.scale = scale * Math.min(this.props.PanelWidth() / NumCast(doc._width), this.props.PanelHeight() / NumCast(doc._height));
     }
 
-    zoomToScale = (scale: number) => {
-        this.Document.scale = scale;
-    }
-
-    getScale = () => this.Document.scale || 1;
-
     @computed get libraryPath() { return this.props.LibraryPath ? [...this.props.LibraryPath, this.props.Document] : []; }
     @computed get onChildClickHandler() { return ScriptCast(this.Document.onChildClick); }
     backgroundHalo = () => BoolCast(this.Document.useClusters);
@@ -848,8 +842,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             backgroundHalo: this.backgroundHalo,
             parentActive: this.props.active,
             bringToFront: this.bringToFront,
-            zoomToScale: this.zoomToScale,
-            getScale: this.getScale
         };
     }
 

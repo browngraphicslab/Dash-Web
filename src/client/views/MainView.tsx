@@ -316,8 +316,6 @@ export class MainView extends React.Component {
             bringToFront={emptyFunction}
             ContainingCollectionView={undefined}
             ContainingCollectionDoc={undefined}
-            zoomToScale={emptyFunction}
-            getScale={returnOne}
         />;
     }
     @computed get dockingContent() {
@@ -416,10 +414,7 @@ export class MainView extends React.Component {
                     whenActiveChanged={emptyFunction}
                     bringToFront={emptyFunction}
                     ContainingCollectionView={undefined}
-                    ContainingCollectionDoc={undefined}
-                    zoomToScale={emptyFunction}
-                    getScale={returnOne}>
-                </DocumentView>
+                    ContainingCollectionDoc={undefined} />
             </div>
             <div className="mainView-contentArea" style={{ position: "relative", height: `calc(100% - ${this._buttonBarHeight}px)`, width: "100%", overflow: "visible" }}>
                 <DocumentView
@@ -443,10 +438,7 @@ export class MainView extends React.Component {
                     whenActiveChanged={emptyFunction}
                     bringToFront={emptyFunction}
                     ContainingCollectionView={undefined}
-                    ContainingCollectionDoc={undefined}
-                    zoomToScale={emptyFunction}
-                    getScale={returnOne}>
-                </DocumentView>
+                    ContainingCollectionDoc={undefined} />
                 <button className="mainView-settings" key="settings" onClick={() => SettingsManager.Instance.open()}>
                     Settings
                 </button>

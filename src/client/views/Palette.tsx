@@ -58,10 +58,7 @@ export default class Palette extends React.Component<PaletteProps> {
                             whenActiveChanged={emptyFunction}
                             bringToFront={emptyFunction}
                             ContainingCollectionView={undefined}
-                            ContainingCollectionDoc={undefined}
-                            zoomToScale={emptyFunction}
-                            getScale={returnOne}>
-                        </DocumentView>
+                            ContainingCollectionDoc={undefined} />
                         <div className="palette-cover" style={{ transform: `translate(${Math.max(0, this._selectedIndex) * 50.75 + 23}px, 0px)` }}></div>
                     </div>
                 </div>

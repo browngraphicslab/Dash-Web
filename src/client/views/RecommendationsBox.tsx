@@ -80,8 +80,6 @@ export class RecommendationsBox extends React.Component<FieldViewProps> {
                 parentActive={returnFalse}
                 whenActiveChanged={returnFalse}
                 bringToFront={emptyFunction}
-                zoomToScale={emptyFunction}
-                getScale={returnOne}
                 ContainingCollectionView={undefined}
                 ContainingCollectionDoc={undefined}
                 ContentScaling={scale}

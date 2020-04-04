@@ -265,8 +265,6 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
                                                 ContainingCollectionDoc={this.props.Document}
                                                 parentActive={returnTrue}
                                                 bringToFront={emptyFunction}
-                                                zoomToScale={emptyFunction}
-                                                getScale={returnOne}
                                                 backgroundColor={returnTransparent} />
                                         </div>
                                         <div key={i} className="audiobox-marker" onPointerEnter={() => Doc.linkFollowHighlight(la1)}
