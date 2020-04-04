@@ -500,36 +500,36 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     @action
     pan = (e: PointerEvent | React.Touch | { clientX: number, clientY: number }): void => {
-        // I think it makes sense for the marquee menu to go away when panned. -syip2
-        MarqueeOptionsMenu.Instance && MarqueeOptionsMenu.Instance.fadeOut(true);
+        // bcz: theres should be a better way of doing these than referencing these static instances directly
+        MarqueeOptionsMenu.Instance?.fadeOut(true);// I think it makes sense for the marquee menu to go away when panned. -syip2
+        PDFMenu.Instance.fadeOut(true);
 
-        let x = this.Document._panX || 0;
-        let y = this.Document._panY || 0;
-        const docs = this.childLayoutPairs.filter(pair => pair.layout instanceof Doc).map(pair => pair.layout);
         const [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
-        if (!this.isAnnotationOverlay && docs.length && this.childDataProvider(docs[0])) {
-            PDFMenu.Instance.fadeOut(true);
-            const minx = this.childDataProvider(docs[0]).x;
-            const miny = this.childDataProvider(docs[0]).y;
-            const maxx = this.childDataProvider(docs[0]).width + minx;
-            const maxy = this.childDataProvider(docs[0]).height + miny;
-            const ranges = docs.filter(doc => doc && this.childDataProvider(doc)).reduce((range, doc) => {
-                const x = this.childDataProvider(doc).x;
-                const y = this.childDataProvider(doc).y;
-                const xe = this.childDataProvider(doc).width + x;
-                const ye = this.childDataProvider(doc).height + y;
-                return [[range[0][0] > x ? x : range[0][0], range[0][1] < xe ? xe : range[0][1]],
-                [range[1][0] > y ? y : range[1][0], range[1][1] < ye ? ye : range[1][1]]];
-            }, [[minx, maxx], [miny, maxy]]);
+        let x = (this.Document._panX || 0) - dx;
+        let y = (this.Document._panY || 0) - dy;
+        if (!this.isAnnotationOverlay) {
+            // this section wraps the pan position, horizontally and/or vertically whenever the content is panned out of the viewing bounds
+            const docs = this.childLayoutPairs.filter(pair => pair.layout instanceof Doc).map(pair => pair.layout);
+            const measuredDocs = docs.filter(doc => doc && this.childDataProvider(doc)).map(doc => this.childDataProvider(doc));
+            if (measuredDocs.length) {
+                const ranges = measuredDocs.reduce(({ xrange, yrange }, { x, y, width, height }) =>  // computes range of content
+                    ({
+                        xrange: { min: Math.min(xrange.min, x), max: Math.max(xrange.max, x + width) },
+                        yrange: { min: Math.min(yrange.min, y), max: Math.max(yrange.max, y + height) }
+                    })
+                    , {
+                        xrange: { min: Number.MAX_VALUE, max: -Number.MAX_VALUE },
+                        yrange: { min: Number.MAX_VALUE, max: -Number.MAX_VALUE }
+                    });
 
-            const cscale = this.props.ContainingCollectionDoc ? NumCast(this.props.ContainingCollectionDoc.scale) : 1;
-            const panelDim = [this.props.PanelWidth() * cscale / this.zoomScaling(), this.props.PanelHeight() * cscale / this.zoomScaling()];
-            if (ranges[0][0] - dx > (this.panX() + panelDim[0] / 2)) x = ranges[0][1] + panelDim[0] / 2;
-            if (ranges[0][1] - dx < (this.panX() - panelDim[0] / 2)) x = ranges[0][0] - panelDim[0] / 2;
-            if (ranges[1][0] - dy > (this.panY() + panelDim[1] / 2)) y = ranges[1][1] + panelDim[1] / 2;
-            if (ranges[1][1] - dy < (this.panY() - panelDim[1] / 2)) y = ranges[1][0] - panelDim[1] / 2;
+                const panelDim = [this.props.PanelWidth() / this.zoomScaling(), this.props.PanelHeight() / this.zoomScaling()];
+                if (ranges.xrange.min > (this.panX() + panelDim[0] / 2)) x = ranges.xrange.max + panelDim[0] / 2;  // snaps pan position of range of content goes out of bounds
+                if (ranges.xrange.max < (this.panX() - panelDim[0] / 2)) x = ranges.xrange.min - panelDim[0] / 2;
+                if (ranges.yrange.min > (this.panY() + panelDim[1] / 2)) y = ranges.yrange.max + panelDim[1] / 2;
+                if (ranges.yrange.max < (this.panY() - panelDim[1] / 2)) y = ranges.yrange.min - panelDim[1] / 2;
+            }
         }
-        this.setPan(x - dx, y - dy);
+        this.setPan(x, y);
         this._lastX = e.clientX;
         this._lastY = e.clientY;
     }

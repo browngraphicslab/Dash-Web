@@ -167,7 +167,7 @@ export class Monitor extends IPCMessageReceiver {
      * and pass down any variables the pertinent to the child processes as environment variables.
      */
     private loadAndValidateConfiguration = (): Configuration => {
-        let config: Configuration;
+        let config: Configuration | undefined;
         try {
             console.log(this.timestamp(), cyan("validating configuration..."));
             config = JSON.parse(readFileSync('./session.config.json', 'utf8'));

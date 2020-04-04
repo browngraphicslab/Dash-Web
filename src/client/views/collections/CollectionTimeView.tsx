@@ -31,7 +31,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
     componentDidMount() {
         this.props.Document._freezeOnDrop = true;
         const childDetailed = this.props.Document.childDetailed; // bcz: needs to be here to make sure the childDetailed layout template has been loaded when the first item is clicked;
-        const childText = "const alias = getAlias(this); Doc.ApplyTemplateTo(containingCollection.childDetailed, alias, 'layout_detailView'); alias.dropAction='alias'; alias.removeDropProperties=new List<string>(['dropAction']);  useRightSplit(alias, shiftKey); ";
+        const childText = "const alias = getAlias(this); Doc.ApplyTemplateTo(containingCollection.childDetailed, alias, 'layout_detailView'); alias.layoutKey='layout_detailedView'; alias.dropAction='alias'; alias.removeDropProperties=new List<string>(['dropAction']); useRightSplit(alias, shiftKey); ";
         this.props.Document.onChildClick = ScriptField.MakeScript(childText, { this: Doc.name, heading: "string", containingCollection: Doc.name, shiftKey: "boolean" });
         this.props.Document._fitToBox = true;
         if (!this.props.Document.onViewDefClick) {
@@ -146,7 +146,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
                 back
             </button>
             <EditableView {...newEditableViewProps} display={"inline"} menuCallback={this.menuCallback} />
-        </div>
+        </div>;
     }
 
     render() {

@@ -776,7 +776,7 @@ export class DashDocView {
                     if (dashDocBase instanceof Doc) {
                         const aliasedDoc = Doc.MakeAlias(dashDocBase, docid + alias);
                         aliasedDoc.layoutKey = "layout";
-                        node.attrs.fieldKey && DocumentView.makeCustomViewClicked(aliasedDoc, undefined, Docs.Create.StackingDocument, node.attrs.fieldKey, undefined);
+                        node.attrs.fieldKey && DocumentView.makeCustomViewClicked(aliasedDoc, Docs.Create.StackingDocument, node.attrs.fieldKey, undefined);
                         self.doRender(aliasedDoc, removeDoc, node, view, getPos);
                     }
                 });
@@ -810,7 +810,7 @@ export class DashDocView {
                 this._dashSpan.style.height = this._outer.style.height = Math.max(20, dim[1]) + "px";
                 this._outer.style.border = "1px solid " + StrCast(finalLayout.color, (Cast(Doc.UserDoc().activeWorkspace, Doc, null).darkScheme ? "dimGray" : "lightGray"));
             }, { fireImmediately: true });
-            let doReactRender = (finalLayout: Doc, resolvedDataDoc: Doc) => {
+            const doReactRender = (finalLayout: Doc, resolvedDataDoc: Doc) => {
                 ReactDOM.unmountComponentAtNode(this._dashSpan);
                 ReactDOM.render(<DocumentView
                     Document={finalLayout}
@@ -844,7 +844,7 @@ export class DashDocView {
                         console.log(e);
                     }
                 }
-            }
+            };
             this._renderDisposer?.();
             this._renderDisposer = reaction(() => {
                 if (!Doc.AreProtosEqual(finalLayout, dashDoc)) {
@@ -939,7 +939,7 @@ export class DashFieldView {
         this._fieldCheck.style.backgroundColor = "rgba(155, 155, 155, 0.24)";
         this._fieldCheck.onchange = function (e: any) {
             self._dashDoc![self._fieldKey] = e.target.checked;
-        }
+        };
 
         this._fieldSpan = document.createElement("div");
         this._fieldSpan.id = Utils.GenerateGuid();
@@ -1095,12 +1095,12 @@ export class FootnoteView {
                     "Mod-y": () => redo(this.outerView.state, this.outerView.dispatch),
                     "Mod-b": toggleMark(schema.marks.strong)
                 }),
-                new Plugin({
-                    view(newView) {
-                        // TODO -- make this work with RichTextMenu
-                        // return FormattedTextBox.getToolTip(newView);
-                    }
-                })
+                    // new Plugin({
+                    //     view(newView) {
+                    //         // TODO -- make this work with RichTextMenu
+                    //         // return FormattedTextBox.getToolTip(newView);
+                    //     }
+                    // })
                 ],
 
             }),

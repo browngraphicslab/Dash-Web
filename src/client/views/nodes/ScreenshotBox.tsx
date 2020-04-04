@@ -142,7 +142,7 @@ export class ScreenshotBox extends DocAnnotatableComponent<FieldViewProps, Scree
     toggleRecording = action(async () => {
         this._screenCapture = !this._screenCapture;
         this._videoRef!.srcObject = !this._screenCapture ? undefined : await (navigator.mediaDevices as any).getDisplayMedia({ video: true });
-    })
+    });
 
     private get uIButtons() {
         return (<div className="screenshotBox-uiButtons">

@@ -40,7 +40,6 @@ import { ScriptBox } from '../ScriptBox';
 import { ScriptingRepl } from '../ScriptingRepl';
 import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
-import { FormattedTextBox } from './FormattedTextBox';
 import React = require("react");
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { SchemaHeaderField } from '../../../new_fields/SchemaHeaderField';
@@ -509,58 +508,49 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @undoBatch
     deleteClicked = (): void => { SelectionManager.DeselectAll(); this.props.removeDocument?.(this.props.Document); }
 
-    static makeNativeViewClicked = (doc: Doc) => {
-        undoBatch(() => Doc.setNativeView(doc))();
-    }
-
-    static makeCustomViewClicked = (doc: Doc, dataDoc: Opt<Doc>, creator: (documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc, templateSignature: string = "custom", docLayoutTemplate?: Doc) => {
-        const userDoc = Doc.UserDoc();
-        const imgView = Cast(userDoc.iconView, Doc, null);
-        const iconImgView = Cast(userDoc.iconImageView, Doc, null);
-        const iconColView = Cast(userDoc.iconColView, Doc, null);
-        const iconViews = [imgView, iconImgView, iconColView];
-        const templateButtons = DocListCast(Cast(userDoc.templateButtons, Doc, null)?.data);
-        const noteTypes = DocListCast(Cast(userDoc.noteTypes, Doc, null)?.data);
-        const allTemplates = iconViews.concat(templateButtons).concat(noteTypes);
-        const templateName = templateSignature.replace(/\(.*\)/, "");
-        !docLayoutTemplate && allTemplates.map(btnDoc => (btnDoc.dragFactory as Doc) || btnDoc).filter(doc => doc.isTemplateDoc).forEach(tempDoc => {
-            if (StrCast(tempDoc.title) === doc.type + "_" + templateName) {
-                docLayoutTemplate = tempDoc;
+    // applies a custom template to a document.  the template is identified by it's short name (e.g, slideView not layout_slideView)
+    static makeCustomViewClicked = (doc: Doc, creator: (documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc, templateSignature: string = "custom", docLayoutTemplate?: Doc) => {
+        const batch = UndoManager.StartBatch("makeCustomViewClicked");
+        runInAction(() => {
+            doc.layoutKey = "layout_" + templateSignature;
+            if (doc[doc.layoutKey] === undefined) {
+                DocumentView.createCustomView(doc, creator, templateSignature, docLayoutTemplate);
             }
         });
-        !docLayoutTemplate && allTemplates.map(btnDoc => (btnDoc.dragFactory as Doc) || btnDoc).filter(doc => doc.isTemplateDoc).forEach(tempDoc => {
-            if (StrCast(tempDoc.title) === templateName) {
-                docLayoutTemplate = tempDoc;
-            }
-        });
-
-        const batch = UndoManager.StartBatch("CustomViewClicked");
-        const customName = "layout_" + templateSignature;
-        if (doc[customName] === undefined) {
-            const _width = NumCast(doc._width);
-            const _height = NumCast(doc._height);
-            const options = { title: "data", backgroundColor: StrCast(doc.backgroundColor), _autoHeight: true, _width, x: -_width / 2, y: - _height / 2, _showSidebar: false };
-
-            let fieldTemplate: Opt<Doc>;
-            if (doc.data instanceof RichTextField || typeof (doc.data) === "string") {
-                fieldTemplate = Docs.Create.TextDocument("", options);
-            } else if (doc.data instanceof PdfField) {
-                fieldTemplate = Docs.Create.PdfDocument("http://www.msn.com", options);
-            } else if (doc.data instanceof VideoField) {
-                fieldTemplate = Docs.Create.VideoDocument("http://www.cs.brown.edu", options);
-            } else if (doc.data instanceof AudioField) {
-                fieldTemplate = Docs.Create.AudioDocument("http://www.cs.brown.edu", options);
-            } else if (doc.data instanceof ImageField) {
-                fieldTemplate = Docs.Create.ImageDocument("http://www.cs.brown.edu", options);
-            }
-            const docTemplate = docLayoutTemplate || creator(fieldTemplate ? [fieldTemplate] : [], { title: customName + "(" + doc.title + ")", isTemplateDoc: true, _width: _width + 20, _height: Math.max(100, _height + 45) });
-
-            fieldTemplate && Doc.MakeMetadataFieldTemplate(fieldTemplate, Doc.GetProto(docTemplate));
-            Doc.ApplyTemplateTo(docTemplate, doc, customName, undefined);
-        } else {
-            doc.layoutKey = customName;
-        }
         batch.end();
+    }
+    static createCustomView = (doc: Doc, creator: (documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc, templateSignature: string = "custom", docLayoutTemplate?: Doc) => {
+        const iconViews = DocListCast(Cast(Doc.UserDoc().iconViews, Doc, null)?.data);
+        const templBtns = DocListCast(Cast(Doc.UserDoc().templateButtons, Doc, null)?.data);
+        const noteTypes = DocListCast(Cast(Doc.UserDoc().noteTypes, Doc, null)?.data);
+        const allTemplates = iconViews.concat(templBtns).concat(noteTypes).map(btnDoc => (btnDoc.dragFactory as Doc) || btnDoc).filter(doc => doc.isTemplateDoc);
+        const templateName = templateSignature.replace(/\(.*\)/, "");
+        // bcz: this is hacky -- want to have different templates be applied depending on the "type" of a document.  but type is not reliable and there could be other types of template searches so this should be generalized
+        // first try to find a template that matches the specific document type (<typeName>_<templateName>).  otherwise, fallback to a general match on <templateName>
+        !docLayoutTemplate && allTemplates.forEach(tempDoc => StrCast(tempDoc.title) === doc.type + "_" + templateName && (docLayoutTemplate = tempDoc));
+        !docLayoutTemplate && allTemplates.forEach(tempDoc => StrCast(tempDoc.title) === templateName && (docLayoutTemplate = tempDoc));
+
+        const customName = "layout_" + templateSignature;
+        const _width = NumCast(doc._width);
+        const _height = NumCast(doc._height);
+        const options = { title: "data", backgroundColor: StrCast(doc.backgroundColor), _autoHeight: true, _width, x: -_width / 2, y: - _height / 2, _showSidebar: false };
+
+        let fieldTemplate: Opt<Doc>;
+        if (doc.data instanceof RichTextField || typeof (doc.data) === "string") {
+            fieldTemplate = Docs.Create.TextDocument("", options);
+        } else if (doc.data instanceof PdfField) {
+            fieldTemplate = Docs.Create.PdfDocument("http://www.msn.com", options);
+        } else if (doc.data instanceof VideoField) {
+            fieldTemplate = Docs.Create.VideoDocument("http://www.cs.brown.edu", options);
+        } else if (doc.data instanceof AudioField) {
+            fieldTemplate = Docs.Create.AudioDocument("http://www.cs.brown.edu", options);
+        } else if (doc.data instanceof ImageField) {
+            fieldTemplate = Docs.Create.ImageDocument("http://www.cs.brown.edu", options);
+        }
+        const docTemplate = docLayoutTemplate || creator(fieldTemplate ? [fieldTemplate] : [], { title: customName + "(" + doc.title + ")", isTemplateDoc: true, _width: _width + 20, _height: Math.max(100, _height + 45) });
+
+        fieldTemplate && Doc.MakeMetadataFieldTemplate(fieldTemplate, Doc.GetProto(docTemplate));
+        Doc.ApplyTemplateTo(docTemplate, doc, customName, undefined);
     }
 
     @undoBatch
@@ -583,29 +573,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             de.complete.annoDragData.linkedToDoc = true;
 
             DocUtils.MakeLink({ doc: de.complete.annoDragData.annotationDocument }, { doc: this.props.Document }, "link");
-        }
-        if (de.complete.docDragData) {
-            if (de.complete.docDragData.applyAsTemplate) {
-                Doc.ApplyTemplateTo(de.complete.docDragData.draggedDocuments[0], this.props.Document, "layout_custom", undefined);
-                e.stopPropagation();
-            }
-            else if (de.complete.docDragData.draggedDocuments[0].type === "text") {
-                const text = Cast(de.complete.docDragData.draggedDocuments[0].data, RichTextField)?.Text;
-                if (text && text[0] === "{" && text[text.length - 1] === "}" && text.includes(":")) {
-                    const loc = text.indexOf(":");
-                    const key = text.slice(1, loc);
-                    const value = text.slice(loc + 1, text.length - 1);
-                    console.log(key);
-                    console.log(value);
-                    console.log(this.props.Document);
-                    this.props.Document[key] = value;
-                    console.log(de.complete.docDragData.draggedDocuments[0].x);
-                    console.log(de.complete.docDragData.draggedDocuments[0].x);
-                    e.preventDefault();
-                    e.stopPropagation();
-                    de.complete.aborted = true;
-                }
-            }
         }
         if (de.complete.linkDragData) {
             e.stopPropagation();
@@ -647,9 +614,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @undoBatch
     @action
     setCustomView = (custom: boolean, layout: string): void => {
-        DocumentView.makeNativeViewClicked(this.props.Document);
+        Doc.setNativeView(this.props.Document);
         if (custom) {
-            DocumentView.makeCustomViewClicked(this.props.Document, this.props.DataDoc, Docs.Create.StackingDocument, layout, undefined);
+            DocumentView.makeCustomViewClicked(this.props.Document, Docs.Create.StackingDocument, layout, undefined);
         }
     }
 
@@ -962,7 +929,30 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     childScaling = () => (this.layoutDoc._fitWidth ? this.props.PanelWidth() / this.nativeWidth : this.props.ContentScaling());
     @computed get contents() {
         TraceMobx();
-        return (<DocumentContentsView {...OmitKeys(this.props, ['children']).omit}
+        return (<DocumentContentsView ContainingCollectionView={this.props.ContainingCollectionView}
+            ContainingCollectionDoc={this.props.ContainingCollectionDoc}
+            Document={this.props.Document}
+            DataDoc={this.props.DataDoc}
+            LayoutDoc={this.props.LayoutDoc}
+            makeLink={this.makeLink}
+            fitToBox={this.props.fitToBox}
+            LibraryPath={this.props.LibraryPath}
+            addDocument={this.props.addDocument}
+            removeDocument={this.props.removeDocument}
+            moveDocument={this.props.moveDocument}
+            ScreenToLocalTransform={this.props.ScreenToLocalTransform}
+            renderDepth={this.props.renderDepth}
+            PanelWidth={this.props.PanelWidth}
+            PanelHeight={this.props.PanelHeight}
+            focus={this.props.focus}
+            parentActive={this.props.parentActive}
+            whenActiveChanged={this.props.whenActiveChanged}
+            bringToFront={this.props.bringToFront}
+            addDocTab={this.props.addDocTab}
+            pinToPres={this.props.pinToPres}
+            zoomToScale={this.props.zoomToScale}
+            backgroundColor={this.props.backgroundColor}
+            getScale={this.props.getScale}
             ContentScaling={this.childScaling}
             ChromeHeight={this.chromeHeight}
             isSelected={this.isSelected}
@@ -981,6 +971,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         return anchor.type === DocumentType.AUDIO && NumCast(ept) ? false : true;
     }
 
+    @observable _link: Opt<Doc>;
+    makeLink = () => {
+        return this._link;
+    }
+
     @computed get innards() {
         TraceMobx();
         if (!this.props.PanelWidth()) {
@@ -988,8 +983,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 {StrCast(this.props.Document.title)}
                 {this.Document.links && DocListCast(this.Document.links).filter(d => !d.hidden).filter(this.isNonTemporalLink).map((d, i) =>
                     <div className="documentView-docuLinkWrapper" style={{ position: "absolute", top: 0, left: 0 }} key={`${d[Id]}`}>
-                        <DocumentView {...this.props} ContentScaling={returnOne} ContainingCollectionDoc={this.props.Document}
-                            PanelWidth={returnOne} PanelHeight={returnOne} Document={d} layoutKey={this.linkEndpoint(d)} backgroundColor={returnTransparent} removeDocument={undoBatch(doc => doc.hidden = true)} />
+                        <DocumentView {...this.props} Document={d} ContainingCollectionDoc={this.props.Document}
+                            PanelWidth={returnOne} PanelHeight={returnOne} layoutKey={this.linkEndpoint(d)} ContentScaling={returnOne}
+                            backgroundColor={returnTransparent} removeDocument={undoBatch(doc => doc.hidden = true)} />
                     </div>)}
             </div>;
         }

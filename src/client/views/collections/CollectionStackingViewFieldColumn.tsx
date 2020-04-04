@@ -131,7 +131,8 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         const maxHeading = this.props.docList.reduce((maxHeading, doc) => NumCast(doc.heading) > maxHeading ? NumCast(doc.heading) : maxHeading, 0);
         const heading = maxHeading === 0 || this.props.docList.length === 0 ? 1 : maxHeading === 1 ? 2 : 3;
         newDoc.heading = heading;
-        return this.props.parent.props.addDocument(newDoc);
+        this.props.parent.props.addDocument(newDoc);
+        return false;
     }
 
     @action

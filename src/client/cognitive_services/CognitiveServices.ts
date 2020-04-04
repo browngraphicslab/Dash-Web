@@ -208,7 +208,7 @@ export namespace CognitiveServices {
                     results.recognitionUnits && (results = results.recognitionUnits);
                 }
                 return results;
-            }
+            };
         }
 
         export interface AzureStrokeData {
@@ -232,13 +232,13 @@ export namespace CognitiveServices {
                 return data;
             },
             requester: async (apiKey: string, query: string) => {
-                let xhttp = new XMLHttpRequest();
-                let serverAddress = "https://api.cognitive.microsoft.com";
-                let endpoint = serverAddress + '/bing/v5.0/search?q=' + encodeURIComponent(query);
-                let promisified = (resolve: any, reject: any) => {
+                const xhttp = new XMLHttpRequest();
+                const serverAddress = "https://api.cognitive.microsoft.com";
+                const endpoint = serverAddress + '/bing/v5.0/search?q=' + encodeURIComponent(query);
+                const promisified = (resolve: any, reject: any) => {
                     xhttp.onreadystatechange = function () {
                         if (this.readyState === 4) {
-                            let result = xhttp.responseText;
+                            const result = xhttp.responseText;
                             switch (this.status) {
                                 case 200:
                                     return resolve(result);
@@ -266,7 +266,7 @@ export namespace CognitiveServices {
 
         export namespace Appliers {
             export const analyzer = async (query: string, converter: BingConverter) => {
-                let results = await ExecuteQuery(Service.Bing, Manager, query);
+                const results = await ExecuteQuery(Service.Bing, Manager, query);
                 console.log("Bing results: ", results);
                 const { title_vals, url_vals } = await converter(results);
                 return { title_vals, url_vals };
@@ -281,13 +281,13 @@ export namespace CognitiveServices {
                 return data;
             },
             requester: async (apiKey: string, query: string) => {
-                let xhttp = new XMLHttpRequest();
-                let serverAddress = "https://babel.hathitrust.org/cgi/htd/​";
-                let endpoint = serverAddress + '/bing/v5.0/search?q=' + encodeURIComponent(query);
-                let promisified = (resolve: any, reject: any) => {
+                const xhttp = new XMLHttpRequest();
+                const serverAddress = "https://babel.hathitrust.org/cgi/htd/​";
+                const endpoint = serverAddress + '/bing/v5.0/search?q=' + encodeURIComponent(query);
+                const promisified = (resolve: any, reject: any) => {
                     xhttp.onreadystatechange = function () {
                         if (this.readyState === 4) {
-                            let result = xhttp.responseText;
+                            const result = xhttp.responseText;
                             switch (this.status) {
                                 case 200:
                                     return resolve(result);
@@ -315,7 +315,7 @@ export namespace CognitiveServices {
 
         export namespace Appliers {
             export const analyzer = async (query: string, converter: BingConverter) => {
-                let results = await ExecuteQuery(Service.Bing, Manager, query);
+                const results = await ExecuteQuery(Service.Bing, Manager, query);
                 console.log("Bing results: ", results);
                 const { title_vals, url_vals } = await converter(results);
                 return { title_vals, url_vals };
@@ -337,9 +337,9 @@ export namespace CognitiveServices {
                 });
             },
             requester: async (apiKey: string, body: string, service: Service) => {
-                let serverAddress = "https://eastus.api.cognitive.microsoft.com";
-                let endpoint = serverAddress + "/text/analytics/v2.1/keyPhrases";
-                let sampleBody = {
+                const serverAddress = "https://eastus.api.cognitive.microsoft.com";
+                const endpoint = serverAddress + "/text/analytics/v2.1/keyPhrases";
+                const sampleBody = {
                     "documents": [
                         {
                             "language": "en",
@@ -348,7 +348,7 @@ export namespace CognitiveServices {
                         }
                     ]
                 };
-                let actualBody = body;
+                const actualBody = body;
                 const options = {
                     uri: endpoint,
                     body: actualBody,
@@ -368,7 +368,7 @@ export namespace CognitiveServices {
                 console.log("vectorizing...");
                 //keyterms = ["father", "king"];
 
-                let args = { method: 'POST', uri: Utils.prepend("/recommender"), body: { keyphrases: keyterms }, json: true };
+                const args = { method: 'POST', uri: Utils.prepend("/recommender"), body: { keyphrases: keyterms }, json: true };
                 await requestPromise.post(args).then(async (wordvecs) => {
                     if (wordvecs) {
                         const indices = Object.keys(wordvecs);

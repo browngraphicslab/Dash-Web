@@ -267,10 +267,10 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
         const collapsed = this.props.CollectionView.props.Document._chromeStatus !== "enabled";
         if (collapsed) return null;
         switch (this.props.type) {
-            case CollectionViewType.Stacking: return (<CollectionStackingViewChrome key="collchrome" CollectionView={this.props.CollectionView} type={this.props.type} />);
-            case CollectionViewType.Schema: return (<CollectionSchemaViewChrome key="collchrome" CollectionView={this.props.CollectionView} type={this.props.type} />);
-            case CollectionViewType.Tree: return (<CollectionTreeViewChrome key="collchrome" CollectionView={this.props.CollectionView} type={this.props.type} />);
-            case CollectionViewType.Masonry: return (<CollectionStackingViewChrome key="collchrome" CollectionView={this.props.CollectionView} type={this.props.type} />);
+            case CollectionViewType.Stacking: return (<CollectionStackingViewChrome key="collchrome" PanelWidth={this.props.PanelWidth} CollectionView={this.props.CollectionView} type={this.props.type} />);
+            case CollectionViewType.Schema: return (<CollectionSchemaViewChrome key="collchrome" PanelWidth={this.props.PanelWidth} CollectionView={this.props.CollectionView} type={this.props.type} />);
+            case CollectionViewType.Tree: return (<CollectionTreeViewChrome key="collchrome" PanelWidth={this.props.PanelWidth} CollectionView={this.props.CollectionView} type={this.props.type} />);
+            case CollectionViewType.Masonry: return (<CollectionStackingViewChrome key="collchrome" PanelWidth={this.props.PanelWidth} CollectionView={this.props.CollectionView} type={this.props.type} />);
             default: return null;
         }
     }
@@ -355,7 +355,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                 immediate: (source: Doc[]) => Doc.setChildLayout(this.target, source?.[0]),
                 initialize: emptyFunction,
             };
-            DragManager.StartButtonDrag([this._viewRef.current!], c.script, c.title,
+            DragManager.StartButtonDrag([this._viewRef.current!], c.script, StrCast(c.title),
                 { target: this.props.CollectionView.props.Document }, c.params, c.initialize, e.clientX, e.clientY);
             return true;
         }, emptyFunction, emptyFunction);
@@ -600,7 +600,7 @@ export class CollectionSchemaViewChrome extends React.Component<CollectionViewCh
     togglePreview = () => {
         const dividerWidth = 4;
         const borderWidth = Number(COLLECTION_BORDER_WIDTH);
-        const panelWidth = this.props.PanelWidth();
+        const panelWidth = this.props.CollectionView.props.PanelWidth();
         const previewWidth = NumCast(this.props.CollectionView.props.Document.schemaPreviewWidth);
         const tableWidth = panelWidth - 2 * borderWidth - dividerWidth - previewWidth;
         this.props.CollectionView.props.Document.schemaPreviewWidth = previewWidth === 0 ? Math.min(tableWidth / 3, 200) : 0;

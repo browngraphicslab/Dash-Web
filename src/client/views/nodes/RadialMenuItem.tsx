@@ -44,12 +44,12 @@ export class RadialMenuItem extends React.Component<RadialMenuProps> {
 
     setcircle() {
         let circlemin = 0;
-        let circlemax = 1
+        let circlemax = 1;
         this.props.min ? circlemin = this.props.min : null;
         this.props.max ? circlemax = this.props.max : null;
         if (document.getElementById("myCanvas") !== null) {
-            var c: any = document.getElementById("myCanvas");
-            let color = "white"
+            const c: any = document.getElementById("myCanvas");
+            let color = "white";
             switch (circlemin % 3) {
                 case 1:
                     color = "#c2c2c5";
@@ -70,38 +70,38 @@ export class RadialMenuItem extends React.Component<RadialMenuProps> {
 
             }
             if (c.getContext) {
-                var ctx = c.getContext("2d");
+                const ctx = c.getContext("2d");
                 ctx.beginPath();
                 ctx.arc(150, 150, 150, (circlemin / circlemax) * 2 * Math.PI, ((circlemin + 1) / circlemax) * 2 * Math.PI);
                 ctx.arc(150, 150, 50, ((circlemin + 1) / circlemax) * 2 * Math.PI, (circlemin / circlemax) * 2 * Math.PI, true);
                 ctx.fillStyle = color;
-                ctx.fill()
+                ctx.fill();
             }
         }
     }
 
     calculatorx() {
         let circlemin = 0;
-        let circlemax = 1
+        let circlemax = 1;
         this.props.min ? circlemin = this.props.min : null;
         this.props.max ? circlemax = this.props.max : null;
-        let avg = ((circlemin / circlemax) + ((circlemin + 1) / circlemax)) / 2;
-        let degrees = 360 * avg;
-        let x = 100 * Math.cos(degrees * Math.PI / 180);
-        let y = -125 * Math.sin(degrees * Math.PI / 180);
+        const avg = ((circlemin / circlemax) + ((circlemin + 1) / circlemax)) / 2;
+        const degrees = 360 * avg;
+        const x = 100 * Math.cos(degrees * Math.PI / 180);
+        const y = -125 * Math.sin(degrees * Math.PI / 180);
         return x;
     }
 
     calculatory() {
 
         let circlemin = 0;
-        let circlemax = 1
+        let circlemax = 1;
         this.props.min ? circlemin = this.props.min : null;
         this.props.max ? circlemax = this.props.max : null;
-        let avg = ((circlemin / circlemax) + ((circlemin + 1) / circlemax)) / 2;
-        let degrees = 360 * avg;
-        let x = 125 * Math.cos(degrees * Math.PI / 180);
-        let y = -100 * Math.sin(degrees * Math.PI / 180);
+        const avg = ((circlemin / circlemax) + ((circlemin + 1) / circlemax)) / 2;
+        const degrees = 360 * avg;
+        const x = 125 * Math.cos(degrees * Math.PI / 180);
+        const y = -100 * Math.sin(degrees * Math.PI / 180);
         return y;
     }
 

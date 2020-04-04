@@ -4,7 +4,7 @@ import { Doc, DocListCast, DataSym, WidthSym, HeightSym } from "../../../../new_
 import { InkField, InkData } from "../../../../new_fields/InkField";
 import { List } from "../../../../new_fields/List";
 import { SchemaHeaderField } from "../../../../new_fields/SchemaHeaderField";
-import { Cast, NumCast, FieldValue } from "../../../../new_fields/Types";
+import { Cast, NumCast, FieldValue, StrCast } from "../../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../../server/authentication/models/current_user_utils";
 import { Utils } from "../../../../Utils";
 import { Docs, DocUtils } from "../../../documents/Documents";
@@ -107,7 +107,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             });
         } else if (!e.ctrlKey) {
             FormattedTextBox.SelectOnLoadChar = FormattedTextBox.DefaultLayout ? e.key : "";
-            let tbox = Docs.Create.TextDocument("", { _width: 200, _height: 100, x: x, y: y, _autoHeight: true, title: "-typed text-" });
+            const tbox = Docs.Create.TextDocument("", { _width: 200, _height: 100, x: x, y: y, _autoHeight: true, title: "-typed text-" });
             const template = FormattedTextBox.DefaultLayout;
             if (template instanceof Doc) {
                 tbox._width = NumCast(template._width);

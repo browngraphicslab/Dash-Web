@@ -347,7 +347,7 @@ export class SearchBox extends React.Component {
                     <input value={this._searchString} onChange={this.onChange} type="text" placeholder="Search..." id="search-input" ref={this.inputRef}
                         className="searchBox-barChild searchBox-input" onPointerDown={this.openSearch} onKeyPress={this.enter} onFocus={this.openSearch}
                         style={{ width: this._searchbarOpen ? "500px" : "100px" }} />
-                    <button className="searchBox-barChild searchBox-filter" title="Advanced Filtering Options" onClick={FilterBox.Instance.openFilter} onPointerDown={FilterBox.Instance.stopProp}><FontAwesomeIcon icon="ellipsis-v" color="white" /></button>
+                    <button className="searchBox-barChild searchBox-filter" title="Advanced Filtering Options" onClick={() => { }} onPointerDown={FilterBox.Instance.stopProp}><FontAwesomeIcon icon="ellipsis-v" color="white" /></button>
                 </div>
                 <div className="searchBox-quickFilter" onPointerDown={this.openSearch}>
                     <div className="filter-panel"><IconBar /></div>

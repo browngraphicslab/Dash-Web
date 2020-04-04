@@ -199,6 +199,8 @@ export default class MobileInterface extends React.Component {
                         DataDoc={undefined}
                         LibraryPath={emptyPath}
                         fieldKey={""}
+                        dropAction={"alias"}
+                        bringToFront={emptyFunction }
                         addDocTab={returnFalse}
                         pinToPres={emptyFunction}
                         PanelHeight={() => window.innerHeight}

@@ -353,7 +353,7 @@ export namespace Doc {
     // and returns the document who's proto is undefined or whose proto is marked as a base prototype ('isPrototype').
     export function GetProto(doc: Doc): Doc {
         if (doc instanceof Promise) {
-            console.log("GetProto: error: got Promise insead of Doc")
+            console.log("GetProto: error: got Promise insead of Doc");
         }
         const proto = doc && (Doc.GetT(doc, "isPrototype", "boolean", true) ? doc : (doc.proto || doc));
         return proto === doc ? proto : Doc.GetProto(proto);
@@ -521,8 +521,7 @@ export namespace Doc {
             console.log("No, no, no!");
             return { layout: childDoc, data: childDoc };
         }
-        const existingResolvedDataDoc = childDoc[DataSym] !== Doc.GetProto(childDoc)[DataSym] && childDoc[DataSym];
-        const resolvedDataDoc = existingResolvedDataDoc || (Doc.AreProtosEqual(containerDataDoc, containerDoc) || !containerDataDoc || (!childDoc.isTemplateDoc && !childDoc.isTemplateForField && !childDoc.PARAMS) ? undefined : containerDataDoc);
+        const resolvedDataDoc = (Doc.AreProtosEqual(containerDataDoc, containerDoc) || (!childDoc.isTemplateDoc && !childDoc.isTemplateForField && !childDoc.PARAMS) ? undefined : containerDataDoc);
         return { layout: Doc.expandTemplateLayout(childDoc, resolvedDataDoc, "(" + StrCast(containerDoc.PARAMS) + ")"), data: resolvedDataDoc };
     }
 
@@ -566,7 +565,8 @@ export namespace Doc {
                 } else if (cfield instanceof ComputedField) {
                     copy[key] = ComputedField.MakeFunction(cfield.script.originalScript);
                 } else if (field instanceof ObjectField) {
-                    copy[key] = key.includes("layout[") && doc[key] instanceof Doc ? Doc.MakeCopy(doc[key] as Doc, false) : ObjectField.MakeCopy(field);
+                    copy[key] = key.includes("layout[") && doc[key] instanceof Doc ? Doc.MakeCopy(doc[key] as Doc, false) :
+                        doc[key] instanceof Doc ? doc[key] : ObjectField.MakeCopy(field);
                 } else if (field instanceof Promise) {
                     debugger; //This shouldn't happend...
                 } else {
@@ -593,7 +593,10 @@ export namespace Doc {
     let _applyCount: number = 0;
     export function ApplyTemplate(templateDoc: Doc) {
         if (templateDoc) {
-            const applied = ApplyTemplateTo(templateDoc, Doc.MakeDelegate(new Doc()), StrCast(templateDoc.layoutKey, "layout"), templateDoc.title + "(..." + _applyCount++ + ")");
+            const target = Doc.MakeDelegate(new Doc());
+            const targetKey = StrCast(templateDoc.layoutKey, "layout");
+            const applied = ApplyTemplateTo(templateDoc, target, targetKey, templateDoc.title + "(..." + _applyCount++ + ")");
+            target.layoutKey = targetKey;
             applied && (Doc.GetProto(applied).type = templateDoc.type);
             return applied;
         }
@@ -616,7 +619,6 @@ export namespace Doc {
                 Doc.GetProto(target)[targetKey] = new PrefetchProxy(templateDoc);
             }
         }
-        target.layoutKey = targetKey;
         return target;
     }
 
@@ -698,7 +700,7 @@ export namespace Doc {
     // the document containing the view layout information - will be the Document itself unless the Document has
     // a layout field or 'layout' is given.  
     export function Layout(doc: Doc, layout?: Doc): Doc {
-        const overrideLayout = layout && Cast(doc["data-layout[" + layout[Id] + "]"], Doc, null);
+        const overrideLayout = layout && Cast(doc[`${StrCast(layout.isTemplateForField, "data")}-layout[` + layout[Id] + "]"], Doc, null);
         return overrideLayout || doc[LayoutSym] || doc;
     }
     export function SetLayout(doc: Doc, layout: Doc | string) { doc[StrCast(doc.layoutKey, "layout")] = layout; }
@@ -883,9 +885,10 @@ export namespace Doc {
         }
         const options = optionsCollection as Doc;
         const targetDoc = doc && Doc.GetProto(Cast(doc.rootDocument, Doc, null) || doc);
-        targetDoc && (targetDoc.backgroundColor = ComputedField.MakeFunction(`options.data.find(doc => doc.title === (this.rootDocument||this)["${enumeratedFieldKey}"])?._backgroundColor || "white"`, undefined, { options }));
-        targetDoc && (targetDoc.color = ComputedField.MakeFunction(`options.data.find(doc => doc.title === (this.rootDocument||this)["${enumeratedFieldKey}"]).color || "black"`, undefined, { options }));
-        targetDoc && (targetDoc.borderRounding = ComputedField.MakeFunction(`options.data.find(doc => doc.title === (this.rootDocument||this)["${enumeratedFieldKey}"]).borderRounding`, undefined, { options }));
+        const docFind = `options.data.find(doc => doc.title === (this.rootDocument||this)["${enumeratedFieldKey}"])?`;
+        targetDoc && (targetDoc.backgroundColor = ComputedField.MakeFunction(docFind + `._backgroundColor || "white"`, undefined, { options }));
+        targetDoc && (targetDoc.color = ComputedField.MakeFunction(docFind + `.color || "black"`, undefined, { options }));
+        targetDoc && (targetDoc.borderRounding = ComputedField.MakeFunction(docFind + `.borderRounding`, undefined, { options }));
         enumerations.map(enumeration => {
             const found = DocListCast(options.data).find(d => d.title === enumeration.title);
             if (found) {
@@ -920,7 +923,9 @@ Scripting.addGlobal(function curPresentationItem() {
 });
 Scripting.addGlobal(function selectDoc(doc: any) { Doc.UserDoc().SelectedDocs = new List([doc]); });
 Scripting.addGlobal(function selectedDocs(container: Doc, excludeCollections: boolean, prevValue: any) {
-    const docs = DocListCast(Doc.UserDoc().SelectedDocs).filter(d => !Doc.AreProtosEqual(d, container) && !d.annotationOn && d.type !== DocumentType.DOCUMENT && d.type !== DocumentType.KVP && (!excludeCollections || !Cast(d.data, listSpec(Doc), null)));
+    const docs = DocListCast(Doc.UserDoc().SelectedDocs).
+        filter(d => !Doc.AreProtosEqual(d, container) && !d.annotationOn && d.type !== DocumentType.DOCUMENT && d.type !== DocumentType.KVP &&
+            (!excludeCollections || d.type !== DocumentType.COL || !Cast(d.data, listSpec(Doc), null)));
     return docs.length ? new List(docs) : prevValue;
 });
 Scripting.addGlobal(function setDocFilter(container: Doc, key: string, value: any, modifiers?: "check" | "x" | undefined) { Doc.setDocFilter(container, key, value, modifiers); });

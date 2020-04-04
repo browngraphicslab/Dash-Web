@@ -51,8 +51,7 @@ const columnTypes: Map<string, ColumnType> = new Map([
 
 @observer
 export class CollectionSchemaView extends CollectionSubView(doc => doc) {
-    private _mainCont?: HTMLDivElement;
-    private _startPreviewWidth = 0;
+    private _previewCont?: HTMLDivElement;
     private DIVIDER_WIDTH = 4;
 
     @observable previewDoc: Doc | undefined = undefined;
@@ -64,7 +63,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     @computed get borderWidth() { return Number(COLLECTION_BORDER_WIDTH); }
 
     private createTarget = (ele: HTMLDivElement) => {
-        this._mainCont = ele;
+        this._previewCont = ele;
         super.CreateDropTarget(ele);
     }
 
@@ -81,12 +80,11 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
     }
 
     onDividerDown = (e: React.PointerEvent) => {
-        this._startPreviewWidth = this.previewWidth();
         setupMoveUpEvents(this, e, this.onDividerMove, emptyFunction, action(() => this.toggleExpander()));
     }
     @action
     onDividerMove = (e: PointerEvent, down: number[], delta: number[]) => {
-        const nativeWidth = this._mainCont!.getBoundingClientRect();
+        const nativeWidth = this._previewCont!.getBoundingClientRect();
         const minWidth = 40;
         const maxWidth = 1000;
         const movedWidth = this.props.ScreenToLocalTransform().transformDirection(nativeWidth.right - e.clientX, 0)[0];

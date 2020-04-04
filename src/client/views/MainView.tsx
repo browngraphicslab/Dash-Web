@@ -521,7 +521,9 @@ export class MainView extends React.Component {
                     DataDoc={undefined}
                     LibraryPath={emptyPath}
                     fieldKey={"data"}
+                    dropAction={"alias"}
                     annotationsKey={""}
+                    bringToFront={emptyFunction}
                     select={emptyFunction}
                     active={returnFalse}
                     isSelected={returnFalse}

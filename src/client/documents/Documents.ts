@@ -266,7 +266,7 @@ export namespace Docs {
                 options: { _width: 40, _height: 40, borderRounding: "100%" },
             }],
             [DocumentType.RECOMMENDATION, {
-                layout: { view: RecommendationsBox },
+                layout: { view: RecommendationsBox, dataField: data },
                 options: { width: 200, height: 200 },
             }],
             [DocumentType.WEBCAM, {
@@ -365,6 +365,7 @@ export namespace Docs {
             const options = { title, type, baseProto: true, ...defaultOptions, ...(template.options || {}) };
             options.layout = layout.view.LayoutString(layout.dataField);
             const doc = Doc.assign(new Doc(prototypeId, true), { layoutKey: "layout", ...options });
+            doc.layout_keyValue = KeyValueBox.LayoutString("");
             return doc;
         }
 

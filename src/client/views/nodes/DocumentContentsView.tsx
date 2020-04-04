@@ -58,21 +58,26 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     select: (ctrl: boolean) => void,
     layoutKey: string,
     forceLayout?: string,
-    forceFieldKey?: string
+    forceFieldKey?: string,
+    hideOnLeave?: boolean,
+    makeLink?: () => Opt<Doc>;
 }> {
     @computed get layout(): string {
         TraceMobx();
         if (!this.layoutDoc) return "<p>awaiting layout</p>";
         const layout = Cast(this.layoutDoc[StrCast(this.layoutDoc.layoutKey, this.layoutDoc === this.props.Document ? this.props.layoutKey : "layout")], "string");
-        if (layout === undefined) {
-            return this.props.Document.data ?
-                "<FieldView {...props} fieldKey='data' />" :
-                KeyValueBox.LayoutString(this.layoutDoc.proto ? "proto" : "");
-        } else if (typeof layout === "string") {
-            return layout;
-        } else {
-            return "<p>Loading layout</p>";
-        }
+        if (this.props.layoutKey === "layout_keyValue") {
+            return StrCast(this.props.Document.layout_keyValue, KeyValueBox.LayoutString("data"));
+        } else
+            if (layout === undefined) {
+                return this.props.Document.data ?
+                    "<FieldView {...props} fieldKey='data' />" :
+                    KeyValueBox.LayoutString(this.layoutDoc.proto ? "proto" : "");
+            } else if (typeof layout === "string") {
+                return layout;
+            } else {
+                return "<p>Loading layout</p>";
+            }
     }
 
     get dataDoc() {
@@ -81,7 +86,8 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     }
     get layoutDoc() {
         const params = StrCast(this.props.Document.PARAMS);
-        return Doc.expandTemplateLayout(this.props.LayoutDoc?.() || Doc.Layout(this.props.Document), this.props.Document, params ? "(" + params + ")" : this.props.layoutKey);
+        const template: Doc = this.props.LayoutDoc?.() || Doc.Layout(this.props.Document, this.props.layoutKey ? Cast(this.props.Document[this.props.layoutKey], Doc, null) : undefined);
+        return Doc.expandTemplateLayout(template, this.props.Document, params ? "(" + params + ")" : this.props.layoutKey);
     }
 
     CreateBindings(): JsxBindings {
