@@ -297,11 +297,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             } else if (this.Document.type === DocumentType.BUTTON) {
                 UndoManager.RunInBatch(() => ScriptBox.EditButtonScript("On Button Clicked ...", this.props.Document, "onClick", e.clientX, e.clientY), "on button click");
             } else if (this.Document.isButton) {
-                SelectionManager.SelectDoc(this, e.ctrlKey); // don't think this should happen if a button action is actually triggered.
                 UndoManager.RunInBatch(() => this.buttonClick(e.altKey, e.ctrlKey), "on link button follow");
             } else {
                 if (this.props.Document.isTemplateForField && !(e.ctrlKey || e.button > 0)) {
-                    stopPropagate = false;
+                    stopPropagate = false; // don't stop propagation for field templates -- want the selection to propagate up to the root document of the template
                 } else {
                     SelectionManager.SelectDoc(this, e.ctrlKey);
                 }

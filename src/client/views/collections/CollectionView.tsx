@@ -10,7 +10,7 @@ import 'react-image-lightbox-with-rotate/style.css'; // This only needs to be im
 import { DateField } from '../../../new_fields/DateField';
 import { DataSym, Doc, DocListCast, Field, Opt } from '../../../new_fields/Doc';
 import { List } from '../../../new_fields/List';
-import { BoolCast, Cast, NumCast, StrCast } from '../../../new_fields/Types';
+import { BoolCast, Cast, NumCast, StrCast, ScriptCast } from '../../../new_fields/Types';
 import { ImageField } from '../../../new_fields/URLField';
 import { TraceMobx } from '../../../new_fields/util';
 import { Utils, setupMoveUpEvents, returnFalse } from '../../../Utils';
@@ -119,7 +119,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
 
     active = (outsideReaction?: boolean) => this.props.isSelected(outsideReaction) || (this.props.rootSelected() && BoolCast(this.props.Document.forceActive)) || this._isChildActive || this.props.renderDepth === 0;
 
-    whenActiveChanged = (isActive: boolean) => { this.props.whenActiveChanged(this._isChildActive = isActive); };
+    whenActiveChanged = (isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive);
 
     @action.bound
     addDocument(doc: Doc): boolean {
@@ -307,8 +307,8 @@ export class CollectionView extends Touchable<FieldViewProps> {
     get childDocs() {
         const dfield = this.dataField;
         const rawdocs = (dfield instanceof Doc) ? [dfield] : Cast(dfield, listSpec(Doc), Cast(this.props.Document.rootDocument, Doc, null) ? [Cast(this.props.Document.rootDocument, Doc, null)] : []);
-        const docs = rawdocs.filter(d => !(d instanceof Promise)).map(d => d as Doc);
-        const viewSpecScript = Cast(this.props.Document.viewSpecScript, ScriptField);
+        const docs = rawdocs.filter(d => d && !(d instanceof Promise)).map(d => d as Doc);
+        const viewSpecScript = ScriptCast(this.props.Document.viewSpecScript);
         return viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
     }
     @computed get _allFacets() {
