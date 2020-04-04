@@ -42,6 +42,7 @@ import { Id } from '../../../new_fields/FieldSymbols';
 import { listSpec } from '../../../new_fields/Schema';
 import { Docs } from '../../documents/Documents';
 import { ScriptField, ComputedField } from '../../../new_fields/ScriptField';
+import { InteractionUtils } from '../../util/InteractionUtils';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -99,11 +100,13 @@ export class CollectionView extends Touchable<FieldViewProps> {
     public static LayoutString(fieldStr: string) { return FieldView.LayoutString(CollectionView, fieldStr); }
 
     private _isChildActive = false;   //TODO should this be observable?
-    get _isLightboxOpen() { return BoolCast(this.props.Document.isLightboxOpen); };
-    set _isLightboxOpen(value) { this.props.Document.isLightboxOpen = value; };
+    get _isLightboxOpen() { return BoolCast(this.props.Document.isLightboxOpen); }
+    set _isLightboxOpen(value) { this.props.Document.isLightboxOpen = value; }
     @observable private _curLightboxImg = 0;
     @observable private static _safeMode = false;
     public static SetSafeMode(safeMode: boolean) { this._safeMode = safeMode; }
+
+    protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
 
     get collectionViewType(): CollectionViewType | undefined {
         const viewField = NumCast(this.props.Document._viewType);
