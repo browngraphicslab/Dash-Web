@@ -34,6 +34,7 @@ export interface CollectionViewProps extends FieldViewProps {
     PanelHeight: () => number;
     VisibleHeight?: () => number;
     setPreviewCursor?: (func: (x: number, y: number, drag: boolean) => void) => void;
+    rootSelected: () => boolean;
     fieldKey: string;
 }
 
@@ -93,6 +94,10 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
         @computed get dataDoc() {
             return (this.props.DataDoc instanceof Doc && this.props.Document.isTemplateForField ? Doc.GetProto(this.props.DataDoc) :
                 this.props.Document.resolvedDataDoc ? this.props.Document : Doc.GetProto(this.props.Document)); // if the layout document has a resolvedDataDoc, then we don't want to get its parent which would be the unexpanded template
+        }
+
+        rootSelected = () => {
+            return this.props.isSelected() || (this.props.Document.rootDocument || this.props.Document.forceActive ? this.props.rootSelected() : false);
         }
 
         // The data field for rendering this collection will be on the this.props.Document unless we're rendering a template in which case we try to use props.DataDoc.

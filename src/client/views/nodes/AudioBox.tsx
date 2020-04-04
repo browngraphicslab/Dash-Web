@@ -7,7 +7,7 @@ import { AudioField, nullAudio } from "../../../new_fields/URLField";
 import { DocExtendableComponent } from "../DocComponent";
 import { makeInterface, createSchema } from "../../../new_fields/Schema";
 import { documentSchema } from "../../../new_fields/documentSchemas";
-import { Utils, returnTrue, emptyFunction, returnOne, returnTransparent } from "../../../Utils";
+import { Utils, returnTrue, emptyFunction, returnOne, returnTransparent, returnFalse } from "../../../Utils";
 import { runInAction, observable, reaction, IReactionDisposer, computed, action } from "mobx";
 import { DateField } from "../../../new_fields/DateField";
 import { SelectionManager } from "../../util/SelectionManager";
@@ -258,9 +258,15 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
                                 return !linkTime ? (null) :
                                     <div className={this.props.PanelHeight() < 32 ? "audiobox-marker-minicontainer" : "audiobox-marker-container"} key={l[Id]} style={{ left: `${linkTime / NumCast(this.dataDoc.duration, 1) * 100}%` }}>
                                         <div className={this.props.PanelHeight() < 32 ? "audioBox-linker-mini" : "audioBox-linker"} key={"linker" + i}>
-                                            <DocumentView {...this.props} Document={l} layoutKey={Doc.LinkEndpoint(l, la2)}
+                                            <DocumentView {...this.props}
+                                                Document={l}
+                                                rootSelected={returnFalse}
+                                                layoutKey={Doc.LinkEndpoint(l, la2)}
                                                 ContainingCollectionDoc={this.props.Document}
-                                                parentActive={returnTrue} bringToFront={emptyFunction} zoomToScale={emptyFunction} getScale={returnOne}
+                                                parentActive={returnTrue}
+                                                bringToFront={emptyFunction}
+                                                zoomToScale={emptyFunction}
+                                                getScale={returnOne}
                                                 backgroundColor={returnTransparent} />
                                         </div>
                                         <div key={i} className="audiobox-marker" onPointerEnter={() => Doc.linkFollowHighlight(la1)}

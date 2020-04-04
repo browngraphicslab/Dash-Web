@@ -4,7 +4,7 @@ import * as React from 'react';
 import { Doc, HeightSym, WidthSym } from '../../../new_fields/Doc';
 import { makeInterface } from '../../../new_fields/Schema';
 import { BoolCast, NumCast, StrCast, Cast } from '../../../new_fields/Types';
-import { emptyFunction, returnEmptyString, returnOne, returnTrue, Utils } from '../../../Utils';
+import { emptyFunction, returnEmptyString, returnOne, returnTrue, Utils, returnFalse } from '../../../Utils';
 import { DragManager } from '../../util/DragManager';
 import { Transform } from '../../util/Transform';
 import "./CollectionLinearView.scss";
@@ -110,6 +110,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                                 moveDocument={this.props.moveDocument}
                                 addDocTab={this.props.addDocTab}
                                 pinToPres={emptyFunction}
+                                rootSelected={this.props.isSelected}
                                 removeDocument={this.props.removeDocument}
                                 onClick={undefined}
                                 ScreenToLocalTransform={this.getTransform(dref)}

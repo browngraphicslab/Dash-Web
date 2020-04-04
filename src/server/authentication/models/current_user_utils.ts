@@ -213,7 +213,7 @@ export class CurrentUserUtils {
             _width: 35, _height: 25, title: "Tools", fontSize: 10, targetContainer: sidebarContainer, dontDecorateSelection: true,
             letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
             sourcePanel: Docs.Create.StackingDocument([dragCreators, color], {
-                _width: 500, lockedPosition: true, _chromeStatus: "disabled", title: "tools stack"
+                _width: 500, lockedPosition: true, _chromeStatus: "disabled", title: "tools stack", forceActive: true
             }),
             onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel"),
         });

@@ -89,14 +89,15 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 pointerEvents: this.props.Document.isBackground ? "none" : undefined
             }} >
 
-            {!this.props.fitToBox ? <DocumentView {...this.props}
+            {!this.props.fitToBox ? 
+            <DocumentView {...this.props}
                 dragDivName={"collectionFreeFormDocumentView-container"}
                 ContentScaling={this.contentScaling}
                 ScreenToLocalTransform={this.getTransform}
                 backgroundColor={this.props.backgroundColor}
                 PanelWidth={this.panelWidth}
-                PanelHeight={this.panelHeight}
-            /> : <ContentFittingDocumentView {...this.props}
+                PanelHeight={this.panelHeight} /> 
+            : <ContentFittingDocumentView {...this.props}
                 CollectionDoc={this.props.ContainingCollectionDoc}
                 DataDocument={this.props.DataDoc}
                 getTransform={this.getTransform}

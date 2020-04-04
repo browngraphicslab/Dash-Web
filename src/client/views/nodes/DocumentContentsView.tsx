@@ -1,6 +1,6 @@
 import { computed } from "mobx";
 import { observer } from "mobx-react";
-import { Doc } from "../../../new_fields/Doc";
+import { Doc, Opt } from "../../../new_fields/Doc";
 import { Cast, StrCast } from "../../../new_fields/Types";
 import { OmitKeys, Without } from "../../../Utils";
 import { HistogramBox } from "../../northstar/dash-nodes/HistogramBox";
@@ -62,7 +62,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     forceLayout?: string,
     forceFieldKey?: string,
     hideOnLeave?: boolean,
-    makeLink?: () => Opt<Doc>;
+    makeLink?: () => Opt<Doc>,  // function to call when a link is made
 }> {
     @computed get layout(): string {
         TraceMobx();

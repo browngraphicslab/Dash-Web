@@ -181,6 +181,7 @@ export class FormattedTextBoxComment {
                                     LibraryPath={emptyPath}
                                     fitToBox={true}
                                     moveDocument={returnFalse}
+                                    rootSelected={returnFalse}
                                     getTransform={Transform.Identity}
                                     active={returnFalse}
                                     addDocument={returnFalse}

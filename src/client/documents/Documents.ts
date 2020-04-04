@@ -435,7 +435,7 @@ export namespace Docs {
         Scripting.addGlobal(Buxton);
 
         const delegateKeys = ["x", "y", "layoutKey", "_width", "_height", "_panX", "_panY", "_viewType", "_nativeWidth", "_nativeHeight", "dropAction", "childDropAction", "_annotationOn",
-            "_chromeStatus", "_forceActive", "_autoHeight", "_fitWidth", "_LODdisable", "_itemIndex", "_showSidebar", "_showTitle", "_showCaption", "_showTitleHover", "_backgroundColor",
+            "_chromeStatus", "_autoHeight", "_fitWidth", "_LODdisable", "_itemIndex", "_showSidebar", "_showTitle", "_showCaption", "_showTitleHover", "_backgroundColor",
             "_xMargin", "_yMargin", "_xPadding", "_yPadding", "_singleLine", "_scrollTop",
             "_color", "isButton", "isBackground", "removeDropProperties", "treeViewOpen"];
 
