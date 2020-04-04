@@ -124,7 +124,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
         templateMenu.push(<OtherToggle key={"chrome"} name={"Chrome"} checked={layout._chromeStatus !== "disabled"} toggle={this.toggleChrome} />);
         templateMenu.push(<OtherToggle key={"default"} name={"Default"} checked={templateName === "layout"} toggle={this.toggleDefault} />);
         if (noteTypesDoc) {
-            addedTypes.concat(noteTypes).map(template => template.treeViewChecked = ComputedField.MakeFunction(`templateIsUsed(this, "${StrCast(firstDoc.title)}")`, { firstDoc: "string" }));
+            addedTypes.concat(noteTypes).map(template => template.treeViewChecked = ComputedField.MakeFunction(`templateIsUsed(this)`));
             this._addedKeys && Array.from(this._addedKeys).filter(key => !noteTypes.some(nt => nt.title === key)).forEach(template => templateMenu.push(
                 <OtherToggle key={template} name={template} checked={templateName === template} toggle={e => this.toggleLayout(e, template)} />));
             templateMenu.push(
@@ -174,12 +174,11 @@ Scripting.addGlobal(function switchView(doc: Doc, template: Doc) {
     return templateTitle && DocumentView.makeCustomViewClicked(doc, Docs.Create.FreeformDocument, templateTitle, template);
 });
 
-Scripting.addGlobal(function templateIsUsed(templateDoc: Doc, firstDocTitle: string) {
+Scripting.addGlobal(function templateIsUsed(templateDoc: Doc) {
     const firstDoc = SelectionManager.SelectedDocuments().length ? SelectionManager.SelectedDocuments()[0].props.Document : undefined;
     if (firstDoc) {
         const template = StrCast(templateDoc.dragFactory ? Cast(templateDoc.dragFactory, Doc, null)?.title : templateDoc.title);
         return StrCast(firstDoc.layoutKey) === "layout_" + template ? 'check' : 'unchecked';
     }
     return false;
-    // return SelectionManager.SelectedDocuments().some(view => StrCast(view.props.Document.layoutKey) === "layout_" + template) ? 'check' : 'unchecked'
 });

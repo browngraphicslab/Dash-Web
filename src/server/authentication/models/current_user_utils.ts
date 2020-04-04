@@ -280,17 +280,17 @@ export class CurrentUserUtils {
     static setupExpandingButtons(doc: Doc) {
         const queryTemplate = Docs.Create.MulticolumnDocument(
             [
-                Docs.Create.QueryDocument({ title: "query", _height: 200 }),
+                Docs.Create.QueryDocument({ title: "query", _height: 200, forceActive: true  }),
                 Docs.Create.FreeformDocument([], { title: "data", _height: 100, _LODdisable: true, forceActive: true })
             ],
             { _width: 400, _height: 300, title: "queryView", _chromeStatus: "disabled", _xMargin: 3, _yMargin: 3, _autoHeight: false, forceActive: true, hideFilterView: true });
         queryTemplate.isTemplateDoc = makeTemplate(queryTemplate);
         const slideTemplate = Docs.Create.MultirowDocument(
             [
-                Docs.Create.MulticolumnDocument([], { title: "data", _height: 200 }),
-                Docs.Create.TextDocument("", { title: "text", _height: 100 })
+                Docs.Create.MulticolumnDocument([], { title: "data", _height: 200, forceActive: true  }),
+                Docs.Create.TextDocument("", { title: "text", _height: 100, forceActive: true})
             ],
-            { _width: 400, _height: 300, title: "slideView", _chromeStatus: "disabled", _xMargin: 3, _yMargin: 3, _autoHeight: false });
+            { _width: 400, _height: 300, title: "slideView", _chromeStatus: "disabled", _xMargin: 3, _yMargin: 3, _autoHeight: false, forceActive: true, hideFilterView: true});
         slideTemplate.isTemplateDoc = makeTemplate(slideTemplate);
         const descriptionTemplate = Docs.Create.TextDocument("", { title: "text", _height: 100, _showTitle: "title" });
         Doc.GetProto(descriptionTemplate).layout = FormattedTextBox.LayoutString("description");
