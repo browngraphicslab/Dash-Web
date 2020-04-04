@@ -251,9 +251,7 @@ export class CurrentUserUtils {
         return Docs.Create.ButtonDocument({
             _width: 50, _height: 25, title: "Search", fontSize: 10, dontDecorateSelection: true,
             letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
-            sourcePanel: Docs.Create.QueryDocument({
-                title: "search stack",
-            }),
+            sourcePanel: Docs.Create.QueryDocument({ title: "search stack",  }),
             targetContainer: sidebarContainer,
             lockedPosition: true,
             onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel")
@@ -283,9 +281,9 @@ export class CurrentUserUtils {
         const queryTemplate = Docs.Create.MultirowDocument(
             [
                 Docs.Create.QueryDocument({ title: "query", _height: 200 }),
-                Docs.Create.FreeformDocument([], { title: "data", _height: 100, _LODdisable: true })
+                Docs.Create.FreeformDocument([], { title: "data", _height: 100, _LODdisable: true, forceActive: true})
             ],
-            { _width: 400, _height: 300, title: "queryView", _chromeStatus: "disabled", _xMargin: 3, _yMargin: 3, _autoHeight: false });
+            { _width: 400, _height: 300, title: "queryView", _chromeStatus: "disabled", _xMargin: 3, _yMargin: 3, _autoHeight: false, forceActive: true });
         queryTemplate.isTemplateDoc = makeTemplate(queryTemplate);
         const slideTemplate = Docs.Create.MultirowDocument(
             [
