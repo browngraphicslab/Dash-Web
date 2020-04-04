@@ -1,31 +1,20 @@
-import { observer } from "mobx-react";
-import React = require("react");
-import { observable, action, computed, runInAction } from "mobx";
-import Measure from "react-measure";
-//import "./SearchBoxDoc.scss";
-import { Doc, DocListCast, WidthSym, HeightSym } from "../../new_fields/Doc";
-import { DocumentIcon } from "./nodes/DocumentIcon";
-import { StrCast, NumCast, BoolCast, Cast } from "../../new_fields/Types";
-import { returnFalse, emptyFunction, returnEmptyString, returnOne } from "../../Utils";
-import { Transform } from "../util/Transform";
-import { ObjectField } from "../../new_fields/ObjectField";
-import { DocumentView } from "./nodes/DocumentView";
-import { DocumentType } from '../documents/DocumentTypes';
-import { ClientRecommender } from "../ClientRecommender";
-import { DocServer } from "../DocServer";
-import { Id } from "../../new_fields/FieldSymbols";
-import { FieldView, FieldViewProps } from "./nodes/FieldView";
-import { DocumentManager } from "../util/DocumentManager";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faBullseye, faLink } from "@fortawesome/free-solid-svg-icons";
-import { DocUtils, Docs } from "../documents/Documents";
-import { ContentFittingDocumentView } from "./nodes/ContentFittingDocumentView";
-import { EditableView } from "./EditableView";
+import { action, computed, observable, runInAction } from "mobx";
+import { observer } from "mobx-react";
+//import "./SearchBoxDoc.scss";
+import { Doc, DocListCast } from "../../new_fields/Doc";
+import { Id } from "../../new_fields/FieldSymbols";
+import { BoolCast, Cast, NumCast, StrCast } from "../../new_fields/Types";
+import { returnFalse } from "../../Utils";
+import { Docs } from "../documents/Documents";
 import { SearchUtil } from "../util/SearchUtil";
-import { SearchItem } from "./search/SearchItem";
+import { EditableView } from "./EditableView";
+import { ContentFittingDocumentView } from "./nodes/ContentFittingDocumentView";
+import { FieldView, FieldViewProps } from "./nodes/FieldView";
 import { FilterBox } from "./search/FilterBox";
-import { SearchBox } from "./search/SearchBox";
+import { SearchItem } from "./search/SearchItem";
+import React = require("react");
 
 export interface RecProps {
     documents: { preview: Doc, similarity: number }[];
@@ -301,7 +290,7 @@ export class SearchDocBox extends React.Component<FieldViewProps> {
             }
         }
         //return Docs.Create.TreeDocument(docs, { _width: 200, _height: 400, backgroundColor: "grey", title: `Search Docs: "${this._searchString}"` });
-        return Docs.Create.SearchDocument(docs, { _width: 200, _height: 400, searchText: this._searchString, title: `Search Docs: "${this._searchString}"` });
+        return Docs.Create.QueryDocument(docs, { _width: 200, _height: 400, searchText: this._searchString, title: `Query Docs: "${this._searchString}"` });
     }
 
     @action.bound

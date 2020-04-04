@@ -708,10 +708,6 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.RECOMMENDATION), new List<Doc>(data), options);
         }
 
-        export function SearchDocument(documents: Array<Doc>, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.SEARCHBOX), new List(documents), options);
-        }
-
         export type DocConfig = {
             doc: Doc,
             initialWidth?: number,

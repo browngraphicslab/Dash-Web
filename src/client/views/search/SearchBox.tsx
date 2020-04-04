@@ -416,9 +416,6 @@ export class SearchBox extends React.Component<SearchProps> {
                 y += 300;
             }
         }
-        console.log("create");
-        //return Docs.Create.TreeDocument(docs, { _width: 200, _height: 400, backgroundColor: "grey", title: `Search Docs: "${this._searchString}"` });
-        //return Docs.Create.SearchDocument(docs, { _width: 200, _height: 400, searchText: this._searchString, title: `Search Docs: "${this._searchString}"` });
         return Docs.Create.QueryDocument({ _autoHeight: true, title: this._searchString, filterQuery: this.filterQuery, searchQuery: this._searchString });
     }
 
