@@ -68,6 +68,7 @@ export class RecommendationsBox extends React.Component<FieldViewProps> {
                 addDocument={returnFalse}
                 LibraryPath={emptyPath}
                 removeDocument={returnFalse}
+                rootSelected={returnFalse}
                 ScreenToLocalTransform={Transform.Identity}
                 addDocTab={returnFalse}
                 pinToPres={returnFalse}

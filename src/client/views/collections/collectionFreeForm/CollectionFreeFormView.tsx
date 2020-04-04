@@ -832,6 +832,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             Document: childLayout,
             LibraryPath: this.libraryPath,
             layoutKey: undefined,
+            rootSelected: this.rootSelected,
             dropAction: StrCast(this.props.Document.childDropAction) as dropActionType,
             //onClick: undefined, // this.props.onClick,  // bcz: check this out -- I don't think we want to inherit click handlers, or we at least need a way to ignore them
             onClick: this.onChildClickHandler,

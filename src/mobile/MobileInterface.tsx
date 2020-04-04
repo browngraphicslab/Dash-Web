@@ -124,6 +124,7 @@ export default class MobileInterface extends React.Component {
                 addDocument={returnFalse}
                 addDocTab={returnFalse}
                 pinToPres={emptyFunction}
+                rootSelected={returnFalse}
                 removeDocument={undefined}
                 onClick={undefined}
                 ScreenToLocalTransform={Transform.Identity}
@@ -285,6 +286,7 @@ export default class MobileInterface extends React.Component {
                         addDocument={returnFalse}
                         addDocTab={returnFalse}
                         pinToPres={emptyFunction}
+                        rootSelected={returnFalse}
                         removeDocument={undefined}
                         onClick={undefined}
                         ScreenToLocalTransform={Transform.Identity}

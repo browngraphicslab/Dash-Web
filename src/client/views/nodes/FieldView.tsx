@@ -29,6 +29,7 @@ export interface FieldViewProps {
     dropAction: dropActionType;
     isSelected: (outsideReaction?: boolean) => boolean;
     select: (isCtrlPressed: boolean) => void;
+    rootSelected: () => boolean;
     renderDepth: number;
     addDocument?: (document: Doc) => boolean;
     addDocTab: (document: Doc, where: string) => boolean;

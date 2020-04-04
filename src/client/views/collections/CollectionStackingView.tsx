@@ -176,6 +176,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             LibraryPath={this.props.LibraryPath}
             renderDepth={this.props.renderDepth + 1}
             fitToBox={this.props.fitToBox}
+            rootSelected={this.rootSelected}
             dropAction={StrCast(this.props.Document.childDropAction) as dropActionType}
             onClick={layoutDoc.isTemplateDoc ? this.onClickHandler : this.onChildClickHandler}
             PanelWidth={width}

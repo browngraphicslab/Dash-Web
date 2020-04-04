@@ -705,6 +705,7 @@ export default class GestureOverlay extends Touchable {
                 LibraryPath={emptyPath}
                 addDocument={undefined}
                 addDocTab={returnFalse}
+                rootSelected={returnTrue}
                 pinToPres={emptyFunction}
                 onClick={undefined}
                 removeDocument={undefined}
