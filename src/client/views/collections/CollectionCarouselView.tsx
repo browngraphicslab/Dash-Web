@@ -80,10 +80,33 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
             });
         }
     }
+    _downX = 0;
+    _downY = 0;
+    onPointerDown = (e: React.PointerEvent) => {
+        this._downX = e.clientX;
+        this._downY = e.clientY;
+        console.log("CAROUSEL down");
+        document.addEventListener("pointerup", this.onpointerup);
+    }
+    private _lastTap: number = 0;
+    private _doubleTap = false;
+    onpointerup = (e: PointerEvent) => {
+        console.log("CAROUSEL up");
+        this._doubleTap = (Date.now() - this._lastTap < 300 && e.button === 0 && Math.abs(e.clientX - this._downX) < 2 && Math.abs(e.clientY - this._downY) < 2);
+        this._lastTap = Date.now();
+    }
+
+    onClick = (e: React.MouseEvent) => {
+        if (this._doubleTap) {
+            e.stopPropagation();
+            this.props.Document.isLightboxOpen = true;
+        }
+    }
+
     render() {
-        return <div className="collectionCarouselView-outer" ref={this.createDashEventsTarget} onContextMenu={this.onContextMenu}>
+        return <div className="collectionCarouselView-outer" onClick={this.onClick} onPointerDown={this.onPointerDown} ref={this.createDashEventsTarget} onContextMenu={this.onContextMenu}>
             {this.content}
-            {this.buttons}
+            {this.props.Document._chromeStatus !== "replaced" ? this.buttons : (null)}
         </div>;
     }
 }
