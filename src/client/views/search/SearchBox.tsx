@@ -89,9 +89,7 @@ export class SearchBox extends React.Component<SearchProps> {
 
 
     @action
-    getViews = async (doc: Doc) => {
-        return await SearchUtil.GetViewsOfDocument(doc);
-    }
+    getViews = (doc: Doc) => SearchUtil.GetViewsOfDocument(doc);
 
     @action.bound
     onChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -130,23 +128,18 @@ export class SearchBox extends React.Component<SearchProps> {
         }
     }
 
-    public _allIcons: string[] = [DocumentType.AUDIO, DocumentType.COL, DocumentType.IMG, DocumentType.LINK, DocumentType.PDF, DocumentType.TEXT, DocumentType.VID, DocumentType.WEB, DocumentType.TEMPLATE];
+    public _allIcons: string[] = [DocumentType.AUDIO, DocumentType.COL, DocumentType.IMG, DocumentType.LINK, DocumentType.PDF, DocumentType.TEXT, DocumentType.VID, DocumentType.WEB];
     //if true, any keywords can be used. if false, all keywords are required.
     //this also serves as an indicator if the word status filter is applied
     @observable private _filterOpen: boolean = false;
     //if icons = all icons, then no icon filter is applied
     @observable private _icons: string[] = this._allIcons;
     //if all of these are true, no key filter is applied
-    @observable private _anyKeywordStatus: boolean = true;
-    @observable private _allKeywordStatus: boolean = true;
     @observable private _titleFieldStatus: boolean = true;
     @observable private _authorFieldStatus: boolean = true;
-    @observable private _dataFieldStatus: boolean = true;
     //this also serves as an indicator if the collection status filter is applied
     @observable public _deletedDocsStatus: boolean = false;
     @observable private _collectionStatus = false;
-    @observable private _collectionSelfStatus = true;
-    @observable private _collectionParentStatus = true;
 
 
     getFinalQuery(query: string): string {
@@ -187,7 +180,7 @@ export class SearchBox extends React.Component<SearchProps> {
 
     @action
     filterDocsByType(docs: Doc[]) {
-        if (this._icons.length === 9) {
+        if (this._icons.length === this._allIcons.length) {
             return docs;
         }
         const finalDocs: Doc[] = [];
@@ -218,7 +211,7 @@ export class SearchBox extends React.Component<SearchProps> {
     }
 
     get filterTypes() {
-        return this._icons.length === 9 ? undefined : this._icons;
+        return this._icons.length === this._allIcons.length ? undefined : this._icons;
     }
 
     @action.bound
@@ -296,7 +289,7 @@ export class SearchBox extends React.Component<SearchProps> {
 
     @action
     submitSearch = async () => {
-        let query = this._searchString;
+        const query = this._searchString;
         this.getFinalQuery(query);
         this._results = [];
         this._resultsSet.clear();
@@ -526,10 +519,10 @@ export class SearchBox extends React.Component<SearchProps> {
     handleNodeChange = () => {
         this._nodeStatus = !this._nodeStatus;
         if (this._nodeStatus) {
-            this.expandSection(`node${this.props.id}`)
+            this.expandSection(`node${this.props.id}`);
         }
         else {
-            this.collapseSection(`node${this.props.id}`)
+            this.collapseSection(`node${this.props.id}`);
         }
     }
 
@@ -565,13 +558,13 @@ export class SearchBox extends React.Component<SearchProps> {
 
 
     collapseSection(thing: string) {
-        let id = this.props.id;
-        let element = document.getElementById(thing)!;
+        const id = this.props.id;
+        const element = document.getElementById(thing)!;
         // get the height of the element's inner content, regardless of its actual size
-        var sectionHeight = element.scrollHeight;
+        const sectionHeight = element.scrollHeight;
 
         // temporarily disable all css transitions
-        var elementTransition = element.style.transition;
+        const elementTransition = element.style.transition;
         element.style.transition = '';
 
         // on the next frame (as soon as the previous style change has taken effect),
@@ -585,7 +578,7 @@ export class SearchBox extends React.Component<SearchProps> {
             // have the element transition to height: 0
             requestAnimationFrame(function () {
                 element.style.height = 0 + 'px';
-                thing == `filterhead${id}` ? document.getElementById(`filterhead${id}`)!.style.padding = "0" : null;
+                thing ===`filterhead${id}` ? document.getElementById(`filterhead${id}`)!.style.padding = "0" : null;
             });
         });
 
@@ -595,12 +588,11 @@ export class SearchBox extends React.Component<SearchProps> {
 
     expandSection(thing: string) {
         console.log("expand");
-        let element = document.getElementById(thing)!;
+        const element = document.getElementById(thing)!;
         // get the height of the element's inner content, regardless of its actual size
-        var sectionHeight = element.scrollHeight;
+        const sectionHeight = element.scrollHeight;
 
         // have the element transition to the height of its inner content
-        let temp = element.style.height;
         element.style.height = sectionHeight + 'px';
 
         // when the next css transition finishes (which should be the one we just triggered)
@@ -620,7 +612,7 @@ export class SearchBox extends React.Component<SearchProps> {
     }
 
     autoset(thing: string) {
-        let element = document.getElementById(thing)!;
+        const element = document.getElementById(thing)!;
         console.log("autoset");
         element.removeEventListener('transitionend', function (e) { });
 

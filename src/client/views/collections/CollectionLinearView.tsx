@@ -3,7 +3,7 @@ import { observer } from 'mobx-react';
 import * as React from 'react';
 import { Doc, HeightSym, WidthSym } from '../../../new_fields/Doc';
 import { makeInterface } from '../../../new_fields/Schema';
-import { BoolCast, NumCast, StrCast, Cast } from '../../../new_fields/Types';
+import { BoolCast, NumCast, StrCast, Cast, ScriptCast } from '../../../new_fields/Types';
 import { emptyFunction, returnEmptyString, returnOne, returnTrue, Utils, returnFalse } from '../../../Utils';
 import { DragManager } from '../../util/DragManager';
 import { Transform } from '../../util/Transform';
@@ -13,7 +13,6 @@ import { CollectionSubView } from './CollectionSubView';
 import { DocumentView } from '../nodes/DocumentView';
 import { documentSchema } from '../../../new_fields/documentSchemas';
 import { Id } from '../../../new_fields/FieldSymbols';
-import { ScriptField } from '../../../new_fields/ScriptField';
 
 
 type LinearDocument = makeInterface<[typeof documentSchema,]>;
@@ -28,12 +27,10 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
     private _selectedDisposer?: IReactionDisposer;
 
     componentWillUnmount() {
-        this._dropDisposer && this._dropDisposer();
-        this._widthDisposer && this._widthDisposer();
-        this._selectedDisposer && this._selectedDisposer();
-        this.childLayoutPairs.map((pair, ind) => {
-            Cast(pair.layout.proto?.onPointerUp, ScriptField)?.script.run({ this: pair.layout.proto }, console.log);
-        });
+        this._dropDisposer?.();
+        this._widthDisposer?.();
+        this._selectedDisposer?.();
+        this.childLayoutPairs.map((pair, ind) => ScriptCast(pair.layout.proto?.onPointerUp)?.script.run({ this: pair.layout.proto }, console.log));
     }
 
     componentDidMount() {
@@ -54,11 +51,11 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                         selected = pair;
                     }
                     else {
-                        Cast(pair.layout.proto?.onPointerUp, ScriptField)?.script.run({ this: pair.layout.proto }, console.log);
+                        ScriptCast(pair.layout.proto?.onPointerUp)?.script.run({ this: pair.layout.proto }, console.log);
                     }
                 });
                 if (selected && selected.layout) {
-                    Cast(selected.layout.proto?.onPointerDown, ScriptField)?.script.run({ this: selected.layout.proto }, console.log);
+                    ScriptCast(selected.layout.proto?.onPointerDown)?.script.run({ this: selected.layout.proto }, console.log);
                 }
             }),
             { fireImmediately: true }
@@ -81,14 +78,16 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
     render() {
         const guid = Utils.GenerateGuid();
         const flexDir: any = StrCast(this.Document.flexDirection);
+        const backgroundColor = StrCast(this.props.Document.backgroundColor, "black");
+        const color = StrCast(this.props.Document.color, "white");
         return <div className="collectionLinearView-outer">
             <div className="collectionLinearView" ref={this.createDashEventsTarget} >
-                <input id={`${guid}`} type="checkbox" checked={BoolCast(this.props.Document.linearViewIsExpanded)} ref={this.addMenuToggle}
-                    onChange={action((e: any) => this.props.Document.linearViewIsExpanded = this.addMenuToggle.current!.checked)} />
-                <label htmlFor={`${guid}`} title="Close Menu" style={{ marginTop: "auto", marginBottom: "auto", 
-                background: StrCast(this.props.Document.backgroundColor, "black") === StrCast(this.props.Document.color, "white") ? "black" : StrCast(this.props.Document.backgroundColor, "black") }} >
+                <label htmlFor={`${guid}`} title="Close Menu" style={{ background: backgroundColor === color ? "black" : backgroundColor }}
+                    onPointerDown={e => e.stopPropagation()} >
                     <p>+</p>
                 </label>
+                <input id={`${guid}`} type="checkbox" checked={BoolCast(this.props.Document.linearViewIsExpanded)} ref={this.addMenuToggle}
+                    onChange={action((e: any) => this.props.Document.linearViewIsExpanded = this.addMenuToggle.current!.checked)} />
 
                 <div className="collectionLinearView-content" style={{ height: this.dimension(), flexDirection: flexDir }}>
                     {this.childLayoutPairs.map((pair, ind) => {

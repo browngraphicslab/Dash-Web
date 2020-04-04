@@ -118,7 +118,6 @@ export interface DocumentOptions {
     lockedTransform?: boolean; // lock the panx,pany and scale parameters of the document so that it be panned/zoomed
     opacity?: number;
     defaultBackgroundColor?: string;
-    dontDecorateSelection?: boolean; // whether document decorations should be displayed when the document is selected
     isBackground?: boolean;
     isButton?: boolean;
     columnWidth?: number;
@@ -164,9 +163,9 @@ export interface DocumentOptions {
     flexDirection?: "unset" | "row" | "column" | "row-reverse" | "column-reverse";
     selectedIndex?: number;
     syntaxColor?: string; // can be applied to text for syntax highlighting all matches in the text
-    searchText?: string, //for searchbox
-    searchQuery?: string, // for queryBox
-    filterQuery?: string,
+    searchText?: string; //for searchbox
+    searchQuery?: string; // for queryBox
+    filterQuery?: string;
     linearViewIsExpanded?: boolean; // is linear view expanded
 }
 

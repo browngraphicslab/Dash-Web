@@ -42,7 +42,6 @@ export const documentSchema = createSchema({
     removeDropProperties: listSpec("string"), // properties that should be removed from the alias/copy/etc of this document when it is dropped
     isTemplateForField: "string",// when specifies a field key, then the containing document is a template that renders the specified field
     isBackground: "boolean",    // whether document is a background element and ignores input events (can only selet with marquee)
-    dontDecorateSelection: "boolean",      // whether document should be selected when clicked (usually set to false for buttons)
     treeViewOpen: "boolean",    //  flag denoting whether the documents sub-tree (contents) is visible or hidden
     treeViewExpandedView: "string", // name of field whose contents are being displayed as the document's subtree
     treeViewPreventOpen: "boolean", // ignores the treeViewOpen flag (for allowing a view to not be slaved to other views of the document)

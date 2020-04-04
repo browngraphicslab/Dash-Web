@@ -59,6 +59,7 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
             ContainingCollectionView: undefined,
             ContainingCollectionDoc: undefined,
             fieldKey: this.props.keyName,
+            rootSelected: returnFalse,
             isSelected: returnFalse,
             select: emptyFunction,
             dropAction:"alias",

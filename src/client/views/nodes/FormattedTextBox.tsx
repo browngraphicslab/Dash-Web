@@ -292,7 +292,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         const linkDoc = data.linkDocument!;
         const anchor1Title = linkDoc.anchor1 instanceof Doc ? StrCast(linkDoc.anchor1.title) : "-untitled-";
         const anchor1Id = linkDoc.anchor1 instanceof Doc ? linkDoc.anchor1[Id] : "";
-        this.makeLinkToSelection(linkDoc[Id], anchor1Title, "onRight", anchor1Id)
+        this.makeLinkToSelection(linkDoc[Id], anchor1Title, "onRight", anchor1Id);
     }
 
     getNodeEndpoints(context: Node, node: Node): { from: number, to: number } | null {

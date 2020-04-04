@@ -112,7 +112,7 @@ export class DocumentBox extends DocAnnotatableComponent<FieldViewProps, DocBoxS
         if (containedDoc && childTemplateName && !containedDoc["layout_" + childTemplateName]) {
             setTimeout(() => {
                 DocumentView.createCustomView(containedDoc, Docs.Create.StackingDocument, childTemplateName);
-                Doc.expandTemplateLayout(Cast(containedDoc["layout_" + childTemplateName], Doc, null)!, containedDoc, undefined);
+                Doc.expandTemplateLayout(Cast(containedDoc["layout_" + childTemplateName], Doc, null), containedDoc, undefined);
             }, 0);
         }
         const contents = !(containedDoc instanceof Doc) ? (null) : <ContentFittingDocumentView

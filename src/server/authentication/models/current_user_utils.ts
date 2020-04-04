@@ -97,11 +97,15 @@ export class CurrentUserUtils {
             _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100,
             icon: data.icon,
             title: data.title,
+            isButton: true,
             ignoreClick: data.ignoreClick,
             dropAction: data.click ? "copy" : undefined,
-            onDragStart: data.drag ? ScriptField.MakeFunction(data.drag) : undefined, onClick: data.click ? ScriptField.MakeScript(data.click) : undefined,
-            ischecked: data.ischecked ? ComputedField.MakeFunction(data.ischecked) : undefined, activePen: data.activePen, dontDecorateSelection: true,
-            backgroundColor: data.backgroundColor, removeDropProperties: new List<string>(["dropAction"]), dragFactory: data.dragFactory,
+            onDragStart: data.drag ? ScriptField.MakeFunction(data.drag) : undefined,
+            onClick: data.click ? ScriptField.MakeScript(data.click) : undefined,
+            ischecked: data.ischecked ? ComputedField.MakeFunction(data.ischecked) : undefined,
+            activePen: data.activePen,
+            backgroundColor: data.backgroundColor, removeDropProperties: new List<string>(["dropAction"]),
+            dragFactory: data.dragFactory,
         }));
     }
 
@@ -166,9 +170,12 @@ export class CurrentUserUtils {
     static setupThumbDoc(userDoc: Doc) {
         if (!userDoc.thumbDoc) {
             const thumbDoc = Docs.Create.LinearDocument(CurrentUserUtils.setupThumbButtons(userDoc), {
-                _width: 100, _height: 50, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled", title: "buttons", _autoHeight: true, _yMargin: 5, linearViewIsExpanded: true, backgroundColor: "white"
+                _width: 100, _height: 50, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled", title: "buttons",
+                _autoHeight: true, _yMargin: 5, linearViewIsExpanded: true, backgroundColor: "white"
             });
-            thumbDoc.inkToTextDoc = Docs.Create.LinearDocument([], { _width: 300, _height: 25, _autoHeight: true, _chromeStatus: "disabled", linearViewIsExpanded: true, flexDirection: "column" });
+            thumbDoc.inkToTextDoc = Docs.Create.LinearDocument([], {
+                _width: 300, _height: 25, _autoHeight: true, _chromeStatus: "disabled", linearViewIsExpanded: true, flexDirection: "column"
+            });
             userDoc.thumbDoc = thumbDoc;
         }
         return Cast(userDoc.thumbDoc, Doc);
@@ -210,11 +217,12 @@ export class CurrentUserUtils {
         });
 
         return Docs.Create.ButtonDocument({
-            _width: 35, _height: 25, title: "Tools", fontSize: 10, targetContainer: sidebarContainer, dontDecorateSelection: true,
+            _width: 35, _height: 25, title: "Tools", fontSize: 10, targetContainer: sidebarContainer,
             letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
             sourcePanel: Docs.Create.StackingDocument([dragCreators, color], {
                 _width: 500, lockedPosition: true, _chromeStatus: "disabled", title: "tools stack", forceActive: true
             }),
+            isButton: true,
             onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel"),
         });
     }
@@ -236,11 +244,12 @@ export class CurrentUserUtils {
         });
 
         return Docs.Create.ButtonDocument({
-            _width: 50, _height: 25, title: "Library", fontSize: 10, dontDecorateSelection: true,
+            _width: 50, _height: 25, title: "Library", fontSize: 10,
             letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
             sourcePanel: Docs.Create.TreeDocument([doc.workspaces as Doc, doc.documents as Doc, Docs.Prototypes.MainLinkDocument(), doc, doc.recentlyClosed as Doc], {
                 title: "Library", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "place", lockedPosition: true, boxShadow: "0 0", dontRegisterChildren: true
             }),
+            isButton: true,
             targetContainer: sidebarContainer,
             onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel;")
         });
@@ -249,11 +258,12 @@ export class CurrentUserUtils {
     // setup the Search button which will display the search panel.  
     static setupSearchPanel(sidebarContainer: Doc) {
         return Docs.Create.ButtonDocument({
-            _width: 50, _height: 25, title: "Search", fontSize: 10, dontDecorateSelection: true,
+            _width: 50, _height: 25, title: "Search", fontSize: 10,
             letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
             sourcePanel: Docs.Create.QueryDocument({ title: "search stack", }),
             targetContainer: sidebarContainer,
             lockedPosition: true,
+            isButton: true,
             onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel")
         });
     }
@@ -280,26 +290,26 @@ export class CurrentUserUtils {
     static setupExpandingButtons(doc: Doc) {
         const queryTemplate = Docs.Create.MulticolumnDocument(
             [
-                Docs.Create.QueryDocument({ title: "query", _height: 200, forceActive: true  }),
+                Docs.Create.QueryDocument({ title: "query", _height: 200, forceActive: true }),
                 Docs.Create.FreeformDocument([], { title: "data", _height: 100, _LODdisable: true, forceActive: true })
             ],
             { _width: 400, _height: 300, title: "queryView", _chromeStatus: "disabled", _xMargin: 3, _yMargin: 3, _autoHeight: false, forceActive: true, hideFilterView: true });
         queryTemplate.isTemplateDoc = makeTemplate(queryTemplate);
         const slideTemplate = Docs.Create.MultirowDocument(
             [
-                Docs.Create.MulticolumnDocument([], { title: "data", _height: 200, forceActive: true  }),
-                Docs.Create.TextDocument("", { title: "text", _height: 100, forceActive: true})
+                Docs.Create.MulticolumnDocument([], { title: "data", _height: 200, forceActive: true }),
+                Docs.Create.TextDocument("", { title: "text", _height: 100, forceActive: true })
             ],
-            { _width: 400, _height: 300, title: "slideView", _chromeStatus: "disabled", _xMargin: 3, _yMargin: 3, _autoHeight: false, forceActive: true, hideFilterView: true});
+            { _width: 400, _height: 300, title: "slideView", _chromeStatus: "disabled", _xMargin: 3, _yMargin: 3, _autoHeight: false, forceActive: true, hideFilterView: true });
         slideTemplate.isTemplateDoc = makeTemplate(slideTemplate);
         const descriptionTemplate = Docs.Create.TextDocument("", { title: "text", _height: 100, _showTitle: "title" });
         Doc.GetProto(descriptionTemplate).layout = FormattedTextBox.LayoutString("description");
         descriptionTemplate.isTemplateDoc = makeTemplate(descriptionTemplate, true, "descriptionView");
 
-        const ficon = (opts: DocumentOptions) => new PrefetchProxy(Docs.Create.FontIconDocument({ ...opts, dontDecorateSelection: true, dropAction: "alias", removeDropProperties: new List<string>(["dropAction"]), _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100 })) as any as Doc;
+        const ficon = (opts: DocumentOptions) => new PrefetchProxy(Docs.Create.FontIconDocument({ ...opts, isButton: true, dropAction: "alias", removeDropProperties: new List<string>(["dropAction"]), _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100 })) as any as Doc;
         const blist = (opts: DocumentOptions, docs: Doc[]) => new PrefetchProxy(Docs.Create.LinearDocument(docs, {
             ...opts,
-            _gridGap: 5, _xMargin: 5, _yMargin: 5, _height: 42, _width: 100, boxShadow: "0 0", dontDecorateSelection: true, forceActive: true,
+            _gridGap: 5, _xMargin: 5, _yMargin: 5, _height: 42, _width: 100, boxShadow: "0 0", isButton: true, forceActive: true,
             dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }),
             backgroundColor: "black", treeViewPreventOpen: true, lockedPosition: true, _chromeStatus: "disabled", linearViewIsExpanded: true
         })) as any as Doc;
@@ -309,8 +319,8 @@ export class CurrentUserUtils {
         doc.slidesBtn = ficon({ onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'), dragFactory: slideTemplate, removeDropProperties: new List<string>(["dropAction"]), title: "presentation slide", icon: "sticky-note" });
         doc.descriptionBtn = ficon({ onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'), dragFactory: descriptionTemplate, removeDropProperties: new List<string>(["dropAction"]), title: "description view", icon: "sticky-note" });
         doc.queryBtn = ficon({ onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'), dragFactory: queryTemplate, removeDropProperties: new List<string>(["dropAction"]), title: "query view", icon: "sticky-note" });
-        doc.templateButtons = blist({ title: "template buttons" }, [doc.slidesBtn as Doc, doc.descriptionBtn as Doc, doc.queryBtn as Doc]);
-        doc.expandingButtons = blist({ title: "expanding buttons" }, [doc.undoBtn as Doc, doc.redoBtn as Doc, doc.templateButtons as Doc]);
+        doc.templateButtons = blist({ title: "template buttons", ignoreClick: true }, [doc.slidesBtn as Doc, doc.descriptionBtn as Doc, doc.queryBtn as Doc]);
+        doc.expandingButtons = blist({ title: "expanding buttons", ignoreClick: true }, [doc.undoBtn as Doc, doc.redoBtn as Doc, doc.templateButtons as Doc]);
         doc.templateDocs = new PrefetchProxy(Docs.Create.TreeDocument([doc.noteTypes as Doc, doc.templateButtons as Doc], {
             title: "template layouts", _xPadding: 0,
             dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name })

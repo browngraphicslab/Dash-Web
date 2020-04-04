@@ -81,8 +81,8 @@ export class SearchDocBox extends React.Component<FieldViewProps> {
     updateKey = async (newKey: string) => {
         this.query = newKey;
         if (newKey.length > 1) {
-            let newdocs = await this.getAllResults(this.query);
-            let things = newdocs.docs
+            const newdocs = await this.getAllResults(this.query);
+            const things = newdocs.docs;
             console.log(things);
             console.log(this.content);
             runInAction(() => {
@@ -152,10 +152,9 @@ export class SearchDocBox extends React.Component<FieldViewProps> {
     enter = async (e: React.KeyboardEvent) => {
         console.log(e.key);
         if (e.key === "Enter") {
-            let newdocs = await this.getAllResults(this.query)
-            let things = newdocs.docs
-            console.log(things);
-            this.content = Docs.Create.TreeDocument(things, { _width: 200, _height: 400, _chromeStatus: "disabled", title: `Search Docs: "Results"` });
+            const newdocs = await this.getAllResults(this.query);
+            console.log(newdocs.docs);
+            this.content = Docs.Create.TreeDocument(newdocs.docs, { _width: 200, _height: 400, _chromeStatus: "disabled", title: `Search Docs: "Results"` });
 
         }
     }
@@ -290,7 +289,7 @@ export class SearchDocBox extends React.Component<FieldViewProps> {
             }
         }
         //return Docs.Create.TreeDocument(docs, { _width: 200, _height: 400, backgroundColor: "grey", title: `Search Docs: "${this._searchString}"` });
-        return Docs.Create.QueryDocument(docs, { _width: 200, _height: 400, searchText: this._searchString, title: `Query Docs: "${this._searchString}"` });
+        return Docs.Create.QueryDocument({ _width: 200, _height: 400, searchText: this._searchString, title: `Query Docs: "${this._searchString}"` });
     }
 
     @action.bound
@@ -416,7 +415,7 @@ export class SearchDocBox extends React.Component<FieldViewProps> {
                         top: 0,
                     }}
                     title={"Add Metadata"}
-                    onClick={action(() => { this.editingMetadata = !this.editingMetadata })}
+                    onClick={action(() => this.editingMetadata = !this.editingMetadata)}
                 />
                 <div className="editableclass" onKeyPress={this.enter} style={{ opacity: isEditing ? 1 : 0, pointerEvents: isEditing ? "auto" : "none", transition: "0.4s opacity ease", position: "absolute", top: 0, left: 0, height: 20, width: "-webkit-fill-available" }}>
                     <EditableView

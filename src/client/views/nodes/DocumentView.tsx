@@ -273,9 +273,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
 
-    dontDecorateSelection: any = false;
     onClick = (e: React.MouseEvent | React.PointerEvent) => {
-        this.dontDecorateSelection = this.props.Document.dontDecorateSelection && (!e.ctrlKey || e.button < 2);
         if (!e.nativeEvent.cancelBubble && !this.Document.ignoreClick &&
             (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD && Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD)) {
             let stopPropagate = true;
@@ -295,7 +293,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     this: this.props.Document,
                     self: Cast(this.props.Document.rootDocument, Doc, null) || this.props.Document,
                     containingCollection: this.props.ContainingCollectionDoc, shiftKey: e.shiftKey
-                }, console.log) && !this.props.Document.dontDecorateSelection && !this.props.Document.isButton && this.select(false), "on click");
+                }, console.log) && !this.props.Document.isButton && this.select(false), "on click");
             } else if (this.Document.type === DocumentType.BUTTON) {
                 UndoManager.RunInBatch(() => ScriptBox.EditButtonScript("On Button Clicked ...", this.props.Document, "onClick", e.clientX, e.clientY), "on button click");
             } else if (this.Document.isButton) {

@@ -133,6 +133,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
                     CollectionView={undefined}
                     ContainingCollectionDoc={undefined}
                     ContainingCollectionView={undefined}
+                    rootSelected={returnFalse}
                     onCheckedClick={this.scriptField!}
                     onChildClick={this.scriptField!}
                     LibraryPath={emptyPath}

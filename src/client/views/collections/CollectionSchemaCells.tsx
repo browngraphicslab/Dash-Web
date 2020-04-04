@@ -159,6 +159,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             LibraryPath: [],
             dropAction: "alias",
             bringToFront: emptyFunction,
+            rootSelected: returnFalse,
             fieldKey: this.props.rowProps.column.id as string,
             ContainingCollectionView: this.props.CollectionView,
             ContainingCollectionDoc: this.props.CollectionView && this.props.CollectionView.props.Document,

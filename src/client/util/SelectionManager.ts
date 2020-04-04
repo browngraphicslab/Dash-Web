@@ -33,7 +33,6 @@ export namespace SelectionManager {
         @action
         DeselectDoc(docView: DocumentView): void {
             if (manager.SelectedDocuments.get(docView)) {
-                docView.dontDecorateSelection = false;
                 manager.SelectedDocuments.delete(docView);
                 docView.props.whenActiveChanged(false);
                 Doc.UserDoc().SelectedDocs = new List(SelectionManager.SelectedDocuments().map(dv => dv.props.Document));
@@ -41,10 +40,7 @@ export namespace SelectionManager {
         }
         @action
         DeselectAll(): void {
-            Array.from(manager.SelectedDocuments.keys()).map(dv => {
-                dv.dontDecorateSelection = false;
-                dv.props.whenActiveChanged(false);
-            });
+            Array.from(manager.SelectedDocuments.keys()).map(dv => dv.props.whenActiveChanged(false));
             manager.SelectedDocuments.clear();
             Doc.UserDoc().SelectedDocs = new List<Doc>([]);
         }
