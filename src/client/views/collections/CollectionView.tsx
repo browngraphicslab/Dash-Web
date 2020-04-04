@@ -117,7 +117,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
         return viewField;
     }
 
-    active = (outsideReaction?: boolean) => this.props.isSelected(outsideReaction) || BoolCast(this.props.Document.forceActive) || this._isChildActive || this.props.renderDepth === 0;
+    active = (outsideReaction?: boolean) => this.props.isSelected(outsideReaction) || (this.props.rootSelected() && BoolCast(this.props.Document.forceActive)) || this._isChildActive || this.props.renderDepth === 0;
 
     whenActiveChanged = (isActive: boolean) => { this.props.whenActiveChanged(this._isChildActive = isActive); };
 
@@ -463,7 +463,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
                         Utils.CorsProxy(Cast(d.data, ImageField)!.url.href) : Cast(d.data, ImageField)!.url.href
                     :
                     ""))}
-            {!this.props.isSelected() || this.props.PanelHeight() < 100 ? (null) :
+            {!this.props.isSelected() || this.props.PanelHeight() < 100 || this.props.Document.hideFilterView ? (null) :
                 <div className="collectionTimeView-dragger" key="dragger" onPointerDown={this.onPointerDown} style={{ transform: `translate(${this.facetWidth()}px, 0px)` }} >
                     <span title="library View Dragger" style={{ width: "5px", position: "absolute", top: "0" }} />
                 </div>

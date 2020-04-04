@@ -373,6 +373,7 @@ class TreeView extends React.Component<TreeViewProps> {
                     DataDocument={this.templateDataDoc}
                     LibraryPath={emptyPath}
                     renderDepth={this.props.renderDepth + 1}
+                    rootSelected={returnTrue}
                     backgroundColor={this.props.backgroundColor}
                     fitToBox={this.boundsOfCollectionDocument !== undefined}
                     PanelWidth={this.docWidth}
@@ -454,6 +455,7 @@ class TreeView extends React.Component<TreeViewProps> {
                         LibraryPath={this.props.libraryPath || []}
                         addDocument={undefined}
                         addDocTab={this.props.addDocTab}
+                        rootSelected={returnTrue}
                         pinToPres={emptyFunction}
                         onClick={this.props.onChildClick || editTitle}
                         dropAction={this.props.dropAction}

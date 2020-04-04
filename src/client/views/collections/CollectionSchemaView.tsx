@@ -124,6 +124,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                 LibraryPath={this.props.LibraryPath}
                 childDocs={this.childDocs}
                 renderDepth={this.props.renderDepth}
+                rootSelected={this.rootSelected}
                 PanelWidth={this.previewWidth}
                 PanelHeight={this.previewHeight}
                 getTransform={this.getPreviewTransform}

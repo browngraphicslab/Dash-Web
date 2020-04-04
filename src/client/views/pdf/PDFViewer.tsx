@@ -31,8 +31,6 @@ import { InkingControl } from "../InkingControl";
 import { InkTool } from "../../../new_fields/InkField";
 import { TraceMobx } from "../../../new_fields/util";
 import { PdfField } from "../../../new_fields/URLField";
-import { PDFBox } from "../nodes/PDFBox";
-import { FormattedTextBox } from "../nodes/FormattedTextBox";
 import { DocumentView } from "../nodes/DocumentView";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 const pdfjsLib = require("pdfjs-dist");
@@ -61,6 +59,7 @@ interface IViewerProps {
     PanelHeight: () => number;
     ContentScaling: () => number;
     select: (isCtrlPressed: boolean) => void;
+    rootSelected: () => boolean;
     startupLive: boolean;
     renderDepth: number;
     focus: (doc: Doc) => void;

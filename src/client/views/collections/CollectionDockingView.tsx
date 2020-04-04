@@ -788,6 +788,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             Document={document}
             DataDoc={resolvedDataDoc}
             bringToFront={emptyFunction}
+            rootSelected={returnTrue}
             addDocument={undefined}
             removeDocument={undefined}
             ContentScaling={this.contentScaling}

@@ -309,6 +309,7 @@ export class MainView extends React.Component {
             addDocument={undefined}
             addDocTab={this.addDocTabFunc}
             pinToPres={emptyFunction}
+            rootSelected={returnTrue}
             onClick={undefined}
             backgroundColor={this.defaultBackgroundColors}
             removeDocument={undefined}
@@ -407,6 +408,7 @@ export class MainView extends React.Component {
                     DataDoc={undefined}
                     LibraryPath={emptyPath}
                     addDocument={undefined}
+                    rootSelected={returnTrue}
                     addDocTab={this.addDocTabFunc}
                     pinToPres={emptyFunction}
                     removeDocument={undefined}
@@ -435,6 +437,7 @@ export class MainView extends React.Component {
                     addDocument={undefined}
                     addDocTab={this.addDocTabFunc}
                     pinToPres={emptyFunction}
+                    rootSelected={returnTrue}
                     removeDocument={returnFalse}
                     onClick={undefined}
                     ScreenToLocalTransform={this.mainContainerXf}
@@ -523,6 +526,7 @@ export class MainView extends React.Component {
                     fieldKey={"data"}
                     dropAction={"alias"}
                     annotationsKey={""}
+                    rootSelected={returnTrue}
                     bringToFront={emptyFunction}
                     select={emptyFunction}
                     active={returnFalse}

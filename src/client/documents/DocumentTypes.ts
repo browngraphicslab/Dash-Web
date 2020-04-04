@@ -22,7 +22,7 @@ export enum DocumentType {
     RECOMMENDATION = "recommendation",
     LINKFOLLOW = "linkfollow",
     PRESELEMENT = "preselement",
-    QUERY = "search",
+    QUERY = "query",
     COLOR = "color",
     DOCULINK = "doculink",
     PDFANNO = "pdfanno",

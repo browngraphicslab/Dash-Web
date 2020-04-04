@@ -60,6 +60,7 @@ export interface DocumentViewProps {
     LayoutDoc?: () => Opt<Doc>;
     LibraryPath: Doc[];
     fitToBox?: boolean;
+    rootSelected: () => boolean; // whether the root of a template has been selected
     onClick?: ScriptField;
     onPointerDown?: ScriptField;
     onPointerUp?: ScriptField;
@@ -272,10 +273,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
 
+    dontDecorateSelection: any = false;
     onClick = (e: React.MouseEvent | React.PointerEvent) => {
+        this.dontDecorateSelection = this.props.Document.dontDecorateSelection && (!e.ctrlKey || e.button < 2);
         if (!e.nativeEvent.cancelBubble && !this.Document.ignoreClick &&
             (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD && Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD)) {
-            e.stopPropagation();
+            let stopPropagate = true;
             let preventDefault = true;
             this.props.bringToFront(this.props.Document);
             if (this._doubleTap && this.props.renderDepth && !this.onClickHandler?.script) { // disable double-click to show full screen for things that have an on click behavior since clicking them twice can be misinterpreted as a double click
@@ -292,16 +295,21 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     this: this.props.Document,
                     self: Cast(this.props.Document.rootDocument, Doc, null) || this.props.Document,
                     containingCollection: this.props.ContainingCollectionDoc, shiftKey: e.shiftKey
-                }, console.log) && !this.props.Document.dontSelect && !this.props.Document.isButton && this.select(false), "on click");
+                }, console.log) && !this.props.Document.dontDecorateSelection && !this.props.Document.isButton && this.select(false), "on click");
             } else if (this.Document.type === DocumentType.BUTTON) {
                 UndoManager.RunInBatch(() => ScriptBox.EditButtonScript("On Button Clicked ...", this.props.Document, "onClick", e.clientX, e.clientY), "on button click");
             } else if (this.Document.isButton) {
                 SelectionManager.SelectDoc(this, e.ctrlKey); // don't think this should happen if a button action is actually triggered.
                 UndoManager.RunInBatch(() => this.buttonClick(e.altKey, e.ctrlKey), "on link button follow");
             } else {
-                SelectionManager.SelectDoc(this, e.ctrlKey);
+                if (this.props.Document.isTemplateForField && !(e.ctrlKey || e.button > 0)) {
+                    stopPropagate = false;
+                } else {
+                    SelectionManager.SelectDoc(this, e.ctrlKey);
+                }
                 preventDefault = false;
             }
+            stopPropagate && e.stopPropagation();
             preventDefault && e.preventDefault();
         }
     }
@@ -926,6 +934,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const fallback = Cast(this.props.Document.layoutKey, "string");
         return typeof fallback === "string" ? fallback : "layout";
     }
+    rootSelected = () => {
+        return this.isSelected(false) || (this.props.Document.forceActive && this.props.rootSelected?.() ? true : false);
+    }
     childScaling = () => (this.layoutDoc._fitWidth ? this.props.PanelWidth() / this.nativeWidth : this.props.ContentScaling());
     @computed get contents() {
         TraceMobx();
@@ -935,6 +946,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             DataDoc={this.props.DataDoc}
             LayoutDoc={this.props.LayoutDoc}
             makeLink={this.makeLink}
+            rootSelected={this.rootSelected}
             fitToBox={this.props.fitToBox}
             LibraryPath={this.props.LibraryPath}
             addDocument={this.props.addDocument}
@@ -983,9 +995,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 {StrCast(this.props.Document.title)}
                 {this.Document.links && DocListCast(this.Document.links).filter(d => !d.hidden).filter(this.isNonTemporalLink).map((d, i) =>
                     <div className="documentView-docuLinkWrapper" style={{ position: "absolute", top: 0, left: 0 }} key={`${d[Id]}`}>
-                        <DocumentView {...this.props} Document={d} ContainingCollectionDoc={this.props.Document}
-                            PanelWidth={returnOne} PanelHeight={returnOne} layoutKey={this.linkEndpoint(d)} ContentScaling={returnOne}
-                            backgroundColor={returnTransparent} removeDocument={undoBatch(doc => doc.hidden = true)} />
+                        <DocumentView {...this.props}
+                            Document={d}
+                            ContainingCollectionDoc={this.props.Document}
+                            PanelWidth={returnOne} PanelHeight={returnOne}
+                            layoutKey={this.linkEndpoint(d)} ContentScaling={returnOne}
+                            backgroundColor={returnTransparent}
+                            removeDocument={undoBatch(doc => doc.hidden = true)} />
                     </div>)}
             </div>;
         }

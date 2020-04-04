@@ -41,6 +41,8 @@ import { ComputedField, ScriptField } from "../../new_fields/ScriptField";
 import { ProxyField } from "../../new_fields/Proxy";
 import { DocumentType } from "./DocumentTypes";
 import { RecommendationsBox } from "../views/RecommendationsBox";
+import { SearchBox } from "../views/search/SearchBox";
+
 //import { PresBox } from "../views/nodes/PresBox";
 //import { PresField } from "../../new_fields/PresField";
 import { PresElementBox } from "../views/presentationview/PresElementBox";
@@ -101,6 +103,7 @@ export interface DocumentOptions {
     isDisplayPanel?: boolean; // whether the panel functions as GoldenLayout "stack" used to display documents
     forceActive?: boolean;
     layout?: string | Doc;
+    hideFilterView?: boolean; // whether to hide the filter popout on collections
     hideHeadings?: boolean; // whether stacking view column headings should be hidden
     isTemplateForField?: string; // the field key for which the containing document is a rendering template
     isTemplateDoc?: boolean;
@@ -115,7 +118,7 @@ export interface DocumentOptions {
     lockedTransform?: boolean; // lock the panx,pany and scale parameters of the document so that it be panned/zoomed
     opacity?: number;
     defaultBackgroundColor?: string;
-    dontSelect?: boolean; // whether document decorations should be displayed when the document is selected
+    dontDecorateSelection?: boolean; // whether document decorations should be displayed when the document is selected
     isBackground?: boolean;
     isButton?: boolean;
     columnWidth?: number;
@@ -161,6 +164,9 @@ export interface DocumentOptions {
     flexDirection?: "unset" | "row" | "column" | "row-reverse" | "column-reverse";
     selectedIndex?: number;
     syntaxColor?: string; // can be applied to text for syntax highlighting all matches in the text
+    searchText?: string, //for searchbox
+    searchQuery?: string, // for queryBox
+    filterQuery?: string,
     linearViewIsExpanded?: boolean; // is linear view expanded
 }
 
@@ -430,7 +436,7 @@ export namespace Docs {
         Scripting.addGlobal(Buxton);
 
         const delegateKeys = ["x", "y", "layoutKey", "_width", "_height", "_panX", "_panY", "_viewType", "_nativeWidth", "_nativeHeight", "dropAction", "childDropAction", "_annotationOn",
-            "_chromeStatus", "_forceActive", "_autoHeight", "_fitWidth", "_LODdisable", "_itemIndex", "_showSidebar", "_showTitle", "_showCaption", "_showTitleHover", "_backgroundColor",
+            "_chromeStatus", "_autoHeight", "_fitWidth", "_LODdisable", "_itemIndex", "_showSidebar", "_showTitle", "_showCaption", "_showTitleHover", "_backgroundColor",
             "_xMargin", "_yMargin", "_xPadding", "_yPadding", "_singleLine", "_scrollTop",
             "_color", "isButton", "isBackground", "removeDropProperties", "treeViewOpen"];
 
