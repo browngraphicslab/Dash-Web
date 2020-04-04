@@ -27,7 +27,7 @@ export class QueryBox extends DocAnnotatableComponent<FieldViewProps, QueryDocum
 
     render() {
         const dragging = !SelectionManager.GetIsDragging() ? "" : "-dragging";
-        return <div className={`queryBox${dragging}`} >
+        return <div className={`queryBox${dragging}`} onWheel={(e) => e.stopPropagation()} >
             <SearchBox id={this.props.Document[Id]} searchQuery={StrCast(this.dataDoc.searchQuery)} filterQquery={StrCast(this.dataDoc.filterQuery)} />
         </div >;
     }

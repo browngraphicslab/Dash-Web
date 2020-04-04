@@ -103,6 +103,7 @@ export interface DocumentOptions {
     isDisplayPanel?: boolean; // whether the panel functions as GoldenLayout "stack" used to display documents
     forceActive?: boolean;
     layout?: string | Doc;
+    hideFilterView?: boolean; // whether to hide the filter popout on collections
     hideHeadings?: boolean; // whether stacking view column headings should be hidden
     isTemplateForField?: string; // the field key for which the containing document is a rendering template
     isTemplateDoc?: boolean;
