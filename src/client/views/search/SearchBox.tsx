@@ -89,7 +89,7 @@ export class SearchBox extends React.Component<SearchProps> {
 
 
     @action
-    getViews = (doc: Doc) => SearchUtil.GetViewsOfDocument(doc);
+    getViews = (doc: Doc) => SearchUtil.GetViewsOfDocument(doc)
 
     @action.bound
     onChange(e: React.ChangeEvent<HTMLInputElement>) {
