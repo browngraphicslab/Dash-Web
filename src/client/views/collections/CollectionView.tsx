@@ -282,7 +282,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
 
     bodyPanelWidth = () => this.props.PanelWidth() - this.facetWidth();
     getTransform = () => this.props.ScreenToLocalTransform().translate(-this.facetWidth(), 0);
-    facetWidth = () => Math.min(this.props.PanelWidth() - 25, this._facetWidth);
+    facetWidth = () => Math.max(0, Math.min(this.props.PanelWidth() - 25, this._facetWidth));
 
     @computed get dataDoc() {
         return (this.props.DataDoc && this.props.Document.isTemplateForField ? Doc.GetProto(this.props.DataDoc) :

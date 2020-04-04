@@ -161,7 +161,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
             );
         }
         return <ul className="template-list" style={{ display: "block" }}>
-            <input placeholder="+ layout" ref={this._customRef} onKeyPress={this.onCustomKeypress}></input>
+            <input placeholder="+ layout" ref={this._customRef} onKeyPress={this.onCustomKeypress}/>
             {templateMenu}
         </ul>;
     }
