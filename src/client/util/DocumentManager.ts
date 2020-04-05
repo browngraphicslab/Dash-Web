@@ -1,7 +1,6 @@
 import { action, computed, observable } from 'mobx';
 import { Doc, DocListCastAsync, DocListCast, Opt } from '../../new_fields/Doc';
 import { Id } from '../../new_fields/FieldSymbols';
-import { List } from '../../new_fields/List';
 import { Cast, NumCast, StrCast } from '../../new_fields/Types';
 import { CollectionDockingView } from '../views/collections/CollectionDockingView';
 import { CollectionView } from '../views/collections/CollectionView';
@@ -10,8 +9,8 @@ import { LinkManager } from './LinkManager';
 import { Scripting } from './Scripting';
 import { SelectionManager } from './SelectionManager';
 import { DocumentType } from '../documents/DocumentTypes';
-import { UndoManager } from './UndoManager';
 
+export type CreateViewFunc = (doc: Doc, followLinkLocation: string, finished?: () => void) => void;
 
 export class DocumentManager {
 
@@ -137,14 +136,15 @@ export class DocumentManager {
     public jumpToDocument = async (
         targetDoc: Doc,
         willZoom: boolean,
-        dockFunc = DocumentManager.addRightSplit,
+        createViewFunc = DocumentManager.addRightSplit,
         docContext?: Doc,
         linkId?: string,
         closeContextIfNotFound: boolean = false,
         originatingDoc: Opt<Doc> = undefined,
-        finished?: () => void): Promise<void> => {
+        finished?: () => void
+    ): Promise<void> => {
         const getFirstDocView = DocumentManager.Instance.getFirstDocumentView;
-        const finishFalse: DocFocusFunc = () => { finished?.(); return false; };
+        const focusAndFinish = () => { finished?.(); return false; };
         const highlight = () => {
             const finalDocView = getFirstDocView(targetDoc);
             if (finalDocView) {
@@ -159,7 +159,7 @@ export class DocumentManager {
             if (first) annotatedDoc = first.props.Document;
         }
         if (docView) {  // we have a docView already and aren't forced to create a new one ... just focus on the document.  TODO move into view if necessary otherwise just highlight?
-            docView.props.focus(docView.props.Document, willZoom, undefined, finishFalse);
+            docView.props.focus(docView.props.Document, willZoom, undefined, focusAndFinish);
             highlight();
         } else {
             const contextDocs = docContext ? await DocListCastAsync(docContext.data) : undefined;
@@ -167,72 +167,67 @@ export class DocumentManager {
             const targetDocContext = annotatedDoc || contextDoc;
 
             if (!targetDocContext) { // we don't have a view and there's no context specified ... create a new view of the target using the dockFunc or default
-                dockFunc(Doc.BrushDoc(targetDoc), finished); // bcz: should we use this?: Doc.MakeAlias(targetDoc)));
+                createViewFunc(Doc.BrushDoc(targetDoc), finished); // bcz: should we use this?: Doc.MakeAlias(targetDoc)));
                 highlight();
-            } else {
+            } else {  // otherwise try to get a view of the context of the target
                 const targetDocContextView = getFirstDocView(targetDocContext);
                 targetDocContext.scrollY = 0;  // this will force PDFs to activate and load their annotations / allow scrolling
-                if (targetDocContextView) { // we have a context view and aren't forced to create a new one ... focus on the context
+                if (targetDocContextView) { // we found a context view and aren't forced to create a new one ... focus on the context first..
                     targetDocContext.panTransformType = "Ease";
                     targetDocContextView.props.focus(targetDocContextView.props.Document, willZoom);
 
                     // now find the target document within the context
-                    if (targetDoc.displayTimecode) {  // the target should show up once the video scrubs to the display timecode;
+                    if (targetDoc.displayTimecode) {  // if the target has a timecode, it should show up once the (presumed) video context scrubs to the display timecode;
                         targetDocContext.currentTimecode = targetDoc.displayTimecode;
                         finished?.();
-                    } else {
+                    } else { // no timecode means we need to find the context view and focus on our target
                         setTimeout(() => {
-                            const retryDocView = getFirstDocView(targetDoc);
-                            if (retryDocView) {
-                                retryDocView.props.focus(targetDoc, willZoom, undefined, finishFalse); // focus on the target if it now exists in the context
-                            } else {
+                            const retryDocView = getFirstDocView(targetDoc);  // test again for the target view snce we presumably created the context above by focusing on it
+                            if (retryDocView) {   // we found the target in the context
+                                retryDocView.props.focus(targetDoc, willZoom, undefined, focusAndFinish); // focus on the target in the context
+                            } else { // we didn't find the target, so it must have moved out of the context.  Go back to just creating it.
                                 if (closeContextIfNotFound) targetDocContextView.props.removeDocument?.(targetDocContextView.props.Document);
-                                targetDoc.layout && dockFunc(Doc.BrushDoc(Doc.MakeAlias(targetDoc)), finished); // otherwise create a new view of the target
+                                targetDoc.layout && createViewFunc(Doc.BrushDoc(targetDoc), finished); //  create a new view of the target
                             }
                             highlight();
                         }, 0);
                     }
                 } else {  // there's no context view so we need to create one first and try again
-                    dockFunc(targetDocContext);
+                    createViewFunc(targetDocContext); // so first we create the target, but don't pass finished because we still need to create the target
                     setTimeout(() => {
                         const finalDocView = getFirstDocView(targetDoc);
                         const finalDocContextView = getFirstDocView(targetDocContext);
                         setTimeout(() =>  // if not, wait a bit to see if the context can be loaded (e.g., a PDF). wait interval heurisitic tries to guess how we're animating based on what's just become visible
-                            this.jumpToDocument(targetDoc, willZoom, dockFunc, undefined, linkId, true, undefined, finished), finalDocView ? 0 : finalDocContextView ? 250 : 2000); // so call jump to doc again and if the doc isn't found, it will be created.
+                            this.jumpToDocument(targetDoc, willZoom, createViewFunc, undefined, linkId, true, undefined, finished), // pass true this time for closeContextIfNotFound
+                            finalDocView ? 0 : finalDocContextView ? 250 : 2000); // so call jump to doc again and if the doc isn't found, it will be created.
                     }, 0);
                 }
             }
         }
     }
 
-    public async FollowLink(link: Doc | undefined, doc: Doc, focus: (doc: Doc, followLinkLocation: string, afterFocus?: DocFocusFunc) => void, zoom = false, reverse = false, currentContext?: Doc, finished?: () => void) {
+    public async FollowLink(link: Opt<Doc>, doc: Doc, createViewFunc: CreateViewFunc, zoom = false, currentContext?: Doc, finished?: () => void, traverseBacklink?: boolean) {
         const linkDocs = link ? [link] : DocListCast(doc.links);
         SelectionManager.DeselectAll();
-        const firstDocs = linkDocs.filter(linkDoc => Doc.AreProtosEqual(linkDoc.anchor1 as Doc, doc));
-        const secondDocs = linkDocs.filter(linkDoc => Doc.AreProtosEqual(linkDoc.anchor2 as Doc, doc));
-        const firstDocWithoutView = firstDocs.find(d => DocumentManager.Instance.getDocumentViews(d.anchor2 as Doc).length === 0);
-        const secondDocWithoutView = secondDocs.find(d => DocumentManager.Instance.getDocumentViews(d.anchor1 as Doc).length === 0);
-        const first = firstDocWithoutView ? [firstDocWithoutView] : firstDocs;
-        const second = secondDocWithoutView ? [secondDocWithoutView] : secondDocs;
-        const linkDoc = first.length ? first[0] : second.length ? second[0] : undefined;
-        const linkFollowDocs = first.length ? [await first[0].anchor2 as Doc, await first[0].anchor1 as Doc] : second.length ? [await second[0].anchor1 as Doc, await second[0].anchor2 as Doc] : undefined;
-        const linkFollowDocContexts = first.length ? [await first[0].context as Doc, await first[0].context as Doc] : second.length ? [await second[0].context as Doc, await second[0].context as Doc] : [undefined, undefined];
-        const linkFollowTimecodes = first.length ? [NumCast(first[0].anchor2_timecode), NumCast(first[0].anchor1_timecode)] : second.length ? [NumCast(second[0].anchor1_timecode), NumCast(second[0].anchor2_timecode)] : [undefined, undefined];
-        const Jump = DocumentManager.Instance.jumpToDocument;
-        const Focus = (where: string) => (doc: Doc, finished?: () => void) => focus(doc, where, () => { finished?.(); return false; });
-        if (linkFollowDocs && linkDoc) {
-            const followLinkLocation = StrCast(linkDoc.followLinkLocation, "inTab");
-            const targetContext = !Doc.AreProtosEqual(linkFollowDocContexts[reverse ? 1 : 0], currentContext) ? linkFollowDocContexts[reverse ? 1 : 0] : undefined;
-            const target = linkFollowDocs[reverse ? 1 : 0];
-            const annotatedDoc = await Cast(target.annotationOn, Doc);
-            if (annotatedDoc) {
-                annotatedDoc.currentTimecode !== undefined && (target.currentTimecode = linkFollowTimecodes[reverse ? 1 : 0]);
+        const firstDocs = linkDocs.filter(linkDoc => Doc.AreProtosEqual(linkDoc.anchor1 as Doc, doc)); // link docs where 'doc' is anchor1
+        const secondDocs = linkDocs.filter(linkDoc => Doc.AreProtosEqual(linkDoc.anchor2 as Doc, doc)); // link docs where 'doc' is anchor2
+        const fwdLinkWithoutTargetView = firstDocs.find(d => DocumentManager.Instance.getDocumentViews(d.anchor2 as Doc).length === 0);
+        const backLinkWithoutTargetView = secondDocs.find(d => DocumentManager.Instance.getDocumentViews(d.anchor1 as Doc).length === 0);
+        const linkWithoutTargetDoc = traverseBacklink === undefined ? fwdLinkWithoutTargetView || backLinkWithoutTargetView : traverseBacklink ? backLinkWithoutTargetView : fwdLinkWithoutTargetView;
+        const linkDocList = linkWithoutTargetDoc ? [linkWithoutTargetDoc] : (traverseBacklink === undefined ? firstDocs.concat(secondDocs) : traverseBacklink ? secondDocs : firstDocs);
+        const linkDoc = linkDocList.length && linkDocList[0];
+        if (linkDoc) {
+            const target = (doc === linkDoc.anchor1 ? linkDoc.anchor2 : doc === linkDoc.anchor2 ? linkDoc.anchor1 :
+                (Doc.AreProtosEqual(doc, linkDoc.anchor1 as Doc) ? linkDoc.anchor2 : linkDoc.anchor1)) as Doc;
+            if (target) {
+                const containerDoc = (await Cast(target.annotationOn, Doc)) || target;
+                containerDoc.currentTimecode !== undefined && (containerDoc.currentTimecode = NumCast(target?.timecode));
+                const targetContext = await target?.context as Doc;
+                const targetNavContext = !Doc.AreProtosEqual(targetContext, currentContext) ? targetContext : undefined;
+                DocumentManager.Instance.jumpToDocument(target, zoom, (doc, finished) => createViewFunc(doc, "onRight", finished), targetNavContext, linkDoc[Id], undefined, doc, finished);
             } else {
-                target.currentTimecode !== undefined && (target.currentTimecode = linkFollowTimecodes[reverse ? 1 : 0]);
+                finished?.();
             }
-            Jump(linkFollowDocs[reverse ? 1 : 0], zoom, Focus(followLinkLocation), targetContext, linkDoc[Id], undefined, doc, finished);
-        } else if (link) {
-            Jump(link, zoom, Focus("onRight"), undefined, undefined, undefined, undefined, finished);
         } else {
             finished?.();
         }

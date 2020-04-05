@@ -71,7 +71,7 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
             scrollLinkId => {
                 if (scrollLinkId) {
                     DocListCast(this.dataDoc.links).filter(l => l[Id] === scrollLinkId).map(l => {
-                        const linkTime = Doc.AreProtosEqual(l.anchor1 as Doc, this.dataDoc) ? NumCast(l.anchor1_timecode) : NumCast(l.anchor2_timecode);
+                        const linkTime = Doc.AreProtosEqual(l.anchor1 as Doc, this.dataDoc) ? NumCast((l.anchor1 as Doc).timecode) : NumCast((l.anchor2 as Doc).timecode);
                         setTimeout(() => { this.playFromTime(linkTime); Doc.linkFollowHighlight(l); }, 250);
                     });
                     Doc.SetInPlace(this.layoutDoc, "scrollToLinkID", undefined, false);
@@ -92,10 +92,11 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
             htmlEle.duration && htmlEle.duration !== Infinity && runInAction(() => this.dataDoc.duration = htmlEle.duration);
             DocListCast(this.dataDoc.links).map(l => {
                 let la1 = l.anchor1 as Doc;
-                let linkTime = NumCast(l.anchor2_timecode);
+                const la2 = l.anchor2 as Doc;
+                let linkTime = NumCast(la2.timecode);
                 if (Doc.AreProtosEqual(la1, this.dataDoc)) {
+                    linkTime = NumCast(la1.timecode);
                     la1 = l.anchor2 as Doc;
-                    linkTime = NumCast(l.anchor1_timecode);
                 }
                 if (linkTime > NumCast(this.Document.currentTimecode) && linkTime < htmlEle.currentTime) {
                     Doc.linkFollowHighlight(la1);
@@ -249,11 +250,11 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
                             {DocListCast(this.dataDoc.links).map((l, i) => {
                                 let la1 = l.anchor1 as Doc;
                                 let la2 = l.anchor2 as Doc;
-                                let linkTime = NumCast(l.anchor2_timecode);
+                                let linkTime = NumCast(la2.timecode);
                                 if (Doc.AreProtosEqual(la1, this.dataDoc)) {
                                     la1 = l.anchor2 as Doc;
                                     la2 = l.anchor1 as Doc;
-                                    linkTime = NumCast(l.anchor1_timecode);
+                                    linkTime = NumCast(la1.timecode);
                                 }
                                 return !linkTime ? (null) :
                                     <div className={this.props.PanelHeight() < 32 ? "audiobox-marker-minicontainer" : "audiobox-marker-container"} key={l[Id]} style={{ left: `${linkTime / NumCast(this.dataDoc.duration, 1) * 100}%` }}>

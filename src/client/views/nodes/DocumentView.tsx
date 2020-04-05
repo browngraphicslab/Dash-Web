@@ -299,7 +299,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             } else if (this.Document.type === DocumentType.BUTTON) {
                 UndoManager.RunInBatch(() => ScriptBox.EditButtonScript("On Button Clicked ...", this.props.Document, "onClick", e.clientX, e.clientY), "on button click");
             } else if (this.Document.isButton) {
-                DocListCast(this.props.Document.links).length && this.followLinkClick(e.altKey, e.ctrlKey);
+                DocListCast(this.props.Document.links).length && this.followLinkClick(e.altKey, e.ctrlKey, e.shiftKey);
             } else {
                 if (this.props.Document.isTemplateForField && !(e.ctrlKey || e.button > 0)) {
                     stopPropagate = false; // don't stop propagation for field templates -- want the selection to propagate up to the root document of the template
@@ -316,17 +316,23 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     // follows a link - if the target is on screen, it highlights/pans to it.
     // if the target isn't onscreen, then it will open up the target in a tab, on the right, or in place
     // depending on the followLinkLocation property of the source (or the link itself as a fallback);
-    followLinkClick = async (altKey: boolean, ctrlKey: boolean) => {
+    followLinkClick = async (altKey: boolean, ctrlKey: boolean, shiftKey: boolean) => {
         const batch = UndoManager.StartBatch("follow link click");
-        const docFollowLoc = StrCast(this.Document.followLinkLocation);
-        const { focus, addDocTab } = this.props;
-        await DocumentManager.Instance.FollowLink(undefined, this.props.Document,
-            // open up target if it's not already in view ... by zooming into the button document first and setting flag to reset zoom afterwards (except if 'inPlace', then leave alone)
-            (doc, followLoc, afterFocus) => focus(this.props.Document, true, 1, () => {
-                addDocTab(doc, docFollowLoc || followLoc) && focus(doc, true, undefined, afterFocus);
-                return (docFollowLoc || followLoc) === "inPlace" ? false : true;
-            }),
-            ctrlKey, altKey, this.props.ContainingCollectionDoc, batch.end);
+        // open up target if it's not already in view ... 
+        const createViewFunc = (doc: Doc, followLoc: string, finished: Opt<() => void>) => {
+            const targetFocusAfterDocFocus = () => {
+                const where = StrCast(this.Document.followLinkLocation) || followLoc;
+                const hackToCallFinishAfterFocus = () => {
+                    setTimeout(() => finished?.(), 0); // finished() needs to be called right after hackToCallFinishAfterFocus(), but there's no callback for that so we use the hacky timeout.  
+                    return false; // we must return false here so that the zoom to the document is not reversed.  If it weren't for needing to call finished(), we wouldn't need this function at all since not having it is equivalent to returning false
+                }
+                this.props.addDocTab(doc, where) && this.props.focus(doc, true, undefined, hackToCallFinishAfterFocus); //  add the target and focus on it.
+                return where !== "inPlace"; // return true to reset the initial focus&zoom (return false for 'inPlace' since resetting the initial focus&zoom will negate the zoom into the target)
+            };
+            // first focus & zoom onto this (the clicked document).  Then execute the function to focus on the target
+            this.props.focus(this.props.Document, true, 1, targetFocusAfterDocFocus);
+        };
+        await DocumentManager.Instance.FollowLink(undefined, this.props.Document, createViewFunc, shiftKey, this.props.ContainingCollectionDoc, batch.end, altKey ? true : undefined);
     }
 
     handle1PointerDown = (e: React.TouchEvent, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>) => {
@@ -989,13 +995,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
     linkEndpoint = (linkDoc: Doc) => Doc.LinkEndpoint(linkDoc, this.props.Document);
 
-    // used to decide whether a link document should be created or not.
+    // used to decide whether a link anchor view should be created or not.
     // if it's a tempoarl link (currently just for Audio), then the audioBox will display the anchor and we don't want to display it here.
     // would be good to generalize this some way.
     isNonTemporalLink = (linkDoc: Doc) => {
         const anchor = Cast(Doc.AreProtosEqual(this.props.Document, Cast(linkDoc.anchor1, Doc) as Doc) ? linkDoc.anchor1 : linkDoc.anchor2, Doc) as Doc;
-        const ept = Doc.AreProtosEqual(this.props.Document, Cast(linkDoc.anchor1, Doc) as Doc) ? linkDoc.anchor1_timecode : linkDoc.anchor2_timecode;
-        return anchor.type === DocumentType.AUDIO && NumCast(ept) ? false : true;
+        return anchor.type === DocumentType.AUDIO ? false : true;
     }
 
     @observable _link: Opt<Doc>;
