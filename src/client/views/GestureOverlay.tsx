@@ -623,7 +623,7 @@ export default class GestureOverlay extends Touchable {
                             actionPerformed = true;
                             break;
                         case GestureUtils.Gestures.EndBracket:
-                            this.dispatchGesture(GestureUtils.Gestures.EndBracket);
+                            this.dispatchGesture("endbracket");
                             actionPerformed = true;
                             break;
                         case GestureUtils.Gestures.Line:
@@ -648,7 +648,7 @@ export default class GestureOverlay extends Touchable {
         document.removeEventListener("pointerup", this.onPointerUp);
     }
 
-    dispatchGesture = (gesture: GestureUtils.Gestures, stroke?: InkData, data?: any) => {
+    dispatchGesture = (gesture: "box" | "line" | "startbracket" | "endbracket" | "stroke" | "scribble" | "text", stroke?: InkData, data?: any) => {
         const target = document.elementFromPoint((stroke ?? this._points)[0].X, (stroke ?? this._points)[0].Y);
         target?.dispatchEvent(
             new CustomEvent<GestureUtils.GestureEvent>("dashOnGesture",
@@ -656,7 +656,7 @@ export default class GestureOverlay extends Touchable {
                     bubbles: true,
                     detail: {
                         points: stroke ?? this._points,
-                        gesture: gesture,
+                        gesture: gesture as any,
                         bounds: this.getBounds(stroke ?? this._points),
                         text: data
                     }
