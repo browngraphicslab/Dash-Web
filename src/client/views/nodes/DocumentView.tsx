@@ -325,7 +325,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 const hackToCallFinishAfterFocus = () => {
                     setTimeout(() => finished?.(), 0); // finished() needs to be called right after hackToCallFinishAfterFocus(), but there's no callback for that so we use the hacky timeout.  
                     return false; // we must return false here so that the zoom to the document is not reversed.  If it weren't for needing to call finished(), we wouldn't need this function at all since not having it is equivalent to returning false
-                }
+                };
                 this.props.addDocTab(doc, where) && this.props.focus(doc, true, undefined, hackToCallFinishAfterFocus); //  add the target and focus on it.
                 return where !== "inPlace"; // return true to reset the initial focus&zoom (return false for 'inPlace' since resetting the initial focus&zoom will negate the zoom into the target)
             };
