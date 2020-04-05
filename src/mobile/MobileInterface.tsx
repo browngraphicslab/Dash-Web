@@ -212,7 +212,8 @@ export default class MobileInterface extends React.Component {
                         ScreenToLocalTransform={Transform.Identity}
                         renderDepth={0}
                         ContainingCollectionView={undefined}
-                        ContainingCollectionDoc={undefined}>
+                        ContainingCollectionDoc={undefined}
+                        rootSelected={returnTrue}>
                     </CollectionView>
                 </div>
             );

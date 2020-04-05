@@ -42,7 +42,7 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
                 if (pt.clientX === tPt.clientX && pt.clientY === tPt.clientY) {
                     // pen is also a touch, but with a radius of 0.5 (at least with the surface pens)
                     // and this seems to be the only way of differentiating pen and touch on touch events
-                    if (pt.radiusX > 1 && pt.radiusY > 1) {
+                    if ((pt as any).radiusX > 1 && (pt as any).radiusY > 1) {
                         this.prevPoints.set(pt.identifier, pt);
                     }
                 }
