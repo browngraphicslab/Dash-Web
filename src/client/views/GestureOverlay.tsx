@@ -193,7 +193,7 @@ export default class GestureOverlay extends Touchable {
                 }, (500));
             }
             else {
-                clearTimeout(this._holdTimer);
+                this._holdTimer && clearTimeout(this._holdTimer);
             }
             document.removeEventListener("touchmove", this.onReactTouchMove);
             document.removeEventListener("touchend", this.onReactTouchEnd);
@@ -270,7 +270,7 @@ export default class GestureOverlay extends Touchable {
 
     onReactTouchMove = (e: TouchEvent) => {
         const nts: any = this.getNewTouches(e);
-        clearTimeout(this._holdTimer);
+        this._holdTimer && clearTimeout(this._holdTimer);
         this._holdTimer = undefined;
 
         document.dispatchEvent(
@@ -290,7 +290,7 @@ export default class GestureOverlay extends Touchable {
 
     onReactTouchEnd = (e: TouchEvent) => {
         const nts: any = this.getNewTouches(e);
-        clearTimeout(this._holdTimer);
+        this._holdTimer && clearTimeout(this._holdTimer);
         this._holdTimer = undefined;
 
         document.dispatchEvent(
@@ -323,7 +323,7 @@ export default class GestureOverlay extends Touchable {
     }
 
     handleHandDown = async (e: React.TouchEvent) => {
-        clearTimeout(this._holdTimer!);
+        this._holdTimer && clearTimeout(this._holdTimer);
         const fingers = new Array<React.Touch>();
         for (let i = 0; i < e.touches.length; i++) {
             const pt: any = e.touches.item(i);
