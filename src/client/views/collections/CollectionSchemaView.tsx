@@ -28,7 +28,8 @@ import "./CollectionSchemaView.scss";
 import { CollectionSubView } from "./CollectionSubView";
 import { CollectionView } from "./CollectionView";
 import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
-import { setupMoveUpEvents, emptyFunction } from "../../../Utils";
+import { setupMoveUpEvents, emptyFunction, returnZero, returnOne } from "../../../Utils";
+import { DocumentView } from "../nodes/DocumentView";
 
 library.add(faCog, faPlus, faSortUp, faSortDown);
 library.add(faTable);
@@ -117,12 +118,14 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     @computed
     get previewPanel() {
-        return <div ref={this.createTarget}>
+        return !this.previewDocument ? (null) : <div ref={this.createTarget} style={{ width: `${this.previewWidth()}px` }}>
             <ContentFittingDocumentView
                 Document={this.previewDocument}
                 DataDocument={undefined}
+                NativeHeight={returnZero}
+                NativeWidth={returnZero}
+                focus={emptyFunction}
                 LibraryPath={this.props.LibraryPath}
-                childDocs={this.childDocs}
                 renderDepth={this.props.renderDepth}
                 rootSelected={this.rootSelected}
                 PanelWidth={this.previewWidth}
@@ -180,7 +183,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     render() {
         return <div className="collectionSchemaView-container">
-            <div className="collectionSchemaView-tableContainer" onPointerDown={this.onPointerDown} onWheel={e => this.props.active(true) && e.stopPropagation()} onDrop={e => this.onExternalDrop(e, {})} ref={this.createTarget}>
+            <div className="collectionSchemaView-tableContainer" style={{ width: `calc(100% - ${this.previewWidth()}px)` }} onPointerDown={this.onPointerDown} onWheel={e => this.props.active(true) && e.stopPropagation()} onDrop={e => this.onExternalDrop(e, {})} ref={this.createTarget}>
                 {this.schemaTable}
             </div>
             {this.dividerDragger}

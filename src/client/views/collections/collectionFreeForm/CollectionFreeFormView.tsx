@@ -952,11 +952,15 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         const elements: ViewDefResult[] = computedElementData.slice();
         this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)).forEach(pair =>
             elements.push({
-                ele: <CollectionFreeFormDocumentView key={pair.layout[Id]}  {...this.getChildDocumentViewProps(pair.layout, pair.data)}
+                ele: <CollectionFreeFormDocumentView
+                    key={pair.layout[Id]}
+                    {...this.getChildDocumentViewProps(pair.layout, pair.data)}
                     dataProvider={this.childDataProvider}
                     LayoutDoc={this.childLayoutDocFunc}
                     jitterRotation={NumCast(this.props.Document.jitterRotation)}
-                    fitToBox={this.props.fitToBox || this.props.layoutEngine !== undefined} />,
+                    fitToBox={this.props.fitToBox || this.props.layoutEngine !== undefined}
+                    FreezeDimensions={this.props.layoutEngine !== undefined}
+                />,
                 bounds: this.childDataProvider(pair.layout)
             }));
 

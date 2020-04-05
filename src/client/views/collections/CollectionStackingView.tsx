@@ -47,7 +47,6 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     @computed get numGroupColumns() { return this.isStackingView ? Math.max(1, this.Sections.size + (this.showAddAGroup ? 1 : 0)) : 1; }
     @computed get showAddAGroup() { return (this.pivotField && (this.props.Document._chromeStatus !== 'view-mode' && this.props.Document._chromeStatus !== 'disabled')); }
     @computed get columnWidth() {
-        TraceMobx();
         return Math.min(this.props.PanelWidth() / (this.props as any).ContentScaling() - 2 * this.xMargin,
             this.isStackingView ? Number.MAX_VALUE : NumCast(this.props.Document.columnWidth, 250));
     }

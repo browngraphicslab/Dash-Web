@@ -112,11 +112,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     public get ContentDiv() { return this._mainCont.current; }
     @computed get active() { return SelectionManager.IsSelected(this, true) || this.props.parentActive(true); }
     @computed get topMost() { return this.props.renderDepth === 0; }
-    @computed get freezeDimensions() { return this.props.FreezeDimensions || this.layoutDoc._freezeChildDimensions; }
-    @computed get nativeWidth() { return this.layoutDoc._nativeWidth || 0; }
-    @computed get nativeHeight() { return this.layoutDoc._nativeHeight || 0; }
-    // @computed get nativeWidth() { return NumCast(this.layoutDoc._nativeWidth, this.props.NativeWidth() || (this.freezeDimensions ? this.layoutDoc[WidthSym]() : 0)); }
-    // @computed get nativeHeight() { return NumCast(this.layoutDoc._nativeHeight, this.props.NativeHeight() || (this.freezeDimensions ? this.layoutDoc[HeightSym]() : 0)); }
+    @computed get freezeDimensions() { return this.props.FreezeDimensions; }
+    @computed get nativeWidth() { return NumCast(this.layoutDoc._nativeWidth, this.props.NativeWidth() || (this.freezeDimensions ? this.layoutDoc[WidthSym]() : 0)); }
+    @computed get nativeHeight() { return NumCast(this.layoutDoc._nativeHeight, this.props.NativeHeight() || (this.freezeDimensions ? this.layoutDoc[HeightSym]() : 0)); }
     @computed get onClickHandler() { return this.props.onClick || this.layoutDoc.onClick || this.Document.onClick; }
     @computed get onPointerDownHandler() { return this.props.onPointerDown ? this.props.onPointerDown : this.Document.onPointerDown; }
     @computed get onPointerUpHandler() { return this.props.onPointerUp ? this.props.onPointerUp : this.Document.onPointerUp; }
@@ -969,12 +967,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         return this.isSelected(false) || (this.props.Document.forceActive && this.props.rootSelected?.() ? true : false);
     }
     childScaling = () => (this.layoutDoc._fitWidth ? this.props.PanelWidth() / this.nativeWidth : this.props.ContentScaling());
+    panelWidth = () => this.props.PanelWidth();
+    panelHeight = () => this.props.PanelHeight();
+    screenToLocalTransform = () => this.props.ScreenToLocalTransform();
     @computed get contents() {
         TraceMobx();
         return (<DocumentContentsView ContainingCollectionView={this.props.ContainingCollectionView}
             ContainingCollectionDoc={this.props.ContainingCollectionDoc}
-            NativeHeight={returnZero}
-            NativeWidth={returnZero}
+            NativeWidth={this.NativeWidth}
+            NativeHeight={this.NativeHeight}
             Document={this.props.Document}
             DataDoc={this.props.DataDoc}
             LayoutDoc={this.props.LayoutDoc}
@@ -985,10 +986,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             addDocument={this.props.addDocument}
             removeDocument={this.props.removeDocument}
             moveDocument={this.props.moveDocument}
-            ScreenToLocalTransform={this.props.ScreenToLocalTransform}
+            ScreenToLocalTransform={this.screenToLocalTransform}
             renderDepth={this.props.renderDepth}
-            PanelWidth={this.props.PanelWidth}
-            PanelHeight={this.props.PanelHeight}
+            PanelWidth={this.panelWidth}
+            PanelHeight={this.panelHeight}
             focus={this.props.focus}
             parentActive={this.props.parentActive}
             whenActiveChanged={this.props.whenActiveChanged}

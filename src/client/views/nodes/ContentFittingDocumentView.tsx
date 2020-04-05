@@ -22,7 +22,6 @@ interface ContentFittingDocumentViewProps {
     NativeHeight?: () => number;
     FreezeDimensions?: boolean;
     LibraryPath: Doc[];
-    childDocs?: Doc[];
     renderDepth: number;
     fitToBox?: boolean;
     layoutKey?: string;
