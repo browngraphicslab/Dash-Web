@@ -10,7 +10,7 @@ import { makeInterface } from "../../../new_fields/Schema";
 import { ScriptField } from "../../../new_fields/ScriptField";
 import { Cast, StrCast } from "../../../new_fields/Types";
 import { VideoField } from "../../../new_fields/URLField";
-import { emptyFunction, returnFalse, returnOne, Utils } from "../../../Utils";
+import { emptyFunction, returnFalse, returnOne, Utils, returnZero } from "../../../Utils";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { ContextMenu } from "../ContextMenu";
@@ -170,6 +170,8 @@ export class ScreenshotBox extends DocAnnotatableComponent<FieldViewProps, Scree
                 <CollectionFreeFormView {...this.props}
                     PanelHeight={this.props.PanelHeight}
                     PanelWidth={this.props.PanelWidth}
+                    NativeHeight={returnZero}
+                    NativeWidth={returnZero}
                     annotationsKey={this.annotationKey}
                     focus={this.props.focus}
                     isSelected={this.props.isSelected}

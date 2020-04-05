@@ -3,7 +3,7 @@ import * as fa from '@fortawesome/free-solid-svg-icons';
 import { action, computed, runInAction, trace, observable } from "mobx";
 import { observer } from "mobx-react";
 import * as rp from "request-promise";
-import { Doc, DocListCast, Opt } from "../../../new_fields/Doc";
+import { Doc, DocListCast, Opt, WidthSym, HeightSym } from "../../../new_fields/Doc";
 import { Document, PositionDocument } from '../../../new_fields/documentSchemas';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { InkTool } from '../../../new_fields/InkField';
@@ -56,6 +56,9 @@ export type DocFocusFunc = () => boolean;
 export interface DocumentViewProps {
     ContainingCollectionView: Opt<CollectionView>;
     ContainingCollectionDoc: Opt<Doc>;
+    FreezeDimensions?: boolean;
+    NativeWidth: () => number;
+    NativeHeight: () => number;
     Document: Doc;
     DataDoc?: Doc;
     LayoutDoc?: () => Opt<Doc>;
@@ -109,11 +112,14 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     public get ContentDiv() { return this._mainCont.current; }
     @computed get active() { return SelectionManager.IsSelected(this, true) || this.props.parentActive(true); }
     @computed get topMost() { return this.props.renderDepth === 0; }
-    @computed get nativeWidth() { return this.layoutDoc._nativeWidth || 0; }
-    @computed get nativeHeight() { return this.layoutDoc._nativeHeight || 0; }
+    @computed get freezeDimensions() { return this.props.FreezeDimensions || this.layoutDoc._freezeChildDimensions; }
+    @computed get nativeWidth() { return NumCast(this.layoutDoc._nativeWidth, this.props.NativeWidth() || (this.freezeDimensions ? this.layoutDoc[WidthSym]() : 0)); }
+    @computed get nativeHeight() { return NumCast(this.layoutDoc._nativeHeight, this.props.NativeHeight() || (this.freezeDimensions ? this.layoutDoc[HeightSym]() : 0)); }
     @computed get onClickHandler() { return this.props.onClick || this.layoutDoc.onClick || this.Document.onClick; }
     @computed get onPointerDownHandler() { return this.props.onPointerDown ? this.props.onPointerDown : this.Document.onPointerDown; }
     @computed get onPointerUpHandler() { return this.props.onPointerUp ? this.props.onPointerUp : this.Document.onPointerUp; }
+    NativeWidth = () => this.nativeWidth;
+    NativeHeight = () => this.nativeHeight;
 
     private _firstX: number = -1;
     private _firstY: number = -1;
@@ -965,6 +971,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         TraceMobx();
         return (<DocumentContentsView ContainingCollectionView={this.props.ContainingCollectionView}
             ContainingCollectionDoc={this.props.ContainingCollectionDoc}
+            NativeHeight={this.NativeHeight}
+            NativeWidth={this.NativeWidth}
             Document={this.props.Document}
             DataDoc={this.props.DataDoc}
             LayoutDoc={this.props.LayoutDoc}

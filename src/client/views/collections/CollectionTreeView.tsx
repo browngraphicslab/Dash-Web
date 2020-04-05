@@ -465,6 +465,8 @@ class TreeView extends React.Component<TreeViewProps> {
                         ContentScaling={returnOne}
                         PanelWidth={returnZero}
                         PanelHeight={returnZero}
+                        NativeHeight={returnZero}
+                        NativeWidth={returnZero}
                         renderDepth={1}
                         focus={emptyFunction}
                         parentActive={returnTrue}

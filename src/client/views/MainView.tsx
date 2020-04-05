@@ -13,7 +13,7 @@ import { listSpec } from '../../new_fields/Schema';
 import { BoolCast, Cast, FieldValue, StrCast } from '../../new_fields/Types';
 import { TraceMobx } from '../../new_fields/util';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
-import { emptyFunction, emptyPath, returnFalse, returnOne, returnTrue, Utils } from '../../Utils';
+import { emptyFunction, emptyPath, returnFalse, returnOne, returnZero, returnTrue, Utils } from '../../Utils';
 import GoogleAuthenticationManager from '../apis/GoogleAuthenticationManager';
 import { DocServer } from '../DocServer';
 import { Docs, DocumentOptions } from '../documents/Documents';
@@ -307,6 +307,8 @@ export class MainView extends React.Component {
             removeDocument={undefined}
             ScreenToLocalTransform={Transform.Identity}
             ContentScaling={returnOne}
+            NativeHeight={returnZero}
+            NativeWidth={returnZero}
             PanelWidth={this.getPWidth}
             PanelHeight={this.getPHeight}
             renderDepth={0}
@@ -405,6 +407,8 @@ export class MainView extends React.Component {
                     onClick={undefined}
                     ScreenToLocalTransform={Transform.Identity}
                     ContentScaling={returnOne}
+                    NativeHeight={returnZero}
+                    NativeWidth={returnZero}
                     PanelWidth={this.flyoutWidthFunc}
                     PanelHeight={this.getPHeight}
                     renderDepth={0}
@@ -424,6 +428,8 @@ export class MainView extends React.Component {
                     addDocument={undefined}
                     addDocTab={this.addDocTabFunc}
                     pinToPres={emptyFunction}
+                    NativeHeight={returnZero}
+                    NativeWidth={returnZero}
                     rootSelected={returnTrue}
                     removeDocument={returnFalse}
                     onClick={undefined}
@@ -524,6 +530,8 @@ export class MainView extends React.Component {
                     onClick={undefined}
                     ScreenToLocalTransform={this.buttonBarXf}
                     ContentScaling={returnOne}
+                    NativeHeight={returnZero}
+                    NativeWidth={returnZero}
                     PanelWidth={this.flyoutWidthFunc}
                     PanelHeight={this.getContentsHeight}
                     renderDepth={0}

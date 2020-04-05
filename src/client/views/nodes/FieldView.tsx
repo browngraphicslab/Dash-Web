@@ -45,6 +45,8 @@ export interface FieldViewProps {
     focus: (doc: Doc) => void;
     PanelWidth: () => number;
     PanelHeight: () => number;
+    NativeHeight: () => number;
+    NativeWidth: () => number;
     setVideoBox?: (player: VideoBox) => void;
     ContentScaling: () => number;
     ChromeHeight?: () => number;

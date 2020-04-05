@@ -89,8 +89,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     @computed get fitToContent() { return (this.props.fitToBox || this.Document._fitToBox) && !this.isAnnotationOverlay; }
     @computed get parentScaling() { return this.props.ContentScaling && this.fitToContent && !this.isAnnotationOverlay ? this.props.ContentScaling() : 1; }
     @computed get contentBounds() { return aggregateBounds(this._layoutElements.filter(e => e.bounds && !e.bounds.z).map(e => e.bounds!), NumCast(this.layoutDoc.xPadding, 10), NumCast(this.layoutDoc.yPadding, 10)); }
-    @computed get nativeWidth() { return this.Document._fitToContent ? 0 : NumCast(this.Document._nativeWidth); }
-    @computed get nativeHeight() { return this.fitToContent ? 0 : NumCast(this.Document._nativeHeight); }
+    @computed get nativeWidth() { return this.Document._fitToContent ? 0 : NumCast(this.Document._nativeWidth, this.props.NativeWidth()); }
+    @computed get nativeHeight() { return this.fitToContent ? 0 : NumCast(this.Document._nativeHeight, this.props.NativeHeight()); }
     private get isAnnotationOverlay() { return this.props.isAnnotationOverlay; }
     private get borderWidth() { return this.isAnnotationOverlay ? 0 : COLLECTION_BORDER_WIDTH; }
     private easing = () => this.props.Document.panTransformType === "Ease";
@@ -825,6 +825,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             DataDoc: childData,
             Document: childLayout,
             LibraryPath: this.libraryPath,
+            FreezeDimensions: this.props.freezeDimensions,
             layoutKey: undefined,
             rootSelected: this.rootSelected,
             dropAction: StrCast(this.props.Document.childDropAction) as dropActionType,

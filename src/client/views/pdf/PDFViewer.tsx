@@ -9,7 +9,7 @@ import { List } from "../../../new_fields/List";
 import { makeInterface, createSchema } from "../../../new_fields/Schema";
 import { ScriptField, ComputedField } from "../../../new_fields/ScriptField";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
-import { smoothScroll, Utils, emptyFunction, returnOne, intersectRect, addStyleSheet, addStyleSheetRule, clearStyleSheetRules } from "../../../Utils";
+import { smoothScroll, Utils, emptyFunction, returnOne, intersectRect, addStyleSheet, addStyleSheetRule, clearStyleSheetRules, returnZero } from "../../../Utils";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
 import { CompiledScript, CompileScript } from "../../util/Scripting";
@@ -648,6 +648,8 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
                 setPreviewCursor={this.setPreviewCursor}
                 PanelHeight={this.panelWidth}
                 PanelWidth={this.panelHeight}
+                NativeHeight={returnZero}
+                NativeWidth={returnZero}
                 dropAction={"alias"}
                 VisibleHeight={this.visibleHeight}
                 focus={this.props.focus}

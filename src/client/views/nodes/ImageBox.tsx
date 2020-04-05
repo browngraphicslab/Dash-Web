@@ -14,7 +14,7 @@ import { ComputedField } from '../../../new_fields/ScriptField';
 import { Cast, NumCast, StrCast } from '../../../new_fields/Types';
 import { AudioField, ImageField } from '../../../new_fields/URLField';
 import { TraceMobx } from '../../../new_fields/util';
-import { emptyFunction, returnOne, Utils } from '../../../Utils';
+import { emptyFunction, returnOne, Utils, returnZero } from '../../../Utils';
 import { CognitiveServices, Confidence, Service, Tag } from '../../cognitive_services/CognitiveServices';
 import { Docs } from '../../documents/Documents';
 import { Networking } from '../../Network';
@@ -445,6 +445,8 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
             <CollectionFreeFormView {...this.props}
                 PanelHeight={this.props.PanelHeight}
                 PanelWidth={this.props.PanelWidth}
+                NativeHeight={returnZero}
+                NativeWidth={returnZero}
                 annotationsKey={this.annotationKey}
                 isAnnotationOverlay={true}
                 focus={this.props.focus}

@@ -6,7 +6,7 @@ import "./RecommendationsBox.scss";
 import { Doc, DocListCast, WidthSym, HeightSym } from "../../new_fields/Doc";
 import { DocumentIcon } from "./nodes/DocumentIcon";
 import { StrCast, NumCast } from "../../new_fields/Types";
-import { returnFalse, emptyFunction, returnEmptyString, returnOne, emptyPath } from "../../Utils";
+import { returnFalse, emptyFunction, returnEmptyString, returnOne, emptyPath, returnZero } from "../../Utils";
 import { Transform } from "../util/Transform";
 import { ObjectField } from "../../new_fields/ObjectField";
 import { DocumentView } from "./nodes/DocumentView";
@@ -73,6 +73,8 @@ export class RecommendationsBox extends React.Component<FieldViewProps> {
                 addDocTab={returnFalse}
                 pinToPres={returnFalse}
                 renderDepth={1}
+                NativeHeight={returnZero}
+                NativeWidth={returnZero}
                 PanelWidth={returnXDimension}
                 PanelHeight={returnYDimension}
                 focus={emptyFunction}
