@@ -34,13 +34,18 @@
         overflow-y: scroll;
         height: calc(100% - 20px);
     }
-
+    .documentView-docuLinkAnchor {
+        display:flex;
+        overflow: hidden;
+    }
     .documentView-docuLinkWrapper {
         pointer-events: none;
         position: absolute;
         transform-origin: top left;
         width: 100%;
         height: 100%;
+        top:0;
+        left:0;
         z-index: 1;
     }
 

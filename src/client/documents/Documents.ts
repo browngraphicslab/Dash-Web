@@ -564,8 +564,6 @@ export namespace Docs {
             const linkDocProto = Doc.GetProto(doc);
             linkDocProto.anchor1 = source.doc;
             linkDocProto.anchor2 = target.doc;
-            linkDocProto.anchor1_timecode = source.doc.currentTimecode || source.doc.displayTimecode;
-            linkDocProto.anchor2_timecode = target.doc.currentTimecode || source.doc.displayTimecode;
 
             if (linkDocProto.layout_key1 === undefined) {
                 Cast(linkDocProto.proto, Doc, null).layout_key1 = DocuLinkBox.LayoutString("anchor1");

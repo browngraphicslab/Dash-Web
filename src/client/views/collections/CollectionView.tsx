@@ -398,6 +398,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
         const scriptText = "setDocFilter(containingTreeView, heading, this.title, checked)";
         return ScriptField.MakeScript(scriptText, { this: Doc.name, heading: "string", checked: "string", containingTreeView: Doc.name });
     }
+    @computed get treeIgnoreFields() { return ["_facetCollection", "_docFilters"]; }
     @computed get filterView() {
         const facetCollection = this.props.Document;
         const flyout = (
@@ -425,7 +426,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
                         treeViewHideTitle={true}
                         treeViewHideHeaderFields={true}
                         onCheckedClick={this.scriptField!}
-                        ignoreFields={["_facetCollection", "_docFilters"]}
+                        ignoreFields={this.treeIgnoreFields}
                         annotationsKey={""}
                         dontRegisterView={true}
                         PanelWidth={this.facetWidth}

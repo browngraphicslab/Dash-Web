@@ -842,9 +842,17 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             backgroundHalo: this.backgroundHalo,
             parentActive: this.props.active,
             bringToFront: this.bringToFront,
+            addDocTab: this.addDocTab,
         };
     }
 
+    addDocTab = (doc: Doc, where: string) => {
+        if (where === "inPlace") {
+            this.dataDoc[this.props.fieldKey] = new List<Doc>([doc]);
+            return true;
+        }
+        return this.props.addDocTab(doc, where);
+    }
     getCalculatedPositions(params: { doc: Doc, index: number, collection: Doc, docs: Doc[], state: any }): PoolData {
         const result = this.Document.arrangeScript?.script.run(params, console.log);
         if (result?.success) {
@@ -1066,7 +1074,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                             if (doc instanceof Doc) {
                                 const [xx, yy] = this.props.ScreenToLocalTransform().transformPoint(x, y);
                                 doc.x = xx, doc.y = yy;
-                                this.props.addDocument && this.props.addDocument(doc);
+                                this.props.addDocument?.(doc);
                             }
                         }
                     }

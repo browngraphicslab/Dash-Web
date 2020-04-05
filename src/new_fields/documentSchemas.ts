@@ -46,12 +46,11 @@ export const documentSchema = createSchema({
     treeViewExpandedView: "string", // name of field whose contents are being displayed as the document's subtree
     treeViewPreventOpen: "boolean", // ignores the treeViewOpen flag (for allowing a view to not be slaved to other views of the document)
     currentTimecode: "number",  // current play back time of a temporal document (video / audio)
-    maximizeLocation: "string", // flag for where to place content when following a click interaction (e.g., onRight, inPlace, inTab) 
+    followLinkLocation: "string",// flag for where to place content when following a click interaction (e.g., onRight, inPlace, inTab, ) 
     lockedPosition: "boolean",  // whether the document can be moved (dragged)
     lockedTransform: "boolean", // whether the document can be panned/zoomed
     inOverlay: "boolean",       // whether the document is rendered in an OverlayView which handles selection/dragging differently
     borderRounding: "string",   // border radius rounding of document
-    searchFields: "string",     // the search fields to display when this document matches a search in its metadata
     heading: "number",          // the logical layout 'heading' of this document (used by rule provider to stylize h1 header elements, from h2, etc)
     isButton: "boolean",        // whether document functions as a button (overiding native interactions of its content)    
     ignoreClick: "boolean",     // whether documents ignores input clicks (but does not ignore manipulation and other events) 
