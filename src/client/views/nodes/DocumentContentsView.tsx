@@ -63,6 +63,16 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     hideOnLeave?: boolean,
     makeLink?: () => Opt<Doc>,  // function to call when a link is made
 }> {
+    constructor(props: any) {
+        super(props);
+        console.log("Consructr" + this.props.Document.title);
+    }
+    componentWillUpdate() {
+        console.log("WillUpdate" + this.props.Document.title);
+    }
+    componentWillReceiveProps() {
+        console.log("Receive" + this.props.Document.title);
+    }
     @computed get layout(): string {
         TraceMobx();
         if (!this.layoutDoc) return "<p>awaiting layout</p>";
