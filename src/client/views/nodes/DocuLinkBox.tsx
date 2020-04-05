@@ -4,7 +4,7 @@ import { Doc, DocListCast } from "../../../new_fields/Doc";
 import { documentSchema } from "../../../new_fields/documentSchemas";
 import { makeInterface } from "../../../new_fields/Schema";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
-import { Utils } from '../../../Utils';
+import { Utils, setupMoveUpEvents } from '../../../Utils';
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager } from "../../util/DragManager";
 import { DocComponent } from "../DocComponent";
@@ -16,6 +16,7 @@ import { ContextMenu } from "../ContextMenu";
 import { LinkEditor } from "../linking/LinkEditor";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { SelectionManager } from "../../util/SelectionManager";
+import { TraceMobx } from "../../../new_fields/util";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -29,8 +30,6 @@ export class DocuLinkBox extends DocComponent<FieldViewProps, DocLinkSchema>(Doc
     _doubleTap = false;
     _lastTap: number = 0;
     _ref = React.createRef<HTMLDivElement>();
-    _downX = 0;
-    _downY = 0;
     _isOpen = false;
     _timeout: NodeJS.Timeout | undefined;
     @observable _x = 0;
@@ -40,56 +39,42 @@ export class DocuLinkBox extends DocComponent<FieldViewProps, DocLinkSchema>(Doc
     @observable _forceOpen = false;
 
     onPointerDown = (e: React.PointerEvent) => {
-        this._downX = e.clientX;
-        this._downY = e.clientY;
-        document.removeEventListener("pointermove", this.onPointerMove);
-        document.removeEventListener("pointerup", this.onPointerUp);
-        document.addEventListener("pointermove", this.onPointerMove);
-        document.addEventListener("pointerup", this.onPointerUp);
-        (e.button === 0 && !e.ctrlKey) && e.stopPropagation();
+        setupMoveUpEvents(this, e, this.onPointerMove, () => { }, this.onClick);
     }
-    onPointerMove = action((e: PointerEvent) => {
+    onPointerMove = action((e: PointerEvent, down: number[], delta: number[]) => {
         const cdiv = this._ref && this._ref.current && this._ref.current.parentElement;
-        if (!this._isOpen && cdiv && (Math.abs(e.clientX - this._downX) > 5 || Math.abs(e.clientY - this._downY) > 5)) {
+        if (!this._isOpen && cdiv) {
             const bounds = cdiv.getBoundingClientRect();
             const pt = Utils.getNearestPointInPerimeter(bounds.left, bounds.top, bounds.width, bounds.height, e.clientX, e.clientY);
             const separation = Math.sqrt((pt[0] - e.clientX) * (pt[0] - e.clientX) + (pt[1] - e.clientY) * (pt[1] - e.clientY));
-            const dragdist = Math.sqrt((pt[0] - this._downX) * (pt[0] - this._downX) + (pt[1] - this._downY) * (pt[1] - this._downY));
+            const dragdist = Math.sqrt((pt[0] - down[0]) * (pt[0] - down[0]) + (pt[1] - down[1]) * (pt[1] - down[1]));
             if (separation > 100) {
-                //DragManager.StartLinkTargetsDrag(this._ref.current!, pt[0], pt[1], Cast(this.props.Document[this.props.fieldKey], Doc) as Doc, [this.props.Document]); // Containging collection is the document, not a collection... hack.
                 const dragData = new DragManager.DocumentDragData([this.props.Document]);
                 dragData.dropAction = "alias";
-                dragData.removeDropProperties = ["anchor1_x", "anchor1_y", "anchor2_x", "anchor2_y"];
-                DragManager.StartDocumentDrag([this._ref.current!], dragData, this._downX, this._downY);
-                document.removeEventListener("pointermove", this.onPointerMove);
-                document.removeEventListener("pointerup", this.onPointerUp);
+                dragData.removeDropProperties = ["anchor1_x", "anchor1_y", "anchor2_x", "anchor2_y", "isButton"];
+                DragManager.StartDocumentDrag([this._ref.current!], dragData, down[0], down[1]);
+                return true;
             } else if (dragdist > separation) {
                 this.props.Document[this.props.fieldKey + "_x"] = (pt[0] - bounds.left) / bounds.width * 100;
                 this.props.Document[this.props.fieldKey + "_y"] = (pt[1] - bounds.top) / bounds.height * 100;
             }
         }
+        return false;
     });
-    onPointerUp = (e: PointerEvent) => {
-        document.removeEventListener("pointermove", this.onPointerMove);
-        document.removeEventListener("pointerup", this.onPointerUp);
-        if (Math.abs(e.clientX - this._downX) < 3 && Math.abs(e.clientY - this._downY) < 3 && (e.button === 2 || e.ctrlKey || !this.props.Document.isButton)) {
+    @action
+    onClick = (e: PointerEvent) => {
+        this._doubleTap = (Date.now() - this._lastTap < 300 && e.button === 0);
+        this._lastTap = Date.now();
+        if ((e.button === 2 || e.ctrlKey || !this.props.Document.isButton)) {
             this.props.select(false);
         }
-        this._doubleTap = (Date.now() - this._lastTap < 300 && e.button === 0 && Math.abs(e.clientX - this._downX) < 2 && Math.abs(e.clientY - this._downY) < 2);
-        this._lastTap = Date.now();
-    }
-
-    @action
-    onClick = (e: React.MouseEvent) => {
         if (!this._doubleTap) {
+            const anchorContainerDoc = this.props.ContainingCollectionDoc; // bcz: hack!  need a better prop for passing the anchor's container 
             this._editing = true;
-            this.props.ContainingCollectionDoc && this.props.bringToFront(this.props.ContainingCollectionDoc, false);
-            const {clientX, clientY} = e;
-            if (!this.props.Document.onClick && !this._isOpen) {
+            anchorContainerDoc && this.props.bringToFront(anchorContainerDoc, false);
+            if (anchorContainerDoc && !this.props.Document.onClick && !this._isOpen) {
                 this._timeout = setTimeout(action(() => {
-                    if (Math.abs(clientX - this._downX) < 3 && Math.abs(clientY - this._downY) < 3 && (e.button !== 2 && !e.ctrlKey && this.props.Document.isButton)) {
-                        DocumentManager.Instance.FollowLink(this.props.Document, this.props.ContainingCollectionDoc as Doc, document => this.props.addDocTab(document, StrCast(this.props.Document.linkOpenLocation, "inTab")), false);
-                    }
+                    DocumentManager.Instance.FollowLink(this.props.Document, anchorContainerDoc, document => this.props.addDocTab(document, StrCast(this.props.Document.linkOpenLocation, "inTab")), false);
                     this._editing = false;
                 }), 300 - (Date.now() - this._lastTap));
             }
@@ -97,7 +82,6 @@ export class DocuLinkBox extends DocComponent<FieldViewProps, DocLinkSchema>(Doc
             this._timeout && clearTimeout(this._timeout);
             this._timeout = undefined;
         }
-        e.stopPropagation();
     }
 
     openLinkDocOnRight = (e: React.MouseEvent) => {
@@ -126,6 +110,7 @@ export class DocuLinkBox extends DocComponent<FieldViewProps, DocLinkSchema>(Doc
     }
 
     render() {
+        TraceMobx();
         const x = this.props.PanelWidth() > 1 ? NumCast(this.props.Document[this.props.fieldKey + "_x"], 100) : 0;
         const y = this.props.PanelWidth() > 1 ? NumCast(this.props.Document[this.props.fieldKey + "_y"], 100) : 0;
         const c = StrCast(this.props.Document.backgroundColor, "lightblue");
@@ -143,7 +128,7 @@ export class DocuLinkBox extends DocComponent<FieldViewProps, DocLinkSchema>(Doc
             </div>
         );
         const small = this.props.PanelWidth() <= 1;
-        return <div className={`docuLinkBox-cont${small ? "-small" : ""}`} onPointerDown={this.onPointerDown} onClick={this.onClick} title={targetTitle} onContextMenu={this.specificContextMenu}
+        return <div className={`docuLinkBox-cont${small ? "-small" : ""}`} onPointerDown={this.onPointerDown} title={targetTitle} onContextMenu={this.specificContextMenu}
             ref={this._ref} style={{
                 background: c,
                 left: !small ? `calc(${x}% - 7.5px)` : undefined,

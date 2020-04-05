@@ -585,7 +585,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
                 dragComplete: e => {
                     if (!e.aborted && e.annoDragData && !e.annoDragData.linkedToDoc) {
                         const link = DocUtils.MakeLink({ doc: annotationDoc }, { doc: e.annoDragData.dropDocument }, "Annotation");
-                        if (link) link.maximizeLocation = "onRight";
+                        if (link) link.followLinkLocation = "onRight";
                     }
                 }
             });

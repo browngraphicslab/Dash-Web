@@ -138,7 +138,7 @@ export default class MobileInterface extends React.Component {
                 whenActiveChanged={emptyFunction}
                 bringToFront={emptyFunction}
                 ContainingCollectionView={undefined}
-                ContainingCollectionDoc={undefined} />
+                ContainingCollectionDoc={undefined} />;
         }
         return "hello";
     }
@@ -198,7 +198,7 @@ export default class MobileInterface extends React.Component {
                         LibraryPath={emptyPath}
                         fieldKey={""}
                         dropAction={"alias"}
-                        bringToFront={emptyFunction }
+                        bringToFront={emptyFunction}
                         addDocTab={returnFalse}
                         pinToPres={emptyFunction}
                         PanelHeight={() => window.innerHeight}

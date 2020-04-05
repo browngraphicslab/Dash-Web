@@ -52,6 +52,7 @@ library.add(fa.faEdit, fa.faTrash, fa.faShare, fa.faDownload, fa.faExpandArrowsA
     fa.faSquare, fa.faConciergeBell, fa.faWindowRestore, fa.faFolder, fa.faMapPin, fa.faLink, fa.faFingerprint, fa.faCrosshairs, fa.faDesktop, fa.faUnlock, fa.faLock, fa.faLaptopCode, fa.faMale,
     fa.faCopy, fa.faHandPointRight, fa.faCompass, fa.faSnowflake, fa.faMicrophone);
 
+export type DocFocusFunc = () => boolean;
 export interface DocumentViewProps {
     ContainingCollectionView: Opt<CollectionView>;
     ContainingCollectionDoc: Opt<Doc>;
@@ -74,7 +75,7 @@ export interface DocumentViewProps {
     ContentScaling: () => number;
     PanelWidth: () => number;
     PanelHeight: () => number;
-    focus: (doc: Doc, willZoom: boolean, scale?: number, afterFocus?: () => boolean) => void;
+    focus: (doc: Doc, willZoom: boolean, scale?: number, afterFocus?: DocFocusFunc) => void;
     parentActive: (outsideReaction: boolean) => boolean;
     whenActiveChanged: (isActive: boolean) => void;
     bringToFront: (doc: Doc, sendToBack?: boolean) => void;
@@ -287,15 +288,18 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 Doc.UnBrushDoc(this.props.Document);
             } else if (this.onClickHandler?.script) {
                 SelectionManager.DeselectAll();
-                UndoManager.RunInBatch(() => this.onClickHandler!.script.run({
+                const func = () => this.onClickHandler!.script.run({
                     this: this.props.Document,
                     self: Cast(this.props.Document.rootDocument, Doc, null) || this.props.Document,
                     containingCollection: this.props.ContainingCollectionDoc, shiftKey: e.shiftKey
-                }, console.log) && !this.props.Document.isButton && this.select(false), "on click");
+                }, console.log) && !this.props.Document.isButton && this.select(false);
+                if (this.props.Document !== Doc.UserDoc().undoBtn && this.props.Document !== Doc.UserDoc().redoBtn) {
+                    UndoManager.RunInBatch(func, "on click");
+                } else func();
             } else if (this.Document.type === DocumentType.BUTTON) {
                 UndoManager.RunInBatch(() => ScriptBox.EditButtonScript("On Button Clicked ...", this.props.Document, "onClick", e.clientX, e.clientY), "on button click");
             } else if (this.Document.isButton) {
-                UndoManager.RunInBatch(() => this.buttonClick(e.altKey, e.ctrlKey), "on link button follow");
+                DocListCast(this.props.Document.links).length && this.followLinkClick(e.altKey, e.ctrlKey);
             } else {
                 if (this.props.Document.isTemplateForField && !(e.ctrlKey || e.button > 0)) {
                     stopPropagate = false; // don't stop propagation for field templates -- want the selection to propagate up to the root document of the template
@@ -309,14 +313,20 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
     }
 
-    buttonClick = async (altKey: boolean, ctrlKey: boolean) => {
-        const linkDocs = DocListCast(this.props.Document.links);
-        if (linkDocs.length) {
-            DocumentManager.Instance.FollowLink(undefined, this.props.Document,
-                // open up target if it's not already in view ... by zooming into the button document first and setting flag to reset zoom afterwards
-                (doc: Doc, maxLocation: string) => this.props.focus(this.props.Document, true, 1, () => this.props.addDocTab(doc, maxLocation)),
-                ctrlKey, altKey, this.props.ContainingCollectionDoc);
-        }
+    // follows a link - if the target is on screen, it highlights/pans to it.
+    // if the target isn't onscreen, then it will open up the target in a tab, on the right, or in place
+    // depending on the followLinkLocation property of the source (or the link itself as a fallback);
+    followLinkClick = async (altKey: boolean, ctrlKey: boolean) => {
+        const batch = UndoManager.StartBatch("follow link click");
+        const docFollowLoc = StrCast(this.Document.followLinkLocation);
+        const { focus, addDocTab } = this.props;
+        await DocumentManager.Instance.FollowLink(undefined, this.props.Document,
+            // open up target if it's not already in view ... by zooming into the button document first and setting flag to reset zoom afterwards (except if 'inPlace', then leave alone)
+            (doc, followLoc, afterFocus) => focus(this.props.Document, true, 1, () => {
+                addDocTab(doc, docFollowLoc || followLoc) && focus(doc, true, undefined, afterFocus);
+                return (docFollowLoc || followLoc) === "inPlace" ? false : true;
+            }),
+            ctrlKey, altKey, this.props.ContainingCollectionDoc, batch.end);
     }
 
     handle1PointerDown = (e: React.TouchEvent, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>) => {
@@ -564,6 +574,17 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             this.Document.onClick = undefined;
         } else {
             this.Document.isButton = true;
+            this.Document.followLinkLocation = undefined;
+        }
+    }
+
+    @undoBatch
+    toggleFollowInPlace = (): void => {
+        if (this.Document.isButton) {
+            this.Document.isButton = false;
+        } else {
+            this.Document.isButton = true;
+            this.Document.followLinkLocation = "inPlace";
         }
     }
 
@@ -693,6 +714,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         onClicks.push({ description: "Enter Portal", event: this.makeIntoPortal, icon: "window-restore" });
         onClicks.push({ description: "Toggle Detail", event: () => this.Document.onClick = ScriptField.MakeScript(`toggleDetail(this, "${this.props.Document.layoutKey}")`), icon: "window-restore" });
         onClicks.push({ description: this.Document.ignoreClick ? "Select" : "Do Nothing", event: () => this.Document.ignoreClick = !this.Document.ignoreClick, icon: this.Document.ignoreClick ? "unlock" : "lock" });
+        onClicks.push({ description: this.Document.isButton ? "Remove Follow Behavior" : "Follow Link in Place", event: this.toggleFollowInPlace, icon: "concierge-bell" });
         onClicks.push({ description: this.Document.isButton || this.Document.onClick ? "Remove Click Behavior" : "Follow Link", event: this.toggleButtonBehavior, icon: "concierge-bell" });
         onClicks.push({ description: "Edit onClick Script", icon: "edit", event: (obj: any) => ScriptBox.EditButtonScript("On Button Clicked ...", this.props.Document, "onClick", obj.x, obj.y) });
         !existingOnClick && cm.addItem({ description: "OnClick...", subitems: onClicks, icon: "hand-point-right" });
@@ -981,31 +1003,36 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         return this._link;
     }
 
+    hideLinkAnchor = (doc: Doc) => undoBatch(doc => doc.hidden = true)();
+    anchorPanelWidth = () => this.props.PanelWidth() || 1;
+    anchorPanelHeight = () => this.props.PanelHeight() || 1;
+    @computed get anchors() {
+        TraceMobx();
+        return DocListCast(this.Document.links).filter(d => !d.hidden && this.isNonTemporalLink).map((d, i) =>
+            <div className="documentView-docuLinkWrapper" key={d[Id]}>
+                <DocumentView {...this.props}
+                    Document={d}
+                    ContainingCollectionDoc={this.props.Document} // bcz: hack this.props.Document is not a collection  Need a better prop for passing the containing document to the DocuLinkBox
+                    PanelWidth={this.anchorPanelWidth}
+                    PanelHeight={this.anchorPanelHeight}
+                    layoutKey={this.linkEndpoint(d)}
+                    ContentScaling={returnOne}
+                    backgroundColor={returnTransparent}
+                    removeDocument={this.hideLinkAnchor} />
+            </div>);
+    }
     @computed get innards() {
         TraceMobx();
-        if (!this.props.PanelWidth()) {
-            return <div style={{ display: "flex", overflow: "hidden" }}>
+        if (!this.props.PanelWidth()) {  // this happens when the document is a tree view label
+            return <div className="documentView-docuLinkAnchor" >
                 {StrCast(this.props.Document.title)}
-                {this.Document.links && DocListCast(this.Document.links).filter(d => !d.hidden).filter(this.isNonTemporalLink).map((d, i) =>
-                    <div className="documentView-docuLinkWrapper" style={{ position: "absolute", top: 0, left: 0 }} key={`${d[Id]}`}>
-                        <DocumentView {...this.props}
-                            Document={d}
-                            ContainingCollectionDoc={this.props.Document}
-                            PanelWidth={returnOne} PanelHeight={returnOne}
-                            layoutKey={this.linkEndpoint(d)} ContentScaling={returnOne}
-                            backgroundColor={returnTransparent}
-                            removeDocument={undoBatch(doc => doc.hidden = true)} />
-                    </div>)}
+                {this.anchors}
             </div>;
         }
         const showTitle = StrCast(this.layoutDoc._showTitle);
         const showTitleHover = StrCast(this.layoutDoc._showTitleHover);
         const showCaption = StrCast(this.layoutDoc._showCaption);
         const showTextTitle = showTitle && (StrCast(this.layoutDoc.layout).indexOf("PresBox") !== -1 || StrCast(this.layoutDoc.layout).indexOf("FormattedTextBox") !== -1) ? showTitle : undefined;
-        const searchHighlight = (!this.Document.searchFields ? (null) :
-            <div className="documentView-searchHighlight">
-                {this.Document.searchFields}
-            </div>);
         const captionView = (!showCaption ? (null) :
             <div className="documentView-captionWrapper">
                 <DocumentContentsView {...OmitKeys(this.props, ['children']).omit}
@@ -1032,26 +1059,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 />
             </div>);
         return <>
-            {this.Document.links && DocListCast(this.Document.links).filter(d => !d.hidden).filter(this.isNonTemporalLink).map((d, i) =>
-                <div className="documentView-docuLinkWrapper" key={`${d[Id]}`}>
-                    <DocumentView {...this.props} ContentScaling={returnOne} ContainingCollectionDoc={this.props.Document} Document={d} layoutKey={this.linkEndpoint(d)} backgroundColor={returnTransparent} removeDocument={undoBatch(doc => doc.hidden = true)} />
-                </div>)}
+            {this.anchors}
             {!showTitle && !showCaption ?
-                this.Document.searchFields ?
-                    (<div className="documentView-searchWrapper">
-                        {this.contents}
-                        {searchHighlight}
-                    </div>)
-                    :
-                    this.contents
-                :
+                this.contents :
                 <div className="documentView-styleWrapper" >
                     <div className="documentView-styleContentWrapper" style={{ height: showTextTitle ? `calc(100% - ${this.chromeHeight()}px)` : "100%", top: showTextTitle ? this.chromeHeight() : undefined }}>
                         {this.contents}
                     </div>
                     {titleView}
                     {captionView}
-                    {searchHighlight}
                 </div>
             }
         </>;

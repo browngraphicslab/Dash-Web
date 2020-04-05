@@ -99,8 +99,8 @@ export class CollectionView extends Touchable<FieldViewProps> {
     public static LayoutString(fieldStr: string) { return FieldView.LayoutString(CollectionView, fieldStr); }
 
     private _isChildActive = false;   //TODO should this be observable?
-    get _isLightboxOpen() { return BoolCast(this.props.Document.isLightboxOpen); };
-    set _isLightboxOpen(value) { this.props.Document.isLightboxOpen = value; };
+    get _isLightboxOpen() { return BoolCast(this.props.Document.isLightboxOpen); }
+    set _isLightboxOpen(value) { this.props.Document.isLightboxOpen = value; }
     @observable private _curLightboxImg = 0;
     @observable private static _safeMode = false;
     public static SetSafeMode(safeMode: boolean) { this._safeMode = safeMode; }
@@ -395,6 +395,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
         const scriptText = "setDocFilter(containingTreeView, heading, this.title, checked)";
         return ScriptField.MakeScript(scriptText, { this: Doc.name, heading: "string", checked: "string", containingTreeView: Doc.name });
     }
+    @computed get treeIgnoreFields() { return ["_facetCollection", "_docFilters"]; }
     @computed get filterView() {
         const facetCollection = this.props.Document;
         const flyout = (
@@ -422,7 +423,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
                         treeViewHideTitle={true}
                         treeViewHideHeaderFields={true}
                         onCheckedClick={this.scriptField!}
-                        ignoreFields={["_facetCollection", "_docFilters"]}
+                        ignoreFields={this.treeIgnoreFields}
                         annotationsKey={""}
                         dontRegisterView={true}
                         PanelWidth={this.facetWidth}
