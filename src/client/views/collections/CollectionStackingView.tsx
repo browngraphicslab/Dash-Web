@@ -24,13 +24,13 @@ import "./CollectionStackingView.scss";
 import { CollectionStackingViewFieldColumn } from "./CollectionStackingViewFieldColumn";
 import { CollectionSubView } from "./CollectionSubView";
 import { CollectionViewType } from "./CollectionView";
+import { SelectionManager } from "../../util/SelectionManager";
 const _global = (window /* browser */ || global /* node */) as any;
 
 @observer
 export class CollectionStackingView extends CollectionSubView(doc => doc) {
     _masonryGridRef: HTMLDivElement | null = null;
     _draggerRef = React.createRef<HTMLDivElement>();
-    _heightDisposer?: IReactionDisposer;
     _pivotFieldDisposer?: IReactionDisposer;
     _docXfs: any[] = [];
     _columnStart: number = 0;
@@ -129,34 +129,6 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     }
     componentDidMount() {
         super.componentDidMount();
-        // this._heightDisposer = reaction(() => {
-        //     TraceMobx();
-        //     if (this.props.Document._autoHeight && !this.layoutDoc._nativeHeight) {
-        //         const sectionsList = Array.from(this.Sections.size ? this.Sections.values() : [this.filteredChildren]);
-        //         if (this.isStackingView) {
-        //             const res = Math.max(...sectionsList.map((s, i) => {
-        //                 const secSize = (this.Sections.size ? 50 : 0) + s.reduce((height, d, i) => {
-        //                     const val = this.getSimpleDocHeight(d) + (i === s.length - 1 ? this.yMargin : this.gridGap);
-        //                     console.log(d.title + " " + val + " => " + (val + height));
-        //                     return height + val;
-        //                 }, this.yMargin);
-        //                 console.log("Sec" + i + " = " + secSize);
-        //                 return secSize;
-        //             }));
-        //             return res * this.props.ContentScaling();
-        //         } else {
-        //             const sum = Array.from(this._heightMap.values()).reduce((acc: number, curr: number) => acc += curr, 0);
-        //             return this.props.ContentScaling() * (sum + (this.Sections.size ? (this.props.Document.miniHeaders ? 20 : 85) : -15));
-        //         }
-        //     }
-        //     return -1;
-        // },
-        //     (hgt: number) => {
-        //         const doc = hgt === -1 ? undefined : this.props.DataDoc && this.props.DataDoc.layout === this.layoutDoc ? this.props.DataDoc : this.layoutDoc;
-        //         doc && hgt > 0 && (Doc.Layout(doc)._height = hgt);
-        //     },
-        //     { fireImmediately: true }
-        // );
 
         // reset section headers when a new filter is inputted
         this._pivotFieldDisposer = reaction(
@@ -166,7 +138,6 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     }
     componentWillUnmount() {
         super.componentWillUnmount();
-        this._heightDisposer?.();
         this._pivotFieldDisposer?.();
     }
 
@@ -307,7 +278,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         });
     }
     headings = () => Array.from(this.Sections);
-    refList = new Map<any, number>();
+    refList: any[] = [];
     sectionStacking = (heading: SchemaHeaderField | undefined, docList: Doc[]) => {
         const key = this.pivotField;
         let type: "string" | "number" | "bigint" | "boolean" | "symbol" | "undefined" | "object" | "function" | undefined = undefined;
@@ -318,16 +289,14 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         const cols = () => this.isStackingView ? 1 : Math.max(1, Math.min(this.filteredChildren.length,
             Math.floor((this.props.PanelWidth() - 2 * this.xMargin) / (this.columnWidth + this.gridGap))));
         return <CollectionStackingViewFieldColumn
+            unobserveHeight={(ref) => this.refList.splice(this.refList.indexOf(ref), 1)}
             observeHeight={(ref) => {
                 if (ref) {
-                    this.refList.set(ref, 0);
+                    this.refList.push(ref);
+                    const doc = this.props.DataDoc && this.props.DataDoc.layout === this.layoutDoc ? this.props.DataDoc : this.layoutDoc;
                     this.observer = new _global.ResizeObserver(action((entries: any) => {
-                        if (this.props.Document.autoHeight && ref) {
-                            const doc = this.props.DataDoc && this.props.DataDoc.layout === this.layoutDoc ? this.props.DataDoc : this.layoutDoc;
-                            for (const entry of entries) {
-                                this.refList.set(ref, entry.contentRect.height);
-                            }
-                            Doc.Layout(doc)._height = Math.max(...Array.from(this.refList.entries()).map(entry => Number(getComputedStyle(entry[0]).height.replace("px", ""))));
+                        if (this.props.Document._autoHeight && ref && !SelectionManager.GetIsDragging()) {
+                            Doc.Layout(doc)._height = Math.max(...this.refList.map(r => Number(getComputedStyle(r).height.replace("px", ""))));
                         }
                     }));
                     this.observer.observe(ref);

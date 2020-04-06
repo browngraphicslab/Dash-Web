@@ -40,6 +40,7 @@ interface CSVFieldColumnProps {
     createDropTarget: (ele: HTMLDivElement) => void;
     screenToLocalTransform: () => Transform;
     observeHeight: (myref: any) => void;
+    unobserveHeight: (myref: any) => void;
 }
 
 @observer
@@ -51,12 +52,18 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
 
     @observable _heading = this.props.headingObject ? this.props.headingObject.heading : this.props.heading;
     @observable _color = this.props.headingObject ? this.props.headingObject.color : "#f1efeb";
+    _ele: HTMLElement | null = null;
 
     createColumnDropRef = (ele: HTMLDivElement | null) => {
         this.dropDisposer?.();
         if (ele) {
+            this._ele = ele;
+            this.props.observeHeight(ele);
             this.dropDisposer = DragManager.MakeDropTarget(ele, this.columnDrop.bind(this));
         }
+    }
+    componentWillUnmount() {
+        this.props.unobserveHeight(this._ele);
     }
 
     @undoBatch
@@ -354,12 +361,17 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         for (let i = 0; i < cols; i++) templatecols += `${style.columnWidth / style.numGroupColumns}px `;
         const chromeStatus = this.props.parent.props.Document._chromeStatus;
         return (
-            <div className="collectionStackingViewFieldColumn" key={heading} style={{ width: `${100 / ((uniqueHeadings.length + ((chromeStatus !== 'view-mode' && chromeStatus !== 'disabled') ? 1 : 0)) || 1)}%`, background: this._background }}
+            <div className="collectionStackingViewFieldColumn" key={heading}
+                style={{
+                    width: `${100 / ((uniqueHeadings.length + ((chromeStatus !== 'view-mode' && chromeStatus !== 'disabled') ? 1 : 0)) || 1)}%`,
+                    height: SelectionManager.GetIsDragging() ? "100%" : undefined,
+                    background: this._background
+                }}
                 ref={this.createColumnDropRef} onPointerEnter={this.pointerEntered} onPointerLeave={this.pointerLeave}>
                 {this.props.parent.Document.hideHeadings ? (null) : headingView}
                 {
                     this.collapsed ? (null) :
-                        <div ref={ref => ref && this.props.observeHeight(ref)}>
+                        <div>
                             <div key={`${heading}-stack`} className={`collectionStackingView-masonry${singleColumn ? "Single" : "Grid"}`}
                                 style={{
                                     padding: singleColumn ? `${columnYMargin}px ${0}px ${style.yMargin}px ${0}px` : `${columnYMargin}px ${0}px`,
