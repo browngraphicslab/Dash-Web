@@ -61,8 +61,8 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     }
 
     contentScaling = () => this.nativeWidth > 0 && !this.props.fitToBox && !this.freezeDimensions ? this.width / this.nativeWidth : 1;
-    panelWidth = () => (this.dataProvider?.width || this.props.PanelWidth());
-    panelHeight = () => (this.dataProvider?.height || this.props.PanelHeight());
+    panelWidth = () => (this.dataProvider?.width || this.props.PanelWidth?.());
+    panelHeight = () => (this.dataProvider?.height || this.props.PanelHeight?.());
     getTransform = (): Transform => this.props.ScreenToLocalTransform()
         .translate(-this.X, -this.Y)
         .scale(1 / this.contentScaling())
