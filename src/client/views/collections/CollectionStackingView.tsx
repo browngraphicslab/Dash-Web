@@ -116,7 +116,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     componentDidMount() {
         super.componentDidMount();
         this._heightDisposer = reaction(() => {
-            if (this.props.Document._autoHeight && !this.props.NativeHeight()) {
+            if (this.props.Document._autoHeight && !this.layoutDoc._nativeHeight) {
                 const sectionsList = Array.from(this.Sections.size ? this.Sections.values() : [this.filteredChildren]);
                 if (this.isStackingView) {
                     const res = this.props.ContentScaling() * sectionsList.reduce((maxHght, s) => {
@@ -175,17 +175,19 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             backgroundColor={this.props.backgroundColor}
             LayoutDoc={this.props.childLayoutTemplate}
             LibraryPath={this.props.LibraryPath}
-            FreezeDimensions={this.props.freezeDimensions}
+            FreezeDimensions={this.props.freezeChildDimensions}
             renderDepth={this.props.renderDepth + 1}
-            fitToBox={this.props.fitToBox}
+            PanelWidth={width}
+            PanelHeight={height}
+            NativeHeight={returnZero}
+            NativeWidth={returnZero}
+            fitToBox={BoolCast(this.props.Document._freezeChildDimensions)}
             rootSelected={this.rootSelected}
             dropAction={StrCast(this.props.Document.childDropAction) as dropActionType}
             onClick={layoutDoc.isTemplateDoc ? this.onClickHandler : this.onChildClickHandler}
-            PanelWidth={width}
-            PanelHeight={height}
             ScreenToLocalTransform={dxf}
             focus={this.props.focus}
-            ContainingCollectionDoc={this.props.CollectionView && this.props.CollectionView.props.Document}
+            ContainingCollectionDoc={this.props.CollectionView?.props.Document}
             ContainingCollectionView={this.props.CollectionView}
             addDocument={this.props.addDocument}
             moveDocument={this.props.moveDocument}

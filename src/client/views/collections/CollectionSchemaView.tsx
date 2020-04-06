@@ -12,7 +12,7 @@ import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
 import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 import { ComputedField } from "../../../new_fields/ScriptField";
-import { Cast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
+import { Cast, FieldValue, NumCast, StrCast, BoolCast } from "../../../new_fields/Types";
 import { Docs, DocumentOptions } from "../../documents/Documents";
 import { Gateway } from "../../northstar/manager/Gateway";
 import { CompileScript, Transformer, ts } from "../../util/Scripting";
@@ -118,29 +118,32 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     @computed
     get previewPanel() {
-        return !this.previewDocument ? (null) : <div ref={this.createTarget} style={{ width: `${this.previewWidth()}px` }}>
-            <ContentFittingDocumentView
-                Document={this.previewDocument}
-                DataDocument={undefined}
-                NativeHeight={returnZero}
-                NativeWidth={returnZero}
-                focus={emptyFunction}
-                LibraryPath={this.props.LibraryPath}
-                renderDepth={this.props.renderDepth}
-                rootSelected={this.rootSelected}
-                PanelWidth={this.previewWidth}
-                PanelHeight={this.previewHeight}
-                getTransform={this.getPreviewTransform}
-                CollectionDoc={this.props.CollectionView && this.props.CollectionView.props.Document}
-                CollectionView={this.props.CollectionView}
-                moveDocument={this.props.moveDocument}
-                addDocument={this.props.addDocument}
-                removeDocument={this.props.removeDocument}
-                active={this.props.active}
-                whenActiveChanged={this.props.whenActiveChanged}
-                addDocTab={this.props.addDocTab}
-                pinToPres={this.props.pinToPres}
-            />
+        return <div ref={this.createTarget} style={{ width: `${this.previewWidth()}px` }}>
+            {!this.previewDocument ? (null) :
+                <ContentFittingDocumentView
+                    Document={this.previewDocument}
+                    DataDocument={undefined}
+                    NativeHeight={returnZero}
+                    NativeWidth={returnZero}
+                    fitToBox={true}
+                    FreezeDimensions={true}
+                    focus={emptyFunction}
+                    LibraryPath={this.props.LibraryPath}
+                    renderDepth={this.props.renderDepth}
+                    rootSelected={this.rootSelected}
+                    PanelWidth={this.previewWidth}
+                    PanelHeight={this.previewHeight}
+                    getTransform={this.getPreviewTransform}
+                    CollectionDoc={this.props.CollectionView?.props.Document}
+                    CollectionView={this.props.CollectionView}
+                    moveDocument={this.props.moveDocument}
+                    addDocument={this.props.addDocument}
+                    removeDocument={this.props.removeDocument}
+                    active={this.props.active}
+                    whenActiveChanged={this.props.whenActiveChanged}
+                    addDocTab={this.props.addDocTab}
+                    pinToPres={this.props.pinToPres}
+                />}
         </div>;
     }
 

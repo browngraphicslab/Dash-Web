@@ -110,7 +110,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     public get displayName() { return "DocumentView(" + this.props.Document.title + ")"; } // this makes mobx trace() statements more descriptive
     public get ContentDiv() { return this._mainCont.current; }
-    @computed get active() { return SelectionManager.IsSelected(this, true) || this.props.parentActive(true); }
+    get active() { return SelectionManager.IsSelected(this, true) || this.props.parentActive(true); }
     @computed get topMost() { return this.props.renderDepth === 0; }
     @computed get freezeDimensions() { return this.props.FreezeDimensions; }
     @computed get nativeWidth() { return NumCast(this.layoutDoc._nativeWidth, this.props.NativeWidth() || (this.freezeDimensions ? this.layoutDoc[WidthSym]() : 0)); }
@@ -123,8 +123,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     private _firstX: number = -1;
     private _firstY: number = -1;
-
-
 
     handle1PointerHoldStart = (e: Event, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>): any => {
         this.removeMoveListeners();

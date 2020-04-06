@@ -10,7 +10,6 @@ import { DocumentView, DocumentViewProps } from "./DocumentView";
 import React = require("react");
 import { PositionDocument } from "../../../new_fields/documentSchemas";
 import { TraceMobx } from "../../../new_fields/util";
-import { returnFalse } from "../../../Utils";
 import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
@@ -108,7 +107,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                     getTransform={this.getTransform}
                     NativeHeight={this.NativeHeight}
                     NativeWidth={this.NativeWidth}
-                    active={returnFalse}
+                    active={this.props.parentActive}
                     focus={this.focusDoc}
                     PanelWidth={this.panelWidth}
                     PanelHeight={this.panelHeight}

@@ -72,7 +72,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
 
     @computed get contents() {
         return <div className="collectionTimeView-innards" key="timeline" style={{ width: "100%" }}>
-            <CollectionFreeFormView {...this.props} freezeDimensions={BoolCast(this.layoutDoc._freezeChildDimensions, true)} layoutEngine={this.layoutEngine} />
+            <CollectionFreeFormView {...this.props} freezeChildDimensions={BoolCast(this.layoutDoc._freezeChildDimensions, true)} layoutEngine={this.layoutEngine} />
         </div>;
     }
 

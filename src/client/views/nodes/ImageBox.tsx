@@ -433,12 +433,14 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
     contentFunc = () => [this.content];
     render() {
         TraceMobx();
+        const rotation = NumCast(this.dataDoc[this.fieldKey + "-rotation"]);
+        const aspect = (rotation % 180) ? this.Document[HeightSym]() / this.Document[WidthSym]() : 1;
         const dragging = !SelectionManager.GetIsDragging() ? "" : "-dragging";
         return (<div className={`imageBox${dragging}`} onContextMenu={this.specificContextMenu}
             style={{
                 transform: this.props.PanelWidth() ? undefined : `scale(${this.props.ContentScaling()})`,
                 width: this.props.PanelWidth() ? `${this.props.PanelWidth()}px` : `${100 / this.props.ContentScaling()}%`,
-                height: this.props.PanelWidth() ? undefined : `${100 / this.props.ContentScaling()}%`,
+                height: this.props.PanelWidth() ? `${this.props.PanelWidth() * aspect}px` : `${100 / this.props.ContentScaling()}%`,
                 pointerEvents: this.props.Document.isBackground ? "none" : undefined,
                 borderRadius: `${Number(StrCast(this.layoutDoc.borderRounding).replace("px", "")) / this.props.ContentScaling()}px`
             }} >

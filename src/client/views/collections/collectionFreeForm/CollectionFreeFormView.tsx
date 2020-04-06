@@ -15,7 +15,7 @@ import { ScriptField } from "../../../../new_fields/ScriptField";
 import { BoolCast, Cast, FieldValue, NumCast, ScriptCast, StrCast } from "../../../../new_fields/Types";
 import { TraceMobx } from "../../../../new_fields/util";
 import { GestureUtils } from "../../../../pen-gestures/GestureUtils";
-import { aggregateBounds, intersectRect, returnOne, Utils } from "../../../../Utils";
+import { aggregateBounds, intersectRect, returnOne, Utils, returnZero } from "../../../../Utils";
 import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
 import { DocServer } from "../../../DocServer";
 import { Docs } from "../../../documents/Documents";
@@ -89,7 +89,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     @computed get fitToContent() { return (this.props.fitToBox || this.Document._fitToBox) && !this.isAnnotationOverlay; }
     @computed get parentScaling() { return this.props.ContentScaling && this.fitToContent && !this.isAnnotationOverlay ? this.props.ContentScaling() : 1; }
     @computed get contentBounds() { return aggregateBounds(this._layoutElements.filter(e => e.bounds && !e.bounds.z).map(e => e.bounds!), NumCast(this.layoutDoc.xPadding, 10), NumCast(this.layoutDoc.yPadding, 10)); }
-    @computed get nativeWidth() { return this.Document._fitToContent ? 0 : NumCast(this.Document._nativeWidth, this.props.NativeWidth()); }
+    @computed get nativeWidth() { return this.fitToContent ? 0 : NumCast(this.Document._nativeWidth, this.props.NativeWidth()); }
     @computed get nativeHeight() { return this.fitToContent ? 0 : NumCast(this.Document._nativeHeight, this.props.NativeHeight()); }
     private get isAnnotationOverlay() { return this.props.isAnnotationOverlay; }
     private get borderWidth() { return this.isAnnotationOverlay ? 0 : COLLECTION_BORDER_WIDTH; }
@@ -822,10 +822,13 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     getChildDocumentViewProps(childLayout: Doc, childData?: Doc): DocumentViewProps {
         return {
             ...this.props,
+            NativeHeight: returnZero,
+            NativeWidth: returnZero,
+            fitToBox: false,
             DataDoc: childData,
             Document: childLayout,
             LibraryPath: this.libraryPath,
-            FreezeDimensions: this.props.freezeDimensions,
+            FreezeDimensions: this.props.freezeChildDimensions,
             layoutKey: undefined,
             rootSelected: this.rootSelected,
             dropAction: StrCast(this.props.Document.childDropAction) as dropActionType,
@@ -958,8 +961,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                     dataProvider={this.childDataProvider}
                     LayoutDoc={this.childLayoutDocFunc}
                     jitterRotation={NumCast(this.props.Document.jitterRotation)}
-                    fitToBox={this.props.fitToBox || this.props.layoutEngine !== undefined}
-                    FreezeDimensions={this.props.layoutEngine !== undefined}
+                    fitToBox={this.props.fitToBox || BoolCast(this.props.freezeChildDimensions)}
+                    FreezeDimensions={BoolCast(this.props.freezeChildDimensions)}
                 />,
                 bounds: this.childDataProvider(pair.layout)
             }));
@@ -1122,8 +1125,10 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     @computed get contentScaling() {
         if (this.props.annotationsKey) return 0;
-        const hscale = this.nativeHeight ? this.props.PanelHeight() / this.nativeHeight : 1;
-        const wscale = this.nativeWidth ? this.props.PanelWidth() / this.nativeWidth : 1;
+        const nw = NumCast(this.Document._nativeWidth, this.props.NativeWidth());
+        const nh = NumCast(this.Document._nativeHeight, this.props.NativeHeight());
+        const hscale = nh ? this.props.PanelHeight() / nh : 1;
+        const wscale = nw ? this.props.PanelWidth() / nw : 1;
         return wscale < hscale ? wscale : hscale;
     }
     render() {
