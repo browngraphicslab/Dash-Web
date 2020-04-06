@@ -393,11 +393,9 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
         const { nativeWidth, nativeHeight } = this.nativeSize;
         const rotation = NumCast(this.dataDoc[this.fieldKey + "-rotation"]);
         const aspect = (rotation % 180) ? nativeHeight / nativeWidth : 1;
-        //const shift = (rotation % 180) ? -(nativeHeight - nativeHeight * aspect) : 0;
         const pwidth = this.props.PanelWidth();
         const pheight = this.props.PanelHeight();
         const shift = (rotation % 180) ? (pheight - pwidth) / aspect / 2 + (pheight - pwidth) / 2 : 0;
-        //(300 - 168) / 1.7778 / 2  + (300 - 168)/2
 
         this.resize(srcpath);
 
