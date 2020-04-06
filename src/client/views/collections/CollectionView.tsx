@@ -162,6 +162,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
     // moving it into the target.  
     @action.bound
     moveDocument(doc: Doc, targetCollection: Doc | undefined, addDocument: (doc: Doc) => boolean): boolean {
+        doc.context = targetCollection;
         if (Doc.AreProtosEqual(this.props.Document, targetCollection)) {
             return true;
         }

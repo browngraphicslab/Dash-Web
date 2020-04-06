@@ -224,7 +224,7 @@ export class DocumentManager {
                 containerDoc.currentTimecode !== undefined && (containerDoc.currentTimecode = NumCast(target?.timecode));
                 const targetContext = await target?.context as Doc;
                 const targetNavContext = !Doc.AreProtosEqual(targetContext, currentContext) ? targetContext : undefined;
-                DocumentManager.Instance.jumpToDocument(target, zoom, (doc, finished) => createViewFunc(doc, "onRight", finished), targetNavContext, linkDoc[Id], undefined, doc, finished);
+                DocumentManager.Instance.jumpToDocument(target, zoom, (doc, finished) => createViewFunc(doc, StrCast(linkDoc.followLinkLocation, "onRight"), finished), targetNavContext, linkDoc[Id], undefined, doc, finished);
             } else {
                 finished?.();
             }
