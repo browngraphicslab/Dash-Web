@@ -18,6 +18,7 @@ import { CollectionView } from "./CollectionView";
 import "./CollectionViewChromes.scss";
 import * as Autosuggest from 'react-autosuggest';
 import KeyRestrictionRow from "./KeyRestrictionRow";
+import { ObjectField } from "../../../new_fields/ObjectField";
 const datepicker = require('js-datepicker');
 
 interface CollectionViewChromeProps {
@@ -54,8 +55,8 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     };
     _contentCommand = {
         params: ["target", "source"], title: "=> content",
-        script: "getProto(this.target).data = aliasDocs(this.source);",
-        immediate: (source: Doc[]) => Doc.GetProto(this.target).data = Doc.aliasDocs(source),
+        script: "getProto(this.target).data = copyField(this.source);",
+        immediate: (source: Doc[]) => Doc.GetProto(this.target).data = new List<Doc>(source), // Doc.aliasDocs(source),
         initialize: emptyFunction,
     };
     _viewCommand = {
