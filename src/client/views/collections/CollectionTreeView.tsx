@@ -267,8 +267,9 @@ class TreeView extends React.Component<TreeViewProps> {
     docTransform = () => {
         const { scale, translateX, translateY } = Utils.GetScreenTransform(this._dref.current!);
         const outerXf = this.props.outerXf();
-        const offset = this.props.ScreenToLocalTransform().transformDirection(outerXf.translateX - translateX, outerXf.translateY - translateY);
-        const finalXf = this.props.ScreenToLocalTransform().translate(offset[0], offset[1] + (this.props.ChromeHeight && this.props.ChromeHeight() < 0 ? this.props.ChromeHeight() : 0));
+        const offset = this.props.ScreenToLocalTransform().transformDirection((outerXf.translateX - translateX), outerXf.translateY - translateY);
+        const finalXf = this.props.ScreenToLocalTransform().translate(offset[0], offset[1]);
+
         return finalXf;
     }
     getTransform = () => {

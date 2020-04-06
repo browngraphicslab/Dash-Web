@@ -39,6 +39,7 @@ interface CSVFieldColumnProps {
     type: "string" | "number" | "bigint" | "boolean" | "symbol" | "undefined" | "object" | "function" | undefined;
     createDropTarget: (ele: HTMLDivElement) => void;
     screenToLocalTransform: () => Transform;
+    observeHeight: (myref: any) => void;
 }
 
 @observer
@@ -358,7 +359,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                 {this.props.parent.Document.hideHeadings ? (null) : headingView}
                 {
                     this.collapsed ? (null) :
-                        <div>
+                        <div ref={ref => ref && this.props.observeHeight(ref)}>
                             <div key={`${heading}-stack`} className={`collectionStackingView-masonry${singleColumn ? "Single" : "Grid"}`}
                                 style={{
                                     padding: singleColumn ? `${columnYMargin}px ${0}px ${style.yMargin}px ${0}px` : `${columnYMargin}px ${0}px`,
