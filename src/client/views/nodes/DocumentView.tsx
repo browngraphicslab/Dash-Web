@@ -674,20 +674,23 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     @action
-    onContextMenu = async (e: React.MouseEvent): Promise<void> => {
+    onContextMenu = async (e: React.MouseEvent | Touch): Promise<void> => {
         // the touch onContextMenu is button 0, the pointer onContextMenu is button 2
-        if (e.button === 0 && !e.ctrlKey) {
+        if (!(e instanceof Touch)) {
+            if (e.button === 0 && !e.ctrlKey) {
+                e.preventDefault();
+                return;
+            }
+            e.persist();
+            e?.stopPropagation();
+
+            if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3 ||
+                e.isDefaultPrevented()) {
+                e.preventDefault();
+                return;
+            }
             e.preventDefault();
-            return;
         }
-        e.persist();
-        e?.stopPropagation();
-        if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3 ||
-            e.isDefaultPrevented()) {
-            e.preventDefault();
-            return;
-        }
-        e.preventDefault();
 
         const cm = ContextMenu.Instance;
         const templateDoc = Cast(this.props.Document[StrCast(this.props.Document.layoutKey)], Doc, null);
@@ -768,7 +771,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
         recommender_subitems.push({
             description: "Internal recommendations",
-            event: () => this.recommender(e),
+            event: () => this.recommender(),
             icon: "brain"
         });
 
@@ -829,7 +832,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 icon: "external-link-alt"
             });
 
-            if (!this.topMost) {
+            if (!this.topMost && !(e instanceof Touch)) {
                 // DocumentViews should stop propagation of this event
                 e.stopPropagation();
             }
@@ -847,7 +850,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         });
     }
 
-    recommender = async (e: React.MouseEvent) => {
+    recommender = async () => {
         if (!ClientRecommender.Instance) new ClientRecommender({ title: "Client Recommender" });
         const documents: Doc[] = [];
         const allDocs = await SearchUtil.GetAllDocs();
