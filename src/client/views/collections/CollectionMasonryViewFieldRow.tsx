@@ -36,6 +36,9 @@ interface CMVFieldRowProps {
     createDropTarget: (ele: HTMLDivElement) => void;
     screenToLocalTransform: () => Transform;
     setDocHeight: (key: string, thisHeight: number) => void;
+    observeHeight: (myref: any) => void;
+    unobserveHeight: (myref: any) => void;
+    showHandle: boolean;
 }
 
 @observer
@@ -53,13 +56,18 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
     private _contRef: React.RefObject<HTMLDivElement> = React.createRef();
     private _sensitivity: number = 16;
     private _counter: number = 0;
-
+    private _ele: any;
 
     createRowDropRef = (ele: HTMLDivElement | null) => {
         this._dropDisposer && this._dropDisposer();
         if (ele) {
+            this._ele = ele;
+            this.props.observeHeight(ele);
             this._dropDisposer = DragManager.MakeDropTarget(ele, this.rowDrop.bind(this));
         }
+    }
+    componentWillUnmount() {
+        this.props.unobserveHeight(this._ele);
     }
 
     getTrueHeight = () => {
@@ -293,7 +301,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
                         gridTemplateColumns: numberRange(rows).reduce((list: string, i: any) => list + ` ${this.props.parent.columnWidth}px`, ""),
                     }}>
                     {this.props.parent.children(this.props.docList)}
-                    {this.props.parent.columnDragger}
+                    {this.props.showHandle && this.props.parent.props.active() ? this.props.parent.columnDragger : (null)}
                 </div>
             </div>;
     }

@@ -295,7 +295,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                     this.refList.push(ref);
                     const doc = this.props.DataDoc && this.props.DataDoc.layout === this.layoutDoc ? this.props.DataDoc : this.layoutDoc;
                     this.observer = new _global.ResizeObserver(action((entries: any) => {
-                        if (this.props.Document._autoHeight && ref && !SelectionManager.GetIsDragging()) {
+                        if (this.props.Document._autoHeight && ref && this.refList.length && !SelectionManager.GetIsDragging()) {
                             Doc.Layout(doc)._height = Math.max(...this.refList.map(r => Number(getComputedStyle(r).height.replace("px", ""))));
                         }
                     }));
@@ -325,7 +325,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         return this.props.ScreenToLocalTransform().translate(offset[0], offset[1] + offsety);
     }
 
-    sectionMasonry = (heading: SchemaHeaderField | undefined, docList: Doc[]) => {
+    sectionMasonry = (heading: SchemaHeaderField | undefined, docList: Doc[], first: boolean) => {
         const key = this.pivotField;
         let type: "string" | "number" | "bigint" | "boolean" | "symbol" | "undefined" | "object" | "function" | undefined = undefined;
         const types = docList.length ? docList.map(d => typeof d[key]) : this.filteredChildren.map(d => typeof d[key]);
@@ -335,6 +335,20 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         const rows = () => !this.isStackingView ? 1 : Math.max(1, Math.min(docList.length,
             Math.floor((this.props.PanelWidth() - 2 * this.xMargin) / (this.columnWidth + this.gridGap))));
         return <CollectionMasonryViewFieldRow
+            showHandle={first}
+            unobserveHeight={(ref) => this.refList.splice(this.refList.indexOf(ref), 1)}
+            observeHeight={(ref) => {
+                if (ref) {
+                    this.refList.push(ref);
+                    const doc = this.props.DataDoc && this.props.DataDoc.layout === this.layoutDoc ? this.props.DataDoc : this.layoutDoc;
+                    this.observer = new _global.ResizeObserver(action((entries: any) => {
+                        if (this.props.Document._autoHeight && ref && this.refList.length && !SelectionManager.GetIsDragging()) {
+                            Doc.Layout(doc)._height = this.refList.reduce((p, r) => p + Number(getComputedStyle(r).height.replace("px", "")), 0)
+                        }
+                    }));
+                    this.observer.observe(ref);
+                }
+            }}
             key={heading ? heading.heading : ""}
             rows={rows}
             headings={this.headings}
@@ -387,7 +401,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             const entries = Array.from(this.Sections.entries());
             sections = entries.sort(this.sortFunc);
         }
-        return sections.map(section => this.isStackingView ? this.sectionStacking(section[0], section[1]) : this.sectionMasonry(section[0], section[1]));
+        return sections.map((section, i) => this.isStackingView ? this.sectionStacking(section[0], section[1]) : this.sectionMasonry(section[0], section[1], i === 0));
     }
 
 
