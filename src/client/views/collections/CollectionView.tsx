@@ -13,7 +13,7 @@ import { List } from '../../../new_fields/List';
 import { BoolCast, Cast, NumCast, StrCast, ScriptCast } from '../../../new_fields/Types';
 import { ImageField } from '../../../new_fields/URLField';
 import { TraceMobx } from '../../../new_fields/util';
-import { Utils, setupMoveUpEvents, returnFalse } from '../../../Utils';
+import { Utils, setupMoveUpEvents, returnFalse, returnZero } from '../../../Utils';
 import { DocumentType } from '../../documents/DocumentTypes';
 import { DocumentManager } from '../../util/DocumentManager';
 import { ImageUtils } from '../../util/Import & Export/ImageUtils';
@@ -424,6 +424,8 @@ export class CollectionView extends Touchable<FieldViewProps> {
                     <CollectionTreeView {...this.props}
                         CollectionView={this}
                         treeViewHideTitle={true}
+                        NativeHeight={returnZero}
+                        NativeWidth={returnZero}
                         treeViewHideHeaderFields={true}
                         onCheckedClick={this.scriptField!}
                         ignoreFields={this.treeIgnoreFields}

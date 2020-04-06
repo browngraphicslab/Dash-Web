@@ -4,7 +4,7 @@ import * as React from 'react';
 import { Doc, HeightSym, WidthSym } from '../../../new_fields/Doc';
 import { makeInterface } from '../../../new_fields/Schema';
 import { BoolCast, NumCast, StrCast, Cast, ScriptCast } from '../../../new_fields/Types';
-import { emptyFunction, returnEmptyString, returnOne, returnTrue, Utils, returnFalse } from '../../../Utils';
+import { emptyFunction, returnEmptyString, returnOne, returnTrue, Utils, returnFalse, returnZero } from '../../../Utils';
 import { DragManager } from '../../util/DragManager';
 import { Transform } from '../../util/Transform';
 import "./CollectionLinearView.scss";
@@ -114,6 +114,8 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                                 onClick={undefined}
                                 ScreenToLocalTransform={this.getTransform(dref)}
                                 ContentScaling={returnOne}
+                                NativeHeight={returnZero}
+                                NativeWidth={returnZero}
                                 PanelWidth={nested ? pair.layout[WidthSym] : () => this.dimension()}// ugh - need to get rid of this inline function to avoid recomputing
                                 PanelHeight={nested ? pair.layout[HeightSym] : () => this.dimension()}
                                 renderDepth={this.props.renderDepth + 1}
@@ -123,7 +125,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                                 whenActiveChanged={emptyFunction}
                                 bringToFront={emptyFunction}
                                 ContainingCollectionView={undefined}
-                                ContainingCollectionDoc={undefined}/>
+                                ContainingCollectionDoc={undefined} />
                         </div>;
                     })}
                 </div>

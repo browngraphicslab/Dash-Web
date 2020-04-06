@@ -182,6 +182,8 @@ export class OverlayView extends React.Component {
                     addDocument={undefined}
                     removeDocument={undefined}
                     ContentScaling={returnOne}
+                    NativeHeight={returnZero}
+                    NativeWidth={returnZero}
                     PanelWidth={returnOne}
                     PanelHeight={returnOne}
                     ScreenToLocalTransform={Transform.Identity}

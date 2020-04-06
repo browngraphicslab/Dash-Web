@@ -172,6 +172,8 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             whenActiveChanged: emptyFunction,
             PanelHeight: returnZero,
             PanelWidth: returnZero,
+            NativeHeight: returnZero,
+            NativeWidth: returnZero,
             addDocTab: this.props.addDocTab,
             pinToPres: this.props.pinToPres,
             ContentScaling: returnOne

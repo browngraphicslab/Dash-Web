@@ -14,7 +14,7 @@ import { ComputedField } from '../../../new_fields/ScriptField';
 import { Cast, NumCast, StrCast } from '../../../new_fields/Types';
 import { AudioField, ImageField } from '../../../new_fields/URLField';
 import { TraceMobx } from '../../../new_fields/util';
-import { emptyFunction, returnOne, Utils } from '../../../Utils';
+import { emptyFunction, returnOne, Utils, returnZero } from '../../../Utils';
 import { CognitiveServices, Confidence, Service, Tag } from '../../cognitive_services/CognitiveServices';
 import { Docs } from '../../documents/Documents';
 import { Networking } from '../../Network';
@@ -392,8 +392,10 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
         const fadepath = this.paths[Math.min(1, this.paths.length - 1)];
         const { nativeWidth, nativeHeight } = this.nativeSize;
         const rotation = NumCast(this.dataDoc[this.fieldKey + "-rotation"]);
-        const aspect = (rotation % 180) ? this.Document[HeightSym]() / this.Document[WidthSym]() : 1;
-        const shift = (rotation % 180) ? (nativeHeight - nativeWidth / aspect) / 2 : 0;
+        const aspect = (rotation % 180) ? nativeHeight / nativeWidth : 1;
+        const pwidth = this.props.PanelWidth();
+        const pheight = this.props.PanelHeight();
+        const shift = (rotation % 180) ? (pheight - pwidth) / aspect / 2 + (pheight - pwidth) / 2 : 0;
 
         this.resize(srcpath);
 
@@ -433,18 +435,22 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
     contentFunc = () => [this.content];
     render() {
         TraceMobx();
+        const { nativeWidth, nativeHeight } = this.nativeSize;
+        const aspect = nativeWidth / nativeHeight;
         const dragging = !SelectionManager.GetIsDragging() ? "" : "-dragging";
         return (<div className={`imageBox${dragging}`} onContextMenu={this.specificContextMenu}
             style={{
-                transform: `scale(${this.props.ContentScaling()})`,
-                width: `${100 / this.props.ContentScaling()}%`,
-                height: `${100 / this.props.ContentScaling()}%`,
+                transform: this.props.PanelWidth() ? undefined : `scale(${this.props.ContentScaling()})`,
+                width: this.props.PanelWidth() ? `${this.props.PanelWidth()}px` : `${100 / this.props.ContentScaling()}%`,
+                height: this.props.PanelWidth() ? `${this.props.PanelWidth() / aspect}px` : `${100 / this.props.ContentScaling()}%`,
                 pointerEvents: this.props.Document.isBackground ? "none" : undefined,
                 borderRadius: `${Number(StrCast(this.layoutDoc.borderRounding).replace("px", "")) / this.props.ContentScaling()}px`
             }} >
             <CollectionFreeFormView {...this.props}
                 PanelHeight={this.props.PanelHeight}
                 PanelWidth={this.props.PanelWidth}
+                NativeHeight={returnZero}
+                NativeWidth={returnZero}
                 annotationsKey={this.annotationKey}
                 isAnnotationOverlay={true}
                 focus={this.props.focus}

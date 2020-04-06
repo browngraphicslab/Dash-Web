@@ -36,12 +36,15 @@ export interface CollectionViewProps extends FieldViewProps {
     setPreviewCursor?: (func: (x: number, y: number, drag: boolean) => void) => void;
     rootSelected: () => boolean;
     fieldKey: string;
+    NativeWidth: () => number;
+    NativeHeight: () => number;
 }
 
 export interface SubCollectionViewProps extends CollectionViewProps {
     CollectionView: Opt<CollectionView>;
     children?: never | (() => JSX.Element[]) | React.ReactNode;
-    overrideDocuments?: Doc[]; // used to override the documents shown by the sub collection to an explict list (see LinkBox)
+    freezeChildDimensions?: boolean; // used by TimeView to coerce documents to treat their width height as their native width/height
+    overrideDocuments?: Doc[]; // used to override the documents shown by the sub collection to an explicit list (see LinkBox)
     ignoreFields?: string[]; // used in TreeView to ignore specified fields (see LinkBox)
     isAnnotationOverlay?: boolean;
     annotationsKey: string;
@@ -213,9 +216,6 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 this.props.Document.dropConverter.script.run({ dragData: docDragData }); /// bcz: check this 
             if (docDragData) {
                 let added = false;
-                if (this.props.Document._freezeOnDrop) {
-                    de.complete.docDragData?.droppedDocuments.forEach(drop => Doc.freezeNativeDimensions(drop, drop[WidthSym](), drop[HeightSym]()));
-                }
                 if (docDragData.dropAction || docDragData.userDropAction) {
                     added = docDragData.droppedDocuments.reduce((added: boolean, d) => this.props.addDocument(d) || added, false);
                 } else if (docDragData.moveDocument) {

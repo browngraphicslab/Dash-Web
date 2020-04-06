@@ -103,7 +103,7 @@ class TreeView extends React.Component<TreeViewProps> {
     set treeViewOpen(c: boolean) { if (this.props.treeViewPreventOpen) this._overrideTreeViewOpen = c; else this.props.document.treeViewOpen = this._overrideTreeViewOpen = c; }
     @computed get treeViewOpen() { return (!this.props.treeViewPreventOpen && BoolCast(this.props.document.treeViewOpen)) || this._overrideTreeViewOpen; }
     @computed get treeViewExpandedView() { return StrCast(this.props.document.treeViewExpandedView, this.defaultExpandedView); }
-    @computed get MAX_EMBED_HEIGHT() { return NumCast(this.props.document.maxEmbedHeight, 300); }
+    @computed get MAX_EMBED_HEIGHT() { return NumCast(this.props.containingCollection.maxEmbedHeight, 200); }
     @computed get dataDoc() { return this.templateDataDoc ? this.templateDataDoc : this.props.document; }
     @computed get fieldKey() {
         const splits = StrCast(Doc.LayoutField(this.props.document)).split("fieldKey={\'");
@@ -267,8 +267,9 @@ class TreeView extends React.Component<TreeViewProps> {
     docTransform = () => {
         const { scale, translateX, translateY } = Utils.GetScreenTransform(this._dref.current!);
         const outerXf = this.props.outerXf();
-        const offset = this.props.ScreenToLocalTransform().transformDirection(outerXf.translateX - translateX, outerXf.translateY - translateY);
-        const finalXf = this.props.ScreenToLocalTransform().translate(offset[0], offset[1] + (this.props.ChromeHeight && this.props.ChromeHeight() < 0 ? this.props.ChromeHeight() : 0));
+        const offset = this.props.ScreenToLocalTransform().transformDirection((outerXf.translateX - translateX), outerXf.translateY - translateY);
+        const finalXf = this.props.ScreenToLocalTransform().translate(offset[0], offset[1]);
+
         return finalXf;
     }
     getTransform = () => {
@@ -280,7 +281,7 @@ class TreeView extends React.Component<TreeViewProps> {
     }
     docWidth = () => {
         const layoutDoc = Doc.Layout(this.props.document);
-        const aspect = NumCast(layoutDoc._nativeHeight) / NumCast(layoutDoc._nativeWidth);
+        const aspect = NumCast(layoutDoc._nativeHeight, layoutDoc._fitWidth ? 0 : layoutDoc[HeightSym]()) / NumCast(layoutDoc._nativeWidth, layoutDoc._fitWidth ? 1 : layoutDoc[WidthSym]());
         if (aspect) return Math.min(layoutDoc[WidthSym](), Math.min(this.MAX_EMBED_HEIGHT / aspect, this.props.panelWidth() - 20));
         return NumCast(layoutDoc._nativeWidth) ? Math.min(layoutDoc[WidthSym](), this.props.panelWidth() - 20) : this.props.panelWidth() - 20;
     }
@@ -288,7 +289,7 @@ class TreeView extends React.Component<TreeViewProps> {
         const layoutDoc = Doc.Layout(this.props.document);
         const bounds = this.boundsOfCollectionDocument;
         return Math.min(this.MAX_EMBED_HEIGHT, (() => {
-            const aspect = NumCast(layoutDoc._nativeHeight) / NumCast(layoutDoc._nativeWidth, 1);
+            const aspect = NumCast(layoutDoc._nativeHeight, layoutDoc._fitWidth ? 0 : layoutDoc[HeightSym]()) / NumCast(layoutDoc._nativeWidth, layoutDoc._fitWidth ? 1 : layoutDoc[WidthSym]());
             if (aspect) return this.docWidth() * aspect;
             if (bounds) return this.docWidth() * (bounds.b - bounds.y) / (bounds.r - bounds.x);
             return layoutDoc._fitWidth ? (!this.props.document.nativeHeight ? NumCast(this.props.containingCollection._height) :
@@ -376,6 +377,7 @@ class TreeView extends React.Component<TreeViewProps> {
                     rootSelected={returnTrue}
                     backgroundColor={this.props.backgroundColor}
                     fitToBox={this.boundsOfCollectionDocument !== undefined}
+                    FreezeDimensions={true}
                     PanelWidth={this.docWidth}
                     PanelHeight={this.docHeight}
                     getTransform={this.docTransform}
@@ -465,6 +467,8 @@ class TreeView extends React.Component<TreeViewProps> {
                         ContentScaling={returnOne}
                         PanelWidth={returnZero}
                         PanelHeight={returnZero}
+                        NativeHeight={returnZero}
+                        NativeWidth={returnZero}
                         renderDepth={1}
                         focus={emptyFunction}
                         parentActive={returnTrue}

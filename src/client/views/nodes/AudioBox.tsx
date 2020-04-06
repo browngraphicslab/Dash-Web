@@ -7,7 +7,7 @@ import { AudioField, nullAudio } from "../../../new_fields/URLField";
 import { DocExtendableComponent } from "../DocComponent";
 import { makeInterface, createSchema } from "../../../new_fields/Schema";
 import { documentSchema } from "../../../new_fields/documentSchemas";
-import { Utils, returnTrue, emptyFunction, returnOne, returnTransparent, returnFalse } from "../../../Utils";
+import { Utils, returnTrue, emptyFunction, returnOne, returnTransparent, returnFalse, returnZero } from "../../../Utils";
 import { runInAction, observable, reaction, IReactionDisposer, computed, action } from "mobx";
 import { DateField } from "../../../new_fields/DateField";
 import { SelectionManager } from "../../util/SelectionManager";
@@ -261,6 +261,8 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
                                         <div className={this.props.PanelHeight() < 32 ? "audioBox-linker-mini" : "audioBox-linker"} key={"linker" + i}>
                                             <DocumentView {...this.props}
                                                 Document={l}
+                                                NativeHeight={returnZero}
+                                                NativeWidth={returnZero}
                                                 rootSelected={returnFalse}
                                                 layoutKey={Doc.LinkEndpoint(l, la2)}
                                                 ContainingCollectionDoc={this.props.Document}

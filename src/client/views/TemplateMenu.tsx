@@ -10,7 +10,7 @@ import { Doc, DocListCast } from "../../new_fields/Doc";
 import { Docs, } from "../documents/Documents";
 import { StrCast, Cast } from "../../new_fields/Types";
 import { CollectionTreeView } from "./collections/CollectionTreeView";
-import { returnTrue, emptyFunction, returnFalse, returnOne, emptyPath } from "../../Utils";
+import { returnTrue, emptyFunction, returnFalse, returnOne, emptyPath, returnZero } from "../../Utils";
 import { Transform } from "../util/Transform";
 import { ScriptField, ComputedField } from "../../new_fields/ScriptField";
 import { Scripting } from "../util/Scripting";
@@ -149,6 +149,8 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
                     select={emptyFunction}
                     renderDepth={1}
                     addDocTab={returnFalse}
+                    NativeHeight={returnZero}
+                    NativeWidth={returnZero}
                     PanelWidth={this.return100}
                     PanelHeight={this.return100}
                     treeViewHideHeaderFields={true}
@@ -161,7 +163,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
             );
         }
         return <ul className="template-list" style={{ display: "block" }}>
-            <input placeholder="+ layout" ref={this._customRef} onKeyPress={this.onCustomKeypress}/>
+            <input placeholder="+ layout" ref={this._customRef} onKeyPress={this.onCustomKeypress} />
             {templateMenu}
         </ul>;
     }

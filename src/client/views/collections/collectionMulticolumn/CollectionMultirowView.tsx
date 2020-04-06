@@ -6,7 +6,7 @@ import * as React from "react";
 import { Doc } from '../../../../new_fields/Doc';
 import { NumCast, StrCast, BoolCast, ScriptCast } from '../../../../new_fields/Types';
 import { ContentFittingDocumentView } from '../../nodes/ContentFittingDocumentView';
-import { Utils } from '../../../../Utils';
+import { Utils, returnZero } from '../../../../Utils';
 import "./collectionMultirowView.scss";
 import { computed, trace, observable, action } from 'mobx';
 import { Transform } from '../../../util/Transform';
@@ -208,6 +208,10 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
             {...this.props}
             Document={layout}
             DataDocument={layout.resolvedDataDoc as Doc}
+            NativeHeight={returnZero}
+            NativeWidth={returnZero}
+            fitToBox={BoolCast(this.props.Document._freezeChildDimensions)}
+            FreezeDimensions={BoolCast(this.props.Document._freezeChildDimensions)}
             backgroundColor={this.props.backgroundColor}
             CollectionDoc={this.props.Document}
             PanelWidth={width}

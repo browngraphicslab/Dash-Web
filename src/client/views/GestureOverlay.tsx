@@ -15,7 +15,7 @@ import { Scripting } from "../util/Scripting";
 import { FieldValue, Cast, NumCast, BoolCast } from "../../new_fields/Types";
 import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
 import HorizontalPalette from "./Palette";
-import { Utils, emptyPath, emptyFunction, returnFalse, returnOne, returnEmptyString, returnTrue, numberRange } from "../../Utils";
+import { Utils, emptyPath, emptyFunction, returnFalse, returnOne, returnEmptyString, returnTrue, numberRange, returnZero } from "../../Utils";
 import { DocumentView } from "./nodes/DocumentView";
 import { Transform } from "../util/Transform";
 import { DocumentContentsView } from "./nodes/DocumentContentsView";
@@ -695,7 +695,8 @@ export default class GestureOverlay extends Touchable {
             </svg>]
         ];
     }
-
+    screenToLocalTransform = () => new Transform(-(this._thumbX ?? 0), -(this._thumbY ?? 0) + this.height, 1);
+    return300 = () => 300;
     @action
     public openFloatingDoc = (doc: Doc) => {
         this._clipboardDoc =
@@ -709,10 +710,12 @@ export default class GestureOverlay extends Touchable {
                 pinToPres={emptyFunction}
                 onClick={undefined}
                 removeDocument={undefined}
-                ScreenToLocalTransform={() => new Transform(-(this._thumbX ?? 0), -(this._thumbY ?? 0) + this.height, 1)}
+                ScreenToLocalTransform={this.screenToLocalTransform}
                 ContentScaling={returnOne}
-                PanelWidth={() => 300}
-                PanelHeight={() => 300}
+                PanelWidth={this.return300}
+                PanelHeight={this.return300}
+                NativeHeight={returnZero}
+                NativeWidth={returnZero}
                 renderDepth={0}
                 backgroundColor={returnEmptyString}
                 focus={emptyFunction}

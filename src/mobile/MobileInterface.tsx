@@ -7,7 +7,7 @@ import { Doc, DocListCast } from '../new_fields/Doc';
 import { Docs } from '../client/documents/Documents';
 import { CollectionView } from '../client/views/collections/CollectionView';
 import { DocumentView } from '../client/views/nodes/DocumentView';
-import { emptyPath, emptyFunction, returnFalse, returnOne, returnEmptyString, returnTrue } from '../Utils';
+import { emptyPath, emptyFunction, returnFalse, returnOne, returnEmptyString, returnTrue, returnZero } from '../Utils';
 import { Transform } from '../client/util/Transform';
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faPenNib, faHighlighter, faEraser, faMousePointer, faBreadSlice, faTrash, faCheck, faLongArrowAltLeft } from '@fortawesome/free-solid-svg-icons';
@@ -129,6 +129,8 @@ export default class MobileInterface extends React.Component {
                 onClick={undefined}
                 ScreenToLocalTransform={Transform.Identity}
                 ContentScaling={returnOne}
+                NativeHeight={returnZero}
+                NativeWidth={returnZero}
                 PanelWidth={() => window.screen.width}
                 PanelHeight={() => window.screen.height}
                 renderDepth={0}
@@ -173,6 +175,8 @@ export default class MobileInterface extends React.Component {
         e.stopPropagation();
     }
 
+    panelHeight = () => window.innerHeight;
+    panelWidth = () => window.innerWidth;
     renderInkingContent = () => {
         console.log("rendering inking content");
         // TODO: support panning and zooming
@@ -201,8 +205,10 @@ export default class MobileInterface extends React.Component {
                         bringToFront={emptyFunction}
                         addDocTab={returnFalse}
                         pinToPres={emptyFunction}
-                        PanelHeight={() => window.innerHeight}
-                        PanelWidth={() => window.innerWidth}
+                        PanelWidth={this.panelWidth}
+                        PanelHeight={this.panelHeight}
+                        NativeHeight={returnZero}
+                        NativeWidth={returnZero}
                         focus={emptyFunction}
                         isSelected={returnFalse}
                         select={emptyFunction}
@@ -289,6 +295,8 @@ export default class MobileInterface extends React.Component {
                         onClick={undefined}
                         ScreenToLocalTransform={Transform.Identity}
                         ContentScaling={returnOne}
+                        NativeHeight={returnZero}
+                        NativeWidth={returnZero}
                         PanelWidth={() => window.screen.width}
                         PanelHeight={() => window.screen.height}
                         renderDepth={0}
