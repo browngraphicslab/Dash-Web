@@ -316,8 +316,9 @@ export class SearchBox extends React.Component<SearchProps> {
 
     private get filterQuery() {
         const types = this.filterTypes;
-        const includeDeleted = this.getDataStatus();
-        return "NOT baseProto_b:true" + (includeDeleted ? "" : " AND NOT deleted_b:true") + (types ? ` AND (${types.map(type => `({!join from=id to=proto_i}type_t:"${type}" AND NOT type_t:*) OR type_t:"${type}" OR type_t:"extension"`).join(" ")})` : "");
+        const includeDeleted = this.getDataStatus() ? "" : " AND NOT deleted_b:true";
+        const includeIcons = this.getDataStatus() ? "" : " AND NOT type_t:fonticonbox";
+        return "NOT baseProto_b:true" + includeDeleted + includeIcons + (types ? ` AND (${types.map(type => `({!join from=id to=proto_i}type_t:"${type}" AND NOT type_t:*) OR type_t:"${type}"`).join(" ")})` : "");
     }
 
     getDataStatus() { return this._deletedDocsStatus; }
@@ -578,7 +579,7 @@ export class SearchBox extends React.Component<SearchProps> {
             // have the element transition to height: 0
             requestAnimationFrame(function () {
                 element.style.height = 0 + 'px';
-                thing ===`filterhead${id}` ? document.getElementById(`filterhead${id}`)!.style.padding = "0" : null;
+                thing === `filterhead${id}` ? document.getElementById(`filterhead${id}`)!.style.padding = "0" : null;
             });
         });
 

@@ -580,11 +580,25 @@ export namespace Docs {
         }
 
         export function InkDocument(color: string, tool: number, strokeWidth: number, points: { X: number, Y: number }[], options: DocumentOptions = {}) {
-            const doc = InstanceFromProto(Prototypes.get(DocumentType.INK), new InkField(points), options);
-            doc.color = color;
-            doc.strokeWidth = strokeWidth;
-            doc.tool = tool;
-            return doc;
+            const I = new Doc();
+            I.type = DocumentType.INK;
+            I.layout = InkingStroke.LayoutString("data");
+            I.color = color;
+            I.strokeWidth = strokeWidth;
+            I.tool = tool;
+            I.title = "ink";
+            I.x = options.x;
+            I.y = options.y;
+            I._width = options._width;
+            I._height = options._height;
+            I.data = new InkField(points);
+            return I;
+            // return I;
+            // const doc = InstanceFromProto(Prototypes.get(DocumentType.INK), new InkField(points), options);
+            // doc.color = color;
+            // doc.strokeWidth = strokeWidth;
+            // doc.tool = tool;
+            // return doc;
         }
 
         export function PdfDocument(url: string, options: DocumentOptions = {}) {
