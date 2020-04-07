@@ -22,7 +22,7 @@ import { RichTextUtils } from '../../../new_fields/RichTextUtils';
 import { createSchema, makeInterface } from "../../../new_fields/Schema";
 import { Cast, NumCast, StrCast, BoolCast, DateCast } from "../../../new_fields/Types";
 import { TraceMobx } from '../../../new_fields/util';
-import { addStyleSheet, addStyleSheetRule, clearStyleSheetRules, emptyFunction, numberRange, returnOne, Utils, returnTrue } from '../../../Utils';
+import { addStyleSheet, addStyleSheetRule, clearStyleSheetRules, emptyFunction, numberRange, returnOne, Utils, returnTrue, returnZero } from '../../../Utils';
 import { GoogleApiClientUtils, Pulls, Pushes } from '../../apis/google_docs/GoogleApiClientUtils';
 import { DocServer } from "../../DocServer";
 import { Docs, DocUtils } from '../../documents/Documents';
@@ -292,7 +292,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         const linkDoc = data.linkDocument!;
         const anchor1Title = linkDoc.anchor1 instanceof Doc ? StrCast(linkDoc.anchor1.title) : "-untitled-";
         const anchor1Id = linkDoc.anchor1 instanceof Doc ? linkDoc.anchor1[Id] : "";
-        this.makeLinkToSelection(linkDoc[Id], anchor1Title, "onRight", anchor1Id)
+        this.makeLinkToSelection(linkDoc[Id], anchor1Title, "onRight", anchor1Id);
     }
 
     getNodeEndpoints(context: Node, node: Node): { from: number, to: number } | null {
@@ -1216,6 +1216,8 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                         <CollectionFreeFormView {...this.props}
                             PanelHeight={this.props.PanelHeight}
                             PanelWidth={this.sidebarWidth}
+                            NativeHeight={returnZero}
+                            NativeWidth={returnZero}
                             annotationsKey={this.annotationKey}
                             isAnnotationOverlay={false}
                             focus={this.props.focus}

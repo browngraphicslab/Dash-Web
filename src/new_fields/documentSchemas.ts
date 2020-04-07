@@ -28,7 +28,8 @@ export const documentSchema = createSchema({
     _pivotField: "string",      // specifies which field should be used as the timeline/pivot axis
     _replacedChrome: "string",  // what the default chrome is replaced with. Currently only supports the value of 'replaced' for PresBox's.
     _chromeStatus: "string",    // determines the state of the collection chrome. values allowed are 'replaced', 'enabled', 'disabled', 'collapsed'
-    _freezeOnDrop: "boolean",    // whether a document without native dimensions should have its width/height frozen as native dimensions on drop.  Used by Timeline view to make sure documents are scaled to fit the display thumbnail
+    _freezeChildDimensions: "boolean", // freezes child document dimensions (e.g., used by time/pivot view to make sure all children will be scaled to fit their display rectangle)
+    isInPlaceContainer: "boolean",// whether the marked object will display addDocTab() calls that target "inPlace" destinations
     color: "string",            // foreground color of document
     backgroundColor: "string",  // background color of document
     opacity: "number",          // opacity of document
@@ -42,17 +43,15 @@ export const documentSchema = createSchema({
     removeDropProperties: listSpec("string"), // properties that should be removed from the alias/copy/etc of this document when it is dropped
     isTemplateForField: "string",// when specifies a field key, then the containing document is a template that renders the specified field
     isBackground: "boolean",    // whether document is a background element and ignores input events (can only selet with marquee)
-    dontSelect: "boolean",      // whether document should be selected when clicked (usually set to false for buttons)
     treeViewOpen: "boolean",    //  flag denoting whether the documents sub-tree (contents) is visible or hidden
     treeViewExpandedView: "string", // name of field whose contents are being displayed as the document's subtree
     treeViewPreventOpen: "boolean", // ignores the treeViewOpen flag (for allowing a view to not be slaved to other views of the document)
     currentTimecode: "number",  // current play back time of a temporal document (video / audio)
-    maximizeLocation: "string", // flag for where to place content when following a click interaction (e.g., onRight, inPlace, inTab) 
+    followLinkLocation: "string",// flag for where to place content when following a click interaction (e.g., onRight, inPlace, inTab, ) 
     lockedPosition: "boolean",  // whether the document can be moved (dragged)
     lockedTransform: "boolean", // whether the document can be panned/zoomed
     inOverlay: "boolean",       // whether the document is rendered in an OverlayView which handles selection/dragging differently
     borderRounding: "string",   // border radius rounding of document
-    searchFields: "string",     // the search fields to display when this document matches a search in its metadata
     heading: "number",          // the logical layout 'heading' of this document (used by rule provider to stylize h1 header elements, from h2, etc)
     isButton: "boolean",        // whether document functions as a button (overiding native interactions of its content)    
     ignoreClick: "boolean",     // whether documents ignores input clicks (but does not ignore manipulation and other events) 

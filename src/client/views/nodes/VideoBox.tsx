@@ -11,7 +11,7 @@ import { createSchema, makeInterface } from "../../../new_fields/Schema";
 import { ScriptField } from "../../../new_fields/ScriptField";
 import { Cast, StrCast, NumCast } from "../../../new_fields/Types";
 import { VideoField } from "../../../new_fields/URLField";
-import { Utils, emptyFunction, returnOne } from "../../../Utils";
+import { Utils, emptyFunction, returnOne, returnZero } from "../../../Utils";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { ContextMenu } from "../ContextMenu";
@@ -352,6 +352,8 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
                 <CollectionFreeFormView {...this.props}
                     PanelHeight={this.props.PanelHeight}
                     PanelWidth={this.props.PanelWidth}
+                    NativeHeight={returnZero}
+                    NativeWidth={returnZero}
                     annotationsKey={this.annotationKey}
                     focus={this.props.focus}
                     isSelected={this.props.isSelected}

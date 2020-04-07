@@ -12,7 +12,7 @@ import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
 import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 import { ComputedField } from "../../../new_fields/ScriptField";
-import { Cast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
+import { Cast, FieldValue, NumCast, StrCast, BoolCast } from "../../../new_fields/Types";
 import { Docs, DocumentOptions } from "../../documents/Documents";
 import { Gateway } from "../../northstar/manager/Gateway";
 import { CompileScript, Transformer, ts } from "../../util/Scripting";
@@ -28,7 +28,8 @@ import "./CollectionSchemaView.scss";
 import { CollectionSubView } from "./CollectionSubView";
 import { CollectionView } from "./CollectionView";
 import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
-import { setupMoveUpEvents, emptyFunction } from "../../../Utils";
+import { setupMoveUpEvents, emptyFunction, returnZero, returnOne } from "../../../Utils";
+import { DocumentView } from "../nodes/DocumentView";
 
 library.add(faCog, faPlus, faSortUp, faSortDown);
 library.add(faTable);
@@ -117,26 +118,32 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     @computed
     get previewPanel() {
-        return <div ref={this.createTarget}>
-            <ContentFittingDocumentView
-                Document={this.previewDocument}
-                DataDocument={undefined}
-                LibraryPath={this.props.LibraryPath}
-                childDocs={this.childDocs}
-                renderDepth={this.props.renderDepth}
-                PanelWidth={this.previewWidth}
-                PanelHeight={this.previewHeight}
-                getTransform={this.getPreviewTransform}
-                CollectionDoc={this.props.CollectionView && this.props.CollectionView.props.Document}
-                CollectionView={this.props.CollectionView}
-                moveDocument={this.props.moveDocument}
-                addDocument={this.props.addDocument}
-                removeDocument={this.props.removeDocument}
-                active={this.props.active}
-                whenActiveChanged={this.props.whenActiveChanged}
-                addDocTab={this.props.addDocTab}
-                pinToPres={this.props.pinToPres}
-            />
+        return <div ref={this.createTarget} style={{ width: `${this.previewWidth()}px` }}>
+            {!this.previewDocument ? (null) :
+                <ContentFittingDocumentView
+                    Document={this.previewDocument}
+                    DataDocument={undefined}
+                    NativeHeight={returnZero}
+                    NativeWidth={returnZero}
+                    fitToBox={true}
+                    FreezeDimensions={true}
+                    focus={emptyFunction}
+                    LibraryPath={this.props.LibraryPath}
+                    renderDepth={this.props.renderDepth}
+                    rootSelected={this.rootSelected}
+                    PanelWidth={this.previewWidth}
+                    PanelHeight={this.previewHeight}
+                    getTransform={this.getPreviewTransform}
+                    CollectionDoc={this.props.CollectionView?.props.Document}
+                    CollectionView={this.props.CollectionView}
+                    moveDocument={this.props.moveDocument}
+                    addDocument={this.props.addDocument}
+                    removeDocument={this.props.removeDocument}
+                    active={this.props.active}
+                    whenActiveChanged={this.props.whenActiveChanged}
+                    addDocTab={this.props.addDocTab}
+                    pinToPres={this.props.pinToPres}
+                />}
         </div>;
     }
 
@@ -179,7 +186,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
 
     render() {
         return <div className="collectionSchemaView-container">
-            <div className="collectionSchemaView-tableContainer" onPointerDown={this.onPointerDown} onWheel={e => this.props.active(true) && e.stopPropagation()} onDrop={e => this.onExternalDrop(e, {})} ref={this.createTarget}>
+            <div className="collectionSchemaView-tableContainer" style={{ width: `calc(100% - ${this.previewWidth()}px)` }} onPointerDown={this.onPointerDown} onWheel={e => this.props.active(true) && e.stopPropagation()} onDrop={e => this.onExternalDrop(e, {})} ref={this.createTarget}>
                 {this.schemaTable}
             </div>
             {this.dividerDragger}

@@ -3,7 +3,7 @@ import * as fa from '@fortawesome/free-solid-svg-icons';
 import { action, computed, runInAction, trace, observable } from "mobx";
 import { observer } from "mobx-react";
 import * as rp from "request-promise";
-import { Doc, DocListCast, Opt } from "../../../new_fields/Doc";
+import { Doc, DocListCast, Opt, WidthSym, HeightSym } from "../../../new_fields/Doc";
 import { Document, PositionDocument } from '../../../new_fields/documentSchemas';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { InkTool } from '../../../new_fields/InkField';
@@ -14,7 +14,7 @@ import { BoolCast, Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { AudioField, ImageField, PdfField, VideoField } from '../../../new_fields/URLField';
 import { TraceMobx } from '../../../new_fields/util';
 import { GestureUtils } from '../../../pen-gestures/GestureUtils';
-import { emptyFunction, returnOne, returnTransparent, returnTrue, Utils, OmitKeys } from "../../../Utils";
+import { emptyFunction, returnOne, returnTransparent, returnTrue, Utils, OmitKeys, returnZero } from "../../../Utils";
 import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
 import { DocServer } from "../../DocServer";
 import { Docs, DocumentOptions, DocUtils } from "../../documents/Documents";
@@ -52,14 +52,19 @@ library.add(fa.faEdit, fa.faTrash, fa.faShare, fa.faDownload, fa.faExpandArrowsA
     fa.faSquare, fa.faConciergeBell, fa.faWindowRestore, fa.faFolder, fa.faMapPin, fa.faLink, fa.faFingerprint, fa.faCrosshairs, fa.faDesktop, fa.faUnlock, fa.faLock, fa.faLaptopCode, fa.faMale,
     fa.faCopy, fa.faHandPointRight, fa.faCompass, fa.faSnowflake, fa.faMicrophone);
 
+export type DocFocusFunc = () => boolean;
 export interface DocumentViewProps {
     ContainingCollectionView: Opt<CollectionView>;
     ContainingCollectionDoc: Opt<Doc>;
+    FreezeDimensions?: boolean;
+    NativeWidth: () => number;
+    NativeHeight: () => number;
     Document: Doc;
     DataDoc?: Doc;
     LayoutDoc?: () => Opt<Doc>;
     LibraryPath: Doc[];
     fitToBox?: boolean;
+    rootSelected: (outsideReaction?: boolean) => boolean; // whether the root of a template has been selected
     onClick?: ScriptField;
     onPointerDown?: ScriptField;
     onPointerUp?: ScriptField;
@@ -73,16 +78,14 @@ export interface DocumentViewProps {
     ContentScaling: () => number;
     PanelWidth: () => number;
     PanelHeight: () => number;
-    focus: (doc: Doc, willZoom: boolean, scale?: number, afterFocus?: () => boolean) => void;
+    focus: (doc: Doc, willZoom: boolean, scale?: number, afterFocus?: DocFocusFunc) => void;
     parentActive: (outsideReaction: boolean) => boolean;
     whenActiveChanged: (isActive: boolean) => void;
     bringToFront: (doc: Doc, sendToBack?: boolean) => void;
     addDocTab: (doc: Doc, where: string, libraryPath?: Doc[]) => boolean;
     pinToPres: (document: Doc) => void;
-    zoomToScale: (scale: number) => void;
     backgroundHalo?: () => boolean;
     backgroundColor?: (doc: Doc) => string | undefined;
-    getScale: () => number;
     ChromeHeight?: () => number;
     dontRegisterView?: boolean;
     layoutKey?: string;
@@ -107,18 +110,19 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     public get displayName() { return "DocumentView(" + this.props.Document.title + ")"; } // this makes mobx trace() statements more descriptive
     public get ContentDiv() { return this._mainCont.current; }
-    @computed get active() { return SelectionManager.IsSelected(this, true) || this.props.parentActive(true); }
+    get active() { return SelectionManager.IsSelected(this, true) || this.props.parentActive(true); }
     @computed get topMost() { return this.props.renderDepth === 0; }
-    @computed get nativeWidth() { return this.layoutDoc._nativeWidth || 0; }
-    @computed get nativeHeight() { return this.layoutDoc._nativeHeight || 0; }
+    @computed get freezeDimensions() { return this.props.FreezeDimensions; }
+    @computed get nativeWidth() { return NumCast(this.layoutDoc._nativeWidth, this.props.NativeWidth() || (this.freezeDimensions ? this.layoutDoc[WidthSym]() : 0)); }
+    @computed get nativeHeight() { return NumCast(this.layoutDoc._nativeHeight, this.props.NativeHeight() || (this.freezeDimensions ? this.layoutDoc[HeightSym]() : 0)); }
     @computed get onClickHandler() { return this.props.onClick || this.layoutDoc.onClick || this.Document.onClick; }
     @computed get onPointerDownHandler() { return this.props.onPointerDown ? this.props.onPointerDown : this.Document.onPointerDown; }
     @computed get onPointerUpHandler() { return this.props.onPointerUp ? this.props.onPointerUp : this.Document.onPointerUp; }
+    NativeWidth = () => this.nativeWidth;
+    NativeHeight = () => this.nativeHeight;
 
     private _firstX: number = -1;
     private _firstY: number = -1;
-
-
 
     handle1PointerHoldStart = (e: Event, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>): any => {
         this.removeMoveListeners();
@@ -275,7 +279,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     onClick = (e: React.MouseEvent | React.PointerEvent) => {
         if (!e.nativeEvent.cancelBubble && !this.Document.ignoreClick &&
             (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD && Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD)) {
-            e.stopPropagation();
+            let stopPropagate = true;
             let preventDefault = true;
             this.props.bringToFront(this.props.Document);
             if (this._doubleTap && this.props.renderDepth && !this.onClickHandler?.script) { // disable double-click to show full screen for things that have an on click behavior since clicking them twice can be misinterpreted as a double click
@@ -288,32 +292,51 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 Doc.UnBrushDoc(this.props.Document);
             } else if (this.onClickHandler?.script) {
                 SelectionManager.DeselectAll();
-                UndoManager.RunInBatch(() => this.onClickHandler!.script.run({
+                const func = () => this.onClickHandler!.script.run({
                     this: this.props.Document,
                     self: Cast(this.props.Document.rootDocument, Doc, null) || this.props.Document,
-                    containingCollection: this.props.ContainingCollectionDoc, shiftKey: e.shiftKey
-                }, console.log) && !this.props.Document.dontSelect && !this.props.Document.isButton && this.select(false), "on click");
+                    thisContainer: this.props.ContainingCollectionDoc, shiftKey: e.shiftKey
+                }, console.log);// && !this.props.Document.isButton && this.select(false);
+                if (this.props.Document !== Doc.UserDoc().undoBtn && this.props.Document !== Doc.UserDoc().redoBtn) {
+                    UndoManager.RunInBatch(func, "on click");
+                } else func();
             } else if (this.Document.type === DocumentType.BUTTON) {
                 UndoManager.RunInBatch(() => ScriptBox.EditButtonScript("On Button Clicked ...", this.props.Document, "onClick", e.clientX, e.clientY), "on button click");
             } else if (this.Document.isButton) {
-                SelectionManager.SelectDoc(this, e.ctrlKey); // don't think this should happen if a button action is actually triggered.
-                UndoManager.RunInBatch(() => this.buttonClick(e.altKey, e.ctrlKey), "on link button follow");
+                DocListCast(this.props.Document.links).length && this.followLinkClick(e.altKey, e.ctrlKey, e.shiftKey);
             } else {
-                SelectionManager.SelectDoc(this, e.ctrlKey);
+                if (this.props.Document.isTemplateForField && !(e.ctrlKey || e.button > 0)) {
+                    stopPropagate = false; // don't stop propagation for field templates -- want the selection to propagate up to the root document of the template
+                } else {
+                    SelectionManager.SelectDoc(this, e.ctrlKey);
+                }
                 preventDefault = false;
             }
+            stopPropagate && e.stopPropagation();
             preventDefault && e.preventDefault();
         }
     }
 
-    buttonClick = async (altKey: boolean, ctrlKey: boolean) => {
-        const linkDocs = DocListCast(this.props.Document.links);
-        if (linkDocs.length) {
-            DocumentManager.Instance.FollowLink(undefined, this.props.Document,
-                // open up target if it's not already in view ... by zooming into the button document first and setting flag to reset zoom afterwards
-                (doc: Doc, maxLocation: string) => this.props.focus(this.props.Document, true, 1, () => this.props.addDocTab(doc, maxLocation)),
-                ctrlKey, altKey, this.props.ContainingCollectionDoc);
-        }
+    // follows a link - if the target is on screen, it highlights/pans to it.
+    // if the target isn't onscreen, then it will open up the target in a tab, on the right, or in place
+    // depending on the followLinkLocation property of the source (or the link itself as a fallback);
+    followLinkClick = async (altKey: boolean, ctrlKey: boolean, shiftKey: boolean) => {
+        const batch = UndoManager.StartBatch("follow link click");
+        // open up target if it's not already in view ... 
+        const createViewFunc = (doc: Doc, followLoc: string, finished: Opt<() => void>) => {
+            const targetFocusAfterDocFocus = () => {
+                const where = StrCast(this.Document.followLinkLocation) || followLoc;
+                const hackToCallFinishAfterFocus = () => {
+                    setTimeout(() => finished?.(), 0); // finished() needs to be called right after hackToCallFinishAfterFocus(), but there's no callback for that so we use the hacky timeout.  
+                    return false; // we must return false here so that the zoom to the document is not reversed.  If it weren't for needing to call finished(), we wouldn't need this function at all since not having it is equivalent to returning false
+                };
+                this.props.addDocTab(doc, where) && this.props.focus(doc, true, undefined, hackToCallFinishAfterFocus); //  add the target and focus on it.
+                return where !== "inPlace"; // return true to reset the initial focus&zoom (return false for 'inPlace' since resetting the initial focus&zoom will negate the zoom into the target)
+            };
+            // first focus & zoom onto this (the clicked document).  Then execute the function to focus on the target
+            this.props.focus(this.props.Document, true, 1, targetFocusAfterDocFocus);
+        };
+        await DocumentManager.Instance.FollowLink(undefined, this.props.Document, createViewFunc, shiftKey, this.props.ContainingCollectionDoc, batch.end, altKey ? true : undefined);
     }
 
     handle1PointerDown = (e: React.TouchEvent, me: InteractionUtils.MultiTouchEvent<React.TouchEvent>) => {
@@ -561,6 +584,17 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             this.Document.onClick = undefined;
         } else {
             this.Document.isButton = true;
+            this.Document.followLinkLocation = undefined;
+        }
+    }
+
+    @undoBatch
+    toggleFollowInPlace = (): void => {
+        if (this.Document.isButton) {
+            this.Document.isButton = false;
+        } else {
+            this.Document.isButton = true;
+            this.Document.followLinkLocation = "inPlace";
         }
     }
 
@@ -640,20 +674,23 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     @action
-    onContextMenu = async (e: React.MouseEvent): Promise<void> => {
+    onContextMenu = async (e: React.MouseEvent | Touch): Promise<void> => {
         // the touch onContextMenu is button 0, the pointer onContextMenu is button 2
-        if (e.button === 0 && !e.ctrlKey) {
+        if (!(e instanceof Touch)) {
+            if (e.button === 0 && !e.ctrlKey) {
+                e.preventDefault();
+                return;
+            }
+            e.persist();
+            e?.stopPropagation();
+
+            if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3 ||
+                e.isDefaultPrevented()) {
+                e.preventDefault();
+                return;
+            }
             e.preventDefault();
-            return;
         }
-        e.persist();
-        e?.stopPropagation();
-        if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3 ||
-            e.isDefaultPrevented()) {
-            e.preventDefault();
-            return;
-        }
-        e.preventDefault();
 
         const cm = ContextMenu.Instance;
         const templateDoc = Cast(this.props.Document[StrCast(this.props.Document.layoutKey)], Doc, null);
@@ -690,6 +727,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         onClicks.push({ description: "Enter Portal", event: this.makeIntoPortal, icon: "window-restore" });
         onClicks.push({ description: "Toggle Detail", event: () => this.Document.onClick = ScriptField.MakeScript(`toggleDetail(this, "${this.props.Document.layoutKey}")`), icon: "window-restore" });
         onClicks.push({ description: this.Document.ignoreClick ? "Select" : "Do Nothing", event: () => this.Document.ignoreClick = !this.Document.ignoreClick, icon: this.Document.ignoreClick ? "unlock" : "lock" });
+        onClicks.push({ description: this.Document.isButton ? "Remove Follow Behavior" : "Follow Link in Place", event: this.toggleFollowInPlace, icon: "concierge-bell" });
         onClicks.push({ description: this.Document.isButton || this.Document.onClick ? "Remove Click Behavior" : "Follow Link", event: this.toggleButtonBehavior, icon: "concierge-bell" });
         onClicks.push({ description: "Edit onClick Script", icon: "edit", event: (obj: any) => ScriptBox.EditButtonScript("On Button Clicked ...", this.props.Document, "onClick", obj.x, obj.y) });
         !existingOnClick && cm.addItem({ description: "OnClick...", subitems: onClicks, icon: "hand-point-right" });
@@ -733,7 +771,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
         recommender_subitems.push({
             description: "Internal recommendations",
-            event: () => this.recommender(e),
+            event: () => this.recommender(),
             icon: "brain"
         });
 
@@ -794,7 +832,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 icon: "external-link-alt"
             });
 
-            if (!this.topMost) {
+            if (!this.topMost && !(e instanceof Touch)) {
                 // DocumentViews should stop propagation of this event
                 e.stopPropagation();
             }
@@ -812,7 +850,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         });
     }
 
-    recommender = async (e: React.MouseEvent) => {
+    recommender = async () => {
         if (!ClientRecommender.Instance) new ClientRecommender({ title: "Client Recommender" });
         const documents: Doc[] = [];
         const allDocs = await SearchUtil.GetAllDocs();
@@ -926,33 +964,40 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const fallback = Cast(this.props.Document.layoutKey, "string");
         return typeof fallback === "string" ? fallback : "layout";
     }
+    rootSelected = (outsideReaction: boolean) => {
+        return this.isSelected(outsideReaction) || (this.props.Document.forceActive && this.props.rootSelected?.(outsideReaction) ? true : false);
+    }
     childScaling = () => (this.layoutDoc._fitWidth ? this.props.PanelWidth() / this.nativeWidth : this.props.ContentScaling());
+    panelWidth = () => this.props.PanelWidth();
+    panelHeight = () => this.props.PanelHeight();
+    screenToLocalTransform = () => this.props.ScreenToLocalTransform();
     @computed get contents() {
         TraceMobx();
         return (<DocumentContentsView ContainingCollectionView={this.props.ContainingCollectionView}
             ContainingCollectionDoc={this.props.ContainingCollectionDoc}
+            NativeWidth={this.NativeWidth}
+            NativeHeight={this.NativeHeight}
             Document={this.props.Document}
             DataDoc={this.props.DataDoc}
             LayoutDoc={this.props.LayoutDoc}
             makeLink={this.makeLink}
+            rootSelected={this.rootSelected}
             fitToBox={this.props.fitToBox}
             LibraryPath={this.props.LibraryPath}
             addDocument={this.props.addDocument}
             removeDocument={this.props.removeDocument}
             moveDocument={this.props.moveDocument}
-            ScreenToLocalTransform={this.props.ScreenToLocalTransform}
+            ScreenToLocalTransform={this.screenToLocalTransform}
             renderDepth={this.props.renderDepth}
-            PanelWidth={this.props.PanelWidth}
-            PanelHeight={this.props.PanelHeight}
+            PanelWidth={this.panelWidth}
+            PanelHeight={this.panelHeight}
             focus={this.props.focus}
             parentActive={this.props.parentActive}
             whenActiveChanged={this.props.whenActiveChanged}
             bringToFront={this.props.bringToFront}
             addDocTab={this.props.addDocTab}
             pinToPres={this.props.pinToPres}
-            zoomToScale={this.props.zoomToScale}
             backgroundColor={this.props.backgroundColor}
-            getScale={this.props.getScale}
             ContentScaling={this.childScaling}
             ChromeHeight={this.chromeHeight}
             isSelected={this.isSelected}
@@ -962,13 +1007,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
     linkEndpoint = (linkDoc: Doc) => Doc.LinkEndpoint(linkDoc, this.props.Document);
 
-    // used to decide whether a link document should be created or not.
+    // used to decide whether a link anchor view should be created or not.
     // if it's a tempoarl link (currently just for Audio), then the audioBox will display the anchor and we don't want to display it here.
     // would be good to generalize this some way.
     isNonTemporalLink = (linkDoc: Doc) => {
         const anchor = Cast(Doc.AreProtosEqual(this.props.Document, Cast(linkDoc.anchor1, Doc) as Doc) ? linkDoc.anchor1 : linkDoc.anchor2, Doc) as Doc;
-        const ept = Doc.AreProtosEqual(this.props.Document, Cast(linkDoc.anchor1, Doc) as Doc) ? linkDoc.anchor1_timecode : linkDoc.anchor2_timecode;
-        return anchor.type === DocumentType.AUDIO && NumCast(ept) ? false : true;
+        return anchor.type === DocumentType.AUDIO ? false : true;
     }
 
     @observable _link: Opt<Doc>;
@@ -976,27 +1020,36 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         return this._link;
     }
 
+    hideLinkAnchor = (doc: Doc) => undoBatch(doc => doc.hidden = true)();
+    anchorPanelWidth = () => this.props.PanelWidth() || 1;
+    anchorPanelHeight = () => this.props.PanelHeight() || 1;
+    @computed get anchors() {
+        TraceMobx();
+        return DocListCast(this.Document.links).filter(d => !d.hidden && this.isNonTemporalLink).map((d, i) =>
+            <div className="documentView-docuLinkWrapper" key={d[Id]}>
+                <DocumentView {...this.props}
+                    Document={d}
+                    ContainingCollectionDoc={this.props.Document} // bcz: hack this.props.Document is not a collection  Need a better prop for passing the containing document to the DocuLinkBox
+                    PanelWidth={this.anchorPanelWidth}
+                    PanelHeight={this.anchorPanelHeight}
+                    layoutKey={this.linkEndpoint(d)}
+                    ContentScaling={returnOne}
+                    backgroundColor={returnTransparent}
+                    removeDocument={this.hideLinkAnchor} />
+            </div>);
+    }
     @computed get innards() {
         TraceMobx();
-        if (!this.props.PanelWidth()) {
-            return <div style={{ display: "flex", overflow: "hidden" }}>
+        if (!this.props.PanelWidth()) {  // this happens when the document is a tree view label
+            return <div className="documentView-docuLinkAnchor" >
                 {StrCast(this.props.Document.title)}
-                {this.Document.links && DocListCast(this.Document.links).filter(d => !d.hidden).filter(this.isNonTemporalLink).map((d, i) =>
-                    <div className="documentView-docuLinkWrapper" style={{ position: "absolute", top: 0, left: 0 }} key={`${d[Id]}`}>
-                        <DocumentView {...this.props} Document={d} ContainingCollectionDoc={this.props.Document}
-                            PanelWidth={returnOne} PanelHeight={returnOne} layoutKey={this.linkEndpoint(d)} ContentScaling={returnOne}
-                            backgroundColor={returnTransparent} removeDocument={undoBatch(doc => doc.hidden = true)} />
-                    </div>)}
+                {this.anchors}
             </div>;
         }
         const showTitle = StrCast(this.layoutDoc._showTitle);
         const showTitleHover = StrCast(this.layoutDoc._showTitleHover);
         const showCaption = StrCast(this.layoutDoc._showCaption);
         const showTextTitle = showTitle && (StrCast(this.layoutDoc.layout).indexOf("PresBox") !== -1 || StrCast(this.layoutDoc.layout).indexOf("FormattedTextBox") !== -1) ? showTitle : undefined;
-        const searchHighlight = (!this.Document.searchFields ? (null) :
-            <div className="documentView-searchHighlight">
-                {this.Document.searchFields}
-            </div>);
         const captionView = (!showCaption ? (null) :
             <div className="documentView-captionWrapper">
                 <DocumentContentsView {...OmitKeys(this.props, ['children']).omit}
@@ -1023,26 +1076,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 />
             </div>);
         return <>
-            {this.Document.links && DocListCast(this.Document.links).filter(d => !d.hidden).filter(this.isNonTemporalLink).map((d, i) =>
-                <div className="documentView-docuLinkWrapper" key={`${d[Id]}`}>
-                    <DocumentView {...this.props} ContentScaling={returnOne} ContainingCollectionDoc={this.props.Document} Document={d} layoutKey={this.linkEndpoint(d)} backgroundColor={returnTransparent} removeDocument={undoBatch(doc => doc.hidden = true)} />
-                </div>)}
+            {this.anchors}
             {!showTitle && !showCaption ?
-                this.Document.searchFields ?
-                    (<div className="documentView-searchWrapper">
-                        {this.contents}
-                        {searchHighlight}
-                    </div>)
-                    :
-                    this.contents
-                :
+                this.contents :
                 <div className="documentView-styleWrapper" >
                     <div className="documentView-styleContentWrapper" style={{ height: showTextTitle ? `calc(100% - ${this.chromeHeight()}px)` : "100%", top: showTextTitle ? this.chromeHeight() : undefined }}>
                         {this.contents}
                     </div>
                     {titleView}
                     {captionView}
-                    {searchHighlight}
                 </div>
             }
         </>;

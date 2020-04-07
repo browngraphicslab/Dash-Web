@@ -1,6 +1,6 @@
 import { computed } from "mobx";
 import { observer } from "mobx-react";
-import { Doc } from "../../../new_fields/Doc";
+import { Doc, Opt } from "../../../new_fields/Doc";
 import { Cast, StrCast } from "../../../new_fields/Types";
 import { OmitKeys, Without } from "../../../Utils";
 import { HistogramBox } from "../../northstar/dash-nodes/HistogramBox";
@@ -35,6 +35,7 @@ import { WebBox } from "./WebBox";
 import { InkingStroke } from "../InkingStroke";
 import React = require("react");
 import { RecommendationsBox } from "../RecommendationsBox";
+
 import { TraceMobx } from "../../../new_fields/util";
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
@@ -60,7 +61,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     forceLayout?: string,
     forceFieldKey?: string,
     hideOnLeave?: boolean,
-    makeLink?: () => Opt<Doc>;
+    makeLink?: () => Opt<Doc>,  // function to call when a link is made
 }> {
     @computed get layout(): string {
         TraceMobx();

@@ -9,7 +9,7 @@ import { documentSchema } from '../../../new_fields/documentSchemas';
 import { Id } from "../../../new_fields/FieldSymbols";
 import { createSchema, makeInterface } from '../../../new_fields/Schema';
 import { Cast, NumCast } from "../../../new_fields/Types";
-import { emptyFunction, emptyPath, returnFalse } from "../../../Utils";
+import { emptyFunction, emptyPath, returnFalse, returnTrue } from "../../../Utils";
 import { Transform } from "../../util/Transform";
 import { CollectionViewType } from '../collections/CollectionView';
 import { DocExtendableComponent } from '../DocComponent';
@@ -175,6 +175,7 @@ export class PresElementBox extends DocExtendableComponent<FieldViewProps, PresD
                     DataDocument={this.targetDoc[DataSym] !== this.targetDoc && this.targetDoc[DataSym]}
                     LibraryPath={emptyPath}
                     fitToBox={true}
+                    rootSelected={returnTrue}
                     addDocument={returnFalse}
                     removeDocument={returnFalse}
                     addDocTab={returnFalse}
@@ -196,7 +197,7 @@ export class PresElementBox extends DocExtendableComponent<FieldViewProps, PresD
         const treecontainer = this.props.ContainingCollectionDoc?._viewType === CollectionViewType.Tree;
         const className = "presElementBox-item" + (this.currentIndex === this.indexInPres ? " presElementBox-selected" : "");
         const pbi = "presElementBox-interaction";
-        return !this.presElementDoc ? (null) : (
+        return !(this.presElementDoc instanceof Doc) || this.targetDoc instanceof Promise ? (null) : (
             <div className={className} key={this.props.Document[Id] + this.indexInPres}
                 style={{ outlineWidth: Doc.IsBrushed(this.targetDoc) ? `1px` : "0px", }}
                 onClick={e => { this.props.focus(this.presElementDoc); e.stopPropagation(); }}>

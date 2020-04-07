@@ -7,7 +7,7 @@ import { Doc, DocListCast } from '../new_fields/Doc';
 import { Docs } from '../client/documents/Documents';
 import { CollectionView } from '../client/views/collections/CollectionView';
 import { DocumentView } from '../client/views/nodes/DocumentView';
-import { emptyPath, emptyFunction, returnFalse, returnOne, returnEmptyString, returnTrue } from '../Utils';
+import { emptyPath, emptyFunction, returnFalse, returnOne, returnEmptyString, returnTrue, returnZero } from '../Utils';
 import { Transform } from '../client/util/Transform';
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faPenNib, faHighlighter, faEraser, faMousePointer, faBreadSlice, faTrash, faCheck, faLongArrowAltLeft } from '@fortawesome/free-solid-svg-icons';
@@ -124,10 +124,13 @@ export default class MobileInterface extends React.Component {
                 addDocument={returnFalse}
                 addDocTab={returnFalse}
                 pinToPres={emptyFunction}
+                rootSelected={returnFalse}
                 removeDocument={undefined}
                 onClick={undefined}
                 ScreenToLocalTransform={Transform.Identity}
                 ContentScaling={returnOne}
+                NativeHeight={returnZero}
+                NativeWidth={returnZero}
                 PanelWidth={() => window.screen.width}
                 PanelHeight={() => window.screen.height}
                 renderDepth={0}
@@ -137,10 +140,7 @@ export default class MobileInterface extends React.Component {
                 whenActiveChanged={emptyFunction}
                 bringToFront={emptyFunction}
                 ContainingCollectionView={undefined}
-                ContainingCollectionDoc={undefined}
-                zoomToScale={emptyFunction}
-                getScale={returnOne}>
-            </DocumentView>;
+                ContainingCollectionDoc={undefined} />;
         }
         return "hello";
     }
@@ -175,6 +175,8 @@ export default class MobileInterface extends React.Component {
         e.stopPropagation();
     }
 
+    panelHeight = () => window.innerHeight;
+    panelWidth = () => window.innerWidth;
     renderInkingContent = () => {
         console.log("rendering inking content");
         // TODO: support panning and zooming
@@ -200,11 +202,13 @@ export default class MobileInterface extends React.Component {
                         LibraryPath={emptyPath}
                         fieldKey={""}
                         dropAction={"alias"}
-                        bringToFront={emptyFunction }
+                        bringToFront={emptyFunction}
                         addDocTab={returnFalse}
                         pinToPres={emptyFunction}
-                        PanelHeight={() => window.innerHeight}
-                        PanelWidth={() => window.innerWidth}
+                        PanelWidth={this.panelWidth}
+                        PanelHeight={this.panelHeight}
+                        NativeHeight={returnZero}
+                        NativeWidth={returnZero}
                         focus={emptyFunction}
                         isSelected={returnFalse}
                         select={emptyFunction}
@@ -214,7 +218,8 @@ export default class MobileInterface extends React.Component {
                         ScreenToLocalTransform={Transform.Identity}
                         renderDepth={0}
                         ContainingCollectionView={undefined}
-                        ContainingCollectionDoc={undefined}>
+                        ContainingCollectionDoc={undefined}
+                        rootSelected={returnTrue}>
                     </CollectionView>
                 </div>
             );
@@ -285,10 +290,13 @@ export default class MobileInterface extends React.Component {
                         addDocument={returnFalse}
                         addDocTab={returnFalse}
                         pinToPres={emptyFunction}
+                        rootSelected={returnFalse}
                         removeDocument={undefined}
                         onClick={undefined}
                         ScreenToLocalTransform={Transform.Identity}
                         ContentScaling={returnOne}
+                        NativeHeight={returnZero}
+                        NativeWidth={returnZero}
                         PanelWidth={() => window.screen.width}
                         PanelHeight={() => window.screen.height}
                         renderDepth={0}
@@ -298,10 +306,7 @@ export default class MobileInterface extends React.Component {
                         whenActiveChanged={emptyFunction}
                         bringToFront={emptyFunction}
                         ContainingCollectionView={undefined}
-                        ContainingCollectionDoc={undefined}
-                        zoomToScale={emptyFunction}
-                        getScale={returnOne}>
-                    </DocumentView>
+                        ContainingCollectionDoc={undefined} />
                 </div>
             );
         }

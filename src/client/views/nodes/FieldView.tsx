@@ -29,6 +29,7 @@ export interface FieldViewProps {
     dropAction: dropActionType;
     isSelected: (outsideReaction?: boolean) => boolean;
     select: (isCtrlPressed: boolean) => void;
+    rootSelected: (outsideReaction?: boolean) => boolean;
     renderDepth: number;
     addDocument?: (document: Doc) => boolean;
     addDocTab: (document: Doc, where: string) => boolean;
@@ -44,6 +45,8 @@ export interface FieldViewProps {
     focus: (doc: Doc) => void;
     PanelWidth: () => number;
     PanelHeight: () => number;
+    NativeHeight: () => number;
+    NativeWidth: () => number;
     setVideoBox?: (player: VideoBox) => void;
     ContentScaling: () => number;
     ChromeHeight?: () => number;

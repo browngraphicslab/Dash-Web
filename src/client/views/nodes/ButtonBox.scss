@@ -11,18 +11,19 @@
     width: 100%;
     height: 100%;
     border-radius: inherit;
-    text-align: center;
-    display: table;
-    overflow: hidden;
-    text-overflow: ellipsis;
     letter-spacing: 2px;
     text-transform: uppercase;
+    overflow: hidden;
+    display:flex;
 }
 
 .buttonBox-mainButtonCenter {
-    height: 100%;
-    display: table-cell;
-    vertical-align: middle;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: inline;
+    align-items: center;
+    margin: auto;
 }
 
 .buttonBox-params {
@@ -33,4 +34,5 @@
 .buttonBox-missingParam {
     width: 100%;
     background: lightgray;
+    border: dimGray solid 1px;
 }

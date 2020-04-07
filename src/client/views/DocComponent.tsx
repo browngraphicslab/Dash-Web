@@ -6,6 +6,7 @@ import { listSpec } from '../../new_fields/Schema';
 import { InkingControl } from './InkingControl';
 import { InkTool } from '../../new_fields/InkField';
 import { PositionDocument } from '../../new_fields/documentSchemas';
+import { InteractionUtils } from '../util/InteractionUtils';
 
 
 ///  DocComponent returns a generic React base class used by views that don't have any data extensions (e.g.,CollectionFreeFormDocumentView, DocumentView, ButtonBox)
@@ -18,6 +19,7 @@ export function DocComponent<P extends DocComponentProps, T>(schemaCtor: (doc: D
         //TODO This might be pretty inefficient if doc isn't observed, because computed doesn't cache then
         @computed get Document(): T { return schemaCtor(this.props.Document); }
         @computed get layoutDoc() { return PositionDocument(Doc.Layout(this.props.Document, this.props.LayoutDoc?.())); }
+        protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
     }
     return Component;
 }
@@ -29,6 +31,7 @@ interface DocExtendableProps {
     fieldKey: string;
     isSelected: (outsideReaction?: boolean) => boolean;
     renderDepth: number;
+    rootSelected: (outsideReaction?: boolean) => boolean;
 }
 export function DocExtendableComponent<P extends DocExtendableProps, T>(schemaCtor: (doc: Doc) => T) {
     class Component extends Touchable<P> {
@@ -36,7 +39,8 @@ export function DocExtendableComponent<P extends DocExtendableProps, T>(schemaCt
         @computed get Document(): T { return schemaCtor(this.props.Document); }
         @computed get layoutDoc() { return Doc.Layout(this.props.Document); }
         @computed get dataDoc() { return (this.props.DataDoc && (this.props.Document.isTemplateForField || this.props.Document.isTemplateDoc) ? this.props.DataDoc : Cast(this.props.Document.resolvedDataDoc, Doc, null) || Doc.GetProto(this.props.Document)) as Doc; }
-        active = (outsideReaction?: boolean) => !this.props.Document.isBackground && (this.props.Document.forceActive || this.props.isSelected(outsideReaction) || this.props.renderDepth === 0);//  && !InkingControl.Instance.selectedTool;  // bcz: inking state shouldn't affect static tools 
+        active = (outsideReaction?: boolean) => !this.props.Document.isBackground && ((this.props.Document.forceActive && this.props.rootSelected(outsideReaction)) || this.props.isSelected(outsideReaction) || this.props.renderDepth === 0);//  && !InkingControl.Instance.selectedTool;  // bcz: inking state shouldn't affect static tools 
+        protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
     }
     return Component;
 }
@@ -50,6 +54,7 @@ export interface DocAnnotatableProps {
     active: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
     isSelected: (outsideReaction?: boolean) => boolean;
+    rootSelected: (outsideReaction?: boolean) => boolean;
     renderDepth: number;
 }
 export function DocAnnotatableComponent<P extends DocAnnotatableProps, T>(schemaCtor: (doc: Doc) => T) {
@@ -60,6 +65,7 @@ export function DocAnnotatableComponent<P extends DocAnnotatableProps, T>(schema
         @computed get layoutDoc() { return Doc.Layout(this.props.Document); }
         @computed get dataDoc() { return this.props.DataDoc && (this.props.Document.isTemplateForField || this.props.Document.isTemplateDoc) ? this.props.DataDoc : this.props.Document[DataSym]; }
 
+        protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
 
         _annotationKey: string = "annotations";
         public set annotationKey(val: string) { this._annotationKey = val; }
@@ -86,7 +92,7 @@ export function DocAnnotatableComponent<P extends DocAnnotatableProps, T>(schema
 
         whenActiveChanged = action((isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive));
         active = (outsideReaction?: boolean) => ((InkingControl.Instance.selectedTool === InkTool.None && !this.props.Document.isBackground) &&
-            (this.props.Document.forceActive || this.props.isSelected(outsideReaction) || this._isChildActive || this.props.renderDepth === 0) ? true : false)
+            ((this.props.Document.forceActive && this.props.rootSelected(outsideReaction)) || this.props.isSelected(outsideReaction) || this._isChildActive || this.props.renderDepth === 0) ? true : false)
         annotationsActive = (outsideReaction?: boolean) => (InkingControl.Instance.selectedTool !== InkTool.None ||
             (this.props.Document.forceActive || this.props.isSelected(outsideReaction) || this._isChildActive || this.props.renderDepth === 0) ? true : false)
     }

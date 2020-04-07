@@ -34,13 +34,17 @@ export interface CollectionViewProps extends FieldViewProps {
     PanelHeight: () => number;
     VisibleHeight?: () => number;
     setPreviewCursor?: (func: (x: number, y: number, drag: boolean) => void) => void;
+    rootSelected: (outsideReaction?: boolean) => boolean;
     fieldKey: string;
+    NativeWidth: () => number;
+    NativeHeight: () => number;
 }
 
 export interface SubCollectionViewProps extends CollectionViewProps {
     CollectionView: Opt<CollectionView>;
     children?: never | (() => JSX.Element[]) | React.ReactNode;
-    overrideDocuments?: Doc[]; // used to override the documents shown by the sub collection to an explict list (see LinkBox)
+    freezeChildDimensions?: boolean; // used by TimeView to coerce documents to treat their width height as their native width/height
+    overrideDocuments?: Doc[]; // used to override the documents shown by the sub collection to an explicit list (see LinkBox)
     ignoreFields?: string[]; // used in TreeView to ignore specified fields (see LinkBox)
     isAnnotationOverlay?: boolean;
     annotationsKey: string;
@@ -93,6 +97,10 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
         @computed get dataDoc() {
             return (this.props.DataDoc instanceof Doc && this.props.Document.isTemplateForField ? Doc.GetProto(this.props.DataDoc) :
                 this.props.Document.resolvedDataDoc ? this.props.Document : Doc.GetProto(this.props.Document)); // if the layout document has a resolvedDataDoc, then we don't want to get its parent which would be the unexpanded template
+        }
+
+        rootSelected = (outsideReaction: boolean) => {
+            return this.props.isSelected(outsideReaction) || (this.props.Document.rootDocument || this.props.Document.forceActive ? this.props.rootSelected(outsideReaction) : false);
         }
 
         // The data field for rendering this collection will be on the this.props.Document unless we're rendering a template in which case we try to use props.DataDoc.
@@ -208,9 +216,6 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 this.props.Document.dropConverter.script.run({ dragData: docDragData }); /// bcz: check this 
             if (docDragData) {
                 let added = false;
-                if (this.props.Document._freezeOnDrop) {
-                    de.complete.docDragData?.droppedDocuments.forEach(drop => Doc.freezeNativeDimensions(drop, drop[WidthSym](), drop[HeightSym]()));
-                }
                 if (docDragData.dropAction || docDragData.userDropAction) {
                     added = docDragData.droppedDocuments.reduce((added: boolean, d) => this.props.addDocument(d) || added, false);
                 } else if (docDragData.moveDocument) {

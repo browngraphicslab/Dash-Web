@@ -16,7 +16,7 @@ import { listSpec } from "../../new_fields/Schema";
 import { SchemaHeaderField } from "../../new_fields/SchemaHeaderField";
 import { ComputedField } from "../../new_fields/ScriptField";
 import { BoolCast, Cast, NumCast, StrCast } from "../../new_fields/Types";
-import { emptyFunction, returnEmptyString, returnFalse, returnOne, Utils } from "../../Utils";
+import { emptyFunction, returnEmptyString, returnFalse, returnOne, Utils, returnZero } from "../../Utils";
 import { DocServer } from "../DocServer";
 import { Docs } from "../documents/Documents";
 import { CollectionViewType } from "../views/collections/CollectionView";
@@ -818,11 +818,14 @@ export class DashDocView {
                     LibraryPath={this._textBox.props.LibraryPath}
                     fitToBox={BoolCast(dashDoc._fitToBox)}
                     addDocument={returnFalse}
+                    rootSelected={this._textBox.props.isSelected}
                     removeDocument={removeDoc}
                     ScreenToLocalTransform={this.getDocTransform}
                     addDocTab={this._textBox.props.addDocTab}
                     pinToPres={returnFalse}
                     renderDepth={self._textBox.props.renderDepth + 1}
+                    NativeHeight={returnZero}
+                    NativeWidth={returnZero}
                     PanelWidth={finalLayout[WidthSym]}
                     PanelHeight={finalLayout[HeightSym]}
                     focus={this.outerFocus}
@@ -830,8 +833,6 @@ export class DashDocView {
                     parentActive={returnFalse}
                     whenActiveChanged={returnFalse}
                     bringToFront={emptyFunction}
-                    zoomToScale={emptyFunction}
-                    getScale={returnOne}
                     dontRegisterView={false}
                     ContainingCollectionView={this._textBox.props.ContainingCollectionView}
                     ContainingCollectionDoc={this._textBox.props.ContainingCollectionDoc}

@@ -5,7 +5,7 @@ import { List } from "../../../new_fields/List";
 import { ObjectField } from "../../../new_fields/ObjectField";
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { ComputedField, ScriptField } from "../../../new_fields/ScriptField";
-import { NumCast, StrCast } from "../../../new_fields/Types";
+import { NumCast, StrCast, BoolCast } from "../../../new_fields/Types";
 import { emptyFunction, returnFalse, setupMoveUpEvents } from "../../../Utils";
 import { Scripting } from "../../util/Scripting";
 import { ContextMenu } from "../ContextMenu";
@@ -29,10 +29,9 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
         this.props.Document.onChildClick = undefined;
     }
     componentDidMount() {
-        this.props.Document._freezeOnDrop = true;
         const childDetailed = this.props.Document.childDetailed; // bcz: needs to be here to make sure the childDetailed layout template has been loaded when the first item is clicked;
-        const childText = "const alias = getAlias(this); Doc.ApplyTemplateTo(containingCollection.childDetailed, alias, 'layout_detailView'); alias.layoutKey='layout_detailedView'; alias.dropAction='alias'; alias.removeDropProperties=new List<string>(['dropAction']); useRightSplit(alias, shiftKey); ";
-        this.props.Document.onChildClick = ScriptField.MakeScript(childText, { this: Doc.name, heading: "string", containingCollection: Doc.name, shiftKey: "boolean" });
+        const childText = "const alias = getAlias(this); Doc.ApplyTemplateTo(thisContainer.childDetailed, alias, 'layout_detailView'); alias.layoutKey='layout_detailedView'; alias.dropAction='alias'; alias.removeDropProperties=new List<string>(['dropAction']); useRightSplit(alias, shiftKey); ";
+        this.props.Document.onChildClick = ScriptField.MakeScript(childText, { this: Doc.name, heading: "string", thisContainer: Doc.name, shiftKey: "boolean" });
         this.props.Document._fitToBox = true;
         if (!this.props.Document.onViewDefClick) {
             this.props.Document.onViewDefDivClick = ScriptField.MakeScript("pivotColumnClick(this,payload)", { payload: "any" });
@@ -73,7 +72,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
 
     @computed get contents() {
         return <div className="collectionTimeView-innards" key="timeline" style={{ width: "100%" }}>
-            <CollectionFreeFormView  {...this.props} layoutEngine={this.layoutEngine} />
+            <CollectionFreeFormView {...this.props} freezeChildDimensions={BoolCast(this.layoutDoc._freezeChildDimensions, true)} layoutEngine={this.layoutEngine} />
         </div>;
     }
 

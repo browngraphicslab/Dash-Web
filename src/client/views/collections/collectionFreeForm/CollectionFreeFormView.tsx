@@ -15,7 +15,7 @@ import { ScriptField } from "../../../../new_fields/ScriptField";
 import { BoolCast, Cast, FieldValue, NumCast, ScriptCast, StrCast } from "../../../../new_fields/Types";
 import { TraceMobx } from "../../../../new_fields/util";
 import { GestureUtils } from "../../../../pen-gestures/GestureUtils";
-import { aggregateBounds, intersectRect, returnOne, Utils } from "../../../../Utils";
+import { aggregateBounds, intersectRect, returnOne, Utils, returnZero } from "../../../../Utils";
 import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
 import { DocServer } from "../../../DocServer";
 import { Docs } from "../../../documents/Documents";
@@ -88,9 +88,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     @computed get fitToContent() { return (this.props.fitToBox || this.Document._fitToBox) && !this.isAnnotationOverlay; }
     @computed get parentScaling() { return this.props.ContentScaling && this.fitToContent && !this.isAnnotationOverlay ? this.props.ContentScaling() : 1; }
-    @computed get contentBounds() { return aggregateBounds(this._layoutElements.filter(e => e.bounds && !e.bounds.z).map(e => e.bounds!), NumCast(this.layoutDoc.xPadding, 10), NumCast(this.layoutDoc.yPadding, 10)); }
-    @computed get nativeWidth() { return this.Document._fitToContent ? 0 : NumCast(this.Document._nativeWidth); }
-    @computed get nativeHeight() { return this.fitToContent ? 0 : NumCast(this.Document._nativeHeight); }
+    @computed get contentBounds() { return aggregateBounds(this._layoutElements.filter(e => e.bounds && !e.bounds.z).map(e => e.bounds!), NumCast(this.layoutDoc._xPadding, 10), NumCast(this.layoutDoc._yPadding, 10)); }
+    @computed get nativeWidth() { return this.fitToContent ? 0 : NumCast(this.Document._nativeWidth, this.props.NativeWidth()); }
+    @computed get nativeHeight() { return this.fitToContent ? 0 : NumCast(this.Document._nativeHeight, this.props.NativeHeight()); }
     private get isAnnotationOverlay() { return this.props.isAnnotationOverlay; }
     private get borderWidth() { return this.isAnnotationOverlay ? 0 : COLLECTION_BORDER_WIDTH; }
     private easing = () => this.props.Document.panTransformType === "Ease";
@@ -99,6 +99,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     private zoomScaling = () => (1 / this.parentScaling) * (this.fitToContent ?
         Math.min(this.props.PanelHeight() / (this.contentBounds.b - this.contentBounds.y), this.props.PanelWidth() / (this.contentBounds.r - this.contentBounds.x)) :
         this.Document.scale || 1)
+
     private centeringShiftX = () => !this.nativeWidth && !this.isAnnotationOverlay ? this.props.PanelWidth() / 2 / this.parentScaling : 0;  // shift so pan position is at center of window for non-overlay collections
     private centeringShiftY = () => !this.nativeHeight && !this.isAnnotationOverlay ? this.props.PanelHeight() / 2 / this.parentScaling : 0;// shift so pan position is at center of window for non-overlay collections
     private getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.borderWidth + 1, -this.borderWidth + 1).translate(-this.centeringShiftX(), -this.centeringShiftY()).transform(this.getLocalTransform());
@@ -815,12 +816,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         this.Document.scale = scale * Math.min(this.props.PanelWidth() / NumCast(doc._width), this.props.PanelHeight() / NumCast(doc._height));
     }
 
-    zoomToScale = (scale: number) => {
-        this.Document.scale = scale;
-    }
-
-    getScale = () => this.Document.scale || 1;
-
     @computed get libraryPath() { return this.props.LibraryPath ? [...this.props.LibraryPath, this.props.Document] : []; }
     @computed get onChildClickHandler() { return ScriptCast(this.Document.onChildClick); }
     backgroundHalo = () => BoolCast(this.Document.useClusters);
@@ -828,10 +823,15 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     getChildDocumentViewProps(childLayout: Doc, childData?: Doc): DocumentViewProps {
         return {
             ...this.props,
+            NativeHeight: returnZero,
+            NativeWidth: returnZero,
+            fitToBox: false,
             DataDoc: childData,
             Document: childLayout,
             LibraryPath: this.libraryPath,
+            FreezeDimensions: this.props.freezeChildDimensions,
             layoutKey: undefined,
+            rootSelected: this.rootSelected,
             dropAction: StrCast(this.props.Document.childDropAction) as dropActionType,
             //onClick: undefined, // this.props.onClick,  // bcz: check this out -- I don't think we want to inherit click handlers, or we at least need a way to ignore them
             onClick: this.onChildClickHandler,
@@ -847,11 +847,17 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
             backgroundHalo: this.backgroundHalo,
             parentActive: this.props.active,
             bringToFront: this.bringToFront,
-            zoomToScale: this.zoomToScale,
-            getScale: this.getScale
+            addDocTab: this.addDocTab,
         };
     }
 
+    addDocTab = (doc: Doc, where: string) => {
+        if (where === "inPlace" && this.layoutDoc.isInPlaceContainer) {
+            this.dataDoc[this.props.fieldKey] = new List<Doc>([doc]);
+            return true;
+        }
+        return this.props.addDocTab(doc, where);
+    }
     getCalculatedPositions(params: { doc: Doc, index: number, collection: Doc, docs: Doc[], state: any }): PoolData {
         const result = this.Document.arrangeScript?.script.run(params, console.log);
         if (result?.success) {
@@ -950,11 +956,15 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
         const elements: ViewDefResult[] = computedElementData.slice();
         this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)).forEach(pair =>
             elements.push({
-                ele: <CollectionFreeFormDocumentView key={pair.layout[Id]}  {...this.getChildDocumentViewProps(pair.layout, pair.data)}
+                ele: <CollectionFreeFormDocumentView
+                    key={pair.layout[Id]}
+                    {...this.getChildDocumentViewProps(pair.layout, pair.data)}
                     dataProvider={this.childDataProvider}
                     LayoutDoc={this.childLayoutDocFunc}
                     jitterRotation={NumCast(this.props.Document.jitterRotation)}
-                    fitToBox={this.props.fitToBox || this.props.layoutEngine !== undefined} />,
+                    fitToBox={this.props.fitToBox || BoolCast(this.props.freezeChildDimensions)}
+                    FreezeDimensions={BoolCast(this.props.freezeChildDimensions)}
+                />,
                 bounds: this.childDataProvider(pair.layout)
             }));
 
@@ -1073,7 +1083,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
                             if (doc instanceof Doc) {
                                 const [xx, yy] = this.props.ScreenToLocalTransform().transformPoint(x, y);
                                 doc.x = xx, doc.y = yy;
-                                this.props.addDocument && this.props.addDocument(doc);
+                                this.props.addDocument?.(doc);
                             }
                         }
                     }
@@ -1116,8 +1126,10 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
 
     @computed get contentScaling() {
         if (this.props.annotationsKey) return 0;
-        const hscale = this.nativeHeight ? this.props.PanelHeight() / this.nativeHeight : 1;
-        const wscale = this.nativeWidth ? this.props.PanelWidth() / this.nativeWidth : 1;
+        const nw = NumCast(this.Document._nativeWidth, this.props.NativeWidth());
+        const nh = NumCast(this.Document._nativeHeight, this.props.NativeHeight());
+        const hscale = nh ? this.props.PanelHeight() / nh : 1;
+        const wscale = nw ? this.props.PanelWidth() / nw : 1;
         return wscale < hscale ? wscale : hscale;
     }
     render() {

@@ -9,7 +9,7 @@ import { List } from "../../../new_fields/List";
 import { makeInterface, createSchema } from "../../../new_fields/Schema";
 import { ScriptField, ComputedField } from "../../../new_fields/ScriptField";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
-import { smoothScroll, Utils, emptyFunction, returnOne, intersectRect, addStyleSheet, addStyleSheetRule, clearStyleSheetRules } from "../../../Utils";
+import { smoothScroll, Utils, emptyFunction, returnOne, intersectRect, addStyleSheet, addStyleSheetRule, clearStyleSheetRules, returnZero } from "../../../Utils";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
 import { CompiledScript, CompileScript } from "../../util/Scripting";
@@ -31,8 +31,6 @@ import { InkingControl } from "../InkingControl";
 import { InkTool } from "../../../new_fields/InkField";
 import { TraceMobx } from "../../../new_fields/util";
 import { PdfField } from "../../../new_fields/URLField";
-import { PDFBox } from "../nodes/PDFBox";
-import { FormattedTextBox } from "../nodes/FormattedTextBox";
 import { DocumentView } from "../nodes/DocumentView";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 const pdfjsLib = require("pdfjs-dist");
@@ -61,6 +59,7 @@ interface IViewerProps {
     PanelHeight: () => number;
     ContentScaling: () => number;
     select: (isCtrlPressed: boolean) => void;
+    rootSelected: (outsideReaction?: boolean) => boolean;
     startupLive: boolean;
     renderDepth: number;
     focus: (doc: Doc) => void;
@@ -586,7 +585,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
                 dragComplete: e => {
                     if (!e.aborted && e.annoDragData && !e.annoDragData.linkedToDoc) {
                         const link = DocUtils.MakeLink({ doc: annotationDoc }, { doc: e.annoDragData.dropDocument }, "Annotation");
-                        if (link) link.maximizeLocation = "onRight";
+                        if (link) link.followLinkLocation = "onRight";
                     }
                 }
             });
@@ -649,6 +648,8 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
                 setPreviewCursor={this.setPreviewCursor}
                 PanelHeight={this.panelWidth}
                 PanelWidth={this.panelHeight}
+                NativeHeight={returnZero}
+                NativeWidth={returnZero}
                 dropAction={"alias"}
                 VisibleHeight={this.visibleHeight}
                 focus={this.props.focus}

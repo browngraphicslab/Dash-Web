@@ -6,7 +6,7 @@ import "./RecommendationsBox.scss";
 import { Doc, DocListCast, WidthSym, HeightSym } from "../../new_fields/Doc";
 import { DocumentIcon } from "./nodes/DocumentIcon";
 import { StrCast, NumCast } from "../../new_fields/Types";
-import { returnFalse, emptyFunction, returnEmptyString, returnOne, emptyPath } from "../../Utils";
+import { returnFalse, emptyFunction, returnEmptyString, returnOne, emptyPath, returnZero } from "../../Utils";
 import { Transform } from "../util/Transform";
 import { ObjectField } from "../../new_fields/ObjectField";
 import { DocumentView } from "./nodes/DocumentView";
@@ -68,10 +68,13 @@ export class RecommendationsBox extends React.Component<FieldViewProps> {
                 addDocument={returnFalse}
                 LibraryPath={emptyPath}
                 removeDocument={returnFalse}
+                rootSelected={returnFalse}
                 ScreenToLocalTransform={Transform.Identity}
                 addDocTab={returnFalse}
                 pinToPres={returnFalse}
                 renderDepth={1}
+                NativeHeight={returnZero}
+                NativeWidth={returnZero}
                 PanelWidth={returnXDimension}
                 PanelHeight={returnYDimension}
                 focus={emptyFunction}
@@ -79,8 +82,6 @@ export class RecommendationsBox extends React.Component<FieldViewProps> {
                 parentActive={returnFalse}
                 whenActiveChanged={returnFalse}
                 bringToFront={emptyFunction}
-                zoomToScale={emptyFunction}
-                getScale={returnOne}
                 ContainingCollectionView={undefined}
                 ContainingCollectionDoc={undefined}
                 ContentScaling={scale}

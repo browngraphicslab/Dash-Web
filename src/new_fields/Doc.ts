@@ -80,7 +80,7 @@ export function DocListCastAsync(field: FieldResult, defaultValue?: Doc[]) {
 }
 
 export async function DocCastAsync(field: FieldResult): Promise<Opt<Doc>> {
-    return Cast(field, Doc);
+    return await Cast(field, Doc);
 }
 
 export function DocListCast(field: FieldResult): Doc[] {
@@ -713,7 +713,7 @@ export namespace Doc {
     export function SetUserDoc(doc: Doc) { manager._user_doc = doc; }
     export function IsBrushed(doc: Doc) {
         return computedFn(function IsBrushed(doc: Doc) {
-            return brushManager.BrushedDoc.has(doc) || brushManager.BrushedDoc.has(Doc.GetProto(doc));
+            return brushManager.BrushedDoc.has(doc) ||  brushManager.BrushedDoc.has(Doc.GetProto(doc));
         })(doc);
     }
     // don't bother memoizing (caching) the result if called from a non-reactive context. (plus this avoids a warning message)
@@ -787,15 +787,10 @@ export namespace Doc {
         brushManager.BrushedDoc.clear();
     }
 
-    export function setChildLayout(target: Doc, source?: Doc) {
-        target.childLayout = source && source.isTemplateDoc ? source : source &&
-            source.dragFactory instanceof Doc && source.dragFactory.isTemplateDoc ? source.dragFactory :
-            source && source.layout instanceof Doc && source.layout.isTemplateDoc ? source.layout : undefined;
-    }
-    export function setChildDetailedLayout(target: Doc, source?: Doc) {
-        target.childDetailed = source && source.isTemplateDoc ? source : source &&
-            source.dragFactory instanceof Doc && source.dragFactory.isTemplateDoc ? source.dragFactory :
-            source && source.layout instanceof Doc && source.layout.isTemplateDoc ? source.layout : undefined;
+    export function getDocTemplate(doc?: Doc) {
+        return doc?.isTemplateDoc ? doc :
+            Cast(doc?.dragFactory, Doc, null)?.isTemplateDoc ? doc?.dragFactory :
+                Cast(doc?.layout, Doc, null)?.isTemplateDoc ? doc?.layout : undefined;
     }
 
     export function matchFieldValue(doc: Doc, key: string, value: any): boolean {
@@ -904,8 +899,7 @@ export namespace Doc {
 
 Scripting.addGlobal(function renameAlias(doc: any, n: any) { return StrCast(Doc.GetProto(doc).title).replace(/\([0-9]*\)/, "") + `(${n})`; });
 Scripting.addGlobal(function getProto(doc: any) { return Doc.GetProto(doc); });
-Scripting.addGlobal(function setChildLayout(target: any, source: any) { Doc.setChildLayout(target, source); });
-Scripting.addGlobal(function setChildDetailedLayout(target: any, source: any) { Doc.setChildDetailedLayout(target, source); });
+Scripting.addGlobal(function getDocTemplate(doc?: any) { Doc.getDocTemplate(doc); });
 Scripting.addGlobal(function getAlias(doc: any) { return Doc.MakeAlias(doc); });
 Scripting.addGlobal(function getCopy(doc: any, copyProto: any) { return doc.isTemplateDoc ? Doc.ApplyTemplate(doc) : Doc.MakeCopy(doc, copyProto); });
 Scripting.addGlobal(function copyField(field: any) { return ObjectField.MakeCopy(field); });
@@ -917,6 +911,7 @@ Scripting.addGlobal(function undo() { return UndoManager.Undo(); });
 Scripting.addGlobal(function redo() { return UndoManager.Redo(); });
 Scripting.addGlobal(function DOC(id: string) { console.log("Can't parse a document id in a script"); return "invalid"; });
 Scripting.addGlobal(function assignDoc(doc: Doc, field: string, id: string) { return Doc.assignDocToField(doc, field, id); });
+Scripting.addGlobal(function docCast(doc: FieldResult): any { return DocCastAsync(doc); });
 Scripting.addGlobal(function curPresentationItem() {
     const curPres = Doc.UserDoc().curPresentation as Doc;
     return curPres && DocListCast(curPres[Doc.LayoutFieldKey(curPres)])[NumCast(curPres._itemIndex)];

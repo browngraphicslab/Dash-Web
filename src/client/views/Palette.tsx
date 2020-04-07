@@ -1,23 +1,12 @@
-import * as React from "react";
-import "./Palette.scss";
-import { PointData } from "../../new_fields/InkField";
-import { Doc } from "../../new_fields/Doc";
-import { Docs } from "../documents/Documents";
-import { ScriptField, ComputedField } from "../../new_fields/ScriptField";
-import { List } from "../../new_fields/List";
-import { DocumentView } from "./nodes/DocumentView";
-import { emptyPath, returnFalse, emptyFunction, returnOne, returnEmptyString, returnTrue } from "../../Utils";
-import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
-import { Transform } from "../util/Transform";
-import { computed, action, IReactionDisposer, reaction, observable } from "mobx";
-import { FieldValue, Cast, NumCast } from "../../new_fields/Types";
+import { IReactionDisposer, observable, reaction } from "mobx";
 import { observer } from "mobx-react";
-import { DocumentContentsView } from "./nodes/DocumentContentsView";
-import { CollectionStackingView } from "./collections/CollectionStackingView";
-import { CollectionView } from "./collections/CollectionView";
-import { CollectionSubView, SubCollectionViewProps } from "./collections/CollectionSubView";
-import { makeInterface } from "../../new_fields/Schema";
-import { documentSchema } from "../../new_fields/documentSchemas";
+import * as React from "react";
+import { Doc } from "../../new_fields/Doc";
+import { NumCast } from "../../new_fields/Types";
+import { emptyFunction, emptyPath, returnEmptyString, returnZero, returnFalse, returnOne, returnTrue } from "../../Utils";
+import { Transform } from "../util/Transform";
+import { DocumentView } from "./nodes/DocumentView";
+import "./Palette.scss";
 
 export interface PaletteProps {
     x: number;
@@ -40,7 +29,7 @@ export default class Palette extends React.Component<PaletteProps> {
     }
 
     componentWillUnmount = () => {
-        this._selectedDisposer && this._selectedDisposer();
+        this._selectedDisposer?.();
     }
 
     render() {
@@ -54,11 +43,14 @@ export default class Palette extends React.Component<PaletteProps> {
                             LibraryPath={emptyPath}
                             addDocument={undefined}
                             addDocTab={returnFalse}
+                            rootSelected={returnTrue}
                             pinToPres={emptyFunction}
                             removeDocument={undefined}
                             onClick={undefined}
                             ScreenToLocalTransform={Transform.Identity}
                             ContentScaling={returnOne}
+                            NativeHeight={returnZero}
+                            NativeWidth={returnZero}
                             PanelWidth={() => window.screen.width}
                             PanelHeight={() => window.screen.height}
                             renderDepth={0}
@@ -68,10 +60,7 @@ export default class Palette extends React.Component<PaletteProps> {
                             whenActiveChanged={emptyFunction}
                             bringToFront={emptyFunction}
                             ContainingCollectionView={undefined}
-                            ContainingCollectionDoc={undefined}
-                            zoomToScale={emptyFunction}
-                            getScale={returnOne}>
-                        </DocumentView>
+                            ContainingCollectionDoc={undefined} />
                         <div className="palette-cover" style={{ transform: `translate(${Math.max(0, this._selectedIndex) * 50.75 + 23}px, 0px)` }}></div>
                     </div>
                 </div>

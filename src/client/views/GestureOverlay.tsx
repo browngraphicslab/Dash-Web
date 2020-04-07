@@ -15,7 +15,7 @@ import { Scripting } from "../util/Scripting";
 import { FieldValue, Cast, NumCast, BoolCast } from "../../new_fields/Types";
 import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
 import HorizontalPalette from "./Palette";
-import { Utils, emptyPath, emptyFunction, returnFalse, returnOne, returnEmptyString, returnTrue, numberRange } from "../../Utils";
+import { Utils, emptyPath, emptyFunction, returnFalse, returnOne, returnEmptyString, returnTrue, numberRange, returnZero } from "../../Utils";
 import { DocumentView } from "./nodes/DocumentView";
 import { Transform } from "../util/Transform";
 import { DocumentContentsView } from "./nodes/DocumentContentsView";
@@ -193,7 +193,7 @@ export default class GestureOverlay extends Touchable {
                 }, (500));
             }
             else {
-                clearTimeout(this._holdTimer);
+                this._holdTimer && clearTimeout(this._holdTimer);
             }
             document.removeEventListener("touchmove", this.onReactTouchMove);
             document.removeEventListener("touchend", this.onReactTouchEnd);
@@ -270,7 +270,7 @@ export default class GestureOverlay extends Touchable {
 
     onReactTouchMove = (e: TouchEvent) => {
         const nts: any = this.getNewTouches(e);
-        clearTimeout(this._holdTimer);
+        this._holdTimer && clearTimeout(this._holdTimer);
         this._holdTimer = undefined;
 
         document.dispatchEvent(
@@ -290,7 +290,7 @@ export default class GestureOverlay extends Touchable {
 
     onReactTouchEnd = (e: TouchEvent) => {
         const nts: any = this.getNewTouches(e);
-        clearTimeout(this._holdTimer);
+        this._holdTimer && clearTimeout(this._holdTimer);
         this._holdTimer = undefined;
 
         document.dispatchEvent(
@@ -323,7 +323,7 @@ export default class GestureOverlay extends Touchable {
     }
 
     handleHandDown = async (e: React.TouchEvent) => {
-        clearTimeout(this._holdTimer!);
+        this._holdTimer && clearTimeout(this._holdTimer);
         const fingers = new Array<React.Touch>();
         for (let i = 0; i < e.touches.length; i++) {
             const pt: any = e.touches.item(i);
@@ -623,7 +623,7 @@ export default class GestureOverlay extends Touchable {
                             actionPerformed = true;
                             break;
                         case GestureUtils.Gestures.EndBracket:
-                            this.dispatchGesture(GestureUtils.Gestures.EndBracket);
+                            this.dispatchGesture("endbracket");
                             actionPerformed = true;
                             break;
                         case GestureUtils.Gestures.Line:
@@ -648,7 +648,7 @@ export default class GestureOverlay extends Touchable {
         document.removeEventListener("pointerup", this.onPointerUp);
     }
 
-    dispatchGesture = (gesture: GestureUtils.Gestures, stroke?: InkData, data?: any) => {
+    dispatchGesture = (gesture: "box" | "line" | "startbracket" | "endbracket" | "stroke" | "scribble" | "text", stroke?: InkData, data?: any) => {
         const target = document.elementFromPoint((stroke ?? this._points)[0].X, (stroke ?? this._points)[0].Y);
         target?.dispatchEvent(
             new CustomEvent<GestureUtils.GestureEvent>("dashOnGesture",
@@ -656,7 +656,7 @@ export default class GestureOverlay extends Touchable {
                     bubbles: true,
                     detail: {
                         points: stroke ?? this._points,
-                        gesture: gesture,
+                        gesture: gesture as any,
                         bounds: this.getBounds(stroke ?? this._points),
                         text: data
                     }
@@ -695,7 +695,8 @@ export default class GestureOverlay extends Touchable {
             </svg>]
         ];
     }
-
+    screenToLocalTransform = () => new Transform(-(this._thumbX ?? 0), -(this._thumbY ?? 0) + this.height, 1);
+    return300 = () => 300;
     @action
     public openFloatingDoc = (doc: Doc) => {
         this._clipboardDoc =
@@ -705,13 +706,16 @@ export default class GestureOverlay extends Touchable {
                 LibraryPath={emptyPath}
                 addDocument={undefined}
                 addDocTab={returnFalse}
+                rootSelected={returnTrue}
                 pinToPres={emptyFunction}
                 onClick={undefined}
                 removeDocument={undefined}
-                ScreenToLocalTransform={() => new Transform(-(this._thumbX ?? 0), -(this._thumbY ?? 0) + this.height, 1)}
+                ScreenToLocalTransform={this.screenToLocalTransform}
                 ContentScaling={returnOne}
-                PanelWidth={() => 300}
-                PanelHeight={() => 300}
+                PanelWidth={this.return300}
+                PanelHeight={this.return300}
+                NativeHeight={returnZero}
+                NativeWidth={returnZero}
                 renderDepth={0}
                 backgroundColor={returnEmptyString}
                 focus={emptyFunction}
@@ -720,8 +724,6 @@ export default class GestureOverlay extends Touchable {
                 bringToFront={emptyFunction}
                 ContainingCollectionView={undefined}
                 ContainingCollectionDoc={undefined}
-                zoomToScale={emptyFunction}
-                getScale={returnOne}
             />;
     }
 
@@ -736,7 +738,6 @@ export default class GestureOverlay extends Touchable {
     }
 
     render() {
-        trace();
         return (
             <div className="gestureOverlay-cont" onPointerDown={this.onPointerDown} onTouchStart={this.onReactTouchStart}>
                 {this.showMobileInkOverlay ? <MobileInkOverlay /> : <></>}

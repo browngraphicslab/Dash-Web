@@ -14,6 +14,7 @@ import "./collectionMulticolumnView.scss";
 import ResizeBar from './MulticolumnResizer';
 import WidthLabel from './MulticolumnWidthLabel';
 import { List } from '../../../../new_fields/List';
+import { returnZero } from '../../../../Utils';
 
 type MulticolumnDocument = makeInterface<[typeof documentSchema]>;
 const MulticolumnDocument = makeInterface(documentSchema);
@@ -208,6 +209,10 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
             {...this.props}
             Document={layout}
             DataDocument={layout.resolvedDataDoc as Doc}
+            NativeHeight={returnZero}
+            NativeWidth={returnZero}
+            fitToBox={BoolCast(this.props.Document._freezeChildDimensions)}
+            FreezeDimensions={BoolCast(this.props.Document._freezeChildDimensions)}
             backgroundColor={this.props.backgroundColor}
             CollectionDoc={this.props.Document}
             PanelWidth={width}

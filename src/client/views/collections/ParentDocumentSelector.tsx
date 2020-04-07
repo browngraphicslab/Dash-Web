@@ -107,7 +107,6 @@ export class DockingViewButtonSelector extends React.Component<{ views: Document
     }
 
     @computed get flyout() {
-        trace();
         return (
             <div className="ParentDocumentSelector-flyout" title=" ">
                 <DocumentButtonBar views={this.props.views} stack={this.props.Stack} />
@@ -116,7 +115,6 @@ export class DockingViewButtonSelector extends React.Component<{ views: Document
     }
 
     render() {
-        trace();
         return <span title="Tap for menu, drag tab as document" onPointerDown={e => { this.props.views[0].select(false); e.stopPropagation(); }} className="buttonSelector">
             <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={this.flyout} stylesheet={this.customStylesheet}>
                 <FontAwesomeIcon icon={"cog"} size={"sm"} />

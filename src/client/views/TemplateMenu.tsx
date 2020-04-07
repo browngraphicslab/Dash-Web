@@ -10,7 +10,7 @@ import { Doc, DocListCast } from "../../new_fields/Doc";
 import { Docs, } from "../documents/Documents";
 import { StrCast, Cast } from "../../new_fields/Types";
 import { CollectionTreeView } from "./collections/CollectionTreeView";
-import { returnTrue, emptyFunction, returnFalse, returnOne, emptyPath } from "../../Utils";
+import { returnTrue, emptyFunction, returnFalse, returnOne, emptyPath, returnZero } from "../../Utils";
 import { Transform } from "../util/Transform";
 import { ScriptField, ComputedField } from "../../new_fields/ScriptField";
 import { Scripting } from "../util/Scripting";
@@ -124,44 +124,45 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
         templateMenu.push(<OtherToggle key={"chrome"} name={"Chrome"} checked={layout._chromeStatus !== "disabled"} toggle={this.toggleChrome} />);
         templateMenu.push(<OtherToggle key={"default"} name={"Default"} checked={templateName === "layout"} toggle={this.toggleDefault} />);
         if (noteTypesDoc) {
-            addedTypes.concat(noteTypes).map(template => template.treeViewChecked = ComputedField.MakeFunction("templateIsUsed(this, firstDoc)", { firstDoc: "string" }, { firstDoc: StrCast(firstDoc.title) }));
+            addedTypes.concat(noteTypes).map(template => template.treeViewChecked = ComputedField.MakeFunction(`templateIsUsed(this)`));
             this._addedKeys && Array.from(this._addedKeys).filter(key => !noteTypes.some(nt => nt.title === key)).forEach(template => templateMenu.push(
                 <OtherToggle key={template} name={template} checked={templateName === template} toggle={e => this.toggleLayout(e, template)} />));
-            templateMenu.push(
-                <CollectionTreeView
-                    Document={Doc.UserDoc().templateDocs as Doc}
-                    CollectionView={undefined}
-                    ContainingCollectionDoc={undefined}
-                    ContainingCollectionView={undefined}
-                    onCheckedClick={this.scriptField!}
-                    onChildClick={this.scriptField!}
-                    LibraryPath={emptyPath}
-                    dropAction={undefined}
-                    active={returnTrue}
-                    ContentScaling={returnOne}
-                    bringToFront={emptyFunction}
-                    focus={emptyFunction}
-                    whenActiveChanged={emptyFunction}
-                    ScreenToLocalTransform={Transform.Identity}
-                    isSelected={returnFalse}
-                    pinToPres={emptyFunction}
-                    select={emptyFunction}
-                    renderDepth={1}
-                    addDocTab={returnFalse}
-                    PanelWidth={this.return100}
-                    PanelHeight={this.return100}
-                    treeViewHideHeaderFields={true}
-                    annotationsKey={""}
-                    dontRegisterView={true}
-                    fieldKey={"data"}
-                    moveDocument={(doc: Doc) => false}
-                    removeDocument={(doc: Doc) => false}
-                    addDocument={(doc: Doc) => false} />
-            );
         }
         return <ul className="template-list" style={{ display: "block" }}>
-            <input placeholder="+ layout" ref={this._customRef} onKeyPress={this.onCustomKeypress}></input>
+            <input placeholder="+ layout" ref={this._customRef} onKeyPress={this.onCustomKeypress} />
             {templateMenu}
+            <CollectionTreeView
+                Document={Doc.UserDoc().templateDocs as Doc}
+                CollectionView={undefined}
+                ContainingCollectionDoc={undefined}
+                ContainingCollectionView={undefined}
+                rootSelected={returnFalse}
+                onCheckedClick={this.scriptField!}
+                onChildClick={this.scriptField!}
+                LibraryPath={emptyPath}
+                dropAction={undefined}
+                active={returnTrue}
+                ContentScaling={returnOne}
+                bringToFront={emptyFunction}
+                focus={emptyFunction}
+                whenActiveChanged={emptyFunction}
+                ScreenToLocalTransform={Transform.Identity}
+                isSelected={returnFalse}
+                pinToPres={emptyFunction}
+                select={emptyFunction}
+                renderDepth={1}
+                addDocTab={returnFalse}
+                NativeHeight={returnZero}
+                NativeWidth={returnZero}
+                PanelWidth={this.return100}
+                PanelHeight={this.return100}
+                treeViewHideHeaderFields={true}
+                annotationsKey={""}
+                dontRegisterView={true}
+                fieldKey={"data"}
+                moveDocument={(doc: Doc) => false}
+                removeDocument={(doc: Doc) => false}
+                addDocument={(doc: Doc) => false} />
         </ul>;
     }
 }
@@ -174,10 +175,11 @@ Scripting.addGlobal(function switchView(doc: Doc, template: Doc) {
     return templateTitle && DocumentView.makeCustomViewClicked(doc, Docs.Create.FreeformDocument, templateTitle, template);
 });
 
-Scripting.addGlobal(function templateIsUsed(templateDoc: Doc, firstDocTitlte: string) {
+Scripting.addGlobal(function templateIsUsed(templateDoc: Doc) {
     const firstDoc = SelectionManager.SelectedDocuments().length ? SelectionManager.SelectedDocuments()[0].props.Document : undefined;
-    if (!firstDoc) return false;
-    const template = StrCast(templateDoc.dragFactory ? Cast(templateDoc.dragFactory, Doc, null)?.title : templateDoc.title);
-    return StrCast(firstDoc.layoutKey) === "layout_" + template ? 'check' : 'unchecked';
-    // return SelectionManager.SelectedDocuments().some(view => StrCast(view.props.Document.layoutKey) === "layout_" + template) ? 'check' : 'unchecked'
+    if (firstDoc) {
+        const template = StrCast(templateDoc.dragFactory ? Cast(templateDoc.dragFactory, Doc, null)?.title : templateDoc.title);
+        return StrCast(firstDoc.layoutKey) === "layout_" + template ? 'check' : 'unchecked';
+    }
+    return false;
 });

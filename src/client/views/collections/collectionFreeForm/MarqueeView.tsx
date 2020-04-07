@@ -5,7 +5,6 @@ import { InkField, InkData } from "../../../../new_fields/InkField";
 import { List } from "../../../../new_fields/List";
 import { SchemaHeaderField } from "../../../../new_fields/SchemaHeaderField";
 import { Cast, NumCast, FieldValue, StrCast } from "../../../../new_fields/Types";
-import { CurrentUserUtils } from "../../../../server/authentication/models/current_user_utils";
 import { Utils } from "../../../../Utils";
 import { Docs, DocUtils } from "../../../documents/Documents";
 import { SelectionManager } from "../../../util/SelectionManager";
