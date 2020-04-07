@@ -14,7 +14,7 @@ import { Utils } from "../../../Utils";
 import { nullAudio, ImageField } from "../../../new_fields/URLField";
 import { DragManager } from "../../../client/util/DragManager";
 import { InkingControl } from "../../../client/views/InkingControl";
-import { Scripting } from "../../../client/util/Scripting";
+import { Scripting, CompileScript } from "../../../client/util/Scripting";
 import { CollectionViewType } from "../../../client/views/collections/CollectionView";
 import { makeTemplate } from "../../../client/util/DropConverter";
 import { RichTextField } from "../../../new_fields/RichTextField";
@@ -345,6 +345,13 @@ export class CurrentUserUtils {
         doc.optionalRightCollection = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "New mobile uploads" }));
     }
 
+    static setupChildClicks(doc: Doc) {
+        const openInTarget = Docs.Create.TextDocument("", { title: "On Child Clicked (open in target)" });
+        const text = "docCast(thisContainer.target).then((target) => { target && docCast(this.source).then((source) => { target.proto.data = new List([source || this]); } ); } )";
+        openInTarget.script = ScriptField.MakeScript(text, { thisContainer: Doc.name });
+        doc.childClickFuncs = Docs.Create.TreeDocument([openInTarget], { title: "on Child Click function templates" });
+    }
+
     static updateUserDocument(doc: Doc) {
         doc.title = Doc.CurrentUserEmail;
         new InkingControl();
@@ -355,7 +362,10 @@ export class CurrentUserUtils {
         (doc.expandingButtons === undefined) && CurrentUserUtils.setupExpandingButtons(doc);
         (doc.curPresentation === undefined) && CurrentUserUtils.setupDefaultPresentation(doc);
         (doc.sidebarButtons === undefined) && CurrentUserUtils.setupSidebarButtons(doc);
+        (doc.childClickFuncs === undefined) && CurrentUserUtils.setupChildClicks(doc);
 
+        // this is equivalent to using PrefetchProxies to make sure all the childClickFuncs have been retrieved.
+        PromiseValue(Cast(doc.childClickFuncs, Doc)).then(func => func && PromiseValue(func.data).then(DocListCast));
         // this is equivalent to using PrefetchProxies to make sure the recentlyClosed doc is ready
         PromiseValue(Cast(doc.recentlyClosed, Doc)).then(recent => recent && PromiseValue(recent.data).then(DocListCast));
         // this is equivalent to using PrefetchProxies to make sure all the sidebarButtons and noteType internal Doc's have been retrieved.

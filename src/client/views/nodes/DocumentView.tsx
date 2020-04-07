@@ -295,8 +295,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 const func = () => this.onClickHandler!.script.run({
                     this: this.props.Document,
                     self: Cast(this.props.Document.rootDocument, Doc, null) || this.props.Document,
-                    containingCollection: this.props.ContainingCollectionDoc, shiftKey: e.shiftKey
-                }, console.log) && !this.props.Document.isButton && this.select(false);
+                    thisContainer: this.props.ContainingCollectionDoc, shiftKey: e.shiftKey
+                }, console.log);// && !this.props.Document.isButton && this.select(false);
                 if (this.props.Document !== Doc.UserDoc().undoBtn && this.props.Document !== Doc.UserDoc().redoBtn) {
                     UndoManager.RunInBatch(func, "on click");
                 } else func();

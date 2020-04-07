@@ -121,6 +121,6 @@ export class ScriptBox extends React.Component<ScriptBoxProps> {
                 overlayDisposer();
             }
         }} showDocumentIcons />;
-        overlayDisposer = OverlayView.Instance.addWindow(scriptingBox, { x: 400, y: 200, width: 500, height: 400, title: title });
+        overlayDisposer = OverlayView.Instance.addWindow(scriptingBox, { x: 400, y: 200, width: 500, height: 400, title });
     }
 }

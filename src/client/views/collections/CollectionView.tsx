@@ -43,6 +43,7 @@ import { listSpec } from '../../../new_fields/Schema';
 import { Docs } from '../../documents/Documents';
 import { ScriptField, ComputedField } from '../../../new_fields/ScriptField';
 import { InteractionUtils } from '../../util/InteractionUtils';
+import { ObjectField } from '../../../new_fields/ObjectField';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -259,7 +260,15 @@ export class CollectionView extends Touchable<FieldViewProps> {
 
             const existingOnClick = ContextMenu.Instance.findByDescription("OnClick...");
             const onClicks = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
-            onClicks.push({ description: "Edit onChildClick script", icon: "edit", event: (obj: any) => ScriptBox.EditButtonScript("On Child Clicked...", this.props.Document, "onChildClick", obj.x, obj.y) });
+            const funcs = [{ key: "onChildClick", name: "On Child Clicked", script: undefined as any as ScriptField }];
+            DocListCast(Cast(Doc.UserDoc().childClickFuncs, Doc, null).data).forEach(childClick =>
+                funcs.push({ key: "onChildClick", name: StrCast(childClick.title), script: ScriptCast(childClick.script) }));
+            funcs.map(func => onClicks.push({
+                description: `Edit ${func.name} script`, icon: "edit", event: (obj: any) => {
+                    func.script && (this.props.Document[func.key] = ObjectField.MakeCopy(func.script));
+                    ScriptBox.EditButtonScript(func.name + "...", this.props.Document, func.key, obj.x, obj.y, { thisContainer: Doc.name });
+                }
+            }));
             !existingOnClick && ContextMenu.Instance.addItem({ description: "OnClick...", subitems: onClicks, icon: "hand-point-right" });
 
             const more = ContextMenu.Instance.findByDescription("More...");

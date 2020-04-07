@@ -43,14 +43,14 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     get target() { return this.props.CollectionView.props.Document; }
     _templateCommand = {
         params: ["target", "source"], title: "=> item view",
-        script: "setChildLayout(this.target, this.source?.[0])",
-        immediate: (source: Doc[]) => Doc.setChildLayout(this.target, source?.[0]),
+        script: "target.childLayout = getDocTemplate(this.source?.[0])",
+        immediate: (source: Doc[]) => this.target.childLayout = Doc.getDocTemplate(source?.[0]),
         initialize: emptyFunction,
     };
     _narrativeCommand = {
         params: ["target", "source"], title: "=> click item view",
-        script: "setChildDetailedLayout(this.target, this.source?.[0])",
-        immediate: (source: Doc[]) => Doc.setChildDetailedLayout(this.target, source?.[0]),
+        script: "this.target.childDetailed = getDocTemplate(this.source?.[0])",
+        immediate: (source: Doc[]) => this.target.childDetailed = Doc.getDocTemplate(source?.[0]),
         initialize: emptyFunction,
     };
     _contentCommand = {
@@ -353,7 +353,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
             const c = {
                 params: ["target"], title: CollectionViewType.stringFor(vtype),
                 script: `this.target._viewType = ${NumCast(this.props.CollectionView.props.Document._viewType)}`,
-                immediate: (source: Doc[]) => Doc.setChildLayout(this.target, source?.[0]),
+                immediate: (source: Doc[]) => this.target = Doc.getTemplateDoc(source?.[0]),
                 initialize: emptyFunction,
             };
             DragManager.StartButtonDrag([this._viewRef.current!], c.script, StrCast(c.title),
