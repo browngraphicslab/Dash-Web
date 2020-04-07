@@ -504,7 +504,7 @@ export namespace Docs {
                 const extension = path.extname(target);
                 target = `${target.substring(0, target.length - extension.length)}_o${extension}`;
             }
-            requestImageSize(target)
+            requestImageSize(Utils.CorsProxy(target))
                 .then((size: any) => {
                     const aspect = size.height / size.width;
                     if (!inst._nativeWidth) {

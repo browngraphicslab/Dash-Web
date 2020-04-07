@@ -197,7 +197,7 @@ export class PresElementBox extends DocExtendableComponent<FieldViewProps, PresD
         const treecontainer = this.props.ContainingCollectionDoc?._viewType === CollectionViewType.Tree;
         const className = "presElementBox-item" + (this.currentIndex === this.indexInPres ? " presElementBox-selected" : "");
         const pbi = "presElementBox-interaction";
-        return !this.presElementDoc ? (null) : (
+        return !(this.presElementDoc instanceof Doc) || this.targetDoc instanceof Promise ? (null) : (
             <div className={className} key={this.props.Document[Id] + this.indexInPres}
                 style={{ outlineWidth: Doc.IsBrushed(this.targetDoc) ? `1px` : "0px", }}
                 onClick={e => { this.props.focus(this.presElementDoc); e.stopPropagation(); }}>

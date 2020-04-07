@@ -59,7 +59,7 @@ interface IViewerProps {
     PanelHeight: () => number;
     ContentScaling: () => number;
     select: (isCtrlPressed: boolean) => void;
-    rootSelected: () => boolean;
+    rootSelected: (outsideReaction?: boolean) => boolean;
     startupLive: boolean;
     renderDepth: number;
     focus: (doc: Doc) => void;

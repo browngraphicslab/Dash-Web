@@ -131,7 +131,8 @@ export class ScriptField extends ObjectField {
 export class ComputedField extends ScriptField {
     _lastComputedResult: any;
     //TODO maybe add an observable cache based on what is passed in for doc, considering there shouldn't really be that many possible values for doc
-    value = computedFn((doc: Doc) => this._lastComputedResult = this.script.run({ this: doc, self: Cast(doc.rootDocument, Doc, null) || doc, _last_: this._lastComputedResult }, console.log).result);
+    value = computedFn((doc: Doc) => this._valueOutsideReaction(doc));
+    _valueOutsideReaction = (doc: Doc) => this._lastComputedResult = this.script.run({ this: doc, self: Cast(doc.rootDocument, Doc, null) || doc, _last_: this._lastComputedResult }, console.log).result;
     public static MakeScript(script: string, params: object = {}) {
         const compiled = ScriptField.CompileScript(script, params, false);
         return compiled.compiled ? new ComputedField(compiled) : undefined;
@@ -166,7 +167,7 @@ export namespace ComputedField {
     export function initPlugin() {
         Plugins.addGetterPlugin((doc, _, value) => {
             if (useComputed && value instanceof ComputedField) {
-                return { value: value.value(doc), shouldReturn: true };
+                return { value: value._valueOutsideReaction(doc), shouldReturn: true };
             }
         });
     }

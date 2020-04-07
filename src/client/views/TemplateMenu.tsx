@@ -127,44 +127,42 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
             addedTypes.concat(noteTypes).map(template => template.treeViewChecked = ComputedField.MakeFunction(`templateIsUsed(this)`));
             this._addedKeys && Array.from(this._addedKeys).filter(key => !noteTypes.some(nt => nt.title === key)).forEach(template => templateMenu.push(
                 <OtherToggle key={template} name={template} checked={templateName === template} toggle={e => this.toggleLayout(e, template)} />));
-            templateMenu.push(
-                <CollectionTreeView
-                    Document={Doc.UserDoc().templateDocs as Doc}
-                    CollectionView={undefined}
-                    ContainingCollectionDoc={undefined}
-                    ContainingCollectionView={undefined}
-                    rootSelected={returnFalse}
-                    onCheckedClick={this.scriptField!}
-                    onChildClick={this.scriptField!}
-                    LibraryPath={emptyPath}
-                    dropAction={undefined}
-                    active={returnTrue}
-                    ContentScaling={returnOne}
-                    bringToFront={emptyFunction}
-                    focus={emptyFunction}
-                    whenActiveChanged={emptyFunction}
-                    ScreenToLocalTransform={Transform.Identity}
-                    isSelected={returnFalse}
-                    pinToPres={emptyFunction}
-                    select={emptyFunction}
-                    renderDepth={1}
-                    addDocTab={returnFalse}
-                    NativeHeight={returnZero}
-                    NativeWidth={returnZero}
-                    PanelWidth={this.return100}
-                    PanelHeight={this.return100}
-                    treeViewHideHeaderFields={true}
-                    annotationsKey={""}
-                    dontRegisterView={true}
-                    fieldKey={"data"}
-                    moveDocument={(doc: Doc) => false}
-                    removeDocument={(doc: Doc) => false}
-                    addDocument={(doc: Doc) => false} />
-            );
         }
         return <ul className="template-list" style={{ display: "block" }}>
             <input placeholder="+ layout" ref={this._customRef} onKeyPress={this.onCustomKeypress} />
             {templateMenu}
+            <CollectionTreeView
+                Document={Doc.UserDoc().templateDocs as Doc}
+                CollectionView={undefined}
+                ContainingCollectionDoc={undefined}
+                ContainingCollectionView={undefined}
+                rootSelected={returnFalse}
+                onCheckedClick={this.scriptField!}
+                onChildClick={this.scriptField!}
+                LibraryPath={emptyPath}
+                dropAction={undefined}
+                active={returnTrue}
+                ContentScaling={returnOne}
+                bringToFront={emptyFunction}
+                focus={emptyFunction}
+                whenActiveChanged={emptyFunction}
+                ScreenToLocalTransform={Transform.Identity}
+                isSelected={returnFalse}
+                pinToPres={emptyFunction}
+                select={emptyFunction}
+                renderDepth={1}
+                addDocTab={returnFalse}
+                NativeHeight={returnZero}
+                NativeWidth={returnZero}
+                PanelWidth={this.return100}
+                PanelHeight={this.return100}
+                treeViewHideHeaderFields={true}
+                annotationsKey={""}
+                dontRegisterView={true}
+                fieldKey={"data"}
+                moveDocument={(doc: Doc) => false}
+                removeDocument={(doc: Doc) => false}
+                addDocument={(doc: Doc) => false} />
         </ul>;
     }
 }
