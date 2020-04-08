@@ -282,7 +282,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
             if (anno.style.height) annoDoc._height = parseInt(anno.style.height);
             if (anno.style.width) annoDoc._width = parseInt(anno.style.width);
             annoDoc.group = mainAnnoDoc;
-            annoDoc.isButton = true;
+            annoDoc.isLinkButton = true;
             annoDocs.push(annoDoc);
             anno.remove();
             mainAnnoDoc = annoDoc;

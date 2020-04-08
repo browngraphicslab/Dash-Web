@@ -275,7 +275,7 @@ export class MainView extends React.Component {
     defaultBackgroundColors = (doc: Doc) => {
         if (this.darkScheme) {
             switch (doc.type) {
-                case DocumentType.TEXT || DocumentType.BUTTON: return "#2d2d2d";
+                case DocumentType.RTF || DocumentType.LABEL: return "#2d2d2d";
                 case DocumentType.LINK:
                 case DocumentType.COL: {
                     if (doc._viewType !== CollectionViewType.Freeform && doc._viewType !== CollectionViewType.Time) return "rgb(62,62,62)";
@@ -284,8 +284,8 @@ export class MainView extends React.Component {
             }
         } else {
             switch (doc.type) {
-                case DocumentType.TEXT: return "#f1efeb";
-                case DocumentType.BUTTON: return "lightgray";
+                case DocumentType.RTF: return "#f1efeb";
+                case DocumentType.LABEL: return "lightgray";
                 case DocumentType.LINK:
                 case DocumentType.COL: {
                     if (doc._viewType !== CollectionViewType.Freeform && doc._viewType !== CollectionViewType.Time) return "lightgray";

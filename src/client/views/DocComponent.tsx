@@ -9,7 +9,7 @@ import { PositionDocument } from '../../new_fields/documentSchemas';
 import { InteractionUtils } from '../util/InteractionUtils';
 
 
-///  DocComponent returns a generic React base class used by views that don't have any data extensions (e.g.,CollectionFreeFormDocumentView, DocumentView, ButtonBox)
+///  DocComponent returns a generic React base class used by views that don't have any data extensions (e.g.,CollectionFreeFormDocumentView, DocumentView, LabelBox)
 interface DocComponentProps {
     Document: Doc;
     LayoutDoc?: () => Opt<Doc>;

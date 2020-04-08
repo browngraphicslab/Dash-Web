@@ -98,12 +98,15 @@ export class ScriptField extends ObjectField {
     [Copy](): ObjectField {
         return new ScriptField(this.script);
     }
+    toString() {
+        return `${this.script.originalScript}`;
+    }
 
     [ToScriptString]() {
         return "script field";
     }
     [ToString]() {
-        return "script field";
+        return this.script.originalScript;
     }
     public static CompileScript(script: string, params: object = {}, addReturn = false, capturedVariables?: { [name: string]: Field }) {
         const compiled = CompileScript(script, {

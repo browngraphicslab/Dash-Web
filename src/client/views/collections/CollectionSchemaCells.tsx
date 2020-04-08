@@ -4,8 +4,9 @@ import { observer } from "mobx-react";
 import { CellInfo } from "react-table";
 import "react-table/react-table.css";
 import { emptyFunction, returnFalse, returnZero, returnOne } from "../../../Utils";
-import { Doc, DocListCast, DocListCastAsync, Field, Opt } from "../../../new_fields/Doc";
+import { Doc, DocListCast, Field, Opt } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
+import { KeyCodes } from "../../util/KeyCodes";
 import { SetupDrag, DragManager } from "../../util/DragManager";
 import { CompileScript } from "../../util/Scripting";
 import { Transform } from "../../util/Transform";
@@ -21,9 +22,7 @@ import { SelectionManager } from "../../util/SelectionManager";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faExpand } from '@fortawesome/free-solid-svg-icons';
 import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
-import { KeyCodes } from "../../northstar/utils/KeyCodes";
 import { undoBatch } from "../../util/UndoManager";
-import { List } from "lodash";
 
 library.add(faExpand);
 

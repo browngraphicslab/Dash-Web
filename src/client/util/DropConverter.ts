@@ -52,7 +52,7 @@ export function convertDropDataToButtons(data: DragManager.DocumentDragData) {
         // bcz: isButtonBar is intended to allow a collection of linear buttons to be dropped and nested into another collection of buttons... it's not being used yet, and isn't very elegant
         if (!doc.onDragStart && !doc.isButtonBar) {
             const layoutDoc = doc.layout instanceof Doc && doc.layout.isTemplateForField ? doc.layout : doc;
-            if (layoutDoc.type === DocumentType.COL || layoutDoc.type === DocumentType.TEXT || layoutDoc.type === DocumentType.IMG) {
+            if (layoutDoc.type === DocumentType.COL || layoutDoc.type === DocumentType.RTF || layoutDoc.type === DocumentType.IMG) {
                 !layoutDoc.isTemplateDoc && makeTemplate(layoutDoc);
             } else {
                 (layoutDoc.layout instanceof Doc) && !data.userDropAction;

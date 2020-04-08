@@ -6,7 +6,7 @@ import { action, computed, IReactionDisposer, observable, reaction, runInAction 
 import { observer } from "mobx-react";
 import { Doc, DocListCast } from "../../../new_fields/Doc";
 import { InkTool } from "../../../new_fields/InkField";
-import { BoolCast, Cast, FieldValue, NumCast } from "../../../new_fields/Types";
+import { BoolCast, Cast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
 import { returnFalse } from "../../../Utils";
 import { DocumentManager } from "../../util/DocumentManager";
 import { undoBatch } from "../../util/UndoManager";
@@ -246,7 +246,7 @@ export class PresBox extends React.Component<FieldViewProps> {
         });
     }
 
-    updateMinimize = undoBatch(action((e: React.ChangeEvent, mode: number) => {
+    updateMinimize = undoBatch(action((e: React.ChangeEvent, mode: CollectionViewType) => {
         if (BoolCast(this.props.Document.inOverlay) !== (mode === CollectionViewType.Invalid)) {
             if (this.props.Document.inOverlay) {
                 Doc.RemoveDocFromList((Doc.UserDoc().overlays as Doc), undefined, this.props.Document);
@@ -261,7 +261,7 @@ export class PresBox extends React.Component<FieldViewProps> {
         }
     }));
 
-    initializeViewAliases = (docList: Doc[], viewtype: number) => {
+    initializeViewAliases = (docList: Doc[], viewtype: CollectionViewType) => {
         const hgt = (viewtype === CollectionViewType.Tree) ? 50 : 46;
         docList.forEach(doc => {
             doc.presBox = this.props.Document; // give contained documents a reference to the presentation
@@ -283,14 +283,14 @@ export class PresBox extends React.Component<FieldViewProps> {
     @undoBatch
     viewChanged = action((e: React.ChangeEvent) => {
         //@ts-ignore
-        this.props.Document._viewType = Number(e.target.selectedOptions[0].value);
+        this.props.Document._viewType = e.target.selectedOptions[0].value;
         this.props.Document._viewType === CollectionViewType.Stacking && (this.props.Document._pivotField = undefined); // pivot field may be set by the user in timeline view (or some other way) -- need to reset it here
         this.updateMinimize(e, Number(this.props.Document._viewType));
     });
 
     childLayoutTemplate = () => this.props.Document._viewType === CollectionViewType.Stacking ? Cast(Doc.UserDoc().presentationTemplate, Doc, null) : undefined;
     render() {
-        const mode = NumCast(this.props.Document._viewType, CollectionViewType.Invalid);
+        const mode = StrCast(this.props.Document._viewType) as CollectionViewType;
         this.initializeViewAliases(this.childDocs, mode);
         return <div className="presBox-cont" style={{ minWidth: this.props.Document.inOverlay ? 240 : undefined, pointerEvents: this.active() || this.props.Document.inOverlay ? "all" : "none" }} >
             <div className="presBox-buttons" style={{ display: this.props.Document._chromeStatus === "disabled" ? "none" : undefined }}>

@@ -4,9 +4,6 @@ import { Deserializable } from "../client/util/SerializationHelper";
 import { Copy, ToScriptString, ToPlainText, ToString } from "./FieldSymbols";
 import { scriptingGlobal } from "../client/util/Scripting";
 
-const delimiter = "\n";
-const joiner = "";
-
 @scriptingGlobal
 @Deserializable("RichTextField")
 export class RichTextField extends ObjectField {

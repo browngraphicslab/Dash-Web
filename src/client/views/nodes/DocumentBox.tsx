@@ -18,12 +18,12 @@ import { TraceMobx } from "../../../new_fields/util";
 import { DocumentView } from "./DocumentView";
 import { Docs } from "../../documents/Documents";
 
-type DocBoxSchema = makeInterface<[typeof documentSchema]>;
-const DocBoxDocument = makeInterface(documentSchema);
+type DocHolderBoxSchema = makeInterface<[typeof documentSchema]>;
+const DocHolderBoxDocument = makeInterface(documentSchema);
 
 @observer
-export class DocumentBox extends DocAnnotatableComponent<FieldViewProps, DocBoxSchema>(DocBoxDocument) {
-    public static LayoutString(fieldKey: string) { return FieldView.LayoutString(DocumentBox, fieldKey); }
+export class DocHolderBox extends DocAnnotatableComponent<FieldViewProps, DocHolderBoxSchema>(DocHolderBoxDocument) {
+    public static LayoutString(fieldKey: string) { return FieldView.LayoutString(DocHolderBox, fieldKey); }
     _prevSelectionDisposer: IReactionDisposer | undefined;
     _selections: Doc[] = [];
     _curSelection = -1;

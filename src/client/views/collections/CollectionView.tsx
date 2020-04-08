@@ -52,39 +52,19 @@ const path = require('path');
 library.add(faTh, faTree, faSquare, faProjectDiagram, faSignature, faThList, faFingerprint, faColumns, faEllipsisV, faImage, faEye as any, faCopy);
 
 export enum CollectionViewType {
-    Invalid,
-    Freeform,
-    Schema,
-    Docking,
-    Tree,
-    Stacking,
-    Masonry,
-    Multicolumn,
-    Multirow,
-    Time,
-    Carousel,
-    Linear,
-    Staff
-}
-
-export namespace CollectionViewType {
-    const stringMapping = new Map<string, CollectionViewType>([
-        ["invalid", CollectionViewType.Invalid],
-        ["freeform", CollectionViewType.Freeform],
-        ["schema", CollectionViewType.Schema],
-        ["docking", CollectionViewType.Docking],
-        ["tree", CollectionViewType.Tree],
-        ["stacking", CollectionViewType.Stacking],
-        ["masonry", CollectionViewType.Masonry],
-        ["multicolumn", CollectionViewType.Multicolumn],
-        ["multirow", CollectionViewType.Multirow],
-        ["time", CollectionViewType.Time],
-        ["carousel", CollectionViewType.Carousel],
-        ["linear", CollectionViewType.Linear],
-    ]);
-
-    export const valueOf = (value: string) => stringMapping.get(value.toLowerCase());
-    export const stringFor = (value: number) => Array.from(stringMapping.entries()).find(entry => entry[1] === value)?.[0];
+    Invalid = "invalid",
+    Freeform = "freeform",
+    Schema = "schema",
+    Docking = "docking",
+    Tree = 'tree',
+    Stacking = "stacking",
+    Masonry = "masonry",
+    Multicolumn = "multicolumn",
+    Multirow = "multirow",
+    Time = "time",
+    Carousel = "carousel",
+    Linear = "linear",
+    Staff = "staff",
 }
 
 export interface CollectionRenderProps {
@@ -110,7 +90,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
     protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
 
     get collectionViewType(): CollectionViewType | undefined {
-        const viewField = NumCast(this.props.Document._viewType);
+        const viewField = StrCast(this.props.Document._viewType);
         if (CollectionView._safeMode) {
             if (viewField === CollectionViewType.Freeform) {
                 return CollectionViewType.Tree;
@@ -119,7 +99,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
                 return CollectionViewType.Freeform;
             }
         }
-        return viewField;
+        return viewField as any as CollectionViewType;
     }
 
     active = (outsideReaction?: boolean) => this.props.isSelected(outsideReaction) || (this.props.rootSelected(outsideReaction) && BoolCast(this.props.Document.forceActive)) || this._isChildActive || this.props.renderDepth === 0;
@@ -394,7 +374,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
                 const params = { layoutDoc: Doc.name, dataDoc: Doc.name, };
                 newFacet.data = ComputedField.MakeFunction(`readFacetData(layoutDoc, dataDoc, "${this.props.fieldKey}", "${facetHeader}")`, params, capturedVariables);
             }
-            Doc.AddDocToList(facetCollection, this.props.fieldKey + "-filter", newFacet);
+            newFacet && Doc.AddDocToList(facetCollection, this.props.fieldKey + "-filter", newFacet);
         }
     }
 

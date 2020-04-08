@@ -128,7 +128,7 @@ export class SearchBox extends React.Component<SearchProps> {
         }
     }
 
-    public _allIcons: string[] = [DocumentType.AUDIO, DocumentType.COL, DocumentType.IMG, DocumentType.LINK, DocumentType.PDF, DocumentType.TEXT, DocumentType.VID, DocumentType.WEB];
+    public _allIcons: string[] = [DocumentType.AUDIO, DocumentType.COL, DocumentType.IMG, DocumentType.LINK, DocumentType.PDF, DocumentType.RTF, DocumentType.VID, DocumentType.WEB];
     //if true, any keywords can be used. if false, all keywords are required.
     //this also serves as an indicator if the word status filter is applied
     @observable private _filterOpen: boolean = false;

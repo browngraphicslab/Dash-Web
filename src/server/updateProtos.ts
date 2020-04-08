@@ -1,8 +1,7 @@
 import { Database } from "./database";
 
 const protos =
-    ["text", "histogram", "image", "web", "collection", "kvp",
-        "video", "audio", "pdf", "icon", "import", "linkdoc"];
+    ["text", "image", "web", "collection", "kvp", "video", "audio", "pdf", "icon", "import", "linkdoc"];
 
 (async function () {
     await Promise.all(

@@ -132,7 +132,7 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
                         x: (this.Document.x || 0) + width, y: (this.Document.y || 0),
                         _width: 150, _height: height / width * 150, title: "--snapshot" + (this.Document.currentTimecode || 0) + " image-"
                     });
-                    imageSummary.isButton = true;
+                    imageSummary.isLinkButton = true;
                     this.props.addDocument && this.props.addDocument(imageSummary);
                     DocUtils.MakeLink({ doc: imageSummary }, { doc: this.props.Document }, "video snapshot");
                 }

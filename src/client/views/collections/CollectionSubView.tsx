@@ -99,7 +99,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 this.props.Document.resolvedDataDoc ? this.props.Document : Doc.GetProto(this.props.Document)); // if the layout document has a resolvedDataDoc, then we don't want to get its parent which would be the unexpanded template
         }
 
-        rootSelected = (outsideReaction: boolean) => {
+        rootSelected = (outsideReaction?: boolean) => {
             return this.props.isSelected(outsideReaction) || (this.props.Document.rootDocument || this.props.Document.forceActive ? this.props.rootSelected(outsideReaction) : false);
         }
 

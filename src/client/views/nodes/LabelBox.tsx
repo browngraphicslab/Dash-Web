@@ -11,7 +11,7 @@ import { BoolCast, StrCast, Cast, FieldValue } from '../../../new_fields/Types';
 import { DragManager } from '../../util/DragManager';
 import { undoBatch } from '../../util/UndoManager';
 import { DocComponent } from '../DocComponent';
-import './ButtonBox.scss';
+import './LabelBox.scss';
 import { FieldView, FieldViewProps } from './FieldView';
 import { ContextMenuProps } from '../ContextMenuItem';
 import { ContextMenu } from '../ContextMenu';
@@ -20,18 +20,18 @@ import { documentSchema } from '../../../new_fields/documentSchemas';
 
 library.add(faEdit as any);
 
-const ButtonSchema = createSchema({
+const LabelSchema = createSchema({
     onClick: ScriptField,
     buttonParams: listSpec("string"),
     text: "string"
 });
 
-type ButtonDocument = makeInterface<[typeof ButtonSchema, typeof documentSchema]>;
-const ButtonDocument = makeInterface(ButtonSchema, documentSchema);
+type LabelDocument = makeInterface<[typeof LabelSchema, typeof documentSchema]>;
+const LabelDocument = makeInterface(LabelSchema, documentSchema);
 
 @observer
-export class ButtonBox extends DocComponent<FieldViewProps, ButtonDocument>(ButtonDocument) {
-    public static LayoutString(fieldKey: string) { return FieldView.LayoutString(ButtonBox, fieldKey); }
+export class LabelBox extends DocComponent<FieldViewProps, LabelDocument>(LabelDocument) {
+    public static LayoutString(fieldKey: string) { return FieldView.LayoutString(LabelBox, fieldKey); }
     private dropDisposer?: DragManager.DragDropDisposer;
 
     @computed get dataDoc() {
@@ -78,18 +78,18 @@ export class ButtonBox extends DocComponent<FieldViewProps, ButtonDocument>(Butt
         const missingParams = params?.filter(p => this.props.Document[p] === undefined);
         params?.map(p => DocListCast(this.props.Document[p])); // bcz: really hacky form of prefetching ... 
         return (
-            <div className="buttonBox-outerDiv" ref={this.createDropTarget} onContextMenu={this.specificContextMenu}
+            <div className="labelBox-outerDiv" ref={this.createDropTarget} onContextMenu={this.specificContextMenu}
                 style={{ boxShadow: this.Document.opacity === 0 ? undefined : StrCast(this.Document.boxShadow, "") }}>
-                <div className="buttonBox-mainButton" style={{
+                <div className="labelBox-mainButton" style={{
                     background: this.Document.backgroundColor, color: this.Document.color || "inherit",
                     fontSize: this.Document.fontSize, letterSpacing: this.Document.letterSpacing || "", textTransform: (this.Document.textTransform as any) || ""
                 }} >
-                    <div className="buttonBox-mainButtonCenter">
+                    <div className="labelBox-mainButtonCenter">
                         {(this.Document.text || this.Document.title)}
                     </div>
                 </div>
-                <div className="buttonBox-params" >
-                    {!missingParams || !missingParams.length ? (null) : missingParams.map(m => <div key={m} className="buttonBox-missingParam">{m}</div>)}
+                <div className="labelBox-params" >
+                    {!missingParams || !missingParams.length ? (null) : missingParams.map(m => <div key={m} className="labelBox-missingParam">{m}</div>)}
                 </div>
             </div>
         );

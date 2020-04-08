@@ -1,6 +1,3 @@
-import { HistogramField } from "../northstar/dash-fields/HistogramField";
-import { HistogramBox } from "../northstar/dash-nodes/HistogramBox";
-import { HistogramOperation } from "../northstar/operations/HistogramOperation";
 import { CollectionView } from "../views/collections/CollectionView";
 import { CollectionViewType } from "../views/collections/CollectionView";
 import { AudioBox } from "../views/nodes/AudioBox";
@@ -8,21 +5,16 @@ import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
 import { ImageBox } from "../views/nodes/ImageBox";
 import { KeyValueBox } from "../views/nodes/KeyValueBox";
 import { PDFBox } from "../views/nodes/PDFBox";
+import { ScriptingBox } from "../views/nodes/ScriptingBox";
 import { VideoBox } from "../views/nodes/VideoBox";
 import { WebBox } from "../views/nodes/WebBox";
-import { Gateway } from "../northstar/manager/Gateway";
 import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
-import { action } from "mobx";
-import { ColumnAttributeModel } from "../northstar/core/attribute/AttributeModel";
-import { AttributeTransformationModel } from "../northstar/core/attribute/AttributeTransformationModel";
-import { AggregateFunction } from "../northstar/model/idea/idea";
 import { OmitKeys, JSONUtils, Utils } from "../../Utils";
 import { Field, Doc, Opt, DocListCastAsync, FieldResult, DocListCast } from "../../new_fields/Doc";
 import { ImageField, VideoField, AudioField, PdfField, WebField, YoutubeField } from "../../new_fields/URLField";
 import { HtmlField } from "../../new_fields/HtmlField";
 import { List } from "../../new_fields/List";
 import { Cast, NumCast, StrCast } from "../../new_fields/Types";
-import { listSpec } from "../../new_fields/Schema";
 import { DocServer } from "../DocServer";
 import { dropActionType } from "../util/DragManager";
 import { DateField } from "../../new_fields/DateField";
@@ -32,7 +24,7 @@ import { LinkManager } from "../util/LinkManager";
 import { DocumentManager } from "../util/DocumentManager";
 import DirectoryImportBox from "../util/Import & Export/DirectoryImportBox";
 import { Scripting } from "../util/Scripting";
-import { ButtonBox } from "../views/nodes/ButtonBox";
+import { LabelBox } from "../views/nodes/LabelBox";
 import { SliderBox } from "../views/nodes/SliderBox";
 import { FontIconBox } from "../views/nodes/FontIconBox";
 import { SchemaHeaderField } from "../../new_fields/SchemaHeaderField";
@@ -41,16 +33,12 @@ import { ComputedField, ScriptField } from "../../new_fields/ScriptField";
 import { ProxyField } from "../../new_fields/Proxy";
 import { DocumentType } from "./DocumentTypes";
 import { RecommendationsBox } from "../views/RecommendationsBox";
-import { SearchBox } from "../views/search/SearchBox";
-
-//import { PresBox } from "../views/nodes/PresBox";
-//import { PresField } from "../../new_fields/PresField";
 import { PresElementBox } from "../views/presentationview/PresElementBox";
 import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
 import { QueryBox } from "../views/nodes/QueryBox";
 import { ColorBox } from "../views/nodes/ColorBox";
-import { DocuLinkBox } from "../views/nodes/DocuLinkBox";
-import { DocumentBox } from "../views/nodes/DocumentBox";
+import { LinkAnchorBox } from "../views/nodes/LinkAnchorBox";
+import { DocHolderBox } from "../views/nodes/DocumentBox";
 import { InkingStroke } from "../views/InkingStroke";
 import { InkField } from "../../new_fields/InkField";
 import { InkingControl } from "../views/InkingControl";
@@ -80,7 +68,7 @@ export interface DocumentOptions {
     _showCaption?: string; // which field to display in the caption area.  leave empty to have no caption
     _scrollTop?: number; // scroll location for pdfs
     _chromeStatus?: string;
-    _viewType?: number;
+    _viewType?: string; // sub type of a collection
     _gridGap?: number; // gap between items in masonry view
     _xMargin?: number; // gap between left edge of document and start of masonry/stacking layouts
     _yMargin?: number; // gap between top edge of dcoument and start of masonry/stacking layouts
@@ -156,6 +144,7 @@ export interface DocumentOptions {
     treeViewChecked?: ScriptField; // script to call when a tree view checkbox is checked
     isFacetFilter?: boolean; // whether document functions as a facet filter in a tree view
     limitHeight?: number; // maximum height for newly created (eg, from pasting) text documents
+    editScriptOnClick?: string; // script field key to edit when document is clicked (e.g., "onClick", "onChecked")
     // [key: string]: Opt<Field>;
     pointerHack?: boolean; // for buttons, allows onClick handler to fire onPointerDown
     textTransform?: string; // is linear view expanded
@@ -192,13 +181,9 @@ export namespace Docs {
         const data = "data";
 
         const TemplateMap: TemplateMap = new Map([
-            [DocumentType.TEXT, {
+            [DocumentType.RTF, {
                 layout: { view: FormattedTextBox, dataField: "text" },
                 options: { _height: 150, _xMargin: 10, _yMargin: 10 }
-            }],
-            [DocumentType.HIST, {
-                layout: { view: HistogramBox, dataField: data },
-                options: { _height: 300, backgroundColor: "black" }
             }],
             [DocumentType.QUERY, {
                 layout: { view: QueryBox, dataField: data },
@@ -224,8 +209,8 @@ export namespace Docs {
                 layout: { view: KeyValueBox, dataField: data },
                 options: { _height: 150 }
             }],
-            [DocumentType.DOCUMENT, {
-                layout: { view: DocumentBox, dataField: data },
+            [DocumentType.DOCHOLDER, {
+                layout: { view: DocHolderBox, dataField: data },
                 options: { _height: 250 }
             }],
             [DocumentType.VID, {
@@ -253,11 +238,14 @@ export namespace Docs {
                 layout: { view: EmptyBox, dataField: data },
                 options: { childDropAction: "alias", title: "LINK DB" }
             }],
+            [DocumentType.SCRIPTING, {
+                layout: { view: ScriptingBox, dataField: data }
+            }],
             [DocumentType.YOUTUBE, {
                 layout: { view: YoutubeBox, dataField: data }
             }],
-            [DocumentType.BUTTON, {
-                layout: { view: ButtonBox, dataField: data },
+            [DocumentType.LABEL, {
+                layout: { view: LabelBox, dataField: data },
             }],
             [DocumentType.SLIDER, {
                 layout: { view: SliderBox, dataField: data },
@@ -521,6 +509,10 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.PRES), initial, options);
         }
 
+        export function ScriptingDocument(url: string, options: DocumentOptions = {}) {
+            return InstanceFromProto(Prototypes.get(DocumentType.SCRIPTING), new YoutubeField(new URL(url)), options);
+        }
+
         export function VideoDocument(url: string, options: DocumentOptions = {}) {
             return InstanceFromProto(Prototypes.get(DocumentType.VID), new VideoField(new URL(url)), options);
         }
@@ -543,10 +535,6 @@ export namespace Docs {
             return instance;
         }
 
-        export function HistogramDocument(histoOp: HistogramOperation, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.HIST), new HistogramField(histoOp), options);
-        }
-
         export function QueryDocument(options: DocumentOptions = {}) {
             return InstanceFromProto(Prototypes.get(DocumentType.QUERY), "", options);
         }
@@ -556,7 +544,7 @@ export namespace Docs {
         }
 
         export function TextDocument(text: string, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.TEXT), text, options, undefined, "text");
+            return InstanceFromProto(Prototypes.get(DocumentType.RTF), text, options, undefined, "text");
         }
 
         export function LinkDocument(source: { doc: Doc, ctx?: Doc }, target: { doc: Doc, ctx?: Doc }, options: DocumentOptions = {}, id?: string) {
@@ -566,8 +554,8 @@ export namespace Docs {
             linkDocProto.anchor2 = target.doc;
 
             if (linkDocProto.layout_key1 === undefined) {
-                Cast(linkDocProto.proto, Doc, null).layout_key1 = DocuLinkBox.LayoutString("anchor1");
-                Cast(linkDocProto.proto, Doc, null).layout_key2 = DocuLinkBox.LayoutString("anchor2");
+                Cast(linkDocProto.proto, Doc, null).layout_key1 = LinkAnchorBox.LayoutString("anchor1");
+                Cast(linkDocProto.proto, Doc, null).layout_key2 = LinkAnchorBox.LayoutString("anchor2");
                 Cast(linkDocProto.proto, Doc, null).linkBoxExcludedKeys = new List(["treeViewExpandedView", "treeViewHideTitle", "removeDropProperties", "linkBoxExcludedKeys", "treeViewOpen", "aliasNumber", "isPrototype", "lastOpened", "creationDate", "author"]);
                 Cast(linkDocProto.proto, Doc, null).layoutKey = undefined;
             }
@@ -605,37 +593,6 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.PDF), new PdfField(new URL(url)), options);
         }
 
-        export async function DBDocument(url: string, options: DocumentOptions = {}, columnOptions: DocumentOptions = {}) {
-            const schemaName = options.title ? options.title : "-no schema-";
-            const ctlog = await Gateway.Instance.GetSchema(url, schemaName);
-            if (ctlog && ctlog.schemas) {
-                const schema = ctlog.schemas[0];
-                const schemaDoc = Docs.Create.TreeDocument([], { ...options, _nativeWidth: undefined, _nativeHeight: undefined, _width: 150, _height: 100, title: schema.displayName! });
-                const schemaDocuments = Cast(schemaDoc.data, listSpec(Doc), []);
-                if (!schemaDocuments) {
-                    return;
-                }
-                CurrentUserUtils.AddNorthstarSchema(schema, schemaDoc);
-                const docs = schemaDocuments;
-                CurrentUserUtils.GetAllNorthstarColumnAttributes(schema).map(attr => {
-                    DocServer.GetRefField(attr.displayName! + ".alias").then(action((field: Opt<Field>) => {
-                        if (field instanceof Doc) {
-                            docs.push(field);
-                        } else {
-                            const atmod = new ColumnAttributeModel(attr);
-                            const histoOp = new HistogramOperation(schema.displayName!,
-                                new AttributeTransformationModel(atmod, AggregateFunction.None),
-                                new AttributeTransformationModel(atmod, AggregateFunction.Count),
-                                new AttributeTransformationModel(atmod, AggregateFunction.Count));
-                            docs.push(Docs.Create.HistogramDocument(histoOp, { ...columnOptions, _width: 200, _height: 200, title: attr.displayName! }));
-                        }
-                    }));
-                });
-                return schemaDoc;
-            }
-            return Docs.Create.TreeDocument([], { _width: 50, _height: 100, title: schemaName });
-        }
-
         export function WebDocument(url: string, options: DocumentOptions = {}) {
             return InstanceFromProto(Prototypes.get(DocumentType.WEB), new WebField(new URL(url)), options);
         }
@@ -649,7 +606,7 @@ export namespace Docs {
         }
 
         export function DocumentDocument(document?: Doc, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.DOCUMENT), document, { title: document ? document.title + "" : "container", ...options });
+            return InstanceFromProto(Prototypes.get(DocumentType.DOCHOLDER), document, { title: document ? document.title + "" : "container", ...options });
         }
 
         export function FreeformDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
@@ -688,8 +645,12 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, _viewType: CollectionViewType.Masonry });
         }
 
+        export function LabelDocument(options?: DocumentOptions) {
+            return InstanceFromProto(Prototypes.get(DocumentType.LABEL), undefined, { ...(options || {}) });
+        }
+
         export function ButtonDocument(options?: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.BUTTON), undefined, { ...(options || {}) });
+            return InstanceFromProto(Prototypes.get(DocumentType.LABEL), undefined, { ...(options || {}), editScriptOnClick: "onClick" });
         }
 
         export function SliderDocument(options?: DocumentOptions) {
@@ -842,9 +803,6 @@ export namespace Docs {
             } else if (field instanceof AudioField) {
                 created = Docs.Create.AudioDocument((field).url.href, resolved);
                 layout = AudioBox.LayoutString;
-            } else if (field instanceof HistogramField) {
-                created = Docs.Create.HistogramDocument((field).HistoOp, resolved);
-                layout = HistogramBox.LayoutString;
             } else if (field instanceof InkField) {
                 const { selectedColor, selectedWidth, selectedTool } = InkingControl.Instance;
                 created = Docs.Create.InkDocument(selectedColor, selectedTool, Number(selectedWidth), (field).inkData, resolved);
@@ -856,9 +814,11 @@ export namespace Docs {
                 created = Docs.Create.TextDocument("", { ...{ _width: 200, _height: 25, _autoHeight: true }, ...resolved });
                 layout = FormattedTextBox.LayoutString;
             }
-            created.layout = layout?.(fieldKey);
-            created.title = fieldKey;
-            proto && (created.proto = Doc.GetProto(proto));
+            if (created) {
+                created.layout = layout?.(fieldKey);
+                created.title = fieldKey;
+                proto && created.proto && (created.proto = Doc.GetProto(proto));
+            }
             return created;
         }
 
@@ -880,10 +840,6 @@ export namespace Docs {
                 ctor = Docs.Create.PdfDocument;
                 if (!options._width) options._width = 400;
                 if (!options._height) options._height = options._width * 1200 / 927;
-            }
-            if (type.indexOf("excel") !== -1) {
-                ctor = Docs.Create.DBDocument;
-                options.dropAction = "copy";
             }
             if (type.indexOf("html") !== -1) {
                 if (path.includes(window.location.hostname)) {

@@ -18,7 +18,6 @@ import { CollectionView } from "./CollectionView";
 import "./CollectionViewChromes.scss";
 import * as Autosuggest from 'react-autosuggest';
 import KeyRestrictionRow from "./KeyRestrictionRow";
-import { ObjectField } from "../../../new_fields/ObjectField";
 const datepicker = require('js-datepicker');
 
 interface CollectionViewChromeProps {
@@ -349,11 +348,11 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
 
     dragViewDown = (e: React.PointerEvent) => {
         setupMoveUpEvents(this, e, (e, down, delta) => {
-            const vtype = NumCast(this.props.CollectionView.props.Document._viewType) as CollectionViewType;
+            const vtype = this.props.CollectionView.collectionViewType;
             const c = {
-                params: ["target"], title: CollectionViewType.stringFor(vtype),
+                params: ["target"], title: vtype,
                 script: `this.target._viewType = ${NumCast(this.props.CollectionView.props.Document._viewType)}`,
-                immediate: (source: Doc[]) => this.target = Doc.getTemplateDoc(source?.[0]),
+                immediate: (source: Doc[]) => this.props.CollectionView.props.Document._viewType = Doc.getDocTemplate(source?.[0]),
                 initialize: emptyFunction,
             };
             DragManager.StartButtonDrag([this._viewRef.current!], c.script, StrCast(c.title),

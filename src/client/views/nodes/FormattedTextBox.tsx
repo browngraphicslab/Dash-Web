@@ -262,7 +262,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         if (de.complete.docDragData) {
             const draggedDoc = de.complete.docDragData.draggedDocuments.length && de.complete.docDragData.draggedDocuments[0];
             // replace text contents whend dragging with Alt
-            if (draggedDoc && draggedDoc.type === DocumentType.TEXT && !Doc.AreProtosEqual(draggedDoc, this.props.Document) && de.altKey) {
+            if (draggedDoc && draggedDoc.type === DocumentType.RTF && !Doc.AreProtosEqual(draggedDoc, this.props.Document) && de.altKey) {
                 if (draggedDoc.data instanceof RichTextField) {
                     Doc.GetProto(this.dataDoc)[this.props.fieldKey] = new RichTextField(draggedDoc.data.Data, draggedDoc.data.Text);
                     e.stopPropagation();
@@ -1206,7 +1206,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                     <div className={`formattedTextBox-inner${rounded}`} ref={this.createDropTarget}
                         style={{
                             padding: `${NumCast(this.Document._xMargin, 0)}px  ${NumCast(this.Document._yMargin, 0)}px`,
-                            pointerEvents: ((this.Document.isButton || this.props.onClick) && !this.props.isSelected()) ? "none" : undefined
+                            pointerEvents: ((this.Document.isLinkButton || this.props.onClick) && !this.props.isSelected()) ? "none" : undefined
                         }} />
                 </div>
                 {!this.props.Document._showSidebar ? (null) : this.sidebarWidthPercent === "0%" ?

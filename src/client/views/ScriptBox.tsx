@@ -50,7 +50,7 @@ export class ScriptBox extends React.Component<ScriptBoxProps> {
     }
 
     onBlur = () => {
-        this.overlayDisposer && this.overlayDisposer();
+        this.overlayDisposer?.();
     }
 
     render() {

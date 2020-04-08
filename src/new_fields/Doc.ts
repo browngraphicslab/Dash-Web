@@ -80,7 +80,7 @@ export function DocListCastAsync(field: FieldResult, defaultValue?: Doc[]) {
 }
 
 export async function DocCastAsync(field: FieldResult): Promise<Opt<Doc>> {
-    return await Cast(field, Doc);
+    return Cast(field, Doc);
 }
 
 export function DocListCast(field: FieldResult): Doc[] {
@@ -713,7 +713,7 @@ export namespace Doc {
     export function SetUserDoc(doc: Doc) { manager._user_doc = doc; }
     export function IsBrushed(doc: Doc) {
         return computedFn(function IsBrushed(doc: Doc) {
-            return brushManager.BrushedDoc.has(doc) ||  brushManager.BrushedDoc.has(Doc.GetProto(doc));
+            return brushManager.BrushedDoc.has(doc) || brushManager.BrushedDoc.has(Doc.GetProto(doc));
         })(doc);
     }
     // don't bother memoizing (caching) the result if called from a non-reactive context. (plus this avoids a warning message)
@@ -919,7 +919,7 @@ Scripting.addGlobal(function curPresentationItem() {
 Scripting.addGlobal(function selectDoc(doc: any) { Doc.UserDoc().SelectedDocs = new List([doc]); });
 Scripting.addGlobal(function selectedDocs(container: Doc, excludeCollections: boolean, prevValue: any) {
     const docs = DocListCast(Doc.UserDoc().SelectedDocs).
-        filter(d => !Doc.AreProtosEqual(d, container) && !d.annotationOn && d.type !== DocumentType.DOCUMENT && d.type !== DocumentType.KVP &&
+        filter(d => !Doc.AreProtosEqual(d, container) && !d.annotationOn && d.type !== DocumentType.DOCHOLDER && d.type !== DocumentType.KVP &&
             (!excludeCollections || d.type !== DocumentType.COL || !Cast(d.data, listSpec(Doc), null)));
     return docs.length ? new List(docs) : prevValue;
 });

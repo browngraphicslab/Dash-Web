@@ -296,13 +296,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     this: this.props.Document,
                     self: Cast(this.props.Document.rootDocument, Doc, null) || this.props.Document,
                     thisContainer: this.props.ContainingCollectionDoc, shiftKey: e.shiftKey
-                }, console.log);// && !this.props.Document.isButton && this.select(false);
+                }, console.log);
                 if (this.props.Document !== Doc.UserDoc().undoBtn && this.props.Document !== Doc.UserDoc().redoBtn) {
                     UndoManager.RunInBatch(func, "on click");
                 } else func();
-            } else if (this.Document.type === DocumentType.BUTTON) {
-                UndoManager.RunInBatch(() => ScriptBox.EditButtonScript("On Button Clicked ...", this.props.Document, "onClick", e.clientX, e.clientY), "on button click");
-            } else if (this.Document.isButton) {
+            } else if (this.Document.editScriptOnClick) {
+                UndoManager.RunInBatch(() => ScriptBox.EditButtonScript("On Button Clicked ...", this.props.Document, StrCast(this.Document.editScriptOnClick), e.clientX, e.clientY), "on button click");
+            } else if (this.Document.isLinkButton) {
                 DocListCast(this.props.Document.links).length && this.followLinkClick(e.altKey, e.ctrlKey, e.shiftKey);
             } else {
                 if (this.props.Document.isTemplateForField && !(e.ctrlKey || e.button > 0)) {
@@ -327,7 +327,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             const targetFocusAfterDocFocus = () => {
                 const where = StrCast(this.Document.followLinkLocation) || followLoc;
                 const hackToCallFinishAfterFocus = () => {
-                    setTimeout(() => finished?.(), 0); // finished() needs to be called right after hackToCallFinishAfterFocus(), but there's no callback for that so we use the hacky timeout.  
+                    finished && setTimeout(finished, 0); // finished() needs to be called right after hackToCallFinishAfterFocus(), but there's no callback for that so we use the hacky timeout.  
                     return false; // we must return false here so that the zoom to the document is not reversed.  If it weren't for needing to call finished(), we wouldn't need this function at all since not having it is equivalent to returning false
                 };
                 this.props.addDocTab(doc, where) && this.props.focus(doc, true, undefined, hackToCallFinishAfterFocus); //  add the target and focus on it.
@@ -577,23 +577,23 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
 
     @undoBatch
-    toggleButtonBehavior = (): void => {
-        if (this.Document.isButton || this.Document.onClick || this.Document.ignoreClick) {
-            this.Document.isButton = false;
+    toggleLinkButtonBehavior = (): void => {
+        if (this.Document.isLinkButton || this.Document.onClick || this.Document.ignoreClick) {
+            this.Document.isLinkButton = false;
             this.Document.ignoreClick = false;
             this.Document.onClick = undefined;
         } else {
-            this.Document.isButton = true;
+            this.Document.isLinkButton = true;
             this.Document.followLinkLocation = undefined;
         }
     }
 
     @undoBatch
     toggleFollowInPlace = (): void => {
-        if (this.Document.isButton) {
-            this.Document.isButton = false;
+        if (this.Document.isLinkButton) {
+            this.Document.isLinkButton = false;
         } else {
-            this.Document.isButton = true;
+            this.Document.isLinkButton = true;
             this.Document.followLinkLocation = "inPlace";
         }
     }
@@ -642,7 +642,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             const portal = Docs.Create.FreeformDocument([], { _width: (this.layoutDoc._width || 0) + 10, _height: this.layoutDoc._height || 0, title: StrCast(this.props.Document.title) + ".portal" });
             DocUtils.MakeLink({ doc: this.props.Document }, { doc: portal }, "portal to");
         }
-        this.Document.isButton = true;
+        this.Document.isLinkButton = true;
     }
 
     @undoBatch
@@ -727,8 +727,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         onClicks.push({ description: "Enter Portal", event: this.makeIntoPortal, icon: "window-restore" });
         onClicks.push({ description: "Toggle Detail", event: () => this.Document.onClick = ScriptField.MakeScript(`toggleDetail(this, "${this.props.Document.layoutKey}")`), icon: "window-restore" });
         onClicks.push({ description: this.Document.ignoreClick ? "Select" : "Do Nothing", event: () => this.Document.ignoreClick = !this.Document.ignoreClick, icon: this.Document.ignoreClick ? "unlock" : "lock" });
-        onClicks.push({ description: this.Document.isButton ? "Remove Follow Behavior" : "Follow Link in Place", event: this.toggleFollowInPlace, icon: "concierge-bell" });
-        onClicks.push({ description: this.Document.isButton || this.Document.onClick ? "Remove Click Behavior" : "Follow Link", event: this.toggleButtonBehavior, icon: "concierge-bell" });
+        onClicks.push({ description: this.Document.isLinkButton ? "Remove Follow Behavior" : "Follow Link in Place", event: this.toggleFollowInPlace, icon: "concierge-bell" });
+        onClicks.push({ description: this.Document.isLinkButton || this.Document.onClick ? "Remove Click Behavior" : "Follow Link", event: this.toggleLinkButtonBehavior, icon: "concierge-bell" });
         onClicks.push({ description: "Edit onClick Script", icon: "edit", event: (obj: any) => ScriptBox.EditButtonScript("On Button Clicked ...", this.props.Document, "onClick", obj.x, obj.y) });
         !existingOnClick && cm.addItem({ description: "OnClick...", subitems: onClicks, icon: "hand-point-right" });
 
@@ -861,7 +861,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         await Promise.all(allDocs.map((doc: Doc) => {
             let isMainDoc: boolean = false;
             const dataDoc = Doc.GetProto(doc);
-            if (doc.type === DocumentType.TEXT) {
+            if (doc.type === DocumentType.RTF) {
                 if (dataDoc === Doc.GetProto(this.props.Document)) {
                     isMainDoc = true;
                 }
@@ -964,7 +964,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const fallback = Cast(this.props.Document.layoutKey, "string");
         return typeof fallback === "string" ? fallback : "layout";
     }
-    rootSelected = (outsideReaction: boolean) => {
+    rootSelected = (outsideReaction?: boolean) => {
         return this.isSelected(outsideReaction) || (this.props.Document.forceActive && this.props.rootSelected?.(outsideReaction) ? true : false);
     }
     childScaling = () => (this.layoutDoc._fitWidth ? this.props.PanelWidth() / this.nativeWidth : this.props.ContentScaling());
@@ -1026,10 +1026,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @computed get anchors() {
         TraceMobx();
         return DocListCast(this.Document.links).filter(d => !d.hidden && this.isNonTemporalLink).map((d, i) =>
-            <div className="documentView-docuLinkWrapper" key={d[Id]}>
+            <div className="documentView-linkAnchorBoxWrapper" key={d[Id]}>
                 <DocumentView {...this.props}
                     Document={d}
-                    ContainingCollectionDoc={this.props.Document} // bcz: hack this.props.Document is not a collection  Need a better prop for passing the containing document to the DocuLinkBox
+                    ContainingCollectionDoc={this.props.Document} // bcz: hack this.props.Document is not a collection  Need a better prop for passing the containing document to the LinkAnchorBox
                     PanelWidth={this.anchorPanelWidth}
                     PanelHeight={this.anchorPanelHeight}
                     layoutKey={this.linkEndpoint(d)}
@@ -1041,7 +1041,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @computed get innards() {
         TraceMobx();
         if (!this.props.PanelWidth()) {  // this happens when the document is a tree view label
-            return <div className="documentView-docuLinkAnchor" >
+            return <div className="documentView-linkAnchorBoxAnchor" >
                 {StrCast(this.props.Document.title)}
                 {this.anchors}
             </div>;

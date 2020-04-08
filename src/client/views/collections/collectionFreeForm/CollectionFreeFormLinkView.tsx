@@ -26,8 +26,8 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
             action(() => {
                 setTimeout(action(() => this._opacity = 1), 0); // since the render code depends on querying the Dom through getBoudndingClientRect, we need to delay triggering render()
                 setTimeout(action(() => this._opacity = 0.05), 750); // this will unhighlight the link line.
-                const acont = this.props.A.props.Document.type === DocumentType.LINK ? this.props.A.ContentDiv!.getElementsByClassName("docuLinkBox-cont") : [];
-                const bcont = this.props.B.props.Document.type === DocumentType.LINK ? this.props.B.ContentDiv!.getElementsByClassName("docuLinkBox-cont") : [];
+                const acont = this.props.A.props.Document.type === DocumentType.LINK ? this.props.A.ContentDiv!.getElementsByClassName("linkAnchorBox-cont") : [];
+                const bcont = this.props.B.props.Document.type === DocumentType.LINK ? this.props.B.ContentDiv!.getElementsByClassName("linkAnchorBox-cont") : [];
                 const adiv = (acont.length ? acont[0] : this.props.A.ContentDiv!);
                 const bdiv = (bcont.length ? bcont[0] : this.props.B.ContentDiv!);
                 const a = adiv.getBoundingClientRect();
@@ -43,7 +43,7 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
                 const afield = StrCast(this.props.A.props.Document[StrCast(this.props.A.props.layoutKey, "layout")]).indexOf("anchor1") === -1 ? "anchor2" : "anchor1";
                 const bfield = afield === "anchor1" ? "anchor2" : "anchor1";
 
-                // really hacky stuff to make the DocuLinkBox display where we want it to:
+                // really hacky stuff to make the LinkAnchorBox display where we want it to:
                 //   if there's an element in the DOM with the id of the opposite anchor, then that DOM element is a hyperlink source for the current anchor and we want to place our link box at it's top right
                 //   otherwise, we just use the computed nearest point on the document boundary to the target Document
                 const targetAhyperlink = window.document.getElementById(this.props.LinkDocs[0][Id] + (this.props.LinkDocs[0][afield] as Doc)[Id]);
@@ -81,8 +81,8 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
     }
 
     render() {
-        const acont = this.props.A.props.Document.type === DocumentType.LINK ? this.props.A.ContentDiv!.getElementsByClassName("docuLinkBox-cont") : [];
-        const bcont = this.props.B.props.Document.type === DocumentType.LINK ? this.props.B.ContentDiv!.getElementsByClassName("docuLinkBox-cont") : [];
+        const acont = this.props.A.props.Document.type === DocumentType.LINK ? this.props.A.ContentDiv!.getElementsByClassName("linkAnchorBox-cont") : [];
+        const bcont = this.props.B.props.Document.type === DocumentType.LINK ? this.props.B.ContentDiv!.getElementsByClassName("linkAnchorBox-cont") : [];
         const a = (acont.length ? acont[0] : this.props.A.ContentDiv!).getBoundingClientRect();
         const b = (bcont.length ? bcont[0] : this.props.B.ContentDiv!).getBoundingClientRect();
         const apt = Utils.closestPtBetweenRectangles(a.left, a.top, a.width, a.height,

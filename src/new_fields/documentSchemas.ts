@@ -61,7 +61,7 @@ export const documentSchema = createSchema({
     fitToBox: "boolean",        // whether freeform view contents should be zoomed/panned to fill the area of the document view
     letterSpacing: "string",
     textTransform: "string",
-    childTemplateName: "string" // the name of a template to use to override the layoutKey when rendering a document in DocumentBox 
+    childTemplateName: "string" // the name of a template to use to override the layoutKey when rendering a document in DocHolderBox 
 });
 
 export const positionSchema = createSchema({

@@ -2,8 +2,6 @@ import { action, computed, observable, reaction } from "mobx";
 import * as rp from 'request-promise';
 import { DocServer } from "../../../client/DocServer";
 import { Docs, DocumentOptions } from "../../../client/documents/Documents";
-import { Attribute, AttributeGroup, Catalog, Schema } from "../../../client/northstar/model/idea/idea";
-import { ArrayUtil } from "../../../client/northstar/utils/ArrayUtil";
 import { UndoManager } from "../../../client/util/UndoManager";
 import { Doc, DocListCast } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
@@ -419,77 +417,6 @@ export class CurrentUserUtils {
                 throw new Error("There should be a user id! Why does Dash think there isn't one?");
             }
         });
-        // try {
-        //     const getEnvironment = await fetch("/assets/env.json", { redirect: "follow", method: "GET", credentials: "include" });
-        //     NorthstarSettings.Instance.UpdateEnvironment(await getEnvironment.json());
-        //     await Gateway.Instance.ClearCatalog();
-        //     const extraSchemas = Cast(CurrentUserUtils.UserDocument.DBSchemas, listSpec("string"), []);
-        //     let extras = await Promise.all(extraSchemas.map(sc => Gateway.Instance.GetSchema("", sc)));
-        //     let catprom = CurrentUserUtils.SetNorthstarCatalog(await Gateway.Instance.GetCatalog(), extras);
-        //     // if (catprom) await Promise.all(catprom);
-        // } catch (e) {
-
-        // }
-    }
-
-    /* Northstar catalog ... really just for testing so this should eventually go away */
-    // --------------- Northstar hooks ------------- /
-    static _northstarSchemas: Doc[] = [];
-    @observable private static _northstarCatalog?: Catalog;
-    @computed public static get NorthstarDBCatalog() { return this._northstarCatalog; }
-
-    @action static SetNorthstarCatalog(ctlog: Catalog, extras: Catalog[]) {
-        CurrentUserUtils.NorthstarDBCatalog = ctlog;
-        // if (ctlog && ctlog.schemas) {
-        //     extras.map(ex => ctlog.schemas!.push(ex));
-        //     return ctlog.schemas.map(async schema => {
-        //         let schemaDocuments: Doc[] = [];
-        //         let attributesToBecomeDocs = CurrentUserUtils.GetAllNorthstarColumnAttributes(schema);
-        //         await Promise.all(attributesToBecomeDocs.reduce((promises, attr) => {
-        //             promises.push(DocServer.GetRefField(attr.displayName! + ".alias").then(action((field: Opt<Field>) => {
-        //                 if (field instanceof Doc) {
-        //                     schemaDocuments.push(field);
-        //                 } else {
-        //                     var atmod = new ColumnAttributeModel(attr);
-        //                     let histoOp = new HistogramOperation(schema.displayName!,
-        //                         new AttributeTransformationModel(atmod, AggregateFunction.None),
-        //                         new AttributeTransformationModel(atmod, AggregateFunction.Count),
-        //                         new AttributeTransformationModel(atmod, AggregateFunction.Count));
-        //                     schemaDocuments.push(Docs.Create.HistogramDocument(histoOp, { width: 200, height: 200, title: attr.displayName! }));
-        //                 }
-        //             })));
-        //             return promises;
-        //         }, [] as Promise<void>[]));
-        //         return CurrentUserUtils._northstarSchemas.push(Docs.Create.TreeDocument(schemaDocuments, { width: 50, height: 100, title: schema.displayName! }));
-        //     });
-        // }
-    }
-    public static set NorthstarDBCatalog(ctlog: Catalog | undefined) { this._northstarCatalog = ctlog; }
-
-    public static AddNorthstarSchema(schema: Schema, schemaDoc: Doc) {
-        if (this._northstarCatalog && CurrentUserUtils._northstarSchemas) {
-            this._northstarCatalog.schemas!.push(schema);
-            CurrentUserUtils._northstarSchemas.push(schemaDoc);
-            const schemas = Cast(CurrentUserUtils.UserDocument.DBSchemas, listSpec("string"), []);
-            schemas.push(schema.displayName!);
-            CurrentUserUtils.UserDocument.DBSchemas = new List<string>(schemas);
-        }
-    }
-    public static GetNorthstarSchema(name: string): Schema | undefined {
-        return !this._northstarCatalog || !this._northstarCatalog.schemas ? undefined :
-            ArrayUtil.FirstOrDefault<Schema>(this._northstarCatalog.schemas, (s: Schema) => s.displayName === name);
-    }
-    public static GetAllNorthstarColumnAttributes(schema: Schema) {
-        const recurs = (attrs: Attribute[], g?: AttributeGroup) => {
-            if (g && g.attributes) {
-                attrs.push.apply(attrs, g.attributes);
-                if (g.attributeGroups) {
-                    g.attributeGroups.forEach(ng => recurs(attrs, ng));
-                }
-            }
-            return attrs;
-        };
-        return recurs([] as Attribute[], schema ? schema.rootAttributeGroup : undefined);
     }
 }
 

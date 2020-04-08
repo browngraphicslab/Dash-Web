@@ -8,7 +8,7 @@ import { Utils, setupMoveUpEvents } from '../../../Utils';
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager } from "../../util/DragManager";
 import { DocComponent } from "../DocComponent";
-import "./DocuLinkBox.scss";
+import "./LinkAnchorBox.scss";
 import { FieldView, FieldViewProps } from "./FieldView";
 import React = require("react");
 import { ContextMenuProps } from "../ContextMenuItem";
@@ -21,12 +21,12 @@ const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
 
-type DocLinkSchema = makeInterface<[typeof documentSchema]>;
-const DocLinkDocument = makeInterface(documentSchema);
+type LinkAnchorSchema = makeInterface<[typeof documentSchema]>;
+const LinkAnchorDocument = makeInterface(documentSchema);
 
 @observer
-export class DocuLinkBox extends DocComponent<FieldViewProps, DocLinkSchema>(DocLinkDocument) {
-    public static LayoutString(fieldKey: string) { return FieldView.LayoutString(DocuLinkBox, fieldKey); }
+export class LinkAnchorBox extends DocComponent<FieldViewProps, LinkAnchorSchema>(LinkAnchorDocument) {
+    public static LayoutString(fieldKey: string) { return FieldView.LayoutString(LinkAnchorBox, fieldKey); }
     _doubleTap = false;
     _lastTap: number = 0;
     _ref = React.createRef<HTMLDivElement>();
@@ -65,7 +65,7 @@ export class DocuLinkBox extends DocComponent<FieldViewProps, DocLinkSchema>(Doc
     onClick = (e: PointerEvent) => {
         this._doubleTap = (Date.now() - this._lastTap < 300 && e.button === 0);
         this._lastTap = Date.now();
-        if ((e.button === 2 || e.ctrlKey || !this.props.Document.isButton)) {
+        if ((e.button === 2 || e.ctrlKey || !this.props.Document.isLinkButton)) {
             this.props.select(false);
         }
         if (!this._doubleTap) {
@@ -89,7 +89,7 @@ export class DocuLinkBox extends DocComponent<FieldViewProps, DocLinkSchema>(Doc
     }
     openLinkTargetOnRight = (e: React.MouseEvent) => {
         const alias = Doc.MakeAlias(Cast(this.props.Document[this.props.fieldKey], Doc, null));
-        alias.isButton = undefined;
+        alias.isLinkButton = undefined;
         alias.isBackground = undefined;
         alias.layoutKey = "layout";
         this.props.addDocTab(alias, "onRight");
@@ -120,15 +120,15 @@ export class DocuLinkBox extends DocComponent<FieldViewProps, DocLinkSchema>(Doc
         const timecode = this.props.Document[anchor + "Timecode"];
         const targetTitle = StrCast((this.props.Document[anchor]! as Doc).title) + (timecode !== undefined ? ":" + timecode : "");
         const flyout = (
-            <div className="docuLinkBox-flyout" title=" " onPointerOver={() => Doc.UnBrushDoc(this.props.Document)}>
+            <div className="linkAnchorBoxBox-flyout" title=" " onPointerOver={() => Doc.UnBrushDoc(this.props.Document)}>
                 <LinkEditor sourceDoc={Cast(this.props.Document[this.props.fieldKey], Doc, null)} hideback={true} linkDoc={this.props.Document} showLinks={action(() => { })} />
-                {!this._forceOpen ? (null) : <div className="docuLinkBox-linkCloser" onPointerDown={action(() => this._isOpen = this._editing = this._forceOpen = false)}>
+                {!this._forceOpen ? (null) : <div className="linkAnchorBox-linkCloser" onPointerDown={action(() => this._isOpen = this._editing = this._forceOpen = false)}>
                     <FontAwesomeIcon color="dimGray" icon={"times"} size={"sm"} />
                 </div>}
             </div>
         );
         const small = this.props.PanelWidth() <= 1;
-        return <div className={`docuLinkBox-cont${small ? "-small" : ""}`} onPointerDown={this.onPointerDown} title={targetTitle} onContextMenu={this.specificContextMenu}
+        return <div className={`linkAnchorBox-cont${small ? "-small" : ""}`} onPointerDown={this.onPointerDown} title={targetTitle} onContextMenu={this.specificContextMenu}
             ref={this._ref} style={{
                 background: c,
                 left: !small ? `calc(${x}% - 7.5px)` : undefined,

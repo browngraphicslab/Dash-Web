@@ -3,7 +3,6 @@ import { observer } from "mobx-react";
 import { Doc, Opt } from "../../../new_fields/Doc";
 import { Cast, StrCast } from "../../../new_fields/Types";
 import { OmitKeys, Without } from "../../../Utils";
-import { HistogramBox } from "../../northstar/dash-nodes/HistogramBox";
 import DirectoryImportBox from "../../util/Import & Export/DirectoryImportBox";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
@@ -11,10 +10,11 @@ import { CollectionSchemaView } from "../collections/CollectionSchemaView";
 import { CollectionView } from "../collections/CollectionView";
 import { YoutubeBox } from "./../../apis/youtube/YoutubeBox";
 import { AudioBox } from "./AudioBox";
-import { ButtonBox } from "./ButtonBox";
+import { LabelBox } from "./LabelBox";
 import { SliderBox } from "./SliderBox";
 import { LinkBox } from "./LinkBox";
-import { DocumentBox } from "./DocumentBox";
+import { ScriptingBox } from "./ScriptingBox";
+import { DocHolderBox } from "./DocumentBox";
 import { DocumentViewProps } from "./DocumentView";
 import "./DocumentView.scss";
 import { FontIconBox } from "./FontIconBox";
@@ -27,7 +27,7 @@ import { PresBox } from "./PresBox";
 import { QueryBox } from "./QueryBox";
 import { ColorBox } from "./ColorBox";
 import { DashWebRTCVideo } from "../webcam/DashWebRTCVideo";
-import { DocuLinkBox } from "./DocuLinkBox";
+import { LinkAnchorBox } from "./LinkAnchorBox";
 import { PresElementBox } from "../presentationview/PresElementBox";
 import { ScreenshotBox } from "./ScreenshotBox";
 import { VideoBox } from "./VideoBox";
@@ -109,10 +109,10 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
                 <ObserverJsxParser
                     blacklistedAttrs={[]}
                     components={{
-                        FormattedTextBox, ImageBox, DirectoryImportBox, FontIconBox, ButtonBox, SliderBox, FieldView,
+                        FormattedTextBox, ImageBox, DirectoryImportBox, FontIconBox, LabelBox, SliderBox, FieldView,
                         CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox,
-                        PDFBox, VideoBox, AudioBox, HistogramBox, PresBox, YoutubeBox, PresElementBox, QueryBox,
-                        ColorBox, DashWebRTCVideo, DocuLinkBox, InkingStroke, DocumentBox, LinkBox,
+                        PDFBox, VideoBox, AudioBox, PresBox, YoutubeBox, PresElementBox, QueryBox,
+                        ColorBox, DashWebRTCVideo, LinkAnchorBox, InkingStroke, DocHolderBox, LinkBox, ScriptingBox,
                         RecommendationsBox, ScreenshotBox
                     }}
                     bindings={this.CreateBindings()}
