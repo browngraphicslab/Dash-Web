@@ -509,8 +509,8 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.PRES), initial, options);
         }
 
-        export function ScriptingDocument(url: string, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.SCRIPTING), new YoutubeField(new URL(url)), options);
+        export function ScriptingDocument(options: DocumentOptions = {}) {
+            return InstanceFromProto(Prototypes.get(DocumentType.SCRIPTING), "", options);
         }
 
         export function VideoDocument(url: string, options: DocumentOptions = {}) {
