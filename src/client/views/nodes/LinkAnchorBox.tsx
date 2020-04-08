@@ -51,7 +51,7 @@ export class LinkAnchorBox extends DocComponent<FieldViewProps, LinkAnchorSchema
             if (separation > 100) {
                 const dragData = new DragManager.DocumentDragData([this.props.Document]);
                 dragData.dropAction = "alias";
-                dragData.removeDropProperties = ["anchor1_x", "anchor1_y", "anchor2_x", "anchor2_y", "isButton"];
+                dragData.removeDropProperties = ["anchor1_x", "anchor1_y", "anchor2_x", "anchor2_y", "isLinkButton"];
                 DragManager.StartDocumentDrag([this._ref.current!], dragData, down[0], down[1]);
                 return true;
             } else if (dragdist > separation) {

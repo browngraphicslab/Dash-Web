@@ -59,7 +59,7 @@ export function convertDropDataToButtons(data: DragManager.DocumentDragData) {
             }
             layoutDoc.isTemplateDoc = true;
             dbox = Docs.Create.FontIconDocument({
-                _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, isButton: true,
+                _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100,
                 backgroundColor: StrCast(doc.backgroundColor), title: StrCast(layoutDoc.title), icon: layoutDoc.isTemplateDoc ? "font" : "bolt"
             });
             dbox.dragFactory = layoutDoc;

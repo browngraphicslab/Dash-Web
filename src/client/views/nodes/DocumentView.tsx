@@ -305,7 +305,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             } else if (this.Document.isLinkButton) {
                 DocListCast(this.props.Document.links).length && this.followLinkClick(e.altKey, e.ctrlKey, e.shiftKey);
             } else {
-                if (this.props.Document.isTemplateForField && !(e.ctrlKey || e.button > 0)) {
+                if ((this.props.Document.onDragStart || this.props.Document.isTemplateForField) && !(e.ctrlKey || e.button > 0)) {
                     stopPropagate = false; // don't stop propagation for field templates -- want the selection to propagate up to the root document of the template
                 } else {
                     SelectionManager.SelectDoc(this, e.ctrlKey);

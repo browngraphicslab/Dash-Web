@@ -107,7 +107,7 @@ export interface DocumentOptions {
     opacity?: number;
     defaultBackgroundColor?: string;
     isBackground?: boolean;
-    isButton?: boolean;
+    isLinkButton?: boolean;
     columnWidth?: number;
     fontSize?: number;
     curPage?: number;
@@ -425,7 +425,7 @@ export namespace Docs {
         const delegateKeys = ["x", "y", "layoutKey", "_width", "_height", "_panX", "_panY", "_viewType", "_nativeWidth", "_nativeHeight", "dropAction", "childDropAction", "_annotationOn",
             "_chromeStatus", "_autoHeight", "_fitWidth", "_LODdisable", "_itemIndex", "_showSidebar", "_showTitle", "_showCaption", "_showTitleHover", "_backgroundColor",
             "_xMargin", "_yMargin", "_xPadding", "_yPadding", "_singleLine", "_scrollTop",
-            "_color", "isButton", "isBackground", "removeDropProperties", "treeViewOpen"];
+            "_color", "isLinkButton", "isBackground", "removeDropProperties", "treeViewOpen"];
 
         /**
          * This function receives the relevant document prototype and uses
@@ -548,7 +548,7 @@ export namespace Docs {
         }
 
         export function LinkDocument(source: { doc: Doc, ctx?: Doc }, target: { doc: Doc, ctx?: Doc }, options: DocumentOptions = {}, id?: string) {
-            const doc = InstanceFromProto(Prototypes.get(DocumentType.LINK), undefined, { isButton: true, treeViewHideTitle: true, treeViewOpen: false, removeDropProperties: new List(["isBackground", "isButton"]), ...options });
+            const doc = InstanceFromProto(Prototypes.get(DocumentType.LINK), undefined, { isLinkButton: true, treeViewHideTitle: true, treeViewOpen: false, removeDropProperties: new List(["isBackground", "isLinkButton"]), ...options });
             const linkDocProto = Doc.GetProto(doc);
             linkDocProto.anchor1 = source.doc;
             linkDocProto.anchor2 = target.doc;

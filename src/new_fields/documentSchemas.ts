@@ -53,7 +53,7 @@ export const documentSchema = createSchema({
     inOverlay: "boolean",       // whether the document is rendered in an OverlayView which handles selection/dragging differently
     borderRounding: "string",   // border radius rounding of document
     heading: "number",          // the logical layout 'heading' of this document (used by rule provider to stylize h1 header elements, from h2, etc)
-    isButton: "boolean",        // whether document functions as a button (overiding native interactions of its content)    
+    isLinkButton: "boolean",    // whether document functions as a link follow button to follow the first link on the document when clicked   
     ignoreClick: "boolean",     // whether documents ignores input clicks (but does not ignore manipulation and other events) 
     scrollToLinkID: "string",   // id of link being traversed. allows this doc to scroll/highlight/etc its link anchor. scrollToLinkID should be set to undefined by this doc after it sets up its scroll,etc.
     strokeWidth: "number",

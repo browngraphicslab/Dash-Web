@@ -95,7 +95,6 @@ export class CurrentUserUtils {
             _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100,
             icon: data.icon,
             title: data.title,
-            isButton: true,
             ignoreClick: data.ignoreClick,
             dropAction: data.click ? "copy" : undefined,
             onDragStart: data.drag ? ScriptField.MakeFunction(data.drag) : undefined,
@@ -220,7 +219,6 @@ export class CurrentUserUtils {
             sourcePanel: Docs.Create.StackingDocument([dragCreators, color], {
                 _width: 500, lockedPosition: true, _chromeStatus: "disabled", title: "tools stack", forceActive: true
             }),
-            isButton: true,
             onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel"),
         });
     }
@@ -247,7 +245,6 @@ export class CurrentUserUtils {
             sourcePanel: Docs.Create.TreeDocument([doc.workspaces as Doc, doc.documents as Doc, Docs.Prototypes.MainLinkDocument(), doc, doc.recentlyClosed as Doc], {
                 title: "Library", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "place", lockedPosition: true, boxShadow: "0 0", dontRegisterChildren: true
             }),
-            isButton: true,
             targetContainer: sidebarContainer,
             onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel;")
         });
@@ -261,7 +258,6 @@ export class CurrentUserUtils {
             sourcePanel: Docs.Create.QueryDocument({ title: "search stack", }),
             targetContainer: sidebarContainer,
             lockedPosition: true,
-            isButton: true,
             onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel")
         });
     }
@@ -305,12 +301,12 @@ export class CurrentUserUtils {
         descriptionTemplate.isTemplateDoc = makeTemplate(descriptionTemplate, true, "descriptionView");
 
         const ficon = (opts: DocumentOptions) => new PrefetchProxy(Docs.Create.FontIconDocument({
-            ...opts, isButton: true,
+            ...opts,
             dropAction: "alias", removeDropProperties: new List<string>(["dropAction"]), _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100
         })) as any as Doc;
         const blist = (opts: DocumentOptions, docs: Doc[]) => new PrefetchProxy(Docs.Create.LinearDocument(docs, {
             ...opts,
-            _gridGap: 5, _xMargin: 5, _yMargin: 5, _height: 42, _width: 100, boxShadow: "0 0", isButton: true, forceActive: true,
+            _gridGap: 5, _xMargin: 5, _yMargin: 5, _height: 42, _width: 100, boxShadow: "0 0", forceActive: true,
             dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }),
             backgroundColor: "black", treeViewPreventOpen: true, lockedPosition: true, _chromeStatus: "disabled", linearViewIsExpanded: true
         })) as any as Doc;
