@@ -313,6 +313,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
     considerGooglePhotosLink = () => {
         const remoteUrl = this.Document.googlePhotosUrl;
         return !remoteUrl ? (null) : (<img
+            style={{ transform: `scale(${this.props.ContentScaling()})`, transformOrigin: "bottom right" }}
             id={"google-photos"}
             src={"/assets/google_photos.png"}
             onClick={() => window.open(remoteUrl)}
@@ -337,6 +338,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
         return (
             <img
                 id={"upload-icon"}
+                style={{ transform: `scale(${1 / this.props.ContentScaling()})`, transformOrigin: "bottom right" }}
                 src={`/assets/${this.uploadIcon}`}
                 onClick={async () => {
                     const { dataDoc } = this;
@@ -437,16 +439,18 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
         TraceMobx();
         const { nativeWidth, nativeHeight } = this.nativeSize;
         const aspect = nativeWidth / nativeHeight;
+        const pwidth = this.props.PanelWidth() > this.props.PanelHeight() / aspect ? this.props.PanelHeight() / aspect : this.props.PanelWidth();
         const dragging = !SelectionManager.GetIsDragging() ? "" : "-dragging";
         return (<div className={`imageBox${dragging}`} onContextMenu={this.specificContextMenu}
             style={{
                 transform: this.props.PanelWidth() ? undefined : `scale(${this.props.ContentScaling()})`,
-                width: this.props.PanelWidth() ? `${this.props.PanelWidth()}px` : `${100 / this.props.ContentScaling()}%`,
-                height: this.props.PanelWidth() ? `${this.props.PanelWidth() / aspect}px` : `${100 / this.props.ContentScaling()}%`,
+                width: this.props.PanelWidth() ? `${pwidth}px` : `${100 / this.props.ContentScaling()}%`,
+                height: this.props.PanelWidth() ? `${pwidth / aspect}px` : `${100 / this.props.ContentScaling()}%`,
                 pointerEvents: this.props.Document.isBackground ? "none" : undefined,
                 borderRadius: `${Number(StrCast(this.layoutDoc.borderRounding).replace("px", "")) / this.props.ContentScaling()}px`
             }} >
             <CollectionFreeFormView {...this.props}
+                forceScaling={true}
                 PanelHeight={this.props.PanelHeight}
                 PanelWidth={this.props.PanelWidth}
                 NativeHeight={returnZero}

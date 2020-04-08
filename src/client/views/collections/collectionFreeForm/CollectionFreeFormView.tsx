@@ -66,9 +66,12 @@ export const panZoomSchema = createSchema({
 
 type PanZoomDocument = makeInterface<[typeof panZoomSchema, typeof documentSchema, typeof positionSchema, typeof pageSchema]>;
 const PanZoomDocument = makeInterface(panZoomSchema, documentSchema, positionSchema, pageSchema);
+export type collectionFreeformViewProps = {
+    forceScaling?:boolean; // whether to force scaling of content (needed by ImageBox)
+};
 
 @observer
-export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
+export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument, undefined as any as collectionFreeformViewProps) {
     private _lastX: number = 0;
     private _lastY: number = 0;
     private _inkToTextStartX: number | undefined;
@@ -1127,7 +1130,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument) {
     }
 
     @computed get contentScaling() {
-        if (this.props.annotationsKey) return 0;
+        if (this.props.annotationsKey && !this.props.forceScaling) return 0;
         const nw = NumCast(this.Document._nativeWidth, this.props.NativeWidth());
         const nh = NumCast(this.Document._nativeHeight, this.props.NativeHeight());
         const hscale = nh ? this.props.PanelHeight() / nh : 1;
