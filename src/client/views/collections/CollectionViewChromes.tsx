@@ -158,7 +158,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     @undoBatch
     viewChanged = (e: React.ChangeEvent) => {
         //@ts-ignore
-        this.props.CollectionView.props.Document._viewType = parseInt(e.target.selectedOptions[0].value);
+        this.props.CollectionView.props.Document._viewType = e.target.selectedOptions[0].value;
     }
 
     commandChanged = (e: React.ChangeEvent) => {
@@ -351,7 +351,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
             const vtype = this.props.CollectionView.collectionViewType;
             const c = {
                 params: ["target"], title: vtype,
-                script: `this.target._viewType = ${NumCast(this.props.CollectionView.props.Document._viewType)}`,
+                script: `this.target._viewType = ${StrCast(this.props.CollectionView.props.Document._viewType)}`,
                 immediate: (source: Doc[]) => this.props.CollectionView.props.Document._viewType = Doc.getDocTemplate(source?.[0]),
                 initialize: emptyFunction,
             };
@@ -416,16 +416,16 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                                     className="collectionViewBaseChrome-viewPicker"
                                     onPointerDown={stopPropagation}
                                     onChange={this.viewChanged}
-                                    value={NumCast(this.props.CollectionView.props.Document._viewType)}>
-                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="1">Freeform</option>
-                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="2">Schema</option>
-                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="4">Tree</option>
-                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="5">Stacking</option>
-                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="6">Masonry</option>
-                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="7">MultiCol</option>
-                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="8">MultiRow</option>
-                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="9">Pivot/Time</option>
-                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="10">Carousel</option>
+                                    value={StrCast(this.props.CollectionView.props.Document._viewType)}>
+                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="freeform">Freeform</option>
+                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="schema">Schema</option>
+                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="tree">Tree</option>
+                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="stacking">Stacking</option>
+                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="masonry">Masonry</option>
+                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="multicolumn">MultiCol</option>
+                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="multirow">MultiRow</option>
+                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="time">Pivot/Time</option>
+                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="carousel">Carousel</option>
                                 </select>
                             </div>
                         </div>
