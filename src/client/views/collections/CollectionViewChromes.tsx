@@ -42,7 +42,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     get target() { return this.props.CollectionView.props.Document; }
     _templateCommand = {
         params: ["target", "source"], title: "=> item view",
-        script: "target.childLayout = getDocTemplate(this.source?.[0])",
+        script: "this.target.childLayout = getDocTemplate(this.source?.[0])",
         immediate: (source: Doc[]) => this.target.childLayout = Doc.getDocTemplate(source?.[0]),
         initialize: emptyFunction,
     };
