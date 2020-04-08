@@ -230,7 +230,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
             if (this.props.Document.childDetailed instanceof Doc) {
                 layoutItems.push({ description: "View Child Detailed Layout", event: () => this.props.addDocTab(this.props.Document.childDetailed as Doc, "onRight"), icon: "project-diagram" });
             }
-            layoutItems.push({ description: "Toggle is inPlace Container", event: () => this.props.Document.isInPlaceContainer = !this.props.Document.isInPlaceContainer, icon: "project-diagram" });
+            layoutItems.push({ description: `${this.props.Document.isInPlaceContainer ? "Unset":"Set"} inPlace Container`, event: () => this.props.Document.isInPlaceContainer = !this.props.Document.isInPlaceContainer, icon: "project-diagram" });
 
             !existing && ContextMenu.Instance.addItem({ description: "Layout...", subitems: layoutItems, icon: "hand-point-right" });
 
