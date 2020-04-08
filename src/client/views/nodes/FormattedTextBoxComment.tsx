@@ -2,7 +2,7 @@ import { Mark, ResolvedPos } from "prosemirror-model";
 import { EditorState, Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import * as ReactDOM from 'react-dom';
-import { Doc } from "../../../new_fields/Doc";
+import { Doc, DocCastAsync } from "../../../new_fields/Doc";
 import { Cast, FieldValue, NumCast } from "../../../new_fields/Types";
 import { emptyFunction, returnEmptyString, returnFalse, Utils, emptyPath } from "../../../Utils";
 import { DocServer } from "../../DocServer";
@@ -100,6 +100,7 @@ export class FormattedTextBoxComment {
     public static Hide() {
         FormattedTextBoxComment.textBox = undefined;
         FormattedTextBoxComment.tooltip && (FormattedTextBoxComment.tooltip.style.display = "none");
+        ReactDOM.unmountComponentAtNode(FormattedTextBoxComment.tooltipText);
     }
     public static SetState(textBox: any, start: number, end: number, mark: Mark) {
         FormattedTextBoxComment.textBox = textBox;
@@ -167,14 +168,18 @@ export class FormattedTextBoxComment {
                     FormattedTextBoxComment.tooltipText.textContent = "target not found...";
                     (FormattedTextBoxComment.tooltipText as any).href = "";
                     const docTarget = mark.attrs.href.replace(Utils.prepend("/doc/"), "").split("?")[0];
-                    docTarget && DocServer.GetRefField(docTarget).then(linkDoc => {
+                    try {
+                        ReactDOM.unmountComponentAtNode(FormattedTextBoxComment.tooltipText);
+                    } catch (e) { }
+                    docTarget && DocServer.GetRefField(docTarget).then(async linkDoc => {
                         if (linkDoc instanceof Doc) {
                             (FormattedTextBoxComment.tooltipText as any).href = mark.attrs.href;
                             FormattedTextBoxComment.linkDoc = linkDoc;
-                            const target = FieldValue(Doc.AreProtosEqual(FieldValue(Cast(linkDoc.anchor1, Doc)), textBox.dataDoc) ? Cast(linkDoc.anchor2, Doc) : (Cast(linkDoc.anchor1, Doc)) || linkDoc);
-                            try {
-                                ReactDOM.unmountComponentAtNode(FormattedTextBoxComment.tooltipText);
-                            } catch (e) { }
+                            const anchor = FieldValue(Doc.AreProtosEqual(FieldValue(Cast(linkDoc.anchor1, Doc)), textBox.dataDoc) ? Cast(linkDoc.anchor2, Doc) : (Cast(linkDoc.anchor1, Doc)) || linkDoc);
+                            const target = anchor?.annotationOn ? await DocCastAsync(anchor.annotationOn) : anchor;
+                            if (anchor !== target && anchor && target) {
+                                target.scrollY = NumCast(anchor?.y);
+                            }
                             if (target) {
                                 ReactDOM.render(<ContentFittingDocumentView
                                     Document={target}

@@ -86,7 +86,7 @@ export function DocAnnotatableComponent<P extends DocAnnotatableProps, T>(schema
         }
         @action.bound
         addDocument(doc: Doc): boolean {
-            Doc.GetProto(doc).annotationOn = this.props.Document;
+            doc.context = Doc.GetProto(doc).annotationOn = this.props.Document;
             return Doc.AddDocToList(this.dataDoc, this.props.fieldKey + "-" + this._annotationKey, doc) ? true : false;
         }
 

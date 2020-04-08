@@ -164,7 +164,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
     }
 
     componentWillUnmount = () => {
-        this._reactionDisposer && this._reactionDisposer();
+        this._reactionDisposer?.();
         this._scrollTopReactionDisposer?.();
         this._annotationReactionDisposer?.();
         this._filterReactionDisposer?.();

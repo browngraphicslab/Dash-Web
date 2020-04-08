@@ -196,27 +196,31 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this._mainCont.current && (this.multiTouchDisposer = InteractionUtils.MakeMultiTouchTarget(this._mainCont.current, this.onTouchStart.bind(this)));
         // this._mainCont.current && (this.holdDisposer = InteractionUtils.MakeHoldTouchTarget(this._mainCont.current, this.handle1PointerHoldStart.bind(this)));
 
-        !this.props.dontRegisterView && DocumentManager.Instance.DocumentViews.push(this);
+        if (!this.props.dontRegisterView) {
+            DocumentManager.Instance.DocumentViews.push(this);
+        }
     }
 
     @action
     componentDidUpdate() {
-        this._dropDisposer && this._dropDisposer();
-        this._gestureEventDisposer && this._gestureEventDisposer();
-        this.multiTouchDisposer && this.multiTouchDisposer();
-        this.holdDisposer && this.holdDisposer();
-        this._mainCont.current && (this._dropDisposer = DragManager.MakeDropTarget(this._mainCont.current, this.drop.bind(this)));
-        this._mainCont.current && (this._gestureEventDisposer = GestureUtils.MakeGestureTarget(this._mainCont.current, this.onGesture.bind(this)));
-        this._mainCont.current && (this.multiTouchDisposer = InteractionUtils.MakeMultiTouchTarget(this._mainCont.current, this.onTouchStart.bind(this)));
-        this._mainCont.current && (this.holdDisposer = InteractionUtils.MakeHoldTouchTarget(this._mainCont.current, this.handle1PointerHoldStart.bind(this)));
+        this._dropDisposer?.();
+        this._gestureEventDisposer?.();
+        this.multiTouchDisposer?.();
+        this.holdDisposer?.();
+        if (this._mainCont.current) {
+            this._dropDisposer = DragManager.MakeDropTarget(this._mainCont.current, this.drop.bind(this));
+            this._gestureEventDisposer = GestureUtils.MakeGestureTarget(this._mainCont.current, this.onGesture.bind(this));
+            this.multiTouchDisposer = InteractionUtils.MakeMultiTouchTarget(this._mainCont.current, this.onTouchStart.bind(this));
+            this.holdDisposer = InteractionUtils.MakeHoldTouchTarget(this._mainCont.current, this.handle1PointerHoldStart.bind(this));
+        }
     }
 
     @action
     componentWillUnmount() {
-        this._dropDisposer && this._dropDisposer();
-        this._gestureEventDisposer && this._gestureEventDisposer();
-        this.multiTouchDisposer && this.multiTouchDisposer();
-        this.holdDisposer && this.holdDisposer();
+        this._dropDisposer?.();
+        this._gestureEventDisposer?.();
+        this.multiTouchDisposer?.();
+        this.holdDisposer?.();
         Doc.UnBrushDoc(this.props.Document);
         if (!this.props.dontRegisterView) {
             const index = DocumentManager.Instance.DocumentViews.indexOf(this);
@@ -982,6 +986,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             LayoutDoc={this.props.LayoutDoc}
             makeLink={this.makeLink}
             rootSelected={this.rootSelected}
+            dontRegisterView={this.props.dontRegisterView}
             fitToBox={this.props.fitToBox}
             LibraryPath={this.props.LibraryPath}
             addDocument={this.props.addDocument}
