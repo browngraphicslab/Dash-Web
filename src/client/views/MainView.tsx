@@ -147,7 +147,6 @@ export class MainView extends React.Component {
         library.add(faPhone);
         library.add(faClipboard);
         library.add(faStamp);
-        library.add(faTerminal);
         this.initEventListeners();
         this.initAuthenticationRouters();
     }
