@@ -55,7 +55,7 @@ export class MainView extends React.Component {
     @observable private _panelHeight: number = 0;
     @observable private _flyoutTranslate: boolean = true;
     @observable public flyoutWidth: number = 250;
-    private get darkScheme() { return BoolCast(Cast(this.userDoc.activeWorkspace, Doc, null) ?.darkScheme); }
+    private get darkScheme() { return BoolCast(Cast(this.userDoc.activeWorkspace, Doc, null)?.darkScheme); }
 
     @computed private get userDoc() { return Doc.UserDoc(); }
     @computed private get mainContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeWorkspace, Doc)) : CurrentUserUtils.GuestWorkspace; }
@@ -390,7 +390,7 @@ export class MainView extends React.Component {
     mainContainerXf = () => new Transform(0, -this._buttonBarHeight, 1);
 
     @computed get flyout() {
-        const sidebarContent = this.userDoc ?.sidebarContainer;
+        const sidebarContent = this.userDoc?.sidebarContainer;
         if (!(sidebarContent instanceof Doc)) {
             return (null);
         }
@@ -506,7 +506,7 @@ export class MainView extends React.Component {
         return new Transform(-translateX, -translateY, 1 / scale);
     }
     @computed get docButtons() {
-        const expandingBtns = Doc.UserDoc() ?.expandingButtons;
+        const expandingBtns = Doc.UserDoc()?.expandingButtons;
         if (expandingBtns instanceof Doc) {
             return <div className="mainView-docButtons" ref={this._docBtnRef}
                 style={{ height: !expandingBtns.linearViewIsExpanded ? "42px" : undefined }} >

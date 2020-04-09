@@ -3,9 +3,6 @@
     height: 100%;
     display: flex;
     flex-direction: column;
-    pointer-events: all;
-    background-color: rgb(241, 239, 235);
-    padding: 10px;
 }
 
 .scriptBox-toolbar {
@@ -17,9 +14,4 @@
     height: 100%;
     box-sizing: border-box;
     resize: none;
-    padding: 7px;
-}
-
-.scriptBox-button {
-    width: 50%
 }

@@ -275,7 +275,6 @@ export function CompileScript(script: string, options: ScriptOptions = {}): Comp
 
     const result = Run(outputText, paramNames, diagnostics, script, options);
 
-
     if (options.globals) {
         Scripting.resetScriptingGlobals();
     }

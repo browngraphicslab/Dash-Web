@@ -7,50 +7,28 @@ import { OverlayView } from "./OverlayView";
 import { DocumentIconContainer } from "./nodes/DocumentIcon";
 import { Opt, Doc } from "../../new_fields/Doc";
 import { emptyFunction } from "../../Utils";
-import { ScriptCast, StrCast } from "../../new_fields/Types";
+import { ScriptCast } from "../../new_fields/Types";
 import { CompileScript } from "../util/Scripting";
 import { ScriptField } from "../../new_fields/ScriptField";
 import { DragManager } from "../util/DragManager";
 import { EditableView } from "./EditableView";
-import { FieldView, FieldViewProps } from "./nodes/FieldView";
-import { DocAnnotatableComponent } from "./DocComponent";
-import { makeInterface } from "../../new_fields/Schema";
-import { documentSchema } from "../../new_fields/documentSchemas";
-import { CompileResult } from "../northstar/model/idea/idea";
-import { red } from "colors";
-import { forEach } from "typescript-collections/dist/lib/arrays";
 
 export interface ScriptBoxProps {
-    onSave?: (text: string, onError: (error: string) => void) => void;
+    onSave: (text: string, onError: (error: string) => void) => void;
     onCancel?: () => void;
     initialText?: string;
     showDocumentIcons?: boolean;
     setParams?: (p: string[]) => void;
 }
 
-type ScriptDocument = makeInterface<[typeof documentSchema]>;
-const ScriptDocument = makeInterface(documentSchema);
-
 @observer
-export class ScriptBox extends DocAnnotatableComponent<FieldViewProps & ScriptBoxProps, ScriptDocument>(ScriptDocument) {
-    protected multiTouchDisposer?: import("../util/InteractionUtils").InteractionUtils.MultiTouchEventDisposer | undefined;
-    public static LayoutString(fieldStr: string) { return FieldView.LayoutString(ScriptBox, fieldStr); }
-
+export class ScriptBox extends React.Component<ScriptBoxProps> {
     @observable
     private _scriptText: string;
-
-    @observable
-    private _errorMessage: string;
 
     constructor(props: ScriptBoxProps) {
         super(props);
         this._scriptText = props.initialText || "";
-        this._errorMessage = "";
-    }
-
-    @action
-    componentDidMount() {
-        this._scriptText = StrCast(this.props.Document.documentText) || this.props.initialText || "";
     }
 
     @action
@@ -59,10 +37,8 @@ export class ScriptBox extends DocAnnotatableComponent<FieldViewProps & ScriptBo
     }
 
     @action
-    onError = (error: any) => {
-        for (const entry of error) {
-            this._errorMessage = this._errorMessage + "   " + entry.messageText;
-        }
+    onError = (error: string) => {
+        console.log(error);
     }
 
     overlayDisposer?: () => void;
@@ -77,43 +53,12 @@ export class ScriptBox extends DocAnnotatableComponent<FieldViewProps & ScriptBo
         this.overlayDisposer?.();
     }
 
-    @action
-    onCompile = () => {
-        const result = CompileScript(this._scriptText, {});
-        this._errorMessage = "";
-        if (result.compiled) {
-            this._errorMessage = "";
-            this.props.Document.data = new ScriptField(result);
-        }
-        else {
-            this.onError(result.errors);
-        }
-        this.props.Document.documentText = this._scriptText;
-    }
-
-    @action
-    onRun = () => {
-        const result = CompileScript(this._scriptText, {});
-        this._errorMessage = "";
-        if (result.compiled) {
-            result.run({}, (err: any) => {
-                this._errorMessage = "";
-                this.onError(err);
-            });
-            this.props.Document.data = new ScriptField(result);
-        }
-        else {
-            this.onError(result.errors);
-        }
-        this.props.Document.documentText = this._scriptText;
-    }
-
     render() {
         let onFocus: Opt<() => void> = undefined, onBlur: Opt<() => void> = undefined;
-        //if (this.props.showDocumentIcons) {
-        onFocus = this.onFocus;
-        onBlur = this.onBlur;
-        // }
+        if (this.props.showDocumentIcons) {
+            onFocus = this.onFocus;
+            onBlur = this.onBlur;
+        }
         const params = <EditableView
             contents={""}
             display={"block"}
@@ -126,13 +71,12 @@ export class ScriptBox extends DocAnnotatableComponent<FieldViewProps & ScriptBo
         return (
             <div className="scriptBox-outerDiv">
                 <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-                    <textarea className="scriptBox-textarea" placeholder="write your script here" onChange={this.onChange} value={this._scriptText} onFocus={onFocus} onBlur={onBlur}></textarea>
-                    <div className="errorMessage">{this._errorMessage}</div>
+                    <textarea className="scriptBox-textarea" onChange={this.onChange} value={this._scriptText} onFocus={onFocus} onBlur={onBlur}></textarea>
                     <div style={{ background: "beige" }} >{params}</div>
                 </div>
                 <div className="scriptBox-toolbar">
-                    <button className="scriptBox-button" onPointerDown={e => { this.onCompile(); e.stopPropagation(); }}>Compile</button>
-                    <button className="scriptBox-button" onPointerDown={e => { this.onRun(); e.stopPropagation(); }}>Run</button>
+                    <button onClick={e => { this.props.onSave(this._scriptText, this.onError); e.stopPropagation(); }}>Save</button>
+                    <button onClick={e => { this.props.onCancel && this.props.onCancel(); e.stopPropagation(); }}>Cancel</button>
                 </div>
             </div>
         );
