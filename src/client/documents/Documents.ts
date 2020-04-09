@@ -547,10 +547,6 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.RTF), text, options, undefined, "text");
         }
 
-        export function ScriptDocument(options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.SCRIPT), undefined, options);
-        }
-
         export function LinkDocument(source: { doc: Doc, ctx?: Doc }, target: { doc: Doc, ctx?: Doc }, options: DocumentOptions = {}, id?: string) {
             const doc = InstanceFromProto(Prototypes.get(DocumentType.LINK), undefined, { isLinkButton: true, treeViewHideTitle: true, treeViewOpen: false, removeDropProperties: new List(["isBackground", "isLinkButton"]), ...options });
             const linkDocProto = Doc.GetProto(doc);
