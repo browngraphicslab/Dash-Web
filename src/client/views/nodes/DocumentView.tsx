@@ -47,6 +47,7 @@ import { ClientRecommender } from '../../ClientRecommender';
 import { SearchUtil } from '../../util/SearchUtil';
 import { RadialMenu } from './RadialMenu';
 import { KeyphraseQueryView } from '../KeyphraseQueryView';
+import { undo } from 'prosemirror-history';
 
 library.add(fa.faEdit, fa.faTrash, fa.faShare, fa.faDownload, fa.faExpandArrowsAlt, fa.faCompressArrowsAlt, fa.faLayerGroup, fa.faExternalLinkAlt, fa.faAlignCenter, fa.faCaretSquareRight,
     fa.faSquare, fa.faConciergeBell, fa.faWindowRestore, fa.faFolder, fa.faMapPin, fa.faLink, fa.faFingerprint, fa.faCrosshairs, fa.faDesktop, fa.faUnlock, fa.faLock, fa.faLaptopCode, fa.faMale,
@@ -1021,12 +1022,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         return anchor.type === DocumentType.AUDIO && NumCast(ept) ? false : true;
     }
 
-    @observable _link: Opt<Doc>;
-    makeLink = () => {
-        return this._link;
-    }
 
-    hideLinkAnchor = (doc: Doc) => undoBatch(doc => doc.hidden = true)();
+    @observable _link: Opt<Doc>;  // see DocumentButtonBar for explanation of how this works
+    makeLink = () => { return this._link; } // pass the link placeholde to child views so they can react to make a specialized anchor.  This is essentially a function call to the descendants since the value of the _link variable will immediately get set back to undefined.
+
+    @undoBatch
+    hideLinkAnchor = (doc: Doc) => doc.hidden = true;
     anchorPanelWidth = () => this.props.PanelWidth() || 1;
     anchorPanelHeight = () => this.props.PanelHeight() || 1;
     @computed get anchors() {

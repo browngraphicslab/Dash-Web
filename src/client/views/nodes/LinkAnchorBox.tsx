@@ -68,7 +68,7 @@ export class LinkAnchorBox extends DocComponent<FieldViewProps, LinkAnchorSchema
         if ((e.button === 2 || e.ctrlKey || !this.props.Document.isLinkButton)) {
             this.props.select(false);
         }
-        if (!this._doubleTap) {
+        if (!this._doubleTap && !e.ctrlKey && e.button < 2) {
             const anchorContainerDoc = this.props.ContainingCollectionDoc; // bcz: hack!  need a better prop for passing the anchor's container 
             this._editing = true;
             anchorContainerDoc && this.props.bringToFront(anchorContainerDoc, false);
