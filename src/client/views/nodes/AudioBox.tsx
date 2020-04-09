@@ -71,7 +71,7 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
             scrollLinkId => {
                 if (scrollLinkId) {
                     DocListCast(this.dataDoc.links).filter(l => l[Id] === scrollLinkId).map(l => {
-                        const linkTime = Doc.AreProtosEqual(l.anchor1 as Doc, this.dataDoc) ? NumCast((l.anchor1 as Doc).timecode) : NumCast((l.anchor2 as Doc).timecode);
+                        const linkTime = Doc.AreProtosEqual(l.anchor1 as Doc, this.dataDoc) ? NumCast(l.anchor1_timecode) : NumCast(l.anchor2_timecode);
                         setTimeout(() => { this.playFromTime(linkTime); Doc.linkFollowHighlight(l); }, 250);
                     });
                     Doc.SetInPlace(this.layoutDoc, "scrollToLinkID", undefined, false);
@@ -80,10 +80,10 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
         this._reactionDisposer = reaction(() => SelectionManager.SelectedDocuments(),
             selected => {
                 const sel = selected.length ? selected[0].props.Document : undefined;
-                this.Document.playOnSelect && this.recordingStart && sel && sel.creationDate && !Doc.AreProtosEqual(sel, this.props.Document) && this.playFromTime(DateCast(sel.creationDate).date.getTime());
-                this.Document.playOnSelect && this.recordingStart && !sel && this.pause();
+                this.layoutDoc.playOnSelect && this.recordingStart && sel && sel.creationDate && !Doc.AreProtosEqual(sel, this.props.Document) && this.playFromTime(DateCast(sel.creationDate).date.getTime());
+                this.layoutDoc.playOnSelect && this.recordingStart && !sel && this.pause();
             });
-        this._scrubbingDisposer = reaction(() => AudioBox._scrubTime, (time) => this.Document.playOnSelect && this.playFromTime(AudioBox._scrubTime));
+        this._scrubbingDisposer = reaction(() => AudioBox._scrubTime, (time) => this.layoutDoc.playOnSelect && this.playFromTime(AudioBox._scrubTime));
     }
 
     timecodeChanged = () => {
@@ -92,17 +92,16 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
             htmlEle.duration && htmlEle.duration !== Infinity && runInAction(() => this.dataDoc.duration = htmlEle.duration);
             DocListCast(this.dataDoc.links).map(l => {
                 let la1 = l.anchor1 as Doc;
-                const la2 = l.anchor2 as Doc;
-                let linkTime = NumCast(la2.timecode);
+                let linkTime = NumCast(l.anchor2_timecode);
                 if (Doc.AreProtosEqual(la1, this.dataDoc)) {
-                    linkTime = NumCast(la1.timecode);
+                    linkTime = NumCast(l.anchor1_timecode);
                     la1 = l.anchor2 as Doc;
                 }
-                if (linkTime > NumCast(this.Document.currentTimecode) && linkTime < htmlEle.currentTime) {
+                if (linkTime > NumCast(this.layoutDoc.currentTimecode) && linkTime < htmlEle.currentTime) {
                     Doc.linkFollowHighlight(la1);
                 }
             });
-            this.Document.currentTimecode = htmlEle.currentTime;
+            this.layoutDoc.currentTimecode = htmlEle.currentTime;
         }
     }
 
@@ -136,7 +135,7 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
     updateRecordTime = () => {
         if (this.audioState === "recording") {
             setTimeout(this.updateRecordTime, 30);
-            this.Document.currentTimecode = (new Date().getTime() - this._recordStart) / 1000;
+            this.layoutDoc.currentTimecode = (new Date().getTime() - this._recordStart) / 1000;
         }
     }
 
@@ -158,7 +157,7 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
 
     specificContextMenu = (e: React.MouseEvent): void => {
         const funcs: ContextMenuProps[] = [];
-        funcs.push({ description: (this.Document.playOnSelect ? "Don't play" : "Play") + " when document selected", event: () => this.Document.playOnSelect = !this.Document.playOnSelect, icon: "expand-arrows-alt" });
+        funcs.push({ description: (this.layoutDoc.playOnSelect ? "Don't play" : "Play") + " when document selected", event: () => this.layoutDoc.playOnSelect = !this.layoutDoc.playOnSelect, icon: "expand-arrows-alt" });
 
         ContextMenu.Instance.addItem({ description: "Audio Funcs...", subitems: funcs, icon: "asterisk" });
     }
@@ -185,7 +184,7 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
         e.stopPropagation();
     }
     onStop = (e: any) => {
-        this.Document.playOnSelect = !this.Document.playOnSelect;
+        this.layoutDoc.playOnSelect = !this.layoutDoc.playOnSelect;
         e.stopPropagation();
     }
     onFile = (e: any) => {
@@ -227,7 +226,7 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
             {!this.path ?
                 <div className="audiobox-buttons">
                     <div className="audiobox-dictation" onClick={this.onFile}>
-                        <FontAwesomeIcon style={{ width: "30px", background: this.Document.playOnSelect ? "yellow" : "dimGray" }} icon="file-alt" size={this.props.PanelHeight() < 36 ? "1x" : "2x"} />
+                        <FontAwesomeIcon style={{ width: "30px", background: this.layoutDoc.playOnSelect ? "yellow" : "dimGray" }} icon="file-alt" size={this.props.PanelHeight() < 36 ? "1x" : "2x"} />
                     </div>
                     <button className={`audiobox-record${interactive}`} style={{ backgroundColor: this.audioState === "recording" ? "red" : "black" }}>
                         {this.audioState === "recording" ? "STOP" : "RECORD"}
@@ -242,7 +241,7 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
                                 if (e.button === 0 && !e.ctrlKey) {
                                     const rect = (e.target as any).getBoundingClientRect();
                                     const wasPaused = this.audioState === "paused";
-                                    this._ele!.currentTime = this.Document.currentTimecode = (e.clientX - rect.x) / rect.width * NumCast(this.dataDoc.duration);
+                                    this._ele!.currentTime = this.layoutDoc.currentTimecode = (e.clientX - rect.x) / rect.width * NumCast(this.dataDoc.duration);
                                     wasPaused && this.pause();
                                     e.stopPropagation();
                                 }
@@ -250,11 +249,11 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
                             {DocListCast(this.dataDoc.links).map((l, i) => {
                                 let la1 = l.anchor1 as Doc;
                                 let la2 = l.anchor2 as Doc;
-                                let linkTime = NumCast(la2.timecode);
+                                let linkTime = NumCast(l.anchor2_timecode);
                                 if (Doc.AreProtosEqual(la1, this.dataDoc)) {
                                     la1 = l.anchor2 as Doc;
                                     la2 = l.anchor1 as Doc;
-                                    linkTime = NumCast(la1.timecode);
+                                    linkTime = NumCast(l.anchor1_timecode);
                                 }
                                 return !linkTime ? (null) :
                                     <div className={this.props.PanelHeight() < 32 ? "audiobox-marker-minicontainer" : "audiobox-marker-container"} key={l[Id]} style={{ left: `${linkTime / NumCast(this.dataDoc.duration, 1) * 100}%` }}>
@@ -274,7 +273,7 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
                                             onPointerDown={e => { if (e.button === 0 && !e.ctrlKey) { const wasPaused = this.audioState === "paused"; this.playFrom(linkTime); wasPaused && this.pause(); e.stopPropagation(); } }} />
                                     </div>;
                             })}
-                            <div className="audiobox-current" style={{ left: `${NumCast(this.Document.currentTimecode) / NumCast(this.dataDoc.duration, 1) * 100}%` }} />
+                            <div className="audiobox-current" style={{ left: `${NumCast(this.layoutDoc.currentTimecode) / NumCast(this.dataDoc.duration, 1) * 100}%` }} />
                             {this.audio}
                         </div>
                     </div>

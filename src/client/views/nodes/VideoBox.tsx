@@ -9,7 +9,7 @@ import { Doc } from "../../../new_fields/Doc";
 import { InkTool } from "../../../new_fields/InkField";
 import { createSchema, makeInterface } from "../../../new_fields/Schema";
 import { ScriptField } from "../../../new_fields/ScriptField";
-import { Cast, StrCast, NumCast } from "../../../new_fields/Types";
+import { Cast, StrCast } from "../../../new_fields/Types";
 import { VideoField } from "../../../new_fields/URLField";
 import { Utils, emptyFunction, returnOne, returnZero } from "../../../Utils";
 import { Docs, DocUtils } from "../../documents/Documents";
@@ -125,9 +125,12 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
                 if (returnedFilename) {
                     const url = this.choosePath(Utils.prepend(returnedFilename));
                     const imageSummary = Docs.Create.ImageDocument(url, {
-                        x: (this.layoutDoc.x || 0) + width, y: (this.layoutDoc.y || 0), displayTimecode: this.layoutDoc.currentTimecode || 0,
+                        _nativeWidth: this.layoutDoc._nativeWidth, _nativeHeight: this.layoutDoc._nativeHeight,
+                        x: (this.layoutDoc.x || 0) + width, y: (this.layoutDoc.y || 0),
                         _width: 150, _height: height / width * 150, title: "--snapshot" + (this.layoutDoc.currentTimecode || 0) + " image-"
                     });
+                    Doc.GetProto(imageSummary)["data-nativeWidth"] = this.layoutDoc._nativeWidth;
+                    Doc.GetProto(imageSummary)["data-nativeHeight"] = this.layoutDoc._nativeHeight;
                     imageSummary.isLinkButton = true;
                     this.props.addDocument && this.props.addDocument(imageSummary);
                     DocUtils.MakeLink({ doc: imageSummary }, { doc: this.rootDoc }, "video snapshot");

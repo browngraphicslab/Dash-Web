@@ -239,12 +239,13 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
     }
     @action onError = (error: any) => {
         const timeout = this._curSuffix === "_s" ? this._smallRetryCount : this._curSuffix === "_m" ? this._mediumRetryCount : this._largeRetryCount;
-        if (timeout < 10) {
-            // setTimeout(this.retryPath, 500);
-        }
-        const original = StrCast(this.dataDoc.originalUrl);
-        if (error.type === "error" && original) {
-            this.dataDoc[this.fieldKey] = new ImageField(original);
+        if (timeout < 5) {
+            setTimeout(this.retryPath, 500);
+        } else {
+            const original = StrCast(this.dataDoc[this.fieldKey + "-originalUrl"]);
+            if (error.type === "error" && original) {
+                this.dataDoc[this.fieldKey] = new ImageField(original);
+            }
         }
     }
     _curSuffix = "_m";
@@ -341,7 +342,7 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
                     const { success, failure, idle, loading } = uploadIcons;
                     runInAction(() => this.uploadIcon = loading);
                     const [{ accessPaths }] = await Networking.PostToServer("/uploadRemoteImage", { sources: [primary] });
-                    dataDoc.originalUrl = primary;
+                    dataDoc[this.props.fieldKey + "-originalUrl"] = primary;
                     let succeeded = true;
                     let data: ImageField | undefined;
                     try {
@@ -368,11 +369,11 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
         return { nativeWidth, nativeHeight };
     }
 
-        // this._curSuffix = "";
-        // if (w > 20) {
-        // if (w < 100 && this._smallRetryCount < 10) this._curSuffix = "_s";
-        // else if (w < 600 && this._mediumRetryCount < 10) this._curSuffix = "_m";
-        // else if (this._largeRetryCount < 10) this._curSuffix = "_l";
+    // this._curSuffix = "";
+    // if (w > 20) {
+    // if (w < 100 && this._smallRetryCount < 10) this._curSuffix = "_s";
+    // else if (w < 600 && this._mediumRetryCount < 10) this._curSuffix = "_m";
+    // else if (this._largeRetryCount < 10) this._curSuffix = "_l";
     @computed get paths() {
         const field = Cast(this.dataDoc[this.fieldKey], ImageField, null); // retrieve the primary image URL that is being rendered from the data doc
         const alts = DocListCast(this.dataDoc[this.fieldKey + "-alternates"]); // retrieve alternate documents that may be rendered as alternate images
@@ -438,8 +439,8 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
         return (<div className={`imageBox${dragging}`} onContextMenu={this.specificContextMenu}
             style={{
                 transform: this.props.PanelWidth() ? undefined : `scale(${this.props.ContentScaling()})`,
-                width: this.props.PanelWidth() ? `${pwidth}px` : `${100 / this.props.ContentScaling()}%`,
-                height: this.props.PanelWidth() ? `${pwidth / aspect}px` : `${100 / this.props.ContentScaling()}%`,
+                width: this.props.PanelWidth() ? undefined : `${100 / this.props.ContentScaling()}%`,
+                height: this.props.PanelWidth() ? undefined : `${100 / this.props.ContentScaling()}%`,
                 pointerEvents: this.layoutDoc.isBackground ? "none" : undefined,
                 borderRadius: `${Number(StrCast(this.layoutDoc.borderRounding).replace("px", "")) / this.props.ContentScaling()}px`
             }} >

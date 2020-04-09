@@ -511,7 +511,7 @@ export namespace Docs {
 
         export function ScriptingDocument(script: Opt<ScriptField>, options: DocumentOptions = {}, fieldKey?: string) {
             const res = InstanceFromProto(Prototypes.get(DocumentType.SCRIPTING), script, options);
-            fieldKey && res.proto instanceof Doc && ((res.proto as Doc).layout = ScriptingBox.LayoutString(fieldKey));
+            fieldKey && res.proto instanceof Doc && (res.proto.layout = ScriptingBox.LayoutString(fieldKey));
             return res;
         }
 
@@ -554,6 +554,8 @@ export namespace Docs {
             const linkDocProto = Doc.GetProto(doc);
             linkDocProto.anchor1 = source.doc;
             linkDocProto.anchor2 = target.doc;
+            linkDocProto.anchor1_timecode = source.doc.currentTimecode || source.doc.displayTimecode;
+            linkDocProto.anchor2_timecode = target.doc.currentTimecode || target.doc.displayTimecode;
 
             if (linkDocProto.layout_key1 === undefined) {
                 Cast(linkDocProto.proto, Doc, null).layout_key1 = LinkAnchorBox.LayoutString("anchor1");
