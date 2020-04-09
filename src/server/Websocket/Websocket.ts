@@ -1,5 +1,5 @@
 import { Utils } from "../../Utils";
-import { MessageStore, Transferable, Types, Diff, YoutubeQueryInput, YoutubeQueryTypes, RoomMessage } from "../Message";
+import { MessageStore, Transferable, Types, Diff, YoutubeQueryInput, YoutubeQueryTypes, GestureContent, MobileInkOverlayContent, UpdateMobileInkOverlayPositionContent, MobileDocumentUploadContent, RoomMessage } from "../Message";
 import { Client } from "../Client";
 import { Socket } from "socket.io";
 import { Database } from "../database";
@@ -10,7 +10,8 @@ import { GoogleCredentialsLoader } from "../credentials/CredentialsLoader";
 import { logPort } from "../ActionUtilities";
 import { timeMap } from "../ApiManagers/UserManager";
 import { green } from "colors";
-import { networkInterfaces, type } from "os";
+import { serverPathToFile, Directory } from "../ApiManagers/UploadManager";
+import { networkInterfaces } from "os";
 import executeImport from "../../scraping/buxton/final/BuxtonImporter";
 
 export namespace WebSocket {
@@ -54,8 +55,8 @@ export namespace WebSocket {
             socket.on('create or join', function (room) {
                 console.log('Received request to create or join room ' + room);
 
-                var clientsInRoom = socket.adapter.rooms[room];
-                var numClients = clientsInRoom ? Object.keys(clientsInRoom.sockets).length : 0;
+                const clientsInRoom = socket.adapter.rooms[room];
+                const numClients = clientsInRoom ? Object.keys(clientsInRoom.sockets).length : 0;
                 console.log('Room ' + room + ' now has ' + numClients + ' client(s)');
 
                 if (numClients === 0) {
@@ -75,8 +76,8 @@ export namespace WebSocket {
             });
 
             socket.on('ipaddr', function () {
-                var ifaces = networkInterfaces();
-                for (var dev in ifaces) {
+                const ifaces = networkInterfaces();
+                for (const dev in ifaces) {
                     ifaces[dev].forEach(function (details) {
                         if (details.family === 'IPv4' && details.address !== '127.0.0.1') {
                             socket.emit('ipaddr', details.address);
@@ -104,6 +105,10 @@ export namespace WebSocket {
             Utils.AddServerHandler(socket, MessageStore.UpdateField, diff => UpdateField(socket, diff));
             Utils.AddServerHandler(socket, MessageStore.DeleteField, id => DeleteField(socket, id));
             Utils.AddServerHandler(socket, MessageStore.DeleteFields, ids => DeleteFields(socket, ids));
+            Utils.AddServerHandler(socket, MessageStore.GesturePoints, content => processGesturePoints(socket, content));
+            Utils.AddServerHandler(socket, MessageStore.MobileInkOverlayTrigger, content => processOverlayTrigger(socket, content));
+            Utils.AddServerHandler(socket, MessageStore.UpdateMobileInkOverlayPosition, content => processUpdateOverlayPosition(socket, content));
+            Utils.AddServerHandler(socket, MessageStore.MobileDocumentUpload, content => processMobileDocumentUpload(socket, content));
             Utils.AddServerHandlerCallback(socket, MessageStore.GetRefField, GetRefField);
             Utils.AddServerHandlerCallback(socket, MessageStore.GetRefFields, GetRefFields);
             Utils.AddServerHandler(socket, MessageStore.BeginBuxtonImport, () => {
@@ -122,6 +127,22 @@ export namespace WebSocket {
         const socketPort = isRelease ? Number(process.env.socketPort) : 4321;
         endpoint.listen(socketPort);
         logPort("websocket", socketPort);
+    }
+
+    function processGesturePoints(socket: Socket, content: GestureContent) {
+        socket.broadcast.emit("receiveGesturePoints", content);
+    }
+
+    function processOverlayTrigger(socket: Socket, content: MobileInkOverlayContent) {
+        socket.broadcast.emit("receiveOverlayTrigger", content);
+    }
+
+    function processUpdateOverlayPosition(socket: Socket, content: UpdateMobileInkOverlayPositionContent) {
+        socket.broadcast.emit("receiveUpdateOverlayPosition", content);
+    }
+
+    function processMobileDocumentUpload(socket: Socket, content: MobileDocumentUploadContent) {
+        socket.broadcast.emit("receiveMobileDocumentUpload", content);
     }
 
     function HandleYoutubeQuery([query, callback]: [YoutubeQueryInput, (result?: any[]) => void]) {
@@ -178,7 +199,7 @@ export namespace WebSocket {
     function setField(socket: Socket, newValue: Transferable) {
         Database.Instance.update(newValue.id, newValue, () =>
             socket.broadcast.emit(MessageStore.SetField.Message, newValue));
-        if (newValue.type === Types.Text) {
+        if (newValue.type === Types.Text) {  // if the newValue has sring type, then it's suitable for searching -- pass it to SOLR
             Search.updateDocument({ id: newValue.id, data: (newValue as any).data });
         }
     }
@@ -200,6 +221,7 @@ export namespace WebSocket {
         "pdf": ["_t", "url"],
         "audio": ["_t", "url"],
         "web": ["_t", "url"],
+        "script": ["_t", value => value.script.originalScript],
         "RichTextField": ["_t", value => value.Text],
         "date": ["_d", value => new Date(value.date).toISOString()],
         "proxy": ["_i", "fieldId"],

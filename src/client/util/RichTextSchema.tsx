@@ -8,24 +8,24 @@ import { EditorState, NodeSelection, Plugin, TextSelection } from "prosemirror-s
 import { StepMap } from "prosemirror-transform";
 import { EditorView } from "prosemirror-view";
 import * as ReactDOM from 'react-dom';
-import { Doc, Field, HeightSym, WidthSym, DocListCast } from "../../new_fields/Doc";
+import { Doc, DocListCast, Field, HeightSym, WidthSym } from "../../new_fields/Doc";
 import { Id } from "../../new_fields/FieldSymbols";
+import { List } from "../../new_fields/List";
 import { ObjectField } from "../../new_fields/ObjectField";
+import { listSpec } from "../../new_fields/Schema";
+import { SchemaHeaderField } from "../../new_fields/SchemaHeaderField";
 import { ComputedField } from "../../new_fields/ScriptField";
-import { BoolCast, NumCast, StrCast, Cast } from "../../new_fields/Types";
-import { emptyFunction, returnEmptyString, returnFalse, returnOne, Utils } from "../../Utils";
+import { BoolCast, Cast, NumCast, StrCast } from "../../new_fields/Types";
+import { emptyFunction, returnEmptyString, returnFalse, returnOne, Utils, returnZero } from "../../Utils";
 import { DocServer } from "../DocServer";
+import { Docs } from "../documents/Documents";
+import { CollectionViewType } from "../views/collections/CollectionView";
 import { DocumentView } from "../views/nodes/DocumentView";
 import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
 import { DocumentManager } from "./DocumentManager";
 import ParagraphNodeSpec from "./ParagraphNodeSpec";
 import { Transform } from "./Transform";
 import React = require("react");
-import { CollectionSchemaBooleanCell } from "../views/collections/CollectionSchemaCells";
-import { ContextMenu } from "../views/ContextMenu";
-import { ContextMenuProps } from "../views/ContextMenuItem";
-import { Docs } from "../documents/Documents";
-import { CollectionView } from "../views/collections/CollectionView";
 
 const blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
     preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], brDOM: DOMOutputSpecArray = ["br"], ulDOM: DOMOutputSpecArray = ["ul", 0];
@@ -300,6 +300,7 @@ export const marks: { [index: string]: MarkSpec } = {
         attrs: {
             href: {},
             targetId: { default: "" },
+            linkId: { default: "" },
             showPreview: { default: true },
             location: { default: null },
             title: { default: null },
@@ -314,7 +315,7 @@ export const marks: { [index: string]: MarkSpec } = {
         toDOM(node: any) {
             return node.attrs.docref && node.attrs.title ?
                 ["div", ["span", `"`], ["span", 0], ["span", `"`], ["br"], ["a", { ...node.attrs, class: "prosemirror-attribution", title: `${node.attrs.title}` }, node.attrs.title], ["br"]] :
-                ["a", { ...node.attrs, id: node.attrs.targetId, title: `${node.attrs.title}` }, 0];
+                ["a", { ...node.attrs, id: node.attrs.linkId + node.attrs.targetId, title: `${node.attrs.title}` }, 0];
         }
     },
 
@@ -509,7 +510,7 @@ export const marks: { [index: string]: MarkSpec } = {
     user_mark: {
         attrs: {
             userid: { default: "" },
-            modified: { default: "when?" }, // 5 second intervals since 1970
+            modified: { default: "when?" }, // 1 second intervals since 1970
         },
         group: "inline",
         toDOM(node: any) {
@@ -525,7 +526,7 @@ export const marks: { [index: string]: MarkSpec } = {
     user_tag: {
         attrs: {
             userid: { default: "" },
-            modified: { default: "when?" }, // 5 second intervals since 1970
+            modified: { default: "when?" }, // 1 second intervals since 1970
             tag: { default: "" }
         },
         group: "inline",
@@ -722,6 +723,7 @@ export class DashDocView {
     _outer: HTMLElement;
     _dashDoc: Doc | undefined;
     _reactionDisposer: IReactionDisposer | undefined;
+    _renderDisposer: IReactionDisposer | undefined;
     _textBox: FormattedTextBox;
 
     getDocTransform = () => {
@@ -767,13 +769,14 @@ export class DashDocView {
         };
         const alias = node.attrs.alias;
 
-        const docid = node.attrs.docid || tbox.props.DataDoc?.[Id] || tbox.dataDoc?.[Id];
+        const docid = node.attrs.docid || tbox.props.Document[Id];// tbox.props.DataDoc?.[Id] || tbox.dataDoc?.[Id];
         DocServer.GetRefField(docid + alias).then(async dashDoc => {
             if (!(dashDoc instanceof Doc)) {
                 alias && DocServer.GetRefField(docid).then(async dashDocBase => {
                     if (dashDocBase instanceof Doc) {
                         const aliasedDoc = Doc.MakeAlias(dashDocBase, docid + alias);
-                        aliasedDoc.layoutKey = node.attrs.fieldKey === "layout" ? "layout" : "layout" + (node.attrs.fieldKey ? "_" + node.attrs.fieldKey : "");
+                        aliasedDoc.layoutKey = "layout";
+                        node.attrs.fieldKey && DocumentView.makeCustomViewClicked(aliasedDoc, Docs.Create.StackingDocument, node.attrs.fieldKey, undefined);
                         self.doRender(aliasedDoc, removeDoc, node, view, getPos);
                     }
                 });
@@ -796,59 +799,74 @@ export class DashDocView {
     }
     doRender(dashDoc: Doc, removeDoc: any, node: any, view: any, getPos: any) {
         this._dashDoc = dashDoc;
-        if (node.attrs.width !== dashDoc._width + "px" || node.attrs.height !== dashDoc._height + "px") {
-            try { // bcz: an exception will be thrown if two aliases are open at the same time when a doc view comment is made
-                view.dispatch(view.state.tr.setNodeMarkup(getPos(), null, { ...node.attrs, width: dashDoc._width + "px", height: dashDoc._height + "px" }));
-            } catch (e) {
-                console.log(e);
-            }
-        }
         const self = this;
-        const finalLayout = Doc.expandTemplateLayout(dashDoc, !Doc.AreProtosEqual(this._textBox.dataDoc, this._textBox.Document) ? this._textBox.dataDoc : undefined);
+        const dashLayoutDoc = Doc.Layout(dashDoc);
+        const finalLayout = node.attrs.docid ? dashDoc : Doc.expandTemplateLayout(dashLayoutDoc, dashDoc, node.attrs.fieldKey);
         if (!finalLayout) setTimeout(() => self.doRender(dashDoc, removeDoc, node, view, getPos), 0);
         else {
-            const layoutKey = StrCast(finalLayout.layoutKey);
-            const finalKey = layoutKey && StrCast(finalLayout[layoutKey]).split("'")?.[1];
-            if (finalLayout !== dashDoc && finalKey) {
-                const finalLayoutField = finalLayout[finalKey];
-                if (finalLayoutField instanceof ObjectField) {
-                    finalLayout[finalKey + "-textTemplate"] = ComputedField.MakeFunction(`copyField(this.${finalKey})`, { this: Doc.name });
-                }
-            }
             this._reactionDisposer?.();
             this._reactionDisposer = reaction(() => ({ dim: [finalLayout[WidthSym](), finalLayout[HeightSym]()], color: finalLayout.color }), ({ dim, color }) => {
                 this._dashSpan.style.width = this._outer.style.width = Math.max(20, dim[0]) + "px";
                 this._dashSpan.style.height = this._outer.style.height = Math.max(20, dim[1]) + "px";
                 this._outer.style.border = "1px solid " + StrCast(finalLayout.color, (Cast(Doc.UserDoc().activeWorkspace, Doc, null).darkScheme ? "dimGray" : "lightGray"));
             }, { fireImmediately: true });
-            ReactDOM.render(<DocumentView
-                Document={finalLayout}
-                DataDoc={!node.attrs.docid ? this._textBox.dataDoc : undefined}
-                LibraryPath={this._textBox.props.LibraryPath}
-                fitToBox={BoolCast(dashDoc._fitToBox)}
-                addDocument={returnFalse}
-                removeDocument={removeDoc}
-                ScreenToLocalTransform={this.getDocTransform}
-                addDocTab={this._textBox.props.addDocTab}
-                pinToPres={returnFalse}
-                renderDepth={self._textBox.props.renderDepth + 1}
-                PanelWidth={finalLayout[WidthSym]}
-                PanelHeight={finalLayout[HeightSym]}
-                focus={this.outerFocus}
-                backgroundColor={returnEmptyString}
-                parentActive={returnFalse}
-                whenActiveChanged={returnFalse}
-                bringToFront={emptyFunction}
-                zoomToScale={emptyFunction}
-                getScale={returnOne}
-                dontRegisterView={false}
-                ContainingCollectionView={undefined}
-                ContainingCollectionDoc={undefined}
-                ContentScaling={this.contentScaling}
-            />, this._dashSpan);
+            const doReactRender = (finalLayout: Doc, resolvedDataDoc: Doc) => {
+                ReactDOM.unmountComponentAtNode(this._dashSpan);
+                ReactDOM.render(<DocumentView
+                    Document={finalLayout}
+                    DataDoc={resolvedDataDoc}
+                    LibraryPath={this._textBox.props.LibraryPath}
+                    fitToBox={BoolCast(dashDoc._fitToBox)}
+                    addDocument={returnFalse}
+                    rootSelected={this._textBox.props.isSelected}
+                    removeDocument={removeDoc}
+                    ScreenToLocalTransform={this.getDocTransform}
+                    addDocTab={this._textBox.props.addDocTab}
+                    pinToPres={returnFalse}
+                    renderDepth={self._textBox.props.renderDepth + 1}
+                    NativeHeight={returnZero}
+                    NativeWidth={returnZero}
+                    PanelWidth={finalLayout[WidthSym]}
+                    PanelHeight={finalLayout[HeightSym]}
+                    focus={this.outerFocus}
+                    backgroundColor={returnEmptyString}
+                    parentActive={returnFalse}
+                    whenActiveChanged={returnFalse}
+                    bringToFront={emptyFunction}
+                    dontRegisterView={false}
+                    ContainingCollectionView={this._textBox.props.ContainingCollectionView}
+                    ContainingCollectionDoc={this._textBox.props.ContainingCollectionDoc}
+                    ContentScaling={this.contentScaling}
+                />, this._dashSpan);
+                if (node.attrs.width !== dashDoc._width + "px" || node.attrs.height !== dashDoc._height + "px") {
+                    try { // bcz: an exception will be thrown if two aliases are open at the same time when a doc view comment is made
+                        view.dispatch(view.state.tr.setNodeMarkup(getPos(), null, { ...node.attrs, width: dashDoc._width + "px", height: dashDoc._height + "px" }));
+                    } catch (e) {
+                        console.log(e);
+                    }
+                }
+            };
+            this._renderDisposer?.();
+            this._renderDisposer = reaction(() => {
+                if (!Doc.AreProtosEqual(finalLayout, dashDoc)) {
+                    finalLayout.rootDocument = dashDoc.aliasOf;
+                }
+                const layoutKey = StrCast(finalLayout.layoutKey);
+                const finalKey = layoutKey && StrCast(finalLayout[layoutKey]).split("'")?.[1];
+                if (finalLayout !== dashDoc && finalKey) {
+                    const finalLayoutField = finalLayout[finalKey];
+                    if (finalLayoutField instanceof ObjectField) {
+                        finalLayout[finalKey + "-textTemplate"] = ComputedField.MakeFunction(`copyField(this.${finalKey})`, { this: Doc.name });
+                    }
+                }
+                return { finalLayout, resolvedDataDoc: Cast(finalLayout.resolvedDataDoc, Doc, null) };
+            },
+                (res) => doReactRender(res.finalLayout, res.resolvedDataDoc),
+                { fireImmediately: true });
         }
     }
     destroy() {
+        ReactDOM.unmountComponentAtNode(this._dashSpan);
         this._reactionDisposer?.();
     }
 }
@@ -858,6 +876,8 @@ export class DashFieldView {
     _fieldWrapper: HTMLDivElement; // container for label and value
     _labelSpan: HTMLSpanElement; // field label
     _fieldSpan: HTMLDivElement;  // field value
+    _fieldCheck: HTMLInputElement;
+    _enumerables: HTMLDivElement;  // field value
     _reactionDisposer: IReactionDisposer | undefined;
     _textBoxDoc: Doc;
     @observable _dashDoc: Doc | undefined;
@@ -871,34 +891,81 @@ export class DashFieldView {
         this._fieldWrapper.style.width = node.attrs.width;
         this._fieldWrapper.style.height = node.attrs.height;
         this._fieldWrapper.style.position = "relative";
-        this._fieldWrapper.style.display = "inline-block";
+        this._fieldWrapper.style.display = "inline-flex";
 
         const self = this;
+        this._enumerables = document.createElement("div");
+        this._enumerables.style.width = "10px";
+        this._enumerables.style.height = "10px";
+        this._enumerables.style.position = "relative";
+        this._enumerables.style.display = "none";
+        this._enumerables.style.background = "dimGray";
+
+        this._enumerables.onpointerdown = async (e) => {
+            e.stopPropagation();
+            const collview = await Doc.addFieldEnumerations(self._textBoxDoc, self._fieldKey, [{ title: self._fieldSpan.innerText }]);
+            collview instanceof Doc && tbox.props.addDocTab(collview, "onRight");
+        };
+        const updateText = (forceMatch: boolean) => {
+            self._enumerables.style.display = "none";
+            const newText = self._fieldSpan.innerText.startsWith(":=") || self._fieldSpan.innerText.startsWith("=:=") ? ":=-computed-" : self._fieldSpan.innerText;
+
+            // look for a document whose id === the fieldKey being displayed.  If there's a match, then that document
+            // holds the different enumerated values for the field in the titles of its collected documents.
+            // if there's a partial match from the start of the input text, complete the text --- TODO: make this an auto suggest box and select from a drop down.
+            DocServer.GetRefField(self._fieldKey).then(options => {
+                let modText = "";
+                (options instanceof Doc) && DocListCast(options.data).forEach(opt => (forceMatch ? StrCast(opt.title).startsWith(newText) : StrCast(opt.title) === newText) && (modText = StrCast(opt.title)));
+                if (modText) {
+                    self._fieldSpan.innerHTML = self._dashDoc![self._fieldKey] = modText;
+                    Doc.addFieldEnumerations(self._textBoxDoc, self._fieldKey, []);
+                } // if the text starts with a ':=' then treat it as an expression by making a computed field from its value storing it in the key
+                else if (self._fieldSpan.innerText.startsWith(":=")) {
+                    self._dashDoc![self._fieldKey] = ComputedField.MakeFunction(self._fieldSpan.innerText.substring(2));
+                } else if (self._fieldSpan.innerText.startsWith("=:=")) {
+                    Doc.Layout(tbox.props.Document)[self._fieldKey] = ComputedField.MakeFunction(self._fieldSpan.innerText.substring(3));
+                } else {
+                    self._dashDoc![self._fieldKey] = newText;
+                }
+            });
+        };
+
+
+        this._fieldCheck = document.createElement("input");
+        this._fieldCheck.id = Utils.GenerateGuid();
+        this._fieldCheck.type = "checkbox";
+        this._fieldCheck.style.position = "relative";
+        this._fieldCheck.style.display = "none";
+        this._fieldCheck.style.minWidth = "12px";
+        this._fieldCheck.style.backgroundColor = "rgba(155, 155, 155, 0.24)";
+        this._fieldCheck.onchange = function (e: any) {
+            self._dashDoc![self._fieldKey] = e.target.checked;
+        };
+
         this._fieldSpan = document.createElement("div");
         this._fieldSpan.id = Utils.GenerateGuid();
         this._fieldSpan.contentEditable = "true";
         this._fieldSpan.style.position = "relative";
-        this._fieldSpan.style.display = "inline-block";
-        this._fieldSpan.style.minWidth = "50px";
+        this._fieldSpan.style.display = "none";
+        this._fieldSpan.style.minWidth = "12px";
         this._fieldSpan.style.backgroundColor = "rgba(155, 155, 155, 0.24)";
         this._fieldSpan.onkeypress = function (e: any) { e.stopPropagation(); };
         this._fieldSpan.onkeyup = function (e: any) { e.stopPropagation(); };
-        this._fieldSpan.onmousedown = function (e: any) { e.stopPropagation(); };
-        this._fieldSpan.oncontextmenu = function (e: any) {
-            ContextMenu.Instance.addItem({
-                description: "Show Enumeration Templates", event: () => {
-                    e.stopPropagation();
-                    DocServer.GetRefField(node.attrs.fieldKey).then(collview => collview instanceof Doc && tbox.props.addDocTab(collview, "onRight"));
-                }, icon: "expand-arrows-alt"
-            });
-        };
+        this._fieldSpan.onmousedown = function (e: any) { e.stopPropagation(); self._enumerables.style.display = "inline-block"; };
+        this._fieldSpan.onblur = function (e: any) { updateText(false); };
 
         const setDashDoc = (doc: Doc) => {
             self._dashDoc = doc;
-            if (this._dashDoc && self._options?.length && !this._dashDoc[node.attrs.fieldKey]) {
-                this._dashDoc[node.attrs.fieldKey] = StrCast(self._options[0].title);
+            if (self._options?.length && !self._dashDoc[self._fieldKey]) {
+                self._dashDoc[self._fieldKey] = StrCast(self._options[0].title);
             }
-        }
+            // NOTE: if the field key starts with "@", then the actual field key is stored in the field 'fieldKey' (removing the @).
+            self._fieldKey = self._fieldKey.startsWith("@") ? StrCast(tbox.props.Document[StrCast(self._fieldKey).substring(1)]) : self._fieldKey;
+            this._labelSpan.innerHTML = `${self._fieldKey}: `;
+            const fieldVal = Cast(this._dashDoc?.[self._fieldKey], "boolean", null);
+            this._fieldCheck.style.display = (fieldVal === true || fieldVal === false) ? "inline-block" : "none";
+            this._fieldSpan.style.display = !(fieldVal === true || fieldVal === false) ? "inline-block" : "none";
+        };
         this._fieldSpan.onkeydown = function (e: any) {
             e.stopPropagation();
             if ((e.key === "a" && e.ctrlKey) || (e.key === "a" && e.metaKey)) {
@@ -912,31 +979,37 @@ export class DashFieldView {
             }
             if (e.key === "Enter") {
                 e.preventDefault();
-                if (e.ctrlKey) {
-                    Doc.addEnumerationToTextField(self._textBoxDoc, node.attrs.fieldKey, [Docs.Create.TextDocument(self._fieldSpan.innerText, { title: self._fieldSpan.innerText })]);
-                }
-                let newText = self._fieldSpan.innerText.startsWith(":=") ? ":=-computed-" : self._fieldSpan.innerText;
-                // look for a document whose id === the fieldKey being displayed.  If there's a match, then that document
-                // holds the different enumerated values for the field in the titles of its collected documents.
-                // if there's a partial match from the start of the input text, complete the text --- TODO: make this an auto suggest box and select from a drop down.
-
-                // alternatively, if the text starts with a ':=' then treat it as an expression by making a computed field from its value storing it in the key
-                DocServer.GetRefField(node.attrs.fieldKey).then(options => {
-                    (options instanceof Doc) && DocListCast(options.data).forEach(opt => StrCast(opt.title).startsWith(newText) && (newText = StrCast(opt.title)));
-                    self._fieldSpan.innerHTML = self._dashDoc![self._fieldKey] = newText;
-                    if (newText.startsWith(":=") && self._dashDoc && e.data === null && !e.inputType.includes("delete")) {
-                        Doc.Layout(tbox.props.Document)[self._fieldKey] = ComputedField.MakeFunction(self._fieldSpan.innerText.substring(2));
-                    }
-                });
+                e.ctrlKey && Doc.addFieldEnumerations(self._textBoxDoc, self._fieldKey, [{ title: self._fieldSpan.innerText }]);
+                updateText(true);
             }
         };
 
         this._labelSpan = document.createElement("span");
+        this._labelSpan.style.backgroundColor = "rgba(155, 155, 155, 0.44)";
         this._labelSpan.style.position = "relative";
-        this._labelSpan.style.display = "inline";
-        this._labelSpan.style.fontWeight = "bold";
-        this._labelSpan.style.fontSize = "larger";
-        this._labelSpan.innerHTML = `${node.attrs.fieldKey}: `;
+        this._labelSpan.style.display = "inline-block";
+        this._labelSpan.style.fontSize = "small";
+        this._labelSpan.title = "click to see related tags";
+        this._labelSpan.onpointerdown = function (e: any) {
+            e.stopPropagation();
+            let container = tbox.props.ContainingCollectionView;
+            while (container?.props.Document.isTemplateForField || container?.props.Document.isTemplateDoc) {
+                container = container.props.ContainingCollectionView;
+            }
+            if (container) {
+                const alias = Doc.MakeAlias(container.props.Document);
+                alias.viewType = CollectionViewType.Time;
+                let list = Cast(alias.schemaColumns, listSpec(SchemaHeaderField));
+                if (!list) {
+                    alias.schemaColumns = list = new List<SchemaHeaderField>();
+                }
+                list.map(c => c.heading).indexOf(self._fieldKey) === -1 && list.push(new SchemaHeaderField(self._fieldKey, "#f1efeb"));
+                list.map(c => c.heading).indexOf("text") === -1 && list.push(new SchemaHeaderField("text", "#f1efeb"));
+                alias._pivotField = self._fieldKey;
+                tbox.props.addDocTab(alias, "onRight");
+            }
+        };
+        this._labelSpan.innerHTML = `${self._fieldKey}: `;
         if (node.attrs.docid) {
             DocServer.GetRefField(node.attrs.docid).then(async dashDoc => dashDoc instanceof Doc && runInAction(() => setDashDoc(dashDoc)));
         } else {
@@ -944,13 +1017,25 @@ export class DashFieldView {
         }
         this._reactionDisposer?.();
         this._reactionDisposer = reaction(() => { // this reaction will update the displayed text whenever the document's fieldKey's value changes
-            const dashVal = this._dashDoc?.[node.attrs.fieldKey];
-            return StrCast(dashVal).startsWith(":=") || !dashVal ? Doc.Layout(tbox.props.Document)[this._fieldKey] : dashVal;
-        }, fval => this._fieldSpan.innerHTML = Field.toString(fval as Field) || "(null)", { fireImmediately: true });
+            const dashVal = this._dashDoc?.[self._fieldKey];
+            return StrCast(dashVal).startsWith(":=") || dashVal === "" ? Doc.Layout(tbox.props.Document)[self._fieldKey] : dashVal;
+        }, fval => {
+            const boolVal = Cast(fval, "boolean", null);
+            if (boolVal === true || boolVal === false) {
+                this._fieldCheck.checked = boolVal;
+            } else {
+                this._fieldSpan.innerHTML = Field.toString(fval as Field) || "";
+            }
+            this._fieldCheck.style.display = (boolVal === true || boolVal === false) ? "inline-block" : "none";
+            this._fieldSpan.style.display = !(boolVal === true || boolVal === false) ? "inline-block" : "none";
+        }, { fireImmediately: true });
 
         this._fieldWrapper.appendChild(this._labelSpan);
+        this._fieldWrapper.appendChild(this._fieldCheck);
         this._fieldWrapper.appendChild(this._fieldSpan);
+        this._fieldWrapper.appendChild(this._enumerables);
         (this as any).dom = this._fieldWrapper;
+        //updateText(false);
     }
     destroy() {
         this._reactionDisposer?.();
@@ -1011,12 +1096,12 @@ export class FootnoteView {
                     "Mod-y": () => redo(this.outerView.state, this.outerView.dispatch),
                     "Mod-b": toggleMark(schema.marks.strong)
                 }),
-                new Plugin({
-                    view(newView) {
-                        // TODO -- make this work with RichTextMenu
-                        // return FormattedTextBox.getToolTip(newView);
-                    }
-                })
+                    // new Plugin({
+                    //     view(newView) {
+                    //         // TODO -- make this work with RichTextMenu
+                    //         // return FormattedTextBox.getToolTip(newView);
+                    //     }
+                    // })
                 ],
 
             }),

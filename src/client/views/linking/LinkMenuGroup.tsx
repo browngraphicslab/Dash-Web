@@ -47,7 +47,7 @@ export class LinkMenuGroup extends React.Component<LinkMenuGroupProps> {
             document.removeEventListener("pointerup", this.onLinkButtonUp);
 
             const targets = this.props.group.map(l => LinkManager.Instance.getOppositeAnchor(l, this.props.sourceDoc)).filter(d => d) as Doc[];
-            DragManager.StartLinkTargetsDrag(this._drag.current, e.x, e.y, this.props.sourceDoc, targets);
+            DragManager.StartLinkTargetsDrag(this._drag.current, this.props.docView, e.x, e.y, this.props.sourceDoc, targets);
         }
         e.stopPropagation();
     }
@@ -70,6 +70,7 @@ export class LinkMenuGroup extends React.Component<LinkMenuGroupProps> {
                 return <LinkMenuItem key={destination[Id] + this.props.sourceDoc[Id]}
                     groupType={this.props.groupType}
                     addDocTab={this.props.addDocTab}
+                    docView={this.props.docView}
                     linkDoc={linkDoc}
                     sourceDoc={this.props.sourceDoc}
                     destinationDoc={destination}

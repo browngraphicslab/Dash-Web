@@ -1,49 +1,46 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import {
-    faFileAlt, faStickyNote, faArrowDown, faBullseye, faFilter, faArrowUp, faBolt, faCaretUp, faCat, faCheck, faChevronRight, faClone, faCloudUploadAlt, faCommentAlt, faCut, faEllipsisV, faExclamation, faFilePdf, faFilm, faFont, faGlobeAsia, faLongArrowAltRight,
-    faMusic, faObjectGroup, faPause, faMousePointer, faPenNib, faFileAudio, faPen, faEraser, faPlay, faPortrait, faRedoAlt, faThumbtack, faTree, faTv, faUndoAlt, faHighlighter, faMicrophone, faCompressArrowsAlt, faPhone, faStamp, faClipboard, faVideo, faTerminal,
-} from '@fortawesome/free-solid-svg-icons';
+import { faTerminal, faArrowDown, faArrowUp, faBolt, faBullseye, faCaretUp, faCat, faCheck, faChevronRight, faClipboard, faClone, faCloudUploadAlt, faCommentAlt, faCompressArrowsAlt, faCut, faEllipsisV, faEraser, faExclamation, faFileAlt, faFileAudio, faFilePdf, faFilm, faFilter, faFont, faGlobeAsia, faHighlighter, faLongArrowAltRight, faMicrophone, faMousePointer, faMusic, faObjectGroup, faPause, faPen, faPenNib, faPhone, faPlay, faPortrait, faRedoAlt, faStamp, faStickyNote, faThumbtack, faTree, faTv, faUndoAlt, faVideo } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, reaction, runInAction } from 'mobx';
 import { observer } from 'mobx-react';
 import "normalize.css";
 import * as React from 'react';
 import Measure from 'react-measure';
-import { Doc, DocListCast, Field, FieldResult, Opt } from '../../new_fields/Doc';
+import { Doc, DocListCast, Field, Opt } from '../../new_fields/Doc';
 import { Id } from '../../new_fields/FieldSymbols';
 import { List } from '../../new_fields/List';
 import { listSpec } from '../../new_fields/Schema';
-import { Cast, FieldValue, StrCast, BoolCast } from '../../new_fields/Types';
+import { BoolCast, Cast, FieldValue, StrCast } from '../../new_fields/Types';
+import { TraceMobx } from '../../new_fields/util';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
-import { emptyFunction, returnEmptyString, returnFalse, returnOne, returnTrue, Utils, emptyPath } from '../../Utils';
+import { emptyFunction, emptyPath, returnFalse, returnOne, returnZero, returnTrue, Utils } from '../../Utils';
 import GoogleAuthenticationManager from '../apis/GoogleAuthenticationManager';
 import { DocServer } from '../DocServer';
 import { Docs, DocumentOptions } from '../documents/Documents';
+import { DocumentType } from '../documents/DocumentTypes';
 import { HistoryUtil } from '../util/History';
+import RichTextMenu from '../util/RichTextMenu';
+import { Scripting } from '../util/Scripting';
+import SettingsManager from '../util/SettingsManager';
 import SharingManager from '../util/SharingManager';
 import { Transform } from '../util/Transform';
-import { CollectionLinearView } from './collections/CollectionLinearView';
-import { CollectionViewType, CollectionView } from './collections/CollectionView';
 import { CollectionDockingView } from './collections/CollectionDockingView';
+import MarqueeOptionsMenu from './collections/collectionFreeForm/MarqueeOptionsMenu';
+import { CollectionLinearView } from './collections/CollectionLinearView';
+import { CollectionView, CollectionViewType } from './collections/CollectionView';
 import { ContextMenu } from './ContextMenu';
 import { DictationOverlay } from './DictationOverlay';
 import { DocumentDecorations } from './DocumentDecorations';
+import GestureOverlay from './GestureOverlay';
 import KeyManager from './GlobalKeyHandler';
 import "./MainView.scss";
 import { MainViewNotifs } from './MainViewNotifs';
+import { AudioBox } from './nodes/AudioBox';
 import { DocumentView } from './nodes/DocumentView';
+import { RadialMenu } from './nodes/RadialMenu';
 import { OverlayView } from './OverlayView';
 import PDFMenu from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
-import MarqueeOptionsMenu from './collections/collectionFreeForm/MarqueeOptionsMenu';
-import GestureOverlay from './GestureOverlay';
-import { Scripting } from '../util/Scripting';
-import { AudioBox } from './nodes/AudioBox';
-import SettingsManager from '../util/SettingsManager';
-import { TraceMobx } from '../../new_fields/util';
-import { RadialMenu } from './nodes/RadialMenu';
-import RichTextMenu from '../util/RichTextMenu';
-import { DocumentType } from '../documents/DocumentTypes';
 
 @observer
 export class MainView extends React.Component {
@@ -52,6 +49,7 @@ export class MainView extends React.Component {
     private _flyoutSizeOnDown = 0;
     private _urlState: HistoryUtil.DocUrl;
     private _docBtnRef = React.createRef<HTMLDivElement>();
+    private _mainViewRef = React.createRef<HTMLDivElement>();
 
     @observable private _panelWidth: number = 0;
     @observable private _panelHeight: number = 0;
@@ -103,6 +101,7 @@ export class MainView extends React.Component {
             }
         }
 
+        library.add(faTerminal);
         library.add(faFileAlt);
         library.add(faStickyNote);
         library.add(faFont);
@@ -278,7 +277,7 @@ export class MainView extends React.Component {
     defaultBackgroundColors = (doc: Doc) => {
         if (this.darkScheme) {
             switch (doc.type) {
-                case DocumentType.TEXT || DocumentType.BUTTON: return "#2d2d2d";
+                case DocumentType.RTF || DocumentType.LABEL: return "#2d2d2d";
                 case DocumentType.LINK:
                 case DocumentType.COL: {
                     if (doc._viewType !== CollectionViewType.Freeform && doc._viewType !== CollectionViewType.Time) return "rgb(62,62,62)";
@@ -287,8 +286,8 @@ export class MainView extends React.Component {
             }
         } else {
             switch (doc.type) {
-                case DocumentType.TEXT: return "#f1efeb";
-                case DocumentType.BUTTON: return "lightgray";
+                case DocumentType.RTF: return "#f1efeb";
+                case DocumentType.LABEL: return "lightgray";
                 case DocumentType.LINK:
                 case DocumentType.COL: {
                     if (doc._viewType !== CollectionViewType.Freeform && doc._viewType !== CollectionViewType.Time) return "lightgray";
@@ -304,11 +303,14 @@ export class MainView extends React.Component {
             addDocument={undefined}
             addDocTab={this.addDocTabFunc}
             pinToPres={emptyFunction}
+            rootSelected={returnTrue}
             onClick={undefined}
             backgroundColor={this.defaultBackgroundColors}
             removeDocument={undefined}
             ScreenToLocalTransform={Transform.Identity}
             ContentScaling={returnOne}
+            NativeHeight={returnZero}
+            NativeWidth={returnZero}
             PanelWidth={this.getPWidth}
             PanelHeight={this.getPHeight}
             renderDepth={0}
@@ -318,8 +320,6 @@ export class MainView extends React.Component {
             bringToFront={emptyFunction}
             ContainingCollectionView={undefined}
             ContainingCollectionDoc={undefined}
-            zoomToScale={emptyFunction}
-            getScale={returnOne}
         />;
     }
     @computed get dockingContent() {
@@ -402,12 +402,15 @@ export class MainView extends React.Component {
                     DataDoc={undefined}
                     LibraryPath={emptyPath}
                     addDocument={undefined}
+                    rootSelected={returnTrue}
                     addDocTab={this.addDocTabFunc}
                     pinToPres={emptyFunction}
                     removeDocument={undefined}
                     onClick={undefined}
                     ScreenToLocalTransform={Transform.Identity}
                     ContentScaling={returnOne}
+                    NativeHeight={returnZero}
+                    NativeWidth={returnZero}
                     PanelWidth={this.flyoutWidthFunc}
                     PanelHeight={this.getPHeight}
                     renderDepth={0}
@@ -417,10 +420,7 @@ export class MainView extends React.Component {
                     whenActiveChanged={emptyFunction}
                     bringToFront={emptyFunction}
                     ContainingCollectionView={undefined}
-                    ContainingCollectionDoc={undefined}
-                    zoomToScale={emptyFunction}
-                    getScale={returnOne}>
-                </DocumentView>
+                    ContainingCollectionDoc={undefined} />
             </div>
             <div className="mainView-contentArea" style={{ position: "relative", height: `calc(100% - ${this._buttonBarHeight}px)`, width: "100%", overflow: "visible" }}>
                 <DocumentView
@@ -430,6 +430,9 @@ export class MainView extends React.Component {
                     addDocument={undefined}
                     addDocTab={this.addDocTabFunc}
                     pinToPres={emptyFunction}
+                    NativeHeight={returnZero}
+                    NativeWidth={returnZero}
+                    rootSelected={returnTrue}
                     removeDocument={returnFalse}
                     onClick={undefined}
                     ScreenToLocalTransform={this.mainContainerXf}
@@ -443,10 +446,7 @@ export class MainView extends React.Component {
                     whenActiveChanged={emptyFunction}
                     bringToFront={emptyFunction}
                     ContainingCollectionView={undefined}
-                    ContainingCollectionDoc={undefined}
-                    zoomToScale={emptyFunction}
-                    getScale={returnOne}>
-                </DocumentView>
+                    ContainingCollectionDoc={undefined} />
                 <button className="mainView-settings" key="settings" onClick={() => SettingsManager.Instance.open()}>
                     Settings
                 </button>
@@ -516,7 +516,10 @@ export class MainView extends React.Component {
                     DataDoc={undefined}
                     LibraryPath={emptyPath}
                     fieldKey={"data"}
+                    dropAction={"alias"}
                     annotationsKey={""}
+                    rootSelected={returnTrue}
+                    bringToFront={emptyFunction}
                     select={emptyFunction}
                     active={returnFalse}
                     isSelected={returnFalse}
@@ -529,6 +532,8 @@ export class MainView extends React.Component {
                     onClick={undefined}
                     ScreenToLocalTransform={this.buttonBarXf}
                     ContentScaling={returnOne}
+                    NativeHeight={returnZero}
+                    NativeWidth={returnZero}
                     PanelWidth={this.flyoutWidthFunc}
                     PanelHeight={this.getContentsHeight}
                     renderDepth={0}
@@ -541,8 +546,16 @@ export class MainView extends React.Component {
         return (null);
     }
 
+    get mainViewElement() {
+        return document.getElementById("mainView-container");
+    }
+
+    get mainViewRef() {
+        return this._mainViewRef;
+    }
+
     render() {
-        return (<div className={"mainView-container" + (this.darkScheme ? "-dark" : "")}>
+        return (<div className={"mainView-container" + (this.darkScheme ? "-dark" : "")} ref={this._mainViewRef}>
             <DictationOverlay />
             <SharingManager />
             <SettingsManager />

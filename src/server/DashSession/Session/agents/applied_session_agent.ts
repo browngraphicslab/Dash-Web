@@ -44,7 +44,7 @@ export abstract class AppliedSessionAgent {
         if (!this.launched) {
             this.launched = true;
             if (isMaster) {
-                this.sessionMonitorRef = Monitor.Create()
+                this.sessionMonitorRef = Monitor.Create();
                 const sessionKey = await this.initializeMonitor(this.sessionMonitorRef);
                 this.sessionMonitorRef.finalize(sessionKey);
             } else {

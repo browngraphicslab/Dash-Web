@@ -151,14 +151,14 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, props: any
     });
     bind("Ctrl-Enter", (state: EditorState<S>, dispatch: (tx: Transaction<S>) => void) => {
         const layoutDoc = props.Document;
-        const originalDoc = layoutDoc.expandedTemplate || layoutDoc;
+        const originalDoc = layoutDoc.rootDocument || layoutDoc;
         if (originalDoc instanceof Doc) {
             const newDoc = Docs.Create.TextDocument("", {
                 title: "", layout: Cast(originalDoc.layout, Doc, null) || FormattedTextBox.DefaultLayout, _singleLine: BoolCast(originalDoc._singleLine),
                 x: NumCast(originalDoc.x), y: NumCast(originalDoc.y) + NumCast(originalDoc._height) + 10, _width: NumCast(layoutDoc._width), _height: NumCast(layoutDoc._height)
             });
             FormattedTextBox.SelectOnLoad = newDoc[Id];
-            originalDoc instanceof Doc && props.addDocument(newDoc);
+            props.addDocument(newDoc);
         }
     });
 
@@ -169,7 +169,7 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, props: any
     };
     const addTextOnRight = (force: boolean) => {
         const layoutDoc = props.Document;
-        const originalDoc = layoutDoc.expandedTemplate || layoutDoc;
+        const originalDoc = layoutDoc.rootDocument || layoutDoc;
         if (force || props.Document._singleLine) {
             const newDoc = Docs.Create.TextDocument("", {
                 title: "", layout: Cast(originalDoc.layout, Doc, null) || FormattedTextBox.DefaultLayout, _singleLine: BoolCast(originalDoc._singleLine),
@@ -180,7 +180,7 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, props: any
             return true;
         }
         return false;
-    }
+    };
     bind("Alt-Enter", (state: EditorState<S>, dispatch: (tx: Transaction<Schema<any, any>>) => void) => {
         return addTextOnRight(true);
     });

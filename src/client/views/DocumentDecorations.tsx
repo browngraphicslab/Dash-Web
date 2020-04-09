@@ -8,7 +8,7 @@ import { PositionDocument } from '../../new_fields/documentSchemas';
 import { ScriptField } from '../../new_fields/ScriptField';
 import { Cast, StrCast, NumCast } from "../../new_fields/Types";
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
-import { Utils, setupMoveUpEvents } from "../../Utils";
+import { Utils, setupMoveUpEvents, emptyFunction, returnFalse } from "../../Utils";
 import { DocUtils } from "../documents/Documents";
 import { DocumentType } from '../documents/DocumentTypes';
 import { DragManager } from "../util/DragManager";
@@ -43,7 +43,7 @@ export type CloseCall = (toBeDeleted: DocumentView[]) => void;
 export class DocumentDecorations extends React.Component<{}, { value: string }> {
     static Instance: DocumentDecorations;
     private _resizeHdlId = "";
-    private _keyinput: React.RefObject<HTMLInputElement>;
+    private _keyinput = React.createRef<HTMLInputElement>();
     private _resizeBorderWidth = 16;
     private _linkBoxHeight = 20 + 3; // link button height + margin
     private _titleHeight = 20;
@@ -62,7 +62,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     constructor(props: Readonly<{}>) {
         super(props);
         DocumentDecorations.Instance = this;
-        this._keyinput = React.createRef();
         reaction(() => SelectionManager.SelectedDocuments().slice(), docs => this.titleBlur(false));
     }
 
@@ -77,7 +76,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             var [sptX, sptY] = transform.transformPoint(0, 0);
             let [bptX, bptY] = transform.transformPoint(documentView.props.PanelWidth(), documentView.props.PanelHeight());
             if (documentView.props.Document.type === DocumentType.LINK) {
-                const docuBox = documentView.ContentDiv!.getElementsByClassName("docuLinkBox-cont");
+                const docuBox = documentView.ContentDiv!.getElementsByClassName("linkAnchorBox-cont");
                 if (docuBox.length) {
                     const rect = docuBox[0].getBoundingClientRect();
                     sptX = rect.left;
@@ -245,6 +244,16 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     }
 
     @action
+    onSelectorUp = (e: React.PointerEvent): void => {
+        setupMoveUpEvents(this, e, returnFalse, emptyFunction, action((e) => {
+            const selDoc = SelectionManager.SelectedDocuments()?.[0];
+            if (selDoc) {
+                selDoc.props.ContainingCollectionView?.props.select(false);
+            }
+        }));
+    }
+
+    @action
     onRadiusDown = (e: React.PointerEvent): void => {
         setupMoveUpEvents(this, e, this.onRadiusMove, (e) => this._resizeUndo?.end(), (e) => { });
         if (e.button === 0) {
@@ -320,6 +329,10 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 const width = (layoutDoc._width || 0);
                 const height = (layoutDoc._height || (nheight / nwidth * width));
                 const scale = element.props.ScreenToLocalTransform().Scale * element.props.ContentScaling();
+                if (nwidth && nheight) {
+                    if (Math.abs(dW) > Math.abs(dH)) dH = dW * nheight / nwidth;
+                    else dW = dH * nwidth / nheight;
+                }
                 const actualdW = Math.max(width + (dW * scale), 20);
                 const actualdH = Math.max(height + (dH * scale), 20);
                 doc.x = (doc.x || 0) + dX * (actualdW - width);
@@ -411,7 +424,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         const darkScheme = Cast(Doc.UserDoc().activeWorkspace, Doc, null)?.darkScheme ? "dimgray" : undefined;
         const bounds = this.Bounds;
         const seldoc = SelectionManager.SelectedDocuments().length ? SelectionManager.SelectedDocuments()[0] : undefined;
-        if (SelectionManager.GetIsDragging() || bounds.x === Number.MAX_VALUE || !seldoc || this._hidden || isNaN(bounds.r) || isNaN(bounds.b) || isNaN(bounds.x) || isNaN(bounds.y)) {
+        if (SelectionManager.GetIsDragging() || bounds.r - bounds.x < 2 || bounds.x === Number.MAX_VALUE || !seldoc || this._hidden || isNaN(bounds.r) || isNaN(bounds.b) || isNaN(bounds.x) || isNaN(bounds.y)) {
             return (null);
         }
         const minimal = bounds.r - bounds.x < 100 ? true : false;
@@ -496,6 +509,10 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-bottomRightResizer" className="documentDecorations-resizer"
                     onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
+                {seldoc.props.renderDepth <= 1 || !seldoc.props.ContainingCollectionView ? (null) : <div id="documentDecorations-levelSelector" className="documentDecorations-selector" title="tap to select containing document"
+                    onPointerDown={this.onSelectorUp} onContextMenu={(e) => e.preventDefault()}>
+                    <FontAwesomeIcon className="documentdecorations-times" icon={faArrowAltCircleUp} size="lg" />
+                </div>}
                 <div id="documentDecorations-borderRadius" className="documentDecorations-radius"
                     onPointerDown={this.onRadiusDown} onContextMenu={(e) => e.preventDefault()}></div>
 

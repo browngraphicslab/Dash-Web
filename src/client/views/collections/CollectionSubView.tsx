@@ -1,12 +1,11 @@
 import { action, computed, IReactionDisposer, reaction } from "mobx";
-import * as rp from 'request-promise';
 import CursorField from "../../../new_fields/CursorField";
 import { Doc, DocListCast, Opt, WidthSym, HeightSym } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
 import { ScriptField } from "../../../new_fields/ScriptField";
-import { Cast } from "../../../new_fields/Types";
+import { Cast, StrCast } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
@@ -35,30 +34,36 @@ export interface CollectionViewProps extends FieldViewProps {
     PanelHeight: () => number;
     VisibleHeight?: () => number;
     setPreviewCursor?: (func: (x: number, y: number, drag: boolean) => void) => void;
+    rootSelected: (outsideReaction?: boolean) => boolean;
     fieldKey: string;
+    NativeWidth: () => number;
+    NativeHeight: () => number;
 }
 
 export interface SubCollectionViewProps extends CollectionViewProps {
     CollectionView: Opt<CollectionView>;
     children?: never | (() => JSX.Element[]) | React.ReactNode;
-    overrideDocuments?: Doc[]; // used to override the documents shown by the sub collection to an explict list (see LinkBox)
+    freezeChildDimensions?: boolean; // used by TimeView to coerce documents to treat their width height as their native width/height
+    overrideDocuments?: Doc[]; // used to override the documents shown by the sub collection to an explicit list (see LinkBox)
     ignoreFields?: string[]; // used in TreeView to ignore specified fields (see LinkBox)
     isAnnotationOverlay?: boolean;
     annotationsKey: string;
     layoutEngine?: () => string;
 }
 
-export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
-    class CollectionSubView extends DocComponent<SubCollectionViewProps, T>(schemaCtor) {
+export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?: X) {
+    class CollectionSubView extends DocComponent<X & SubCollectionViewProps, T>(schemaCtor) {
         private dropDisposer?: DragManager.DragDropDisposer;
         private gestureDisposer?: GestureUtils.GestureEventDisposer;
         protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
         private _childLayoutDisposer?: IReactionDisposer;
+        protected _mainCont?: HTMLDivElement;
         protected createDashEventsTarget = (ele: HTMLDivElement) => { //used for stacking and masonry view
             this.dropDisposer?.();
             this.gestureDisposer?.();
             this.multiTouchDisposer?.();
             if (ele) {
+                this._mainCont = ele;
                 this.dropDisposer = DragManager.MakeDropTarget(ele, this.onInternalDrop.bind(this));
                 this.gestureDisposer = GestureUtils.MakeGestureTarget(ele, this.onGesture.bind(this));
                 this.multiTouchDisposer = InteractionUtils.MakeMultiTouchTarget(ele, this.onTouchStart.bind(this));
@@ -90,8 +95,12 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         }
 
         @computed get dataDoc() {
-            return (this.props.DataDoc && this.props.Document.isTemplateForField ? Doc.GetProto(this.props.DataDoc) :
+            return (this.props.DataDoc instanceof Doc && this.props.Document.isTemplateForField ? Doc.GetProto(this.props.DataDoc) :
                 this.props.Document.resolvedDataDoc ? this.props.Document : Doc.GetProto(this.props.Document)); // if the layout document has a resolvedDataDoc, then we don't want to get its parent which would be the unexpanded template
+        }
+
+        rootSelected = (outsideReaction?: boolean) => {
+            return this.props.isSelected(outsideReaction) || (this.props.Document.rootDocument || this.props.Document.forceActive ? this.props.rootSelected(outsideReaction) : false);
         }
 
         // The data field for rendering this collection will be on the this.props.Document unless we're rendering a template in which case we try to use props.DataDoc.
@@ -105,15 +114,62 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
         get childLayoutPairs(): { layout: Doc; data: Doc; }[] {
             const { Document, DataDoc } = this.props;
             const validPairs = this.childDocs.map(doc => Doc.GetLayoutDataDocPair(Document, !this.props.annotationsKey ? DataDoc : undefined, doc)).filter(pair => pair.layout);
-            return validPairs.map(({ data, layout }) => ({ data: data!, layout: layout! })); // this mapping is a bit of a hack to coerce types
+            return validPairs.map(({ data, layout }) => ({ data: data as Doc, layout: layout! })); // this mapping is a bit of a hack to coerce types
         }
         get childDocList() {
             return Cast(this.dataField, listSpec(Doc));
         }
-        get childDocs() {
-            const docs = DocListCast(this.dataField);
+        @computed get childDocs() {
+            const docFilters = Cast(this.props.Document._docFilters, listSpec("string"), []);
+            const docRangeFilters = Cast(this.props.Document._docRangeFilters, listSpec("string"), []);
+            const filterFacets: { [key: string]: { [value: string]: string } } = {};  // maps each filter key to an object with value=>modifier fields
+            for (let i = 0; i < docFilters.length; i += 3) {
+                const [key, value, modifiers] = docFilters.slice(i, i + 3);
+                if (!filterFacets[key]) {
+                    filterFacets[key] = {};
+                }
+                filterFacets[key][value] = modifiers;
+            }
+
+            let rawdocs: (Doc | Promise<Doc>)[] = [];
+            if (this.dataField instanceof Doc) { // if collection data is just a document, then promote it to a singleton list;
+                rawdocs = [this.dataField];
+            } else if (Cast(this.dataField, listSpec(Doc), null)) { // otherwise, if the collection data is a list, then use it.  
+                rawdocs = Cast(this.dataField, listSpec(Doc), null);
+            } else {   // Finally, if it's not a doc or a list and the document is a template, we try to render the root doc.
+                // For example, if an image doc is rendered with a slide template, the template will try to render the data field as a collection.
+                // Since the data field is actually an image, we set the list of documents to the singleton of root document's proto which will be an image.
+                const rootDoc = Cast(this.props.Document.rootDocument, Doc, null);
+                rawdocs = rootDoc && !this.props.annotationsKey ? [Doc.GetProto(rootDoc)] : [];
+            }
+            const docs = rawdocs.filter(d => !(d instanceof Promise)).map(d => d as Doc);
             const viewSpecScript = Cast(this.props.Document.viewSpecScript, ScriptField);
-            return viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
+            const childDocs = viewSpecScript ? docs.filter(d => viewSpecScript.script.run({ doc: d }, console.log).result) : docs;
+
+            const filteredDocs = docFilters.length && !this.props.dontRegisterView ? childDocs.filter(d => {
+                for (const facetKey of Object.keys(filterFacets)) {
+                    const facet = filterFacets[facetKey];
+                    const satisfiesFacet = Object.keys(facet).some(value =>
+                        (facet[value] === "x") !== Doc.matchFieldValue(d, facetKey, value));
+                    if (!satisfiesFacet) {
+                        return false;
+                    }
+                }
+                return true;
+            }) : childDocs;
+            const rangeFilteredDocs = filteredDocs.filter(d => {
+                for (let i = 0; i < docRangeFilters.length; i += 3) {
+                    const key = docRangeFilters[i];
+                    const min = Number(docRangeFilters[i + 1]);
+                    const max = Number(docRangeFilters[i + 2]);
+                    const val = Cast(d[key], "number", null);
+                    if (val !== undefined && (val < min || val > max)) {
+                        return false;
+                    }
+                }
+                return true;
+            });
+            return rangeFilteredDocs;
         }
 
         @action
@@ -150,7 +206,6 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
 
         @undoBatch
         protected onGesture(e: Event, ge: GestureUtils.GestureEvent) {
-
         }
 
         @undoBatch
@@ -161,9 +216,6 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 this.props.Document.dropConverter.script.run({ dragData: docDragData }); /// bcz: check this 
             if (docDragData) {
                 let added = false;
-                if (this.props.Document._freezeOnDrop) {
-                    de.complete.docDragData?.droppedDocuments.forEach(drop => Doc.freezeNativeDimensions(drop, drop[WidthSym](), drop[HeightSym]()));
-                }
                 if (docDragData.dropAction || docDragData.userDropAction) {
                     added = docDragData.droppedDocuments.reduce((added: boolean, d) => this.props.addDocument(d) || added, false);
                 } else if (docDragData.moveDocument) {
@@ -231,7 +283,9 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 if (!html.startsWith("<a")) {
                     const tags = html.split("<");
                     if (tags[0] === "") tags.splice(0, 1);
-                    const img = tags[0].startsWith("img") ? tags[0] : tags.length > 1 && tags[1].startsWith("img") ? tags[1] : "";
+                    let img = tags[0].startsWith("img") ? tags[0] : tags.length > 1 && tags[1].startsWith("img") ? tags[1] : "";
+                    const cors = img.includes("corsProxy") ? img.match(/http.*corsProxy\//)![0] : "";
+                    img = cors ? img.replace(cors, "") : img;
                     if (img) {
                         const split = img.split("src=\"")[1].split("\"")[0];
                         let source = split;
@@ -239,9 +293,11 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                             const [{ accessPaths }] = await Networking.PostToServer("/uploadRemoteImage", { sources: [split] });
                             source = Utils.prepend(accessPaths.agnostic.client);
                         }
-                        const doc = Docs.Create.ImageDocument(source, { ...options, _width: 300 });
-                        ImageUtils.ExtractExif(doc);
-                        addDocument(doc);
+                        if (source.startsWith("http")) {
+                            const doc = Docs.Create.ImageDocument(source, { ...options, _width: 300 });
+                            ImageUtils.ExtractExif(doc);
+                            addDocument(doc);
+                        }
                         return;
                     } else {
                         const path = window.location.origin + "/doc/";
@@ -309,7 +365,7 @@ export function CollectionSubView<T>(schemaCtor: (doc: Doc) => T) {
                 const item = e.dataTransfer.items[i];
                 if (item.kind === "string" && item.type.includes("uri")) {
                     const stringContents = await new Promise<string>(resolve => item.getAsString(resolve));
-                    const type = (await rp.head(Utils.CorsProxy(stringContents)))["content-type"];
+                    const type = "html";// (await rp.head(Utils.CorsProxy(stringContents)))["content-type"];
                     if (type) {
                         const doc = await Docs.Get.DocumentFromType(type, stringContents, options);
                         doc && generatedDocuments.push(doc);

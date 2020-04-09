@@ -29,13 +29,13 @@ export class InkingStroke extends DocExtendableComponent<FieldViewProps, InkDocu
     @computed get PanelHeight() { return this.props.PanelHeight(); }
 
     private analyzeStrokes = () => {
-        const data: InkData = Cast(this.Document.data, InkField)?.inkData ?? [];
+        const data: InkData = Cast(this.Document.data, InkField) ?.inkData ?? [];
         CognitiveServices.Inking.Appliers.ConcatenateHandwriting(this.Document, ["inkAnalysis", "handwriting"], [data]);
     }
 
     render() {
         TraceMobx();
-        const data: InkData = Cast(this.Document.data, InkField)?.inkData ?? [];
+        const data: InkData = Cast(this.Document.data, InkField) ?.inkData ?? [];
         const xs = data.map(p => p.X);
         const ys = data.map(p => p.Y);
         const left = Math.min(...xs);

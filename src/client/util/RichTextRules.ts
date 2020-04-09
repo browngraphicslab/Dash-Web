@@ -81,31 +81,46 @@ export class RichTextRules {
 
             // create a text display of a metadata field on this or another document, or create a hyperlink portal to another document [[ <fieldKey> : <Doc>]]   // [[:Doc]] => hyperlink   [[fieldKey]] => show field   [[fieldKey:Doc]] => show field of doc
             new InputRule(
-                new RegExp(/\[\[([a-zA-Z_#@\? \-0-9]*)(:[a-zA-Z_#@\? \-0-9]+)?\]\]$/),
+                new RegExp(/\[\[([a-zA-Z_#@\? \-0-9]*)(=[a-zA-Z_#@\? \-0-9]*)?(:[a-zA-Z_#@\? \-0-9]+)?\]\]$/),
                 (state, match, start, end) => {
                     const fieldKey = match[1];
-                    const docid = match[2]?.substring(1);
+                    const docid = match[3]?.substring(1);
+                    const value = match[2]?.substring(1);
                     if (!fieldKey) {
                         if (docid) {
                             DocServer.GetRefField(docid).then(docx => {
                                 const target = ((docx instanceof Doc) && docx) || Docs.Create.FreeformDocument([], { title: docid, _width: 500, _height: 500, _LODdisable: true, }, docid);
                                 DocUtils.Publish(target, docid, returnFalse, returnFalse);
-                                DocUtils.MakeLink({ doc: this.Document }, { doc: target }, "portal link", "");
+                                DocUtils.MakeLink({ doc: this.Document }, { doc: target }, "portal to");
                             });
                             const link = state.schema.marks.link.create({ href: Utils.prepend("/doc/" + docid), location: "onRight", title: docid, targetId: docid });
                             return state.tr.deleteRange(end - 1, end).deleteRange(start, start + 2).addMark(start, end - 3, link);
                         }
                         return state.tr;
                     }
+                    if (value !== "" && value !== undefined) {
+                        this.Document[DataSym][fieldKey] = value === "true" ? true : value === "false" ? false : value;
+                    }
                     const fieldView = state.schema.nodes.dashField.create({ fieldKey, docid });
+                    return state.tr.deleteRange(start, end).insert(start, fieldView);
+                }),
+            // create an inline view of a tag stored under the '#' field
+            new InputRule(
+                new RegExp(/#([a-zA-Z_\-0-9]+)\s$/),
+                (state, match, start, end) => {
+                    const tag = match[1];
+                    if (!tag) return state.tr;
+                    this.Document[DataSym]["#"] = tag;
+                    const fieldView = state.schema.nodes.dashField.create({ fieldKey: "#" });
                     return state.tr.deleteRange(start, end).insert(start, fieldView);
                 }),
             // create an inline view of a document {{ <layoutKey> : <Doc> }}  // {{:Doc}} => show default view of document   {{<layout>}} => show layout for this doc   {{<layout> : Doc}} => show layout for another doc
             new InputRule(
-                new RegExp(/\{\{([a-zA-Z_ \-0-9]*)(:[a-zA-Z_ \-0-9]+)?\}\}$/),
+                new RegExp(/\{\{([a-zA-Z_ \-0-9]*)(\([a-zA-Z0-9…._\-]*\))?(:[a-zA-Z_ \-0-9]+)?\}\}$/),
                 (state, match, start, end) => {
-                    const fieldKey = match[1];
-                    const docid = match[2]?.substring(1);
+                    const fieldKey = match[1] || "";
+                    const fieldParam = match[2]?.replace("…", "...") || "";
+                    const docid = match[3]?.substring(1);
                     if (!fieldKey && !docid) return state.tr;
                     docid && DocServer.GetRefField(docid).then(docx => {
                         if (!(docx instanceof Doc && docx)) {
@@ -114,7 +129,7 @@ export class RichTextRules {
                         }
                     });
                     const node = (state.doc.resolve(start) as any).nodeAfter;
-                    const dashDoc = schema.nodes.dashDoc.create({ width: 75, height: 75, title: "dashDoc", docid, fieldKey, float: "right", alias: Utils.GenerateGuid() });
+                    const dashDoc = schema.nodes.dashDoc.create({ width: 75, height: 75, title: "dashDoc", docid, fieldKey: fieldKey + fieldParam, float: "right", alias: Utils.GenerateGuid() });
                     const sm = state.storedMarks || undefined;
                     return node ? state.tr.replaceRangeWith(start, end, dashDoc).setStoredMarks([...node.marks, ...(sm ? sm : [])]) : state.tr;
                 }),

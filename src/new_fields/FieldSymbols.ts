@@ -8,4 +8,5 @@ export const OnUpdate = Symbol("OnUpdate");
 export const Parent = Symbol("Parent");
 export const Copy = Symbol("Copy");
 export const ToScriptString = Symbol("ToScriptString");
+export const ToPlainText = Symbol("ToPlainText");
 export const ToString = Symbol("ToString");

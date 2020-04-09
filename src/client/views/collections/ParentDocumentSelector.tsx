@@ -2,7 +2,7 @@ import * as React from "react";
 import './ParentDocumentSelector.scss';
 import { Doc } from "../../../new_fields/Doc";
 import { observer } from "mobx-react";
-import { observable, action, runInAction } from "mobx";
+import { observable, action, runInAction, trace, computed } from "mobx";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { SearchUtil } from "../../util/SearchUtil";
 import { CollectionDockingView } from "./CollectionDockingView";
@@ -14,6 +14,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCog, faChevronCircleUp } from "@fortawesome/free-solid-svg-icons";
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { DocumentView } from "../nodes/DocumentView";
+import { SelectionManager } from "../../util/SelectionManager";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -22,7 +23,6 @@ library.add(faCog);
 
 type SelectorProps = {
     Document: Doc,
-    Views: DocumentView[],
     Stack?: any,
     addDocTab(doc: Doc, location: string): void
 };
@@ -54,7 +54,7 @@ export class SelectorContextMenu extends React.Component<SelectorProps> {
     getOnClick({ col, target }: { col: Doc, target: Doc }) {
         return () => {
             col = Doc.IsPrototype(col) ? Doc.MakeDelegate(col) : col;
-            if (NumCast(col._viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
+            if (col._viewType === CollectionViewType.Freeform) {
                 const newPanX = NumCast(target.x) + NumCast(target._width) / 2;
                 const newPanY = NumCast(target.y) + NumCast(target._height) / 2;
                 col._panX = newPanX;
@@ -93,9 +93,7 @@ export class ParentDocSelector extends React.Component<SelectorProps> {
 }
 
 @observer
-export class DockingViewButtonSelector extends React.Component<{ Document: Doc, Stack: any }> {
-    @observable hover = false;
-
+export class DockingViewButtonSelector extends React.Component<{ views: DocumentView[], Stack: any }> {
     customStylesheet(styles: any) {
         return {
             ...styles,
@@ -105,16 +103,19 @@ export class DockingViewButtonSelector extends React.Component<{ Document: Doc, 
             },
         };
     }
+    _ref = React.createRef<HTMLDivElement>();
 
-    render() {
-        const view = DocumentManager.Instance.getDocumentView(this.props.Document);
-        const flyout = (
-            <div className="ParentDocumentSelector-flyout" title=" ">
-                <DocumentButtonBar views={[view]} stack={this.props.Stack} />
+    @computed get flyout() {
+        return (
+            <div className="ParentDocumentSelector-flyout" title=" " ref={this._ref}>
+                <DocumentButtonBar views={this.props.views} stack={this.props.Stack} />
             </div>
         );
-        return <span title="Tap for menu, drag tab as document" onPointerDown={e => !this.props.Stack && e.stopPropagation()} className="buttonSelector">
-            <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={flyout} stylesheet={this.customStylesheet}>
+    }
+
+    render() {
+        return <span title="Tap for menu, drag tab as document" onPointerDown={e => { if (getComputedStyle(this._ref.current!).width !== "100%") {e.stopPropagation();e.preventDefault();} this.props.views[0].select(false); }} className="buttonSelector">
+            <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={this.flyout} stylesheet={this.customStylesheet}>
                 <FontAwesomeIcon icon={"cog"} size={"sm"} />
             </Flyout>
         </span>;

@@ -53,14 +53,14 @@ export namespace DashUploadUtils {
     const size = "content-length";
     const type = "content-type";
 
-    const { imageFormats, videoFormats, applicationFormats } = AcceptibleMedia;
+    const { imageFormats, videoFormats, applicationFormats, audioFormats } = AcceptibleMedia;
 
     export async function upload(file: File): Promise<Upload.FileResponse> {
         const { type, path, name } = file;
         const types = type.split("/");
 
         const category = types[0];
-        const format = `.${types[1]}`;
+        let format = `.${types[1]}`;
 
         switch (category) {
             case "image":
@@ -75,6 +75,14 @@ export namespace DashUploadUtils {
             case "application":
                 if (applicationFormats.includes(format)) {
                     return UploadPdf(file);
+                }
+            case "audio":
+                const components = format.split(";");
+                if (components.length > 1) {
+                    format = components[0];
+                }
+                if (audioFormats.includes(format)) {
+                    return UploadAudio(file, format);
                 }
         }
 
@@ -93,6 +101,13 @@ export namespace DashUploadUtils {
             writeStream.write(result.text, error => error ? reject(error) : resolve());
         });
         return MoveParsedFile(file, Directory.pdfs);
+    }
+
+    const manualSuffixes = [".webm"];
+
+    async function UploadAudio(file: File, format: string) {
+        const suffix = manualSuffixes.includes(format) ? format : undefined;
+        return MoveParsedFile(file, Directory.audio, suffix);
     }
 
     /**
@@ -145,6 +160,11 @@ export namespace DashUploadUtils {
     export const InspectImage = async (source: string): Promise<Upload.InspectionResults | Error> => {
         let rawMatches: RegExpExecArray | null;
         let filename: string | undefined;
+        /**
+         * Just more edge case handling: this if clause handles the case where an image onto the canvas that
+         * is represented by a base64 encoded data uri, rather than a proper file. We manually write it out
+         * to the server and then carry on as if it had been put there by the Formidable form / file parser.
+         */
         if ((rawMatches = /^data:image\/([a-z]+);base64,(.*)/.exec(source)) !== null) {
             const [ext, data] = rawMatches.slice(1, 3);
             const resolved = filename = `upload_${Utils.GenerateGuid()}.${ext}`;
@@ -157,21 +177,35 @@ export namespace DashUploadUtils {
             source = `http://localhost:1050${clientPathToFile(Directory.images, resolved)}`;
         }
         let resolvedUrl: string;
+        /**
+         * At this point, we want to take whatever url we have and make sure it's requestable.
+         * Anything that's hosted by some other website already is, but if the url is a local file url
+         * (locates the file on this server machine), we have to resolve the client side url by cutting out the
+         * basename subtree (i.e. /images/<some_guid>.<ext>) and put it on the end of the server's url.
+         * 
+         * This can always be localhost, regardless of whether this is on the server or not, since we (the server, not the client)
+         * will be the ones making the request, and from the perspective of dash-release or dash-web, localhost:1050 refers to the same thing
+         * as the full dash-release.eastus.cloudapp.azure.com:1050.
+         */
         const matches = isLocal().exec(source);
         if (matches === null) {
             resolvedUrl = source;
         } else {
             resolvedUrl = `http://localhost:1050/${matches[1].split("\\").join("/")}`;
         }
+        // See header comments: not all image files have exif data (I believe only JPG is the only format that can have it)
         const exifData = await parseExifData(resolvedUrl);
         const results = {
             exifData,
             requestable: resolvedUrl
         };
+        // Use the request library to parse out file level image information in the headers
         const { headers } = (await new Promise<any>((resolve, reject) => {
             request.head(resolvedUrl, (error, res) => error ? reject(error) : resolve(res));
         }).catch(error => console.error(error)));
+        // Compute the native width and height ofthe image with an npm module
         const { width: nativeWidth, height: nativeHeight }: RequestedImageSize = await requestImageSize(resolvedUrl);
+        // Bundle up the information into an object
         return {
             source,
             contentSize: parseInt(headers[size]),
@@ -183,9 +217,20 @@ export namespace DashUploadUtils {
         };
     };
 
-    export async function MoveParsedFile(file: File, destination: Directory): Promise<Upload.FileResponse> {
+    /**
+     * Basically just a wrapper around rename, which 'deletes'
+     * the file at the old path and 'moves' it to the new one. For simplicity, the
+     * caller just has to pass in the name of the target directory, and this function
+     * will resolve the actual target path from that.
+     * @param file The file to move
+     * @param destination One of the specific media asset directories into which to move it
+     * @param suffix If the file doesn't have a suffix and you want to provide it one
+     * to appear in the new location
+     */
+    export async function MoveParsedFile(file: File, destination: Directory, suffix: string | undefined = undefined): Promise<Upload.FileResponse> {
         const { path: sourcePath } = file;
-        const name = path.basename(sourcePath);
+        let name = path.basename(sourcePath);
+        suffix && (name += suffix);
         return new Promise(resolve => {
             const destinationPath = serverPathToFile(destination, name);
             rename(sourcePath, destinationPath, error => {

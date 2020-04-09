@@ -1,33 +1,35 @@
-import { IReactionDisposer, reaction } from "mobx";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { IReactionDisposer, reaction, computed } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, Field } from "../../../new_fields/Doc";
 import { documentSchema } from "../../../new_fields/documentSchemas";
-import { List } from "../../../new_fields/List";
 import { makeInterface } from "../../../new_fields/Schema";
 import { ComputedField } from "../../../new_fields/ScriptField";
-import { Cast, StrCast, BoolCast } from "../../../new_fields/Types";
-import { emptyFunction, emptyPath } from "../../../Utils";
+import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
+import { emptyPath } from "../../../Utils";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
-import { DocComponent, DocAnnotatableComponent } from "../DocComponent";
+import { DocAnnotatableComponent } from "../DocComponent";
 import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import "./DocumentBox.scss";
 import { FieldView, FieldViewProps } from "./FieldView";
 import React = require("react");
+import { TraceMobx } from "../../../new_fields/util";
+import { DocumentView } from "./DocumentView";
+import { Docs } from "../../documents/Documents";
 
-type DocBoxSchema = makeInterface<[typeof documentSchema]>;
-const DocBoxDocument = makeInterface(documentSchema);
+type DocHolderBoxSchema = makeInterface<[typeof documentSchema]>;
+const DocHolderBoxDocument = makeInterface(documentSchema);
 
 @observer
-export class DocumentBox extends DocAnnotatableComponent<FieldViewProps, DocBoxSchema>(DocBoxDocument) {
-    public static LayoutString(fieldKey: string) { return FieldView.LayoutString(DocumentBox, fieldKey); }
+export class DocHolderBox extends DocAnnotatableComponent<FieldViewProps, DocHolderBoxSchema>(DocHolderBoxDocument) {
+    public static LayoutString(fieldKey: string) { return FieldView.LayoutString(DocHolderBox, fieldKey); }
     _prevSelectionDisposer: IReactionDisposer | undefined;
     _selections: Doc[] = [];
     _curSelection = -1;
     componentDidMount() {
-        this._prevSelectionDisposer = reaction(() => Cast(this.props.Document[this.props.fieldKey], Doc) as Doc, (data) => {
-            if (data && !this.isSelectionLocked()) {
+        this._prevSelectionDisposer = reaction(() => this.contentDoc[this.props.fieldKey], (data) => {
+            if (data instanceof Doc && !this.isSelectionLocked()) {
                 this._selections.indexOf(data) !== -1 && this._selections.splice(this._selections.indexOf(data), 1);
                 this._selections.push(data);
                 this._curSelection = this._selections.length - 1;
@@ -35,24 +37,28 @@ export class DocumentBox extends DocAnnotatableComponent<FieldViewProps, DocBoxS
         });
     }
     componentWillUnmount() {
-        this._prevSelectionDisposer && this._prevSelectionDisposer();
+        this._prevSelectionDisposer?.();
     }
     specificContextMenu = (e: React.MouseEvent): void => {
         const funcs: ContextMenuProps[] = [];
         funcs.push({ description: (this.isSelectionLocked() ? "Show" : "Lock") + " Selection", event: () => this.toggleLockSelection, icon: "expand-arrows-alt" });
+        funcs.push({ description: (this.props.Document.excludeCollections ? "Include" : "Exclude") + " Collections", event: () => Doc.GetProto(this.props.Document).excludeCollections = !this.props.Document.excludeCollections, icon: "expand-arrows-alt" });
         funcs.push({ description: `${this.props.Document.forceActive ? "Select" : "Force"} Contents Active`, event: () => this.props.Document.forceActive = !this.props.Document.forceActive, icon: "project-diagram" });
 
         ContextMenu.Instance.addItem({ description: "DocumentBox Funcs...", subitems: funcs, icon: "asterisk" });
     }
+    @computed get contentDoc() {
+        return (this.props.Document.isTemplateDoc || this.props.Document.isTemplateForField ? this.props.Document : Doc.GetProto(this.props.Document));
+    }
     lockSelection = () => {
-        Doc.GetProto(this.props.Document)[this.props.fieldKey] = this.props.Document[this.props.fieldKey];
+        this.contentDoc[this.props.fieldKey] = this.props.Document[this.props.fieldKey];
     }
     showSelection = () => {
-        Doc.GetProto(this.props.Document)[this.props.fieldKey] = ComputedField.MakeFunction("selectedDocs(this,true,[_last_])?.[0]");
+        this.contentDoc[this.props.fieldKey] = ComputedField.MakeFunction(`selectedDocs(this,this.excludeCollections,[_last_])?.[0]`);
     }
     isSelectionLocked = () => {
-        const kvpstring = Field.toKeyValueString(this.props.Document, this.props.fieldKey);
-        return !(kvpstring.startsWith("=") || kvpstring.startsWith(":="));
+        const kvpstring = Field.toKeyValueString(this.contentDoc, this.props.fieldKey);
+        return !kvpstring || kvpstring.includes("DOC");
     }
     toggleLockSelection = () => {
         !this.isSelectionLocked() ? this.lockSelection() : this.showSelection();
@@ -61,28 +67,35 @@ export class DocumentBox extends DocAnnotatableComponent<FieldViewProps, DocBoxS
     prevSelection = () => {
         this.lockSelection();
         if (this._curSelection > 0) {
-            Doc.GetProto(this.props.Document)[this.props.fieldKey] = this._selections[--this._curSelection];
+            this.contentDoc[this.props.fieldKey] = this._selections[--this._curSelection];
             return true;
         }
     }
     nextSelection = () => {
         if (this._curSelection < this._selections.length - 1 && this._selections.length) {
-            Doc.GetProto(this.props.Document)[this.props.fieldKey] = this._selections[++this._curSelection];
+            this.contentDoc[this.props.fieldKey] = this._selections[++this._curSelection];
             return true;
         }
     }
     onPointerDown = (e: React.PointerEvent) => {
-        if (e.button === 0 && !e.ctrlKey) {
+        if (this.active() && e.button === 0 && !e.ctrlKey) {
             e.stopPropagation();
         }
     }
+    onLockClick = (e: React.MouseEvent) => {
+        this.toggleLockSelection();
+        (e.nativeEvent as any).formattedHandled = true;
+        e.stopPropagation();
+    }
+    get xPad() { return NumCast(this.props.Document._xPadding); }
+    get yPad() { return NumCast(this.props.Document._yPadding); }
     onClick = (e: React.MouseEvent) => {
         let hitWidget: boolean | undefined = false;
-        if (this._contRef.current!.getBoundingClientRect().top + 15 > e.clientY) hitWidget = this.toggleLockSelection();
-        else if (this._contRef.current!.getBoundingClientRect().bottom - 15 < e.clientY) hitWidget = (() => { this.props.select(false); return true; })();
+        if (this._contRef.current!.getBoundingClientRect().top + this.yPad > e.clientY) hitWidget = (() => { this.props.select(false); return true; })();
+        else if (this._contRef.current!.getBoundingClientRect().bottom - this.yPad < e.clientY) hitWidget = (() => { this.props.select(false); return true; })();
         else {
-            if (this._contRef.current!.getBoundingClientRect().left + 15 > e.clientX) hitWidget = this.prevSelection();
-            if (this._contRef.current!.getBoundingClientRect().right - 15 < e.clientX) hitWidget = this.nextSelection();
+            if (this._contRef.current!.getBoundingClientRect().left + this.xPad > e.clientX) hitWidget = this.prevSelection();
+            if (this._contRef.current!.getBoundingClientRect().right - this.xPad < e.clientX) hitWidget = this.nextSelection();
         }
         if (hitWidget) {
             (e.nativeEvent as any).formattedHandled = true;
@@ -90,36 +103,58 @@ export class DocumentBox extends DocAnnotatableComponent<FieldViewProps, DocBoxS
         }
     }
     _contRef = React.createRef<HTMLDivElement>();
-    pwidth = () => this.props.PanelWidth() - 30;
-    pheight = () => this.props.PanelHeight() - 30;
-    getTransform = () => this.props.ScreenToLocalTransform().translate(-15, -15);
+    pwidth = () => this.props.PanelWidth() - 2 * this.xPad;
+    pheight = () => this.props.PanelHeight() - 2 * this.yPad;
+    getTransform = () => this.props.ScreenToLocalTransform().translate(-this.xPad, -this.yPad);
+    get renderContents() {
+        const containedDoc = Cast(this.contentDoc[this.props.fieldKey], Doc, null);
+        const childTemplateName = StrCast(this.props.Document.childTemplateName);
+        if (containedDoc && childTemplateName && !containedDoc["layout_" + childTemplateName]) {
+            setTimeout(() => {
+                DocumentView.createCustomView(containedDoc, Docs.Create.StackingDocument, childTemplateName);
+                Doc.expandTemplateLayout(Cast(containedDoc["layout_" + childTemplateName], Doc, null), containedDoc, undefined);
+            }, 0);
+        }
+        const contents = !(containedDoc instanceof Doc) ? (null) : <ContentFittingDocumentView
+            Document={containedDoc}
+            DataDocument={undefined}
+            LibraryPath={emptyPath}
+            CollectionView={this as any} // bcz: hack!  need to pass a prop that can be used to select the container (ie, 'this') when the up selector in document decorations is clicked.  currently, the up selector allows only a containing collection to be selected
+            fitToBox={this.props.fitToBox}
+            layoutKey={"layout_" + childTemplateName}
+            rootSelected={this.props.isSelected}
+            addDocument={this.props.addDocument}
+            moveDocument={this.props.moveDocument}
+            removeDocument={this.props.removeDocument}
+            addDocTab={this.props.addDocTab}
+            pinToPres={this.props.pinToPres}
+            getTransform={this.getTransform}
+            renderDepth={this.props.renderDepth + 1}
+            PanelWidth={this.pwidth}
+            PanelHeight={this.pheight}
+            focus={this.props.focus}
+            active={this.props.active}
+            dontRegisterView={!this.isSelectionLocked()}
+            whenActiveChanged={this.props.whenActiveChanged}
+        />;
+        return contents;
+    }
     render() {
-        const containedDoc = this.dataDoc[this.props.fieldKey] as Doc;
+        TraceMobx();
         return <div className="documentBox-container" ref={this._contRef}
             onContextMenu={this.specificContextMenu}
             onPointerDown={this.onPointerDown} onClick={this.onClick}
-            style={{ background: StrCast(this.props.Document.backgroundColor) }}>
-            <div className="documentBox-lock">
+            style={{
+                background: StrCast(this.props.Document.backgroundColor),
+                border: `#00000021 solid ${this.xPad}px`,
+                borderTop: `#0000005e solid ${this.yPad}px`,
+                borderBottom: `#0000005e solid ${this.yPad}px`,
+            }}>
+            {this.renderContents}
+            <div className="documentBox-lock" onClick={this.onLockClick}
+                style={{ marginTop: - this.yPad }}>
                 <FontAwesomeIcon icon={this.isSelectionLocked() ? "lock" : "unlock"} size="sm" />
             </div>
-            {!(containedDoc instanceof Doc) ? (null) : <ContentFittingDocumentView
-                Document={containedDoc}
-                DataDocument={undefined}
-                LibraryPath={emptyPath}
-                fitToBox={this.props.fitToBox}
-                addDocument={this.props.addDocument}
-                moveDocument={this.props.moveDocument}
-                removeDocument={this.props.removeDocument}
-                addDocTab={this.props.addDocTab}
-                pinToPres={this.props.pinToPres}
-                getTransform={this.getTransform}
-                renderDepth={this.props.renderDepth + 1} // bcz: need a forceActive prop here ... not the same as renderDepth = 0
-                PanelWidth={this.pwidth}
-                PanelHeight={this.pheight}
-                focus={this.props.focus}
-                active={this.props.active}
-                whenActiveChanged={this.props.whenActiveChanged}
-            />}
-        </div>;
+        </div >;
     }
 }

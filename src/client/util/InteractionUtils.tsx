@@ -1,3 +1,5 @@
+import React = require("react");
+
 export namespace InteractionUtils {
     export const MOUSETYPE = "mouse";
     export const TOUCHTYPE = "touch";
@@ -7,20 +9,6 @@ export namespace InteractionUtils {
     const POINTER_PEN_BUTTON = -1;
     const REACT_POINTER_PEN_BUTTON = 0;
     const ERASER_BUTTON = 5;
-
-    export function CreatePolyline(points: { X: number, Y: number }[], left: number, top: number, color: string, width: number) {
-        const pts = points.reduce((acc: string, pt: { X: number, Y: number }) => acc + `${pt.X - left},${pt.Y - top} `, "");
-        return (
-            <polyline
-                points={pts}
-                style={{
-                    fill: "none",
-                    stroke: color,
-                    strokeWidth: width
-                }}
-            />
-        );
-    }
 
     export class MultiTouchEvent<T extends React.TouchEvent | TouchEvent> {
         constructor(
@@ -37,7 +25,7 @@ export namespace InteractionUtils {
 
     export function MakeMultiTouchTarget(
         element: HTMLElement,
-        startFunc: (e: Event, me: MultiTouchEvent<React.TouchEvent>) => void,
+        startFunc: (e: Event, me: MultiTouchEvent<React.TouchEvent>) => void
     ): MultiTouchEventDisposer {
         const onMultiTouchStartHandler = (e: Event) => startFunc(e, (e as CustomEvent<MultiTouchEvent<React.TouchEvent>>).detail);
         // const onMultiTouchMoveHandler = moveFunc ? (e: Event) => moveFunc(e, (e as CustomEvent<MultiTouchEvent<TouchEvent>>).detail) : undefined;
@@ -60,6 +48,17 @@ export namespace InteractionUtils {
         };
     }
 
+    export function MakeHoldTouchTarget(
+        element: HTMLElement,
+        func: (e: Event, me: MultiTouchEvent<React.TouchEvent>) => void
+    ): MultiTouchEventDisposer {
+        const handler = (e: Event) => func(e, (e as CustomEvent<MultiTouchEvent<React.TouchEvent>>).detail);
+        element.addEventListener("dashOnTouchHoldStart", handler);
+        return () => {
+            element.removeEventListener("dashOnTouchHoldStart", handler);
+        };
+    }
+
     export function GetMyTargetTouches(mte: InteractionUtils.MultiTouchEvent<React.TouchEvent | TouchEvent>, prevPoints: Map<number, React.Touch>, ignorePen: boolean): React.Touch[] {
         const myTouches = new Array<React.Touch>();
         for (const pt of mte.touches) {
@@ -77,6 +76,21 @@ export namespace InteractionUtils {
         //     throw Error("opo")
         // }
         return myTouches;
+    }
+
+    // TODO: find a way to reference this function from InkingStroke instead of copy pastign here. copied bc of weird error when on mobile view
+    export function CreatePolyline(points: { X: number, Y: number }[], left: number, top: number, color: string, width: number) {
+        const pts = points.reduce((acc: string, pt: { X: number, Y: number }) => acc + `${pt.X - left},${pt.Y - top} `, "");
+        return (
+            <polyline
+                points={pts}
+                style={{
+                    fill: "none",
+                    stroke: color,
+                    strokeWidth: width
+                }}
+            />
+        );
     }
 
     export function IsType(e: PointerEvent | React.PointerEvent, type: string): boolean {

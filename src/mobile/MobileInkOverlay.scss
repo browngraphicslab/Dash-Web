@@ -1,0 +1,39 @@
+.mobileInkOverlay {
+    border: 10px dashed red;
+    background-color: rgba(0, 0, 0, .05);
+}
+
+.mobileInkOverlay-border {
+    // background-color: rgba(0, 255, 0, .4);    
+    position: absolute;
+    pointer-events: auto;
+    cursor: pointer;
+
+    &.top {
+        width: calc(100% + 20px);
+        height: 10px;
+        top: -10px;
+        left: -10px;
+    }
+
+    &.left {
+        width: 10px;
+        height: calc(100% + 20px);
+        top: -10px;
+        left: -10px;
+    }
+
+    &.right {
+        width: 10px;
+        height: calc(100% + 20px);
+        top: -10px;
+        right: -10px;
+    }
+
+    &.bottom {
+        width: calc(100% + 20px);
+        height: 10px;
+        bottom: -10px;
+        left: -10px;
+    }
+}

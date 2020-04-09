@@ -14,6 +14,7 @@ import "./collectionMulticolumnView.scss";
 import ResizeBar from './MulticolumnResizer';
 import WidthLabel from './MulticolumnWidthLabel';
 import { List } from '../../../../new_fields/List';
+import { returnZero } from '../../../../Utils';
 
 type MulticolumnDocument = makeInterface<[typeof documentSchema]>;
 const MulticolumnDocument = makeInterface(documentSchema);
@@ -208,6 +209,10 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
             {...this.props}
             Document={layout}
             DataDocument={layout.resolvedDataDoc as Doc}
+            NativeHeight={returnZero}
+            NativeWidth={returnZero}
+            fitToBox={BoolCast(this.props.Document._freezeChildDimensions)}
+            FreezeDimensions={BoolCast(this.props.Document._freezeChildDimensions)}
             backgroundColor={this.props.backgroundColor}
             CollectionDoc={this.props.Document}
             PanelWidth={width}
@@ -223,17 +228,13 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
      */
     @computed
     private get contents(): JSX.Element[] | null {
-        // bcz: feels like a hack ... trying to show something useful when there's no list document in the data field of a templated object
-        const expanded = Cast(this.props.Document.expandedTemplate, Doc, null);
-        let { childLayoutPairs } = this.dataDoc[this.props.fieldKey] instanceof List || !expanded ? this : { childLayoutPairs: [] } as { childLayoutPairs: { layout: Doc, data: Doc }[] };
-        const replaced = !childLayoutPairs.length && !Cast(expanded?.layout, Doc, null) && expanded;
-        childLayoutPairs = childLayoutPairs.length || !replaced ? childLayoutPairs : [{ layout: replaced, data: replaced }];
+        const { childLayoutPairs } = this;
         const { Document, PanelHeight } = this.props;
         const collector: JSX.Element[] = [];
         for (let i = 0; i < childLayoutPairs.length; i++) {
             const { layout } = childLayoutPairs[i];
             const dxf = () => this.lookupIndividualTransform(layout).translate(-NumCast(Document._xMargin), -NumCast(Document._yMargin));
-            const width = () => expanded ? this.props.PanelWidth() : this.lookupPixels(layout);
+            const width = () => this.lookupPixels(layout);
             const height = () => PanelHeight() - 2 * NumCast(Document._yMargin) - (BoolCast(Document.showWidthLabels) ? 20 : 0);
             collector.push(
                 <div className={"document-wrapper"}
@@ -248,6 +249,7 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
                 <ResizeBar
                     width={resizerWidth}
                     key={"resizer" + i}
+                    select={this.props.select}
                     columnUnitLength={this.getColumnUnitLength}
                     toLeft={layout}
                     toRight={childLayoutPairs[i + 1]?.layout}

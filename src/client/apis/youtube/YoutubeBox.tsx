@@ -171,9 +171,9 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
      * in the title of the videos.
      */
     filterYoutubeTitleResult = (resultTitle: string) => {
-        let processedTitle: string = resultTitle.ReplaceAll("&amp;", "&");
-        processedTitle = processedTitle.ReplaceAll("&#39;", "'");
-        processedTitle = processedTitle.ReplaceAll("&quot;", "\"");
+        let processedTitle: string = resultTitle.replace(/&amp;/g, "&");//.ReplaceAll("&amp;", "&");
+        processedTitle = processedTitle.replace(/"&#39;/g, "'");
+        processedTitle = processedTitle.replace(/&quot;/g, "\"");
         return processedTitle;
     }
 

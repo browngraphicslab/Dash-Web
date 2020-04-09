@@ -253,8 +253,8 @@ export class LinkGroupEditor extends React.Component<LinkGroupEditorProps> {
     render() {
         const groupType = StrCast(this.props.groupDoc.linkRelationship);
         // if ((groupType && LinkManager.Instance.getMetadataKeysInGroup(groupType).length > 0) || groupType === "") {
-        let buttons = <button className="linkEditor-button" disabled={groupType === ""} onClick={() => this.deleteGroup(groupType)} title="Delete Relationship from all links"><FontAwesomeIcon icon="trash" size="sm" /></button>;
-        let addButton = <button className="linkEditor-addbutton" onClick={() => this.addMetadata(groupType)} disabled={groupType === ""} title="Add metadata to relationship"><FontAwesomeIcon icon="plus" size="sm" /></button>;
+        const buttons = <button className="linkEditor-button" disabled={groupType === ""} onClick={() => this.deleteGroup(groupType)} title="Delete Relationship from all links"><FontAwesomeIcon icon="trash" size="sm" /></button>;
+        const addButton = <button className="linkEditor-addbutton" onClick={() => this.addMetadata(groupType)} disabled={groupType === ""} title="Add metadata to relationship"><FontAwesomeIcon icon="plus" size="sm" /></button>;
 
         return (
             <div className="linkEditor-group">

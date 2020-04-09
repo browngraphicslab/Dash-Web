@@ -1,35 +1,34 @@
 import React = require("react");
-import { library } from '@fortawesome/fontawesome-svg-core';
-import { faArrowLeft, faArrowRight, faEdit, faMinus, faPlay, faPlus, faStop, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { IReactionDisposer } from "mobx";
 import { observer } from "mobx-react";
-import { FilterBox } from "../search/FilterBox";
+import { documentSchema } from "../../../new_fields/documentSchemas";
+import { Id } from '../../../new_fields/FieldSymbols';
+import { makeInterface } from "../../../new_fields/Schema";
+import { StrCast } from "../../../new_fields/Types";
+import { SelectionManager } from "../../util/SelectionManager";
+import { DocAnnotatableComponent } from '../DocComponent';
+import { SearchBox } from "../search/SearchBox";
 import { FieldView, FieldViewProps } from './FieldView';
-import "./PresBox.scss";
+import "./QueryBox.scss";
 
-library.add(faArrowLeft);
-library.add(faArrowRight);
-library.add(faPlay);
-library.add(faStop);
-library.add(faPlus);
-library.add(faTimes);
-library.add(faMinus);
-library.add(faEdit);
+type QueryDocument = makeInterface<[typeof documentSchema]>;
+const QueryDocument = makeInterface(documentSchema);
 
 @observer
-export class QueryBox extends React.Component<FieldViewProps> {
+export class QueryBox extends DocAnnotatableComponent<FieldViewProps, QueryDocument>(QueryDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(QueryBox, fieldKey); }
     _docListChangedReaction: IReactionDisposer | undefined;
     componentDidMount() {
     }
 
     componentWillUnmount() {
-        this._docListChangedReaction && this._docListChangedReaction();
+        this._docListChangedReaction?.();
     }
 
     render() {
-        return <div style={{ width: "100%", height: "100%", position: "absolute", pointerEvents: "all" }}>
-            <FilterBox></FilterBox>
-        </div>;
+        const dragging = !SelectionManager.GetIsDragging() ? "" : "-dragging";
+        return <div className={`queryBox${dragging}`} onWheel={(e) => e.stopPropagation()} >
+            <SearchBox id={this.props.Document[Id]} searchQuery={StrCast(this.dataDoc.searchQuery)} filterQquery={StrCast(this.dataDoc.filterQuery)} />
+        </div >;
     }
 }

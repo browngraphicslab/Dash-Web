@@ -29,6 +29,7 @@
     max-height: 100%;
     display: flex;
     flex-direction: row;
+    transition: opacity 1s;
 
     .formattedTextBox-dictation {
         height: 12px;
@@ -38,11 +39,6 @@
         position: absolute;
     }
 }
-
-.collectionfreeformview-container {
-    position: relative;
-}
-
 .formattedTextBox-outer {
     position: relative;
     overflow: auto;
@@ -74,6 +70,10 @@
     position: absolute;
     right: 0;
 
+    .collectionfreeformview-container {
+        position: relative;
+    }
+    
     >.formattedTextBox-sidebar-handle {
         right: unset;
         left: -5;

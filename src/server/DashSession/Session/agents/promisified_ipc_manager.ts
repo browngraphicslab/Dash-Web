@@ -35,8 +35,8 @@ export type MessageHandler<T = any> = (args: T) => (any | Promise<any>);
  * When a message is emitted, it is embedded with private metadata
  * to facilitate the resolution of promises, etc.
  */
-interface InternalMessage extends Message { metadata: Metadata }
-interface Metadata { isResponse: boolean; id: string }
+interface InternalMessage extends Message { metadata: Metadata; }
+interface Metadata { isResponse: boolean; id: string; }
 type InternalMessageHandler = (message: InternalMessage) => (any | Promise<any>);
 
 /**
@@ -133,7 +133,7 @@ export class PromisifiedIPCManager {
         Object.keys(pendingMessages).forEach(id => {
             const error: ErrorLike = { name: "ManagerDestroyed", message: "The IPC manager was destroyed before the response could be returned." };
             const message: InternalMessage = { name: pendingMessages[id], args: { error }, metadata: { id, isResponse: true } };
-            this.target.send?.(message)
+            this.target.send?.(message);
         });
         this.pendingMessages = {};
     }

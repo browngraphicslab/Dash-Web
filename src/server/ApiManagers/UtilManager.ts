@@ -3,6 +3,11 @@ import { Method } from "../RouteManager";
 import { exec } from 'child_process';
 import RouteSubscriber from "../RouteSubscriber";
 import { red } from "colors";
+// import { IBM_Recommender } from "../../client/apis/IBM_Recommender";
+// import { Recommender } from "../Recommender";
+
+// const recommender = new Recommender();
+// recommender.testModel();
 import executeImport from "../../scraping/buxton/final/BuxtonImporter";
 
 export default class UtilManager extends ApiManager {
@@ -21,6 +26,27 @@ export default class UtilManager extends ApiManager {
                 return res.send(value);
             }
         });
+
+        // register({
+        //     method: Method.POST,
+        //     subscription: "/IBMAnalysis",
+        //     secureHandler: async ({ req, res }) => res.send(await IBM_Recommender.analyze(req.body))
+        // });
+
+        // register({
+        //     method: Method.POST,
+        //     subscription: "/recommender",
+        //     secureHandler: async ({ req, res }) => {
+        //         const keyphrases = req.body.keyphrases;
+        //         const wordvecs = await recommender.vectorize(keyphrases);
+        //         let embedding: Float32Array = new Float32Array();
+        //         if (wordvecs && wordvecs.dataSync()) {
+        //             embedding = wordvecs.dataSync() as Float32Array;
+        //         }
+        //         res.send(embedding);
+        //     }
+        // });
+
 
         register({
             method: Method.GET,

@@ -195,14 +195,14 @@ export type Transformer = {
     getVars?: () => { capturedVariables: { [name: string]: Field } }
 };
 export interface ScriptOptions {
-    requiredType?: string;
-    addReturn?: boolean;
-    params?: { [name: string]: string };
-    capturedVariables?: { [name: string]: Field };
-    typecheck?: boolean;
-    editable?: boolean;
+    requiredType?: string; // does function required a typed return value
+    addReturn?: boolean;   // does the compiler automatically add a return statement
+    params?: { [name: string]: string }; // list of function parameters and their types
+    capturedVariables?: { [name: string]: Field }; // list of captured variables
+    typecheck?: boolean; // should the compiler perform typechecking
+    editable?: boolean; // can the script edit Docs
     traverser?: TraverserParam;
-    transformer?: Transformer;
+    transformer?: Transformer; // does the editor display a text label by each document that can be used as a captured document reference
     globals?: { [name: string]: any };
 }
 
@@ -215,6 +215,8 @@ function forEachNode(node: ts.Node, onEnter: Traverser, onExit?: Traverser, inde
 
 export function CompileScript(script: string, options: ScriptOptions = {}): CompileResult {
     const { requiredType = "", addReturn = false, params = {}, capturedVariables = {}, typecheck = true } = options;
+    if (options.params && !options.params.this) options.params.this = Doc.name;
+    if (options.params && !options.params.self) options.params.self = Doc.name;
     if (options.globals) {
         Scripting.setScriptingGlobals(options.globals);
     }

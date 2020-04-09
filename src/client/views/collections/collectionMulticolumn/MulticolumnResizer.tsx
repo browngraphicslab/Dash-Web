@@ -11,6 +11,7 @@ interface ResizerProps {
     columnUnitLength(): number | undefined;
     toLeft?: Doc;
     toRight?: Doc;
+    select: (isCtrlPressed: boolean) => void;
 }
 
 const resizerOpacity = 1;
@@ -23,6 +24,7 @@ export default class ResizeBar extends React.Component<ResizerProps> {
 
     @action
     private registerResizing = (e: React.PointerEvent<HTMLDivElement>) => {
+        this.props.select(false);
         e.stopPropagation();
         e.preventDefault();
         window.removeEventListener("pointermove", this.onPointerMove);

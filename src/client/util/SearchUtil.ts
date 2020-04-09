@@ -34,7 +34,7 @@ export namespace SearchUtil {
     export function Search(query: string, returnDocs: false, options?: SearchParams): Promise<IdSearchResult>;
     export async function Search(query: string, returnDocs: boolean, options: SearchParams = {}) {
         query = query || "*"; //If we just have a filter query, search for * as the query
-        const rpquery = Utils.prepend("/search");
+        const rpquery = Utils.prepend("/dashsearch");
         const gotten = await rp.get(rpquery, { qs: { ...options, q: query } });
         const result: IdSearchResult = gotten.startsWith("<") ? { ids: [], docs: [], numFound: 0, lines: [] } : JSON.parse(gotten);
         if (!returnDocs) {
@@ -52,7 +52,7 @@ export namespace SearchUtil {
         const newLines: string[][] = [];
         await Promise.all(fileids.map(async (tr: string, i: number) => {
             const docQuery = "fileUpload_t:" + tr.substr(0, 7); //If we just have a filter query, search for * as the query
-            const docResult = JSON.parse(await rp.get(Utils.prepend("/search"), { qs: { ...options, q: docQuery } }));
+            const docResult = JSON.parse(await rp.get(Utils.prepend("/dashsearch"), { qs: { ...options, q: docQuery } }));
             newIds.push(...docResult.ids);
             newLines.push(...docResult.ids.map((dr: any) => txtresult.lines[i]));
         }));
@@ -64,7 +64,7 @@ export namespace SearchUtil {
         const textDocs = newIds.map((id: string) => textDocMap[id]).map(doc => doc as Doc);
         for (let i = 0; i < textDocs.length; i++) {
             const testDoc = textDocs[i];
-            if (testDoc instanceof Doc && testDoc.type !== DocumentType.KVP && testDoc.type !== DocumentType.EXTENSION && theDocs.findIndex(d => Doc.AreProtosEqual(d, testDoc)) === -1) {
+            if (testDoc instanceof Doc && testDoc.type !== DocumentType.KVP && theDocs.findIndex(d => Doc.AreProtosEqual(d, testDoc)) === -1) {
                 theDocs.push(Doc.GetProto(testDoc));
                 theLines.push(newLines[i].map(line => line.replace(query, query.toUpperCase())));
             }
@@ -74,7 +74,7 @@ export namespace SearchUtil {
         const docs = ids.map((id: string) => docMap[id]).map(doc => doc as Doc);
         for (let i = 0; i < ids.length; i++) {
             const testDoc = docs[i];
-            if (testDoc instanceof Doc && testDoc.type !== DocumentType.KVP && testDoc.type !== DocumentType.EXTENSION && (options.allowAliases || theDocs.findIndex(d => Doc.AreProtosEqual(d, testDoc)) === -1)) {
+            if (testDoc instanceof Doc && testDoc.type !== DocumentType.KVP && (options.allowAliases || theDocs.findIndex(d => Doc.AreProtosEqual(d, testDoc)) === -1)) {
                 theDocs.push(testDoc);
                 theLines.push([]);
             }
@@ -117,5 +117,28 @@ export namespace SearchUtil {
         const contexts = { contexts: docContexts, aliasContexts: [] as string[] };
         aliasContexts.forEach(result => contexts.aliasContexts.push(...result.ids));
         return contexts;
+    }
+
+    export async function GetAllDocs() {
+        const query = "*";
+        const response = await rp.get(Utils.prepend('/dashsearch'), {
+            qs:
+                { start: 0, rows: 10000, q: query },
+
+        });
+        const result: IdSearchResult = JSON.parse(response);
+        const { ids, numFound, highlighting } = result;
+        //console.log(ids.length);
+        const docMap = await DocServer.GetRefFields(ids);
+        const docs: Doc[] = [];
+        for (const id of ids) {
+            const field = docMap[id];
+            if (field instanceof Doc) {
+                docs.push(field);
+            }
+        }
+        return docs;
+        // const docs = ids.map((id: string) => docMap[id]).filter((doc: any) => doc instanceof Doc);
+        // return docs as Doc[];
     }
 }

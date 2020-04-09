@@ -74,7 +74,7 @@ export class ScriptBox extends DocAnnotatableComponent<FieldViewProps & ScriptBo
     }
 
     onBlur = () => {
-        this.overlayDisposer && this.overlayDisposer();
+        this.overlayDisposer?.();
     }
 
     @action
@@ -177,6 +177,6 @@ export class ScriptBox extends DocAnnotatableComponent<FieldViewProps & ScriptBo
                 overlayDisposer();
             }
         }} showDocumentIcons />;
-        overlayDisposer = OverlayView.Instance.addWindow(scriptingBox, { x: 400, y: 200, width: 500, height: 400, title: title });
+        overlayDisposer = OverlayView.Instance.addWindow(scriptingBox, { x: 400, y: 200, width: 500, height: 400, title });
     }
 }

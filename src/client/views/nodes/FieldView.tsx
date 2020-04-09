@@ -10,6 +10,7 @@ import { Transform } from "../../util/Transform";
 import { CollectionView } from "../collections/CollectionView";
 import { AudioBox } from "./AudioBox";
 import { VideoBox } from "./VideoBox";
+import { dropActionType } from "../../util/DragManager";
 
 //
 // these properties get assigned through the render() method of the DocumentView when it creates this node.
@@ -25,8 +26,10 @@ export interface FieldViewProps {
     DataDoc?: Doc;
     LibraryPath: Doc[];
     onClick?: ScriptField;
+    dropAction: dropActionType;
     isSelected: (outsideReaction?: boolean) => boolean;
     select: (isCtrlPressed: boolean) => void;
+    rootSelected: (outsideReaction?: boolean) => boolean;
     renderDepth: number;
     addDocument?: (document: Doc) => boolean;
     addDocTab: (document: Doc, where: string) => boolean;
@@ -38,9 +41,12 @@ export interface FieldViewProps {
     bringToFront: (doc: Doc, sendToBack?: boolean) => void;
     active: (outsideReaction?: boolean) => boolean;
     whenActiveChanged: (isActive: boolean) => void;
+    dontRegisterView?: boolean;
     focus: (doc: Doc) => void;
     PanelWidth: () => number;
     PanelHeight: () => number;
+    NativeHeight: () => number;
+    NativeWidth: () => number;
     setVideoBox?: (player: VideoBox) => void;
     ContentScaling: () => number;
     ChromeHeight?: () => number;

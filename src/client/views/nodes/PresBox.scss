@@ -25,6 +25,13 @@
             width: 20%;
             border-radius: 5px;
         }
+        .collectionViewBaseChrome-viewPicker {
+            min-width: 50;
+            width: 5%;
+            height: 25;
+            position: relative;
+            display: inline-block;
+        }
     }
     .presBox-backward, .presBox-forward {
         width: 25px;

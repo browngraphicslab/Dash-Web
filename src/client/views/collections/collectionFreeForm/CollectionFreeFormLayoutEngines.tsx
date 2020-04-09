@@ -147,6 +147,7 @@ export function computePivotLayout(
 
     const expander = 1.05;
     const gap = .15;
+    const maxColHeight = pivotAxisWidth * expander * Math.ceil(maxInColumn / numCols);
     let x = 0;
     const sortedPivotKeys = pivotNumbers ? Array.from(pivotColumnGroups.keys()).sort((n1: FieldResult, n2: FieldResult) => toNumber(n1)! - toNumber(n2)!) : Array.from(pivotColumnGroups.keys()).sort();
     sortedPivotKeys.forEach(key => {
@@ -189,7 +190,6 @@ export function computePivotLayout(
         x += pivotAxisWidth * (numCols * expander + gap);
     });
 
-    const maxColHeight = pivotAxisWidth * expander * Math.ceil(maxInColumn / numCols);
     const dividers = sortedPivotKeys.map((key, i) =>
         ({ type: "div", color: "lightGray", x: i * pivotAxisWidth * (numCols * expander + gap) - pivotAxisWidth * (expander - 1) / 2, y: -maxColHeight + pivotAxisWidth, width: pivotAxisWidth * numCols * expander, height: maxColHeight, payload: pivotColumnGroups.get(key)!.filters }));
     groupNames.push(...dividers);
@@ -348,7 +348,7 @@ function normalizeResults(panelDim: number[], fontHeight: number, childPairs: { 
         y: gname.y * scale,
         color: gname.color,
         width: gname.width === undefined ? undefined : gname.width * scale,
-        height: gname.height === -1 ? 1 : Math.max(fontHeight, (gname.height || 0) * scale),
+        height: gname.height === -1 ? 1 : gname.type === "text" ? Math.max(fontHeight * scale, (gname.height || 0) * scale) : (gname.height || 0) * scale,
         fontSize: gname.fontSize,
         payload: gname.payload
     })));

@@ -79,6 +79,7 @@ export default class KeyManager {
                 }
                 SelectionManager.DeselectAll();
                 DictationManager.Controls.stop();
+                // RecommendationsBox.Instance.closeMenu();
                 SharingManager.Instance.close();
                 break;
             case "delete":
@@ -105,14 +106,14 @@ export default class KeyManager {
     });
 
     private shift = async (keyname: string) => {
-        let stopPropagation = false;
-        let preventDefault = false;
+        const stopPropagation = false;
+        const preventDefault = false;
 
         switch (keyname) {
-            case "~":
-                DictationManager.Controls.listen({ useOverlay: true, tryExecute: true });
-                stopPropagation = true;
-                preventDefault = true;
+            // case "~":
+            //     DictationManager.Controls.listen({ useOverlay: true, tryExecute: true });
+            //     stopPropagation = true;
+            //     preventDefault = true;
         }
 
         return {

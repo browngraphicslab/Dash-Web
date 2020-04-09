@@ -61,7 +61,7 @@ export class SearchManager extends ApiManager {
 
         register({
             method: Method.GET,
-            subscription: "/search",
+            subscription: "/dashsearch",
             secureHandler: async ({ req, res }) => {
                 const solrQuery: any = {};
                 ["q", "fq", "start", "rows", "hl", "hl.fl"].forEach(key => solrQuery[key] = req.query[key]);
