@@ -43,9 +43,7 @@ export class ScriptBox extends React.Component<ScriptBoxProps> {
 
     overlayDisposer?: () => void;
     onFocus = () => {
-        if (this.overlayDisposer) {
-            this.overlayDisposer();
-        }
+        this.overlayDisposer?.();
         this.overlayDisposer = OverlayView.Instance.addElement(<DocumentIconContainer />, { x: 0, y: 0 });
     }
 

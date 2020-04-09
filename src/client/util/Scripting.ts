@@ -24,6 +24,8 @@ export interface ScriptError {
 
 export type ScriptResult = ScriptSucccess | ScriptError;
 
+export type ScriptParam = { [name: string]: string };
+
 export interface CompiledScript {
     readonly compiled: true;
     readonly originalScript: string;
@@ -37,6 +39,12 @@ export interface CompileError {
 }
 
 export type CompileResult = CompiledScript | CompileError;
+export function isCompileError(toBeDetermined: CompileResult): toBeDetermined is CompileError {
+    if ((toBeDetermined as CompileError).errors) {
+        return true
+    }
+    return false
+}
 
 export namespace Scripting {
     export function addGlobal(global: { name: string }): void;
