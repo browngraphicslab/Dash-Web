@@ -911,7 +911,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         this.doLinkOnDeselect();
         FormattedTextBox._downEvent = true;
         FormattedTextBoxComment.textBox = this;
-        if (this.props.onClick && e.button === 0) {
+        if (this.props.onClick && e.button === 0 && !this.props.isSelected(false)) {
             e.preventDefault();
         }
         if (e.button === 0 && this.active(true) && !e.altKey && !e.ctrlKey && !e.metaKey) {
