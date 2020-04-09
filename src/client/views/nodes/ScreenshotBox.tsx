@@ -45,7 +45,6 @@ export class ScreenshotBox extends DocAnnotatableComponent<FieldViewProps, Scree
             this.Document._nativeHeight = (this.Document._nativeWidth || 0) / aspect;
             this.Document._height = (this.Document._width || 0) / aspect;
         }
-        if (!this.Document.duration) this.Document.duration = this.player!.duration;
     }
 
     @action public Snapshot() {

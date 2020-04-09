@@ -18,7 +18,10 @@ export function DocComponent<P extends DocComponentProps, T>(schemaCtor: (doc: D
     class Component extends Touchable<P> {
         //TODO This might be pretty inefficient if doc isn't observed, because computed doesn't cache then
         @computed get Document(): T { return schemaCtor(this.props.Document); }
-        @computed get layoutDoc() { return PositionDocument(Doc.Layout(this.props.Document, this.props.LayoutDoc?.())); }
+        // This is the "The Document" -- it encapsulates, data, layout, and any templates
+        @computed get rootDoc() { return Cast(this.props.Document.rootDocument, Doc, null) || this.props.Document; }
+        // This is the rendering data of a document -- it may be "The Document", or it may be some template document that holds the rendering info
+        @computed get layoutDoc() { return Doc.Layout(this.props.Document); }
         protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
     }
     return Component;
@@ -37,8 +40,13 @@ export function DocExtendableComponent<P extends DocExtendableProps, T>(schemaCt
     class Component extends Touchable<P> {
         //TODO This might be pretty inefficient if doc isn't observed, because computed doesn't cache then
         @computed get Document(): T { return schemaCtor(this.props.Document); }
+        // This is the "The Document" -- it encapsulates, data, layout, and any templates
+        @computed get rootDoc() { return Cast(this.props.Document.rootDocument, Doc, null) || this.props.Document; }
+        // This is the rendering data of a document -- it may be "The Document", or it may be some template document that holds the rendering info
         @computed get layoutDoc() { return Doc.Layout(this.props.Document); }
-        @computed get dataDoc() { return (this.props.DataDoc && (this.props.Document.isTemplateForField || this.props.Document.isTemplateDoc) ? this.props.DataDoc : Cast(this.props.Document.resolvedDataDoc, Doc, null) || Doc.GetProto(this.props.Document)) as Doc; }
+        // This is the data part of a document -- ie, the data that is constant across all views of the document
+        @computed get dataDoc() { return this.props.DataDoc && (this.props.Document.isTemplateForField || this.props.Document.isTemplateDoc) ? this.props.DataDoc : this.props.Document[DataSym]; }
+
         active = (outsideReaction?: boolean) => !this.props.Document.isBackground && ((this.props.Document.forceActive && this.props.rootSelected(outsideReaction)) || this.props.isSelected(outsideReaction) || this.props.renderDepth === 0);//  && !InkingControl.Instance.selectedTool;  // bcz: inking state shouldn't affect static tools 
         protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
     }
@@ -62,8 +70,16 @@ export function DocAnnotatableComponent<P extends DocAnnotatableProps, T>(schema
         @observable _isChildActive = false;
         //TODO This might be pretty inefficient if doc isn't observed, because computed doesn't cache then
         @computed get Document(): T { return schemaCtor(this.props.Document); }
-        @computed get layoutDoc() { return Doc.Layout(this.props.Document); }
+
+        // This is the "The Document" -- it encapsulates, data, layout, and any templates
+        @computed get rootDoc() { return Cast(this.props.Document.rootDocument, Doc, null) || this.props.Document; }
+        // This is the rendering data of a document -- it may be "The Document", or it may be some template document that holds the rendering info
+        @computed get layoutDoc() { return schemaCtor(Doc.Layout(this.props.Document)); }
+        // This is the data part of a document -- ie, the data that is constant across all views of the document
         @computed get dataDoc() { return this.props.DataDoc && (this.props.Document.isTemplateForField || this.props.Document.isTemplateDoc) ? this.props.DataDoc : this.props.Document[DataSym]; }
+
+        // key where data is stored
+        @computed get fieldKey() {  return this.props.fieldKey;  }
 
         protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
 

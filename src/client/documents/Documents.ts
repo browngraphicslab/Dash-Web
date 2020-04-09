@@ -260,7 +260,7 @@ export namespace Docs {
             }],
             [DocumentType.RECOMMENDATION, {
                 layout: { view: RecommendationsBox, dataField: data },
-                options: { width: 200, height: 200 },
+                options: { _width: 200, _height: 200 },
             }],
             [DocumentType.WEBCAM, {
                 layout: { view: DashWebRTCVideo, dataField: data }

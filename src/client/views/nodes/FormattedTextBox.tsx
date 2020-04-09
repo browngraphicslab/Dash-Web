@@ -850,7 +850,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
             }
         }
 
-        const selectOnLoad = (Cast(this.props.Document.rootDocument, Doc, null) || this.props.Document)[Id] === FormattedTextBox.SelectOnLoad;
+        const selectOnLoad = this.rootDoc[Id] === FormattedTextBox.SelectOnLoad;
         if (selectOnLoad && !this.props.dontRegisterView) {
             FormattedTextBox.SelectOnLoad = "";
             this.props.select(false);

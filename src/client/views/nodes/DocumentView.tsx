@@ -298,7 +298,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 SelectionManager.DeselectAll();
                 const func = () => this.onClickHandler!.script.run({
                     this: this.props.Document,
-                    self: Cast(this.props.Document.rootDocument, Doc, null) || this.props.Document,
+                    self: this.rootDoc,
                     thisContainer: this.props.ContainingCollectionDoc, shiftKey: e.shiftKey
                 }, console.log);
                 if (this.props.Document !== Doc.UserDoc().undoBtn && this.props.Document !== Doc.UserDoc().redoBtn) {

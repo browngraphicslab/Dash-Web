@@ -959,8 +959,6 @@ export class DashFieldView {
             if (self._options?.length && !self._dashDoc[self._fieldKey]) {
                 self._dashDoc[self._fieldKey] = StrCast(self._options[0].title);
             }
-            // NOTE: if the field key starts with "@", then the actual field key is stored in the field 'fieldKey' (removing the @).
-            self._fieldKey = self._fieldKey.startsWith("@") ? StrCast(tbox.props.Document[StrCast(self._fieldKey).substring(1)]) : self._fieldKey;
             this._labelSpan.innerHTML = `${self._fieldKey}: `;
             const fieldVal = Cast(this._dashDoc?.[self._fieldKey], "boolean", null);
             this._fieldCheck.style.display = (fieldVal === true || fieldVal === false) ? "inline-block" : "none";
