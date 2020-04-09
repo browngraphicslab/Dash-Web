@@ -46,9 +46,8 @@ export class ScriptingBox extends DocAnnotatableComponent<FieldViewProps, Script
             transformer: DocumentIconContainer.getTransformer(),
             params
         });
-        this.dataDoc[this.props.fieldKey] = result.compiled ? new ScriptField(result) : undefined;
         this._errorMessage = isCompileError(result) ? result.errors.map(e => e.messageText).join("\n") : "";
-        return ScriptCast(this.dataDoc[this.props.fieldKey]);
+        return this.dataDoc[this.props.fieldKey] = result.compiled ? new ScriptField(result) : undefined;
     }
 
     @action
