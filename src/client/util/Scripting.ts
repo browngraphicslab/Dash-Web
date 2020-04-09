@@ -41,9 +41,9 @@ export interface CompileError {
 export type CompileResult = CompiledScript | CompileError;
 export function isCompileError(toBeDetermined: CompileResult): toBeDetermined is CompileError {
     if ((toBeDetermined as CompileError).errors) {
-        return true
+        return true;
     }
-    return false
+    return false;
 }
 
 export namespace Scripting {

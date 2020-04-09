@@ -80,7 +80,7 @@ export class CurrentUserUtils {
             { title: "record", icon: "microphone", ignoreClick: true, drag: `Docs.Create.AudioDocument("${nullAudio}", { _width: 200, title: "ready to record audio" })` },
             { title: "clickable button", icon: "bolt", ignoreClick: true, drag: 'Docs.Create.ButtonDocument({ _width: 150, _height: 50, title: "Button" })' },
             { title: "presentation", icon: "tv", click: 'openOnRight(Doc.UserDoc().curPresentation = getCopy(this.dragFactory, true))', drag: `Doc.UserDoc().curPresentation = getCopy(this.dragFactory,true)`, dragFactory: emptyPresentation },
-            { title: "script", icon: "terminal", ignoreClick: true, drag: 'Docs.Create.ScriptingDocument({ _width: 200, _height: 250 title: "untitled script" })' },
+            { title: "script", icon: "terminal", ignoreClick: true, drag: 'Docs.Create.ScriptingDocument(undefined, { _width: 200, _height: 250 title: "untitled script" })' },
             { title: "import folder", icon: "cloud-upload-alt", ignoreClick: true, drag: 'Docs.Create.DirectoryImportDocument({ title: "Directory Import", _width: 400, _height: 400 })' },
             { title: "mobile view", icon: "phone", ignoreClick: true, drag: 'Doc.UserDoc().activeMobile' },
             { title: "use pen", icon: "pen-nib", click: 'activatePen(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this,2, this.backgroundColor)', backgroundColor: "blue", ischecked: `sameDocs(this.activePen.pen,  this)`, activePen: doc },
@@ -319,7 +319,7 @@ export class CurrentUserUtils {
         doc.queryBtn = ficon({ onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'), dragFactory: queryTemplate, removeDropProperties: new List<string>(["dropAction"]), title: "query view", icon: "sticky-note" });
         doc.templateButtons = blist({ title: "template buttons", ignoreClick: true }, [doc.slidesBtn as Doc, doc.descriptionBtn as Doc, doc.queryBtn as Doc]);
         doc.expandingButtons = blist({ title: "expanding buttons", ignoreClick: true }, [doc.undoBtn as Doc, doc.redoBtn as Doc, doc.templateButtons as Doc]);
-        doc.templateDocs = new PrefetchProxy(Docs.Create.TreeDocument([doc.noteTypes as Doc, doc.templateButtons as Doc], {
+        doc.templateDocs = new PrefetchProxy(Docs.Create.TreeDocument([doc.noteTypes as Doc, doc.templateButtons as Doc, doc.clickFuncs as Doc], {
             title: "template layouts", _xPadding: 0,
             dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name })
         }));
@@ -341,10 +341,12 @@ export class CurrentUserUtils {
     }
 
     static setupChildClicks(doc: Doc) {
-        const openInTarget = Docs.Create.TextDocument("", { title: "On Child Clicked (open in target)" });
-        const text = "docCast(thisContainer.target).then((target) => { target && docCast(this.source).then((source) => { target.proto.data = new List([source || this]); } ); } )";
-        openInTarget.script = ScriptField.MakeScript(text, { thisContainer: Doc.name });
+        const openInTarget = Docs.Create.ScriptingDocument(ScriptField.MakeScript(
+            "docCast(thisContainer.target).then((target) => { target && docCast(this.source).then((source) => { target.proto.data = new List([source || this]); } ); } )",
+            { target: Doc.name }), { title: "On Child Clicked (open in target)", _width: 300, _height: 200 });
+        const onClick = Docs.Create.ScriptingDocument(ScriptField.MakeScript("console.log('click')"), { title: "onClick", isTemplateDoc: true, isTemplateForField: "onClick", _width: 300, _height: 200 }, "onClick");
         doc.childClickFuncs = Docs.Create.TreeDocument([openInTarget], { title: "on Child Click function templates" });
+        doc.clickFuncs = Docs.Create.TreeDocument([onClick], { title: "onClick funcs" });
     }
 
     static updateUserDocument(doc: Doc) {
@@ -352,12 +354,12 @@ export class CurrentUserUtils {
         new InkingControl();
         (doc.iconTypes === undefined) && CurrentUserUtils.setupDefaultIconTypes(doc);
         (doc.noteTypes === undefined) && CurrentUserUtils.setupDefaultDocTemplates(doc);
+        (doc.childClickFuncs === undefined) && CurrentUserUtils.setupChildClicks(doc);
         (doc.optionalRightCollection === undefined) && CurrentUserUtils.setupMobileUploads(doc);
         (doc.overlays === undefined) && CurrentUserUtils.setupOverlays(doc);
         (doc.expandingButtons === undefined) && CurrentUserUtils.setupExpandingButtons(doc);
         (doc.curPresentation === undefined) && CurrentUserUtils.setupDefaultPresentation(doc);
         (doc.sidebarButtons === undefined) && CurrentUserUtils.setupSidebarButtons(doc);
-        (doc.childClickFuncs === undefined) && CurrentUserUtils.setupChildClicks(doc);
 
         // this is equivalent to using PrefetchProxies to make sure all the childClickFuncs have been retrieved.
         PromiseValue(Cast(doc.childClickFuncs, Doc)).then(func => func && PromiseValue(func.data).then(DocListCast));
@@ -365,6 +367,8 @@ export class CurrentUserUtils {
         PromiseValue(Cast(doc.recentlyClosed, Doc)).then(recent => recent && PromiseValue(recent.data).then(DocListCast));
         // this is equivalent to using PrefetchProxies to make sure all the sidebarButtons and noteType internal Doc's have been retrieved.
         PromiseValue(Cast(doc.noteTypes, Doc)).then(noteTypes => noteTypes && PromiseValue(noteTypes.data).then(DocListCast));
+        PromiseValue(Cast(doc.clickFuncs, Doc)).then(func => func && PromiseValue(func.data).then(DocListCast));
+        PromiseValue(Cast(doc.childClickFuncs, Doc)).then(func => func && PromiseValue(func.data).then(DocListCast));
         PromiseValue(Cast(doc.sidebarButtons, Doc)).then(stackingDoc => {
             stackingDoc && PromiseValue(Cast(stackingDoc.data, listSpec(Doc))).then(sidebarButtons => {
                 sidebarButtons && sidebarButtons.map((sidebarBtn, i) => {

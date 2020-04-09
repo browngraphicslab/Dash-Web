@@ -38,6 +38,8 @@ export class ScriptingBox extends DocAnnotatableComponent<FieldViewProps, Script
         this.rawScript = ScriptCast(this.dataDoc[this.props.fieldKey])?.script?.originalScript || this.rawScript;
     }
 
+    componentWillUnmount() { this._overlayDisposer?.(); }
+
     @action
     onCompile = () => {
         const params = this.compileParams.reduce((o: ScriptParam, p: string) => { o[p] = "any"; return o; }, {} as ScriptParam);

@@ -509,8 +509,10 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.PRES), initial, options);
         }
 
-        export function ScriptingDocument(options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.SCRIPTING), "", options);
+        export function ScriptingDocument(script: Opt<ScriptField>, options: DocumentOptions = {}, fieldKey?: string) {
+            const res = InstanceFromProto(Prototypes.get(DocumentType.SCRIPTING), script, options);
+            fieldKey && res.proto instanceof Doc && ((res.proto as Doc).layout = ScriptingBox.LayoutString(fieldKey));
+            return res;
         }
 
         export function VideoDocument(url: string, options: DocumentOptions = {}) {
