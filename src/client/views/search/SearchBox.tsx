@@ -19,13 +19,14 @@ import { FieldView } from '../nodes/FieldView';
 import { DocumentType } from "../../documents/DocumentTypes";
 import { DocumentView } from '../nodes/DocumentView';
 import { SelectionManager } from '../../util/SelectionManager';
+import { FilterQuery } from 'mongodb';
 
 library.add(faTimes);
 
 export interface SearchProps {
     id: string;
     searchQuery?: string;
-    filterQquery?: string;
+    filterQuery?: filterData;
 }
 
 export enum Keys {
@@ -34,6 +35,13 @@ export enum Keys {
     DATA = "data"
 }
 
+export interface filterData{
+    deletedDocsStatus: boolean;
+    authorFieldStatus: boolean;
+    titleFieldStatus:boolean;
+    basicWordStatus:boolean;
+    icons: string[];
+}
 @observer
 export class SearchBox extends React.Component<SearchProps> {
 
@@ -65,6 +73,7 @@ export class SearchBox extends React.Component<SearchProps> {
     @observable private _nodeStatus: boolean = false;
     @observable private _keyStatus: boolean = false;
 
+    @observable private newAssign: boolean = true;
 
     constructor(props: any) {
         super(props);
@@ -77,9 +86,18 @@ export class SearchBox extends React.Component<SearchProps> {
             this.inputRef.current.focus();
             runInAction(() => this._searchbarOpen = true);
         }
-        if (this.props.searchQuery && this.props.filterQquery) {
+        if (this.props.searchQuery && this.props.filterQuery && this.newAssign) {
             console.log(this.props.searchQuery);
             const sq = this.props.searchQuery;
+            runInAction(() => {
+
+            this._deletedDocsStatus=this.props.filterQuery!.deletedDocsStatus;
+            this._authorFieldStatus=this.props.filterQuery!.authorFieldStatus
+            this._titleFieldStatus=this.props.filterQuery!.titleFieldStatus;
+            this._basicWordStatus=this.props.filterQuery!.basicWordStatus;
+            this._icons=this.props.filterQuery!.icons;
+            this.newAssign=false;
+            });
             runInAction(() => {
                 this._searchString = sq;
                 this.submitSearch();
@@ -166,10 +184,10 @@ export class SearchBox extends React.Component<SearchProps> {
         }
 
         //if should be searched in a specific collection
-        if (this._collectionStatus) {
-            query = this.addCollectionFilter(query);
-            query = query.replace(/\s+/g, ' ').trim();
-        }
+        // if (this._collectionStatus) {
+        //     query = this.addCollectionFilter(query);
+        //     query = query.replace(/\s+/g, ' ').trim();
+        // }
         return query;
     }
 
@@ -416,7 +434,14 @@ export class SearchBox extends React.Component<SearchProps> {
                 y += 300;
             }
         }
-        return Docs.Create.QueryDocument({ _autoHeight: true, title: this._searchString, filterQuery: this.filterQuery, searchQuery: this._searchString });
+        const filter : filterData = {
+            deletedDocsStatus: this._deletedDocsStatus,
+            authorFieldStatus: this._authorFieldStatus,
+            titleFieldStatus: this._titleFieldStatus,
+            basicWordStatus: this._basicWordStatus,
+            icons: this._icons,
+        }
+        return Docs.Create.QueryDocument({ _autoHeight: true, title: this._searchString, filterQuery: filter, searchQuery: this._searchString });
     }
 
     @action.bound
@@ -450,10 +475,10 @@ export class SearchBox extends React.Component<SearchProps> {
         const scrollY = e ? e.currentTarget.scrollTop : this._resultsRef.current ? this._resultsRef.current.scrollTop : 0;
         const itemHght = 53;
         const startIndex = Math.floor(Math.max(0, scrollY / itemHght));
-        const endIndex = Math.ceil(Math.min(this._numTotalResults - 1, startIndex + (this._resultsRef.current.getBoundingClientRect().height / itemHght)));
-
+        //const endIndex = Math.ceil(Math.min(this._numTotalResults - 1, startIndex + (this._resultsRef.current.getBoundingClientRect().height / itemHght)));
+        const endIndex= 30;
         this._endIndex = endIndex === -1 ? 12 : endIndex;
-
+        this._endIndex=30;
         if ((this._numTotalResults === 0 || this._results.length === 0) && this._openNoResults) {
             this._visibleElements = [<div className="no-result">No Search Results</div>];
             return;
@@ -649,11 +674,11 @@ export class SearchBox extends React.Component<SearchProps> {
                     <input value={this._searchString} onChange={this.onChange} type="text" placeholder="Search..." id="search-input" ref={this.inputRef}
                         className="searchBox-barChild searchBox-input" onPointerDown={this.openSearch} onKeyPress={this.enter} onFocus={this.openSearch}
                         style={{ width: this._searchbarOpen ? "500px" : "100px" }} />
-                    <button className="searchBox-barChild searchBox-filter" title="Advanced Filtering Options" onClick={() => this.handleFilterChange()}><FontAwesomeIcon icon="ellipsis-v" color="white" /></button>
+                    <button className="searchBox-barChild searchBox-filter" style={{transform:"none"}} title="Advanced Filtering Options" onClick={() => this.handleFilterChange()}><FontAwesomeIcon icon="ellipsis-v" color="white" /></button>
                 </div>
 
-                <div id={`filterhead${this.props.id}`} className="filter-form" >
-                    <div id={`filterhead2${this.props.id}`} className="filter-header" style={this._filterOpen ? {} : {}}>
+                <div id={`filterhead${this.props.id}`} className="filter-form" style={this._filterOpen && this._numTotalResults >0 ? {overflow:"visible"} : {overflow:"hidden"}}>
+                    <div id={`filterhead2${this.props.id}`} className="filter-header"  >
                         <button className="filter-item" style={this._basicWordStatus ? { background: "#aaaaa3", } : {}} onClick={this.handleWordQueryChange}>Keywords</button>
                         <button className="filter-item" style={this._keyStatus ? { background: "#aaaaa3" } : {}} onClick={this.handleKeyChange}>Keys</button>
                         <button className="filter-item" style={this._nodeStatus ? { background: "#aaaaa3" } : {}} onClick={this.handleNodeChange}>Nodes</button>

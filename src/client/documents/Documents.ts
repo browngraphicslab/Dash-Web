@@ -41,7 +41,7 @@ import { ComputedField, ScriptField } from "../../new_fields/ScriptField";
 import { ProxyField } from "../../new_fields/Proxy";
 import { DocumentType } from "./DocumentTypes";
 import { RecommendationsBox } from "../views/RecommendationsBox";
-import { SearchBox } from "../views/search/SearchBox";
+import { filterData} from "../views/search/SearchBox";
 
 //import { PresBox } from "../views/nodes/PresBox";
 //import { PresField } from "../../new_fields/PresField";
@@ -166,7 +166,7 @@ export interface DocumentOptions {
     syntaxColor?: string; // can be applied to text for syntax highlighting all matches in the text
     searchText?: string, //for searchbox
     searchQuery?: string, // for queryBox
-    filterQuery?: string,
+    filterQuery?: filterData,
     linearViewIsExpanded?: boolean; // is linear view expanded
 }
 
