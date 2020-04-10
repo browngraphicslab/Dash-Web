@@ -16,7 +16,7 @@ import { CollectionView, CollectionViewType } from "../collections/CollectionVie
 import { InkingControl } from "../InkingControl";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./PresBox.scss";
-import { DocExtendableComponent } from "../DocComponent";
+import { ViewBoxBaseComponent } from "../DocComponent";
 import { makeInterface } from "../../../new_fields/Schema";
 
 library.add(faArrowLeft);
@@ -33,7 +33,7 @@ type PresBoxSchema = makeInterface<[typeof documentSchema]>;
 const PresBoxDocument = makeInterface(documentSchema);
 
 @observer
-export class PresBox extends DocExtendableComponent<FieldViewProps, PresBoxSchema>(PresBoxDocument) {
+export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>(PresBoxDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(PresBox, fieldKey); }
     _childReaction: IReactionDisposer | undefined;
     @observable _isChildActive = false;

@@ -4,7 +4,7 @@ import { documentSchema } from "../../new_fields/documentSchemas";
 import { InkData, InkField, InkTool } from "../../new_fields/InkField";
 import { makeInterface } from "../../new_fields/Schema";
 import { Cast, StrCast, NumCast } from "../../new_fields/Types";
-import { DocExtendableComponent } from "./DocComponent";
+import { ViewBoxBaseComponent } from "./DocComponent";
 import { InkingControl } from "./InkingControl";
 import "./InkingStroke.scss";
 import { FieldView, FieldViewProps } from "./nodes/FieldView";
@@ -22,7 +22,7 @@ type InkDocument = makeInterface<[typeof documentSchema]>;
 const InkDocument = makeInterface(documentSchema);
 
 @observer
-export class InkingStroke extends DocExtendableComponent<FieldViewProps, InkDocument>(InkDocument) {
+export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocument>(InkDocument) {
     public static LayoutString(fieldStr: string) { return FieldView.LayoutString(InkingStroke, fieldStr); }
 
     private analyzeStrokes = () => {

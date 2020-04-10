@@ -19,6 +19,10 @@ export class RichTextField extends ObjectField {
         this.Text = text;
     }
 
+    Empty() {
+        return !(this.Text || this.Data.toString().includes("dashField"));
+    }
+
     [Copy]() {
         return new RichTextField(this.Data, this.Text);
     }

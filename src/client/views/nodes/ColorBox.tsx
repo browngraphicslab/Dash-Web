@@ -6,7 +6,7 @@ import { makeInterface } from "../../../new_fields/Schema";
 import { StrCast } from "../../../new_fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { SelectionManager } from "../../util/SelectionManager";
-import { DocExtendableComponent } from "../DocComponent";
+import { ViewBoxBaseComponent } from "../DocComponent";
 import { InkingControl } from "../InkingControl";
 import "./ColorBox.scss";
 import { FieldView, FieldViewProps } from './FieldView';
@@ -15,7 +15,7 @@ type ColorDocument = makeInterface<[typeof documentSchema]>;
 const ColorDocument = makeInterface(documentSchema);
 
 @observer
-export class ColorBox extends DocExtendableComponent<FieldViewProps, ColorDocument>(ColorDocument) {
+export class ColorBox extends ViewBoxBaseComponent<FieldViewProps, ColorDocument>(ColorDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(ColorBox, fieldKey); }
 
     render() {

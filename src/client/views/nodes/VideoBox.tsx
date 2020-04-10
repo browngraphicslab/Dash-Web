@@ -16,7 +16,7 @@ import { Docs, DocUtils } from "../../documents/Documents";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
-import { DocAnnotatableComponent } from "../DocComponent";
+import { ViewBoxAnnotatableComponent } from "../DocComponent";
 import { DocumentDecorations } from "../DocumentDecorations";
 import { InkingControl } from "../InkingControl";
 import { FieldView, FieldViewProps } from './FieldView';
@@ -33,7 +33,7 @@ const VideoDocument = makeInterface(documentSchema, positionSchema, timeSchema);
 library.add(faVideo);
 
 @observer
-export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocument>(VideoDocument) {
+export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoDocument>(VideoDocument) {
     static _youtubeIframeCounter: number = 0;
     private _reactionDisposer?: IReactionDisposer;
     private _youtubeReactionDisposer?: IReactionDisposer;

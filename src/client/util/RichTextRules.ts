@@ -147,7 +147,7 @@ export class RichTextRules {
                     textDocInline.customTitle = true; // And make sure that it's 'custom' so that editing text doesn't change the title of the containing doc
                     textDocInline.isTemplateForField = inlineFieldKey; // this is needed in case the containing text doc is converted to a template at some point
                     textDocInline.proto = textDoc;  // make the annotation inherit from the outer text doc so that it can resolve any nested field references, e.g., [[field]]
-                    textDocInline._textContext = ComputedField.MakeFunction(`copyField(this.${inlineFieldKey})`, { this: Doc.name });
+                    textDocInline._textContext = ComputedField.MakeFunction(`copyField(self.${inlineFieldKey})`);
                     textDoc[inlineLayoutKey] = FormattedTextBox.LayoutString(inlineFieldKey); // create a layout string for the layout key that will render the annotation text
                     textDoc[inlineFieldKey] = ""; // set a default value for the annotation
                     const node = (state.doc.resolve(start) as any).nodeAfter;

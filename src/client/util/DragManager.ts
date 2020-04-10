@@ -222,7 +222,7 @@ export namespace DragManager {
             const bd = Docs.Create.ButtonDocument({ _width: 150, _height: 50, title, onClick: ScriptField.MakeScript(script) });
             params.map(p => Object.keys(vars).indexOf(p) !== -1 && (Doc.GetProto(bd)[p] = new PrefetchProxy(vars[p] as Doc)));
             initialize?.(bd);
-            bd.buttonParams = new List<string>(params);
+            bd["onclick-params"] = new List<string>(params);
             e.docDragData && (e.docDragData.droppedDocuments = [bd]);
         };
         StartDrag(eles, new DragManager.DocumentDragData([]), downX, downY, options, finishDrag);

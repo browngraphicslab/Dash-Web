@@ -14,7 +14,7 @@ import { Docs, DocUtils } from "../../documents/Documents";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
-import { DocComponent } from "../DocComponent";
+import { ViewBoxBaseComponent } from "../DocComponent";
 import { InkingControl } from "../InkingControl";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./ScreenshotBox.scss";
@@ -26,7 +26,7 @@ const ScreenshotDocument = makeInterface(documentSchema, positionSchema);
 library.add(faVideo);
 
 @observer
-export class ScreenshotBox extends DocComponent<FieldViewProps, ScreenshotDocument>(ScreenshotDocument) {
+export class ScreenshotBox extends ViewBoxBaseComponent<FieldViewProps, ScreenshotDocument>(ScreenshotDocument) {
     private _reactionDisposer?: IReactionDisposer;
     private _videoRef: HTMLVideoElement | null = null;
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(ScreenshotBox, fieldKey); }
@@ -109,7 +109,7 @@ export class ScreenshotBox extends DocComponent<FieldViewProps, ScreenshotDocume
     }
     @observable _screenCapture = false;
     specificContextMenu = (e: React.MouseEvent): void => {
-        const field = Cast(this.dataDoc[this.props.fieldKey], VideoField);
+        const field = Cast(this.dataDoc[this.fieldKey], VideoField);
         if (field) {
             const url = field.url.href;
             const subitems: ContextMenuProps[] = [];

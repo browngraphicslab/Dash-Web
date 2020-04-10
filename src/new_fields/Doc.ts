@@ -645,11 +645,12 @@ export namespace Doc {
             Cast(templateFieldValue, listSpec(Doc), [])?.map(d => d instanceof Doc && MakeMetadataFieldTemplate(d, templateDoc));
             (Doc.GetProto(templateField)[metadataFieldKey] = ObjectField.MakeCopy(templateFieldValue));
         }
-        if (templateCaptionValue instanceof RichTextField && (templateCaptionValue.Text || templateCaptionValue.Data.toString().includes("dashField"))) {
-            templateField["caption-textTemplate"] = ComputedField.MakeFunction(`copyField(this.caption)`, { this: Doc.name });
+        // copy the textTemplates from 'this' (not 'self') because the layout contains the template info, not the original doc
+        if (templateCaptionValue instanceof RichTextField && !templateCaptionValue.Empty()) {
+            templateField["caption-textTemplate"] = ComputedField.MakeFunction(`copyField(this.caption)`);
         }
-        if (templateFieldValue instanceof RichTextField && (templateFieldValue.Text || templateFieldValue.Data.toString().includes("dashField"))) {
-            templateField[metadataFieldKey + "-textTemplate"] = ComputedField.MakeFunction(`copyField(this.${metadataFieldKey})`, { this: Doc.name });
+        if (templateFieldValue instanceof RichTextField && !templateFieldValue.Empty()) {
+            templateField[metadataFieldKey + "-textTemplate"] = ComputedField.MakeFunction(`copyField(this.${metadataFieldKey})`);
         }
 
         // get the layout string that the template uses to specify its layout

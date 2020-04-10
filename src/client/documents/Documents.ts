@@ -566,8 +566,8 @@ export namespace Docs {
 
             LinkManager.Instance.addLink(doc);
 
-            Doc.GetProto(source.doc).links = ComputedField.MakeFunction("links(this)");
-            Doc.GetProto(target.doc).links = ComputedField.MakeFunction("links(this)");
+            Doc.GetProto(source.doc).links = ComputedField.MakeFunction("links(self)");
+            Doc.GetProto(target.doc).links = ComputedField.MakeFunction("links(self)");
             return doc;
         }
 
@@ -908,10 +908,10 @@ export namespace DocUtils {
         if (target.doc === CurrentUserUtils.UserDocument) return undefined;
 
         const linkDoc = Docs.Create.LinkDocument(source, target, { linkRelationship }, id);
-        Doc.GetProto(linkDoc).title = ComputedField.MakeFunction('this.anchor1.title +" (" + (this.linkRelationship||"to") +") "  + this.anchor2.title');
+        Doc.GetProto(linkDoc).title = ComputedField.MakeFunction('self.anchor1.title +" (" + (self.linkRelationship||"to") +") "  + self.anchor2.title');
 
-        Doc.GetProto(source.doc).links = ComputedField.MakeFunction("links(this)");
-        Doc.GetProto(target.doc).links = ComputedField.MakeFunction("links(this)");
+        Doc.GetProto(source.doc).links = ComputedField.MakeFunction("links(self)");
+        Doc.GetProto(target.doc).links = ComputedField.MakeFunction("links(self)");
         return linkDoc;
     }
 

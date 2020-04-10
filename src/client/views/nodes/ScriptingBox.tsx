@@ -7,7 +7,7 @@ import { ScriptField } from "../../../new_fields/ScriptField";
 import { StrCast, ScriptCast, Cast } from "../../../new_fields/Types";
 import { InteractionUtils } from "../../util/InteractionUtils";
 import { CompileScript, isCompileError, ScriptParam } from "../../util/Scripting";
-import { DocAnnotatableComponent } from "../DocComponent";
+import { ViewBoxAnnotatableComponent } from "../DocComponent";
 import { EditableView } from "../EditableView";
 import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import "./ScriptingBox.scss";
@@ -20,7 +20,7 @@ type ScriptingDocument = makeInterface<[typeof ScriptingSchema, typeof documentS
 const ScriptingDocument = makeInterface(ScriptingSchema, documentSchema);
 
 @observer
-export class ScriptingBox extends DocAnnotatableComponent<FieldViewProps, ScriptingDocument>(ScriptingDocument) {
+export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, ScriptingDocument>(ScriptingDocument) {
     protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer | undefined;
     public static LayoutString(fieldStr: string) { return FieldView.LayoutString(ScriptingBox, fieldStr); }
 

@@ -23,7 +23,7 @@ import Annotation from "./Annotation";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { SelectionManager } from "../../util/SelectionManager";
 import { undoBatch } from "../../util/UndoManager";
-import { DocAnnotatableComponent } from "../DocComponent";
+import { ViewBoxAnnotatableComponent } from "../DocComponent";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { documentSchema } from "../../../new_fields/documentSchemas";
 import { DocumentDecorations } from "../DocumentDecorations";
@@ -79,7 +79,7 @@ interface IViewerProps {
  * Handles rendering and virtualization of the pdf
  */
 @observer
-export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument>(PdfDocument) {
+export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocument>(PdfDocument) {
     static _annotationStyle: any = addStyleSheet();
     @observable private _pageSizes: { width: number, height: number }[] = [];
     @observable private _annotations: Doc[] = [];

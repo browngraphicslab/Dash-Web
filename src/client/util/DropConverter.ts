@@ -35,7 +35,7 @@ export function makeTemplate(doc: Doc, first: boolean = true, rename: Opt<string
             any = makeTemplate(d, false) || any;
         }
     });
-    if (!docs.length && first) {
+    if (first) {
         any = Doc.MakeMetadataFieldTemplate(doc, Doc.GetProto(layoutDoc)) || any;
     }
     if (layoutDoc[fieldKey] instanceof RichTextField || layoutDoc[fieldKey] instanceof ImageField) {

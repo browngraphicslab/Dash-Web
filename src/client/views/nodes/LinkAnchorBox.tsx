@@ -7,7 +7,7 @@ import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { Utils, setupMoveUpEvents } from '../../../Utils';
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager } from "../../util/DragManager";
-import { DocExtendableComponent } from "../DocComponent";
+import { ViewBoxBaseComponent } from "../DocComponent";
 import "./LinkAnchorBox.scss";
 import { FieldView, FieldViewProps } from "./FieldView";
 import React = require("react");
@@ -25,7 +25,7 @@ type LinkAnchorSchema = makeInterface<[typeof documentSchema]>;
 const LinkAnchorDocument = makeInterface(documentSchema);
 
 @observer
-export class LinkAnchorBox extends DocExtendableComponent<FieldViewProps, LinkAnchorSchema>(LinkAnchorDocument) {
+export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnchorSchema>(LinkAnchorDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(LinkAnchorBox, fieldKey); }
     _doubleTap = false;
     _lastTap: number = 0;

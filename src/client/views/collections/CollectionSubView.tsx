@@ -120,8 +120,8 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             return Cast(this.dataField, listSpec(Doc));
         }
         @computed get childDocs() {
-            const docFilters = Cast(this.props.Document._docFilters, listSpec("string"), []);
-            const docRangeFilters = Cast(this.props.Document._docRangeFilters, listSpec("string"), []);
+            const docFilters = this.props.ignoreFields?.includes("_docFilters") ? [] : Cast(this.props.Document._docFilters, listSpec("string"), []);
+            const docRangeFilters = this.props.ignoreFields?.includes("_docRangeFilters") ? [] : Cast(this.props.Document._docRangeFilters, listSpec("string"), []);
             const filterFacets: { [key: string]: { [value: string]: string } } = {};  // maps each filter key to an object with value=>modifier fields
             for (let i = 0; i < docFilters.length; i += 3) {
                 const [key, value, modifiers] = docFilters.slice(i, i + 3);

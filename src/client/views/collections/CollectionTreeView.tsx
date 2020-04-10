@@ -735,16 +735,18 @@ export class CollectionTreeView extends CollectionSubView(Document, undefined as
                 heroView._showTitle = "title";
                 heroView._showTitleHover = "titlehover";
 
-                Doc.AddDocToList(CurrentUserUtils.UserDocument.expandingButtons as Doc, "data",
+                Doc.AddDocToList(Doc.UserDoc().expandingButtons as Doc, "data",
                     Docs.Create.FontIconDocument({
-                        _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, dropAction: "alias", onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
-                        dragFactory: heroView, removeDropProperties: new List<string>(["dropAction"]), title: "hero view", icon: "portrait"
+                        title: "hero view", _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, dropAction: "alias",
+                        dragFactory: heroView, removeDropProperties: new List<string>(["dropAction"]), icon: "portrait",
+                        onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
                     }));
 
-                Doc.AddDocToList(CurrentUserUtils.UserDocument.expandingButtons as Doc, "data",
+                Doc.AddDocToList(Doc.UserDoc().expandingButtons as Doc, "data",
                     Docs.Create.FontIconDocument({
-                        _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, dropAction: "alias", onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
-                        dragFactory: detailView, removeDropProperties: new List<string>(["dropAction"]), title: "detail view", icon: "file-alt"
+                        title: "detail view", _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, dropAction: "alias",
+                        dragFactory: detailView, removeDropProperties: new List<string>(["dropAction"]), icon: "file-alt",
+                        onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
                     }));
 
                 Document.childLayout = heroView;
@@ -837,7 +839,7 @@ Scripting.addGlobal(function readFacetData(layoutDoc: Doc, dataDoc: Doc, dataKey
         Docs.Create.TextDocument("", {
             title: facetValue.toString(),
             treeViewChecked: ComputedField.MakeFunction("determineCheckedState(layoutDoc, facetHeader, facetValue)",
-                { layoutDoc: Doc.name, facetHeader: "string", facetValue: "string" },
+                {},
                 { layoutDoc, facetHeader, facetValue })
         }));
     return new List<Doc>(facetValueDocSet);

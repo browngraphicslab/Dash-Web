@@ -12,7 +12,7 @@ import { Cast, NumCast } from "../../../new_fields/Types";
 import { emptyFunction, emptyPath, returnFalse, returnTrue } from "../../../Utils";
 import { Transform } from "../../util/Transform";
 import { CollectionViewType } from '../collections/CollectionView';
-import { DocExtendableComponent } from '../DocComponent';
+import { ViewBoxBaseComponent } from '../DocComponent';
 import { ContentFittingDocumentView } from '../nodes/ContentFittingDocumentView';
 import { FieldView, FieldViewProps } from '../nodes/FieldView';
 import "./PresElementBox.scss";
@@ -44,7 +44,7 @@ const PresDocument = makeInterface(presSchema, documentSchema);
  * It involves some functionality for its buttons and options.
  */
 @observer
-export class PresElementBox extends DocExtendableComponent<FieldViewProps, PresDocument>(PresDocument) {
+export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDocument>(PresDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(PresElementBox, fieldKey); }
 
     _heightDisposer: IReactionDisposer | undefined;

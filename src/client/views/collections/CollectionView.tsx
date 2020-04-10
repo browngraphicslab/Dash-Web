@@ -354,14 +354,15 @@ export class CollectionView extends Touchable<FieldViewProps> {
             let newFacet: Opt<Doc>;
             if (nonNumbers / allCollectionDocs.length < .1) {
                 newFacet = Docs.Create.SliderDocument({ title: facetHeader });
+                const newFacetField = Doc.LayoutFieldKey(newFacet);
                 const ranged = Doc.readDocRangeFilter(this.props.Document, facetHeader);
                 Doc.GetProto(newFacet).type = DocumentType.COL; // forces item to show an open/close button instead ofa checkbox
                 newFacet.treeViewExpandedView = "layout";
                 newFacet.treeViewOpen = true;
-                newFacet._sliderMin = ranged === undefined ? minVal : ranged[0];
-                newFacet._sliderMax = ranged === undefined ? maxVal : ranged[1];
-                newFacet._sliderMinThumb = minVal;
-                newFacet._sliderMaxThumb = maxVal;
+                newFacet[newFacetField + "-min"] = ranged === undefined ? minVal : ranged[0];
+                newFacet[newFacetField + "-max"] = ranged === undefined ? maxVal : ranged[1];
+                Doc.GetProto(newFacet)[newFacetField + "-minThumb"] = minVal;
+                Doc.GetProto(newFacet)[newFacetField + "-maxThumb"] = maxVal;
                 newFacet.target = this.props.Document;
                 const scriptText = `setDocFilterRange(this.target, "${facetHeader}", range)`;
                 newFacet.onThumbChanged = ScriptField.MakeScript(scriptText, { this: Doc.name, range: "number" });
@@ -370,13 +371,11 @@ export class CollectionView extends Touchable<FieldViewProps> {
             } else {
                 newFacet = Docs.Create.TreeDocument([], { title: facetHeader, treeViewOpen: true, isFacetFilter: true });
                 const capturedVariables = { layoutDoc: this.props.Document, dataDoc: this.dataDoc };
-                const params = { layoutDoc: Doc.name, dataDoc: Doc.name, };
-                newFacet.data = ComputedField.MakeFunction(`readFacetData(layoutDoc, dataDoc, "${this.props.fieldKey}", "${facetHeader}")`, params, capturedVariables);
+                newFacet.data = ComputedField.MakeFunction(`readFacetData(layoutDoc, dataDoc, "${this.props.fieldKey}", "${facetHeader}")`, {}, capturedVariables);
             }
             newFacet && Doc.AddDocToList(facetCollection, this.props.fieldKey + "-filter", newFacet);
         }
     }
-
 
     onPointerDown = (e: React.PointerEvent) => {
         setupMoveUpEvents(this, e, action((e: PointerEvent, down: number[], delta: number[]) => {
@@ -385,11 +384,11 @@ export class CollectionView extends Touchable<FieldViewProps> {
         }), returnFalse, action(() => this._facetWidth = this.facetWidth() < 15 ? Math.min(this.props.PanelWidth() - 25, 200) : 0));
     }
     filterBackground = () => "dimGray";
+    get ignoreFields() { return ["_docFilters", "_docRangeFilters"]; } // this makes the tree view collection ignore these filters (otherwise, the filters would filter themselves)
     @computed get scriptField() {
         const scriptText = "setDocFilter(containingTreeView, heading, this.title, checked)";
         return ScriptField.MakeScript(scriptText, { this: Doc.name, heading: "string", checked: "string", containingTreeView: Doc.name });
     }
-    @computed get treeIgnoreFields() { return ["_facetCollection", "_docFilters"]; }
     @computed get filterView() {
         const facetCollection = this.props.Document;
         const flyout = (
@@ -419,7 +418,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
                         NativeWidth={returnZero}
                         treeViewHideHeaderFields={true}
                         onCheckedClick={this.scriptField!}
-                        ignoreFields={this.treeIgnoreFields}
+                        ignoreFields={this.ignoreFields}
                         annotationsKey={""}
                         dontRegisterView={true}
                         PanelWidth={this.facetWidth}

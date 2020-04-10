@@ -361,28 +361,13 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
         }, emptyFunction, emptyFunction);
     }
     dragCommandDown = (e: React.PointerEvent) => {
-        this._startDragPosition = { x: e.clientX, y: e.clientY };
-        document.addEventListener("pointermove", this.dragPointerMove);
-        document.addEventListener("pointerup", this.dragPointerUp);
-        e.stopPropagation();
-        e.preventDefault();
-    }
-
-    dragPointerMove = (e: PointerEvent) => {
-        e.stopPropagation();
-        e.preventDefault();
-        const [dx, dy] = [e.clientX - this._startDragPosition.x, e.clientY - this._startDragPosition.y];
-        if (Math.abs(dx) + Math.abs(dy) > this._sensitivity) {
+        setupMoveUpEvents(this, e, (e, down, delta) => {
             this._buttonizableCommands.filter(c => c.title === this._currentKey).map(c =>
                 DragManager.StartButtonDrag([this._commandRef.current!], c.script, c.title,
                     { target: this.props.CollectionView.props.Document }, c.params, c.initialize, e.clientX, e.clientY));
-            document.removeEventListener("pointermove", this.dragPointerMove);
-            document.removeEventListener("pointerup", this.dragPointerUp);
-        }
-    }
-    dragPointerUp = (e: PointerEvent) => {
-        document.removeEventListener("pointermove", this.dragPointerMove);
-        document.removeEventListener("pointerup", this.dragPointerUp);
+            return true;
+        }, emptyFunction, emptyFunction);
+        this._startDragPosition = { x: e.clientX, y: e.clientY };
     }
 
     render() {

@@ -8,7 +8,7 @@ import { InkTool } from '../../new_fields/InkField';
 import { InteractionUtils } from '../util/InteractionUtils';
 
 
-///  DocComponent returns a generic React base class used by views that don't have any data extensions (e.g.,CollectionFreeFormDocumentView, DocumentView, LabelBox)
+///  DocComponent returns a generic React base class used by views that don't have 'fieldKey' props (e.g.,CollectionFreeFormDocumentView, DocumentView)
 interface DocComponentProps {
     Document: Doc;
     LayoutDoc?: () => Opt<Doc>;
@@ -22,15 +22,15 @@ export function DocComponent<P extends DocComponentProps, T>(schemaCtor: (doc: D
         // This is the rendering data of a document -- it may be "The Document", or it may be some template document that holds the rendering info
         @computed get layoutDoc() { return Doc.Layout(this.props.Document); }
         // This is the data part of a document -- ie, the data that is constant across all views of the document
-        @computed get dataDoc() { return this.props.Document[DataSym]; }
+        @computed get dataDoc() { return this.props.Document[DataSym] as Doc; }
 
         protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
     }
     return Component;
 }
 
-///  DocStaticProps return a base class for React document views that have data extensions but aren't annotatable (e.g. AudioBox, FormattedTextBox)
-interface DocExtendableProps {
+/// FieldViewBoxProps  -  a generic base class for field views that are not annotatable (e.g. AudioBox, FormattedTextBox)
+interface ViewBoxBaseProps {
     Document: Doc;
     DataDoc?: Doc;
     fieldKey: string;
@@ -38,7 +38,7 @@ interface DocExtendableProps {
     renderDepth: number;
     rootSelected: (outsideReaction?: boolean) => boolean;
 }
-export function DocExtendableComponent<P extends DocExtendableProps, T>(schemaCtor: (doc: Doc) => T) {
+export function ViewBoxBaseComponent<P extends ViewBoxBaseProps, T>(schemaCtor: (doc: Doc) => T) {
     class Component extends Touchable<P> {
         //TODO This might be pretty inefficient if doc isn't observed, because computed doesn't cache then
         //@computed get Document(): T { return schemaCtor(this.props.Document); }
@@ -60,8 +60,8 @@ export function DocExtendableComponent<P extends DocExtendableProps, T>(schemaCt
 }
 
 
-///  DocAnnotatbleComponent return a base class for React views of document fields that are annotatable *and* interactive when selected (e.g., pdf, image)
-export interface DocAnnotatableProps {
+///  DocAnnotatbleComponent -return a base class for React views of document fields that are annotatable *and* interactive when selected (e.g., pdf, image)
+export interface ViewBoxAnnotatableProps {
     Document: Doc;
     DataDoc?: Doc;
     fieldKey: string;
@@ -71,7 +71,7 @@ export interface DocAnnotatableProps {
     rootSelected: (outsideReaction?: boolean) => boolean;
     renderDepth: number;
 }
-export function DocAnnotatableComponent<P extends DocAnnotatableProps, T>(schemaCtor: (doc: Doc) => T) {
+export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T>(schemaCtor: (doc: Doc) => T) {
     class Component extends Touchable<P> {
         @observable _isChildActive = false;
         //TODO This might be pretty inefficient if doc isn't observed, because computed doesn't cache then

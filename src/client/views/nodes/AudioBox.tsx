@@ -4,7 +4,7 @@ import { observer } from "mobx-react";
 import "./AudioBox.scss";
 import { Cast, DateCast, NumCast } from "../../../new_fields/Types";
 import { AudioField, nullAudio } from "../../../new_fields/URLField";
-import { DocExtendableComponent } from "../DocComponent";
+import { ViewBoxBaseComponent } from "../DocComponent";
 import { makeInterface, createSchema } from "../../../new_fields/Schema";
 import { documentSchema } from "../../../new_fields/documentSchemas";
 import { Utils, returnTrue, emptyFunction, returnOne, returnTransparent, returnFalse, returnZero } from "../../../Utils";
@@ -39,7 +39,7 @@ type AudioDocument = makeInterface<[typeof documentSchema, typeof audioSchema]>;
 const AudioDocument = makeInterface(documentSchema, audioSchema);
 
 @observer
-export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocument>(AudioDocument) {
+export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument>(AudioDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(AudioBox, fieldKey); }
     public static Enabled = false;
 
@@ -194,8 +194,8 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
             _width: NumCast(this.props.Document._width), _height: 3 * NumCast(this.props.Document._height)
         });
         Doc.GetProto(newDoc).recordingSource = this.dataDoc;
-        Doc.GetProto(newDoc).recordingStart = ComputedField.MakeFunction(`this.recordingSource["${this.props.fieldKey}-recordingStart"]`);
-        Doc.GetProto(newDoc).audioState = ComputedField.MakeFunction("this.recordingSource.audioState");
+        Doc.GetProto(newDoc).recordingStart = ComputedField.MakeFunction(`self.recordingSource["${this.props.fieldKey}-recordingStart"]`);
+        Doc.GetProto(newDoc).audioState = ComputedField.MakeFunction("self.recordingSource.audioState");
         this.props.addDocument?.(newDoc);
         e.stopPropagation();
     }
