@@ -28,9 +28,9 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
 
     @observable private _errorMessage: string = "";
 
-    @computed get rawScript() { return StrCast(this.dataDoc[this.props.fieldKey + "-raw"]); }
+    @computed get rawScript() { return StrCast(this.dataDoc[this.props.fieldKey + "-rawScript"]); }
     @computed get compileParams() { return Cast(this.dataDoc[this.props.fieldKey + "-params"], listSpec("string"), []); }
-    set rawScript(value) { this.dataDoc[this.props.fieldKey + "-raw"] = value; }
+    set rawScript(value) { this.dataDoc[this.props.fieldKey + "-rawScript"] = value; }
     set compileParams(value) { this.dataDoc[this.props.fieldKey + "-params"] = value; }
 
     @action
@@ -46,7 +46,8 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         const result = CompileScript(this.rawScript, {
             editable: true,
             transformer: DocumentIconContainer.getTransformer(),
-            params
+            params,
+            typecheck: false
         });
         this._errorMessage = isCompileError(result) ? result.errors.map(e => e.messageText).join("\n") : "";
         return this.dataDoc[this.props.fieldKey] = result.compiled ? new ScriptField(result) : undefined;

@@ -1,21 +1,20 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faEdit } from '@fortawesome/free-regular-svg-icons';
-import { action, computed } from 'mobx';
+import { action } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
 import { Doc, DocListCast } from '../../../new_fields/Doc';
+import { documentSchema } from '../../../new_fields/documentSchemas';
 import { List } from '../../../new_fields/List';
-import { createSchema, makeInterface, listSpec } from '../../../new_fields/Schema';
-import { ScriptField } from '../../../new_fields/ScriptField';
-import { BoolCast, StrCast, Cast, FieldValue, NumCast } from '../../../new_fields/Types';
+import { createSchema, listSpec, makeInterface } from '../../../new_fields/Schema';
+import { Cast, NumCast, StrCast } from '../../../new_fields/Types';
 import { DragManager } from '../../util/DragManager';
 import { undoBatch } from '../../util/UndoManager';
-import { ViewBoxBaseComponent } from '../DocComponent';
-import './LabelBox.scss';
-import { FieldView, FieldViewProps } from './FieldView';
-import { ContextMenuProps } from '../ContextMenuItem';
 import { ContextMenu } from '../ContextMenu';
-import { documentSchema } from '../../../new_fields/documentSchemas';
+import { ContextMenuProps } from '../ContextMenuItem';
+import { ViewBoxBaseComponent } from '../DocComponent';
+import { FieldView, FieldViewProps } from './FieldView';
+import './LabelBox.scss';
 
 
 library.add(faEdit as any);
@@ -41,7 +40,7 @@ export class LabelBox extends ViewBoxBaseComponent<FieldViewProps, LabelDocument
         const funcs: ContextMenuProps[] = [];
         funcs.push({
             description: "Clear Script Params", event: () => {
-                const params = Cast(this.dataDoc[this.fieldKey + "-params"], listSpec("string"), []);
+                const params = Cast(this.dataDoc[this.fieldKey + "-paramFieldKeys"], listSpec("string"), []);
                 params?.map(p => this.dataDoc[p] = undefined);
             }, icon: "trash"
         });
@@ -53,7 +52,7 @@ export class LabelBox extends ViewBoxBaseComponent<FieldViewProps, LabelDocument
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
         const docDragData = de.complete.docDragData;
-        const params = Cast(this.dataDoc[this.fieldKey + "-params"], listSpec("string"), []);
+        const params = Cast(this.dataDoc[this.fieldKey + "-paramFieldKeys"], listSpec("string"), []);
         const missingParams = params?.filter(p => this.dataDoc[p] === undefined);
         if (docDragData && missingParams?.includes((e.target as any).textContent)) {
             this.dataDoc[(e.target as any).textContent] = new List<Doc>(docDragData.droppedDocuments.map((d, i) =>
@@ -63,7 +62,7 @@ export class LabelBox extends ViewBoxBaseComponent<FieldViewProps, LabelDocument
     }
     // (!missingParams || !missingParams.length ? "" : "(" + missingParams.map(m => m + ":").join(" ") + ")")
     render() {
-        const params = Cast(this.dataDoc[this.fieldKey + "-params"], listSpec("string"), []);
+        const params = Cast(this.dataDoc[this.fieldKey + "-paramFieldKeys"], listSpec("string"), []);
         const missingParams = params?.filter(p => this.dataDoc[p] === undefined);
         params?.map(p => DocListCast(this.dataDoc[p])); // bcz: really hacky form of prefetching ... 
         return (
@@ -80,7 +79,7 @@ export class LabelBox extends ViewBoxBaseComponent<FieldViewProps, LabelDocument
                         {StrCast(this.layoutDoc.text, StrCast(this.layoutDoc.title))}
                     </div>
                 </div>
-                <div className="labelBox-params" >
+                <div className="labelBox-fieldKeyParams" >
                     {!missingParams?.length ? (null) : missingParams.map(m => <div key={m} className="labelBox-missingParam">{m}</div>)}
                 </div>
             </div>

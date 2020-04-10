@@ -116,6 +116,7 @@ export interface DocumentOptions {
     borderRounding?: string;
     boxShadow?: string;
     dontRegisterChildren?: boolean;
+    "onClick-rawScript"?:string; // onClick script in raw text form
     _pivotField?: string; // field key used to determine headings for sections in stacking, masonry, pivot views
     schemaColumns?: List<SchemaHeaderField>;
     dockingConfig?: string;
@@ -144,7 +145,6 @@ export interface DocumentOptions {
     treeViewChecked?: ScriptField; // script to call when a tree view checkbox is checked
     isFacetFilter?: boolean; // whether document functions as a facet filter in a tree view
     limitHeight?: number; // maximum height for newly created (eg, from pasting) text documents
-    editScriptOnClick?: string; // script field key to edit when document is clicked (e.g., "onClick", "onChecked")
     // [key: string]: Opt<Field>;
     pointerHack?: boolean; // for buttons, allows onClick handler to fire onPointerDown
     textTransform?: string; // is linear view expanded
@@ -246,6 +246,9 @@ export namespace Docs {
             }],
             [DocumentType.LABEL, {
                 layout: { view: LabelBox, dataField: data },
+            }],
+            [DocumentType.BUTTON, {
+                layout: { view: LabelBox, dataField: "onClick" },
             }],
             [DocumentType.SLIDER, {
                 layout: { view: SliderBox, dataField: data },
@@ -654,7 +657,7 @@ export namespace Docs {
         }
 
         export function ButtonDocument(options?: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.LABEL), undefined, { ...(options || {}), editScriptOnClick: "onClick" });
+            return InstanceFromProto(Prototypes.get(DocumentType.BUTTON), undefined, { ...(options || {}), "onClick-rawScript": "-script-" });
         }
 
         export function SliderDocument(options?: DocumentOptions) {

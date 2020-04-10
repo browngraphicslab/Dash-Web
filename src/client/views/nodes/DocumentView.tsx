@@ -305,8 +305,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 if (this.props.Document !== Doc.UserDoc().undoBtn && this.props.Document !== Doc.UserDoc().redoBtn) {
                     UndoManager.RunInBatch(func, "on click");
                 } else func();
-            } else if (this.Document.editScriptOnClick) {
-                UndoManager.RunInBatch(() => ScriptBox.EditButtonScript("On Button Clicked ...", this.props.Document, StrCast(this.Document.editScriptOnClick), e.clientX, e.clientY), "on button click");
+            } else if (this.Document["onClick-rawScript"]) {
+                UndoManager.RunInBatch(() => ScriptBox.EditButtonScript("On Button Clicked ...", this.props.Document, "onClick", e.clientX, e.clientY), "on button click");
             } else if (this.Document.isLinkButton) {
                 DocListCast(this.props.Document.links).length && this.followLinkClick(e.altKey, e.ctrlKey, e.shiftKey);
             } else {
