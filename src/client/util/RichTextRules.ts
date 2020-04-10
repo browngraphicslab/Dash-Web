@@ -130,7 +130,7 @@ export class RichTextRules {
                         }
                     });
                     const node = (state.doc.resolve(start) as any).nodeAfter;
-                    const dashDoc = schema.nodes.dashDoc.create({ width: 75, height: 75, title: "dashDoc", docid, fieldKey: fieldKey + fieldParam, float: "right", alias: Utils.GenerateGuid() });
+                    const dashDoc = schema.nodes.dashDoc.create({ width: 75, height: 75, title: "dashDoc", docid, fieldKey: fieldKey + fieldParam, float: "unset", alias: Utils.GenerateGuid() });
                     const sm = state.storedMarks || undefined;
                     return node ? state.tr.replaceRangeWith(start, end, dashDoc).setStoredMarks([...node.marks, ...(sm ? sm : [])]) : state.tr;
                 }),
