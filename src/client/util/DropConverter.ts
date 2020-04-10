@@ -36,7 +36,13 @@ export function makeTemplate(doc: Doc, first: boolean = true, rename: Opt<string
         }
     });
     if (first) {
-        any = Doc.MakeMetadataFieldTemplate(doc, Doc.GetProto(layoutDoc)) || any;
+        if (docs.length) { // bcz: feels hacky : if the root level document has items, it's not a field template, but we still want its caption to be a textTemplate
+            if (doc.caption instanceof RichTextField && !doc.caption.Empty()) {
+                doc["caption-textTemplate"] = ComputedField.MakeFunction(`copyField(this.caption)`);
+            }
+        } else {
+            any = Doc.MakeMetadataFieldTemplate(doc, Doc.GetProto(layoutDoc)) || any;
+        }
     }
     if (layoutDoc[fieldKey] instanceof RichTextField || layoutDoc[fieldKey] instanceof ImageField) {
         if (!StrCast(layoutDoc.title).startsWith("-")) {
