@@ -1017,47 +1017,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument, u
 
     private thumbIdentifier?: number;
 
-    // @action
-    // handleHandDown = (e: React.TouchEvent) => {
-    //     const fingers = InteractionUtils.GetMyTargetTouches(e, this.prevPoints, true);
-    //     const thumb = fingers.reduce((a, v) => a.clientY > v.clientY ? a : v, fingers[0]);
-    //     this.thumbIdentifier = thumb?.identifier;
-    //     const others = fingers.filter(f => f !== thumb);
-    //     const minX = Math.min(...others.map(f => f.clientX));
-    //     const minY = Math.min(...others.map(f => f.clientY));
-    //     const t = this.getTransform().transformPoint(minX, minY);
-    //     const th = this.getTransform().transformPoint(thumb.clientX, thumb.clientY);
-
-    //     const thumbDoc = FieldValue(Cast(CurrentUserUtils.setupThumbDoc(CurrentUserUtils.UserDocument), Doc));
-    //     if (thumbDoc) {
-    //         this._palette = <Palette x={t[0]} y={t[1]} thumb={th} thumbDoc={thumbDoc} />;
-    //     }
-
-    //     document.removeEventListener("touchmove", this.onTouch);
-    //     document.removeEventListener("touchmove", this.handleHandMove);
-    //     document.addEventListener("touchmove", this.handleHandMove);
-    //     document.removeEventListener("touchend", this.handleHandUp);
-    //     document.addEventListener("touchend", this.handleHandUp);
-    // }
-
-    // @action
-    // handleHandMove = (e: TouchEvent) => {
-    //     for (let i = 0; i < e.changedTouches.length; i++) {
-    //         const pt = e.changedTouches.item(i);
-    //         if (pt?.identifier === this.thumbIdentifier) {
-    //         }
-    //     }
-    // }
-
-    // @action
-    // handleHandUp = (e: TouchEvent) => {
-    //     this.onTouchEnd(e);
-    //     if (this.prevPoints.size < 3) {
-    //         this._palette = undefined;
-    //         document.removeEventListener("touchend", this.handleHandUp);
-    //     }
-    // }
-
     onContextMenu = (e: React.MouseEvent) => {
         if (this.props.children && this.props.annotationsKey) return;
         const layoutItems: ContextMenuProps[] = [];

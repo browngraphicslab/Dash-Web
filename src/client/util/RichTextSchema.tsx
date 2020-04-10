@@ -27,8 +27,12 @@ import ParagraphNodeSpec from "./ParagraphNodeSpec";
 import { Transform } from "./Transform";
 import React = require("react");
 
-const blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
-    preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], brDOM: DOMOutputSpecArray = ["br"], ulDOM: DOMOutputSpecArray = ["ul", 0];
+const 
+    blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], 
+    hrDOM: DOMOutputSpecArray = ["hr"],
+    preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], 
+    brDOM: DOMOutputSpecArray = ["br"], 
+    ulDOM: DOMOutputSpecArray = ["ul", 0];
 
 // :: Object
 // [Specs](#model.NodeSpec) for the nodes defined in this schema.
@@ -738,7 +742,7 @@ export class DashDocView {
         this._outer = document.createElement("span");
         this._outer.style.position = "relative";
         this._outer.style.textIndent = "0";
-        this._outer.style.border = "1px solid " + StrCast(tbox.Document.color, (Cast(Doc.UserDoc().activeWorkspace, Doc, null).darkScheme ? "dimGray" : "lightGray"));
+        this._outer.style.border = "1px solid " + StrCast(tbox.layoutDoc.color, (Cast(Doc.UserDoc().activeWorkspace, Doc, null).darkScheme ? "dimGray" : "lightGray"));
         this._outer.style.width = node.attrs.width;
         this._outer.style.height = node.attrs.height;
         this._outer.style.display = node.attrs.hidden ? "none" : "inline-block";

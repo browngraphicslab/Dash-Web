@@ -276,8 +276,8 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
                 this.layoutDoc._height = this.layoutDoc[WidthSym]() * cachedAspect;
             }
         } else if (this.layoutDoc._nativeWidth !== cachedNativeSize.width || this.layoutDoc._nativeHeight !== cachedNativeSize.height) {
-            !(this.Document[StrCast(this.props.Document.layoutKey)] instanceof Doc) && setTimeout(() => {
-                if (!(this.Document[StrCast(this.props.Document.layoutKey)] instanceof Doc)) {
+            !(this.layoutDoc[StrCast(this.layoutDoc.layoutKey)] instanceof Doc) && setTimeout(() => {
+                if (!(this.layoutDoc[StrCast(this.layoutDoc.layoutKey)] instanceof Doc)) {
                     this.layoutDoc._nativeWidth = cachedNativeSize.width;
                     this.layoutDoc._nativeHeight = cachedNativeSize.height;
                 }
@@ -432,9 +432,6 @@ export class ImageBox extends DocAnnotatableComponent<FieldViewProps, ImageDocum
     contentFunc = () => [this.content];
     render() {
         TraceMobx();
-        const { nativeWidth, nativeHeight } = this.nativeSize;
-        const aspect = nativeWidth / nativeHeight;
-        const pwidth = this.props.PanelWidth() > this.props.PanelHeight() / aspect ? this.props.PanelHeight() / aspect : this.props.PanelWidth();
         const dragging = !SelectionManager.GetIsDragging() ? "" : "-dragging";
         return (<div className={`imageBox${dragging}`} onContextMenu={this.specificContextMenu}
             style={{

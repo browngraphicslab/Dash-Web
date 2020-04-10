@@ -148,7 +148,7 @@ export class DocumentManager {
         const highlight = () => {
             const finalDocView = getFirstDocView(targetDoc);
             if (finalDocView) {
-                finalDocView.Document.scrollToLinkID = linkId;
+                finalDocView.layoutDoc.scrollToLinkID = linkId;
                 Doc.linkFollowHighlight(finalDocView.props.Document);
             }
         };

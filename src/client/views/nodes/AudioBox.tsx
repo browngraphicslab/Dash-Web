@@ -235,7 +235,7 @@ export class AudioBox extends DocExtendableComponent<FieldViewProps, AudioDocume
                 <div className="audiobox-controls">
                     <div className="audiobox-player" onClick={this.onPlay}>
                         <div className="audiobox-playhead"> <FontAwesomeIcon style={{ width: "100%" }} icon={this.audioState === "paused" ? "play" : "pause"} size={this.props.PanelHeight() < 36 ? "1x" : "2x"} /></div>
-                        <div className="audiobox-playhead" onClick={this.onStop}><FontAwesomeIcon style={{ width: "100%", background: this.Document.playOnSelect ? "yellow" : "dimGray" }} icon="hand-point-left" size={this.props.PanelHeight() < 36 ? "1x" : "2x"} /></div>
+                        <div className="audiobox-playhead" onClick={this.onStop}><FontAwesomeIcon style={{ width: "100%", background: this.layoutDoc.playOnSelect ? "yellow" : "dimGray" }} icon="hand-point-left" size={this.props.PanelHeight() < 36 ? "1x" : "2x"} /></div>
                         <div className="audiobox-timeline" onClick={e => e.stopPropagation()}
                             onPointerDown={e => {
                                 if (e.button === 0 && !e.ctrlKey) {
