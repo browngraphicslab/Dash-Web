@@ -13,7 +13,6 @@ export namespace InteractionUtils {
     export class MultiTouchEvent<T extends React.TouchEvent | TouchEvent> {
         constructor(
             readonly fingers: number,
-            // readonly points: T extends React.TouchEvent ? React.TouchList : TouchList,
             readonly targetTouches: T extends React.TouchEvent ? React.Touch[] : Touch[],
             readonly touches: T extends React.TouchEvent ? React.Touch[] : Touch[],
             readonly changedTouches: T extends React.TouchEvent ? React.Touch[] : Touch[],
@@ -48,6 +47,11 @@ export namespace InteractionUtils {
         };
     }
 
+    /**
+     * Turns an element onto a target for custom touch handling.
+     * @param element - element to add events to
+     * @param func - function to add to the event
+     */
     export function MakeHoldTouchTarget(
         element: HTMLElement,
         func: (e: Event, me: MultiTouchEvent<React.TouchEvent>) => void
@@ -78,7 +82,6 @@ export namespace InteractionUtils {
         return myTouches;
     }
 
-    // TODO: find a way to reference this function from InkingStroke instead of copy pastign here. copied bc of weird error when on mobile view
     export function CreatePolyline(points: { X: number, Y: number }[], left: number, top: number, color: string, width: number) {
         const pts = points.reduce((acc: string, pt: { X: number, Y: number }) => acc + `${pt.X - left},${pt.Y - top} `, "");
         return (
