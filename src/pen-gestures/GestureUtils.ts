@@ -43,12 +43,4 @@ export namespace GestureUtils {
     }
 
     export const GestureRecognizer = new NDollarRecognizer(false);
-
-    export function GestureOptions(name: string, gestureData?: any): (params: {}) => any {
-        switch (name) {
-            case Gestures.Box:
-                break;
-        }
-        throw new Error("This means that you're trying to do something with the gesture that hasn't been defined yet. Define it in GestureUtils.ts");
-    }
 }

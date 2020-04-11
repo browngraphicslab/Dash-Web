@@ -22,6 +22,11 @@ export namespace InteractionUtils {
 
     export interface MultiTouchEventDisposer { (): void; }
 
+    /**
+     * 
+     * @param element - element to turn into a touch target
+     * @param startFunc - event handler, typically Touchable.onTouchStart (classes that inherit touchable can pass in this.onTouchStart)
+     */
     export function MakeMultiTouchTarget(
         element: HTMLElement,
         startFunc: (e: Event, me: MultiTouchEvent<React.TouchEvent>) => void
@@ -48,7 +53,7 @@ export namespace InteractionUtils {
     }
 
     /**
-     * Turns an element onto a target for custom touch handling.
+     * Turns an element onto a target for touch hold handling.
      * @param element - element to add events to
      * @param func - function to add to the event
      */
@@ -96,6 +101,11 @@ export namespace InteractionUtils {
         );
     }
 
+    /**
+     * Returns whether or not the pointer event passed in is of the type passed in
+     * @param e - pointer event. this event could be from a mouse, a pen, or a finger
+     * @param type - InteractionUtils.(PENTYPE | ERASERTYPE | MOUSETYPE | TOUCHTYPE)
+     */
     export function IsType(e: PointerEvent | React.PointerEvent, type: string): boolean {
         switch (type) {
             // pen and eraser are both pointer type 'pen', but pen is button 0 and eraser is button 5. -syip2
@@ -108,6 +118,11 @@ export namespace InteractionUtils {
         }
     }
 
+    /**
+     * Returns euclidean distance between two points
+     * @param pt1 
+     * @param pt2 
+     */
     export function TwoPointEuclidist(pt1: React.Touch, pt2: React.Touch): number {
         return Math.sqrt(Math.pow(pt1.clientX - pt2.clientX, 2) + Math.pow(pt1.clientY - pt2.clientY, 2));
     }
