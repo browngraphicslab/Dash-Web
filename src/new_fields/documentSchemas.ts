@@ -33,6 +33,7 @@ export const documentSchema = createSchema({
     color: "string",            // foreground color of document
     backgroundColor: "string",  // background color of document
     opacity: "number",          // opacity of document
+    overflow: "string",         // sets overflow behvavior for CollectionFreeForm views
     creationDate: DateField,    // when the document was created
     links: listSpec(Doc),       // computed (readonly) list of links associated with this document
     onClick: ScriptField,       // script to run when document is clicked (can be overriden by an onClick prop)

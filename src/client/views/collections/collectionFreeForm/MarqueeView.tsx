@@ -586,13 +586,19 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
          * This contains the "C for collection, ..." text on marquees.
          * Commented out by syip2 when the marquee menu was added.
          */
-        return <div className="marquee" style={{ transform: `translate(${p[0]}px, ${p[1]}px)`, width: `${Math.abs(v[0])}`, height: `${Math.abs(v[1])}`, zIndex: 2000 }} >
+        return <div className="marquee" style={{
+            transform: `translate(${p[0]}px, ${p[1]}px)`,
+            width: `${Math.abs(v[0])}`,
+            height: `${Math.abs(v[1])}`, zIndex: 2000
+        }} >
             {/* <span className="marquee-legend" /> */}
         </div>;
     }
 
     render() {
-        return <div className="marqueeView" onScroll={(e) => e.currentTarget.scrollTop = e.currentTarget.scrollLeft = 0} onClick={this.onClick} onPointerDown={this.onPointerDown}>
+        return <div className="marqueeView"
+            style={{ overflow: StrCast(this.props.Document.overflow), }}
+            onScroll={(e) => e.currentTarget.scrollTop = e.currentTarget.scrollLeft = 0} onClick={this.onClick} onPointerDown={this.onPointerDown}>
             {this._visible ? this.marqueeDiv : null}
             {this.props.children}
         </div>;

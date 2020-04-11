@@ -67,7 +67,7 @@ export const panZoomSchema = createSchema({
 type PanZoomDocument = makeInterface<[typeof panZoomSchema, typeof documentSchema, typeof positionSchema, typeof pageSchema]>;
 const PanZoomDocument = makeInterface(panZoomSchema, documentSchema, positionSchema, pageSchema);
 export type collectionFreeformViewProps = {
-    forceScaling?:boolean; // whether to force scaling of content (needed by ImageBox)
+    forceScaling?: boolean; // whether to force scaling of content (needed by ImageBox)
 };
 
 @observer
@@ -138,7 +138,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument, u
     @undoBatch
     @action
     onInternalDrop = (e: Event, de: DragManager.DropEvent) => {
-        if (this.props.Document.isBackground) return false;
+        // if (this.props.Document.isBackground) return false;
         const xf = this.getTransform();
         const xfo = this.getTransformOverlay();
         const [xp, yp] = xf.transformPoint(de.x, de.y);
@@ -164,7 +164,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument, u
                             const nh = NumCast(layoutDoc._nativeHeight);
                             layoutDoc._height = nw && nh ? nh / nw * NumCast(layoutDoc._width) : 300;
                         }
-                        this.bringToFront(d);
+                        d.isBackground === undefined && this.bringToFront(d);
                     }));
 
                     (de.complete.docDragData.droppedDocuments.length === 1 || de.shiftKey) && this.updateClusterDocs(de.complete.docDragData.droppedDocuments);
