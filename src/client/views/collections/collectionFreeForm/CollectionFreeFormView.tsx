@@ -493,17 +493,22 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument, u
     onPointerUp = (e: PointerEvent): void => {
         if (InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE)) return;
 
-        if (this.layoutDoc.targetScale && (Math.abs(e.pageX - this._downX) < 3 && Math.abs(e.pageY - this._downY) < 3)) {
-            if (Date.now() - this._lastTap < 300) {
-                const docpt = this.getTransform().transformPoint(e.clientX, e.clientY);
-                this.scaleAtPt(docpt, NumCast(this.layoutDoc.targetScale, NumCast(this.layoutDoc.scale)));
-            }
-            this._lastTap = Date.now();
-        }
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
         this.removeMoveListeners();
         this.removeEndListeners();
+    }
+
+    onClick = (e: React.MouseEvent) => {
+        if (this.layoutDoc.targetScale && (Math.abs(e.pageX - this._downX) < 3 && Math.abs(e.pageY - this._downY) < 3)) {
+            if (Date.now() - this._lastTap < 300) {
+                const docpt = this.getTransform().transformPoint(e.clientX, e.clientY);
+                this.scaleAtPt(docpt, NumCast(this.layoutDoc.targetScale, NumCast(this.layoutDoc.scale)));
+                e.stopPropagation();
+                e.preventDefault();
+            }
+            this._lastTap = Date.now();
+        }
     }
 
     @action
@@ -1129,7 +1134,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument, u
         // otherwise, they are stored in fieldKey.  All annotations to this document are stored in the extension document
         return <div className={"collectionfreeformview-container"}
             ref={this.createDashEventsTarget}
-            onWheel={this.onPointerWheel}//pointerEvents: SelectionManager.GetIsDragging() ? "all" : undefined,
+            onWheel={this.onPointerWheel} onClick={this.onClick}  //pointerEvents: SelectionManager.GetIsDragging() ? "all" : undefined,
             onPointerDown={this.onPointerDown} onPointerMove={this.onCursorMove} onDrop={this.onExternalDrop.bind(this)} onContextMenu={this.onContextMenu}
             style={{
                 pointerEvents: SelectionManager.GetIsDragging() ? "all" : undefined,

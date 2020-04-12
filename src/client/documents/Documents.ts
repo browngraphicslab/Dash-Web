@@ -116,7 +116,7 @@ export interface DocumentOptions {
     borderRounding?: string;
     boxShadow?: string;
     dontRegisterChildren?: boolean;
-    "onClick-rawScript"?:string; // onClick script in raw text form
+    "onClick-rawScript"?: string; // onClick script in raw text form
     _pivotField?: string; // field key used to determine headings for sections in stacking, masonry, pivot views
     schemaColumns?: List<SchemaHeaderField>;
     dockingConfig?: string;
@@ -405,7 +405,7 @@ export namespace Docs {
                     const doc = StackingDocument(deviceImages, { title: device.title, _LODdisable: true });
                     const deviceProto = Doc.GetProto(doc);
                     deviceProto.hero = new ImageField(constructed[0].url);
-                    Docs.Get.DocumentHierarchyFromJson(device, undefined, deviceProto);
+                    Docs.Get.DocumentHierarchyFromJson(device, undefined, deviceProto, false);
                     Doc.AddDocToList(parentProto, "data", doc);
                 } else if (errors) {
                     console.log(errors);
@@ -732,19 +732,21 @@ export namespace Docs {
          * @param input for convenience and flexibility, either a valid JSON string to be parsed,
          * or the result of any JSON.parse() call.
          * @param title an optional title to give to the highest parent document in the hierarchy
+         * @param appendToTarget -???
+         * @param all whether fields should be converted even if they contain no data
          */
-        export function DocumentHierarchyFromJson(input: any, title?: string, appendToTarget?: Doc): Opt<Doc> {
+        export function DocumentHierarchyFromJson(input: any, title: string, appendToTarget: Opt<Doc>, all?:boolean): Opt<Doc> {
             if (input === undefined || input === null || ![...primitives, "object"].includes(typeof input)) {
                 return undefined;
             }
             input = JSON.parse(typeof input === "string" ? input : JSON.stringify(input));
-            let converted: Doc;
+            let converted: Opt<Doc>;
             if (typeof input === "object" && !(input instanceof Array)) {
-                converted = convertObject(input, title, appendToTarget);
+                converted = convertObject(input, title, appendToTarget, all);
             } else {
                 (converted = new Doc).json = toField(input);
             }
-            title && (converted.title = title);
+            title && converted && (converted.title = title);
             return converted;
         }
 
@@ -755,12 +757,15 @@ export namespace Docs {
          * @returns the object mapped from JSON to field values, where each mapping 
          * might involve arbitrary recursion (since toField might itself call convertObject)
          */
-        const convertObject = (object: any, title?: string, target?: Doc): Doc => {
-            const resolved = target ?? new Doc;
-            let result: Opt<Field>;
-            Object.keys(object).map(key => (result = toField(object[key], key)) && (resolved[key] = result));
-            title && !resolved.title && (resolved.title = title);
-            return resolved;
+        const convertObject = (object: any, title?: string, target?: Doc, all?:boolean): Opt<Doc> => {
+            const objkeys = Object.keys(object);
+            if (objkeys.length || all) {
+                const resolved = target ?? new Doc;
+                let result: Opt<Field>;
+                Object.keys(object).map(key => (result = toField(object[key], key)) && (resolved[key] = result));
+                title && !resolved.title && (resolved.title = title);
+                return resolved;
+            }
         };
 
         /**
@@ -778,7 +783,7 @@ export namespace Docs {
         };
 
 
-        const toField = (data: any, title?: string): Opt<Field> => {
+        const toField = (data: any, title?: string, all?:boolean): Opt<Field> => {
             if (data === null || data === undefined) {
                 return undefined;
             }
@@ -786,7 +791,7 @@ export namespace Docs {
                 return data;
             }
             if (typeof data === "object") {
-                return data instanceof Array ? convertList(data) : convertObject(data, title);
+                return data instanceof Array ? convertList(data) : convertObject(data, title, undefined, all);
             }
             throw new Error(`How did ${data} of type ${typeof data} end up in JSON?`);
         };

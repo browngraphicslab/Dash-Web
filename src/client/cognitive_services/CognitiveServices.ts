@@ -192,7 +192,7 @@ export namespace CognitiveServices {
                 let results = await ExecuteQuery(Service.Handwriting, Manager, inkData);
                 if (results) {
                     results.recognitionUnits && (results = results.recognitionUnits);
-                    target[keys[0]] = Docs.Get.DocumentHierarchyFromJson(results, "Ink Analysis");
+                    target[keys[0]] = Docs.Get.DocumentHierarchyFromJson(results, "Ink Analysis", undefined, false);
                     const recognizedText = results.map((item: any) => item.recognizedText);
                     const recognizedObjects = results.map((item: any) => item.recognizedObject);
                     const individualWords = recognizedText.filter((text: string) => text && text.split(" ").length === 1);
