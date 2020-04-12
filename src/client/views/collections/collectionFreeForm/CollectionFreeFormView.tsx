@@ -74,6 +74,8 @@ export type collectionFreeformViewProps = {
 export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument, undefined as any as collectionFreeformViewProps) {
     private _lastX: number = 0;
     private _lastY: number = 0;
+    private _downX: number = 0;
+    private _downY: number = 0;
     private _inkToTextStartX: number | undefined;
     private _inkToTextStartY: number | undefined;
     private _wordPalette: Map<string, string> = new Map<string, string>();
@@ -322,17 +324,10 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument, u
             document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointermove", this.onPointerMove);
             document.addEventListener("pointerup", this.onPointerUp);
-            // if physically using a pen or we're in pen or highlighter mode
-            // if (InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || (InkingControl.Instance.selectedTool === InkTool.Highlighter || InkingControl.Instance.selectedTool === InkTool.Pen)) {
-            //     e.stopPropagation();
-            //     e.preventDefault();
-            //     const point = this.getTransform().transformPoint(e.pageX, e.pageY);
-            //     this._points.push({ X: point[0], Y: point[1] });
-            // }
             // if not using a pen and in no ink mode
             if (InkingControl.Instance.selectedTool === InkTool.None) {
-                this._lastX = e.pageX;
-                this._lastY = e.pageY;
+                this._downX = this._lastX = e.pageX;
+                this._downY = this._lastY = e.pageY;
             }
             // eraser plus anything else mode
             else {
@@ -492,10 +487,19 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument, u
         }
     }
 
+    _lastTap = 0;
+
     @action
     onPointerUp = (e: PointerEvent): void => {
         if (InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE)) return;
 
+        if (this.layoutDoc.targetScale && (Math.abs(e.pageX - this._downX) < 3 && Math.abs(e.pageY - this._downY) < 3)) {
+            if (Date.now() - this._lastTap < 300) {
+                const docpt = this.getTransform().transformPoint(e.clientX, e.clientY);
+                this.scaleAtPt(docpt, NumCast(this.layoutDoc.targetScale, NumCast(this.layoutDoc.scale)));
+            }
+            this._lastTap = Date.now();
+        }
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
         this.removeMoveListeners();
@@ -730,6 +734,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument, u
             e.stopPropagation();
             this.zoom(e.clientX, e.clientY, e.deltaY);
         }
+        this.props.Document.targetScale = NumCast(this.props.Document.scale);
     }
 
     @action
@@ -757,6 +762,17 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument, u
             }).forEach((doc, index) => doc.zIndex = index + 1);
             doc.zIndex = docs.length + 1;
         }
+    }
+
+    scaleAtPt(docpt: number[], scale: number) {
+        const screenXY = this.getTransform().inverse().transformPoint(docpt[0], docpt[1]);
+        this.Document.panTransformType = "Ease";
+        this.layoutDoc.scale = scale;
+        const newScreenXY = this.getTransform().inverse().transformPoint(docpt[0], docpt[1]);
+        const scrDelta = { x: screenXY[0] - newScreenXY[0], y: screenXY[1] - newScreenXY[1] };
+        const newpan = this.getTransform().transformDirection(scrDelta.x, scrDelta.y);
+        this.layoutDoc._panX = NumCast(this.layoutDoc._panX) - newpan[0];
+        this.layoutDoc._panY = NumCast(this.layoutDoc._panY) - newpan[1];
     }
 
     focusDocument = (doc: Doc, willZoom: boolean, scale?: number, afterFocus?: () => boolean) => {
@@ -797,12 +813,17 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument, u
 
             const savedState = { px: this.Document._panX, py: this.Document._panY, s: this.Document.scale, pt: this.Document.panTransformType };
 
-            if (DocListCast(this.dataDoc[this.props.fieldKey]).includes(doc)) {
-                if (!doc.z) this.setPan(newPanX, newPanY, "Ease"); // docs that are floating in their collection can't be panned to from their collection -- need to propagate the pan to a parent freeform somehow
+            if (!willZoom) {
+                Doc.BrushDoc(this.props.Document);
+                !doc.z && this.scaleAtPt([NumCast(doc.x), NumCast(doc.y)], 1);
+            } else {
+                if (DocListCast(this.dataDoc[this.props.fieldKey]).includes(doc)) {
+                    if (!doc.z) this.setPan(newPanX, newPanY, "Ease"); // docs that are floating in their collection can't be panned to from their collection -- need to propagate the pan to a parent freeform somehow
+                }
+                Doc.BrushDoc(this.props.Document);
+                this.props.focus(this.props.Document);
+                willZoom && this.setScaleToZoom(layoutdoc, scale);
             }
-            Doc.BrushDoc(this.props.Document);
-            this.props.focus(this.props.Document);
-            willZoom && this.setScaleToZoom(layoutdoc, scale);
             Doc.linkFollowHighlight(doc);
 
             afterFocus && setTimeout(() => {
