@@ -743,10 +743,15 @@ export namespace Docs {
          * @param title an optional title to give to the highest parent document in the hierarchy.
          * If whether this function creates a new document or appendToExisting is specified and that document already has a title,
          * because this title field can be left undefined for the opposite behavior, including a title will overwrite the existing title.
-         * @param appendToExisting **if specified**, there are two cases: the json to be converted can be represented as a document, in which ase
-         * the target document will receive all the conversion results as new fields on it, or, if the json can't be represented as a document,
-         * the function will assign the converstion results to either the specified key on the target document, or to the "json" key by default.
-         * If not specified, will create a new entirely generic.
+         * @param appendToExisting **if specified**, there are two cases, both of which return the target document:
+         * 
+         * 1) the json to be converted can be represented as a document, in which case the target document will act as the root
+         * of the tree and receive all the conversion results as new fields on itself
+         * 2) the json can't be represented as a document, in which case the function will assign the field-level converstion
+         * results to either the specified key on the target document, or to its "json" key by default.
+         * 
+         * If not specified, the function creates and returns a new entirely generic document (different from the Doc.Create calls)
+         * to act as the root of the tree.
          * 
          * One might choose to specify this field if you want to write to a document returned from a Document.Create function call,
          * say a TreeView document that will be rendered, not just an untyped, identityless doc that would otherwise be created
