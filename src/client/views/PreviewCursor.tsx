@@ -13,6 +13,7 @@ export class PreviewCursor extends React.Component<{}> {
     static _getTransform: () => Transform;
     static _addLiveTextDoc: (doc: Doc) => void;
     static _addDocument: (doc: Doc) => boolean;
+    static _nudge: (x: number, y: number) => void;
     @observable static _clickPoint = [0, 0];
     @observable public static Visible = false;
     constructor(props: any) {
@@ -85,9 +86,17 @@ export class PreviewCursor extends React.Component<{}> {
             !e.key.startsWith("Arrow") &&
             !e.defaultPrevented) {
             if ((!e.ctrlKey || (e.keyCode >= 48 && e.keyCode <= 57)) && !e.metaKey) {//  /^[a-zA-Z0-9$*^%#@+-=_|}{[]"':;?/><.,}]$/.test(e.key)) {
-                PreviewCursor.Visible && PreviewCursor._onKeyPress && PreviewCursor._onKeyPress(e);
+                PreviewCursor.Visible && PreviewCursor._onKeyPress?.(e);
                 PreviewCursor.Visible = false;
             }
+        } else if (e.key === "ArrowRight") {
+            PreviewCursor._nudge?.(1, 0);
+        } else if (e.key === "ArrowLeft") {
+            PreviewCursor._nudge?.(-1, 0);
+        } else if (e.key === "ArrowUp") {
+            PreviewCursor._nudge?.(0, 1);
+        } else if (e.key === "ArrowDown") {
+            PreviewCursor._nudge?.(0, -1);
         }
     }
 
@@ -101,12 +110,14 @@ export class PreviewCursor extends React.Component<{}> {
         onKeyPress: (e: KeyboardEvent) => void,
         addLiveText: (doc: Doc) => void,
         getTransform: () => Transform,
-        addDocument: (doc: Doc) => boolean) {
+        addDocument: (doc: Doc) => boolean,
+        nudge: (nudgeX: number, nudgeY: number) => void) {
         this._clickPoint = [x, y];
         this._onKeyPress = onKeyPress;
         this._addLiveTextDoc = addLiveText;
         this._getTransform = getTransform;
         this._addDocument = addDocument;
+        this._nudge = nudge;
         this.Visible = true;
     }
     render() {

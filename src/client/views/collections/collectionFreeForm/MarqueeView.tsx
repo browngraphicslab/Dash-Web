@@ -31,6 +31,7 @@ interface MarqueeViewProps {
     addLiveTextDocument: (doc: Doc) => void;
     isSelected: () => boolean;
     isAnnotationOverlay?: boolean;
+    nudge:(x:number, y:number) => void;
     setPreviewCursor?: (func: (x: number, y: number, drag: boolean) => void) => void;
 }
 
@@ -46,7 +47,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
     _commandExecuted = false;
 
     componentDidMount() {
-        this.props.setPreviewCursor && this.props.setPreviewCursor(this.setPreviewCursor);
+        this.props.setPreviewCursor?.(this.setPreviewCursor);
     }
 
     @action
@@ -243,7 +244,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         } else {
             this._downX = x;
             this._downY = y;
-            PreviewCursor.Show(x, y, this.onKeyPress, this.props.addLiveTextDocument, this.props.getTransform, this.props.addDocument);
+            PreviewCursor.Show(x, y, this.onKeyPress, this.props.addLiveTextDocument, this.props.getTransform, this.props.addDocument, this.props.nudge);
         }
     });
 

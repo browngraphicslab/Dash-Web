@@ -405,7 +405,7 @@ export namespace Docs {
                     const doc = StackingDocument(deviceImages, { title: device.title, _LODdisable: true });
                     const deviceProto = Doc.GetProto(doc);
                     deviceProto.hero = new ImageField(constructed[0].url);
-                    Docs.Get.DocumentHierarchyFromJson(device, undefined, deviceProto, false);
+                    Docs.Get.DocumentHierarchyFromJson(device, "", deviceProto, false);
                     Doc.AddDocToList(parentProto, "data", doc);
                 } else if (errors) {
                     console.log(errors);
@@ -735,7 +735,7 @@ export namespace Docs {
          * @param appendToTarget -???
          * @param all whether fields should be converted even if they contain no data
          */
-        export function DocumentHierarchyFromJson(input: any, title: string, appendToTarget: Opt<Doc>, all?:boolean): Opt<Doc> {
+        export function DocumentHierarchyFromJson(input: any, title: string, appendToTarget: Opt<Doc>, all?: boolean): Opt<Doc> {
             if (input === undefined || input === null || ![...primitives, "object"].includes(typeof input)) {
                 return undefined;
             }
@@ -757,7 +757,7 @@ export namespace Docs {
          * @returns the object mapped from JSON to field values, where each mapping 
          * might involve arbitrary recursion (since toField might itself call convertObject)
          */
-        const convertObject = (object: any, title?: string, target?: Doc, all?:boolean): Opt<Doc> => {
+        const convertObject = (object: any, title?: string, target?: Doc, all?: boolean): Opt<Doc> => {
             const objkeys = Object.keys(object);
             if (objkeys.length || all) {
                 const resolved = target ?? new Doc;
@@ -783,7 +783,7 @@ export namespace Docs {
         };
 
 
-        const toField = (data: any, title?: string, all?:boolean): Opt<Field> => {
+        const toField = (data: any, title?: string, all?: boolean): Opt<Field> => {
             if (data === null || data === undefined) {
                 return undefined;
             }

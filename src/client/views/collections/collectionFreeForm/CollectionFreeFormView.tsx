@@ -518,31 +518,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument, u
         PDFMenu.Instance.fadeOut(true);
 
         const [dx, dy] = this.getTransform().transformDirection(e.clientX - this._lastX, e.clientY - this._lastY);
-        let x = (this.Document._panX || 0) - dx;
-        let y = (this.Document._panY || 0) - dy;
-        if (!this.isAnnotationOverlay) {
-            // this section wraps the pan position, horizontally and/or vertically whenever the content is panned out of the viewing bounds
-            const docs = this.childLayoutPairs.filter(pair => pair.layout instanceof Doc).map(pair => pair.layout);
-            const measuredDocs = docs.filter(doc => doc && this.childDataProvider(doc)).map(doc => this.childDataProvider(doc));
-            if (measuredDocs.length) {
-                const ranges = measuredDocs.reduce(({ xrange, yrange }, { x, y, width, height }) =>  // computes range of content
-                    ({
-                        xrange: { min: Math.min(xrange.min, x), max: Math.max(xrange.max, x + width) },
-                        yrange: { min: Math.min(yrange.min, y), max: Math.max(yrange.max, y + height) }
-                    })
-                    , {
-                        xrange: { min: Number.MAX_VALUE, max: -Number.MAX_VALUE },
-                        yrange: { min: Number.MAX_VALUE, max: -Number.MAX_VALUE }
-                    });
-
-                const panelDim = [this.props.PanelWidth() / this.zoomScaling(), this.props.PanelHeight() / this.zoomScaling()];
-                if (ranges.xrange.min > (this.panX() + panelDim[0] / 2)) x = ranges.xrange.max + panelDim[0] / 2;  // snaps pan position of range of content goes out of bounds
-                if (ranges.xrange.max < (this.panX() - panelDim[0] / 2)) x = ranges.xrange.min - panelDim[0] / 2;
-                if (ranges.yrange.min > (this.panY() + panelDim[1] / 2)) y = ranges.yrange.max + panelDim[1] / 2;
-                if (ranges.yrange.max < (this.panY() - panelDim[1] / 2)) y = ranges.yrange.min - panelDim[1] / 2;
-            }
-        }
-        this.setPan(x, y);
+        this.setPan((this.Document._panX || 0) - dx, (this.Document._panY || 0) - dy, undefined, true);
         this._lastX = e.clientX;
         this._lastY = e.clientY;
     }
@@ -743,7 +719,29 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument, u
     }
 
     @action
-    setPan(panX: number, panY: number, panType: string = "None") {
+    setPan(panX: number, panY: number, panType: string = "None", clamp: boolean = false) {
+        if (!this.isAnnotationOverlay && clamp) {
+            // this section wraps the pan position, horizontally and/or vertically whenever the content is panned out of the viewing bounds
+            const docs = this.childLayoutPairs.filter(pair => pair.layout instanceof Doc).map(pair => pair.layout);
+            const measuredDocs = docs.filter(doc => doc && this.childDataProvider(doc)).map(doc => this.childDataProvider(doc));
+            if (measuredDocs.length) {
+                const ranges = measuredDocs.reduce(({ xrange, yrange }, { x, y, width, height }) =>  // computes range of content
+                    ({
+                        xrange: { min: Math.min(xrange.min, x), max: Math.max(xrange.max, x + width) },
+                        yrange: { min: Math.min(yrange.min, y), max: Math.max(yrange.max, y + height) }
+                    })
+                    , {
+                        xrange: { min: Number.MAX_VALUE, max: -Number.MAX_VALUE },
+                        yrange: { min: Number.MAX_VALUE, max: -Number.MAX_VALUE }
+                    });
+
+                const panelDim = [this.props.PanelWidth() / this.zoomScaling(), this.props.PanelHeight() / this.zoomScaling()];
+                if (ranges.xrange.min >= (panX + panelDim[0] / 2)) panX = ranges.xrange.max + panelDim[0] / 2;  // snaps pan position of range of content goes out of bounds
+                else if (ranges.xrange.max <= (panX - panelDim[0] / 2)) panX = ranges.xrange.min - panelDim[0] / 2;
+                if (ranges.yrange.min >= (panY + panelDim[1] / 2)) panY = ranges.yrange.max + panelDim[1] / 2;
+                else if (ranges.yrange.max <= (panY - panelDim[1] / 2)) panY = ranges.yrange.min - panelDim[1] / 2;
+            }
+        }
         if (!this.Document.lockedTransform || this.Document.inOverlay) {
             this.Document.panTransformType = panType;
             const scale = this.getLocalTransform().inverse().Scale;
@@ -823,7 +821,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument, u
                 !doc.z && this.scaleAtPt([NumCast(doc.x), NumCast(doc.y)], 1);
             } else {
                 if (DocListCast(this.dataDoc[this.props.fieldKey]).includes(doc)) {
-                    if (!doc.z) this.setPan(newPanX, newPanY, "Ease"); // docs that are floating in their collection can't be panned to from their collection -- need to propagate the pan to a parent freeform somehow
+                    if (!doc.z) this.setPan(newPanX, newPanY, "Ease", true); // docs that are floating in their collection can't be panned to from their collection -- need to propagate the pan to a parent freeform somehow
                 }
                 Doc.BrushDoc(this.props.Document);
                 this.props.focus(this.props.Document);
@@ -838,7 +836,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument, u
                     this.Document.scale = savedState.s;
                     this.Document.panTransformType = savedState.pt;
                 }
-            }, 1000);
+            }, 500);
         }
 
     }
@@ -1104,8 +1102,16 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument, u
             <span className="collectionfreeformview-placeholderSpan">{this.props.Document.title?.toString()}</span>
         </div>;
     }
+
+    _nudgeTime = 0;
+    nudge = action((x: number, y: number) => {
+        this.setPan(NumCast(this.layoutDoc._panX) + this.props.PanelWidth() / 2 * x / this.zoomScaling(),
+            NumCast(this.layoutDoc._panY) + this.props.PanelHeight() / 2 * (-y) / this.zoomScaling(), "Ease", true);
+        this._nudgeTime = Date.now();
+        setTimeout(() => (Date.now() - this._nudgeTime >= 500) && (this.Document.panTransformType = undefined), 500);
+    });
     @computed get marqueeView() {
-        return <MarqueeView {...this.props} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments} addDocument={this.addDocument}
+        return <MarqueeView {...this.props} nudge={this.nudge} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments} addDocument={this.addDocument}
             addLiveTextDocument={this.addLiveTextBox} getContainerTransform={this.getContainerTransform} getTransform={this.getTransform} isAnnotationOverlay={this.isAnnotationOverlay}>
             <CollectionFreeFormViewPannableContents centeringShiftX={this.centeringShiftX} centeringShiftY={this.centeringShiftY}
                 easing={this.easing} zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>

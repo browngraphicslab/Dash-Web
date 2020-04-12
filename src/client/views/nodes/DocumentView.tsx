@@ -562,7 +562,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
     static createCustomView = (doc: Doc, creator: (documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc, templateSignature: string = "custom", docLayoutTemplate?: Doc) => {
         const templateName = templateSignature.replace(/\(.*\)/, "");
-        docLayoutTemplate = docLayoutTemplate || DocumentView.findTemplate(templateName, doc.type, templateSignature);
+        docLayoutTemplate = docLayoutTemplate || DocumentView.findTemplate(templateName, StrCast(doc.type), templateSignature);
 
         const customName = "layout_" + templateSignature;
         const _width = NumCast(doc._width);
@@ -668,7 +668,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @undoBatch
     @action
     toggleBackground = (temporary: boolean): void => {
-        this.Document.overflow = temporary;
+        this.Document.overflow = temporary ? "visible" : "hidden";
         this.Document.isBackground = !temporary ? !this.Document.isBackground : (this.Document.isBackground ? undefined : true);
         this.Document.isBackground && this.props.bringToFront(this.Document, true);
     }
@@ -709,7 +709,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
         const existing = cm.findByDescription("Layout...");
         const layoutItems: ContextMenuProps[] = existing && "subitems" in existing ? existing.subitems : [];
-        layoutItems.push({ description: this.Document.isBackground ? "As Foreground" : "As Background", event: (e) => this.toggleBackground(true), icon: this.Document.lockedPosition ? "unlock" : "lock" });
+        layoutItems.push({ description: this.Document.isBackground ? "As Foreground" : "As Background", event: (e) => this.toggleBackground(false), icon: this.Document.lockedPosition ? "unlock" : "lock" });
         layoutItems.push({ description: "Make View of Metadata Field", event: () => Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.DataDoc), icon: "concierge-bell" });
 
         layoutItems.push({ description: `${this.Document._chromeStatus !== "disabled" ? "Hide" : "Show"} Chrome`, event: () => this.Document._chromeStatus = (this.Document._chromeStatus !== "disabled" ? "disabled" : "enabled"), icon: "project-diagram" });
@@ -1158,7 +1158,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 <div className="documentView-contentBlocker" />
             </> :
                 this.innards}
-            {this.Document.isBackground !== undefined || this.isSelected(false) ? <div className="documentView-lock" onClick={() => this.toggleBackground(false)}> <FontAwesomeIcon icon={this.Document.isBackground ? "unlock" : "lock"} size="lg" /> </div> : (null)}
+            {this.Document.isBackground !== undefined || this.isSelected(false) ? <div className="documentView-lock" onClick={() => this.toggleBackground(true)}> <FontAwesomeIcon icon={this.Document.isBackground ? "unlock" : "lock"} size="lg" /> </div> : (null)}
         </div>;
         { this._showKPQuery ? <KeyphraseQueryView keyphrases={this._queries}></KeyphraseQueryView> : undefined; }
     }
