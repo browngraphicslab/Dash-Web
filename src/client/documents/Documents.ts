@@ -747,7 +747,7 @@ export namespace Docs {
          * 
          * 1) the json to be converted can be represented as a document, in which case the target document will act as the root
          * of the tree and receive all the conversion results as new fields on itself
-         * 2) the json can't be represented as a document, in which case the function will assign the field-level converstion
+         * 2) the json can't be represented as a document, in which case the function will assign the field-level conversion
          * results to either the specified key on the target document, or to its "json" key by default.
          * 
          * If not specified, the function creates and returns a new entirely generic document (different from the Doc.Create calls)
@@ -802,8 +802,11 @@ export namespace Docs {
                 if (hasEntries) {
                     let result: Opt<Field>;
                     Object.keys(object).map(key => {
+                        // if excludeEmptyObjects is true, any qualifying conversions from toField will
+                        // be undefined, and thus the results that would have
+                        // otherwise been empty (List or Doc)s will just not be written
                         if (result = toField(object[key], excludeEmptyObjects, key)) {
-                            (resolved[key] = result);
+                            resolved[key] = result;
                         }
                     });
                 }
@@ -822,6 +825,9 @@ export namespace Docs {
         const convertList = (list: Array<any>, excludeEmptyObjects: boolean): Opt<List<Field>> => {
             const target = new List();
             let result: Opt<Field>;
+            // if excludeEmptyObjects is true, any qualifying conversions from toField will
+            // be undefined, and thus the results that would have
+            // otherwise been empty (List or Doc)s will just not be written
             list.map(item => (result = toField(item, excludeEmptyObjects)) && target.push(result));
             if (target.length || !excludeEmptyObjects) {
                 return target;
