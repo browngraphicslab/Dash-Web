@@ -182,14 +182,17 @@ class TreeView extends React.Component<TreeViewProps> {
         GetValue={() => StrCast(this.props.document[key])}
         SetValue={undoBatch((value: string) => {
             Doc.SetInPlace(this.props.document, key, value, false) || true;
-            this.props.document.editTitle = undefined;
+            Doc.SetInPlace(this.props.document, "editTitle", undefined, false);
+            //this.props.document.editTitle = undefined;
         })}
         OnFillDown={undoBatch((value: string) => {
             Doc.SetInPlace(this.props.document, key, value, false);
             const doc = Docs.Create.FreeformDocument([], { title: "-", x: 0, y: 0, _width: 100, _height: 25, templates: new List<string>([Templates.Title.Layout]) });
             //EditableView.loadId = doc[Id];
-            this.props.document.editTitle = undefined;
-            doc.editTitle = true;
+            Doc.SetInPlace(this.props.document, "editTitle", undefined, false);
+            // this.props.document.editTitle = undefined;
+            Doc.SetInPlace(this.props.document, "editTitle", true, false);
+            //doc.editTitle = true;
             return this.props.addDocument(doc);
         })}
         onClick={() => {
@@ -306,7 +309,7 @@ class TreeView extends React.Component<TreeViewProps> {
 
         const rows: JSX.Element[] = [];
         for (const key of Object.keys(ids).slice().sort()) {
-            if (this.props.ignoreFields?.includes(key)) continue;
+            if (this.props.ignoreFields?.includes(key) || key === "title" || key === "treeViewOpen") continue;
             const contents = doc[key];
             let contentElement: (JSX.Element | null)[] | JSX.Element = [];
 
@@ -423,7 +426,7 @@ class TreeView extends React.Component<TreeViewProps> {
     @computed
     get renderTitle() {
         const onItemDown = SetupDrag(this._tref, () => this.dataDoc, this.move, this.props.dropAction, this.props.treeViewId[Id], true);
-        const editTitle = ScriptField.MakeFunction("this.editTitle=true", { this: Doc.name });
+        const editTitle = ScriptField.MakeFunction("setInPlace(this, 'editTitle', true)");
 
         const headerElements = (
             <span className="collectionTreeView-keyHeader" key={this.treeViewExpandedView}
@@ -446,10 +449,11 @@ class TreeView extends React.Component<TreeViewProps> {
                 style={{
                     background: Doc.IsHighlighted(this.props.document) ? "orange" : Doc.IsBrushed(this.props.document) ? "#06121212" : "0",
                     fontWeight: this.props.document.searchMatch ? "bold" : undefined,
+                    textDecoration: Doc.GetT(this.props.document, "title", "string", true) ? "underline" : undefined,
                     outline: BoolCast(this.props.document.workspaceBrush) ? "dashed 1px #06123232" : undefined,
                     pointerEvents: this.props.active() || SelectionManager.GetIsDragging() ? "all" : "none"
                 }} >
-                {this.props.document.editTitle ?
+                {Doc.GetT(this.props.document, "editTitle", "boolean", true) ?
                     this.editableView("title") :
                     <DocumentView
                         Document={this.props.document}
