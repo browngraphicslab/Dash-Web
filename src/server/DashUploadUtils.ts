@@ -283,9 +283,22 @@ export namespace DashUploadUtils {
         return information;
     };
 
+    const bufferConverterRec = (layer: any) => {
+        for (const key of Object.keys(layer)) {
+            const val: any = layer[key];
+            if (val instanceof Buffer) {
+                layer[key] = val.toString();
+            } else if (Array.isArray(val) && typeof val[0] === "number") {
+                layer[key] = new Buffer(val).toString();
+            } else if (typeof val === "object") {
+                bufferConverterRec(val);
+            }
+        }
+    };
+
     const parseExifData = async (source: string): Promise<Upload.EnrichedExifData> => {
         const image = await request.get(source, { encoding: null });
-        return new Promise(resolve => {
+        const { data, error } = await new Promise(resolve => {
             new ExifImage({ image }, (error, data) => {
                 let reason: Opt<string> = undefined;
                 if (error) {
@@ -294,6 +307,8 @@ export namespace DashUploadUtils {
                 resolve({ data, error: reason });
             });
         });
+        bufferConverterRec(data);
+        return { data, error };
     };
 
     const { pngs, jpgs, webps, tiffs } = AcceptibleMedia;
