@@ -405,7 +405,7 @@ export namespace Docs {
                     const doc = StackingDocument(deviceImages, { title: device.title, _LODdisable: true });
                     const deviceProto = Doc.GetProto(doc);
                     deviceProto.hero = new ImageField(constructed[0].url);
-                    Docs.Get.DocumentHierarchyFromJson(device, undefined, deviceProto, false);
+                    Docs.Get.FromJson({ data: device, appendToExisting: { targetDoc: deviceProto } });
                     Doc.AddDocToList(parentProto, "data", doc);
                 } else if (errors) {
                     console.log(errors);
@@ -712,6 +712,15 @@ export namespace Docs {
 
         const primitives = ["string", "number", "boolean"];
 
+        export interface JsonConversionOpts {
+            data: any;
+            title?: string;
+            appendToExisting?: { targetDoc: Doc, fieldKey?: string };
+            excludeEmptyObjects?: boolean;
+        }
+
+        const defaultKey = "json";
+
         /**
          * This function takes any valid JSON(-like) data, i.e. parsed or unparsed, and at arbitrarily
          * deep levels of nesting, converts the data and structure into nested documents with the appropriate fields.
@@ -729,25 +738,49 @@ export namespace Docs {
          * All TS/JS objects get converted directly to documents, directly preserving the key value structure. Everything else,
          * lacking the key value structure, gets stored as a field in a wrapper document.
          * 
-         * @param input for convenience and flexibility, either a valid JSON string to be parsed,
+         * @param data for convenience and flexibility, either a valid JSON string to be parsed,
          * or the result of any JSON.parse() call.
-         * @param title an optional title to give to the highest parent document in the hierarchy
-         * @param appendToTarget -???
-         * @param all whether fields should be converted even if they contain no data
+         * @param title an optional title to give to the highest parent document in the hierarchy.
+         * If whether this function creates a new document or appendToExisting is specified and that document already has a title,
+         * because this title field can be left undefined for the opposite behavior, including a title will overwrite the existing title.
+         * @param appendToExisting **if specified**, there are two cases: the json to be converted can be represented as a document, in which ase
+         * the target document will receive all the conversion results as new fields on it, or, if the json can't be represented as a document,
+         * the function will assign the converstion results to either the specified key on the target document, or to the "json" key by default.
+         * If not specified, will create a new entirely generic.
+         * 
+         * One might choose to specify this field if you want to write to a document returned from a Document.Create function call,
+         * say a TreeView document that will be rendered, not just an untyped, identityless doc that would otherwise be created
+         * from a default call to new Doc.
+         * 
+         * @param excludeEmptyObjects whether non-primitive objects (TypeScript objects and arrays) should be converted even
+         * if they contain no data. By default, empty objects and arrays are ignored.
          */
-        export function DocumentHierarchyFromJson(input: any, title: string, appendToTarget: Opt<Doc>, all?:boolean): Opt<Doc> {
-            if (input === undefined || input === null || ![...primitives, "object"].includes(typeof input)) {
+        export function FromJson({ data, title, appendToExisting, excludeEmptyObjects }: JsonConversionOpts): Opt<Doc> {
+            if (excludeEmptyObjects === undefined) {
+                excludeEmptyObjects = true;
+            }
+            if (data === undefined || data === null || ![...primitives, "object"].includes(typeof data)) {
                 return undefined;
             }
-            input = JSON.parse(typeof input === "string" ? input : JSON.stringify(input));
-            let converted: Opt<Doc>;
-            if (typeof input === "object" && !(input instanceof Array)) {
-                converted = convertObject(input, title, appendToTarget, all);
-            } else {
-                (converted = new Doc).json = toField(input);
+            let resolved: any;
+            try {
+                resolved = JSON.parse(typeof data === "string" ? data : JSON.stringify(data));
+            } catch (e) {
+                return undefined;
             }
-            title && converted && (converted.title = title);
-            return converted;
+            let output: Opt<Doc>;
+            if (typeof resolved === "object" && !(resolved instanceof Array)) {
+                output = convertObject(resolved, excludeEmptyObjects, title, appendToExisting?.targetDoc);
+            } else {
+                const result = toField(resolved, excludeEmptyObjects);
+                if (appendToExisting) {
+                    (output = appendToExisting.targetDoc)[appendToExisting.fieldKey || defaultKey] = result;
+                } else {
+                    (output = new Doc).json = result;
+                }
+            }
+            title && output && (output.title = title);
+            return output;
         }
 
         /**
@@ -757,13 +790,19 @@ export namespace Docs {
          * @returns the object mapped from JSON to field values, where each mapping 
          * might involve arbitrary recursion (since toField might itself call convertObject)
          */
-        const convertObject = (object: any, title?: string, target?: Doc, all?:boolean): Opt<Doc> => {
-            const objkeys = Object.keys(object);
-            if (objkeys.length || all) {
+        const convertObject = (object: any, excludeEmptyObjects: boolean, title?: string, target?: Doc): Opt<Doc> => {
+            const hasEntries = Object.keys(object).length;
+            if (hasEntries || !excludeEmptyObjects) {
                 const resolved = target ?? new Doc;
-                let result: Opt<Field>;
-                Object.keys(object).map(key => (result = toField(object[key], key)) && (resolved[key] = result));
-                title && !resolved.title && (resolved.title = title);
+                if (hasEntries) {
+                    let result: Opt<Field>;
+                    Object.keys(object).map(key => {
+                        if (result = toField(object[key], excludeEmptyObjects, key)) {
+                            (resolved[key] = result);
+                        }
+                    });
+                }
+                title && (resolved.title = title);
                 return resolved;
             }
         };
@@ -775,15 +814,16 @@ export namespace Docs {
          * @returns the list mapped from JSON to field values, where each mapping 
          * might involve arbitrary recursion (since toField might itself call convertList)
          */
-        const convertList = (list: Array<any>): List<Field> => {
+        const convertList = (list: Array<any>, excludeEmptyObjects: boolean): Opt<List<Field>> => {
             const target = new List();
             let result: Opt<Field>;
-            list.map(item => (result = toField(item)) && target.push(result));
-            return target;
+            list.map(item => (result = toField(item, excludeEmptyObjects)) && target.push(result));
+            if (target.length || !excludeEmptyObjects) {
+                return target;
+            }
         };
 
-
-        const toField = (data: any, title?: string, all?:boolean): Opt<Field> => {
+        const toField = (data: any, excludeEmptyObjects: boolean, title?: string): Opt<Field> => {
             if (data === null || data === undefined) {
                 return undefined;
             }
@@ -791,7 +831,7 @@ export namespace Docs {
                 return data;
             }
             if (typeof data === "object") {
-                return data instanceof Array ? convertList(data) : convertObject(data, title, undefined, all);
+                return data instanceof Array ? convertList(data, excludeEmptyObjects) : convertObject(data, excludeEmptyObjects, title, undefined);
             }
             throw new Error(`How did ${data} of type ${typeof data} end up in JSON?`);
         };

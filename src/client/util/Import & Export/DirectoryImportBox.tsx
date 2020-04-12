@@ -126,7 +126,7 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
             const document = await Docs.Get.DocumentFromType(type, path, { _width: 300, title: name });
             const { data, error } = exifData;
             if (document) {
-                Doc.GetProto(document).exif = error || Docs.Get.DocumentHierarchyFromJson(data, "", undefined, false);
+                Doc.GetProto(document).exif = error || Docs.Get.FromJson({ data });
                 docs.push(document);
             }
         }));
