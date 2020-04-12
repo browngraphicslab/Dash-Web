@@ -289,7 +289,7 @@ export namespace DashUploadUtils {
             if (val instanceof Buffer) {
                 layer[key] = val.toString();
             } else if (Array.isArray(val) && typeof val[0] === "number") {
-                layer[key] = new Buffer(val).toString();
+                layer[key] = Buffer.from(val).toString();
             } else if (typeof val === "object") {
                 bufferConverterRec(val);
             }
