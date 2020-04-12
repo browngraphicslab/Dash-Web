@@ -39,10 +39,10 @@ export const filesDirectory = path.resolve(publicDirectory, "files");
  */
 async function preliminaryFunctions() {
     // Utils.TraceConsoleLog();
+    await DashUploadUtils.buildFileDirectories();
     await Logger.initialize();
     await GoogleCredentialsLoader.loadCredentials();
     GoogleApiServerUtils.processProjectCredentials();
-    await DashUploadUtils.buildFileDirectories();
     if (process.env.DB !== "MEM") {
         await log_execution({
             startMessage: "attempting to initialize mongodb connection",

@@ -1,4 +1,4 @@
-import { unlinkSync, createWriteStream, readFileSync, rename, writeFile } from 'fs';
+import { unlinkSync, createWriteStream, readFileSync, rename, writeFile, existsSync } from 'fs';
 import { Utils } from '../Utils';
 import * as path from 'path';
 import * as sharp from 'sharp';
@@ -6,7 +6,7 @@ import request = require('request-promise');
 import { ExifImage } from 'exif';
 import { Opt } from '../new_fields/Doc';
 import { AcceptibleMedia, Upload } from './SharedMediaTypes';
-import { filesDirectory } from '.';
+import { filesDirectory, publicDirectory } from '.';
 import { File } from 'formidable';
 import { basename } from "path";
 import { createIfNotExists } from './ActionUtilities';
@@ -136,6 +136,16 @@ export namespace DashUploadUtils {
     };
 
     export async function buildFileDirectories() {
+        if (!existsSync(publicDirectory)) {
+            console.error("\nPlease ensure that the following directory exists...\n");
+            console.log(publicDirectory);
+            process.exit(0);
+        }
+        if (!existsSync(filesDirectory)) {
+            console.error("\nPlease ensure that the following directory exists...\n");
+            console.log(filesDirectory);
+            process.exit(0);
+        }
         const pending = Object.keys(Directory).map(sub => createIfNotExists(`${filesDirectory}/${sub}`));
         return Promise.all(pending);
     }
