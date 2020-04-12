@@ -307,7 +307,7 @@ export namespace DashUploadUtils {
                 resolve({ data, error: reason });
             });
         });
-        bufferConverterRec(data);
+        data && bufferConverterRec(data);
         return { data, error };
     };
 
