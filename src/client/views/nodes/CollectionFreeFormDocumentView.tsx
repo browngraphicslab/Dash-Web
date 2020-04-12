@@ -59,6 +59,10 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         }
         return undefined;
     }
+    nudge = (x: number, y: number) => {
+        this.layoutDoc.x = NumCast(this.layoutDoc.x) + x;
+        this.layoutDoc.y = NumCast(this.layoutDoc.y) + y;
+    }
 
     contentScaling = () => this.nativeWidth > 0 && !this.props.fitToBox && !this.freezeDimensions ? this.width / this.nativeWidth : 1;
     panelWidth = () => (this.dataProvider?.width || this.props.PanelWidth?.());
@@ -93,6 +97,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
 
             {!this.props.fitToBox ?
                 <DocumentView {...this.props}
+                    nudge={this.nudge}
                     dragDivName={"collectionFreeFormDocumentView-container"}
                     ContentScaling={this.contentScaling}
                     ScreenToLocalTransform={this.getTransform}

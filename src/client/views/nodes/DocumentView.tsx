@@ -71,6 +71,7 @@ export interface DocumentViewProps {
     onPointerUp?: ScriptField;
     dropAction?: dropActionType;
     dragDivName?: string;
+    nudge?: (x: number, y: number) => void;
     addDocument?: (doc: Doc) => boolean;
     removeDocument?: (doc: Doc) => boolean;
     moveDocument?: (doc: Doc, targetCollection: Doc | undefined, addDocument: (document: Doc) => boolean) => boolean;

@@ -381,7 +381,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                     alert(`Upload failed: ${result.message}`);
                     return;
                 }
-                const full = { ...options, _width: 300, title: name };
+                const full = { ...options, _width: 400, title: name };
                 const pathname = Utils.prepend(result.accessPaths.agnostic.client);
                 const doc = await Docs.Get.DocumentFromType(type, pathname, full);
                 if (!doc) {
