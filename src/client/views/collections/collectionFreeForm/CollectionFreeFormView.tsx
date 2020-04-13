@@ -15,7 +15,7 @@ import { ScriptField } from "../../../../new_fields/ScriptField";
 import { BoolCast, Cast, FieldValue, NumCast, ScriptCast, StrCast } from "../../../../new_fields/Types";
 import { TraceMobx } from "../../../../new_fields/util";
 import { GestureUtils } from "../../../../pen-gestures/GestureUtils";
-import { aggregateBounds, intersectRect, returnOne, Utils, returnZero } from "../../../../Utils";
+import { aggregateBounds, intersectRect, returnOne, Utils, returnZero, returnFalse } from "../../../../Utils";
 import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
 import { DocServer } from "../../../DocServer";
 import { Docs } from "../../../documents/Documents";
@@ -43,6 +43,7 @@ import "./CollectionFreeFormView.scss";
 import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
+import { CollectionViewType } from "../CollectionView";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
@@ -860,7 +861,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument, u
             LibraryPath: this.libraryPath,
             FreezeDimensions: this.props.freezeChildDimensions,
             layoutKey: undefined,
-            rootSelected: this.rootSelected,
+            rootSelected: childData ? this.rootSelected : returnFalse,
             dropAction: StrCast(this.props.Document.childDropAction) as dropActionType,
             //onClick: undefined, // this.props.onClick,  // bcz: check this out -- I don't think we want to inherit click handlers, or we at least need a way to ignore them
             onClick: this.onChildClickHandler,
@@ -1105,10 +1106,14 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument, u
 
     _nudgeTime = 0;
     nudge = action((x: number, y: number) => {
-        this.setPan(NumCast(this.layoutDoc._panX) + this.props.PanelWidth() / 2 * x / this.zoomScaling(),
-            NumCast(this.layoutDoc._panY) + this.props.PanelHeight() / 2 * (-y) / this.zoomScaling(), "Ease", true);
-        this._nudgeTime = Date.now();
-        setTimeout(() => (Date.now() - this._nudgeTime >= 500) && (this.Document.panTransformType = undefined), 500);
+        if (this.props.ContainingCollectionDoc?._viewType !== CollectionViewType.Freeform) { // bcz: this isn't ideal, but want to try it out...
+            this.setPan(NumCast(this.layoutDoc._panX) + this.props.PanelWidth() / 2 * x / this.zoomScaling(),
+                NumCast(this.layoutDoc._panY) + this.props.PanelHeight() / 2 * (-y) / this.zoomScaling(), "Ease", true);
+            this._nudgeTime = Date.now();
+            setTimeout(() => (Date.now() - this._nudgeTime >= 500) && (this.Document.panTransformType = undefined), 500);
+            return true;
+        }
+        return false;
     });
     @computed get marqueeView() {
         return <MarqueeView {...this.props} nudge={this.nudge} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments} addDocument={this.addDocument}

@@ -289,13 +289,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             let preventDefault = true;
             this.props.Document.isBackground === undefined && this.props.bringToFront(this.props.Document);
             if (this._doubleTap && this.props.renderDepth && !this.onClickHandler?.script) { // disable double-click to show full screen for things that have an on click behavior since clicking them twice can be misinterpreted as a double click
-                const fullScreenAlias = Doc.MakeAlias(this.props.Document);
-                if (StrCast(fullScreenAlias.layoutKey) !== "layout_fullScreen" && fullScreenAlias.layout_fullScreen) {
-                    fullScreenAlias.layoutKey = "layout_fullScreen";
+                if (!(e.nativeEvent as any).formattedHandled) {
+                    const fullScreenAlias = Doc.MakeAlias(this.props.Document);
+                    if (StrCast(fullScreenAlias.layoutKey) !== "layout_fullScreen" && fullScreenAlias.layout_fullScreen) {
+                        fullScreenAlias.layoutKey = "layout_fullScreen";
+                    }
+                    UndoManager.RunInBatch(() => this.props.addDocTab(fullScreenAlias, "inTab"), "double tap");
+                    SelectionManager.DeselectAll();
+                    Doc.UnBrushDoc(this.props.Document);
                 }
-                UndoManager.RunInBatch(() => this.props.addDocTab(fullScreenAlias, "inTab"), "double tap");
-                SelectionManager.DeselectAll();
-                Doc.UnBrushDoc(this.props.Document);
             } else if (this.onClickHandler?.script) {
                 SelectionManager.DeselectAll();
                 const func = () => this.onClickHandler.script.run({
@@ -978,7 +980,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         return typeof fallback === "string" ? fallback : "layout";
     }
     rootSelected = (outsideReaction?: boolean) => {
-        return this.isSelected(outsideReaction) || (this.props.Document.forceActive && this.props.rootSelected?.(outsideReaction) ? true : false);
+        return this.isSelected(outsideReaction) || (this.rootDoc && this.props.rootSelected?.(outsideReaction));
     }
     childScaling = () => (this.layoutDoc._fitWidth ? this.props.PanelWidth() / this.nativeWidth : this.props.ContentScaling());
     panelWidth = () => this.props.PanelWidth();

@@ -60,8 +60,8 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         return undefined;
     }
     nudge = (x: number, y: number) => {
-        this.layoutDoc.x = NumCast(this.layoutDoc.x) + x;
-        this.layoutDoc.y = NumCast(this.layoutDoc.y) + y;
+        this.props.Document.x = NumCast(this.props.Document.x) + x;
+        this.props.Document.y = NumCast(this.props.Document.y) + y;
     }
 
     contentScaling = () => this.nativeWidth > 0 && !this.props.fitToBox && !this.freezeDimensions ? this.width / this.nativeWidth : 1;
