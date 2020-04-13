@@ -51,6 +51,7 @@ import { LinkBox } from "../views/nodes/LinkBox";
 import { ScreenshotBox } from "../views/nodes/ScreenshotBox";
 import CollectionMapView from "../views/collections/CollectionMapView";
 import LocationField, { LocationData } from "../../new_fields/LocationField";
+import { action } from "mobx";
 const requestImageSize = require('../util/request-image-size');
 const path = require('path');
 
@@ -496,17 +497,6 @@ export namespace Docs {
                 const extension = path.extname(target);
                 target = `${target.substring(0, target.length - extension.length)}_o${extension}`;
             }
-            requestImageSize(Utils.CorsProxy(target))
-                .then((size: any) => {
-                    const aspect = size.height / size.width;
-                    if (!inst._nativeWidth) {
-                        inst._nativeWidth = size.width;
-                    }
-                    inst._nativeHeight = NumCast(inst._nativeWidth) * aspect;
-                    inst._height = NumCast(inst._width) * aspect;
-                })
-                .catch((err: any) => console.log(err));
-            // }
             return inst;
         }
         export function PresDocument(initial: List<Doc> = new List(), options: DocumentOptions = {}) {
