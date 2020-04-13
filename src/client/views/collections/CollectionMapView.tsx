@@ -64,10 +64,4 @@ class CollectionMapView extends CollectionSubView<MapDocument, Partial<MapProps>
 
 }
 
-declare var process: {
-    env: {
-        GOOGLE_MAPS_API_KEY: string;
-    }
-};
-
-export default GoogleApiWrapper({ apiKey: process.env.GOOGLE_MAPS_API_KEY })(CollectionMapView) as any;
+export default GoogleApiWrapper({ apiKey: process.env.GOOGLE_MAPS_API_KEY! })(CollectionMapView) as any;

@@ -20,8 +20,7 @@ const env = require('dotenv').config().parsed;
 if (env) {
     plugins.push(new webpack.DefinePlugin(Object.keys(env).reduce((prev, next) => {
         if (next.startsWith("DASH_")) {
-            const resolved = next.replace("DASH_", "");
-            prev[`process.env.${resolved}`] = JSON.stringify(env[next]);
+            prev[`process.env.${next.replace("DASH_", "")}`] = JSON.stringify(env[next]);
         }
         return prev;
     }, {})));

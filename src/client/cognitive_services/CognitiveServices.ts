@@ -45,7 +45,7 @@ export enum Confidence {
 export namespace CognitiveServices {
 
     const ExecuteQuery = async <D>(service: Service, manager: APIManager<D>, data: D): Promise<any> => {
-        const apiKey = await Utils.getApiKey(service);
+        const apiKey = process.env[service.toUpperCase()];
         if (!apiKey) {
             console.log(`No API key found for ${service}: ensure index.ts has access to a .env file in your root directory.`);
             return undefined;
