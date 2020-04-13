@@ -153,6 +153,13 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     @computed get onChildClickHandler() { return ScriptCast(this.Document.onChildClick); }
     @computed get onClickHandler() { return ScriptCast(this.Document.onChildClick); }
 
+    addDocTab = (doc: Doc, where: string) => {
+        if (where === "inPlace" && this.layoutDoc.isInPlaceContainer) {
+            this.dataDoc[this.props.fieldKey] = new List<Doc>([doc]);
+            return true;
+        }
+        return this.props.addDocTab(doc, where);
+    }
     getDisplayDoc(doc: Doc, dataDoc: Doc | undefined, dxf: () => Transform, width: () => number) {
         const layoutDoc = Doc.Layout(doc, this.props.childLayoutTemplate?.());
         const height = () => this.getDocHeight(doc);
@@ -181,7 +188,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             removeDocument={this.props.removeDocument}
             active={this.props.active}
             whenActiveChanged={this.props.whenActiveChanged}
-            addDocTab={this.props.addDocTab}
+            addDocTab={this.addDocTab}
             pinToPres={this.props.pinToPres}>
         </ContentFittingDocumentView>;
     }

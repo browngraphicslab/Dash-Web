@@ -89,14 +89,20 @@ export class PreviewCursor extends React.Component<{}> {
                 PreviewCursor.Visible && PreviewCursor._onKeyPress?.(e);
                 PreviewCursor.Visible = false;
             }
-        } else if (e.key === "ArrowRight") {
-            PreviewCursor._nudge?.(1, 0);
-        } else if (e.key === "ArrowLeft") {
-            PreviewCursor._nudge?.(-1, 0);
-        } else if (e.key === "ArrowUp") {
-            PreviewCursor._nudge?.(0, 1);
-        } else if (e.key === "ArrowDown") {
-            PreviewCursor._nudge?.(0, -1);
+        } else if (PreviewCursor.Visible) {
+            if (e.key === "ArrowRight") {
+                PreviewCursor._nudge?.(1 * (e.shiftKey ? 2 : 1), 0);
+                e.stopPropagation();
+            } else if (e.key === "ArrowLeft") {
+                PreviewCursor._nudge?.(-1 * (e.shiftKey ? 2 : 1), 0);
+                e.stopPropagation();
+            } else if (e.key === "ArrowUp") {
+                PreviewCursor._nudge?.(0, 1 * (e.shiftKey ? 2 : 1));
+                e.stopPropagation();
+            } else if (e.key === "ArrowDown") {
+                PreviewCursor._nudge?.(0, -1 * (e.shiftKey ? 2 : 1));
+                e.stopPropagation();
+            }
         }
     }
 
