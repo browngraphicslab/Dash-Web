@@ -2,14 +2,30 @@ var path = require('path');
 var webpack = require('webpack');
 const CopyWebpackPlugin = require("copy-webpack-plugin");
 const ForkTsCheckerWebpackPlugin = require("fork-ts-checker-webpack-plugin");
+
+const plugins = [
+    new CopyWebpackPlugin([{
+        from: "deploy",
+        to: path.join(__dirname, "build")
+    }]),
+    new ForkTsCheckerWebpackPlugin({
+        tslint: true,
+        useTypescriptIncrementalApi: true
+    }),
+    new webpack.optimize.OccurrenceOrderPlugin(),
+    new webpack.HotModuleReplacementPlugin(),
+];
+
 const env = require('dotenv').config().parsed;
-const envKeys = Object.keys(env).reduce((prev, next) => {
-    if (next.startsWith("DASH_")) {
-        const resolved = next.replace("DASH_", "");
-        prev[`process.env.${resolved}`] = JSON.stringify(env[next]);
-    }
-    return prev;
-}, {});
+if (env) {
+    plugins.push(new webpack.DefinePlugin(Object.keys(env).reduce((prev, next) => {
+        if (next.startsWith("DASH_")) {
+            const resolved = next.replace("DASH_", "");
+            prev[`process.env.${resolved}`] = JSON.stringify(env[next]);
+        }
+        return prev;
+    }, {})));
+}
 
 module.exports = {
     mode: 'development',
@@ -80,19 +96,7 @@ module.exports = {
             }
         ]
     },
-    plugins: [
-        new CopyWebpackPlugin([{
-            from: "deploy",
-            to: path.join(__dirname, "build")
-        }]),
-        new webpack.DefinePlugin(envKeys),
-        new ForkTsCheckerWebpackPlugin({
-            tslint: true,
-            useTypescriptIncrementalApi: true
-        }),
-        new webpack.optimize.OccurrenceOrderPlugin(),
-        new webpack.HotModuleReplacementPlugin(),
-    ],
+    plugins,
     devServer: {
         compress: false,
         host: "localhost",
