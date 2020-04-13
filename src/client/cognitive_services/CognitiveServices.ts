@@ -8,7 +8,6 @@ import { UndoManager } from "../util/UndoManager";
 import requestPromise = require("request-promise");
 import { List } from "../../new_fields/List";
 import { ClientRecommender } from "../ClientRecommender";
-import { ImageBox } from "../views/nodes/ImageBox";
 
 type APIManager<D> = { converter: BodyConverter<D>, requester: RequestExecutor };
 type RequestExecutor = (apiKey: string, body: string, service: Service) => Promise<string>;

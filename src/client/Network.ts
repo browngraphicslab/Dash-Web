@@ -4,8 +4,21 @@ import { Upload } from "../server/SharedMediaTypes";
 
 export namespace Networking {
 
+    const EnvVarCache = new Map<string, string>();
+
     export async function FetchFromServer(relativeRoute: string) {
         return (await fetch(relativeRoute)).text();
+    }
+
+    export async function FetchEnvironmentVariable(varNameLiteral: string) {
+        let resolved = EnvVarCache.get(varNameLiteral);
+        if (!resolved) {
+            resolved = await FetchFromServer(`/environment/${varNameLiteral}`);
+            if (resolved !== undefined) {
+                EnvVarCache.set(varNameLiteral, resolved);
+            }
+        }
+        return resolved;
     }
 
     export async function PostToServer(relativeRoute: string, body?: any) {

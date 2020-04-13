@@ -2,6 +2,14 @@ var path = require('path');
 var webpack = require('webpack');
 const CopyWebpackPlugin = require("copy-webpack-plugin");
 const ForkTsCheckerWebpackPlugin = require("fork-ts-checker-webpack-plugin");
+const env = require('dotenv').config().parsed;
+const envKeys = Object.keys(env).reduce((prev, next) => {
+    if (next.startsWith("DASH_")) {
+        const resolved = next.replace("DASH_", "");
+        prev[`process.env.${resolved}`] = JSON.stringify(env[next]);
+    }
+    return prev;
+}, {});
 
 module.exports = {
     mode: 'development',
@@ -33,17 +41,18 @@ module.exports = {
         extensions: ['.js', '.ts', '.tsx']
     },
     module: {
-        rules: [
-            {
+        rules: [{
                 test: [/\.tsx?$/],
-                use: [
-                    { loader: 'ts-loader', options: { transpileOnly: true } }
-                ]
+                use: [{
+                    loader: 'ts-loader',
+                    options: {
+                        transpileOnly: true
+                    }
+                }]
             },
             {
                 test: /\.scss|css$/,
-                use: [
-                    {
+                use: [{
                         loader: "style-loader"
                     },
                     {
@@ -56,28 +65,30 @@ module.exports = {
             },
             {
                 test: /\.(jpg|png|pdf)$/,
-                use: [
-                    {
-                        loader: 'file-loader'
-                    }
-                ]
+                use: [{
+                    loader: 'file-loader'
+                }]
             },
             {
                 test: /\.(png|jpg|gif)$/i,
-                use: [
-                    {
-                        loader: 'url-loader',
-                        options: {
-                            limit: 8192
-                        }
+                use: [{
+                    loader: 'url-loader',
+                    options: {
+                        limit: 8192
                     }
-                ]
-            }]
+                }]
+            }
+        ]
     },
     plugins: [
-        new CopyWebpackPlugin([{ from: "deploy", to: path.join(__dirname, "build") }]),
+        new CopyWebpackPlugin([{
+            from: "deploy",
+            to: path.join(__dirname, "build")
+        }]),
+        new webpack.DefinePlugin(envKeys),
         new ForkTsCheckerWebpackPlugin({
-            tslint: true, useTypescriptIncrementalApi: true
+            tslint: true,
+            useTypescriptIncrementalApi: true
         }),
         new webpack.optimize.OccurrenceOrderPlugin(),
         new webpack.HotModuleReplacementPlugin(),
