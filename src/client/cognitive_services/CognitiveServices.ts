@@ -8,7 +8,6 @@ import { UndoManager } from "../util/UndoManager";
 import requestPromise = require("request-promise");
 import { List } from "../../new_fields/List";
 import { ClientRecommender } from "../ClientRecommender";
-import { ImageBox } from "../views/nodes/ImageBox";
 
 type APIManager<D> = { converter: BodyConverter<D>, requester: RequestExecutor };
 type RequestExecutor = (apiKey: string, body: string, service: Service) => Promise<string>;
@@ -46,7 +45,7 @@ export enum Confidence {
 export namespace CognitiveServices {
 
     const ExecuteQuery = async <D>(service: Service, manager: APIManager<D>, data: D): Promise<any> => {
-        const apiKey = await Utils.getApiKey(service);
+        const apiKey = process.env[service.toUpperCase()];
         if (!apiKey) {
             console.log(`No API key found for ${service}: ensure index.ts has access to a .env file in your root directory.`);
             return undefined;

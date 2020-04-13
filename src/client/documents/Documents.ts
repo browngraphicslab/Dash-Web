@@ -49,6 +49,8 @@ import { ContextMenuProps } from "../views/ContextMenuItem";
 import { ContextMenu } from "../views/ContextMenu";
 import { LinkBox } from "../views/nodes/LinkBox";
 import { ScreenshotBox } from "../views/nodes/ScreenshotBox";
+import CollectionMapView from "../views/collections/CollectionMapView";
+import LocationField, { LocationData } from "../../new_fields/LocationField";
 const requestImageSize = require('../util/request-image-size');
 const path = require('path');
 
@@ -277,8 +279,7 @@ export namespace Docs {
             }],
             [DocumentType.SCREENSHOT, {
                 layout: { view: ScreenshotBox, dataField: data },
-                options: {}
-            }]
+            }],
         ]);
 
         // All document prototypes are initialized with at least these values
@@ -622,6 +623,10 @@ export namespace Docs {
 
         export function LinearDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
             return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", backgroundColor: "black", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, _viewType: CollectionViewType.Linear }, id);
+        }
+
+        export function MapDocument(documents: Array<Doc>, options: DocumentOptions = {}) {
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), options);
         }
 
         export function CarouselDocument(documents: Array<Doc>, options: DocumentOptions) {

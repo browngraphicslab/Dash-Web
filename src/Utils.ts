@@ -63,11 +63,6 @@ export namespace Utils {
         return prepend("/corsProxy/") + encodeURIComponent(url);
     }
 
-    export async function getApiKey(target: string): Promise<string> {
-        const response = await fetch(prepend(`/environment/${target.toUpperCase()}`));
-        return response.text();
-    }
-
     export function CopyText(text: string) {
         const textArea = document.createElement("textarea");
         textArea.value = text;

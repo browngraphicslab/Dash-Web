@@ -87,6 +87,7 @@ export function BoolCast(field: FieldResult, defaultVal: boolean | null = false)
 export function DateCast(field: FieldResult) {
     return Cast(field, DateField, null);
 }
+
 export function ScriptCast(field: FieldResult) {
     return Cast(field, ScriptField, null);
 }
