@@ -113,7 +113,7 @@ export class PreviewCursor extends React.Component<{}> {
         addLiveText: (doc: Doc) => void,
         getTransform: () => Transform,
         addDocument: (doc: Doc) => boolean,
-        nudge: (nudgeX: number, nudgeY: number) => void) {
+        nudge: (nudgeX: number, nudgeY: number) => boolean) {
         this._clickPoint = [x, y];
         this._onKeyPress = onKeyPress;
         this._addLiveTextDoc = addLiveText;

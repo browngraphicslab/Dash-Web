@@ -49,10 +49,6 @@ import { ContextMenuProps } from "../views/ContextMenuItem";
 import { ContextMenu } from "../views/ContextMenu";
 import { LinkBox } from "../views/nodes/LinkBox";
 import { ScreenshotBox } from "../views/nodes/ScreenshotBox";
-import CollectionMapView from "../views/collections/CollectionMapView";
-import LocationField, { LocationData } from "../../new_fields/LocationField";
-import { action } from "mobx";
-const requestImageSize = require('../util/request-image-size');
 const path = require('path');
 
 export interface DocumentOptions {
