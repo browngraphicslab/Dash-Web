@@ -6,6 +6,7 @@ import { Map, Marker, MapProps, GoogleApiWrapper } from "google-maps-react";
 import { NumCast, StrCast } from "../../../new_fields/Types";
 import { CollectionSubView } from "./CollectionSubView";
 import { Utils } from "../../../Utils";
+import { Opt } from "../../../new_fields/Doc";
 
 type MapDocument = makeInterface<[typeof documentSchema]>;
 const MapDocument = makeInterface(documentSchema);
@@ -38,8 +39,15 @@ class CollectionMapView extends CollectionSubView<MapDocument, Partial<MapProps>
                             lat: NumCast(childLayoutPairs[0].layout.locationLat, 0),
                             lng: NumCast(childLayoutPairs[0].layout.locationLng, 0)
                         };
-                        const iconSize = new google.maps.Size(NumCast(layout.mapIconWidth, 45), NumCast(layout.mapIconHeight, 45));
-
+                        let icon: Opt<google.maps.Icon>, iconUrl: Opt<string>;
+                        if ((iconUrl = StrCast(Document.mapIconUrl, null))) {
+                            const iconSize = new google.maps.Size(NumCast(layout.mapIconWidth, 45), NumCast(layout.mapIconHeight, 45));
+                            icon = {
+                                size: iconSize,
+                                scaledSize: iconSize,
+                                url: iconUrl
+                            };
+                        }
                         return (
                             <Marker
                                 key={Utils.GenerateGuid()}
@@ -49,11 +57,7 @@ class CollectionMapView extends CollectionSubView<MapDocument, Partial<MapProps>
                                     Document.mapCenterLat = location.lat;
                                     Document.mapCenterLng = location.lng;
                                 }}
-                                icon={{
-                                    size: iconSize,
-                                    scaledSize: iconSize,
-                                    url: StrCast(Document.mapIconUrl, null)
-                                }}
+                                icon={icon}
                             />
                         );
                     })}
@@ -64,4 +68,4 @@ class CollectionMapView extends CollectionSubView<MapDocument, Partial<MapProps>
 
 }
 
-export default GoogleApiWrapper({ apiKey: process.env.GOOGLE_MAPS_API_KEY! })(CollectionMapView) as any;
+export default GoogleApiWrapper({ apiKey: process.env.GOOGLE_MAPS! })(CollectionMapView) as any;

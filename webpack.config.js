@@ -16,15 +16,22 @@ const plugins = [
     new webpack.HotModuleReplacementPlugin(),
 ];
 
-const env = require('dotenv').config().parsed;
-if (env) {
-    plugins.push(new webpack.DefinePlugin(Object.keys(env).reduce((prev, next) => {
-        if (next.startsWith("DASH_")) {
-            prev[`process.env.${next.replace("DASH_", "")}`] = JSON.stringify(env[next]);
-        }
-        return prev;
-    }, {})));
+const dotenv = require('dotenv');
+
+function transferEnvironmentVariables() {
+    const prefix = "_CLIENT_";
+    const env = dotenv.config().parsed;
+    if (env) {
+        plugins.push(new webpack.DefinePlugin(Object.keys(env).reduce((mapping, envKey) => {
+            if (envKey.startsWith(prefix)) {
+                mapping[`process.env.${envKey.replace(prefix, "")}`] = JSON.stringify(env[envKey]);
+            }
+            return mapping;
+        }, {})));
+    }
 }
+
+transferEnvironmentVariables();
 
 module.exports = {
     mode: 'development',
