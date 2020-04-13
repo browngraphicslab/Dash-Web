@@ -39,6 +39,7 @@ class CollectionMapView extends CollectionSubView<MapDocument, Partial<MapProps>
                             lng: NumCast(childLayoutPairs[0].layout.locationLng, 0)
                         };
                         const iconSize = new google.maps.Size(NumCast(layout.mapIconWidth, 45), NumCast(layout.mapIconHeight, 45));
+
                         return (
                             <Marker
                                 key={Utils.GenerateGuid()}
@@ -51,7 +52,7 @@ class CollectionMapView extends CollectionSubView<MapDocument, Partial<MapProps>
                                 icon={{
                                     size: iconSize,
                                     scaledSize: iconSize,
-                                    url: StrCast(Document.mapIconUrl, "https://www.pinclipart.com/picdir/middle/359-3598915_map-marker-icon-location-icon-png-clipart.png")
+                                    url: StrCast(Document.mapIconUrl, null)
                                 }}
                             />
                         );
