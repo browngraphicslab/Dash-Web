@@ -7,6 +7,7 @@ import { NumCast, StrCast } from "../../../new_fields/Types";
 import { CollectionSubView } from "./CollectionSubView";
 import { Utils } from "../../../Utils";
 import { Opt } from "../../../new_fields/Doc";
+import "./CollectionMapView.scss";
 
 type MapDocument = makeInterface<[typeof documentSchema]>;
 const MapDocument = makeInterface(documentSchema);
@@ -25,11 +26,10 @@ class CollectionMapView extends CollectionSubView<MapDocument, Partial<MapProps>
             center.lng = childLayoutPairs.length ? NumCast(childLayoutPairs[0].layout.locationLng, 0) : 0;
         }
         return (
-            <div
-                className={"collectionMapView-contents"}
-            >
+            <div className={"collectionMapView-contents" + (this.props.active() ? "" : "-none")}
+                onPointerDown={e => (this.props.active() && e.button === 0 && !e.ctrlKey) && e.stopPropagation()} >
                 <Map
-                    {...props}
+                    google={this.props.google}
                     zoom={NumCast(Document.zoom, 10)}
                     center={center}
                     initialCenter={center}
