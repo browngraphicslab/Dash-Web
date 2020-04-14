@@ -586,7 +586,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
         const docTemplate = docLayoutTemplate || creator?.(fieldTemplate ? [fieldTemplate] : [], { title: customName + "(" + doc.title + ")", isTemplateDoc: true, _width: _width + 20, _height: Math.max(100, _height + 45) });
 
-        fieldTemplate && Doc.MakeMetadataFieldTemplate(fieldTemplate, Doc.GetProto(docTemplate));
+        fieldTemplate && Doc.MakeMetadataFieldTemplate(fieldTemplate, docTemplate ? Doc.GetProto(docTemplate) : docTemplate);
         docTemplate && Doc.ApplyTemplateTo(docTemplate, doc, customName, undefined);
     }
 

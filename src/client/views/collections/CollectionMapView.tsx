@@ -10,8 +10,8 @@ import "./CollectionMapView.scss";
 import { CollectionSubView } from "./CollectionSubView";
 import React = require("react");
 import { DocumentManager } from "../../util/DocumentManager";
-import { UndoManager } from "../../util/UndoManager";
-import { IReactionDisposer, reaction, action } from "mobx";
+import { UndoManager, undoBatch } from "../../util/UndoManager";
+import { IReactionDisposer, reaction, action, computed } from "mobx";
 import requestPromise = require("request-promise");
 
 type MapSchema = makeInterface<[typeof documentSchema]>;
@@ -28,7 +28,13 @@ const base = "https://maps.googleapis.com/maps/api/geocode/json?";
 @observer
 class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> & { google: any }>(MapSchema) {
 
-    private mapRef = React.createRef<GeoMap>();
+    // private mapRef = React.createRef<GeoMap>();
+    // private get map() {
+    //     return (this.mapRef.current as any).map;
+    // }
+
+    private _cancelAddrReq = new Map<string, boolean>();
+    private _cancelLocReq = new Map<string, boolean>();
     private addressUpdaters: IReactionDisposer[] = [];
     private latlngUpdaters: IReactionDisposer[] = [];
 
@@ -42,62 +48,62 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
         return undefined;
     }
 
-    renderMarker(layout: Doc, icon: Opt<google.maps.Icon>) {
+    markerClick = action(async (layout: Doc, location: LocationData) => {
+        //this.map.panTo(location);
+        const batch = UndoManager.StartBatch("marker click");
+        this.layoutDoc[this.props.fieldKey + "-mapCenter-lat"] = location.lat;
+        this.layoutDoc[this.props.fieldKey + "-mapCenter-lng"] = location.lng;
+        location.zoom && (this.layoutDoc[this.props.fieldKey + "-mapCenter-zoom"] = location.zoom);
+        if (layout.isLinkButton && DocListCast(layout.links).length) {
+            await DocumentManager.Instance.FollowLink(undefined, layout, (doc: Doc, where: string, finished?: () => void) => {
+                this.props.addDocTab(doc, where);
+                finished?.();
+            }, false, this.props.ContainingCollectionDoc, batch.end, undefined);
+        } else {
+            ScriptCast(layout.onClick)?.script.run({ this: layout, self: Cast(layout.rootDocument, Doc, null) || layout });
+            batch.end();
+        }
+    });
+
+    renderMarkerIcon(layout: Doc) {
+        const iconUrl = StrCast(this.props.Document.mapIconUrl, null);
+        if (iconUrl) {
+            const iconWidth = NumCast(layout["mapLocation-iconWidth"], 45);
+            const iconHeight = NumCast(layout["mapLocation-iconHeight"], 45);
+            const iconSize = new google.maps.Size(iconWidth, iconHeight);
+            return {
+                size: iconSize,
+                scaledSize: iconSize,
+                url: iconUrl
+            };
+        }
+    }
+    renderMarker(layout: Doc) {
         const location = this.getLocation(layout, "mapLocation");
         return !location ? (null) :
             <Marker
                 key={layout[Id]}
                 label={StrCast(layout.title)}
-                position={{ lat: location.lat, lng: location.lng }}
-                onClick={async () => {
-                    this.map.panTo(location);
-                    this.layoutDoc[this.props.fieldKey + "-mapCenter-lat"] = location.lat;
-                    this.layoutDoc[this.props.fieldKey + "-mapCenter-lng"] = location.lng;
-                    location.zoom && (this.layoutDoc[this.props.fieldKey + "-mapCenter-zoom"] = location.zoom);
-                    if (layout.isLinkButton && DocListCast(layout.links).length) {
-                        const batch = UndoManager.StartBatch("follow link click");
-                        await DocumentManager.Instance.FollowLink(undefined, layout, (doc: Doc, where: string, finished?: () => void) => {
-                            this.props.addDocTab(doc, where);
-                            finished?.();
-                        }, false, this.props.ContainingCollectionDoc, batch.end, undefined);
-                    } else {
-                        ScriptCast(layout.onClick)?.script.run({ this: layout, self: Cast(layout.rootDocument, Doc, null) || layout });
-                    }
-                }}
-                icon={icon}
+                position={location}
+                onClick={() => this.markerClick(layout, location)}
+                icon={this.renderMarkerIcon(layout)}
             />;
     }
 
-    _cancelAddrReq = new Map<string, boolean>();
-    _cancelLocReq = new Map<string, boolean>();
-    private get contents() {
+    @computed get contents() {
         this.addressUpdaters.forEach(disposer => disposer());
         this.addressUpdaters = [];
         this.latlngUpdaters.forEach(disposer => disposer());
         this.latlngUpdaters = [];
-        return this.childLayoutPairs.map(({ layout, data }) => {
-            let icon: Opt<google.maps.Icon>, iconUrl: Opt<string>;
-            if ((iconUrl = StrCast(this.props.Document.mapIconUrl, null))) {
-                const iconWidth = NumCast(layout["mapLocation-iconWidth"], 45);
-                const iconHeight = NumCast(layout["mapLocation-iconHeight"], 45);
-                const iconSize = new google.maps.Size(iconWidth, iconHeight);
-                icon = {
-                    size: iconSize,
-                    scaledSize: iconSize,
-                    url: iconUrl
-                };
-            }
+        return this.childLayoutPairs.map(({ layout }) => {
             this.addressUpdaters.push(reaction(
-                () => ({
-                    lat: NumCast(layout["mapLocation-lat"]),
-                    lng: NumCast(layout["mapLocation-lng"])
-                }),
+                () => ({ lat: layout["mapLocation-lat"], lng: layout["mapLocation-lng"] }),
                 ({ lat, lng }) => {
                     if (this._cancelLocReq.get(layout[Id])) {
                         this._cancelLocReq.set(layout[Id], false);
                     }
                     else if (lat !== undefined && lng !== undefined) {
-                        const target = `${base}latlng=${lat},${lng}&key=${process.env.GOOGLE_MAPS_GEO!}`;
+                        const target = `${base}latlng=${NumCast(lat)},${NumCast(lng)}&key=${process.env.GOOGLE_MAPS_GEO!}`;
                         requestPromise.get(target).then(res => {
                             const formatted_address = JSON.parse(res).results[0].formatted_address || "<invalid address>";
                             if (formatted_address !== layout["mapLocation-address"]) {
@@ -132,14 +138,9 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
                     }
                 }
             ));
-            return this.renderMarker(layout, icon);
+            return this.renderMarker(layout);
         });
     }
-
-    private get map() {
-        return (this.mapRef.current as any).map;
-    }
-
     render() {
         const { childLayoutPairs } = this;
         const { Document } = this.props;
@@ -156,16 +157,15 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
             onWheel={e => e.stopPropagation()}
             onPointerDown={e => (e.button === 0 && !e.ctrlKey) && e.stopPropagation()} >
             <GeoMap
-                ref={this.mapRef}
+                //ref={this.mapRef}
                 google={this.props.google}
                 zoom={center.zoom || 10}
                 initialCenter={center}
                 center={center}
-                onDragend={() => {
-                    const { center } = this.map;
-                    Document[this.props.fieldKey + "-mapCenter-lat"] = center.lat();
-                    Document[this.props.fieldKey + "-mapCenter-lng"] = center.lng();
-                }}
+                onDragend={undoBatch(action((e: any, map: any) => {
+                    Document[this.props.fieldKey + "-mapCenter-lat"] = map.center.lat();
+                    Document[this.props.fieldKey + "-mapCenter-lng"] = map.center.lng();
+                }))}
             >
                 {this.contents}
             </GeoMap>
@@ -174,8 +174,5 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
 
 }
 
-const LoadingContainer = () => {
-    return <div className={"loadingWrapper"}><img className={"loadingGif"} src={"/assets/loading.gif"} /></div>;
-};
-
+const LoadingContainer = () => <div className={"loadingWrapper"}><img className={"loadingGif"} src={"/assets/loading.gif"} /></div>;
 export default GoogleApiWrapper({ apiKey: process.env.GOOGLE_MAPS!, LoadingContainer })(CollectionMapView) as any;
