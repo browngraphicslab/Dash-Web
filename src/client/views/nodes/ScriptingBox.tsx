@@ -39,6 +39,22 @@ export class ScriptingBox extends DocAnnotatableComponent<FieldViewProps, Script
     }
 
     @action
+    onSave = () => {
+        const result = CompileScript(this.rawScript, {});
+        this._errorMessage = "";
+        if (result.compiled) {
+            this._errorMessage = "";
+            this.props.Document.data = new ScriptField(result);
+
+            //button
+        }
+        else {
+            //
+        }
+        this.props.Document.documentText = this.rawScript;
+    }
+
+    @action
     onCompile = () => {
         const params = this.compileParams.reduce((o: ScriptParam, p: string) => { o[p] = "any"; return o; }, {} as ScriptParam);
         const result = CompileScript(this.rawScript, {
