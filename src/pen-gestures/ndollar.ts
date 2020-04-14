@@ -161,6 +161,9 @@ const AngleSimilarityThreshold = Deg2Rad(30.0);
 export class NDollarRecognizer {
     public Multistrokes: Multistroke[];
 
+    /**
+     * @IMPORTANT - IF YOU'RE ADDING A NEW GESTURE, BE SURE TO INCREMENT THE NumMultiStrokes CONST RIGHT ABOVE THIS CLASS.
+     */
     constructor(useBoundedRotationInvariance: boolean) // constructor
     {
         //

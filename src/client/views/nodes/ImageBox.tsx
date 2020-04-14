@@ -186,9 +186,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
 
     extractFaces = () => {
         const converter = (results: any) => {
-            const faceDocs = new List<Doc>();
-            results.reduce((face: CognitiveServices.Image.Face, faceDocs: List<Doc>) => faceDocs.push(Docs.Get.DocumentHierarchyFromJson(face, `Face: ${face.faceId}`)!), new List<Doc>());
-            return faceDocs;
+            return results.map((face: CognitiveServices.Image.Face) => Docs.Get.FromJson({ data: face, title: `Face: ${face.faceId}` })!);
         };
         this.url && CognitiveServices.Image.Appliers.ProcessImage(this.dataDoc, [this.fieldKey + "-faces"], this.url, Service.Face, converter);
     }
@@ -259,18 +257,16 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
         const cachedAspect = cachedNativeSize.height / cachedNativeSize.width;
         if (!cachedNativeSize.width || !cachedNativeSize.height || Math.abs(NumCast(this.layoutDoc._width) / NumCast(this.layoutDoc._height) - cachedNativeSize.width / cachedNativeSize.height) > 0.05) {
             if (!this.layoutDoc.isTemplateDoc || this.dataDoc !== this.layoutDoc) {
-                requestImageSize(imgPath).then((inquiredSize: any) => {
+                requestImageSize(imgPath).then(action((inquiredSize: any) => {
                     const rotation = NumCast(this.dataDoc[this.fieldKey + "-rotation"]) % 180;
                     const rotatedNativeSize = rotation === 90 || rotation === 270 ? { height: inquiredSize.width, width: inquiredSize.height } : inquiredSize;
                     const rotatedAspect = rotatedNativeSize.height / rotatedNativeSize.width;
-                    setTimeout(action(() => {
-                        if (this.layoutDoc[WidthSym]() && (!cachedNativeSize.width || !cachedNativeSize.height || Math.abs(1 - docAspect / rotatedAspect) > 0.1)) {
-                            this.layoutDoc._height = this.layoutDoc[WidthSym]() * rotatedAspect;
-                            this.dataDoc[this.fieldKey + "-nativeWidth"] = this.layoutDoc._nativeWidth = rotatedNativeSize.width;
-                            this.dataDoc[this.fieldKey + "-nativeHeight"] = this.layoutDoc._nativeHeight = rotatedNativeSize.height;
-                        }
-                    }), 0);
-                }).catch((err: any) => console.log(err));
+                    if (this.layoutDoc[WidthSym]() && (!cachedNativeSize.width || !cachedNativeSize.height || Math.abs(1 - docAspect / rotatedAspect) > 0.1)) {
+                        this.layoutDoc._height = this.layoutDoc[WidthSym]() * rotatedAspect;
+                        this.dataDoc[this.fieldKey + "-nativeWidth"] = this.layoutDoc._nativeWidth = this.layoutDoc._width;
+                        this.dataDoc[this.fieldKey + "-nativeHeight"] = this.layoutDoc._nativeHeight = this.layoutDoc._height;
+                    }
+                })).catch(console.log);
             } else if (Math.abs(1 - docAspect / cachedAspect) > 0.1) {
                 this.layoutDoc._width = this.layoutDoc[WidthSym]() || cachedNativeSize.width;
                 this.layoutDoc._height = this.layoutDoc[WidthSym]() * cachedAspect;
@@ -390,17 +386,14 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
         const { nativeWidth, nativeHeight } = this.nativeSize;
         const rotation = NumCast(this.dataDoc[this.fieldKey + "-rotation"]);
         const aspect = (rotation % 180) ? nativeHeight / nativeWidth : 1;
-        const pwidth = this.props.PanelWidth();
-        const pheight = this.props.PanelHeight();
-        const shift = (rotation % 180) ? (pheight - pwidth) / aspect / 2 + (pheight - pwidth) / 2 : 0;
-
+        const shift = (rotation % 180) ? (nativeHeight - nativeWidth) * (1 - 1 / aspect) : 0;
         this.resize(srcpath);
 
         return <div className="imageBox-cont" key={this.layoutDoc[Id]} ref={this.createDropTarget}>
             <div className="imageBox-fader" >
                 <img key={this._smallRetryCount + (this._mediumRetryCount << 4) + (this._largeRetryCount << 8)} // force cache to update on retrys
                     src={srcpath}
-                    style={{ transform: `translate(0px, ${shift}px) rotate(${rotation}deg) scale(${aspect})` }}
+                    style={{ transform: `scale(${aspect}) translate(0px, ${shift}px) rotate(${rotation}deg)` }}
                     width={nativeWidth}
                     ref={this._imgRef}
                     onError={this.onError} />

@@ -71,6 +71,7 @@ export interface DocumentViewProps {
     onPointerUp?: ScriptField;
     dropAction?: dropActionType;
     dragDivName?: string;
+    nudge?: (x: number, y: number) => void;
     addDocument?: (doc: Doc) => boolean;
     removeDocument?: (doc: Doc) => boolean;
     moveDocument?: (doc: Doc, targetCollection: Doc | undefined, addDocument: (document: Doc) => boolean) => boolean;
@@ -286,15 +287,17 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD && Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD)) {
             let stopPropagate = true;
             let preventDefault = true;
-            this.props.bringToFront(this.props.Document);
+            this.props.Document.isBackground === undefined && this.props.bringToFront(this.props.Document);
             if (this._doubleTap && this.props.renderDepth && !this.onClickHandler?.script) { // disable double-click to show full screen for things that have an on click behavior since clicking them twice can be misinterpreted as a double click
-                const fullScreenAlias = Doc.MakeAlias(this.props.Document);
-                if (StrCast(fullScreenAlias.layoutKey) !== "layout_fullScreen" && fullScreenAlias.layout_fullScreen) {
-                    fullScreenAlias.layoutKey = "layout_fullScreen";
+                if (!(e.nativeEvent as any).formattedHandled) {
+                    const fullScreenAlias = Doc.MakeAlias(this.props.Document);
+                    if (StrCast(fullScreenAlias.layoutKey) !== "layout_fullScreen" && fullScreenAlias.layout_fullScreen) {
+                        fullScreenAlias.layoutKey = "layout_fullScreen";
+                    }
+                    UndoManager.RunInBatch(() => this.props.addDocTab(fullScreenAlias, "inTab"), "double tap");
+                    SelectionManager.DeselectAll();
+                    Doc.UnBrushDoc(this.props.Document);
                 }
-                UndoManager.RunInBatch(() => this.props.addDocTab(fullScreenAlias, "inTab"), "double tap");
-                SelectionManager.DeselectAll();
-                Doc.UnBrushDoc(this.props.Document);
             } else if (this.onClickHandler?.script) {
                 SelectionManager.DeselectAll();
                 const func = () => this.onClickHandler.script.run({
@@ -313,6 +316,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 if ((this.props.Document.onDragStart || (this.props.Document.rootDocument && this.props.Document.isTemplateForField)) && !(e.ctrlKey || e.button > 0)) {  // onDragStart implies a button doc that we don't want to select when clicking.   RootDocument & isTEmplaetForField implies we're clicking on part of a template instance and we want to select the whole template, not the part
                     stopPropagate = false; // don't stop propagation for field templates -- want the selection to propagate up to the root document of the template
                 } else {
+                    this.props.focus(this.props.Document, false);
                     SelectionManager.SelectDoc(this, e.ctrlKey);
                 }
                 preventDefault = false;
@@ -537,7 +541,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     deleteClicked = (): void => { SelectionManager.DeselectAll(); this.props.removeDocument?.(this.props.Document); }
 
     // applies a custom template to a document.  the template is identified by it's short name (e.g, slideView not layout_slideView)
-    static makeCustomViewClicked = (doc: Doc, creator: (documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc, templateSignature: string = "custom", docLayoutTemplate?: Doc) => {
+    static makeCustomViewClicked = (doc: Doc, creator: Opt<(documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc>, templateSignature: string = "custom", docLayoutTemplate?: Doc) => {
         const batch = UndoManager.StartBatch("makeCustomViewClicked");
         runInAction(() => {
             doc.layoutKey = "layout_" + templateSignature;
@@ -547,16 +551,21 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         });
         batch.end();
     }
-    static createCustomView = (doc: Doc, creator: (documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc, templateSignature: string = "custom", docLayoutTemplate?: Doc) => {
+    static findTemplate(templateName: string, type: string, signature: string) {
+        let docLayoutTemplate: Opt<Doc>;
         const iconViews = DocListCast(Cast(Doc.UserDoc().iconViews, Doc, null)?.data);
         const templBtns = DocListCast(Cast(Doc.UserDoc().templateButtons, Doc, null)?.data);
         const noteTypes = DocListCast(Cast(Doc.UserDoc().noteTypes, Doc, null)?.data);
         const allTemplates = iconViews.concat(templBtns).concat(noteTypes).map(btnDoc => (btnDoc.dragFactory as Doc) || btnDoc).filter(doc => doc.isTemplateDoc);
-        const templateName = templateSignature.replace(/\(.*\)/, "");
         // bcz: this is hacky -- want to have different templates be applied depending on the "type" of a document.  but type is not reliable and there could be other types of template searches so this should be generalized
         // first try to find a template that matches the specific document type (<typeName>_<templateName>).  otherwise, fallback to a general match on <templateName>
-        !docLayoutTemplate && allTemplates.forEach(tempDoc => StrCast(tempDoc.title) === doc.type + "_" + templateName && (docLayoutTemplate = tempDoc));
+        !docLayoutTemplate && allTemplates.forEach(tempDoc => StrCast(tempDoc.title) === type + "_" + templateName && (docLayoutTemplate = tempDoc));
         !docLayoutTemplate && allTemplates.forEach(tempDoc => StrCast(tempDoc.title) === templateName && (docLayoutTemplate = tempDoc));
+        return docLayoutTemplate;
+    }
+    static createCustomView = (doc: Doc, creator: Opt<(documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc>, templateSignature: string = "custom", docLayoutTemplate?: Doc) => {
+        const templateName = templateSignature.replace(/\(.*\)/, "");
+        docLayoutTemplate = docLayoutTemplate || DocumentView.findTemplate(templateName, StrCast(doc.type), templateSignature);
 
         const customName = "layout_" + templateSignature;
         const _width = NumCast(doc._width);
@@ -575,10 +584,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         } else if (doc.data instanceof ImageField) {
             fieldTemplate = Docs.Create.ImageDocument("http://www.cs.brown.edu", options);
         }
-        const docTemplate = docLayoutTemplate || creator(fieldTemplate ? [fieldTemplate] : [], { title: customName + "(" + doc.title + ")", isTemplateDoc: true, _width: _width + 20, _height: Math.max(100, _height + 45) });
+        const docTemplate = docLayoutTemplate || creator?.(fieldTemplate ? [fieldTemplate] : [], { title: customName + "(" + doc.title + ")", isTemplateDoc: true, _width: _width + 20, _height: Math.max(100, _height + 45) });
 
         fieldTemplate && Doc.MakeMetadataFieldTemplate(fieldTemplate, Doc.GetProto(docTemplate));
-        Doc.ApplyTemplateTo(docTemplate, doc, customName, undefined);
+        docTemplate && Doc.ApplyTemplateTo(docTemplate, doc, customName, undefined);
     }
 
     @undoBatch
@@ -661,8 +670,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @undoBatch
     @action
-    makeBackground = (): void => {
-        this.Document.isBackground = !this.Document.isBackground;
+    toggleBackground = (temporary: boolean): void => {
+        this.Document.overflow = temporary ? "visible" : "hidden";
+        this.Document.isBackground = !temporary ? !this.Document.isBackground : (this.Document.isBackground ? undefined : true);
         this.Document.isBackground && this.props.bringToFront(this.Document, true);
     }
 
@@ -702,7 +712,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
         const existing = cm.findByDescription("Layout...");
         const layoutItems: ContextMenuProps[] = existing && "subitems" in existing ? existing.subitems : [];
-        layoutItems.push({ description: this.Document.isBackground ? "As Foreground" : "As Background", event: this.makeBackground, icon: this.Document.lockedPosition ? "unlock" : "lock" });
+        layoutItems.push({ description: this.Document.isBackground ? "As Foreground" : "As Background", event: (e) => this.toggleBackground(false), icon: this.Document.lockedPosition ? "unlock" : "lock" });
         layoutItems.push({ description: "Make View of Metadata Field", event: () => Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.DataDoc), icon: "concierge-bell" });
 
         layoutItems.push({ description: `${this.Document._chromeStatus !== "disabled" ? "Hide" : "Show"} Chrome`, event: () => this.Document._chromeStatus = (this.Document._chromeStatus !== "disabled" ? "disabled" : "enabled"), icon: "project-diagram" });
@@ -970,7 +980,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         return typeof fallback === "string" ? fallback : "layout";
     }
     rootSelected = (outsideReaction?: boolean) => {
-        return this.isSelected(outsideReaction) || (this.props.Document.forceActive && this.props.rootSelected?.(outsideReaction) ? true : false);
+        return this.isSelected(outsideReaction) || (this.rootDoc && this.props.rootSelected?.(outsideReaction));
     }
     childScaling = () => (this.layoutDoc._fitWidth ? this.props.PanelWidth() / this.nativeWidth : this.props.ContentScaling());
     panelWidth = () => this.props.PanelWidth();
@@ -1100,7 +1110,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         </>;
     }
     @computed get ignorePointerEvents() {
-        return (this.Document.isBackground && !this.isSelected()) || this.props.layoutKey?.includes("layout_key") || (this.Document.type === DocumentType.INK && InkingControl.Instance.selectedTool !== InkTool.None);
+        return (this.Document.isBackground && !this.isSelected() && !SelectionManager.GetIsDragging()) || this.props.layoutKey?.includes("layout_key") || (this.Document.type === DocumentType.INK && InkingControl.Instance.selectedTool !== InkTool.None);
     }
 
     @observable _animate = 0;
@@ -1146,12 +1156,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 background: finalColor,
                 opacity: this.Document.opacity
             }}>
-            {this.Document.isBackground ? <div className="documentView-lock"> <FontAwesomeIcon icon="unlock" size="lg" /> </div> : (null)}
             {this.onClickHandler && this.props.ContainingCollectionView?.props.Document._viewType === CollectionViewType.Time ? <>
                 {this.innards}
                 <div className="documentView-contentBlocker" />
             </> :
                 this.innards}
+            {this.Document.isBackground !== undefined || this.isSelected(false) ? <div className="documentView-lock" onClick={() => this.toggleBackground(true)}> <FontAwesomeIcon icon={this.Document.isBackground ? "unlock" : "lock"} size="lg" /> </div> : (null)}
         </div>;
         { this._showKPQuery ? <KeyphraseQueryView keyphrases={this._queries}></KeyphraseQueryView> : undefined; }
     }

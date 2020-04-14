@@ -3,6 +3,36 @@ var webpack = require('webpack');
 const CopyWebpackPlugin = require("copy-webpack-plugin");
 const ForkTsCheckerWebpackPlugin = require("fork-ts-checker-webpack-plugin");
 
+const plugins = [
+    new CopyWebpackPlugin([{
+        from: "deploy",
+        to: path.join(__dirname, "build")
+    }]),
+    new ForkTsCheckerWebpackPlugin({
+        tslint: true,
+        useTypescriptIncrementalApi: true
+    }),
+    new webpack.optimize.OccurrenceOrderPlugin(),
+    new webpack.HotModuleReplacementPlugin(),
+];
+
+const dotenv = require('dotenv');
+
+function transferEnvironmentVariables() {
+    const prefix = "_CLIENT_";
+    const env = dotenv.config({ debug: true }).parsed;
+    if (env) {
+        plugins.push(new webpack.DefinePlugin(Object.keys(env).reduce((mapping, envKey) => {
+            if (envKey.startsWith(prefix)) {
+                mapping[`process.env.${envKey.replace(prefix, "")}`] = JSON.stringify(env[envKey]);
+            }
+            return mapping;
+        }, {})));
+    }
+}
+
+transferEnvironmentVariables();
+
 module.exports = {
     mode: 'development',
     entry: {
@@ -33,55 +63,46 @@ module.exports = {
         extensions: ['.js', '.ts', '.tsx']
     },
     module: {
-        rules: [
-            {
-                test: [/\.tsx?$/],
-                use: [
-                    { loader: 'ts-loader', options: { transpileOnly: true } }
-                ]
-            },
-            {
-                test: /\.scss|css$/,
-                use: [
-                    {
-                        loader: "style-loader"
-                    },
-                    {
-                        loader: "css-loader"
-                    },
-                    {
-                        loader: "sass-loader"
-                    }
-                ]
-            },
-            {
-                test: /\.(jpg|png|pdf)$/,
-                use: [
-                    {
-                        loader: 'file-loader'
-                    }
-                ]
-            },
-            {
-                test: /\.(png|jpg|gif)$/i,
-                use: [
-                    {
-                        loader: 'url-loader',
-                        options: {
-                            limit: 8192
-                        }
-                    }
-                ]
+        rules: [{
+            test: [/\.tsx?$/],
+            use: [{
+                loader: 'ts-loader',
+                options: {
+                    transpileOnly: true
+                }
             }]
+        },
+        {
+            test: /\.scss|css$/,
+            use: [{
+                loader: "style-loader"
+            },
+            {
+                loader: "css-loader"
+            },
+            {
+                loader: "sass-loader"
+            }
+            ]
+        },
+        {
+            test: /\.(jpg|png|pdf)$/,
+            use: [{
+                loader: 'file-loader'
+            }]
+        },
+        {
+            test: /\.(png|jpg|gif)$/i,
+            use: [{
+                loader: 'url-loader',
+                options: {
+                    limit: 8192
+                }
+            }]
+        }
+        ]
     },
-    plugins: [
-        new CopyWebpackPlugin([{ from: "deploy", to: path.join(__dirname, "build") }]),
-        new ForkTsCheckerWebpackPlugin({
-            tslint: true, useTypescriptIncrementalApi: true
-        }),
-        new webpack.optimize.OccurrenceOrderPlugin(),
-        new webpack.HotModuleReplacementPlugin(),
-    ],
+    plugins,
     devServer: {
         compress: false,
         host: "localhost",

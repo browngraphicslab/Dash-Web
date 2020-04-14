@@ -204,6 +204,14 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
 
     @computed get onChildClickHandler() { return ScriptCast(this.Document.onChildClick); }
 
+
+    addDocTab = (doc: Doc, where: string) => {
+        if (where === "inPlace" && this.layoutDoc.isInPlaceContainer) {
+            this.dataDoc[this.props.fieldKey] = new List<Doc>([doc]);
+            return true;
+        }
+        return this.props.addDocTab(doc, where);
+    }
     getDisplayDoc(layout: Doc, dxf: () => Transform, width: () => number, height: () => number) {
         return <ContentFittingDocumentView
             {...this.props}
@@ -211,6 +219,7 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
             DataDocument={layout.resolvedDataDoc as Doc}
             NativeHeight={returnZero}
             NativeWidth={returnZero}
+            addDocTab={this.addDocTab}
             fitToBox={BoolCast(this.props.Document._freezeChildDimensions)}
             FreezeDimensions={BoolCast(this.props.Document._freezeChildDimensions)}
             backgroundColor={this.props.backgroundColor}

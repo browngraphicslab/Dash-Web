@@ -31,6 +31,7 @@ interface MarqueeViewProps {
     addLiveTextDocument: (doc: Doc) => void;
     isSelected: () => boolean;
     isAnnotationOverlay?: boolean;
+    nudge: (x: number, y: number) => boolean;
     setPreviewCursor?: (func: (x: number, y: number, drag: boolean) => void) => void;
 }
 
@@ -46,7 +47,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
     _commandExecuted = false;
 
     componentDidMount() {
-        this.props.setPreviewCursor && this.props.setPreviewCursor(this.setPreviewCursor);
+        this.props.setPreviewCursor?.(this.setPreviewCursor);
     }
 
     @action
@@ -243,15 +244,16 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         } else {
             this._downX = x;
             this._downY = y;
-            PreviewCursor.Show(x, y, this.onKeyPress, this.props.addLiveTextDocument, this.props.getTransform, this.props.addDocument);
+            PreviewCursor.Show(x, y, this.onKeyPress, this.props.addLiveTextDocument, this.props.getTransform, this.props.addDocument, this.props.nudge);
         }
     });
 
     @action
     onClick = (e: React.MouseEvent): void => {
-        if (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
+        if (
+            Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD &&
             Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD) {
-            this.setPreviewCursor(e.clientX, e.clientY, false);
+            !(e.nativeEvent as any).formattedHandled && this.setPreviewCursor(e.clientX, e.clientY, false);
             // let the DocumentView stopPropagation of this event when it selects this document
         } else {  // why do we get a click event when the cursor have moved a big distance?
             // let's cut it off here so no one else has to deal with it.
@@ -585,13 +587,19 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
          * This contains the "C for collection, ..." text on marquees.
          * Commented out by syip2 when the marquee menu was added.
          */
-        return <div className="marquee" style={{ transform: `translate(${p[0]}px, ${p[1]}px)`, width: `${Math.abs(v[0])}`, height: `${Math.abs(v[1])}`, zIndex: 2000 }} >
+        return <div className="marquee" style={{
+            transform: `translate(${p[0]}px, ${p[1]}px)`,
+            width: `${Math.abs(v[0])}`,
+            height: `${Math.abs(v[1])}`, zIndex: 2000
+        }} >
             {/* <span className="marquee-legend" /> */}
         </div>;
     }
 
     render() {
-        return <div className="marqueeView" onScroll={(e) => e.currentTarget.scrollTop = e.currentTarget.scrollLeft = 0} onClick={this.onClick} onPointerDown={this.onPointerDown}>
+        return <div className="marqueeView"
+            style={{ overflow: StrCast(this.props.Document.overflow), }}
+            onScroll={(e) => e.currentTarget.scrollTop = e.currentTarget.scrollLeft = 0} onClick={this.onClick} onPointerDown={this.onPointerDown}>
             {this._visible ? this.marqueeDiv : null}
             {this.props.children}
         </div>;

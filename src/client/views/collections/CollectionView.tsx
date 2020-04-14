@@ -1,7 +1,7 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faEye, faEdit } from '@fortawesome/free-regular-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faColumns, faCopy, faEllipsisV, faFingerprint, faImage, faProjectDiagram, faSignature, faSquare, faTh, faThList, faTree } from '@fortawesome/free-solid-svg-icons';
+import { faColumns, faCopy, faEllipsisV, faFingerprint, faImage, faProjectDiagram, faSignature, faSquare, faTh, faThList, faTree, faGlobeAmericas } from '@fortawesome/free-solid-svg-icons';
 import { action, observable, computed } from 'mobx';
 import { observer } from "mobx-react";
 import * as React from 'react';
@@ -44,12 +44,15 @@ import { Docs } from '../../documents/Documents';
 import { ScriptField, ComputedField } from '../../../new_fields/ScriptField';
 import { InteractionUtils } from '../../util/InteractionUtils';
 import { ObjectField } from '../../../new_fields/ObjectField';
+import CollectionMapView from './CollectionMapView';
+import { ClientUtils } from '../../util/ClientUtils';
+import { GoogleApiWrapper } from 'google-maps-react';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
 export const COLLECTION_BORDER_WIDTH = 2;
 const path = require('path');
-library.add(faTh, faTree, faSquare, faProjectDiagram, faSignature, faThList, faFingerprint, faColumns, faEllipsisV, faImage, faEye as any, faCopy);
+library.add(faTh, faTree, faSquare, faProjectDiagram, faSignature, faThList, faFingerprint, faColumns, faGlobeAmericas, faEllipsisV, faImage, faEye as any, faCopy);
 
 export enum CollectionViewType {
     Invalid = "invalid",
@@ -65,6 +68,7 @@ export enum CollectionViewType {
     Carousel = "carousel",
     Linear = "linear",
     Staff = "staff",
+    Map = "map"
 }
 
 export interface CollectionRenderProps {
@@ -102,7 +106,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
         return viewField as any as CollectionViewType;
     }
 
-    active = (outsideReaction?: boolean) => this.props.isSelected(outsideReaction) || (this.props.rootSelected(outsideReaction) && BoolCast(this.props.Document.forceActive)) || this._isChildActive || this.props.renderDepth === 0;
+    active = (outsideReaction?: boolean) => (this.props.isSelected(outsideReaction) || this.props.rootSelected(outsideReaction) || this.props.Document.forceActive || this._isChildActive || this.props.renderDepth === 0) ? true : false;
 
     whenActiveChanged = (isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive);
 
@@ -170,6 +174,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
             case CollectionViewType.Stacking: { this.props.Document.singleColumn = true; return (<CollectionStackingView key="collview" {...props} />); }
             case CollectionViewType.Masonry: { this.props.Document.singleColumn = false; return (<CollectionStackingView key="collview" {...props} />); }
             case CollectionViewType.Time: { return (<CollectionTimeView key="collview" {...props} />); }
+            case CollectionViewType.Map: return (<CollectionMapView key="collview" {...props} />);
             case CollectionViewType.Freeform:
             default: { this.props.Document._freeformLayoutEngine = undefined; return (<CollectionFreeFormView key="collview" {...props} />); }
         }
@@ -211,6 +216,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
             subItems.push({ description: "Masonry", event: () => this.props.Document._viewType = CollectionViewType.Masonry, icon: "columns" });
             subItems.push({ description: "Carousel", event: () => this.props.Document._viewType = CollectionViewType.Carousel, icon: "columns" });
             subItems.push({ description: "Pivot/Time", event: () => this.props.Document._viewType = CollectionViewType.Time, icon: "columns" });
+            subItems.push({ description: "Map", event: () => this.props.Document._viewType = CollectionViewType.Map, icon: "globe-americas" });
             switch (this.props.Document._viewType) {
                 case CollectionViewType.Freeform: {
                     subItems.push({ description: "Custom", icon: "fingerprint", event: AddCustomFreeFormLayout(this.props.Document, this.props.fieldKey) });
@@ -226,8 +232,8 @@ export class CollectionView extends Touchable<FieldViewProps> {
             if (this.props.Document.childLayout instanceof Doc) {
                 layoutItems.push({ description: "View Child Layout", event: () => this.props.addDocTab(this.props.Document.childLayout as Doc, "onRight"), icon: "project-diagram" });
             }
-            if (this.props.Document.childDetailed instanceof Doc) {
-                layoutItems.push({ description: "View Child Detailed Layout", event: () => this.props.addDocTab(this.props.Document.childDetailed as Doc, "onRight"), icon: "project-diagram" });
+            if (this.props.Document.childDetailView instanceof Doc) {
+                layoutItems.push({ description: "View Child Detailed Layout", event: () => this.props.addDocTab(this.props.Document.childDetailView as Doc, "onRight"), icon: "project-diagram" });
             }
             layoutItems.push({ description: `${this.props.Document.isInPlaceContainer ? "Unset" : "Set"} inPlace Container`, event: () => this.props.Document.isInPlaceContainer = !this.props.Document.isInPlaceContainer, icon: "project-diagram" });
 
