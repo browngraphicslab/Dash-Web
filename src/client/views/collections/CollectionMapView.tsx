@@ -82,7 +82,7 @@ class CollectionMapView extends CollectionSubView<MapDocument, Partial<MapProps>
                 center={center}
                 onBoundsChanged={e => console.log(e)}
                 onRecenter={e => console.log(e)}
-                onDragend={(centerMoved, center) => console.log(centerMoved, center)}
+                onDragend={e => console.log(e)}
                 onProjectionChanged={e => console.log(e)}
                 onCenterChanged={(e => {
                     Document[this.props.fieldKey + "-mapCenter-lat"] = typeof e?.center?.lat === "number" ? e.center.lat : center!.lat;
