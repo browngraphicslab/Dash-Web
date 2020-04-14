@@ -603,14 +603,6 @@ export namespace Doc {
         return undefined;
     }
     export function ApplyTemplateTo(templateDoc: Doc, target: Doc, targetKey: string, titleTarget: string | undefined) {
-        if (!templateDoc) {
-            target.layout = undefined;
-            target._nativeWidth = undefined;
-            target._nativeHeight = undefined;
-            target.type = undefined;
-            return;
-        }
-
         if (!Doc.AreProtosEqual(target[targetKey] as Doc, templateDoc)) {
             if (target.resolvedDataDoc) {
                 target[targetKey] = new PrefetchProxy(templateDoc);

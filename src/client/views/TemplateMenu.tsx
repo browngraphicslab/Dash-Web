@@ -167,8 +167,8 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     }
 }
 
-Scripting.addGlobal(function switchView(doc: Doc, template: Doc) {
-    if (template.dragFactory) {
+Scripting.addGlobal(function switchView(doc: Doc, template: Doc | undefined) {
+    if (template?.dragFactory) {
         template = Cast(template.dragFactory, Doc, null);
     }
     const templateTitle = StrCast(template?.title);

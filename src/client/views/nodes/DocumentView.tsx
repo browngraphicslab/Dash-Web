@@ -541,7 +541,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     deleteClicked = (): void => { SelectionManager.DeselectAll(); this.props.removeDocument?.(this.props.Document); }
 
     // applies a custom template to a document.  the template is identified by it's short name (e.g, slideView not layout_slideView)
-    static makeCustomViewClicked = (doc: Doc, creator: (documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc, templateSignature: string = "custom", docLayoutTemplate?: Doc) => {
+    static makeCustomViewClicked = (doc: Doc, creator: Opt<(documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc>, templateSignature: string = "custom", docLayoutTemplate?: Doc) => {
         const batch = UndoManager.StartBatch("makeCustomViewClicked");
         runInAction(() => {
             doc.layoutKey = "layout_" + templateSignature;
@@ -563,7 +563,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         !docLayoutTemplate && allTemplates.forEach(tempDoc => StrCast(tempDoc.title) === templateName && (docLayoutTemplate = tempDoc));
         return docLayoutTemplate;
     }
-    static createCustomView = (doc: Doc, creator: (documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc, templateSignature: string = "custom", docLayoutTemplate?: Doc) => {
+    static createCustomView = (doc: Doc, creator: Opt<(documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc>, templateSignature: string = "custom", docLayoutTemplate?: Doc) => {
         const templateName = templateSignature.replace(/\(.*\)/, "");
         docLayoutTemplate = docLayoutTemplate || DocumentView.findTemplate(templateName, StrCast(doc.type), templateSignature);
 
@@ -584,10 +584,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         } else if (doc.data instanceof ImageField) {
             fieldTemplate = Docs.Create.ImageDocument("http://www.cs.brown.edu", options);
         }
-        const docTemplate = docLayoutTemplate || creator(fieldTemplate ? [fieldTemplate] : [], { title: customName + "(" + doc.title + ")", isTemplateDoc: true, _width: _width + 20, _height: Math.max(100, _height + 45) });
+        const docTemplate = docLayoutTemplate || creator?.(fieldTemplate ? [fieldTemplate] : [], { title: customName + "(" + doc.title + ")", isTemplateDoc: true, _width: _width + 20, _height: Math.max(100, _height + 45) });
 
         fieldTemplate && Doc.MakeMetadataFieldTemplate(fieldTemplate, Doc.GetProto(docTemplate));
-        Doc.ApplyTemplateTo(docTemplate, doc, customName, undefined);
+        docTemplate && Doc.ApplyTemplateTo(docTemplate, doc, customName, undefined);
     }
 
     @undoBatch
