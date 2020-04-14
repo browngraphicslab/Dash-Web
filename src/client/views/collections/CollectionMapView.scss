@@ -5,6 +5,9 @@
     .collectionMapView-contents {
         width: 100%;
         height: 100%;
+        > div {
+            position: unset !important; // when the sidebar filter flys out, this prevents the map from extending outside the document box
+        }
     }
 }
 
