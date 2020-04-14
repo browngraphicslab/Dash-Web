@@ -1,4 +1,4 @@
-import { GoogleApiWrapper, Map, MapProps, Marker } from "google-maps-react";
+import { GoogleApiWrapper, Map as GeoMap, MapProps, Marker } from "google-maps-react";
 import { observer } from "mobx-react";
 import { Doc, Opt, DocListCast } from "../../../new_fields/Doc";
 import { documentSchema } from "../../../new_fields/documentSchemas";
@@ -11,7 +11,7 @@ import { CollectionSubView } from "./CollectionSubView";
 import React = require("react");
 import { DocumentManager } from "../../util/DocumentManager";
 import { UndoManager } from "../../util/UndoManager";
-import { IReactionDisposer, reaction } from "mobx";
+import { IReactionDisposer, reaction, action } from "mobx";
 import requestPromise = require("request-promise");
 
 type MapSchema = makeInterface<[typeof documentSchema]>;
@@ -28,7 +28,7 @@ const base = "https://maps.googleapis.com/maps/api/geocode/json?";
 @observer
 class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> & { google: any }>(MapSchema) {
 
-    private mapRef = React.createRef<Map>();
+    private mapRef = React.createRef<GeoMap>();
     private addressUpdaters: IReactionDisposer[] = [];
     private latlngUpdaters: IReactionDisposer[] = [];
 
@@ -51,7 +51,6 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
                 position={{ lat: location.lat, lng: location.lng }}
                 onClick={async () => {
                     this.map.panTo(location);
-                    this.layoutDoc[this.props.fieldKey + "-mapCenter-lat"] = 0;
                     this.layoutDoc[this.props.fieldKey + "-mapCenter-lat"] = location.lat;
                     this.layoutDoc[this.props.fieldKey + "-mapCenter-lng"] = location.lng;
                     location.zoom && (this.layoutDoc[this.props.fieldKey + "-mapCenter-zoom"] = location.zoom);
@@ -69,12 +68,14 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
             />;
     }
 
+    _cancelAddrReq = new Map<string, boolean>();
+    _cancelLocReq = new Map<string, boolean>();
     private get contents() {
         this.addressUpdaters.forEach(disposer => disposer());
         this.addressUpdaters = [];
         this.latlngUpdaters.forEach(disposer => disposer());
         this.latlngUpdaters = [];
-        return this.childLayoutPairs.map(({ layout }) => {
+        return this.childLayoutPairs.map(({ layout, data }) => {
             let icon: Opt<google.maps.Icon>, iconUrl: Opt<string>;
             if ((iconUrl = StrCast(this.props.Document.mapIconUrl, null))) {
                 const iconWidth = NumCast(layout["mapLocation-iconWidth"], 45);
@@ -92,38 +93,42 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
                     lng: NumCast(layout["mapLocation-lng"])
                 }),
                 ({ lat, lng }) => {
-                    if (!BoolCast(layout._ignoreNextUpdate)) {
-                        if (lat !== undefined && lng !== undefined) {
-                            const target = `${base}latlng=${lat},${lng}&key=${process.env.GOOGLE_MAPS_GEO!}`;
-                            requestPromise.get(target).then(res => {
-                                layout._ignoreNextUpdate = true;
-                                layout["mapLocation-address"] = JSON.parse(res).results[0]?.formatted_address || "<invalid address>";
-                            });
-                        }
-                    } else {
-                        layout._ignoreNextUpdate = false;
+                    if (this._cancelLocReq.get(layout[Id])) {
+                        this._cancelLocReq.set(layout[Id], false);
+                    }
+                    else if (lat !== undefined && lng !== undefined) {
+                        const target = `${base}latlng=${lat},${lng}&key=${process.env.GOOGLE_MAPS_GEO!}`;
+                        requestPromise.get(target).then(res => {
+                            const formatted_address = JSON.parse(res).results[0].formatted_address || "<invalid address>";
+                            if (formatted_address !== layout["mapLocation-address"]) {
+                                this._cancelAddrReq.set(layout[Id], true);
+                                Doc.SetInPlace(layout, "mapLocation-address", formatted_address, true);
+                            }
+                        });
                     }
                 }
             ));
             this.latlngUpdaters.push(reaction(
                 () => ({ address: Cast(layout["mapLocation-address"], "string", null) }),
                 ({ address }) => {
-                    if (!BoolCast(layout._ignoreNextUpdate)) {
-                        if (address && address.length) {
-                            const target = `${base}address=${address.replace(/\s+/g, "+")}&key=${process.env.GOOGLE_MAPS_GEO!}`;
-                            requestPromise.get(target).then(res => {
-                                const result = JSON.parse(res).results[0];
-                                const { lat, lng } = result.geometry.location;
-                                layout._ignoreNextUpdate = true;
-                                layout["mapLocation-lat"] = lat;
-                                layout._ignoreNextUpdate = true;
-                                layout["mapLocation-lng"] = lng;
-                                layout._ignoreNextUpdate = true;
-                                layout["mapLocation-address"] = result.formatted_address;
-                            });
-                        }
-                    } else {
-                        layout._ignoreNextUpdate = false;
+                    if (this._cancelAddrReq.get(layout[Id])) {
+                        this._cancelAddrReq.set(layout[Id], false);
+                    }
+                    else if (address?.length) {
+                        const target = `${base}address=${address.replace(/\s+/g, "+")}&key=${process.env.GOOGLE_MAPS_GEO!}`;
+                        requestPromise.get(target).then(action((res: any) => {
+                            const { geometry, formatted_address } = JSON.parse(res).results[0];
+                            const { lat, lng } = geometry.location;
+                            if (layout["mapLocation-lat"] !== lat || layout["mapLocation-lng"] !== lng) {
+                                this._cancelLocReq.set(layout[Id], true);
+                                Doc.SetInPlace(layout, "mapLocation-lat", lat, true);
+                                Doc.SetInPlace(layout, "mapLocation-lng", lng, true);
+                            }
+                            if (formatted_address !== address) {
+                                this._cancelAddrReq.set(layout[Id], true);
+                                Doc.SetInPlace(layout, "mapLocation-address", formatted_address, true);
+                            }
+                        }));
                     }
                 }
             ));
@@ -150,7 +155,7 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
             style={{ pointerEvents: this.props.active() ? undefined : "none" }}
             onWheel={e => e.stopPropagation()}
             onPointerDown={e => (e.button === 0 && !e.ctrlKey) && e.stopPropagation()} >
-            <Map
+            <GeoMap
                 ref={this.mapRef}
                 google={this.props.google}
                 zoom={center.zoom || 10}
@@ -163,7 +168,7 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
                 }}
             >
                 {this.contents}
-            </Map>
+            </GeoMap>
         </div>;
     }
 
