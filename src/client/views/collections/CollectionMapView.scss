@@ -1,6 +1,7 @@
 .collectionMapView {
     width: 100%;
     height: 100%;
+
     .collectionMapView-contents {
         width: 100%;
         height: 100%;
@@ -13,7 +14,7 @@
 .loadingWrapper {
     width: 100%;
     height: 100%;
-    background-color: yellow;
+    background-color: pink;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -23,7 +24,7 @@
     .loadingGif {
         align-self: center;
         justify-self: center;
-        width: 20%;
-        height: 20%
+        width: 50px;
+        height: 50px;
     }
 }
