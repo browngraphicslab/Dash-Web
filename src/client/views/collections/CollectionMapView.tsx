@@ -40,10 +40,25 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
 
     getLocation = (doc: Opt<Doc>, fieldKey: string): Opt<LocationData> => {
         if (doc) {
-            const lat: Opt<number> = Cast(doc[fieldKey + "-lat"], "number", null);
-            const lng: Opt<number> = Cast(doc[fieldKey + "-lng"], "number", null);
-            const zoom: Opt<number> = Cast(doc[fieldKey + "-zoom"], "number", null);
-            return lat !== undefined && lng !== undefined ? ({ lat, lng, zoom }) : undefined;
+            const lat: Opt<number> = Cast(doc[fieldKey + "-lat"], "number", null) || (Cast(doc[fieldKey + "-lat"], "string", null) && Number(Cast(doc[fieldKey + "-lat"], "string", null))) || undefined;
+            const lng: Opt<number> = Cast(doc[fieldKey + "-lng"], "number", null) || (Cast(doc[fieldKey + "-lng"], "string", null) && Number(Cast(doc[fieldKey + "-lng"], "string", null))) || undefined;
+            const zoom: Opt<number> = Cast(doc[fieldKey + "-zoom"], "number", null) || (Cast(doc[fieldKey + "-zoom"], "string", null) && Number(Cast(doc[fieldKey + "-zoom"], "string", null))) || undefined;
+            const address: Opt<string> = Cast(doc[fieldKey + "-address"], "string", null);
+            if (lat !== undefined && lng !== undefined) {
+                return ({ lat, lng, zoom });
+            } else if (address) {
+                setTimeout(() => {
+                    const target = `${base}address=${address.replace(/\s+/g, "+")}&key=${process.env.GOOGLE_MAPS_GEO!}`;
+                    requestPromise.get(target).then(action((res: any) => {
+                        const { lat, lng } = JSON.parse(res).results[0].geometry.location;
+                        if (doc[fieldKey + "-lat"] !== lat || doc[fieldKey + "-lng"] !== lng) {
+                            Doc.SetInPlace(doc, fieldKey + "-lat", lat, true);
+                            Doc.SetInPlace(doc, fieldKey + "-lng", lng, true);
+                        }
+                    }));
+                });
+                return ({ lat: 35.1592238, lng: -98.444512, zoom: 15 });
+            }
         }
         return undefined;
     }
@@ -152,23 +167,25 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
             }
         }
         TraceMobx();
-        return <div className={"collectionMapView-contents"}
-            style={{ pointerEvents: this.props.active() ? undefined : "none" }}
-            onWheel={e => e.stopPropagation()}
-            onPointerDown={e => (e.button === 0 && !e.ctrlKey) && e.stopPropagation()} >
-            <GeoMap
-                //ref={this.mapRef}
-                google={this.props.google}
-                zoom={center.zoom || 10}
-                initialCenter={center}
-                center={center}
-                onDragend={undoBatch(action((e: any, map: any) => {
-                    Document[this.props.fieldKey + "-mapCenter-lat"] = map.center.lat();
-                    Document[this.props.fieldKey + "-mapCenter-lng"] = map.center.lng();
-                }))}
-            >
-                {this.contents}
-            </GeoMap>
+        return <div className="collectionMapView" ref={this.createDashEventsTarget}>
+            <div className={"collectionMapView-contents"}
+                style={{ pointerEvents: this.props.active() ? undefined : "none" }}
+                onWheel={e => e.stopPropagation()}
+                onPointerDown={e => (e.button === 0 && !e.ctrlKey) && e.stopPropagation()} >
+                <GeoMap
+                    //ref={this.mapRef}
+                    google={this.props.google}
+                    zoom={center.zoom || 10}
+                    initialCenter={center}
+                    center={center}
+                    onDragend={undoBatch(action((e: any, map: any) => {
+                        Document[this.props.fieldKey + "-mapCenter-lat"] = map.center.lat();
+                        Document[this.props.fieldKey + "-mapCenter-lng"] = map.center.lng();
+                    }))}
+                >
+                    {this.contents}
+                </GeoMap>
+            </div>
         </div>;
     }
 

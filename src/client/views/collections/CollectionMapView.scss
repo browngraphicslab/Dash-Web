@@ -1,6 +1,10 @@
-.collectionMapView-contents {
+.collectionMapView {
     width: 100%;
     height: 100%;
+    .collectionMapView-contents {
+        width: 100%;
+        height: 100%;
+    }
 }
 
 .loadingWrapper {
