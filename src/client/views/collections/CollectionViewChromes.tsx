@@ -402,15 +402,15 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                                     onPointerDown={stopPropagation}
                                     onChange={this.viewChanged}
                                     value={StrCast(this.props.CollectionView.props.Document._viewType)}>
-                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="freeform">Freeform</option>
-                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="schema">Schema</option>
-                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="tree">Tree</option>
-                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="stacking">Stacking</option>
-                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="masonry">Masonry</option>
-                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="multicolumn">MultiCol</option>
-                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="multirow">MultiRow</option>
-                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="time">Pivot/Time</option>
-                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="carousel">Carousel</option>
+                                    {Object.values(CollectionViewType).map(type => ["invalid", "docking"].includes(type) ? (null) : (
+                                        <option
+                                            key={Utils.GenerateGuid()}
+                                            className="collectionViewBaseChrome-viewOption"
+                                            onPointerDown={stopPropagation}
+                                            value={type}>
+                                            {type[0].toUpperCase() + type.substring(1)}
+                                        </option>
+                                    ))}
                                 </select>
                             </div>
                         </div>

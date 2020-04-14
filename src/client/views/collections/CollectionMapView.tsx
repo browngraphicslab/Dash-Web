@@ -11,20 +11,21 @@ import { CollectionSubView } from "./CollectionSubView";
 import React = require("react");
 import { DocumentManager } from "../../util/DocumentManager";
 import { UndoManager } from "../../util/UndoManager";
+import * as ReactDOM from 'react-dom';
 
-type MapDocument = makeInterface<[typeof documentSchema]>;
-const MapDocument = makeInterface(documentSchema);
+type MapSchema = makeInterface<[typeof documentSchema]>;
+const MapSchema = makeInterface(documentSchema);
 
 export type LocationData = google.maps.LatLngLiteral & { address?: string };
 
 @observer
-class CollectionMapView extends CollectionSubView<MapDocument, Partial<MapProps> & { google: any }>(MapDocument) {
+class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> & { google: any }>(MapSchema) {
 
     getLocation = (doc: Opt<Doc>, fieldKey: string) => {
         if (doc) {
             let lat: Opt<number> = Cast(doc[fieldKey + "-lat"], "number", null);
             let lng: Opt<number> = Cast(doc[fieldKey + "-lng"], "number", null);
-            let zoom: Opt<number> = Cast(doc[fieldKey + "-zoom"], "number", null);
+            const zoom: Opt<number> = Cast(doc[fieldKey + "-zoom"], "number", null);
             const address = Cast(doc[fieldKey + "-address"], "string", null);
             if (address) {
                 // use geo service to convert to lat/lng
@@ -79,12 +80,12 @@ class CollectionMapView extends CollectionSubView<MapDocument, Partial<MapProps>
                 google={this.props.google}
                 zoom={center.zoom || 10}
                 initialCenter={center}
-                center={center}
-                onBoundsChanged={e => console.log(e)}
-                onRecenter={e => console.log(e)}
-                onDragend={(centerMoved, center) => console.log(centerMoved, center)}
-                onProjectionChanged={e => console.log(e)}
-                onCenterChanged={(e => {
+                onBoundsChanged={(props, map, e) => console.log("ON_BOUNDS_CHANGED", props, map, e)}
+                onRecenter={(props, map, e) => console.log("ON_RECENTER", props, map, e)}
+                onDragend={(centerMoved, center) => console.log("ON_DRAGEND", centerMoved, center)}
+                onProjectionChanged={(props, map, e) => console.log("ON_PROJ_CHANGED", props, map, e)}
+                onCenterChanged={((props, map, e) => {
+                    console.log("ON_CENTER_CHANGED", props, map, e);
                     Document[this.props.fieldKey + "-mapCenter-lat"] = typeof e?.center?.lat === "number" ? e.center.lat : center!.lat;
                     Document[this.props.fieldKey + "-mapCenter-lng"] = typeof e?.center?.lng === "number" ? e.center.lng : center!.lng;
                 })}
@@ -92,7 +93,9 @@ class CollectionMapView extends CollectionSubView<MapDocument, Partial<MapProps>
                 {childLayoutPairs.map(({ layout }) => {
                     let icon: Opt<google.maps.Icon>, iconUrl: Opt<string>;
                     if ((iconUrl = StrCast(Document.mapIconUrl, null))) {
-                        const iconSize = new google.maps.Size(NumCast(layout["mapLocation-iconWidth"], 45), NumCast(layout["mapLocation-iconHeight"], 45));
+                        const iconWidth = NumCast(layout["mapLocation-iconWidth"], 45);
+                        const iconHeight = NumCast(layout["mapLocation-iconHeight"], 45);
+                        const iconSize = new google.maps.Size(iconWidth, iconHeight);
                         icon = {
                             size: iconSize,
                             scaledSize: iconSize,
@@ -107,4 +110,8 @@ class CollectionMapView extends CollectionSubView<MapDocument, Partial<MapProps>
 
 }
 
-export default GoogleApiWrapper({ apiKey: process.env.GOOGLE_MAPS! })(CollectionMapView) as any;
+const LoadingContainer = () => {
+    return <div className={"loadingWrapper"}><img className={"loadingGif"} src={"/assets/loading.gif"} /></div>;
+};
+
+export default GoogleApiWrapper({ apiKey: process.env.GOOGLE_MAPS!, LoadingContainer })(CollectionMapView) as any;
