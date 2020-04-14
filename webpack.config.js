@@ -20,7 +20,7 @@ const dotenv = require('dotenv');
 
 function transferEnvironmentVariables() {
     const prefix = "_CLIENT_";
-    const env = dotenv.config({ debug: true }).parsed;
+    const env = dotenv.config().parsed;
     if (env) {
         plugins.push(new webpack.DefinePlugin(Object.keys(env).reduce((mapping, envKey) => {
             if (envKey.startsWith(prefix)) {
@@ -64,42 +64,42 @@ module.exports = {
     },
     module: {
         rules: [{
-            test: [/\.tsx?$/],
-            use: [{
-                loader: 'ts-loader',
-                options: {
-                    transpileOnly: true
-                }
-            }]
-        },
-        {
-            test: /\.scss|css$/,
-            use: [{
-                loader: "style-loader"
+                test: [/\.tsx?$/],
+                use: [{
+                    loader: 'ts-loader',
+                    options: {
+                        transpileOnly: true
+                    }
+                }]
             },
             {
-                loader: "css-loader"
+                test: /\.scss|css$/,
+                use: [{
+                        loader: "style-loader"
+                    },
+                    {
+                        loader: "css-loader"
+                    },
+                    {
+                        loader: "sass-loader"
+                    }
+                ]
             },
             {
-                loader: "sass-loader"
+                test: /\.(jpg|png|pdf)$/,
+                use: [{
+                    loader: 'file-loader'
+                }]
+            },
+            {
+                test: /\.(png|jpg|gif)$/i,
+                use: [{
+                    loader: 'url-loader',
+                    options: {
+                        limit: 8192
+                    }
+                }]
             }
-            ]
-        },
-        {
-            test: /\.(jpg|png|pdf)$/,
-            use: [{
-                loader: 'file-loader'
-            }]
-        },
-        {
-            test: /\.(png|jpg|gif)$/i,
-            use: [{
-                loader: 'url-loader',
-                options: {
-                    limit: 8192
-                }
-            }]
-        }
         ]
     },
     plugins,
