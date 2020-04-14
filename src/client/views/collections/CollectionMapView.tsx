@@ -4,14 +4,13 @@ import { Doc, Opt, DocListCast } from "../../../new_fields/Doc";
 import { documentSchema } from "../../../new_fields/documentSchemas";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { makeInterface } from "../../../new_fields/Schema";
-import { Cast, NumCast, ScriptCast, StrCast, BoolCast } from "../../../new_fields/Types";
-import { TraceMobx } from "../../../new_fields/util";
+import { Cast, NumCast, ScriptCast, StrCast } from "../../../new_fields/Types";
 import "./CollectionMapView.scss";
 import { CollectionSubView } from "./CollectionSubView";
 import React = require("react");
 import { DocumentManager } from "../../util/DocumentManager";
 import { UndoManager, undoBatch } from "../../util/UndoManager";
-import { IReactionDisposer, reaction, action, computed } from "mobx";
+import { IReactionDisposer, reaction, computed, runInAction } from "mobx";
 import requestPromise = require("request-promise");
 
 type MapSchema = makeInterface<[typeof documentSchema]>;
@@ -23,20 +22,30 @@ export type LocationData = google.maps.LatLngLiteral & {
     zoom?: number;
 };
 
-const base = "https://maps.googleapis.com/maps/api/geocode/json?";
+// Nowhere, Oklahoma
+const defaultLocation = { lat: 35.1592238, lng: -98.444512, zoom: 15 };
+
+const query = async (data: string | google.maps.LatLngLiteral) => {
+    const contents = typeof data === "string" ? `address=${data.replace(/\s+/g, "+")}` : `latlng=${data.lat},${data.lng}`;
+    const target = `https://maps.googleapis.com/maps/api/geocode/json?${contents}&key=${process.env.GOOGLE_MAPS_GEO}`;
+    return JSON.parse(await requestPromise.get(target));
+};
 
 @observer
 class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> & { google: any }>(MapSchema) {
-
-    // private mapRef = React.createRef<GeoMap>();
-    // private get map() {
-    //     return (this.mapRef.current as any).map;
-    // }
 
     private _cancelAddrReq = new Map<string, boolean>();
     private _cancelLocReq = new Map<string, boolean>();
     private addressUpdaters: IReactionDisposer[] = [];
     private latlngUpdaters: IReactionDisposer[] = [];
+
+    /**
+     * Note that all the uses of runInAction below are not included
+     * as a way to update observables (documents handle this already
+     * in their property setters), but rather to create a single bulk
+     * update and thus prevent uneeded invocations of the location-
+     * and address–updating reactions. 
+     */
 
     getLocation = (doc: Opt<Doc>, fieldKey: string): Opt<LocationData> => {
         if (doc) {
@@ -48,27 +57,31 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
                 return ({ lat, lng, zoom });
             } else if (address) {
                 setTimeout(() => {
-                    const target = `${base}address=${address.replace(/\s+/g, "+")}&key=${process.env.GOOGLE_MAPS_GEO!}`;
-                    requestPromise.get(target).then(action((res: any) => {
-                        const { lat, lng } = JSON.parse(res).results[0].geometry.location;
-                        if (doc[fieldKey + "-lat"] !== lat || doc[fieldKey + "-lng"] !== lng) {
-                            Doc.SetInPlace(doc, fieldKey + "-lat", lat, true);
-                            Doc.SetInPlace(doc, fieldKey + "-lng", lng, true);
+                    query(address).then(({ results }) => {
+                        if (results?.length) {
+                            const { lat, lng } = results[0].geometry.location;
+                            if (doc[fieldKey + "-lat"] !== lat || doc[fieldKey + "-lng"] !== lng) {
+                                runInAction(() => {
+                                    Doc.SetInPlace(doc, fieldKey + "-lat", lat, true);
+                                    Doc.SetInPlace(doc, fieldKey + "-lng", lng, true);
+                                });
+                            }
                         }
-                    }));
+                    });
                 });
-                return ({ lat: 35.1592238, lng: -98.444512, zoom: 15 });
+                return defaultLocation;
             }
         }
         return undefined;
     }
 
-    markerClick = action(async (layout: Doc, location: LocationData) => {
-        //this.map.panTo(location);
+    private markerClick = async (layout: Doc, { lat, lng, zoom }: LocationData) => {
         const batch = UndoManager.StartBatch("marker click");
-        this.layoutDoc[this.props.fieldKey + "-mapCenter-lat"] = location.lat;
-        this.layoutDoc[this.props.fieldKey + "-mapCenter-lng"] = location.lng;
-        location.zoom && (this.layoutDoc[this.props.fieldKey + "-mapCenter-zoom"] = location.zoom);
+        runInAction(() => {
+            this.layoutDoc[this.props.fieldKey + "-mapCenter-lat"] = lat;
+            this.layoutDoc[this.props.fieldKey + "-mapCenter-lng"] = lng;
+            zoom && (this.layoutDoc[this.props.fieldKey + "-mapCenter-zoom"] = zoom);
+        });
         if (layout.isLinkButton && DocListCast(layout.links).length) {
             await DocumentManager.Instance.FollowLink(undefined, layout, (doc: Doc, where: string, finished?: () => void) => {
                 this.props.addDocTab(doc, where);
@@ -78,7 +91,7 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
             ScriptCast(layout.onClick)?.script.run({ this: layout, self: Cast(layout.rootDocument, Doc, null) || layout });
             batch.end();
         }
-    });
+    }
 
     renderMarkerIcon(layout: Doc) {
         const iconUrl = StrCast(this.props.Document.mapIconUrl, null);
@@ -93,6 +106,7 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
             };
         }
     }
+
     renderMarker(layout: Doc) {
         const location = this.getLocation(layout, "mapLocation");
         return !location ? (null) :
@@ -116,14 +130,14 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
                 ({ lat, lng }) => {
                     if (this._cancelLocReq.get(layout[Id])) {
                         this._cancelLocReq.set(layout[Id], false);
-                    }
-                    else if (lat !== undefined && lng !== undefined) {
-                        const target = `${base}latlng=${NumCast(lat)},${NumCast(lng)}&key=${process.env.GOOGLE_MAPS_GEO!}`;
-                        requestPromise.get(target).then(res => {
-                            const formatted_address = JSON.parse(res).results[0].formatted_address || "<invalid address>";
-                            if (formatted_address !== layout["mapLocation-address"]) {
-                                this._cancelAddrReq.set(layout[Id], true);
-                                Doc.SetInPlace(layout, "mapLocation-address", formatted_address, true);
+                    } else if (lat !== undefined && lng !== undefined) {
+                        query({ lat: NumCast(lat), lng: NumCast(lng) }).then(({ results }) => {
+                            if (results?.length) {
+                                const { formatted_address } = results[0];
+                                if (formatted_address !== layout["mapLocation-address"]) {
+                                    this._cancelAddrReq.set(layout[Id], true);
+                                    Doc.SetInPlace(layout, "mapLocation-address", formatted_address, true);
+                                }
                             }
                         });
                     }
@@ -134,54 +148,58 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
                 ({ address }) => {
                     if (this._cancelAddrReq.get(layout[Id])) {
                         this._cancelAddrReq.set(layout[Id], false);
-                    }
-                    else if (address?.length) {
-                        const target = `${base}address=${address.replace(/\s+/g, "+")}&key=${process.env.GOOGLE_MAPS_GEO!}`;
-                        requestPromise.get(target).then(action((res: any) => {
-                            const { geometry, formatted_address } = JSON.parse(res).results[0];
-                            const { lat, lng } = geometry.location;
-                            if (layout["mapLocation-lat"] !== lat || layout["mapLocation-lng"] !== lng) {
-                                this._cancelLocReq.set(layout[Id], true);
-                                Doc.SetInPlace(layout, "mapLocation-lat", lat, true);
-                                Doc.SetInPlace(layout, "mapLocation-lng", lng, true);
+                    } else if (address?.length) {
+                        query(address).then(({ results }) => {
+                            if (results?.length) {
+                                const { geometry, formatted_address } = results[0];
+                                const { lat, lng } = geometry.location;
+                                runInAction(() => {
+                                    if (layout["mapLocation-lat"] !== lat || layout["mapLocation-lng"] !== lng) {
+                                        this._cancelLocReq.set(layout[Id], true);
+                                        Doc.SetInPlace(layout, "mapLocation-lat", lat, true);
+                                        Doc.SetInPlace(layout, "mapLocation-lng", lng, true);
+                                    }
+                                    if (formatted_address !== address) {
+                                        this._cancelAddrReq.set(layout[Id], true);
+                                        Doc.SetInPlace(layout, "mapLocation-address", formatted_address, true);
+                                    }
+                                });
                             }
-                            if (formatted_address !== address) {
-                                this._cancelAddrReq.set(layout[Id], true);
-                                Doc.SetInPlace(layout, "mapLocation-address", formatted_address, true);
-                            }
-                        }));
+                        });
                     }
                 }
             ));
             return this.renderMarker(layout);
         });
     }
+
     render() {
         const { childLayoutPairs } = this;
-        const { Document } = this.props;
-        let center = this.getLocation(Document, this.props.fieldKey + "-mapCenter");
+        const { Document, fieldKey, active, google } = this.props;
+        let center = this.getLocation(Document, fieldKey + "-mapCenter");
         if (center === undefined) {
             center = childLayoutPairs.map(pair => this.getLocation(pair.layout, "mapLocation")).find(layout => layout);
             if (center === undefined) {
-                center = { lat: 35.1592238, lng: -98.444512, zoom: 15 }; // nowhere, OK
+                center = defaultLocation;
             }
         }
-        TraceMobx();
         return <div className="collectionMapView" ref={this.createDashEventsTarget}>
             <div className={"collectionMapView-contents"}
-                style={{ pointerEvents: this.props.active() ? undefined : "none" }}
+                style={{ pointerEvents: active() ? undefined : "none" }}
                 onWheel={e => e.stopPropagation()}
                 onPointerDown={e => (e.button === 0 && !e.ctrlKey) && e.stopPropagation()} >
                 <GeoMap
-                    //ref={this.mapRef}
-                    google={this.props.google}
+                    google={google}
                     zoom={center.zoom || 10}
                     initialCenter={center}
                     center={center}
-                    onDragend={undoBatch(action((e: any, map: any) => {
-                        Document[this.props.fieldKey + "-mapCenter-lat"] = map.center.lat();
-                        Document[this.props.fieldKey + "-mapCenter-lng"] = map.center.lng();
-                    }))}
+                    onDragend={undoBatch((_props: MapProps, map: google.maps.Map) => {
+                        const { lat, lng } = map.getCenter();
+                        runInAction(() => {
+                            Document[fieldKey + "-mapCenter-lat"] = lat();
+                            Document[fieldKey + "-mapCenter-lng"] = lng();
+                        });
+                    })}
                 >
                     {this.contents}
                 </GeoMap>
@@ -191,5 +209,11 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
 
 }
 
-const LoadingContainer = () => <div className={"loadingWrapper"}><img className={"loadingGif"} src={"/assets/loading.gif"} /></div>;
-export default GoogleApiWrapper({ apiKey: process.env.GOOGLE_MAPS!, LoadingContainer })(CollectionMapView) as any;
+export default GoogleApiWrapper({
+    apiKey: process.env.GOOGLE_MAPS!,
+    LoadingContainer: () => (
+        <div className={"loadingWrapper"}>
+            <img className={"loadingGif"} src={"/assets/loading.gif"} />
+        </div>
+    )
+})(CollectionMapView) as any;
