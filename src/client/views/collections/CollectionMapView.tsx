@@ -11,7 +11,6 @@ import { CollectionSubView } from "./CollectionSubView";
 import React = require("react");
 import { DocumentManager } from "../../util/DocumentManager";
 import { UndoManager } from "../../util/UndoManager";
-import * as ReactDOM from 'react-dom';
 
 type MapSchema = makeInterface<[typeof documentSchema]>;
 const MapSchema = makeInterface(documentSchema);

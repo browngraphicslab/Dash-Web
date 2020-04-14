@@ -754,7 +754,7 @@ export class CollectionTreeView extends CollectionSubView(Document, undefined as
                     }));
 
                 Document.childLayout = heroView;
-                Document.childDetailed = detailView;
+                Document.childDetailView = detailView;
                 Document._viewType = CollectionViewType.Time;
                 Document._forceActive = true;
                 Document._pivotField = "company";
