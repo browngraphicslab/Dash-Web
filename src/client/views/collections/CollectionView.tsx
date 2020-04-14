@@ -389,7 +389,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
             return false;
         }), returnFalse, action(() => this._facetWidth = this.facetWidth() < 15 ? Math.min(this.props.PanelWidth() - 25, 200) : 0));
     }
-    filterBackground = () => "dimGray";
+    filterBackground = () => "rgba(105, 105, 105, 0.432)";
     get ignoreFields() { return ["_docFilters", "_docRangeFilters"]; } // this makes the tree view collection ignore these filters (otherwise, the filters would filter themselves)
     @computed get scriptField() {
         const scriptText = "setDocFilter(containingTreeView, heading, this.title, checked)";
