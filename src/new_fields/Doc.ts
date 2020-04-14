@@ -603,14 +603,6 @@ export namespace Doc {
         return undefined;
     }
     export function ApplyTemplateTo(templateDoc: Doc, target: Doc, targetKey: string, titleTarget: string | undefined) {
-        if (!templateDoc) {
-            target.layout = undefined;
-            target._nativeWidth = undefined;
-            target._nativeHeight = undefined;
-            target.type = undefined;
-            return;
-        }
-
         if (!Doc.AreProtosEqual(target[targetKey] as Doc, templateDoc)) {
             if (target.resolvedDataDoc) {
                 target[targetKey] = new PrefetchProxy(templateDoc);
@@ -645,11 +637,12 @@ export namespace Doc {
             Cast(templateFieldValue, listSpec(Doc), [])?.map(d => d instanceof Doc && MakeMetadataFieldTemplate(d, templateDoc));
             (Doc.GetProto(templateField)[metadataFieldKey] = ObjectField.MakeCopy(templateFieldValue));
         }
-        if (templateCaptionValue instanceof RichTextField && (templateCaptionValue.Text || templateCaptionValue.Data.toString().includes("dashField"))) {
-            templateField["caption-textTemplate"] = ComputedField.MakeFunction(`copyField(this.caption)`, { this: Doc.name });
+        // copy the textTemplates from 'this' (not 'self') because the layout contains the template info, not the original doc
+        if (templateCaptionValue instanceof RichTextField && !templateCaptionValue.Empty()) {
+            templateField["caption-textTemplate"] = ComputedField.MakeFunction(`copyField(this.caption)`);
         }
-        if (templateFieldValue instanceof RichTextField && (templateFieldValue.Text || templateFieldValue.Data.toString().includes("dashField"))) {
-            templateField[metadataFieldKey + "-textTemplate"] = ComputedField.MakeFunction(`copyField(this.${metadataFieldKey})`, { this: Doc.name });
+        if (templateFieldValue instanceof RichTextField && !templateFieldValue.Empty()) {
+            templateField[metadataFieldKey + "-textTemplate"] = ComputedField.MakeFunction(`copyField(this.${metadataFieldKey})`);
         }
 
         // get the layout string that the template uses to specify its layout
@@ -905,6 +898,7 @@ Scripting.addGlobal(function getCopy(doc: any, copyProto: any) { return doc.isTe
 Scripting.addGlobal(function copyField(field: any) { return ObjectField.MakeCopy(field); });
 Scripting.addGlobal(function aliasDocs(field: any) { return Doc.aliasDocs(field); });
 Scripting.addGlobal(function docList(field: any) { return DocListCast(field); });
+Scripting.addGlobal(function setInPlace(doc: any, field: any, value: any) { return Doc.SetInPlace(doc, field, value, false); });
 Scripting.addGlobal(function sameDocs(doc1: any, doc2: any) { return Doc.AreProtosEqual(doc1, doc2); });
 Scripting.addGlobal(function deiconifyView(doc: any) { Doc.deiconifyView(doc); });
 Scripting.addGlobal(function undo() { return UndoManager.Undo(); });

@@ -156,14 +156,14 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
     @action
     processVideoDetails = (videoDetails: any[]) => {
         this.videoDetails = videoDetails;
-        this.props.Document.cachedDetails = Docs.Get.DocumentHierarchyFromJson(videoDetails, "detailBackUp");
+        this.props.Document.cachedDetails = Docs.Get.FromJson({ data: videoDetails, title: "detailBackUp" });
     }
 
     /**
      * The function that stores the search results in the props document.
      */
     backUpSearchResults = (videos: any[]) => {
-        this.props.Document.cachedSearchResults = Docs.Get.DocumentHierarchyFromJson(videos, "videosBackUp");
+        this.props.Document.cachedSearchResults = Docs.Get.FromJson({ data: videos, title: "videosBackUp" });
     }
 
     /**

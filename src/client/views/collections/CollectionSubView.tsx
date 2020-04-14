@@ -100,7 +100,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
         }
 
         rootSelected = (outsideReaction?: boolean) => {
-            return this.props.isSelected(outsideReaction) || (this.props.Document.rootDocument || this.props.Document.forceActive ? this.props.rootSelected(outsideReaction) : false);
+            return this.props.isSelected(outsideReaction) || (this.rootDoc && this.props.rootSelected(outsideReaction));
         }
 
         // The data field for rendering this collection will be on the this.props.Document unless we're rendering a template in which case we try to use props.DataDoc.
@@ -120,8 +120,8 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             return Cast(this.dataField, listSpec(Doc));
         }
         @computed get childDocs() {
-            const docFilters = Cast(this.props.Document._docFilters, listSpec("string"), []);
-            const docRangeFilters = Cast(this.props.Document._docRangeFilters, listSpec("string"), []);
+            const docFilters = this.props.ignoreFields?.includes("_docFilters") ? [] : Cast(this.props.Document._docFilters, listSpec("string"), []);
+            const docRangeFilters = this.props.ignoreFields?.includes("_docRangeFilters") ? [] : Cast(this.props.Document._docRangeFilters, listSpec("string"), []);
             const filterFacets: { [key: string]: { [value: string]: string } } = {};  // maps each filter key to an object with value=>modifier fields
             for (let i = 0; i < docFilters.length; i += 3) {
                 const [key, value, modifiers] = docFilters.slice(i, i + 3);
@@ -381,7 +381,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                     alert(`Upload failed: ${result.message}`);
                     return;
                 }
-                const full = { ...options, _width: 300, title: name };
+                const full = { ...options, _width: 400, title: name };
                 const pathname = Utils.prepend(result.accessPaths.agnostic.client);
                 const doc = await Docs.Get.DocumentFromType(type, pathname, full);
                 if (!doc) {

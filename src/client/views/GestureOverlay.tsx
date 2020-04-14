@@ -82,6 +82,9 @@ export default class GestureOverlay extends Touchable {
         this._inkToTextDoc = FieldValue(Cast(this._thumbDoc?.inkToTextDoc, Doc));
     }
 
+    /**
+     * Ignores all touch events that belong to a hand being held down.
+     */
     getNewTouches(e: React.TouchEvent | TouchEvent) {
         const ntt: (React.Touch | Touch)[] = Array.from(e.targetTouches);
         const nct: (React.Touch | Touch)[] = Array.from(e.changedTouches);
@@ -121,6 +124,8 @@ export default class GestureOverlay extends Touchable {
             return;
         }
 
+        // this chunk adds new touch targets to a map of pointer events; this helps us keep track of individual fingers
+        // so that we can know, for example, if two fingers are pinching out or in.
         const actualPts: React.Touch[] = [];
         for (let i = 0; i < te.touches.length; i++) {
             const pt: any = te.touches.item(i);
@@ -128,9 +133,6 @@ export default class GestureOverlay extends Touchable {
             // pen is also a touch, but with a radius of 0.5 (at least with the surface pens)
             // and this seems to be the only way of differentiating pen and touch on touch events
             if (pt.radiusX > 1 && pt.radiusY > 1) {
-                // if (typeof pt.identifier !== "string") {
-                //     pt.identifier = Utils.GenerateGuid();
-                // }
                 this.prevPoints.set(pt.identifier, pt);
             }
         }
@@ -144,6 +146,7 @@ export default class GestureOverlay extends Touchable {
 
         ptsToDelete.forEach(pt => this.prevPoints.delete(pt));
         const nts = this.getNewTouches(te);
+        // if there are fewer than five touch events, handle as a touch event
         if (nts.nt.length < 5) {
             const target = document.elementFromPoint(te.changedTouches.item(0).clientX, te.changedTouches.item(0).clientY);
             target?.dispatchEvent(
@@ -161,7 +164,7 @@ export default class GestureOverlay extends Touchable {
                 )
             );
             if (nts.nt.length === 1) {
-                console.log("started");
+                // -- radial menu code --
                 this._holdTimer = setTimeout(() => {
                     console.log("hold");
                     const target = document.elementFromPoint(te.changedTouches.item(0).clientX, te.changedTouches.item(0).clientY);
@@ -200,73 +203,13 @@ export default class GestureOverlay extends Touchable {
             document.addEventListener("touchmove", this.onReactTouchMove);
             document.addEventListener("touchend", this.onReactTouchEnd);
         }
+        // otherwise, handle as a hand event
         else {
             this.handleHandDown(te);
             document.removeEventListener("touchmove", this.onReactTouchMove);
             document.removeEventListener("touchend", this.onReactTouchEnd);
         }
     }
-
-    onReactHoldTouchMove = (e: TouchEvent) => {
-        document.removeEventListener("touchmove", this.onReactTouchMove);
-        document.removeEventListener("touchend", this.onReactTouchEnd);
-        document.removeEventListener("touchmove", this.onReactHoldTouchMove);
-        document.removeEventListener("touchend", this.onReactHoldTouchEnd);
-        document.addEventListener("touchmove", this.onReactHoldTouchMove);
-        document.addEventListener("touchend", this.onReactHoldTouchEnd);
-        const nts: any = this.getNewTouches(e);
-        if (this.prevPoints.size === 1 && this._holdTimer) {
-            clearTimeout(this._holdTimer);
-        }
-        document.dispatchEvent(
-            new CustomEvent<InteractionUtils.MultiTouchEvent<TouchEvent>>("dashOnTouchHoldMove",
-                {
-                    bubbles: true,
-                    detail: {
-                        fingers: this.prevPoints.size,
-                        targetTouches: nts.ntt,
-                        touches: nts.nt,
-                        changedTouches: nts.nct,
-                        touchEvent: e
-                    }
-                })
-        );
-    }
-
-    onReactHoldTouchEnd = (e: TouchEvent) => {
-        const nts: any = this.getNewTouches(e);
-        if (this.prevPoints.size === 1 && this._holdTimer) {
-            clearTimeout(this._holdTimer);
-            this._holdTimer = undefined;
-        }
-        document.dispatchEvent(
-            new CustomEvent<InteractionUtils.MultiTouchEvent<TouchEvent>>("dashOnTouchHoldEnd",
-                {
-                    bubbles: true,
-                    detail: {
-                        fingers: this.prevPoints.size,
-                        targetTouches: nts.ntt,
-                        touches: nts.nt,
-                        changedTouches: nts.nct,
-                        touchEvent: e
-                    }
-                })
-        );
-        for (let i = 0; i < e.changedTouches.length; i++) {
-            const pt = e.changedTouches.item(i);
-            if (pt) {
-                if (this.prevPoints.has(pt.identifier)) {
-                    this.prevPoints.delete(pt.identifier);
-                }
-            }
-        }
-
-        document.removeEventListener("touchmove", this.onReactHoldTouchMove);
-        document.removeEventListener("touchend", this.onReactHoldTouchEnd);
-
-        e.stopPropagation();
-    }
-
 
     onReactTouchMove = (e: TouchEvent) => {
         const nts: any = this.getNewTouches(e);
@@ -306,6 +249,8 @@ export default class GestureOverlay extends Touchable {
                     }
                 })
         );
+
+        // cleanup any lingering pointers
         for (let i = 0; i < e.changedTouches.length; i++) {
             const pt = e.changedTouches.item(i);
             if (pt) {
@@ -324,6 +269,10 @@ export default class GestureOverlay extends Touchable {
 
     handleHandDown = async (e: React.TouchEvent) => {
         this._holdTimer && clearTimeout(this._holdTimer);
+
+        // this chunk of code helps us keep track of which touch events are associated with a hand event
+        // so that if a hand is held down, but a second hand is interacting with dash, the second hand's events
+        // won't interfere with the first hand's events.
         const fingers = new Array<React.Touch>();
         for (let i = 0; i < e.touches.length; i++) {
             const pt: any = e.touches.item(i);
@@ -338,6 +287,8 @@ export default class GestureOverlay extends Touchable {
                 }
             }
         }
+
+        // this chunk of code determines whether this is a left hand or a right hand, as well as which pointer is the thumb and pointer
         const thumb = fingers.reduce((a, v) => a.clientY > v.clientY ? a : v, fingers[0]);
         const rightMost = Math.max(...fingers.map(f => f.clientX));
         const leftMost = Math.min(...fingers.map(f => f.clientX));
@@ -354,6 +305,7 @@ export default class GestureOverlay extends Touchable {
             console.log("not hand");
         }
         this.pointerIdentifier = pointer?.identifier;
+
         runInAction(() => {
             this._pointerY = pointer?.clientY;
             if (thumb.identifier === this.thumbIdentifier) {
@@ -370,6 +322,7 @@ export default class GestureOverlay extends Touchable {
         const minX = Math.min(...others.map(f => f.clientX));
         const minY = Math.min(...others.map(f => f.clientY));
 
+        // load up the palette collection around the thumb
         const thumbDoc = await Cast(CurrentUserUtils.setupThumbDoc(CurrentUserUtils.UserDocument), Doc);
         if (thumbDoc) {
             runInAction(() => {
@@ -393,6 +346,7 @@ export default class GestureOverlay extends Touchable {
 
     @action
     handleHandMove = (e: TouchEvent) => {
+        // update pointer trackers
         const fingers = new Array<React.Touch>();
         for (let i = 0; i < e.touches.length; i++) {
             const pt: any = e.touches.item(i);
@@ -411,15 +365,19 @@ export default class GestureOverlay extends Touchable {
                 }
             }
         }
+        // update hand trackers
         const thumb = fingers.reduce((a, v) => a.clientY > v.clientY ? a : v, fingers[0]);
         if (thumb?.identifier && thumb?.identifier === this.thumbIdentifier) {
             this._hands.set(thumb.identifier, fingers);
         }
 
+        // loop through every changed pointer
         for (let i = 0; i < e.changedTouches.length; i++) {
             const pt = e.changedTouches.item(i);
+            // if the thumb was moved
             if (pt && pt.identifier === this.thumbIdentifier && this._thumbY) {
                 if (this._thumbX && this._thumbY) {
+                    // moving a thumb horiz. changes the palette collection selection, moving vert. changes the selection of any menus on the current palette item
                     const yOverX = Math.abs(pt.clientX - this._thumbX) < Math.abs(pt.clientY - this._thumbY);
                     if ((yOverX && this._inkToTextDoc) || this._selectedIndex > -1) {
                         if (Math.abs(pt.clientY - this._thumbY) > (10 * window.devicePixelRatio)) {
@@ -433,19 +391,8 @@ export default class GestureOverlay extends Touchable {
                         }
                     }
                 }
-
-                // if (this._thumbX && this._thumbDoc) {
-                //     if (Math.abs(pt.clientX - this._thumbX) > 30) {
-                //         this._thumbDoc.selectedIndex = Math.max(0, NumCast(this._thumbDoc.selectedIndex) - Math.sign(pt.clientX - this._thumbX));
-                //         this._thumbX = pt.clientX;
-                //     }
-                // }
-                // if (this._thumbY && this._inkToTextDoc) {
-                //     if (Math.abs(pt.clientY - this._thumbY) > 20) {
-                //         this._selectedIndex = Math.min(Math.max(0, -Math.ceil((pt.clientY - this._thumbY) / 20)), this._possibilities.length - 1);
-                //     }
-                // }
             }
+            // if the pointer finger was moved
             if (pt && pt.identifier === this.pointerIdentifier) {
                 this._pointerY = pt.clientY;
             }
@@ -454,32 +401,102 @@ export default class GestureOverlay extends Touchable {
 
     @action
     handleHandUp = (e: TouchEvent) => {
+        // sometimes, users may lift up their thumb or index finger if they can't stretch far enough to scroll an entire menu,
+        // so we don't want to just remove the palette when that happens
         if (e.touches.length < 3) {
-            // this.onTouchEnd(e);
             if (this.thumbIdentifier) this._hands.delete(this.thumbIdentifier);
             this._palette = undefined;
             this.thumbIdentifier = undefined;
             this._thumbDoc = undefined;
 
+            // this chunk of code is for handling the ink to text toolglass
             let scriptWorked = false;
             if (NumCast(this._inkToTextDoc?.selectedIndex) > -1) {
+                // if there is a text option selected, activate it
                 const selectedButton = this._possibilities[this._selectedIndex];
                 if (selectedButton) {
                     selectedButton.props.onClick();
                     scriptWorked = true;
                 }
             }
-
+            // if there isn't a text option selected, dry the ink strokes into ink documents
             if (!scriptWorked) {
                 this._strokes.forEach(s => {
                     this.dispatchGesture(GestureUtils.Gestures.Stroke, s);
                 });
             }
+
             this._strokes = [];
             this._points = [];
             this._possibilities = [];
             document.removeEventListener("touchend", this.handleHandUp);
         }
+    }
+
+    /**
+     * Code for radial menu
+     */
+    onReactHoldTouchMove = (e: TouchEvent) => {
+        document.removeEventListener("touchmove", this.onReactTouchMove);
+        document.removeEventListener("touchend", this.onReactTouchEnd);
+        document.removeEventListener("touchmove", this.onReactHoldTouchMove);
+        document.removeEventListener("touchend", this.onReactHoldTouchEnd);
+        document.addEventListener("touchmove", this.onReactHoldTouchMove);
+        document.addEventListener("touchend", this.onReactHoldTouchEnd);
+        const nts: any = this.getNewTouches(e);
+        if (this.prevPoints.size === 1 && this._holdTimer) {
+            clearTimeout(this._holdTimer);
+        }
+        document.dispatchEvent(
+            new CustomEvent<InteractionUtils.MultiTouchEvent<TouchEvent>>("dashOnTouchHoldMove",
+                {
+                    bubbles: true,
+                    detail: {
+                        fingers: this.prevPoints.size,
+                        targetTouches: nts.ntt,
+                        touches: nts.nt,
+                        changedTouches: nts.nct,
+                        touchEvent: e
+                    }
+                })
+        );
+    }
+
+    /**
+     * Code for radial menu
+     */
+    onReactHoldTouchEnd = (e: TouchEvent) => {
+        const nts: any = this.getNewTouches(e);
+        if (this.prevPoints.size === 1 && this._holdTimer) {
+            clearTimeout(this._holdTimer);
+            this._holdTimer = undefined;
+        }
+        document.dispatchEvent(
+            new CustomEvent<InteractionUtils.MultiTouchEvent<TouchEvent>>("dashOnTouchHoldEnd",
+                {
+                    bubbles: true,
+                    detail: {
+                        fingers: this.prevPoints.size,
+                        targetTouches: nts.ntt,
+                        touches: nts.nt,
+                        changedTouches: nts.nct,
+                        touchEvent: e
+                    }
+                })
+        );
+        for (let i = 0; i < e.changedTouches.length; i++) {
+            const pt = e.changedTouches.item(i);
+            if (pt) {
+                if (this.prevPoints.has(pt.identifier)) {
+                    this.prevPoints.delete(pt.identifier);
+                }
+            }
+        }
+
+        document.removeEventListener("touchmove", this.onReactHoldTouchMove);
+        document.removeEventListener("touchend", this.onReactHoldTouchEnd);
+
+        e.stopPropagation();
     }
 
     @action
@@ -524,22 +541,28 @@ export default class GestureOverlay extends Touchable {
     handleLineGesture = (): boolean => {
         let actionPerformed = false;
         const B = this.svgBounds;
+
+        // get the two targets at the ends of the line
         const ep1 = this._points[0];
         const ep2 = this._points[this._points.length - 1];
-
         const target1 = document.elementFromPoint(ep1.X, ep1.Y);
         const target2 = document.elementFromPoint(ep2.X, ep2.Y);
+
+        // callback function to be called by each target
         const callback = (doc: Doc) => {
             if (!this._d1) {
                 this._d1 = doc;
             }
+            // we don't want to create a link of both endpoints are the same document (doing so makes drawing an l very hard)
             else if (this._d1 !== doc && !LinkManager.Instance.doesLinkExist(this._d1, doc)) {
+                // we don't want to create a link between ink strokes (doing so makes drawing a t very hard)
                 if (this._d1.type !== "ink" && doc.type !== "ink") {
                     DocUtils.MakeLink({ doc: this._d1 }, { doc: doc }, "gestural link");
                     actionPerformed = true;
                 }
             }
         };
+
         const ge = new CustomEvent<GestureUtils.GestureEvent>("dashOnGesture",
             {
                 bubbles: true,
@@ -575,6 +598,7 @@ export default class GestureOverlay extends Touchable {
             const xInGlass = initialPoint.X > (this._thumbX ?? Number.MAX_SAFE_INTEGER) && initialPoint.X < (this._thumbX ?? Number.MAX_SAFE_INTEGER) + (this.height);
             const yInGlass = initialPoint.Y > (this._thumbY ?? Number.MAX_SAFE_INTEGER) - (this.height) && initialPoint.Y < (this._thumbY ?? Number.MAX_SAFE_INTEGER);
 
+            // if a toolglass is selected and the stroke starts within the toolglass boundaries
             if (this.Tool !== ToolglassTools.None && xInGlass && yInGlass) {
                 switch (this.Tool) {
                     case ToolglassTools.InkToText:
@@ -583,20 +607,19 @@ export default class GestureOverlay extends Touchable {
                         this._strokes.push(new Array(...this._points));
                         this._points = [];
                         CognitiveServices.Inking.Appliers.InterpretStrokes(this._strokes).then((results) => {
-                            console.log(results);
                             const wordResults = results.filter((r: any) => r.category === "line");
                             const possibilities: string[] = [];
                             for (const wR of wordResults) {
-                                console.log(wR);
                                 if (wR?.recognizedText) {
                                     possibilities.push(wR?.recognizedText);
                                 }
                                 possibilities.push(...wR?.alternates?.map((a: any) => a.recognizedString));
                             }
-                            console.log(possibilities);
                             const r = Math.max(this.svgBounds.right, ...this._strokes.map(s => this.getBounds(s).right));
                             const l = Math.min(this.svgBounds.left, ...this._strokes.map(s => this.getBounds(s).left));
                             const t = Math.min(this.svgBounds.top, ...this._strokes.map(s => this.getBounds(s).top));
+
+                            // if we receive any word results from cognitive services, display them
                             runInAction(() => {
                                 this._possibilities = possibilities.map(p =>
                                     <TouchScrollableMenuItem text={p} onClick={() => GestureOverlay.Instance.dispatchGesture(GestureUtils.Gestures.Text, [{ X: l, Y: t }], p)} />);
@@ -609,6 +632,7 @@ export default class GestureOverlay extends Touchable {
                         break;
                 }
             }
+            // if we're not drawing in a toolglass try to recognize as gesture
             else {
                 const result = GestureUtils.GestureRecognizer.Recognize(new Array(points));
                 let actionPerformed = false;
@@ -638,6 +662,7 @@ export default class GestureOverlay extends Touchable {
                     }
                 }
 
+                // if no gesture (or if the gesture was unsuccessful), "dry" the stroke into an ink document
                 if (!actionPerformed) {
                     this.dispatchGesture(GestureUtils.Gestures.Stroke);
                     this._points = [];
@@ -762,9 +787,6 @@ export default class GestureOverlay extends Touchable {
                 }}>
                 </div>
                 <TouchScrollableMenu options={this._possibilities} bounds={this.svgBounds} selectedIndex={this._selectedIndex} x={this._menuX} y={this._menuY} />
-                {/* <div className="pointerBubbles">
-                {this._pointers.map(p => <div className="bubble" style={{ translate: `transform(${p.clientX}px, ${p.clientY}px)` }}></div>)}
-                </div> */}
             </div>);
     }
 }

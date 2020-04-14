@@ -9,7 +9,7 @@ import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { emptyPath } from "../../../Utils";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
-import { DocAnnotatableComponent } from "../DocComponent";
+import { ViewBoxAnnotatableComponent } from "../DocComponent";
 import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
 import "./DocumentBox.scss";
 import { FieldView, FieldViewProps } from "./FieldView";
@@ -22,7 +22,7 @@ type DocHolderBoxSchema = makeInterface<[typeof documentSchema]>;
 const DocHolderBoxDocument = makeInterface(documentSchema);
 
 @observer
-export class DocHolderBox extends DocAnnotatableComponent<FieldViewProps, DocHolderBoxSchema>(DocHolderBoxDocument) {
+export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, DocHolderBoxSchema>(DocHolderBoxDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(DocHolderBox, fieldKey); }
     _prevSelectionDisposer: IReactionDisposer | undefined;
     _selections: Doc[] = [];
@@ -54,7 +54,7 @@ export class DocHolderBox extends DocAnnotatableComponent<FieldViewProps, DocHol
         this.contentDoc[this.props.fieldKey] = this.props.Document[this.props.fieldKey];
     }
     showSelection = () => {
-        this.contentDoc[this.props.fieldKey] = ComputedField.MakeFunction(`selectedDocs(this,this.excludeCollections,[_last_])?.[0]`);
+        this.contentDoc[this.props.fieldKey] = ComputedField.MakeFunction(`selectedDocs(self,this.excludeCollections,[_last_])?.[0]`);
     }
     isSelectionLocked = () => {
         const kvpstring = Field.toKeyValueString(this.contentDoc, this.props.fieldKey);

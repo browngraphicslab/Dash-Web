@@ -48,8 +48,8 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
     };
     _narrativeCommand = {
         params: ["target", "source"], title: "=> click item view",
-        script: "this.target.childDetailed = getDocTemplate(this.source?.[0])",
-        immediate: (source: Doc[]) => this.target.childDetailed = Doc.getDocTemplate(source?.[0]),
+        script: "this.target.childDetailView = getDocTemplate(this.source?.[0])",
+        immediate: (source: Doc[]) => this.target.childDetailView = Doc.getDocTemplate(source?.[0]),
         initialize: emptyFunction,
     };
     _contentCommand = {
@@ -361,28 +361,13 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
         }, emptyFunction, emptyFunction);
     }
     dragCommandDown = (e: React.PointerEvent) => {
-        this._startDragPosition = { x: e.clientX, y: e.clientY };
-        document.addEventListener("pointermove", this.dragPointerMove);
-        document.addEventListener("pointerup", this.dragPointerUp);
-        e.stopPropagation();
-        e.preventDefault();
-    }
-
-    dragPointerMove = (e: PointerEvent) => {
-        e.stopPropagation();
-        e.preventDefault();
-        const [dx, dy] = [e.clientX - this._startDragPosition.x, e.clientY - this._startDragPosition.y];
-        if (Math.abs(dx) + Math.abs(dy) > this._sensitivity) {
+        setupMoveUpEvents(this, e, (e, down, delta) => {
             this._buttonizableCommands.filter(c => c.title === this._currentKey).map(c =>
                 DragManager.StartButtonDrag([this._commandRef.current!], c.script, c.title,
                     { target: this.props.CollectionView.props.Document }, c.params, c.initialize, e.clientX, e.clientY));
-            document.removeEventListener("pointermove", this.dragPointerMove);
-            document.removeEventListener("pointerup", this.dragPointerUp);
-        }
-    }
-    dragPointerUp = (e: PointerEvent) => {
-        document.removeEventListener("pointermove", this.dragPointerMove);
-        document.removeEventListener("pointerup", this.dragPointerUp);
+            return true;
+        }, emptyFunction, emptyFunction);
+        this._startDragPosition = { x: e.clientX, y: e.clientY };
     }
 
     render() {
@@ -417,15 +402,15 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                                     onPointerDown={stopPropagation}
                                     onChange={this.viewChanged}
                                     value={StrCast(this.props.CollectionView.props.Document._viewType)}>
-                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="freeform">Freeform</option>
-                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="schema">Schema</option>
-                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="tree">Tree</option>
-                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="stacking">Stacking</option>
-                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="masonry">Masonry</option>
-                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="multicolumn">MultiCol</option>
-                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="multirow">MultiRow</option>
-                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="time">Pivot/Time</option>
-                                    <option className="collectionViewBaseChrome-viewOption" onPointerDown={stopPropagation} value="carousel">Carousel</option>
+                                    {Object.values(CollectionViewType).map(type => ["invalid", "docking"].includes(type) ? (null) : (
+                                        <option
+                                            key={Utils.GenerateGuid()}
+                                            className="collectionViewBaseChrome-viewOption"
+                                            onPointerDown={stopPropagation}
+                                            value={type}>
+                                            {type[0].toUpperCase() + type.substring(1)}
+                                        </option>
+                                    ))}
                                 </select>
                             </div>
                         </div>

@@ -1,45 +1,33 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faEdit } from '@fortawesome/free-regular-svg-icons';
-import { action, computed } from 'mobx';
+import { action } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
 import { Doc, DocListCast } from '../../../new_fields/Doc';
+import { documentSchema } from '../../../new_fields/documentSchemas';
 import { List } from '../../../new_fields/List';
-import { createSchema, makeInterface, listSpec } from '../../../new_fields/Schema';
-import { ScriptField } from '../../../new_fields/ScriptField';
-import { BoolCast, StrCast, Cast, FieldValue } from '../../../new_fields/Types';
+import { createSchema, listSpec, makeInterface } from '../../../new_fields/Schema';
+import { Cast, NumCast, StrCast } from '../../../new_fields/Types';
 import { DragManager } from '../../util/DragManager';
 import { undoBatch } from '../../util/UndoManager';
-import { DocComponent } from '../DocComponent';
-import './LabelBox.scss';
-import { FieldView, FieldViewProps } from './FieldView';
-import { ContextMenuProps } from '../ContextMenuItem';
 import { ContextMenu } from '../ContextMenu';
-import { documentSchema } from '../../../new_fields/documentSchemas';
+import { ContextMenuProps } from '../ContextMenuItem';
+import { ViewBoxBaseComponent } from '../DocComponent';
+import { FieldView, FieldViewProps } from './FieldView';
+import './LabelBox.scss';
 
 
 library.add(faEdit as any);
 
-const LabelSchema = createSchema({
-    onClick: ScriptField,
-    buttonParams: listSpec("string"),
-    text: "string"
-});
+const LabelSchema = createSchema({});
 
 type LabelDocument = makeInterface<[typeof LabelSchema, typeof documentSchema]>;
 const LabelDocument = makeInterface(LabelSchema, documentSchema);
 
 @observer
-export class LabelBox extends DocComponent<FieldViewProps, LabelDocument>(LabelDocument) {
+export class LabelBox extends ViewBoxBaseComponent<FieldViewProps, LabelDocument>(LabelDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(LabelBox, fieldKey); }
     private dropDisposer?: DragManager.DragDropDisposer;
-
-    @computed get dataDoc() {
-        return this.props.DataDoc &&
-            (this.Document.isTemplateForField || BoolCast(this.props.DataDoc.isTemplateForField) ||
-                this.props.DataDoc.layout === this.props.Document) ? this.props.DataDoc : Doc.GetProto(this.props.Document);
-    }
-
 
     protected createDropTarget = (ele: HTMLDivElement) => {
         this.dropDisposer?.();
@@ -48,12 +36,13 @@ export class LabelBox extends DocComponent<FieldViewProps, LabelDocument>(LabelD
         }
     }
 
+    get paramsDoc() { return Doc.AreProtosEqual(this.layoutDoc, this.dataDoc) ? this.dataDoc : this.layoutDoc; }
     specificContextMenu = (e: React.MouseEvent): void => {
         const funcs: ContextMenuProps[] = [];
         funcs.push({
             description: "Clear Script Params", event: () => {
-                const params = FieldValue(this.Document.buttonParams);
-                params?.map(p => this.props.Document[p] = undefined);
+                const params = Cast(this.paramsDoc["onClick-paramFieldKeys"], listSpec("string"), []);
+                params?.map(p => this.paramsDoc[p] = undefined);
             }, icon: "trash"
         });
 
@@ -64,32 +53,35 @@ export class LabelBox extends DocComponent<FieldViewProps, LabelDocument>(LabelD
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
         const docDragData = de.complete.docDragData;
-        const params = this.Document.buttonParams;
-        const missingParams = params?.filter(p => this.props.Document[p] === undefined);
+        const params = Cast(this.paramsDoc["onClick-paramFieldKeys"], listSpec("string"), []);
+        const missingParams = params?.filter(p => !this.paramsDoc[p]);
         if (docDragData && missingParams?.includes((e.target as any).textContent)) {
-            this.props.Document[(e.target as any).textContent] = new List<Doc>(docDragData.droppedDocuments.map((d, i) =>
+            this.paramsDoc[(e.target as any).textContent] = new List<Doc>(docDragData.droppedDocuments.map((d, i) =>
                 d.onDragStart ? docDragData.draggedDocuments[i] : d));
             e.stopPropagation();
         }
     }
     // (!missingParams || !missingParams.length ? "" : "(" + missingParams.map(m => m + ":").join(" ") + ")")
     render() {
-        const params = this.Document.buttonParams;
-        const missingParams = params?.filter(p => this.props.Document[p] === undefined);
-        params?.map(p => DocListCast(this.props.Document[p])); // bcz: really hacky form of prefetching ... 
+        const params = Cast(this.paramsDoc["onClick-paramFieldKeys"], listSpec("string"), []);
+        const missingParams = params?.filter(p => !this.paramsDoc[p]);
+        params?.map(p => DocListCast(this.paramsDoc[p])); // bcz: really hacky form of prefetching ... 
         return (
             <div className="labelBox-outerDiv" ref={this.createDropTarget} onContextMenu={this.specificContextMenu}
-                style={{ boxShadow: this.Document.opacity === 0 ? undefined : StrCast(this.Document.boxShadow, "") }}>
+                style={{ boxShadow: this.layoutDoc.opacity ? StrCast(this.layoutDoc.boxShadow) : "" }}>
                 <div className="labelBox-mainButton" style={{
-                    background: this.Document.backgroundColor, color: this.Document.color || "inherit",
-                    fontSize: this.Document.fontSize, letterSpacing: this.Document.letterSpacing || "", textTransform: (this.Document.textTransform as any) || ""
+                    background: StrCast(this.layoutDoc.backgroundColor),
+                    color: StrCast(this.layoutDoc.color, "inherit"),
+                    fontSize: NumCast(this.layoutDoc.fontSize) || "inherit",
+                    letterSpacing: StrCast(this.layoutDoc.letterSpacing),
+                    textTransform: StrCast(this.layoutDoc.textTransform) as any
                 }} >
                     <div className="labelBox-mainButtonCenter">
-                        {(this.Document.text || this.Document.title)}
+                        {StrCast(this.layoutDoc.text, StrCast(this.layoutDoc.title))}
                     </div>
                 </div>
-                <div className="labelBox-params" >
-                    {!missingParams || !missingParams.length ? (null) : missingParams.map(m => <div key={m} className="labelBox-missingParam">{m}</div>)}
+                <div className="labelBox-fieldKeyParams" >
+                    {!missingParams?.length ? (null) : missingParams.map(m => <div key={m} className="labelBox-missingParam">{m}</div>)}
                 </div>
             </div>
         );

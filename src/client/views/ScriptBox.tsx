@@ -12,6 +12,7 @@ import { CompileScript } from "../util/Scripting";
 import { ScriptField } from "../../new_fields/ScriptField";
 import { DragManager } from "../util/DragManager";
 import { EditableView } from "./EditableView";
+import { getEffectiveTypeRoots } from "typescript";
 
 export interface ScriptBoxProps {
     onSave: (text: string, onError: (error: string) => void) => void;
@@ -92,7 +93,7 @@ export class ScriptBox extends React.Component<ScriptBoxProps> {
         const setParams = (p: string[]) => params.splice(0, params.length, ...p);
         const scriptingBox = <ScriptBox initialText={originalText} setParams={setParams} onCancel={overlayDisposer} onSave={(text, onError) => {
             if (!text) {
-                doc[fieldKey] = undefined;
+                Doc.GetProto(doc)[fieldKey] = undefined;
             } else {
                 const script = CompileScript(text, {
                     params: { this: Doc.name, ...contextParams },
@@ -115,7 +116,7 @@ export class ScriptBox extends React.Component<ScriptBoxProps> {
                 div.innerHTML = "button";
                 params.length && DragManager.StartButtonDrag([div], text, doc.title + "-instance", {}, params, (button: Doc) => { }, clientX, clientY);
 
-                doc[fieldKey] = new ScriptField(script);
+                Doc.GetProto(doc)[fieldKey] = new ScriptField(script);
                 overlayDisposer();
             }
         }} showDocumentIcons />;

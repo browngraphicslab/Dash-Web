@@ -318,6 +318,7 @@ export class SearchBox extends React.Component<SearchProps> {
         const types = this.filterTypes;
         const includeDeleted = this.getDataStatus() ? "" : " AND NOT deleted_b:true";
         const includeIcons = this.getDataStatus() ? "" : " AND NOT type_t:fonticonbox";
+        // fq: type_t:collection OR {!join from=id to=proto_i}type_t:collection   q:text_t:hello
         return "NOT baseProto_b:true" + includeDeleted + includeIcons + (types ? ` AND (${types.map(type => `({!join from=id to=proto_i}type_t:"${type}" AND NOT type_t:*) OR type_t:"${type}"`).join(" ")})` : "");
     }
 
@@ -652,7 +653,7 @@ export class SearchBox extends React.Component<SearchProps> {
                         <button className="filter-item" style={this._nodeStatus ? { background: "#aaaaa3" } : {}} onClick={this.handleNodeChange}>Nodes</button>
                     </div>
                     <div id={`node${this.props.id}`} className="filter-body" style={this._nodeStatus ? { borderTop: "grey 1px solid" } : { borderTop: "0px" }}>
-                        <IconBar />
+                        <IconBar setIcons={(icons: string[]) => this._icons = icons} />
                     </div>
                     <div className="filter-key" id={`key${this.props.id}`} style={this._keyStatus ? { borderTop: "grey 1px solid" } : { borderTop: "0px" }}>
                         <div className="filter-keybar">

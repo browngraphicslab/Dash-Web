@@ -57,9 +57,9 @@ export class CurrentUserUtils {
         doc.iconView = new PrefetchProxy(Docs.Create.TextDocument("", { title: "icon", _width: 150, _height: 30, isTemplateDoc: true, onClick: ScriptField.MakeScript("deiconifyView(this)") }));
         Doc.GetProto(doc.iconView as any as Doc).icon = new RichTextField('{"doc":{"type":"doc","content":[{"type":"paragraph","attrs":{"align":null,"color":null,"id":null,"indent":null,"inset":null,"lineSpacing":null,"paddingBottom":null,"paddingTop":null},"content":[{"type":"dashField","attrs":{"fieldKey":"title","docid":""}}]}]},"selection":{"type":"text","anchor":2,"head":2},"storedMarks":[]}', "");
         doc.isTemplateDoc = makeTemplate(doc.iconView as any as Doc);
-        doc.iconImageView = new PrefetchProxy(Docs.Create.ImageDocument("http://www.cs.brown.edu/~bcz/face.gif", { title: "data", _width: 50, isTemplateDoc: true, onClick: ScriptField.MakeScript("deiconifyView(this)") }));
+        doc.iconImageView = new PrefetchProxy(Docs.Create.ImageDocument("http://www.cs.brown.edu/~bcz/face.gif", { title: "data", _width: 50, isTemplateDoc: true, onClick: ScriptField.MakeScript("deiconifyView(self)") }));
         doc.isTemplateDoc = makeTemplate(doc.iconImageView as any as Doc, true, "image_icon");
-        doc.iconColView = new PrefetchProxy(Docs.Create.TreeDocument([], { title: "data", _width: 180, _height: 80, isTemplateDoc: true, onClick: ScriptField.MakeScript("deiconifyView(this)") }));
+        doc.iconColView = new PrefetchProxy(Docs.Create.TreeDocument([], { title: "data", _width: 180, _height: 80, isTemplateDoc: true, onClick: ScriptField.MakeScript("deiconifyView(self)") }));
         doc.isTemplateDoc = makeTemplate(doc.iconColView as any as Doc, true, "collection_icon");
         doc.iconViews = Docs.Create.TreeDocument([doc.iconView as any as Doc, doc.iconImageView as any as Doc, doc.iconColView as any as Doc], { title: "icon types", _height: 75 });
     }
@@ -73,14 +73,13 @@ export class CurrentUserUtils {
             { title: "collection", icon: "folder", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: emptyCollection },
             { title: "preview", icon: "expand", ignoreClick: true, drag: 'Docs.Create.DocumentDocument(ComputedField.MakeFunction("selectedDocs(this,this.excludeCollections,[_last_])?.[0]"), { _width: 250, _height: 250, title: "container" })' },
             { title: "web page", icon: "globe-asia", ignoreClick: true, drag: 'Docs.Create.WebDocument("https://en.wikipedia.org/wiki/Hedgehog", {_width: 300, _height: 300, title: "New Webpage" })' },
-            { title: "cat image", icon: "cat", ignoreClick: true, drag: 'Docs.Create.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", { _width: 200, title: "an image of a cat" })' },
-            { title: "buxton", icon: "cloud-upload-alt", ignoreClick: true, drag: "Docs.Create.Buxton()" },
+            { title: "cat image", icon: "cat", ignoreClick: true, drag: 'Docs.Create.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", { _width: 250, _nativeWidth:250, title: "an image of a cat" })' },
             { title: "screenshot", icon: "photo-video", ignoreClick: true, drag: 'Docs.Create.ScreenshotDocument("", { _width: 400, _height: 200, title: "screen snapshot" })' },
             { title: "webcam", icon: "video", ignoreClick: true, drag: 'Docs.Create.WebCamDocument("", { _width: 400, _height: 400, title: "a test cam" })' },
             { title: "record", icon: "microphone", ignoreClick: true, drag: `Docs.Create.AudioDocument("${nullAudio}", { _width: 200, title: "ready to record audio" })` },
             { title: "clickable button", icon: "bolt", ignoreClick: true, drag: 'Docs.Create.ButtonDocument({ _width: 150, _height: 50, title: "Button" })' },
             { title: "presentation", icon: "tv", click: 'openOnRight(Doc.UserDoc().curPresentation = getCopy(this.dragFactory, true))', drag: `Doc.UserDoc().curPresentation = getCopy(this.dragFactory,true)`, dragFactory: emptyPresentation },
-            { title: "script", icon: "terminal", ignoreClick: true, drag: 'Docs.Create.ScriptingDocument({ _width: 200, _height: 250 title: "untitled script" })' },
+            { title: "script", icon: "terminal", ignoreClick: true, drag: 'Docs.Create.ScriptingDocument(undefined, { _width: 200, _height: 250 title: "untitled script" })' },
             { title: "import folder", icon: "cloud-upload-alt", ignoreClick: true, drag: 'Docs.Create.DirectoryImportDocument({ title: "Directory Import", _width: 400, _height: 400 })' },
             { title: "mobile view", icon: "phone", ignoreClick: true, drag: 'Doc.UserDoc().activeMobile' },
             { title: "use pen", icon: "pen-nib", click: 'activatePen(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this,2, this.backgroundColor)', backgroundColor: "blue", ischecked: `sameDocs(this.activePen.pen,  this)`, activePen: doc },
@@ -89,8 +88,7 @@ export class CurrentUserUtils {
             { title: "use eraser", icon: "eraser", click: 'activateEraser(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this);', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "pink", activePen: doc },
             { title: "use drag", icon: "mouse-pointer", click: 'deactivateInk();this.activePen.pen = this;', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "white", activePen: doc },
             { title: "query", icon: "bolt", ignoreClick: true, drag: 'Docs.Create.QueryDocument({ _width: 200, title: "an image of a cat" })' },
-
-
+            // { title: "buxton", icon: "cloud-upload-alt", ignoreClick: true, drag: "Docs.Create.Buxton()" },
         ];
         return docProtoData.filter(d => !alreadyCreatedButtons?.includes(d.title)).map(data => Docs.Create.FontIconDocument({
             _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100,
@@ -319,7 +317,7 @@ export class CurrentUserUtils {
         doc.queryBtn = ficon({ onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'), dragFactory: queryTemplate, removeDropProperties: new List<string>(["dropAction"]), title: "query view", icon: "sticky-note" });
         doc.templateButtons = blist({ title: "template buttons", ignoreClick: true }, [doc.slidesBtn as Doc, doc.descriptionBtn as Doc, doc.queryBtn as Doc]);
         doc.expandingButtons = blist({ title: "expanding buttons", ignoreClick: true }, [doc.undoBtn as Doc, doc.redoBtn as Doc, doc.templateButtons as Doc]);
-        doc.templateDocs = new PrefetchProxy(Docs.Create.TreeDocument([doc.noteTypes as Doc, doc.templateButtons as Doc], {
+        doc.templateDocs = new PrefetchProxy(Docs.Create.TreeDocument([doc.noteTypes as Doc, doc.templateButtons as Doc, doc.clickFuncs as Doc], {
             title: "template layouts", _xPadding: 0,
             dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name })
         }));
@@ -332,7 +330,7 @@ export class CurrentUserUtils {
 
     // the initial presentation Doc to use
     static setupDefaultPresentation(doc: Doc) {
-        doc.presentationTemplate = new PrefetchProxy(Docs.Create.PresElementBoxDocument({ backgroundColor: "transparent", _xMargin: 5, _height: 46, isTemplateDoc: true, isTemplateForField: "data" }));
+        doc.presentationTemplate = new PrefetchProxy(Docs.Create.PresElementBoxDocument({ title: "pres element template", backgroundColor: "transparent", _xMargin: 5, _height: 46, isTemplateDoc: true, isTemplateForField: "data" }));
         doc.curPresentation = Docs.Create.PresDocument(new List<Doc>(), { title: "Presentation", _viewType: CollectionViewType.Stacking, _LODdisable: true, _chromeStatus: "replaced", _showTitle: "title", boxShadow: "0 0" });
     }
 
@@ -341,10 +339,12 @@ export class CurrentUserUtils {
     }
 
     static setupChildClicks(doc: Doc) {
-        const openInTarget = Docs.Create.TextDocument("", { title: "On Child Clicked (open in target)" });
-        const text = "docCast(thisContainer.target).then((target) => { target && docCast(this.source).then((source) => { target.proto.data = new List([source || this]); } ); } )";
-        openInTarget.script = ScriptField.MakeScript(text, { thisContainer: Doc.name });
+        const openInTarget = Docs.Create.ScriptingDocument(ScriptField.MakeScript(
+            "docCast(thisContainer.target).then((target) => { target && docCast(this.source).then((source) => { target.proto.data = new List([source || this]); } ); } )",
+            { target: Doc.name }), { title: "On Child Clicked (open in target)", _width: 300, _height: 200 });
+        const onClick = Docs.Create.ScriptingDocument(ScriptField.MakeScript("console.log('click')"), { title: "onClick", isTemplateDoc: true, isTemplateForField: "onClick", _width: 300, _height: 200 }, "onClick");
         doc.childClickFuncs = Docs.Create.TreeDocument([openInTarget], { title: "on Child Click function templates" });
+        doc.clickFuncs = Docs.Create.TreeDocument([onClick], { title: "onClick funcs" });
     }
 
     static updateUserDocument(doc: Doc) {
@@ -352,12 +352,12 @@ export class CurrentUserUtils {
         new InkingControl();
         (doc.iconTypes === undefined) && CurrentUserUtils.setupDefaultIconTypes(doc);
         (doc.noteTypes === undefined) && CurrentUserUtils.setupDefaultDocTemplates(doc);
+        (doc.childClickFuncs === undefined) && CurrentUserUtils.setupChildClicks(doc);
         (doc.optionalRightCollection === undefined) && CurrentUserUtils.setupMobileUploads(doc);
         (doc.overlays === undefined) && CurrentUserUtils.setupOverlays(doc);
         (doc.expandingButtons === undefined) && CurrentUserUtils.setupExpandingButtons(doc);
         (doc.curPresentation === undefined) && CurrentUserUtils.setupDefaultPresentation(doc);
         (doc.sidebarButtons === undefined) && CurrentUserUtils.setupSidebarButtons(doc);
-        (doc.childClickFuncs === undefined) && CurrentUserUtils.setupChildClicks(doc);
 
         // this is equivalent to using PrefetchProxies to make sure all the childClickFuncs have been retrieved.
         PromiseValue(Cast(doc.childClickFuncs, Doc)).then(func => func && PromiseValue(func.data).then(DocListCast));
@@ -365,6 +365,8 @@ export class CurrentUserUtils {
         PromiseValue(Cast(doc.recentlyClosed, Doc)).then(recent => recent && PromiseValue(recent.data).then(DocListCast));
         // this is equivalent to using PrefetchProxies to make sure all the sidebarButtons and noteType internal Doc's have been retrieved.
         PromiseValue(Cast(doc.noteTypes, Doc)).then(noteTypes => noteTypes && PromiseValue(noteTypes.data).then(DocListCast));
+        PromiseValue(Cast(doc.clickFuncs, Doc)).then(func => func && PromiseValue(func.data).then(DocListCast));
+        PromiseValue(Cast(doc.childClickFuncs, Doc)).then(func => func && PromiseValue(func.data).then(DocListCast));
         PromiseValue(Cast(doc.sidebarButtons, Doc)).then(stackingDoc => {
             stackingDoc && PromiseValue(Cast(stackingDoc.data, listSpec(Doc))).then(sidebarButtons => {
                 sidebarButtons && sidebarButtons.map((sidebarBtn, i) => {

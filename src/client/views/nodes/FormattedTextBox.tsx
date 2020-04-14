@@ -38,7 +38,7 @@ import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { CollectionFreeFormView } from '../collections/collectionFreeForm/CollectionFreeFormView';
 import { ContextMenu } from '../ContextMenu';
 import { ContextMenuProps } from '../ContextMenuItem';
-import { DocAnnotatableComponent } from "../DocComponent";
+import { ViewBoxAnnotatableComponent } from "../DocComponent";
 import { DocumentButtonBar } from '../DocumentButtonBar';
 import { InkingControl } from "../InkingControl";
 import { AudioBox } from './AudioBox';
@@ -69,7 +69,7 @@ const RichTextDocument = makeInterface(richTextSchema, documentSchema);
 type PullHandler = (exportState: Opt<GoogleApiClientUtils.Docs.ImportResult>, dataDoc: Doc) => void;
 
 @observer
-export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & FormattedTextBoxProps), RichTextDocument>(RichTextDocument) {
+export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProps & FormattedTextBoxProps), RichTextDocument>(RichTextDocument) {
     public static LayoutString(fieldStr: string) { return FieldView.LayoutString(FormattedTextBox, fieldStr); }
     public static blankState = () => EditorState.create(FormattedTextBox.Instance.config);
     public static Instance: FormattedTextBox;
@@ -215,7 +215,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
 
     updateTitle = () => {
         if ((this.props.Document.isTemplateForField === "text" || !this.props.Document.isTemplateForField) && // only update the title if the data document's data field is changing
-            StrCast(this.dataDoc.title).startsWith("-") && this._editorView && !this.Document.customTitle) {
+            StrCast(this.dataDoc.title).startsWith("-") && this._editorView && !this.rootDoc.customTitle) {
             const str = this._editorView.state.doc.textContent;
             const titlestr = str.substr(0, Math.min(40, str.length));
             this.dataDoc.title = "-" + titlestr + (str.length > 40 ? "..." : "");
@@ -723,7 +723,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                 }
             }, 0);
             dataDoc.title = exportState.title;
-            this.Document.customTitle = true;
+            this.rootDoc.customTitle = true;
             dataDoc.unchanged = true;
         } else {
             delete dataDoc[GoogleRef];
@@ -850,7 +850,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
             }
         }
 
-        const selectOnLoad = (Cast(this.props.Document.rootDocument, Doc, null) || this.props.Document)[Id] === FormattedTextBox.SelectOnLoad;
+        const selectOnLoad = this.rootDoc[Id] === FormattedTextBox.SelectOnLoad;
         if (selectOnLoad && !this.props.dontRegisterView) {
             FormattedTextBox.SelectOnLoad = "";
             this.props.select(false);
@@ -911,7 +911,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
         this.doLinkOnDeselect();
         FormattedTextBox._downEvent = true;
         FormattedTextBoxComment.textBox = this;
-        if (this.props.onClick && e.button === 0) {
+        if (this.props.onClick && e.button === 0 && !this.props.isSelected(false)) {
             e.preventDefault();
         }
         if (e.button === 0 && this.active(true) && !e.altKey && !e.ctrlKey && !e.metaKey) {
@@ -1155,7 +1155,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                 this.layoutDoc.limitHeight = undefined;
                 this.layoutDoc._autoHeight = false;
             }
-            const nh = this.Document.isTemplateForField ? 0 : NumCast(this.dataDoc._nativeHeight, 0);
+            const nh = this.layoutDoc.isTemplateForField ? 0 : NumCast(this.dataDoc._nativeHeight, 0);
             const dh = NumCast(this.layoutDoc._height, 0);
             const newHeight = Math.max(10, (nh ? dh / nh * scrollHeight : scrollHeight) + (this.props.ChromeHeight ? this.props.ChromeHeight() : 0));
             if (Math.abs(newHeight - dh) > 1) { // bcz: Argh!  without this, we get into a React crash if the same document is opened in a freeform view and in the treeview.  no idea why, but after dragging the freeform document, selecting it, and selecting text, it will compute to 1 pixel higher than the treeview which causes a cycle
@@ -1205,8 +1205,8 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                 <div className={`formattedTextBox-outer`} style={{ width: `calc(100% - ${this.sidebarWidthPercent})`, }} onScroll={this.onscrolled} ref={this._scrollRef}>
                     <div className={`formattedTextBox-inner${rounded}`} ref={this.createDropTarget}
                         style={{
-                            padding: `${NumCast(this.Document._xMargin, 0)}px  ${NumCast(this.Document._yMargin, 0)}px`,
-                            pointerEvents: ((this.Document.isLinkButton || this.props.onClick) && !this.props.isSelected()) ? "none" : undefined
+                            padding: `${NumCast(this.layoutDoc._xMargin, 0)}px  ${NumCast(this.layoutDoc._yMargin, 0)}px`,
+                            pointerEvents: ((this.layoutDoc.isLinkButton || this.props.onClick) && !this.props.isSelected()) ? "none" : undefined
                         }} />
                 </div>
                 {!this.props.Document._showSidebar ? (null) : this.sidebarWidthPercent === "0%" ?

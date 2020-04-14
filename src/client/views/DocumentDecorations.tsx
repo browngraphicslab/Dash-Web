@@ -393,7 +393,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (SelectionManager.SelectedDocuments().length === 1) {
             const selected = SelectionManager.SelectedDocuments()[0];
             if (this._titleControlString.startsWith("=")) {
-                return ScriptField.MakeFunction(this._titleControlString.substring(1), { doc: Doc.name })!.script.run({ this: selected.props.Document }, console.log).result?.toString() || "";
+                return ScriptField.MakeFunction(this._titleControlString.substring(1), { doc: Doc.name })!.script.run({ self: selected.rootDoc, this: selected.layoutDoc }, console.log).result?.toString() || "";
             }
             if (this._titleControlString.startsWith("#")) {
                 return selected.props.Document[this._titleControlString.substring(1)]?.toString() || "-unset-";

@@ -15,6 +15,7 @@ export enum DocumentType {
     FONTICON = "fonticonbox",   // font icon
     QUERY = "query",            // search query
     LABEL = "label",            // simple text label
+    BUTTON = "button",          // onClick button
     WEBCAM = "webcam",          // webcam
     PDFANNO = "pdfanno",        // pdf text selection (could be just a collection?)
     DATE = "date",              // calendar view of a date

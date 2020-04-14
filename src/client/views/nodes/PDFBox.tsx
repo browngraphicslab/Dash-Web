@@ -13,7 +13,7 @@ import { undoBatch } from '../../util/UndoManager';
 import { panZoomSchema } from '../collections/collectionFreeForm/CollectionFreeFormView';
 import { ContextMenu } from '../ContextMenu';
 import { ContextMenuProps } from '../ContextMenuItem';
-import { DocAnnotatableComponent } from "../DocComponent";
+import { ViewBoxAnnotatableComponent } from "../DocComponent";
 import { PDFViewer } from "../pdf/PDFViewer";
 import { FieldView, FieldViewProps } from './FieldView';
 import { pageSchema } from "./ImageBox";
@@ -26,7 +26,7 @@ type PdfDocument = makeInterface<[typeof documentSchema, typeof panZoomSchema, t
 const PdfDocument = makeInterface(documentSchema, panZoomSchema, pageSchema);
 
 @observer
-export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>(PdfDocument) {
+export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocument>(PdfDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(PDFBox, fieldKey); }
     private _keyValue: string = "";
     private _valueValue: string = "";

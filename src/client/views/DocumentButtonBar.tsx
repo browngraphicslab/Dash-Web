@@ -119,6 +119,11 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
                     const linkDoc = dropEv.linkDragData?.linkDocument as Doc; // equivalent to !dropEve.aborted since linkDocument is only assigned on a completed drop
                     if (this.view0 && linkDoc) {
                         Doc.GetProto(linkDoc).linkRelationship = "hyperlink";
+
+                        // we want to allow specific views to handle the link creation in their own way (e.g., rich text makes text hyperlinks)
+                        // the dragged view can regiser a linkDropCallback to be notified that the link was made and to update their data structures
+                        // however, the dropped document isn't so accessible.  What we do is set the newly created link document on the documentView
+                        // The documentView passes a function prop returning this link doc to its descendants who can react to changes to it.
                         dropEv.linkDragData?.linkDropCallback?.(dropEv.linkDragData);
                         runInAction(() => this.view0!._link = linkDoc);
                         setTimeout(action(() => this.view0!._link = undefined), 0);

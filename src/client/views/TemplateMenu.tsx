@@ -76,7 +76,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     @undoBatch
     @action
     toggleTemplate = (event: React.ChangeEvent<HTMLInputElement>, template: Template): void => {
-        this.props.docViews.forEach(d => Doc.Layout(d.Document)["_show" + template.Name] = event.target.checked ? template.Name.toLowerCase() : "");
+        this.props.docViews.forEach(d => Doc.Layout(d.layoutDoc)["_show" + template.Name] = event.target.checked ? template.Name.toLowerCase() : "");
     }
 
     @action
@@ -87,7 +87,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     @undoBatch
     @action
     toggleChrome = (): void => {
-        this.props.docViews.map(dv => Doc.Layout(dv.Document)).forEach(layout =>
+        this.props.docViews.map(dv => Doc.Layout(dv.layoutDoc)).forEach(layout =>
             layout._chromeStatus = (layout._chromeStatus !== "disabled" ? "disabled" : StrCast(layout._replacedChrome, "enabled")));
     }
 
@@ -124,7 +124,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
         templateMenu.push(<OtherToggle key={"chrome"} name={"Chrome"} checked={layout._chromeStatus !== "disabled"} toggle={this.toggleChrome} />);
         templateMenu.push(<OtherToggle key={"default"} name={"Default"} checked={templateName === "layout"} toggle={this.toggleDefault} />);
         if (noteTypesDoc) {
-            addedTypes.concat(noteTypes).map(template => template.treeViewChecked = ComputedField.MakeFunction(`templateIsUsed(this)`));
+            addedTypes.concat(noteTypes).map(template => template.treeViewChecked = ComputedField.MakeFunction(`templateIsUsed(self)`));
             this._addedKeys && Array.from(this._addedKeys).filter(key => !noteTypes.some(nt => nt.title === key)).forEach(template => templateMenu.push(
                 <OtherToggle key={template} name={template} checked={templateName === template} toggle={e => this.toggleLayout(e, template)} />));
         }
@@ -167,8 +167,8 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     }
 }
 
-Scripting.addGlobal(function switchView(doc: Doc, template: Doc) {
-    if (template.dragFactory) {
+Scripting.addGlobal(function switchView(doc: Doc, template: Doc | undefined) {
+    if (template?.dragFactory) {
         template = Cast(template.dragFactory, Doc, null);
     }
     const templateTitle = StrCast(template?.title);

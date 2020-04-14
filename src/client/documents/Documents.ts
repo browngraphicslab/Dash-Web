@@ -49,7 +49,6 @@ import { ContextMenuProps } from "../views/ContextMenuItem";
 import { ContextMenu } from "../views/ContextMenu";
 import { LinkBox } from "../views/nodes/LinkBox";
 import { ScreenshotBox } from "../views/nodes/ScreenshotBox";
-const requestImageSize = require('../util/request-image-size');
 const path = require('path');
 
 export interface DocumentOptions {
@@ -116,6 +115,7 @@ export interface DocumentOptions {
     borderRounding?: string;
     boxShadow?: string;
     dontRegisterChildren?: boolean;
+    "onClick-rawScript"?: string; // onClick script in raw text form
     _pivotField?: string; // field key used to determine headings for sections in stacking, masonry, pivot views
     schemaColumns?: List<SchemaHeaderField>;
     dockingConfig?: string;
@@ -144,7 +144,6 @@ export interface DocumentOptions {
     treeViewChecked?: ScriptField; // script to call when a tree view checkbox is checked
     isFacetFilter?: boolean; // whether document functions as a facet filter in a tree view
     limitHeight?: number; // maximum height for newly created (eg, from pasting) text documents
-    editScriptOnClick?: string; // script field key to edit when document is clicked (e.g., "onClick", "onChecked")
     // [key: string]: Opt<Field>;
     pointerHack?: boolean; // for buttons, allows onClick handler to fire onPointerDown
     textTransform?: string; // is linear view expanded
@@ -247,6 +246,9 @@ export namespace Docs {
             [DocumentType.LABEL, {
                 layout: { view: LabelBox, dataField: data },
             }],
+            [DocumentType.BUTTON, {
+                layout: { view: LabelBox, dataField: "onClick" },
+            }],
             [DocumentType.SLIDER, {
                 layout: { view: SliderBox, dataField: data },
             }],
@@ -260,7 +262,7 @@ export namespace Docs {
             }],
             [DocumentType.RECOMMENDATION, {
                 layout: { view: RecommendationsBox, dataField: data },
-                options: { width: 200, height: 200 },
+                options: { _width: 200, _height: 200 },
             }],
             [DocumentType.WEBCAM, {
                 layout: { view: DashWebRTCVideo, dataField: data }
@@ -274,8 +276,7 @@ export namespace Docs {
             }],
             [DocumentType.SCREENSHOT, {
                 layout: { view: ScreenshotBox, dataField: data },
-                options: {}
-            }]
+            }],
         ]);
 
         // All document prototypes are initialized with at least these values
@@ -402,7 +403,7 @@ export namespace Docs {
                     const doc = StackingDocument(deviceImages, { title: device.title, _LODdisable: true });
                     const deviceProto = Doc.GetProto(doc);
                     deviceProto.hero = new ImageField(constructed[0].url);
-                    Docs.Get.DocumentHierarchyFromJson(device, undefined, deviceProto);
+                    Docs.Get.FromJson({ data: device, appendToExisting: { targetDoc: deviceProto } });
                     Doc.AddDocToList(parentProto, "data", doc);
                 } else if (errors) {
                     console.log(errors);
@@ -492,25 +493,16 @@ export namespace Docs {
                 const extension = path.extname(target);
                 target = `${target.substring(0, target.length - extension.length)}_o${extension}`;
             }
-            requestImageSize(Utils.CorsProxy(target))
-                .then((size: any) => {
-                    const aspect = size.height / size.width;
-                    if (!inst._nativeWidth) {
-                        inst._nativeWidth = size.width;
-                    }
-                    inst._nativeHeight = NumCast(inst._nativeWidth) * aspect;
-                    inst._height = NumCast(inst._width) * aspect;
-                })
-                .catch((err: any) => console.log(err));
-            // }
             return inst;
         }
         export function PresDocument(initial: List<Doc> = new List(), options: DocumentOptions = {}) {
             return InstanceFromProto(Prototypes.get(DocumentType.PRES), initial, options);
         }
 
-        export function ScriptingDocument(options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.SCRIPTING), "", options);
+        export function ScriptingDocument(script: Opt<ScriptField>, options: DocumentOptions = {}, fieldKey?: string) {
+            const res = InstanceFromProto(Prototypes.get(DocumentType.SCRIPTING), script, options);
+            fieldKey && res.proto instanceof Doc && (res.proto.layout = ScriptingBox.LayoutString(fieldKey));
+            return res;
         }
 
         export function VideoDocument(url: string, options: DocumentOptions = {}) {
@@ -552,6 +544,8 @@ export namespace Docs {
             const linkDocProto = Doc.GetProto(doc);
             linkDocProto.anchor1 = source.doc;
             linkDocProto.anchor2 = target.doc;
+            linkDocProto.anchor1_timecode = source.doc.currentTimecode || source.doc.displayTimecode;
+            linkDocProto.anchor2_timecode = target.doc.currentTimecode || target.doc.displayTimecode;
 
             if (linkDocProto.layout_key1 === undefined) {
                 Cast(linkDocProto.proto, Doc, null).layout_key1 = LinkAnchorBox.LayoutString("anchor1");
@@ -562,8 +556,8 @@ export namespace Docs {
 
             LinkManager.Instance.addLink(doc);
 
-            Doc.GetProto(source.doc).links = ComputedField.MakeFunction("links(this)");
-            Doc.GetProto(target.doc).links = ComputedField.MakeFunction("links(this)");
+            Doc.GetProto(source.doc).links = ComputedField.MakeFunction("links(self)");
+            Doc.GetProto(target.doc).links = ComputedField.MakeFunction("links(self)");
             return doc;
         }
 
@@ -617,6 +611,10 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", backgroundColor: "black", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, _viewType: CollectionViewType.Linear }, id);
         }
 
+        export function MapDocument(documents: Array<Doc>, options: DocumentOptions = {}) {
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), options);
+        }
+
         export function CarouselDocument(documents: Array<Doc>, options: DocumentOptions) {
             return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, _viewType: CollectionViewType.Carousel });
         }
@@ -650,7 +648,7 @@ export namespace Docs {
         }
 
         export function ButtonDocument(options?: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.LABEL), undefined, { ...(options || {}), editScriptOnClick: "onClick" });
+            return InstanceFromProto(Prototypes.get(DocumentType.BUTTON), undefined, { ...(options || {}), "onClick-rawScript": "-script-" });
         }
 
         export function SliderDocument(options?: DocumentOptions) {
@@ -705,6 +703,15 @@ export namespace Docs {
 
         const primitives = ["string", "number", "boolean"];
 
+        export interface JsonConversionOpts {
+            data: any;
+            title?: string;
+            appendToExisting?: { targetDoc: Doc, fieldKey?: string };
+            excludeEmptyObjects?: boolean;
+        }
+
+        const defaultKey = "json";
+
         /**
          * This function takes any valid JSON(-like) data, i.e. parsed or unparsed, and at arbitrarily
          * deep levels of nesting, converts the data and structure into nested documents with the appropriate fields.
@@ -722,23 +729,54 @@ export namespace Docs {
          * All TS/JS objects get converted directly to documents, directly preserving the key value structure. Everything else,
          * lacking the key value structure, gets stored as a field in a wrapper document.
          * 
-         * @param input for convenience and flexibility, either a valid JSON string to be parsed,
+         * @param data for convenience and flexibility, either a valid JSON string to be parsed,
          * or the result of any JSON.parse() call.
-         * @param title an optional title to give to the highest parent document in the hierarchy
+         * @param title an optional title to give to the highest parent document in the hierarchy.
+         * If whether this function creates a new document or appendToExisting is specified and that document already has a title,
+         * because this title field can be left undefined for the opposite behavior, including a title will overwrite the existing title.
+         * @param appendToExisting **if specified**, there are two cases, both of which return the target document:
+         * 
+         * 1) the json to be converted can be represented as a document, in which case the target document will act as the root
+         * of the tree and receive all the conversion results as new fields on itself
+         * 2) the json can't be represented as a document, in which case the function will assign the field-level conversion
+         * results to either the specified key on the target document, or to its "json" key by default.
+         * 
+         * If not specified, the function creates and returns a new entirely generic document (different from the Doc.Create calls)
+         * to act as the root of the tree.
+         * 
+         * One might choose to specify this field if you want to write to a document returned from a Document.Create function call,
+         * say a TreeView document that will be rendered, not just an untyped, identityless doc that would otherwise be created
+         * from a default call to new Doc.
+         * 
+         * @param excludeEmptyObjects whether non-primitive objects (TypeScript objects and arrays) should be converted even
+         * if they contain no data. By default, empty objects and arrays are ignored.
          */
-        export function DocumentHierarchyFromJson(input: any, title?: string, appendToTarget?: Doc): Opt<Doc> {
-            if (input === undefined || input === null || ![...primitives, "object"].includes(typeof input)) {
+        export function FromJson({ data, title, appendToExisting, excludeEmptyObjects }: JsonConversionOpts): Opt<Doc> {
+            if (excludeEmptyObjects === undefined) {
+                excludeEmptyObjects = true;
+            }
+            if (data === undefined || data === null || ![...primitives, "object"].includes(typeof data)) {
                 return undefined;
             }
-            input = JSON.parse(typeof input === "string" ? input : JSON.stringify(input));
-            let converted: Doc;
-            if (typeof input === "object" && !(input instanceof Array)) {
-                converted = convertObject(input, title, appendToTarget);
-            } else {
-                (converted = new Doc).json = toField(input);
+            let resolved: any;
+            try {
+                resolved = JSON.parse(typeof data === "string" ? data : JSON.stringify(data));
+            } catch (e) {
+                return undefined;
             }
-            title && (converted.title = title);
-            return converted;
+            let output: Opt<Doc>;
+            if (typeof resolved === "object" && !(resolved instanceof Array)) {
+                output = convertObject(resolved, excludeEmptyObjects, title, appendToExisting?.targetDoc);
+            } else {
+                const result = toField(resolved, excludeEmptyObjects);
+                if (appendToExisting) {
+                    (output = appendToExisting.targetDoc)[appendToExisting.fieldKey || defaultKey] = result;
+                } else {
+                    (output = new Doc).json = result;
+                }
+            }
+            title && output && (output.title = title);
+            return output;
         }
 
         /**
@@ -748,12 +786,24 @@ export namespace Docs {
          * @returns the object mapped from JSON to field values, where each mapping 
          * might involve arbitrary recursion (since toField might itself call convertObject)
          */
-        const convertObject = (object: any, title?: string, target?: Doc): Doc => {
-            const resolved = target ?? new Doc;
-            let result: Opt<Field>;
-            Object.keys(object).map(key => (result = toField(object[key], key)) && (resolved[key] = result));
-            title && !resolved.title && (resolved.title = title);
-            return resolved;
+        const convertObject = (object: any, excludeEmptyObjects: boolean, title?: string, target?: Doc): Opt<Doc> => {
+            const hasEntries = Object.keys(object).length;
+            if (hasEntries || !excludeEmptyObjects) {
+                const resolved = target ?? new Doc;
+                if (hasEntries) {
+                    let result: Opt<Field>;
+                    Object.keys(object).map(key => {
+                        // if excludeEmptyObjects is true, any qualifying conversions from toField will
+                        // be undefined, and thus the results that would have
+                        // otherwise been empty (List or Doc)s will just not be written
+                        if (result = toField(object[key], excludeEmptyObjects, key)) {
+                            resolved[key] = result;
+                        }
+                    });
+                }
+                title && (resolved.title = title);
+                return resolved;
+            }
         };
 
         /**
@@ -763,15 +813,19 @@ export namespace Docs {
          * @returns the list mapped from JSON to field values, where each mapping 
          * might involve arbitrary recursion (since toField might itself call convertList)
          */
-        const convertList = (list: Array<any>): List<Field> => {
+        const convertList = (list: Array<any>, excludeEmptyObjects: boolean): Opt<List<Field>> => {
             const target = new List();
             let result: Opt<Field>;
-            list.map(item => (result = toField(item)) && target.push(result));
-            return target;
+            // if excludeEmptyObjects is true, any qualifying conversions from toField will
+            // be undefined, and thus the results that would have
+            // otherwise been empty (List or Doc)s will just not be written
+            list.map(item => (result = toField(item, excludeEmptyObjects)) && target.push(result));
+            if (target.length || !excludeEmptyObjects) {
+                return target;
+            }
         };
 
-
-        const toField = (data: any, title?: string): Opt<Field> => {
+        const toField = (data: any, excludeEmptyObjects: boolean, title?: string): Opt<Field> => {
             if (data === null || data === undefined) {
                 return undefined;
             }
@@ -779,7 +833,7 @@ export namespace Docs {
                 return data;
             }
             if (typeof data === "object") {
-                return data instanceof Array ? convertList(data) : convertObject(data, title);
+                return data instanceof Array ? convertList(data, excludeEmptyObjects) : convertObject(data, excludeEmptyObjects, title, undefined);
             }
             throw new Error(`How did ${data} of type ${typeof data} end up in JSON?`);
         };
@@ -904,10 +958,10 @@ export namespace DocUtils {
         if (target.doc === CurrentUserUtils.UserDocument) return undefined;
 
         const linkDoc = Docs.Create.LinkDocument(source, target, { linkRelationship }, id);
-        Doc.GetProto(linkDoc).title = ComputedField.MakeFunction('this.anchor1.title +" (" + (this.linkRelationship||"to") +") "  + this.anchor2.title');
+        Doc.GetProto(linkDoc).title = ComputedField.MakeFunction('self.anchor1.title +" (" + (self.linkRelationship||"to") +") "  + self.anchor2.title');
 
-        Doc.GetProto(source.doc).links = ComputedField.MakeFunction("links(this)");
-        Doc.GetProto(target.doc).links = ComputedField.MakeFunction("links(this)");
+        Doc.GetProto(source.doc).links = ComputedField.MakeFunction("links(self)");
+        Doc.GetProto(target.doc).links = ComputedField.MakeFunction("links(self)");
         return linkDoc;
     }
 

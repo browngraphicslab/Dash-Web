@@ -7,7 +7,7 @@ import { ScriptField } from "../../../new_fields/ScriptField";
 import { StrCast, ScriptCast, Cast } from "../../../new_fields/Types";
 import { InteractionUtils } from "../../util/InteractionUtils";
 import { CompileScript, isCompileError, ScriptParam } from "../../util/Scripting";
-import { DocAnnotatableComponent } from "../DocComponent";
+import { ViewBoxAnnotatableComponent } from "../DocComponent";
 import { EditableView } from "../EditableView";
 import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import "./ScriptingBox.scss";
@@ -20,7 +20,7 @@ type ScriptingDocument = makeInterface<[typeof ScriptingSchema, typeof documentS
 const ScriptingDocument = makeInterface(ScriptingSchema, documentSchema);
 
 @observer
-export class ScriptingBox extends DocAnnotatableComponent<FieldViewProps, ScriptingDocument>(ScriptingDocument) {
+export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, ScriptingDocument>(ScriptingDocument) {
     protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer | undefined;
     public static LayoutString(fieldStr: string) { return FieldView.LayoutString(ScriptingBox, fieldStr); }
 
@@ -28,15 +28,17 @@ export class ScriptingBox extends DocAnnotatableComponent<FieldViewProps, Script
 
     @observable private _errorMessage: string = "";
 
-    @computed get rawScript() { return StrCast(this.dataDoc[this.props.fieldKey + "-raw"]); }
+    @computed get rawScript() { return StrCast(this.dataDoc[this.props.fieldKey + "-rawScript"]); }
     @computed get compileParams() { return Cast(this.dataDoc[this.props.fieldKey + "-params"], listSpec("string"), []); }
-    set rawScript(value) { this.dataDoc[this.props.fieldKey + "-raw"] = value; }
+    set rawScript(value) { this.dataDoc[this.props.fieldKey + "-rawScript"] = value; }
     set compileParams(value) { this.dataDoc[this.props.fieldKey + "-params"] = value; }
 
     @action
     componentDidMount() {
         this.rawScript = ScriptCast(this.dataDoc[this.props.fieldKey])?.script?.originalScript || this.rawScript;
     }
+
+    componentWillUnmount() { this._overlayDisposer?.(); }
 
     @action
     onSave = () => {
@@ -60,11 +62,11 @@ export class ScriptingBox extends DocAnnotatableComponent<FieldViewProps, Script
         const result = CompileScript(this.rawScript, {
             editable: true,
             transformer: DocumentIconContainer.getTransformer(),
-            params
+            params,
+            typecheck: false
         });
-        this.dataDoc[this.props.fieldKey] = result.compiled ? new ScriptField(result) : undefined;
         this._errorMessage = isCompileError(result) ? result.errors.map(e => e.messageText).join("\n") : "";
-        return ScriptCast(this.dataDoc[this.props.fieldKey]);
+        return this.dataDoc[this.props.fieldKey] = result.compiled ? new ScriptField(result) : undefined;
     }
 
     @action

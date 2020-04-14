@@ -33,6 +33,7 @@ export const documentSchema = createSchema({
     color: "string",            // foreground color of document
     backgroundColor: "string",  // background color of document
     opacity: "number",          // opacity of document
+    overflow: "string",         // sets overflow behvavior for CollectionFreeForm views
     creationDate: DateField,    // when the document was created
     links: listSpec(Doc),       // computed (readonly) list of links associated with this document
     onClick: ScriptField,       // script to run when document is clicked (can be overriden by an onClick prop)
@@ -73,7 +74,7 @@ export const positionSchema = createSchema({
 
 export const collectionSchema = createSchema({
     childLayout: Doc, // layout template for children of a collecion
-    childDetailed: Doc, // layout template to apply to a child when its clicked on in a collection and opened (requires onChildClick or other script to use this field)
+    childDetailView: Doc, // layout template to apply to a child when its clicked on in a collection and opened (requires onChildClick or other script to use this field)
     onChildClick: ScriptField, // script to run for each child when its clicked
     onCheckedClick: ScriptField, // script to run when a checkbox is clicked next to a child in a tree view
 });

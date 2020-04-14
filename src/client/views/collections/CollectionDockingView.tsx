@@ -773,7 +773,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             return CollectionDockingView.AddRightSplit(doc, libraryPath);
         } else if (location === "close") {
             return CollectionDockingView.CloseRightSplit(doc);
-        } else {
+        } else {// if (location === "inPlace") {
             return CollectionDockingView.Instance.AddTab(this._stack, doc, libraryPath);
         }
     }

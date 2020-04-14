@@ -5,11 +5,10 @@ import { Cast } from '../../new_fields/Types';
 import { listSpec } from '../../new_fields/Schema';
 import { InkingControl } from './InkingControl';
 import { InkTool } from '../../new_fields/InkField';
-import { PositionDocument } from '../../new_fields/documentSchemas';
 import { InteractionUtils } from '../util/InteractionUtils';
 
 
-///  DocComponent returns a generic React base class used by views that don't have any data extensions (e.g.,CollectionFreeFormDocumentView, DocumentView, LabelBox)
+///  DocComponent returns a generic React base class used by views that don't have 'fieldKey' props (e.g.,CollectionFreeFormDocumentView, DocumentView)
 interface DocComponentProps {
     Document: Doc;
     LayoutDoc?: () => Opt<Doc>;
@@ -18,14 +17,20 @@ export function DocComponent<P extends DocComponentProps, T>(schemaCtor: (doc: D
     class Component extends Touchable<P> {
         //TODO This might be pretty inefficient if doc isn't observed, because computed doesn't cache then
         @computed get Document(): T { return schemaCtor(this.props.Document); }
-        @computed get layoutDoc() { return PositionDocument(Doc.Layout(this.props.Document, this.props.LayoutDoc?.())); }
+        // This is the "The Document" -- it encapsulates, data, layout, and any templates
+        @computed get rootDoc() { return Cast(this.props.Document.rootDocument, Doc, null) || this.props.Document; }
+        // This is the rendering data of a document -- it may be "The Document", or it may be some template document that holds the rendering info
+        @computed get layoutDoc() { return Doc.Layout(this.props.Document); }
+        // This is the data part of a document -- ie, the data that is constant across all views of the document
+        @computed get dataDoc() { return this.props.Document[DataSym] as Doc; }
+
         protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
     }
     return Component;
 }
 
-///  DocStaticProps return a base class for React document views that have data extensions but aren't annotatable (e.g. AudioBox, FormattedTextBox)
-interface DocExtendableProps {
+/// FieldViewBoxProps  -  a generic base class for field views that are not annotatable (e.g. AudioBox, FormattedTextBox)
+interface ViewBoxBaseProps {
     Document: Doc;
     DataDoc?: Doc;
     fieldKey: string;
@@ -33,21 +38,30 @@ interface DocExtendableProps {
     renderDepth: number;
     rootSelected: (outsideReaction?: boolean) => boolean;
 }
-export function DocExtendableComponent<P extends DocExtendableProps, T>(schemaCtor: (doc: Doc) => T) {
+export function ViewBoxBaseComponent<P extends ViewBoxBaseProps, T>(schemaCtor: (doc: Doc) => T) {
     class Component extends Touchable<P> {
         //TODO This might be pretty inefficient if doc isn't observed, because computed doesn't cache then
-        @computed get Document(): T { return schemaCtor(this.props.Document); }
+        //@computed get Document(): T { return schemaCtor(this.props.Document); }
+
+        // This is the "The Document" -- it encapsulates, data, layout, and any templates
+        @computed get rootDoc() { return Cast(this.props.Document.rootDocument, Doc, null) || this.props.Document; }
+        // This is the rendering data of a document -- it may be "The Document", or it may be some template document that holds the rendering info
         @computed get layoutDoc() { return Doc.Layout(this.props.Document); }
-        @computed get dataDoc() { return (this.props.DataDoc && (this.props.Document.isTemplateForField || this.props.Document.isTemplateDoc) ? this.props.DataDoc : Cast(this.props.Document.resolvedDataDoc, Doc, null) || Doc.GetProto(this.props.Document)) as Doc; }
-        active = (outsideReaction?: boolean) => !this.props.Document.isBackground && ((this.props.Document.forceActive && this.props.rootSelected(outsideReaction)) || this.props.isSelected(outsideReaction) || this.props.renderDepth === 0);//  && !InkingControl.Instance.selectedTool;  // bcz: inking state shouldn't affect static tools 
+        // This is the data part of a document -- ie, the data that is constant across all views of the document
+        @computed get dataDoc() { return this.props.DataDoc && (this.props.Document.isTemplateForField || this.props.Document.isTemplateDoc) ? this.props.DataDoc : this.props.Document[DataSym]; }
+
+        // key where data is stored
+        @computed get fieldKey() { return this.props.fieldKey; }
+
+        active = (outsideReaction?: boolean) => !this.props.Document.isBackground && (this.props.rootSelected(outsideReaction) || this.props.isSelected(outsideReaction) || this.props.renderDepth === 0);//  && !InkingControl.Instance.selectedTool;  // bcz: inking state shouldn't affect static tools 
         protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
     }
     return Component;
 }
 
 
-///  DocAnnotatbleComponent return a base class for React views of document fields that are annotatable *and* interactive when selected (e.g., pdf, image)
-export interface DocAnnotatableProps {
+///  DocAnnotatbleComponent -return a base class for React views of document fields that are annotatable *and* interactive when selected (e.g., pdf, image)
+export interface ViewBoxAnnotatableProps {
     Document: Doc;
     DataDoc?: Doc;
     fieldKey: string;
@@ -57,13 +71,21 @@ export interface DocAnnotatableProps {
     rootSelected: (outsideReaction?: boolean) => boolean;
     renderDepth: number;
 }
-export function DocAnnotatableComponent<P extends DocAnnotatableProps, T>(schemaCtor: (doc: Doc) => T) {
+export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T>(schemaCtor: (doc: Doc) => T) {
     class Component extends Touchable<P> {
         @observable _isChildActive = false;
         //TODO This might be pretty inefficient if doc isn't observed, because computed doesn't cache then
         @computed get Document(): T { return schemaCtor(this.props.Document); }
-        @computed get layoutDoc() { return Doc.Layout(this.props.Document); }
+
+        // This is the "The Document" -- it encapsulates, data, layout, and any templates
+        @computed get rootDoc() { return Cast(this.props.Document.rootDocument, Doc, null) || this.props.Document; }
+        // This is the rendering data of a document -- it may be "The Document", or it may be some template document that holds the rendering info
+        @computed get layoutDoc() { return schemaCtor(Doc.Layout(this.props.Document)); }
+        // This is the data part of a document -- ie, the data that is constant across all views of the document
         @computed get dataDoc() { return this.props.DataDoc && (this.props.Document.isTemplateForField || this.props.Document.isTemplateDoc) ? this.props.DataDoc : this.props.Document[DataSym]; }
+
+        // key where data is stored
+        @computed get fieldKey() { return this.props.fieldKey; }
 
         protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
 
@@ -92,8 +114,8 @@ export function DocAnnotatableComponent<P extends DocAnnotatableProps, T>(schema
 
         whenActiveChanged = action((isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive));
         active = (outsideReaction?: boolean) => ((InkingControl.Instance.selectedTool === InkTool.None && !this.props.Document.isBackground) &&
-            ((this.props.Document.forceActive && this.props.rootSelected(outsideReaction)) || this.props.isSelected(outsideReaction) || this._isChildActive || this.props.renderDepth === 0) ? true : false)
-        annotationsActive = (outsideReaction?: boolean) => (InkingControl.Instance.selectedTool !== InkTool.None ||
+            (this.props.rootSelected(outsideReaction) || this.props.isSelected(outsideReaction) || this._isChildActive || this.props.renderDepth === 0) ? true : false)
+        annotationsActive = (outsideReaction?: boolean) => (InkingControl.Instance.selectedTool !== InkTool.None || (this.props.Document.isBackground && this.props.active()) ||
             (this.props.Document.forceActive || this.props.isSelected(outsideReaction) || this._isChildActive || this.props.renderDepth === 0) ? true : false)
     }
     return Component;

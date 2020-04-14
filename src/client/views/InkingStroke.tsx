@@ -3,8 +3,8 @@ import { observer } from "mobx-react";
 import { documentSchema } from "../../new_fields/documentSchemas";
 import { InkData, InkField, InkTool } from "../../new_fields/InkField";
 import { makeInterface } from "../../new_fields/Schema";
-import { Cast } from "../../new_fields/Types";
-import { DocExtendableComponent } from "./DocComponent";
+import { Cast, StrCast, NumCast } from "../../new_fields/Types";
+import { ViewBoxBaseComponent } from "./DocComponent";
 import { InkingControl } from "./InkingControl";
 import "./InkingStroke.scss";
 import { FieldView, FieldViewProps } from "./nodes/FieldView";
@@ -22,31 +22,30 @@ type InkDocument = makeInterface<[typeof documentSchema]>;
 const InkDocument = makeInterface(documentSchema);
 
 @observer
-export class InkingStroke extends DocExtendableComponent<FieldViewProps, InkDocument>(InkDocument) {
+export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocument>(InkDocument) {
     public static LayoutString(fieldStr: string) { return FieldView.LayoutString(InkingStroke, fieldStr); }
 
-    @computed get PanelWidth() { return this.props.PanelWidth(); }
-    @computed get PanelHeight() { return this.props.PanelHeight(); }
-
     private analyzeStrokes = () => {
-        const data: InkData = Cast(this.Document.data, InkField) ?.inkData ?? [];
-        CognitiveServices.Inking.Appliers.ConcatenateHandwriting(this.Document, ["inkAnalysis", "handwriting"], [data]);
+        const data: InkData = Cast(this.dataDoc[this.fieldKey], InkField)?.inkData ?? [];
+        CognitiveServices.Inking.Appliers.ConcatenateHandwriting(this.dataDoc, ["inkAnalysis", "handwriting"], [data]);
     }
 
     render() {
         TraceMobx();
-        const data: InkData = Cast(this.Document.data, InkField) ?.inkData ?? [];
+        const data: InkData = Cast(this.dataDoc[this.fieldKey], InkField)?.inkData ?? [];
         const xs = data.map(p => p.X);
         const ys = data.map(p => p.Y);
         const left = Math.min(...xs);
         const top = Math.min(...ys);
         const right = Math.max(...xs);
         const bottom = Math.max(...ys);
-        const points = InteractionUtils.CreatePolyline(data, left, top, this.Document.color ?? InkingControl.Instance.selectedColor, this.Document.strokeWidth ?? parseInt(InkingControl.Instance.selectedWidth));
+        const points = InteractionUtils.CreatePolyline(data, left, top,
+            StrCast(this.layoutDoc.color, InkingControl.Instance.selectedColor),
+            NumCast(this.layoutDoc.strokeWidth, parseInt(InkingControl.Instance.selectedWidth)));
         const width = right - left;
         const height = bottom - top;
-        const scaleX = this.PanelWidth / width;
-        const scaleY = this.PanelHeight / height;
+        const scaleX = this.props.PanelWidth() / width;
+        const scaleY = this.props.PanelHeight() / height;
         return (
             <svg
                 width={width}
@@ -54,7 +53,7 @@ export class InkingStroke extends DocExtendableComponent<FieldViewProps, InkDocu
                 style={{
                     transformOrigin: "top left",
                     transform: `scale(${scaleX}, ${scaleY})`,
-                    mixBlendMode: this.Document.tool === InkTool.Highlighter ? "multiply" : "unset",
+                    mixBlendMode: this.layoutDoc.tool === InkTool.Highlighter ? "multiply" : "unset",
                     pointerEvents: "all"
                 }}
                 onContextMenu={() => {
