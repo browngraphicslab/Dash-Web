@@ -41,18 +41,11 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     componentWillUnmount() { this._overlayDisposer?.(); }
 
     @action
-    onSave = () => {
+    onFinish = () => {
         const result = CompileScript(this.rawScript, {});
-        this._errorMessage = "";
-        if (result.compiled) {
-            this._errorMessage = "";
-            this.props.Document.data = new ScriptField(result);
-
-            //button
-        }
-        else {
-            //
-        }
+        this.rootDoc.layoutKey = "layout";
+        this.rootDoc.height = 50;
+        this.rootDoc.width = 100;
         this.props.Document.documentText = this.rawScript;
     }
 
@@ -106,6 +99,8 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
                 <div className="scriptingBox-toolbar">
                     <button className="scriptingBox-button" onPointerDown={e => { this.onCompile(); e.stopPropagation(); }}>Compile</button>
                     <button className="scriptingBox-button" onPointerDown={e => { this.onRun(); e.stopPropagation(); }}>Run</button>
+                    {this.rootDoc.layoutKey === "layout_onClick" ? <button className="scriptingBox-button"
+                        onPointerDown={e => { this.onFinish(); e.stopPropagation(); }}>Finish</button> : null}
                 </div>
             </div>
         );

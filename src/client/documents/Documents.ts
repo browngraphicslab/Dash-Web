@@ -648,7 +648,12 @@ export namespace Docs {
         }
 
         export function ButtonDocument(options?: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.BUTTON), undefined, { ...(options || {}), "onClick-rawScript": "-script-" });
+            const btn = InstanceFromProto(Prototypes.get(DocumentType.BUTTON), undefined, { ...(options || {}), "onClick-rawScript": "-script-" });
+            btn.layoutKey = "layout_onClick";
+            btn.height = 250;
+            btn.width = 200;
+            btn.layout_onClick = ScriptingBox.LayoutString("onClick");
+            return btn;
         }
 
         export function SliderDocument(options?: DocumentOptions) {
