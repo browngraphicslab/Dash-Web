@@ -84,9 +84,9 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         />;
         return (
             <div className="scriptingBox-outerDiv"
-                onPointerDown={e => this.props.isSelected(true) && e.stopPropagation()}
                 onWheel={e => this.props.isSelected(true) && e.stopPropagation()}>
-                <div className="scriptingBox-inputDiv" >
+                <div className="scriptingBox-inputDiv"
+                    onPointerDown={e => this.props.isSelected(true) && e.stopPropagation()} >
                     <textarea className="scriptingBox-textarea"
                         placeholder="write your script here"
                         onChange={e => this.rawScript = e.target.value}
@@ -96,6 +96,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
                     <div className="scriptingBox-errorMessage" style={{ background: this._errorMessage ? "red" : "" }}>{this._errorMessage}</div>
                     <div className="scriptingBox-params" >{params}</div>
                 </div>
+                {this.rootDoc.layout === "layout" ? <div></div> : (null)}
                 <div className="scriptingBox-toolbar">
                     <button className="scriptingBox-button" onPointerDown={e => { this.onCompile(); e.stopPropagation(); }}>Compile</button>
                     <button className="scriptingBox-button" onPointerDown={e => { this.onRun(); e.stopPropagation(); }}>Run</button>

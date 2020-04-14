@@ -1,6 +1,6 @@
 import { GoogleApiWrapper, Map as GeoMap, MapProps, Marker } from "google-maps-react";
 import { observer } from "mobx-react";
-import { Doc, Opt, DocListCast } from "../../../new_fields/Doc";
+import { Doc, Opt, DocListCast, FieldResult } from "../../../new_fields/Doc";
 import { documentSchema } from "../../../new_fields/documentSchemas";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { makeInterface } from "../../../new_fields/Schema";
@@ -28,7 +28,11 @@ const defaultLocation = { lat: 35.1592238, lng: -98.444512, zoom: 15 };
 const query = async (data: string | google.maps.LatLngLiteral) => {
     const contents = typeof data === "string" ? `address=${data.replace(/\s+/g, "+")}` : `latlng=${data.lat},${data.lng}`;
     const target = `https://maps.googleapis.com/maps/api/geocode/json?${contents}&key=${process.env.GOOGLE_MAPS_GEO}`;
-    return JSON.parse(await requestPromise.get(target));
+    try {
+        return JSON.parse(await requestPromise.get(target));
+    } catch {
+        return undefined;
+    }
 };
 
 @observer
@@ -36,6 +40,7 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
 
     private _cancelAddrReq = new Map<string, boolean>();
     private _cancelLocReq = new Map<string, boolean>();
+    private _initialLookupPending = new Map<string, boolean>();
     private addressUpdaters: IReactionDisposer[] = [];
     private latlngUpdaters: IReactionDisposer[] = [];
 
@@ -47,7 +52,7 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
      * and address–updating reactions. 
      */
 
-    getLocation = (doc: Opt<Doc>, fieldKey: string): Opt<LocationData> => {
+    private getLocation = (doc: Opt<Doc>, fieldKey: string): Opt<LocationData> => {
         if (doc) {
             const lat: Opt<number> = Cast(doc[fieldKey + "-lat"], "number", null) || (Cast(doc[fieldKey + "-lat"], "string", null) && Number(Cast(doc[fieldKey + "-lat"], "string", null))) || undefined;
             const lng: Opt<number> = Cast(doc[fieldKey + "-lng"], "number", null) || (Cast(doc[fieldKey + "-lng"], "string", null) && Number(Cast(doc[fieldKey + "-lng"], "string", null))) || undefined;
@@ -56,19 +61,13 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
             if (lat !== undefined && lng !== undefined) {
                 return ({ lat, lng, zoom });
             } else if (address) {
-                setTimeout(() => {
-                    query(address).then(({ results }) => {
-                        if (results?.length) {
-                            const { lat, lng } = results[0].geometry.location;
-                            if (doc[fieldKey + "-lat"] !== lat || doc[fieldKey + "-lng"] !== lng) {
-                                runInAction(() => {
-                                    Doc.SetInPlace(doc, fieldKey + "-lat", lat, true);
-                                    Doc.SetInPlace(doc, fieldKey + "-lng", lng, true);
-                                });
-                            }
-                        }
+                const id = doc[Id];
+                if (!this._initialLookupPending.get(id)) {
+                    this._initialLookupPending.set(id, true);
+                    setTimeout(() => {
+                        this.respondToAddressChange(address, doc).then(() => this._initialLookupPending.delete(id));
                     });
-                });
+                }
                 return defaultLocation;
             }
         }
@@ -93,7 +92,7 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
         }
     }
 
-    renderMarkerIcon(layout: Doc) {
+    private renderMarkerIcon = (layout: Doc) => {
         const iconUrl = StrCast(this.props.Document.mapIconUrl, null);
         if (iconUrl) {
             const iconWidth = NumCast(layout["mapLocation-iconWidth"], 45);
@@ -107,7 +106,7 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
         }
     }
 
-    renderMarker(layout: Doc) {
+    private renderMarker = (layout: Doc) => {
         const location = this.getLocation(layout, "mapLocation");
         return !location ? (null) :
             <Marker
@@ -117,6 +116,38 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
                 onClick={() => this.markerClick(layout, location)}
                 icon={this.renderMarkerIcon(layout)}
             />;
+    }
+
+    private respondToAddressChange = async (newAddress: string, doc: Doc) => {
+        const { results } = await query(newAddress);
+        if (!results?.length) {
+            return;
+        }
+        const { geometry, formatted_address } = results[0];
+        const { lat, lng } = geometry.location;
+        runInAction(() => {
+            if (doc["mapLocation-lat"] !== lat || doc["mapLocation-lng"] !== lng) {
+                this._cancelLocReq.set(doc[Id], true);
+                Doc.SetInPlace(doc, "mapLocation-lat", lat, true);
+                Doc.SetInPlace(doc, "mapLocation-lng", lng, true);
+            }
+            if (formatted_address !== newAddress) {
+                this._cancelAddrReq.set(doc[Id], true);
+                Doc.SetInPlace(doc, "mapLocation-address", formatted_address, true);
+            }
+        });
+    }
+
+    private respondToLocationChange = async (newLat: FieldResult, newLng: FieldResult, doc: Doc) => {
+        const { results } = await query({ lat: NumCast(newLat), lng: NumCast(newLng) });
+        if (!results?.length) {
+            return;
+        }
+        const { formatted_address } = results[0];
+        if (formatted_address !== doc["mapLocation-address"]) {
+            this._cancelAddrReq.set(doc[Id], true);
+            Doc.SetInPlace(doc, "mapLocation-address", formatted_address, true);
+        }
     }
 
     @computed get contents() {
@@ -131,15 +162,7 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
                     if (this._cancelLocReq.get(layout[Id])) {
                         this._cancelLocReq.set(layout[Id], false);
                     } else if (lat !== undefined && lng !== undefined) {
-                        query({ lat: NumCast(lat), lng: NumCast(lng) }).then(({ results }) => {
-                            if (results?.length) {
-                                const { formatted_address } = results[0];
-                                if (formatted_address !== layout["mapLocation-address"]) {
-                                    this._cancelAddrReq.set(layout[Id], true);
-                                    Doc.SetInPlace(layout, "mapLocation-address", formatted_address, true);
-                                }
-                            }
-                        });
+                        this.respondToLocationChange(lat, lng, layout);
                     }
                 }
             ));
@@ -149,23 +172,7 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
                     if (this._cancelAddrReq.get(layout[Id])) {
                         this._cancelAddrReq.set(layout[Id], false);
                     } else if (address?.length) {
-                        query(address).then(({ results }) => {
-                            if (results?.length) {
-                                const { geometry, formatted_address } = results[0];
-                                const { lat, lng } = geometry.location;
-                                runInAction(() => {
-                                    if (layout["mapLocation-lat"] !== lat || layout["mapLocation-lng"] !== lng) {
-                                        this._cancelLocReq.set(layout[Id], true);
-                                        Doc.SetInPlace(layout, "mapLocation-lat", lat, true);
-                                        Doc.SetInPlace(layout, "mapLocation-lng", lng, true);
-                                    }
-                                    if (formatted_address !== address) {
-                                        this._cancelAddrReq.set(layout[Id], true);
-                                        Doc.SetInPlace(layout, "mapLocation-address", formatted_address, true);
-                                    }
-                                });
-                            }
-                        });
+                        this.respondToAddressChange(address, layout);
                     }
                 }
             ));
