@@ -54,7 +54,11 @@ export namespace Database {
         private onConnect: (() => void)[] = [];
 
         constructor() {
-            this.MongoClient.connect(url, (_err, client) => {
+            const SocketOptions = {
+                connectTimeoutMS: 50000,
+                socketTimeoutMS: 50000
+            };
+            this.MongoClient.connect(url, SocketOptions, (_err, client) => {
                 if (!client) {
                     console.error("\nPlease start MongoDB by running 'mongod' in a terminal before continuing...\n");
                     process.exit(0);
@@ -69,6 +73,7 @@ export namespace Database {
                 const collection = this.db.collection(collectionName);
                 const prom = this.currentWrites[id];
                 let newProm: Promise<void>;
+
                 const run = (): Promise<void> => {
                     return new Promise<void>(resolve => {
                         collection.updateOne({ _id: id }, value, { upsert }
