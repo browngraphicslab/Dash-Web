@@ -236,10 +236,9 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
             const height = () => this.lookupPixels(layout);
             const width = () => PanelWidth() - 2 * NumCast(Document._xMargin) - (BoolCast(Document.showWidthLabels) ? 20 : 0);
             collector.push(
-                <div
-                    className={"document-wrapper"}
-                    key={"wrapper" + i}
-                >
+                <div className={"document-wrapper"}
+                    key={"wrapper" + i} >
+
                     {this.getDisplayDoc(layout, dxf, width, height)}
                     <HeightLabel
                         layout={layout}

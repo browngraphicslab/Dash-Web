@@ -11,10 +11,8 @@ import { undoBatch } from '../../../util/UndoManager';
 import { ContentFittingDocumentView } from '../../nodes/ContentFittingDocumentView';
 import { CollectionSubView } from '../CollectionSubView';
 import "./collectionMulticolumnView.scss";
-import ColumnResizeBar from './MulticolumnResizer';
-import RowResizeBar from './MultirowResizer';
+import ResizeBar from './MulticolumnResizer';
 import WidthLabel from './MulticolumnWidthLabel';
-import HeightLabel from './MultirowHeightLabel';
 import { List } from '../../../../new_fields/List';
 import { returnZero } from '../../../../Utils';
 
@@ -26,16 +24,9 @@ interface WidthSpecifier {
     unit: string;
 }
 
-interface HeightSpecifier {
-    magnitude: number;
-    unit: string;
-}
-
 interface LayoutData {
     widthSpecifiers: WidthSpecifier[];
-    heightSpecifiers: HeightSpecifier[];
-    starSumCol: number;
-    starSumRow: number;
+    starSum: number;
 }
 
 export const DimUnit = {
@@ -45,7 +36,6 @@ export const DimUnit = {
 
 const resolvedUnits = Object.values(DimUnit);
 const resizerWidth = 8;
-const resizerHeight = 8;
 
 @observer
 export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocument) {
@@ -69,17 +59,14 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
      */
     @computed
     private get resolvedLayoutInformation(): LayoutData {
-        let starSumCol = 0;
-        let starSumRow = 0;
+        let starSum = 0;
         const widthSpecifiers: WidthSpecifier[] = [];
-        const heightSpecifiers: HeightSpecifier[] = [];
         this.childLayoutPairs.map(pair => {
             const unit = StrCast(pair.layout.dimUnit, "*");
             const magnitude = NumCast(pair.layout.dimMagnitude, 1);
             if (unit && magnitude && magnitude > 0 && resolvedUnits.includes(unit)) {
-                (unit === DimUnit.Ratio) && (starSumCol += magnitude) && (starSumRow += magnitude);
+                (unit === DimUnit.Ratio) && (starSum += magnitude);
                 widthSpecifiers.push({ magnitude, unit });
-                heightSpecifiers.push({ magnitude, unit });
             }
             /**
              * Otherwise, the child document is ignored and the remaining
@@ -103,7 +90,7 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
             }
         });
 
-        return { widthSpecifiers, heightSpecifiers, starSumCol, starSumRow };
+        return { widthSpecifiers, starSum };
     }
 
     /**
@@ -115,14 +102,8 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
      * because we're waiting on promises to resolve, this value will be undefined as well.
      */
     @computed
-    private get totalFixedColumnAllocation(): number | undefined {
+    private get totalFixedAllocation(): number | undefined {
         return this.resolvedLayoutInformation?.widthSpecifiers.reduce(
-            (sum, { magnitude, unit }) => sum + (unit === DimUnit.Pixel ? magnitude : 0), 0);
-    }
-
-    @computed
-    private get totalFixedRowAllocation(): number | undefined {
-        return this.resolvedLayoutInformation?.heightSpecifiers.reduce(
             (sum, { magnitude, unit }) => sum + (unit === DimUnit.Pixel ? magnitude : 0), 0);
     }
 
@@ -132,22 +113,14 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
      * (with lower priority) requested a certain relative proportion of the
      * remaining pixel width not allocated for fixed widths.
      * 
-     * If the underlying totalFixedColumnAllocation returns undefined
+     * If the underlying totalFixedAllocation returns undefined
      * because we're waiting indirectly on promises to resolve, this value will be undefined as well.
      */
     @computed
-    private get totalColumnRatioAllocation(): number | undefined {
+    private get totalRatioAllocation(): number | undefined {
         const layoutInfoLen = this.resolvedLayoutInformation.widthSpecifiers.length;
-        if (layoutInfoLen > 0 && this.totalFixedColumnAllocation !== undefined) {
-            return this.props.PanelWidth() - (this.totalFixedColumnAllocation + resizerWidth * (layoutInfoLen - 1)) - 2 * NumCast(this.props.Document._xMargin);
-        }
-    }
-
-    @computed
-    private get totalRowRatioAllocation(): number | undefined {
-        const layoutInfoLen = this.resolvedLayoutInformation.heightSpecifiers.length;
-        if (layoutInfoLen > 0 && this.totalFixedRowAllocation !== undefined) {
-            return this.props.PanelHeight() - (this.totalFixedRowAllocation + resizerHeight * (layoutInfoLen - 1)) - 2 * NumCast(this.props.Document._yMargin);
+        if (layoutInfoLen > 0 && this.totalFixedAllocation !== undefined) {
+            return this.props.PanelWidth() - (this.totalFixedAllocation + resizerWidth * (layoutInfoLen - 1)) - 2 * NumCast(this.props.Document._xMargin);
         }
     }
 
@@ -160,22 +133,13 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
      * Elsewhere, this is then multiplied by each relative-width
      * document's (potentially decimal) * count to compute its actual width (400px, 400px and 200px).
      * 
-     * If the underlying totalColumnRatioAllocation or this.resolveLayoutInformation return undefined
+     * If the underlying totalRatioAllocation or this.resolveLayoutInformation return undefined
      * because we're waiting indirectly on promises to resolve, this value will be undefined as well.
      */
     @computed
     private get columnUnitLength(): number | undefined {
-        if (this.resolvedLayoutInformation && this.totalColumnRatioAllocation !== undefined) {
-            return this.totalColumnRatioAllocation / 4; // this.resolvedLayoutInformation.starSumCol;
-        }
-    }
-
-    @computed
-    private get rowUnitLength(): number | undefined {
-        if (this.resolvedLayoutInformation && this.totalRowRatioAllocation !== undefined) {
-            //return this.totalRowRatioAllocation / Math.ceil(this.resolvedLayoutInformation.starSumRow / 4);
-            //console.log(this.totalRowRatioAllocation / Math.ceil(this.ratioDefinedDocs.length / 4));
-            return this.totalRowRatioAllocation / Math.ceil(this.ratioDefinedDocs.length / 4);
+        if (this.resolvedLayoutInformation && this.totalRatioAllocation !== undefined) {
+            return this.totalRatioAllocation / this.resolvedLayoutInformation.starSum;
         }
     }
 
@@ -185,8 +149,6 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
      */
     private getColumnUnitLength = () => this.columnUnitLength;
 
-    private getRowUnitLength = () => this.rowUnitLength;
-
     /**
      * @param layout the document whose transform we'd like to compute
      * Given a layout document, this function
@@ -194,7 +156,7 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
      * @returns the stored column width if already in pixels,
      * or the ratio width evaluated to a pixel value
      */
-    private lookupWidthPixels = (layout: Doc): number => {
+    private lookupPixels = (layout: Doc): number => {
         const columnUnitLength = this.columnUnitLength;
         if (columnUnitLength === undefined) {
             return 0; // we're still waiting on promises to resolve
@@ -206,18 +168,6 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
         return width;
     }
 
-    private lookupHeightPixels = (layout: Doc): number => {
-        const rowUnitLength = this.rowUnitLength;
-        if (rowUnitLength === undefined) {
-            return 0; // we're still waiting on promises to resolve
-        }
-        let height = NumCast(layout.dimMagnitude, 1);
-        if (StrCast(layout.dimUnit, "*") === DimUnit.Ratio) {
-            height = rowUnitLength;
-        }
-        return height;
-    }
-
     /**
      * @returns the transform that will correctly place
      * the document decorations box, shifted to the right by
@@ -226,28 +176,15 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
      */
     private lookupIndividualTransform = (layoutInput: Doc) => {
         const columnUnitLength = this.columnUnitLength;
-        const rowUnitLength = this.rowUnitLength;
-        if (columnUnitLength === undefined || rowUnitLength === undefined) {
+        if (columnUnitLength === undefined) {
             return Transform.Identity(); // we're still waiting on promises to resolve
         }
-        let columnOffset = 0;
-        let rowOffset = 0;
-        for (let i = 0; i < this.childLayoutPairs.length; i++) {
-            const { layout: candidate } = this.childLayoutPairs[i];
-            //{ layout: candidate } of this.childLayoutPairs) {
+        let offset = 0;
+        for (const { layout: candidate } of this.childLayoutPairs) {
             if (candidate === layoutInput) {
-                //return this.props.ScreenToLocalTransform().translate(-columnOffset, -rowOffset);
-                return this.props.ScreenToLocalTransform().translate(-columnOffset, -rowOffset);
+                return this.props.ScreenToLocalTransform().translate(-offset, 0);
             }
-
-            if (i % 4 === 3) {
-                columnOffset = 0;
-                rowOffset += this.lookupHeightPixels(candidate) + resizerHeight;
-            }
-            else {
-                columnOffset += this.lookupWidthPixels(candidate) + resizerWidth;
-            }
-
+            offset += this.lookupPixels(candidate) + resizerWidth;
         }
         return Transform.Identity(); // type coersion, this case should never be hit
     }
@@ -292,29 +229,28 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
     @computed
     private get contents(): JSX.Element[] | null {
         const { childLayoutPairs } = this;
-        const { Document, PanelHeight, PanelWidth } = this.props;
+        const { Document, PanelHeight } = this.props;
         const collector: JSX.Element[] = [];
         for (let i = 0; i < childLayoutPairs.length; i++) {
             const { layout } = childLayoutPairs[i];
             const dxf = () => this.lookupIndividualTransform(layout).translate(-NumCast(Document._xMargin), -NumCast(Document._yMargin));
-            const width = () => this.lookupWidthPixels(layout);
-            const height = () => this.lookupHeightPixels(layout);
+            const width = () => this.lookupPixels(layout);
+            const height = () => PanelHeight() - 2 * NumCast(Document._yMargin) - (BoolCast(Document.showWidthLabels) ? 20 : 0);
             collector.push(
                 <div className={"document-wrapper"}
                     key={"wrapper" + i}
                     style={{ width: width() }} >
-
                     {this.getDisplayDoc(layout, dxf, width, height)}
                     <WidthLabel
                         layout={layout}
                         collectionDoc={Document}
                     />
                 </div>,
-                <ColumnResizeBar
+                <ResizeBar
                     width={resizerWidth}
                     key={"resizer" + i}
                     select={this.props.select}
-                    columnUnitLength={this.getRowUnitLength}
+                    columnUnitLength={this.getColumnUnitLength}
                     toLeft={layout}
                     toRight={childLayoutPairs[i + 1]?.layout}
                 />
@@ -335,4 +271,5 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
             </div>
         );
     }
+
 }
