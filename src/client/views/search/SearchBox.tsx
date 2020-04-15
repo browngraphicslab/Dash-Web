@@ -8,9 +8,9 @@ import * as rp from 'request-promise';
 import { Doc } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { Cast, NumCast, StrCast } from '../../../new_fields/Types';
-import { Utils } from '../../../Utils';
-import { Docs } from '../../documents/Documents';
-import { SetupDrag } from '../../util/DragManager';
+import { Utils, returnTrue, emptyFunction, returnFalse, emptyPath, returnOne } from '../../../Utils';
+import { Docs, DocumentOptions } from '../../documents/Documents';
+import { SetupDrag, DragManager } from '../../util/DragManager';
 import { SearchUtil } from '../../util/SearchUtil';
 import "./SearchBox.scss";
 import { SearchItem } from './SearchItem';
@@ -20,11 +20,20 @@ import { DocumentType } from "../../documents/DocumentTypes";
 import { DocumentView } from '../nodes/DocumentView';
 import { SelectionManager } from '../../util/SelectionManager';
 import { FilterQuery } from 'mongodb';
+import { CollectionLinearView } from '../collections/CollectionLinearView';
+import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
+import { CollectionDockingView } from '../collections/CollectionDockingView';
+import { ScriptField } from '../../../new_fields/ScriptField';
+import { PrefetchProxy } from '../../../new_fields/Proxy';
+import { List } from '../../../new_fields/List';
+import { faSearch, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faMusic, faLink, faChartBar, faGlobeAsia, faBan, faVideo, faCaretDown } from '@fortawesome/free-solid-svg-icons';
+
 
 library.add(faTimes);
 
 export interface SearchProps {
     id: string;
+    Document: Doc;
     searchQuery?: string;
     filterQuery?: filterData;
 }
@@ -80,8 +89,14 @@ export class SearchBox extends React.Component<SearchProps> {
         SearchBox.Instance = this;
         this.resultsScrolled = this.resultsScrolled.bind(this);
     }
-
+    @observable setupButtons =false;
     componentDidMount = () => {
+        console.log(this.setupButtons);
+        if (this.setupButtons==false){
+        console.log("Yuh");
+            this.setupDocTypeButtons();
+        runInAction(()=>this.setupButtons==true);
+    }
         if (this.inputRef.current) {
             this.inputRef.current.focus();
             runInAction(() => this._searchbarOpen = true);
@@ -663,6 +678,79 @@ export class SearchBox extends React.Component<SearchProps> {
     @action.bound
     updateDataStatus() { this._deletedDocsStatus = !this._deletedDocsStatus; }
 
+    addButtonDoc = (doc: Doc) => Doc.AddDocToList(CurrentUserUtils.UserDocument.expandingButtons as Doc, "data", doc);
+    remButtonDoc = (doc: Doc) => Doc.RemoveDocFromList(CurrentUserUtils.UserDocument.expandingButtons as Doc, "data", doc);
+    moveButtonDoc = (doc: Doc, targetCollection: Doc | undefined, addDocument: (document: Doc) => boolean) => this.remButtonDoc(doc) && addDocument(doc);
+    
+    @computed get docButtons() {
+        const nodeBtns = this.props.Document.nodeButtons;
+        if (nodeBtns instanceof Doc) {
+            return <div id="hi">
+                <CollectionLinearView
+                    Document={nodeBtns}
+                    DataDoc={undefined}
+                    LibraryPath={emptyPath}
+                    fieldKey={"data"}
+                    dropAction={"alias"}
+                    annotationsKey={""}
+                    rootSelected={returnTrue}
+                    bringToFront={emptyFunction}
+                    select={emptyFunction}
+                    active={returnFalse}
+                    isSelected={returnFalse}
+                    moveDocument={this.moveButtonDoc}
+                    CollectionView={undefined}
+                    addDocument={this.addButtonDoc}
+                    addDocTab={returnFalse}
+                    pinToPres={emptyFunction}
+                    removeDocument={this.remButtonDoc}
+                    onClick={undefined}
+                    ScreenToLocalTransform={this.buttonBarXf}
+                    ContentScaling={returnOne}
+                    PanelWidth={this.flyoutWidthFunc}
+                    PanelHeight={this.getContentsHeight}
+                    renderDepth={0}
+                    focus={emptyFunction}
+                    whenActiveChanged={emptyFunction}
+                    ContainingCollectionView={undefined}
+                    ContainingCollectionDoc={undefined} />
+            </div>;
+        }
+        return (null);
+    }
+
+    setupDocTypeButtons() {
+        let doc = this.props.Document;
+        const ficon = (opts: DocumentOptions) => new PrefetchProxy(Docs.Create.FontIconDocument({ ...opts, dontDecorateSelection: true, dropAction: "alias", removeDropProperties: new List<string>(["dropAction"]), _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100 })) as any as Doc;
+        const blist = (opts: DocumentOptions, docs: Doc[]) => new PrefetchProxy(Docs.Create.LinearDocument(docs, {
+            ...opts,
+            _gridGap: 5, _xMargin: 5, _yMargin: 5, _height: 42, _width: 100, boxShadow: "0 0", dontDecorateSelection: true, forceActive: true,
+            dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }),
+            backgroundColor: "black", treeViewPreventOpen: true, lockedPosition: true, _chromeStatus: "disabled", linearViewIsExpanded: true
+        })) as any as Doc;
+
+
+        doc.None = ficon({ onClick: undefined, title: "none button", icon: "ban" });
+        doc.Music = ficon({ onClick: undefined, title: "mussic button", icon: "music" });
+        doc.Col = ficon({ onClick: undefined, title: "col button", icon: "object-group" });
+        doc.Hist = ficon({ onClick: undefined, title: "hist button", icon: "chart-bar" });
+        doc.Image = ficon({ onClick: undefined, title: "image button", icon: "image" });
+        doc.Link = ficon({ onClick: undefined, title: "link button", icon: "link" });
+        doc.PDF = ficon({ onClick: undefined, title: "pdf button", icon: "file-pdf" });
+        doc.TEXT = ficon({ onClick: undefined, title: "text button", icon: "sticky-note" });
+        doc.Vid = ficon({ onClick: undefined, title: "vid button", icon: "video" });
+        doc.Web = ficon({ onClick: undefined, title: "web button", icon: "globe-asia" });
+
+        let buttons = [doc.None as Doc, doc.Music as Doc, doc.Col as Doc, doc.Hist as Doc,
+        doc.Image as Doc, doc.Link as Doc, doc.PDF as Doc, doc.TEXT as Doc, doc.Vid as Doc, doc.Web as Doc];
+
+        const dragCreators = Docs.Create.MasonryDocument(CurrentUserUtils.setupCreatorButtons(doc), {
+            _width: 500, _autoHeight: true, columnWidth: 35, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled", title: "buttons",
+            dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }), _yMargin: 5
+        });
+        doc.nodeButtons= dragCreators;
+    }
+
     render() {
 
         return (
@@ -685,6 +773,7 @@ export class SearchBox extends React.Component<SearchProps> {
                     </div>
                     <div id={`node${this.props.id}`} className="filter-body" style={this._nodeStatus ? { borderTop: "grey 1px solid" } : { borderTop: "0px" }}>
                         <IconBar />
+                        {this.docButtons}
                     </div>
                     <div className="filter-key" id={`key${this.props.id}`} style={this._keyStatus ? { borderTop: "grey 1px solid" } : { borderTop: "0px" }}>
                         <div className="filter-keybar">
