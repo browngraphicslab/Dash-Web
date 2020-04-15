@@ -12,6 +12,7 @@ import { DocumentManager } from "../../util/DocumentManager";
 import { UndoManager, undoBatch } from "../../util/UndoManager";
 import { IReactionDisposer, reaction, computed, runInAction } from "mobx";
 import requestPromise = require("request-promise");
+import { emptyFunction } from "../../../Utils";
 
 type MapSchema = makeInterface<[typeof documentSchema]>;
 const MapSchema = makeInterface(documentSchema);
@@ -119,11 +120,11 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
     }
 
     private respondToAddressChange = async (newAddress: string, doc: Doc) => {
-        const { results } = await query(newAddress);
-        if (!results?.length) {
-            return;
+        const response = await query(newAddress);
+        if (!response || response.status === "ZERO_RESULTS") {
+            return false;
         }
-        const { geometry, formatted_address } = results[0];
+        const { geometry, formatted_address } = response.results[0];
         const { lat, lng } = geometry.location;
         runInAction(() => {
             if (doc["mapLocation-lat"] !== lat || doc["mapLocation-lng"] !== lng) {
@@ -136,18 +137,20 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
                 Doc.SetInPlace(doc, "mapLocation-address", formatted_address, true);
             }
         });
+        return true;
     }
 
     private respondToLocationChange = async (newLat: FieldResult, newLng: FieldResult, doc: Doc) => {
-        const { results } = await query({ lat: NumCast(newLat), lng: NumCast(newLng) });
-        if (!results?.length) {
-            return;
+        const response = await query({ lat: NumCast(newLat), lng: NumCast(newLng) });
+        if (!response || response.status === "ZERO_RESULTS") {
+            return false;
         }
-        const { formatted_address } = results[0];
+        const { formatted_address } = response.results[0];
         if (formatted_address !== doc["mapLocation-address"]) {
             this._cancelAddrReq.set(doc[Id], true);
             Doc.SetInPlace(doc, "mapLocation-address", formatted_address, true);
         }
+        return true;
     }
 
     @computed get contents() {
@@ -156,23 +159,45 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
         this.latlngUpdaters.forEach(disposer => disposer());
         this.latlngUpdaters = [];
         return this.childLayoutPairs.map(({ layout }) => {
+            const id = layout[Id];
             this.addressUpdaters.push(reaction(
                 () => ({ lat: layout["mapLocation-lat"], lng: layout["mapLocation-lng"] }),
-                ({ lat, lng }) => {
-                    if (this._cancelLocReq.get(layout[Id])) {
-                        this._cancelLocReq.set(layout[Id], false);
-                    } else if (lat !== undefined && lng !== undefined) {
-                        this.respondToLocationChange(lat, lng, layout);
+                emptyFunction,
+                {
+                    equals: (previous, { lat, lng }) => {
+                        if (this._cancelLocReq.get(id)) {
+                            this._cancelLocReq.set(id, false);
+                        } else if (lat !== undefined && lng !== undefined) {
+                            this.respondToLocationChange(lat, lng, layout).then(success => {
+                                if (!success) {
+                                    this._cancelLocReq.set(id, true);
+                                    runInAction(() => {
+                                        layout["mapLocation-lat"] = previous.lat;
+                                        layout["mapLocation-lng"] = previous.lng;
+                                    });
+                                }
+                            });
+                        }
+                        return previous === { lat, lng };
                     }
                 }
             ));
             this.latlngUpdaters.push(reaction(
-                () => ({ address: Cast(layout["mapLocation-address"], "string", null) }),
-                ({ address }) => {
-                    if (this._cancelAddrReq.get(layout[Id])) {
-                        this._cancelAddrReq.set(layout[Id], false);
-                    } else if (address?.length) {
-                        this.respondToAddressChange(address, layout);
+                () => Cast(layout["mapLocation-address"], "string", null),
+                emptyFunction,
+                {
+                    equals: (previous, address) => {
+                        if (this._cancelAddrReq.get(id)) {
+                            this._cancelAddrReq.set(id, false);
+                        } else if (address?.length) {
+                            this.respondToAddressChange(address, layout).then(success => {
+                                if (!success) {
+                                    this._cancelAddrReq.set(id, true);
+                                    layout["mapLocation-address"] = previous;
+                                }
+                            });
+                        }
+                        return previous === address;
                     }
                 }
             ));
