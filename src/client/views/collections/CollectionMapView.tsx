@@ -57,13 +57,13 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
      * and address–updating reactions. 
      */
 
-    private getLocation = (doc: Opt<Doc>, fieldKey: string): Opt<LocationData> => {
+    private getLocation = (doc: Opt<Doc>, fieldKey: string, returnDefault: boolean = true): Opt<LocationData> => {
         if (doc) {
             const titleLoc = StrCast(doc.title).startsWith("@") ? StrCast(doc.title).substring(1) : undefined;
             const lat = Cast(doc[`${fieldKey}-lat`], "number", null) || (Cast(doc[`${fieldKey}-lat`], "string", null) && Number(Cast(doc[`${fieldKey}-lat`], "string", null))) || undefined;
             const lng = Cast(doc[`${fieldKey}-lng`], "number", null) || (Cast(doc[`${fieldKey}-lng`], "string", null) && Number(Cast(doc[`${fieldKey}-lng`], "string", null))) || undefined;
             const zoom = Cast(doc[`${fieldKey}-zoom`], "number", null) || (Cast(doc[`${fieldKey}-zoom`], "string", null) && Number(Cast(doc[`${fieldKey}-zoom`], "string", null))) || undefined;
-            const address = titleLoc || StrCast(doc[`${fieldKey}-address`], StrCast(doc.title));
+            const address = titleLoc || StrCast(doc[`${fieldKey}-address`], StrCast(doc.title).replace(/^-/, ""));
             if (titleLoc || (address && (lat === undefined || lng === undefined))) {
                 const id = doc[Id];
                 if (!this._initialLookupPending.get(id)) {
@@ -74,7 +74,7 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
                     });
                 }
             }
-            return (lat === undefined || lng === undefined) ? defaultLocation : { lat, lng, zoom };
+            return (lat === undefined || lng === undefined) ? (returnDefault ? defaultLocation : undefined) : { lat, lng, zoom };
         }
         return undefined;
     }
@@ -205,9 +205,9 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
     render() {
         const { childLayoutPairs } = this;
         const { Document, fieldKey, active, google } = this.props;
-        let center = this.getLocation(Document, `${fieldKey}-mapCenter`);
+        let center = this.getLocation(Document, `${fieldKey}-mapCenter`, false);
         if (center === undefined) {
-            center = childLayoutPairs.map(({ layout }) => this.getLocation(layout, fieldKey)).find(layout => layout);
+            center = childLayoutPairs.map(({ layout }) => this.getLocation(layout, fieldKey, false)).find(layout => layout);
             if (center === undefined) {
                 center = defaultLocation;
             }
