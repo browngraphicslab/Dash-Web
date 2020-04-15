@@ -44,6 +44,7 @@ import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import { CollectionViewType } from "../CollectionView";
+import { Script } from "vm";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
@@ -69,6 +70,8 @@ type PanZoomDocument = makeInterface<[typeof panZoomSchema, typeof documentSchem
 const PanZoomDocument = makeInterface(panZoomSchema, documentSchema, positionSchema, pageSchema);
 export type collectionFreeformViewProps = {
     forceScaling?: boolean; // whether to force scaling of content (needed by ImageBox)
+    childClickScript?: ScriptField;
+    viewDefDivClick?: ScriptField;
 };
 
 @observer
@@ -847,7 +850,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument, u
     }
 
     @computed get libraryPath() { return this.props.LibraryPath ? [...this.props.LibraryPath, this.props.Document] : []; }
-    @computed get onChildClickHandler() { return ScriptCast(this.Document.onChildClick); }
+    @computed get onChildClickHandler() { return this.props.childClickScript || ScriptCast(this.Document.onChildClick); }
     backgroundHalo = () => BoolCast(this.Document.useClusters);
 
     getChildDocumentViewProps(childLayout: Doc, childData?: Doc): DocumentViewProps {
@@ -906,7 +909,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument, u
     }
 
     onViewDefDivClick = (e: React.MouseEvent, payload: any) => {
-        (this.props.Document.onViewDefDivClick as ScriptField)?.script.run({ this: this.props.Document, payload });
+        (this.props.viewDefDivClick || ScriptCast(this.props.Document.onViewDefDivClick))?.script.run({ this: this.props.Document, payload });
         e.stopPropagation();
     }
     private viewDefToJSX(viewDef: ViewDefBounds): Opt<ViewDefResult> {

@@ -59,10 +59,10 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
 
     private getLocation = (doc: Opt<Doc>, fieldKey: string): Opt<LocationData> => {
         if (doc) {
-            const lat: Opt<number> = Cast(doc[fieldKey + "-lat"], "number", null) || (Cast(doc[fieldKey + "-lat"], "string", null) && Number(Cast(doc[fieldKey + "-lat"], "string", null))) || undefined;
-            const lng: Opt<number> = Cast(doc[fieldKey + "-lng"], "number", null) || (Cast(doc[fieldKey + "-lng"], "string", null) && Number(Cast(doc[fieldKey + "-lng"], "string", null))) || undefined;
-            const zoom: Opt<number> = Cast(doc[fieldKey + "-zoom"], "number", null) || (Cast(doc[fieldKey + "-zoom"], "string", null) && Number(Cast(doc[fieldKey + "-zoom"], "string", null))) || undefined;
-            const address: Opt<string> = Cast(doc[fieldKey + "-address"], "string", null);
+            const lat: Opt<number> = Cast(doc[`${fieldKey}-lat`], "number", null) || (Cast(doc[`${fieldKey}-lat`], "string", null) && Number(Cast(doc[`${fieldKey}-lat`], "string", null))) || undefined;
+            const lng: Opt<number> = Cast(doc[`${fieldKey}-lng`], "number", null) || (Cast(doc[`${fieldKey}-lng`], "string", null) && Number(Cast(doc[`${fieldKey}-lng`], "string", null))) || undefined;
+            const zoom: Opt<number> = Cast(doc[`${fieldKey}-zoom`], "number", null) || (Cast(doc[`${fieldKey}-zoom`], "string", null) && Number(Cast(doc[`${fieldKey}-zoom`], "string", null))) || undefined;
+            const address: Opt<string> = Cast(doc[`${fieldKey}-address`], "string", (lat === undefined || lng === undefined ? Cast(doc.title, "string", null) : null));
             if (lat !== undefined && lng !== undefined) {
                 return ({ lat, lng, zoom });
             } else if (address) {
@@ -70,7 +70,7 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
                 if (!this._initialLookupPending.get(id)) {
                     this._initialLookupPending.set(id, true);
                     setTimeout(() => {
-                        this.respondToAddressChange(doc, address).then(() => this._initialLookupPending.delete(id));
+                        this.respondToAddressChange(doc, fieldKey, address).then(() => this._initialLookupPending.delete(id));
                     });
                 }
                 return defaultLocation;
@@ -81,10 +81,11 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
 
     private markerClick = async (layout: Doc, { lat, lng, zoom }: LocationData) => {
         const batch = UndoManager.StartBatch("marker click");
+        const { fieldKey } = this.props;
         runInAction(() => {
-            this.layoutDoc[this.props.fieldKey + "-mapCenter-lat"] = lat;
-            this.layoutDoc[this.props.fieldKey + "-mapCenter-lng"] = lng;
-            zoom && (this.layoutDoc[this.props.fieldKey + "-mapCenter-zoom"] = zoom);
+            this.layoutDoc[`${fieldKey}-mapCenter-lat`] = lat;
+            this.layoutDoc[`${fieldKey}-mapCenter-lng`] = lng;
+            zoom && (this.layoutDoc[`${fieldKey}-mapCenter-zoom`] = zoom);
         });
         if (layout.isLinkButton && DocListCast(layout.links).length) {
             await DocumentManager.Instance.FollowLink(undefined, layout, (doc: Doc, where: string, finished?: () => void) => {
@@ -98,10 +99,11 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
     }
 
     private renderMarkerIcon = (layout: Doc) => {
-        const iconUrl = StrCast(this.props.Document.mapIconUrl, null);
+        const { Document, fieldKey } = this.props;
+        const iconUrl = StrCast(Document.mapIconUrl, null);
         if (iconUrl) {
-            const iconWidth = NumCast(layout["mapLocation-iconWidth"], 45);
-            const iconHeight = NumCast(layout["mapLocation-iconHeight"], 45);
+            const iconWidth = NumCast(layout[`${fieldKey}-iconWidth`], 45);
+            const iconHeight = NumCast(layout[`${fieldKey}-iconHeight`], 45);
             const iconSize = new google.maps.Size(iconWidth, iconHeight);
             return {
                 size: iconSize,
@@ -112,7 +114,7 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
     }
 
     private renderMarker = (layout: Doc) => {
-        const location = this.getLocation(layout, "mapLocation");
+        const location = this.getLocation(layout, this.props.fieldKey);
         return !location ? (null) :
             <Marker
                 key={layout[Id]}
@@ -123,7 +125,7 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
             />;
     }
 
-    private respondToAddressChange = async (doc: Doc, newAddress: string, oldAddress?: string) => {
+    private respondToAddressChange = async (doc: Doc, fieldKey: string, newAddress: string, oldAddress?: string) => {
         if (newAddress === oldAddress) {
             return false;
         }
@@ -131,26 +133,26 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
         const id = doc[Id];
         if (!response || response.status === noResults) {
             this._cancelAddrReq.set(id, true);
-            doc["mapLocation-address"] = oldAddress;
+            doc[`${fieldKey}-address`] = oldAddress;
             return false;
         }
         const { geometry, formatted_address } = response.results[0];
         const { lat, lng } = geometry.location;
         runInAction(() => {
-            if (doc["mapLocation-lat"] !== lat || doc["mapLocation-lng"] !== lng) {
+            if (doc[`${fieldKey}-lat`] !== lat || doc[`${fieldKey}-lng`] !== lng) {
                 this._cancelLocReq.set(id, true);
-                Doc.SetInPlace(doc, "mapLocation-lat", lat, true);
-                Doc.SetInPlace(doc, "mapLocation-lng", lng, true);
+                Doc.SetInPlace(doc, `${fieldKey}-lat`, lat, true);
+                Doc.SetInPlace(doc, `${fieldKey}-lng`, lng, true);
             }
             if (formatted_address !== newAddress) {
                 this._cancelAddrReq.set(id, true);
-                Doc.SetInPlace(doc, "mapLocation-address", formatted_address, true);
+                Doc.SetInPlace(doc, `${fieldKey}-address`, formatted_address, true);
             }
         });
         return true;
     }
 
-    private respondToLocationChange = async (doc: Doc, newLatLng: DocLatLng, oldLatLng: Opt<DocLatLng>) => {
+    private respondToLocationChange = async (doc: Doc, fieldKey: string, newLatLng: DocLatLng, oldLatLng: Opt<DocLatLng>) => {
         if (newLatLng === oldLatLng) {
             return false;
         }
@@ -159,39 +161,40 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
         if (!response || response.status === noResults) {
             this._cancelLocReq.set(id, true);
             runInAction(() => {
-                doc["mapLocation-lat"] = oldLatLng?.lat;
-                doc["mapLocation-lng"] = oldLatLng?.lng;
+                doc[`${fieldKey}-lat`] = oldLatLng?.lat;
+                doc[`${fieldKey}-lng`] = oldLatLng?.lng;
             });
             return false;
         }
         const { formatted_address } = response.results[0];
-        if (formatted_address !== doc["mapLocation-address"]) {
+        if (formatted_address !== doc[`${fieldKey}-address`]) {
             this._cancelAddrReq.set(doc[Id], true);
-            Doc.SetInPlace(doc, "mapLocation-address", formatted_address, true);
+            Doc.SetInPlace(doc, `${fieldKey}-address`, formatted_address, true);
         }
         return true;
     }
 
     @computed get reactiveContents() {
+        const { fieldKey } = this.props;
         this.responders.forEach(({ location, address }) => { location(); address(); });
         this.responders = [];
         return this.childLayoutPairs.map(({ layout }) => {
             const id = layout[Id];
             this.responders.push({
-                location: computed(() => ({ lat: layout["mapLocation-lat"], lng: layout["mapLocation-lng"] }))
+                location: computed(() => ({ lat: layout[`${fieldKey}-lat`], lng: layout[`${fieldKey}-lng`] }))
                     .observe(({ oldValue, newValue }) => {
                         if (this._cancelLocReq.get(id)) {
                             this._cancelLocReq.set(id, false);
                         } else if (newValue.lat !== undefined && newValue.lng !== undefined) {
-                            this.respondToLocationChange(layout, newValue, oldValue);
+                            this.respondToLocationChange(layout, fieldKey, newValue, oldValue);
                         }
                     }),
-                address: computed(() => Cast(layout["mapLocation-address"], "string", null))
+                address: computed(() => Cast(layout[`${fieldKey}-address`], "string", null))
                     .observe(({ oldValue, newValue }) => {
                         if (this._cancelAddrReq.get(id)) {
                             this._cancelAddrReq.set(id, false);
                         } else if (newValue?.length) {
-                            this.respondToAddressChange(layout, newValue, oldValue);
+                            this.respondToAddressChange(layout, fieldKey, newValue, oldValue);
                         }
                     })
             });
@@ -202,9 +205,9 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
     render() {
         const { childLayoutPairs } = this;
         const { Document, fieldKey, active, google } = this.props;
-        let center = this.getLocation(Document, fieldKey + "-mapCenter");
+        let center = this.getLocation(Document, `${fieldKey}-mapCenter`);
         if (center === undefined) {
-            center = childLayoutPairs.map(pair => this.getLocation(pair.layout, "mapLocation")).find(layout => layout);
+            center = childLayoutPairs.map(pair => this.getLocation(pair.layout, fieldKey)).find(layout => layout);
             if (center === undefined) {
                 center = defaultLocation;
             }
@@ -222,8 +225,8 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
                     onDragend={undoBatch((_props: MapProps, map: google.maps.Map) => {
                         const { lat, lng } = map.getCenter();
                         runInAction(() => {
-                            Document[fieldKey + "-mapCenter-lat"] = lat();
-                            Document[fieldKey + "-mapCenter-lng"] = lng();
+                            Document[`${fieldKey}-mapCenter-lat`] = lat();
+                            Document[`${fieldKey}-mapCenter-lng`] = lng();
                         });
                     })}
                 >

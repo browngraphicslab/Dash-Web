@@ -116,6 +116,8 @@ export interface DocumentOptions {
     boxShadow?: string;
     dontRegisterChildren?: boolean;
     "onClick-rawScript"?: string; // onClick script in raw text form
+    "onCheckedClick-rawScript"?: string; // onChecked script in raw text form
+    "onCheckedClick-params"?: List<string>; // parameter list for onChecked treeview functions
     _pivotField?: string; // field key used to determine headings for sections in stacking, masonry, pivot views
     schemaColumns?: List<SchemaHeaderField>;
     dockingConfig?: string;

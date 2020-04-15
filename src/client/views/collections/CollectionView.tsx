@@ -278,7 +278,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
             onMovePrevRequest={action(() => this._curLightboxImg = (this._curLightboxImg + images.length - 1) % images.length)}
             onMoveNextRequest={action(() => this._curLightboxImg = (this._curLightboxImg + 1) % images.length)} />);
     }
-    get _facetWidth() { return NumCast(this.props.Document._facetWidth) }
+    get _facetWidth() { return NumCast(this.props.Document._facetWidth); }
     set _facetWidth(value) { this.props.Document._facetWidth = value; }
 
     bodyPanelWidth = () => this.props.PanelWidth() - this.facetWidth();
