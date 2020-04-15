@@ -99,8 +99,9 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
     }
 
     private renderMarkerIcon = (layout: Doc) => {
-        const { Document, fieldKey } = this.props;
-        const iconUrl = StrCast(Document.mapIconUrl, null);
+        const { Document } = this.props;
+        const fieldKey = Doc.LayoutFieldKey(layout);
+        const iconUrl = StrCast(layout.mapIconUrl, StrCast(Document.mapIconUrl));
         if (iconUrl) {
             const iconWidth = NumCast(layout[`${fieldKey}-iconWidth`], 45);
             const iconHeight = NumCast(layout[`${fieldKey}-iconHeight`], 45);
@@ -114,7 +115,7 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
     }
 
     private renderMarker = (layout: Doc) => {
-        const location = this.getLocation(layout, this.props.fieldKey);
+        const location = this.getLocation(layout, Doc.LayoutFieldKey(layout));
         return !location ? (null) :
             <Marker
                 key={layout[Id]}
@@ -175,10 +176,10 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
     }
 
     @computed get reactiveContents() {
-        const { fieldKey } = this.props;
         this.responders.forEach(({ location, address }) => { location(); address(); });
         this.responders = [];
         return this.childLayoutPairs.map(({ layout }) => {
+            const fieldKey = Doc.LayoutFieldKey(layout);
             const id = layout[Id];
             this.responders.push({
                 location: computed(() => ({ lat: layout[`${fieldKey}-lat`], lng: layout[`${fieldKey}-lng`] }))
@@ -207,7 +208,7 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
         const { Document, fieldKey, active, google } = this.props;
         let center = this.getLocation(Document, `${fieldKey}-mapCenter`, false);
         if (center === undefined) {
-            center = childLayoutPairs.map(({ layout }) => this.getLocation(layout, fieldKey, false)).find(layout => layout);
+            center = childLayoutPairs.map(({ layout }) => this.getLocation(layout, Doc.LayoutFieldKey(layout), false)).find(layout => layout);
             if (center === undefined) {
                 center = defaultLocation;
             }
