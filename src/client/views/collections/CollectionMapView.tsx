@@ -207,7 +207,7 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
         const { Document, fieldKey, active, google } = this.props;
         let center = this.getLocation(Document, `${fieldKey}-mapCenter`);
         if (center === undefined) {
-            center = childLayoutPairs.map(pair => this.getLocation(pair.layout, fieldKey)).find(layout => layout);
+            center = childLayoutPairs.map(({ layout }) => this.getLocation(layout, fieldKey)).find(layout => layout);
             if (center === undefined) {
                 center = defaultLocation;
             }
