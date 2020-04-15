@@ -1,5 +1,5 @@
 import { GoogleApiWrapper, Map as GeoMap, MapProps, Marker } from "google-maps-react";
-import { computed, Lambda, runInAction } from "mobx";
+import { computed, Lambda, runInAction, action } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast, FieldResult, Opt } from "../../../new_fields/Doc";
 import { documentSchema } from "../../../new_fields/documentSchemas";
@@ -54,22 +54,22 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
 
     private getLocation = (doc: Opt<Doc>, fieldKey: string): Opt<LocationData> => {
         if (doc) {
-            const lat: Opt<number> = Cast(doc[fieldKey + "-lat"], "number", null) || (Cast(doc[fieldKey + "-lat"], "string", null) && Number(Cast(doc[fieldKey + "-lat"], "string", null))) || undefined;
-            const lng: Opt<number> = Cast(doc[fieldKey + "-lng"], "number", null) || (Cast(doc[fieldKey + "-lng"], "string", null) && Number(Cast(doc[fieldKey + "-lng"], "string", null))) || undefined;
-            const zoom: Opt<number> = Cast(doc[fieldKey + "-zoom"], "number", null) || (Cast(doc[fieldKey + "-zoom"], "string", null) && Number(Cast(doc[fieldKey + "-zoom"], "string", null))) || undefined;
-            const address: Opt<string> = Cast(doc[fieldKey + "-address"], "string", (lat === undefined || lng === undefined ? Cast(doc.title, "string", null) : null));
-            if (lat !== undefined && lng !== undefined) {
-                return ({ lat, lng, zoom });
-            } else if (address) {
+            const titleLoc = StrCast(doc.title).startsWith("@") ? StrCast(doc.title).substring(1) : undefined;
+            const lat = Cast(doc[fieldKey + "-lat"], "number", null) || (Cast(doc[fieldKey + "-lat"], "string", null) && Number(Cast(doc[fieldKey + "-lat"], "string", null))) || undefined;
+            const lng = Cast(doc[fieldKey + "-lng"], "number", null) || (Cast(doc[fieldKey + "-lng"], "string", null) && Number(Cast(doc[fieldKey + "-lng"], "string", null))) || undefined;
+            const zoom = Cast(doc[fieldKey + "-zoom"], "number", null) || (Cast(doc[fieldKey + "-zoom"], "string", null) && Number(Cast(doc[fieldKey + "-zoom"], "string", null))) || undefined;
+            const address = titleLoc || StrCast(doc[fieldKey + "-address"], StrCast(doc.title));
+            if (titleLoc || (address && (lat === undefined || lng === undefined))) {
                 const id = doc[Id];
                 if (!this._initialLookupPending.get(id)) {
-                    this._initialLookupPending.set(id, true); ``
+                    this._initialLookupPending.set(id, true);
                     setTimeout(() => {
+                        titleLoc && Doc.SetInPlace(doc, "title", titleLoc, true);
                         this.respondToAddressChange(address, fieldKey, doc).then(() => this._initialLookupPending.delete(id));
                     });
                 }
-                return defaultLocation;
             }
+            return (lat === undefined || lng === undefined) ? defaultLocation : { lat, lng, zoom };
         }
         return undefined;
     }
@@ -217,12 +217,25 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
                     zoom={center.zoom || 10}
                     initialCenter={center}
                     center={center}
+                    onIdle={(_props: any, map: any) => {
+                        if (this.layoutDoc.lockedTransform) {
+                            map.setZoom(center?.zoom || 10);
+                        } else {
+                            center?.zoom !== map.getZoom() && undoBatch(action(() => {
+                                Document[fieldKey + "-mapCenter-zoom"] = map.getZoom();
+                            }))();
+                        }
+                    }}
                     onDragend={undoBatch((_props: MapProps, map: google.maps.Map) => {
-                        const { lat, lng } = map.getCenter();
-                        runInAction(() => {
-                            Document[fieldKey + "-mapCenter-lat"] = lat();
-                            Document[fieldKey + "-mapCenter-lng"] = lng();
-                        });
+                        if (this.layoutDoc.lockedTransform) {
+                            center?.lat && center.lng && map.setCenter(center);
+                        } else {
+                            const { lat, lng } = map.getCenter();
+                            runInAction(() => {
+                                Document[fieldKey + "-mapCenter-lat"] = lat();
+                                Document[fieldKey + "-mapCenter-lng"] = lng();
+                            });
+                        }
                     })}
                 >
                     {this.reactiveContents}
