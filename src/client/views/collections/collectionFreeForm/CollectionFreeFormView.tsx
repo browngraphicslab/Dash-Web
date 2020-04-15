@@ -907,6 +907,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument, u
 
     onViewDefDivClick = (e: React.MouseEvent, payload: any) => {
         (this.props.Document.onViewDefDivClick as ScriptField)?.script.run({ this: this.props.Document, payload });
+        e.stopPropagation();
     }
     private viewDefToJSX(viewDef: ViewDefBounds): Opt<ViewDefResult> {
         const { x, y, z } = viewDef;
@@ -991,6 +992,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument, u
                     {...this.getChildDocumentViewProps(pair.layout, pair.data)}
                     dataProvider={this.childDataProvider}
                     LayoutDoc={this.childLayoutDocFunc}
+                    pointerEvents={this.props.layoutEngine?.() !== undefined ? "none" : undefined}
                     jitterRotation={NumCast(this.props.Document.jitterRotation)}
                     fitToBox={this.props.fitToBox || BoolCast(this.props.freezeChildDimensions)}
                     FreezeDimensions={BoolCast(this.props.freezeChildDimensions)}

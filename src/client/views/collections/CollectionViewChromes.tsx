@@ -276,12 +276,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                             title="Collapse collection chrome" onClick={this.toggleCollapse}>
                             <FontAwesomeIcon icon="caret-up" size="2x" />
                         </button>
-                        <div className="collectionViewBaseChrome-viewSpecs" title="filter documents to show" style={{ display: collapsed ? "none" : "grid" }}>
-                            <div className="collectionViewBaseChrome-filterIcon" onPointerDown={this.toggleViewSpecs} >
-                                <FontAwesomeIcon icon="filter" size="2x" />
-                            </div>
-                        </div>
-                        <div className="collectionViewBaseChrome-template" style={{ display: collapsed ? "none" : undefined }}>
+                        <div className="collectionViewBaseChrome-viewModes" style={{ display: collapsed ? "none" : undefined }}>
                             <div className="commandEntry-outerDiv" title="drop document to apply or drag to create button" ref={this._viewRef} onPointerDown={this.dragViewDown}>
                                 <div className="commandEntry-drop">
                                     <FontAwesomeIcon icon="bullseye" size="2x"></FontAwesomeIcon>
@@ -301,6 +296,11 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
                                         </option>
                                     ))}
                                 </select>
+                            </div>
+                        </div>
+                        <div className="collectionViewBaseChrome-viewSpecs" title="filter documents to show" style={{ display: collapsed ? "none" : "grid" }}>
+                            <div className="collectionViewBaseChrome-filterIcon" onPointerDown={this.toggleViewSpecs} >
+                                <FontAwesomeIcon icon="filter" size="2x" />
                             </div>
                         </div>
                         <div className="collectionViewBaseChrome-template" ref={this.createDropTarget} style={{ display: collapsed ? "none" : undefined }}>
