@@ -72,8 +72,22 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
         }), returnFalse, emptyFunction);
     }
 
+    contentsDown = (e: React.PointerEvent) => {
+        setupMoveUpEvents(this, e, returnFalse, returnFalse, action(() => {
+            let prevFilterIndex = NumCast(this.props.Document._prevFilterIndex);
+            if (prevFilterIndex > 0) {
+                prevFilterIndex--;
+                this.props.Document._docFilters = ObjectField.MakeCopy(this.props.Document["_prevDocFilter" + prevFilterIndex] as ObjectField);
+                this.props.Document._docRangeFilters = ObjectField.MakeCopy(this.props.Document["_prevDocRangeFilters" + prevFilterIndex] as ObjectField);
+                this.props.Document._prevFilterIndex = prevFilterIndex;
+            } else {
+                this.props.Document._docFilters = new List([]);
+            }
+        }), false);
+    }
+
     @computed get contents() {
-        return <div className="collectionTimeView-innards" key="timeline" style={{ width: "100%" }}>
+        return <div className="collectionTimeView-innards" key="timeline" style={{ width: "100%" }} onPointerDown={this.contentsDown}>
             <CollectionFreeFormView {...this.props} freezeChildDimensions={BoolCast(this.layoutDoc._freezeChildDimensions, true)} layoutEngine={this.layoutEngine} />
         </div>;
     }
@@ -132,20 +146,6 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
             color: "#f1efeb" // this.props.headingObject ? this.props.headingObject.color : "#f1efeb";
         };
         return <div className={"pivotKeyEntry"}>
-            <button className="collectionTimeView-backBtn"
-                onClick={action(() => {
-                    let prevFilterIndex = NumCast(this.props.Document._prevFilterIndex);
-                    if (prevFilterIndex > 0) {
-                        prevFilterIndex--;
-                        this.props.Document._docFilters = ObjectField.MakeCopy(this.props.Document["_prevDocFilter" + prevFilterIndex] as ObjectField);
-                        this.props.Document._docRangeFilters = ObjectField.MakeCopy(this.props.Document["_prevDocRangeFilters" + prevFilterIndex] as ObjectField);
-                        this.props.Document._prevFilterIndex = prevFilterIndex;
-                    } else {
-                        this.props.Document._docFilters = new List([]);
-                    }
-                })}>
-                back
-            </button>
             <EditableView {...newEditableViewProps} display={"inline"} menuCallback={this.menuCallback} />
         </div>;
     }

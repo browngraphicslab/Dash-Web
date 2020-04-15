@@ -142,7 +142,6 @@ export interface DocumentOptions {
     treeViewHideHeaderFields?: boolean; // whether to hide the drop down options for tree view items.
     treeViewOpen?: boolean; // whether this document is expanded in a tree view
     treeViewChecked?: ScriptField; // script to call when a tree view checkbox is checked
-    isFacetFilter?: boolean; // whether document functions as a facet filter in a tree view
     limitHeight?: number; // maximum height for newly created (eg, from pasting) text documents
     // [key: string]: Opt<Field>;
     pointerHack?: boolean; // for buttons, allows onClick handler to fire onPointerDown
