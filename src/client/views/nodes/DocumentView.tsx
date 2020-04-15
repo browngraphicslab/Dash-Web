@@ -299,7 +299,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     Doc.UnBrushDoc(this.props.Document);
                 }
             } else if (this.onClickHandler?.script && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes("ScriptingBox")) { // bcz: hack? don't execute script if you're clicking on a scripting box itself
-                SelectionManager.DeselectAll();
+                //SelectionManager.DeselectAll();
                 const func = () => this.onClickHandler.script.run({
                     this: this.layoutDoc,
                     self: this.rootDoc,
