@@ -1,18 +1,17 @@
 import { GoogleApiWrapper, Map as GeoMap, MapProps, Marker } from "google-maps-react";
+import { computed, Lambda, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, Opt, DocListCast, FieldResult } from "../../../new_fields/Doc";
+import { Doc, DocListCast, FieldResult, Opt } from "../../../new_fields/Doc";
 import { documentSchema } from "../../../new_fields/documentSchemas";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { makeInterface } from "../../../new_fields/Schema";
 import { Cast, NumCast, ScriptCast, StrCast } from "../../../new_fields/Types";
+import { DocumentManager } from "../../util/DocumentManager";
+import { undoBatch, UndoManager } from "../../util/UndoManager";
 import "./CollectionMapView.scss";
 import { CollectionSubView } from "./CollectionSubView";
 import React = require("react");
-import { DocumentManager } from "../../util/DocumentManager";
-import { UndoManager, undoBatch } from "../../util/UndoManager";
-import { IReactionDisposer, reaction, computed, runInAction, Lambda } from "mobx";
 import requestPromise = require("request-promise");
-import { emptyFunction } from "../../../Utils";
 
 type MapSchema = makeInterface<[typeof documentSchema]>;
 const MapSchema = makeInterface(documentSchema);
@@ -58,15 +57,15 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
             const lat: Opt<number> = Cast(doc[fieldKey + "-lat"], "number", null) || (Cast(doc[fieldKey + "-lat"], "string", null) && Number(Cast(doc[fieldKey + "-lat"], "string", null))) || undefined;
             const lng: Opt<number> = Cast(doc[fieldKey + "-lng"], "number", null) || (Cast(doc[fieldKey + "-lng"], "string", null) && Number(Cast(doc[fieldKey + "-lng"], "string", null))) || undefined;
             const zoom: Opt<number> = Cast(doc[fieldKey + "-zoom"], "number", null) || (Cast(doc[fieldKey + "-zoom"], "string", null) && Number(Cast(doc[fieldKey + "-zoom"], "string", null))) || undefined;
-            const address: Opt<string> = Cast(doc[fieldKey + "-address"], "string", null);
+            const address: Opt<string> = Cast(doc[fieldKey + "-address"], "string", (lat === undefined || lng === undefined ? Cast(doc.title, "string", null) : null));
             if (lat !== undefined && lng !== undefined) {
                 return ({ lat, lng, zoom });
             } else if (address) {
                 const id = doc[Id];
                 if (!this._initialLookupPending.get(id)) {
-                    this._initialLookupPending.set(id, true);
+                    this._initialLookupPending.set(id, true); ``
                     setTimeout(() => {
-                        this.respondToAddressChange(address, doc).then(() => this._initialLookupPending.delete(id));
+                        this.respondToAddressChange(address, fieldKey, doc).then(() => this._initialLookupPending.delete(id));
                     });
                 }
                 return defaultLocation;
@@ -119,7 +118,7 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
             />;
     }
 
-    private respondToAddressChange = async (newAddress: string, doc: Doc) => {
+    private respondToAddressChange = async (newAddress: string, fieldKey: string, doc: Doc) => {
         const response = await query(newAddress);
         if (!response || response.status === "ZERO_RESULTS") {
             return false;
@@ -127,28 +126,28 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
         const { geometry, formatted_address } = response.results[0];
         const { lat, lng } = geometry.location;
         runInAction(() => {
-            if (doc["mapLocation-lat"] !== lat || doc["mapLocation-lng"] !== lng) {
+            if (doc[fieldKey + "-lat"] !== lat || doc[fieldKey + "-lng"] !== lng) {
                 this._cancelLocReq.set(doc[Id], true);
-                Doc.SetInPlace(doc, "mapLocation-lat", lat, true);
-                Doc.SetInPlace(doc, "mapLocation-lng", lng, true);
+                Doc.SetInPlace(doc, fieldKey + "-lat", lat, true);
+                Doc.SetInPlace(doc, fieldKey + "-lng", lng, true);
             }
             if (formatted_address !== newAddress) {
                 this._cancelAddrReq.set(doc[Id], true);
-                Doc.SetInPlace(doc, "mapLocation-address", formatted_address, true);
+                Doc.SetInPlace(doc, fieldKey + "-address", formatted_address, true);
             }
         });
         return true;
     }
 
-    private respondToLocationChange = async (newLat: FieldResult, newLng: FieldResult, doc: Doc) => {
+    private respondToLocationChange = async (newLat: FieldResult, newLng: FieldResult, fieldKey: string, doc: Doc) => {
         const response = await query({ lat: NumCast(newLat), lng: NumCast(newLng) });
         if (!response || response.status === "ZERO_RESULTS") {
             return false;
         }
         const { formatted_address } = response.results[0];
-        if (formatted_address !== doc["mapLocation-address"]) {
+        if (formatted_address !== doc[fieldKey + "-address"]) {
             this._cancelAddrReq.set(doc[Id], true);
-            Doc.SetInPlace(doc, "mapLocation-address", formatted_address, true);
+            Doc.SetInPlace(doc, fieldKey + "-address", formatted_address, true);
         }
         return true;
     }
@@ -167,7 +166,7 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
                         if (this._cancelLocReq.get(id)) {
                             this._cancelLocReq.set(id, false);
                         } else if (lat !== undefined && lng !== undefined) {
-                            this.respondToLocationChange(lat, lng, layout).then(success => {
+                            this.respondToLocationChange(lat, lng, "mapLocation", layout).then(success => {
                                 if (!success) {
                                     this._cancelLocReq.set(id, true);
                                     runInAction(() => {
@@ -185,7 +184,7 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
                         if (this._cancelAddrReq.get(id)) {
                             this._cancelAddrReq.set(id, false);
                         } else if (newValue?.length) {
-                            this.respondToAddressChange(newValue, layout).then(success => {
+                            this.respondToAddressChange(newValue, "mapLocation", layout).then(success => {
                                 if (!success) {
                                     this._cancelAddrReq.set(id, true);
                                     layout["mapLocation-address"] = oldValue;
