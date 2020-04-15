@@ -10,7 +10,7 @@ import { CollectionSubView } from "./CollectionSubView";
 import React = require("react");
 import { DocumentManager } from "../../util/DocumentManager";
 import { UndoManager, undoBatch } from "../../util/UndoManager";
-import { IReactionDisposer, reaction, computed, runInAction } from "mobx";
+import { IReactionDisposer, reaction, computed, runInAction, Lambda } from "mobx";
 import requestPromise = require("request-promise");
 import { emptyFunction } from "../../../Utils";
 
@@ -42,8 +42,8 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
     private _cancelAddrReq = new Map<string, boolean>();
     private _cancelLocReq = new Map<string, boolean>();
     private _initialLookupPending = new Map<string, boolean>();
-    private addressUpdaters: IReactionDisposer[] = [];
-    private latlngUpdaters: IReactionDisposer[] = [];
+    private addressUpdaters: Lambda[] = [];
+    private latlngUpdaters: Lambda[] = [];
 
     /**
      * Note that all the uses of runInAction below are not included
@@ -153,18 +153,17 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
         return true;
     }
 
-    @computed get contents() {
+    @computed get reactiveContents() {
         this.addressUpdaters.forEach(disposer => disposer());
         this.addressUpdaters = [];
         this.latlngUpdaters.forEach(disposer => disposer());
         this.latlngUpdaters = [];
         return this.childLayoutPairs.map(({ layout }) => {
             const id = layout[Id];
-            this.addressUpdaters.push(reaction(
-                () => ({ lat: layout["mapLocation-lat"], lng: layout["mapLocation-lng"] }),
-                emptyFunction,
-                {
-                    equals: (previous, { lat, lng }) => {
+            this.addressUpdaters.push(
+                computed(() => ({ lat: layout["mapLocation-lat"], lng: layout["mapLocation-lng"] }))
+                    .observe(({ oldValue, newValue }) => {
+                        const { lat, lng } = newValue;
                         if (this._cancelLocReq.get(id)) {
                             this._cancelLocReq.set(id, false);
                         } else if (lat !== undefined && lng !== undefined) {
@@ -172,35 +171,29 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
                                 if (!success) {
                                     this._cancelLocReq.set(id, true);
                                     runInAction(() => {
-                                        layout["mapLocation-lat"] = previous.lat;
-                                        layout["mapLocation-lng"] = previous.lng;
+                                        layout["mapLocation-lat"] = oldValue ? oldValue.lat : undefined;
+                                        layout["mapLocation-lng"] = oldValue ? oldValue.lng : undefined;
                                     });
                                 }
                             });
                         }
-                        return previous === { lat, lng };
-                    }
-                }
-            ));
-            this.latlngUpdaters.push(reaction(
-                () => Cast(layout["mapLocation-address"], "string", null),
-                emptyFunction,
-                {
-                    equals: (previous, address) => {
+                    })
+            );
+            this.latlngUpdaters.push(
+                computed(() => Cast(layout["mapLocation-address"], "string", null))
+                    .observe(({ oldValue, newValue }) => {
                         if (this._cancelAddrReq.get(id)) {
                             this._cancelAddrReq.set(id, false);
-                        } else if (address?.length) {
-                            this.respondToAddressChange(address, layout).then(success => {
+                        } else if (newValue?.length) {
+                            this.respondToAddressChange(newValue, layout).then(success => {
                                 if (!success) {
                                     this._cancelAddrReq.set(id, true);
-                                    layout["mapLocation-address"] = previous;
+                                    layout["mapLocation-address"] = oldValue;
                                 }
                             });
                         }
-                        return previous === address;
-                    }
-                }
-            ));
+                    })
+            );
             return this.renderMarker(layout);
         });
     }
@@ -233,7 +226,7 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
                         });
                     })}
                 >
-                    {this.contents}
+                    {this.reactiveContents}
                 </GeoMap>
             </div>
         </div>;
