@@ -45,8 +45,6 @@ import { ScriptField, ComputedField } from '../../../new_fields/ScriptField';
 import { InteractionUtils } from '../../util/InteractionUtils';
 import { ObjectField } from '../../../new_fields/ObjectField';
 import CollectionMapView from './CollectionMapView';
-import { ClientUtils } from '../../util/ClientUtils';
-import { GoogleApiWrapper } from 'google-maps-react';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -279,7 +277,8 @@ export class CollectionView extends Touchable<FieldViewProps> {
             onMovePrevRequest={action(() => this._curLightboxImg = (this._curLightboxImg + images.length - 1) % images.length)}
             onMoveNextRequest={action(() => this._curLightboxImg = (this._curLightboxImg + 1) % images.length)} />);
     }
-    @observable _facetWidth = 0;
+    get _facetWidth() { return NumCast(this.props.Document._facetWidth) }
+    set _facetWidth(value) { this.props.Document._facetWidth = value; }
 
     bodyPanelWidth = () => this.props.PanelWidth() - this.facetWidth();
     getTransform = () => this.props.ScreenToLocalTransform().translate(-this.facetWidth(), 0);
@@ -365,17 +364,22 @@ export class CollectionView extends Touchable<FieldViewProps> {
                 Doc.GetProto(newFacet).type = DocumentType.COL; // forces item to show an open/close button instead ofa checkbox
                 newFacet.treeViewExpandedView = "layout";
                 newFacet.treeViewOpen = true;
-                newFacet[newFacetField + "-min"] = ranged === undefined ? minVal : ranged[0];
-                newFacet[newFacetField + "-max"] = ranged === undefined ? maxVal : ranged[1];
-                Doc.GetProto(newFacet)[newFacetField + "-minThumb"] = minVal;
-                Doc.GetProto(newFacet)[newFacetField + "-maxThumb"] = maxVal;
+                const extendedMinVal = minVal - Math.min(1, Math.abs(maxVal - minVal) * .05);
+                const extendedMaxVal = maxVal + Math.min(1, Math.abs(maxVal - minVal) * .05);
+                newFacet[newFacetField + "-min"] = ranged === undefined ? extendedMinVal : ranged[0];
+                newFacet[newFacetField + "-max"] = ranged === undefined ? extendedMaxVal : ranged[1];
+                Doc.GetProto(newFacet)[newFacetField + "-minThumb"] = extendedMinVal;
+                Doc.GetProto(newFacet)[newFacetField + "-maxThumb"] = extendedMaxVal;
                 newFacet.target = this.props.Document;
                 const scriptText = `setDocFilterRange(this.target, "${facetHeader}", range)`;
                 newFacet.onThumbChanged = ScriptField.MakeScript(scriptText, { this: Doc.name, range: "number" });
 
                 Doc.AddDocToList(facetCollection, this.props.fieldKey + "-filter", newFacet);
             } else {
-                newFacet = Docs.Create.TreeDocument([], { title: facetHeader, treeViewOpen: true, isFacetFilter: true });
+                newFacet = new Doc();
+                newFacet.title = facetHeader;
+                newFacet.treeViewOpen = true;
+                newFacet.type = DocumentType.COL;
                 const capturedVariables = { layoutDoc: this.props.Document, dataDoc: this.dataDoc };
                 newFacet.data = ComputedField.MakeFunction(`readFacetData(layoutDoc, dataDoc, "${this.props.fieldKey}", "${facetHeader}")`, {}, capturedVariables);
             }
