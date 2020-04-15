@@ -47,6 +47,7 @@ import { ClientRecommender } from '../../ClientRecommender';
 import { SearchUtil } from '../../util/SearchUtil';
 import { RadialMenu } from './RadialMenu';
 import { KeyphraseQueryView } from '../KeyphraseQueryView';
+import { undo } from 'prosemirror-history';
 
 library.add(fa.faEdit, fa.faTrash, fa.faShare, fa.faDownload, fa.faExpandArrowsAlt, fa.faCompressArrowsAlt, fa.faLayerGroup, fa.faExternalLinkAlt, fa.faAlignCenter, fa.faCaretSquareRight,
     fa.faSquare, fa.faConciergeBell, fa.faWindowRestore, fa.faFolder, fa.faMapPin, fa.faLink, fa.faFingerprint, fa.faCrosshairs, fa.faDesktop, fa.faUnlock, fa.faLock, fa.faLaptopCode, fa.faMale,
@@ -64,12 +65,13 @@ export interface DocumentViewProps {
     LayoutDoc?: () => Opt<Doc>;
     LibraryPath: Doc[];
     fitToBox?: boolean;
-    rootSelected: () => boolean; // whether the root of a template has been selected
+    rootSelected: (outsideReaction?: boolean) => boolean; // whether the root of a template has been selected
     onClick?: ScriptField;
     onPointerDown?: ScriptField;
     onPointerUp?: ScriptField;
     dropAction?: dropActionType;
     dragDivName?: string;
+    nudge?: (x: number, y: number) => void;
     addDocument?: (doc: Doc) => boolean;
     removeDocument?: (doc: Doc) => boolean;
     moveDocument?: (doc: Doc, targetCollection: Doc | undefined, addDocument: (document: Doc) => boolean) => boolean;
@@ -115,7 +117,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @computed get freezeDimensions() { return this.props.FreezeDimensions; }
     @computed get nativeWidth() { return NumCast(this.layoutDoc._nativeWidth, this.props.NativeWidth() || (this.freezeDimensions ? this.layoutDoc[WidthSym]() : 0)); }
     @computed get nativeHeight() { return NumCast(this.layoutDoc._nativeHeight, this.props.NativeHeight() || (this.freezeDimensions ? this.layoutDoc[HeightSym]() : 0)); }
-    @computed get onClickHandler() { return this.props.onClick || this.layoutDoc.onClick || this.Document.onClick; }
+    @computed get onClickHandler() { return this.props.onClick || Cast(this.layoutDoc.onClick, ScriptField, null) || this.Document.onClick; }
     @computed get onPointerDownHandler() { return this.props.onPointerDown ? this.props.onPointerDown : this.Document.onPointerDown; }
     @computed get onPointerUpHandler() { return this.props.onPointerUp ? this.props.onPointerUp : this.Document.onPointerUp; }
     NativeWidth = () => this.nativeWidth;
@@ -196,27 +198,31 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this._mainCont.current && (this.multiTouchDisposer = InteractionUtils.MakeMultiTouchTarget(this._mainCont.current, this.onTouchStart.bind(this)));
         // this._mainCont.current && (this.holdDisposer = InteractionUtils.MakeHoldTouchTarget(this._mainCont.current, this.handle1PointerHoldStart.bind(this)));
 
-        !this.props.dontRegisterView && DocumentManager.Instance.DocumentViews.push(this);
+        if (!this.props.dontRegisterView) {
+            DocumentManager.Instance.DocumentViews.push(this);
+        }
     }
 
     @action
     componentDidUpdate() {
-        this._dropDisposer && this._dropDisposer();
-        this._gestureEventDisposer && this._gestureEventDisposer();
-        this.multiTouchDisposer && this.multiTouchDisposer();
-        this.holdDisposer && this.holdDisposer();
-        this._mainCont.current && (this._dropDisposer = DragManager.MakeDropTarget(this._mainCont.current, this.drop.bind(this)));
-        this._mainCont.current && (this._gestureEventDisposer = GestureUtils.MakeGestureTarget(this._mainCont.current, this.onGesture.bind(this)));
-        this._mainCont.current && (this.multiTouchDisposer = InteractionUtils.MakeMultiTouchTarget(this._mainCont.current, this.onTouchStart.bind(this)));
-        this._mainCont.current && (this.holdDisposer = InteractionUtils.MakeHoldTouchTarget(this._mainCont.current, this.handle1PointerHoldStart.bind(this)));
+        this._dropDisposer?.();
+        this._gestureEventDisposer?.();
+        this.multiTouchDisposer?.();
+        this.holdDisposer?.();
+        if (this._mainCont.current) {
+            this._dropDisposer = DragManager.MakeDropTarget(this._mainCont.current, this.drop.bind(this));
+            this._gestureEventDisposer = GestureUtils.MakeGestureTarget(this._mainCont.current, this.onGesture.bind(this));
+            this.multiTouchDisposer = InteractionUtils.MakeMultiTouchTarget(this._mainCont.current, this.onTouchStart.bind(this));
+            this.holdDisposer = InteractionUtils.MakeHoldTouchTarget(this._mainCont.current, this.handle1PointerHoldStart.bind(this));
+        }
     }
 
     @action
     componentWillUnmount() {
-        this._dropDisposer && this._dropDisposer();
-        this._gestureEventDisposer && this._gestureEventDisposer();
-        this.multiTouchDisposer && this.multiTouchDisposer();
-        this.holdDisposer && this.holdDisposer();
+        this._dropDisposer?.();
+        this._gestureEventDisposer?.();
+        this.multiTouchDisposer?.();
+        this.holdDisposer?.();
         Doc.UnBrushDoc(this.props.Document);
         if (!this.props.dontRegisterView) {
             const index = DocumentManager.Instance.DocumentViews.indexOf(this);
@@ -281,33 +287,37 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             (Math.abs(e.clientX - this._downX) < Utils.DRAG_THRESHOLD && Math.abs(e.clientY - this._downY) < Utils.DRAG_THRESHOLD)) {
             let stopPropagate = true;
             let preventDefault = true;
-            this.props.bringToFront(this.props.Document);
+            this.props.Document.isBackground === undefined && this.props.bringToFront(this.props.Document);
             if (this._doubleTap && this.props.renderDepth && !this.onClickHandler?.script) { // disable double-click to show full screen for things that have an on click behavior since clicking them twice can be misinterpreted as a double click
-                const fullScreenAlias = Doc.MakeAlias(this.props.Document);
-                if (StrCast(fullScreenAlias.layoutKey) !== "layout_fullScreen" && fullScreenAlias.layout_fullScreen) {
-                    fullScreenAlias.layoutKey = "layout_fullScreen";
+                if (!(e.nativeEvent as any).formattedHandled) {
+                    const fullScreenAlias = Doc.MakeAlias(this.props.Document);
+                    if (StrCast(fullScreenAlias.layoutKey) !== "layout_fullScreen" && fullScreenAlias.layout_fullScreen) {
+                        fullScreenAlias.layoutKey = "layout_fullScreen";
+                    }
+                    UndoManager.RunInBatch(() => this.props.addDocTab(fullScreenAlias, "inTab"), "double tap");
+                    SelectionManager.DeselectAll();
+                    Doc.UnBrushDoc(this.props.Document);
                 }
-                UndoManager.RunInBatch(() => this.props.addDocTab(fullScreenAlias, "inTab"), "double tap");
+            } else if (this.onClickHandler?.script && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes("ScriptingBox")) { // bcz: hack? don't execute script if you're clicking on a scripting box itself
                 SelectionManager.DeselectAll();
-                Doc.UnBrushDoc(this.props.Document);
-            } else if (this.onClickHandler?.script) {
-                SelectionManager.DeselectAll();
-                const func = () => this.onClickHandler!.script.run({
-                    this: this.props.Document,
-                    self: Cast(this.props.Document.rootDocument, Doc, null) || this.props.Document,
+                const func = () => this.onClickHandler.script.run({
+                    this: this.layoutDoc,
+                    self: this.rootDoc,
                     thisContainer: this.props.ContainingCollectionDoc, shiftKey: e.shiftKey
-                }, console.log);// && !this.props.Document.isButton && this.select(false);
+                }, console.log);
                 if (this.props.Document !== Doc.UserDoc().undoBtn && this.props.Document !== Doc.UserDoc().redoBtn) {
                     UndoManager.RunInBatch(func, "on click");
                 } else func();
-            } else if (this.Document.type === DocumentType.BUTTON) {
-                UndoManager.RunInBatch(() => ScriptBox.EditButtonScript("On Button Clicked ...", this.props.Document, "onClick", e.clientX, e.clientY), "on button click");
-            } else if (this.Document.isButton) {
+            } else if (this.Document["onClick-rawScript"] && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes("ScriptingBox")) {// bcz: hack? don't edit a script if you're clicking on a scripting box itself
+                UndoManager.RunInBatch(() => DocumentView.makeCustomViewClicked(this.props.Document, undefined, "onClick"), "edit onClick");
+                //ScriptBox.EditButtonScript("On Button Clicked ...", this.props.Document, "onClick", e.clientX, e.clientY), "on button click");
+            } else if (this.Document.isLinkButton) {
                 DocListCast(this.props.Document.links).length && this.followLinkClick(e.altKey, e.ctrlKey, e.shiftKey);
             } else {
-                if (this.props.Document.isTemplateForField && !(e.ctrlKey || e.button > 0)) {
+                if ((this.props.Document.onDragStart || (this.props.Document.rootDocument && this.props.Document.isTemplateForField)) && !(e.ctrlKey || e.button > 0)) {  // onDragStart implies a button doc that we don't want to select when clicking.   RootDocument & isTEmplaetForField implies we're clicking on part of a template instance and we want to select the whole template, not the part
                     stopPropagate = false; // don't stop propagation for field templates -- want the selection to propagate up to the root document of the template
                 } else {
+                    this.props.focus(this.props.Document, false);
                     SelectionManager.SelectDoc(this, e.ctrlKey);
                 }
                 preventDefault = false;
@@ -327,7 +337,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             const targetFocusAfterDocFocus = () => {
                 const where = StrCast(this.Document.followLinkLocation) || followLoc;
                 const hackToCallFinishAfterFocus = () => {
-                    setTimeout(() => finished?.(), 0); // finished() needs to be called right after hackToCallFinishAfterFocus(), but there's no callback for that so we use the hacky timeout.  
+                    finished && setTimeout(finished, 0); // finished() needs to be called right after hackToCallFinishAfterFocus(), but there's no callback for that so we use the hacky timeout.  
                     return false; // we must return false here so that the zoom to the document is not reversed.  If it weren't for needing to call finished(), we wouldn't need this function at all since not having it is equivalent to returning false
                 };
                 this.props.addDocTab(doc, where) && this.props.focus(doc, true, undefined, hackToCallFinishAfterFocus); //  add the target and focus on it.
@@ -507,8 +517,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     onPointerUp = (e: PointerEvent): void => {
         this.cleanUpInteractions();
 
-        if (this.onPointerUpHandler && this.onPointerUpHandler.script && !InteractionUtils.IsType(e, InteractionUtils.PENTYPE)) {
-            this.onPointerUpHandler.script.run({ this: this.Document.isTemplateForField && this.props.DataDoc ? this.props.DataDoc : this.props.Document }, console.log);
+        if (this.onPointerUpHandler?.script && !InteractionUtils.IsType(e, InteractionUtils.PENTYPE)) {
+            this.onPointerUpHandler.script.run({ self: this.rootDoc, this: this.layoutDoc }, console.log);
             document.removeEventListener("pointerup", this.onPointerUp);
             return;
         }
@@ -532,7 +542,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     deleteClicked = (): void => { SelectionManager.DeselectAll(); this.props.removeDocument?.(this.props.Document); }
 
     // applies a custom template to a document.  the template is identified by it's short name (e.g, slideView not layout_slideView)
-    static makeCustomViewClicked = (doc: Doc, creator: (documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc, templateSignature: string = "custom", docLayoutTemplate?: Doc) => {
+    static makeCustomViewClicked = (doc: Doc, creator: Opt<(documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc>, templateSignature: string = "custom", docLayoutTemplate?: Doc) => {
         const batch = UndoManager.StartBatch("makeCustomViewClicked");
         runInAction(() => {
             doc.layoutKey = "layout_" + templateSignature;
@@ -542,16 +552,22 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         });
         batch.end();
     }
-    static createCustomView = (doc: Doc, creator: (documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc, templateSignature: string = "custom", docLayoutTemplate?: Doc) => {
+    static findTemplate(templateName: string, type: string, signature: string) {
+        let docLayoutTemplate: Opt<Doc>;
         const iconViews = DocListCast(Cast(Doc.UserDoc().iconViews, Doc, null)?.data);
         const templBtns = DocListCast(Cast(Doc.UserDoc().templateButtons, Doc, null)?.data);
         const noteTypes = DocListCast(Cast(Doc.UserDoc().noteTypes, Doc, null)?.data);
-        const allTemplates = iconViews.concat(templBtns).concat(noteTypes).map(btnDoc => (btnDoc.dragFactory as Doc) || btnDoc).filter(doc => doc.isTemplateDoc);
-        const templateName = templateSignature.replace(/\(.*\)/, "");
+        const clickFuncs = DocListCast(Cast(Doc.UserDoc().clickFuncs, Doc, null)?.data);
+        const allTemplates = iconViews.concat(templBtns).concat(noteTypes).concat(clickFuncs).map(btnDoc => (btnDoc.dragFactory as Doc) || btnDoc).filter(doc => doc.isTemplateDoc);
         // bcz: this is hacky -- want to have different templates be applied depending on the "type" of a document.  but type is not reliable and there could be other types of template searches so this should be generalized
         // first try to find a template that matches the specific document type (<typeName>_<templateName>).  otherwise, fallback to a general match on <templateName>
-        !docLayoutTemplate && allTemplates.forEach(tempDoc => StrCast(tempDoc.title) === doc.type + "_" + templateName && (docLayoutTemplate = tempDoc));
+        !docLayoutTemplate && allTemplates.forEach(tempDoc => StrCast(tempDoc.title) === type + "_" + templateName && (docLayoutTemplate = tempDoc));
         !docLayoutTemplate && allTemplates.forEach(tempDoc => StrCast(tempDoc.title) === templateName && (docLayoutTemplate = tempDoc));
+        return docLayoutTemplate;
+    }
+    static createCustomView = (doc: Doc, creator: Opt<(documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc>, templateSignature: string = "custom", docLayoutTemplate?: Doc) => {
+        const templateName = templateSignature.replace(/\(.*\)/, "");
+        docLayoutTemplate = docLayoutTemplate || DocumentView.findTemplate(templateName, StrCast(doc.type), templateSignature);
 
         const customName = "layout_" + templateSignature;
         const _width = NumCast(doc._width);
@@ -570,30 +586,30 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         } else if (doc.data instanceof ImageField) {
             fieldTemplate = Docs.Create.ImageDocument("http://www.cs.brown.edu", options);
         }
-        const docTemplate = docLayoutTemplate || creator(fieldTemplate ? [fieldTemplate] : [], { title: customName + "(" + doc.title + ")", isTemplateDoc: true, _width: _width + 20, _height: Math.max(100, _height + 45) });
+        const docTemplate = docLayoutTemplate || creator?.(fieldTemplate ? [fieldTemplate] : [], { title: customName + "(" + doc.title + ")", isTemplateDoc: true, _width: _width + 20, _height: Math.max(100, _height + 45) });
 
-        fieldTemplate && Doc.MakeMetadataFieldTemplate(fieldTemplate, Doc.GetProto(docTemplate));
-        Doc.ApplyTemplateTo(docTemplate, doc, customName, undefined);
+        fieldTemplate && Doc.MakeMetadataFieldTemplate(fieldTemplate, docTemplate ? Doc.GetProto(docTemplate) : docTemplate);
+        docTemplate && Doc.ApplyTemplateTo(docTemplate, doc, customName, undefined);
     }
 
     @undoBatch
-    toggleButtonBehavior = (): void => {
-        if (this.Document.isButton || this.Document.onClick || this.Document.ignoreClick) {
-            this.Document.isButton = false;
+    toggleLinkButtonBehavior = (): void => {
+        if (this.Document.isLinkButton || this.Document.onClick || this.Document.ignoreClick) {
+            this.Document.isLinkButton = false;
             this.Document.ignoreClick = false;
             this.Document.onClick = undefined;
         } else {
-            this.Document.isButton = true;
+            this.Document.isLinkButton = true;
             this.Document.followLinkLocation = undefined;
         }
     }
 
     @undoBatch
     toggleFollowInPlace = (): void => {
-        if (this.Document.isButton) {
-            this.Document.isButton = false;
+        if (this.Document.isLinkButton) {
+            this.Document.isLinkButton = false;
         } else {
-            this.Document.isButton = true;
+            this.Document.isLinkButton = true;
             this.Document.followLinkLocation = "inPlace";
         }
     }
@@ -639,10 +655,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     makeIntoPortal = async () => {
         const portalLink = DocListCast(this.Document.links).find(d => d.anchor1 === this.props.Document);
         if (!portalLink) {
-            const portal = Docs.Create.FreeformDocument([], { _width: (this.layoutDoc._width || 0) + 10, _height: this.layoutDoc._height || 0, title: StrCast(this.props.Document.title) + ".portal" });
+            const portal = Docs.Create.FreeformDocument([], { _width: NumCast(this.layoutDoc._width) + 10, _height: NumCast(this.layoutDoc._height), title: StrCast(this.props.Document.title) + ".portal" });
             DocUtils.MakeLink({ doc: this.props.Document }, { doc: portal }, "portal to");
         }
-        this.Document.isButton = true;
+        this.Document.isLinkButton = true;
     }
 
     @undoBatch
@@ -656,8 +672,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @undoBatch
     @action
-    makeBackground = (): void => {
-        this.Document.isBackground = !this.Document.isBackground;
+    toggleBackground = (temporary: boolean): void => {
+        this.Document.overflow = temporary ? "visible" : "hidden";
+        this.Document.isBackground = !temporary ? !this.Document.isBackground : (this.Document.isBackground ? undefined : true);
         this.Document.isBackground && this.props.bringToFront(this.Document, true);
     }
 
@@ -697,7 +714,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
         const existing = cm.findByDescription("Layout...");
         const layoutItems: ContextMenuProps[] = existing && "subitems" in existing ? existing.subitems : [];
-        layoutItems.push({ description: this.Document.isBackground ? "As Foreground" : "As Background", event: this.makeBackground, icon: this.Document.lockedPosition ? "unlock" : "lock" });
+        layoutItems.push({ description: this.Document.isBackground ? "As Foreground" : "As Background", event: (e) => this.toggleBackground(false), icon: this.Document.lockedPosition ? "unlock" : "lock" });
         layoutItems.push({ description: "Make View of Metadata Field", event: () => Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.DataDoc), icon: "concierge-bell" });
 
         layoutItems.push({ description: `${this.Document._chromeStatus !== "disabled" ? "Hide" : "Show"} Chrome`, event: () => this.Document._chromeStatus = (this.Document._chromeStatus !== "disabled" ? "disabled" : "enabled"), icon: "project-diagram" });
@@ -727,8 +744,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         onClicks.push({ description: "Enter Portal", event: this.makeIntoPortal, icon: "window-restore" });
         onClicks.push({ description: "Toggle Detail", event: () => this.Document.onClick = ScriptField.MakeScript(`toggleDetail(this, "${this.props.Document.layoutKey}")`), icon: "window-restore" });
         onClicks.push({ description: this.Document.ignoreClick ? "Select" : "Do Nothing", event: () => this.Document.ignoreClick = !this.Document.ignoreClick, icon: this.Document.ignoreClick ? "unlock" : "lock" });
-        onClicks.push({ description: this.Document.isButton ? "Remove Follow Behavior" : "Follow Link in Place", event: this.toggleFollowInPlace, icon: "concierge-bell" });
-        onClicks.push({ description: this.Document.isButton || this.Document.onClick ? "Remove Click Behavior" : "Follow Link", event: this.toggleButtonBehavior, icon: "concierge-bell" });
+        onClicks.push({ description: this.Document.isLinkButton ? "Remove Follow Behavior" : "Follow Link in Place", event: this.toggleFollowInPlace, icon: "concierge-bell" });
+        onClicks.push({ description: this.Document.isLinkButton || this.Document.onClick ? "Remove Click Behavior" : "Follow Link", event: this.toggleLinkButtonBehavior, icon: "concierge-bell" });
         onClicks.push({ description: "Edit onClick Script", icon: "edit", event: (obj: any) => ScriptBox.EditButtonScript("On Button Clicked ...", this.props.Document, "onClick", obj.x, obj.y) });
         !existingOnClick && cm.addItem({ description: "OnClick...", subitems: onClicks, icon: "hand-point-right" });
 
@@ -861,7 +878,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         await Promise.all(allDocs.map((doc: Doc) => {
             let isMainDoc: boolean = false;
             const dataDoc = Doc.GetProto(doc);
-            if (doc.type === DocumentType.TEXT) {
+            if (doc.type === DocumentType.RTF) {
                 if (dataDoc === Doc.GetProto(this.props.Document)) {
                     isMainDoc = true;
                 }
@@ -964,8 +981,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const fallback = Cast(this.props.Document.layoutKey, "string");
         return typeof fallback === "string" ? fallback : "layout";
     }
-    rootSelected = () => {
-        return this.isSelected(false) || (this.props.Document.forceActive && this.props.rootSelected?.() ? true : false);
+    rootSelected = (outsideReaction?: boolean) => {
+        return this.isSelected(outsideReaction) || (this.rootDoc && this.props.rootSelected?.(outsideReaction));
     }
     childScaling = () => (this.layoutDoc._fitWidth ? this.props.PanelWidth() / this.nativeWidth : this.props.ContentScaling());
     panelWidth = () => this.props.PanelWidth();
@@ -982,6 +999,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             LayoutDoc={this.props.LayoutDoc}
             makeLink={this.makeLink}
             rootSelected={this.rootSelected}
+            dontRegisterView={this.props.dontRegisterView}
             fitToBox={this.props.fitToBox}
             LibraryPath={this.props.LibraryPath}
             addDocument={this.props.addDocument}
@@ -1012,36 +1030,40 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     // would be good to generalize this some way.
     isNonTemporalLink = (linkDoc: Doc) => {
         const anchor = Cast(Doc.AreProtosEqual(this.props.Document, Cast(linkDoc.anchor1, Doc) as Doc) ? linkDoc.anchor1 : linkDoc.anchor2, Doc) as Doc;
-        return anchor.type === DocumentType.AUDIO ? false : true;
+        const ept = Doc.AreProtosEqual(this.props.Document, Cast(linkDoc.anchor1, Doc) as Doc) ? linkDoc.anchor1_timecode : linkDoc.anchor2_timecode;
+        return anchor.type === DocumentType.AUDIO && NumCast(ept) ? false : true;
     }
 
-    @observable _link: Opt<Doc>;
-    makeLink = () => {
-        return this._link;
-    }
 
-    hideLinkAnchor = (doc: Doc) => undoBatch(doc => doc.hidden = true)();
+    @observable _link: Opt<Doc>;  // see DocumentButtonBar for explanation of how this works
+    makeLink = () => this._link; // pass the link placeholde to child views so they can react to make a specialized anchor.  This is essentially a function call to the descendants since the value of the _link variable will immediately get set back to undefined.
+
+    @undoBatch
+    hideLinkAnchor = (doc: Doc) => doc.hidden = true
     anchorPanelWidth = () => this.props.PanelWidth() || 1;
     anchorPanelHeight = () => this.props.PanelHeight() || 1;
     @computed get anchors() {
         TraceMobx();
-        return DocListCast(this.Document.links).filter(d => !d.hidden && this.isNonTemporalLink).map((d, i) =>
-            <div className="documentView-docuLinkWrapper" key={d[Id]}>
+        return this.layoutDoc.presBox ? (null) : DocListCast(this.Document.links).filter(d => !d.hidden && this.isNonTemporalLink).map((d, i) =>
+            <div className="documentView-linkAnchorBoxWrapper" key={d[Id]}>
                 <DocumentView {...this.props}
                     Document={d}
-                    ContainingCollectionDoc={this.props.Document} // bcz: hack this.props.Document is not a collection  Need a better prop for passing the containing document to the DocuLinkBox
+                    ContainingCollectionView={this.props.ContainingCollectionView}
+                    ContainingCollectionDoc={this.props.Document} // bcz: hack this.props.Document is not a collection  Need a better prop for passing the containing document to the LinkAnchorBox
                     PanelWidth={this.anchorPanelWidth}
                     PanelHeight={this.anchorPanelHeight}
                     layoutKey={this.linkEndpoint(d)}
                     ContentScaling={returnOne}
                     backgroundColor={returnTransparent}
-                    removeDocument={this.hideLinkAnchor} />
+                    removeDocument={this.hideLinkAnchor}
+                    LayoutDoc={undefined}
+                />
             </div>);
     }
     @computed get innards() {
         TraceMobx();
         if (!this.props.PanelWidth()) {  // this happens when the document is a tree view label
-            return <div className="documentView-docuLinkAnchor" >
+            return <div className="documentView-linkAnchorBoxAnchor" >
                 {StrCast(this.props.Document.title)}
                 {this.anchors}
             </div>;
@@ -1090,7 +1112,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         </>;
     }
     @computed get ignorePointerEvents() {
-        return (this.Document.isBackground && !this.isSelected()) || this.props.layoutKey?.includes("layout_key") || (this.Document.type === DocumentType.INK && InkingControl.Instance.selectedTool !== InkTool.None);
+        return (this.Document.isBackground && !this.isSelected() && !SelectionManager.GetIsDragging()) || this.props.layoutKey?.includes("layout_key") || (this.Document.type === DocumentType.INK && InkingControl.Instance.selectedTool !== InkTool.None);
     }
 
     @observable _animate = 0;
@@ -1136,12 +1158,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 background: finalColor,
                 opacity: this.Document.opacity
             }}>
-            {this.Document.isBackground ? <div className="documentView-lock"> <FontAwesomeIcon icon="unlock" size="lg" /> </div> : (null)}
             {this.onClickHandler && this.props.ContainingCollectionView?.props.Document._viewType === CollectionViewType.Time ? <>
                 {this.innards}
                 <div className="documentView-contentBlocker" />
             </> :
                 this.innards}
+            {this.Document.isBackground !== undefined || this.isSelected(false) ? <div className="documentView-lock" onClick={() => this.toggleBackground(true)}> <FontAwesomeIcon icon={this.Document.isBackground ? "unlock" : "lock"} size="lg" /> </div> : (null)}
         </div>;
         { this._showKPQuery ? <KeyphraseQueryView keyphrases={this._queries}></KeyphraseQueryView> : undefined; }
     }

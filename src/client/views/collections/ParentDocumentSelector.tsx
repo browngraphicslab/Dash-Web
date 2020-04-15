@@ -54,7 +54,7 @@ export class SelectorContextMenu extends React.Component<SelectorProps> {
     getOnClick({ col, target }: { col: Doc, target: Doc }) {
         return () => {
             col = Doc.IsPrototype(col) ? Doc.MakeDelegate(col) : col;
-            if (NumCast(col._viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
+            if (col._viewType === CollectionViewType.Freeform) {
                 const newPanX = NumCast(target.x) + NumCast(target._width) / 2;
                 const newPanY = NumCast(target.y) + NumCast(target._height) / 2;
                 col._panX = newPanX;
@@ -94,8 +94,6 @@ export class ParentDocSelector extends React.Component<SelectorProps> {
 
 @observer
 export class DockingViewButtonSelector extends React.Component<{ views: DocumentView[], Stack: any }> {
-    @observable hover = false;
-
     customStylesheet(styles: any) {
         return {
             ...styles,
@@ -105,19 +103,24 @@ export class DockingViewButtonSelector extends React.Component<{ views: Document
             },
         };
     }
+    _ref = React.createRef<HTMLDivElement>();
 
     @computed get flyout() {
-        trace();
         return (
-            <div className="ParentDocumentSelector-flyout" title=" ">
+            <div className="ParentDocumentSelector-flyout" title=" " ref={this._ref}>
                 <DocumentButtonBar views={this.props.views} stack={this.props.Stack} />
             </div>
         );
     }
 
     render() {
-        trace();
-        return <span title="Tap for menu, drag tab as document" onPointerDown={e => { this.props.views[0].select(false); e.stopPropagation(); }} className="buttonSelector">
+        return <span title="Tap for menu, drag tab as document"
+            onPointerDown={e => {
+                if (getComputedStyle(this._ref.current!).width !== "100%") {
+                    e.stopPropagation(); e.preventDefault();
+                }
+                this.props.views[0]?.select(false);
+            }} className="buttonSelector">
             <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={this.flyout} stylesheet={this.customStylesheet}>
                 <FontAwesomeIcon icon={"cog"} size={"sm"} />
             </Flyout>

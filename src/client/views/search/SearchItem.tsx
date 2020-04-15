@@ -68,7 +68,7 @@ export class SelectorContextMenu extends React.Component<SearchItemProps> {
     getOnClick({ col, target }: { col: Doc, target: Doc }) {
         return () => {
             col = Doc.IsPrototype(col) ? Doc.MakeDelegate(col) : col;
-            if (NumCast(col._viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
+            if (col._viewType === CollectionViewType.Freeform) {
                 const newPanX = NumCast(target.x) + NumCast(target._width) / 2;
                 const newPanY = NumCast(target.y) + NumCast(target._height) / 2;
                 col._panX = newPanX;
@@ -178,14 +178,13 @@ export class SearchItem extends React.Component<SearchItemProps> {
         }
         const button = layoutresult.indexOf(DocumentType.PDF) !== -1 ? faFilePdf :
             layoutresult.indexOf(DocumentType.IMG) !== -1 ? faImage :
-                layoutresult.indexOf(DocumentType.TEXT) !== -1 ? faStickyNote :
+                layoutresult.indexOf(DocumentType.RTF) !== -1 ? faStickyNote :
                     layoutresult.indexOf(DocumentType.VID) !== -1 ? faFilm :
                         layoutresult.indexOf(DocumentType.COL) !== -1 ? faObjectGroup :
                             layoutresult.indexOf(DocumentType.AUDIO) !== -1 ? faMusic :
                                 layoutresult.indexOf(DocumentType.LINK) !== -1 ? faLink :
-                                    layoutresult.indexOf(DocumentType.HIST) !== -1 ? faChartBar :
-                                        layoutresult.indexOf(DocumentType.WEB) !== -1 ? faGlobeAsia :
-                                            faCaretUp;
+                                    layoutresult.indexOf(DocumentType.WEB) !== -1 ? faGlobeAsia :
+                                        faCaretUp;
         return <div onClick={action(() => { this._useIcons = false; this._displayDim = Number(SEARCH_THUMBNAIL_SIZE); })} >
             <FontAwesomeIcon icon={button} size="2x" />
         </div>;

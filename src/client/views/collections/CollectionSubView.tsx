@@ -34,7 +34,7 @@ export interface CollectionViewProps extends FieldViewProps {
     PanelHeight: () => number;
     VisibleHeight?: () => number;
     setPreviewCursor?: (func: (x: number, y: number, drag: boolean) => void) => void;
-    rootSelected: () => boolean;
+    rootSelected: (outsideReaction?: boolean) => boolean;
     fieldKey: string;
     NativeWidth: () => number;
     NativeHeight: () => number;
@@ -99,8 +99,8 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 this.props.Document.resolvedDataDoc ? this.props.Document : Doc.GetProto(this.props.Document)); // if the layout document has a resolvedDataDoc, then we don't want to get its parent which would be the unexpanded template
         }
 
-        rootSelected = () => {
-            return this.props.isSelected() || (this.props.Document.rootDocument || this.props.Document.forceActive ? this.props.rootSelected() : false);
+        rootSelected = (outsideReaction?: boolean) => {
+            return this.props.isSelected(outsideReaction) || (this.rootDoc && this.props.rootSelected(outsideReaction));
         }
 
         // The data field for rendering this collection will be on the this.props.Document unless we're rendering a template in which case we try to use props.DataDoc.
@@ -120,8 +120,8 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             return Cast(this.dataField, listSpec(Doc));
         }
         @computed get childDocs() {
-            const docFilters = Cast(this.props.Document._docFilters, listSpec("string"), []);
-            const docRangeFilters = Cast(this.props.Document._docRangeFilters, listSpec("string"), []);
+            const docFilters = this.props.ignoreFields?.includes("_docFilters") ? [] : Cast(this.props.Document._docFilters, listSpec("string"), []);
+            const docRangeFilters = this.props.ignoreFields?.includes("_docRangeFilters") ? [] : Cast(this.props.Document._docRangeFilters, listSpec("string"), []);
             const filterFacets: { [key: string]: { [value: string]: string } } = {};  // maps each filter key to an object with value=>modifier fields
             for (let i = 0; i < docFilters.length; i += 3) {
                 const [key, value, modifiers] = docFilters.slice(i, i + 3);
@@ -381,7 +381,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                     alert(`Upload failed: ${result.message}`);
                     return;
                 }
-                const full = { ...options, _width: 300, title: name };
+                const full = { ...options, _width: 400, title: name };
                 const pathname = Utils.prepend(result.accessPaths.agnostic.client);
                 const doc = await Docs.Get.DocumentFromType(type, pathname, full);
                 if (!doc) {

@@ -14,7 +14,7 @@ import { Docs } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
 import { ImageUtils } from "../../util/Import & Export/ImageUtils";
 import { SelectionManager } from "../../util/SelectionManager";
-import { DocAnnotatableComponent } from "../DocComponent";
+import { ViewBoxAnnotatableComponent } from "../DocComponent";
 import { DocumentDecorations } from "../DocumentDecorations";
 import { InkingControl } from "../InkingControl";
 import { FieldView, FieldViewProps } from './FieldView';
@@ -33,7 +33,7 @@ type WebDocument = makeInterface<[typeof documentSchema]>;
 const WebDocument = makeInterface(documentSchema);
 
 @observer
-export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>(WebDocument) {
+export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocument>(WebDocument) {
 
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(WebBox, fieldKey); }
     @observable private collapsed: boolean = true;

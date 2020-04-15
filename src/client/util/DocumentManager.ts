@@ -148,7 +148,7 @@ export class DocumentManager {
         const highlight = () => {
             const finalDocView = getFirstDocView(targetDoc);
             if (finalDocView) {
-                finalDocView.Document.scrollToLinkID = linkId;
+                finalDocView.layoutDoc.scrollToLinkID = linkId;
                 Doc.linkFollowHighlight(finalDocView.props.Document);
             }
         };
@@ -219,9 +219,12 @@ export class DocumentManager {
         if (linkDoc) {
             const target = (doc === linkDoc.anchor1 ? linkDoc.anchor2 : doc === linkDoc.anchor2 ? linkDoc.anchor1 :
                 (Doc.AreProtosEqual(doc, linkDoc.anchor1 as Doc) ? linkDoc.anchor2 : linkDoc.anchor1)) as Doc;
+            const targetTimecode = (doc === linkDoc.anchor1 ? Cast(linkDoc.anchor2_timecode, "number") : 
+                                    doc === linkDoc.anchor2 ? Cast(linkDoc.anchor1_timecode, "number"):
+                (Doc.AreProtosEqual(doc, linkDoc.anchor1 as Doc) ? Cast(linkDoc.anchor2_timecode, "number"):Cast(linkDoc.anchor1_timecode, "number")));
             if (target) {
                 const containerDoc = (await Cast(target.annotationOn, Doc)) || target;
-                containerDoc.currentTimecode !== undefined && (containerDoc.currentTimecode = NumCast(target?.timecode));
+                containerDoc.currentTimecode = targetTimecode;
                 const targetContext = await target?.context as Doc;
                 const targetNavContext = !Doc.AreProtosEqual(targetContext, currentContext) ? targetContext : undefined;
                 DocumentManager.Instance.jumpToDocument(target, zoom, (doc, finished) => createViewFunc(doc, StrCast(linkDoc.followLinkLocation, "onRight"), finished), targetNavContext, linkDoc[Id], undefined, doc, finished);

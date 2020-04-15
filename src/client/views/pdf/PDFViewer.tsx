@@ -23,7 +23,7 @@ import Annotation from "./Annotation";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { SelectionManager } from "../../util/SelectionManager";
 import { undoBatch } from "../../util/UndoManager";
-import { DocAnnotatableComponent } from "../DocComponent";
+import { ViewBoxAnnotatableComponent } from "../DocComponent";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { documentSchema } from "../../../new_fields/documentSchemas";
 import { DocumentDecorations } from "../DocumentDecorations";
@@ -59,7 +59,7 @@ interface IViewerProps {
     PanelHeight: () => number;
     ContentScaling: () => number;
     select: (isCtrlPressed: boolean) => void;
-    rootSelected: () => boolean;
+    rootSelected: (outsideReaction?: boolean) => boolean;
     startupLive: boolean;
     renderDepth: number;
     focus: (doc: Doc) => void;
@@ -79,7 +79,7 @@ interface IViewerProps {
  * Handles rendering and virtualization of the pdf
  */
 @observer
-export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument>(PdfDocument) {
+export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocument>(PdfDocument) {
     static _annotationStyle: any = addStyleSheet();
     @observable private _pageSizes: { width: number, height: number }[] = [];
     @observable private _annotations: Doc[] = [];
@@ -164,7 +164,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
     }
 
     componentWillUnmount = () => {
-        this._reactionDisposer && this._reactionDisposer();
+        this._reactionDisposer?.();
         this._scrollTopReactionDisposer?.();
         this._annotationReactionDisposer?.();
         this._filterReactionDisposer?.();
@@ -282,7 +282,7 @@ export class PDFViewer extends DocAnnotatableComponent<IViewerProps, PdfDocument
             if (anno.style.height) annoDoc._height = parseInt(anno.style.height);
             if (anno.style.width) annoDoc._width = parseInt(anno.style.width);
             annoDoc.group = mainAnnoDoc;
-            annoDoc.isButton = true;
+            annoDoc.isLinkButton = true;
             annoDocs.push(annoDoc);
             anno.remove();
             mainAnnoDoc = annoDoc;

@@ -7,8 +7,8 @@ import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { Utils, setupMoveUpEvents } from '../../../Utils';
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager } from "../../util/DragManager";
-import { DocComponent } from "../DocComponent";
-import "./DocuLinkBox.scss";
+import { ViewBoxBaseComponent } from "../DocComponent";
+import "./LinkAnchorBox.scss";
 import { FieldView, FieldViewProps } from "./FieldView";
 import React = require("react");
 import { ContextMenuProps } from "../ContextMenuItem";
@@ -21,12 +21,12 @@ const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
 
-type DocLinkSchema = makeInterface<[typeof documentSchema]>;
-const DocLinkDocument = makeInterface(documentSchema);
+type LinkAnchorSchema = makeInterface<[typeof documentSchema]>;
+const LinkAnchorDocument = makeInterface(documentSchema);
 
 @observer
-export class DocuLinkBox extends DocComponent<FieldViewProps, DocLinkSchema>(DocLinkDocument) {
-    public static LayoutString(fieldKey: string) { return FieldView.LayoutString(DocuLinkBox, fieldKey); }
+export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnchorSchema>(LinkAnchorDocument) {
+    public static LayoutString(fieldKey: string) { return FieldView.LayoutString(LinkAnchorBox, fieldKey); }
     _doubleTap = false;
     _lastTap: number = 0;
     _ref = React.createRef<HTMLDivElement>();
@@ -49,14 +49,14 @@ export class DocuLinkBox extends DocComponent<FieldViewProps, DocLinkSchema>(Doc
             const separation = Math.sqrt((pt[0] - e.clientX) * (pt[0] - e.clientX) + (pt[1] - e.clientY) * (pt[1] - e.clientY));
             const dragdist = Math.sqrt((pt[0] - down[0]) * (pt[0] - down[0]) + (pt[1] - down[1]) * (pt[1] - down[1]));
             if (separation > 100) {
-                const dragData = new DragManager.DocumentDragData([this.props.Document]);
+                const dragData = new DragManager.DocumentDragData([this.rootDoc]);
                 dragData.dropAction = "alias";
-                dragData.removeDropProperties = ["anchor1_x", "anchor1_y", "anchor2_x", "anchor2_y", "isButton"];
+                dragData.removeDropProperties = ["anchor1_x", "anchor1_y", "anchor2_x", "anchor2_y", "isLinkButton"];
                 DragManager.StartDocumentDrag([this._ref.current!], dragData, down[0], down[1]);
                 return true;
             } else if (dragdist > separation) {
-                this.props.Document[this.props.fieldKey + "_x"] = (pt[0] - bounds.left) / bounds.width * 100;
-                this.props.Document[this.props.fieldKey + "_y"] = (pt[1] - bounds.top) / bounds.height * 100;
+                this.layoutDoc[this.fieldKey + "_x"] = (pt[0] - bounds.left) / bounds.width * 100;
+                this.layoutDoc[this.fieldKey + "_y"] = (pt[1] - bounds.top) / bounds.height * 100;
             }
         }
         return false;
@@ -65,16 +65,16 @@ export class DocuLinkBox extends DocComponent<FieldViewProps, DocLinkSchema>(Doc
     onClick = (e: PointerEvent) => {
         this._doubleTap = (Date.now() - this._lastTap < 300 && e.button === 0);
         this._lastTap = Date.now();
-        if ((e.button === 2 || e.ctrlKey || !this.props.Document.isButton)) {
+        if ((e.button === 2 || e.ctrlKey || !this.layoutDoc.isLinkButton)) {
             this.props.select(false);
         }
-        if (!this._doubleTap) {
+        if (!this._doubleTap && !e.ctrlKey && e.button < 2) {
             const anchorContainerDoc = this.props.ContainingCollectionDoc; // bcz: hack!  need a better prop for passing the anchor's container 
             this._editing = true;
             anchorContainerDoc && this.props.bringToFront(anchorContainerDoc, false);
-            if (anchorContainerDoc && !this.props.Document.onClick && !this._isOpen) {
+            if (anchorContainerDoc && !this.layoutDoc.onClick && !this._isOpen) {
                 this._timeout = setTimeout(action(() => {
-                    DocumentManager.Instance.FollowLink(this.props.Document, anchorContainerDoc, document => this.props.addDocTab(document, StrCast(this.props.Document.linkOpenLocation, "inTab")), false);
+                    DocumentManager.Instance.FollowLink(this.rootDoc, anchorContainerDoc, document => this.props.addDocTab(document, StrCast(this.layoutDoc.linkOpenLocation, "inTab")), false);
                     this._editing = false;
                 }), 300 - (Date.now() - this._lastTap));
             }
@@ -85,11 +85,11 @@ export class DocuLinkBox extends DocComponent<FieldViewProps, DocLinkSchema>(Doc
     }
 
     openLinkDocOnRight = (e: React.MouseEvent) => {
-        this.props.addDocTab(this.props.Document, "onRight");
+        this.props.addDocTab(this.rootDoc, "onRight");
     }
     openLinkTargetOnRight = (e: React.MouseEvent) => {
-        const alias = Doc.MakeAlias(Cast(this.props.Document[this.props.fieldKey], Doc, null));
-        alias.isButton = undefined;
+        const alias = Doc.MakeAlias(Cast(this.layoutDoc[this.fieldKey], Doc, null));
+        alias.isLinkButton = undefined;
         alias.isBackground = undefined;
         alias.layoutKey = "layout";
         this.props.addDocTab(alias, "onRight");
@@ -111,24 +111,24 @@ export class DocuLinkBox extends DocComponent<FieldViewProps, DocLinkSchema>(Doc
 
     render() {
         TraceMobx();
-        const x = this.props.PanelWidth() > 1 ? NumCast(this.props.Document[this.props.fieldKey + "_x"], 100) : 0;
-        const y = this.props.PanelWidth() > 1 ? NumCast(this.props.Document[this.props.fieldKey + "_y"], 100) : 0;
-        const c = StrCast(this.props.Document.backgroundColor, "lightblue");
-        const anchor = this.props.fieldKey === "anchor1" ? "anchor2" : "anchor1";
+        const x = this.props.PanelWidth() > 1 ? NumCast(this.layoutDoc[this.fieldKey + "_x"], 100) : 0;
+        const y = this.props.PanelWidth() > 1 ? NumCast(this.layoutDoc[this.fieldKey + "_y"], 100) : 0;
+        const c = StrCast(this.layoutDoc.backgroundColor, "lightblue");
+        const anchor = this.fieldKey === "anchor1" ? "anchor2" : "anchor1";
         const anchorScale = (x === 0 || x === 100 || y === 0 || y === 100) ? 1 : .15;
 
-        const timecode = this.props.Document[anchor + "Timecode"];
-        const targetTitle = StrCast((this.props.Document[anchor]! as Doc).title) + (timecode !== undefined ? ":" + timecode : "");
+        const timecode = this.dataDoc[anchor + "_timecode"];
+        const targetTitle = StrCast((this.dataDoc[anchor] as Doc)?.title) + (timecode !== undefined ? ":" + timecode : "");
         const flyout = (
-            <div className="docuLinkBox-flyout" title=" " onPointerOver={() => Doc.UnBrushDoc(this.props.Document)}>
-                <LinkEditor sourceDoc={Cast(this.props.Document[this.props.fieldKey], Doc, null)} hideback={true} linkDoc={this.props.Document} showLinks={action(() => { })} />
-                {!this._forceOpen ? (null) : <div className="docuLinkBox-linkCloser" onPointerDown={action(() => this._isOpen = this._editing = this._forceOpen = false)}>
+            <div className="linkAnchorBoxBox-flyout" title=" " onPointerOver={() => Doc.UnBrushDoc(this.rootDoc)}>
+                <LinkEditor sourceDoc={Cast(this.dataDoc[this.fieldKey], Doc, null)} hideback={true} linkDoc={this.rootDoc} showLinks={action(() => { })} />
+                {!this._forceOpen ? (null) : <div className="linkAnchorBox-linkCloser" onPointerDown={action(() => this._isOpen = this._editing = this._forceOpen = false)}>
                     <FontAwesomeIcon color="dimGray" icon={"times"} size={"sm"} />
                 </div>}
             </div>
         );
         const small = this.props.PanelWidth() <= 1;
-        return <div className={`docuLinkBox-cont${small ? "-small" : ""}`} onPointerDown={this.onPointerDown} title={targetTitle} onContextMenu={this.specificContextMenu}
+        return <div className={`linkAnchorBox-cont${small ? "-small" : ""}`} onPointerDown={this.onPointerDown} title={targetTitle} onContextMenu={this.specificContextMenu}
             ref={this._ref} style={{
                 background: c,
                 left: !small ? `calc(${x}% - 7.5px)` : undefined,

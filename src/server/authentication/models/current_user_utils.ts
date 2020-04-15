@@ -2,8 +2,6 @@ import { action, computed, observable, reaction } from "mobx";
 import * as rp from 'request-promise';
 import { DocServer } from "../../../client/DocServer";
 import { Docs, DocumentOptions } from "../../../client/documents/Documents";
-import { Attribute, AttributeGroup, Catalog, Schema } from "../../../client/northstar/model/idea/idea";
-import { ArrayUtil } from "../../../client/northstar/utils/ArrayUtil";
 import { UndoManager } from "../../../client/util/UndoManager";
 import { Doc, DocListCast } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
@@ -59,9 +57,9 @@ export class CurrentUserUtils {
         doc.iconView = new PrefetchProxy(Docs.Create.TextDocument("", { title: "icon", _width: 150, _height: 30, isTemplateDoc: true, onClick: ScriptField.MakeScript("deiconifyView(this)") }));
         Doc.GetProto(doc.iconView as any as Doc).icon = new RichTextField('{"doc":{"type":"doc","content":[{"type":"paragraph","attrs":{"align":null,"color":null,"id":null,"indent":null,"inset":null,"lineSpacing":null,"paddingBottom":null,"paddingTop":null},"content":[{"type":"dashField","attrs":{"fieldKey":"title","docid":""}}]}]},"selection":{"type":"text","anchor":2,"head":2},"storedMarks":[]}', "");
         doc.isTemplateDoc = makeTemplate(doc.iconView as any as Doc);
-        doc.iconImageView = new PrefetchProxy(Docs.Create.ImageDocument("http://www.cs.brown.edu/~bcz/face.gif", { title: "data", _width: 50, isTemplateDoc: true, onClick: ScriptField.MakeScript("deiconifyView(this)") }));
+        doc.iconImageView = new PrefetchProxy(Docs.Create.ImageDocument("http://www.cs.brown.edu/~bcz/face.gif", { title: "data", _width: 50, isTemplateDoc: true, onClick: ScriptField.MakeScript("deiconifyView(self)") }));
         doc.isTemplateDoc = makeTemplate(doc.iconImageView as any as Doc, true, "image_icon");
-        doc.iconColView = new PrefetchProxy(Docs.Create.TreeDocument([], { title: "data", _width: 180, _height: 80, isTemplateDoc: true, onClick: ScriptField.MakeScript("deiconifyView(this)") }));
+        doc.iconColView = new PrefetchProxy(Docs.Create.TreeDocument([], { title: "data", _width: 180, _height: 80, isTemplateDoc: true, onClick: ScriptField.MakeScript("deiconifyView(self)") }));
         doc.isTemplateDoc = makeTemplate(doc.iconColView as any as Doc, true, "collection_icon");
         doc.iconViews = Docs.Create.TreeDocument([doc.iconView as any as Doc, doc.iconImageView as any as Doc, doc.iconColView as any as Doc], { title: "icon types", _height: 75 });
     }
@@ -75,13 +73,13 @@ export class CurrentUserUtils {
             { title: "collection", icon: "folder", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: emptyCollection },
             { title: "preview", icon: "expand", ignoreClick: true, drag: 'Docs.Create.DocumentDocument(ComputedField.MakeFunction("selectedDocs(this,this.excludeCollections,[_last_])?.[0]"), { _width: 250, _height: 250, title: "container" })' },
             { title: "web page", icon: "globe-asia", ignoreClick: true, drag: 'Docs.Create.WebDocument("https://en.wikipedia.org/wiki/Hedgehog", {_width: 300, _height: 300, title: "New Webpage" })' },
-            { title: "cat image", icon: "cat", ignoreClick: true, drag: 'Docs.Create.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", { _width: 200, title: "an image of a cat" })' },
-            { title: "buxton", icon: "cloud-upload-alt", ignoreClick: true, drag: "Docs.Create.Buxton()" },
+            { title: "cat image", icon: "cat", ignoreClick: true, drag: 'Docs.Create.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", { _width: 250, _nativeWidth:250, title: "an image of a cat" })' },
             { title: "screenshot", icon: "photo-video", ignoreClick: true, drag: 'Docs.Create.ScreenshotDocument("", { _width: 400, _height: 200, title: "screen snapshot" })' },
             { title: "webcam", icon: "video", ignoreClick: true, drag: 'Docs.Create.WebCamDocument("", { _width: 400, _height: 400, title: "a test cam" })' },
             { title: "record", icon: "microphone", ignoreClick: true, drag: `Docs.Create.AudioDocument("${nullAudio}", { _width: 200, title: "ready to record audio" })` },
             { title: "clickable button", icon: "bolt", ignoreClick: true, drag: 'Docs.Create.ButtonDocument({ _width: 150, _height: 50, title: "Button" })' },
             { title: "presentation", icon: "tv", click: 'openOnRight(Doc.UserDoc().curPresentation = getCopy(this.dragFactory, true))', drag: `Doc.UserDoc().curPresentation = getCopy(this.dragFactory,true)`, dragFactory: emptyPresentation },
+            { title: "script", icon: "terminal", ignoreClick: true, drag: 'Docs.Create.ScriptingDocument(undefined, { _width: 200, _height: 250 title: "untitled script" })' },
             { title: "import folder", icon: "cloud-upload-alt", ignoreClick: true, drag: 'Docs.Create.DirectoryImportDocument({ title: "Directory Import", _width: 400, _height: 400 })' },
             { title: "mobile view", icon: "phone", ignoreClick: true, drag: 'Doc.UserDoc().activeMobile' },
             { title: "use pen", icon: "pen-nib", click: 'activatePen(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this,2, this.backgroundColor)', backgroundColor: "blue", ischecked: `sameDocs(this.activePen.pen,  this)`, activePen: doc },
@@ -90,14 +88,12 @@ export class CurrentUserUtils {
             { title: "use eraser", icon: "eraser", click: 'activateEraser(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this);', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "pink", activePen: doc },
             { title: "use drag", icon: "mouse-pointer", click: 'deactivateInk();this.activePen.pen = this;', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "white", activePen: doc },
             { title: "query", icon: "bolt", ignoreClick: true, drag: 'Docs.Create.QueryDocument({ _width: 200, title: "an image of a cat" })' },
-
-
+            // { title: "buxton", icon: "cloud-upload-alt", ignoreClick: true, drag: "Docs.Create.Buxton()" },
         ];
         return docProtoData.filter(d => !alreadyCreatedButtons?.includes(d.title)).map(data => Docs.Create.FontIconDocument({
             _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100,
             icon: data.icon,
             title: data.title,
-            isButton: true,
             ignoreClick: data.ignoreClick,
             dropAction: data.click ? "copy" : undefined,
             onDragStart: data.drag ? ScriptField.MakeFunction(data.drag) : undefined,
@@ -222,7 +218,6 @@ export class CurrentUserUtils {
             sourcePanel: Docs.Create.StackingDocument([dragCreators, color], {
                 _width: 500, lockedPosition: true, _chromeStatus: "disabled", title: "tools stack", forceActive: true
             }),
-            isButton: true,
             onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel"),
         });
     }
@@ -249,7 +244,6 @@ export class CurrentUserUtils {
             sourcePanel: Docs.Create.TreeDocument([doc.workspaces as Doc, doc.documents as Doc, Docs.Prototypes.MainLinkDocument(), doc, doc.recentlyClosed as Doc], {
                 title: "Library", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "place", lockedPosition: true, boxShadow: "0 0", dontRegisterChildren: true
             }),
-            isButton: true,
             targetContainer: sidebarContainer,
             onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel;")
         });
@@ -263,7 +257,6 @@ export class CurrentUserUtils {
             sourcePanel: Docs.Create.QueryDocument({ title: "search stack", }),
             targetContainer: sidebarContainer,
             lockedPosition: true,
-            isButton: true,
             onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel")
         });
     }
@@ -307,12 +300,12 @@ export class CurrentUserUtils {
         descriptionTemplate.isTemplateDoc = makeTemplate(descriptionTemplate, true, "descriptionView");
 
         const ficon = (opts: DocumentOptions) => new PrefetchProxy(Docs.Create.FontIconDocument({
-            ...opts, isButton: true,
+            ...opts,
             dropAction: "alias", removeDropProperties: new List<string>(["dropAction"]), _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100
         })) as any as Doc;
         const blist = (opts: DocumentOptions, docs: Doc[]) => new PrefetchProxy(Docs.Create.LinearDocument(docs, {
             ...opts,
-            _gridGap: 5, _xMargin: 5, _yMargin: 5, _height: 42, _width: 100, boxShadow: "0 0", isButton: true, forceActive: true,
+            _gridGap: 5, _xMargin: 5, _yMargin: 5, _height: 42, _width: 100, boxShadow: "0 0", forceActive: true,
             dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }),
             backgroundColor: "black", treeViewPreventOpen: true, lockedPosition: true, _chromeStatus: "disabled", linearViewIsExpanded: true
         })) as any as Doc;
@@ -324,7 +317,7 @@ export class CurrentUserUtils {
         doc.queryBtn = ficon({ onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'), dragFactory: queryTemplate, removeDropProperties: new List<string>(["dropAction"]), title: "query view", icon: "sticky-note" });
         doc.templateButtons = blist({ title: "template buttons", ignoreClick: true }, [doc.slidesBtn as Doc, doc.descriptionBtn as Doc, doc.queryBtn as Doc]);
         doc.expandingButtons = blist({ title: "expanding buttons", ignoreClick: true }, [doc.undoBtn as Doc, doc.redoBtn as Doc, doc.templateButtons as Doc]);
-        doc.templateDocs = new PrefetchProxy(Docs.Create.TreeDocument([doc.noteTypes as Doc, doc.templateButtons as Doc], {
+        doc.templateDocs = new PrefetchProxy(Docs.Create.TreeDocument([doc.noteTypes as Doc, doc.templateButtons as Doc, doc.clickFuncs as Doc], {
             title: "template layouts", _xPadding: 0,
             dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name })
         }));
@@ -337,7 +330,7 @@ export class CurrentUserUtils {
 
     // the initial presentation Doc to use
     static setupDefaultPresentation(doc: Doc) {
-        doc.presentationTemplate = new PrefetchProxy(Docs.Create.PresElementBoxDocument({ backgroundColor: "transparent", _xMargin: 5, _height: 46, isTemplateDoc: true, isTemplateForField: "data" }));
+        doc.presentationTemplate = new PrefetchProxy(Docs.Create.PresElementBoxDocument({ title: "pres element template", backgroundColor: "transparent", _xMargin: 5, _height: 46, isTemplateDoc: true, isTemplateForField: "data" }));
         doc.curPresentation = Docs.Create.PresDocument(new List<Doc>(), { title: "Presentation", _viewType: CollectionViewType.Stacking, _LODdisable: true, _chromeStatus: "replaced", _showTitle: "title", boxShadow: "0 0" });
     }
 
@@ -346,10 +339,12 @@ export class CurrentUserUtils {
     }
 
     static setupChildClicks(doc: Doc) {
-        const openInTarget = Docs.Create.TextDocument("", { title: "On Child Clicked (open in target)" });
-        const text = "docCast(thisContainer.target).then((target) => { target && docCast(this.source).then((source) => { target.proto.data = new List([source || this]); } ); } )";
-        openInTarget.script = ScriptField.MakeScript(text, { thisContainer: Doc.name });
+        const openInTarget = Docs.Create.ScriptingDocument(ScriptField.MakeScript(
+            "docCast(thisContainer.target).then((target) => { target && docCast(this.source).then((source) => { target.proto.data = new List([source || this]); } ); } )",
+            { target: Doc.name }), { title: "On Child Clicked (open in target)", _width: 300, _height: 200 });
+        const onClick = Docs.Create.ScriptingDocument(ScriptField.MakeScript("console.log('click')"), { title: "onClick", isTemplateDoc: true, isTemplateForField: "onClick", _width: 300, _height: 200 }, "onClick");
         doc.childClickFuncs = Docs.Create.TreeDocument([openInTarget], { title: "on Child Click function templates" });
+        doc.clickFuncs = Docs.Create.TreeDocument([onClick], { title: "onClick funcs" });
     }
 
     static updateUserDocument(doc: Doc) {
@@ -357,12 +352,12 @@ export class CurrentUserUtils {
         new InkingControl();
         (doc.iconTypes === undefined) && CurrentUserUtils.setupDefaultIconTypes(doc);
         (doc.noteTypes === undefined) && CurrentUserUtils.setupDefaultDocTemplates(doc);
+        (doc.childClickFuncs === undefined) && CurrentUserUtils.setupChildClicks(doc);
         (doc.optionalRightCollection === undefined) && CurrentUserUtils.setupMobileUploads(doc);
         (doc.overlays === undefined) && CurrentUserUtils.setupOverlays(doc);
         (doc.expandingButtons === undefined) && CurrentUserUtils.setupExpandingButtons(doc);
         (doc.curPresentation === undefined) && CurrentUserUtils.setupDefaultPresentation(doc);
         (doc.sidebarButtons === undefined) && CurrentUserUtils.setupSidebarButtons(doc);
-        (doc.childClickFuncs === undefined) && CurrentUserUtils.setupChildClicks(doc);
 
         // this is equivalent to using PrefetchProxies to make sure all the childClickFuncs have been retrieved.
         PromiseValue(Cast(doc.childClickFuncs, Doc)).then(func => func && PromiseValue(func.data).then(DocListCast));
@@ -370,6 +365,8 @@ export class CurrentUserUtils {
         PromiseValue(Cast(doc.recentlyClosed, Doc)).then(recent => recent && PromiseValue(recent.data).then(DocListCast));
         // this is equivalent to using PrefetchProxies to make sure all the sidebarButtons and noteType internal Doc's have been retrieved.
         PromiseValue(Cast(doc.noteTypes, Doc)).then(noteTypes => noteTypes && PromiseValue(noteTypes.data).then(DocListCast));
+        PromiseValue(Cast(doc.clickFuncs, Doc)).then(func => func && PromiseValue(func.data).then(DocListCast));
+        PromiseValue(Cast(doc.childClickFuncs, Doc)).then(func => func && PromiseValue(func.data).then(DocListCast));
         PromiseValue(Cast(doc.sidebarButtons, Doc)).then(stackingDoc => {
             stackingDoc && PromiseValue(Cast(stackingDoc.data, listSpec(Doc))).then(sidebarButtons => {
                 sidebarButtons && sidebarButtons.map((sidebarBtn, i) => {
@@ -419,77 +416,6 @@ export class CurrentUserUtils {
                 throw new Error("There should be a user id! Why does Dash think there isn't one?");
             }
         });
-        // try {
-        //     const getEnvironment = await fetch("/assets/env.json", { redirect: "follow", method: "GET", credentials: "include" });
-        //     NorthstarSettings.Instance.UpdateEnvironment(await getEnvironment.json());
-        //     await Gateway.Instance.ClearCatalog();
-        //     const extraSchemas = Cast(CurrentUserUtils.UserDocument.DBSchemas, listSpec("string"), []);
-        //     let extras = await Promise.all(extraSchemas.map(sc => Gateway.Instance.GetSchema("", sc)));
-        //     let catprom = CurrentUserUtils.SetNorthstarCatalog(await Gateway.Instance.GetCatalog(), extras);
-        //     // if (catprom) await Promise.all(catprom);
-        // } catch (e) {
-
-        // }
-    }
-
-    /* Northstar catalog ... really just for testing so this should eventually go away */
-    // --------------- Northstar hooks ------------- /
-    static _northstarSchemas: Doc[] = [];
-    @observable private static _northstarCatalog?: Catalog;
-    @computed public static get NorthstarDBCatalog() { return this._northstarCatalog; }
-
-    @action static SetNorthstarCatalog(ctlog: Catalog, extras: Catalog[]) {
-        CurrentUserUtils.NorthstarDBCatalog = ctlog;
-        // if (ctlog && ctlog.schemas) {
-        //     extras.map(ex => ctlog.schemas!.push(ex));
-        //     return ctlog.schemas.map(async schema => {
-        //         let schemaDocuments: Doc[] = [];
-        //         let attributesToBecomeDocs = CurrentUserUtils.GetAllNorthstarColumnAttributes(schema);
-        //         await Promise.all(attributesToBecomeDocs.reduce((promises, attr) => {
-        //             promises.push(DocServer.GetRefField(attr.displayName! + ".alias").then(action((field: Opt<Field>) => {
-        //                 if (field instanceof Doc) {
-        //                     schemaDocuments.push(field);
-        //                 } else {
-        //                     var atmod = new ColumnAttributeModel(attr);
-        //                     let histoOp = new HistogramOperation(schema.displayName!,
-        //                         new AttributeTransformationModel(atmod, AggregateFunction.None),
-        //                         new AttributeTransformationModel(atmod, AggregateFunction.Count),
-        //                         new AttributeTransformationModel(atmod, AggregateFunction.Count));
-        //                     schemaDocuments.push(Docs.Create.HistogramDocument(histoOp, { width: 200, height: 200, title: attr.displayName! }));
-        //                 }
-        //             })));
-        //             return promises;
-        //         }, [] as Promise<void>[]));
-        //         return CurrentUserUtils._northstarSchemas.push(Docs.Create.TreeDocument(schemaDocuments, { width: 50, height: 100, title: schema.displayName! }));
-        //     });
-        // }
-    }
-    public static set NorthstarDBCatalog(ctlog: Catalog | undefined) { this._northstarCatalog = ctlog; }
-
-    public static AddNorthstarSchema(schema: Schema, schemaDoc: Doc) {
-        if (this._northstarCatalog && CurrentUserUtils._northstarSchemas) {
-            this._northstarCatalog.schemas!.push(schema);
-            CurrentUserUtils._northstarSchemas.push(schemaDoc);
-            const schemas = Cast(CurrentUserUtils.UserDocument.DBSchemas, listSpec("string"), []);
-            schemas.push(schema.displayName!);
-            CurrentUserUtils.UserDocument.DBSchemas = new List<string>(schemas);
-        }
-    }
-    public static GetNorthstarSchema(name: string): Schema | undefined {
-        return !this._northstarCatalog || !this._northstarCatalog.schemas ? undefined :
-            ArrayUtil.FirstOrDefault<Schema>(this._northstarCatalog.schemas, (s: Schema) => s.displayName === name);
-    }
-    public static GetAllNorthstarColumnAttributes(schema: Schema) {
-        const recurs = (attrs: Attribute[], g?: AttributeGroup) => {
-            if (g && g.attributes) {
-                attrs.push.apply(attrs, g.attributes);
-                if (g.attributeGroups) {
-                    g.attributeGroups.forEach(ng => recurs(attrs, ng));
-                }
-            }
-            return attrs;
-        };
-        return recurs([] as Attribute[], schema ? schema.rootAttributeGroup : undefined);
     }
 }
 

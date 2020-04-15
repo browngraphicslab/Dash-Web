@@ -9,7 +9,7 @@ import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { emptyPath } from "../../../Utils";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
-import { DocAnnotatableComponent } from "../DocComponent";
+import { ViewBoxAnnotatableComponent } from "../DocComponent";
 import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
 import "./DocumentBox.scss";
 import { FieldView, FieldViewProps } from "./FieldView";
@@ -18,12 +18,12 @@ import { TraceMobx } from "../../../new_fields/util";
 import { DocumentView } from "./DocumentView";
 import { Docs } from "../../documents/Documents";
 
-type DocBoxSchema = makeInterface<[typeof documentSchema]>;
-const DocBoxDocument = makeInterface(documentSchema);
+type DocHolderBoxSchema = makeInterface<[typeof documentSchema]>;
+const DocHolderBoxDocument = makeInterface(documentSchema);
 
 @observer
-export class DocumentBox extends DocAnnotatableComponent<FieldViewProps, DocBoxSchema>(DocBoxDocument) {
-    public static LayoutString(fieldKey: string) { return FieldView.LayoutString(DocumentBox, fieldKey); }
+export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, DocHolderBoxSchema>(DocHolderBoxDocument) {
+    public static LayoutString(fieldKey: string) { return FieldView.LayoutString(DocHolderBox, fieldKey); }
     _prevSelectionDisposer: IReactionDisposer | undefined;
     _selections: Doc[] = [];
     _curSelection = -1;
@@ -54,7 +54,7 @@ export class DocumentBox extends DocAnnotatableComponent<FieldViewProps, DocBoxS
         this.contentDoc[this.props.fieldKey] = this.props.Document[this.props.fieldKey];
     }
     showSelection = () => {
-        this.contentDoc[this.props.fieldKey] = ComputedField.MakeFunction(`selectedDocs(this,this.excludeCollections,[_last_])?.[0]`);
+        this.contentDoc[this.props.fieldKey] = ComputedField.MakeFunction(`selectedDocs(self,this.excludeCollections,[_last_])?.[0]`);
     }
     isSelectionLocked = () => {
         const kvpstring = Field.toKeyValueString(this.contentDoc, this.props.fieldKey);

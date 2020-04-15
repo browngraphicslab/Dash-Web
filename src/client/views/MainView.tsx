@@ -1,5 +1,5 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faArrowDown, faArrowUp, faBolt, faBullseye, faCaretUp, faCat, faCheck, faChevronRight, faClipboard, faClone, faCloudUploadAlt, faCommentAlt, faCompressArrowsAlt, faCut, faEllipsisV, faEraser, faExclamation, faFileAlt, faFileAudio, faFilePdf, faFilm, faFilter, faFont, faGlobeAsia, faHighlighter, faLongArrowAltRight, faMicrophone, faMousePointer, faMusic, faObjectGroup, faPause, faPen, faPenNib, faPhone, faPlay, faPortrait, faRedoAlt, faStamp, faStickyNote, faThumbtack, faTree, faTv, faUndoAlt, faVideo } from '@fortawesome/free-solid-svg-icons';
+import { faTerminal, faArrowDown, faArrowUp, faBolt, faBullseye, faCaretUp, faCat, faCheck, faChevronRight, faClipboard, faClone, faCloudUploadAlt, faCommentAlt, faCompressArrowsAlt, faCut, faEllipsisV, faEraser, faExclamation, faFileAlt, faFileAudio, faFilePdf, faFilm, faFilter, faFont, faGlobeAsia, faHighlighter, faLongArrowAltRight, faMicrophone, faMousePointer, faMusic, faObjectGroup, faPause, faPen, faPenNib, faPhone, faPlay, faPortrait, faRedoAlt, faStamp, faStickyNote, faThumbtack, faTree, faTv, faUndoAlt, faVideo } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, reaction, runInAction } from 'mobx';
 import { observer } from 'mobx-react';
@@ -101,6 +101,7 @@ export class MainView extends React.Component {
             }
         }
 
+        library.add(faTerminal);
         library.add(faFileAlt);
         library.add(faStickyNote);
         library.add(faFont);
@@ -275,7 +276,7 @@ export class MainView extends React.Component {
     defaultBackgroundColors = (doc: Doc) => {
         if (this.darkScheme) {
             switch (doc.type) {
-                case DocumentType.TEXT || DocumentType.BUTTON: return "#2d2d2d";
+                case DocumentType.RTF || DocumentType.LABEL || DocumentType.BUTTON: return "#2d2d2d";
                 case DocumentType.LINK:
                 case DocumentType.COL: {
                     if (doc._viewType !== CollectionViewType.Freeform && doc._viewType !== CollectionViewType.Time) return "rgb(62,62,62)";
@@ -284,8 +285,9 @@ export class MainView extends React.Component {
             }
         } else {
             switch (doc.type) {
-                case DocumentType.TEXT: return "#f1efeb";
-                case DocumentType.BUTTON: return "lightgray";
+                case DocumentType.RTF: return "#f1efeb";
+                case DocumentType.BUTTON:
+                case DocumentType.LABEL: return "lightgray";
                 case DocumentType.LINK:
                 case DocumentType.COL: {
                     if (doc._viewType !== CollectionViewType.Freeform && doc._viewType !== CollectionViewType.Time) return "lightgray";

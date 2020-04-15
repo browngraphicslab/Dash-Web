@@ -14,19 +14,6 @@ export default class UtilManager extends ApiManager {
 
     protected initialize(register: Registration): void {
 
-        register({
-            method: Method.GET,
-            subscription: new RouteSubscriber("environment").add("key"),
-            secureHandler: ({ req, res }) => {
-                const { key } = req.params;
-                const value = process.env[key];
-                if (!value) {
-                    console.log(red(`process.env.${key} is not defined.`));
-                }
-                return res.send(value);
-            }
-        });
-
         // register({
         //     method: Method.POST,
         //     subscription: "/IBMAnalysis",

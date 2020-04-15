@@ -128,7 +128,7 @@ export class SearchBox extends React.Component<SearchProps> {
         }
     }
 
-    public _allIcons: string[] = [DocumentType.AUDIO, DocumentType.COL, DocumentType.IMG, DocumentType.LINK, DocumentType.PDF, DocumentType.TEXT, DocumentType.VID, DocumentType.WEB];
+    public _allIcons: string[] = [DocumentType.AUDIO, DocumentType.COL, DocumentType.IMG, DocumentType.LINK, DocumentType.PDF, DocumentType.RTF, DocumentType.VID, DocumentType.WEB];
     //if true, any keywords can be used. if false, all keywords are required.
     //this also serves as an indicator if the word status filter is applied
     @observable private _filterOpen: boolean = false;
@@ -316,8 +316,10 @@ export class SearchBox extends React.Component<SearchProps> {
 
     private get filterQuery() {
         const types = this.filterTypes;
-        const includeDeleted = this.getDataStatus();
-        return "NOT baseProto_b:true" + (includeDeleted ? "" : " AND NOT deleted_b:true") + (types ? ` AND (${types.map(type => `({!join from=id to=proto_i}type_t:"${type}" AND NOT type_t:*) OR type_t:"${type}" OR type_t:"extension"`).join(" ")})` : "");
+        const includeDeleted = this.getDataStatus() ? "" : " AND NOT deleted_b:true";
+        const includeIcons = this.getDataStatus() ? "" : " AND NOT type_t:fonticonbox";
+        // fq: type_t:collection OR {!join from=id to=proto_i}type_t:collection   q:text_t:hello
+        return "NOT baseProto_b:true" + includeDeleted + includeIcons + (types ? ` AND (${types.map(type => `({!join from=id to=proto_i}type_t:"${type}" AND NOT type_t:*) OR type_t:"${type}"`).join(" ")})` : "");
     }
 
     getDataStatus() { return this._deletedDocsStatus; }
@@ -578,7 +580,7 @@ export class SearchBox extends React.Component<SearchProps> {
             // have the element transition to height: 0
             requestAnimationFrame(function () {
                 element.style.height = 0 + 'px';
-                thing ===`filterhead${id}` ? document.getElementById(`filterhead${id}`)!.style.padding = "0" : null;
+                thing === `filterhead${id}` ? document.getElementById(`filterhead${id}`)!.style.padding = "0" : null;
             });
         });
 
@@ -651,7 +653,7 @@ export class SearchBox extends React.Component<SearchProps> {
                         <button className="filter-item" style={this._nodeStatus ? { background: "#aaaaa3" } : {}} onClick={this.handleNodeChange}>Nodes</button>
                     </div>
                     <div id={`node${this.props.id}`} className="filter-body" style={this._nodeStatus ? { borderTop: "grey 1px solid" } : { borderTop: "0px" }}>
-                        <IconBar />
+                        <IconBar setIcons={(icons: string[]) => this._icons = icons} />
                     </div>
                     <div className="filter-key" id={`key${this.props.id}`} style={this._keyStatus ? { borderTop: "grey 1px solid" } : { borderTop: "0px" }}>
                         <div className="filter-keybar">

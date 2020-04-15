@@ -42,7 +42,7 @@ interface ContentFittingDocumentViewProps {
     addDocTab: (document: Doc, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     dontRegisterView?: boolean;
-    rootSelected: () => boolean;
+    rootSelected: (outsideReaction?: boolean) => boolean;
 }
 
 @observer

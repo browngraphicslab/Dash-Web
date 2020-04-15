@@ -12,7 +12,7 @@ import { Cast, NumCast } from "../../../new_fields/Types";
 import { emptyFunction, emptyPath, returnFalse, returnTrue } from "../../../Utils";
 import { Transform } from "../../util/Transform";
 import { CollectionViewType } from '../collections/CollectionView';
-import { DocExtendableComponent } from '../DocComponent';
+import { ViewBoxBaseComponent } from '../DocComponent';
 import { ContentFittingDocumentView } from '../nodes/ContentFittingDocumentView';
 import { FieldView, FieldViewProps } from '../nodes/FieldView';
 import "./PresElementBox.scss";
@@ -44,14 +44,14 @@ const PresDocument = makeInterface(presSchema, documentSchema);
  * It involves some functionality for its buttons and options.
  */
 @observer
-export class PresElementBox extends DocExtendableComponent<FieldViewProps, PresDocument>(PresDocument) {
+export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDocument>(PresDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(PresElementBox, fieldKey); }
 
     _heightDisposer: IReactionDisposer | undefined;
     @computed get indexInPres() { return NumCast(this.presElementDoc?.presentationIndex); }
     @computed get presBoxDoc() { return Cast(this.presElementDoc?.presBox, Doc) as Doc; }
-    @computed get presElementDoc() { return this.props.Document.rootDocument as Doc; }
-    @computed get presLayoutDoc() { return this.props.Document; }
+    @computed get presElementDoc() { return this.rootDoc; }
+    @computed get presLayoutDoc() { return this.layoutDoc; }
     @computed get targetDoc() { return this.presElementDoc?.presentationTargetDoc as Doc; }
     @computed get currentIndex() { return NumCast(this.presBoxDoc?._itemIndex); }
 
@@ -197,7 +197,7 @@ export class PresElementBox extends DocExtendableComponent<FieldViewProps, PresD
         const treecontainer = this.props.ContainingCollectionDoc?._viewType === CollectionViewType.Tree;
         const className = "presElementBox-item" + (this.currentIndex === this.indexInPres ? " presElementBox-selected" : "");
         const pbi = "presElementBox-interaction";
-        return !this.presElementDoc ? (null) : (
+        return !(this.presElementDoc instanceof Doc) || this.targetDoc instanceof Promise ? (null) : (
             <div className={className} key={this.props.Document[Id] + this.indexInPres}
                 style={{ outlineWidth: Doc.IsBrushed(this.targetDoc) ? `1px` : "0px", }}
                 onClick={e => { this.props.focus(this.presElementDoc); e.stopPropagation(); }}>
@@ -205,7 +205,7 @@ export class PresElementBox extends DocExtendableComponent<FieldViewProps, PresD
                     <strong className="presElementBox-name">
                         {`${this.indexInPres + 1}. ${this.targetDoc?.title}`}
                     </strong>
-                    <button className="presElementBox-closeIcon" onPointerDown={e => e.stopPropagation()} onClick={e => this.props.removeDocument && this.props.removeDocument(this.presElementDoc)}>X</button>
+                    <button className="presElementBox-closeIcon" onPointerDown={e => e.stopPropagation()} onClick={e => this.props.removeDocument?.(this.presElementDoc)}>X</button>
                     <br />
                 </>}
                 <button title="Zoom" className={pbi + (this.presElementDoc.zoomButton ? "-selected" : "")} onPointerDown={e => e.stopPropagation()} onClick={this.onZoomDocumentClick}><FontAwesomeIcon icon={"search"} /></button>

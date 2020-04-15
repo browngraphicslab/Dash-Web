@@ -394,7 +394,7 @@ export class SearchDocBox extends React.Component<FieldViewProps> {
 
     render() {
         const isEditing = this.editingMetadata;
-        return (
+        return !this.content ? (null) : (
             <div style={{ pointerEvents: "all" }}>
                 <ContentFittingDocumentView {...this.props}
                     Document={this.content}
