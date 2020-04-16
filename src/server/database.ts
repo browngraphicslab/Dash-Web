@@ -35,7 +35,7 @@ export namespace Database {
                         console.log(`mongoose established default connection at ${url}`);
                         resolve();
                     });
-                    mongoose.connect(url, { useNewUrlParser: true });
+                    mongoose.connect(url, { useNewUrlParser: true, useUnifiedTopology: true });
                 });
             }
         } catch (e) {
