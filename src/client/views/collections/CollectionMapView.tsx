@@ -208,10 +208,8 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
         const { Document, fieldKey, active, google } = this.props;
         let center = this.getLocation(Document, `${fieldKey}-mapCenter`, false);
         if (center === undefined) {
-            center = childLayoutPairs.map(({ layout }) => this.getLocation(layout, Doc.LayoutFieldKey(layout), false)).find(layout => layout);
-            if (center === undefined) {
-                center = defaultLocation;
-            }
+            const childLocations = childLayoutPairs.map(({ layout }) => this.getLocation(layout, Doc.LayoutFieldKey(layout), false));
+            center = childLocations.find(location => location) || defaultLocation;
         }
         return <div className="collectionMapView" ref={this.createDashEventsTarget}>
             <div className={"collectionMapView-contents"}
@@ -225,17 +223,20 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
                     center={center}
                     onIdle={(_props?: MapProps, map?: google.maps.Map) => {
                         if (this.layoutDoc.lockedTransform) {
-                            map?.setZoom(center?.zoom || 10); // reset zoom (probably can tell the map to disallow zooming somehow)
+                            // reset zoom (ideally, we could probably can tell the map to disallow zooming somehow instead)
+                            map?.setZoom(center?.zoom || 10);
+                            map?.setCenter({ lat: center?.lat!, lng: center?.lng! });
                         } else {
                             const zoom = map?.getZoom();
-                            center?.zoom !== zoom && undoBatch(action(() => {
+                            (center?.zoom !== zoom) && undoBatch(action(() => {
                                 Document[`${fieldKey}-mapCenter-zoom`] = zoom;
                             }))();
                         }
                     }}
                     onDragend={(_props?: MapProps, map?: google.maps.Map) => {
                         if (this.layoutDoc.lockedTransform) {
-                            map?.setCenter({ lat: center?.lat!, lng: center?.lng! }); // reset the drag (probably can tell the map to disallow dragging somehow)
+                            // reset the drag (ideally, we could probably can tell the map to disallow dragging somehow instead)
+                            map?.setCenter({ lat: center?.lat!, lng: center?.lng! });
                         } else {
                             undoBatch(action(({ lat, lng }) => {
                                 Document[`${fieldKey}-mapCenter-lat`] = lat();
