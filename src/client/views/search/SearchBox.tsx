@@ -8,7 +8,7 @@ import * as rp from 'request-promise';
 import { Doc } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { Cast, NumCast, StrCast } from '../../../new_fields/Types';
-import { Utils, returnTrue, emptyFunction, returnFalse, emptyPath, returnOne } from '../../../Utils';
+import { Utils, returnTrue, emptyFunction, returnFalse, emptyPath, returnOne, returnEmptyString } from '../../../Utils';
 import { Docs, DocumentOptions } from '../../documents/Documents';
 import { SetupDrag, DragManager } from '../../util/DragManager';
 import { SearchUtil } from '../../util/SearchUtil';
@@ -27,6 +27,8 @@ import { ScriptField } from '../../../new_fields/ScriptField';
 import { PrefetchProxy } from '../../../new_fields/Proxy';
 import { List } from '../../../new_fields/List';
 import { faSearch, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faMusic, faLink, faChartBar, faGlobeAsia, faBan, faVideo, faCaretDown } from '@fortawesome/free-solid-svg-icons';
+import { Transform } from '../../util/Transform';
+import { MainView } from "../MainView";
 
 
 library.add(faTimes);
@@ -34,6 +36,7 @@ library.add(faTimes);
 export interface SearchProps {
     id: string;
     Document: Doc;
+    sideBar?: Boolean;
     searchQuery?: string;
     filterQuery?: filterData;
 }
@@ -508,7 +511,7 @@ export class SearchBox extends React.Component<SearchProps> {
         else if (this._visibleElements.length !== this._numTotalResults) {
             // undefined until a searchitem is put in there
             this._visibleElements = Array<JSX.Element>(this._numTotalResults === -1 ? 0 : this._numTotalResults);
-            // indicates if things are placeholders
+            // indicates if things are placeholders 
             this._isSearch = Array<undefined>(this._numTotalResults === -1 ? 0 : this._numTotalResults);
         }
 
@@ -684,36 +687,37 @@ export class SearchBox extends React.Component<SearchProps> {
     
     @computed get docButtons() {
         const nodeBtns = this.props.Document.nodeButtons;
+        let width = () => NumCast(this.props.Document.width);
+        if (this.props.sideBar===true){
+            width = MainView.Instance.flyoutWidthFunc;
+        }
         if (nodeBtns instanceof Doc) {
-            return <div id="hi">
-                <CollectionLinearView
-                    Document={nodeBtns}
-                    DataDoc={undefined}
-                    LibraryPath={emptyPath}
-                    fieldKey={"data"}
-                    dropAction={"alias"}
-                    annotationsKey={""}
-                    rootSelected={returnTrue}
-                    bringToFront={emptyFunction}
-                    select={emptyFunction}
-                    active={returnFalse}
-                    isSelected={returnFalse}
-                    moveDocument={this.moveButtonDoc}
-                    CollectionView={undefined}
-                    addDocument={this.addButtonDoc}
-                    addDocTab={returnFalse}
-                    pinToPres={emptyFunction}
-                    removeDocument={this.remButtonDoc}
-                    onClick={undefined}
-                    ScreenToLocalTransform={this.buttonBarXf}
-                    ContentScaling={returnOne}
-                    PanelWidth={this.flyoutWidthFunc}
-                    PanelHeight={this.getContentsHeight}
-                    renderDepth={0}
-                    focus={emptyFunction}
-                    whenActiveChanged={emptyFunction}
-                    ContainingCollectionView={undefined}
-                    ContainingCollectionDoc={undefined} />
+            return <div id="hi" style={{height:"100px",}}>
+                <DocumentView
+                Document={nodeBtns}
+                DataDoc={undefined}
+                LibraryPath={emptyPath}
+                addDocument={undefined}
+                addDocTab={returnFalse}
+                rootSelected={returnTrue}
+                pinToPres={emptyFunction}
+                onClick={undefined}
+                removeDocument={undefined}
+                ScreenToLocalTransform={Transform.Identity}
+                ContentScaling={returnOne}
+                PanelWidth={width}
+                PanelHeight={() => 100}
+                renderDepth={0}
+                backgroundColor={returnEmptyString}
+                focus={emptyFunction}
+                parentActive={returnTrue}
+                whenActiveChanged={emptyFunction}
+                bringToFront={emptyFunction}
+                ContainingCollectionView={undefined}
+                ContainingCollectionDoc={undefined}
+                zoomToScale={emptyFunction}
+                getScale={returnOne}
+            />
             </div>;
         }
         return (null);
@@ -721,16 +725,13 @@ export class SearchBox extends React.Component<SearchProps> {
 
     setupDocTypeButtons() {
         let doc = this.props.Document;
-        const ficon = (opts: DocumentOptions) => new PrefetchProxy(Docs.Create.FontIconDocument({ ...opts, dontDecorateSelection: true, dropAction: "alias", removeDropProperties: new List<string>(["dropAction"]), _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100 })) as any as Doc;
+        const ficon = (opts: DocumentOptions) => new PrefetchProxy(Docs.Create.FontIconDocument({ ...opts, dontDecorateSelection: true, backgroundColor: "#121721", dropAction: "alias", removeDropProperties: new List<string>(["dropAction"]), _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100 })) as any as Doc;
         const blist = (opts: DocumentOptions, docs: Doc[]) => new PrefetchProxy(Docs.Create.LinearDocument(docs, {
             ...opts,
             _gridGap: 5, _xMargin: 5, _yMargin: 5, _height: 42, _width: 100, boxShadow: "0 0", dontDecorateSelection: true, forceActive: true,
             dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }),
             backgroundColor: "black", treeViewPreventOpen: true, lockedPosition: true, _chromeStatus: "disabled", linearViewIsExpanded: true
         })) as any as Doc;
-
-
-        doc.None = ficon({ onClick: undefined, title: "none button", icon: "ban" });
         doc.Music = ficon({ onClick: undefined, title: "mussic button", icon: "music" });
         doc.Col = ficon({ onClick: undefined, title: "col button", icon: "object-group" });
         doc.Hist = ficon({ onClick: undefined, title: "hist button", icon: "chart-bar" });
@@ -744,8 +745,8 @@ export class SearchBox extends React.Component<SearchProps> {
         let buttons = [doc.None as Doc, doc.Music as Doc, doc.Col as Doc, doc.Hist as Doc,
         doc.Image as Doc, doc.Link as Doc, doc.PDF as Doc, doc.TEXT as Doc, doc.Vid as Doc, doc.Web as Doc];
 
-        const dragCreators = Docs.Create.MasonryDocument(CurrentUserUtils.setupCreatorButtons(doc), {
-            _width: 500, _autoHeight: true, columnWidth: 35, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled", title: "buttons",
+        const dragCreators = Docs.Create.MasonryDocument(buttons, {
+            _width: 500, backgroundColor:"#121721", _autoHeight: true, columnWidth: 35, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled", title: "buttons",
             dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }), _yMargin: 5
         });
         doc.nodeButtons= dragCreators;
@@ -772,7 +773,6 @@ export class SearchBox extends React.Component<SearchProps> {
                         <button className="filter-item" style={this._nodeStatus ? { background: "#aaaaa3" } : {}} onClick={this.handleNodeChange}>Nodes</button>
                     </div>
                     <div id={`node${this.props.id}`} className="filter-body" style={this._nodeStatus ? { borderTop: "grey 1px solid" } : { borderTop: "0px" }}>
-                        <IconBar />
                         {this.docButtons}
                     </div>
                     <div className="filter-key" id={`key${this.props.id}`} style={this._keyStatus ? { borderTop: "grey 1px solid" } : { borderTop: "0px" }}>

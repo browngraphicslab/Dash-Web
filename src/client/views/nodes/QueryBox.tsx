@@ -26,9 +26,14 @@ export class QueryBox extends DocAnnotatableComponent<FieldViewProps, QueryDocum
     }
 
     render() {
+        let side = false;
+        if (this.dataDoc.searchQuery===undefined){
+            console.log("YAAA");
+            side = true;
+        }
         const dragging = !SelectionManager.GetIsDragging() ? "" : "-dragging";
         return <div className={`queryBox${dragging}`} onWheel={(e) => e.stopPropagation()} >
-            <SearchBox id={this.props.Document[Id]} Document={this.props.Document} searchQuery={StrCast(this.dataDoc.searchQuery)} filterQuery={this.dataDoc.filterQuery} />
+            <SearchBox id={this.props.Document[Id]} sideBar={side} Document={this.props.Document} searchQuery={StrCast(this.dataDoc.searchQuery)} filterQuery={this.dataDoc.filterQuery} />
         </div >;
     }
 }
