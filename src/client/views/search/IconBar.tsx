@@ -24,9 +24,14 @@ library.add(faChartBar);
 library.add(faGlobeAsia);
 library.add(faBan);
 
+export interface IconBarProps {
+    setIcons: (icons: string[]) => {};
+}
+
+
 @observer
-export class IconBar extends React.Component {
-    public _allIcons: string[] = [DocumentType.AUDIO, DocumentType.COL, DocumentType.IMG, DocumentType.LINK, DocumentType.PDF, DocumentType.TEXT, DocumentType.VID, DocumentType.WEB];
+export class IconBar extends React.Component<IconBarProps> {
+    public _allIcons: string[] = [DocumentType.AUDIO, DocumentType.COL, DocumentType.IMG, DocumentType.LINK, DocumentType.PDF, DocumentType.RTF, DocumentType.VID, DocumentType.WEB];
 
     @observable private _icons: string[] = this._allIcons;
 
@@ -38,7 +43,10 @@ export class IconBar extends React.Component {
     @observable public _select: number = 0;
 
     @action.bound
-    updateIcon(newArray: string[]) { this._icons = newArray; }
+    updateIcon(newArray: string[]) {
+    this._icons = newArray;
+        this.props.setIcons?.(this._icons);
+    }
 
     @action.bound
     getIcons(): string[] { return this._icons; }

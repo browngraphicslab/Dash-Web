@@ -1,4 +1,4 @@
-.docuLinkBox-cont, .docuLinkBox-cont-small {
+.linkAnchorBox-cont, .linkAnchorBox-cont-small {
     cursor: default;
     position: absolute;
     width: 15;
@@ -7,7 +7,7 @@
     pointer-events: all;
     user-select: none;
 
-    .docuLinkBox-linkCloser {
+    .linkAnchorBox-linkCloser {
         position: absolute;
         width: 18;
         height: 18;
@@ -23,7 +23,7 @@
     }
 }
 
-.docuLinkBox-cont-small {
+.linkAnchorBox-cont-small {
     width:5px;
     height:5px;
 }

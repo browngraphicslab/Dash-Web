@@ -199,7 +199,7 @@ export namespace WebSocket {
     function setField(socket: Socket, newValue: Transferable) {
         Database.Instance.update(newValue.id, newValue, () =>
             socket.broadcast.emit(MessageStore.SetField.Message, newValue));
-        if (newValue.type === Types.Text) {
+        if (newValue.type === Types.Text) {  // if the newValue has sring type, then it's suitable for searching -- pass it to SOLR
             Search.updateDocument({ id: newValue.id, data: (newValue as any).data });
         }
     }
@@ -221,6 +221,7 @@ export namespace WebSocket {
         "pdf": ["_t", "url"],
         "audio": ["_t", "url"],
         "web": ["_t", "url"],
+        "script": ["_t", value => value.script.originalScript],
         "RichTextField": ["_t", value => value.Text],
         "date": ["_d", value => new Date(value.date).toISOString()],
         "proxy": ["_i", "fieldId"],

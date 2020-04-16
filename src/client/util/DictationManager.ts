@@ -10,7 +10,6 @@ import { CollectionViewType } from "../views/collections/CollectionView";
 import { Cast, CastCtor } from "../../new_fields/Types";
 import { listSpec } from "../../new_fields/Schema";
 import { AudioField, ImageField } from "../../new_fields/URLField";
-import { HistogramField } from "../northstar/dash-fields/HistogramField";
 import { Utils } from "../../Utils";
 import { RichTextField } from "../../new_fields/RichTextField";
 import { DictationOverlay } from "../views/DictationOverlay";
@@ -282,9 +281,8 @@ export namespace DictationManager {
             [DocumentType.COL, listSpec(Doc)],
             [DocumentType.AUDIO, AudioField],
             [DocumentType.IMG, ImageField],
-            [DocumentType.HIST, HistogramField],
             [DocumentType.IMPORT, listSpec(Doc)],
-            [DocumentType.TEXT, "string"]
+            [DocumentType.RTF, "string"]
         ]);
 
         const tryCast = (view: DocumentView, type: DocumentType) => {
@@ -377,7 +375,7 @@ export namespace DictationManager {
             {
                 expression: /view as (freeform|stacking|masonry|schema|tree)/g,
                 action: (target: DocumentView, matches: RegExpExecArray) => {
-                    const mode = CollectionViewType.valueOf(matches[1]);
+                    const mode = matches[1];
                     mode && (target.props.Document._viewType = mode);
                 },
                 restrictTo: [DocumentType.COL]

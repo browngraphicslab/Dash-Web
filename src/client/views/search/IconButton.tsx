@@ -86,15 +86,13 @@ export class IconButton extends React.Component<IconButtonProps>{
                 return faMusic;
             case (DocumentType.COL):
                 return faObjectGroup;
-            case (DocumentType.HIST):
-                return faChartBar;
             case (DocumentType.IMG):
                 return faImage;
             case (DocumentType.LINK):
                 return faLink;
             case (DocumentType.PDF):
                 return faFilePdf;
-            case (DocumentType.TEXT):
+            case (DocumentType.RTF):
                 return faStickyNote;
             case (DocumentType.VID):
                 return faVideo;
@@ -158,15 +156,13 @@ export class IconButton extends React.Component<IconButtonProps>{
                 return (<FontAwesomeIcon className="fontawesome-icon" icon={faMusic} />);
             case (DocumentType.COL):
                 return (<FontAwesomeIcon className="fontawesome-icon" icon={faObjectGroup} />);
-            case (DocumentType.HIST):
-                return (<FontAwesomeIcon className="fontawesome-icon" icon={faChartBar} />);
             case (DocumentType.IMG):
                 return (<FontAwesomeIcon className="fontawesome-icon" icon={faImage} />);
             case (DocumentType.LINK):
                 return (<FontAwesomeIcon className="fontawesome-icon" icon={faLink} />);
             case (DocumentType.PDF):
                 return (<FontAwesomeIcon className="fontawesome-icon" icon={faFilePdf} />);
-            case (DocumentType.TEXT):
+            case (DocumentType.RTF):
                 return (<FontAwesomeIcon className="fontawesome-icon" icon={faStickyNote} />);
             case (DocumentType.VID):
                 return (<FontAwesomeIcon className="fontawesome-icon" icon={faVideo} />);

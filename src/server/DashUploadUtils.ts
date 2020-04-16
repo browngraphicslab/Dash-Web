@@ -1,4 +1,4 @@
-import { unlinkSync, createWriteStream, readFileSync, rename, writeFile } from 'fs';
+import { unlinkSync, createWriteStream, readFileSync, rename, writeFile, existsSync } from 'fs';
 import { Utils } from '../Utils';
 import * as path from 'path';
 import * as sharp from 'sharp';
@@ -6,7 +6,7 @@ import request = require('request-promise');
 import { ExifImage } from 'exif';
 import { Opt } from '../new_fields/Doc';
 import { AcceptibleMedia, Upload } from './SharedMediaTypes';
-import { filesDirectory } from '.';
+import { filesDirectory, publicDirectory } from '.';
 import { File } from 'formidable';
 import { basename } from "path";
 import { createIfNotExists } from './ActionUtilities';
@@ -136,6 +136,16 @@ export namespace DashUploadUtils {
     };
 
     export async function buildFileDirectories() {
+        if (!existsSync(publicDirectory)) {
+            console.error("\nPlease ensure that the following directory exists...\n");
+            console.log(publicDirectory);
+            process.exit(0);
+        }
+        if (!existsSync(filesDirectory)) {
+            console.error("\nPlease ensure that the following directory exists...\n");
+            console.log(filesDirectory);
+            process.exit(0);
+        }
         const pending = Object.keys(Directory).map(sub => createIfNotExists(`${filesDirectory}/${sub}`));
         return Promise.all(pending);
     }
@@ -160,6 +170,11 @@ export namespace DashUploadUtils {
     export const InspectImage = async (source: string): Promise<Upload.InspectionResults | Error> => {
         let rawMatches: RegExpExecArray | null;
         let filename: string | undefined;
+        /**
+         * Just more edge case handling: this if clause handles the case where an image onto the canvas that
+         * is represented by a base64 encoded data uri, rather than a proper file. We manually write it out
+         * to the server and then carry on as if it had been put there by the Formidable form / file parser.
+         */
         if ((rawMatches = /^data:image\/([a-z]+);base64,(.*)/.exec(source)) !== null) {
             const [ext, data] = rawMatches.slice(1, 3);
             const resolved = filename = `upload_${Utils.GenerateGuid()}.${ext}`;
@@ -172,21 +187,35 @@ export namespace DashUploadUtils {
             source = `http://localhost:1050${clientPathToFile(Directory.images, resolved)}`;
         }
         let resolvedUrl: string;
+        /**
+         * At this point, we want to take whatever url we have and make sure it's requestable.
+         * Anything that's hosted by some other website already is, but if the url is a local file url
+         * (locates the file on this server machine), we have to resolve the client side url by cutting out the
+         * basename subtree (i.e. /images/<some_guid>.<ext>) and put it on the end of the server's url.
+         * 
+         * This can always be localhost, regardless of whether this is on the server or not, since we (the server, not the client)
+         * will be the ones making the request, and from the perspective of dash-release or dash-web, localhost:1050 refers to the same thing
+         * as the full dash-release.eastus.cloudapp.azure.com:1050.
+         */
         const matches = isLocal().exec(source);
         if (matches === null) {
             resolvedUrl = source;
         } else {
             resolvedUrl = `http://localhost:1050/${matches[1].split("\\").join("/")}`;
         }
+        // See header comments: not all image files have exif data (I believe only JPG is the only format that can have it)
         const exifData = await parseExifData(resolvedUrl);
         const results = {
             exifData,
             requestable: resolvedUrl
         };
+        // Use the request library to parse out file level image information in the headers
         const { headers } = (await new Promise<any>((resolve, reject) => {
             request.head(resolvedUrl, (error, res) => error ? reject(error) : resolve(res));
         }).catch(error => console.error(error)));
+        // Compute the native width and height ofthe image with an npm module
         const { width: nativeWidth, height: nativeHeight }: RequestedImageSize = await requestImageSize(resolvedUrl);
+        // Bundle up the information into an object
         return {
             source,
             contentSize: parseInt(headers[size]),
@@ -198,6 +227,16 @@ export namespace DashUploadUtils {
         };
     };
 
+    /**
+     * Basically just a wrapper around rename, which 'deletes'
+     * the file at the old path and 'moves' it to the new one. For simplicity, the
+     * caller just has to pass in the name of the target directory, and this function
+     * will resolve the actual target path from that.
+     * @param file The file to move
+     * @param destination One of the specific media asset directories into which to move it
+     * @param suffix If the file doesn't have a suffix and you want to provide it one
+     * to appear in the new location
+     */
     export async function MoveParsedFile(file: File, destination: Directory, suffix: string | undefined = undefined): Promise<Upload.FileResponse> {
         const { path: sourcePath } = file;
         let name = path.basename(sourcePath);
@@ -211,10 +250,8 @@ export namespace DashUploadUtils {
                         accessPaths: {
                             agnostic: getAccessPaths(destination, name)
                         }
-
                     }
-                }
-                );
+                });
             });
         });
     }
@@ -246,9 +283,22 @@ export namespace DashUploadUtils {
         return information;
     };
 
+    const bufferConverterRec = (layer: any) => {
+        for (const key of Object.keys(layer)) {
+            const val: any = layer[key];
+            if (val instanceof Buffer) {
+                layer[key] = val.toString();
+            } else if (Array.isArray(val) && typeof val[0] === "number") {
+                layer[key] = Buffer.from(val).toString();
+            } else if (typeof val === "object") {
+                bufferConverterRec(val);
+            }
+        }
+    };
+
     const parseExifData = async (source: string): Promise<Upload.EnrichedExifData> => {
         const image = await request.get(source, { encoding: null });
-        return new Promise(resolve => {
+        const { data, error } = await new Promise(resolve => {
             new ExifImage({ image }, (error, data) => {
                 let reason: Opt<string> = undefined;
                 if (error) {
@@ -257,6 +307,8 @@ export namespace DashUploadUtils {
                 resolve({ data, error: reason });
             });
         });
+        data && bufferConverterRec(data);
+        return { data, error };
     };
 
     const { pngs, jpgs, webps, tiffs } = AcceptibleMedia;

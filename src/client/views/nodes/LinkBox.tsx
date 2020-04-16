@@ -4,7 +4,7 @@ import { documentSchema } from "../../../new_fields/documentSchemas";
 import { makeInterface, listSpec } from "../../../new_fields/Schema";
 import { returnFalse, returnZero } from "../../../Utils";
 import { CollectionTreeView } from "../collections/CollectionTreeView";
-import { DocExtendableComponent } from "../DocComponent";
+import { ViewBoxBaseComponent } from "../DocComponent";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./LinkBox.scss";
 import { Cast } from "../../../new_fields/Types";
@@ -13,7 +13,7 @@ type LinkDocument = makeInterface<[typeof documentSchema]>;
 const LinkDocument = makeInterface(documentSchema);
 
 @observer
-export class LinkBox extends DocExtendableComponent<FieldViewProps, LinkDocument>(LinkDocument) {
+export class LinkBox extends ViewBoxBaseComponent<FieldViewProps, LinkDocument>(LinkDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(LinkBox, fieldKey); }
     render() {
         return <div className={`linkBox-container${this.active() ? "-interactive" : ""}`}
@@ -23,6 +23,8 @@ export class LinkBox extends DocExtendableComponent<FieldViewProps, LinkDocument
             <CollectionTreeView {...this.props}
                 ChromeHeight={returnZero}
                 overrideDocuments={[this.dataDoc]}
+                NativeHeight={returnZero}
+                NativeWidth={returnZero}
                 ignoreFields={Cast(this.props.Document.linkBoxExcludedKeys, listSpec("string"), null)}
                 annotationsKey={""}
                 CollectionView={undefined}

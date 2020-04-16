@@ -42,7 +42,7 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
                 if (pt.clientX === tPt.clientX && pt.clientY === tPt.clientY) {
                     // pen is also a touch, but with a radius of 0.5 (at least with the surface pens)
                     // and this seems to be the only way of differentiating pen and touch on touch events
-                    if (pt.radiusX > 1 && pt.radiusY > 1) {
+                    if ((pt as any).radiusX > 1 && (pt as any).radiusY > 1) {
                         this.prevPoints.set(pt.identifier, pt);
                     }
                 }
@@ -64,20 +64,15 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
                 case 1:
                     this.handle1PointerDown(te, me);
                     te.persist();
+                    // -- code for radial menu -- 
                     // if (this.holdTimer) {
                     //     clearTimeout(this.holdTimer)
                     //     this.holdTimer = undefined;
                     // }
-                    // console.log(this.holdTimer);
-                    // console.log(this.holdTimer);
                     break;
                 case 2:
                     this.handle2PointersDown(te, me);
-                    // e.stopPropagation();
                     break;
-                // case 5:
-                //     this.handleHandDown(te);
-                //     break;
             }
         }
     }

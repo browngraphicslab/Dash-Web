@@ -9,12 +9,12 @@ import { InkTool } from "../../../new_fields/InkField";
 import { makeInterface } from "../../../new_fields/Schema";
 import { Cast, NumCast } from "../../../new_fields/Types";
 import { WebField } from "../../../new_fields/URLField";
-import { Utils, returnOne, emptyFunction } from "../../../Utils";
+import { Utils, returnOne, emptyFunction, returnZero } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
 import { ImageUtils } from "../../util/Import & Export/ImageUtils";
 import { SelectionManager } from "../../util/SelectionManager";
-import { DocAnnotatableComponent } from "../DocComponent";
+import { ViewBoxAnnotatableComponent } from "../DocComponent";
 import { DocumentDecorations } from "../DocumentDecorations";
 import { InkingControl } from "../InkingControl";
 import { FieldView, FieldViewProps } from './FieldView';
@@ -33,7 +33,7 @@ type WebDocument = makeInterface<[typeof documentSchema]>;
 const WebDocument = makeInterface(documentSchema);
 
 @observer
-export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>(WebDocument) {
+export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocument>(WebDocument) {
 
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(WebBox, fieldKey); }
     @observable private collapsed: boolean = true;
@@ -335,6 +335,8 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
                 PanelHeight={this.props.PanelHeight}
                 PanelWidth={this.props.PanelWidth}
                 annotationsKey={this.annotationKey}
+                NativeHeight={returnZero}
+                NativeWidth={returnZero}
                 focus={this.props.focus}
                 isSelected={this.props.isSelected}
                 isAnnotationOverlay={true}

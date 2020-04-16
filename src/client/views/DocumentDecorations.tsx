@@ -69,7 +69,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     get Bounds(): { x: number, y: number, b: number, r: number } {
         return SelectionManager.SelectedDocuments().reduce((bounds, documentView) => {
             if (documentView.props.renderDepth === 0 ||
-                documentView.dontDecorateSelection ||
                 Doc.AreProtosEqual(documentView.props.Document, CurrentUserUtils.UserDocument)) {
                 return bounds;
             }
@@ -77,7 +76,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             var [sptX, sptY] = transform.transformPoint(0, 0);
             let [bptX, bptY] = transform.transformPoint(documentView.props.PanelWidth(), documentView.props.PanelHeight());
             if (documentView.props.Document.type === DocumentType.LINK) {
-                const docuBox = documentView.ContentDiv!.getElementsByClassName("docuLinkBox-cont");
+                const docuBox = documentView.ContentDiv!.getElementsByClassName("linkAnchorBox-cont");
                 if (docuBox.length) {
                     const rect = docuBox[0].getBoundingClientRect();
                     sptX = rect.left;
@@ -394,7 +393,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (SelectionManager.SelectedDocuments().length === 1) {
             const selected = SelectionManager.SelectedDocuments()[0];
             if (this._titleControlString.startsWith("=")) {
-                return ScriptField.MakeFunction(this._titleControlString.substring(1), { doc: Doc.name })!.script.run({ this: selected.props.Document }, console.log).result?.toString() || "";
+                return ScriptField.MakeFunction(this._titleControlString.substring(1), { doc: Doc.name })!.script.run({ self: selected.rootDoc, this: selected.layoutDoc }, console.log).result?.toString() || "";
             }
             if (this._titleControlString.startsWith("#")) {
                 return selected.props.Document[this._titleControlString.substring(1)]?.toString() || "-unset-";

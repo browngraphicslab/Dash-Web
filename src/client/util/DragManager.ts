@@ -17,6 +17,7 @@ import { convertDropDataToButtons } from "./DropConverter";
 import { AudioBox } from "../views/nodes/AudioBox";
 import { DateField } from "../../new_fields/DateField";
 import { DocumentView } from "../views/nodes/DocumentView";
+import { UndoManager } from "./UndoManager";
 
 export type dropActionType = "place" | "alias" | "copy" | undefined;
 export function SetupDrag(
@@ -199,6 +200,7 @@ export namespace DragManager {
             dropDoc instanceof Doc && AudioBox.ActiveRecordings.map(d => DocUtils.MakeLink({ doc: dropDoc }, { doc: d }, "audio link", "audio timeline"));
             return dropDoc;
         };
+        const batch = UndoManager.StartBatch("dragging");
         const finishDrag = (e: DragCompleteEvent) => {
             e.docDragData && (e.docDragData.droppedDocuments =
                 dragData.draggedDocuments.map(d => !dragData.isSelectionMove && !dragData.userDropAction && ScriptCast(d.onDragStart) ? addAudioTag(ScriptCast(d.onDragStart).script.run({ this: d }).result) :
@@ -208,6 +210,7 @@ export namespace DragManager {
             e.docDragData?.droppedDocuments.forEach((drop: Doc, i: number) =>
                 (dragData?.removeDropProperties || []).concat(Cast(dragData.draggedDocuments[i].removeDropProperties, listSpec("string"), [])).map(prop => drop[prop] = undefined)
             );
+            batch.end();
         };
         dragData.draggedDocuments.map(d => d.dragFactory); // does this help?  trying to make sure the dragFactory Doc is loaded
         StartDrag(eles, dragData, downX, downY, options, finishDrag);
@@ -216,10 +219,10 @@ export namespace DragManager {
     // drag a button template and drop a new button 
     export function StartButtonDrag(eles: HTMLElement[], script: string, title: string, vars: { [name: string]: Field }, params: string[], initialize: (button: Doc) => void, downX: number, downY: number, options?: DragOptions) {
         const finishDrag = (e: DragCompleteEvent) => {
-            const bd = Docs.Create.ButtonDocument({ _width: 150, _height: 50, title, isButton: true, onClick: ScriptField.MakeScript(script) });
-            params.map(p => Object.keys(vars).indexOf(p) !== -1 && (Doc.GetProto(bd)[p] = new PrefetchProxy(vars[p] as Doc)));
+            const bd = Docs.Create.ButtonDocument({ _width: 150, _height: 50, title, onClick: ScriptField.MakeScript(script) });
+            params.map(p => Object.keys(vars).indexOf(p) !== -1 && (Doc.GetProto(bd)[p] = new PrefetchProxy(vars[p] as Doc))); // copy all "captured" arguments into document parameterfields
             initialize?.(bd);
-            bd.buttonParams = new List<string>(params);
+            Doc.GetProto(bd)["onClick-paramFieldKeys"] = new List<string>(params);
             e.docDragData && (e.docDragData.droppedDocuments = [bd]);
         };
         StartDrag(eles, new DragManager.DocumentDragData([]), downX, downY, options, finishDrag);
@@ -401,20 +404,21 @@ export namespace DragManager {
 
     function dispatchDrag(dragEles: HTMLElement[], e: PointerEvent, dragData: { [index: string]: any }, options?: DragOptions, finishDrag?: (e: DragCompleteEvent) => void) {
         const removed = dragData.dontHideOnDrop ? [] : dragEles.map(dragEle => {
-            const ret = { ele: dragEle, w: dragEle.style.width, h: dragEle.style.height };
+            const ret = { ele: dragEle, w: dragEle.style.width, h: dragEle.style.height, o: dragEle.style.overflow };
             dragEle.style.width = "0";
             dragEle.style.height = "0";
+            dragEle.style.overflow = "hidden";
             return ret;
         });
         const target = document.elementFromPoint(e.x, e.y);
         removed.map(r => {
             r.ele.style.width = r.w;
             r.ele.style.height = r.h;
+            r.ele.style.overflow = r.o;
         });
         if (target) {
             const complete = new DragCompleteEvent(false, dragData);
             finishDrag?.(complete);
-            console.log(complete.aborted);
             target.dispatchEvent(
                 new CustomEvent<DropEvent>("dashOnDrop", {
                     bubbles: true,

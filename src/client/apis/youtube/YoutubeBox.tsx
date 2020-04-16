@@ -156,14 +156,14 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
     @action
     processVideoDetails = (videoDetails: any[]) => {
         this.videoDetails = videoDetails;
-        this.props.Document.cachedDetails = Docs.Get.DocumentHierarchyFromJson(videoDetails, "detailBackUp");
+        this.props.Document.cachedDetails = Docs.Get.FromJson({ data: videoDetails, title: "detailBackUp" });
     }
 
     /**
      * The function that stores the search results in the props document.
      */
     backUpSearchResults = (videos: any[]) => {
-        this.props.Document.cachedSearchResults = Docs.Get.DocumentHierarchyFromJson(videos, "videosBackUp");
+        this.props.Document.cachedSearchResults = Docs.Get.FromJson({ data: videos, title: "videosBackUp" });
     }
 
     /**
@@ -171,9 +171,9 @@ export class YoutubeBox extends React.Component<FieldViewProps> {
      * in the title of the videos.
      */
     filterYoutubeTitleResult = (resultTitle: string) => {
-        let processedTitle: string = resultTitle.ReplaceAll("&amp;", "&");
-        processedTitle = processedTitle.ReplaceAll("&#39;", "'");
-        processedTitle = processedTitle.ReplaceAll("&quot;", "\"");
+        let processedTitle: string = resultTitle.replace(/&amp;/g, "&");//.ReplaceAll("&amp;", "&");
+        processedTitle = processedTitle.replace(/"&#39;/g, "'");
+        processedTitle = processedTitle.replace(/&quot;/g, "\"");
         return processedTitle;
     }
 

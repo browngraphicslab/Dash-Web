@@ -15,7 +15,7 @@ import { FieldId } from "../../../new_fields/RefField";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { TraceMobx } from '../../../new_fields/util';
 import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
-import { emptyFunction, returnOne, returnTrue, Utils } from "../../../Utils";
+import { emptyFunction, returnOne, returnTrue, Utils, returnZero } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { Docs } from '../../documents/Documents';
 import { DocumentType } from '../../documents/DocumentTypes';
@@ -773,7 +773,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             return CollectionDockingView.AddRightSplit(doc, libraryPath);
         } else if (location === "close") {
             return CollectionDockingView.CloseRightSplit(doc);
-        } else {
+        } else {// if (location === "inPlace") {
             return CollectionDockingView.Instance.AddTab(this._stack, doc, libraryPath);
         }
     }
@@ -794,6 +794,8 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             ContentScaling={this.contentScaling}
             PanelWidth={this.panelWidth}
             PanelHeight={this.panelHeight}
+            NativeHeight={returnZero}
+            NativeWidth={returnZero}
             ScreenToLocalTransform={this.ScreenToLocalTransform}
             renderDepth={0}
             parentActive={returnTrue}
@@ -803,9 +805,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             addDocTab={this.addDocTab}
             pinToPres={DockedFrameRenderer.PinDoc}
             ContainingCollectionView={undefined}
-            ContainingCollectionDoc={undefined}
-            zoomToScale={emptyFunction}
-            getScale={returnOne} />;
+            ContainingCollectionDoc={undefined} />;
     }
 
     render() {

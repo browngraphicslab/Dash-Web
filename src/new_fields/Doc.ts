@@ -603,14 +603,6 @@ export namespace Doc {
         return undefined;
     }
     export function ApplyTemplateTo(templateDoc: Doc, target: Doc, targetKey: string, titleTarget: string | undefined) {
-        if (!templateDoc) {
-            target.layout = undefined;
-            target._nativeWidth = undefined;
-            target._nativeHeight = undefined;
-            target.type = undefined;
-            return;
-        }
-
         if (!Doc.AreProtosEqual(target[targetKey] as Doc, templateDoc)) {
             if (target.resolvedDataDoc) {
                 target[targetKey] = new PrefetchProxy(templateDoc);
@@ -645,11 +637,12 @@ export namespace Doc {
             Cast(templateFieldValue, listSpec(Doc), [])?.map(d => d instanceof Doc && MakeMetadataFieldTemplate(d, templateDoc));
             (Doc.GetProto(templateField)[metadataFieldKey] = ObjectField.MakeCopy(templateFieldValue));
         }
-        if (templateCaptionValue instanceof RichTextField && (templateCaptionValue.Text || templateCaptionValue.Data.toString().includes("dashField"))) {
-            templateField["caption-textTemplate"] = ComputedField.MakeFunction(`copyField(this.caption)`, { this: Doc.name });
+        // copy the textTemplates from 'this' (not 'self') because the layout contains the template info, not the original doc
+        if (templateCaptionValue instanceof RichTextField && !templateCaptionValue.Empty()) {
+            templateField["caption-textTemplate"] = ComputedField.MakeFunction(`copyField(this.caption)`);
         }
-        if (templateFieldValue instanceof RichTextField && (templateFieldValue.Text || templateFieldValue.Data.toString().includes("dashField"))) {
-            templateField[metadataFieldKey + "-textTemplate"] = ComputedField.MakeFunction(`copyField(this.${metadataFieldKey})`, { this: Doc.name });
+        if (templateFieldValue instanceof RichTextField && !templateFieldValue.Empty()) {
+            templateField[metadataFieldKey + "-textTemplate"] = ComputedField.MakeFunction(`copyField(this.${metadataFieldKey})`);
         }
 
         // get the layout string that the template uses to specify its layout
@@ -787,15 +780,10 @@ export namespace Doc {
         brushManager.BrushedDoc.clear();
     }
 
-    export function setChildLayout(target: Doc, source?: Doc) {
-        target.childLayout = source && source.isTemplateDoc ? source : source &&
-            source.dragFactory instanceof Doc && source.dragFactory.isTemplateDoc ? source.dragFactory :
-            source && source.layout instanceof Doc && source.layout.isTemplateDoc ? source.layout : undefined;
-    }
-    export function setChildDetailedLayout(target: Doc, source?: Doc) {
-        target.childDetailed = source && source.isTemplateDoc ? source : source &&
-            source.dragFactory instanceof Doc && source.dragFactory.isTemplateDoc ? source.dragFactory :
-            source && source.layout instanceof Doc && source.layout.isTemplateDoc ? source.layout : undefined;
+    export function getDocTemplate(doc?: Doc) {
+        return doc?.isTemplateDoc ? doc :
+            Cast(doc?.dragFactory, Doc, null)?.isTemplateDoc ? doc?.dragFactory :
+                Cast(doc?.layout, Doc, null)?.isTemplateDoc ? doc?.layout : undefined;
     }
 
     export function matchFieldValue(doc: Doc, key: string, value: any): boolean {
@@ -904,19 +892,20 @@ export namespace Doc {
 
 Scripting.addGlobal(function renameAlias(doc: any, n: any) { return StrCast(Doc.GetProto(doc).title).replace(/\([0-9]*\)/, "") + `(${n})`; });
 Scripting.addGlobal(function getProto(doc: any) { return Doc.GetProto(doc); });
-Scripting.addGlobal(function setChildLayout(target: any, source: any) { Doc.setChildLayout(target, source); });
-Scripting.addGlobal(function setChildDetailedLayout(target: any, source: any) { Doc.setChildDetailedLayout(target, source); });
+Scripting.addGlobal(function getDocTemplate(doc?: any) { return Doc.getDocTemplate(doc); });
 Scripting.addGlobal(function getAlias(doc: any) { return Doc.MakeAlias(doc); });
 Scripting.addGlobal(function getCopy(doc: any, copyProto: any) { return doc.isTemplateDoc ? Doc.ApplyTemplate(doc) : Doc.MakeCopy(doc, copyProto); });
 Scripting.addGlobal(function copyField(field: any) { return ObjectField.MakeCopy(field); });
 Scripting.addGlobal(function aliasDocs(field: any) { return Doc.aliasDocs(field); });
 Scripting.addGlobal(function docList(field: any) { return DocListCast(field); });
+Scripting.addGlobal(function setInPlace(doc: any, field: any, value: any) { return Doc.SetInPlace(doc, field, value, false); });
 Scripting.addGlobal(function sameDocs(doc1: any, doc2: any) { return Doc.AreProtosEqual(doc1, doc2); });
 Scripting.addGlobal(function deiconifyView(doc: any) { Doc.deiconifyView(doc); });
 Scripting.addGlobal(function undo() { return UndoManager.Undo(); });
 Scripting.addGlobal(function redo() { return UndoManager.Redo(); });
 Scripting.addGlobal(function DOC(id: string) { console.log("Can't parse a document id in a script"); return "invalid"; });
 Scripting.addGlobal(function assignDoc(doc: Doc, field: string, id: string) { return Doc.assignDocToField(doc, field, id); });
+Scripting.addGlobal(function docCast(doc: FieldResult): any { return DocCastAsync(doc); });
 Scripting.addGlobal(function curPresentationItem() {
     const curPres = Doc.UserDoc().curPresentation as Doc;
     return curPres && DocListCast(curPres[Doc.LayoutFieldKey(curPres)])[NumCast(curPres._itemIndex)];
@@ -924,7 +913,7 @@ Scripting.addGlobal(function curPresentationItem() {
 Scripting.addGlobal(function selectDoc(doc: any) { Doc.UserDoc().SelectedDocs = new List([doc]); });
 Scripting.addGlobal(function selectedDocs(container: Doc, excludeCollections: boolean, prevValue: any) {
     const docs = DocListCast(Doc.UserDoc().SelectedDocs).
-        filter(d => !Doc.AreProtosEqual(d, container) && !d.annotationOn && d.type !== DocumentType.DOCUMENT && d.type !== DocumentType.KVP &&
+        filter(d => !Doc.AreProtosEqual(d, container) && !d.annotationOn && d.type !== DocumentType.DOCHOLDER && d.type !== DocumentType.KVP &&
             (!excludeCollections || d.type !== DocumentType.COL || !Cast(d.data, listSpec(Doc), null)));
     return docs.length ? new List(docs) : prevValue;
 });

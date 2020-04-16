@@ -26,6 +26,9 @@
         position: relative;
         display: block;
     }
+    .collectionStackingViewFieldColumn {
+        height:max-content;
+    }
 
     .collectionSchemaView-previewDoc {
         height: 100%;

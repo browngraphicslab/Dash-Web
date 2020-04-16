@@ -24,6 +24,8 @@ export interface ScriptError {
 
 export type ScriptResult = ScriptSucccess | ScriptError;
 
+export type ScriptParam = { [name: string]: string };
+
 export interface CompiledScript {
     readonly compiled: true;
     readonly originalScript: string;
@@ -37,6 +39,12 @@ export interface CompileError {
 }
 
 export type CompileResult = CompiledScript | CompileError;
+export function isCompileError(toBeDetermined: CompileResult): toBeDetermined is CompileError {
+    if ((toBeDetermined as CompileError).errors) {
+        return true;
+    }
+    return false;
+}
 
 export namespace Scripting {
     export function addGlobal(global: { name: string }): void;
@@ -89,9 +97,9 @@ const _scriptingGlobals: { [name: string]: any } = {};
 let scriptingGlobals: { [name: string]: any } = _scriptingGlobals;
 
 function Run(script: string | undefined, customParams: string[], diagnostics: any[], originalScript: string, options: ScriptOptions): CompileResult {
-    const errors = diagnostics.some(diag => diag.category === ts.DiagnosticCategory.Error);
-    if ((options.typecheck !== false && errors) || !script) {
-        return { compiled: false, errors: diagnostics };
+    const errors = diagnostics.filter(diag => diag.category === ts.DiagnosticCategory.Error);
+    if ((options.typecheck !== false && errors.length) || !script) {
+        return { compiled: false, errors };
     }
 
     const paramNames = Object.keys(scriptingGlobals);
@@ -195,14 +203,14 @@ export type Transformer = {
     getVars?: () => { capturedVariables: { [name: string]: Field } }
 };
 export interface ScriptOptions {
-    requiredType?: string;
-    addReturn?: boolean;
-    params?: { [name: string]: string };
-    capturedVariables?: { [name: string]: Field };
-    typecheck?: boolean;
-    editable?: boolean;
+    requiredType?: string; // does function required a typed return value
+    addReturn?: boolean;   // does the compiler automatically add a return statement
+    params?: { [name: string]: string }; // list of function parameters and their types
+    capturedVariables?: { [name: string]: Field }; // list of captured variables
+    typecheck?: boolean; // should the compiler perform typechecking
+    editable?: boolean; // can the script edit Docs
     traverser?: TraverserParam;
-    transformer?: Transformer;
+    transformer?: Transformer; // does the editor display a text label by each document that can be used as a captured document reference
     globals?: { [name: string]: any };
 }
 

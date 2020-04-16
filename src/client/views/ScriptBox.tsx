@@ -12,6 +12,7 @@ import { CompileScript } from "../util/Scripting";
 import { ScriptField } from "../../new_fields/ScriptField";
 import { DragManager } from "../util/DragManager";
 import { EditableView } from "./EditableView";
+import { getEffectiveTypeRoots } from "typescript";
 
 export interface ScriptBoxProps {
     onSave: (text: string, onError: (error: string) => void) => void;
@@ -43,14 +44,12 @@ export class ScriptBox extends React.Component<ScriptBoxProps> {
 
     overlayDisposer?: () => void;
     onFocus = () => {
-        if (this.overlayDisposer) {
-            this.overlayDisposer();
-        }
+        this.overlayDisposer?.();
         this.overlayDisposer = OverlayView.Instance.addElement(<DocumentIconContainer />, { x: 0, y: 0 });
     }
 
     onBlur = () => {
-        this.overlayDisposer && this.overlayDisposer();
+        this.overlayDisposer?.();
     }
 
     render() {
@@ -94,7 +93,7 @@ export class ScriptBox extends React.Component<ScriptBoxProps> {
         const setParams = (p: string[]) => params.splice(0, params.length, ...p);
         const scriptingBox = <ScriptBox initialText={originalText} setParams={setParams} onCancel={overlayDisposer} onSave={(text, onError) => {
             if (!text) {
-                doc[fieldKey] = undefined;
+                Doc.GetProto(doc)[fieldKey] = undefined;
             } else {
                 const script = CompileScript(text, {
                     params: { this: Doc.name, ...contextParams },
@@ -117,10 +116,10 @@ export class ScriptBox extends React.Component<ScriptBoxProps> {
                 div.innerHTML = "button";
                 params.length && DragManager.StartButtonDrag([div], text, doc.title + "-instance", {}, params, (button: Doc) => { }, clientX, clientY);
 
-                doc[fieldKey] = new ScriptField(script);
+                Doc.GetProto(doc)[fieldKey] = new ScriptField(script);
                 overlayDisposer();
             }
         }} showDocumentIcons />;
-        overlayDisposer = OverlayView.Instance.addWindow(scriptingBox, { x: 400, y: 200, width: 500, height: 400, title: title });
+        overlayDisposer = OverlayView.Instance.addWindow(scriptingBox, { x: 400, y: 200, width: 500, height: 400, title });
     }
 }

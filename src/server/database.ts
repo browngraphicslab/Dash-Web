@@ -54,7 +54,7 @@ export namespace Database {
         private onConnect: (() => void)[] = [];
 
         constructor() {
-            this.MongoClient.connect(url, (_err, client) => {
+            this.MongoClient.connect(url, { connectTimeoutMS: 30000, socketTimeoutMS: 30000 }, (_err, client) => {
                 if (!client) {
                     console.error("\nPlease start MongoDB by running 'mongod' in a terminal before continuing...\n");
                     process.exit(0);

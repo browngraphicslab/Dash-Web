@@ -1,11 +1,11 @@
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc } from "../../../new_fields/Doc";
+import { Doc, Opt, DocCastAsync } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
 import { ObjectField } from "../../../new_fields/ObjectField";
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { ComputedField, ScriptField } from "../../../new_fields/ScriptField";
-import { NumCast, StrCast } from "../../../new_fields/Types";
+import { NumCast, StrCast, BoolCast, Cast } from "../../../new_fields/Types";
 import { emptyFunction, returnFalse, setupMoveUpEvents } from "../../../Utils";
 import { Scripting } from "../../util/Scripting";
 import { ContextMenu } from "../ContextMenu";
@@ -19,24 +19,22 @@ const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
 import React = require("react");
+import { DocumentView } from "../nodes/DocumentView";
 
 @observer
 export class CollectionTimeView extends CollectionSubView(doc => doc) {
     _changing = false;
     @observable _layoutEngine = "pivot";
     @observable _collapsed: boolean = false;
-    componentWillUnmount() {
-        this.props.Document.onChildClick = undefined;
-    }
-    componentDidMount() {
-        this.props.Document._freezeOnDrop = true;
-        const childDetailed = this.props.Document.childDetailed; // bcz: needs to be here to make sure the childDetailed layout template has been loaded when the first item is clicked;
-        const childText = "const alias = getAlias(this); Doc.ApplyTemplateTo(containingCollection.childDetailed, alias, 'layout_detailView'); alias.layoutKey='layout_detailedView'; alias.dropAction='alias'; alias.removeDropProperties=new List<string>(['dropAction']); useRightSplit(alias, shiftKey); ";
-        this.props.Document.onChildClick = ScriptField.MakeScript(childText, { this: Doc.name, heading: "string", containingCollection: Doc.name, shiftKey: "boolean" });
-        this.props.Document._fitToBox = true;
-        if (!this.props.Document.onViewDefClick) {
-            this.props.Document.onViewDefDivClick = ScriptField.MakeScript("pivotColumnClick(this,payload)", { payload: "any" });
-        }
+    @observable _childClickedScript: Opt<ScriptField>;
+    @observable _viewDefDivClick: Opt<ScriptField>;
+    async componentDidMount() {
+        const detailView = (await DocCastAsync(this.props.Document.childDetailView)) || DocumentView.findTemplate("detailView", StrCast(this.props.Document.type), "");
+        const childText = "const alias = getAlias(this); switchView(alias, detailView); alias.dropAction='alias'; alias.removeDropProperties=new List<string>(['dropAction']); useRightSplit(alias, shiftKey); ";
+        runInAction(() => {
+            this._childClickedScript = ScriptField.MakeScript(childText, { this: Doc.name, shiftKey: "boolean" }, { detailView: detailView! });
+            this._viewDefDivClick = ScriptField.MakeScript("pivotColumnClick(this,payload)", { payload: "any" });
+        });
     }
 
     layoutEngine = () => this._layoutEngine;
@@ -71,9 +69,23 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
         }), returnFalse, emptyFunction);
     }
 
+    contentsDown = (e: React.PointerEvent) => {
+        setupMoveUpEvents(this, e, returnFalse, returnFalse, action(() => {
+            let prevFilterIndex = NumCast(this.props.Document._prevFilterIndex);
+            if (prevFilterIndex > 0) {
+                prevFilterIndex--;
+                this.props.Document._docFilters = ObjectField.MakeCopy(this.props.Document["_prevDocFilter" + prevFilterIndex] as ObjectField);
+                this.props.Document._docRangeFilters = ObjectField.MakeCopy(this.props.Document["_prevDocRangeFilters" + prevFilterIndex] as ObjectField);
+                this.props.Document._prevFilterIndex = prevFilterIndex;
+            } else {
+                this.props.Document._docFilters = new List([]);
+            }
+        }), false);
+    }
+
     @computed get contents() {
-        return <div className="collectionTimeView-innards" key="timeline" style={{ width: "100%" }}>
-            <CollectionFreeFormView  {...this.props} layoutEngine={this.layoutEngine} />
+        return <div className="collectionTimeView-innards" key="timeline" style={{ width: "100%" }} onPointerDown={this.contentsDown}>
+            <CollectionFreeFormView {...this.props} childClickScript={this._childClickedScript} viewDefDivClick={this._viewDefDivClick} fitToBox={true} freezeChildDimensions={BoolCast(this.layoutDoc._freezeChildDimensions, true)} layoutEngine={this.layoutEngine} />
         </div>;
     }
 
@@ -131,20 +143,6 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
             color: "#f1efeb" // this.props.headingObject ? this.props.headingObject.color : "#f1efeb";
         };
         return <div className={"pivotKeyEntry"}>
-            <button className="collectionTimeView-backBtn"
-                onClick={action(() => {
-                    let prevFilterIndex = NumCast(this.props.Document._prevFilterIndex);
-                    if (prevFilterIndex > 0) {
-                        prevFilterIndex--;
-                        this.props.Document._docFilters = ObjectField.MakeCopy(this.props.Document["_prevDocFilter" + prevFilterIndex] as ObjectField);
-                        this.props.Document._docRangeFilters = ObjectField.MakeCopy(this.props.Document["_prevDocRangeFilters" + prevFilterIndex] as ObjectField);
-                        this.props.Document._prevFilterIndex = prevFilterIndex;
-                    } else {
-                        this.props.Document._docFilters = new List([]);
-                    }
-                })}>
-                back
-            </button>
             <EditableView {...newEditableViewProps} display={"inline"} menuCallback={this.menuCallback} />
         </div>;
     }

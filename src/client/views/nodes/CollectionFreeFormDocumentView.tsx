@@ -10,7 +10,6 @@ import { DocumentView, DocumentViewProps } from "./DocumentView";
 import React = require("react");
 import { PositionDocument } from "../../../new_fields/documentSchemas";
 import { TraceMobx } from "../../../new_fields/util";
-import { returnFalse } from "../../../Utils";
 import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
@@ -23,6 +22,7 @@ export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     width?: number;
     height?: number;
     jitterRotation: number;
+    pointerEvents?: "none";
     transition?: string;
     fitToBox?: boolean;
 }
@@ -41,9 +41,10 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         const hgt = this.renderScriptDim ? this.renderScriptDim.height : this.props.height !== undefined ? this.props.height : this.props.dataProvider && this.dataProvider ? this.dataProvider.height : this.layoutDoc[HeightSym]();
         return (hgt === undefined && this.nativeWidth && this.nativeHeight) ? this.width * this.nativeHeight / this.nativeWidth : hgt;
     }
+    @computed get freezeDimensions() { return this.props.FreezeDimensions; }
     @computed get dataProvider() { return this.props.dataProvider && this.props.dataProvider(this.props.Document) ? this.props.dataProvider(this.props.Document) : undefined; }
-    @computed get nativeWidth() { return NumCast(this.layoutDoc._nativeWidth); }
-    @computed get nativeHeight() { return NumCast(this.layoutDoc._nativeHeight); }
+    @computed get nativeWidth() { return NumCast(this.layoutDoc._nativeWidth, this.props.NativeWidth() || (this.freezeDimensions ? this.layoutDoc[WidthSym]() : 0)); }
+    @computed get nativeHeight() { return NumCast(this.layoutDoc._nativeHeight, this.props.NativeHeight() || (this.freezeDimensions ? this.layoutDoc[HeightSym]() : 0)); }
 
     @computed get renderScriptDim() {
         if (this.Document.renderScript) {
@@ -59,15 +60,21 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         }
         return undefined;
     }
+    nudge = (x: number, y: number) => {
+        this.props.Document.x = NumCast(this.props.Document.x) + x;
+        this.props.Document.y = NumCast(this.props.Document.y) + y;
+    }
 
-    contentScaling = () => this.nativeWidth > 0 && !this.props.fitToBox ? this.width / this.nativeWidth : 1;
-    panelWidth = () => (this.dataProvider?.width || this.props.PanelWidth());
-    panelHeight = () => (this.dataProvider?.height || this.props.PanelHeight());
+    contentScaling = () => this.nativeWidth > 0 && !this.props.fitToBox && !this.freezeDimensions ? this.width / this.nativeWidth : 1;
+    panelWidth = () => (this.dataProvider?.width || this.props.PanelWidth?.());
+    panelHeight = () => (this.dataProvider?.height || this.props.PanelHeight?.());
     getTransform = (): Transform => this.props.ScreenToLocalTransform()
         .translate(-this.X, -this.Y)
         .scale(1 / this.contentScaling())
 
     focusDoc = (doc: Doc) => this.props.focus(doc, false);
+    NativeWidth = () => this.nativeWidth;
+    NativeHeight = () => this.nativeHeight;
     render() {
         TraceMobx();
         return <div className="collectionFreeFormDocumentView-container"
@@ -86,25 +93,30 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 height: this.height,
                 zIndex: this.ZInd,
                 display: this.ZInd === -99 ? "none" : undefined,
-                pointerEvents: this.props.Document.isBackground ? "none" : undefined
+                pointerEvents: this.props.Document.isBackground ? "none" : this.props.pointerEvents
             }} >
 
-            {!this.props.fitToBox ? 
-            <DocumentView {...this.props}
-                dragDivName={"collectionFreeFormDocumentView-container"}
-                ContentScaling={this.contentScaling}
-                ScreenToLocalTransform={this.getTransform}
-                backgroundColor={this.props.backgroundColor}
-                PanelWidth={this.panelWidth}
-                PanelHeight={this.panelHeight} /> 
-            : <ContentFittingDocumentView {...this.props}
-                CollectionDoc={this.props.ContainingCollectionDoc}
-                DataDocument={this.props.DataDoc}
-                getTransform={this.getTransform}
-                active={returnFalse}
-                focus={this.focusDoc}
-                PanelWidth={this.panelWidth}
-                PanelHeight={this.panelHeight}
+            {!this.props.fitToBox ?
+                <DocumentView {...this.props}
+                    nudge={this.nudge}
+                    dragDivName={"collectionFreeFormDocumentView-container"}
+                    ContentScaling={this.contentScaling}
+                    ScreenToLocalTransform={this.getTransform}
+                    backgroundColor={this.props.backgroundColor}
+                    NativeHeight={this.NativeHeight}
+                    NativeWidth={this.NativeWidth}
+                    PanelWidth={this.panelWidth}
+                    PanelHeight={this.panelHeight} />
+                : <ContentFittingDocumentView {...this.props}
+                    CollectionDoc={this.props.ContainingCollectionDoc}
+                    DataDocument={this.props.DataDoc}
+                    getTransform={this.getTransform}
+                    NativeHeight={this.NativeHeight}
+                    NativeWidth={this.NativeWidth}
+                    active={this.props.parentActive}
+                    focus={this.focusDoc}
+                    PanelWidth={this.panelWidth}
+                    PanelHeight={this.panelHeight}
                 />}
         </div>;
     }

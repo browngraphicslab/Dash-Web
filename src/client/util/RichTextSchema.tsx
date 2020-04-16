@@ -16,7 +16,7 @@ import { listSpec } from "../../new_fields/Schema";
 import { SchemaHeaderField } from "../../new_fields/SchemaHeaderField";
 import { ComputedField } from "../../new_fields/ScriptField";
 import { BoolCast, Cast, NumCast, StrCast } from "../../new_fields/Types";
-import { emptyFunction, returnEmptyString, returnFalse, returnOne, Utils } from "../../Utils";
+import { emptyFunction, returnEmptyString, returnFalse, returnOne, Utils, returnZero } from "../../Utils";
 import { DocServer } from "../DocServer";
 import { Docs } from "../documents/Documents";
 import { CollectionViewType } from "../views/collections/CollectionView";
@@ -27,8 +27,12 @@ import ParagraphNodeSpec from "./ParagraphNodeSpec";
 import { Transform } from "./Transform";
 import React = require("react");
 
-const blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
-    preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], brDOM: DOMOutputSpecArray = ["br"], ulDOM: DOMOutputSpecArray = ["ul", 0];
+const 
+    blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], 
+    hrDOM: DOMOutputSpecArray = ["hr"],
+    preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], 
+    brDOM: DOMOutputSpecArray = ["br"], 
+    ulDOM: DOMOutputSpecArray = ["ul", 0];
 
 // :: Object
 // [Specs](#model.NodeSpec) for the nodes defined in this schema.
@@ -738,7 +742,7 @@ export class DashDocView {
         this._outer = document.createElement("span");
         this._outer.style.position = "relative";
         this._outer.style.textIndent = "0";
-        this._outer.style.border = "1px solid " + StrCast(tbox.Document.color, (Cast(Doc.UserDoc().activeWorkspace, Doc, null).darkScheme ? "dimGray" : "lightGray"));
+        this._outer.style.border = "1px solid " + StrCast(tbox.layoutDoc.color, (Cast(Doc.UserDoc().activeWorkspace, Doc, null).darkScheme ? "dimGray" : "lightGray"));
         this._outer.style.width = node.attrs.width;
         this._outer.style.height = node.attrs.height;
         this._outer.style.display = node.attrs.hidden ? "none" : "inline-block";
@@ -824,6 +828,8 @@ export class DashDocView {
                     addDocTab={this._textBox.props.addDocTab}
                     pinToPres={returnFalse}
                     renderDepth={self._textBox.props.renderDepth + 1}
+                    NativeHeight={returnZero}
+                    NativeWidth={returnZero}
                     PanelWidth={finalLayout[WidthSym]}
                     PanelHeight={finalLayout[HeightSym]}
                     focus={this.outerFocus}
@@ -831,8 +837,6 @@ export class DashDocView {
                     parentActive={returnFalse}
                     whenActiveChanged={returnFalse}
                     bringToFront={emptyFunction}
-                    zoomToScale={emptyFunction}
-                    getScale={returnOne}
                     dontRegisterView={false}
                     ContainingCollectionView={this._textBox.props.ContainingCollectionView}
                     ContainingCollectionDoc={this._textBox.props.ContainingCollectionDoc}
@@ -959,8 +963,6 @@ export class DashFieldView {
             if (self._options?.length && !self._dashDoc[self._fieldKey]) {
                 self._dashDoc[self._fieldKey] = StrCast(self._options[0].title);
             }
-            // NOTE: if the field key starts with "@", then the actual field key is stored in the field 'fieldKey' (removing the @).
-            self._fieldKey = self._fieldKey.startsWith("@") ? StrCast(tbox.props.Document[StrCast(self._fieldKey).substring(1)]) : self._fieldKey;
             this._labelSpan.innerHTML = `${self._fieldKey}: `;
             const fieldVal = Cast(this._dashDoc?.[self._fieldKey], "boolean", null);
             this._fieldCheck.style.display = (fieldVal === true || fieldVal === false) ? "inline-block" : "none";
