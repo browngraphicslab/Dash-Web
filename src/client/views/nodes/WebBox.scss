@@ -3,6 +3,21 @@
 
 .webBox-container, .webBox-container-dragging {
     transform-origin: top left;
+    .webBox-outerContent {
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        overflow: auto;
+        pointer-events: all;
+        .webBox-innerContent { 
+            width:100%;
+        }
+    }
+    div.webBox-outerContent::-webkit-scrollbar-thumb {
+        display:none;
+    }
 }
 .webBox-cont,
 .webBox-cont-dragging {
