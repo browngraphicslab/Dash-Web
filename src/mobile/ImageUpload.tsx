@@ -121,9 +121,7 @@ class Uploader extends React.Component {
             event.preventDefault();
         }
     }, true);
-    ReactDOM.render((
-        // <Uploader />
-        <MobileInterface />
+    ReactDOM.render((<Uploader />// <MobileInterface />
     ),
         document.getElementById('root')
     );

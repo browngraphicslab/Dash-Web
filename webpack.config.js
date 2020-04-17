@@ -42,6 +42,7 @@ module.exports = {
         test: ["./src/debug/Test.tsx", 'webpack-hot-middleware/client?reload=true'],
         inkControls: ["./src/mobile/InkControls.tsx", 'webpack-hot-middleware/client?reload=true'],
         imageUpload: ["./src/mobile/ImageUpload.tsx", 'webpack-hot-middleware/client?reload=true'],
+        mobileStart: ["./src/client/views/MobileMain.tsx", 'webpack-hot-middleware/client?reload=true'], //Created for testing
     },
     optimization: {
         noEmitOnErrors: true

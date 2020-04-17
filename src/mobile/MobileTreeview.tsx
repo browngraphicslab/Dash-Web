@@ -39,12 +39,18 @@ import RichTextMenu from '../client/util/RichTextMenu';
 import { WebField } from "../new_fields/URLField";
 import { FieldResult } from "../new_fields/Doc";
 import { List } from '../new_fields/List';
+import { MainView } from '../client/views/MainView';
 
 library.add(faLongArrowAltLeft);
 
+/**
+ * This class is just for testing and changing certain functions from Mobile Interface
+ * is not for functional use. It is modelled primarily off of MobileInterface.tsx and 
+ * MainView.tsx
+ */
 @observer
-export default class MobileInterface extends React.Component {
-    @observable static Instance: MobileInterface;
+export default class MobileTreeview extends React.Component {
+    public static Instance: MobileTreeview;
     @computed private get userDoc() { return CurrentUserUtils.UserDocument; }
     @computed private get mainContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeMobile, Doc)) : CurrentUserUtils.GuestMobile; }
     // @observable private currentView: "main" | "ink" | "upload" = "main";
@@ -58,7 +64,7 @@ export default class MobileInterface extends React.Component {
 
     constructor(props: Readonly<{}>) {
         super(props);
-        MobileInterface.Instance = this;
+        MobileTreeview.Instance = this;
     }
 
     @action
@@ -82,7 +88,7 @@ export default class MobileInterface extends React.Component {
 
     onSwitchInking = () => {
         InkingControl.Instance.switchTool(InkTool.Pen);
-        MobileInterface.Instance.drawingInk = true;
+        MobileTreeview.Instance.drawingInk = true;
 
         DocServer.Mobile.dispatchOverlayTrigger({
             enableOverlay: true,
@@ -323,34 +329,32 @@ export default class MobileInterface extends React.Component {
         //         this.currentView === "upload" ? this.uploadContent : <></>;
         return (
             <div className="mobileInterface-container" onDragOver={this.onDragOver}>
-                {/* <DocumentDecorations />
-                <GestureOverlay>
-                    {this.renderView ? this.renderView() : this.renderDefaultContent()}
-                </GestureOverlay> */}
-
-                {/* <DictationOverlay />
+                <DocumentDecorations />
+                <DictationOverlay />
                 <SharingManager />
-                <GoogleAuthenticationManager /> */}
+                <GoogleAuthenticationManager />
                 <DocumentDecorations />
                 <GestureOverlay>
+                    {/* I think the problem has to do with the renderView */}
                     {this.renderView ? this.renderView() : this.renderDefaultContent()}
                 </GestureOverlay>
                 <PreviewCursor />
-                {/* <ContextMenu /> */}
+                <ContextMenu />
                 <RadialMenu />
                 <RichTextMenu />
-                {/* <PDFMenu />
+                <PDFMenu />
                 <MarqueeOptionsMenu />
-                <OverlayView /> */}
+                <OverlayView />
             </div>
         );
     }
 }
 
-Scripting.addGlobal(function switchMobileView(doc: (userDoc: Doc) => Doc, renderView?: () => JSX.Element, onSwitch?: () => void) { return MobileInterface.Instance.switchCurrentView(doc, renderView, onSwitch); });
-Scripting.addGlobal(function onSwitchMobileInking() { return MobileInterface.Instance.onSwitchInking(); });
-Scripting.addGlobal(function renderMobileInking() { return MobileInterface.Instance.renderInkingContent(); });
-Scripting.addGlobal(function onSwitchMobileUpload() { return MobileInterface.Instance.onSwitchUpload(); });
-Scripting.addGlobal(function renderMobileUpload() { return MobileInterface.Instance.renderUploadContent(); });
-Scripting.addGlobal(function addWebToMobileUpload() { return MobileInterface.Instance.addWebToCollection(); });
+Scripting.addGlobal(function switchMobileView(doc: (userDoc: Doc) => Doc, renderView?: () => JSX.Element, onSwitch?: () => void) { return MobileTreeview.Instance.switchCurrentView(doc, renderView, onSwitch); });
+Scripting.addGlobal(function onSwitchMobileInking() { return MobileTreeview.Instance.onSwitchInking(); });
+Scripting.addGlobal(function renderMobileInking() { return MobileTreeview.Instance.renderInkingContent(); });
+Scripting.addGlobal(function onSwitchMobileUpload() { return MobileTreeview.Instance.onSwitchUpload(); });
+Scripting.addGlobal(function renderMobileUpload() { return MobileTreeview.Instance.renderUploadContent(); });
+Scripting.addGlobal(function addWebToMobileUpload() { return MobileTreeview.Instance.addWebToCollection(); });
+
 
