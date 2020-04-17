@@ -31,6 +31,7 @@ export enum DocumentType {
     COLOR = "color",            // color picker (view of a color picker for a color string)
     YOUTUBE = "youtube",        // youtube directory (view of you tube search results)
     DOCHOLDER = "docholder",    // nested document (view of a document)
+    COMPARISON = "comparison",   // before/after view with slider (view of 2 images)
 
     LINKDB = "linkdb",          // database of links  ??? why do we have this
     RECOMMENDATION = "recommendation", // view of a recommendation

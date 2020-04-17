@@ -49,8 +49,8 @@ import { ContextMenuProps } from "../views/ContextMenuItem";
 import { ContextMenu } from "../views/ContextMenu";
 import { LinkBox } from "../views/nodes/LinkBox";
 import { ScreenshotBox } from "../views/nodes/ScreenshotBox";
+import { ComparisonBox } from "../views/nodes/ComparisonBox";
 import CollectionMapView from "../views/collections/CollectionMapView";
-import LocationField, { LocationData } from "../../new_fields/LocationField";
 const requestImageSize = require('../util/request-image-size');
 const path = require('path');
 
@@ -279,6 +279,9 @@ export namespace Docs {
             }],
             [DocumentType.SCREENSHOT, {
                 layout: { view: ScreenshotBox, dataField: data },
+            }],
+            [DocumentType.COMPARISON, {
+                layout: { view: ComparisonBox, dataField: data },
             }],
         ]);
 
@@ -533,6 +536,10 @@ export namespace Docs {
 
         export function ScreenshotDocument(url: string, options: DocumentOptions = {}) {
             return InstanceFromProto(Prototypes.get(DocumentType.SCREENSHOT), "", options);
+        }
+
+        export function ComparisonDocument(options: DocumentOptions = {}) {
+            return InstanceFromProto(Prototypes.get(DocumentType.COMPARISON), "", options);
         }
 
         export function AudioDocument(url: string, options: DocumentOptions = {}) {

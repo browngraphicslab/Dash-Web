@@ -4,7 +4,7 @@ import { faAsterisk, faBrain, faFileAudio, faImage, faPaintBrush } from '@fortaw
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, runInAction } from 'mobx';
 import { observer } from "mobx-react";
-import { DataSym, Doc, DocListCast, HeightSym, WidthSym } from '../../../new_fields/Doc';
+import { Doc } from '../../../new_fields/Doc';
 import { documentSchema } from '../../../new_fields/documentSchemas';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { List } from '../../../new_fields/List';
@@ -12,16 +12,9 @@ import { ObjectField } from '../../../new_fields/ObjectField';
 import { createSchema, listSpec, makeInterface } from '../../../new_fields/Schema';
 import { ComputedField } from '../../../new_fields/ScriptField';
 import { Cast, NumCast, StrCast } from '../../../new_fields/Types';
-import { AudioField, ImageField } from '../../../new_fields/URLField';
-import { TraceMobx } from '../../../new_fields/util';
 import { emptyFunction, returnOne, Utils, returnZero } from '../../../Utils';
-import { CognitiveServices, Confidence, Service, Tag } from '../../cognitive_services/CognitiveServices';
 import { Docs } from '../../documents/Documents';
 import { DragManager } from '../../util/DragManager';
-import { SelectionManager } from '../../util/SelectionManager';
-import { undoBatch } from '../../util/UndoManager';
-import { ContextMenu } from "../ContextMenu";
-import { ContextMenuProps } from '../ContextMenuItem';
 import { ViewBoxAnnotatableComponent } from '../DocComponent';
 import { FieldView, FieldViewProps } from './FieldView';
 import "./ComparisonBox.scss";
@@ -44,45 +37,33 @@ const ComparisonDocument = makeInterface(pageSchema, documentSchema);
 @observer
 export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, ComparisonDocument>(ComparisonDocument) {
     protected multiTouchDisposer?: import("../../util/InteractionUtils").InteractionUtils.MultiTouchEventDisposer | undefined;
-    protected beforeDoc: Doc | undefined;
-    protected afterDoc: Doc | undefined;
 
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(ComparisonBox, fieldKey); }
 
     private _beforeDropDisposer?: DragManager.DragDropDisposer;
     private _afterDropDisposer?: DragManager.DragDropDisposer;
 
-    protected createBeforeDropTarget = (ele: HTMLDivElement) => {
-        this._beforeDropDisposer && this._beforeDropDisposer();
-        ele && (this._beforeDropDisposer = DragManager.MakeDropTarget(ele, (event, dropEvent) => {
-            this.beforeDoc = dropEvent.complete.docDragData.droppedDocuments[0];
-        }));
+    protected createDropTarget = (ele: HTMLDivElement | null, fieldKey: string) => {
+        if (ele) {
+            return DragManager.MakeDropTarget(ele, (event, dropEvent) => this.dropHandler(event, dropEvent, fieldKey));
+        }
     }
 
-    protected createAfterDropTarget = (ele: HTMLDivElement) => {
-        this._afterDropDisposer && this._afterDropDisposer();
-        ele && (this._afterDropDisposer = DragManager.MakeDropTarget(ele, (event, dropEvent) => {
-            this.afterDoc = dropEvent.complete.docDragData.droppedDocuments[0];
-        }));
-        // this.afterDropHandler(this._afterDropDisposer);
-    }
-
-    beforeDropHandler = (ele: any) => {
-
-    }
-
-    afterDropHandler = (ele: any) => {
-
+    private dropHandler = (event: Event, dropEvent: DragManager.DropEvent, fieldKey: string) => {
+        const droppedDocs = dropEvent.complete.docDragData?.droppedDocuments;
+        if (droppedDocs?.length) {
+            this.props.Document[fieldKey] = Doc.MakeAlias(droppedDocs[0]);
+        }
     }
 
     clearBeforeDoc = (e: PointerEvent) => {
         e.stopPropagation;
-        this.beforeDoc = undefined;
+        delete this.props.Document.beforeDoc;
     }
 
     clearAfterDoc = (e: PointerEvent) => {
         e.stopPropagation;
-        this.afterDoc = undefined;
+        delete this.props.Document.afterDoc;
     }
 
     get fieldKey() {
@@ -90,32 +71,44 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
     }
 
     render() {
-        TraceMobx();
-        const dragging = !SelectionManager.GetIsDragging() ? "" : "-dragging";
         const beforeDoc = this.props.Document.beforeDoc as Doc;
+        const afterDoc = this.props.Document.afterDoc as Doc;
         return (
-            <div className={`comparisonBox${dragging}`}>
-                {
-                    beforeDoc ?
-                        <div className="beforeBox-cont" key={this.props.Document[Id]} ref={this.createBeforeDropTarget}>
+            <div className={`comparisonBox`} style={{ backgroundColor: "blue" }}>
+                <div
+                    className="beforeBox-cont"
+                    key={this.props.Document[Id]}
+                    ref={(ele) => {
+                        this._beforeDropDisposer && this._beforeDropDisposer();
+                        this._beforeDropDisposer = this.createDropTarget(ele, "beforeDoc");
+                    }}
+                    style={{ backgroundColor: "red" }}
+                >
+                    {
+                        beforeDoc ?
                             <ContentFittingDocumentView {...this.props}
                                 Document={beforeDoc}
                                 getTransform={this.props.ScreenToLocalTransform} />
-                        </div> : null
-                }
-
-                {/* {
-                    beforeDoc ? 
-                    <div className="beforeBox-cont" key={this.props.Document[Id]} ref={this.createBeforeDropTarget}>
-                        <ContentFittingDocumentView {...this.props}
-                            Document={beforeDoc}
-                            getTransform={this.props.ScreenToLocalTransform} />
-                    </div> : null
-                }
-                <div className="beforeBox-cont" key={this.props.Document[Id]} ref={this.createBeforeDropTarget}>
-                    <ContentFittingDocumentView {...this.props}
-                        Document={this.props.Document.afterDoc} />
-                </div> */}
+                            : null
+                    }
+                </div>
+                <div
+                    className="afterBox-cont"
+                    key={this.props.Document[Id]}
+                    ref={(ele) => {
+                        this._afterDropDisposer && this._afterDropDisposer();
+                        this._afterDropDisposer = this.createDropTarget(ele, "afterDoc");
+                    }}
+                    style={{ backgroundColor: "orange" }}
+                >
+                    {
+                        afterDoc ?
+                            <ContentFittingDocumentView {...this.props}
+                                Document={afterDoc}
+                                getTransform={this.props.ScreenToLocalTransform} />
+                            : null
+                    }
+                </div>
             </div>);
     }
 }
