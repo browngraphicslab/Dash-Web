@@ -40,7 +40,6 @@ module.exports = {
         viewer: ["./src/debug/Viewer.tsx", 'webpack-hot-middleware/client?reload=true'],
         repl: ["./src/debug/Repl.tsx", 'webpack-hot-middleware/client?reload=true'],
         test: ["./src/debug/Test.tsx", 'webpack-hot-middleware/client?reload=true'],
-        inkControls: ["./src/mobile/InkControls.tsx", 'webpack-hot-middleware/client?reload=true'],
         mobileInterface: ["./src/mobile/MobileInterface.tsx", 'webpack-hot-middleware/client?reload=true'],
     },
     optimization: {
