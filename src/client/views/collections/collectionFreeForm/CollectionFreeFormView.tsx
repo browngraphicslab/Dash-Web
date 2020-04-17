@@ -31,7 +31,7 @@ import { ContextMenu } from "../../ContextMenu";
 import { ContextMenuProps } from "../../ContextMenuItem";
 import { InkingControl } from "../../InkingControl";
 import { CollectionFreeFormDocumentView } from "../../nodes/CollectionFreeFormDocumentView";
-import { DocumentViewProps } from "../../nodes/DocumentView";
+import { DocumentViewProps, DocumentView } from "../../nodes/DocumentView";
 import { FormattedTextBox } from "../../nodes/FormattedTextBox";
 import { pageSchema } from "../../nodes/ImageBox";
 import PDFMenu from "../../pdf/PDFMenu";
@@ -822,7 +822,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument, u
 
             if (!willZoom) {
                 Doc.BrushDoc(this.props.Document);
-                !doc.z && this.scaleAtPt([NumCast(doc.x), NumCast(doc.y)], 1);
+                !doc.z && this.scaleAtPt(DocumentView._focusHack, 1); // [NumCast(doc.x), NumCast(doc.y)], 1);
             } else {
                 if (DocListCast(this.dataDoc[this.props.fieldKey]).includes(doc)) {
                     if (!doc.z) this.setPan(newPanX, newPanY, "Ease", true); // docs that are floating in their collection can't be panned to from their collection -- need to propagate the pan to a parent freeform somehow
