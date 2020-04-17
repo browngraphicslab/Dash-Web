@@ -422,17 +422,29 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
         </div>;
     }
 
+    // adjust y position to center image in panel aspect is bigger than image aspect.
+    // bcz :note, this is broken for rotated images
+    get ycenter() {
+        const { nativeWidth, nativeHeight } = this.nativeSize;
+        const rotation = NumCast(this.dataDoc[this.fieldKey + "-rotation"]);
+        const aspect = (rotation % 180) ? nativeWidth / nativeHeight : nativeHeight / nativeWidth;
+        return this.props.PanelHeight() / this.props.PanelWidth() > aspect ?
+            (this.props.PanelHeight() - this.props.PanelWidth() * aspect) / 2 : 0;
+    }
+
+    screenToLocalTransform = () => this.props.ScreenToLocalTransform().translate(0, -this.ycenter / this.props.ContentScaling());
+
     contentFunc = () => [this.content];
     render() {
         TraceMobx();
         const dragging = !SelectionManager.GetIsDragging() ? "" : "-dragging";
         return (<div className={`imageBox${dragging}`} onContextMenu={this.specificContextMenu}
             style={{
-                transform: this.props.PanelWidth() ? undefined : `scale(${this.props.ContentScaling()})`,
+                transform: this.props.PanelWidth() ? `translate(0px, ${this.ycenter}px)` : `scale(${this.props.ContentScaling()})`,
                 width: this.props.PanelWidth() ? undefined : `${100 / this.props.ContentScaling()}%`,
                 height: this.props.PanelWidth() ? undefined : `${100 / this.props.ContentScaling()}%`,
                 pointerEvents: this.layoutDoc.isBackground ? "none" : undefined,
-                borderRadius: `${Number(StrCast(this.layoutDoc.borderRounding).replace("px", "")) / this.props.ContentScaling()}px`
+                borderRadius: `${Number(StrCast(this.layoutDoc.borderRoundisng).replace("px", "")) / this.props.ContentScaling()}px`
             }} >
             <CollectionFreeFormView {...this.props}
                 forceScaling={true}
@@ -452,7 +464,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
                 moveDocument={this.moveDocument}
                 addDocument={this.addDocument}
                 CollectionView={undefined}
-                ScreenToLocalTransform={this.props.ScreenToLocalTransform}
+                ScreenToLocalTransform={this.screenToLocalTransform}
                 renderDepth={this.props.renderDepth + 1}
                 ContainingCollectionDoc={this.props.ContainingCollectionDoc}>
                 {this.contentFunc}
