@@ -350,6 +350,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
             }} >
             {this.content}
             <div className={"webBox-outerContent"} ref={this._outerRef}
+                style={{ pointerEvents: this.layoutDoc._nativeHeight ? "all" : "none" }}
                 onWheel={e => e.stopPropagation()}
                 onScroll={e => {
                     if (this._iframeRef.current!.contentDocument!.children[0].scrollTop !== this._outerRef.current!.scrollTop) {
