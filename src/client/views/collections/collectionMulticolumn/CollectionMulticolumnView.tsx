@@ -319,13 +319,13 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
                         collectionDoc={Document}
                     />
                 </div>,
-                <ColumnResizeBar
-                    width={resizerWidth}
+                <RowResizeBar
+                    height={resizerWidth}
                     key={"resizer" + i}
-                    select={this.props.select}
+                    //select={this.props.select}
                     columnUnitLength={this.getRowUnitLength}
-                    toLeft={layout}
-                    toRight={childLayoutPairs[i + 1]?.layout}
+                    toTop={layout}
+                    toBottom={childLayoutPairs[i + 1]?.layout}
                 />
             );
         }
