@@ -648,12 +648,12 @@ export namespace Docs {
         }
 
         export function ButtonDocument(options?: DocumentOptions) {
-            const btn = InstanceFromProto(Prototypes.get(DocumentType.BUTTON), undefined, { ...(options || {}), "onClick-rawScript": "-script-" });
-            btn.layoutKey = "layout_onClick";
-            btn.height = 250;
-            btn.width = 200;
-            btn.layout_onClick = ScriptingBox.LayoutString("onClick");
-            return btn;
+            // const btn = InstanceFromProto(Prototypes.get(DocumentType.BUTTON), undefined, { ...(options || {}), "onClick-rawScript": "-script-" });
+            // btn.layoutKey = "layout_onClick";
+            // btn.height = 250;
+            // btn.width = 200;
+            // btn.layout_onClick = ScriptingBox.LayoutString("onClick");
+            return InstanceFromProto(Prototypes.get(DocumentType.BUTTON), undefined, { ...(options || {}), "onClick-rawScript": "-script-" });
         }
 
         export function SliderDocument(options?: DocumentOptions) {

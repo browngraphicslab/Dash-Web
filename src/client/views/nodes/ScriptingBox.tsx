@@ -84,7 +84,9 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         />;
         return (
             <div className="scriptingBox-outerDiv"
+
                 onWheel={e => this.props.isSelected(true) && e.stopPropagation()}>
+
                 <div className="scriptingBox-inputDiv"
                     onPointerDown={e => this.props.isSelected(true) && e.stopPropagation()} >
                     <textarea className="scriptingBox-textarea"
@@ -98,12 +100,16 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
                 </div>
                 {this.rootDoc.layout === "layout" ? <div></div> : (null)}
                 <div className="scriptingBox-toolbar">
-                    <button className="scriptingBox-button" onPointerDown={e => { this.onCompile(); e.stopPropagation(); }}>Compile</button>
-                    <button className="scriptingBox-button" onPointerDown={e => { this.onRun(); e.stopPropagation(); }}>Run</button>
+                    <button className="scriptingBox-button" style={{ width: this.rootDoc.layoutKey === "layout_onClick" ? "33%" : "50%" }}
+                        onPointerDown={e => { this.onCompile(); e.stopPropagation(); }}>Compile</button>
+                    <button className="scriptingBox-button" style={{ width: this.rootDoc.layoutKey === "layout_onClick" ? "33%" : "50%" }}
+                        onPointerDown={e => { this.onRun(); e.stopPropagation(); }}>Run</button>
                     {this.rootDoc.layoutKey === "layout_onClick" ? <button className="scriptingBox-button"
+                        style={{ width: this.rootDoc.layoutKey === "layout_onClick" ? "33%" : "50%" }}
                         onPointerDown={e => { this.onFinish(); e.stopPropagation(); }}>Finish</button> : null}
                 </div>
             </div>
         );
     }
+
 }
