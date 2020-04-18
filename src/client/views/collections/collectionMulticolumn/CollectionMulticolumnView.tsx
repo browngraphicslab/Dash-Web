@@ -17,6 +17,9 @@ import WidthLabel from './MulticolumnWidthLabel';
 import HeightLabel from './MultirowHeightLabel';
 import { List } from '../../../../new_fields/List';
 import { returnZero } from '../../../../Utils';
+import "../../../../../node_modules/react-grid-layout/css/styles.css";
+import "../../../../../node_modules/react-resizable/css/styles.css";
+import GridLayout from 'react-grid-layout';
 
 type MulticolumnDocument = makeInterface<[typeof documentSchema]>;
 const MulticolumnDocument = makeInterface(documentSchema);
@@ -312,24 +315,23 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
                 <div className={"document-wrapper"}
                     key={"wrapper" + i}
                     style={{ width: width() }} >
-
                     {this.getDisplayDoc(layout, dxf, width, height)}
                     <WidthLabel
                         layout={layout}
                         collectionDoc={Document}
                     />
                 </div>,
-                <RowResizeBar
-                    height={resizerWidth}
+                <ColumnResizeBar
+                    width={resizerWidth}
                     key={"resizer" + i}
-                    //select={this.props.select}
-                    columnUnitLength={this.getRowUnitLength}
-                    toTop={layout}
-                    toBottom={childLayoutPairs[i + 1]?.layout}
+                    select={this.props.select}
+                    columnUnitLength={this.getColumnUnitLength}
+                    toLeft={layout}
+                    toRight={childLayoutPairs[i + 1]?.layout}
                 />
             );
         }
-        collector.pop(); // removes the final extraneous resize bar
+        //collector.pop(); // removes the final extraneous resize bar
         return collector;
     }
 
@@ -345,3 +347,4 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
         );
     }
 }
+
