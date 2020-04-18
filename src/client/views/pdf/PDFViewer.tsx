@@ -419,7 +419,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         addStyleSheetRule(PDFViewer._annotationStyle, "pdfAnnotation", { "pointer-events": "none" });
         if ((this.Document.scale || 1) !== 1) return;
         if ((e.button !== 0 || e.altKey) && this.active(true)) {
-            this._setPreviewCursor?.(e.clientX, e.clientY, true);
+            this._setPreviewCursor && this._setPreviewCursor(e.clientX, e.clientY, true);
             //e.stopPropagation();
         }
         this._marqueeing = false;

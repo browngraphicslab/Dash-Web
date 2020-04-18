@@ -342,11 +342,9 @@ export class CurrentUserUtils {
         const openInTarget = Docs.Create.ScriptingDocument(ScriptField.MakeScript(
             "docCast(thisContainer.target).then((target) => { target && docCast(this.source).then((source) => { target.proto.data = new List([source || this]); } ); } )",
             { target: Doc.name }), { title: "On Child Clicked (open in target)", _width: 300, _height: 200 });
-        const onClick = Docs.Create.ScriptingDocument(undefined, { title: "onClick", "onClick-rawScript": "console.log('click')", isTemplateDoc: true, isTemplateForField: "onClick", _width: 300, _height: 200 }, "onClick");
-        const onCheckedClick = Docs.Create.ScriptingDocument(undefined,
-            { title: "onCheckedClick", "onCheckedClick-rawScript": "console.log(heading + checked + containingTreeView)", "onCheckedClick-params": new List<string>(["heading", "checked", "containingTreeView"]), isTemplateDoc: true, isTemplateForField: "onCheckedClick", _width: 300, _height: 200 }, "onCheckedClick");
+        const onClick = Docs.Create.ScriptingDocument(ScriptField.MakeScript("console.log('click')"), { title: "onClick", isTemplateDoc: true, isTemplateForField: "onClick", _width: 300, _height: 200 }, "onClick");
         doc.childClickFuncs = Docs.Create.TreeDocument([openInTarget], { title: "on Child Click function templates" });
-        doc.clickFuncs = Docs.Create.TreeDocument([onClick, onCheckedClick], { title: "onClick funcs" });
+        doc.clickFuncs = Docs.Create.TreeDocument([onClick], { title: "onClick funcs" });
     }
 
     static updateUserDocument(doc: Doc) {

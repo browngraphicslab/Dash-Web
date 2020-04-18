@@ -1185,7 +1185,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     background: this.props.hideOnLeave ? "rgba(0,0,0 ,0.4)" : StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"]),
                     opacity: this.props.hideOnLeave ? (this._entered ? 1 : 0.1) : 1,
                     color: this.props.hideOnLeave ? "white" : "inherit",
-                    pointerEvents: interactive ? "none" : undefined,
+                    pointerEvents: interactive ? "none" : "all",
                     fontSize: NumCast(this.layoutDoc.fontSize, 13),
                     fontFamily: StrCast(this.layoutDoc.fontFamily, "Crimson Text"),
                 }}

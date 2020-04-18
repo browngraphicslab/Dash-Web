@@ -1,3 +1,4 @@
+import { computed } from "mobx";
 import { observer } from "mobx-react";
 import { documentSchema } from "../../new_fields/documentSchemas";
 import { InkData, InkField, InkTool } from "../../new_fields/InkField";
@@ -46,12 +47,14 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
         const scaleX = this.props.PanelWidth() / width;
         const scaleY = this.props.PanelHeight() / height;
         return (
-            <svg className="inkingStroke"
+            <svg
                 width={width}
                 height={height}
                 style={{
+                    transformOrigin: "top left",
                     transform: `scale(${scaleX}, ${scaleY})`,
                     mixBlendMode: this.layoutDoc.tool === InkTool.Highlighter ? "multiply" : "unset",
+                    pointerEvents: "all"
                 }}
                 onContextMenu={() => {
                     ContextMenu.Instance.addItem({

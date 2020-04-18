@@ -106,17 +106,12 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
         method: Method.GET,
         subscription: ["/home", new RouteSubscriber("doc").add("docId")],
         secureHandler: serve,
-        publicHandler: ({ req, res, ...remaining }) => {
+        publicHandler: ({ req, ...remaining }) => {
             const { originalUrl: target } = req;
             const sharing = qs.parse(qs.extract(req.originalUrl), { sort: false }).sharing === "true";
             const docAccess = target.startsWith("/doc/");
-            // since this is the public handler, there's no meaning of '/home' to speak of
-            // since there's no user logged in, so the only viable operation
-            // for a guest is to look at a shared document
             if (sharing && docAccess) {
-                serve({ req, res, ...remaining });
-            } else {
-                res.redirect("/login");
+                serve({ req, ...remaining });
             }
         }
     });
@@ -153,6 +148,5 @@ export async function launchServer() {
 if (process.env.RELEASE) {
     (sessionAgent = new DashSessionAgent()).launch();
 } else {
-    (Database.Instance as Database.Database).doConnect();
     launchServer();
 }

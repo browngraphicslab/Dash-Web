@@ -28,8 +28,8 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
 
     @observable private _errorMessage: string = "";
 
-    @computed get rawScript() { return StrCast(this.dataDoc[this.props.fieldKey + "-rawScript"], StrCast(this.layoutDoc[this.props.fieldKey + "-rawScript"])); }
-    @computed get compileParams() { return Cast(this.dataDoc[this.props.fieldKey + "-params"], listSpec("string"), Cast(this.layoutDoc[this.props.fieldKey + "-params"], listSpec("string"), [])); }
+    @computed get rawScript() { return StrCast(this.dataDoc[this.props.fieldKey + "-rawScript"]); }
+    @computed get compileParams() { return Cast(this.dataDoc[this.props.fieldKey + "-params"], listSpec("string"), []); }
     set rawScript(value) { this.dataDoc[this.props.fieldKey + "-rawScript"] = value; }
     set compileParams(value) { this.dataDoc[this.props.fieldKey + "-params"] = value; }
 

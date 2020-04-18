@@ -116,8 +116,6 @@ export interface DocumentOptions {
     boxShadow?: string;
     dontRegisterChildren?: boolean;
     "onClick-rawScript"?: string; // onClick script in raw text form
-    "onCheckedClick-rawScript"?: string; // onChecked script in raw text form
-    "onCheckedClick-params"?: List<string>; // parameter list for onChecked treeview functions
     _pivotField?: string; // field key used to determine headings for sections in stacking, masonry, pivot views
     schemaColumns?: List<SchemaHeaderField>;
     dockingConfig?: string;
@@ -572,7 +570,6 @@ export namespace Docs {
             I.title = "ink";
             I.x = options.x;
             I.y = options.y;
-            I._backgroundColor = "transparent";
             I._width = options._width;
             I._height = options._height;
             I.data = new InkField(points);

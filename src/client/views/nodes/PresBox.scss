@@ -10,6 +10,7 @@
     letter-spacing: 2px;
     overflow: hidden;
     transition: 0.7s opacity ease;
+    pointer-events: all;
 
     .presBox-buttons {
         padding: 10px;

@@ -110,8 +110,7 @@ export class RichTextRules {
                         return state.tr;
                     }
                     if (value !== "" && value !== undefined) {
-                        const num = value.match(/^[0-9.]/);
-                        this.Document[DataSym][fieldKey] = value === "true" ? true : value === "false" ? false : (num ? Number(value) : value);
+                        this.Document[DataSym][fieldKey] = value === "true" ? true : value === "false" ? false : value;
                     }
                     const fieldView = state.schema.nodes.dashField.create({ fieldKey, docid });
                     return state.tr.deleteRange(start, end).insert(start, fieldView);

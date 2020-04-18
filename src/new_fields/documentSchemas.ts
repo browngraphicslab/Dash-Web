@@ -57,8 +57,6 @@ export const documentSchema = createSchema({
     isLinkButton: "boolean",    // whether document functions as a link follow button to follow the first link on the document when clicked   
     ignoreClick: "boolean",     // whether documents ignores input clicks (but does not ignore manipulation and other events) 
     scrollToLinkID: "string",   // id of link being traversed. allows this doc to scroll/highlight/etc its link anchor. scrollToLinkID should be set to undefined by this doc after it sets up its scroll,etc.
-    scrollY: "number",          // "command" to scroll a document to a position on load (the value will be reset to 0 after that )
-    scrollTop: "number",        // scroll position of a scrollable document (pdf, text, web)
     strokeWidth: "number",
     fontSize: "string",
     fitToBox: "boolean",        // whether freeform view contents should be zoomed/panned to fill the area of the document view
