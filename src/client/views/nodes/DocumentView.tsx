@@ -80,6 +80,7 @@ export interface DocumentViewProps {
     ContentScaling: () => number;
     PanelWidth: () => number;
     PanelHeight: () => number;
+    pointerEvents?: boolean;
     focus: (doc: Doc, willZoom: boolean, scale?: number, afterFocus?: DocFocusFunc) => void;
     parentActive: (outsideReaction: boolean) => boolean;
     whenActiveChanged: (isActive: boolean) => void;
@@ -994,38 +995,42 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     screenToLocalTransform = () => this.props.ScreenToLocalTransform();
     @computed get contents() {
         TraceMobx();
-        return (<DocumentContentsView ContainingCollectionView={this.props.ContainingCollectionView}
-            ContainingCollectionDoc={this.props.ContainingCollectionDoc}
-            NativeWidth={this.NativeWidth}
-            NativeHeight={this.NativeHeight}
-            Document={this.props.Document}
-            DataDoc={this.props.DataDoc}
-            LayoutDoc={this.props.LayoutDoc}
-            makeLink={this.makeLink}
-            rootSelected={this.rootSelected}
-            dontRegisterView={this.props.dontRegisterView}
-            fitToBox={this.props.fitToBox}
-            LibraryPath={this.props.LibraryPath}
-            addDocument={this.props.addDocument}
-            removeDocument={this.props.removeDocument}
-            moveDocument={this.props.moveDocument}
-            ScreenToLocalTransform={this.screenToLocalTransform}
-            renderDepth={this.props.renderDepth}
-            PanelWidth={this.panelWidth}
-            PanelHeight={this.panelHeight}
-            focus={this.props.focus}
-            parentActive={this.props.parentActive}
-            whenActiveChanged={this.props.whenActiveChanged}
-            bringToFront={this.props.bringToFront}
-            addDocTab={this.props.addDocTab}
-            pinToPres={this.props.pinToPres}
-            backgroundColor={this.props.backgroundColor}
-            ContentScaling={this.childScaling}
-            ChromeHeight={this.chromeHeight}
-            isSelected={this.isSelected}
-            select={this.select}
-            onClick={this.onClickHandler}
-            layoutKey={this.finalLayoutKey} />);
+        return (<>
+            <DocumentContentsView key={1} ContainingCollectionView={this.props.ContainingCollectionView}
+                ContainingCollectionDoc={this.props.ContainingCollectionDoc}
+                NativeWidth={this.NativeWidth}
+                NativeHeight={this.NativeHeight}
+                Document={this.props.Document}
+                DataDoc={this.props.DataDoc}
+                LayoutDoc={this.props.LayoutDoc}
+                makeLink={this.makeLink}
+                rootSelected={this.rootSelected}
+                dontRegisterView={this.props.dontRegisterView}
+                fitToBox={this.props.fitToBox}
+                LibraryPath={this.props.LibraryPath}
+                addDocument={this.props.addDocument}
+                removeDocument={this.props.removeDocument}
+                moveDocument={this.props.moveDocument}
+                ScreenToLocalTransform={this.screenToLocalTransform}
+                renderDepth={this.props.renderDepth}
+                PanelWidth={this.panelWidth}
+                PanelHeight={this.panelHeight}
+                focus={this.props.focus}
+                parentActive={this.props.parentActive}
+                whenActiveChanged={this.props.whenActiveChanged}
+                bringToFront={this.props.bringToFront}
+                addDocTab={this.props.addDocTab}
+                pinToPres={this.props.pinToPres}
+                backgroundColor={this.props.backgroundColor}
+                ContentScaling={this.childScaling}
+                ChromeHeight={this.chromeHeight}
+                isSelected={this.isSelected}
+                select={this.select}
+                onClick={this.onClickHandler}
+                layoutKey={this.finalLayoutKey} />
+            {this.anchors}
+        </>
+        );
     }
     linkEndpoint = (linkDoc: Doc) => Doc.LinkEndpoint(linkDoc, this.props.Document);
 
@@ -1049,20 +1054,19 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @computed get anchors() {
         TraceMobx();
         return this.layoutDoc.presBox ? (null) : DocListCast(this.Document.links).filter(d => !d.hidden && this.isNonTemporalLink).map((d, i) =>
-            <div className="documentView-linkAnchorBoxWrapper" key={d[Id]}>
-                <DocumentView {...this.props}
-                    Document={d}
-                    ContainingCollectionView={this.props.ContainingCollectionView}
-                    ContainingCollectionDoc={this.props.Document} // bcz: hack this.props.Document is not a collection  Need a better prop for passing the containing document to the LinkAnchorBox
-                    PanelWidth={this.anchorPanelWidth}
-                    PanelHeight={this.anchorPanelHeight}
-                    layoutKey={this.linkEndpoint(d)}
-                    ContentScaling={returnOne}
-                    backgroundColor={returnTransparent}
-                    removeDocument={this.hideLinkAnchor}
-                    LayoutDoc={undefined}
-                />
-            </div>);
+            <DocumentView {...this.props} key={i + 1}
+                Document={d}
+                ContainingCollectionView={this.props.ContainingCollectionView}
+                ContainingCollectionDoc={this.props.Document} // bcz: hack this.props.Document is not a collection  Need a better prop for passing the containing document to the LinkAnchorBox
+                PanelWidth={this.anchorPanelWidth}
+                PanelHeight={this.anchorPanelHeight}
+                layoutKey={this.linkEndpoint(d)}
+                ContentScaling={returnOne}
+                backgroundColor={returnTransparent}
+                removeDocument={this.hideLinkAnchor}
+                pointerEvents={false}
+                LayoutDoc={undefined}
+            />);
     }
     @computed get innards() {
         TraceMobx();
@@ -1101,22 +1105,18 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     SetValue={undoBatch((value: string) => (Doc.GetProto(this.props.DataDoc || this.props.Document)[showTitle] = value) ? true : true)}
                 />
             </div>);
-        return <>
-            {this.anchors}
-            {!showTitle && !showCaption ?
-                this.contents :
-                <div className="documentView-styleWrapper" >
-                    <div className="documentView-styleContentWrapper" style={{ height: showTextTitle ? `calc(100% - ${this.chromeHeight()}px)` : "100%", top: showTextTitle ? this.chromeHeight() : undefined }}>
-                        {this.contents}
-                    </div>
-                    {titleView}
-                    {captionView}
+        return !showTitle && !showCaption ?
+            this.contents :
+            <div className="documentView-styleWrapper" >
+                <div className="documentView-styleContentWrapper" style={{ height: showTextTitle ? `calc(100% - ${this.chromeHeight()}px)` : "100%", top: showTextTitle ? this.chromeHeight() : undefined }}>
+                    {this.contents}
                 </div>
-            }
-        </>;
+                {titleView}
+                {captionView}
+            </div>;
     }
     @computed get ignorePointerEvents() {
-        return (this.Document.isBackground && !this.isSelected() && !SelectionManager.GetIsDragging()) || this.props.layoutKey?.includes("layout_key") || (this.Document.type === DocumentType.INK && InkingControl.Instance.selectedTool !== InkTool.None);
+        return this.props.pointerEvents === false || (this.Document.isBackground && !this.isSelected() && !SelectionManager.GetIsDragging()) || (this.Document.type === DocumentType.INK && InkingControl.Instance.selectedTool !== InkTool.None);
     }
 
     @observable _animate = 0;

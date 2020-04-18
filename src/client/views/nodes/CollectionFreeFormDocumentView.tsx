@@ -22,7 +22,6 @@ export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     width?: number;
     height?: number;
     jitterRotation: number;
-    pointerEvents?: "none";
     transition?: string;
     fitToBox?: boolean;
 }

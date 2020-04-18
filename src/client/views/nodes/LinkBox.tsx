@@ -17,7 +17,6 @@ export class LinkBox extends ViewBoxBaseComponent<FieldViewProps, LinkDocument>(
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(LinkBox, fieldKey); }
     render() {
         return <div className={`linkBox-container${this.active() ? "-interactive" : ""}`}
-            onPointerDown={e => e.button === 0 && !e.ctrlKey && e.stopPropagation()}
             style={{ background: this.props.backgroundColor?.(this.props.Document) }} >
 
             <CollectionTreeView {...this.props}

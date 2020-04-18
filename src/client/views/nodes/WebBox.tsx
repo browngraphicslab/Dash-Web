@@ -1,6 +1,6 @@
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faStickyNote, faLock, faUnlock } from '@fortawesome/free-solid-svg-icons';
-import { action, computed, observable, trace } from "mobx";
+import { action, computed, observable, trace, IReactionDisposer, reaction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, FieldResult } from "../../../new_fields/Doc";
 import { documentSchema } from "../../../new_fields/documentSchemas";
@@ -13,7 +13,6 @@ import { Utils, returnOne, emptyFunction, returnZero } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
 import { ImageUtils } from "../../util/Import & Export/ImageUtils";
-import { SelectionManager } from "../../util/SelectionManager";
 import { ViewBoxAnnotatableComponent } from "../DocComponent";
 import { DocumentDecorations } from "../DocumentDecorations";
 import { InkingControl } from "../InkingControl";
@@ -37,15 +36,15 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(WebBox, fieldKey); }
     @observable private collapsed: boolean = true;
     @observable private url: string = "hello";
+    @observable private _pressX: number = 0;
+    @observable private _pressY: number = 0;
 
     private _longPressSecondsHack?: NodeJS.Timeout;
     private _outerRef = React.createRef<HTMLDivElement>();
     private _iframeRef = React.createRef<HTMLIFrameElement>();
     private _iframeIndicatorRef = React.createRef<HTMLDivElement>();
     private _iframeDragRef = React.createRef<HTMLDivElement>();
-    @observable private _pressX: number = 0;
-    @observable private _pressY: number = 0;
-    private _scrollTop = 0;
+    private _reactionDisposer?: IReactionDisposer;
     private _setPreviewCursor: undefined | ((x: number, y: number, drag: boolean) => void);
 
     iframeLoaded = action((e: any) => {
@@ -53,6 +52,16 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         this._iframeRef.current!.contentDocument?.addEventListener('scroll', this.iframeScrolled, false);
         this.layoutDoc.scrollHeight = this._iframeRef.current!.contentDocument?.children?.[0].scrollHeight || 1000;
         this._iframeRef.current!.contentDocument!.children[0].scrollTop = NumCast(this.layoutDoc.scrollTop);
+        this._reactionDisposer?.();
+        this._reactionDisposer = reaction(() => this.layoutDoc.scrollY,
+            (scrollY) => {
+                if (scrollY !== undefined) {
+                    this._outerRef.current!.scrollTop = scrollY;
+                    this.layoutDoc.scrollY = undefined;
+                }
+            },
+            { fireImmediately: true }
+        );
     });
     setPreviewCursor = (func?: (x: number, y: number, drag: boolean) => void) => this._setPreviewCursor = func;
     iframedown = (e: PointerEvent) => {
@@ -60,7 +69,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     }
     iframeScrolled = (e: any) => {
         const scroll = (e.target as any)?.children?.[0].scrollTop;
-        this.layoutDoc.scrollTop = this._outerRef.current!.scrollTop = this._scrollTop = scroll;
+        this.layoutDoc.scrollTop = this._outerRef.current!.scrollTop = scroll;
     }
     async componentDidMount() {
 
@@ -87,6 +96,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     }
 
     componentWillUnmount() {
+        this._reactionDisposer?.();
         document.removeEventListener("pointerup", this.onLongPressUp);
         document.removeEventListener("pointermove", this.onLongPressMove);
         this._iframeRef.current!.contentDocument?.removeEventListener('pointerdown', this.iframedown);
