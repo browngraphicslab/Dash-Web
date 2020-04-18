@@ -70,24 +70,24 @@ export class CurrentUserUtils {
         const emptyCollection = Docs.Create.FreeformDocument([], { _nativeWidth: undefined, _nativeHeight: undefined, _LODdisable: true, _width: 150, _height: 100, title: "freeform" });
         doc.activePen = doc;
         const docProtoData: { title: string, icon: string, drag?: string, ignoreClick?: boolean, click?: string, ischecked?: string, activePen?: Doc, backgroundColor?: string, dragFactory?: Doc }[] = [
-            { title: "collection", icon: "folder", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: emptyCollection },
-            { title: "preview", icon: "expand", ignoreClick: true, drag: 'Docs.Create.DocumentDocument(ComputedField.MakeFunction("selectedDocs(this,this.excludeCollections,[_last_])?.[0]"), { _width: 250, _height: 250, title: "container" })' },
-            { title: "web page", icon: "globe-asia", ignoreClick: true, drag: 'Docs.Create.WebDocument("https://en.wikipedia.org/wiki/Hedgehog", {_width: 300, _height: 300, title: "New Webpage" })' },
-            { title: "cat image", icon: "cat", ignoreClick: true, drag: 'Docs.Create.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", { _width: 250, _nativeWidth:250, title: "an image of a cat" })' },
-            { title: "screenshot", icon: "photo-video", ignoreClick: true, drag: 'Docs.Create.ScreenshotDocument("", { _width: 400, _height: 200, title: "screen snapshot" })' },
-            { title: "webcam", icon: "video", ignoreClick: true, drag: 'Docs.Create.WebCamDocument("", { _width: 400, _height: 400, title: "a test cam" })' },
-            { title: "record", icon: "microphone", ignoreClick: true, drag: `Docs.Create.AudioDocument("${nullAudio}", { _width: 200, title: "ready to record audio" })` },
-            { title: "clickable button", icon: "bolt", ignoreClick: true, drag: 'Docs.Create.ButtonDocument({ _width: 150, _height: 50, title: "Button" })' },
-            { title: "presentation", icon: "tv", click: 'openOnRight(Doc.UserDoc().curPresentation = getCopy(this.dragFactory, true))', drag: `Doc.UserDoc().curPresentation = getCopy(this.dragFactory,true)`, dragFactory: emptyPresentation },
-            { title: "script", icon: "terminal", ignoreClick: true, drag: 'Docs.Create.ScriptingDocument(undefined, { _width: 200, _height: 250 title: "untitled script" })' },
-            { title: "import folder", icon: "cloud-upload-alt", ignoreClick: true, drag: 'Docs.Create.DirectoryImportDocument({ title: "Directory Import", _width: 400, _height: 400 })' },
-            { title: "mobile view", icon: "phone", ignoreClick: true, drag: 'Doc.UserDoc().activeMobile' },
-            { title: "use pen", icon: "pen-nib", click: 'activatePen(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this,2, this.backgroundColor)', backgroundColor: "blue", ischecked: `sameDocs(this.activePen.pen,  this)`, activePen: doc },
-            { title: "use highlighter", icon: "highlighter", click: 'activateBrush(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this,20,this.backgroundColor)', backgroundColor: "yellow", ischecked: `sameDocs(this.activePen.pen, this)`, activePen: doc },
-            { title: "use stamp", icon: "stamp", click: 'activateStamp(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this)', backgroundColor: "orange", ischecked: `sameDocs(this.activePen.pen, this)`, activePen: doc },
-            { title: "use eraser", icon: "eraser", click: 'activateEraser(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this);', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "pink", activePen: doc },
-            { title: "use drag", icon: "mouse-pointer", click: 'deactivateInk();this.activePen.pen = this;', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "white", activePen: doc },
-            { title: "query", icon: "bolt", ignoreClick: true, drag: 'Docs.Create.QueryDocument({ _width: 200, title: "an image of a cat" })' },
+            { title: "Drag a collection", icon: "folder", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: emptyCollection },
+            { title: "Drag a web page", icon: "globe-asia", ignoreClick: true, drag: 'Docs.Create.WebDocument("", {_width: 300, _height: 300, title: "New Webpage" })' },
+            { title: "Drag a cat image", icon: "cat", ignoreClick: true, drag: 'Docs.Create.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", { _width: 250, _nativeWidth:250, title: "an image of a cat" })' },
+            { title: "Drag a screenshot", icon: "photo-video", ignoreClick: true, drag: 'Docs.Create.ScreenshotDocument("", { _width: 400, _height: 200, title: "screen snapshot" })' },
+            { title: "Drag a webcam", icon: "video", ignoreClick: true, drag: 'Docs.Create.WebCamDocument("", { _width: 400, _height: 400, title: "a test cam" })' },
+            { title: "Drag a audio recorder", icon: "microphone", ignoreClick: true, drag: `Docs.Create.AudioDocument("${nullAudio}", { _width: 200, title: "ready to record audio" })` },
+            { title: "Drag a clickabl button", icon: "bolt", ignoreClick: true, drag: 'Docs.Create.ButtonDocument({ _width: 150, _height: 50, title: "Button" })' },
+            { title: "Drag a presentation view", icon: "tv", click: 'openOnRight(Doc.UserDoc().curPresentation = getCopy(this.dragFactory, true))', drag: `Doc.UserDoc().curPresentation = getCopy(this.dragFactory,true)`, dragFactory: emptyPresentation },
+            { title: "Drag a scripting box", icon: "terminal", ignoreClick: true, drag: 'Docs.Create.ScriptingDocument(undefined, { _width: 200, _height: 250 title: "untitled script" })' },
+            { title: "Drag an import folder", icon: "cloud-upload-alt", ignoreClick: true, drag: 'Docs.Create.DirectoryImportDocument({ title: "Directory Import", _width: 400, _height: 400 })' },
+            { title: "Drag a mobile view", icon: "phone", ignoreClick: true, drag: 'Doc.UserDoc().activeMobile' },
+            // { title: "use pen", icon: "pen-nib", click: 'activatePen(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this,2, this.backgroundColor)', backgroundColor: "blue", ischecked: `sameDocs(this.activePen.pen,  this)`, activePen: doc },
+            // { title: "use highlighter", icon: "highlighter", click: 'activateBrush(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this,20,this.backgroundColor)', backgroundColor: "yellow", ischecked: `sameDocs(this.activePen.pen, this)`, activePen: doc },
+            // { title: "use stamp", icon: "stamp", click: 'activateStamp(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this)', backgroundColor: "orange", ischecked: `sameDocs(this.activePen.pen, this)`, activePen: doc },
+            // { title: "use eraser", icon: "eraser", click: 'activateEraser(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this);', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "pink", activePen: doc },
+            // { title: "use drag", icon: "mouse-pointer", click: 'deactivateInk();this.activePen.pen = this;', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "white", activePen: doc },
+            { title: "Drag a search box", icon: "bolt", ignoreClick: true, drag: 'Docs.Create.QueryDocument({ _width: 200, title: "an image of a cat" })' },
+            { title: "Drag a document previewer", icon: "expand", ignoreClick: true, drag: 'Docs.Create.DocumentDocument(ComputedField.MakeFunction("selectedDocs(this,this.excludeCollections,[_last_])?.[0]"), { _width: 250, _height: 250, title: "container" })' },
             // { title: "buxton", icon: "cloud-upload-alt", ignoreClick: true, drag: "Docs.Create.Buxton()" },
         ];
         return docProtoData.filter(d => !alreadyCreatedButtons?.includes(d.title)).map(data => Docs.Create.FontIconDocument({
@@ -310,13 +310,17 @@ export class CurrentUserUtils {
             backgroundColor: "black", treeViewPreventOpen: true, lockedPosition: true, _chromeStatus: "disabled", linearViewIsExpanded: true
         })) as any as Doc;
 
+        doc.penBtn = ficon({
+            onClick: ScriptField.MakeScript("activatePen(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this,2, this.backgroundColor)"),
+            title: "ink mode", icon: "pen-nib", ischecked: ComputedField.MakeFunction(`sameDocs(this.activePen.pen,  this)`), activePen: doc
+        })
         doc.undoBtn = ficon({ onClick: ScriptField.MakeScript("undo()"), title: "undo button", icon: "undo-alt" });
         doc.redoBtn = ficon({ onClick: ScriptField.MakeScript("redo()"), title: "redo button", icon: "redo-alt" });
         doc.slidesBtn = ficon({ onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'), dragFactory: slideTemplate, removeDropProperties: new List<string>(["dropAction"]), title: "presentation slide", icon: "sticky-note" });
         doc.descriptionBtn = ficon({ onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'), dragFactory: descriptionTemplate, removeDropProperties: new List<string>(["dropAction"]), title: "description view", icon: "sticky-note" });
         doc.queryBtn = ficon({ onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'), dragFactory: queryTemplate, removeDropProperties: new List<string>(["dropAction"]), title: "query view", icon: "sticky-note" });
         doc.templateButtons = blist({ title: "template buttons", ignoreClick: true }, [doc.slidesBtn as Doc, doc.descriptionBtn as Doc, doc.queryBtn as Doc]);
-        doc.expandingButtons = blist({ title: "expanding buttons", ignoreClick: true }, [doc.undoBtn as Doc, doc.redoBtn as Doc, doc.templateButtons as Doc]);
+        doc.expandingButtons = blist({ title: "expanding buttons", ignoreClick: true }, [doc.undoBtn as Doc, doc.redoBtn as Doc, doc.penBtn as Doc, doc.templateButtons as Doc]);
         doc.templateDocs = new PrefetchProxy(Docs.Create.TreeDocument([doc.noteTypes as Doc, doc.templateButtons as Doc, doc.clickFuncs as Doc], {
             title: "template layouts", _xPadding: 0,
             dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name })

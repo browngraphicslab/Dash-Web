@@ -103,6 +103,7 @@ export interface DocumentOptions {
     ignoreClick?: boolean;
     lockedPosition?: boolean; // lock the x,y coordinates of the document so that it can't be dragged
     lockedTransform?: boolean; // lock the panx,pany and scale parameters of the document so that it be panned/zoomed
+    isAnnotating?: boolean; // whether we web document is annotation mode where links can't be clicked to allow annotations to be created
     opacity?: number;
     defaultBackgroundColor?: string;
     isBackground?: boolean;
@@ -590,7 +591,7 @@ export namespace Docs {
         }
 
         export function WebDocument(url: string, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.WEB), new WebField(new URL(url)), { _fitWidth: true, ...options });
+            return InstanceFromProto(Prototypes.get(DocumentType.WEB), url ? new WebField(new URL(url)) : undefined, { _fitWidth: true, _chromeStatus: url ? "disabled" : "enabled", isAnnotating: true, lockedTransform: true, ...options });
         }
 
         export function HtmlDocument(html: string, options: DocumentOptions = {}) {
