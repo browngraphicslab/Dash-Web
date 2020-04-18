@@ -572,6 +572,7 @@ export namespace Docs {
             I.title = "ink";
             I.x = options.x;
             I.y = options.y;
+            I._backgroundColor = "transparent";
             I._width = options._width;
             I._height = options._height;
             I.data = new InkField(points);
