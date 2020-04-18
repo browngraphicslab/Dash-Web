@@ -57,12 +57,11 @@
         display: inline-block;
         width:100%;
         pointer-events: none;
-    }
-    .pdfViewer-overlay-inking {
-        .collectionfreeformview-container {
+        .collectionFreeFormDocumentView-container {
             pointer-events: all;
         }
     }
+    
     .pdfViewer-annotationLayer {
         position: absolute;
         transform-origin: left top;

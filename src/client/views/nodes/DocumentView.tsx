@@ -315,7 +315,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             } else if (this.Document.isLinkButton) {
                 DocListCast(this.props.Document.links).length && this.followLinkClick(e.altKey, e.ctrlKey, e.shiftKey);
             } else {
-                if ((this.props.Document.onDragStart || (this.props.Document.rootDocument && this.props.Document.isTemplateForField)) && !(e.ctrlKey || e.button > 0)) {  // onDragStart implies a button doc that we don't want to select when clicking.   RootDocument & isTEmplaetForField implies we're clicking on part of a template instance and we want to select the whole template, not the part
+                if ((this.props.Document.onDragStart || (this.props.Document.rootDocument)) && !(e.ctrlKey || e.button > 0)) {  // onDragStart implies a button doc that we don't want to select when clicking.   RootDocument & isTEmplaetForField implies we're clicking on part of a template instance and we want to select the whole template, not the part
                     stopPropagate = false; // don't stop propagation for field templates -- want the selection to propagate up to the root document of the template
                 } else {
                     DocumentView._focusHack = this.props.ScreenToLocalTransform().transformPoint(e.clientX, e.clientY) || [0, 0];
@@ -480,7 +480,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             }
             return;
         }
-        if (!e.nativeEvent.cancelBubble || this.onClickHandler || this.Document.onDragStart) {
+        if ((!e.nativeEvent.cancelBubble || this.onClickHandler || this.Document.onDragStart) &&
+            // if this is part of a template, let the event go up to the tempalte root unless right/ctrl clicking
+            !((this.props.Document.rootDocument) && !(e.ctrlKey || e.button > 0))) {
             this._downX = e.clientX;
             this._downY = e.clientY;
             if ((this.active || this.Document.onDragStart || this.onClickHandler) &&
@@ -489,6 +491,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 !this.Document.lockedPosition &&
                 !this.Document.inOverlay) {
                 e.stopPropagation(); // events stop at the lowest document that is active.  if right dragging, we let it go through though to allow for context menu clicks. PointerMove callbacks should remove themselves if the move event gets stopPropagated by a lower-level handler (e.g, marquee drag);
+
             }
             document.removeEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);

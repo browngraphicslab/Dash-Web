@@ -573,7 +573,9 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         clipDoc._scrollTop = this.marqueeY();
         const targetDoc = Docs.Create.TextDocument("", { _width: 200, _height: 200, title: "Note linked to " + this.props.Document.title });
         Doc.GetProto(targetDoc).data = new List<Doc>([clipDoc]);
+        clipDoc.rootDocument = targetDoc;
         DocumentView.makeCustomViewClicked(targetDoc, Docs.Create.StackingDocument, "slideView", undefined);
+        targetDoc.layoutKey = "layout";
         // const targetDoc = Docs.Create.TextDocument("", { _width: 200, _height: 200, title: "Note linked to " + this.props.Document.title });
         // Doc.GetProto(targetDoc).snipped = this.dataDoc[this.props.fieldKey][Copy]();
         // const snipLayout = Docs.Create.PdfDocument("http://www.msn.com", { title: "snippetView", isTemplateDoc: true, isTemplateForField: "snipped", _fitWidth: true, _width: this.marqueeWidth(), _height: this.marqueeHeight(), _scrollTop: this.marqueeY() });
@@ -642,7 +644,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     panelHeight = () => this._pageSizes.length && this._pageSizes[0] ? this._pageSizes[0].width : (this.Document._nativeWidth || 0);
     @computed get overlayLayer() {
         return <div className={`pdfViewer-overlay${InkingControl.Instance.selectedTool !== InkTool.None ? "-inking" : ""}`} id="overlay"
-            style={{ transform: `scale(${this._zoomed})`, pointerEvents: this.active(false) ? "all" : undefined }}>
+            style={{ transform: `scale(${this._zoomed})` }}>
             <CollectionFreeFormView {...this.props}
                 LibraryPath={this.props.ContainingCollectionView?.props.LibraryPath ?? emptyPath}
                 annotationsKey={this.annotationKey}
