@@ -1,6 +1,6 @@
 import { GoogleApiWrapper, Map as GeoMap, MapProps, Marker } from "google-maps-react";
 import { observer } from "mobx-react";
-import { Doc, Opt, DocListCast, FieldResult } from "../../../new_fields/Doc";
+import { Doc, Opt, DocListCast, FieldResult, Field } from "../../../new_fields/Doc";
 import { documentSchema } from "../../../new_fields/documentSchemas";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { makeInterface } from "../../../new_fields/Schema";
@@ -10,7 +10,7 @@ import { CollectionSubView } from "./CollectionSubView";
 import React = require("react");
 import { DocumentManager } from "../../util/DocumentManager";
 import { UndoManager, undoBatch } from "../../util/UndoManager";
-import { IReactionDisposer, reaction, computed, runInAction } from "mobx";
+import { computed, runInAction, Lambda, action } from "mobx";
 import requestPromise = require("request-promise");
 
 type MapSchema = makeInterface<[typeof documentSchema]>;
@@ -22,8 +22,14 @@ export type LocationData = google.maps.LatLngLiteral & {
     zoom?: number;
 };
 
+interface DocLatLng {
+    lat: FieldResult<Field>;
+    lng: FieldResult<Field>;
+}
+
 // Nowhere, Oklahoma
 const defaultLocation = { lat: 35.1592238, lng: -98.444512, zoom: 15 };
+const noResults = "ZERO_RESULTS";
 
 const query = async (data: string | google.maps.LatLngLiteral) => {
     const contents = typeof data === "string" ? `address=${data.replace(/\s+/g, "+")}` : `latlng=${data.lat},${data.lng}`;
@@ -41,8 +47,7 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
     private _cancelAddrReq = new Map<string, boolean>();
     private _cancelLocReq = new Map<string, boolean>();
     private _initialLookupPending = new Map<string, boolean>();
-    private addressUpdaters: IReactionDisposer[] = [];
-    private latlngUpdaters: IReactionDisposer[] = [];
+    private responders: { location: Lambda, address: Lambda }[] = [];
 
     /**
      * Note that all the uses of runInAction below are not included
@@ -52,34 +57,35 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
      * and address–updating reactions. 
      */
 
-    private getLocation = (doc: Opt<Doc>, fieldKey: string): Opt<LocationData> => {
+    private getLocation = (doc: Opt<Doc>, fieldKey: string, returnDefault: boolean = true): Opt<LocationData> => {
         if (doc) {
-            const lat: Opt<number> = Cast(doc[fieldKey + "-lat"], "number", null) || (Cast(doc[fieldKey + "-lat"], "string", null) && Number(Cast(doc[fieldKey + "-lat"], "string", null))) || undefined;
-            const lng: Opt<number> = Cast(doc[fieldKey + "-lng"], "number", null) || (Cast(doc[fieldKey + "-lng"], "string", null) && Number(Cast(doc[fieldKey + "-lng"], "string", null))) || undefined;
-            const zoom: Opt<number> = Cast(doc[fieldKey + "-zoom"], "number", null) || (Cast(doc[fieldKey + "-zoom"], "string", null) && Number(Cast(doc[fieldKey + "-zoom"], "string", null))) || undefined;
-            const address: Opt<string> = Cast(doc[fieldKey + "-address"], "string", null);
-            if (lat !== undefined && lng !== undefined) {
-                return ({ lat, lng, zoom });
-            } else if (address) {
+            const titleLoc = StrCast(doc.title).startsWith("@") ? StrCast(doc.title).substring(1) : undefined;
+            const lat = Cast(doc[`${fieldKey}-lat`], "number", null) || (Cast(doc[`${fieldKey}-lat`], "string", null) && Number(Cast(doc[`${fieldKey}-lat`], "string", null))) || undefined;
+            const lng = Cast(doc[`${fieldKey}-lng`], "number", null) || (Cast(doc[`${fieldKey}-lng`], "string", null) && Number(Cast(doc[`${fieldKey}-lng`], "string", null))) || undefined;
+            const zoom = Cast(doc[`${fieldKey}-zoom`], "number", null) || (Cast(doc[`${fieldKey}-zoom`], "string", null) && Number(Cast(doc[`${fieldKey}-zoom`], "string", null))) || undefined;
+            const address = titleLoc || StrCast(doc[`${fieldKey}-address`], StrCast(doc.title).replace(/^-/, ""));
+            if (titleLoc || (address && (lat === undefined || lng === undefined))) {
                 const id = doc[Id];
                 if (!this._initialLookupPending.get(id)) {
                     this._initialLookupPending.set(id, true);
                     setTimeout(() => {
-                        this.respondToAddressChange(address, doc).then(() => this._initialLookupPending.delete(id));
+                        titleLoc && Doc.SetInPlace(doc, "title", titleLoc, true);
+                        this.respondToAddressChange(doc, fieldKey, address).then(() => this._initialLookupPending.delete(id));
                     });
                 }
-                return defaultLocation;
             }
+            return (lat === undefined || lng === undefined) ? (returnDefault ? defaultLocation : undefined) : { lat, lng, zoom };
         }
         return undefined;
     }
 
     private markerClick = async (layout: Doc, { lat, lng, zoom }: LocationData) => {
         const batch = UndoManager.StartBatch("marker click");
+        const { fieldKey } = this.props;
         runInAction(() => {
-            this.layoutDoc[this.props.fieldKey + "-mapCenter-lat"] = lat;
-            this.layoutDoc[this.props.fieldKey + "-mapCenter-lng"] = lng;
-            zoom && (this.layoutDoc[this.props.fieldKey + "-mapCenter-zoom"] = zoom);
+            this.layoutDoc[`${fieldKey}-mapCenter-lat`] = lat;
+            this.layoutDoc[`${fieldKey}-mapCenter-lng`] = lng;
+            zoom && (this.layoutDoc[`${fieldKey}-mapCenter-zoom`] = zoom);
         });
         if (layout.isLinkButton && DocListCast(layout.links).length) {
             await DocumentManager.Instance.FollowLink(undefined, layout, (doc: Doc, where: string, finished?: () => void) => {
@@ -93,10 +99,12 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
     }
 
     private renderMarkerIcon = (layout: Doc) => {
-        const iconUrl = StrCast(this.props.Document.mapIconUrl, null);
+        const { Document } = this.props;
+        const fieldKey = Doc.LayoutFieldKey(layout);
+        const iconUrl = StrCast(layout.mapIconUrl, StrCast(Document.mapIconUrl));
         if (iconUrl) {
-            const iconWidth = NumCast(layout["mapLocation-iconWidth"], 45);
-            const iconHeight = NumCast(layout["mapLocation-iconHeight"], 45);
+            const iconWidth = NumCast(layout[`${fieldKey}-iconWidth`], 45);
+            const iconHeight = NumCast(layout[`${fieldKey}-iconHeight`], 45);
             const iconSize = new google.maps.Size(iconWidth, iconHeight);
             return {
                 size: iconSize,
@@ -107,7 +115,7 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
     }
 
     private renderMarker = (layout: Doc) => {
-        const location = this.getLocation(layout, "mapLocation");
+        const location = this.getLocation(layout, Doc.LayoutFieldKey(layout));
         return !location ? (null) :
             <Marker
                 key={layout[Id]}
@@ -118,64 +126,79 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
             />;
     }
 
-    private respondToAddressChange = async (newAddress: string, doc: Doc) => {
-        const { results } = await query(newAddress);
-        if (!results?.length) {
-            return;
+    private respondToAddressChange = async (doc: Doc, fieldKey: string, newAddress: string, oldAddress?: string) => {
+        if (newAddress === oldAddress) {
+            return false;
         }
-        const { geometry, formatted_address } = results[0];
+        const response = await query(newAddress);
+        const id = doc[Id];
+        if (!response || response.status === noResults) {
+            this._cancelAddrReq.set(id, true);
+            doc[`${fieldKey}-address`] = oldAddress;
+            return false;
+        }
+        const { geometry, formatted_address } = response.results[0];
         const { lat, lng } = geometry.location;
         runInAction(() => {
-            if (doc["mapLocation-lat"] !== lat || doc["mapLocation-lng"] !== lng) {
-                this._cancelLocReq.set(doc[Id], true);
-                Doc.SetInPlace(doc, "mapLocation-lat", lat, true);
-                Doc.SetInPlace(doc, "mapLocation-lng", lng, true);
+            if (doc[`${fieldKey}-lat`] !== lat || doc[`${fieldKey}-lng`] !== lng) {
+                this._cancelLocReq.set(id, true);
+                Doc.SetInPlace(doc, `${fieldKey}-lat`, lat, true);
+                Doc.SetInPlace(doc, `${fieldKey}-lng`, lng, true);
             }
             if (formatted_address !== newAddress) {
-                this._cancelAddrReq.set(doc[Id], true);
-                Doc.SetInPlace(doc, "mapLocation-address", formatted_address, true);
+                this._cancelAddrReq.set(id, true);
+                Doc.SetInPlace(doc, `${fieldKey}-address`, formatted_address, true);
             }
         });
+        return true;
     }
 
-    private respondToLocationChange = async (newLat: FieldResult, newLng: FieldResult, doc: Doc) => {
-        const { results } = await query({ lat: NumCast(newLat), lng: NumCast(newLng) });
-        if (!results?.length) {
-            return;
+    private respondToLocationChange = async (doc: Doc, fieldKey: string, newLatLng: DocLatLng, oldLatLng: Opt<DocLatLng>) => {
+        if (newLatLng === oldLatLng) {
+            return false;
         }
-        const { formatted_address } = results[0];
-        if (formatted_address !== doc["mapLocation-address"]) {
+        const response = await query({ lat: NumCast(newLatLng.lat), lng: NumCast(newLatLng.lng) });
+        const id = doc[Id];
+        if (!response || response.status === noResults) {
+            this._cancelLocReq.set(id, true);
+            runInAction(() => {
+                doc[`${fieldKey}-lat`] = oldLatLng?.lat;
+                doc[`${fieldKey}-lng`] = oldLatLng?.lng;
+            });
+            return false;
+        }
+        const { formatted_address } = response.results[0];
+        if (formatted_address !== doc[`${fieldKey}-address`]) {
             this._cancelAddrReq.set(doc[Id], true);
-            Doc.SetInPlace(doc, "mapLocation-address", formatted_address, true);
+            Doc.SetInPlace(doc, `${fieldKey}-address`, formatted_address, true);
         }
+        return true;
     }
 
-    @computed get contents() {
-        this.addressUpdaters.forEach(disposer => disposer());
-        this.addressUpdaters = [];
-        this.latlngUpdaters.forEach(disposer => disposer());
-        this.latlngUpdaters = [];
+    @computed get reactiveContents() {
+        this.responders.forEach(({ location, address }) => { location(); address(); });
+        this.responders = [];
         return this.childLayoutPairs.map(({ layout }) => {
-            this.addressUpdaters.push(reaction(
-                () => ({ lat: layout["mapLocation-lat"], lng: layout["mapLocation-lng"] }),
-                ({ lat, lng }) => {
-                    if (this._cancelLocReq.get(layout[Id])) {
-                        this._cancelLocReq.set(layout[Id], false);
-                    } else if (lat !== undefined && lng !== undefined) {
-                        this.respondToLocationChange(lat, lng, layout);
-                    }
-                }
-            ));
-            this.latlngUpdaters.push(reaction(
-                () => ({ address: Cast(layout["mapLocation-address"], "string", null) }),
-                ({ address }) => {
-                    if (this._cancelAddrReq.get(layout[Id])) {
-                        this._cancelAddrReq.set(layout[Id], false);
-                    } else if (address?.length) {
-                        this.respondToAddressChange(address, layout);
-                    }
-                }
-            ));
+            const fieldKey = Doc.LayoutFieldKey(layout);
+            const id = layout[Id];
+            this.responders.push({
+                location: computed(() => ({ lat: layout[`${fieldKey}-lat`], lng: layout[`${fieldKey}-lng`] }))
+                    .observe(({ oldValue, newValue }) => {
+                        if (this._cancelLocReq.get(id)) {
+                            this._cancelLocReq.set(id, false);
+                        } else if (newValue.lat !== undefined && newValue.lng !== undefined) {
+                            this.respondToLocationChange(layout, fieldKey, newValue, oldValue);
+                        }
+                    }),
+                address: computed(() => Cast(layout[`${fieldKey}-address`], "string", null))
+                    .observe(({ oldValue, newValue }) => {
+                        if (this._cancelAddrReq.get(id)) {
+                            this._cancelAddrReq.set(id, false);
+                        } else if (newValue?.length) {
+                            this.respondToAddressChange(layout, fieldKey, newValue, oldValue);
+                        }
+                    })
+            });
             return this.renderMarker(layout);
         });
     }
@@ -183,12 +206,10 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
     render() {
         const { childLayoutPairs } = this;
         const { Document, fieldKey, active, google } = this.props;
-        let center = this.getLocation(Document, fieldKey + "-mapCenter");
+        let center = this.getLocation(Document, `${fieldKey}-mapCenter`, false);
         if (center === undefined) {
-            center = childLayoutPairs.map(pair => this.getLocation(pair.layout, "mapLocation")).find(layout => layout);
-            if (center === undefined) {
-                center = defaultLocation;
-            }
+            const childLocations = childLayoutPairs.map(({ layout }) => this.getLocation(layout, Doc.LayoutFieldKey(layout), false));
+            center = childLocations.find(location => location) || defaultLocation;
         }
         return <div className="collectionMapView" ref={this.createDashEventsTarget}>
             <div className={"collectionMapView-contents"}
@@ -200,15 +221,31 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
                     zoom={center.zoom || 10}
                     initialCenter={center}
                     center={center}
-                    onDragend={undoBatch((_props: MapProps, map: google.maps.Map) => {
-                        const { lat, lng } = map.getCenter();
-                        runInAction(() => {
-                            Document[fieldKey + "-mapCenter-lat"] = lat();
-                            Document[fieldKey + "-mapCenter-lng"] = lng();
-                        });
-                    })}
+                    onIdle={(_props?: MapProps, map?: google.maps.Map) => {
+                        if (this.layoutDoc.lockedTransform) {
+                            // reset zoom (ideally, we could probably can tell the map to disallow zooming somehow instead)
+                            map?.setZoom(center?.zoom || 10);
+                            map?.setCenter({ lat: center?.lat!, lng: center?.lng! });
+                        } else {
+                            const zoom = map?.getZoom();
+                            (center?.zoom !== zoom) && undoBatch(action(() => {
+                                Document[`${fieldKey}-mapCenter-zoom`] = zoom;
+                            }))();
+                        }
+                    }}
+                    onDragend={(_props?: MapProps, map?: google.maps.Map) => {
+                        if (this.layoutDoc.lockedTransform) {
+                            // reset the drag (ideally, we could probably can tell the map to disallow dragging somehow instead)
+                            map?.setCenter({ lat: center?.lat!, lng: center?.lng! });
+                        } else {
+                            undoBatch(action(({ lat, lng }) => {
+                                Document[`${fieldKey}-mapCenter-lat`] = lat();
+                                Document[`${fieldKey}-mapCenter-lng`] = lng();
+                            }))(map?.getCenter());
+                        }
+                    }}
                 >
-                    {this.contents}
+                    {this.reactiveContents}
                 </GeoMap>
             </div>
         </div>;

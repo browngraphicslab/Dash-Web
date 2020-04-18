@@ -475,7 +475,9 @@ export function setupMoveUpEvents(
     e: React.PointerEvent,
     moveEvent: (e: PointerEvent, down: number[], delta: number[]) => boolean,
     upEvent: (e: PointerEvent) => void,
-    clickEvent: (e: PointerEvent) => void) {
+    clickEvent: (e: PointerEvent) => void,
+    stopPropagation: boolean = true
+) {
     (target as any)._downX = (target as any)._lastX = e.clientX;
     (target as any)._downY = (target as any)._lastY = e.clientY;
 
@@ -499,8 +501,10 @@ export function setupMoveUpEvents(
         document.removeEventListener("pointermove", _moveEvent);
         document.removeEventListener("pointerup", _upEvent);
     };
-    e.stopPropagation();
-    e.preventDefault();
+    if (stopPropagation) {
+        e.stopPropagation();
+        e.preventDefault();
+    }
     document.removeEventListener("pointermove", _moveEvent);
     document.removeEventListener("pointerup", _upEvent);
     document.addEventListener("pointermove", _moveEvent);

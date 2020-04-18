@@ -736,7 +736,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                 return (doc as any)[key][row + ${row}][(doc as any).schemaColumns[col + ${col}].heading];
             }
             return ${script}`;
-        const compiled = CompileScript(script, { params: { this: Doc.name }, capturedVariables: { doc: this.props.Document, key: this.props.fieldKey }, typecheck: true, transformer: this.createTransformer(row, col) });
+        const compiled = CompileScript(script, { params: { this: Doc.name }, capturedVariables: { doc: this.props.Document, key: this.props.fieldKey }, typecheck: false, transformer: this.createTransformer(row, col) });
         if (compiled.compiled) {
             doc[field] = new ComputedField(compiled);
             return true;
