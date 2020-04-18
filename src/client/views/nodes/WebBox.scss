@@ -18,8 +18,7 @@
         display:none;
     }
 }
-.webBox-cont,
-.webBox-cont-dragging {
+.webBox-cont {
     padding: 0vw;
     position: absolute;
     top: 0;
@@ -32,8 +31,6 @@
 }
 
 .webBox-cont-interactive {
-    pointer-events: all;
-
     span {
         user-select: text !important;
     }
@@ -49,7 +46,6 @@
     width: 100%;
     height: 100%;
     position: absolute;
-    pointer-events: all;
 }
 
 .webBox-button {
@@ -59,7 +55,7 @@
     height: 100%;
 }
 
-.webView-urlEditor {
+.webBox-urlEditor {
     position: relative;
     opacity: 0.9;
     z-index: 9001;
@@ -73,6 +69,12 @@
         grid-template-columns: 1fr auto;
         padding-bottom: 10px;
         overflow: hidden;
+
+        .webBox-freeze {
+            display: flex;
+            align-items: center; 
+            justify-content: center;
+        }
 
         .editorBase {
             display: flex;
@@ -115,7 +117,6 @@
     width: 100%;
     height: 100%;
     position: absolute;
-    pointer-events: all;
 
     .indicator {
         position: absolute;

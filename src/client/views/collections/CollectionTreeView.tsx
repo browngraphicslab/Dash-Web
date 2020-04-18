@@ -453,7 +453,7 @@ class TreeView extends React.Component<TreeViewProps> {
                     fontWeight: this.props.document.searchMatch ? "bold" : undefined,
                     textDecoration: Doc.GetT(this.props.document, "title", "string", true) ? "underline" : undefined,
                     outline: BoolCast(this.props.document.workspaceBrush) ? "dashed 1px #06123232" : undefined,
-                    pointerEvents: this.props.active() || SelectionManager.GetIsDragging() ? "all" : "none"
+                    pointerEvents: this.props.active() || SelectionManager.GetIsDragging() ? undefined : "none"
                 }} >
                 {Doc.GetT(this.props.document, "editTitle", "boolean", true) ?
                     this.editableView("title") :
