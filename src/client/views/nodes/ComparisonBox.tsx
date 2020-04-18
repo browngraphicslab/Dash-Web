@@ -58,11 +58,13 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
 
     clearBeforeDoc = (e: PointerEvent) => {
         e.stopPropagation;
+        e.preventDefault;
         delete this.props.Document.beforeDoc;
     }
 
     clearAfterDoc = (e: PointerEvent) => {
         e.stopPropagation;
+        e.preventDefault;
         delete this.props.Document.afterDoc;
     }
 
@@ -75,22 +77,25 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
         const afterDoc = this.props.Document.afterDoc as Doc;
         return (
             <div className={`comparisonBox`} style={{ backgroundColor: "blue" }}>
-                <div
-                    className="beforeBox-cont"
-                    key={this.props.Document[Id]}
-                    ref={(ele) => {
-                        this._beforeDropDisposer && this._beforeDropDisposer();
-                        this._beforeDropDisposer = this.createDropTarget(ele, "beforeDoc");
-                    }}
-                    style={{ backgroundColor: "red" }}
-                >
-                    {
-                        beforeDoc ?
-                            <ContentFittingDocumentView {...this.props}
-                                Document={beforeDoc}
-                                getTransform={this.props.ScreenToLocalTransform} />
-                            : null
-                    }
+                <div className="clip-div">
+                    <div
+                        className="beforeBox-cont"
+                        key={this.props.Document[Id]}
+                        ref={(ele) => {
+                            this._beforeDropDisposer && this._beforeDropDisposer();
+                            this._beforeDropDisposer = this.createDropTarget(ele, "beforeDoc");
+                        }}
+                        style={{ backgroundColor: "red" }}>
+                        {
+                            beforeDoc ?
+                                <ContentFittingDocumentView {...this.props}
+                                    Document={beforeDoc}
+                                    getTransform={this.props.ScreenToLocalTransform} />
+                                :
+                                <div className="placeholder">upload before image!</div>
+                        }
+                    </div>
+                    <div className="slide-bar" />
                 </div>
                 <div
                     className="afterBox-cont"
@@ -99,14 +104,16 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
                         this._afterDropDisposer && this._afterDropDisposer();
                         this._afterDropDisposer = this.createDropTarget(ele, "afterDoc");
                     }}
-                    style={{ backgroundColor: "orange" }}
-                >
+                    style={{ backgroundColor: "orange" }}>
                     {
                         afterDoc ?
                             <ContentFittingDocumentView {...this.props}
                                 Document={afterDoc}
                                 getTransform={this.props.ScreenToLocalTransform} />
-                            : null
+                            :
+                            <div className="placeholder" style={{ float: "right" }}>
+                                upload after image!
+                            </div>
                     }
                 </div>
             </div>);
