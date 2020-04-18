@@ -20,7 +20,7 @@
         top: 55%;
         border: 1px black solid;
         z-index: 2;
-        left: -10px;
+        right: -10px;
     }
     .collectionTimeView-treeView {
         display: flex;
@@ -28,7 +28,7 @@
         width: 200px;
         height: 100%;
         position: absolute;
-        left: 0;
+        right: 0;
         top: 0;
 
         .collectionTimeView-addfacet {

@@ -116,6 +116,8 @@ export interface DocumentOptions {
     boxShadow?: string;
     dontRegisterChildren?: boolean;
     "onClick-rawScript"?: string; // onClick script in raw text form
+    "onCheckedClick-rawScript"?: string; // onChecked script in raw text form
+    "onCheckedClick-params"?: List<string>; // parameter list for onChecked treeview functions
     _pivotField?: string; // field key used to determine headings for sections in stacking, masonry, pivot views
     schemaColumns?: List<SchemaHeaderField>;
     dockingConfig?: string;
@@ -142,7 +144,6 @@ export interface DocumentOptions {
     treeViewHideHeaderFields?: boolean; // whether to hide the drop down options for tree view items.
     treeViewOpen?: boolean; // whether this document is expanded in a tree view
     treeViewChecked?: ScriptField; // script to call when a tree view checkbox is checked
-    isFacetFilter?: boolean; // whether document functions as a facet filter in a tree view
     limitHeight?: number; // maximum height for newly created (eg, from pasting) text documents
     // [key: string]: Opt<Field>;
     pointerHack?: boolean; // for buttons, allows onClick handler to fire onPointerDown
@@ -571,6 +572,7 @@ export namespace Docs {
             I.title = "ink";
             I.x = options.x;
             I.y = options.y;
+            I._backgroundColor = "transparent";
             I._width = options._width;
             I._height = options._height;
             I.data = new InkField(points);
@@ -588,7 +590,7 @@ export namespace Docs {
         }
 
         export function WebDocument(url: string, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.WEB), new WebField(new URL(url)), options);
+            return InstanceFromProto(Prototypes.get(DocumentType.WEB), new WebField(new URL(url)), { _fitWidth: true, ...options });
         }
 
         export function HtmlDocument(html: string, options: DocumentOptions = {}) {
@@ -917,7 +919,7 @@ export namespace Docs {
                     });
                 }
                 ctor = Docs.Create.WebDocument;
-                options = { _height: options._width, ...options, title: path, _nativeWidth: undefined };
+                options = { ...options, _nativeWidth: 850, _nativeHeight: 962, _width: 500, _height: 566, title: path, };
             }
             return ctor ? ctor(path, options) : undefined;
         }

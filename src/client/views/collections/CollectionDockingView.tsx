@@ -739,19 +739,27 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     nativeHeight = () => !this.layoutDoc!._fitWidth ? NumCast(this.layoutDoc!._nativeHeight) || this._panelHeight : 0;
 
     contentScaling = () => {
-        if (this.layoutDoc!.type === DocumentType.PDF) {
-            if ((this.layoutDoc && this.layoutDoc._fitWidth) ||
-                this._panelHeight / NumCast(this.layoutDoc!._nativeHeight) > this._panelWidth / NumCast(this.layoutDoc!._nativeWidth)) {
-                return this._panelWidth / NumCast(this.layoutDoc!._nativeWidth);
-            } else {
-                return this._panelHeight / NumCast(this.layoutDoc!._nativeHeight);
-            }
-        }
         const nativeH = this.nativeHeight();
         const nativeW = this.nativeWidth();
-        if (!nativeW || !nativeH) return 1;
-        const wscale = this.panelWidth() / nativeW;
-        return wscale * nativeH > this._panelHeight ? this._panelHeight / nativeH : wscale;
+        let scaling = 1;
+        if (!this.layoutDoc?._fitWidth && (!nativeW || !nativeH)) {
+            scaling = 1;
+        } else if ((this.layoutDoc?._fitWidth) ||
+            this._panelHeight / NumCast(this.layoutDoc!._nativeHeight) > this._panelWidth / NumCast(this.layoutDoc!._nativeWidth)) {
+            scaling = this._panelWidth / NumCast(this.layoutDoc!._nativeWidth);
+        } else {
+            // if (this.layoutDoc!.type === DocumentType.PDF || this.layoutDoc!.type === DocumentType.WEB) {
+            //     if ((this.layoutDoc?._fitWidth) ||
+            //         this._panelHeight / NumCast(this.layoutDoc!._nativeHeight) > this._panelWidth / NumCast(this.layoutDoc!._nativeWidth)) {
+            //         return this._panelWidth / NumCast(this.layoutDoc!._nativeWidth);
+            //     } else {
+            //         return this._panelHeight / NumCast(this.layoutDoc!._nativeHeight);
+            //     }
+            // }
+            const wscale = this.panelWidth() / nativeW;
+            scaling = wscale * nativeH > this._panelHeight ? this._panelHeight / nativeH : wscale;
+        }
+        return scaling;
     }
 
     ScreenToLocalTransform = () => {

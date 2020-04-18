@@ -31,7 +31,7 @@ import { ContextMenu } from "../../ContextMenu";
 import { ContextMenuProps } from "../../ContextMenuItem";
 import { InkingControl } from "../../InkingControl";
 import { CollectionFreeFormDocumentView } from "../../nodes/CollectionFreeFormDocumentView";
-import { DocumentViewProps } from "../../nodes/DocumentView";
+import { DocumentViewProps, DocumentView } from "../../nodes/DocumentView";
 import { FormattedTextBox } from "../../nodes/FormattedTextBox";
 import { pageSchema } from "../../nodes/ImageBox";
 import PDFMenu from "../../pdf/PDFMenu";
@@ -44,6 +44,7 @@ import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import { CollectionViewType } from "../CollectionView";
+import { Script } from "vm";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
@@ -69,6 +70,8 @@ type PanZoomDocument = makeInterface<[typeof panZoomSchema, typeof documentSchem
 const PanZoomDocument = makeInterface(panZoomSchema, documentSchema, positionSchema, pageSchema);
 export type collectionFreeformViewProps = {
     forceScaling?: boolean; // whether to force scaling of content (needed by ImageBox)
+    childClickScript?: ScriptField;
+    viewDefDivClick?: ScriptField;
 };
 
 @observer
@@ -801,7 +804,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument, u
             if (!annotOn) {
                 this.props.focus(doc);
             } else {
-                const contextHgt = Doc.AreProtosEqual(annotOn, this.props.Document) && this.props.VisibleHeight ? this.props.VisibleHeight() : NumCast(annotOn.height);
+                const contextHgt = Doc.AreProtosEqual(annotOn, this.props.Document) && this.props.VisibleHeight ? this.props.VisibleHeight() : NumCast(annotOn._height);
                 const offset = annotOn && (contextHgt / 2 * 96 / 72);
                 this.props.Document.scrollY = NumCast(doc.y) - offset;
             }
@@ -817,9 +820,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument, u
 
             const savedState = { px: this.Document._panX, py: this.Document._panY, s: this.Document.scale, pt: this.Document.panTransformType };
 
-            if (!willZoom) {
+            if (!willZoom && DocumentView._focusHack.length) {
                 Doc.BrushDoc(this.props.Document);
-                !doc.z && this.scaleAtPt([NumCast(doc.x), NumCast(doc.y)], 1);
+                !doc.z && NumCast(this.layoutDoc.scale) < 1 && this.scaleAtPt(DocumentView._focusHack, 1); // [NumCast(doc.x), NumCast(doc.y)], 1);
             } else {
                 if (DocListCast(this.dataDoc[this.props.fieldKey]).includes(doc)) {
                     if (!doc.z) this.setPan(newPanX, newPanY, "Ease", true); // docs that are floating in their collection can't be panned to from their collection -- need to propagate the pan to a parent freeform somehow
@@ -847,7 +850,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument, u
     }
 
     @computed get libraryPath() { return this.props.LibraryPath ? [...this.props.LibraryPath, this.props.Document] : []; }
-    @computed get onChildClickHandler() { return ScriptCast(this.Document.onChildClick); }
+    @computed get onChildClickHandler() { return this.props.childClickScript || ScriptCast(this.Document.onChildClick); }
     backgroundHalo = () => BoolCast(this.Document.useClusters);
 
     getChildDocumentViewProps(childLayout: Doc, childData?: Doc): DocumentViewProps {
@@ -906,7 +909,8 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument, u
     }
 
     onViewDefDivClick = (e: React.MouseEvent, payload: any) => {
-        (this.props.Document.onViewDefDivClick as ScriptField)?.script.run({ this: this.props.Document, payload });
+        (this.props.viewDefDivClick || ScriptCast(this.props.Document.onViewDefDivClick))?.script.run({ this: this.props.Document, payload });
+        e.stopPropagation();
     }
     private viewDefToJSX(viewDef: ViewDefBounds): Opt<ViewDefResult> {
         const { x, y, z } = viewDef;
@@ -991,6 +995,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument, u
                     {...this.getChildDocumentViewProps(pair.layout, pair.data)}
                     dataProvider={this.childDataProvider}
                     LayoutDoc={this.childLayoutDocFunc}
+                    pointerEvents={this.props.layoutEngine?.() !== undefined ? false : undefined}
                     jitterRotation={NumCast(this.props.Document.jitterRotation)}
                     fitToBox={this.props.fitToBox || BoolCast(this.props.freezeChildDimensions)}
                     FreezeDimensions={BoolCast(this.props.freezeChildDimensions)}
