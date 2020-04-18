@@ -822,7 +822,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument, u
 
             if (!willZoom && DocumentView._focusHack.length) {
                 Doc.BrushDoc(this.props.Document);
-                !doc.z && this.scaleAtPt(DocumentView._focusHack, 1); // [NumCast(doc.x), NumCast(doc.y)], 1);
+                !doc.z && NumCast(this.layoutDoc.scale) < 1 && this.scaleAtPt(DocumentView._focusHack, 1); // [NumCast(doc.x), NumCast(doc.y)], 1);
             } else {
                 if (DocListCast(this.dataDoc[this.props.fieldKey]).includes(doc)) {
                     if (!doc.z) this.setPan(newPanX, newPanY, "Ease", true); // docs that are floating in their collection can't be panned to from their collection -- need to propagate the pan to a parent freeform somehow

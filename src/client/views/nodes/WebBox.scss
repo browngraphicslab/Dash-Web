@@ -48,11 +48,17 @@
     position: absolute;
 }
 
-.webBox-button {
-    padding: 0vw;
-    border: none;
+.webBox-buttons {
+    margin-left: 44;
+    background:lightGray;
     width: 100%;
-    height: 100%;
+}
+.webBox-freeze {
+    display: flex;
+    align-items: center; 
+    justify-content: center;
+    margin-right: 5px;
+    width: 30px;
 }
 
 .webBox-urlEditor {
@@ -60,7 +66,6 @@
     opacity: 0.9;
     z-index: 9001;
     transition: top .5s;
-    background: lightgrey;
     padding: 10px;
 
 
@@ -69,12 +74,6 @@
         grid-template-columns: 1fr auto;
         padding-bottom: 10px;
         overflow: hidden;
-
-        .webBox-freeze {
-            display: flex;
-            align-items: center; 
-            justify-content: center;
-        }
 
         .editorBase {
             display: flex;

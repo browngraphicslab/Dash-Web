@@ -282,7 +282,6 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
             if (anno.style.height) annoDoc._height = parseInt(anno.style.height);
             if (anno.style.width) annoDoc._width = parseInt(anno.style.width);
             annoDoc.group = mainAnnoDoc;
-            annoDoc.isLinkButton = true;
             annoDocs.push(annoDoc);
             anno.remove();
             mainAnnoDoc = annoDoc;
@@ -554,7 +553,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     highlight = (color: string) => {
         // creates annotation documents for current highlights
         const annotationDoc = this.makeAnnotationDocument(color);
-        annotationDoc && this.props.addDocument && this.props.addDocument(annotationDoc);
+        annotationDoc && this.props?.addDocument(annotationDoc);
         return annotationDoc;
     }
 
@@ -585,6 +584,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 dragComplete: e => {
                     if (!e.aborted && e.annoDragData && !e.annoDragData.linkedToDoc) {
                         const link = DocUtils.MakeLink({ doc: annotationDoc }, { doc: e.annoDragData.dropDocument }, "Annotation");
+                        annotationDoc.isLinkButton = true;
                         if (link) link.followLinkLocation = "onRight";
                     }
                 }
@@ -641,7 +641,8 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     panelWidth = () => (this.Document.scrollHeight || this.Document._nativeHeight || 0);
     panelHeight = () => this._pageSizes.length && this._pageSizes[0] ? this._pageSizes[0].width : (this.Document._nativeWidth || 0);
     @computed get overlayLayer() {
-        return <div className={`pdfViewer-overlay${InkingControl.Instance.selectedTool !== InkTool.None ? "-inking" : ""}`} id="overlay" style={{ transform: `scale(${this._zoomed})` }}>
+        return <div className={`pdfViewer-overlay${InkingControl.Instance.selectedTool !== InkTool.None ? "-inking" : ""}`} id="overlay"
+            style={{ transform: `scale(${this._zoomed})`, pointerEvents: this.active(false) ? "all" : undefined }}>
             <CollectionFreeFormView {...this.props}
                 LibraryPath={this.props.ContainingCollectionView?.props.LibraryPath ?? emptyPath}
                 annotationsKey={this.annotationKey}

@@ -590,7 +590,7 @@ export namespace Docs {
         }
 
         export function WebDocument(url: string, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.WEB), new WebField(new URL(url)), options);
+            return InstanceFromProto(Prototypes.get(DocumentType.WEB), new WebField(new URL(url)), { _fitWidth: true, ...options });
         }
 
         export function HtmlDocument(html: string, options: DocumentOptions = {}) {
@@ -914,7 +914,7 @@ export namespace Docs {
                     });
                 }
                 ctor = Docs.Create.WebDocument;
-                options = { _height: options._width, ...options, title: path, _nativeWidth: undefined };
+                options = { ...options, _nativeWidth: 850, _nativeHeight: 962, _width: 500, _height: 566, title: path, };
             }
             return ctor ? ctor(path, options) : undefined;
         }
