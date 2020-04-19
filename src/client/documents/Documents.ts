@@ -79,11 +79,13 @@ export interface DocumentOptions {
     x?: number;
     y?: number;
     z?: number;
+    author?: string;
     dropAction?: dropActionType;
     childDropAction?: dropActionType;
     layoutKey?: string;
     type?: string;
     title?: string;
+    label?: string; // short form of title for use as an icon label
     style?: string;
     page?: number;
     scale?: number;
@@ -103,6 +105,7 @@ export interface DocumentOptions {
     ignoreClick?: boolean;
     lockedPosition?: boolean; // lock the x,y coordinates of the document so that it can't be dragged
     lockedTransform?: boolean; // lock the panx,pany and scale parameters of the document so that it be panned/zoomed
+    isAnnotating?: boolean; // whether we web document is annotation mode where links can't be clicked to allow annotations to be created
     opacity?: number;
     defaultBackgroundColor?: string;
     isBackground?: boolean;
@@ -590,7 +593,7 @@ export namespace Docs {
         }
 
         export function WebDocument(url: string, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.WEB), new WebField(new URL(url)), options);
+            return InstanceFromProto(Prototypes.get(DocumentType.WEB), url ? new WebField(new URL(url)) : undefined, { _fitWidth: true, _chromeStatus: url ? "disabled" : "enabled", isAnnotating: true, lockedTransform: true, ...options });
         }
 
         export function HtmlDocument(html: string, options: DocumentOptions = {}) {
@@ -914,7 +917,7 @@ export namespace Docs {
                     });
                 }
                 ctor = Docs.Create.WebDocument;
-                options = { _height: options._width, ...options, title: path, _nativeWidth: undefined };
+                options = { ...options, _nativeWidth: 850, _nativeHeight: 962, _width: 500, _height: 566, title: path, };
             }
             return ctor ? ctor(path, options) : undefined;
         }
