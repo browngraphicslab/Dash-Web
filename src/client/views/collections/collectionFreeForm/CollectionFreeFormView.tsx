@@ -7,7 +7,7 @@ import { computedFn } from "mobx-utils";
 import { Doc, HeightSym, Opt, WidthSym, DocListCast } from "../../../../new_fields/Doc";
 import { documentSchema, positionSchema } from "../../../../new_fields/documentSchemas";
 import { Id } from "../../../../new_fields/FieldSymbols";
-import { InkData, InkField, InkTool } from "../../../../new_fields/InkField";
+import { InkData, InkField, InkTool, PointData } from "../../../../new_fields/InkField";
 import { List } from "../../../../new_fields/List";
 import { RichTextField } from "../../../../new_fields/RichTextField";
 import { createSchema, listSpec, makeInterface } from "../../../../new_fields/Schema";
@@ -1089,6 +1089,73 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument, u
         ContextMenu.Instance.addItem({ description: "Freeform Options ...", subitems: layoutItems, icon: "eye" });
     }
 
+    intersectRect(r1: { left: number, top: number, width: number, height: number },
+        r2: { left: number, top: number, width: number, height: number }) {
+        return !(r2.left > r1.left + r1.width || r2.left + r2.width < r1.left || r2.top > r1.top + r1.height || r2.top + r2.height < r1.top);
+    }
+
+    onPointerOver = (e: React.PointerEvent) => {
+        if (SelectionManager.GetIsDragging()) {
+            const size = this.props.ScreenToLocalTransform().transformDirection(this.props.PanelWidth(), this.props.PanelHeight());
+            const selRect = { left: this.panX() - size[0] / 2, top: this.panY() - size[1] / 2, width: size[0], height: size[1] };
+            console.log(selRect);
+            const selection: Doc[] = [];
+            this.getActiveDocuments().filter(doc => !doc.isBackground && doc.z === undefined).map(doc => {
+                const layoutDoc = Doc.Layout(doc);
+                const x = NumCast(doc.x);
+                const y = NumCast(doc.y);
+                const w = NumCast(layoutDoc._width);
+                const h = NumCast(layoutDoc._height);
+                if (this.intersectRect({ left: x, top: y, width: w, height: h }, selRect)) {
+                    selection.push(doc);
+                }
+            });
+            if (!selection.length) {
+                this.getActiveDocuments().filter(doc => doc.z === undefined).map(doc => {
+                    const layoutDoc = Doc.Layout(doc);
+                    const x = NumCast(doc.x);
+                    const y = NumCast(doc.y);
+                    const w = NumCast(layoutDoc._width);
+                    const h = NumCast(layoutDoc._height);
+                    if (this.intersectRect({ left: x, top: y, width: w, height: h }, selRect)) {
+                        selection.push(doc);
+                    }
+                });
+            }
+            if (!selection.length) {
+                const left = this._downX < this._lastX ? this._downX : this._lastX;
+                const top = this._downY < this._lastY ? this._downY : this._lastY;
+                const topLeft = this.getContainerTransform().transformPoint(left, top);
+                const size = this.getContainerTransform().transformDirection(this._lastX - this._downX, this._lastY - this._downY);
+                const otherBounds = { left: topLeft[0], top: topLeft[1], width: Math.abs(size[0]), height: Math.abs(size[1]) };
+                this.getActiveDocuments().filter(doc => doc.z !== undefined).map(doc => {
+                    const layoutDoc = Doc.Layout(doc);
+                    const x = NumCast(doc.x);
+                    const y = NumCast(doc.y);
+                    const w = NumCast(layoutDoc._width);
+                    const h = NumCast(layoutDoc._height);
+                    if (this.intersectRect({ left: x, top: y, width: w, height: h }, otherBounds)) {
+                        selection.push(doc);
+                    }
+                });
+            }
+            const lines: [PointData, PointData][] = [];
+            selection.forEach(doc => {
+                const x = NumCast(doc.x);
+                const y = NumCast(doc.y);
+                const w = doc[WidthSym]();
+                const h = doc[HeightSym]();
+                lines.push([{ X: x, Y: y }, { X: x + w, Y: y }]); // top line
+                lines.push([{ X: x, Y: y }, { X: x, Y: y + h }]); // left line
+                lines.push([{ X: x + w, Y: y }, { X: x + w, Y: y + h }]); // right line
+                lines.push([{ X: x, Y: y + h }, { X: x + w, Y: y + h }]); // bottom line
+                lines.push([{ X: x + w / 2, Y: y }, { X: x + w / 2, Y: y + h }]); // horizontal center line
+                lines.push([{ X: x, Y: y + h / 2 }, { X: x + w, Y: y + h / 2 }]); // vertical center line
+            })
+            DragManager.SetSnapLines(lines);
+        }
+    }
+
     private childViews = () => {
         const children = typeof this.props.children === "function" ? (this.props.children as any)() as JSX.Element[] : [];
         return [
@@ -1150,6 +1217,7 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument, u
         // otherwise, they are stored in fieldKey.  All annotations to this document are stored in the extension document
         return <div className={"collectionfreeformview-container"}
             ref={this.createDashEventsTarget}
+            onPointerOver={this.onPointerOver}
             onWheel={this.onPointerWheel} onClick={this.onClick}  //pointerEvents: SelectionManager.GetIsDragging() ? "all" : undefined,
             onPointerDown={this.onPointerDown} onPointerMove={this.onCursorMove} onDrop={this.onExternalDrop.bind(this)} onContextMenu={this.onContextMenu}
             style={{

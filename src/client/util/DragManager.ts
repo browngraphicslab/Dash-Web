@@ -18,6 +18,7 @@ import { AudioBox } from "../views/nodes/AudioBox";
 import { DateField } from "../../new_fields/DateField";
 import { DocumentView } from "../views/nodes/DocumentView";
 import { UndoManager } from "./UndoManager";
+import { PointData } from "../../new_fields/InkField";
 
 export type dropActionType = "place" | "alias" | "copy" | undefined;
 export function SetupDrag(
@@ -73,6 +74,7 @@ export function SetupDrag(
 
 export namespace DragManager {
     let dragDiv: HTMLDivElement;
+    let snapLines: [PointData, PointData][];
 
     export function Root() {
         const root = document.getElementById("root");
@@ -279,6 +281,10 @@ export namespace DragManager {
 
     export function StartImgDrag(ele: HTMLElement, downX: number, downY: number) {
         StartDrag([ele], {}, downX, downY);
+    }
+
+    export function SetSnapLines() {
+        snapLines = [];
     }
 
     function StartDrag(eles: HTMLElement[], dragData: { [id: string]: any }, downX: number, downY: number, options?: DragOptions, finishDrag?: (dropData: DragCompleteEvent) => void) {
