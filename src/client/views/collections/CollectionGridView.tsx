@@ -29,7 +29,7 @@ import GridLayout from 'react-grid-layout';
 type GridSchema = makeInterface<[typeof documentSchema]>;
 const GridSchema = makeInterface(documentSchema);
 
-export class CollectionGridView extends CollectionSubView(GridSchema) {
+export class CollectionGridView extends React.Component {//, CollectionSubView(GridSchema) {
     render(): JSX.Element {
         const layout = [
             { i: 'a', x: 0, y: 0, w: 1, h: 2, static: true },
