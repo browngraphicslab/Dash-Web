@@ -35,7 +35,6 @@ import { CollectionStaffView } from './CollectionStaffView';
 import { SubCollectionViewProps } from './CollectionSubView';
 import { CollectionTimeView } from './CollectionTimeView';
 import { CollectionTreeView } from "./CollectionTreeView";
-import { CollectionGridView } from "./CollectionGridView";
 import './CollectionView.scss';
 import { CollectionViewBaseChrome } from './CollectionViewChromes';
 import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
@@ -67,8 +66,7 @@ export enum CollectionViewType {
     Carousel = "carousel",
     Linear = "linear",
     Staff = "staff",
-    Map = "map",
-    Grid = "grid"
+    Map = "map"
 }
 
 export interface CollectionRenderProps {
@@ -175,7 +173,6 @@ export class CollectionView extends Touchable<FieldViewProps> {
             case CollectionViewType.Masonry: { this.props.Document.singleColumn = false; return (<CollectionStackingView key="collview" {...props} />); }
             case CollectionViewType.Time: { return (<CollectionTimeView key="collview" {...props} />); }
             case CollectionViewType.Map: return (<CollectionMapView key="collview" {...props} />);
-            case CollectionViewType.Grid: return (<CollectionGridView key="gridview" {...props} />);
             case CollectionViewType.Freeform:
             default: { this.props.Document._freeformLayoutEngine = undefined; return (<CollectionFreeFormView key="collview" {...props} />); }
         }
@@ -218,7 +215,6 @@ export class CollectionView extends Touchable<FieldViewProps> {
             subItems.push({ description: "Carousel", event: () => this.props.Document._viewType = CollectionViewType.Carousel, icon: "columns" });
             subItems.push({ description: "Pivot/Time", event: () => this.props.Document._viewType = CollectionViewType.Time, icon: "columns" });
             subItems.push({ description: "Map", event: () => this.props.Document._viewType = CollectionViewType.Map, icon: "globe-americas" });
-            subItems.push({ description: "Grid", event: () => this.props.Document._viewType = CollectionViewType.Grid, icon: "rainbow" });
             switch (this.props.Document._viewType) {
                 case CollectionViewType.Freeform: {
                     subItems.push({ description: "Custom", icon: "fingerprint", event: AddCustomFreeFormLayout(this.props.Document, this.props.fieldKey) });
@@ -281,7 +277,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
             onMovePrevRequest={action(() => this._curLightboxImg = (this._curLightboxImg + images.length - 1) % images.length)}
             onMoveNextRequest={action(() => this._curLightboxImg = (this._curLightboxImg + 1) % images.length)} />);
     }
-    get _facetWidth() { return NumCast(this.props.Document._facetWidth); }
+    get _facetWidth() { return NumCast(this.props.Document._facetWidth) }
     set _facetWidth(value) { this.props.Document._facetWidth = value; }
 
     bodyPanelWidth = () => this.props.PanelWidth() - this.facetWidth();
