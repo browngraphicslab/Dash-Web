@@ -470,6 +470,35 @@ export function clearStyleSheetRules(sheet: any) {
     return false;
 }
 
+export function simulateMouseClick(element: Element, x: number, y: number, sx: number, sy: number) {
+    ["pointerdown", "pointerup"].map(event => element.dispatchEvent(
+        new PointerEvent(event, {
+            view: window,
+            bubbles: true,
+            cancelable: true,
+            button: 2,
+            pointerType: "mouse",
+            clientX: x,
+            clientY: y,
+            screenX: sx,
+            screenY: sy,
+        })));
+
+    element.dispatchEvent(
+        new MouseEvent("contextmenu", {
+            view: window,
+            bubbles: true,
+            cancelable: true,
+            button: 2,
+            clientX: x,
+            clientY: y,
+            movementX: 0,
+            movementY: 0,
+            screenX: sx,
+            screenY: sy,
+        }));
+}
+
 export function setupMoveUpEvents(
     target: object,
     e: React.PointerEvent,

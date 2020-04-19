@@ -16,6 +16,7 @@ import React = require("react");
 import { Docs } from "../../documents/Documents";
 import wiki from "wikijs";
 import { DocumentType } from "../../documents/DocumentTypes";
+import { DocumentView } from "./DocumentView";
 
 export let formattedTextBoxCommentPlugin = new Plugin({
     view(editorView) { return new FormattedTextBoxComment(editorView); }
@@ -85,8 +86,9 @@ export class FormattedTextBoxComment {
                 const textBox = FormattedTextBoxComment.textBox;
                 if (FormattedTextBoxComment.linkDoc && !keep && textBox) {
                     if (FormattedTextBoxComment.linkDoc.type !== DocumentType.LINK) {
-                        textBox.props.addDocTab(FormattedTextBoxComment.linkDoc, e.ctrlKey ? "inTab":"onRight");
+                        textBox.props.addDocTab(FormattedTextBoxComment.linkDoc, e.ctrlKey ? "inTab" : "onRight");
                     } else {
+                        DocumentView._focusHack = [];
                         DocumentManager.Instance.FollowLink(FormattedTextBoxComment.linkDoc, textBox.props.Document,
                             (doc: Doc, followLinkLocation: string) => textBox.props.addDocTab(doc, e.ctrlKey ? "inTab" : followLinkLocation));
                     }
