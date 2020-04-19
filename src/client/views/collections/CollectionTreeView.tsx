@@ -483,7 +483,13 @@ class TreeView extends React.Component<TreeViewProps> {
         setTimeout(() => runInAction(() => untracked(() => this._overrideTreeViewOpen = this.treeViewOpen)), 0);
         return <div className="treeViewItem-container" ref={this.createTreeDropTarget}>
             <li className="collection-child">
-                <div className="treeViewItem-header" ref={this._header} onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}>
+                <div className="treeViewItem-header" ref={this._header} onClick={e => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                }} onPointerDown={e => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                }} onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}>
                     {this.renderBullet}
                     {this.renderTitle}
                 </div>

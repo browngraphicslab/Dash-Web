@@ -85,6 +85,7 @@ export interface DocumentOptions {
     layoutKey?: string;
     type?: string;
     title?: string;
+    label?: string; // short form of title for use as an icon label
     style?: string;
     page?: number;
     scale?: number;
