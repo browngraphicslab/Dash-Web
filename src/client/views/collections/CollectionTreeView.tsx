@@ -32,7 +32,7 @@ import { Templates } from '../Templates';
 import { CollectionSubView, SubCollectionViewProps } from "./CollectionSubView";
 import "./CollectionTreeView.scss";
 import React = require("react");
-import { CollectionViewType } from './CollectionView';
+import { CollectionViewType, CollectionView } from './CollectionView';
 import { RichTextField } from '../../../new_fields/RichTextField';
 import { DocumentView } from '../nodes/DocumentView';
 
@@ -210,33 +210,6 @@ class TreeView extends React.Component<TreeViewProps> {
         })}
     />)
 
-    onWorkspaceContextMenu = (e: React.MouseEvent): void => {
-        if (!e.isPropagationStopped()) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view
-            const sort = this.props.document[`${this.fieldKey}-sortAscending`];
-            if (this.props.document === CurrentUserUtils.UserDocument.recentlyClosed) {
-                ContextMenu.Instance.addItem({ description: "Clear All", event: () => Doc.GetProto(CurrentUserUtils.UserDocument.recentlyClosed as Doc).data = new List<Doc>(), icon: "plus" });
-            } else if (this.props.document !== CurrentUserUtils.UserDocument.workspaces) {
-                ContextMenu.Instance.addItem({ description: "Pin to Presentation", event: () => this.props.pinToPres(this.props.document), icon: "tv" });
-                ContextMenu.Instance.addItem({ description: "Open Tab", event: () => this.props.addDocTab(this.props.document, "inTab", this.props.libraryPath), icon: "folder" });
-                ContextMenu.Instance.addItem({ description: "Open Right", event: () => this.props.addDocTab(this.props.document, "onRight", this.props.libraryPath), icon: "caret-square-right" });
-                if (DocumentManager.Instance.getDocumentViews(this.dataDoc).length) {
-                    ContextMenu.Instance.addItem({ description: "Focus", event: () => (view => view && view.props.focus(this.props.document, true))(DocumentManager.Instance.getFirstDocumentView(this.props.document)), icon: "camera" });
-                }
-                ContextMenu.Instance.addItem({ description: "Delete Item", event: () => this.props.deleteDoc(this.props.document), icon: "trash-alt" });
-            } else {
-                ContextMenu.Instance.addItem({ description: "Delete Workspace", event: () => this.props.deleteDoc(this.props.document), icon: "trash-alt" });
-                ContextMenu.Instance.addItem({ description: "Create New Workspace", event: () => MainView.Instance.createNewWorkspace(), icon: "plus" });
-            }
-            ContextMenu.Instance.addItem({ description: (sort ? "Sort Descending" : (sort === false ? "Unsort" : "Sort Ascending")), event: () => this.props.document[`${this.fieldKey}-sortAscending`] = (sort ? false : (sort === false ? undefined : true)), icon: "minus" });
-            ContextMenu.Instance.addItem({ description: "Toggle Theme Colors", event: () => this.props.document.darkScheme = !this.props.document.darkScheme, icon: "minus" });
-            ContextMenu.Instance.addItem({ description: "Open Fields", event: () => { const kvp = Docs.Create.KVPDocument(this.props.document, { _width: 300, _height: 300 }); this.props.addDocTab(kvp, "onRight"); }, icon: "layer-group" });
-            ContextMenu.Instance.addItem({ description: "Publish", event: () => DocUtils.Publish(this.props.document, StrCast(this.props.document.title), () => { }, () => { }), icon: "file" });
-            ContextMenu.Instance.displayMenu(e.pageX > 156 ? e.pageX - 156 : 0, e.pageY - 15);
-            e.stopPropagation();
-            e.preventDefault();
-        }
-    }
-
     @undoBatch
     treeDrop = (e: Event, de: DragManager.DropEvent) => {
         const pt = [de.x, de.y];
@@ -356,7 +329,11 @@ class TreeView extends React.Component<TreeViewProps> {
             const remDoc = (doc: Doc) => this.remove(doc, expandKey);
             const addDoc = (doc: Doc, addBefore?: Doc, before?: boolean) => Doc.AddDocToList(this.dataDoc, expandKey, doc, addBefore, before, false, true);
             const docs = expandKey === "links" ? this.childLinks : this.childDocs;
-            return <ul key={expandKey + "more"}>
+            const sortKey = `${this.fieldKey}-sortAscending`;
+            return <ul key={expandKey + "more"} onClick={(e) => {
+                this.props.document[sortKey] = (this.props.document[sortKey] ? false : (this.props.document[sortKey] === false ? undefined : true));
+                e.stopPropagation();
+            }}>
                 {!docs ? (null) :
                     TreeView.GetChildElements(docs, this.props.treeViewId, Doc.Layout(this.props.document),
                         this.templateDataDoc, expandKey, this.props.containingCollection, this.props.prevSibling, addDoc, remDoc, this.move,
@@ -421,6 +398,12 @@ class TreeView extends React.Component<TreeViewProps> {
             {<FontAwesomeIcon icon={checked === "check" ? "check" : (checked === "x" ? "times" : checked === "unchecked" ? "square" : !this.treeViewOpen ? (this.childDocs ? "caret-square-right" : "caret-right") : (this.childDocs ? "caret-square-down" : "caret-down"))} />}
         </div>;
     }
+
+    focusOnDoc = (doc: Doc) => DocumentManager.Instance.getFirstDocumentView(doc)?.props.focus(doc, true);
+    contextMenuItems = () => {
+        const focusScript = ScriptField.MakeFunction(`DocFocus(self)`);
+        return [{ script: focusScript!, label: "Focus" }];
+    }
     /**
      * Renders the EditableView title element for placement into the tree.
      */
@@ -442,7 +425,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 })}>
                 {this.treeViewExpandedView}
             </span>);
-        const openRight = (<div className="treeViewItem-openRight" onPointerDown={this.onPointerDown} onClick={this.openRight}>
+        const openRight = (<div className="treeViewItem-openRight" onClick={this.openRight}>
             <FontAwesomeIcon title="open in pane on right" icon="angle-right" size="lg" />
         </div>);
         return <>
@@ -474,6 +457,7 @@ class TreeView extends React.Component<TreeViewProps> {
                         PanelHeight={returnZero}
                         NativeHeight={returnZero}
                         NativeWidth={returnZero}
+                        contextMenuItems={this.contextMenuItems}
                         renderDepth={1}
                         focus={emptyFunction}
                         parentActive={returnTrue}
@@ -491,7 +475,7 @@ class TreeView extends React.Component<TreeViewProps> {
 
     render() {
         setTimeout(() => runInAction(() => untracked(() => this._overrideTreeViewOpen = this.treeViewOpen)), 0);
-        return <div className="treeViewItem-container" ref={this.createTreeDropTarget} onContextMenu={this.onWorkspaceContextMenu}>
+        return <div className="treeViewItem-container" ref={this.createTreeDropTarget}>
             <li className="collection-child">
                 <div className="treeViewItem-header" ref={this._header} onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}>
                     {this.renderBullet}

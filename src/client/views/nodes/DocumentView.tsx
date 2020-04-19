@@ -1,21 +1,24 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import * as fa from '@fortawesome/free-solid-svg-icons';
-import { action, computed, runInAction, trace, observable } from "mobx";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import * as rp from "request-promise";
-import { Doc, DocListCast, Opt, WidthSym, HeightSym } from "../../../new_fields/Doc";
+import { Doc, DocListCast, HeightSym, Opt, WidthSym } from "../../../new_fields/Doc";
 import { Document, PositionDocument } from '../../../new_fields/documentSchemas';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { InkTool } from '../../../new_fields/InkField';
 import { RichTextField } from '../../../new_fields/RichTextField';
 import { listSpec } from "../../../new_fields/Schema";
+import { SchemaHeaderField } from '../../../new_fields/SchemaHeaderField';
 import { ScriptField } from '../../../new_fields/ScriptField';
 import { BoolCast, Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { AudioField, ImageField, PdfField, VideoField } from '../../../new_fields/URLField';
 import { TraceMobx } from '../../../new_fields/util';
 import { GestureUtils } from '../../../pen-gestures/GestureUtils';
-import { emptyFunction, returnOne, returnTransparent, returnTrue, Utils, OmitKeys, returnZero } from "../../../Utils";
+import { emptyFunction, OmitKeys, returnOne, returnTransparent, Utils } from "../../../Utils";
 import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
+import { ClientRecommender } from '../../ClientRecommender';
 import { DocServer } from "../../DocServer";
 import { Docs, DocumentOptions, DocUtils } from "../../documents/Documents";
 import { DocumentType } from '../../documents/DocumentTypes';
@@ -24,6 +27,7 @@ import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager, dropActionType } from "../../util/DragManager";
 import { InteractionUtils } from '../../util/InteractionUtils';
 import { Scripting } from '../../util/Scripting';
+import { SearchUtil } from '../../util/SearchUtil';
 import { SelectionManager } from "../../util/SelectionManager";
 import SharingManager from '../../util/SharingManager';
 import { Transform } from "../../util/Transform";
@@ -35,19 +39,13 @@ import { ContextMenuProps } from '../ContextMenuItem';
 import { DocComponent } from "../DocComponent";
 import { EditableView } from '../EditableView';
 import { InkingControl } from '../InkingControl';
+import { KeyphraseQueryView } from '../KeyphraseQueryView';
 import { OverlayView } from '../OverlayView';
-import { ScriptBox } from '../ScriptBox';
 import { ScriptingRepl } from '../ScriptingRepl';
 import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
-import React = require("react");
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { SchemaHeaderField } from '../../../new_fields/SchemaHeaderField';
-import { ClientRecommender } from '../../ClientRecommender';
-import { SearchUtil } from '../../util/SearchUtil';
 import { RadialMenu } from './RadialMenu';
-import { KeyphraseQueryView } from '../KeyphraseQueryView';
-import { undo } from 'prosemirror-history';
+import React = require("react");
 
 library.add(fa.faEdit, fa.faTrash, fa.faShare, fa.faDownload, fa.faExpandArrowsAlt, fa.faCompressArrowsAlt, fa.faLayerGroup, fa.faExternalLinkAlt, fa.faAlignCenter, fa.faCaretSquareRight,
     fa.faSquare, fa.faConciergeBell, fa.faWindowRestore, fa.faFolder, fa.faMapPin, fa.faLink, fa.faFingerprint, fa.faCrosshairs, fa.faDesktop, fa.faUnlock, fa.faLock, fa.faLaptopCode, fa.faMale,
@@ -65,6 +63,7 @@ export interface DocumentViewProps {
     LayoutDoc?: () => Opt<Doc>;
     LibraryPath: Doc[];
     fitToBox?: boolean;
+    contextMenuItems?: () => { script: ScriptField, label: string }[];
     rootSelected: (outsideReaction?: boolean) => boolean; // whether the root of a template has been selected
     onClick?: ScriptField;
     onPointerDown?: ScriptField;
@@ -720,6 +719,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const cm = ContextMenu.Instance;
         const templateDoc = Cast(this.props.Document[StrCast(this.props.Document.layoutKey)], Doc, null);
 
+        const customScripts = Cast(this.props.Document.contextMenuScripts, listSpec(ScriptField), []);
+        Cast(this.props.Document.contextMenuLabels, listSpec("string"), []).forEach((label, i) =>
+            cm.addItem({ description: label, event: () => customScripts[i]?.script.run({ this: this.layoutDoc, self: this.rootDoc }), icon: "sticky-note" }));
+        this.props.contextMenuItems?.().forEach(item =>
+            cm.addItem({ description: item.label, event: () => item.script.script.run({ this: this.layoutDoc, self: this.rootDoc }), icon: "sticky-note" }));
         const existing = cm.findByDescription("Layout...");
         const layoutItems: ContextMenuProps[] = existing && "subitems" in existing ? existing.subitems : [];
         layoutItems.push({ description: this.Document.isBackground ? "As Foreground" : "As Background", event: (e) => this.toggleBackground(false), icon: this.Document.lockedPosition ? "unlock" : "lock" });
