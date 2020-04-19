@@ -823,11 +823,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             icon: "brain"
         });
 
-        cm.addItem({ description: "Recommender System", subitems: recommender_subitems, icon: "brain" });
-
-
-        moreItems.push({ description: "Publish", event: () => DocUtils.Publish(this.props.Document, this.Document.title || "", this.props.addDocument, this.props.removeDocument), icon: "file" });
         moreItems.push({ description: "Delete", event: this.deleteClicked, icon: "trash" });
+        moreItems.push({ description: "Recommender System", subitems: recommender_subitems, icon: "brain" });
+        moreItems.push({ description: "Publish", event: () => DocUtils.Publish(this.props.Document, this.Document.title || "", this.props.addDocument, this.props.removeDocument), icon: "file" });
         moreItems.push({ description: "Undo Debug Test", event: () => UndoManager.TraceOpenBatches(), icon: "exclamation" });
         !more && cm.addItem({ description: "More...", subitems: moreItems, icon: "hand-point-right" });
         runInAction(() => {

@@ -10,7 +10,7 @@ import { Document, listSpec, createSchema, makeInterface } from '../../../new_fi
 import { ComputedField, ScriptField } from '../../../new_fields/ScriptField';
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from '../../../new_fields/Types';
 import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
-import { emptyFunction, emptyPath, returnFalse, Utils, returnOne, returnZero, returnTransparent, returnTrue } from '../../../Utils';
+import { emptyFunction, emptyPath, returnFalse, Utils, returnOne, returnZero, returnTransparent, returnTrue, simulateMouseClick } from '../../../Utils';
 import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentType } from "../../documents/DocumentTypes";
 import { DocumentManager } from '../../util/DocumentManager';
@@ -182,16 +182,12 @@ class TreeView extends React.Component<TreeViewProps> {
         SetValue={undoBatch((value: string) => {
             Doc.SetInPlace(this.props.document, key, value, false) || true;
             Doc.SetInPlace(this.props.document, "editTitle", undefined, false);
-            //this.props.document.editTitle = undefined;
         })}
         OnFillDown={undoBatch((value: string) => {
             Doc.SetInPlace(this.props.document, key, value, false);
             const doc = Docs.Create.FreeformDocument([], { title: "-", x: 0, y: 0, _width: 100, _height: 25, templates: new List<string>([Templates.Title.Layout]) });
-            //EditableView.loadId = doc[Id];
             Doc.SetInPlace(this.props.document, "editTitle", undefined, false);
-            // this.props.document.editTitle = undefined;
             Doc.SetInPlace(this.props.document, "editTitle", true, false);
-            //doc.editTitle = true;
             return this.props.addDocument(doc);
         })}
         onClick={() => {
@@ -399,11 +395,16 @@ class TreeView extends React.Component<TreeViewProps> {
         </div>;
     }
 
+    showContextMenu = (e: React.MouseEvent) => {
+        simulateMouseClick(this._docRef.current!.ContentDiv!, e.clientX, e.clientY + 30, e.screenX, e.screenY + 30);
+        e.stopPropagation();
+    }
     focusOnDoc = (doc: Doc) => DocumentManager.Instance.getFirstDocumentView(doc)?.props.focus(doc, true);
     contextMenuItems = () => {
         const focusScript = ScriptField.MakeFunction(`DocFocus(self)`);
         return [{ script: focusScript!, label: "Focus" }];
     }
+    _docRef = React.createRef<DocumentView>();
     /**
      * Renders the EditableView title element for placement into the tree.
      */
@@ -413,18 +414,21 @@ class TreeView extends React.Component<TreeViewProps> {
         const editTitle = ScriptField.MakeFunction("setInPlace(this, 'editTitle', true)");
 
         const headerElements = (
-            <span className="collectionTreeView-keyHeader" key={this.treeViewExpandedView}
-                onPointerDown={action(() => {
-                    if (this.treeViewOpen) {
-                        this.props.document.treeViewExpandedView = this.treeViewExpandedView === this.fieldKey ? "fields" :
-                            this.treeViewExpandedView === "fields" && Doc.Layout(this.props.document) ? "layout" :
-                                this.treeViewExpandedView === "layout" && this.props.document.links ? "links" :
-                                    this.childDocs ? this.fieldKey : "fields";
-                    }
-                    this.treeViewOpen = true;
-                })}>
-                {this.treeViewExpandedView}
-            </span>);
+            <>
+                <FontAwesomeIcon icon="cog" size="sm" onClick={e => this.showContextMenu(e)}></FontAwesomeIcon>
+                <span className="collectionTreeView-keyHeader" key={this.treeViewExpandedView}
+                    onPointerDown={action(() => {
+                        if (this.treeViewOpen) {
+                            this.props.document.treeViewExpandedView = this.treeViewExpandedView === this.fieldKey ? "fields" :
+                                this.treeViewExpandedView === "fields" && Doc.Layout(this.props.document) ? "layout" :
+                                    this.treeViewExpandedView === "layout" && this.props.document.links ? "links" :
+                                        this.childDocs ? this.fieldKey : "fields";
+                        }
+                        this.treeViewOpen = true;
+                    })}>
+                    {this.treeViewExpandedView}
+                </span>
+            </>);
         const openRight = (<div className="treeViewItem-openRight" onClick={this.openRight}>
             <FontAwesomeIcon title="open in pane on right" icon="angle-right" size="lg" />
         </div>);
@@ -440,6 +444,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 {Doc.GetT(this.props.document, "editTitle", "boolean", true) ?
                     this.editableView("title") :
                     <DocumentView
+                        ref={this._docRef}
                         Document={this.props.document}
                         DataDoc={undefined}
                         LibraryPath={this.props.libraryPath || []}
@@ -474,6 +479,7 @@ class TreeView extends React.Component<TreeViewProps> {
     }
 
     render() {
+        const sorting = this.props.document[`${this.fieldKey}-sortAscending`];
         setTimeout(() => runInAction(() => untracked(() => this._overrideTreeViewOpen = this.treeViewOpen)), 0);
         return <div className="treeViewItem-container" ref={this.createTreeDropTarget}>
             <li className="collection-child">
@@ -481,7 +487,7 @@ class TreeView extends React.Component<TreeViewProps> {
                     {this.renderBullet}
                     {this.renderTitle}
                 </div>
-                <div className="treeViewItem-border">
+                <div className="treeViewItem-border" style={{ borderColor: sorting === undefined ? undefined : sorting ? "crimson" : "blue" }}>
                     {!this.treeViewOpen || this.props.renderedIds.indexOf(this.props.document[Id]) !== -1 ? (null) : this.renderContent}
                 </div>
             </li>
