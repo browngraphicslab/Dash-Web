@@ -8,7 +8,7 @@ import { PositionDocument } from '../../new_fields/documentSchemas';
 import { ScriptField } from '../../new_fields/ScriptField';
 import { Cast, StrCast, NumCast } from "../../new_fields/Types";
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
-import { Utils, setupMoveUpEvents, emptyFunction, returnFalse } from "../../Utils";
+import { Utils, setupMoveUpEvents, emptyFunction, returnFalse, simulateMouseClick } from "../../Utils";
 import { DocUtils } from "../documents/Documents";
 import { DocumentType } from '../documents/DocumentTypes';
 import { DragManager } from "../util/DragManager";
@@ -142,40 +142,11 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @action onSettingsDown = (e: React.PointerEvent): void => {
         setupMoveUpEvents(this, e, () => false, (e) => { }, this.onSettingsClick);
     }
-
-    simulateMouseClick(element: Element, x: number, y: number, sx: number, sy: number) {
-        ["pointerdown", "pointerup"].map(event => element.dispatchEvent(
-            new PointerEvent(event, {
-                view: window,
-                bubbles: true,
-                cancelable: true,
-                button: 2,
-                pointerType: "mouse",
-                clientX: x,
-                clientY: y,
-                screenX: sx,
-                screenY: sy,
-            })));
-
-        element.dispatchEvent(
-            new MouseEvent("contextmenu", {
-                view: window,
-                bubbles: true,
-                cancelable: true,
-                button: 2,
-                clientX: x,
-                clientY: y,
-                movementX: 0,
-                movementY: 0,
-                screenX: sx,
-                screenY: sy,
-            }));
-    }
     @action onSettingsClick = (e: PointerEvent): void => {
         if (e.button === 0 && !e.altKey && !e.ctrlKey) {
             let child = SelectionManager.SelectedDocuments()[0].ContentDiv!.children[0];
             while (child.children.length && child.className !== "jsx-parser") child = child.children[0];
-            this.simulateMouseClick(child.children[0], e.clientX, e.clientY + 30, e.screenX, e.screenY + 30);
+            simulateMouseClick(child.children[0], e.clientX, e.clientY + 30, e.screenX, e.screenY + 30);
         }
     }
 

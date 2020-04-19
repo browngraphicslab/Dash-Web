@@ -1,5 +1,5 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faTerminal, faArrowDown, faArrowUp, faBolt, faBullseye, faCaretUp, faCat, faCheck, faChevronRight, faClipboard, faClone, faCloudUploadAlt, faCommentAlt, faCompressArrowsAlt, faCut, faEllipsisV, faEraser, faExclamation, faFileAlt, faFileAudio, faFilePdf, faFilm, faFilter, faFont, faGlobeAsia, faHighlighter, faLongArrowAltRight, faMicrophone, faMousePointer, faMusic, faObjectGroup, faPause, faPen, faPenNib, faPhone, faPlay, faPortrait, faRedoAlt, faStamp, faStickyNote, faThumbtack, faTree, faTv, faUndoAlt, faVideo } from '@fortawesome/free-solid-svg-icons';
+import { faTerminal, faWindowMaximize, faAddressCard, faQuestionCircle, faArrowDown, faArrowUp, faBolt, faBullseye, faCaretUp, faCat, faCheck, faChevronRight, faClipboard, faClone, faCloudUploadAlt, faCommentAlt, faCompressArrowsAlt, faCut, faEllipsisV, faEraser, faExclamation, faFileAlt, faFileAudio, faFilePdf, faFilm, faFilter, faFont, faGlobeAsia, faHighlighter, faLongArrowAltRight, faMicrophone, faMousePointer, faMusic, faObjectGroup, faPause, faPen, faPenNib, faPhone, faPlay, faPortrait, faRedoAlt, faStamp, faStickyNote, faThumbtack, faTree, faTv, faUndoAlt, faVideo } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, reaction, runInAction } from 'mobx';
 import { observer } from 'mobx-react';
@@ -41,11 +41,12 @@ import { RadialMenu } from './nodes/RadialMenu';
 import { OverlayView } from './OverlayView';
 import PDFMenu from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
+import { ScriptField } from '../../new_fields/ScriptField';
 
 @observer
 export class MainView extends React.Component {
     public static Instance: MainView;
-    private _buttonBarHeight = 35;
+    private _buttonBarHeight = 26;
     private _flyoutSizeOnDown = 0;
     private _urlState: HistoryUtil.DocUrl;
     private _docBtnRef = React.createRef<HTMLDivElement>();
@@ -102,7 +103,10 @@ export class MainView extends React.Component {
         }
 
         library.add(faTerminal);
+        library.add(faWindowMaximize);
         library.add(faFileAlt);
+        library.add(faAddressCard);
+        library.add(faQuestionCircle);
         library.add(faStickyNote);
         library.add(faFont);
         library.add(faExclamation);
@@ -212,6 +216,11 @@ export class MainView extends React.Component {
         const freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
         Doc.AddDocToList(Doc.GetProto(CurrentUserUtils.UserDocument.documents as Doc), "data", freeformDoc);
         const mainDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600, path: [Doc.UserDoc().documents as Doc] }], { title: `Workspace ${workspaceCount}` }, id, "row");
+
+        const toggleTheme = ScriptField.MakeScript(`self.darkScheme = !self.darkScheme`);
+        mainDoc.contextMenuScripts = new List<ScriptField>([toggleTheme!]);
+        mainDoc.contextMenuLabels = new List<string>(["Toggle Theme Colors"]);
+
         Doc.AddDocToList(workspaces, "data", mainDoc);
         // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
         setTimeout(() => this.openWorkspace(mainDoc), 0);
@@ -459,7 +468,7 @@ export class MainView extends React.Component {
     }
 
     @computed get mainContent() {
-        const sidebar = this.userDoc && this.userDoc.sidebarContainer;
+        const sidebar = this.userDoc?.sidebarContainer;
         return !this.userDoc || !(sidebar instanceof Doc) ? (null) : (
             <div className="mainView-mainContent" style={{ color: this.darkScheme ? "rgb(205,205,205)" : "black" }} >
                 <div className="mainView-flyoutContainer" onPointerLeave={this.pointerLeaveDragger} style={{ width: this.flyoutWidth }}>

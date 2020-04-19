@@ -22,7 +22,6 @@ export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     width?: number;
     height?: number;
     jitterRotation: number;
-    pointerEvents?: "none";
     transition?: string;
     fitToBox?: boolean;
 }
@@ -93,7 +92,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 height: this.height,
                 zIndex: this.ZInd,
                 display: this.ZInd === -99 ? "none" : undefined,
-                pointerEvents: this.props.Document.isBackground ? "none" : this.props.pointerEvents
+                pointerEvents: this.props.Document.isBackground ? "none" : this.props.pointerEvents ? "all" : undefined
             }} >
 
             {!this.props.fitToBox ?
