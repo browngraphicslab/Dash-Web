@@ -20,6 +20,7 @@ import { DocumentView } from "./DocumentView";
 import { Docs } from "../../documents/Documents";
 import { ComputedField } from "../../../new_fields/ScriptField";
 import { Networking } from "../../Network";
+import { Upload } from "../../../server/SharedMediaTypes";
 
 // testing testing 
 
@@ -146,7 +147,9 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
         AudioBox.ActiveRecordings.push(this.props.Document);
         this._recorder.ondataavailable = async (e: any) => {
             const [{ result }] = await Networking.UploadFilesToServer(e.data);
-            this.props.Document[this.props.fieldKey] = new AudioField(Utils.prepend(result.accessPaths.agnostic.client));
+            if (!(result instanceof Error)) {
+                this.props.Document[this.props.fieldKey] = new AudioField(Utils.prepend(result.accessPaths.agnostic.client));
+            }
         };
         this._recordStart = new Date().getTime();
         runInAction(() => this.audioState = "recording");

@@ -61,7 +61,7 @@ export class MainView extends React.Component {
     @computed private get userDoc() { return Doc.UserDoc(); }
     @computed private get mainContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeWorkspace, Doc)) : CurrentUserUtils.GuestWorkspace; }
     @computed public get mainFreeform(): Opt<Doc> { return (docs => (docs && docs.length > 1) ? docs[1] : undefined)(DocListCast(this.mainContainer!.data)); }
-    @computed public get sidebarButtonsDoc() { return Cast(CurrentUserUtils.UserDocument.sidebarButtons, Doc) as Doc; }
+    @computed public get sidebarButtonsDoc() { return Cast(this.userDoc["tabs-buttons"], Doc) as Doc; }
 
     public isPointerDown = false;
 
@@ -399,15 +399,14 @@ export class MainView extends React.Component {
     mainContainerXf = () => new Transform(0, -this._buttonBarHeight, 1);
 
     @computed get flyout() {
-        const sidebarContent = this.userDoc?.sidebarContainer;
+        const sidebarContent = this.userDoc?.["tabs-panelContainer"];
         if (!(sidebarContent instanceof Doc)) {
             return (null);
         }
-        const sidebarButtonsDoc = Cast(CurrentUserUtils.UserDocument.sidebarButtons, Doc) as Doc;
         return <div className="mainView-flyoutContainer" >
-            <div className="mainView-tabButtons" style={{ height: `${this._buttonBarHeight}px`, backgroundColor: StrCast(sidebarButtonsDoc.backgroundColor) }}>
+            <div className="mainView-tabButtons" style={{ height: `${this._buttonBarHeight}px`, backgroundColor: StrCast(this.sidebarButtonsDoc.backgroundColor) }}>
                 <DocumentView
-                    Document={sidebarButtonsDoc}
+                    Document={this.sidebarButtonsDoc}
                     DataDoc={undefined}
                     LibraryPath={emptyPath}
                     addDocument={undefined}
@@ -468,7 +467,7 @@ export class MainView extends React.Component {
     }
 
     @computed get mainContent() {
-        const sidebar = this.userDoc?.sidebarContainer;
+        const sidebar = this.userDoc?.["tabs-panelContainer"];
         return !this.userDoc || !(sidebar instanceof Doc) ? (null) : (
             <div className="mainView-mainContent" style={{ color: this.darkScheme ? "rgb(205,205,205)" : "black" }} >
                 <div className="mainView-flyoutContainer" onPointerLeave={this.pointerLeaveDragger} style={{ width: this.flyoutWidth }}>

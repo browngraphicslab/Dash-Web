@@ -553,7 +553,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     highlight = (color: string) => {
         // creates annotation documents for current highlights
         const annotationDoc = this.makeAnnotationDocument(color);
-        annotationDoc && this.props?.addDocument(annotationDoc);
+        annotationDoc && this.props.addDocument?.(annotationDoc);
         return annotationDoc;
     }
 

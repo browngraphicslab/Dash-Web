@@ -52,9 +52,6 @@ export namespace Database {
         private currentWrites: { [id: string]: Promise<void> } = {};
         private db?: mongodb.Db;
         private onConnect: (() => void)[] = [];
-        constructor() {
-        }
-
         doConnect() {
             console.error(`\nConnecting to Mongo with URL : ${url}\n`);
             this.MongoClient.connect(url, { connectTimeoutMS: 30000, socketTimeoutMS: 30000, useUnifiedTopology: true }, (_err, client) => {

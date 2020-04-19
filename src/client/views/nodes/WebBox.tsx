@@ -68,7 +68,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         this._setPreviewCursor?.(e.screenX, e.screenY, false);
     }
     iframeScrolled = (e: any) => {
-        const scroll = (e.target as any)?.children?.[0].scrollTop;
+        const scroll = e.target?.children?.[0].scrollTop;
         this.layoutDoc.scrollTop = this._outerRef.current!.scrollTop = scroll;
     }
     async componentDidMount() {
@@ -345,7 +345,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                 </div>}
         </>);
     }
-    scrollXf = () => this.props.ScreenToLocalTransform().translate(0, NumCast(this.props.Document.scrollTop))
+    scrollXf = () => this.props.ScreenToLocalTransform().translate(0, NumCast(this.props.Document.scrollTop));
     render() {
         return (<div className={`webBox-container`}
             style={{

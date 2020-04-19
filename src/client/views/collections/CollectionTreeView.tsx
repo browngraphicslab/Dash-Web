@@ -139,6 +139,9 @@ class TreeView extends React.Component<TreeViewProps> {
     @undoBatch @action remove = (document: Document, key: string) => {
         return Doc.RemoveDocFromList(this.dataDoc, key, document);
     }
+    @undoBatch @action removeDoc = (document: Document) => {
+        return Doc.RemoveDocFromList(this.props.containingCollection, Doc.LayoutFieldKey(this.props.containingCollection), document);
+    }
 
     protected createTreeDropTarget = (ele: HTMLDivElement) => {
         this._treedropDisposer && this._treedropDisposer();
@@ -455,7 +458,7 @@ class TreeView extends React.Component<TreeViewProps> {
                         onClick={this.props.onChildClick || editTitle}
                         dropAction={this.props.dropAction}
                         moveDocument={this.props.moveDocument}
-                        removeDocument={undefined}
+                        removeDocument={this.removeDoc}
                         ScreenToLocalTransform={this.getTransform}
                         ContentScaling={returnOne}
                         PanelWidth={returnZero}
@@ -778,6 +781,7 @@ export class CollectionTreeView extends CollectionSubView(Document, undefined as
     }
 
     render() {
+        if (!(this.props.Document instanceof Doc)) return (null);
         const dropAction = StrCast(this.props.Document.childDropAction) as dropActionType;
         const addDoc = (doc: Doc, relativeTo?: Doc, before?: boolean) => this.addDoc(doc, relativeTo, before);
         const moveDoc = (d: Doc, target: Doc | undefined, addDoc: (doc: Doc) => boolean) => this.props.moveDocument(d, target, addDoc);
