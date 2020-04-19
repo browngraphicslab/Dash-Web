@@ -15,7 +15,7 @@
 
         .beforeBox-cont {
             height: 100%;
-            width: 300px;
+            background-color: red;
         }
 
         .slide-bar {
@@ -34,6 +34,24 @@
         top: 0;
         right: 0;
         height: 100%;
-        width: 300px;
+        width: 100%;
+        background-color: orange;
+    }
+
+    .clear-button {
+        position: absolute;
+        top: 0;
+        height: 25px;
+        width: 25px;
+        background-color: white;
+        border-radius: 50%;
+    }
+
+    .clear-button.before {
+        left: 0;
+    }
+
+    .clear-button.after {
+        right: 0;
     }
 }

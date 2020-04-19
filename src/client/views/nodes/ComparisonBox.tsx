@@ -24,7 +24,6 @@ import { ContentFittingDocumentView } from './ContentFittingDocumentView';
 library.add(faImage, faEye as any, faPaintBrush, faBrain);
 library.add(faFileAudio, faAsterisk);
 
-
 export const pageSchema = createSchema({
     beforeDoc: "string",
     afterDoc: "string"
@@ -56,13 +55,41 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
         }
     }
 
-    clearBeforeDoc = (e: PointerEvent) => {
+    @action
+    private registerSliding = (e: React.PointerEvent<HTMLDivElement>) => {
+        e.stopPropagation();
+        e.preventDefault();
+        window.removeEventListener("pointermove", this.onPointerMove);
+        window.removeEventListener("pointerup", this.onPointerUp);
+        window.addEventListener("pointermove", this.onPointerMove);
+        window.addEventListener("pointerup", this.onPointerUp);
+    }
+
+    componentDidMount() {
+        const initialWidth = this.props.PanelWidth() / 2;
+        this.props.Document.clipWidth = initialWidth;
+    }
+
+    private onPointerMove = ({ movementX }: PointerEvent) => {
+        const width = this.props.Document.clipWidth + movementX;
+        if (width && width > 0 && width < this.props.PanelWidth()) {
+            this.props.Document.clipWidth = width;
+        }
+    }
+
+    @action
+    private onPointerUp = () => {
+        window.removeEventListener("pointermove", this.onPointerMove);
+        window.removeEventListener("pointerup", this.onPointerUp);
+    }
+
+    clearBeforeDoc = (e: React.MouseEvent) => {
         e.stopPropagation;
         e.preventDefault;
         delete this.props.Document.beforeDoc;
     }
 
-    clearAfterDoc = (e: PointerEvent) => {
+    clearAfterDoc = (e: React.MouseEvent) => {
         e.stopPropagation;
         e.preventDefault;
         delete this.props.Document.afterDoc;
@@ -75,9 +102,11 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
     render() {
         const beforeDoc = this.props.Document.beforeDoc as Doc;
         const afterDoc = this.props.Document.afterDoc as Doc;
+        const clipWidth = this.props.Document.clipWidth as Number;
         return (
-            <div className={`comparisonBox`} style={{ backgroundColor: "blue" }}>
-                <div className="clip-div">
+            <div className="comparisonBox">
+                {/* wraps around before image and slider bar */}
+                <div className="clip-div" style={{ width: clipWidth + "px" }}>
                     <div
                         className="beforeBox-cont"
                         key={this.props.Document[Id]}
@@ -85,17 +114,23 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
                             this._beforeDropDisposer && this._beforeDropDisposer();
                             this._beforeDropDisposer = this.createDropTarget(ele, "beforeDoc");
                         }}
-                        style={{ backgroundColor: "red" }}>
+                        style={{ width: this.props.PanelWidth() }}>
                         {
                             beforeDoc ?
-                                <ContentFittingDocumentView {...this.props}
+                                <><ContentFittingDocumentView {...this.props}
                                     Document={beforeDoc}
                                     getTransform={this.props.ScreenToLocalTransform} />
+                                    <div
+                                        className="clear-button before"
+                                        onClick={(e) => this.clearBeforeDoc(e)}
+                                    /></>
                                 :
-                                <div className="placeholder">upload before image!</div>
+                                <div className="placeholder">
+                                    upload before image!
+                                </div>
                         }
                     </div>
-                    <div className="slide-bar" />
+                    <div className="slide-bar" onPointerDown={e => this.registerSliding(e)} />
                 </div>
                 <div
                     className="afterBox-cont"
@@ -103,15 +138,18 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
                     ref={(ele) => {
                         this._afterDropDisposer && this._afterDropDisposer();
                         this._afterDropDisposer = this.createDropTarget(ele, "afterDoc");
-                    }}
-                    style={{ backgroundColor: "orange" }}>
+                    }}>
                     {
                         afterDoc ?
-                            <ContentFittingDocumentView {...this.props}
+                            <><ContentFittingDocumentView {...this.props}
                                 Document={afterDoc}
                                 getTransform={this.props.ScreenToLocalTransform} />
+                                <div
+                                    className="clear-button after"
+                                    onClick={(e) => this.clearAfterDoc(e)}
+                                /></>
                             :
-                            <div className="placeholder" style={{ float: "right" }}>
+                            <div className="placeholder" style={{ right: "0" }}>
                                 upload after image!
                             </div>
                     }
