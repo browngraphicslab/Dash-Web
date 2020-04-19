@@ -18,9 +18,6 @@ import HeightLabel from './MultirowHeightLabel';
 import { List } from '../../../../new_fields/List';
 import { returnZero } from '../../../../Utils';
 
-import "../../../../../node_modules/react-grid-layout/css/styles.css";
-import GridLayout from 'react-grid-layout';
-
 type MulticolumnDocument = makeInterface<[typeof documentSchema]>;
 const MulticolumnDocument = makeInterface(documentSchema);
 
@@ -322,13 +319,13 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
                         collectionDoc={Document}
                     />
                 </div>,
-                <ColumnResizeBar
-                    width={resizerWidth}
+                <RowResizeBar
+                    height={resizerWidth}
                     key={"resizer" + i}
-                    select={this.props.select}
+                    //select={this.props.select}
                     columnUnitLength={this.getRowUnitLength}
-                    toLeft={layout}
-                    toRight={childLayoutPairs[i + 1]?.layout}
+                    toTop={layout}
+                    toBottom={childLayoutPairs[i + 1]?.layout}
                 />
             );
         }
