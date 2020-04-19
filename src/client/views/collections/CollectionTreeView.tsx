@@ -6,10 +6,9 @@ import { observer } from "mobx-react";
 import { Doc, DocListCast, Field, HeightSym, WidthSym, DataSym, Opt } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { List } from '../../../new_fields/List';
-import { Document, listSpec, createSchema, makeInterface } from '../../../new_fields/Schema';
+import { Document, listSpec } from '../../../new_fields/Schema';
 import { ComputedField, ScriptField } from '../../../new_fields/ScriptField';
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from '../../../new_fields/Types';
-import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
 import { emptyFunction, emptyPath, returnFalse, Utils, returnOne, returnZero, returnTransparent, returnTrue, simulateMouseClick } from '../../../Utils';
 import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentType } from "../../documents/DocumentTypes";
@@ -195,7 +194,7 @@ class TreeView extends React.Component<TreeViewProps> {
         })}
         onClick={() => {
             SelectionManager.DeselectAll();
-            Doc.UserDoc().SelectedDocs = new List([this.props.document]);
+            Doc.UserDoc().activeSelection = new List([this.props.document]);
             return false;
         }}
         OnTab={undoBatch((shift?: boolean) => {
@@ -691,14 +690,14 @@ export class CollectionTreeView extends CollectionSubView(Document, undefined as
     }
     onContextMenu = (e: React.MouseEvent): void => {
         // need to test if propagation has stopped because GoldenLayout forces a parallel react hierarchy to be created for its top-level layout
-        if (!e.isPropagationStopped() && this.props.Document === CurrentUserUtils.UserDocument.workspaces) {
+        if (!e.isPropagationStopped() && this.props.Document === Doc.UserDoc().myWorkspaces) {
             ContextMenu.Instance.addItem({ description: "Create Workspace", event: () => MainView.Instance.createNewWorkspace(), icon: "plus" });
             ContextMenu.Instance.addItem({ description: "Delete Workspace", event: () => this.remove(this.props.Document), icon: "minus" });
             e.stopPropagation();
             e.preventDefault();
             ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
-        } else if (!e.isPropagationStopped() && this.props.Document === CurrentUserUtils.UserDocument.recentlyClosed) {
-            ContextMenu.Instance.addItem({ description: "Clear All", event: () => CurrentUserUtils.UserDocument.recentlyClosed = new List<Doc>(), icon: "plus" });
+        } else if (!e.isPropagationStopped() && this.props.Document === Doc.UserDoc().myRecentlyClosed) {
+            ContextMenu.Instance.addItem({ description: "Clear All", event: () => Doc.UserDoc().myRecentlyClosed = new List<Doc>(), icon: "plus" });
             e.stopPropagation();
             e.preventDefault();
             ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
@@ -739,14 +738,14 @@ export class CollectionTreeView extends CollectionSubView(Document, undefined as
                 heroView._showTitle = "title";
                 heroView._showTitleHover = "titlehover";
 
-                Doc.AddDocToList(Doc.UserDoc().expandingButtons as Doc, "data",
+                Doc.AddDocToList(Doc.UserDoc().dockedBtns as Doc, "data",
                     Docs.Create.FontIconDocument({
                         title: "hero view", _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, dropAction: "alias",
                         dragFactory: heroView, removeDropProperties: new List<string>(["dropAction"]), icon: "portrait",
                         onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
                     }));
 
-                Doc.AddDocToList(Doc.UserDoc().expandingButtons as Doc, "data",
+                Doc.AddDocToList(Doc.UserDoc().dockedBtns as Doc, "data",
                     Docs.Create.FontIconDocument({
                         title: "detail view", _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, dropAction: "alias",
                         dragFactory: detailView, removeDropProperties: new List<string>(["dropAction"]), icon: "file-alt",

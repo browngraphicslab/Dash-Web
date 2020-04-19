@@ -67,7 +67,7 @@ class Uploader extends React.Component {
                         const field = await DocServer.GetRefField(res);
                         let pending: Opt<Doc>;
                         if (field instanceof Doc) {
-                            pending = await Cast(field.optionalRightCollection, Doc);
+                            pending = await Cast(field.rightSidebarCollection, Doc);
                         }
                         if (pending) {
                             this.status = "has pending docs";

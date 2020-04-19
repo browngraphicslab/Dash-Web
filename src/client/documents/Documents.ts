@@ -8,7 +8,6 @@ import { PDFBox } from "../views/nodes/PDFBox";
 import { ScriptingBox } from "../views/nodes/ScriptingBox";
 import { VideoBox } from "../views/nodes/VideoBox";
 import { WebBox } from "../views/nodes/WebBox";
-import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
 import { OmitKeys, JSONUtils, Utils } from "../../Utils";
 import { Field, Doc, Opt, DocListCastAsync, FieldResult, DocListCast } from "../../new_fields/Doc";
 import { ImageField, VideoField, AudioField, PdfField, WebField, YoutubeField } from "../../new_fields/URLField";
@@ -239,7 +238,7 @@ export namespace Docs {
             [DocumentType.LINKDB, {
                 data: new List<Doc>(),
                 layout: { view: EmptyBox, dataField: data },
-                options: { childDropAction: "alias", title: "LINK DB" }
+                options: { childDropAction: "alias", title: "Global Link Database" }
             }],
             [DocumentType.SCRIPTING, {
                 layout: { view: ScriptingBox, dataField: data }
@@ -960,7 +959,7 @@ export namespace DocUtils {
     export function MakeLink(source: { doc: Doc }, target: { doc: Doc }, linkRelationship: string = "", id?: string) {
         const sv = DocumentManager.Instance.getDocumentView(source.doc);
         if (sv && sv.props.ContainingCollectionDoc === target.doc) return;
-        if (target.doc === CurrentUserUtils.UserDocument) return undefined;
+        if (target.doc === Doc.UserDoc()) return undefined;
 
         const linkDoc = Docs.Create.LinkDocument(source, target, { linkRelationship }, id);
         Doc.GetProto(linkDoc).title = ComputedField.MakeFunction('self.anchor1.title +" (" + (self.linkRelationship||"to") +") "  + self.anchor2.title');
@@ -990,7 +989,7 @@ export namespace DocUtils {
         });
         ContextMenu.Instance.addItem({
             description: "Add Template Doc ...",
-            subitems: DocListCast(Cast(Doc.UserDoc().expandingButtons, Doc, null)?.data).map(btnDoc => Cast(btnDoc?.dragFactory, Doc, null)).filter(doc => doc).map((dragDoc, i) => ({
+            subitems: DocListCast(Cast(Doc.UserDoc().dockedBtns, Doc, null)?.data).map(btnDoc => Cast(btnDoc?.dragFactory, Doc, null)).filter(doc => doc).map((dragDoc, i) => ({
                 description: ":" + StrCast(dragDoc.title),
                 event: (args: { x: number, y: number }) => {
                     const newDoc = Doc.ApplyTemplate(dragDoc);

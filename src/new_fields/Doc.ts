@@ -865,6 +865,16 @@ export namespace Doc {
         return id;
     }
 
+    export function isDocPinned(doc: Doc) {
+        //add this new doc to props.Document
+        const curPres = Cast(Doc.UserDoc().activePresentation, Doc) as Doc;
+        if (curPres) {
+            return DocListCast(curPres.data).findIndex((val) => Doc.AreProtosEqual(val, doc)) !== -1;
+        }
+        return false;
+    }
+
+
     export async function addFieldEnumerations(doc: Opt<Doc>, enumeratedFieldKey: string, enumerations: { title: string, _backgroundColor?: string, color?: string }[]) {
         let optionsCollection = await DocServer.GetRefField(enumeratedFieldKey);
         if (!(optionsCollection instanceof Doc)) {
@@ -906,13 +916,13 @@ Scripting.addGlobal(function redo() { return UndoManager.Redo(); });
 Scripting.addGlobal(function DOC(id: string) { console.log("Can't parse a document id in a script"); return "invalid"; });
 Scripting.addGlobal(function assignDoc(doc: Doc, field: string, id: string) { return Doc.assignDocToField(doc, field, id); });
 Scripting.addGlobal(function docCast(doc: FieldResult): any { return DocCastAsync(doc); });
-Scripting.addGlobal(function curPresentationItem() {
-    const curPres = Doc.UserDoc().curPresentation as Doc;
+Scripting.addGlobal(function activePresentationItem() {
+    const curPres = Doc.UserDoc().activePresentation as Doc;
     return curPres && DocListCast(curPres[Doc.LayoutFieldKey(curPres)])[NumCast(curPres._itemIndex)];
 });
-Scripting.addGlobal(function selectDoc(doc: any) { Doc.UserDoc().SelectedDocs = new List([doc]); });
+Scripting.addGlobal(function selectDoc(doc: any) { Doc.UserDoc().activeSelection = new List([doc]); });
 Scripting.addGlobal(function selectedDocs(container: Doc, excludeCollections: boolean, prevValue: any) {
-    const docs = DocListCast(Doc.UserDoc().SelectedDocs).
+    const docs = DocListCast(Doc.UserDoc().activeSelection).
         filter(d => !Doc.AreProtosEqual(d, container) && !d.annotationOn && d.type !== DocumentType.DOCHOLDER && d.type !== DocumentType.KVP &&
             (!excludeCollections || d.type !== DocumentType.COL || !Cast(d.data, listSpec(Doc), null)));
     return docs.length ? new List(docs) : prevValue;

@@ -30,7 +30,7 @@ export class CurrentUserUtils {
     public static get MainDocId() { return this.mainDocId; }
     public static set MainDocId(id: string | undefined) { this.mainDocId = id; }
     @computed public static get UserDocument() { return Doc.UserDoc(); }
-    @computed public static get ActivePen() { return Doc.UserDoc().activePen instanceof Doc && (Doc.UserDoc().activePen as Doc).pen as Doc; }
+    @computed public static get ActivePen() { return Doc.UserDoc().activePen instanceof Doc && (Doc.UserDoc().activePen as Doc).inkPen as Doc; }
 
     @observable public static GuestTarget: Doc | undefined;
     @observable public static GuestWorkspace: Doc | undefined;
@@ -84,10 +84,12 @@ export class CurrentUserUtils {
 
         if (doc["template-buttons"] === undefined) {
             doc["template-buttons"] = new PrefetchProxy(Docs.Create.MasonryDocument([doc["template-button-slides"] as Doc, doc["template-button-description"] as Doc, doc["template-button-query"] as Doc], {
-                title: "template buttons", _xMargin: 0, _showTitle: "title",
+                title: "Template Item Creators", _xMargin: 0, _showTitle: "title",
                 _autoHeight: true, _width: 500, columnWidth: 35, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled",
                 dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }),
             }));
+        } else {
+            DocListCast(Cast(doc["template-buttons"], Doc, null)?.data); // prefetch templates
         }
         return doc["template-buttons"] as Doc;
     }
@@ -114,9 +116,10 @@ export class CurrentUserUtils {
             Doc.addFieldEnumerations(Doc.GetProto(noteTemplates[4]), "taskStatus", taskStatusValues);
             doc.noteTypes = new PrefetchProxy(Docs.Create.TreeDocument(noteTemplates.map(nt => makeTemplate(nt, true, StrCast(nt.style)) ? nt : nt),
                 { title: "Note Layouts", _height: 75 }));
+        } else {
+            DocListCast(Cast(doc.noteTypes, Doc, null)?.data); // prefetch templates
         }
-        // this is equivalent to using PrefetchProxies to make sure all the sidebarButtons and noteType internal Doc's have been retrieved.
-        PromiseValue(Cast(doc.noteTypes, Doc)).then(noteTypes => noteTypes && PromiseValue(noteTypes.data).then(DocListCast));
+
         return doc.noteTypes as Doc;
     }
 
@@ -135,29 +138,31 @@ export class CurrentUserUtils {
 
     // setup templates for different document types when they are iconified from Document Decorations
     static setupDefaultIconTemplates(doc: Doc) {
-        if (doc["icon-view"] === undefined) {
+        if (doc["template-icon-view"] === undefined) {
             const iconView = Docs.Create.TextDocument("", {
                 title: "icon", _width: 150, _height: 30, isTemplateDoc: true,
                 onClick: ScriptField.MakeScript("deiconifyView(this)")
             });
             Doc.GetProto(iconView).icon = new RichTextField('{"doc":{"type":"doc","content":[{"type":"paragraph","attrs":{"align":null,"color":null,"id":null,"indent":null,"inset":null,"lineSpacing":null,"paddingBottom":null,"paddingTop":null},"content":[{"type":"dashField","attrs":{"fieldKey":"title","docid":""}}]}]},"selection":{"type":"text","anchor":2,"head":2},"storedMarks":[]}', "");
             iconView.isTemplateDoc = makeTemplate(iconView);
-            doc["icon-view"] = new PrefetchProxy(iconView);
+            doc["template-icon-view"] = new PrefetchProxy(iconView);
         }
-        if (doc["icon-view-img"] === undefined) {
+        if (doc["template-icon-view-img"] === undefined) {
             const iconImageView = Docs.Create.ImageDocument("http://www.cs.brown.edu/~bcz/face.gif", { title: "data", _width: 50, isTemplateDoc: true, onClick: ScriptField.MakeScript("deiconifyView(self)") });
             iconImageView.isTemplateDoc = makeTemplate(iconImageView, true, "icon_" + DocumentType.IMG);
-            doc["icon-view-img"] = new PrefetchProxy(iconImageView);
+            doc["template-icon-view-img"] = new PrefetchProxy(iconImageView);
         }
-        if (doc["icon-view-col"] === undefined) {
+        if (doc["template-icon-view-col"] === undefined) {
             const iconColView = Docs.Create.TreeDocument([], { title: "data", _width: 180, _height: 80, onClick: ScriptField.MakeScript("deiconifyView(self)") });
             iconColView.isTemplateDoc = makeTemplate(iconColView, true, "icon_" + DocumentType.COL);
-            doc["icon-view-col"] = new PrefetchProxy(iconColView);
+            doc["template-icon-view-col"] = new PrefetchProxy(iconColView);
         }
-        if (doc["icon-view-all"] === undefined) {
-            doc["icon-view-all"] = new PrefetchProxy(Docs.Create.TreeDocument([doc["icon-view"] as Doc, doc["icon-view-img"] as Doc, doc["icon-view-col"] as Doc], { title: "icon templates", _height: 75 }));
+        if (doc["template-icons"] === undefined) {
+            doc["template-icons"] = new PrefetchProxy(Docs.Create.TreeDocument([doc["template-icon-view"] as Doc, doc["template-icon-view-img"] as Doc, doc["template-icon-view-col"] as Doc], { title: "icon templates", _height: 75 }));
+        } else {
+            DocListCast(Cast(doc["template-icons"], Doc, null)?.data); // prefetch templates
         }
-        return doc["icon-view-all"] as Doc;
+        return doc["template-icons"] as Doc;
     }
 
     static creatorBtnDescriptors(doc: Doc): {
@@ -180,15 +185,15 @@ export class CurrentUserUtils {
             { title: "Drag a webcam", label: "Cam", icon: "video", ignoreClick: true, drag: 'Docs.Create.WebCamDocument("", { _width: 400, _height: 400, title: "a test cam" })' },
             { title: "Drag a audio recorder", label: "Audio", icon: "microphone", ignoreClick: true, drag: `Docs.Create.AudioDocument("${nullAudio}", { _width: 200, title: "ready to record audio" })` },
             { title: "Drag a clickable button", label: "Btn", icon: "bolt", ignoreClick: true, drag: 'Docs.Create.ButtonDocument({ _width: 150, _height: 50, title: "Button" })' },
-            { title: "Drag a presentation view", label: "Prezi", icon: "tv", click: 'openOnRight(Doc.UserDoc().curPresentation = getCopy(this.dragFactory, true))', drag: `Doc.UserDoc().curPresentation = getCopy(this.dragFactory,true)`, dragFactory: doc.emptyPresentation as Doc },
+            { title: "Drag a presentation view", label: "Prezi", icon: "tv", click: 'openOnRight(Doc.UserDoc().activePresentation = getCopy(this.dragFactory, true))', drag: `Doc.UserDoc().activePresentation = getCopy(this.dragFactory,true)`, dragFactory: doc.emptyPresentation as Doc },
             { title: "Drag a scripting box", label: "Script", icon: "terminal", ignoreClick: true, drag: 'Docs.Create.ScriptingDocument(undefined, { _width: 200, _height: 250 title: "untitled script" })' },
             { title: "Drag an import folder", label: "Load", icon: "cloud-upload-alt", ignoreClick: true, drag: 'Docs.Create.DirectoryImportDocument({ title: "Directory Import", _width: 400, _height: 400 })' },
             { title: "Drag a mobile view", label: "Phone", icon: "phone", ignoreClick: true, drag: 'Doc.UserDoc().activeMobile' },
-            // { title: "use pen", icon: "pen-nib", click: 'activatePen(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this,2, this.backgroundColor)', backgroundColor: "blue", ischecked: `sameDocs(this.activePen.pen,  this)`, activePen: doc },
-            // { title: "use highlighter", icon: "highlighter", click: 'activateBrush(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this,20,this.backgroundColor)', backgroundColor: "yellow", ischecked: `sameDocs(this.activePen.pen, this)`, activePen: doc },
-            // { title: "use stamp", icon: "stamp", click: 'activateStamp(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this)', backgroundColor: "orange", ischecked: `sameDocs(this.activePen.pen, this)`, activePen: doc },
-            // { title: "use eraser", icon: "eraser", click: 'activateEraser(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this);', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "pink", activePen: doc },
-            // { title: "use drag", icon: "mouse-pointer", click: 'deactivateInk();this.activePen.pen = this;', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "white", activePen: doc },
+            // { title: "use pen", icon: "pen-nib", click: 'activatePen(this.activePen.inkPen = sameDocs(this.activePen.inkPen, this) ? undefined : this,2, this.backgroundColor)', backgroundColor: "blue", ischecked: `sameDocs(this.activePen.inkPen,  this)`, activePen: doc },
+            // { title: "use highlighter", icon: "highlighter", click: 'activateBrush(this.activePen.inkPen = sameDocs(this.activePen.inkPen, this) ? undefined : this,20,this.backgroundColor)', backgroundColor: "yellow", ischecked: `sameDocs(this.activePen.inkPen, this)`, activePen: doc },
+            // { title: "use stamp", icon: "stamp", click: 'activateStamp(this.activePen.inkPen = sameDocs(this.activePen.inkPen, this) ? undefined : this)', backgroundColor: "orange", ischecked: `sameDocs(this.activePen.inkPen, this)`, activePen: doc },
+            // { title: "use eraser", icon: "eraser", click: 'activateEraser(this.activePen.inkPen = sameDocs(this.activePen.inkPen, this) ? undefined : this);', ischecked: `sameDocs(this.activePen.inkPen, this)`, backgroundColor: "pink", activePen: doc },
+            // { title: "use drag", icon: "mouse-pointer", click: 'deactivateInk();this.activePen.inkPen = this;', ischecked: `sameDocs(this.activePen.inkPen, this)`, backgroundColor: "white", activePen: doc },
             { title: "Drag a search box", label: "Query", icon: "search", ignoreClick: true, drag: 'Docs.Create.QueryDocument({ _width: 200, title: "an image of a cat" })' },
             { title: "Drag a document previewer", label: "Prev", icon: "expand", ignoreClick: true, drag: 'Docs.Create.DocumentDocument(ComputedField.MakeFunction("selectedDocs(this,this.excludeCollections,[_last_])?.[0]"), { _width: 250, _height: 250, title: "container" })' },
             // { title: "buxton", icon: "cloud-upload-alt", ignoreClick: true, drag: "Docs.Create.Buxton()" },
@@ -198,7 +203,7 @@ export class CurrentUserUtils {
     // setup the "creator" buttons for the sidebar-- eg. the default set of draggable document creation tools
     static async setupCreatorButtons(doc: Doc) {
         let alreadyCreatedButtons: string[] = [];
-        const dragCreatorSet = await Cast(doc.dragCreators, Doc, null);
+        const dragCreatorSet = await Cast(doc.myItemCreators, Doc, null);
         if (dragCreatorSet) {
             const dragCreators = await Cast(dragCreatorSet.data, listSpec(Doc));
             if (dragCreators) {
@@ -223,25 +228,25 @@ export class CurrentUserUtils {
             }));
 
         if (dragCreatorSet === undefined) {
-            doc.dragCreators = new PrefetchProxy(Docs.Create.MasonryDocument(creatorBtns, {
-                title: "Draggable Items", _showTitle: "title", _xMargin: 0,
+            doc.myItemCreators = new PrefetchProxy(Docs.Create.MasonryDocument(creatorBtns, {
+                title: "Standard Item Creators", _showTitle: "title", _xMargin: 0,
                 _autoHeight: true, _width: 500, columnWidth: 35, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled",
                 dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }),
             }));
         } else {
-            creatorBtns.forEach(nb => Doc.AddDocToList(doc.dragCreators as Doc, "data", nb));
+            creatorBtns.forEach(nb => Doc.AddDocToList(doc.myItemCreators as Doc, "data", nb));
         }
-        return doc.dragCreators as Doc;
+        return doc.myItemCreators as Doc;
     }
 
     static setupMobileButtons(doc: Doc, buttons?: string[]) {
         const docProtoData: { title: string, icon: string, drag?: string, ignoreClick?: boolean, click?: string, ischecked?: string, activePen?: Doc, backgroundColor?: string, dragFactory?: Doc }[] = [
             { title: "record", icon: "microphone", ignoreClick: true, click: "FILL" },
-            { title: "use pen", icon: "pen-nib", click: 'activatePen(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this,2, this.backgroundColor)', backgroundColor: "blue", ischecked: `sameDocs(this.activePen.pen,  this)`, activePen: doc },
-            { title: "use highlighter", icon: "highlighter", click: 'activateBrush(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this,20,this.backgroundColor)', backgroundColor: "yellow", ischecked: `sameDocs(this.activePen.pen, this)`, activePen: doc },
-            { title: "use eraser", icon: "eraser", click: 'activateEraser(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this);', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "pink", activePen: doc },
-            { title: "use drag", icon: "mouse-pointer", click: 'deactivateInk();this.activePen.pen = this;', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "white", activePen: doc },
-            // { title: "draw", icon: "pen-nib", click: 'switchMobileView(setupMobileInkingDoc, renderMobileInking, onSwitchMobileInking);', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "red", activePen: doc },
+            { title: "use pen", icon: "pen-nib", click: 'activatePen(this.activePen.inkPen = sameDocs(this.activePen.inkPen, this) ? undefined : this,2, this.backgroundColor)', backgroundColor: "blue", ischecked: `sameDocs(this.activePen.inkPen,  this)`, activePen: doc },
+            { title: "use highlighter", icon: "highlighter", click: 'activateBrush(this.activePen.inkPen = sameDocs(this.activePen.inkPen, this) ? undefined : this,20,this.backgroundColor)', backgroundColor: "yellow", ischecked: `sameDocs(this.activePen.inkPen, this)`, activePen: doc },
+            { title: "use eraser", icon: "eraser", click: 'activateEraser(this.activePen.inkPen = sameDocs(this.activePen.inkPen, this) ? undefined : this);', ischecked: `sameDocs(this.activePen.inkPen, this)`, backgroundColor: "pink", activePen: doc },
+            { title: "use drag", icon: "mouse-pointer", click: 'deactivateInk();this.activePen.inkPen = this;', ischecked: `sameDocs(this.activePen.inkPen, this)`, backgroundColor: "white", activePen: doc },
+            // { title: "draw", icon: "pen-nib", click: 'switchMobileView(setupMobileInkingDoc, renderMobileInking, onSwitchMobileInking);', ischecked: `sameDocs(this.activePen.inkPen, this)`, backgroundColor: "red", activePen: doc },
             { title: "upload", icon: "upload", click: 'switchMobileView(setupMobileUploadDoc, renderMobileUpload, onSwitchMobileUpload);', backgroundColor: "orange" },
             // { title: "upload", icon: "upload", click: 'uploadImageMobile();', backgroundColor: "cyan" },
         ];
@@ -255,11 +260,11 @@ export class CurrentUserUtils {
 
     static setupThumbButtons(doc: Doc) {
         const docProtoData: { title: string, icon: string, drag?: string, ignoreClick?: boolean, pointerDown?: string, pointerUp?: string, ischecked?: string, clipboard?: Doc, activePen?: Doc, backgroundColor?: string, dragFactory?: Doc }[] = [
-            { title: "use pen", icon: "pen-nib", pointerUp: "resetPen()", pointerDown: 'setPen(2, this.backgroundColor)', backgroundColor: "blue", ischecked: `sameDocs(this.activePen.pen,  this)`, activePen: doc },
-            { title: "use highlighter", icon: "highlighter", pointerUp: "resetPen()", pointerDown: 'setPen(20, this.backgroundColor)', backgroundColor: "yellow", ischecked: `sameDocs(this.activePen.pen, this)`, activePen: doc },
-            { title: "notepad", icon: "clipboard", pointerUp: "GestureOverlay.Instance.closeFloatingDoc()", pointerDown: 'GestureOverlay.Instance.openFloatingDoc(this.clipboard)', clipboard: Docs.Create.FreeformDocument([], { _width: 300, _height: 300 }), backgroundColor: "orange", ischecked: `sameDocs(this.activePen.pen, this)`, activePen: doc },
-            { title: "interpret text", icon: "font", pointerUp: "setToolglass('none')", pointerDown: "setToolglass('inktotext')", backgroundColor: "orange", ischecked: `sameDocs(this.activePen.pen, this)`, activePen: doc },
-            { title: "ignore gestures", icon: "signature", pointerUp: "setToolglass('none')", pointerDown: "setToolglass('ignoregesture')", backgroundColor: "green", ischecked: `sameDocs(this.activePen.pen, this)`, activePen: doc },
+            { title: "use pen", icon: "pen-nib", pointerUp: "resetPen()", pointerDown: 'setPen(2, this.backgroundColor)', backgroundColor: "blue", ischecked: `sameDocs(this.activePen.inkPen,  this)`, activePen: doc },
+            { title: "use highlighter", icon: "highlighter", pointerUp: "resetPen()", pointerDown: 'setPen(20, this.backgroundColor)', backgroundColor: "yellow", ischecked: `sameDocs(this.activePen.inkPen, this)`, activePen: doc },
+            { title: "notepad", icon: "clipboard", pointerUp: "GestureOverlay.Instance.closeFloatingDoc()", pointerDown: 'GestureOverlay.Instance.openFloatingDoc(this.clipboard)', clipboard: Docs.Create.FreeformDocument([], { _width: 300, _height: 300 }), backgroundColor: "orange", ischecked: `sameDocs(this.activePen.inkPen, this)`, activePen: doc },
+            { title: "interpret text", icon: "font", pointerUp: "setToolglass('none')", pointerDown: "setToolglass('inktotext')", backgroundColor: "orange", ischecked: `sameDocs(this.activePen.inkPen, this)`, activePen: doc },
+            { title: "ignore gestures", icon: "signature", pointerUp: "setToolglass('none')", pointerDown: "setToolglass('ignoregesture')", backgroundColor: "green", ischecked: `sameDocs(this.activePen.inkPen, this)`, activePen: doc },
         ];
         return docProtoData.map(data => Docs.Create.FontIconDocument({
             _nativeWidth: 10, _nativeHeight: 10, _width: 10, _height: 10, title: data.title, icon: data.icon,
@@ -316,25 +321,25 @@ export class CurrentUserUtils {
         const creatorBtns = await CurrentUserUtils.setupCreatorButtons(doc);
         const templateBtns = CurrentUserUtils.setupUserTemplateButtons(doc);
 
-        if (doc.allCreators === undefined) {
-            doc.allCreators = new PrefetchProxy(Docs.Create.StackingDocument([creatorBtns, templateBtns], {
+        if (doc.myCreators === undefined) {
+            doc.myCreators = new PrefetchProxy(Docs.Create.StackingDocument([creatorBtns, templateBtns], {
                 title: "all Creators", _yMargin: 0, _autoHeight: true, _xMargin: 0,
                 _width: 500, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled",
             }));
         }
         // setup a color picker
-        if (doc.colorPicker === undefined) {
+        if (doc.myColorPicker === undefined) {
             const color = Docs.Create.ColorDocument({
                 title: "color picker", _width: 300, dropAction: "alias", forceActive: true, removeDropProperties: new List<string>(["dropAction", "forceActive"])
             });
-            doc.colorPicker = new PrefetchProxy(color);
+            doc.myColorPicker = new PrefetchProxy(color);
         }
 
         if (doc["tabs-button-tools"] === undefined) {
             doc["tabs-button-tools"] = new PrefetchProxy(Docs.Create.ButtonDocument({
                 _width: 35, _height: 25, title: "Tools", fontSize: 10,
                 letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
-                sourcePanel: new PrefetchProxy(Docs.Create.StackingDocument([doc.allCreators as Doc, doc.colorPicker as Doc], {
+                sourcePanel: new PrefetchProxy(Docs.Create.StackingDocument([doc.myCreators as Doc, doc.myColorPicker as Doc], {
                     _width: 500, lockedPosition: true, _chromeStatus: "disabled", title: "tools stack", forceActive: true
                 })) as any as Doc,
                 targetContainer: new PrefetchProxy(sidebarContainer) as any as Doc,
@@ -347,39 +352,39 @@ export class CurrentUserUtils {
 
     static setupWorkspaces(doc: Doc) {
         // setup workspaces library item
-        if (doc.worspaces === undefined) {
-            doc.workspaces = new PrefetchProxy(Docs.Create.TreeDocument([], {
+        if (doc.myWorkspaces === undefined) {
+            doc.myWorkspaces = new PrefetchProxy(Docs.Create.TreeDocument([], {
                 title: "WORKSPACES", _height: 100, forceActive: true, boxShadow: "0 0", lockedPosition: true,
             }));
         }
         const newWorkspace = ScriptField.MakeScript(`createNewWorkspace()`);
-        (doc.workspaces as Doc).contextMenuScripts = new List<ScriptField>([newWorkspace!]);
-        (doc.workspaces as Doc).contextMenuLabels = new List<string>(["Create New Workspace"]);
+        (doc.myWorkspaces as Doc).contextMenuScripts = new List<ScriptField>([newWorkspace!]);
+        (doc.myWorkspaces as Doc).contextMenuLabels = new List<string>(["Create New Workspace"]);
 
-        return doc.workspaces as Doc;
+        return doc.myWorkspaces as Doc;
     }
     static setupDocumentCollection(doc: Doc) {
-        if (doc.documents === undefined) {
-            doc.documents = new PrefetchProxy(Docs.Create.TreeDocument([], {
+        if (doc.myDocuments === undefined) {
+            doc.myDocuments = new PrefetchProxy(Docs.Create.TreeDocument([], {
                 title: "DOCUMENTS", _height: 42, forceActive: true, boxShadow: "0 0", treeViewPreventOpen: true, lockedPosition: true,
             }));
         }
-        return doc.documents as Doc;
+        return doc.myDocuments as Doc;
     }
     static setupRecentlyClosed(doc: Doc) {
         // setup Recently Closed library item
-        if (doc.recentlyClosed === undefined) {
-            doc.recentlyClosed = new PrefetchProxy(Docs.Create.TreeDocument([], {
+        if (doc.myRecentlyClosed === undefined) {
+            doc.myRecentlyClosed = new PrefetchProxy(Docs.Create.TreeDocument([], {
                 title: "RECENTLY CLOSED", _height: 75, forceActive: true, boxShadow: "0 0", treeViewPreventOpen: true, lockedPosition: true,
             }));
         }
         // this is equivalent to using PrefetchProxies to make sure the recentlyClosed doc is ready
-        PromiseValue(Cast(doc.recentlyClosed, Doc)).then(recent => recent && PromiseValue(recent.data).then(DocListCast));
+        PromiseValue(Cast(doc.myRecentlyClosed, Doc)).then(recent => recent && PromiseValue(recent.data).then(DocListCast));
         const clearAll = ScriptField.MakeScript(`self.data = new List([])`);
-        (doc.recentlyClosed as Doc).contextMenuScripts = new List<ScriptField>([clearAll!]);
-        (doc.recentlyClosed as Doc).contextMenuLabels = new List<string>(["Clear All"]);
+        (doc.myRecentlyClosed as Doc).contextMenuScripts = new List<ScriptField>([clearAll!]);
+        (doc.myRecentlyClosed as Doc).contextMenuLabels = new List<string>(["Clear All"]);
 
-        return doc.recentlyClosed as Doc;
+        return doc.myRecentlyClosed as Doc;
     }
     // setup the Library button which will display the library panel.  This panel includes a collection of workspaces, documents, and recently closed views
     static setupLibraryPanel(doc: Doc, sidebarContainer: Doc) {
@@ -456,48 +461,48 @@ export class CurrentUserUtils {
     })) as any as Doc
 
     /// sets up the default list of buttons to be shown in the expanding button menu at the bottom of the Dash window
-    static setupExpandingButtons(doc: Doc) {
-        if (doc.penBtn === undefined) {
-            doc.penBtn = CurrentUserUtils.ficon({
-                onClick: ScriptField.MakeScript("activatePen(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this,2, this.backgroundColor)"),
-                author: "systemTemplates", title: "ink mode", icon: "pen-nib", ischecked: ComputedField.MakeFunction(`sameDocs(this.activePen.pen,  this)`), activePen: doc
+    static setupDockedButtons(doc: Doc) {
+        if (doc["dockedBtn-pen"] === undefined) {
+            doc["dockedBtn-pen"] = CurrentUserUtils.ficon({
+                onClick: ScriptField.MakeScript("activatePen(this.activePen.inkPen = sameDocs(this.activePen.inkPen, this) ? undefined : this,2, this.backgroundColor)"),
+                author: "systemTemplates", title: "ink mode", icon: "pen-nib", ischecked: ComputedField.MakeFunction(`sameDocs(this.activePen.inkPen,  this)`), activePen: doc
             });
         }
-        if (doc.undoBtn === undefined) {
-            doc.undoBtn = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("undo()"), title: "undo button", icon: "undo-alt" });
+        if (doc["dockedBtn-undo"] === undefined) {
+            doc["dockedBtn-undo"] = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("undo()"), title: "undo button", icon: "undo-alt" });
         }
-        if (doc.redoBtn === undefined) {
-            doc.redoBtn = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("redo()"), title: "redo button", icon: "redo-alt" });
+        if (doc["dockedBtn-redo"] === undefined) {
+            doc["dockedBtn-redo"] = CurrentUserUtils.ficon({ onClick: ScriptField.MakeScript("redo()"), title: "redo button", icon: "redo-alt" });
         }
-        if (doc.expandingButtons === undefined) {
-            doc.expandingButtons = CurrentUserUtils.blist({ title: "expanding buttons", ignoreClick: true }, [doc.undoBtn as Doc, doc.redoBtn as Doc, doc.penBtn as Doc]);
+        if (doc.dockedBtns === undefined) {
+            doc.dockedBtns = CurrentUserUtils.blist({ title: "docked buttons", ignoreClick: true }, [doc["dockedBtn-undo"] as Doc, doc["dockedBtn-redo"] as Doc, doc["dockedBtn-pen"] as Doc]);
         }
     }
     // sets up the default set of documents to be shown in the Overlay layer
     static setupOverlays(doc: Doc) {
-        if (doc.overlays === undefined) {
-            doc.overlays = new PrefetchProxy(Docs.Create.FreeformDocument([], { title: "Overlays", backgroundColor: "#aca3a6" }));
+        if (doc.myOverlayDocuments === undefined) {
+            doc.myOverlayDocuments = new PrefetchProxy(Docs.Create.FreeformDocument([], { title: "overlay documents", backgroundColor: "#aca3a6" }));
         }
     }
 
     // the initial presentation Doc to use
     static setupDefaultPresentation(doc: Doc) {
-        if (doc.presentationTemplate === undefined) {
-            doc.presentationTemplate = new PrefetchProxy(Docs.Create.PresElementBoxDocument({
+        if (doc["template-presentation"] === undefined) {
+            doc["template-presentation"] = new PrefetchProxy(Docs.Create.PresElementBoxDocument({
                 title: "pres element template", backgroundColor: "transparent", _xMargin: 5, _height: 46, isTemplateDoc: true, isTemplateForField: "data"
             }));
         }
-        if (doc.curPresentation === undefined) {
-            doc.curPresentation = Docs.Create.PresDocument(new List<Doc>(), {
+        if (doc.activePresentation === undefined) {
+            doc.activePresentation = Docs.Create.PresDocument(new List<Doc>(), {
                 title: "Presentation", _viewType: CollectionViewType.Stacking,
                 _LODdisable: true, _chromeStatus: "replaced", _showTitle: "title", boxShadow: "0 0"
             });
         }
     }
 
-    static setupMobileUploads(doc: Doc) {
-        if (doc.optionalRightCollection === undefined) {
-            doc.optionalRightCollection = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "New mobile uploads" }));
+    static setupRightSidebar(doc: Doc) {
+        if (doc.rightSidebarCollection === undefined) {
+            doc.rightSidebarCollection = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "Right Sidebar" }));
         }
     }
 
@@ -532,29 +537,19 @@ export class CurrentUserUtils {
         doc.title = Doc.CurrentUserEmail;
         doc.activePen = doc;
         CurrentUserUtils.setupDefaultIconTemplates(doc);  // creates a set of icon templates triggered by the document deoration icon
-        CurrentUserUtils.setupMobileUploads(doc);  // sets up the optional right collection of documents uploaded from mobile
+        CurrentUserUtils.setupRightSidebar(doc);  // sets up the right sidebar collection for mobile upload documents and sharing
         CurrentUserUtils.setupOverlays(doc);  // documents in overlay layer 
-        CurrentUserUtils.setupExpandingButtons(doc);  // the bottom bar of font icons
+        CurrentUserUtils.setupDockedButtons(doc);  // the bottom bar of font icons
         CurrentUserUtils.setupDefaultPresentation(doc); // presentation that's initially triggered
         await CurrentUserUtils.setupSidebarButtons(doc); // the pop-out left sidebar of tools/panels
-        doc.linkDb = Docs.Prototypes.MainLinkDocument();
+        doc.globalLinkDatabase = Docs.Prototypes.MainLinkDocument();
 
         // setup reactions to change the highlights on the undo/redo buttons -- would be better to encode this in the undo/redo buttons, but the undo/redo stacks are not wired up that way yet
-        doc.undoBtn && reaction(() => UndoManager.undoStack.slice(), () => Doc.GetProto(doc.undoBtn as Doc).opacity = UndoManager.CanUndo() ? 1 : 0.4, { fireImmediately: true });
-        doc.redoBtn && reaction(() => UndoManager.redoStack.slice(), () => Doc.GetProto(doc.redoBtn as Doc).opacity = UndoManager.CanRedo() ? 1 : 0.4, { fireImmediately: true });
+        doc["dockedBtn-undo"] && reaction(() => UndoManager.undoStack.slice(), () => Doc.GetProto(doc["dockedBtn-undo"] as Doc).opacity = UndoManager.CanUndo() ? 1 : 0.4, { fireImmediately: true });
+        doc["dockedBtn-redo"] && reaction(() => UndoManager.redoStack.slice(), () => Doc.GetProto(doc["dockedBtn-redo"] as Doc).opacity = UndoManager.CanRedo() ? 1 : 0.4, { fireImmediately: true });
 
         return doc;
     }
-
-    public static IsDocPinned(doc: Doc) {
-        //add this new doc to props.Document
-        const curPres = Cast(CurrentUserUtils.UserDocument.curPresentation, Doc) as Doc;
-        if (curPres) {
-            return DocListCast(curPres.data).findIndex((val) => Doc.AreProtosEqual(val, doc)) !== -1;
-        }
-        return false;
-    }
-
     public static async loadCurrentUser() {
         return rp.get(Utils.prepend("/getCurrentUser")).then(response => {
             if (response) {

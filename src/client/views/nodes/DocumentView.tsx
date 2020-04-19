@@ -305,7 +305,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     self: this.rootDoc,
                     thisContainer: this.props.ContainingCollectionDoc, shiftKey: e.shiftKey
                 }, console.log);
-                if (this.props.Document !== Doc.UserDoc().undoBtn && this.props.Document !== Doc.UserDoc().redoBtn) {
+                if (this.props.Document !== Doc.UserDoc()["dockedBtn-undo"] && this.props.Document !== Doc.UserDoc()["dockedBtn-redo"]) {
                     UndoManager.RunInBatch(func, "on click");
                 } else func();
             } else if (this.Document["onClick-rawScript"] && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes("ScriptingBox")) {// bcz: hack? don't edit a script if you're clicking on a scripting box itself
@@ -560,7 +560,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
     static findTemplate(templateName: string, type: string, signature: string) {
         let docLayoutTemplate: Opt<Doc>;
-        const iconViews = DocListCast(Cast(Doc.UserDoc()["icon-view-all"], Doc, null)?.data);
+        const iconViews = DocListCast(Cast(Doc.UserDoc()["template-icons"], Doc, null)?.data);
         const templBtns = DocListCast(Cast(Doc.UserDoc().templateButtons, Doc, null)?.data);
         const noteTypes = DocListCast(Cast(Doc.UserDoc().noteTypes, Doc, null)?.data);
         const clickFuncs = DocListCast(Cast(Doc.UserDoc().clickFuncs, Doc, null)?.data);
