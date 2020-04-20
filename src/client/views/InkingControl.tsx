@@ -12,9 +12,9 @@ import { FormattedTextBox } from "./nodes/FormattedTextBox";
 
 export class InkingControl {
     @observable static Instance: InkingControl;
-    @computed private get _selectedTool(): InkTool { return FieldValue(NumCast(CurrentUserUtils.UserDocument.inkTool)) ?? InkTool.None; }
-    @computed private get _selectedColor(): string { return GestureOverlay.Instance.Color ?? FieldValue(StrCast(CurrentUserUtils.UserDocument.inkColor)) ?? "rgb(244, 67, 54)"; }
-    @computed private get _selectedWidth(): string { return GestureOverlay.Instance.Width?.toString() ?? FieldValue(StrCast(CurrentUserUtils.UserDocument.inkWidth)) ?? "5"; }
+    @computed private get _selectedTool(): InkTool { return FieldValue(NumCast(Doc.UserDoc().inkTool)) ?? InkTool.None; }
+    @computed private get _selectedColor(): string { return GestureOverlay.Instance.Color ?? FieldValue(StrCast(Doc.UserDoc().inkColor)) ?? "rgb(244, 67, 54)"; }
+    @computed private get _selectedWidth(): string { return GestureOverlay.Instance.Width?.toString() ?? FieldValue(StrCast(Doc.UserDoc().inkWidth)) ?? "5"; }
     @observable public _open: boolean = false;
 
     constructor() {
@@ -23,7 +23,7 @@ export class InkingControl {
 
     switchTool = action((tool: InkTool): void => {
         // this._selectedTool = tool;
-        CurrentUserUtils.UserDocument.inkTool = tool;
+        Doc.UserDoc().inkTool = tool;
     });
     decimalToHexString(number: number) {
         if (number < 0) {
@@ -34,7 +34,7 @@ export class InkingControl {
 
     @undoBatch
     switchColor = action((color: ColorState): void => {
-        CurrentUserUtils.UserDocument.inkColor = color.hex + (color.rgb.a !== undefined ? this.decimalToHexString(Math.round(color.rgb.a * 255)) : "ff");
+        Doc.UserDoc().inkColor = color.hex + (color.rgb.a !== undefined ? this.decimalToHexString(Math.round(color.rgb.a * 255)) : "ff");
 
         if (InkingControl.Instance.selectedTool === InkTool.None) {
             const selected = SelectionManager.SelectedDocuments();
@@ -44,9 +44,9 @@ export class InkingControl {
                         view.props.Document.isTemplateForField ? view.props.Document : Doc.GetProto(view.props.Document);
                 if (targetDoc) {
                     if (StrCast(Doc.Layout(view.props.Document).layout).indexOf("FormattedTextBox") !== -1 && FormattedTextBox.HadSelection) {
-                        Doc.Layout(view.props.Document).color = CurrentUserUtils.UserDocument.inkColor;
+                        Doc.Layout(view.props.Document).color = Doc.UserDoc().inkColor;
                     } else {
-                        Doc.Layout(view.props.Document)._backgroundColor = CurrentUserUtils.UserDocument.inkColor; // '_backgroundColor' is template specific.  'backgroundColor' would apply to all templates, but has no UI at the moment
+                        Doc.Layout(view.props.Document)._backgroundColor = Doc.UserDoc().inkColor; // '_backgroundColor' is template specific.  'backgroundColor' would apply to all templates, but has no UI at the moment
                     }
                 }
             });
@@ -57,7 +57,7 @@ export class InkingControl {
     @action
     switchWidth = (width: string): void => {
         // this._selectedWidth = width;
-        CurrentUserUtils.UserDocument.inkWidth = width;
+        Doc.UserDoc().inkWidth = width;
     }
 
     @computed
@@ -73,7 +73,7 @@ export class InkingControl {
     @action
     updateSelectedColor(value: string) {
         // this._selectedColor = value;
-        CurrentUserUtils.UserDocument.inkColor = value;
+        Doc.UserDoc().inkColor = value;
     }
 
     @computed

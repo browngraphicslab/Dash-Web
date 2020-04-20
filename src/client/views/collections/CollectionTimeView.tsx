@@ -80,7 +80,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
 
     public static SyncTimelineToPresentation(doc: Doc) {
         const fieldKey = Doc.LayoutFieldKey(doc);
-        doc[fieldKey + "-timelineCur"] = ComputedField.MakeFunction("(curPresentationItem()[this._pivotField || 'year'] || 0)");
+        doc[fieldKey + "-timelineCur"] = ComputedField.MakeFunction("(activePresentationItem()[this._pivotField || 'year'] || 0)");
     }
     specificMenu = (e: React.MouseEvent) => {
         const layoutItems: ContextMenuProps[] = [];
