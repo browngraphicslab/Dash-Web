@@ -1,18 +1,14 @@
-import ApiManager, { Registration } from "./ApiManager";
-import { Method } from "../RouteManager";
-import { Search } from "../Search";
-const findInFiles = require('find-in-files');
+import { exec } from "child_process";
+import { cyan, green, red, yellow } from "colors";
 import * as path from 'path';
-import { pathToDirectory, Directory } from "./UploadManager";
-import { red, cyan, yellow, green } from "colors";
-import RouteSubscriber from "../RouteSubscriber";
-import { exec, execSync } from "child_process";
-import { onWindows } from "..";
-import { get } from "request-promise";
 import { log_execution } from "../ActionUtilities";
 import { Database } from "../database";
-import rimraf = require("rimraf");
-import { mkdirSync, chmod, chmodSync } from "fs";
+import { Method } from "../RouteManager";
+import RouteSubscriber from "../RouteSubscriber";
+import { Search } from "../Search";
+import ApiManager, { Registration } from "./ApiManager";
+import { Directory, pathToDirectory } from "./UploadManager";
+const findInFiles = require('find-in-files');
 
 export class SearchManager extends ApiManager {
 
@@ -48,12 +44,17 @@ export class SearchManager extends ApiManager {
                     res.send([]);
                     return;
                 }
-                const results = await findInFiles.find({ 'term': q, 'flags': 'ig' }, pathToDirectory(Directory.text), ".txt$");
                 const resObj: { ids: string[], numFound: number, lines: string[] } = { ids: [], numFound: 0, lines: [] };
-                for (const result in results) {
-                    resObj.ids.push(path.basename(result, ".txt").replace(/upload_/, ""));
-                    resObj.lines.push(results[result].line);
-                    resObj.numFound++;
+                try {
+                    const results = await findInFiles.find({ 'term': q, 'flags': 'ig' }, pathToDirectory(Directory.text), ".txt$");
+                    for (const result in results) {
+                        resObj.ids.push(path.basename(result, ".txt").replace(/upload_/, ""));
+                        resObj.lines.push(results[result].line);
+                        resObj.numFound++;
+                    }
+                }
+                catch (e) {
+                    console.error(e);
                 }
                 res.send(resObj);
             }

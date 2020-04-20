@@ -167,15 +167,7 @@ export class SearchBox extends React.Component<SearchProps> {
     }
 
     basicRequireWords(query: string): string {
-        const oldWords = query.split(" ");
-        const newWords: string[] = [];
-        oldWords.forEach(word => {
-            const newWrd = "+" + word;
-            newWords.push(newWrd);
-        });
-        query = newWords.join(" ");
-
-        return query;
+        return query.split(" ").join(" + ").replace(/ + /, "");
     }
 
     @action
@@ -316,10 +308,13 @@ export class SearchBox extends React.Component<SearchProps> {
 
     private get filterQuery() {
         const types = this.filterTypes;
-        const includeDeleted = this.getDataStatus() ? "" : " AND NOT deleted_b:true";
-        const includeIcons = this.getDataStatus() ? "" : " AND NOT type_t:fonticonbox";
+        const baseExpr = "NOT baseProto_b:true";
+        const includeDeleted = this.getDataStatus() ? "" : " NOT deleted_b:true";
+        const includeIcons = this.getDataStatus() ? "" : " NOT type_t:fonticonbox";
+        const typeExpr = !types ? "" : ` (${types.map(type => `({!join from=id to=proto_i}type_t:"${type}" AND NOT type_t:*) OR type_t:"${type}"`).join(" ")})`;
         // fq: type_t:collection OR {!join from=id to=proto_i}type_t:collection   q:text_t:hello
-        return "NOT baseProto_b:true" + includeDeleted + includeIcons + (types ? ` AND (${types.map(type => `({!join from=id to=proto_i}type_t:"${type}" AND NOT type_t:*) OR type_t:"${type}"`).join(" ")})` : "");
+        const query = [baseExpr, includeDeleted, includeIcons, typeExpr].join(" AND ").replace(/AND $/, "");
+        return query;
     }
 
     getDataStatus() { return this._deletedDocsStatus; }
