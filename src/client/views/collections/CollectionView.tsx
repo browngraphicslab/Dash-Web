@@ -35,7 +35,7 @@ import { CollectionStaffView } from './CollectionStaffView';
 import { SubCollectionViewProps } from './CollectionSubView';
 import { CollectionTimeView } from './CollectionTimeView';
 import { CollectionTreeView } from "./CollectionTreeView";
-import { CollectionGridView } from "./CollectionGridView";
+import { CollectionGridView } from "./collectionGrid/CollectionGridView";
 import './CollectionView.scss';
 import { CollectionViewBaseChrome } from './CollectionViewChromes';
 import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
