@@ -536,12 +536,13 @@ export class CurrentUserUtils {
         new InkingControl();
         doc.title = Doc.CurrentUserEmail;
         doc.activePen = doc;
-        CurrentUserUtils.setupDefaultIconTemplates(doc);  // creates a set of icon templates triggered by the document deoration icon
-        CurrentUserUtils.setupRightSidebar(doc);  // sets up the right sidebar collection for mobile upload documents and sharing
-        CurrentUserUtils.setupOverlays(doc);  // documents in overlay layer 
-        CurrentUserUtils.setupDockedButtons(doc);  // the bottom bar of font icons
-        CurrentUserUtils.setupDefaultPresentation(doc); // presentation that's initially triggered
-        await CurrentUserUtils.setupSidebarButtons(doc); // the pop-out left sidebar of tools/panels
+        this.setupDefaultIconTemplates(doc);  // creates a set of icon templates triggered by the document deoration icon
+        this.setupDocTemplates(doc); // sets up the template menu of templates
+        this.setupRightSidebar(doc);  // sets up the right sidebar collection for mobile upload documents and sharing
+        this.setupOverlays(doc);  // documents in overlay layer 
+        this.setupDockedButtons(doc);  // the bottom bar of font icons
+        this.setupDefaultPresentation(doc); // presentation that's initially triggered
+        await this.setupSidebarButtons(doc); // the pop-out left sidebar of tools/panels
         doc.globalLinkDatabase = Docs.Prototypes.MainLinkDocument();
 
         // setup reactions to change the highlights on the undo/redo buttons -- would be better to encode this in the undo/redo buttons, but the undo/redo stacks are not wired up that way yet
