@@ -487,11 +487,15 @@ class TreeView extends React.Component<TreeViewProps> {
         return <div className="treeViewItem-container" ref={this.createTreeDropTarget}>
             <li className="collection-child">
                 <div className="treeViewItem-header" ref={this._header} onClick={e => {
-                    e.stopPropagation();
-                    e.preventDefault();
+                    if (this.props.active(true)) {
+                        e.stopPropagation();
+                        e.preventDefault();
+                    }
                 }} onPointerDown={e => {
-                    e.stopPropagation();
-                    e.preventDefault();
+                    if (this.props.active(true)) {
+                        e.stopPropagation();
+                        e.preventDefault();
+                    }
                 }} onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}>
                     {this.renderBullet}
                     {this.renderTitle}
@@ -810,6 +814,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                         Doc.SetInPlace(this.dataDoc, "title", value, false);
                         const doc = Docs.Create.FreeformDocument([], { title: "", x: 0, y: 0, _width: 100, _height: 25, templates: new List<string>([Templates.Title.Layout]) });
                         EditableView.loadId = doc[Id];
+                        Doc.SetInPlace(doc, "editTitle", true, false);
                         this.addDoc(doc, childDocs.length ? childDocs[0] : undefined, true);
                     })} />)}
                 {this.props.Document.allowClear ? this.renderClearButton : (null)}
