@@ -100,8 +100,27 @@
     border-left: dashed 1px #00000042;
 }
 
+.treeViewItem-header {
+    border: transparent 1px solid;
+    display: flex;
+
+    .editableView-container-editing-oneLine {
+        min-width: 15px;
+    }
+    .documentView-node-topmost {
+        width: unset;
+    }
+    > svg {
+        display: none;
+    }
+
+}
+
 .treeViewItem-header:hover {
     .collectionTreeView-keyHeader {
+        display: inherit;
+    }
+    > svg {
         display: inherit;
     }
 
@@ -116,18 +135,6 @@
             padding: 0px;
             margin-left: 3px;
         }
-    }
-}
-
-.treeViewItem-header {
-    border: transparent 1px solid;
-    display: flex;
-
-    .editableView-container-editing-oneLine {
-        min-width: 15px;
-    }
-    .documentView-node-topmost {
-        width: unset;
     }
 }
 

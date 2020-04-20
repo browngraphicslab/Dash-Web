@@ -7,7 +7,6 @@ import { action, runInAction } from "mobx";
 import { Doc } from "../../new_fields/Doc";
 import { DictationManager } from "../util/DictationManager";
 import SharingManager from "../util/SharingManager";
-import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
 import { Cast, PromiseValue, NumCast } from "../../new_fields/Types";
 import { ScriptField } from "../../new_fields/ScriptField";
 import { InkingControl } from "./InkingControl";
@@ -194,7 +193,7 @@ export default class KeyManager {
                 }
                 break;
             case "t":
-                PromiseValue(Cast(CurrentUserUtils.UserDocument.Create, Doc)).then(pv => pv && (pv.onClick as ScriptField).script.run({ this: pv }));
+                PromiseValue(Cast(Doc.UserDoc()["tabs-button-tools"], Doc)).then(pv => pv && (pv.onClick as ScriptField).script.run({ this: pv }));
                 if (MainView.Instance.flyoutWidth === 240) {
                     MainView.Instance.flyoutWidth = 0;
                 } else {
@@ -202,7 +201,7 @@ export default class KeyManager {
                 }
                 break;
             case "l":
-                PromiseValue(Cast(CurrentUserUtils.UserDocument.Library, Doc)).then(pv => pv && (pv.onClick as ScriptField).script.run({ this: pv }));
+                PromiseValue(Cast(Doc.UserDoc()["tabs-button-library"], Doc)).then(pv => pv && (pv.onClick as ScriptField).script.run({ this: pv }));
                 if (MainView.Instance.flyoutWidth === 250) {
                     MainView.Instance.flyoutWidth = 0;
                 } else {
@@ -210,7 +209,7 @@ export default class KeyManager {
                 }
                 break;
             case "f":
-                PromiseValue(Cast(CurrentUserUtils.UserDocument.Search, Doc)).then(pv => pv && (pv.onClick as ScriptField).script.run({ this: pv }));
+                PromiseValue(Cast(Doc.UserDoc()["tabs-button-search"], Doc)).then(pv => pv && (pv.onClick as ScriptField).script.run({ this: pv }));
                 if (MainView.Instance.flyoutWidth === 400) {
                     MainView.Instance.flyoutWidth = 0;
                 } else {

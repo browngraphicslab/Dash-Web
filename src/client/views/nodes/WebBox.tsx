@@ -7,7 +7,7 @@ import { documentSchema } from "../../../new_fields/documentSchemas";
 import { HtmlField } from "../../../new_fields/HtmlField";
 import { InkTool } from "../../../new_fields/InkField";
 import { makeInterface } from "../../../new_fields/Schema";
-import { Cast, NumCast } from "../../../new_fields/Types";
+import { Cast, NumCast, BoolCast, StrCast } from "../../../new_fields/Types";
 import { WebField } from "../../../new_fields/URLField";
 import { Utils, returnOne, emptyFunction, returnZero } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
@@ -22,7 +22,6 @@ import React = require("react");
 import * as WebRequest from 'web-request';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
-import { DocumentView } from "./DocumentView";
 const htmlToText = require("html-to-text");
 
 library.add(faStickyNote);
@@ -34,7 +33,8 @@ const WebDocument = makeInterface(documentSchema);
 export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocument>(WebDocument) {
 
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(WebBox, fieldKey); }
-    @observable private _collapsed: boolean = true;
+    get _collapsed() { return StrCast(this.layoutDoc._chromeStatus) === "disabled"; }
+    set _collapsed(value) { this.layoutDoc._chromeStatus = !value ? "enabled" : "disabled"; }
     @observable private _url: string = "hello";
     @observable private _pressX: number = 0;
     @observable private _pressY: number = 0;
@@ -68,7 +68,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         this._setPreviewCursor?.(e.screenX, e.screenY, false);
     }
     iframeScrolled = (e: any) => {
-        const scroll = (e.target as any)?.children?.[0].scrollTop;
+        const scroll = e.target?.children?.[0].scrollTop;
         this.layoutDoc.scrollTop = this._outerRef.current!.scrollTop = scroll;
     }
     async componentDidMount() {
@@ -345,7 +345,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                 </div>}
         </>);
     }
-    scrollXf = () => this.props.ScreenToLocalTransform().translate(0, NumCast(this.props.Document.scrollTop))
+    scrollXf = () => this.props.ScreenToLocalTransform().translate(0, NumCast(this.props.Document.scrollTop));
     render() {
         return (<div className={`webBox-container`}
             style={{

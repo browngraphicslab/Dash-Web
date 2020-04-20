@@ -49,7 +49,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @computed get childDocs() { return DocListCast(this.dataDoc[this.fieldKey]); }
     @computed get currentIndex() { return NumCast(this.layoutDoc._itemIndex); }
 
-    updateCurrentPresentation = action(() => Doc.UserDoc().curPresentation = this.rootDoc);
+    updateCurrentPresentation = action(() => Doc.UserDoc().activePresentation = this.rootDoc);
 
     next = () => {
         this.updateCurrentPresentation();
@@ -253,14 +253,14 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     updateMinimize = undoBatch(action((e: React.ChangeEvent, mode: CollectionViewType) => {
         if (BoolCast(this.layoutDoc.inOverlay) !== (mode === CollectionViewType.Invalid)) {
             if (this.layoutDoc.inOverlay) {
-                Doc.RemoveDocFromList((Doc.UserDoc().overlays as Doc), undefined, this.rootDoc);
+                Doc.RemoveDocFromList((Doc.UserDoc().myOverlayDocuments as Doc), undefined, this.rootDoc);
                 CollectionDockingView.AddRightSplit(this.rootDoc);
                 this.layoutDoc.inOverlay = false;
             } else {
                 this.layoutDoc.x = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0)[0];// 500;//e.clientX + 25;
                 this.layoutDoc.y = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0)[1];////e.clientY - 25;
                 this.props.addDocTab?.(this.rootDoc, "close");
-                Doc.AddDocToList((Doc.UserDoc().overlays as Doc), undefined, this.rootDoc);
+                Doc.AddDocToList((Doc.UserDoc().myOverlayDocuments as Doc), undefined, this.rootDoc);
             }
         }
     }));
@@ -292,7 +292,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         this.updateMinimize(e, StrCast(this.layoutDoc._viewType));
     });
 
-    childLayoutTemplate = () => this.layoutDoc._viewType === CollectionViewType.Stacking ? Cast(Doc.UserDoc().presentationTemplate, Doc, null) : undefined;
+    childLayoutTemplate = () => this.layoutDoc._viewType === CollectionViewType.Stacking ? Cast(Doc.UserDoc()["template-presentation"], Doc, null) : undefined;
     render() {
         const mode = StrCast(this.layoutDoc._viewType) as CollectionViewType;
         this.initializeViewAliases(this.childDocs, mode);
