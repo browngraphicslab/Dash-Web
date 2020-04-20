@@ -89,12 +89,19 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
 
                 <div className="scriptingBox-inputDiv"
                     onPointerDown={e => this.props.isSelected(true) && e.stopPropagation()} >
+
                     <textarea className="scriptingBox-textarea"
                         placeholder="write your script here"
                         onChange={e => this.rawScript = e.target.value}
                         value={this.rawScript}
                         onFocus={this.onFocus}
-                        onBlur={e => this._overlayDisposer?.()} />
+                        onBlur={e => this._overlayDisposer?.()}
+                        style={{ width: this.compileParams.length > 0 ? "70%" : "100%" }} />
+
+                    {this.compileParams.length > 0 ? <div className="split right" style={{ width: "30%" }}>
+                        parameters go here
+                            </div> : null}
+
                     <div className="scriptingBox-errorMessage" style={{ background: this._errorMessage ? "red" : "" }}>{this._errorMessage}</div>
                     <div className="scriptingBox-params" >{params}</div>
                 </div>
