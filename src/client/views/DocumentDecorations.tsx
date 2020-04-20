@@ -7,7 +7,6 @@ import { Doc, DataSym } from "../../new_fields/Doc";
 import { PositionDocument } from '../../new_fields/documentSchemas';
 import { ScriptField } from '../../new_fields/ScriptField';
 import { Cast, StrCast, NumCast } from "../../new_fields/Types";
-import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { Utils, setupMoveUpEvents, emptyFunction, returnFalse, simulateMouseClick } from "../../Utils";
 import { DocUtils } from "../documents/Documents";
 import { DocumentType } from '../documents/DocumentTypes';
@@ -69,7 +68,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     get Bounds(): { x: number, y: number, b: number, r: number } {
         return SelectionManager.SelectedDocuments().reduce((bounds, documentView) => {
             if (documentView.props.renderDepth === 0 ||
-                Doc.AreProtosEqual(documentView.props.Document, CurrentUserUtils.UserDocument)) {
+                Doc.AreProtosEqual(documentView.props.Document, Doc.UserDoc())) {
                 return bounds;
             }
             const transform = (documentView.props.ScreenToLocalTransform().scale(documentView.props.ContentScaling())).inverse();
@@ -164,7 +163,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         dragData.isSelectionMove = true;
         this.Interacting = true;
         this._hidden = true;
-        DragManager.StartDocumentDrag(SelectionManager.SelectedDocuments().map(documentView => documentView.ContentDiv!), dragData, e.x, e.y, {
+        DragManager.StartDocumentDrag(SelectionManager.SelectedDocuments().map(dv => dv.ContentDiv!), dragData, e.x, e.y, {
             dragComplete: action(e => this._hidden = this.Interacting = false),
             hideSource: true
         });
@@ -178,14 +177,14 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @action
     onCloseClick = async (e: PointerEvent) => {
         if (e.button === 0) {
-            const recent = Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc) as Doc;
+            const recent = Cast(Doc.UserDoc().myRecentlyClosed, Doc) as Doc;
             const selected = SelectionManager.SelectedDocuments().slice();
             SelectionManager.DeselectAll();
             this._addedCloseCalls.forEach(handler => handler(selected));
 
             selected.map(dv => {
                 recent && Doc.AddDocToList(recent, "data", dv.props.Document, undefined, true, true);
-                dv.props.removeDocument && dv.props.removeDocument(dv.props.Document);
+                dv.props.removeDocument?.(dv.props.Document);
             });
         }
     }

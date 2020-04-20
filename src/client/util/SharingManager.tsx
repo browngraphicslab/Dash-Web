@@ -109,7 +109,7 @@ export default class SharingManager extends React.Component<{}> {
             if (isCandidate) {
                 const userDocument = await DocServer.GetRefField(user.userDocumentId);
                 if (userDocument instanceof Doc) {
-                    const notificationDoc = await Cast(userDocument.optionalRightCollection, Doc);
+                    const notificationDoc = await Cast(userDocument.rightSidebarCollection, Doc);
                     runInAction(() => {
                         if (notificationDoc instanceof Doc) {
                             this.users.push({ user, notificationDoc });
