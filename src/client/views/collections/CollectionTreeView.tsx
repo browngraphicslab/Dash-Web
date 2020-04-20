@@ -189,7 +189,7 @@ class TreeView extends React.Component<TreeViewProps> {
             Doc.SetInPlace(this.props.document, key, value, false);
             const doc = Docs.Create.FreeformDocument([], { title: "-", x: 0, y: 0, _width: 100, _height: 25, templates: new List<string>([Templates.Title.Layout]) });
             Doc.SetInPlace(this.props.document, "editTitle", undefined, false);
-            Doc.SetInPlace(this.props.document, "editTitle", true, false);
+            Doc.SetInPlace(doc, "editTitle", true, false);
             return this.props.addDocument(doc);
         })}
         onClick={() => {
