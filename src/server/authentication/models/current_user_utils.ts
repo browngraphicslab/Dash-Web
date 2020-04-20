@@ -141,7 +141,7 @@ export class CurrentUserUtils {
         if (doc["template-icon-view"] === undefined) {
             const iconView = Docs.Create.TextDocument("", {
                 title: "icon", _width: 150, _height: 30, isTemplateDoc: true,
-                onClick: ScriptField.MakeScript("deiconifyView(this)")
+                onClick: ScriptField.MakeScript("deiconifyView(self)")
             });
             Doc.GetProto(iconView).icon = new RichTextField('{"doc":{"type":"doc","content":[{"type":"paragraph","attrs":{"align":null,"color":null,"id":null,"indent":null,"inset":null,"lineSpacing":null,"paddingBottom":null,"paddingTop":null},"content":[{"type":"dashField","attrs":{"fieldKey":"title","docid":""}}]}]},"selection":{"type":"text","anchor":2,"head":2},"storedMarks":[]}', "");
             iconView.isTemplateDoc = makeTemplate(iconView);
