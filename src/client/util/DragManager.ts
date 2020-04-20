@@ -19,7 +19,7 @@ import { DateField } from "../../new_fields/DateField";
 import { DocumentView } from "../views/nodes/DocumentView";
 import { UndoManager } from "./UndoManager";
 
-export type dropActionType = "place" | "alias" | "copy" | undefined;
+export type dropActionType = "alias" | "copy" | "move" | undefined; // undefined = move
 export function SetupDrag(
     _reference: React.RefObject<HTMLElement>,
     docFunc: () => Doc | Promise<Doc> | undefined,

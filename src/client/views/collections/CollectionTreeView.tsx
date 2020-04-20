@@ -228,7 +228,8 @@ class TreeView extends React.Component<TreeViewProps> {
                 addDoc = (doc: Doc) => Doc.AddDocToList(this.dataDoc, this.fieldKey, doc) || addDoc(doc);
             }
             const movedDocs = (de.complete.docDragData.treeViewId === this.props.treeViewId[Id] ? de.complete.docDragData.draggedDocuments : de.complete.docDragData.droppedDocuments);
-            return ((de.complete.docDragData.dropAction && (de.complete.docDragData.treeViewId !== this.props.treeViewId[Id])) || de.complete.docDragData.userDropAction) ?
+            const move = de.complete.docDragData.dropAction === "move" || de.complete.docDragData.dropAction;
+            return ((!move && (de.complete.docDragData.treeViewId !== this.props.treeViewId[Id])) || de.complete.docDragData.userDropAction) ?
                 de.complete.docDragData.droppedDocuments.reduce((added, d) => addDoc(d) || added, false)
                 : de.complete.docDragData.moveDocument ?
                     movedDocs.reduce((added, d) => de.complete.docDragData?.moveDocument?.(d, undefined, addDoc) || added, false)
@@ -335,7 +336,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 {!docs ? (null) :
                     TreeView.GetChildElements(docs, this.props.treeViewId, Doc.Layout(this.props.document),
                         this.templateDataDoc, expandKey, this.props.containingCollection, this.props.prevSibling, addDoc, remDoc, this.move,
-                        this.props.dropAction, this.props.addDocTab, this.props.pinToPres, this.props.backgroundColor, this.props.ScreenToLocalTransform,
+                        StrCast(this.props.document.childDropAction, this.props.dropAction) as dropActionType, this.props.addDocTab, this.props.pinToPres, this.props.backgroundColor, this.props.ScreenToLocalTransform,
                         this.props.outerXf, this.props.active, this.props.panelWidth, this.props.ChromeHeight, this.props.renderDepth, this.props.treeViewHideHeaderFields, this.props.treeViewPreventOpen,
                         [...this.props.renderedIds, this.props.document[Id]], this.props.libraryPath, this.props.onCheckedClick, this.props.onChildClick, this.props.ignoreFields)}
             </ul >;
@@ -456,7 +457,7 @@ class TreeView extends React.Component<TreeViewProps> {
                         pinToPres={emptyFunction}
                         onClick={this.props.onChildClick || editTitle}
                         dropAction={this.props.dropAction}
-                        moveDocument={this.props.moveDocument}
+                        moveDocument={this.move}
                         removeDocument={this.removeDoc}
                         ScreenToLocalTransform={this.getTransform}
                         ContentScaling={returnOne}
@@ -472,7 +473,7 @@ class TreeView extends React.Component<TreeViewProps> {
                         bringToFront={emptyFunction}
                         dontRegisterView={BoolCast(this.props.treeViewId.dontRegisterChildren)}
                         ContainingCollectionView={undefined}
-                        ContainingCollectionDoc={undefined}
+                        ContainingCollectionDoc={this.props.containingCollection}
                     />}
             </div >
             {this.props.treeViewHideHeaderFields() ? (null) : headerElements}
@@ -657,7 +658,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
     @computed get dataDoc() { return this.props.DataDoc || this.props.Document; }
 
     protected createTreeDropTarget = (ele: HTMLDivElement) => {
-        this.treedropDisposer && this.treedropDisposer();
+        this.treedropDisposer?.();
         if (this._mainEle = ele) {
             this.treedropDisposer = DragManager.MakeDropTarget(ele, this.onInternalDrop.bind(this));
         }
@@ -665,7 +666,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
 
     componentWillUnmount() {
         super.componentWillUnmount();
-        this.treedropDisposer && this.treedropDisposer();
+        this.treedropDisposer?.();
     }
 
     @action
