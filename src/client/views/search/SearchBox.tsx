@@ -98,6 +98,7 @@ export class SearchBox extends React.Component<SearchProps> {
         if (this.setupButtons==false){
         console.log("Yuh");
             this.setupDocTypeButtons();
+            this.setupKeyButtons()
         runInAction(()=>this.setupButtons==true);
     }
         if (this.inputRef.current) {
@@ -717,15 +718,48 @@ export class SearchBox extends React.Component<SearchProps> {
         return (null);
     }
 
+
+    @computed get keyButtons() {
+        const nodeBtns = this.props.Document.keyButtons;
+        let width = () => NumCast(this.props.Document.width);
+        if (this.props.sideBar===true){
+            width = MainView.Instance.flyoutWidthFunc;
+        }
+        if (nodeBtns instanceof Doc) {
+            return <div id="hi" style={{height:"100px",}}>
+                <DocumentView
+                Document={nodeBtns}
+                DataDoc={undefined}
+                LibraryPath={emptyPath}
+                addDocument={undefined}
+                addDocTab={returnFalse}
+                rootSelected={returnTrue}
+                pinToPres={emptyFunction}
+                onClick={undefined}
+                removeDocument={undefined}
+                ScreenToLocalTransform={Transform.Identity}
+                ContentScaling={returnOne}
+                PanelWidth={width}
+                PanelHeight={() => 100}
+                renderDepth={0}
+                backgroundColor={returnEmptyString}
+                focus={emptyFunction}
+                parentActive={returnTrue}
+                whenActiveChanged={emptyFunction}
+                bringToFront={emptyFunction}
+                ContainingCollectionView={undefined}
+                ContainingCollectionDoc={undefined}
+                NativeHeight={()=>100}
+                NativeWidth={width}
+            />
+            </div>;
+        }
+        return (null);
+    }
+
     setupDocTypeButtons() {
         let doc = this.props.Document;
         const ficon = (opts: DocumentOptions) => new PrefetchProxy(Docs.Create.FontIconDocument({ ...opts,  backgroundColor: "#121721", dropAction: "alias", removeDropProperties: new List<string>(["dropAction"]), _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100 })) as any as Doc;
-        const blist = (opts: DocumentOptions, docs: Doc[]) => new PrefetchProxy(Docs.Create.LinearDocument(docs, {
-            ...opts,
-            _gridGap: 5, _xMargin: 5, _yMargin: 5, _height: 42, _width: 100, boxShadow: "0 0", forceActive: true,
-            dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }),
-            backgroundColor: "black", treeViewPreventOpen: true, lockedPosition: true, _chromeStatus: "disabled", linearViewIsExpanded: true
-        })) as any as Doc;
         doc.Music = ficon({ onClick: undefined, title: "mussic button", icon: "music" });
         doc.Col = ficon({ onClick: undefined, title: "col button", icon: "object-group" });
         doc.Hist = ficon({ onClick: undefined, title: "hist button", icon: "chart-bar" });
@@ -744,6 +778,24 @@ export class SearchBox extends React.Component<SearchProps> {
             dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }), _yMargin: 5
         });
         doc.nodeButtons= dragCreators;
+    }
+
+
+    setupKeyButtons() {
+        let doc = this.props.Document;
+        const button = (opts: DocumentOptions) => new PrefetchProxy( Docs.Create.ButtonDocument({...opts,
+            _width: 35, _height: 25, fontSize: 10,  
+            letterSpacing: "0px", textTransform: "unset", borderRounding: "16px",
+        }))as any as Doc;
+        doc.title=button({ title: "Title", onClick:ScriptField.MakeScript("this.updateTitleStatus")});
+
+        let buttons = [doc.title as Doc];
+
+        const dragCreators = Docs.Create.MasonryDocument(buttons, {
+            _width: 500, backgroundColor:"#121721", _autoHeight: true, columnWidth: 35, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled", title: "buttons",
+            //dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }), _yMargin: 5
+        });
+        doc.keyButtons= dragCreators;
     }
 
     render() {
@@ -770,11 +822,12 @@ export class SearchBox extends React.Component<SearchProps> {
                         {this.docButtons}
                     </div>
                     <div className="filter-key" id={`key${this.props.id}`} style={this._keyStatus ? { borderTop: "grey 1px solid" } : { borderTop: "0px" }}>
-                        <div className="filter-keybar">
-                            <button className="filter-item" style={this._titleFieldStatus ? { background: "#aaaaa3", } : {}} onClick={this.updateTitleStatus}>Title</button>
+                        {/* <div className="filter-keybar"> */}
+                            {/* <button className="filter-item" style={this._titleFieldStatus ? { background: "#aaaaa3", } : {}} onClick={this.updateTitleStatus}>Title</button>
                             <button className="filter-item" style={this._deletedDocsStatus ? { background: "#aaaaa3", } : {}} onClick={this.updateDataStatus}>Deleted Docs</button>
-                            <button className="filter-item" style={this._authorFieldStatus ? { background: "#aaaaa3", } : {}} onClick={this.updateAuthorStatus}>Author</button>
-                        </div>
+                            <button className="filter-item" style={this._authorFieldStatus ? { background: "#aaaaa3", } : {}} onClick={this.updateAuthorStatus}>Author</button> */}
+                            {this.keyButtons}
+                        {/* </div> */}
                     </div>
                 </div>
                 <div className="searchBox-results" onScroll={this.resultsScrolled} style={{
