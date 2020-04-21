@@ -45,16 +45,13 @@ export class SearchManager extends ApiManager {
                     return;
                 }
                 const resObj: { ids: string[], numFound: number, lines: string[] } = { ids: [], numFound: 0, lines: [] };
-                try {
-                    const results = await findInFiles.find({ 'term': q, 'flags': 'ig' }, pathToDirectory(Directory.text), ".txt$");
-                    for (const result in results) {
-                        resObj.ids.push(path.basename(result, ".txt").replace(/upload_/, ""));
-                        resObj.lines.push(results[result].line);
-                        resObj.numFound++;
-                    }
-                }
-                catch (e) {
-                    console.error(e);
+                let results: any;
+                const dir = pathToDirectory(Directory.text);
+                results = await findInFiles.find({ 'term': q, 'flags': 'ig' }, dir, ".txt$");
+                for (const result in results) {
+                    resObj.ids.push(path.basename(result, ".txt").replace(/upload_/, ""));
+                    resObj.lines.push(results[result].line);
+                    resObj.numFound++;
                 }
                 res.send(resObj);
             }

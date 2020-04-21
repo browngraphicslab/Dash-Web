@@ -413,6 +413,7 @@ export class CurrentUserUtils {
                 _width: 50, _height: 25, title: "Search", fontSize: 10,
                 letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
                 sourcePanel: new PrefetchProxy(Docs.Create.QueryDocument({ title: "search stack", })) as any as Doc,
+                searchFileTypes: new List<string>([DocumentType.RTF, DocumentType.IMG, DocumentType.PDF, DocumentType.VID, DocumentType.WEB, DocumentType.SCRIPTING]),
                 targetContainer: new PrefetchProxy(sidebarContainer) as any as Doc,
                 lockedPosition: true,
                 onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel")

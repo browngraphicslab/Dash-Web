@@ -19,13 +19,17 @@ import { FieldView } from '../nodes/FieldView';
 import { DocumentType } from "../../documents/DocumentTypes";
 import { DocumentView } from '../nodes/DocumentView';
 import { SelectionManager } from '../../util/SelectionManager';
+import { listSpec } from '../../../new_fields/Schema';
 
 library.add(faTimes);
 
 export interface SearchProps {
     id: string;
-    searchQuery?: string;
+    searchQuery: string;
     filterQquery?: string;
+    setSearchQuery: (q: string) => {};
+    searchFileTypes: string[];
+    setSearchFileTypes: (types: string[]) => {}
 }
 
 export enum Keys {
@@ -37,7 +41,8 @@ export enum Keys {
 @observer
 export class SearchBox extends React.Component<SearchProps> {
 
-    @observable private _searchString: string = "";
+    private get _searchString() { return this.props.searchQuery; }
+    private set _searchString(value) { this.props.setSearchQuery(value); }
     @observable private _resultsOpen: boolean = false;
     @observable private _searchbarOpen: boolean = false;
     @observable private _results: [Doc, string[], string[]][] = [];
@@ -72,20 +77,16 @@ export class SearchBox extends React.Component<SearchProps> {
         this.resultsScrolled = this.resultsScrolled.bind(this);
     }
 
-    componentDidMount = () => {
+    componentDidMount = action(() => {
         if (this.inputRef.current) {
             this.inputRef.current.focus();
-            runInAction(() => this._searchbarOpen = true);
+            this._searchbarOpen = true;
         }
-        if (this.props.searchQuery && this.props.filterQquery) {
-            console.log(this.props.searchQuery);
-            const sq = this.props.searchQuery;
-            runInAction(() => {
-                this._searchString = sq;
-                this.submitSearch();
-            });
+        if (this.props.searchQuery) { // bcz: why was this here?    } && this.props.filterQquery) {
+            this._searchString = this.props.searchQuery;
+            this.submitSearch();
         }
-    }
+    })
 
 
     @action
@@ -133,7 +134,10 @@ export class SearchBox extends React.Component<SearchProps> {
     //this also serves as an indicator if the word status filter is applied
     @observable private _filterOpen: boolean = false;
     //if icons = all icons, then no icon filter is applied
-    @observable private _icons: string[] = this._allIcons;
+    get _icons() { return this.props.searchFileTypes; }
+    set _icons(value) {
+        this.props.setSearchFileTypes(value);
+    }
     //if all of these are true, no key filter is applied
     @observable private _titleFieldStatus: boolean = true;
     @observable private _authorFieldStatus: boolean = true;
@@ -205,12 +209,6 @@ export class SearchBox extends React.Component<SearchProps> {
     get filterTypes() {
         return this._icons.length === this._allIcons.length ? undefined : this._icons;
     }
-
-    @action.bound
-    updateIcon(newArray: string[]) { this._icons = newArray; }
-
-    @action.bound
-    getIcons(): string[] { return this._icons; }
 
     //TODO: basically all of this
     //gets all of the collections of all the docviews that are selected
@@ -648,7 +646,9 @@ export class SearchBox extends React.Component<SearchProps> {
                         <button className="filter-item" style={this._nodeStatus ? { background: "#aaaaa3" } : {}} onClick={this.handleNodeChange}>Nodes</button>
                     </div>
                     <div id={`node${this.props.id}`} className="filter-body" style={this._nodeStatus ? { borderTop: "grey 1px solid" } : { borderTop: "0px" }}>
-                        <IconBar setIcons={(icons: string[]) => this._icons = icons} />
+                        <IconBar setIcons={(icons: string[]) => {
+                            this._icons = icons;
+                        }} />
                     </div>
                     <div className="filter-key" id={`key${this.props.id}`} style={this._keyStatus ? { borderTop: "grey 1px solid" } : { borderTop: "0px" }}>
                         <div className="filter-keybar">
