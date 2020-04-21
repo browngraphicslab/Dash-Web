@@ -1,4 +1,7 @@
-import React from 'react';
+import * as React from 'react';
+import { observer } from "mobx-react";
+import { observable, action } from "mobx";
+
 
 interface Props {
 
@@ -7,7 +10,8 @@ interface Props {
 import "../../../../../node_modules/react-grid-layout/css/styles.css";
 import GridLayout from 'react-grid-layout';
 
-export default class MyFirstGrid extends React.Component {
+@observer
+export default class Grid extends React.Component {
     render() {
         // layout is an array of objects, see the demo for more complete usage
         const layout = [
@@ -16,11 +20,14 @@ export default class MyFirstGrid extends React.Component {
             { i: 'c', x: 4, y: 0, w: 1, h: 2 }
         ];
         return (
-            <GridLayout className="layout" layout={layout} cols={12} rowHeight={30} width={1200}>
-                <div key="a">a</div>
-                <div key="b">b</div>
-                <div key="c">c</div>
-            </GridLayout>
+            <div>
+                {/* <GridLayout className="layout" layout={layout} cols={12} rowHeight={30} width={1200}>
+                    <div key="a">a</div>
+                    <div key="b">b</div>
+                    <div key="c">c</div>
+                </GridLayout> */}
+                HI
+            </div>
         );
     }
 }

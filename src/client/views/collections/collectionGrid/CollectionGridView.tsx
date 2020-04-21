@@ -15,8 +15,6 @@ import { returnZero } from '../../../../Utils';
 import Grid from "./Grid";
 
 
-
-
 type GridSchema = makeInterface<[typeof documentSchema]>;
 const GridSchema = makeInterface(documentSchema);
 
@@ -34,11 +32,10 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
                     marginTop: NumCast(this.props.Document._yMargin), marginBottom: NumCast(this.props.Document._yMargin)
                 }} ref={this.createDashEventsTarget}>
 
-                {/* <Grid>
+                <Grid>
 
-                </Grid> */}
+                </Grid>
             </div>
-
         );
     }
 }
