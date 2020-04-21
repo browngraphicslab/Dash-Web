@@ -8,7 +8,9 @@ interface Props {
 }
 
 import "../../../../../node_modules/react-grid-layout/css/styles.css";
-import GridLayout from 'react-grid-layout';
+import "../../../../../node_modules/react-resizable/css/styles.css";
+
+import * as GridLayout from 'react-grid-layout';
 
 @observer
 export default class Grid extends React.Component {
