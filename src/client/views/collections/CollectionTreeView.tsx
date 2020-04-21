@@ -189,7 +189,7 @@ class TreeView extends React.Component<TreeViewProps> {
             Doc.SetInPlace(this.props.document, key, value, false);
             const doc = Docs.Create.FreeformDocument([], { title: "-", x: 0, y: 0, _width: 100, _height: 25, templates: new List<string>([Templates.Title.Layout]) });
             Doc.SetInPlace(this.props.document, "editTitle", undefined, false);
-            Doc.SetInPlace(this.props.document, "editTitle", true, false);
+            Doc.SetInPlace(doc, "editTitle", true, false);
             return this.props.addDocument(doc);
         })}
         onClick={() => {
@@ -228,7 +228,8 @@ class TreeView extends React.Component<TreeViewProps> {
                 addDoc = (doc: Doc) => Doc.AddDocToList(this.dataDoc, this.fieldKey, doc) || addDoc(doc);
             }
             const movedDocs = (de.complete.docDragData.treeViewId === this.props.treeViewId[Id] ? de.complete.docDragData.draggedDocuments : de.complete.docDragData.droppedDocuments);
-            return ((de.complete.docDragData.dropAction && (de.complete.docDragData.treeViewId !== this.props.treeViewId[Id])) || de.complete.docDragData.userDropAction) ?
+            const move = de.complete.docDragData.dropAction === "move" || de.complete.docDragData.dropAction;
+            return ((!move && (de.complete.docDragData.treeViewId !== this.props.treeViewId[Id])) || de.complete.docDragData.userDropAction) ?
                 de.complete.docDragData.droppedDocuments.reduce((added, d) => addDoc(d) || added, false)
                 : de.complete.docDragData.moveDocument ?
                     movedDocs.reduce((added, d) => de.complete.docDragData?.moveDocument?.(d, undefined, addDoc) || added, false)
@@ -335,7 +336,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 {!docs ? (null) :
                     TreeView.GetChildElements(docs, this.props.treeViewId, Doc.Layout(this.props.document),
                         this.templateDataDoc, expandKey, this.props.containingCollection, this.props.prevSibling, addDoc, remDoc, this.move,
-                        this.props.dropAction, this.props.addDocTab, this.props.pinToPres, this.props.backgroundColor, this.props.ScreenToLocalTransform,
+                        StrCast(this.props.document.childDropAction, this.props.dropAction) as dropActionType, this.props.addDocTab, this.props.pinToPres, this.props.backgroundColor, this.props.ScreenToLocalTransform,
                         this.props.outerXf, this.props.active, this.props.panelWidth, this.props.ChromeHeight, this.props.renderDepth, this.props.treeViewHideHeaderFields, this.props.treeViewPreventOpen,
                         [...this.props.renderedIds, this.props.document[Id]], this.props.libraryPath, this.props.onCheckedClick, this.props.onChildClick, this.props.ignoreFields)}
             </ul >;
@@ -454,7 +455,7 @@ class TreeView extends React.Component<TreeViewProps> {
                         pinToPres={emptyFunction}
                         onClick={this.props.onChildClick || editTitle}
                         dropAction={this.props.dropAction}
-                        moveDocument={this.props.moveDocument}
+                        moveDocument={this.move}
                         removeDocument={this.removeDoc}
                         ScreenToLocalTransform={this.getTransform}
                         ContentScaling={returnOne}
@@ -470,7 +471,7 @@ class TreeView extends React.Component<TreeViewProps> {
                         bringToFront={emptyFunction}
                         dontRegisterView={BoolCast(this.props.treeViewId.dontRegisterChildren)}
                         ContainingCollectionView={undefined}
-                        ContainingCollectionDoc={undefined}
+                        ContainingCollectionDoc={this.props.containingCollection}
                     />}
             </div >
             {this.props.treeViewHideHeaderFields() ? (null) : headerElements}
@@ -484,11 +485,15 @@ class TreeView extends React.Component<TreeViewProps> {
         return <div className="treeViewItem-container" ref={this.createTreeDropTarget}>
             <li className="collection-child">
                 <div className="treeViewItem-header" ref={this._header} onClick={e => {
-                    e.stopPropagation();
-                    e.preventDefault();
+                    if (this.props.active(true)) {
+                        e.stopPropagation();
+                        e.preventDefault();
+                    }
                 }} onPointerDown={e => {
-                    e.stopPropagation();
-                    e.preventDefault();
+                    if (this.props.active(true)) {
+                        e.stopPropagation();
+                        e.preventDefault();
+                    }
                 }} onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}>
                     {this.renderBullet}
                     {this.renderTitle}
@@ -655,7 +660,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
     @computed get dataDoc() { return this.props.DataDoc || this.props.Document; }
 
     protected createTreeDropTarget = (ele: HTMLDivElement) => {
-        this.treedropDisposer && this.treedropDisposer();
+        this.treedropDisposer?.();
         if (this._mainEle = ele) {
             this.treedropDisposer = DragManager.MakeDropTarget(ele, this.onInternalDrop.bind(this));
         }
@@ -663,7 +668,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
 
     componentWillUnmount() {
         super.componentWillUnmount();
-        this.treedropDisposer && this.treedropDisposer();
+        this.treedropDisposer?.();
     }
 
     @action
@@ -808,6 +813,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                         Doc.SetInPlace(this.dataDoc, "title", value, false);
                         const doc = Docs.Create.FreeformDocument([], { title: "", x: 0, y: 0, _width: 100, _height: 25, templates: new List<string>([Templates.Title.Layout]) });
                         EditableView.loadId = doc[Id];
+                        Doc.SetInPlace(doc, "editTitle", true, false);
                         this.addDoc(doc, childDocs.length ? childDocs[0] : undefined, true);
                     })} />)}
                 {this.props.Document.allowClear ? this.renderClearButton : (null)}
