@@ -46,6 +46,7 @@ import { InteractionUtils } from '../../util/InteractionUtils';
 import { ObjectField } from '../../../new_fields/ObjectField';
 import CollectionMapView from './CollectionMapView';
 import { Transform } from 'prosemirror-transform';
+import { CollectionGridView } from './collectionGrid/CollectionGridView';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -67,7 +68,8 @@ export enum CollectionViewType {
     Carousel = "carousel",
     Linear = "linear",
     Staff = "staff",
-    Map = "map"
+    Map = "map",
+    Grid = "grid"
 }
 
 export interface CollectionRenderProps {
@@ -174,6 +176,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
             case CollectionViewType.Masonry: { this.props.Document.singleColumn = false; return (<CollectionStackingView key="collview" {...props} />); }
             case CollectionViewType.Time: { return (<CollectionTimeView key="collview" {...props} />); }
             case CollectionViewType.Map: return (<CollectionMapView key="collview" {...props} />);
+            case CollectionViewType.Grid: return (<CollectionGridView key="gridview" {...props} />);
             case CollectionViewType.Freeform:
             default: { this.props.Document._freeformLayoutEngine = undefined; return (<CollectionFreeFormView key="collview" {...props} />); }
         }
@@ -216,6 +219,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
             subItems.push({ description: "Carousel", event: () => this.props.Document._viewType = CollectionViewType.Carousel, icon: "columns" });
             subItems.push({ description: "Pivot/Time", event: () => this.props.Document._viewType = CollectionViewType.Time, icon: "columns" });
             subItems.push({ description: "Map", event: () => this.props.Document._viewType = CollectionViewType.Map, icon: "globe-americas" });
+            subItems.push({ description: "Grid", event: () => this.props.Document._viewType = CollectionViewType.Grid, icon: "rainbow" });
             switch (this.props.Document._viewType) {
                 case CollectionViewType.Freeform: {
                     subItems.push({ description: "Custom", icon: "fingerprint", event: AddCustomFreeFormLayout(this.props.Document, this.props.fieldKey) });
