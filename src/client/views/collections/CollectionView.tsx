@@ -211,11 +211,8 @@ export class CollectionView extends Touchable<FieldViewProps> {
         subItems.push({ description: "Carousel", event: () => func(CollectionViewType.Carousel), icon: "columns" });
         subItems.push({ description: "Pivot/Time", event: () => func(CollectionViewType.Time), icon: "columns" });
         subItems.push({ description: "Map", event: () => func(CollectionViewType.Map), icon: "globe-americas" });
-        if (addExtras) switch (this.props.Document._viewType) {
-            case CollectionViewType.Freeform: {
-                subItems.push({ description: "Custom", icon: "fingerprint", event: AddCustomFreeFormLayout(this.props.Document, this.props.fieldKey) });
-                break;
-            }
+        if (addExtras && this.props.Document._viewType === CollectionViewType.Freeform) {
+            subItems.push({ description: "Custom", icon: "fingerprint", event: AddCustomFreeFormLayout(this.props.Document, this.props.fieldKey) });
         }
         addExtras && subItems.push({ description: "lightbox", event: action(() => this._isLightboxOpen = true), icon: "eye" });
         !existingVm && ContextMenu.Instance.addItem({ description: category, subitems: subItems, icon: "eye" });

@@ -1,8 +1,8 @@
 import { computed } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, Opt } from "../../../new_fields/Doc";
-import { Cast, StrCast } from "../../../new_fields/Types";
-import { OmitKeys, Without } from "../../../Utils";
+import { Doc, Opt, Field } from "../../../new_fields/Doc";
+import { Cast, StrCast, NumCast } from "../../../new_fields/Types";
+import { OmitKeys, Without, emptyPath } from "../../../Utils";
 import DirectoryImportBox from "../../util/Import & Export/DirectoryImportBox";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
@@ -53,6 +53,31 @@ class ObserverJsxParser1 extends JsxParser {
 
 const ObserverJsxParser: typeof JsxParser = ObserverJsxParser1 as any;
 
+
+interface DivProps {
+    Document: Doc;
+}
+
+@observer
+export class Div extends React.Component<DivProps> {
+    render() {
+        const style: { [key: string]: any } = {};
+        const divKeys = OmitKeys(this.props, ["children", "Document", "key", "__proto__"]).omit;
+        Object.keys(divKeys).map((prop: string) => {
+            let p = (this.props as any)[prop] as string;
+            if (p?.startsWith("@")) {  // bcz: extend this to support expression -- is this really a script?
+                const key = p.substring(1);
+                const n = Cast(this.props.Document[key], "number", null);
+                p = n ? n.toString() : StrCast(this.props.Document[key], p);
+            }
+            style[prop] = p;
+        });
+        return <div style={style}>
+            {this.props.children}
+        </div>;
+    }
+}
+
 @observer
 export class DocumentContentsView extends React.Component<DocumentViewProps & {
     isSelected: (outsideReaction: boolean) => boolean,
@@ -102,21 +127,29 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
 
     render() {
         TraceMobx();
-        return (this.props.renderDepth > 12 || !this.layout || !this.layoutDoc) ? (null) :
+        let layoutFrame = this.layout;
+        const replacer = (match: any, p1: string, offset: any, string: any) => {
+            const n = Cast(this.props.Document[p1], "number", null);
+            return n !== undefined ? n.toString() : StrCast(this.props.Document[p1], p1);
+        };
+        layoutFrame = layoutFrame.replace(/\{([a-zA-Z0-9_-]+)\}/g, replacer);
+        return (this.props.renderDepth > 12 || !layoutFrame || !this.layoutDoc) ? (null) :
             this.props.forceLayout === "FormattedTextBox" && this.props.forceFieldKey ?
                 <FormattedTextBox {...this.CreateBindings().props} fieldKey={this.props.forceFieldKey} />
                 :
                 <ObserverJsxParser
+                    key={42}
                     blacklistedAttrs={[]}
+                    renderInWrapper={false}
                     components={{
                         FormattedTextBox, ImageBox, DirectoryImportBox, FontIconBox, LabelBox, SliderBox, FieldView,
                         CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox,
                         PDFBox, VideoBox, AudioBox, PresBox, YoutubeBox, PresElementBox, QueryBox,
                         ColorBox, DashWebRTCVideo, LinkAnchorBox, InkingStroke, DocHolderBox, LinkBox, ScriptingBox,
-                        RecommendationsBox, ScreenshotBox
+                        RecommendationsBox, ScreenshotBox, Div
                     }}
                     bindings={this.CreateBindings()}
-                    jsx={this.layout}
+                    jsx={layoutFrame}
                     showWarnings={true}
 
                     onError={(test: any) => { console.log(test); }}

@@ -3,7 +3,7 @@ import { faCaretUp, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faT
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DataSym } from "../../new_fields/Doc";
+import { Doc, DataSym, Field } from "../../new_fields/Doc";
 import { PositionDocument } from '../../new_fields/documentSchemas';
 import { ScriptField } from '../../new_fields/ScriptField';
 import { Cast, StrCast, NumCast } from "../../new_fields/Types";
@@ -366,7 +366,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 return ScriptField.MakeFunction(this._titleControlString.substring(1), { doc: Doc.name })!.script.run({ self: selected.rootDoc, this: selected.layoutDoc }, console.log).result?.toString() || "";
             }
             if (this._titleControlString.startsWith("#")) {
-                return selected.props.Document[this._titleControlString.substring(1)]?.toString() || "-unset-";
+                return Field.toString(selected.props.Document[this._titleControlString.substring(1)] as Field) || "-unset-";
             }
             return this._accumulatedTitle;
         } else if (SelectionManager.SelectedDocuments().length > 1) {
