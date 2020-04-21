@@ -27,11 +27,11 @@ import ParagraphNodeSpec from "./ParagraphNodeSpec";
 import { Transform } from "./Transform";
 import React = require("react");
 
-const 
-    blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], 
+const
+    blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0],
     hrDOM: DOMOutputSpecArray = ["hr"],
-    preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], 
-    brDOM: DOMOutputSpecArray = ["br"], 
+    preDOM: DOMOutputSpecArray = ["pre", ["code", 0]],
+    brDOM: DOMOutputSpecArray = ["br"],
     ulDOM: DOMOutputSpecArray = ["ul", 0];
 
 // :: Object
@@ -853,7 +853,7 @@ export class DashDocView {
             this._renderDisposer?.();
             this._renderDisposer = reaction(() => {
                 if (!Doc.AreProtosEqual(finalLayout, dashDoc)) {
-                    finalLayout.rootDocument = dashDoc.aliasOf;
+                    finalLayout.rootDocument = dashDoc.aliasOf; // bcz: check on this ... why is it here?
                 }
                 const layoutKey = StrCast(finalLayout.layoutKey);
                 const finalKey = layoutKey && StrCast(finalLayout[layoutKey]).split("'")?.[1];
