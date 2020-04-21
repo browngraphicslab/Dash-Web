@@ -141,7 +141,7 @@ export class CurrentUserUtils {
         if (doc["template-icon-view"] === undefined) {
             const iconView = Docs.Create.TextDocument("", {
                 title: "icon", _width: 150, _height: 30, isTemplateDoc: true,
-                onClick: ScriptField.MakeScript("deiconifyView(this)")
+                onClick: ScriptField.MakeScript("deiconifyView(self)")
             });
             Doc.GetProto(iconView).icon = new RichTextField('{"doc":{"type":"doc","content":[{"type":"paragraph","attrs":{"align":null,"color":null,"id":null,"indent":null,"inset":null,"lineSpacing":null,"paddingBottom":null,"paddingTop":null},"content":[{"type":"dashField","attrs":{"fieldKey":"title","docid":""}}]}]},"selection":{"type":"text","anchor":2,"head":2},"storedMarks":[]}', "");
             iconView.isTemplateDoc = makeTemplate(iconView);
@@ -397,7 +397,7 @@ export class CurrentUserUtils {
                 _width: 50, _height: 25, title: "Library", fontSize: 10,
                 letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
                 sourcePanel: new PrefetchProxy(Docs.Create.TreeDocument([workspaces, documents, recentlyClosed, doc], {
-                    title: "Library", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "place", lockedPosition: true, boxShadow: "0 0", dontRegisterChildren: true
+                    title: "Library", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "move", lockedPosition: true, boxShadow: "0 0", dontRegisterChildren: true
                 })) as any as Doc,
                 targetContainer: new PrefetchProxy(sidebarContainer) as any as Doc,
                 onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel;")
@@ -413,6 +413,7 @@ export class CurrentUserUtils {
                 _width: 50, _height: 25, title: "Search", fontSize: 10,
                 letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
                 sourcePanel: new PrefetchProxy(Docs.Create.QueryDocument({ title: "search stack", })) as any as Doc,
+                searchFileTypes: new List<string>([DocumentType.RTF, DocumentType.IMG, DocumentType.PDF, DocumentType.VID, DocumentType.WEB, DocumentType.SCRIPTING]),
                 targetContainer: new PrefetchProxy(sidebarContainer) as any as Doc,
                 lockedPosition: true,
                 onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel")
