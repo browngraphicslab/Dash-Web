@@ -74,7 +74,8 @@ export function SetupDrag(
 
 export namespace DragManager {
     let dragDiv: HTMLDivElement;
-    let snapLines: [PointData, PointData][];
+    let horizSnapLines: number[];
+    let vertSnapLines: number[];
 
     export function Root() {
         const root = document.getElementById("root");
@@ -283,8 +284,9 @@ export namespace DragManager {
         StartDrag([ele], {}, downX, downY);
     }
 
-    export function SetSnapLines() {
-        snapLines = [];
+    export function SetSnapLines(horizLines: number[], vertLines: number[]) {
+        horizSnapLines = horizLines;
+        vertSnapLines = vertLines;
     }
 
     function StartDrag(eles: HTMLElement[], dragData: { [id: string]: any }, downX: number, downY: number, options?: DragOptions, finishDrag?: (dropData: DragCompleteEvent) => void) {
@@ -302,12 +304,22 @@ export namespace DragManager {
         const ys: number[] = [];
 
         const docs = dragData instanceof DocumentDragData ? dragData.draggedDocuments : dragData instanceof PdfAnnoDragData ? [dragData.dragDocument] : [];
+        const elesCont = {
+            left: Number.MAX_SAFE_INTEGER,
+            top: Number.MAX_SAFE_INTEGER,
+            right: Number.MIN_SAFE_INTEGER,
+            bottom: Number.MIN_SAFE_INTEGER
+        };
         const dragElements = eles.map(ele => {
             if (!ele.parentNode) dragDiv.appendChild(ele);
             const dragElement = ele.parentNode === dragDiv ? ele : ele.cloneNode(true) as HTMLElement;
             const rect = ele.getBoundingClientRect();
             const scaleX = rect.width / ele.offsetWidth,
                 scaleY = rect.height / ele.offsetHeight;
+            elesCont.left = Math.min(rect.left, elesCont.left);
+            elesCont.top = Math.min(rect.top, elesCont.top);
+            elesCont.right = Math.max(rect.right, elesCont.right);
+            elesCont.bottom = Math.max(rect.bottom, elesCont.bottom);
             xs.push(rect.left);
             ys.push(rect.top);
             scaleXs.push(scaleX);
@@ -357,6 +369,12 @@ export namespace DragManager {
 
         let lastX = downX;
         let lastY = downY;
+        const xFromLeft = downX - elesCont.left;
+        const yFromTop = downY - elesCont.top;
+        const xFromRight = elesCont.right - downX;
+        const yFromBottom = elesCont.bottom - downY;
+        console.log(elesCont);
+        console.log(xFromLeft, yFromTop);
         const moveHandler = (e: PointerEvent) => {
             e.preventDefault(); // required or dragging text menu link item ends up dragging the link button as native drag/drop
             if (dragData instanceof DocumentDragData) {
@@ -373,10 +391,45 @@ export namespace DragManager {
                 }, dragData.droppedDocuments);
             }
             //TODO: Why can't we use e.movementX and e.movementY?
-            const moveX = e.pageX - lastX;
-            const moveY = e.pageY - lastY;
-            lastX = e.pageX;
-            lastY = e.pageY;
+            let thisX = e.pageX;
+            let thisY = e.pageY;
+            const currLeft = e.pageX - xFromLeft;
+            const currTop = e.pageY - yFromTop;
+            const currRight = e.pageX + xFromRight;
+            const currBottom = e.pageY + yFromBottom;
+            const closestLeft = vertSnapLines.reduce((prev, curr) => Math.abs(prev - currLeft) > Math.abs(curr - currLeft) ? curr : prev);
+            const closestTop = horizSnapLines.reduce((prev, curr) => Math.abs(prev - currTop) > Math.abs(curr - currTop) ? curr : prev);
+            const closestRight = vertSnapLines.reduce((prev, curr) => Math.abs(prev - currRight) > Math.abs(curr - currRight) ? curr : prev);
+            const closestBottom = horizSnapLines.reduce((prev, curr) => Math.abs(prev - currBottom) > Math.abs(curr - currBottom) ? curr : prev);
+            const distFromClosestLeft = Math.abs(e.pageX - xFromLeft - closestLeft);
+            const distFromClosestTop = Math.abs(e.pageY - yFromTop - closestTop);
+            const distFromClosestRight = Math.abs(e.pageX + xFromRight - closestRight);
+            const distFromClosestBottom = Math.abs(e.pageY + yFromBottom - closestBottom);
+            if (distFromClosestLeft < 10 && distFromClosestLeft < distFromClosestRight) {
+                thisX = closestLeft + xFromLeft;
+            }
+            else if (distFromClosestRight < 10) {
+                thisX = closestRight - xFromRight;
+            }
+            if (distFromClosestTop < 10 && distFromClosestTop < distFromClosestRight) {
+                thisY = closestTop + yFromTop;
+            }
+            else if (distFromClosestBottom < 10) {
+                thisY = closestBottom - yFromBottom;
+            }
+
+            // const closestHoriz = horizSnapLines.reduce((prev, curr) => Math.abs(prev - thisY) > Math.abs(curr - thisY) ? curr : prev);
+            // const closestVert = vertSnapLines.reduce((prev, curr) => Math.abs(prev - thisX) > Math.abs(curr - thisX) ? curr : prev);
+            // if (Math.abs(thisY - closestHoriz) < 10) {
+            //     thisY = closestHoriz;
+            // }
+            // if (Math.abs(thisX - closestVert) < 10) {
+            //     thisX = closestVert;
+            // }
+            const moveX = thisX - lastX;
+            const moveY = thisY - lastY;
+            lastX = thisX;
+            lastY = thisY;
             dragElements.map((dragElement, i) => (dragElement.style.transform =
                 `translate(${(xs[i] += moveX) + (options?.offsetX || 0)}px, ${(ys[i] += moveY) + (options?.offsetY || 0)}px)  scale(${scaleXs[i]}, ${scaleYs[i]})`)
             );
