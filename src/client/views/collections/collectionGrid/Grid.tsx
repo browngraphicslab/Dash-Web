@@ -20,14 +20,13 @@ export default class Grid extends React.Component {
             { i: 'c', x: 4, y: 0, w: 1, h: 2 }
         ];
         return (
-            <div>
-                {/* <GridLayout className="layout" layout={layout} cols={12} rowHeight={30} width={1200}>
-                    <div key="a">a</div>
-                    <div key="b">b</div>
-                    <div key="c">c</div>
-                </GridLayout> */}
-                HI
-            </div>
+            // <div className="collectionGridView_contents"
+            // style={}>
+            <GridLayout className="layout" layout={layout} cols={12} rowHeight={30} width={1200}>
+                <div key="a">a</div>
+                <div key="b">b</div>
+                <div key="c">c</div>
+            </GridLayout>
         );
     }
 }
