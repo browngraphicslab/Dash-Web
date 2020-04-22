@@ -62,6 +62,7 @@ interface HTMLtagProps {
     onClick?: ScriptField;
 }
 //"<HTMLdiv borderRadius='100px' onClick={this.bannerColor=this.bannerColor==='red'?'green':'red'} width='100%' height='100%' transform='rotate({2*this.x+this.y}deg)'><ImageBox {...props} fieldKey={'data'}/><HTMLspan width='100%'  marginTop='50%'  height='10%'  position='absolute' backgroundColor='{this.bannerColor===`green`?`dark`:`light`}grey'>{this.title}</HTMLspan></HTMLdiv>"@observer
+@observer
 export class HTMLtag extends React.Component<HTMLtagProps> {
     click = (e: React.MouseEvent) => {
         const clickScript = (this.props as any).onClick as Opt<ScriptField>;
