@@ -131,8 +131,7 @@
         color: grey;
         transform-origin: top;
         border-top: 0px;
-        margin-left: 10px;
-        margin-right: 10px;
+
         overflow:hidden;
         transition:height 0.3s ease-out;
         height:0px;
@@ -144,29 +143,28 @@
         color: grey;
         transform-origin: top;
         border-top: 0px;
-        margin-left: 10px;
-        margin-right: 10px;
         overflow:hidden;
         transition:height 0.3s ease-out;
         height:0px;
-        .filter-keybar {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-evenly;
-            height: auto;
-            width: 100%;
-            flex-direction: row-reverse;
-            margin-top:5px;
-            
-            .filter-item {
-                position: relative;
-                border:1px solid grey;
-                border-radius: 16px;
-    
-            }
+
+        .labelBox-mainButton:hover{
+            color:"White";
         }
-
-
+        // .filter-keybar {
+        //     display: flex;
+        //     flex-wrap: wrap;
+        //     justify-content: space-evenly;
+        //     height: auto;
+        //     width: 100%;
+        //     flex-direction: row-reverse;
+        //     margin-top:5px;
+            
+        //     .filter-item {
+        //         position: relative;
+        //         border:1px solid grey;
+        //         border-radius: 16px;
+        //     }
+        // }
     }
 }
 

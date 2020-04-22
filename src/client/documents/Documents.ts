@@ -157,9 +157,11 @@ export interface DocumentOptions {
     selectedIndex?: number;
     syntaxColor?: string; // can be applied to text for syntax highlighting all matches in the text
     searchText?: string, //for searchbox
-    searchQuery?: string, // for queryBox
+    searchQuery?: string, // for quersyBox
     filterQuery?: filterData,
     linearViewIsExpanded?: boolean; // is linear view expanded
+    border?: string; //for searchbox
+    hovercolor?:string;
 }
 
 class EmptyBox {

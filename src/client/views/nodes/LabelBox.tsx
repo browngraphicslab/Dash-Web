@@ -1,6 +1,6 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faEdit } from '@fortawesome/free-regular-svg-icons';
-import { action } from 'mobx';
+import { action, computed, observable, runInAction } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
 import { Doc, DocListCast } from '../../../new_fields/Doc';
@@ -61,17 +61,26 @@ export class LabelBox extends ViewBoxBaseComponent<FieldViewProps, LabelDocument
             e.stopPropagation();
         }
     }
+
+
+
+    @observable backColor= "unset";
+
+    @observable clicked = false;
     // (!missingParams || !missingParams.length ? "" : "(" + missingParams.map(m => m + ":").join(" ") + ")")
     render() {
         const params = Cast(this.paramsDoc["onClick-paramFieldKeys"], listSpec("string"), []);
         const missingParams = params?.filter(p => !this.paramsDoc[p]);
         params?.map(p => DocListCast(this.paramsDoc[p])); // bcz: really hacky form of prefetching ... 
+        console.log(this.backColor);
         return (
-            <div className="labelBox-outerDiv" ref={this.createDropTarget} onContextMenu={this.specificContextMenu}
+            <div className="labelBox-outerDiv" onClick={()=>runInAction(()=>{this.clicked=!this.clicked; this.clicked? this.backColor=StrCast(this.layoutDoc.hovercolor) : this.backColor ="unset"})} onMouseLeave={()=>runInAction(()=>{ !this.clicked ?this.backColor="unset" : null})} 
+            onMouseOver={()=>runInAction(()=>{this.backColor=StrCast(this.layoutDoc.hovercolor);})}ref={this.createDropTarget} onContextMenu={this.specificContextMenu}
                 style={{ boxShadow: this.layoutDoc.opacity ? StrCast(this.layoutDoc.boxShadow) : "" }}>
                 <div className="labelBox-mainButton" style={{
                     background: StrCast(this.layoutDoc.backgroundColor),
-                    color: StrCast(this.layoutDoc.color, "inherit"),
+                    color: StrCast(this.layoutDoc.color),
+                    backgroundColor:this.backColor,
                     fontSize: NumCast(this.layoutDoc.fontSize) || "inherit",
                     letterSpacing: StrCast(this.layoutDoc.letterSpacing),
                     textTransform: StrCast(this.layoutDoc.textTransform) as any
