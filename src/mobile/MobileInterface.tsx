@@ -1,6 +1,6 @@
 import React = require('react');
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faEraser, faHighlighter, faLongArrowAltLeft, faMousePointer, faPenNib } from '@fortawesome/free-solid-svg-icons';
+import { faEraser, faHighlighter, faLongArrowAltLeft, faMousePointer, faPenNib, faThumbtack } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable } from 'mobx';
 import { observer } from 'mobx-react';
@@ -19,6 +19,7 @@ import GestureOverlay from '../client/views/GestureOverlay';
 import { InkingControl } from '../client/views/InkingControl';
 import { InkTool } from '../new_fields/InkField';
 import "./MobileInterface.scss";
+import "./MobileMenu.scss";
 import { DocServer } from '../client/DocServer';
 import { DocumentDecorations } from '../client/views/DocumentDecorations';
 import { PreviewCursor } from '../client/views/PreviewCursor';
@@ -27,6 +28,9 @@ import { Id } from '../new_fields/FieldSymbols';
 import { WebField } from "../new_fields/URLField";
 import { FieldResult } from "../new_fields/Doc";
 import { AssignAllExtensions } from '../extensions/General/Extensions';
+import { listSpec } from '../new_fields/Schema';
+import { DocumentManager } from '../client/util/DocumentManager';
+import RichTextMenu from '../client/util/RichTextMenu';
 
 library.add(faLongArrowAltLeft);
 
@@ -104,34 +108,27 @@ export class MobileInterface extends React.Component {
         });
     }
 
-    renderDefaultContent = () => {
-        if (this.mainContainer) {
-            return <DocumentView
-                Document={this.mainContainer}
-                DataDoc={undefined}
-                LibraryPath={emptyPath}
-                addDocument={returnFalse}
-                addDocTab={returnFalse}
-                pinToPres={emptyFunction}
-                rootSelected={returnFalse}
-                removeDocument={undefined}
-                onClick={undefined}
-                ScreenToLocalTransform={Transform.Identity}
-                ContentScaling={returnOne}
-                NativeHeight={returnZero}
-                NativeWidth={returnZero}
-                PanelWidth={() => window.screen.width}
-                PanelHeight={() => window.screen.height}
-                renderDepth={0}
-                focus={emptyFunction}
-                backgroundColor={returnEmptyString}
-                parentActive={returnTrue}
-                whenActiveChanged={emptyFunction}
-                bringToFront={emptyFunction}
-                ContainingCollectionView={undefined}
-                ContainingCollectionDoc={undefined} />;
+    toggleSidebar = () => {
+        const menuButton = document.getElementById("sidebar") as HTMLInputElement;
+
+        if (menuButton.checked) {
+            console.log("Checked");
+        } else {
+            console.log("Not checked");
         }
-        return "hello";
+
+    }
+
+    renderDefaultContent = () => {
+        return (
+            <div className="navbar">
+                <div className="toggle-btn" id="menuButton" onClick={this.toggleSidebar}>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+        );
     }
 
     onBack = (e: React.MouseEvent) => {
@@ -166,54 +163,9 @@ export class MobileInterface extends React.Component {
 
     panelHeight = () => window.innerHeight;
     panelWidth = () => window.innerWidth;
-    renderInkingContent = () => {
-        console.log("rendering inking content");
-        // TODO: support panning and zooming
-        // TODO: handle moving of ink strokes
-        if (this.mainContainer) {
-            return (
-                <div className="mobileInterface">
-                    <div className="mobileInterface-inkInterfaceButtons">
-                        <div className="navButtons">
-                            <button className="mobileInterface-button cancel" onClick={this.onBack} title="Cancel drawing">BACK</button>
-                        </div>
-                        <div className="inkSettingButtons">
-                            <button className="mobileInterface-button cancel" onClick={this.onBack} title="Cancel drawing"><FontAwesomeIcon icon="long-arrow-alt-left" /></button>
-                        </div>
-                        <div className="navButtons">
-                            <button className="mobileInterface-button" onClick={this.shiftLeft} title="Shift left">left</button>
-                            <button className="mobileInterface-button" onClick={this.shiftRight} title="Shift right">right</button>
-                        </div>
-                    </div>
-                    <CollectionView
-                        Document={this.mainContainer}
-                        DataDoc={undefined}
-                        LibraryPath={emptyPath}
-                        fieldKey={""}
-                        dropAction={"alias"}
-                        bringToFront={emptyFunction}
-                        addDocTab={returnFalse}
-                        pinToPres={emptyFunction}
-                        PanelWidth={this.panelWidth}
-                        PanelHeight={this.panelHeight}
-                        NativeHeight={returnZero}
-                        NativeWidth={returnZero}
-                        focus={emptyFunction}
-                        isSelected={returnFalse}
-                        select={emptyFunction}
-                        active={returnFalse}
-                        ContentScaling={returnOne}
-                        whenActiveChanged={returnFalse}
-                        ScreenToLocalTransform={Transform.Identity}
-                        renderDepth={0}
-                        ContainingCollectionView={undefined}
-                        ContainingCollectionDoc={undefined}
-                        rootSelected={returnTrue}>
-                    </CollectionView>
-                </div>
-            );
-        }
-    }
+    //WAS 3
+
+    //WAS 1
 
     upload = async (e: React.MouseEvent) => {
         if (this.mainContainer) {
@@ -261,46 +213,6 @@ export class MobileInterface extends React.Component {
             }
         }
     }
-
-    renderUploadContent() {
-        if (this.mainContainer) {
-            return (
-                <div className="mobileInterface" onDragOver={this.onDragOver}>
-                    <div className="mobileInterface-inkInterfaceButtons">
-                        <button className="mobileInterface-button cancel" onClick={this.onBack} title="Back">BACK</button>
-                        {/* <button className="mobileInterface-button" onClick={this.clearUpload} title="Clear Upload">CLEAR</button> */}
-                        {/* <button className="mobileInterface-button" onClick={this.addWeb} title="Add Web Doc to Upload Collection"></button> */}
-                        <button className="mobileInterface-button" onClick={this.upload} title="Upload">UPLOAD</button>
-                    </div>
-                    <DocumentView
-                        Document={this.mainContainer}
-                        DataDoc={undefined}
-                        LibraryPath={emptyPath}
-                        addDocument={returnFalse}
-                        addDocTab={returnFalse}
-                        pinToPres={emptyFunction}
-                        rootSelected={returnFalse}
-                        removeDocument={undefined}
-                        onClick={undefined}
-                        ScreenToLocalTransform={Transform.Identity}
-                        ContentScaling={returnOne}
-                        NativeHeight={returnZero}
-                        NativeWidth={returnZero}
-                        PanelWidth={() => window.screen.width}
-                        PanelHeight={() => window.screen.height}
-                        renderDepth={0}
-                        focus={emptyFunction}
-                        backgroundColor={returnEmptyString}
-                        parentActive={returnTrue}
-                        whenActiveChanged={emptyFunction}
-                        bringToFront={emptyFunction}
-                        ContainingCollectionView={undefined}
-                        ContainingCollectionDoc={undefined} />
-                </div>
-            );
-        }
-    }
-
     onDragOver = (e: React.DragEvent) => {
         e.preventDefault();
         e.stopPropagation();
@@ -316,18 +228,17 @@ export class MobileInterface extends React.Component {
                 <GestureOverlay>
                     {this.renderView ? this.renderView() : this.renderDefaultContent()}
                 </GestureOverlay> */}
-
                 {/* <DictationOverlay />
                 <SharingManager />
                 <GoogleAuthenticationManager /> */}
-                <DocumentDecorations />
-                <GestureOverlay>
+                {/* <DocumentDecorations /> */}
+                <div>
                     {this.renderView ? this.renderView() : this.renderDefaultContent()}
-                </GestureOverlay>
-                <PreviewCursor />
+                </div>
+                {/* <PreviewCursor /> */}
                 {/* <ContextMenu /> */}
-                <RadialMenu />
-                <RichTextMenu />
+                {/* <RadialMenu />
+                <RichTextMenu /> */}
                 {/* <PDFMenu />
                 <MarqueeOptionsMenu />
                 <OverlayView /> */}
@@ -337,17 +248,13 @@ export class MobileInterface extends React.Component {
 }
 
 Scripting.addGlobal(function switchMobileView(doc: (userDoc: Doc) => Doc, renderView?: () => JSX.Element, onSwitch?: () => void) { return MobileInterface.Instance.switchCurrentView(doc, renderView, onSwitch); });
-Scripting.addGlobal(function onSwitchMobileInking() { return MobileInterface.Instance.onSwitchInking(); });
-Scripting.addGlobal(function renderMobileInking() { return MobileInterface.Instance.renderInkingContent(); });
-Scripting.addGlobal(function onSwitchMobileUpload() { return MobileInterface.Instance.onSwitchUpload(); });
-Scripting.addGlobal(function renderMobileUpload() { return MobileInterface.Instance.renderUploadContent(); });
-Scripting.addGlobal(function addWebToMobileUpload() { return MobileInterface.Instance.addWebToCollection(); });
+// WAS 2
 
 AssignAllExtensions();
 
 (async () => {
     const info = await CurrentUserUtils.loadCurrentUser();
-    DocServer.init(window.location.protocol, window.location.hostname, 4321, info.email + "mobile");
+    DocServer.init(window.location.protocol, window.location.hostname, 4321, info.email + " (mobile)");
     await Docs.Prototypes.initialize();
     if (info.id !== "__guest__") {
         // a guest will not have an id registered
@@ -360,3 +267,102 @@ AssignAllExtensions();
     }, true);
     ReactDOM.render(<MobileInterface />, document.getElementById('root'));
 })();
+
+
+// 1
+    // renderUploadContent() {
+    //     if (this.mainContainer) {
+    //         return (
+    //             <div className="mobileInterface" onDragOver={this.onDragOver}>
+    //                 <div className="mobileInterface-inkInterfaceButtons">
+    //                     <button className="mobileInterface-button cancel" onClick={this.onBack} title="Back">BACK</button>
+    //                     {/* <button className="mobileInterface-button" onClick={this.clearUpload} title="Clear Upload">CLEAR</button> */}
+    //                     {/* <button className="mobileInterface-button" onClick={this.addWeb} title="Add Web Doc to Upload Collection"></button> */}
+    //                     <button className="mobileInterface-button" onClick={this.upload} title="Upload">UPLOAD</button>
+    //                 </div>
+    //                 <DocumentView
+    //                     Document={this.mainContainer}
+    //                     DataDoc={undefined}
+    //                     LibraryPath={emptyPath}
+    //                     addDocument={returnFalse}
+    //                     addDocTab={returnFalse}
+    //                     pinToPres={emptyFunction}
+    //                     rootSelected={returnFalse}
+    //                     removeDocument={undefined}
+    //                     onClick={undefined}
+    //                     ScreenToLocalTransform={Transform.Identity}
+    //                     ContentScaling={returnOne}
+    //                     NativeHeight={returnZero}
+    //                     NativeWidth={returnZero}
+    //                     PanelWidth={() => window.screen.width}
+    //                     PanelHeight={() => window.screen.height}
+    //                     renderDepth={0}
+    //                     focus={emptyFunction}
+    //                     backgroundColor={returnEmptyString}
+    //                     parentActive={returnTrue}
+    //                     whenActiveChanged={emptyFunction}
+    //                     bringToFront={emptyFunction}
+    //                     ContainingCollectionView={undefined}
+    //                     ContainingCollectionDoc={undefined} />
+    //             </div>
+    //         );
+    //     }
+    // }
+
+// 2
+    // Scripting.addGlobal(function onSwitchMobileInking() { return MobileInterface.Instance.onSwitchInking(); });
+    // Scripting.addGlobal(function renderMobileInking() { return MobileInterface.Instance.renderInkingContent(); });
+    // Scripting.addGlobal(function onSwitchMobileUpload() { return MobileInterface.Instance.onSwitchUpload(); });
+    // Scripting.addGlobal(function renderMobileUpload() { return MobileInterface.Instance.renderUploadContent(); });
+    // Scripting.addGlobal(function addWebToMobileUpload() { return MobileInterface.Instance.addWebToCollection(); });
+
+
+// 3   
+    // renderInkingContent = () => {
+        //     console.log("rendering inking content");
+        //     // TODO: support panning and zooming
+        //     // TODO: handle moving of ink strokes
+        //     if (this.mainContainer) {
+        //         return (
+        //             <div className="mobileInterface">
+        //                 <div className="mobileInterface-inkInterfaceButtons">
+        //                     <div className="navButtons">
+        //                         <button className="mobileInterface-button cancel" onClick={this.onBack} title="Cancel drawing">BACK</button>
+        //                     </div>
+        //                     <div className="inkSettingButtons">
+        //                         <button className="mobileInterface-button cancel" onClick={this.onBack} title="Cancel drawing"><FontAwesomeIcon icon="long-arrow-alt-left" /></button>
+        //                     </div>
+        //                     <div className="navButtons">
+        //                         <button className="mobileInterface-button" onClick={this.shiftLeft} title="Shift left">left</button>
+        //                         <button className="mobileInterface-button" onClick={this.shiftRight} title="Shift right">right</button>
+        //                     </div>
+        //                 </div>
+        //                 <CollectionView
+        //                     Document={this.mainContainer}
+        //                     DataDoc={undefined}
+        //                     LibraryPath={emptyPath}
+        //                     fieldKey={""}
+        //                     dropAction={"alias"}
+        //                     bringToFront={emptyFunction}
+        //                     addDocTab={returnFalse}
+        //                     pinToPres={emptyFunction}
+        //                     PanelWidth={this.panelWidth}
+        //                     PanelHeight={this.panelHeight}
+        //                     NativeHeight={returnZero}
+        //                     NativeWidth={returnZero}
+        //                     focus={emptyFunction}
+        //                     isSelected={returnFalse}
+        //                     select={emptyFunction}
+        //                     active={returnFalse}
+        //                     ContentScaling={returnOne}
+        //                     whenActiveChanged={returnFalse}
+        //                     ScreenToLocalTransform={Transform.Identity}
+        //                     renderDepth={0}
+        //                     ContainingCollectionView={undefined}
+        //                     ContainingCollectionDoc={undefined}
+        //                     rootSelected={returnTrue}>
+        //                 </CollectionView>
+        //             </div>
+        //         );
+        //     }
+        // }
