@@ -297,6 +297,10 @@ export class CurrentUserUtils {
         });
     }
 
+    static setupMobileMenu(userDoc: Doc) {
+        return CurrentUserUtils.setupWorkspaces(userDoc);
+    }
+
     static setupMobileInkingDoc(userDoc: Doc) {
         return Docs.Create.FreeformDocument([], { title: "Mobile Inking", backgroundColor: "white" });
     }
@@ -363,6 +367,7 @@ export class CurrentUserUtils {
 
         return doc.myWorkspaces as Doc;
     }
+
     static setupDocumentCollection(doc: Doc) {
         if (doc.myDocuments === undefined) {
             doc.myDocuments = new PrefetchProxy(Docs.Create.TreeDocument([], {
