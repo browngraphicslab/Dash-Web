@@ -35,10 +35,10 @@ import { WebBox } from "./WebBox";
 import { InkingStroke } from "../InkingStroke";
 import React = require("react");
 import { RecommendationsBox } from "../RecommendationsBox";
-
 import { TraceMobx } from "../../../new_fields/util";
 import { ScriptField } from "../../../new_fields/ScriptField";
-import ReactTable from "react-table";
+import XRegExp = require("xregexp");
+
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
 
 type BindingProps = Without<FieldViewProps, 'fieldKey'>;
@@ -59,13 +59,13 @@ const ObserverJsxParser: typeof JsxParser = ObserverJsxParser1 as any;
 interface HTMLtagProps {
     Document: Doc;
     htmltag: string;
+    onClick?: ScriptField;
 }
-//"<HTMLdiv borderRadius='100px' onClick={() => this.bannerColor=this.bannerColor==='red'?'green':'red'} width='100%' height='100%' transform='rotate({2*this.x+this.y}deg)' backgroundColor='{this.bannerColor}'><ImageBox {...props} fieldKey={'data'}/><HTMLspan width='100%'  marginTop='50%'  height='10%'  position='absolute' backgroundColor='green'>{this.title}</HTMLspan></HTMLdiv>"
-@observer
+//"<HTMLdiv borderRadius='100px' onClick={this.bannerColor=this.bannerColor==='red'?'green':'red'} width='100%' height='100%' transform='rotate({2*this.x+this.y}deg)'><ImageBox {...props} fieldKey={'data'}/><HTMLspan width='100%'  marginTop='50%'  height='10%'  position='absolute' backgroundColor='{this.bannerColor===`green`?`dark`:`light`}grey'>{this.title}</HTMLspan></HTMLdiv>"@observer
 export class HTMLtag extends React.Component<HTMLtagProps> {
     click = (e: React.MouseEvent) => {
-        const clickScript = (this.props as any).onClick;
-        ScriptField.MakeScript(clickScript, { self: Doc.name, this: Doc.name })?.script.run({ this: this.props.Document });
+        const clickScript = (this.props as any).onClick as Opt<ScriptField>;
+        clickScript?.script.run({ this: this.props.Document });
     }
     render() {
         const style: { [key: string]: any } = {};
@@ -129,11 +129,12 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         return Doc.expandTemplateLayout(template, this.props.Document, params ? "(" + params + ")" : this.props.layoutKey);
     }
 
-    CreateBindings(): JsxBindings {
+    CreateBindings(onClick: Opt<ScriptField>): JsxBindings {
         const list = {
             ...OmitKeys(this.props, ['parentActive'], (obj: any) => obj.active = this.props.parentActive).omit,
             Document: this.layoutDoc,
             DataDoc: this.dataDoc,
+            onClick: onClick
         };
         return { props: list };
     }
@@ -141,6 +142,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     render() {
         TraceMobx();
         let layoutFrame = this.layout;
+
         // replace code content with a script  >{content}<   as in  <HTMLdiv>{this.title}</HTMLdiv>
         const replacer = (match: any, expr: string, offset: any, string: any) => {
             return ">" + (ScriptField.MakeFunction(expr, { self: Doc.name, this: Doc.name })?.script.run({ this: this.props.Document }).result as string || "") + "<";
@@ -159,9 +161,21 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         };
         layoutFrame = layoutFrame.replace(/<\/HTML([a-zA-Z0-9_-]+)/g, replacer3);
 
+        // add onClick function to props
+        const splits = layoutFrame.split("onClick=");
+        let onClick: Opt<ScriptField>;
+        if (splits.length > 1) {
+            const code = XRegExp.matchRecursive(splits[1], "{", "}", "", { valueNames: ["between", "left", "match", "right", "between"] });
+            layoutFrame = splits[0] + " onClick={props.onClick} " + splits[1].substring(code[1].end + 1);
+            onClick = ScriptField.MakeScript(code[1].value, { this: Doc.name, self: Doc.name });
+        }
+
+        const bindings = this.CreateBindings(onClick);
+        //  layoutFrame = splits.length > 1 ? splits[0] + splits[1].replace(/{([^{}]|(?R))*}/, replacer4) : ""; // might have been more elegant if javascript supported recursive patterns
+
         return (this.props.renderDepth > 12 || !layoutFrame || !this.layoutDoc) ? (null) :
             this.props.forceLayout === "FormattedTextBox" && this.props.forceFieldKey ?
-                <FormattedTextBox {...this.CreateBindings().props} fieldKey={this.props.forceFieldKey} />
+                <FormattedTextBox {...bindings.props} fieldKey={this.props.forceFieldKey} />
                 :
                 <ObserverJsxParser
                     key={42}
@@ -174,7 +188,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
                         ColorBox, DashWebRTCVideo, LinkAnchorBox, InkingStroke, DocHolderBox, LinkBox, ScriptingBox,
                         RecommendationsBox, ScreenshotBox, HTMLtag
                     }}
-                    bindings={this.CreateBindings()}
+                    bindings={bindings}
                     jsx={layoutFrame}
                     showWarnings={true}
 

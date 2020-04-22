@@ -29,7 +29,7 @@ export interface SearchProps {
     filterQquery?: string;
     setSearchQuery: (q: string) => {};
     searchFileTypes: string[];
-    setSearchFileTypes: (types: string[]) => {}
+    setSearchFileTypes: (types: string[]) => {};
 }
 
 export enum Keys {
@@ -86,7 +86,7 @@ export class SearchBox extends React.Component<SearchProps> {
             this._searchString = this.props.searchQuery;
             this.submitSearch();
         }
-    })
+    });
 
 
     @action
