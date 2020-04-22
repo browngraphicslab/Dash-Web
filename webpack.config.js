@@ -40,8 +40,12 @@ module.exports = {
         viewer: ["./src/debug/Viewer.tsx", 'webpack-hot-middleware/client?reload=true'],
         repl: ["./src/debug/Repl.tsx", 'webpack-hot-middleware/client?reload=true'],
         test: ["./src/debug/Test.tsx", 'webpack-hot-middleware/client?reload=true'],
+<<<<<<< HEAD
         inkControls: ["./src/mobile/InkControls.tsx", 'webpack-hot-middleware/client?reload=true'],
         imageUpload: ["./src/mobile/SideBar.tsx", 'webpack-hot-middleware/client?reload=true'],
+=======
+        mobileInterface: ["./src/mobile/MobileInterface.tsx", 'webpack-hot-middleware/client?reload=true'],
+>>>>>>> ef9b8c24f26a38a8c7636ad0b5444b3211cebf88
     },
     optimization: {
         noEmitOnErrors: true

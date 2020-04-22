@@ -53,15 +53,10 @@ export namespace Database {
         private db?: mongodb.Db;
         private onConnect: (() => void)[] = [];
 
-<<<<<<< HEAD
-        constructor() {
-            this.MongoClient.connect(url, { connectTimeoutMS: 50000, socketTimeoutMS: 50000 }, (_err, client) => {
-=======
         doConnect() {
             console.error(`\nConnecting to Mongo with URL : ${url}\n`);
             this.MongoClient.connect(url, { connectTimeoutMS: 30000, socketTimeoutMS: 30000, useUnifiedTopology: true }, (_err, client) => {
                 console.error("mongo connect response\n");
->>>>>>> 3a118ee726355197bb37910785e69d75033c2f43
                 if (!client) {
                     console.error("\nMongo connect failed with the error:\n");
                     console.log(_err);

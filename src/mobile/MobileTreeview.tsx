@@ -1,39 +1,57 @@
 import React = require('react');
-import { library } from '@fortawesome/fontawesome-svg-core';
-import { faEraser, faHighlighter, faLongArrowAltLeft, faMousePointer, faPenNib } from '@fortawesome/free-solid-svg-icons';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, observable } from 'mobx';
 import { observer } from 'mobx-react';
-import * as ReactDOM from "react-dom";
-import * as rp from 'request-promise';
+import { computed, action, observable } from 'mobx';
 import { CurrentUserUtils } from '../server/authentication/models/current_user_utils';
 import { FieldValue, Cast, StrCast } from '../new_fields/Types';
 import { Doc, DocListCast } from '../new_fields/Doc';
 import { Docs } from '../client/documents/Documents';
 import { CollectionView } from '../client/views/collections/CollectionView';
 import { DocumentView } from '../client/views/nodes/DocumentView';
-import { emptyPath, emptyFunction, returnFalse, returnOne, returnEmptyString, returnTrue, returnZero, Utils } from '../Utils';
+import { emptyPath, emptyFunction, returnFalse, returnOne, returnEmptyString, returnTrue, returnZero } from '../Utils';
 import { Transform } from '../client/util/Transform';
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { faPenNib, faHighlighter, faEraser, faMousePointer, faBreadSlice, faTrash, faCheck, faLongArrowAltLeft } from '@fortawesome/free-solid-svg-icons';
 import { Scripting } from '../client/util/Scripting';
+import { CollectionFreeFormView } from '../client/views/collections/collectionFreeForm/CollectionFreeFormView';
 import GestureOverlay from '../client/views/GestureOverlay';
 import { InkingControl } from '../client/views/InkingControl';
 import { InkTool } from '../new_fields/InkField';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import "./MobileInterface.scss";
+import { SelectionManager } from '../client/util/SelectionManager';
+import { DateField } from '../new_fields/DateField';
+import { GestureUtils } from '../pen-gestures/GestureUtils';
 import { DocServer } from '../client/DocServer';
 import { DocumentDecorations } from '../client/views/DocumentDecorations';
+import { OverlayView } from '../client/views/OverlayView';
+import { DictationOverlay } from '../client/views/DictationOverlay';
+import SharingManager from '../client/util/SharingManager';
 import { PreviewCursor } from '../client/views/PreviewCursor';
+import { ContextMenu } from '../client/views/ContextMenu';
 import { RadialMenu } from '../client/views/nodes/RadialMenu';
+import PDFMenu from '../client/views/pdf/PDFMenu';
+import MarqueeOptionsMenu from '../client/views/collections/collectionFreeForm/MarqueeOptionsMenu';
+import GoogleAuthenticationManager from '../client/apis/GoogleAuthenticationManager';
+import { listSpec } from '../new_fields/Schema';
 import { Id } from '../new_fields/FieldSymbols';
+import { DocumentManager } from '../client/util/DocumentManager';
+import RichTextMenu from '../client/util/RichTextMenu';
 import { WebField } from "../new_fields/URLField";
 import { FieldResult } from "../new_fields/Doc";
-import { AssignAllExtensions } from '../extensions/General/Extensions';
+import { List } from '../new_fields/List';
+import { MainView } from '../client/views/MainView';
 
 library.add(faLongArrowAltLeft);
 
+/**
+ * This class is just for testing and changing certain functions from Mobile Interface
+ * is not for functional use. It is modelled primarily off of MobileInterface.tsx and 
+ * MainView.tsx
+ */
 @observer
-export class MobileInterface extends React.Component {
-    @observable static Instance: MobileInterface;
-    @computed private get userDoc() { return Doc.UserDoc(); }
+export default class MobileTreeview extends React.Component {
+    public static Instance: MobileTreeview;
+    @computed private get userDoc() { return CurrentUserUtils.UserDocument; }
     @computed private get mainContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeMobile, Doc)) : CurrentUserUtils.GuestMobile; }
     // @observable private currentView: "main" | "ink" | "upload" = "main";
     private mainDoc: any = CurrentUserUtils.setupMobileDoc(this.userDoc);
@@ -46,12 +64,12 @@ export class MobileInterface extends React.Component {
 
     constructor(props: Readonly<{}>) {
         super(props);
-        MobileInterface.Instance = this;
+        MobileTreeview.Instance = this;
     }
 
     @action
     componentDidMount = () => {
-        library.add(...[faPenNib, faHighlighter, faEraser, faMousePointer, faThumbtack]);
+        library.add(...[faPenNib, faHighlighter, faEraser, faMousePointer]);
 
         if (this.userDoc && !this.mainContainer) {
             this.userDoc.activeMobile = this.mainDoc;
@@ -70,7 +88,7 @@ export class MobileInterface extends React.Component {
 
     onSwitchInking = () => {
         InkingControl.Instance.switchTool(InkTool.Pen);
-        MobileInterface.Instance.drawingInk = true;
+        MobileTreeview.Instance.drawingInk = true;
 
         DocServer.Mobile.dispatchOverlayTrigger({
             enableOverlay: true,
@@ -82,7 +100,6 @@ export class MobileInterface extends React.Component {
     onSwitchUpload = async () => {
         let width = 300;
         let height = 300;
-        const res = await rp.get(Utils.prepend("/getUserDocumentId"));
 
         // get width and height of the collection doc
         if (this.mainContainer) {
@@ -312,51 +329,32 @@ export class MobileInterface extends React.Component {
         //         this.currentView === "upload" ? this.uploadContent : <></>;
         return (
             <div className="mobileInterface-container" onDragOver={this.onDragOver}>
-                {/* <DocumentDecorations />
-                <GestureOverlay>
-                    {this.renderView ? this.renderView() : this.renderDefaultContent()}
-                </GestureOverlay> */}
-
-                {/* <DictationOverlay />
+                <DocumentDecorations />
+                <DictationOverlay />
                 <SharingManager />
-                <GoogleAuthenticationManager /> */}
+                <GoogleAuthenticationManager />
                 <DocumentDecorations />
                 <GestureOverlay>
+                    {/* I think the problem has to do with the renderView */}
                     {this.renderView ? this.renderView() : this.renderDefaultContent()}
                 </GestureOverlay>
                 <PreviewCursor />
-                {/* <ContextMenu /> */}
+                <ContextMenu />
                 <RadialMenu />
                 <RichTextMenu />
-                {/* <PDFMenu />
+                <PDFMenu />
                 <MarqueeOptionsMenu />
-                <OverlayView /> */}
+                <OverlayView />
             </div>
         );
     }
 }
 
-Scripting.addGlobal(function switchMobileView(doc: (userDoc: Doc) => Doc, renderView?: () => JSX.Element, onSwitch?: () => void) { return MobileInterface.Instance.switchCurrentView(doc, renderView, onSwitch); });
-Scripting.addGlobal(function onSwitchMobileInking() { return MobileInterface.Instance.onSwitchInking(); });
-Scripting.addGlobal(function renderMobileInking() { return MobileInterface.Instance.renderInkingContent(); });
-Scripting.addGlobal(function onSwitchMobileUpload() { return MobileInterface.Instance.onSwitchUpload(); });
-Scripting.addGlobal(function renderMobileUpload() { return MobileInterface.Instance.renderUploadContent(); });
-Scripting.addGlobal(function addWebToMobileUpload() { return MobileInterface.Instance.addWebToCollection(); });
+Scripting.addGlobal(function switchMobileView(doc: (userDoc: Doc) => Doc, renderView?: () => JSX.Element, onSwitch?: () => void) { return MobileTreeview.Instance.switchCurrentView(doc, renderView, onSwitch); });
+Scripting.addGlobal(function onSwitchMobileInking() { return MobileTreeview.Instance.onSwitchInking(); });
+Scripting.addGlobal(function renderMobileInking() { return MobileTreeview.Instance.renderInkingContent(); });
+Scripting.addGlobal(function onSwitchMobileUpload() { return MobileTreeview.Instance.onSwitchUpload(); });
+Scripting.addGlobal(function renderMobileUpload() { return MobileTreeview.Instance.renderUploadContent(); });
+Scripting.addGlobal(function addWebToMobileUpload() { return MobileTreeview.Instance.addWebToCollection(); });
 
-AssignAllExtensions();
 
-(async () => {
-    const info = await CurrentUserUtils.loadCurrentUser();
-    DocServer.init(window.location.protocol, window.location.hostname, 4321, info.email + "mobile");
-    await Docs.Prototypes.initialize();
-    if (info.id !== "__guest__") {
-        // a guest will not have an id registered
-        await CurrentUserUtils.loadUserDocument(info);
-    }
-    document.getElementById('root')!.addEventListener('wheel', event => {
-        if (event.ctrlKey) {
-            event.preventDefault();
-        }
-    }, true);
-    ReactDOM.render(<MobileInterface />, document.getElementById('root'));
-})();

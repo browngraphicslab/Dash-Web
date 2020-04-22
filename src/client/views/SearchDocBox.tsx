@@ -155,7 +155,6 @@ export class SearchDocBox extends React.Component<FieldViewProps> {
             const newdocs = await this.getAllResults(this.query);
             console.log(newdocs.docs);
             this.content = Docs.Create.TreeDocument(newdocs.docs, { _width: 200, _height: 400, _chromeStatus: "disabled", title: `Search Docs: "Results"` });
-
         }
     }
 
