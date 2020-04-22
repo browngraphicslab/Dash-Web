@@ -144,10 +144,10 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         let layoutFrame = this.layout;
 
         // replace code content with a script  >{content}<   as in  <HTMLdiv>{this.title}</HTMLdiv>
-        const replacer = (match: any, expr: string, offset: any, string: any) => {
-            return ">" + (ScriptField.MakeFunction(expr, { self: Doc.name, this: Doc.name })?.script.run({ this: this.props.Document }).result as string || "") + "<";
+        const replacer = (match: any, prefix: string, expr: string, postfix: string, offset: any, string: any) => {
+            return prefix + (ScriptField.MakeFunction(expr, { self: Doc.name, this: Doc.name })?.script.run({ this: this.props.Document }).result as string || "") + postfix;
         };
-        layoutFrame = layoutFrame.replace(/>\{([^.'][^<}]+)\}</g, replacer);
+        layoutFrame = layoutFrame.replace(/(>[^{]*)\{([^.'][^<}]+)\}([^}]*<)/g, replacer);
 
         // replace HTML<tag> with corresponding HTML tag as in:  <HTMLdiv> becomes  <HTMLtag Document={props.Document} htmltag='div'> 
         const replacer2 = (match: any, p1: string, offset: any, string: any) => {
