@@ -309,7 +309,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         this.hideMarquee();
     }
 
-    getCollection = (selected: Doc[], asTemplate: boolean, isBackground: boolean = false) => {
+    getCollection = (selected: Doc[], asTemplate: boolean, isBackground?: boolean) => {
         const bounds = this.Bounds;
         // const inkData = this.ink ? this.ink.inkData : undefined;
         const creator = asTemplate ? Docs.Create.StackingDocument : Docs.Create.FreeformDocument;

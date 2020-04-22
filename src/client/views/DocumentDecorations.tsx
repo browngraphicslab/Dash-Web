@@ -3,12 +3,11 @@ import { faCaretUp, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faT
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DataSym } from "../../new_fields/Doc";
+import { Doc, DataSym, Field } from "../../new_fields/Doc";
 import { PositionDocument } from '../../new_fields/documentSchemas';
 import { ScriptField } from '../../new_fields/ScriptField';
 import { Cast, StrCast, NumCast } from "../../new_fields/Types";
-import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
-import { Utils, setupMoveUpEvents, emptyFunction, returnFalse } from "../../Utils";
+import { Utils, setupMoveUpEvents, emptyFunction, returnFalse, simulateMouseClick } from "../../Utils";
 import { DocUtils } from "../documents/Documents";
 import { DocumentType } from '../documents/DocumentTypes';
 import { DragManager } from "../util/DragManager";
@@ -69,7 +68,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     get Bounds(): { x: number, y: number, b: number, r: number } {
         return SelectionManager.SelectedDocuments().reduce((bounds, documentView) => {
             if (documentView.props.renderDepth === 0 ||
-                Doc.AreProtosEqual(documentView.props.Document, CurrentUserUtils.UserDocument)) {
+                Doc.AreProtosEqual(documentView.props.Document, Doc.UserDoc())) {
                 return bounds;
             }
             const transform = (documentView.props.ScreenToLocalTransform().scale(documentView.props.ContentScaling())).inverse();
@@ -142,40 +141,11 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @action onSettingsDown = (e: React.PointerEvent): void => {
         setupMoveUpEvents(this, e, () => false, (e) => { }, this.onSettingsClick);
     }
-
-    simulateMouseClick(element: Element, x: number, y: number, sx: number, sy: number) {
-        ["pointerdown", "pointerup"].map(event => element.dispatchEvent(
-            new PointerEvent(event, {
-                view: window,
-                bubbles: true,
-                cancelable: true,
-                button: 2,
-                pointerType: "mouse",
-                clientX: x,
-                clientY: y,
-                screenX: sx,
-                screenY: sy,
-            })));
-
-        element.dispatchEvent(
-            new MouseEvent("contextmenu", {
-                view: window,
-                bubbles: true,
-                cancelable: true,
-                button: 2,
-                clientX: x,
-                clientY: y,
-                movementX: 0,
-                movementY: 0,
-                screenX: sx,
-                screenY: sy,
-            }));
-    }
     @action onSettingsClick = (e: PointerEvent): void => {
         if (e.button === 0 && !e.altKey && !e.ctrlKey) {
             let child = SelectionManager.SelectedDocuments()[0].ContentDiv!.children[0];
             while (child.children.length && child.className !== "jsx-parser") child = child.children[0];
-            this.simulateMouseClick(child.children[0], e.clientX, e.clientY + 30, e.screenX, e.screenY + 30);
+            simulateMouseClick(child.children[0], e.clientX, e.clientY + 30, e.screenX, e.screenY + 30);
         }
     }
 
@@ -193,7 +163,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         dragData.isSelectionMove = true;
         this.Interacting = true;
         this._hidden = true;
-        DragManager.StartDocumentDrag(SelectionManager.SelectedDocuments().map(documentView => documentView.ContentDiv!), dragData, e.x, e.y, {
+        DragManager.StartDocumentDrag(SelectionManager.SelectedDocuments().map(dv => dv.ContentDiv!), dragData, e.x, e.y, {
             dragComplete: action(e => this._hidden = this.Interacting = false),
             hideSource: true
         });
@@ -207,14 +177,14 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @action
     onCloseClick = async (e: PointerEvent) => {
         if (e.button === 0) {
-            const recent = Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc) as Doc;
+            const recent = Cast(Doc.UserDoc().myRecentlyClosed, Doc) as Doc;
             const selected = SelectionManager.SelectedDocuments().slice();
             SelectionManager.DeselectAll();
             this._addedCloseCalls.forEach(handler => handler(selected));
 
             selected.map(dv => {
                 recent && Doc.AddDocToList(recent, "data", dv.props.Document, undefined, true, true);
-                dv.props.removeDocument && dv.props.removeDocument(dv.props.Document);
+                dv.props.removeDocument?.(dv.props.Document);
             });
         }
     }
@@ -396,7 +366,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 return ScriptField.MakeFunction(this._titleControlString.substring(1), { doc: Doc.name })!.script.run({ self: selected.rootDoc, this: selected.layoutDoc }, console.log).result?.toString() || "";
             }
             if (this._titleControlString.startsWith("#")) {
-                return selected.props.Document[this._titleControlString.substring(1)]?.toString() || "-unset-";
+                return Field.toString(selected.props.Document[this._titleControlString.substring(1)] as Field) || "-unset-";
             }
             return this._accumulatedTitle;
         } else if (SelectionManager.SelectedDocuments().length > 1) {

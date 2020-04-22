@@ -470,12 +470,43 @@ export function clearStyleSheetRules(sheet: any) {
     return false;
 }
 
+export function simulateMouseClick(element: Element, x: number, y: number, sx: number, sy: number) {
+    ["pointerdown", "pointerup"].map(event => element.dispatchEvent(
+        new PointerEvent(event, {
+            view: window,
+            bubbles: true,
+            cancelable: true,
+            button: 2,
+            pointerType: "mouse",
+            clientX: x,
+            clientY: y,
+            screenX: sx,
+            screenY: sy,
+        })));
+
+    element.dispatchEvent(
+        new MouseEvent("contextmenu", {
+            view: window,
+            bubbles: true,
+            cancelable: true,
+            button: 2,
+            clientX: x,
+            clientY: y,
+            movementX: 0,
+            movementY: 0,
+            screenX: sx,
+            screenY: sy,
+        }));
+}
+
 export function setupMoveUpEvents(
     target: object,
     e: React.PointerEvent,
     moveEvent: (e: PointerEvent, down: number[], delta: number[]) => boolean,
     upEvent: (e: PointerEvent) => void,
-    clickEvent: (e: PointerEvent) => void) {
+    clickEvent: (e: PointerEvent) => void,
+    stopPropagation: boolean = true
+) {
     (target as any)._downX = (target as any)._lastX = e.clientX;
     (target as any)._downY = (target as any)._lastY = e.clientY;
 
@@ -499,8 +530,10 @@ export function setupMoveUpEvents(
         document.removeEventListener("pointermove", _moveEvent);
         document.removeEventListener("pointerup", _upEvent);
     };
-    e.stopPropagation();
-    e.preventDefault();
+    if (stopPropagation) {
+        e.stopPropagation();
+        e.preventDefault();
+    }
     document.removeEventListener("pointermove", _moveEvent);
     document.removeEventListener("pointerup", _upEvent);
     document.addEventListener("pointermove", _moveEvent);

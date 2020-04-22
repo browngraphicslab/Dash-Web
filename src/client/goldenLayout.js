@@ -1551,7 +1551,7 @@
         },
         dimensions: {
             borderWidth: 5,
-            borderGrabWidth: 15,
+            borderGrabWidth: 5,
             minItemHeight: 10,
             minItemWidth: 10,
             headerHeight: 20,
@@ -2796,11 +2796,13 @@
             if (this._isVertical) {
                 dragHandle.css('top', -handleExcessPos);
                 dragHandle.css('height', this._size + handleExcessSize);
+                element.css('cursor', 'row-resize');
                 element.addClass('lm_vertical');
                 element['height'](this._size);
             } else {
                 dragHandle.css('left', -handleExcessPos);
                 dragHandle.css('width', this._size + handleExcessSize);
+                element.css('cursor', 'col-resize');
                 element.addClass('lm_horizontal');
                 element['width'](this._size);
             }

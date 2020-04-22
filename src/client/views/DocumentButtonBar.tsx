@@ -21,7 +21,6 @@ import { Template, Templates } from "./Templates";
 import React = require("react");
 import { DragManager } from '../util/DragManager';
 import { MetadataEntryMenu } from './MetadataEntryMenu';
-import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import GoogleAuthenticationManager from '../apis/GoogleAuthenticationManager';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
@@ -202,9 +201,9 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
     @computed
     get pinButton() {
         const targetDoc = this.view0?.props.Document;
-        const isPinned = targetDoc && CurrentUserUtils.IsDocPinned(targetDoc);
+        const isPinned = targetDoc && Doc.isDocPinned(targetDoc);
         return !targetDoc ? (null) : <div className="documentButtonBar-linker"
-            title={CurrentUserUtils.IsDocPinned(targetDoc) ? "Unpin from presentation" : "Pin to presentation"}
+            title={Doc.isDocPinned(targetDoc) ? "Unpin from presentation" : "Pin to presentation"}
             style={{ backgroundColor: isPinned ? "black" : "white", color: isPinned ? "white" : "black" }}
 
             onClick={e => {

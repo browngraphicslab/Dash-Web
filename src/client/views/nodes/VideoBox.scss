@@ -1,5 +1,4 @@
 .videoBox {
-    pointer-events: all;
     transform-origin: top left;
     .videoBox-viewer {
         opacity: 0.99;  // hack!  overcomes some kind of Chrome weirdness where buttons (e.g., snapshot) disappear at some point as the video is resized larger
@@ -24,9 +23,9 @@
     height: 100%;
 }
 
-.videoBox-content-interactive, .videoBox-content-fullScreen, .videoBox-content-YouTube-fullScreen  {
-    pointer-events: all;
-}
+// .videoBox-content-interactive, .videoBox-content-fullScreen, .videoBox-content-YouTube-fullScreen  {
+//     pointer-events: all;
+// }
 
 .videoBox-time{
     color : white;

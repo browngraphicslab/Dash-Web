@@ -8,7 +8,6 @@ import { PDFBox } from "../views/nodes/PDFBox";
 import { ScriptingBox } from "../views/nodes/ScriptingBox";
 import { VideoBox } from "../views/nodes/VideoBox";
 import { WebBox } from "../views/nodes/WebBox";
-import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
 import { OmitKeys, JSONUtils, Utils } from "../../Utils";
 import { Field, Doc, Opt, DocListCastAsync, FieldResult, DocListCast } from "../../new_fields/Doc";
 import { ImageField, VideoField, AudioField, PdfField, WebField, YoutubeField } from "../../new_fields/URLField";
@@ -79,11 +78,13 @@ export interface DocumentOptions {
     x?: number;
     y?: number;
     z?: number;
+    author?: string;
     dropAction?: dropActionType;
     childDropAction?: dropActionType;
     layoutKey?: string;
     type?: string;
     title?: string;
+    label?: string; // short form of title for use as an icon label
     style?: string;
     page?: number;
     scale?: number;
@@ -103,6 +104,7 @@ export interface DocumentOptions {
     ignoreClick?: boolean;
     lockedPosition?: boolean; // lock the x,y coordinates of the document so that it can't be dragged
     lockedTransform?: boolean; // lock the panx,pany and scale parameters of the document so that it be panned/zoomed
+    isAnnotating?: boolean; // whether we web document is annotation mode where links can't be clicked to allow annotations to be created
     opacity?: number;
     defaultBackgroundColor?: string;
     isBackground?: boolean;
@@ -116,6 +118,8 @@ export interface DocumentOptions {
     boxShadow?: string;
     dontRegisterChildren?: boolean;
     "onClick-rawScript"?: string; // onClick script in raw text form
+    "onCheckedClick-rawScript"?: string; // onChecked script in raw text form
+    "onCheckedClick-params"?: List<string>; // parameter list for onChecked treeview functions
     _pivotField?: string; // field key used to determine headings for sections in stacking, masonry, pivot views
     schemaColumns?: List<SchemaHeaderField>;
     dockingConfig?: string;
@@ -136,13 +140,13 @@ export interface DocumentOptions {
     icon?: string;
     sourcePanel?: Doc; // panel to display in 'targetContainer' as the result of a button onClick script
     targetContainer?: Doc; // document whose proto will be set to 'panel' as the result of a onClick click script
+    searchFileTypes?: List<string>; // file types allowed in a search query
     strokeWidth?: number;
     treeViewPreventOpen?: boolean; // ignores the treeViewOpen Doc flag which allows a treeViewItem's expand/collapse state to be independent of other views of the same document in the tree view
     treeViewHideTitle?: boolean; // whether to hide the title of a tree view
     treeViewHideHeaderFields?: boolean; // whether to hide the drop down options for tree view items.
     treeViewOpen?: boolean; // whether this document is expanded in a tree view
     treeViewChecked?: ScriptField; // script to call when a tree view checkbox is checked
-    isFacetFilter?: boolean; // whether document functions as a facet filter in a tree view
     limitHeight?: number; // maximum height for newly created (eg, from pasting) text documents
     // [key: string]: Opt<Field>;
     pointerHack?: boolean; // for buttons, allows onClick handler to fire onPointerDown
@@ -177,7 +181,7 @@ export namespace Docs {
         };
         type TemplateMap = Map<DocumentType, PrototypeTemplate>;
         type PrototypeMap = Map<DocumentType, Doc>;
-        const data = "data";
+        const defaultDataKey = "data";
 
         const TemplateMap: TemplateMap = new Map([
             [DocumentType.RTF, {
@@ -185,97 +189,97 @@ export namespace Docs {
                 options: { _height: 150, _xMargin: 10, _yMargin: 10 }
             }],
             [DocumentType.QUERY, {
-                layout: { view: QueryBox, dataField: data },
+                layout: { view: QueryBox, dataField: defaultDataKey },
                 options: { _width: 400 }
             }],
             [DocumentType.COLOR, {
-                layout: { view: ColorBox, dataField: data },
+                layout: { view: ColorBox, dataField: defaultDataKey },
                 options: { _nativeWidth: 220, _nativeHeight: 300 }
             }],
             [DocumentType.IMG, {
-                layout: { view: ImageBox, dataField: data },
+                layout: { view: ImageBox, dataField: defaultDataKey },
                 options: {}
             }],
             [DocumentType.WEB, {
-                layout: { view: WebBox, dataField: data },
+                layout: { view: WebBox, dataField: defaultDataKey },
                 options: { _height: 300 }
             }],
             [DocumentType.COL, {
-                layout: { view: CollectionView, dataField: data },
+                layout: { view: CollectionView, dataField: defaultDataKey },
                 options: { _panX: 0, _panY: 0, scale: 1 } // , _width: 500, _height: 500 }
             }],
             [DocumentType.KVP, {
-                layout: { view: KeyValueBox, dataField: data },
+                layout: { view: KeyValueBox, dataField: defaultDataKey },
                 options: { _height: 150 }
             }],
             [DocumentType.DOCHOLDER, {
-                layout: { view: DocHolderBox, dataField: data },
+                layout: { view: DocHolderBox, dataField: defaultDataKey },
                 options: { _height: 250 }
             }],
             [DocumentType.VID, {
-                layout: { view: VideoBox, dataField: data },
+                layout: { view: VideoBox, dataField: defaultDataKey },
                 options: { currentTimecode: 0 },
             }],
             [DocumentType.AUDIO, {
-                layout: { view: AudioBox, dataField: data },
+                layout: { view: AudioBox, dataField: defaultDataKey },
                 options: { _height: 35, backgroundColor: "lightGray" }
             }],
             [DocumentType.PDF, {
-                layout: { view: PDFBox, dataField: data },
+                layout: { view: PDFBox, dataField: defaultDataKey },
                 options: { curPage: 1 }
             }],
             [DocumentType.IMPORT, {
-                layout: { view: DirectoryImportBox, dataField: data },
+                layout: { view: DirectoryImportBox, dataField: defaultDataKey },
                 options: { _height: 150 }
             }],
             [DocumentType.LINK, {
-                layout: { view: LinkBox, dataField: data },
+                layout: { view: LinkBox, dataField: defaultDataKey },
                 options: { _height: 150 }
             }],
             [DocumentType.LINKDB, {
                 data: new List<Doc>(),
-                layout: { view: EmptyBox, dataField: data },
-                options: { childDropAction: "alias", title: "LINK DB" }
+                layout: { view: EmptyBox, dataField: defaultDataKey },
+                options: { childDropAction: "alias", title: "Global Link Database" }
             }],
             [DocumentType.SCRIPTING, {
-                layout: { view: ScriptingBox, dataField: data }
+                layout: { view: ScriptingBox, dataField: defaultDataKey }
             }],
             [DocumentType.YOUTUBE, {
-                layout: { view: YoutubeBox, dataField: data }
+                layout: { view: YoutubeBox, dataField: defaultDataKey }
             }],
             [DocumentType.LABEL, {
-                layout: { view: LabelBox, dataField: data },
+                layout: { view: LabelBox, dataField: defaultDataKey },
             }],
             [DocumentType.BUTTON, {
                 layout: { view: LabelBox, dataField: "onClick" },
             }],
             [DocumentType.SLIDER, {
-                layout: { view: SliderBox, dataField: data },
+                layout: { view: SliderBox, dataField: defaultDataKey },
             }],
             [DocumentType.PRES, {
-                layout: { view: PresBox, dataField: data },
+                layout: { view: PresBox, dataField: defaultDataKey },
                 options: {}
             }],
             [DocumentType.FONTICON, {
-                layout: { view: FontIconBox, dataField: data },
+                layout: { view: FontIconBox, dataField: defaultDataKey },
                 options: { _width: 40, _height: 40, borderRounding: "100%" },
             }],
             [DocumentType.RECOMMENDATION, {
-                layout: { view: RecommendationsBox, dataField: data },
+                layout: { view: RecommendationsBox, dataField: defaultDataKey },
                 options: { _width: 200, _height: 200 },
             }],
             [DocumentType.WEBCAM, {
-                layout: { view: DashWebRTCVideo, dataField: data }
+                layout: { view: DashWebRTCVideo, dataField: defaultDataKey }
             }],
             [DocumentType.PRESELEMENT, {
-                layout: { view: PresElementBox, dataField: data }
+                layout: { view: PresElementBox, dataField: defaultDataKey }
             }],
             [DocumentType.INK, {
-                layout: { view: InkingStroke, dataField: data },
+                layout: { view: InkingStroke, dataField: defaultDataKey },
                 options: { backgroundColor: "transparent" }
             }],
             [DocumentType.SCREENSHOT, {
-                layout: { view: ScreenshotBox, dataField: data },
+                layout: { view: ScreenshotBox, dataField: defaultDataKey },
             }],
         ]);
 
@@ -571,6 +575,7 @@ export namespace Docs {
             I.title = "ink";
             I.x = options.x;
             I.y = options.y;
+            I._backgroundColor = "transparent";
             I._width = options._width;
             I._height = options._height;
             I.data = new InkField(points);
@@ -588,7 +593,7 @@ export namespace Docs {
         }
 
         export function WebDocument(url: string, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.WEB), new WebField(new URL(url)), options);
+            return InstanceFromProto(Prototypes.get(DocumentType.WEB), url ? new WebField(new URL(url)) : undefined, { _fitWidth: true, _chromeStatus: url ? "disabled" : "enabled", isAnnotating: true, lockedTransform: true, ...options });
         }
 
         export function HtmlDocument(html: string, options: DocumentOptions = {}) {
@@ -912,7 +917,7 @@ export namespace Docs {
                     });
                 }
                 ctor = Docs.Create.WebDocument;
-                options = { _height: options._width, ...options, title: path, _nativeWidth: undefined };
+                options = { ...options, _nativeWidth: 850, _nativeHeight: 962, _width: 500, _height: 566, title: path, };
             }
             return ctor ? ctor(path, options) : undefined;
         }
@@ -955,7 +960,7 @@ export namespace DocUtils {
     export function MakeLink(source: { doc: Doc }, target: { doc: Doc }, linkRelationship: string = "", id?: string) {
         const sv = DocumentManager.Instance.getDocumentView(source.doc);
         if (sv && sv.props.ContainingCollectionDoc === target.doc) return;
-        if (target.doc === CurrentUserUtils.UserDocument) return undefined;
+        if (target.doc === Doc.UserDoc()) return undefined;
 
         const linkDoc = Docs.Create.LinkDocument(source, target, { linkRelationship }, id);
         Doc.GetProto(linkDoc).title = ComputedField.MakeFunction('self.anchor1.title +" (" + (self.linkRelationship||"to") +") "  + self.anchor2.title');
@@ -985,7 +990,7 @@ export namespace DocUtils {
         });
         ContextMenu.Instance.addItem({
             description: "Add Template Doc ...",
-            subitems: DocListCast(Cast(Doc.UserDoc().expandingButtons, Doc, null)?.data).map(btnDoc => Cast(btnDoc?.dragFactory, Doc, null)).filter(doc => doc).map((dragDoc, i) => ({
+            subitems: DocListCast(Cast(Doc.UserDoc().dockedBtns, Doc, null)?.data).map(btnDoc => Cast(btnDoc?.dragFactory, Doc, null)).filter(doc => doc).map((dragDoc, i) => ({
                 description: ":" + StrCast(dragDoc.title),
                 event: (args: { x: number, y: number }) => {
                     const newDoc = Doc.ApplyTemplate(dragDoc);
