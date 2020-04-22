@@ -221,8 +221,8 @@ export class CollectionView extends Touchable<FieldViewProps> {
     onContextMenu = (e: React.MouseEvent): void => {
         if (!e.isPropagationStopped() && this.props.Document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
 
-            this.setupViewTypes("View Modes ...", (vtype => { this.props.Document._viewType = vtype; return this.props.Document; }), true);
-            this.setupViewTypes("Additional Rendition ...", vtype => {
+            this.setupViewTypes("Change Perspective...", (vtype => { this.props.Document._viewType = vtype; return this.props.Document; }), true);
+            this.setupViewTypes("Open New Perspective...", vtype => {
                 const newRendition = Doc.MakeAlias(this.props.Document);
                 newRendition._viewType = vtype;
                 this.props.addDocTab(newRendition, "onRight");
@@ -241,10 +241,6 @@ export class CollectionView extends Touchable<FieldViewProps> {
             layoutItems.push({ description: `${this.props.Document.isInPlaceContainer ? "Unset" : "Set"} inPlace Container`, event: () => this.props.Document.isInPlaceContainer = !this.props.Document.isInPlaceContainer, icon: "project-diagram" });
 
             !existing && ContextMenu.Instance.addItem({ description: "Layout...", subitems: layoutItems, icon: "hand-point-right" });
-
-            const open = ContextMenu.Instance.findByDescription("Open...");
-            const openItems = open && "subitems" in open ? open.subitems : [];
-            !open && ContextMenu.Instance.addItem({ description: "Open...", subitems: openItems, icon: "hand-point-right" });
 
             const existingOnClick = ContextMenu.Instance.findByDescription("OnClick...");
             const onClicks = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
