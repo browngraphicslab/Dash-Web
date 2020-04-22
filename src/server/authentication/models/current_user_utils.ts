@@ -84,7 +84,7 @@ export class CurrentUserUtils {
 
         if (doc["template-buttons"] === undefined) {
             doc["template-buttons"] = new PrefetchProxy(Docs.Create.MasonryDocument([doc["template-button-slides"] as Doc, doc["template-button-description"] as Doc, doc["template-button-query"] as Doc], {
-                title: "Template Item Creators", _xMargin: 0, _showTitle: "title",
+                title: "Compound Item Creators", _xMargin: 0, _showTitle: "title",
                 _autoHeight: true, _width: 500, columnWidth: 35, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled",
                 dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }),
             }));
@@ -141,7 +141,7 @@ export class CurrentUserUtils {
         if (doc["template-icon-view"] === undefined) {
             const iconView = Docs.Create.TextDocument("", {
                 title: "icon", _width: 150, _height: 30, isTemplateDoc: true,
-                onClick: ScriptField.MakeScript("deiconifyView(this)")
+                onClick: ScriptField.MakeScript("deiconifyView(self)")
             });
             Doc.GetProto(iconView).icon = new RichTextField('{"doc":{"type":"doc","content":[{"type":"paragraph","attrs":{"align":null,"color":null,"id":null,"indent":null,"inset":null,"lineSpacing":null,"paddingBottom":null,"paddingTop":null},"content":[{"type":"dashField","attrs":{"fieldKey":"title","docid":""}}]}]},"selection":{"type":"text","anchor":2,"head":2},"storedMarks":[]}', "");
             iconView.isTemplateDoc = makeTemplate(iconView);
@@ -186,18 +186,20 @@ export class CurrentUserUtils {
             { title: "Drag a audio recorder", label: "Audio", icon: "microphone", ignoreClick: true, drag: `Docs.Create.AudioDocument("${nullAudio}", { _width: 200, title: "ready to record audio" })` },
             { title: "Drag a clickable button", label: "Btn", icon: "bolt", ignoreClick: true, drag: 'Docs.Create.ButtonDocument({ _width: 150, _height: 50, title: "Button" })' },
             { title: "Drag a presentation view", label: "Prezi", icon: "tv", click: 'openOnRight(Doc.UserDoc().activePresentation = getCopy(this.dragFactory, true))', drag: `Doc.UserDoc().activePresentation = getCopy(this.dragFactory,true)`, dragFactory: doc.emptyPresentation as Doc },
+            { title: "Drag a search box", label: "Query", icon: "search", ignoreClick: true, drag: 'Docs.Create.QueryDocument({ _width: 200, title: "an image of a cat" })' },
             { title: "Drag a scripting box", label: "Script", icon: "terminal", ignoreClick: true, drag: 'Docs.Create.ScriptingDocument(undefined, { _width: 200, _height: 250 title: "untitled script" })' },
             { title: "Drag an import folder", label: "Load", icon: "cloud-upload-alt", ignoreClick: true, drag: 'Docs.Create.DirectoryImportDocument({ title: "Directory Import", _width: 400, _height: 400 })' },
             { title: "Drag a mobile view", label: "Phone", icon: "phone", ignoreClick: true, drag: 'Doc.UserDoc().activeMobile' },
+            { title: "Drag an instance of the device collection", label: "Buxton", icon: "globe-asia", ignoreClick: true, drag: 'Docs.Create.Buxton()' },
             // { title: "use pen", icon: "pen-nib", click: 'activatePen(this.activePen.inkPen = sameDocs(this.activePen.inkPen, this) ? undefined : this,2, this.backgroundColor)', backgroundColor: "blue", ischecked: `sameDocs(this.activePen.inkPen,  this)`, activePen: doc },
             // { title: "use highlighter", icon: "highlighter", click: 'activateBrush(this.activePen.inkPen = sameDocs(this.activePen.inkPen, this) ? undefined : this,20,this.backgroundColor)', backgroundColor: "yellow", ischecked: `sameDocs(this.activePen.inkPen, this)`, activePen: doc },
             // { title: "use stamp", icon: "stamp", click: 'activateStamp(this.activePen.inkPen = sameDocs(this.activePen.inkPen, this) ? undefined : this)', backgroundColor: "orange", ischecked: `sameDocs(this.activePen.inkPen, this)`, activePen: doc },
             // { title: "use eraser", icon: "eraser", click: 'activateEraser(this.activePen.inkPen = sameDocs(this.activePen.inkPen, this) ? undefined : this);', ischecked: `sameDocs(this.activePen.inkPen, this)`, backgroundColor: "pink", activePen: doc },
             // { title: "use drag", icon: "mouse-pointer", click: 'deactivateInk();this.activePen.inkPen = this;', ischecked: `sameDocs(this.activePen.inkPen, this)`, backgroundColor: "white", activePen: doc },
-            { title: "Drag a search box", label: "Query", icon: "search", ignoreClick: true, drag: 'Docs.Create.QueryDocument({ _width: 200, title: "an image of a cat" })' },
             { title: "Drag a document previewer", label: "Prev", icon: "expand", ignoreClick: true, drag: 'Docs.Create.DocumentDocument(ComputedField.MakeFunction("selectedDocs(this,this.excludeCollections,[_last_])?.[0]"), { _width: 250, _height: 250, title: "container" })' },
-            // { title: "buxton", icon: "cloud-upload-alt", ignoreClick: true, drag: "Docs.Create.Buxton()" },
+            { title: "Drag a Calculator REPL", label: "repl", icon: "calculator", click: 'addOverlayWindow("ScriptingRepl", { x: 300, y: 100, width: 200, height: 200, title: "Scripting REPL" })' },
         ];
+
     }
 
     // setup the "creator" buttons for the sidebar-- eg. the default set of draggable document creation tools
@@ -229,7 +231,7 @@ export class CurrentUserUtils {
 
         if (dragCreatorSet === undefined) {
             doc.myItemCreators = new PrefetchProxy(Docs.Create.MasonryDocument(creatorBtns, {
-                title: "Standard Item Creators", _showTitle: "title", _xMargin: 0,
+                title: "Basic Item Creators", _showTitle: "title", _xMargin: 0,
                 _autoHeight: true, _width: 500, columnWidth: 35, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled",
                 dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }),
             }));
@@ -397,7 +399,7 @@ export class CurrentUserUtils {
                 _width: 50, _height: 25, title: "Library", fontSize: 10,
                 letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
                 sourcePanel: new PrefetchProxy(Docs.Create.TreeDocument([workspaces, documents, recentlyClosed, doc], {
-                    title: "Library", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "place", lockedPosition: true, boxShadow: "0 0", dontRegisterChildren: true
+                    title: "Library", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "move", lockedPosition: true, boxShadow: "0 0", dontRegisterChildren: true
                 })) as any as Doc,
                 targetContainer: new PrefetchProxy(sidebarContainer) as any as Doc,
                 onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel;")
@@ -413,6 +415,7 @@ export class CurrentUserUtils {
                 _width: 50, _height: 25, title: "Search", fontSize: 10,
                 letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
                 sourcePanel: new PrefetchProxy(Docs.Create.QueryDocument({ title: "search stack", })) as any as Doc,
+                searchFileTypes: new List<string>([DocumentType.RTF, DocumentType.IMG, DocumentType.PDF, DocumentType.VID, DocumentType.WEB, DocumentType.SCRIPTING]),
                 targetContainer: new PrefetchProxy(sidebarContainer) as any as Doc,
                 lockedPosition: true,
                 onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel")
@@ -536,12 +539,13 @@ export class CurrentUserUtils {
         new InkingControl();
         doc.title = Doc.CurrentUserEmail;
         doc.activePen = doc;
-        CurrentUserUtils.setupDefaultIconTemplates(doc);  // creates a set of icon templates triggered by the document deoration icon
-        CurrentUserUtils.setupRightSidebar(doc);  // sets up the right sidebar collection for mobile upload documents and sharing
-        CurrentUserUtils.setupOverlays(doc);  // documents in overlay layer 
-        CurrentUserUtils.setupDockedButtons(doc);  // the bottom bar of font icons
-        CurrentUserUtils.setupDefaultPresentation(doc); // presentation that's initially triggered
-        await CurrentUserUtils.setupSidebarButtons(doc); // the pop-out left sidebar of tools/panels
+        this.setupDefaultIconTemplates(doc);  // creates a set of icon templates triggered by the document deoration icon
+        this.setupDocTemplates(doc); // sets up the template menu of templates
+        this.setupRightSidebar(doc);  // sets up the right sidebar collection for mobile upload documents and sharing
+        this.setupOverlays(doc);  // documents in overlay layer 
+        this.setupDockedButtons(doc);  // the bottom bar of font icons
+        this.setupDefaultPresentation(doc); // presentation that's initially triggered
+        await this.setupSidebarButtons(doc); // the pop-out left sidebar of tools/panels
         doc.globalLinkDatabase = Docs.Prototypes.MainLinkDocument();
 
         // setup reactions to change the highlights on the undo/redo buttons -- would be better to encode this in the undo/redo buttons, but the undo/redo stacks are not wired up that way yet

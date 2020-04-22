@@ -19,7 +19,7 @@ import { DateField } from "../../new_fields/DateField";
 import { DocumentView } from "../views/nodes/DocumentView";
 import { UndoManager } from "./UndoManager";
 
-export type dropActionType = "place" | "alias" | "copy" | undefined;
+export type dropActionType = "alias" | "copy" | "move" | undefined; // undefined = move
 export function SetupDrag(
     _reference: React.RefObject<HTMLElement>,
     docFunc: () => Doc | Promise<Doc> | undefined,
@@ -205,7 +205,7 @@ export namespace DragManager {
             e.docDragData && (e.docDragData.droppedDocuments =
                 dragData.draggedDocuments.map(d => !dragData.isSelectionMove && !dragData.userDropAction && ScriptCast(d.onDragStart) ? addAudioTag(ScriptCast(d.onDragStart).script.run({ this: d }).result) :
                     dragData.userDropAction === "alias" || (!dragData.userDropAction && dragData.dropAction === "alias") ? Doc.MakeAlias(d) :
-                        dragData.userDropAction === "copy" || (!dragData.userDropAction && dragData.dropAction === "copy") ? Doc.MakeCopy(d, true) : d)
+                        dragData.userDropAction === "copy" || (!dragData.userDropAction && dragData.dropAction === "copy") ? Doc.MakeClone(d) : d)
             );
             e.docDragData?.droppedDocuments.forEach((drop: Doc, i: number) =>
                 (dragData?.removeDropProperties || []).concat(Cast(dragData.draggedDocuments[i].removeDropProperties, listSpec("string"), [])).map(prop => drop[prop] = undefined)

@@ -40,8 +40,6 @@ import { DocComponent } from "../DocComponent";
 import { EditableView } from '../EditableView';
 import { InkingControl } from '../InkingControl';
 import { KeyphraseQueryView } from '../KeyphraseQueryView';
-import { OverlayView } from '../OverlayView';
-import { ScriptingRepl } from '../ScriptingRepl';
 import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
 import { RadialMenu } from './RadialMenu';
@@ -561,7 +559,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     static findTemplate(templateName: string, type: string, signature: string) {
         let docLayoutTemplate: Opt<Doc>;
         const iconViews = DocListCast(Cast(Doc.UserDoc()["template-icons"], Doc, null)?.data);
-        const templBtns = DocListCast(Cast(Doc.UserDoc().templateButtons, Doc, null)?.data);
+        const templBtns = DocListCast(Cast(Doc.UserDoc()["template-buttons"], Doc, null)?.data);
         const noteTypes = DocListCast(Cast(Doc.UserDoc().noteTypes, Doc, null)?.data);
         const clickFuncs = DocListCast(Cast(Doc.UserDoc().clickFuncs, Doc, null)?.data);
         const allTemplates = iconViews.concat(templBtns).concat(noteTypes).concat(clickFuncs).map(btnDoc => (btnDoc.dragFactory as Doc) || btnDoc).filter(doc => doc.isTemplateDoc);
@@ -723,31 +721,22 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             cm.addItem({ description: label, event: () => customScripts[i]?.script.run({ this: this.layoutDoc, self: this.rootDoc }), icon: "sticky-note" }));
         this.props.contextMenuItems?.().forEach(item =>
             cm.addItem({ description: item.label, event: () => item.script.script.run({ this: this.layoutDoc, self: this.rootDoc }), icon: "sticky-note" }));
-        const existing = cm.findByDescription("Layout...");
-        const layoutItems: ContextMenuProps[] = existing && "subitems" in existing ? existing.subitems : [];
-        layoutItems.push({ description: this.Document.isBackground ? "As Foreground" : "As Background", event: (e) => this.toggleBackground(false), icon: this.Document.lockedPosition ? "unlock" : "lock" });
-        layoutItems.push({ description: "Make View of Metadata Field", event: () => Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.DataDoc), icon: "concierge-bell" });
 
+
+        const existing = cm.findByDescription("Options...");
+        const layoutItems: ContextMenuProps[] = existing && "subitems" in existing ? existing.subitems : [];
         layoutItems.push({ description: `${this.Document._chromeStatus !== "disabled" ? "Hide" : "Show"} Chrome`, event: () => this.Document._chromeStatus = (this.Document._chromeStatus !== "disabled" ? "disabled" : "enabled"), icon: "project-diagram" });
         layoutItems.push({ description: `${this.Document._autoHeight ? "Variable Height" : "Auto Height"}`, event: () => this.layoutDoc._autoHeight = !this.layoutDoc._autoHeight, icon: "plus" });
-        layoutItems.push({ description: !this.Document._nativeWidth || !this.Document._nativeHeight ? "Freeze" : "Unfreeze", event: this.toggleNativeDimensions, icon: "snowflake" });
         layoutItems.push({ description: this.Document.lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document.lockedPosition) ? "unlock" : "lock" });
         layoutItems.push({ description: this.Document.lockedTransform ? "Unlock Transform" : "Lock Transform", event: this.toggleLockTransform, icon: BoolCast(this.Document.lockedTransform) ? "unlock" : "lock" });
-        layoutItems.push({ description: "Center View", event: () => this.props.focus(this.props.Document, false), icon: "crosshairs" });
-        layoutItems.push({ description: "Zoom to Document", event: () => this.props.focus(this.props.Document, true), icon: "search" });
-        !existing && cm.addItem({ description: "Layout...", subitems: layoutItems, icon: "compass" });
+        !existing && cm.addItem({ description: "Options...", subitems: layoutItems, icon: "compass" });
 
-        const open = ContextMenu.Instance.findByDescription("Open...");
+        const open = cm.findByDescription("Open New Perspective...");
         const openItems: ContextMenuProps[] = open && "subitems" in open ? open.subitems : [];
         openItems.push({ description: "Open Full Screen", event: () => CollectionDockingView.Instance && CollectionDockingView.Instance.OpenFullScreen(this, this.props.LibraryPath), icon: "desktop" });
-        openItems.push({ description: "Open Tab        ", event: () => this.props.addDocTab(this.props.Document, "inTab", this.props.LibraryPath), icon: "folder" });
-        openItems.push({ description: "Open Right      ", event: () => this.props.addDocTab(this.props.Document, "onRight", this.props.LibraryPath), icon: "caret-square-right" });
-        openItems.push({ description: "Open Alias Tab  ", event: () => this.props.addDocTab(Doc.MakeAlias(this.props.Document), "inTab"), icon: "folder" });
-        openItems.push({ description: "Open Alias Right", event: () => this.props.addDocTab(Doc.MakeAlias(this.props.Document), "onRight"), icon: "caret-square-right" });
         openItems.push({ description: "Open Fields     ", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { _width: 300, _height: 300 }), "onRight"), icon: "layer-group" });
         templateDoc && openItems.push({ description: "Open Template   ", event: () => this.props.addDocTab(templateDoc, "onRight"), icon: "eye" });
-        openItems.push({ description: "Open Repl", icon: "laptop-code", event: () => OverlayView.Instance.addWindow(<ScriptingRepl />, { x: 300, y: 100, width: 200, height: 200, title: "Scripting REPL" }) });
-        !open && cm.addItem({ description: "Open...", subitems: openItems, icon: "external-link-alt" });
+        !open && cm.addItem({ description: "Open New Perspective...", subitems: openItems, icon: "external-link-alt" });
 
 
         const existingOnClick = cm.findByDescription("OnClick...");
@@ -770,6 +759,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
         const more = cm.findByDescription("More...");
         const moreItems: ContextMenuProps[] = more && "subitems" in more ? more.subitems : [];
+        moreItems.push({ description: "Make View of Metadata Field", event: () => Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.DataDoc), icon: "concierge-bell" });
+        moreItems.push({ description: !this.Document._nativeWidth || !this.Document._nativeHeight ? "Freeze" : "Unfreeze", event: this.toggleNativeDimensions, icon: "snowflake" });
 
         if (!ClientUtils.RELEASE) {
             // let copies: ContextMenuProps[] = [];
@@ -867,7 +858,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 SelectionManager.SelectDoc(this, false);
             }
         });
-        const path = this.props.LibraryPath.reduce((p: string, d: Doc) => p + "/" + (Doc.AreProtosEqual(d, (Doc.UserDoc().LibraryBtn as Doc).sourcePanel as Doc) ? "" : d.title), "");
+        const path = this.props.LibraryPath.reduce((p: string, d: Doc) => p + "/" + (Doc.AreProtosEqual(d, (Doc.UserDoc()["tabs-button-library"] as Doc).sourcePanel as Doc) ? "" : d.title), "");
         cm.addItem({
             description: `path: ${path}`, event: () => {
                 this.props.LibraryPath.map(lp => Doc.GetProto(lp).treeViewOpen = lp.treeViewOpen = true);

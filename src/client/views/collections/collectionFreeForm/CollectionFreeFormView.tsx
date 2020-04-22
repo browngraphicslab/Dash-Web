@@ -44,7 +44,6 @@ import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import { CollectionViewType } from "../CollectionView";
-import { Script } from "vm";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
@@ -75,7 +74,7 @@ export type collectionFreeformViewProps = {
 };
 
 @observer
-export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument, undefined as any as collectionFreeformViewProps) {
+export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, Partial<collectionFreeformViewProps>>(PanZoomDocument) {
     private _lastX: number = 0;
     private _lastY: number = 0;
     private _downX: number = 0;
