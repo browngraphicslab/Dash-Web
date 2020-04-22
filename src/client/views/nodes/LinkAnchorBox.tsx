@@ -40,7 +40,7 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
     @observable _forceOpen = false;
 
     onPointerDown = (e: React.PointerEvent) => {
-        setupMoveUpEvents(this, e, this.onPointerMove, () => { }, this.onClick);
+        setupMoveUpEvents(this, e, this.onPointerMove, () => { }, this.onClick, false);
     }
     onPointerMove = action((e: PointerEvent, down: number[], delta: number[]) => {
         const cdiv = this._ref && this._ref.current && this._ref.current.parentElement;
@@ -107,6 +107,7 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
         funcs.push({ description: "Open Link Target on Right", event: () => this.openLinkTargetOnRight(e), icon: "eye" });
         funcs.push({ description: "Open Link on Right", event: () => this.openLinkDocOnRight(e), icon: "eye" });
         funcs.push({ description: "Open Link Editor", event: () => this.openLinkEditor(e), icon: "eye" });
+        funcs.push({ description: "Toggle Always Show Link", event: () => this.props.Document.linkDisplay = !this.props.Document.linkDisplay, icon: "eye" });
 
         ContextMenu.Instance.addItem({ description: "Link Funcs...", subitems: funcs, icon: "asterisk" });
     }
