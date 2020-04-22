@@ -103,14 +103,14 @@
 
 
     .filter-header {
-        display: flex;
+        //display: flex;
         position: relative;
-        flex-wrap:wrap;
+        //flex-wrap:wrap;
         right: 1px;
         color: grey;
-        flex-direction: row-reverse;
+        //flex-direction: row-reverse;
         transform-origin: top;
-        justify-content: space-evenly;
+        //justify-content: space-evenly;
         margin-bottom: 5px;
         overflow:hidden;
         transition:height 0.3s ease-out;

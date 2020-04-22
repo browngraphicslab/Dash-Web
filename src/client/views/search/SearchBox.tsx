@@ -29,6 +29,7 @@ import { List } from '../../../new_fields/List';
 import { faSearch, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faMusic, faLink, faChartBar, faGlobeAsia, faBan, faVideo, faCaretDown } from '@fortawesome/free-solid-svg-icons';
 import { Transform } from '../../util/Transform';
 import { MainView } from "../MainView";
+import { Scripting } from '../../util/Scripting';
 
 
 library.add(faTimes);
@@ -758,6 +759,44 @@ export class SearchBox extends React.Component<SearchProps> {
         return (null);
     }
 
+    @computed get defaultButtons() {
+        const defBtns = this.props.Document.defaultButtons;
+        let width = () => NumCast(this.props.Document.width);
+        if (this.props.sideBar===true){
+            width = MainView.Instance.flyoutWidthFunc;
+        }
+        if (defBtns instanceof Doc) {
+            return <div id="hi" style={{height:"35px",}}>
+                <DocumentView
+                Document={defBtns}
+                DataDoc={undefined}
+                LibraryPath={emptyPath}
+                addDocument={undefined}
+                addDocTab={returnFalse}
+                rootSelected={returnTrue}
+                pinToPres={emptyFunction}
+                onClick={undefined}
+                removeDocument={undefined}
+                ScreenToLocalTransform={Transform.Identity}
+                ContentScaling={returnOne}
+                PanelWidth={width}
+                PanelHeight={() => 100}
+                renderDepth={0}
+                backgroundColor={returnEmptyString}
+                focus={emptyFunction}
+                parentActive={returnTrue}
+                whenActiveChanged={emptyFunction}
+                bringToFront={emptyFunction}
+                ContainingCollectionView={undefined}
+                ContainingCollectionDoc={undefined}
+                NativeHeight={()=>100}
+                NativeWidth={width}
+            />
+            </div>;
+        }
+        return (null);
+    }
+
     setupDocTypeButtons() {
         let doc = this.props.Document;
         const ficon = (opts: DocumentOptions) => new PrefetchProxy(Docs.Create.FontIconDocument({ ...opts,  
@@ -793,7 +832,7 @@ export class SearchBox extends React.Component<SearchProps> {
             fontSize: 7,
         }))as any as Doc;
         doc.title=button({ title: "Title", onClick:ScriptField.MakeScript("this.updateTitleStatus")});
-        doc.deleted=button({ title: "Deleted", onClick:ScriptField.MakeScript(`this.handleNodeChange()`)});
+        doc.deleted=button({ title: "Deleted", onClick:ScriptField.MakeScript(`handleNodeChange()`)});
         doc.author = button({ title: "Author", onClick:ScriptField.MakeScript("this.updateTitleStatus")});
 
         let buttons = [doc.title as Doc, doc.deleted as Doc, doc.author as Doc];
@@ -812,17 +851,15 @@ export class SearchBox extends React.Component<SearchProps> {
             borderRounding: "16px", border:"1px solid grey", color:"white", hovercolor: "rgb(170, 170, 163)", letterSpacing: "2px",
             fontSize: 7,
         }))as any as Doc;
-        doc.title=button({ title: "Title", onClick:ScriptField.MakeScript("this.updateTitleStatus")});
-        doc.deleted=button({ title: "Deleted", onClick:ScriptField.MakeScript(`this.handleNodeChange`)});
+        doc.keywords=button({ title: "Keywords", onClick:ScriptField.MakeScript("handleNodeChange(this)")});
+        doc.keys=button({ title: "Keys", onClick:ScriptField.MakeScript(`this.handleNodeChange`)});
         doc.nodes = button({ title: "Nodes", onClick:ScriptField.MakeScript("this.updateTitleStatus")});
-
-        let buttons = [doc.title as Doc, doc.deleted as Doc, doc.author as Doc];
-
+        let buttons = [doc.keywords as Doc, doc.keys as Doc, doc.nodes as Doc];
         const dragCreators = Docs.Create.MasonryDocument(buttons, {
-            _width: 500, backgroundColor:"#121721", _autoHeight: true, columnWidth: 50, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled", title: "buttons",_yMargin: 5
+            _width: 500, backgroundColor:"#121721", _autoHeight: true, columnWidth: 60, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled", title: "buttons",_yMargin: 5
             //dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }), 
         });
-        doc.keyButtons= dragCreators;
+        doc.defaultButtons= dragCreators;
     }
 
     render() {
@@ -841,9 +878,10 @@ export class SearchBox extends React.Component<SearchProps> {
 
                 <div id={`filterhead${this.props.id}`} className="filter-form" style={this._filterOpen && this._numTotalResults >0 ? {overflow:"visible"} : {overflow:"hidden"}}>
                     <div id={`filterhead2${this.props.id}`} className="filter-header"  >
-                        <button className="filter-item" style={this._basicWordStatus ? { background: "#aaaaa3", } : {}} onClick={this.handleWordQueryChange}>Keywords</button>
+                        {this.defaultButtons}
+                        {/* <button className="filter-item" style={this._basicWordStatus ? { background: "#aaaaa3", } : {}} onClick={this.handleWordQueryChange}>Keywords</button>
                         <button className="filter-item" style={this._keyStatus ? { background: "#aaaaa3" } : {}} onClick={this.handleKeyChange}>Keys</button>
-                        <button className="filter-item" style={this._nodeStatus ? { background: "#aaaaa3" } : {}} onClick={this.handleNodeChange}>Nodes</button>
+                        <button className="filter-item" style={this._nodeStatus ? { background: "#aaaaa3" } : {}} onClick={this.handleNodeChange}>Nodes</button> */}
                     </div>
                     <div id={`node${this.props.id}`} className="filter-body" style={this._nodeStatus ? { borderTop: "grey 1px solid" } : { borderTop: "0px" }}>
                         {this.docButtons}
@@ -853,7 +891,7 @@ export class SearchBox extends React.Component<SearchProps> {
                             {/* <button className="filter-item" style={this._titleFieldStatus ? { background: "#aaaaa3", } : {}} onClick={this.updateTitleStatus}>Title</button>
                             <button className="filter-item" style={this._deletedDocsStatus ? { background: "#aaaaa3", } : {}} onClick={this.updateDataStatus}>Deleted Docs</button>
                             <button className="filter-item" style={this._authorFieldStatus ? { background: "#aaaaa3", } : {}} onClick={this.updateAuthorStatus}>Author</button> */}
-                            {this.keyButtons}
+                        {this.keyButtons}
                     </div>
                 </div>
                 <div className="searchBox-results" onScroll={this.resultsScrolled} style={{
@@ -867,3 +905,12 @@ export class SearchBox extends React.Component<SearchProps> {
         );
     }
 }
+
+// Scripting.addGlobal(function handleNodeChange(doc: any) {
+//     console.log("oi");
+//     doc.handleNodeChange();
+    
+//     // const dv = DocumentManager.Instance.getDocumentView(doc);
+//     // if (dv?.props.Document.layoutKey === layoutKey) dv?.switchViews(otherKey !== "layout", otherKey.replace("layout_", ""));
+//     // else dv?.switchViews(true, layoutKey.replace("layout_", ""));
+// });
