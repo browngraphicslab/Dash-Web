@@ -94,6 +94,13 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
             apt.point.x, apt.point.y);
         const pt1 = [apt.point.x, apt.point.y];
         const pt2 = [bpt.point.x, bpt.point.y];
+        const pt1vec = [pt1[0] - (a.left + a.width / 2), pt1[1] - (a.top + a.height / 2)];
+        const pt2vec = [pt2[0] - (b.left + b.width / 2), pt2[1] - (b.top + b.height / 2)];
+        const pt1len = Math.sqrt((pt1vec[0] * pt1vec[0]) + (pt1vec[1] * pt1vec[1]));
+        const pt2len = Math.sqrt((pt2vec[0] * pt2vec[0]) + (pt2vec[1] * pt2vec[1]));
+        const ptlen = Math.sqrt((pt1[0] - pt2[0]) * (pt1[0] - pt2[0]) + (pt1[1] - pt2[1]) * (pt1[1] - pt2[1])) / 3;
+        const pt1norm = [pt1vec[0] / pt1len * ptlen, pt1vec[1] / pt1len * ptlen];
+        const pt2norm = [pt2vec[0] / pt2len * ptlen, pt2vec[1] / pt2len * ptlen];
         const aActive = this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document);
         const bActive = this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document);
         const text = StrCast(this.props.A.props.Document.linkRelationship);
@@ -101,10 +108,12 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
             <text x={(pt1[0] + pt2[0]) / 2} y={(pt1[1] + pt2[1]) / 2}>
                 {text !== "-ungrouped-" ? text : ""}
             </text>
-            <line key="linkLine" className="collectionfreeformlinkview-linkLine"
+            <path className="collectionfreeformlinkview-linkLine" style={{ opacity: this._opacity, strokeDasharray: "2 2" }}
+                d={`M ${pt1[0]} ${pt1[1]} C ${pt1[0] + pt1norm[0]} ${pt1[1] + pt1norm[1]}, ${pt2[0] + pt2norm[0]} ${pt2[1] + pt2norm[1]}, ${pt2[0]} ${pt2[1]}`} />
+            {/* <line key="linkLine" className="collectionfreeformlinkview-linkLine"
                 style={{ opacity: this._opacity, strokeDasharray: "2 2" }}
                 x1={`${pt1[0]}`} y1={`${pt1[1]}`}
-                x2={`${pt2[0]}`} y2={`${pt2[1]}`} />
+                x2={`${pt2[0]}`} y2={`${pt2[1]}`} /> */}
         </>);
     }
 }
