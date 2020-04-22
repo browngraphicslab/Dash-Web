@@ -41,7 +41,7 @@ module.exports = {
         repl: ["./src/debug/Repl.tsx", 'webpack-hot-middleware/client?reload=true'],
         test: ["./src/debug/Test.tsx", 'webpack-hot-middleware/client?reload=true'],
         inkControls: ["./src/mobile/InkControls.tsx", 'webpack-hot-middleware/client?reload=true'],
-        imageUpload: ["./src/mobile/MobileInterface.tsx", 'webpack-hot-middleware/client?reload=true'],
+        imageUpload: ["./src/mobile/SideBar.tsx", 'webpack-hot-middleware/client?reload=true'],
     },
     optimization: {
         noEmitOnErrors: true
