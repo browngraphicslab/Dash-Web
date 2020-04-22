@@ -596,7 +596,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
         this.setupEditor(this.config, this.props.fieldKey);
 
-        this._searchReactionDisposer = reaction(() => this.layoutDoc.searchMatch,
+        this._searchReactionDisposer = reaction(() => this.rootDoc.searchMatch,
             search => search ? this.highlightSearchTerms([Doc.SearchQuery()]) : this.unhighlightSearchTerms(),
             { fireImmediately: true });
 
@@ -821,13 +821,10 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             this._editorView = new EditorView(this.ProseRef, {
                 state: rtfField?.Data ? EditorState.fromJSON(config, JSON.parse(rtfField.Data)) : EditorState.create(config),
                 handleScrollToSelection: (editorView) => {
-                    const ref = editorView.domAtPos(editorView.state.selection.from);
-                    let refNode = ref.node as any;
-                    while (refNode && !("getBoundingClientRect" in refNode)) refNode = refNode.parentElement;
-                    const r1 = refNode?.getBoundingClientRect();
-                    const r3 = self._ref.current!.getBoundingClientRect();
-                    if (r1.top < r3.top || r1.top > r3.bottom) {
-                        r1 && (self._scrollRef.current!.scrollTop += (r1.top - r3.top) * self.props.ScreenToLocalTransform().Scale);
+                    const docPos = editorView.coordsAtPos(editorView.state.selection.from);
+                    const viewRect = self._ref.current!.getBoundingClientRect();
+                    if (docPos.top < viewRect.top || docPos.top > viewRect.bottom) {
+                        docPos && (self._scrollRef.current!.scrollTop += (docPos.top - viewRect.top) * self.props.ScreenToLocalTransform().Scale);
                     }
                     return true;
                 },
