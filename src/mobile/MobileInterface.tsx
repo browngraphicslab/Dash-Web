@@ -109,23 +109,38 @@ export class MobileInterface extends React.Component {
     }
 
     toggleSidebar = () => {
-        const menuButton = document.getElementById("sidebar") as HTMLInputElement;
+        console.log("clicked");
+        let menuButton = document.getElementById("menuButton") as HTMLElement;
+        menuButton.classList.toggle('active');
 
-        if (menuButton.checked) {
-            console.log("Checked");
-        } else {
-            console.log("Not checked");
-        }
+        let sidebar = document.getElementById("sidebar") as HTMLElement;
+        sidebar.classList.toggle('active');
 
+
+        // let menuToggle = document.getElementById("menuToggle") as HTMLInputElement;
+        // let sidebar = document.getElementById("sidebar");
+        // if (menuToggle.checked) {
+        //     console.log("Checked");
+        // } else {
+        //     console.log("Not checked");
+        // }
     }
 
     renderDefaultContent = () => {
         return (
-            <div className="navbar">
-                <div className="toggle-btn" id="menuButton" onClick={this.toggleSidebar}>
-                    <span></span>
-                    <span></span>
-                    <span></span>
+            <div>
+                <div className="navbar">
+                    {/* <input className="toggle" id="menuToggle" onClick={this.toggleSidebar}></input> */}
+                    <div className="toggle-btn" id="menuButton" onClick={this.toggleSidebar}>
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+                <div className="sidebar" id="sidebar">
+                    <div className="item">Workspace 1</div>
+                    <div className="item">Workspace 2</div>
+                    <div className="item">Workspace 3</div>
                 </div>
             </div>
         );
