@@ -19,18 +19,23 @@ const ScriptingSchema = createSchema({});
 type ScriptingDocument = makeInterface<[typeof ScriptingSchema, typeof documentSchema]>;
 const ScriptingDocument = makeInterface(ScriptingSchema, documentSchema);
 
+
 @observer
 export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, ScriptingDocument>(ScriptingDocument) {
+
     protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer | undefined;
+    rowProps: any;
     public static LayoutString(fieldStr: string) { return FieldView.LayoutString(ScriptingBox, fieldStr); }
 
     _overlayDisposer?: () => void;
 
     @observable private _errorMessage: string = "";
+    @observable private paramNum: number = -1;
 
     @computed get rawScript() { return StrCast(this.dataDoc[this.props.fieldKey + "-rawScript"], StrCast(this.layoutDoc[this.props.fieldKey + "-rawScript"])); }
     @computed get compileParams() { return Cast(this.dataDoc[this.props.fieldKey + "-params"], listSpec("string"), Cast(this.layoutDoc[this.props.fieldKey + "-params"], listSpec("string"), [])); }
     set rawScript(value) { this.dataDoc[this.props.fieldKey + "-rawScript"] = value; }
+
     set compileParams(value) { this.dataDoc[this.props.fieldKey + "-params"] = value; }
 
     @action
@@ -50,21 +55,64 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     }
 
     @action
+    onError = (error: any) => {
+        for (const entry of error) {
+            this._errorMessage = this._errorMessage + "   " + entry.messageText;
+        }
+    }
+
+    @action
     onCompile = () => {
+        // const params = this.compileParams.reduce((o: ScriptParam, p: string) => { o[p] = "any"; return o; }, {} as ScriptParam);
+        // const result = CompileScript(this.rawScript, {
+        //     editable: true,
+        //     transformer: DocumentIconContainer.getTransformer(),
+        //     params,
+        //     typecheck: false
+        // });
+        // this._errorMessage = isCompileError(result) ? result.errors.map(e => e.messageText).join("\n") : "";
+        // return this.dataDoc[this.props.fieldKey] = result.compiled ? new ScriptField(result) : undefined;
         const params = this.compileParams.reduce((o: ScriptParam, p: string) => { o[p] = "any"; return o; }, {} as ScriptParam);
         const result = CompileScript(this.rawScript, {
-            editable: true,
-            transformer: DocumentIconContainer.getTransformer(),
+            editable: false,
+            transformer: undefined,
             params,
-            typecheck: false
+            typecheck: true
         });
-        this._errorMessage = isCompileError(result) ? result.errors.map(e => e.messageText).join("\n") : "";
-        return this.dataDoc[this.props.fieldKey] = result.compiled ? new ScriptField(result) : undefined;
+        this._errorMessage = "";
+        if (result.compiled) {
+            this._errorMessage = "";
+            this.props.Document.data = new ScriptField(result);
+        }
+        else {
+            this.onError(result.errors);
+        }
+        this.props.Document.documentText = this.rawScript;
     }
 
     @action
     onRun = () => {
-        this.onCompile()?.script.run({}, err => this._errorMessage = err.map((e: any) => e.messageText).join("\n"));
+        const params = this.compileParams.reduce((o: ScriptParam, p: string) => { o[p] = "any"; return o; }, {} as ScriptParam);
+        const result = CompileScript(this.rawScript, {
+            editable: false,
+            transformer: undefined,
+            params,
+            typecheck: true
+        });
+        this._errorMessage = "";
+        if (result.compiled) {
+            // this automatically saves
+            result.run({}, (err: any) => {
+                this._errorMessage = "";
+                this.onError(err);
+            });
+            this.props.Document.data = new ScriptField(result);
+        }
+        else {
+            this.onError(result.errors);
+        }
+        this.props.Document.documentText = this.rawScript;
+        //this.onCompile()?.script.run({}, err => this._errorMessage = err.map((e: any) => e.messageText).join("\n"));
     }
 
     onFocus = () => {
@@ -72,16 +120,50 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         this._overlayDisposer = OverlayView.Instance.addElement(<DocumentIconContainer />, { x: 0, y: 0 });
     }
 
+    keyPressed(event: { key: string; }) {
+        if (event.key === "Enter") {
+
+        }
+    }
+
     render() {
+        //this.compileParams = new List<string>();
+
         const params = <EditableView
-            contents={this.compileParams.join(" ")}
+            contents={""}
             display={"block"}
             maxHeight={72}
             height={35}
-            fontSize={28}
+            fontSize={22}
             GetValue={() => ""}
-            SetValue={value => { this.compileParams = new List<string>(value.split(" ").filter(s => s !== " ")); return true; }}
+            SetValue={value => {
+                if (value !== "" && value !== " ") {
+                    this.paramNum++;
+                    const par = this.compileParams;
+                    this.compileParams = new List<string>(value.split(";").filter(s => s !== " "));
+                    this.compileParams.push.apply(this.compileParams, par);
+                    return true;
+                }
+                return false;
+            }}
         />;
+
+        const listParams = this.compileParams.map((parameter) =>
+            <EditableView
+                contents={parameter}
+                display={"block"}
+                maxHeight={72}
+                height={35}
+                fontSize={12}
+                GetValue={() => parameter}
+                SetValue={value => {
+                    if (value !== "" && value !== " ") {
+                        parameter = value;
+                    } return false;
+                }}
+            />
+        );
+
         return (
             <div className="scriptingBox-outerDiv"
 
@@ -89,21 +171,22 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
 
                 <div className="scriptingBox-inputDiv"
                     onPointerDown={e => this.props.isSelected(true) && e.stopPropagation()} >
+                    <div className="scriptingBox-wrapper">
 
-                    <textarea className="scriptingBox-textarea"
-                        placeholder="write your script here"
-                        onChange={e => this.rawScript = e.target.value}
-                        value={this.rawScript}
-                        onFocus={this.onFocus}
-                        onBlur={e => this._overlayDisposer?.()}
-                        style={{ width: this.compileParams.length > 0 ? "70%" : "100%" }} />
+                        <textarea className="scriptingBox-textarea"
+                            placeholder="write your script here"
+                            onChange={e => this.rawScript = e.target.value}
+                            value={this.rawScript}
+                            onFocus={this.onFocus}
+                            onBlur={e => this._overlayDisposer?.()}
+                            style={{ width: this.compileParams.length > 0 ? "70%" : "100%" }} />
 
-                    {this.compileParams.length > 0 ? <div className="split right" style={{ width: "30%" }}>
-                        parameters go here
-                            </div> : null}
-
+                        {this.compileParams.length > 0 ? <div className="scriptingBox-plist" style={{ width: "30%" }}>
+                            {listParams}
+                        </div> : null}
+                    </div>
+                    <div className="scriptingBox-params" onKeyPress={this.keyPressed}>{params}</div>
                     <div className="scriptingBox-errorMessage" style={{ background: this._errorMessage ? "red" : "" }}>{this._errorMessage}</div>
-                    <div className="scriptingBox-params" >{params}</div>
                 </div>
                 {this.rootDoc.layout === "layout" ? <div></div> : (null)}
                 <div className="scriptingBox-toolbar">
