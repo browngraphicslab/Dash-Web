@@ -248,7 +248,7 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
     @observable _aliasDown = false;
     onAliasButtonDown = (e: React.PointerEvent): void => {
         setupMoveUpEvents(this, e, this.onAliasButtonMoved, emptyFunction, emptyFunction);
-    };
+    }
     onAliasButtonMoved = () => {
         if (this._dragRef.current) {
             const dragDocView = this.props.views[0]!;
@@ -264,7 +264,7 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
             return true;
         }
         return false;
-    };
+    }
 
     @computed
     get templateButton() {
