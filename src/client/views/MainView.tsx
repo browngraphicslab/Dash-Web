@@ -1,5 +1,5 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faTerminal, faArrowDown, faArrowUp, faBolt, faBullseye, faCaretUp, faCat, faCheck, faChevronRight, faClipboard, faClone, faCloudUploadAlt, faCommentAlt, faCompressArrowsAlt, faCut, faEllipsisV, faEraser, faExclamation, faFileAlt, faFileAudio, faFilePdf, faFilm, faFilter, faFont, faGlobeAsia, faHighlighter, faLongArrowAltRight, faMicrophone, faMousePointer, faMusic, faObjectGroup, faPause, faPen, faPenNib, faPhone, faPlay, faPortrait, faRedoAlt, faStamp, faStickyNote, faThumbtack, faTree, faTv, faUndoAlt, faVideo } from '@fortawesome/free-solid-svg-icons';
+import { faTerminal, faCalculator, faWindowMaximize, faAddressCard, faQuestionCircle, faArrowDown, faArrowUp, faBolt, faBullseye, faCaretUp, faCat, faCheck, faChevronRight, faClipboard, faClone, faCloudUploadAlt, faCommentAlt, faCompressArrowsAlt, faCut, faEllipsisV, faEraser, faExclamation, faFileAlt, faFileAudio, faFilePdf, faFilm, faFilter, faFont, faGlobeAsia, faHighlighter, faLongArrowAltRight, faMicrophone, faMousePointer, faMusic, faObjectGroup, faPause, faPen, faPenNib, faPhone, faPlay, faPortrait, faRedoAlt, faStamp, faStickyNote, faThumbtack, faTree, faTv, faUndoAlt, faVideo } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, reaction, runInAction } from 'mobx';
 import { observer } from 'mobx-react';
@@ -41,11 +41,12 @@ import { RadialMenu } from './nodes/RadialMenu';
 import { OverlayView } from './OverlayView';
 import PDFMenu from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
+import { ScriptField } from '../../new_fields/ScriptField';
 
 @observer
 export class MainView extends React.Component {
     public static Instance: MainView;
-    private _buttonBarHeight = 35;
+    private _buttonBarHeight = 26;
     private _flyoutSizeOnDown = 0;
     private _urlState: HistoryUtil.DocUrl;
     private _docBtnRef = React.createRef<HTMLDivElement>();
@@ -60,7 +61,7 @@ export class MainView extends React.Component {
     @computed private get userDoc() { return Doc.UserDoc(); }
     @computed private get mainContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeWorkspace, Doc)) : CurrentUserUtils.GuestWorkspace; }
     @computed public get mainFreeform(): Opt<Doc> { return (docs => (docs && docs.length > 1) ? docs[1] : undefined)(DocListCast(this.mainContainer!.data)); }
-    @computed public get sidebarButtonsDoc() { return Cast(CurrentUserUtils.UserDocument.sidebarButtons, Doc) as Doc; }
+    @computed public get sidebarButtonsDoc() { return Cast(this.userDoc["tabs-buttons"], Doc) as Doc; }
 
     public isPointerDown = false;
 
@@ -102,7 +103,11 @@ export class MainView extends React.Component {
         }
 
         library.add(faTerminal);
+        library.add(faCalculator);
+        library.add(faWindowMaximize);
         library.add(faFileAlt);
+        library.add(faAddressCard);
+        library.add(faQuestionCircle);
         library.add(faStickyNote);
         library.add(faFont);
         library.add(faExclamation);
@@ -200,7 +205,7 @@ export class MainView extends React.Component {
 
     @action
     createNewWorkspace = async (id?: string) => {
-        const workspaces = Cast(this.userDoc.workspaces, Doc) as Doc;
+        const workspaces = Cast(this.userDoc.myWorkspaces, Doc) as Doc;
         const workspaceCount = DocListCast(workspaces.data).length + 1;
         const freeformOptions: DocumentOptions = {
             x: 0,
@@ -210,8 +215,13 @@ export class MainView extends React.Component {
             title: "Collection " + workspaceCount,
         };
         const freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
-        Doc.AddDocToList(Doc.GetProto(CurrentUserUtils.UserDocument.documents as Doc), "data", freeformDoc);
-        const mainDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600, path: [Doc.UserDoc().documents as Doc] }], { title: `Workspace ${workspaceCount}` }, id, "row");
+        Doc.AddDocToList(Doc.GetProto(Doc.UserDoc().myDocuments as Doc), "data", freeformDoc);
+        const mainDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600, path: [Doc.UserDoc().myDocuments as Doc] }], { title: `Workspace ${workspaceCount}` }, id, "row");
+
+        const toggleTheme = ScriptField.MakeScript(`self.darkScheme = !self.darkScheme`);
+        mainDoc.contextMenuScripts = new List<ScriptField>([toggleTheme!]);
+        mainDoc.contextMenuLabels = new List<string>(["Toggle Theme Colors"]);
+
         Doc.AddDocToList(workspaces, "data", mainDoc);
         // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
         setTimeout(() => this.openWorkspace(mainDoc), 0);
@@ -252,7 +262,7 @@ export class MainView extends React.Component {
         }
         // if there is a pending doc, and it has new data, show it (syip: we use a timeout to prevent collection docking view from being uninitialized)
         setTimeout(async () => {
-            const col = this.userDoc && await Cast(this.userDoc.optionalRightCollection, Doc);
+            const col = this.userDoc && await Cast(this.userDoc.rightSidebarCollection, Doc);
             col && Cast(col.data, listSpec(Doc)) && runInAction(() => MainViewNotifs.NotifsCol = col);
         }, 100);
         return true;
@@ -390,15 +400,14 @@ export class MainView extends React.Component {
     mainContainerXf = () => new Transform(0, -this._buttonBarHeight, 1);
 
     @computed get flyout() {
-        const sidebarContent = this.userDoc?.sidebarContainer;
+        const sidebarContent = this.userDoc?.["tabs-panelContainer"];
         if (!(sidebarContent instanceof Doc)) {
             return (null);
         }
-        const sidebarButtonsDoc = Cast(CurrentUserUtils.UserDocument.sidebarButtons, Doc) as Doc;
         return <div className="mainView-flyoutContainer" >
-            <div className="mainView-tabButtons" style={{ height: `${this._buttonBarHeight}px`, backgroundColor: StrCast(sidebarButtonsDoc.backgroundColor) }}>
+            <div className="mainView-tabButtons" style={{ height: `${this._buttonBarHeight}px`, backgroundColor: StrCast(this.sidebarButtonsDoc.backgroundColor) }}>
                 <DocumentView
-                    Document={sidebarButtonsDoc}
+                    Document={this.sidebarButtonsDoc}
                     DataDoc={undefined}
                     LibraryPath={emptyPath}
                     addDocument={undefined}
@@ -459,7 +468,7 @@ export class MainView extends React.Component {
     }
 
     @computed get mainContent() {
-        const sidebar = this.userDoc && this.userDoc.sidebarContainer;
+        const sidebar = this.userDoc?.["tabs-panelContainer"];
         return !this.userDoc || !(sidebar instanceof Doc) ? (null) : (
             <div className="mainView-mainContent" style={{ color: this.darkScheme ? "rgb(205,205,205)" : "black" }} >
                 <div className="mainView-flyoutContainer" onPointerLeave={this.pointerLeaveDragger} style={{ width: this.flyoutWidth }}>
@@ -496,8 +505,8 @@ export class MainView extends React.Component {
         return !this._flyoutTranslate ? (<div className="mainView-expandFlyoutButton" title="Re-attach sidebar" onPointerDown={MainView.expandFlyout}><FontAwesomeIcon icon="chevron-right" color="grey" size="lg" /></div>) : (null);
     }
 
-    addButtonDoc = (doc: Doc) => Doc.AddDocToList(CurrentUserUtils.UserDocument.expandingButtons as Doc, "data", doc);
-    remButtonDoc = (doc: Doc) => Doc.RemoveDocFromList(CurrentUserUtils.UserDocument.expandingButtons as Doc, "data", doc);
+    addButtonDoc = (doc: Doc) => Doc.AddDocToList(Doc.UserDoc().dockedBtns as Doc, "data", doc);
+    remButtonDoc = (doc: Doc) => Doc.RemoveDocFromList(Doc.UserDoc().dockedBtns as Doc, "data", doc);
     moveButtonDoc = (doc: Doc, targetCollection: Doc | undefined, addDocument: (document: Doc) => boolean) => this.remButtonDoc(doc) && addDocument(doc);
 
     buttonBarXf = () => {
@@ -506,13 +515,13 @@ export class MainView extends React.Component {
         return new Transform(-translateX, -translateY, 1 / scale);
     }
     @computed get docButtons() {
-        const expandingBtns = Doc.UserDoc()?.expandingButtons;
-        if (expandingBtns instanceof Doc) {
+        const dockedBtns = Doc.UserDoc()?.dockedBtns;
+        if (dockedBtns instanceof Doc) {
             return <div className="mainView-docButtons" ref={this._docBtnRef}
-                style={{ height: !expandingBtns.linearViewIsExpanded ? "42px" : undefined }} >
+                style={{ height: !dockedBtns.linearViewIsExpanded ? "42px" : undefined }} >
                 <MainViewNotifs />
                 <CollectionLinearView
-                    Document={expandingBtns}
+                    Document={dockedBtns}
                     DataDoc={undefined}
                     LibraryPath={emptyPath}
                     fieldKey={"data"}

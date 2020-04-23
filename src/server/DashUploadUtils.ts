@@ -100,7 +100,7 @@ export namespace DashUploadUtils {
             const writeStream = createWriteStream(serverPathToFile(Directory.text, textFilename));
             writeStream.write(result.text, error => error ? reject(error) : resolve());
         });
-        return MoveParsedFile(file, Directory.pdfs);
+        return MoveParsedFile(file, Directory.pdfs, undefined, result.text);
     }
 
     const manualSuffixes = [".webm"];
@@ -237,7 +237,7 @@ export namespace DashUploadUtils {
      * @param suffix If the file doesn't have a suffix and you want to provide it one
      * to appear in the new location
      */
-    export async function MoveParsedFile(file: File, destination: Directory, suffix: string | undefined = undefined): Promise<Upload.FileResponse> {
+    export async function MoveParsedFile(file: File, destination: Directory, suffix: string | undefined = undefined, text?: string): Promise<Upload.FileResponse> {
         const { path: sourcePath } = file;
         let name = path.basename(sourcePath);
         suffix && (name += suffix);
@@ -249,7 +249,8 @@ export namespace DashUploadUtils {
                     result: error ? error : {
                         accessPaths: {
                             agnostic: getAccessPaths(destination, name)
-                        }
+                        },
+                        rawText: text
                     }
                 });
             });

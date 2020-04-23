@@ -565,8 +565,9 @@ export namespace Doc {
                 } else if (cfield instanceof ComputedField) {
                     copy[key] = ComputedField.MakeFunction(cfield.script.originalScript);
                 } else if (field instanceof ObjectField) {
-                    copy[key] = key.includes("layout[") && doc[key] instanceof Doc ? Doc.MakeCopy(doc[key] as Doc, false) :
-                        doc[key] instanceof Doc ? doc[key] : ObjectField.MakeCopy(field);
+                    copy[key] = doc[key] instanceof Doc ?
+                        key.includes("layout[") ? Doc.MakeCopy(doc[key] as Doc, false) : doc[key] : // reference documents except copy documents that are expanded teplate fields 
+                        ObjectField.MakeCopy(field);
                 } else if (field instanceof Promise) {
                     debugger; //This shouldn't happend...
                 } else {
@@ -575,6 +576,44 @@ export namespace Doc {
             }
         });
 
+        return copy;
+    }
+
+    export function MakeClone(doc: Doc, cloneProto: boolean = true): Doc {
+        const copy = new Doc(undefined, true);
+        const exclude = Cast(doc.excludeFields, listSpec("string"), []);
+        Object.keys(doc).forEach(key => {
+            if (exclude.includes(key)) return;
+            const cfield = ComputedField.WithoutComputed(() => FieldValue(doc[key]));
+            const field = ProxyField.WithoutProxy(() => doc[key]);
+            if (key === "proto" && cloneProto) {
+                if (doc[key] instanceof Doc) {
+                    copy[key] = Doc.MakeClone(doc[key]!, false);
+                }
+            } else {
+                if (field instanceof RefField) {
+                    copy[key] = field;
+                } else if (cfield instanceof ComputedField) {
+                    copy[key] = ComputedField.MakeFunction(cfield.script.originalScript);
+                } else if (field instanceof ObjectField) {
+                    const list = Cast(doc[key], listSpec(Doc));
+                    if (list !== undefined && !(list instanceof Promise)) {
+                        copy[key] = new List<Doc>(list.filter(d => d instanceof Doc).map(d => Doc.MakeCopy(d as Doc, false)));
+                    } else {
+                        copy[key] = doc[key] instanceof Doc ?
+                            key.includes("layout[") ?
+                                Doc.MakeCopy(doc[key] as Doc, false) : doc[key] : // reference documents except copy documents that are expanded teplate fields 
+                            ObjectField.MakeCopy(field);
+                    }
+                } else if (field instanceof Promise) {
+                    debugger; //This shouldn't happend...
+                } else {
+                    copy[key] = field;
+                }
+            }
+        });
+        Doc.SetInPlace(copy, "title", "CLONE: " + doc.title, true);
+        copy.cloneOf = doc;
         return copy;
     }
 
@@ -603,14 +642,6 @@ export namespace Doc {
         return undefined;
     }
     export function ApplyTemplateTo(templateDoc: Doc, target: Doc, targetKey: string, titleTarget: string | undefined) {
-        if (!templateDoc) {
-            target.layout = undefined;
-            target._nativeWidth = undefined;
-            target._nativeHeight = undefined;
-            target.type = undefined;
-            return;
-        }
-
         if (!Doc.AreProtosEqual(target[targetKey] as Doc, templateDoc)) {
             if (target.resolvedDataDoc) {
                 target[targetKey] = new PrefetchProxy(templateDoc);
@@ -873,6 +904,16 @@ export namespace Doc {
         return id;
     }
 
+    export function isDocPinned(doc: Doc) {
+        //add this new doc to props.Document
+        const curPres = Cast(Doc.UserDoc().activePresentation, Doc) as Doc;
+        if (curPres) {
+            return DocListCast(curPres.data).findIndex((val) => Doc.AreProtosEqual(val, doc)) !== -1;
+        }
+        return false;
+    }
+
+
     export async function addFieldEnumerations(doc: Opt<Doc>, enumeratedFieldKey: string, enumerations: { title: string, _backgroundColor?: string, color?: string }[]) {
         let optionsCollection = await DocServer.GetRefField(enumeratedFieldKey);
         if (!(optionsCollection instanceof Doc)) {
@@ -914,13 +955,13 @@ Scripting.addGlobal(function redo() { return UndoManager.Redo(); });
 Scripting.addGlobal(function DOC(id: string) { console.log("Can't parse a document id in a script"); return "invalid"; });
 Scripting.addGlobal(function assignDoc(doc: Doc, field: string, id: string) { return Doc.assignDocToField(doc, field, id); });
 Scripting.addGlobal(function docCast(doc: FieldResult): any { return DocCastAsync(doc); });
-Scripting.addGlobal(function curPresentationItem() {
-    const curPres = Doc.UserDoc().curPresentation as Doc;
+Scripting.addGlobal(function activePresentationItem() {
+    const curPres = Doc.UserDoc().activePresentation as Doc;
     return curPres && DocListCast(curPres[Doc.LayoutFieldKey(curPres)])[NumCast(curPres._itemIndex)];
 });
-Scripting.addGlobal(function selectDoc(doc: any) { Doc.UserDoc().SelectedDocs = new List([doc]); });
+Scripting.addGlobal(function selectDoc(doc: any) { Doc.UserDoc().activeSelection = new List([doc]); });
 Scripting.addGlobal(function selectedDocs(container: Doc, excludeCollections: boolean, prevValue: any) {
-    const docs = DocListCast(Doc.UserDoc().SelectedDocs).
+    const docs = DocListCast(Doc.UserDoc().activeSelection).
         filter(d => !Doc.AreProtosEqual(d, container) && !d.annotationOn && d.type !== DocumentType.DOCHOLDER && d.type !== DocumentType.KVP &&
             (!excludeCollections || d.type !== DocumentType.COL || !Cast(d.data, listSpec(Doc), null)));
     return docs.length ? new List(docs) : prevValue;

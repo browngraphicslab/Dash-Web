@@ -1,4 +1,30 @@
-.collectionMapView-contents {
+.collectionMapView {
     width: 100%;
     height: 100%;
+
+    .collectionMapView-contents {
+        width: 100%;
+        height: 100%;
+        > div {
+            position: unset !important; // when the sidebar filter flys out, this prevents the map from extending outside the document box
+        }
+    }
+}
+
+.loadingWrapper {
+    width: 100%;
+    height: 100%;
+    background-color: pink;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+
+    .loadingGif {
+        align-self: center;
+        justify-self: center;
+        width: 50px;
+        height: 50px;
+    }
 }

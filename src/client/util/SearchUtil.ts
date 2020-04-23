@@ -44,7 +44,7 @@ export namespace SearchUtil {
         const { ids, highlighting } = result;
 
         const txtresult = query !== "*" && JSON.parse(await rp.get(Utils.prepend("/textsearch"), {
-            qs: { ...options, q: query },
+            qs: { ...options, q: query.replace(/^[ \+\?\*\|]*/, "") }, // a leading '+' leads to a server crash since findInFiles doesn't handle regex failures
         }));
 
         const fileids = txtresult ? txtresult.ids : [];

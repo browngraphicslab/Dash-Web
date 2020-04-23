@@ -21,6 +21,7 @@ export namespace Upload {
 
     export interface FileInformation {
         accessPaths: AccessPathInfo;
+        rawText?: string;
     }
 
     export type FileResponse<T extends FileInformation = FileInformation> = { source: File, result: T | Error };

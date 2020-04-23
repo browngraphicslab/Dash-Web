@@ -63,7 +63,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             const dxf = () => this.getDocTransform(d, dref.current!);
             this._docXfs.push({ dxf: dxf, width: width, height: height });
             const rowSpan = Math.ceil((height() + this.gridGap) / this.gridGap);
-            const style = this.isStackingView ? { width: width(), marginTop: this.gridGap, height: height() } : { gridRowEnd: `span ${rowSpan}` };
+            const style = this.isStackingView ? { width: width(), marginTop: i ? this.gridGap : 0, height: height() } : { gridRowEnd: `span ${rowSpan}` };
             return <div className={`collectionStackingView-${this.isStackingView ? "columnDoc" : "masonryDoc"}`} key={d[Id]} ref={dref} style={style} >
                 {this.getDisplayDoc(d, (!d.isTemplateDoc && !d.isTemplateForField && !d.PARAMS) ? undefined : this.props.DataDoc, dxf, width)}
             </div>;
@@ -397,7 +397,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         if (!e.isPropagationStopped()) {
             const subItems: ContextMenuProps[] = [];
             subItems.push({ description: `${this.props.Document.fillColumn ? "Variable Size" : "Autosize"} Column`, event: () => this.props.Document.fillColumn = !this.props.Document.fillColumn, icon: "plus" });
-            ContextMenu.Instance.addItem({ description: "Stacking Options ...", subitems: subItems, icon: "eye" });
+            ContextMenu.Instance.addItem({ description: "Options...", subitems: subItems, icon: "eye" });
         }
     }
 

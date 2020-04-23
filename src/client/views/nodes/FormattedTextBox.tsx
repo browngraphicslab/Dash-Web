@@ -13,7 +13,7 @@ import { EditorState, NodeSelection, Plugin, TextSelection, Transaction } from "
 import { ReplaceStep } from 'prosemirror-transform';
 import { EditorView } from "prosemirror-view";
 import { DateField } from '../../../new_fields/DateField';
-import { DataSym, Doc, DocListCastAsync, Field, HeightSym, Opt, WidthSym } from "../../../new_fields/Doc";
+import { DataSym, Doc, DocListCastAsync, Field, HeightSym, Opt, WidthSym, DocListCast } from "../../../new_fields/Doc";
 import { documentSchema } from '../../../new_fields/documentSchemas';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { InkTool } from '../../../new_fields/InkField';
@@ -48,6 +48,7 @@ import { FormattedTextBoxComment, formattedTextBoxCommentPlugin } from './Format
 import React = require("react");
 import { PrefetchProxy } from '../../../new_fields/Proxy';
 import { makeTemplate } from '../../util/DropConverter';
+import { DocumentView } from './DocumentView';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -396,6 +397,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         return Cast(Doc.UserDoc().defaultTextLayout, Doc, null) || StrCast(Doc.UserDoc().defaultTextLayout, null);
     }
     specificContextMenu = (e: React.MouseEvent): void => {
+        const cm = ContextMenu.Instance;
+
         const funcs: ContextMenuProps[] = [];
         this.props.Document.isTemplateDoc && funcs.push({ description: "Make Default Layout", event: async () => Doc.UserDoc().defaultTextLayout = new PrefetchProxy(this.props.Document), icon: "eye" });
         funcs.push({ description: "Reset Default Layout", event: () => Doc.UserDoc().defaultTextLayout = undefined, icon: "eye" });
@@ -407,10 +410,12 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         });
         funcs.push({ description: "Toggle Single Line", event: () => this.props.Document._singleLine = !this.props.Document._singleLine, icon: "expand-arrows-alt" });
         funcs.push({ description: "Toggle Sidebar", event: () => this.props.Document._showSidebar = !this.props.Document._showSidebar, icon: "expand-arrows-alt" });
-        funcs.push({ description: "Toggle Audio", event: () => this.props.Document._showAudio = !this.props.Document._showAudio, icon: "expand-arrows-alt" });
+        funcs.push({ description: "Toggle Dictation Icon", event: () => this.props.Document._showAudio = !this.props.Document._showAudio, icon: "expand-arrows-alt" });
         funcs.push({ description: "Toggle Menubar", event: () => this.toggleMenubar(), icon: "expand-arrows-alt" });
+
+        const highlighting: ContextMenuProps[] = [];
         ["My Text", "Text from Others", "Todo Items", "Important Items", "Ignore Items", "Disagree Items", "By Recent Minute", "By Recent Hour"].forEach(option =>
-            funcs.push({
+            highlighting.push({
                 description: (FormattedTextBox._highlights.indexOf(option) === -1 ? "Highlight " : "Unhighlight ") + option, event: () => {
                     e.stopPropagation();
                     if (FormattedTextBox._highlights.indexOf(option) === -1) {
@@ -421,8 +426,38 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     this.updateHighlights();
                 }, icon: "expand-arrows-alt"
             }));
+        funcs.push({ description: "highlighting...", subitems: highlighting, icon: "hand-point-right" });
 
-        ContextMenu.Instance.addItem({ description: "Text Funcs...", subitems: funcs, icon: "asterisk" });
+        ContextMenu.Instance.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
+
+        const change = cm.findByDescription("Change Perspective...");
+        const changeItems: ContextMenuProps[] = change && "subitems" in change ? change.subitems : [];
+
+        const noteTypesDoc = Cast(Doc.UserDoc().noteTypes, Doc, null);
+        const noteTypes = DocListCast(noteTypesDoc?.data);
+        noteTypes.forEach(note => {
+            changeItems.push({
+                description: StrCast(note.title), event: () => {
+                    Doc.setNativeView(this.props.Document);
+                    DocumentView.makeCustomViewClicked(this.rootDoc, Docs.Create.TreeDocument, StrCast(note.title), note);
+                }, icon: "eye"
+            });
+        });
+        changeItems.push({ description: "FreeForm", event: () => DocumentView.makeCustomViewClicked(this.rootDoc, Docs.Create.FreeformDocument, "freeform"), icon: "eye" });
+        !change && cm.addItem({ description: "Change Perspective...", subitems: changeItems, icon: "external-link-alt" });
+
+        const open = cm.findByDescription("Open New Perspective...");
+        const openItems: ContextMenuProps[] = open && "subitems" in open ? open.subitems : [];
+
+        openItems.push({
+            description: "FreeForm", event: () => {
+                const alias = Doc.MakeAlias(this.rootDoc);
+                DocumentView.makeCustomViewClicked(alias, Docs.Create.FreeformDocument, "freeform");
+                this.props.addDocTab(alias, "onRight");
+            }, icon: "eye"
+        });
+        !open && cm.addItem({ description: "Open New Perspective...", subitems: openItems, icon: "external-link-alt" });
+
     }
 
     recordDictation = () => {
@@ -596,7 +631,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
         this.setupEditor(this.config, this.props.fieldKey);
 
-        this._searchReactionDisposer = reaction(() => this.layoutDoc.searchMatch,
+        this._searchReactionDisposer = reaction(() => this.rootDoc.searchMatch,
             search => search ? this.highlightSearchTerms([Doc.SearchQuery()]) : this.unhighlightSearchTerms(),
             { fireImmediately: true });
 
@@ -821,13 +856,10 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             this._editorView = new EditorView(this.ProseRef, {
                 state: rtfField?.Data ? EditorState.fromJSON(config, JSON.parse(rtfField.Data)) : EditorState.create(config),
                 handleScrollToSelection: (editorView) => {
-                    const ref = editorView.domAtPos(editorView.state.selection.from);
-                    let refNode = ref.node as any;
-                    while (refNode && !("getBoundingClientRect" in refNode)) refNode = refNode.parentElement;
-                    const r1 = refNode?.getBoundingClientRect();
-                    const r3 = self._ref.current!.getBoundingClientRect();
-                    if (r1.top < r3.top || r1.top > r3.bottom) {
-                        r1 && (self._scrollRef.current!.scrollTop += (r1.top - r3.top) * self.props.ScreenToLocalTransform().Scale);
+                    const docPos = editorView.coordsAtPos(editorView.state.selection.from);
+                    const viewRect = self._ref.current!.getBoundingClientRect();
+                    if (docPos.top < viewRect.top || docPos.top > viewRect.bottom) {
+                        docPos && (self._scrollRef.current!.scrollTop += (docPos.top - viewRect.top) * self.props.ScreenToLocalTransform().Scale);
                     }
                     return true;
                 },
@@ -1185,7 +1217,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     background: this.props.hideOnLeave ? "rgba(0,0,0 ,0.4)" : StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"]),
                     opacity: this.props.hideOnLeave ? (this._entered ? 1 : 0.1) : 1,
                     color: this.props.hideOnLeave ? "white" : "inherit",
-                    pointerEvents: interactive ? "none" : "all",
+                    pointerEvents: interactive ? "none" : undefined,
                     fontSize: NumCast(this.layoutDoc.fontSize, 13),
                     fontFamily: StrCast(this.layoutDoc.fontFamily, "Crimson Text"),
                 }}

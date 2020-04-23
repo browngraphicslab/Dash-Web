@@ -16,6 +16,8 @@ import { FieldView, FieldViewProps } from './FieldView';
 import "./KeyValueBox.scss";
 import { KeyValuePair } from "./KeyValuePair";
 import React = require("react");
+import { ContextMenu } from "../ContextMenu";
+import { ContextMenuProps } from "../ContextMenuItem";
 
 export type KVPScript = {
     script: CompiledScript;
@@ -34,11 +36,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
     @observable private _keyInput: string = "";
     @observable private _valueInput: string = "";
     @computed get splitPercentage() { return NumCast(this.props.Document.schemaSplitPercentage, 50); }
-    get fieldDocToLayout() { return this.props.fieldKey ? FieldValue(Cast(this.props.Document[this.props.fieldKey], Doc)) : this.props.Document; }
-
-    constructor(props: FieldViewProps) {
-        super(props);
-    }
+    get fieldDocToLayout() { return this.props.fieldKey ? Cast(this.props.Document[this.props.fieldKey], Doc, null) : this.props.Document; }
 
     @action
     onEnterKey = (e: React.KeyboardEvent): void => {
@@ -234,13 +232,26 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
         return new Doc;
     }
 
+    specificContextMenu = (e: React.MouseEvent): void => {
+        const cm = ContextMenu.Instance;
+        const open = cm.findByDescription("Change Perspective...");
+        const openItems: ContextMenuProps[] = open && "subitems" in open ? open.subitems : [];
+        openItems.push({
+            description: "Default Perspective", event: () => {
+                this.props.addDocTab(this.fieldDocToLayout, "inTab");
+                this.props.addDocTab(this.props.Document, "close");
+            }, icon: "image"
+        });
+        !open && cm.addItem({ description: "Change Perspective...", subitems: openItems, icon: "external-link-alt" });
+    }
+
     render() {
         const dividerDragger = this.splitPercentage === 0 ? (null) :
             <div className="keyValueBox-dividerDragger" style={{ transform: `translate(calc(${100 - this.splitPercentage}% - 5px), 0px)` }}>
                 <div className="keyValueBox-dividerDraggerThumb" onPointerDown={this.onDividerDown} />
             </div>;
 
-        return (<div className="keyValueBox-cont" onWheel={this.onPointerWheel} ref={this._mainCont}>
+        return (<div className="keyValueBox-cont" onWheel={this.onPointerWheel} onContextMenu={this.specificContextMenu} ref={this._mainCont}>
             <table className="keyValueBox-table">
                 <tbody className="keyValueBox-tbody">
                     <tr className="keyValueBox-header">

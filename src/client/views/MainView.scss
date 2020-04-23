@@ -5,6 +5,7 @@
 .mainView-tabButtons {
     position: relative;
     width: 100%;
+    margin-top: 10px;
 }
 
 .mainContent-div {
@@ -28,6 +29,7 @@
     width: 100%;
     height: 100%;
     position: absolute;
+    pointer-events: all;
     top: 0;
     left: 0;
     z-index: 1;
@@ -71,6 +73,7 @@
     flex-direction: column;
     position: relative;
     height: 100%;
+    background: dimgray;
 
     .documentView-node-topmost {
         background: lightgrey;

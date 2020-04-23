@@ -100,7 +100,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
         }
 
         rootSelected = (outsideReaction?: boolean) => {
-            return this.props.isSelected(outsideReaction) || (this.props.Document.rootDocument || this.props.Document.forceActive ? this.props.rootSelected(outsideReaction) : false);
+            return this.props.isSelected(outsideReaction) || (this.rootDoc && this.props.rootSelected(outsideReaction));
         }
 
         // The data field for rendering this collection will be on the this.props.Document unless we're rendering a template in which case we try to use props.DataDoc.
@@ -388,6 +388,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                     continue;
                 }
                 const proto = Doc.GetProto(doc);
+                proto.text = result.rawText;
                 proto.fileUpload = basename(pathname).replace("upload_", "").replace(/\.[a-z0-9]*$/, "");
                 if (Upload.isImageInformation(result)) {
                     proto["data-nativeWidth"] = (result.nativeWidth > result.nativeHeight) ? 400 * result.nativeWidth / result.nativeHeight : 400;

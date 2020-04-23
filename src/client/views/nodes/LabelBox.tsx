@@ -36,12 +36,13 @@ export class LabelBox extends ViewBoxBaseComponent<FieldViewProps, LabelDocument
         }
     }
 
+    get paramsDoc() { return Doc.AreProtosEqual(this.layoutDoc, this.dataDoc) ? this.dataDoc : this.layoutDoc; }
     specificContextMenu = (e: React.MouseEvent): void => {
         const funcs: ContextMenuProps[] = [];
         funcs.push({
             description: "Clear Script Params", event: () => {
-                const params = Cast(this.dataDoc[this.fieldKey + "-paramFieldKeys"], listSpec("string"), []);
-                params?.map(p => this.dataDoc[p] = undefined);
+                const params = Cast(this.paramsDoc["onClick-paramFieldKeys"], listSpec("string"), []);
+                params?.map(p => this.paramsDoc[p] = undefined);
             }, icon: "trash"
         });
 
@@ -52,19 +53,19 @@ export class LabelBox extends ViewBoxBaseComponent<FieldViewProps, LabelDocument
     @action
     drop = (e: Event, de: DragManager.DropEvent) => {
         const docDragData = de.complete.docDragData;
-        const params = Cast(this.dataDoc[this.fieldKey + "-paramFieldKeys"], listSpec("string"), []);
-        const missingParams = params?.filter(p => this.dataDoc[p] === undefined);
+        const params = Cast(this.paramsDoc["onClick-paramFieldKeys"], listSpec("string"), []);
+        const missingParams = params?.filter(p => !this.paramsDoc[p]);
         if (docDragData && missingParams?.includes((e.target as any).textContent)) {
-            this.dataDoc[(e.target as any).textContent] = new List<Doc>(docDragData.droppedDocuments.map((d, i) =>
+            this.paramsDoc[(e.target as any).textContent] = new List<Doc>(docDragData.droppedDocuments.map((d, i) =>
                 d.onDragStart ? docDragData.draggedDocuments[i] : d));
             e.stopPropagation();
         }
     }
     // (!missingParams || !missingParams.length ? "" : "(" + missingParams.map(m => m + ":").join(" ") + ")")
     render() {
-        const params = Cast(this.dataDoc[this.fieldKey + "-paramFieldKeys"], listSpec("string"), []);
-        const missingParams = params?.filter(p => this.dataDoc[p] === undefined);
-        params?.map(p => DocListCast(this.dataDoc[p])); // bcz: really hacky form of prefetching ... 
+        const params = Cast(this.paramsDoc["onClick-paramFieldKeys"], listSpec("string"), []);
+        const missingParams = params?.filter(p => !this.paramsDoc[p]);
+        params?.map(p => DocListCast(this.paramsDoc[p])); // bcz: really hacky form of prefetching ... 
         return (
             <div className="labelBox-outerDiv" ref={this.createDropTarget} onContextMenu={this.specificContextMenu}
                 style={{ boxShadow: this.layoutDoc.opacity ? StrCast(this.layoutDoc.boxShadow) : "" }}>
@@ -76,7 +77,7 @@ export class LabelBox extends ViewBoxBaseComponent<FieldViewProps, LabelDocument
                     textTransform: StrCast(this.layoutDoc.textTransform) as any
                 }} >
                     <div className="labelBox-mainButtonCenter">
-                        {StrCast(this.layoutDoc.text, StrCast(this.layoutDoc.title))}
+                        {StrCast(this.rootDoc.text, StrCast(this.rootDoc.title))}
                     </div>
                 </div>
                 <div className="labelBox-fieldKeyParams" >

@@ -14,11 +14,9 @@ import { List } from '../../../new_fields/List';
 import { FieldId } from "../../../new_fields/RefField";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { TraceMobx } from '../../../new_fields/util';
-import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
 import { emptyFunction, returnOne, returnTrue, Utils, returnZero } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { Docs } from '../../documents/Documents';
-import { DocumentType } from '../../documents/DocumentTypes';
 import { DocumentManager } from '../../util/DocumentManager';
 import { DragManager, dropActionType } from "../../util/DragManager";
 import { Scripting } from '../../util/Scripting';
@@ -31,6 +29,7 @@ import "./CollectionDockingView.scss";
 import { SubCollectionViewProps } from "./CollectionSubView";
 import { DockingViewButtonSelector } from './ParentDocumentSelector';
 import React = require("react");
+import { CollectionViewType } from './CollectionView';
 library.add(faFile);
 const _global = (window /* browser */ || global /* node */) as any;
 
@@ -95,6 +94,9 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     @undoBatch
     @action
     public OpenFullScreen(docView: DocumentView, libraryPath?: Doc[]) {
+        if (docView.props.Document._viewType === CollectionViewType.Docking && docView.props.Document.layoutKey === "layout") {
+            return MainView.Instance.openWorkspace(docView.props.Document);
+        }
         const document = Doc.MakeAlias(docView.props.Document);
         const newItemStackConfig = {
             type: 'stack',
@@ -376,8 +378,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                         // Because this is in a set timeout, if this component unmounts right after mounting,
                         // we will leak a GoldenLayout, because we try to destroy it before we ever create it
                         setTimeout(() => this.setupGoldenLayout(), 1);
-                        const userDoc = CurrentUserUtils.UserDocument;
-                        userDoc && DocListCast((userDoc.workspaces as Doc).data).map(d => d.workspaceBrush = false);
+                        DocListCast((Doc.UserDoc().myWorkspaces as Doc).data).map(d => d.workspaceBrush = false);
                         this.props.Document.workspaceBrush = true;
                     }
                     this._ignoreStateChange = "";
@@ -544,9 +545,8 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                     const theDoc = doc;
                     CollectionDockingView.Instance._removedDocs.push(theDoc);
 
-                    const userDoc = CurrentUserUtils.UserDocument;
-                    let recent: Doc | undefined;
-                    if (userDoc && (recent = await Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc))) {
+                    const recent = await Cast(Doc.UserDoc().myRecentlyClosed, Doc);
+                    if (recent) {
                         Doc.AddDocToList(recent, "data", doc, undefined, true, true);
                     }
                     SelectionManager.DeselectAll();
@@ -606,7 +606,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                     const doc = await DocServer.GetRefField(contentItem.config.props.documentId);
                     if (doc instanceof Doc) {
                         let recent: Doc | undefined;
-                        if (CurrentUserUtils.UserDocument && (recent = await Cast(CurrentUserUtils.UserDocument.recentlyClosed, Doc))) {
+                        if (recent = await Cast(Doc.UserDoc().myRecentlyClosed, Doc)) {
                             Doc.AddDocToList(recent, "data", doc, undefined, true, true);
                         }
                         const theDoc = doc;
@@ -681,7 +681,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     @action
     public static PinDoc(doc: Doc) {
         //add this new doc to props.Document
-        const curPres = Cast(CurrentUserUtils.UserDocument.curPresentation, Doc) as Doc;
+        const curPres = Cast(Doc.UserDoc().activePresentation, Doc) as Doc;
         if (curPres) {
             const pinDoc = Doc.MakeAlias(doc);
             pinDoc.presentationTargetDoc = doc;
@@ -698,7 +698,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     @action
     public static UnpinDoc(doc: Doc) {
         //add this new doc to props.Document
-        const curPres = Cast(CurrentUserUtils.UserDocument.curPresentation, Doc) as Doc;
+        const curPres = Cast(Doc.UserDoc().activePresentation, Doc) as Doc;
         if (curPres) {
             const ind = DocListCast(curPres.data).findIndex((val) => Doc.AreProtosEqual(val, doc));
             ind !== -1 && Doc.RemoveDocFromList(curPres, "data", DocListCast(curPres.data)[ind]);
@@ -739,19 +739,27 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     nativeHeight = () => !this.layoutDoc!._fitWidth ? NumCast(this.layoutDoc!._nativeHeight) || this._panelHeight : 0;
 
     contentScaling = () => {
-        if (this.layoutDoc!.type === DocumentType.PDF) {
-            if ((this.layoutDoc && this.layoutDoc._fitWidth) ||
-                this._panelHeight / NumCast(this.layoutDoc!._nativeHeight) > this._panelWidth / NumCast(this.layoutDoc!._nativeWidth)) {
-                return this._panelWidth / NumCast(this.layoutDoc!._nativeWidth);
-            } else {
-                return this._panelHeight / NumCast(this.layoutDoc!._nativeHeight);
-            }
-        }
         const nativeH = this.nativeHeight();
         const nativeW = this.nativeWidth();
-        if (!nativeW || !nativeH) return 1;
-        const wscale = this.panelWidth() / nativeW;
-        return wscale * nativeH > this._panelHeight ? this._panelHeight / nativeH : wscale;
+        let scaling = 1;
+        if (!this.layoutDoc?._fitWidth && (!nativeW || !nativeH)) {
+            scaling = 1;
+        } else if ((this.layoutDoc?._fitWidth) ||
+            this._panelHeight / NumCast(this.layoutDoc!._nativeHeight) > this._panelWidth / NumCast(this.layoutDoc!._nativeWidth)) {
+            scaling = this._panelWidth / NumCast(this.layoutDoc!._nativeWidth);
+        } else {
+            // if (this.layoutDoc!.type === DocumentType.PDF || this.layoutDoc!.type === DocumentType.WEB) {
+            //     if ((this.layoutDoc?._fitWidth) ||
+            //         this._panelHeight / NumCast(this.layoutDoc!._nativeHeight) > this._panelWidth / NumCast(this.layoutDoc!._nativeWidth)) {
+            //         return this._panelWidth / NumCast(this.layoutDoc!._nativeWidth);
+            //     } else {
+            //         return this._panelHeight / NumCast(this.layoutDoc!._nativeHeight);
+            //     }
+            // }
+            const wscale = this.panelWidth() / nativeW;
+            scaling = wscale * nativeH > this._panelHeight ? this._panelHeight / nativeH : wscale;
+        }
+        return scaling;
     }
 
     ScreenToLocalTransform = () => {
@@ -767,7 +775,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
 
     addDocTab = (doc: Doc, location: string, libraryPath?: Doc[]) => {
         SelectionManager.DeselectAll();
-        if (doc.dockingConfig) {
+        if (doc._viewType === CollectionViewType.Docking && doc.layoutKey === "layout") {
             return MainView.Instance.openWorkspace(doc);
         } else if (location === "onRight") {
             return CollectionDockingView.AddRightSplit(doc, libraryPath);

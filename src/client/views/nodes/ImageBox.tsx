@@ -180,7 +180,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
             //modes.push({ description: "Recommend", event: this.extractText, icon: "brain" });
             !existingAnalyze && ContextMenu.Instance.addItem({ description: "Analyzers...", subitems: modes, icon: "hand-point-right" });
 
-            ContextMenu.Instance.addItem({ description: "Image Funcs...", subitems: funcs, icon: "asterisk" });
+            ContextMenu.Instance.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
         }
     }
 
@@ -250,25 +250,24 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
 
     resize = (imgPath: string) => {
         const cachedNativeSize = {
-            width: NumCast(this.dataDoc[this.fieldKey + "-nativeWidth"]),
-            height: NumCast(this.dataDoc[this.fieldKey + "-nativeHeight"])
+            width: imgPath === this.dataDoc[this.fieldKey + "-path"] ? NumCast(this.dataDoc[this.fieldKey + "-nativeWidth"]) : 0,
+            height: imgPath === this.dataDoc[this.fieldKey + "-path"] ? NumCast(this.dataDoc[this.fieldKey + "-nativeHeight"]) : 0,
         };
         const docAspect = this.layoutDoc[HeightSym]() / this.layoutDoc[WidthSym]();
         const cachedAspect = cachedNativeSize.height / cachedNativeSize.width;
         if (!cachedNativeSize.width || !cachedNativeSize.height || Math.abs(NumCast(this.layoutDoc._width) / NumCast(this.layoutDoc._height) - cachedNativeSize.width / cachedNativeSize.height) > 0.05) {
             if (!this.layoutDoc.isTemplateDoc || this.dataDoc !== this.layoutDoc) {
-                requestImageSize(imgPath).then((inquiredSize: any) => {
+                requestImageSize(imgPath).then(action((inquiredSize: any) => {
                     const rotation = NumCast(this.dataDoc[this.fieldKey + "-rotation"]) % 180;
                     const rotatedNativeSize = rotation === 90 || rotation === 270 ? { height: inquiredSize.width, width: inquiredSize.height } : inquiredSize;
                     const rotatedAspect = rotatedNativeSize.height / rotatedNativeSize.width;
-                    setTimeout(action(() => {
-                        if (this.layoutDoc[WidthSym]() && (!cachedNativeSize.width || !cachedNativeSize.height || Math.abs(1 - docAspect / rotatedAspect) > 0.1)) {
-                            this.layoutDoc._height = this.layoutDoc[WidthSym]() * rotatedAspect;
-                            this.dataDoc[this.fieldKey + "-nativeWidth"] = this.layoutDoc._nativeWidth = rotatedNativeSize.width;
-                            this.dataDoc[this.fieldKey + "-nativeHeight"] = this.layoutDoc._nativeHeight = rotatedNativeSize.height;
-                        }
-                    }), 0);
-                }).catch((err: any) => console.log(err));
+                    if (this.layoutDoc[WidthSym]() && (!cachedNativeSize.width || !cachedNativeSize.height || Math.abs(1 - docAspect / rotatedAspect) > 0.1)) {
+                        this.layoutDoc._height = this.layoutDoc[WidthSym]() * rotatedAspect;
+                        this.dataDoc[this.fieldKey + "-nativeWidth"] = this.layoutDoc._nativeWidth = this.layoutDoc._width;
+                        this.dataDoc[this.fieldKey + "-nativeHeight"] = this.layoutDoc._nativeHeight = this.layoutDoc._height;
+                        this.dataDoc[this.fieldKey + "-path"] = imgPath;
+                    }
+                })).catch(console.log);
             } else if (Math.abs(1 - docAspect / cachedAspect) > 0.1) {
                 this.layoutDoc._width = this.layoutDoc[WidthSym]() || cachedNativeSize.width;
                 this.layoutDoc._height = this.layoutDoc[WidthSym]() * cachedAspect;
@@ -388,17 +387,14 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
         const { nativeWidth, nativeHeight } = this.nativeSize;
         const rotation = NumCast(this.dataDoc[this.fieldKey + "-rotation"]);
         const aspect = (rotation % 180) ? nativeHeight / nativeWidth : 1;
-        const pwidth = this.props.PanelWidth();
-        const pheight = this.props.PanelHeight();
-        const shift = (rotation % 180) ? (pheight - pwidth) / aspect / 2 + (pheight - pwidth) / 2 : 0;
-
+        const shift = (rotation % 180) ? (nativeHeight - nativeWidth) * (1 - 1 / aspect) : 0;
         this.resize(srcpath);
 
         return <div className="imageBox-cont" key={this.layoutDoc[Id]} ref={this.createDropTarget}>
             <div className="imageBox-fader" >
                 <img key={this._smallRetryCount + (this._mediumRetryCount << 4) + (this._largeRetryCount << 8)} // force cache to update on retrys
                     src={srcpath}
-                    style={{ transform: `translate(0px, ${shift}px) rotate(${rotation}deg) scale(${aspect})` }}
+                    style={{ transform: `scale(${aspect}) translate(0px, ${shift}px) rotate(${rotation}deg)` }}
                     width={nativeWidth}
                     ref={this._imgRef}
                     onError={this.onError} />
@@ -427,17 +423,29 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
         </div>;
     }
 
+    // adjust y position to center image in panel aspect is bigger than image aspect.
+    // bcz :note, this is broken for rotated images
+    get ycenter() {
+        const { nativeWidth, nativeHeight } = this.nativeSize;
+        const rotation = NumCast(this.dataDoc[this.fieldKey + "-rotation"]);
+        const aspect = (rotation % 180) ? nativeWidth / nativeHeight : nativeHeight / nativeWidth;
+        return this.props.PanelHeight() / this.props.PanelWidth() > aspect ?
+            (this.props.PanelHeight() - this.props.PanelWidth() * aspect) / 2 : 0;
+    }
+
+    screenToLocalTransform = () => this.props.ScreenToLocalTransform().translate(0, -this.ycenter / this.props.ContentScaling());
+
     contentFunc = () => [this.content];
     render() {
         TraceMobx();
         const dragging = !SelectionManager.GetIsDragging() ? "" : "-dragging";
         return (<div className={`imageBox${dragging}`} onContextMenu={this.specificContextMenu}
             style={{
-                transform: this.props.PanelWidth() ? undefined : `scale(${this.props.ContentScaling()})`,
+                transform: this.props.PanelWidth() ? `translate(0px, ${this.ycenter}px)` : `scale(${this.props.ContentScaling()})`,
                 width: this.props.PanelWidth() ? undefined : `${100 / this.props.ContentScaling()}%`,
                 height: this.props.PanelWidth() ? undefined : `${100 / this.props.ContentScaling()}%`,
                 pointerEvents: this.layoutDoc.isBackground ? "none" : undefined,
-                borderRadius: `${Number(StrCast(this.layoutDoc.borderRounding).replace("px", "")) / this.props.ContentScaling()}px`
+                borderRadius: `${Number(StrCast(this.layoutDoc.borderRoundisng).replace("px", "")) / this.props.ContentScaling()}px`
             }} >
             <CollectionFreeFormView {...this.props}
                 forceScaling={true}
@@ -457,7 +465,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
                 moveDocument={this.moveDocument}
                 addDocument={this.addDocument}
                 CollectionView={undefined}
-                ScreenToLocalTransform={this.props.ScreenToLocalTransform}
+                ScreenToLocalTransform={this.screenToLocalTransform}
                 renderDepth={this.props.renderDepth + 1}
                 ContainingCollectionDoc={this.props.ContainingCollectionDoc}>
                 {this.contentFunc}

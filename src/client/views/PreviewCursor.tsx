@@ -13,7 +13,7 @@ export class PreviewCursor extends React.Component<{}> {
     static _getTransform: () => Transform;
     static _addLiveTextDoc: (doc: Doc) => void;
     static _addDocument: (doc: Doc) => boolean;
-    static _nudge: (x: number, y: number) => void;
+    static _nudge: (x: number, y: number) => boolean;
     @observable static _clickPoint = [0, 0];
     @observable public static Visible = false;
     constructor(props: any) {
@@ -91,17 +91,13 @@ export class PreviewCursor extends React.Component<{}> {
             }
         } else if (PreviewCursor.Visible) {
             if (e.key === "ArrowRight") {
-                PreviewCursor._nudge?.(1 * (e.shiftKey ? 2 : 1), 0);
-                e.stopPropagation();
+                PreviewCursor._nudge?.(1 * (e.shiftKey ? 2 : 1), 0) && e.stopPropagation();
             } else if (e.key === "ArrowLeft") {
-                PreviewCursor._nudge?.(-1 * (e.shiftKey ? 2 : 1), 0);
-                e.stopPropagation();
+                PreviewCursor._nudge?.(-1 * (e.shiftKey ? 2 : 1), 0) && e.stopPropagation();
             } else if (e.key === "ArrowUp") {
-                PreviewCursor._nudge?.(0, 1 * (e.shiftKey ? 2 : 1));
-                e.stopPropagation();
+                PreviewCursor._nudge?.(0, 1 * (e.shiftKey ? 2 : 1)) && e.stopPropagation();
             } else if (e.key === "ArrowDown") {
-                PreviewCursor._nudge?.(0, -1 * (e.shiftKey ? 2 : 1));
-                e.stopPropagation();
+                PreviewCursor._nudge?.(0, -1 * (e.shiftKey ? 2 : 1)) && e.stopPropagation();
             }
         }
     }
@@ -117,7 +113,7 @@ export class PreviewCursor extends React.Component<{}> {
         addLiveText: (doc: Doc) => void,
         getTransform: () => Transform,
         addDocument: (doc: Doc) => boolean,
-        nudge: (nudgeX: number, nudgeY: number) => void) {
+        nudge: (nudgeX: number, nudgeY: number) => boolean) {
         this._clickPoint = [x, y];
         this._onKeyPress = onKeyPress;
         this._addLiveTextDoc = addLiveText;
