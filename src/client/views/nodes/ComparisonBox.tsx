@@ -2,7 +2,7 @@ import { library } from '@fortawesome/fontawesome-svg-core';
 import { faEye } from '@fortawesome/free-regular-svg-icons';
 import { faAsterisk, faBrain, faFileAudio, faImage, faPaintBrush, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, observable, runInAction } from 'mobx';
+import { action, computed, observable, runInAction, Lambda } from 'mobx';
 import { observer } from "mobx-react";
 import { Doc } from '../../../new_fields/Doc';
 import { documentSchema } from '../../../new_fields/documentSchemas';
@@ -31,7 +31,6 @@ export const pageSchema = createSchema({
 
 type ComparisonDocument = makeInterface<[typeof pageSchema, typeof documentSchema]>;
 const ComparisonDocument = makeInterface(pageSchema, documentSchema);
-
 
 @observer
 export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, ComparisonDocument>(ComparisonDocument) {
@@ -65,9 +64,15 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
         window.addEventListener("pointerup", this.onPointerUp);
     }
 
-    componentDidMount() {
+    // private resizeUpdater: Lambda;
+    componentWillMount() {
         const initialWidth = this.props.PanelWidth() / 2;
         this.props.Document.clipWidth = initialWidth;
+
+        //when resized, use current position and old value to infer the new bar position
+        computed(() => this.props.PanelWidth()).observe(({ oldValue, newValue }) =>
+            this.props.Document.clipWidth = NumCast(this.props.Document.clipWidth) / NumCast(oldValue) * newValue
+        );
     }
 
     private onPointerMove = ({ movementX }: PointerEvent) => {
@@ -95,16 +100,28 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
         delete this.props.Document.afterDoc;
     }
 
+    onResize = () => {
+        console.log("native height: " + this.props.NativeHeight());
+        console.log("native width: " + this.props.NativeWidth());
+        console.log("panel height: " + this.props.PanelHeight());
+        console.log("panel width: " + this.props.PanelWidth());
+        console.log("scaling: " + this.props.ContentScaling());
+        console.log("transform: " + this.props.ScreenToLocalTransform());
+    }
+
+    private resizeUpdater: Lambda;
+
     get fieldKey() {
         return this.props.fieldKey.startsWith("@") ? StrCast(this.props.Document[this.props.fieldKey]) : this.props.fieldKey;
     }
 
     render() {
+        console.log("scaling?? " + this.props.ContentScaling());
         const beforeDoc = this.props.Document.beforeDoc as Doc;
         const afterDoc = this.props.Document.afterDoc as Doc;
         const clipWidth = this.props.Document.clipWidth as Number;
         return (
-            <div className="comparisonBox">
+            <div className="comparisonBox" onPointerDown={(e) => this.onResize()}>
                 {/* wraps around before image and slider bar */}
                 <div className="clip-div" style={{ width: clipWidth + "px" }}>
                     <div
