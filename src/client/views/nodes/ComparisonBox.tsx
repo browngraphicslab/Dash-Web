@@ -7,13 +7,9 @@ import { observer } from "mobx-react";
 import { Doc } from '../../../new_fields/Doc';
 import { documentSchema } from '../../../new_fields/documentSchemas';
 import { Id } from '../../../new_fields/FieldSymbols';
-import { List } from '../../../new_fields/List';
-import { ObjectField } from '../../../new_fields/ObjectField';
 import { createSchema, listSpec, makeInterface } from '../../../new_fields/Schema';
 import { ComputedField } from '../../../new_fields/ScriptField';
 import { Cast, NumCast, StrCast } from '../../../new_fields/Types';
-import { emptyFunction, returnOne, Utils, returnZero } from '../../../Utils';
-import { Docs } from '../../documents/Documents';
 import { DragManager } from '../../util/DragManager';
 import { ViewBoxAnnotatableComponent } from '../DocComponent';
 import { FieldView, FieldViewProps } from './FieldView';
@@ -64,19 +60,24 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
         window.addEventListener("pointerup", this.onPointerUp);
     }
 
-    // private resizeUpdater: Lambda;
-    componentWillMount() {
-        const initialWidth = this.props.PanelWidth() / 2;
-        this.props.Document.clipWidth = initialWidth;
+    private resizeUpdater: Lambda = () => { };
 
-        //when resized, use current position and old value to infer the new bar position
-        computed(() => this.props.PanelWidth()).observe(({ oldValue, newValue }) =>
+    componentWillMount() {
+        this.props.Document.clipWidth = this.props.PanelWidth() / 2;
+
+        //preserve before/after ratio during resizing
+        this.resizeUpdater = computed(() => this.props.PanelWidth()).observe(({ oldValue, newValue }) =>
             this.props.Document.clipWidth = NumCast(this.props.Document.clipWidth) / NumCast(oldValue) * newValue
         );
     }
 
+    componentWillUnmount() {
+        this.resizeUpdater();
+    }
+
     private onPointerMove = ({ movementX }: PointerEvent) => {
-        const width = NumCast(this.props.Document.clipWidth) + movementX; //is it ok to use NumCast
+        //is it ok to use NumCast
+        const width = movementX * this.props.ScreenToLocalTransform().Scale + NumCast(this.props.Document.clipWidth);
         if (width && width > 5 && width < this.props.PanelWidth()) {
             this.props.Document.clipWidth = width;
         }
@@ -100,28 +101,16 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
         delete this.props.Document.afterDoc;
     }
 
-    onResize = () => {
-        console.log("native height: " + this.props.NativeHeight());
-        console.log("native width: " + this.props.NativeWidth());
-        console.log("panel height: " + this.props.PanelHeight());
-        console.log("panel width: " + this.props.PanelWidth());
-        console.log("scaling: " + this.props.ContentScaling());
-        console.log("transform: " + this.props.ScreenToLocalTransform());
-    }
-
-    private resizeUpdater: Lambda;
-
     get fieldKey() {
         return this.props.fieldKey.startsWith("@") ? StrCast(this.props.Document[this.props.fieldKey]) : this.props.fieldKey;
     }
 
     render() {
-        console.log("scaling?? " + this.props.ContentScaling());
         const beforeDoc = this.props.Document.beforeDoc as Doc;
         const afterDoc = this.props.Document.afterDoc as Doc;
         const clipWidth = this.props.Document.clipWidth as Number;
         return (
-            <div className="comparisonBox" onPointerDown={(e) => this.onResize()}>
+            <div className="comparisonBox">
                 {/* wraps around before image and slider bar */}
                 <div className="clip-div" style={{ width: clipWidth + "px" }}>
                     <div
