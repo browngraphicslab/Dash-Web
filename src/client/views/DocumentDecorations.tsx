@@ -134,7 +134,11 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @action onSettingsClick = (e: PointerEvent): void => {
         if (e.button === 0 && !e.altKey && !e.ctrlKey) {
             let child = SelectionManager.SelectedDocuments()[0].ContentDiv!.children[0];
-            while (child.children.length) child = child.children[0];
+            while (child.children.length) {
+                const next = Array.from(child.children).find(c => !c.className.includes("collectionViewChrome"));
+                if (next) child = next;
+                else break;
+            }
             simulateMouseClick(child, e.clientX, e.clientY + 30, e.screenX, e.screenY + 30);
         }
     }

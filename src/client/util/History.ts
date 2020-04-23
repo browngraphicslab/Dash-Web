@@ -40,8 +40,12 @@ export namespace HistoryUtil {
         // }
     }
 
+    let _lastStatePush = 0;
     export function pushState(state: ParsedUrl) {
-        history.pushState(state, "", createUrl(state));
+        if (Date.now() - _lastStatePush > 1000) {
+            history.pushState(state, "", createUrl(state));
+        }
+        _lastStatePush = Date.now();
     }
 
     export function replaceState(state: ParsedUrl) {
