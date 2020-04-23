@@ -3,7 +3,7 @@ import * as rp from 'request-promise';
 import { DocServer } from "../../../client/DocServer";
 import { Docs, DocumentOptions } from "../../../client/documents/Documents";
 import { UndoManager } from "../../../client/util/UndoManager";
-import { Doc, DocListCast } from "../../../new_fields/Doc";
+import { Doc, DocListCast, DocListCastAsync } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
 import { ScriptField, ComputedField } from "../../../new_fields/ScriptField";
@@ -147,8 +147,16 @@ export class CurrentUserUtils {
             iconView.isTemplateDoc = makeTemplate(iconView);
             doc["template-icon-view"] = new PrefetchProxy(iconView);
         }
+        if (doc["template-icon-view-rtf"] === undefined) {
+            const iconRtfView = Docs.Create.LabelDocument({ title: "icon_" + DocumentType.RTF, textTransform: "unset", letterSpacing: "unset", _width: 150, _height: 30, isTemplateDoc: true, onClick: ScriptField.MakeScript("deiconifyView(self)") });
+            iconRtfView.isTemplateDoc = makeTemplate(iconRtfView, true, "icon_" + DocumentType.RTF);
+            doc["template-icon-view-rtf"] = new PrefetchProxy(iconRtfView);
+        }
         if (doc["template-icon-view-img"] === undefined) {
-            const iconImageView = Docs.Create.ImageDocument("http://www.cs.brown.edu/~bcz/face.gif", { title: "data", _width: 50, isTemplateDoc: true, onClick: ScriptField.MakeScript("deiconifyView(self)") });
+            const iconImageView = Docs.Create.ImageDocument("http://www.cs.brown.edu/~bcz/face.gif", {
+                title: "data", _width: 50, isTemplateDoc: true,
+                onClick: ScriptField.MakeScript("deiconifyView(self)")
+            });
             iconImageView.isTemplateDoc = makeTemplate(iconImageView, true, "icon_" + DocumentType.IMG);
             doc["template-icon-view-img"] = new PrefetchProxy(iconImageView);
         }
@@ -158,9 +166,12 @@ export class CurrentUserUtils {
             doc["template-icon-view-col"] = new PrefetchProxy(iconColView);
         }
         if (doc["template-icons"] === undefined) {
-            doc["template-icons"] = new PrefetchProxy(Docs.Create.TreeDocument([doc["template-icon-view"] as Doc, doc["template-icon-view-img"] as Doc, doc["template-icon-view-col"] as Doc], { title: "icon templates", _height: 75 }));
+            doc["template-icons"] = new PrefetchProxy(Docs.Create.TreeDocument([doc["template-icon-view"] as Doc, doc["template-icon-view-img"] as Doc,
+            doc["template-icon-view-col"] as Doc, doc["template-icon-view-rtf"] as Doc], { title: "icon templates", _height: 75 }));
         } else {
-            DocListCast(Cast(doc["template-icons"], Doc, null)?.data); // prefetch templates
+            const templateIconsDoc = Cast(doc["template-icons"], Doc, null);
+            DocListCastAsync(templateIconsDoc).then(list => templateIconsDoc.data = new List<Doc>([doc["template-icon-view"] as Doc, doc["template-icon-view-img"] as Doc,
+            doc["template-icon-view-col"] as Doc, doc["template-icon-view-rtf"] as Doc]));
         }
         return doc["template-icons"] as Doc;
     }

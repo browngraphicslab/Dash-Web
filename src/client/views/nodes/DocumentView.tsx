@@ -733,7 +733,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
         const open = cm.findByDescription("Open New Perspective...");
         const openItems: ContextMenuProps[] = open && "subitems" in open ? open.subitems : [];
-        openItems.push({ description: "Open Full Screen", event: () => CollectionDockingView.Instance && CollectionDockingView.Instance.OpenFullScreen(this, this.props.LibraryPath), icon: "desktop" });
         openItems.push({ description: "Open Fields     ", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { _width: 300, _height: 300 }), "onRight"), icon: "layer-group" });
         templateDoc && openItems.push({ description: "Open Template   ", event: () => this.props.addDocTab(templateDoc, "onRight"), icon: "eye" });
         !open && cm.addItem({ description: "Open New Perspective...", subitems: openItems, icon: "external-link-alt" });
