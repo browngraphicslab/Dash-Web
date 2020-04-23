@@ -565,8 +565,9 @@ export namespace Doc {
                 } else if (cfield instanceof ComputedField) {
                     copy[key] = ComputedField.MakeFunction(cfield.script.originalScript);
                 } else if (field instanceof ObjectField) {
-                    copy[key] = key.includes("layout[") && doc[key] instanceof Doc ? Doc.MakeCopy(doc[key] as Doc, false) :
-                        doc[key] instanceof Doc ? doc[key] : ObjectField.MakeCopy(field);
+                    copy[key] = doc[key] instanceof Doc ?
+                        key.includes("layout[") ? Doc.MakeCopy(doc[key] as Doc, false) : doc[key] : // reference documents except copy documents that are expanded teplate fields 
+                        ObjectField.MakeCopy(field);
                 } else if (field instanceof Promise) {
                     debugger; //This shouldn't happend...
                 } else {
@@ -575,6 +576,44 @@ export namespace Doc {
             }
         });
 
+        return copy;
+    }
+
+    export function MakeClone(doc: Doc, cloneProto: boolean = true): Doc {
+        const copy = new Doc(undefined, true);
+        const exclude = Cast(doc.excludeFields, listSpec("string"), []);
+        Object.keys(doc).forEach(key => {
+            if (exclude.includes(key)) return;
+            const cfield = ComputedField.WithoutComputed(() => FieldValue(doc[key]));
+            const field = ProxyField.WithoutProxy(() => doc[key]);
+            if (key === "proto" && cloneProto) {
+                if (doc[key] instanceof Doc) {
+                    copy[key] = Doc.MakeClone(doc[key]!, false);
+                }
+            } else {
+                if (field instanceof RefField) {
+                    copy[key] = field;
+                } else if (cfield instanceof ComputedField) {
+                    copy[key] = ComputedField.MakeFunction(cfield.script.originalScript);
+                } else if (field instanceof ObjectField) {
+                    const list = Cast(doc[key], listSpec(Doc));
+                    if (list !== undefined && !(list instanceof Promise)) {
+                        copy[key] = new List<Doc>(list.filter(d => d instanceof Doc).map(d => Doc.MakeCopy(d as Doc, false)));
+                    } else {
+                        copy[key] = doc[key] instanceof Doc ?
+                            key.includes("layout[") ?
+                                Doc.MakeCopy(doc[key] as Doc, false) : doc[key] : // reference documents except copy documents that are expanded teplate fields 
+                            ObjectField.MakeCopy(field);
+                    }
+                } else if (field instanceof Promise) {
+                    debugger; //This shouldn't happend...
+                } else {
+                    copy[key] = field;
+                }
+            }
+        });
+        Doc.SetInPlace(copy, "title", "CLONE: " + doc.title, true);
+        copy.cloneOf = doc;
         return copy;
     }
 

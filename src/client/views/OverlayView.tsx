@@ -9,6 +9,8 @@ import { Transform } from "../util/Transform";
 import { CollectionFreeFormLinksView } from "./collections/collectionFreeForm/CollectionFreeFormLinksView";
 import { DocumentView } from "./nodes/DocumentView";
 import './OverlayView.scss';
+import { Scripting } from "../util/Scripting";
+import { ScriptingRepl } from './ScriptingRepl';
 
 export type OverlayDisposer = () => void;
 
@@ -211,3 +213,5 @@ export class OverlayView extends React.Component {
         );
     }
 }
+// bcz: ugh ... want to be able to pass ScriptingRepl as tag argument, but that doesn't seem to work.. runtime error
+Scripting.addGlobal(function addOverlayWindow(Tag: string, options: OverlayElementOptions) { const x = <ScriptingRepl />; OverlayView.Instance.addWindow(x, options); });

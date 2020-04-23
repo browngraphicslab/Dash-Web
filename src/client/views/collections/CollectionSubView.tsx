@@ -388,6 +388,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                     continue;
                 }
                 const proto = Doc.GetProto(doc);
+                proto.text = result.rawText;
                 proto.fileUpload = basename(pathname).replace("upload_", "").replace(/\.[a-z0-9]*$/, "");
                 if (Upload.isImageInformation(result)) {
                     proto["data-nativeWidth"] = (result.nativeWidth > result.nativeHeight) ? 400 * result.nativeWidth / result.nativeHeight : 400;

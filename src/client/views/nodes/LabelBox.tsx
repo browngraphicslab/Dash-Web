@@ -77,7 +77,7 @@ export class LabelBox extends ViewBoxBaseComponent<FieldViewProps, LabelDocument
                     textTransform: StrCast(this.layoutDoc.textTransform) as any
                 }} >
                     <div className="labelBox-mainButtonCenter">
-                        {StrCast(this.layoutDoc.text, StrCast(this.layoutDoc.title))}
+                        {StrCast(this.rootDoc.text, StrCast(this.rootDoc.title))}
                     </div>
                 </div>
                 <div className="labelBox-fieldKeyParams" >

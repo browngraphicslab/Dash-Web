@@ -37,14 +37,13 @@ import { pageSchema } from "../../nodes/ImageBox";
 import PDFMenu from "../../pdf/PDFMenu";
 import { CollectionDockingView } from "../CollectionDockingView";
 import { CollectionSubView } from "../CollectionSubView";
-import { computePivotLayout, computeTimelineLayout, PoolData, ViewDefBounds, ViewDefResult } from "./CollectionFreeFormLayoutEngines";
+import { computePivotLayout, computeTimelineLayout, PoolData, ViewDefBounds, ViewDefResult, computerStarburstLayout } from "./CollectionFreeFormLayoutEngines";
 import { CollectionFreeFormRemoteCursors } from "./CollectionFreeFormRemoteCursors";
 import "./CollectionFreeFormView.scss";
 import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
 import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import { CollectionViewType } from "../CollectionView";
-import { Script } from "vm";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
@@ -942,13 +941,16 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         return this._layoutPoolData.get(doc[Id]);
     }.bind(this));
 
-    doTimelineLayout(poolData: Map<string, PoolData>) {
-        return computeTimelineLayout(poolData, this.props.Document, this.childDocs, this.childDocs,
-            this.childLayoutPairs, [this.props.PanelWidth(), this.props.PanelHeight()], this.viewDefsToJSX);
-    }
-
-    doPivotLayout(poolData: Map<string, PoolData>) {
-        return computePivotLayout(poolData, this.props.Document, this.childDocs, this.childDocs,
+    doEngineLayout(poolData: Map<string, PoolData>,
+        engine: (
+            poolData: Map<string, PoolData>,
+            pivotDoc: Doc,
+            childDocs: Doc[],
+            filterDocs: Doc[],
+            childPairs: { layout: Doc, data?: Doc }[],
+            panelDim: number[],
+            viewDefsToJSX: ((views: ViewDefBounds[]) => ViewDefResult[])) => ViewDefResult[]) {
+        return engine(poolData, this.props.Document, this.childDocs, this.childDocs,
             this.childLayoutPairs, [this.props.PanelWidth(), this.props.PanelHeight()], this.viewDefsToJSX);
     }
 
@@ -967,9 +969,12 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     @computed get doInternalLayoutComputation() {
         const newPool = new Map<string, any>();
-        switch (this.props.layoutEngine?.()) {
-            case "timeline": return { newPool, computedElementData: this.doTimelineLayout(newPool) };
-            case "pivot": return { newPool, computedElementData: this.doPivotLayout(newPool) };
+        const engine = StrCast(this.layoutDoc._layoutEngine) || this.props.layoutEngine?.();
+        switch (engine) {
+            case "pass": break;
+            case "timeline": return { newPool, computedElementData: this.doEngineLayout(newPool, computeTimelineLayout) };
+            case "pivot": return { newPool, computedElementData: this.doEngineLayout(newPool, computePivotLayout) };
+            case "starburst": return { newPool, computedElementData: this.doEngineLayout(newPool, computerStarburstLayout) };
         }
         return { newPool, computedElementData: this.doFreeformLayout(newPool) };
     }
@@ -995,7 +1000,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                     {...this.getChildDocumentViewProps(pair.layout, pair.data)}
                     dataProvider={this.childDataProvider}
                     LayoutDoc={this.childLayoutDocFunc}
-                    pointerEvents={this.props.layoutEngine?.() !== undefined ? false : undefined}
+                    pointerEvents={this.props.layoutEngine?.() || this.props.Document._layoutEngine ? false : undefined}
                     jitterRotation={NumCast(this.props.Document.jitterRotation)}
                     fitToBox={this.props.fitToBox || BoolCast(this.props.freezeChildDimensions)}
                     FreezeDimensions={BoolCast(this.props.freezeChildDimensions)}
@@ -1023,6 +1028,17 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         super.setCursorPosition(this.getTransform().transformPoint(e.clientX, e.clientY));
     }
 
+    layoutStarburst = action(() => {
+        if (this.layoutDoc._layoutEngine === undefined) {
+            this.layoutDoc._layoutEngine = "starburst";
+            this.layoutDoc.overflow = "visible";
+        } else {
+
+            this.layoutDoc._layoutEngine = "pass";
+            this.layoutDoc.overflow = "hidden";
+        }
+
+    });
     layoutDocsInGrid = () => {
         UndoManager.RunInBatch(() => {
             const docs = this.childLayoutPairs;
@@ -1049,16 +1065,18 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     onContextMenu = (e: React.MouseEvent) => {
         if (this.props.children && this.props.annotationsKey) return;
-        const layoutItems: ContextMenuProps[] = [];
+        const options = ContextMenu.Instance.findByDescription("Options...");
+        const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
 
-        layoutItems.push({ description: "reset view", event: () => { this.props.Document._panX = this.props.Document._panY = 0; this.props.Document.scale = 1; }, icon: "compress-arrows-alt" });
-        layoutItems.push({ description: `${this.Document._LODdisable ? "Enable LOD" : "Disable LOD"}`, event: () => this.Document._LODdisable = !this.Document._LODdisable, icon: "table" });
-        layoutItems.push({ description: `${this.fitToContent ? "Unset" : "Set"} Fit To Container`, event: () => this.Document._fitToBox = !this.fitToContent, icon: !this.fitToContent ? "expand-arrows-alt" : "compress-arrows-alt" });
-        layoutItems.push({ description: `${this.Document.useClusters ? "Uncluster" : "Use Clusters"}`, event: () => this.updateClusters(!this.Document.useClusters), icon: "braille" });
-        layoutItems.push({ description: "Arrange contents in grid", event: this.layoutDocsInGrid, icon: "table" });
+        optionItems.push({ description: "reset view", event: () => { this.props.Document._panX = this.props.Document._panY = 0; this.props.Document.scale = 1; }, icon: "compress-arrows-alt" });
+        optionItems.push({ description: `${this.Document._LODdisable ? "Enable LOD" : "Disable LOD"}`, event: () => this.Document._LODdisable = !this.Document._LODdisable, icon: "table" });
+        optionItems.push({ description: `${this.fitToContent ? "Unset" : "Set"} Fit To Container`, event: () => this.Document._fitToBox = !this.fitToContent, icon: !this.fitToContent ? "expand-arrows-alt" : "compress-arrows-alt" });
+        optionItems.push({ description: `${this.Document.useClusters ? "Uncluster" : "Use Clusters"}`, event: () => this.updateClusters(!this.Document.useClusters), icon: "braille" });
+        optionItems.push({ description: "Arrange Starburst", event: this.layoutStarburst, icon: "table" });
+        optionItems.push({ description: "Arrange contents in grid", event: this.layoutDocsInGrid, icon: "table" });
         // layoutItems.push({ description: "Analyze Strokes", event: this.analyzeStrokes, icon: "paint-brush" });
-        layoutItems.push({ description: "Jitter Rotation", event: action(() => this.props.Document.jitterRotation = 10), icon: "paint-brush" });
-        layoutItems.push({
+        optionItems.push({ description: "Jitter Rotation", event: action(() => this.props.Document.jitterRotation = (this.props.Document.jitterRotation ? 0 : 10)), icon: "paint-brush" });
+        optionItems.push({
             description: "Import document", icon: "upload", event: ({ x, y }) => {
                 const input = document.createElement("input");
                 input.type = "file";
@@ -1086,7 +1104,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             }
         });
 
-        ContextMenu.Instance.addItem({ description: "Freeform Options ...", subitems: layoutItems, icon: "eye" });
+        ContextMenu.Instance.addItem({ description: "Options...", subitems: optionItems, icon: "eye" });
     }
 
     private childViews = () => {

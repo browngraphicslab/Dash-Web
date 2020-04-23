@@ -3,7 +3,7 @@ import { faCaretUp, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faT
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DataSym } from "../../new_fields/Doc";
+import { Doc, DataSym, Field } from "../../new_fields/Doc";
 import { PositionDocument } from '../../new_fields/documentSchemas';
 import { ScriptField } from '../../new_fields/ScriptField';
 import { Cast, StrCast, NumCast } from "../../new_fields/Types";
@@ -19,6 +19,7 @@ import { DocumentView } from "./nodes/DocumentView";
 import React = require("react");
 import { Id } from '../../new_fields/FieldSymbols';
 import e = require('express');
+import { CollectionDockingView } from './collections/CollectionDockingView';
 
 library.add(faCaretUp);
 library.add(faObjectGroup);
@@ -36,8 +37,6 @@ library.add(faCloudUploadAlt);
 library.add(faSyncAlt);
 library.add(faShare);
 
-export type CloseCall = (toBeDeleted: DocumentView[]) => void;
-
 @observer
 export class DocumentDecorations extends React.Component<{}, { value: string }> {
     static Instance: DocumentDecorations;
@@ -51,7 +50,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @observable private _titleControlString: string = "#title";
     @observable private _edtingTitle = false;
     @observable private _hidden = false;
-    @observable private _addedCloseCalls: CloseCall[] = [];
 
     @observable public Interacting = false;
     @observable public pushIcon: IconProp = "arrow-alt-circle-up";
@@ -89,14 +87,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 r: Math.max(bptX, bounds.r), b: Math.max(bptY, bounds.b)
             };
         }, { x: Number.MAX_VALUE, y: Number.MAX_VALUE, r: Number.MIN_VALUE, b: Number.MIN_VALUE });
-    }
-
-    addCloseCall = (handler: CloseCall) => {
-        const currentOffset = this._addedCloseCalls.length - 1;
-        this._addedCloseCalls.push((toBeDeleted: DocumentView[]) => {
-            this._addedCloseCalls.splice(currentOffset, 1);
-            handler(toBeDeleted);
-        });
     }
 
     titleBlur = action((commit: boolean) => {
@@ -144,8 +134,13 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @action onSettingsClick = (e: PointerEvent): void => {
         if (e.button === 0 && !e.altKey && !e.ctrlKey) {
             let child = SelectionManager.SelectedDocuments()[0].ContentDiv!.children[0];
-            while (child.children.length && child.className !== "jsx-parser") child = child.children[0];
-            simulateMouseClick(child.children[0], e.clientX, e.clientY + 30, e.screenX, e.screenY + 30);
+            while (child.children.length) {
+                const next = Array.from(child.children).find(c => !c.className.includes("collectionViewChrome"));
+                if (next?.className.includes("documentView-node")) break;
+                if (next) child = next;
+                else break;
+            }
+            simulateMouseClick(child, e.clientX, e.clientY + 30, e.screenX, e.screenY + 30);
         }
     }
 
@@ -171,7 +166,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     }
 
     onCloseDown = (e: React.PointerEvent): void => {
-        setupMoveUpEvents(this, e, (e, d) => false, (e) => { }, this.onCloseClick);
+        setupMoveUpEvents(this, e, (e, d) => false, (e) => { }, this.onMinimizeClick);
     }
     @undoBatch
     @action
@@ -180,7 +175,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             const recent = Cast(Doc.UserDoc().myRecentlyClosed, Doc) as Doc;
             const selected = SelectionManager.SelectedDocuments().slice();
             SelectionManager.DeselectAll();
-            this._addedCloseCalls.forEach(handler => handler(selected));
 
             selected.map(dv => {
                 recent && Doc.AddDocToList(recent, "data", dv.props.Document, undefined, true, true);
@@ -189,8 +183,20 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         }
     }
     @action
-    onMinimizeDown = (e: React.PointerEvent): void => {
-        setupMoveUpEvents(this, e, (e, d) => false, (e) => { }, this.onMinimizeClick);
+    onMaximizeDown = (e: React.PointerEvent): void => {
+        setupMoveUpEvents(this, e, (e, d) => false, (e) => { }, this.onMaximizeClick);
+    }
+    @undoBatch
+    @action
+    onMaximizeClick = (e: PointerEvent): void => {
+        if (e.button === 0) {
+            const selectedDocs = SelectionManager.SelectedDocuments();
+            if (selectedDocs.length) {
+                //CollectionDockingView.Instance?.OpenFullScreen(selectedDocs[0], selectedDocs[0].props.LibraryPath);
+                CollectionDockingView.AddRightSplit(selectedDocs[0].props.Document, selectedDocs[0].props.LibraryPath);
+            }
+        }
+        SelectionManager.DeselectAll();
     }
     @undoBatch
     @action
@@ -366,7 +372,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 return ScriptField.MakeFunction(this._titleControlString.substring(1), { doc: Doc.name })!.script.run({ self: selected.rootDoc, this: selected.layoutDoc }, console.log).result?.toString() || "";
             }
             if (this._titleControlString.startsWith("#")) {
-                return selected.props.Document[this._titleControlString.substring(1)]?.toString() || "-unset-";
+                return Field.toString(selected.props.Document[this._titleControlString.substring(1)] as Field) || "-unset-";
             }
             return this._accumulatedTitle;
         } else if (SelectionManager.SelectedDocuments().length > 1) {
@@ -398,11 +404,11 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             return (null);
         }
         const minimal = bounds.r - bounds.x < 100 ? true : false;
-        const minimizeIcon = minimal ? (
+        const maximizeIcon = minimal ? (
             <div className="documentDecorations-contextMenu" title="Show context menu" onPointerDown={this.onSettingsDown}>
                 <FontAwesomeIcon size="lg" icon="cog" />
             </div>) : (
-                <div className="documentDecorations-minimizeButton" title="Iconify" onPointerDown={this.onMinimizeDown}>
+                <div className="documentDecorations-minimizeButton" title="Iconify" onPointerDown={this.onMaximizeDown}>
                     {/* Currently, this is set to be enabled if there is no ink selected. It might be interesting to think about minimizing ink if it's useful? -syip2*/}
                     {SelectionManager.SelectedDocuments().length === 1 ? DocumentDecorations.DocumentIcon(StrCast(seldoc.props.Document.layout, "...")) : "..."}
                 </div>);
@@ -457,7 +463,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 left: bounds.x - this._resizeBorderWidth / 2,
                 top: bounds.y - this._resizeBorderWidth / 2 - this._titleHeight,
             }}>
-                {minimizeIcon}
+                {maximizeIcon}
                 {titleArea}
                 <div className="documentDecorations-closeButton" title="Close Document" onPointerDown={this.onCloseDown}>
                     <FontAwesomeIcon className="documentdecorations-times" icon={faTimes} size="lg" />

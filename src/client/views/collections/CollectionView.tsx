@@ -195,6 +195,32 @@ export class CollectionView extends Touchable<FieldViewProps> {
     }
 
 
+    setupViewTypes(category: string, func: (viewType: CollectionViewType) => Doc, addExtras: boolean) {
+        const existingVm = ContextMenu.Instance.findByDescription(category);
+        const subItems = existingVm && "subitems" in existingVm ? existingVm.subitems : [];
+
+        subItems.push({ description: "Freeform", event: () => func(CollectionViewType.Freeform), icon: "signature" });
+        if (addExtras && CollectionView._safeMode) {
+            ContextMenu.Instance.addItem({ description: "Test Freeform", event: () => func(CollectionViewType.Invalid), icon: "project-diagram" });
+        }
+        subItems.push({ description: "Schema", event: () => func(CollectionViewType.Schema), icon: "th-list" });
+        subItems.push({ description: "Treeview", event: () => func(CollectionViewType.Tree), icon: "tree" });
+        subItems.push({ description: "Stacking", event: () => func(CollectionViewType.Stacking), icon: "ellipsis-v" });
+        subItems.push({ description: "Stacking (AutoHeight)", event: () => func(CollectionViewType.Stacking)._autoHeight = true, icon: "ellipsis-v" });
+        subItems.push({ description: "Staff", event: () => func(CollectionViewType.Staff), icon: "music" });
+        subItems.push({ description: "Multicolumn", event: () => func(CollectionViewType.Multicolumn), icon: "columns" });
+        subItems.push({ description: "Multirow", event: () => func(CollectionViewType.Multirow), icon: "columns" });
+        subItems.push({ description: "Masonry", event: () => func(CollectionViewType.Masonry), icon: "columns" });
+        subItems.push({ description: "Carousel", event: () => func(CollectionViewType.Carousel), icon: "columns" });
+        subItems.push({ description: "Pivot/Time", event: () => func(CollectionViewType.Time), icon: "columns" });
+        subItems.push({ description: "Map", event: () => func(CollectionViewType.Map), icon: "globe-americas" });
+        if (addExtras && this.props.Document._viewType === CollectionViewType.Freeform) {
+            subItems.push({ description: "Custom", icon: "fingerprint", event: AddCustomFreeFormLayout(this.props.Document, this.props.fieldKey) });
+        }
+        addExtras && subItems.push({ description: "lightbox", event: action(() => this._isLightboxOpen = true), icon: "eye" });
+        !existingVm && ContextMenu.Instance.addItem({ description: category, subitems: subItems, icon: "eye" });
+    }
+
     onContextMenu = (e: React.MouseEvent): void => {
         if (!e.isPropagationStopped() && this.props.Document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
             const existingVm = ContextMenu.Instance.findByDescription("View Modes...");
@@ -229,7 +255,15 @@ export class CollectionView extends Touchable<FieldViewProps> {
             subItems.push({ description: "lightbox", event: action(() => this._isLightboxOpen = true), icon: "eye" });
             !existingVm && ContextMenu.Instance.addItem({ description: "View Modes...", subitems: subItems, icon: "eye" });
 
-            const existing = ContextMenu.Instance.findByDescription("Layout...");
+            this.setupViewTypes("Change Perspective...", (vtype => { this.props.Document._viewType = vtype; return this.props.Document; }), true);
+            this.setupViewTypes("Open New Perspective...", vtype => {
+                const newRendition = Doc.MakeAlias(this.props.Document);
+                newRendition._viewType = vtype;
+                this.props.addDocTab(newRendition, "onRight");
+                return newRendition;
+            }, false);
+
+            const existing = ContextMenu.Instance.findByDescription("Options...");
             const layoutItems = existing && "subitems" in existing ? existing.subitems : [];
             layoutItems.push({ description: `${this.props.Document.forceActive ? "Select" : "Force"} Contents Active`, event: () => this.props.Document.forceActive = !this.props.Document.forceActive, icon: "project-diagram" });
             if (this.props.Document.childLayout instanceof Doc) {
@@ -240,11 +274,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
             }
             layoutItems.push({ description: `${this.props.Document.isInPlaceContainer ? "Unset" : "Set"} inPlace Container`, event: () => this.props.Document.isInPlaceContainer = !this.props.Document.isInPlaceContainer, icon: "project-diagram" });
 
-            !existing && ContextMenu.Instance.addItem({ description: "Layout...", subitems: layoutItems, icon: "hand-point-right" });
-
-            const open = ContextMenu.Instance.findByDescription("Open...");
-            const openItems = open && "subitems" in open ? open.subitems : [];
-            !open && ContextMenu.Instance.addItem({ description: "Open...", subitems: openItems, icon: "hand-point-right" });
+            !existing && ContextMenu.Instance.addItem({ description: "Options...", subitems: layoutItems, icon: "hand-point-right" });
 
             const existingOnClick = ContextMenu.Instance.findByDescription("OnClick...");
             const onClicks = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];

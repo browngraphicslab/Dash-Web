@@ -37,6 +37,10 @@
     .documentView-linkAnchorBoxAnchor {
         display:flex;
         overflow: hidden;
+
+        .documentView-node {
+            width:10px !important;
+        }
     }
 
     .documentView-lock {

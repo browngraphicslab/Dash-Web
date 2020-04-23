@@ -154,7 +154,7 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, props: any
         const originalDoc = layoutDoc.rootDocument || layoutDoc;
         if (originalDoc instanceof Doc) {
             const newDoc = Docs.Create.TextDocument("", {
-                title: "", layout: Cast(originalDoc.layout, Doc, null) || FormattedTextBox.DefaultLayout, _singleLine: BoolCast(originalDoc._singleLine),
+                layout: Cast(originalDoc.layout, Doc, null) || FormattedTextBox.DefaultLayout, _singleLine: BoolCast(originalDoc._singleLine),
                 x: NumCast(originalDoc.x), y: NumCast(originalDoc.y) + NumCast(originalDoc._height) + 10, _width: NumCast(layoutDoc._width), _height: NumCast(layoutDoc._height)
             });
             FormattedTextBox.SelectOnLoad = newDoc[Id];
@@ -172,7 +172,7 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, props: any
         const originalDoc = layoutDoc.rootDocument || layoutDoc;
         if (force || props.Document._singleLine) {
             const newDoc = Docs.Create.TextDocument("", {
-                title: "", layout: Cast(originalDoc.layout, Doc, null) || FormattedTextBox.DefaultLayout, _singleLine: BoolCast(originalDoc._singleLine),
+                layout: Cast(originalDoc.layout, Doc, null) || FormattedTextBox.DefaultLayout, _singleLine: BoolCast(originalDoc._singleLine),
                 x: NumCast(originalDoc.x) + NumCast(originalDoc._width) + 10, y: NumCast(originalDoc.y), _width: NumCast(layoutDoc._width), _height: NumCast(layoutDoc._height)
             });
             FormattedTextBox.SelectOnLoad = newDoc[Id];

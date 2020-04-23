@@ -102,7 +102,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
         layoutItems.push({ description: "Auto Time/Pivot layout", event: () => { doc._forceRenderEngine = undefined; }, icon: "compress-arrows-alt" });
         layoutItems.push({ description: "Sync with presentation", event: () => CollectionTimeView.SyncTimelineToPresentation(doc), icon: "compress-arrows-alt" });
 
-        ContextMenu.Instance.addItem({ description: "Pivot/Time Options ...", subitems: layoutItems, icon: "eye" });
+        ContextMenu.Instance.addItem({ description: "Options...", subitems: layoutItems, icon: "eye" });
     }
     @computed get _allFacets() {
         const facets = new Set<string>();

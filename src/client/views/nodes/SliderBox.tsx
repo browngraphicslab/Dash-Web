@@ -40,7 +40,7 @@ export class SliderBox extends ViewBoxBaseComponent<FieldViewProps, SliderDocume
     specificContextMenu = (e: React.MouseEvent): void => {
         const funcs: ContextMenuProps[] = [];
         funcs.push({ description: "Edit Thumb Change Script", icon: "edit", event: (obj: any) => ScriptBox.EditButtonScript("On Thumb Change ...", this.props.Document, "onThumbChange", obj.x, obj.y) });
-        ContextMenu.Instance.addItem({ description: "Slider Funcs...", subitems: funcs, icon: "asterisk" });
+        ContextMenu.Instance.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
     }
     onChange = (values: readonly number[]) => runInAction(() => {
         this.dataDoc[this.minThumbKey] = values[0];
