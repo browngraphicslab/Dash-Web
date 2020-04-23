@@ -19,6 +19,7 @@ import { DateField } from "../../new_fields/DateField";
 import { DocumentView } from "../views/nodes/DocumentView";
 import { UndoManager } from "./UndoManager";
 import { PointData } from "../../new_fields/InkField";
+import { MainView } from "../views/MainView";
 
 export type dropActionType = "place" | "alias" | "copy" | undefined;
 export function SetupDrag(
@@ -74,8 +75,8 @@ export function SetupDrag(
 
 export namespace DragManager {
     let dragDiv: HTMLDivElement;
-    let horizSnapLines: number[];
-    let vertSnapLines: number[];
+    export let horizSnapLines: number[];
+    export let vertSnapLines: number[];
 
     export function Root() {
         const root = document.getElementById("root");
@@ -284,9 +285,12 @@ export namespace DragManager {
         StartDrag([ele], {}, downX, downY);
     }
 
+    @action
     export function SetSnapLines(horizLines: number[], vertLines: number[]) {
         horizSnapLines = horizLines;
         vertSnapLines = vertLines;
+        MainView.Instance._hLines = horizLines;
+        MainView.Instance._vLines = vertLines;
     }
 
     function StartDrag(eles: HTMLElement[], dragData: { [id: string]: any }, downX: number, downY: number, options?: DragOptions, finishDrag?: (dropData: DragCompleteEvent) => void) {
@@ -373,8 +377,6 @@ export namespace DragManager {
         const yFromTop = downY - elesCont.top;
         const xFromRight = elesCont.right - downX;
         const yFromBottom = elesCont.bottom - downY;
-        console.log(elesCont);
-        console.log(xFromLeft, yFromTop);
         const moveHandler = (e: PointerEvent) => {
             e.preventDefault(); // required or dragging text menu link item ends up dragging the link button as native drag/drop
             if (dragData instanceof DocumentDragData) {

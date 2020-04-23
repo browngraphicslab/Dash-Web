@@ -1099,7 +1099,6 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument, u
         if (SelectionManager.GetIsDragging()) {
             const size = this.props.ScreenToLocalTransform().transformDirection(this.props.PanelWidth(), this.props.PanelHeight());
             const selRect = { left: this.panX() - size[0] / 2, top: this.panY() - size[1] / 2, width: size[0], height: size[1] };
-            console.log(selRect);
             const selection: Doc[] = [];
             this.getActiveDocuments().filter(doc => !doc.isBackground && doc.z === undefined).map(doc => {
                 const layoutDoc = Doc.Layout(doc);
@@ -1140,17 +1139,12 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument, u
             const vertLines: number[] = [];
             selection.forEach(doc => {
                 const layoutDoc = Doc.Layout(doc);
-                const x = NumCast(doc.x) - selRect.left;
-                const y = NumCast(doc.y) - selRect.top;
+                const x = NumCast(doc.x);
+                const y = NumCast(doc.y);
                 const w = NumCast(layoutDoc._width);
                 const h = NumCast(layoutDoc._height);
-                // const s = this._mainCont!.getBoundingClientRect().width / selRect.width;
-                // const tLFromCorner = [s * x, s * y];
-                const topLeft = this.getLocalTransform().inverse().transformDirection(x, y);
-                console.log(topLeft);
-                const topLeftInScreen = [this._mainCont!.getBoundingClientRect().left + topLeft[0], this._mainCont!.getBoundingClientRect().top + topLeft[1]];
-                const docSize = this.getLocalTransform().inverse().transformDirection(w, h);
-                console.log(topLeftInScreen);
+                const topLeftInScreen = this.getTransform().inverse().transformPoint(x, y);
+                const docSize = this.getTransform().inverse().transformDirection(w, h);
                 horizLines.push(topLeftInScreen[1]); // top line
                 horizLines.push(topLeftInScreen[1] + docSize[1]); // bottom line
                 horizLines.push(topLeftInScreen[1] + docSize[1] / 2); // horiz center line
@@ -1158,11 +1152,9 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument, u
                 vertLines.push(topLeftInScreen[0] + docSize[0]);// right line
                 vertLines.push(topLeftInScreen[0] + docSize[0] / 2);// vert center line
             });
-            // console.log(horizLines, vertLines);
-            // this._hLines = horizLines;
-            // this._vLines = vertLines;
             DragManager.SetSnapLines(horizLines, vertLines);
         }
+        e.stopPropagation();
     }
 
     @observable private _hLines: number[] | undefined;
@@ -1254,12 +1246,12 @@ export class CollectionFreeFormView extends CollectionSubView(PanZoomDocument, u
 
                 }}>
             </div>
-            <div className="snapLines" style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none" }}>
+            {/* <div className="snapLines" style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none" }}>
                 <svg style={{ width: "100%", height: "100%" }}>
                     {this._hLines?.map(l => <line x1="0" y1={l} x2="1000" y2={l} stroke="black" />)}
                     {this._vLines?.map(l => <line y1="0" x1={l} y2="1000" x2={l} stroke="black" />)}
                 </svg>
-            </div>
+            </div> */}
         </div >;
     }
 }
