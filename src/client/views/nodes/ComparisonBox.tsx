@@ -1,6 +1,6 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faEye } from '@fortawesome/free-regular-svg-icons';
-import { faAsterisk, faBrain, faFileAudio, faImage, faPaintBrush } from '@fortawesome/free-solid-svg-icons';
+import { faAsterisk, faBrain, faFileAudio, faImage, faPaintBrush, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, runInAction } from 'mobx';
 import { observer } from "mobx-react";
@@ -71,8 +71,8 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
     }
 
     private onPointerMove = ({ movementX }: PointerEvent) => {
-        const width = this.props.Document.clipWidth + movementX;
-        if (width && width > 0 && width < this.props.PanelWidth()) {
+        const width = NumCast(this.props.Document.clipWidth) + movementX; //is it ok to use NumCast
+        if (width && width > 5 && width < this.props.PanelWidth()) {
             this.props.Document.clipWidth = width;
         }
     }
@@ -117,13 +117,14 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
                         style={{ width: this.props.PanelWidth() }}>
                         {
                             beforeDoc ?
-                                <><ContentFittingDocumentView {...this.props}
-                                    Document={beforeDoc}
-                                    getTransform={this.props.ScreenToLocalTransform} />
-                                    <div
-                                        className="clear-button before"
-                                        onClick={(e) => this.clearBeforeDoc(e)}
-                                    /></>
+                                <>
+                                    <ContentFittingDocumentView {...this.props}
+                                        Document={beforeDoc}
+                                        getTransform={this.props.ScreenToLocalTransform} />
+                                    <div className="clear-button before" onClick={(e) => this.clearBeforeDoc(e)}>
+                                        <FontAwesomeIcon className="clear-button before" icon={faTimes} size="sm" />
+                                    </div>
+                                </>
                                 :
                                 <div className="placeholder">
                                     upload before image!
@@ -141,15 +142,16 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
                     }}>
                     {
                         afterDoc ?
-                            <><ContentFittingDocumentView {...this.props}
-                                Document={afterDoc}
-                                getTransform={this.props.ScreenToLocalTransform} />
-                                <div
-                                    className="clear-button after"
-                                    onClick={(e) => this.clearAfterDoc(e)}
-                                /></>
+                            <>
+                                <ContentFittingDocumentView {...this.props}
+                                    Document={afterDoc}
+                                    getTransform={this.props.ScreenToLocalTransform} />
+                                <div className="clear-button after" onClick={(e) => this.clearAfterDoc(e)}>
+                                    <FontAwesomeIcon className="clear-button after" icon={faTimes} size="sm" />
+                                </div>
+                            </>
                             :
-                            <div className="placeholder" style={{ right: "0" }}>
+                            <div className="placeholder" style={{ textAlign: "right" }}>
                                 upload after image!
                             </div>
                     }
