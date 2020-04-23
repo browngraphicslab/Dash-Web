@@ -441,9 +441,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     Doc.setNativeView(this.props.Document);
                     DocumentView.makeCustomViewClicked(this.rootDoc, Docs.Create.TreeDocument, StrCast(note.title), note);
                 }, icon: "eye"
-            })
+            });
         });
-        changeItems.push({ description: "FreeForm", event: () => DocumentView.makeCustomViewClicked(this.rootDoc, Docs.Create.FreeformDocument, "freeform"), icon: "eye" })
+        changeItems.push({ description: "FreeForm", event: () => DocumentView.makeCustomViewClicked(this.rootDoc, Docs.Create.FreeformDocument, "freeform"), icon: "eye" });
         !change && cm.addItem({ description: "Change Perspective...", subitems: changeItems, icon: "external-link-alt" });
 
         const open = cm.findByDescription("Open New Perspective...");
@@ -455,7 +455,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 DocumentView.makeCustomViewClicked(alias, Docs.Create.FreeformDocument, "freeform");
                 this.props.addDocTab(alias, "onRight");
             }, icon: "eye"
-        })
+        });
         !open && cm.addItem({ description: "Open New Perspective...", subitems: openItems, icon: "external-link-alt" });
 
     }

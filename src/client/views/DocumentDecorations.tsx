@@ -191,7 +191,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (e.button === 0) {
             const selectedDocs = SelectionManager.SelectedDocuments();
             if (selectedDocs.length) {
-                CollectionDockingView.Instance?.OpenFullScreen(selectedDocs[0], selectedDocs[0].props.LibraryPath)
+                CollectionDockingView.Instance?.OpenFullScreen(selectedDocs[0], selectedDocs[0].props.LibraryPath);
             }
         }
         SelectionManager.DeselectAll();

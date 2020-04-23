@@ -31,7 +31,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     random(min: number, max: number) { // min should not be equal to max
         const mseed = Math.abs(this.X * this.Y);
         const seed = (mseed * 9301 + 49297) % 233280;
-        var rnd = seed / 233280;
+        const rnd = seed / 233280;
         return min + rnd * (max - min);
     }
     get displayName() { return "CollectionFreeFormDocumentView(" + this.props.Document.title + ")"; } // this makes mobx trace() statements more descriptive
