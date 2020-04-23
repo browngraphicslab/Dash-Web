@@ -1,6 +1,6 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faEye } from '@fortawesome/free-regular-svg-icons';
-import { faAsterisk, faBrain, faFileAudio, faImage, faPaintBrush, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faAsterisk, faBrain, faFileAudio, faImage, faPaintBrush, faTimes, faCloudUploadAlt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, runInAction, Lambda } from 'mobx';
 import { observer } from "mobx-react";
@@ -133,7 +133,7 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
                                 </>
                                 :
                                 <div className="placeholder">
-                                    upload before image!
+                                    <FontAwesomeIcon className="upload-icon" icon={faCloudUploadAlt} size="lg" />
                                 </div>
                         }
                     </div>
@@ -157,11 +157,11 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
                                 </div>
                             </>
                             :
-                            <div className="placeholder" style={{ textAlign: "right" }}>
-                                upload after image!
+                            <div className="placeholder">
+                                <FontAwesomeIcon className="upload-icon" icon={faCloudUploadAlt} size="lg" />
                             </div>
                     }
                 </div>
-            </div>);
+            </div >);
     }
 }
