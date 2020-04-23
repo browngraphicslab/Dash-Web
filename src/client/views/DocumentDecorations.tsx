@@ -136,6 +136,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             let child = SelectionManager.SelectedDocuments()[0].ContentDiv!.children[0];
             while (child.children.length) {
                 const next = Array.from(child.children).find(c => !c.className.includes("collectionViewChrome"));
+                if (next?.className.includes("documentView-node")) break;
                 if (next) child = next;
                 else break;
             }
@@ -191,7 +192,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         if (e.button === 0) {
             const selectedDocs = SelectionManager.SelectedDocuments();
             if (selectedDocs.length) {
-                CollectionDockingView.Instance?.OpenFullScreen(selectedDocs[0], selectedDocs[0].props.LibraryPath);
+                //CollectionDockingView.Instance?.OpenFullScreen(selectedDocs[0], selectedDocs[0].props.LibraryPath);
+                CollectionDockingView.AddRightSplit(selectedDocs[0].props.Document, selectedDocs[0].props.LibraryPath);
             }
         }
         SelectionManager.DeselectAll();

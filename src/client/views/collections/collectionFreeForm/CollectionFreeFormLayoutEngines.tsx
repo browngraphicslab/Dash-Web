@@ -1,4 +1,4 @@
-import { Doc, Field, FieldResult } from "../../../../new_fields/Doc";
+import { Doc, Field, FieldResult, WidthSym, HeightSym } from "../../../../new_fields/Doc";
 import { NumCast, StrCast, Cast } from "../../../../new_fields/Types";
 import { ScriptBox } from "../../ScriptBox";
 import { CompileScript } from "../../../util/Scripting";
@@ -73,6 +73,32 @@ function getTextWidth(text: string, font: string): number {
 interface PivotColumn {
     docs: Doc[];
     filters: string[];
+}
+
+
+export function computerStarburstLayout(
+    poolData: Map<string, PoolData>,
+    pivotDoc: Doc,
+    childDocs: Doc[],
+    filterDocs: Doc[],
+    childPairs: { layout: Doc, data?: Doc }[],
+    panelDim: number[],
+    viewDefsToJSX: (views: ViewDefBounds[]) => ViewDefResult[]
+) {
+    const docMap = new Map<Doc, ViewDefBounds>();
+    const burstDim = [NumCast(pivotDoc.starburstRadius, panelDim[0]), NumCast(pivotDoc.starburstRadius, panelDim[1])]
+    childDocs.forEach((doc, i) => {
+        const deg = i / childDocs.length * Math.PI * 2;
+        docMap.set(doc, {
+            type: "doc",
+            x: Math.sin(deg) * burstDim[0] / 3 - NumCast(pivotDoc.starburstX),
+            y: Math.cos(deg) * burstDim[1] / 3 - NumCast(pivotDoc.starburstY),
+            width: doc[WidthSym](),
+            height: doc[HeightSym](),
+            payload: undefined
+        });
+    });
+    return normalizeResults(burstDim, 12, childPairs, docMap, poolData, viewDefsToJSX, [], 0, [], childDocs.filter(c => !filterDocs.includes(c)));
 }
 
 

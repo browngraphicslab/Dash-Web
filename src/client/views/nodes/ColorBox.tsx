@@ -22,7 +22,7 @@ export class ColorBox extends ViewBoxBaseComponent<FieldViewProps, ColorDocument
         const selDoc = SelectionManager.SelectedDocuments()?.[0]?.rootDoc;
         return <div className={`colorBox-container${this.active() ? "-interactive" : ""}`}
             onPointerDown={e => e.button === 0 && !e.ctrlKey && e.stopPropagation()}
-            style={{ transformOrigin: "top left", transform: `scale(${this.props.ContentScaling()})`, width: `${100 / this.props.ContentScaling()}%`, height: `${100 / this.props.ContentScaling()}%` }} >
+            style={{ transform: `scale(${this.props.ContentScaling()})`, width: `${100 / this.props.ContentScaling()}%`, height: `${100 / this.props.ContentScaling()}%` }} >
 
             <SketchPicker onChange={InkingControl.Instance.switchColor}
                 color={StrCast(CurrentUserUtils.ActivePen ? CurrentUserUtils.ActivePen.backgroundColor : undefined,
