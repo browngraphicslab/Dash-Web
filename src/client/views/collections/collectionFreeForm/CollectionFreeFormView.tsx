@@ -1010,7 +1010,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                     {...this.getChildDocumentViewProps(pair.layout, pair.data)}
                     dataProvider={this.childDataProvider}
                     LayoutDoc={this.childLayoutDocFunc}
-                    pointerEvents={engine && engine !== "starburst" ? false : undefined}
+                    pointerEvents={this.props.viewDefDivClick ? false : undefined}
                     jitterRotation={NumCast(this.props.Document.jitterRotation)}
                     fitToBox={this.props.fitToBox || BoolCast(this.props.freezeChildDimensions)}
                     FreezeDimensions={BoolCast(this.props.freezeChildDimensions)}
@@ -1150,7 +1150,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         return <MarqueeView {...this.props} nudge={this.nudge} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments} addDocument={this.addDocument}
             addLiveTextDocument={this.addLiveTextBox} getContainerTransform={this.getContainerTransform} getTransform={this.getTransform} isAnnotationOverlay={this.isAnnotationOverlay}>
             <CollectionFreeFormViewPannableContents centeringShiftX={this.centeringShiftX} centeringShiftY={this.centeringShiftY} shifted={!this.nativeHeight && !this.isAnnotationOverlay}
-                easing={this.easing} zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
+                easing={this.easing} viewDefDivClick={this.props.viewDefDivClick} zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
                 {this.children}
             </CollectionFreeFormViewPannableContents>
         </MarqueeView>;
@@ -1223,6 +1223,7 @@ interface CollectionFreeFormViewPannableContentsProps {
     panY: () => number;
     zoomScaling: () => number;
     easing: () => boolean;
+    viewDefDivClick?: ScriptField;
     children: () => JSX.Element[];
     shifted: boolean;
 }
@@ -1230,7 +1231,7 @@ interface CollectionFreeFormViewPannableContentsProps {
 @observer
 class CollectionFreeFormViewPannableContents extends React.Component<CollectionFreeFormViewPannableContentsProps>{
     render() {
-        const freeformclass = "collectionfreeformview" + (this.props.easing() ? "-ease" : "-none");
+        const freeformclass = "collectionfreeformview" + (this.props.viewDefDivClick ? "-viewDef" : (this.props.easing() ? "-ease" : "-none"));
         const cenx = this.props.centeringShiftX();
         const ceny = this.props.centeringShiftY();
         const panx = -this.props.panX();

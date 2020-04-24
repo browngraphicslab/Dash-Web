@@ -136,6 +136,7 @@ export function computePivotLayout(
     panelDim: number[],
     viewDefsToJSX: (views: ViewDefBounds[]) => ViewDefResult[]
 ) {
+    const docMap = new Map<Doc, ViewDefBounds>();
     const fieldKey = "data";
     const pivotColumnGroups = new Map<FieldResult<Field>, PivotColumn>();
 
@@ -145,6 +146,16 @@ export function computePivotLayout(
         if (val) {
             !pivotColumnGroups.get(val) && pivotColumnGroups.set(val, { docs: [], filters: [val] });
             pivotColumnGroups.get(val)!.docs.push(doc);
+        } else {
+            docMap.set(doc, {
+                type: "doc",
+                x: 0,
+                y: 0,
+                zIndex: -99,
+                width: 0,
+                height: 0,
+                payload: undefined
+            })
         }
     }
     let nonNumbers = 0;
@@ -193,7 +204,6 @@ export function computePivotLayout(
         }
     }
 
-    const docMap = new Map<Doc, ViewDefBounds>();
     const groupNames: ViewDefBounds[] = [];
 
     const expander = 1.05;
@@ -366,10 +376,9 @@ export function computeTimelineLayout(
 function normalizeResults(panelDim: number[], fontHeight: number, childPairs: { data?: Doc, layout: Doc }[], docMap: Map<Doc, ViewDefBounds>,
     poolData: Map<string, PoolData>, viewDefsToJSX: (views: ViewDefBounds[]) => ViewDefResult[], groupNames: ViewDefBounds[], minWidth: number, extras: ViewDefBounds[],
     extraDocs: Doc[]): ViewDefResult[] {
-
     const grpEles = groupNames.map(gn => ({ x: gn.x, y: gn.y, width: gn.width, height: gn.height }) as ViewDefBounds);
     const docEles = childPairs.filter(d => docMap.get(d.layout)).map(pair => docMap.get(pair.layout) as ViewDefBounds);
-    const aggBounds = aggregateBounds(docEles.concat(grpEles), 0, 0);
+    const aggBounds = aggregateBounds(docEles.concat(grpEles).filter(e => e.zIndex !== -99), 0, 0);
     aggBounds.r = Math.max(minWidth, aggBounds.r - aggBounds.x);
     const wscale = panelDim[0] / (aggBounds.r - aggBounds.x);
     let scale = wscale * (aggBounds.b - aggBounds.y) > panelDim[1] ? (panelDim[1]) / (aggBounds.b - aggBounds.y) : wscale;
