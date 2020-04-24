@@ -11,6 +11,11 @@
     overflow: hidden;
     transition: 0.7s opacity ease;
 
+    .presBox-listCont {
+        position: absolute;
+        height: calc(100% - 25px);
+        width: 100%;
+    }
     .presBox-buttons {
         padding: 10px;
         width: 100%;

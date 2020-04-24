@@ -444,7 +444,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         changeItems.push({ description: "FreeForm", event: undoBatch(() => Doc.makeCustomViewClicked(this.rootDoc, Docs.Create.FreeformDocument, "freeform"), "change view"), icon: "eye" });
         !change && cm.addItem({ description: "Change Perspective...", subitems: changeItems, icon: "external-link-alt" });
 
-        const open = cm.findByDescription("Open New Perspective...");
+        const open = cm.findByDescription("New Perspective...");
         const openItems: ContextMenuProps[] = open && "subitems" in open ? open.subitems : [];
 
         openItems.push({
@@ -454,7 +454,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 this.props.addDocTab(alias, "onRight");
             }), icon: "eye"
         });
-        !open && cm.addItem({ description: "Open New Perspective...", subitems: openItems, icon: "external-link-alt" });
+        !open && cm.addItem({ description: "New Perspective...", subitems: openItems, icon: "external-link-alt" });
 
     }
 
