@@ -10,14 +10,19 @@
         display: flex;
         flex-direction: column;
         height: calc(100% - 30px);
+        table-layout: fixed;
+
+        overflow-y: hidden;
+        white-space: nowrap;
 
         .scriptingBox-wrapper {
-            height: 100%;
             width: 100%;
+            height: 100%;
+            max-height: calc(100%-30px);
             display: flex;
             flex-direction: row;
             justify-content: center;
-
+            overflow-y: hidden;
 
             .scriptingBox-textArea {
                 flex: 70;
@@ -26,7 +31,7 @@
                 box-sizing: border-box;
                 resize: none;
                 padding: 7px;
-                flex-grow: 100%;
+                overflow-y: hidden;
             }
 
             .scriptingBox-plist {
@@ -35,8 +40,8 @@
                 height: 100%;
                 box-sizing: border-box;
                 resize: none;
-                padding: 7px;
-                flex-grow: 100%;
+                padding: 2px;
+                overflow-y: scroll;
             }
         }
 
