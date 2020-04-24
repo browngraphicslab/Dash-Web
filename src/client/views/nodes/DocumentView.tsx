@@ -408,7 +408,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const collapse = layoutKey !== "layout_icon";
         if (collapse) {
             this.switchViews(collapse, "icon");
-            if (layoutKey && layoutKey !== "layout") this.props.Document.deiconifyLayout = layoutKey.replace("layout_", "");
+            if (layoutKey && layoutKey !== "layout" && layoutKey !== "layout_icon") this.props.Document.deiconifyLayout = layoutKey.replace("layout_", "");
         } else {
             const deiconifyLayout = Cast(this.props.Document.deiconifyLayout, "string", null);
             this.switchViews(deiconifyLayout ? true : false, deiconifyLayout);

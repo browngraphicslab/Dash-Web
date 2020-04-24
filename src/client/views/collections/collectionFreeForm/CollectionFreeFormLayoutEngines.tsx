@@ -108,16 +108,18 @@ export function computerStarburstLayout(
     viewDefsToJSX: (views: ViewDefBounds[]) => ViewDefResult[]
 ) {
     const docMap = new Map<Doc, ViewDefBounds>();
-    const burstDim = [NumCast(pivotDoc.starburstRadius, panelDim[0]), NumCast(pivotDoc.starburstRadius, panelDim[1])];
-    const scaleDim = [NumCast(pivotDoc._starburstWidth, burstDim[0]) * 5, NumCast(pivotDoc._starburstHeight, burstDim[1]) * 5];
+    const burstRadius = [NumCast(pivotDoc._starburstRadius, panelDim[0]), NumCast(pivotDoc._starburstRadius, panelDim[1])];
+    const docScale = NumCast(pivotDoc._starburstDocScale);
+    const docSize = docScale * 100; // assume a icon sized at 100
+    const scaleDim = [burstRadius[0] + docSize, burstRadius[1] + docSize];
     childDocs.forEach((doc, i) => {
         const deg = i / childDocs.length * Math.PI * 2;
         docMap.set(doc, {
             type: "doc",
-            x: Math.cos(deg) * (burstDim[0] / 3) - doc[WidthSym]() / 2,
-            y: Math.sin(deg) * (burstDim[1] / 3) - doc[HeightSym]() / 2,
-            width: doc[WidthSym](),
-            height: doc[HeightSym](),
+            x: Math.cos(deg) * (burstRadius[0] / 3) - docScale * doc[WidthSym]() / 2,
+            y: Math.sin(deg) * (burstRadius[1] / 3) - docScale * doc[HeightSym]() / 2,
+            width: docScale * doc[WidthSym](),
+            height: docScale * doc[HeightSym](),
             payload: undefined
         });
     });
