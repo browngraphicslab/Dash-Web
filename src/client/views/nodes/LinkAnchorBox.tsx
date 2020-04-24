@@ -109,7 +109,7 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
         funcs.push({ description: "Open Link Editor", event: () => this.openLinkEditor(e), icon: "eye" });
         funcs.push({ description: "Toggle Always Show Link", event: () => this.props.Document.linkDisplay = !this.props.Document.linkDisplay, icon: "eye" });
 
-        ContextMenu.Instance.addItem({ description: "Link Funcs...", subitems: funcs, icon: "asterisk" });
+        ContextMenu.Instance.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
     }
 
     render() {

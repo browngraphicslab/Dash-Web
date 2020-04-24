@@ -397,7 +397,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         if (!e.isPropagationStopped()) {
             const subItems: ContextMenuProps[] = [];
             subItems.push({ description: `${this.props.Document.fillColumn ? "Variable Size" : "Autosize"} Column`, event: () => this.props.Document.fillColumn = !this.props.Document.fillColumn, icon: "plus" });
-            ContextMenu.Instance.addItem({ description: "Stacking Options ...", subitems: subItems, icon: "eye" });
+            ContextMenu.Instance.addItem({ description: "Options...", subitems: subItems, icon: "eye" });
         }
     }
 

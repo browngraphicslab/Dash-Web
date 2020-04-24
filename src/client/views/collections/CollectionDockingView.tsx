@@ -29,6 +29,7 @@ import "./CollectionDockingView.scss";
 import { SubCollectionViewProps } from "./CollectionSubView";
 import { DockingViewButtonSelector } from './ParentDocumentSelector';
 import React = require("react");
+import { CollectionViewType } from './CollectionView';
 library.add(faFile);
 const _global = (window /* browser */ || global /* node */) as any;
 
@@ -93,6 +94,9 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
     @undoBatch
     @action
     public OpenFullScreen(docView: DocumentView, libraryPath?: Doc[]) {
+        if (docView.props.Document._viewType === CollectionViewType.Docking && docView.props.Document.layoutKey === "layout") {
+            return MainView.Instance.openWorkspace(docView.props.Document);
+        }
         const document = Doc.MakeAlias(docView.props.Document);
         const newItemStackConfig = {
             type: 'stack',
@@ -771,7 +775,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
 
     addDocTab = (doc: Doc, location: string, libraryPath?: Doc[]) => {
         SelectionManager.DeselectAll();
-        if (doc.dockingConfig) {
+        if (doc._viewType === CollectionViewType.Docking && doc.layoutKey === "layout") {
             return MainView.Instance.openWorkspace(doc);
         } else if (location === "onRight") {
             return CollectionDockingView.AddRightSplit(doc, libraryPath);

@@ -13,22 +13,24 @@ import { EditorState, NodeSelection, Plugin, TextSelection, Transaction } from "
 import { ReplaceStep } from 'prosemirror-transform';
 import { EditorView } from "prosemirror-view";
 import { DateField } from '../../../new_fields/DateField';
-import { DataSym, Doc, DocListCastAsync, Field, HeightSym, Opt, WidthSym } from "../../../new_fields/Doc";
+import { DataSym, Doc, DocListCast, DocListCastAsync, Field, HeightSym, Opt, WidthSym } from "../../../new_fields/Doc";
 import { documentSchema } from '../../../new_fields/documentSchemas';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { InkTool } from '../../../new_fields/InkField';
+import { PrefetchProxy } from '../../../new_fields/Proxy';
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { RichTextUtils } from '../../../new_fields/RichTextUtils';
 import { createSchema, makeInterface } from "../../../new_fields/Schema";
-import { Cast, NumCast, StrCast, BoolCast, DateCast } from "../../../new_fields/Types";
+import { Cast, DateCast, NumCast, StrCast } from "../../../new_fields/Types";
 import { TraceMobx } from '../../../new_fields/util';
-import { addStyleSheet, addStyleSheetRule, clearStyleSheetRules, emptyFunction, numberRange, returnOne, Utils, returnTrue, returnZero } from '../../../Utils';
+import { addStyleSheet, addStyleSheetRule, clearStyleSheetRules, emptyFunction, numberRange, returnOne, returnZero, Utils } from '../../../Utils';
 import { GoogleApiClientUtils, Pulls, Pushes } from '../../apis/google_docs/GoogleApiClientUtils';
 import { DocServer } from "../../DocServer";
 import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentType } from '../../documents/DocumentTypes';
 import { DictationManager } from '../../util/DictationManager';
 import { DragManager } from "../../util/DragManager";
+import { makeTemplate } from '../../util/DropConverter';
 import buildKeymap from "../../util/ProsemirrorExampleTransfer";
 import RichTextMenu from '../../util/RichTextMenu';
 import { RichTextRules } from "../../util/RichTextRules";
@@ -46,8 +48,6 @@ import { FieldView, FieldViewProps } from "./FieldView";
 import "./FormattedTextBox.scss";
 import { FormattedTextBoxComment, formattedTextBoxCommentPlugin } from './FormattedTextBoxComment';
 import React = require("react");
-import { PrefetchProxy } from '../../../new_fields/Proxy';
-import { makeTemplate } from '../../util/DropConverter';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -396,21 +396,25 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         return Cast(Doc.UserDoc().defaultTextLayout, Doc, null) || StrCast(Doc.UserDoc().defaultTextLayout, null);
     }
     specificContextMenu = (e: React.MouseEvent): void => {
+        const cm = ContextMenu.Instance;
+
         const funcs: ContextMenuProps[] = [];
         this.props.Document.isTemplateDoc && funcs.push({ description: "Make Default Layout", event: async () => Doc.UserDoc().defaultTextLayout = new PrefetchProxy(this.props.Document), icon: "eye" });
         funcs.push({ description: "Reset Default Layout", event: () => Doc.UserDoc().defaultTextLayout = undefined, icon: "eye" });
         !this.props.Document.rootDocument && funcs.push({
             description: "Make Template", event: () => {
                 this.props.Document.isTemplateDoc = makeTemplate(this.props.Document, true);
-                Doc.AddDocToList(Cast(Doc.UserDoc().noteTypes, Doc, null), "data", this.props.Document);
+                Doc.AddDocToList(Cast(Doc.UserDoc()["template-notes"], Doc, null), "data", this.props.Document);
             }, icon: "eye"
         });
         funcs.push({ description: "Toggle Single Line", event: () => this.props.Document._singleLine = !this.props.Document._singleLine, icon: "expand-arrows-alt" });
         funcs.push({ description: "Toggle Sidebar", event: () => this.props.Document._showSidebar = !this.props.Document._showSidebar, icon: "expand-arrows-alt" });
-        funcs.push({ description: "Toggle Audio", event: () => this.props.Document._showAudio = !this.props.Document._showAudio, icon: "expand-arrows-alt" });
+        funcs.push({ description: "Toggle Dictation Icon", event: () => this.props.Document._showAudio = !this.props.Document._showAudio, icon: "expand-arrows-alt" });
         funcs.push({ description: "Toggle Menubar", event: () => this.toggleMenubar(), icon: "expand-arrows-alt" });
+
+        const highlighting: ContextMenuProps[] = [];
         ["My Text", "Text from Others", "Todo Items", "Important Items", "Ignore Items", "Disagree Items", "By Recent Minute", "By Recent Hour"].forEach(option =>
-            funcs.push({
+            highlighting.push({
                 description: (FormattedTextBox._highlights.indexOf(option) === -1 ? "Highlight " : "Unhighlight ") + option, event: () => {
                     e.stopPropagation();
                     if (FormattedTextBox._highlights.indexOf(option) === -1) {
@@ -421,8 +425,37 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     this.updateHighlights();
                 }, icon: "expand-arrows-alt"
             }));
+        funcs.push({ description: "highlighting...", subitems: highlighting, icon: "hand-point-right" });
 
         ContextMenu.Instance.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
+
+        const change = cm.findByDescription("Change Perspective...");
+        const changeItems: ContextMenuProps[] = change && "subitems" in change ? change.subitems : [];
+
+        const noteTypesDoc = Cast(Doc.UserDoc()["template-notes"], Doc, null);
+        DocListCast(noteTypesDoc?.data).forEach(note => {
+            changeItems.push({
+                description: StrCast(note.title), event: undoBatch(() => {
+                    Doc.setNativeView(this.props.Document);
+                    Doc.makeCustomViewClicked(this.rootDoc, Docs.Create.TreeDocument, StrCast(note.title), note);
+                }), icon: "eye"
+            });
+        });
+        changeItems.push({ description: "FreeForm", event: undoBatch(() => Doc.makeCustomViewClicked(this.rootDoc, Docs.Create.FreeformDocument, "freeform"), "change view"), icon: "eye" });
+        !change && cm.addItem({ description: "Change Perspective...", subitems: changeItems, icon: "external-link-alt" });
+
+        const open = cm.findByDescription("New Perspective...");
+        const openItems: ContextMenuProps[] = open && "subitems" in open ? open.subitems : [];
+
+        openItems.push({
+            description: "FreeForm", event: undoBatch(() => {
+                const alias = Doc.MakeAlias(this.rootDoc);
+                Doc.makeCustomViewClicked(alias, Docs.Create.FreeformDocument, "freeform");
+                this.props.addDocTab(alias, "onRight");
+            }), icon: "eye"
+        });
+        !open && cm.addItem({ description: "New Perspective...", subitems: openItems, icon: "external-link-alt" });
+
     }
 
     recordDictation = () => {

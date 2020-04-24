@@ -20,6 +20,7 @@ import { CognitiveServices } from "../../../cognitive_services/CognitiveServices
 import { RichTextField } from "../../../../new_fields/RichTextField";
 import { CollectionView } from "../CollectionView";
 import { FormattedTextBox } from "../../nodes/FormattedTextBox";
+import { ScriptField } from "../../../../new_fields/ScriptField";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -333,6 +334,19 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
     }
 
     @action
+    pileup = (e: KeyboardEvent | React.PointerEvent | undefined) => {
+        const selected = this.marqueeSelect(false);
+        SelectionManager.DeselectAll();
+        selected.forEach(d => this.props.removeDocument(d));
+        const newCollection = this.getCollection(selected, false);
+        Doc.pileup(newCollection, selected);
+        this.props.addDocument(newCollection);
+        this.props.selectDocuments([newCollection], []);
+        MarqueeOptionsMenu.Instance.fadeOut(true);
+        this.hideMarquee();
+    }
+
+    @action
     collection = (e: KeyboardEvent | React.PointerEvent | undefined) => {
         const bounds = this.Bounds;
         const selected = this.marqueeSelect(false);
@@ -476,7 +490,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             this.delete();
             e.stopPropagation();
         }
-        if (e.key === "c" || e.key === "b" || e.key === "t" || e.key === "s" || e.key === "S") {
+        if (e.key === "c" || e.key === "b" || e.key === "t" || e.key === "s" || e.key === "S" || e.key === "p") {
             this._commandExecuted = true;
             e.stopPropagation();
             e.preventDefault();
@@ -489,6 +503,9 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             }
             if (e.key === "b") {
                 this.background(e);
+            }
+            if (e.key === "p") {
+                this.pileup(e);
             }
             this.cleanupInteractions(false);
         }

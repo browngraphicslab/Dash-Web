@@ -29,7 +29,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
     @observable _childClickedScript: Opt<ScriptField>;
     @observable _viewDefDivClick: Opt<ScriptField>;
     async componentDidMount() {
-        const detailView = (await DocCastAsync(this.props.Document.childDetailView)) || DocumentView.findTemplate("detailView", StrCast(this.props.Document.type), "");
+        const detailView = (await DocCastAsync(this.props.Document.childDetailView)) || Doc.findTemplate("detailView", StrCast(this.props.Document.type), "");
         const childText = "const alias = getAlias(self); switchView(alias, detailView); alias.dropAction='alias'; alias.removeDropProperties=new List<string>(['dropAction']); useRightSplit(alias, shiftKey); ";
         runInAction(() => {
             this._childClickedScript = ScriptField.MakeScript(childText, { this: Doc.name, shiftKey: "boolean" }, { detailView: detailView! });
@@ -102,7 +102,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
         layoutItems.push({ description: "Auto Time/Pivot layout", event: () => { doc._forceRenderEngine = undefined; }, icon: "compress-arrows-alt" });
         layoutItems.push({ description: "Sync with presentation", event: () => CollectionTimeView.SyncTimelineToPresentation(doc), icon: "compress-arrows-alt" });
 
-        ContextMenu.Instance.addItem({ description: "Pivot/Time Options ...", subitems: layoutItems, icon: "eye" });
+        ContextMenu.Instance.addItem({ description: "Options...", subitems: layoutItems, icon: "eye" });
     }
     @computed get _allFacets() {
         const facets = new Set<string>();

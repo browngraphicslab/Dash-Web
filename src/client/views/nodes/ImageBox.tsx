@@ -223,8 +223,8 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
             return url.href;//Why is this here
         }
         const ext = path.extname(url.href);
-        const suffix = this.props.renderDepth < 1 ? "_o" : this._curSuffix;
-        return url.href.replace(ext, suffix + ext);
+        this._curSuffix = this.props.renderDepth < 1 ? "_o" : this.layoutDoc[WidthSym]() < 100 ? "_s" : "_m";
+        return url.href.replace(ext, this._curSuffix + ext);
     }
 
     @observable _smallRetryCount = 1;

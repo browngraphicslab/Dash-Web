@@ -3,13 +3,14 @@ import { faAngleRight, faArrowsAltH, faBell, faCamera, faCaretDown, faCaretRight
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, runInAction, untracked } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, Field, HeightSym, WidthSym, DataSym, Opt } from '../../../new_fields/Doc';
+import { DataSym, Doc, DocListCast, Field, HeightSym, Opt, WidthSym } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { List } from '../../../new_fields/List';
+import { RichTextField } from '../../../new_fields/RichTextField';
 import { Document, listSpec } from '../../../new_fields/Schema';
 import { ComputedField, ScriptField } from '../../../new_fields/ScriptField';
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from '../../../new_fields/Types';
-import { emptyFunction, emptyPath, returnFalse, Utils, returnOne, returnZero, returnTransparent, returnTrue, simulateMouseClick } from '../../../Utils';
+import { emptyFunction, emptyPath, returnFalse, returnOne, returnTrue, returnZero, simulateMouseClick, Utils } from '../../../Utils';
 import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentType } from "../../documents/DocumentTypes";
 import { DocumentManager } from '../../util/DocumentManager';
@@ -24,16 +25,14 @@ import { ContextMenuProps } from '../ContextMenuItem';
 import { EditableView } from "../EditableView";
 import { MainView } from '../MainView';
 import { ContentFittingDocumentView } from '../nodes/ContentFittingDocumentView';
+import { DocumentView } from '../nodes/DocumentView';
 import { ImageBox } from '../nodes/ImageBox';
 import { KeyValueBox } from '../nodes/KeyValueBox';
-import { ScriptBox } from '../ScriptBox';
 import { Templates } from '../Templates';
-import { CollectionSubView, SubCollectionViewProps } from "./CollectionSubView";
+import { CollectionSubView } from "./CollectionSubView";
 import "./CollectionTreeView.scss";
+import { CollectionViewType } from './CollectionView';
 import React = require("react");
-import { CollectionViewType, CollectionView } from './CollectionView';
-import { RichTextField } from '../../../new_fields/RichTextField';
-import { DocumentView } from '../nodes/DocumentView';
 
 
 export interface TreeViewProps {
@@ -711,7 +710,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
             layoutItems.push({ description: (this.props.Document.treeViewPreventOpen ? "Persist" : "Abandon") + "Treeview State", event: () => this.props.Document.treeViewPreventOpen = !this.props.Document.treeViewPreventOpen, icon: "paint-brush" });
             layoutItems.push({ description: (this.props.Document.treeViewHideHeaderFields ? "Show" : "Hide") + " Header Fields", event: () => this.props.Document.treeViewHideHeaderFields = !this.props.Document.treeViewHideHeaderFields, icon: "paint-brush" });
             layoutItems.push({ description: (this.props.Document.treeViewHideTitle ? "Show" : "Hide") + " Title", event: () => this.props.Document.treeViewHideTitle = !this.props.Document.treeViewHideTitle, icon: "paint-brush" });
-            ContextMenu.Instance.addItem({ description: "Treeview Options ...", subitems: layoutItems, icon: "eye" });
+            ContextMenu.Instance.addItem({ description: "Options...", subitems: layoutItems, icon: "eye" });
         }
         ContextMenu.Instance.addItem({
             description: "Buxton Layout", icon: "eye", event: () => {
@@ -768,7 +767,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
         const existingOnClick = ContextMenu.Instance.findByDescription("OnClick...");
         const onClicks: ContextMenuProps[] = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
         onClicks.push({
-            description: "Edit onChecked Script", event: () => UndoManager.RunInBatch(() => DocumentView.makeCustomViewClicked(this.props.Document, undefined, "onCheckedClick"), "edit onCheckedClick"), icon: "edit"
+            description: "Edit onChecked Script", event: () => UndoManager.RunInBatch(() => Doc.makeCustomViewClicked(this.props.Document, undefined, "onCheckedClick"), "edit onCheckedClick"), icon: "edit"
         });
         !existingOnClick && ContextMenu.Instance.addItem({ description: "OnClick...", subitems: onClicks, icon: "hand-point-right" });
     }

@@ -1,4 +1,4 @@
-import { Doc, Field, FieldResult } from "../../../../new_fields/Doc";
+import { Doc, Field, FieldResult, WidthSym, HeightSym } from "../../../../new_fields/Doc";
 import { NumCast, StrCast, Cast } from "../../../../new_fields/Types";
 import { ScriptBox } from "../../ScriptBox";
 import { CompileScript } from "../../../util/Scripting";
@@ -73,6 +73,57 @@ function getTextWidth(text: string, font: string): number {
 interface PivotColumn {
     docs: Doc[];
     filters: string[];
+}
+
+export function computerPassLayout(
+    poolData: Map<string, PoolData>,
+    pivotDoc: Doc,
+    childDocs: Doc[],
+    filterDocs: Doc[],
+    childPairs: { layout: Doc, data?: Doc }[],
+    panelDim: number[],
+    viewDefsToJSX: (views: ViewDefBounds[]) => ViewDefResult[]
+) {
+    const docMap = new Map<Doc, ViewDefBounds>();
+    childDocs.forEach((doc, i) => {
+        docMap.set(doc, {
+            type: "doc",
+            x: NumCast(doc.x),
+            y: NumCast(doc.y),
+            width: doc[WidthSym](),
+            height: doc[HeightSym](),
+            payload: undefined
+        });
+    });
+    return normalizeResults(panelDim, 12, childPairs, docMap, poolData, viewDefsToJSX, [], 0, [], childDocs.filter(c => !filterDocs.includes(c)));
+}
+
+export function computerStarburstLayout(
+    poolData: Map<string, PoolData>,
+    pivotDoc: Doc,
+    childDocs: Doc[],
+    filterDocs: Doc[],
+    childPairs: { layout: Doc, data?: Doc }[],
+    panelDim: number[],
+    viewDefsToJSX: (views: ViewDefBounds[]) => ViewDefResult[]
+) {
+    const docMap = new Map<Doc, ViewDefBounds>();
+    const burstRadius = [NumCast(pivotDoc._starburstRadius, panelDim[0]), NumCast(pivotDoc._starburstRadius, panelDim[1])];
+    const docScale = NumCast(pivotDoc._starburstDocScale);
+    const docSize = docScale * 100; // assume a icon sized at 100
+    const scaleDim = [burstRadius[0] + docSize, burstRadius[1] + docSize];
+    childDocs.forEach((doc, i) => {
+        const deg = i / childDocs.length * Math.PI * 2;
+        docMap.set(doc, {
+            type: "doc",
+            x: Math.cos(deg) * (burstRadius[0] / 3) - docScale * doc[WidthSym]() / 2,
+            y: Math.sin(deg) * (burstRadius[1] / 3) - docScale * doc[HeightSym]() / 2,
+            width: docScale * doc[WidthSym](),
+            height: docScale * doc[HeightSym](),
+            payload: undefined
+        });
+    });
+    return normalizeResults(scaleDim, 12, childPairs, docMap, poolData, viewDefsToJSX, [], 0, [], childDocs.filter(c => !filterDocs.includes(c)));
 }
 
 

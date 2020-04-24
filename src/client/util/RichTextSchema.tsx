@@ -780,7 +780,7 @@ export class DashDocView {
                     if (dashDocBase instanceof Doc) {
                         const aliasedDoc = Doc.MakeAlias(dashDocBase, docid + alias);
                         aliasedDoc.layoutKey = "layout";
-                        node.attrs.fieldKey && DocumentView.makeCustomViewClicked(aliasedDoc, Docs.Create.StackingDocument, node.attrs.fieldKey, undefined);
+                        node.attrs.fieldKey && Doc.makeCustomViewClicked(aliasedDoc, Docs.Create.StackingDocument, node.attrs.fieldKey, undefined);
                         self.doRender(aliasedDoc, removeDoc, node, view, getPos);
                     }
                 });

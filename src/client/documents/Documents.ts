@@ -978,7 +978,7 @@ export namespace DocUtils {
     export function addDocumentCreatorMenuItems(docTextAdder: (d: Doc) => void, docAdder: (d: Doc) => void, x: number, y: number): void {
         ContextMenu.Instance.addItem({
             description: "Add Note ...",
-            subitems: DocListCast((Doc.UserDoc().noteTypes as Doc).data).map((note, i) => ({
+            subitems: DocListCast((Doc.UserDoc()["template-notes"] as Doc).data).map((note, i) => ({
                 description: ":" + StrCast(note.title),
                 event: (args: { x: number, y: number }) => {
                     const textDoc = Docs.Create.TextDocument("", {

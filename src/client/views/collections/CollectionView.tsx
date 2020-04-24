@@ -201,7 +201,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
             ContextMenu.Instance.addItem({ description: "Test Freeform", event: () => func(CollectionViewType.Invalid), icon: "project-diagram" });
         }
         subItems.push({ description: "Schema", event: () => func(CollectionViewType.Schema), icon: "th-list" });
-        subItems.push({ description: "Treeview", event: () => func(CollectionViewType.Tree), icon: "tree" });
+        subItems.push({ description: "Tree", event: () => func(CollectionViewType.Tree), icon: "tree" });
         subItems.push({ description: "Stacking", event: () => func(CollectionViewType.Stacking), icon: "ellipsis-v" });
         subItems.push({ description: "Stacking (AutoHeight)", event: () => func(CollectionViewType.Stacking)._autoHeight = true, icon: "ellipsis-v" });
         subItems.push({ description: "Staff", event: () => func(CollectionViewType.Staff), icon: "music" });
@@ -222,14 +222,14 @@ export class CollectionView extends Touchable<FieldViewProps> {
         if (!e.isPropagationStopped() && this.props.Document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
 
             this.setupViewTypes("Change Perspective...", (vtype => { this.props.Document._viewType = vtype; return this.props.Document; }), true);
-            this.setupViewTypes("Open New Perspective...", vtype => {
+            this.setupViewTypes("New Perspective...", vtype => {
                 const newRendition = Doc.MakeAlias(this.props.Document);
                 newRendition._viewType = vtype;
                 this.props.addDocTab(newRendition, "onRight");
                 return newRendition;
             }, false);
 
-            const existing = ContextMenu.Instance.findByDescription("Layout...");
+            const existing = ContextMenu.Instance.findByDescription("Options...");
             const layoutItems = existing && "subitems" in existing ? existing.subitems : [];
             layoutItems.push({ description: `${this.props.Document.forceActive ? "Select" : "Force"} Contents Active`, event: () => this.props.Document.forceActive = !this.props.Document.forceActive, icon: "project-diagram" });
             if (this.props.Document.childLayout instanceof Doc) {
@@ -240,7 +240,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
             }
             layoutItems.push({ description: `${this.props.Document.isInPlaceContainer ? "Unset" : "Set"} inPlace Container`, event: () => this.props.Document.isInPlaceContainer = !this.props.Document.isInPlaceContainer, icon: "project-diagram" });
 
-            !existing && ContextMenu.Instance.addItem({ description: "Layout...", subitems: layoutItems, icon: "hand-point-right" });
+            !existing && ContextMenu.Instance.addItem({ description: "Options...", subitems: layoutItems, icon: "hand-point-right" });
 
             const existingOnClick = ContextMenu.Instance.findByDescription("OnClick...");
             const onClicks = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];

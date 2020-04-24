@@ -398,8 +398,15 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 generatedDocuments.push(doc);
             }
             if (generatedDocuments.length) {
-                generatedDocuments.forEach(addDocument);
-                completed && completed();
+                const set = generatedDocuments.length > 1 && generatedDocuments.map(d => Doc.iconify(d));
+                if (set) {
+                    const pile = Docs.Create.FreeformDocument(generatedDocuments, { ...options, title: "pile", _LODdisable: true, });
+                    Doc.pileup(pile, generatedDocuments);
+                    addDocument(pile);
+                } else {
+                    generatedDocuments.forEach(addDocument);
+                }
+                completed?.();
             } else {
                 if (text && !text.includes("https://")) {
                     addDocument(Docs.Create.TextDocument(text, { ...options, _width: 400, _height: 315 }));

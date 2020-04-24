@@ -45,7 +45,7 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
         funcs.push({ description: (this.props.Document.excludeCollections ? "Include" : "Exclude") + " Collections", event: () => Doc.GetProto(this.props.Document).excludeCollections = !this.props.Document.excludeCollections, icon: "expand-arrows-alt" });
         funcs.push({ description: `${this.props.Document.forceActive ? "Select" : "Force"} Contents Active`, event: () => this.props.Document.forceActive = !this.props.Document.forceActive, icon: "project-diagram" });
 
-        ContextMenu.Instance.addItem({ description: "DocumentBox Funcs...", subitems: funcs, icon: "asterisk" });
+        ContextMenu.Instance.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
     }
     @computed get contentDoc() {
         return (this.props.Document.isTemplateDoc || this.props.Document.isTemplateForField ? this.props.Document : Doc.GetProto(this.props.Document));
@@ -111,7 +111,7 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
         const childTemplateName = StrCast(this.props.Document.childTemplateName);
         if (containedDoc && childTemplateName && !containedDoc["layout_" + childTemplateName]) {
             setTimeout(() => {
-                DocumentView.createCustomView(containedDoc, Docs.Create.StackingDocument, childTemplateName);
+                Doc.createCustomView(containedDoc, Docs.Create.StackingDocument, childTemplateName);
                 Doc.expandTemplateLayout(Cast(containedDoc["layout_" + childTemplateName], Doc, null), containedDoc, undefined);
             }, 0);
         }

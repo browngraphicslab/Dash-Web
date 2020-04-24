@@ -3,7 +3,7 @@ import * as rp from 'request-promise';
 import { DocServer } from "../../../client/DocServer";
 import { Docs, DocumentOptions } from "../../../client/documents/Documents";
 import { UndoManager } from "../../../client/util/UndoManager";
-import { Doc, DocListCast } from "../../../new_fields/Doc";
+import { Doc, DocListCast, DocListCastAsync } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
 import { ScriptField, ComputedField } from "../../../new_fields/ScriptField";
@@ -96,31 +96,50 @@ export class CurrentUserUtils {
 
     // setup the different note type skins
     static setupNoteTemplates(doc: Doc) {
-        if (doc.noteTypes === undefined) {
-            const taskStatusValues = [
-                { title: "todo", _backgroundColor: "blue", color: "white" },
-                { title: "in progress", _backgroundColor: "yellow", color: "black" },
-                { title: "completed", _backgroundColor: "green", color: "white" }
-            ];
-            const noteTemplates = [
-                Docs.Create.TextDocument("", { title: "text", style: "Note", isTemplateDoc: true, backgroundColor: "yellow" }),
-                Docs.Create.TextDocument("", { title: "text", style: "Idea", isTemplateDoc: true, backgroundColor: "pink" }),
-                Docs.Create.TextDocument("", { title: "text", style: "Topic", isTemplateDoc: true, backgroundColor: "lightBlue" }),
-                Docs.Create.TextDocument("", { title: "text", style: "Person", isTemplateDoc: true, backgroundColor: "lightGreen" }),
-                Docs.Create.TextDocument("", {
-                    title: "text", style: "Todo", isTemplateDoc: true, backgroundColor: "orange", _autoHeight: false, _height: 100, _showCaption: "caption",
-                    layout: FormattedTextBox.LayoutString("Todo"), caption: RichTextField.DashField("taskStatus")
-                })
-            ];
+        if (doc["template-note-Note"] === undefined) {
+            const noteView = Docs.Create.TextDocument("", { title: "text", style: "Note", isTemplateDoc: true, backgroundColor: "yellow" });
+            noteView.isTemplateDoc = makeTemplate(noteView, true, "Note");
+            doc["template-note-Note"] = new PrefetchProxy(noteView);
+        }
+        if (doc["template-note-Idea"] === undefined) {
+            const noteView = Docs.Create.TextDocument("", { title: "text", style: "Idea", backgroundColor: "pink" });
+            noteView.isTemplateDoc = makeTemplate(noteView, true, "Idea");
+            doc["template-note-Idea"] = new PrefetchProxy(noteView);
+        }
+        if (doc["template-note-Topic"] === undefined) {
+            const noteView = Docs.Create.TextDocument("", { title: "text", style: "Topic", backgroundColor: "lightBlue" });
+            noteView.isTemplateDoc = makeTemplate(noteView, true, "Topic");
+            doc["template-note-Topic"] = new PrefetchProxy(noteView);
+        }
+        if (doc["template-note-Todo"] === undefined) {
+            const noteView = Docs.Create.TextDocument("", {
+                title: "text", style: "Todo", backgroundColor: "orange", _autoHeight: false, _height: 100, _showCaption: "caption",
+                layout: FormattedTextBox.LayoutString("Todo"), caption: RichTextField.DashField("taskStatus")
+            });
+            noteView.isTemplateDoc = makeTemplate(noteView, true, "Todo");
+            doc["template-note-Todo"] = new PrefetchProxy(noteView);
+        }
+        const taskStatusValues = [
+            { title: "todo", _backgroundColor: "blue", color: "white" },
+            { title: "in progress", _backgroundColor: "yellow", color: "black" },
+            { title: "completed", _backgroundColor: "green", color: "white" }
+        ];
+        if (doc.fieldTypes === undefined) {
             doc.fieldTypes = Docs.Create.TreeDocument([], { title: "field enumerations" });
-            Doc.addFieldEnumerations(Doc.GetProto(noteTemplates[4]), "taskStatus", taskStatusValues);
-            doc.noteTypes = new PrefetchProxy(Docs.Create.TreeDocument(noteTemplates.map(nt => makeTemplate(nt, true, StrCast(nt.style)) ? nt : nt),
-                { title: "Note Layouts", _height: 75 }));
-        } else {
-            DocListCast(Cast(doc.noteTypes, Doc, null)?.data); // prefetch templates
+            Doc.addFieldEnumerations(Doc.GetProto(doc["template-note-Todo"] as any as Doc), "taskStatus", taskStatusValues);
         }
 
-        return doc.noteTypes as Doc;
+        if (doc["template-notes"] === undefined) {
+            doc["template-notes"] = new PrefetchProxy(Docs.Create.TreeDocument([doc["template-note-Note"] as any as Doc,
+            doc["template-note-Idea"] as any as Doc, doc["template-note-Topic"] as any as Doc, doc["template-note-Todo"] as any as Doc],
+                { title: "Note Layouts", _height: 75 }));
+        } else {
+            const noteTypes = Cast(doc["template-notes"], Doc, null);
+            DocListCastAsync(noteTypes).then(list => noteTypes.data = new List<Doc>([doc["template-note-Note"] as any as Doc,
+            doc["template-note-Idea"] as any as Doc, doc["template-note-Topic"] as any as Doc, doc["template-note-Todo"] as any as Doc]));
+        }
+
+        return doc["template-notes"] as Doc;
     }
 
     // creates Note templates, and initial "user" templates
@@ -147,8 +166,16 @@ export class CurrentUserUtils {
             iconView.isTemplateDoc = makeTemplate(iconView);
             doc["template-icon-view"] = new PrefetchProxy(iconView);
         }
+        if (doc["template-icon-view-rtf"] === undefined) {
+            const iconRtfView = Docs.Create.LabelDocument({ title: "icon_" + DocumentType.RTF, textTransform: "unset", letterSpacing: "unset", _width: 150, _height: 30, isTemplateDoc: true, onClick: ScriptField.MakeScript("deiconifyView(self)") });
+            iconRtfView.isTemplateDoc = makeTemplate(iconRtfView, true, "icon_" + DocumentType.RTF);
+            doc["template-icon-view-rtf"] = new PrefetchProxy(iconRtfView);
+        }
         if (doc["template-icon-view-img"] === undefined) {
-            const iconImageView = Docs.Create.ImageDocument("http://www.cs.brown.edu/~bcz/face.gif", { title: "data", _width: 50, isTemplateDoc: true, onClick: ScriptField.MakeScript("deiconifyView(self)") });
+            const iconImageView = Docs.Create.ImageDocument("http://www.cs.brown.edu/~bcz/face.gif", {
+                title: "data", _width: 50, isTemplateDoc: true,
+                onClick: ScriptField.MakeScript("deiconifyView(self)")
+            });
             iconImageView.isTemplateDoc = makeTemplate(iconImageView, true, "icon_" + DocumentType.IMG);
             doc["template-icon-view-img"] = new PrefetchProxy(iconImageView);
         }
@@ -158,9 +185,12 @@ export class CurrentUserUtils {
             doc["template-icon-view-col"] = new PrefetchProxy(iconColView);
         }
         if (doc["template-icons"] === undefined) {
-            doc["template-icons"] = new PrefetchProxy(Docs.Create.TreeDocument([doc["template-icon-view"] as Doc, doc["template-icon-view-img"] as Doc, doc["template-icon-view-col"] as Doc], { title: "icon templates", _height: 75 }));
+            doc["template-icons"] = new PrefetchProxy(Docs.Create.TreeDocument([doc["template-icon-view"] as Doc, doc["template-icon-view-img"] as Doc,
+            doc["template-icon-view-col"] as Doc, doc["template-icon-view-rtf"] as Doc], { title: "icon templates", _height: 75 }));
         } else {
-            DocListCast(Cast(doc["template-icons"], Doc, null)?.data); // prefetch templates
+            const templateIconsDoc = Cast(doc["template-icons"], Doc, null);
+            DocListCastAsync(templateIconsDoc).then(list => templateIconsDoc.data = new List<Doc>([doc["template-icon-view"] as Doc, doc["template-icon-view-img"] as Doc,
+            doc["template-icon-view-col"] as Doc, doc["template-icon-view-rtf"] as Doc]));
         }
         return doc["template-icons"] as Doc;
     }
