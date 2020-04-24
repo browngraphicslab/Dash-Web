@@ -96,31 +96,50 @@ export class CurrentUserUtils {
 
     // setup the different note type skins
     static setupNoteTemplates(doc: Doc) {
-        if (doc.noteTypes === undefined) {
-            const taskStatusValues = [
-                { title: "todo", _backgroundColor: "blue", color: "white" },
-                { title: "in progress", _backgroundColor: "yellow", color: "black" },
-                { title: "completed", _backgroundColor: "green", color: "white" }
-            ];
-            const noteTemplates = [
-                Docs.Create.TextDocument("", { title: "text", style: "Note", isTemplateDoc: true, backgroundColor: "yellow" }),
-                Docs.Create.TextDocument("", { title: "text", style: "Idea", isTemplateDoc: true, backgroundColor: "pink" }),
-                Docs.Create.TextDocument("", { title: "text", style: "Topic", isTemplateDoc: true, backgroundColor: "lightBlue" }),
-                Docs.Create.TextDocument("", { title: "text", style: "Person", isTemplateDoc: true, backgroundColor: "lightGreen" }),
-                Docs.Create.TextDocument("", {
-                    title: "text", style: "Todo", isTemplateDoc: true, backgroundColor: "orange", _autoHeight: false, _height: 100, _showCaption: "caption",
-                    layout: FormattedTextBox.LayoutString("Todo"), caption: RichTextField.DashField("taskStatus")
-                })
-            ];
+        if (doc["template-note-Note"] === undefined) {
+            const noteView = Docs.Create.TextDocument("", { title: "text", style: "Note", isTemplateDoc: true, backgroundColor: "yellow" });
+            noteView.isTemplateDoc = makeTemplate(noteView, true, "Note");
+            doc["template-note-Note"] = new PrefetchProxy(noteView);
+        }
+        if (doc["template-note-Idea"] === undefined) {
+            const noteView = Docs.Create.TextDocument("", { title: "text", style: "Idea", backgroundColor: "pink" });
+            noteView.isTemplateDoc = makeTemplate(noteView, true, "Idea");
+            doc["template-note-Idea"] = new PrefetchProxy(noteView);
+        }
+        if (doc["template-note-Topic"] === undefined) {
+            const noteView = Docs.Create.TextDocument("", { title: "text", style: "Topic", backgroundColor: "lightBlue" });
+            noteView.isTemplateDoc = makeTemplate(noteView, true, "Topic");
+            doc["template-note-Topic"] = new PrefetchProxy(noteView);
+        }
+        if (doc["template-note-Todo"] === undefined) {
+            const noteView = Docs.Create.TextDocument("", {
+                title: "text", style: "Todo", backgroundColor: "orange", _autoHeight: false, _height: 100, _showCaption: "caption",
+                layout: FormattedTextBox.LayoutString("Todo"), caption: RichTextField.DashField("taskStatus")
+            });
+            noteView.isTemplateDoc = makeTemplate(noteView, true, "Todo");
+            doc["template-note-Todo"] = new PrefetchProxy(noteView);
+        }
+        const taskStatusValues = [
+            { title: "todo", _backgroundColor: "blue", color: "white" },
+            { title: "in progress", _backgroundColor: "yellow", color: "black" },
+            { title: "completed", _backgroundColor: "green", color: "white" }
+        ];
+        if (doc.fieldTypes === undefined) {
             doc.fieldTypes = Docs.Create.TreeDocument([], { title: "field enumerations" });
-            Doc.addFieldEnumerations(Doc.GetProto(noteTemplates[4]), "taskStatus", taskStatusValues);
-            doc.noteTypes = new PrefetchProxy(Docs.Create.TreeDocument(noteTemplates.map(nt => makeTemplate(nt, true, StrCast(nt.style)) ? nt : nt),
-                { title: "Note Layouts", _height: 75 }));
-        } else {
-            DocListCast(Cast(doc.noteTypes, Doc, null)?.data); // prefetch templates
+            Doc.addFieldEnumerations(Doc.GetProto(doc["template-note-Todo"] as any as Doc), "taskStatus", taskStatusValues);
         }
 
-        return doc.noteTypes as Doc;
+        if (doc["template-notes"] === undefined) {
+            doc["template-notes"] = new PrefetchProxy(Docs.Create.TreeDocument([doc["template-note-Note"] as any as Doc,
+            doc["template-note-Idea"] as any as Doc, doc["template-note-Topic"] as any as Doc, doc["template-note-Todo"] as any as Doc],
+                { title: "Note Layouts", _height: 75 }));
+        } else {
+            const noteTypes = Cast(doc["template-notes"], Doc, null);
+            DocListCastAsync(noteTypes).then(list => noteTypes.data = new List<Doc>([doc["template-note-Note"] as any as Doc,
+            doc["template-note-Idea"] as any as Doc, doc["template-note-Topic"] as any as Doc, doc["template-note-Todo"] as any as Doc]));
+        }
+
+        return doc["template-notes"] as Doc;
     }
 
     // creates Note templates, and initial "user" templates

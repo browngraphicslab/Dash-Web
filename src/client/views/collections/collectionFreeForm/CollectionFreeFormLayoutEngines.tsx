@@ -75,6 +75,28 @@ interface PivotColumn {
     filters: string[];
 }
 
+export function computerPassLayout(
+    poolData: Map<string, PoolData>,
+    pivotDoc: Doc,
+    childDocs: Doc[],
+    filterDocs: Doc[],
+    childPairs: { layout: Doc, data?: Doc }[],
+    panelDim: number[],
+    viewDefsToJSX: (views: ViewDefBounds[]) => ViewDefResult[]
+) {
+    const docMap = new Map<Doc, ViewDefBounds>();
+    childDocs.forEach((doc, i) => {
+        docMap.set(doc, {
+            type: "doc",
+            x: NumCast(doc.x),
+            y: NumCast(doc.y),
+            width: doc[WidthSym](),
+            height: doc[HeightSym](),
+            payload: undefined
+        });
+    });
+    return normalizeResults(panelDim, 12, childPairs, docMap, poolData, viewDefsToJSX, [], 0, [], childDocs.filter(c => !filterDocs.includes(c)));
+}
 
 export function computerStarburstLayout(
     poolData: Map<string, PoolData>,

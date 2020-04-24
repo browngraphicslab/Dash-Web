@@ -37,7 +37,7 @@ import { pageSchema } from "../../nodes/ImageBox";
 import PDFMenu from "../../pdf/PDFMenu";
 import { CollectionDockingView } from "../CollectionDockingView";
 import { CollectionSubView } from "../CollectionSubView";
-import { computePivotLayout, computeTimelineLayout, PoolData, ViewDefBounds, ViewDefResult, computerStarburstLayout } from "./CollectionFreeFormLayoutEngines";
+import { computePivotLayout, computeTimelineLayout, PoolData, ViewDefBounds, ViewDefResult, computerStarburstLayout, computerPassLayout } from "./CollectionFreeFormLayoutEngines";
 import { CollectionFreeFormRemoteCursors } from "./CollectionFreeFormRemoteCursors";
 import "./CollectionFreeFormView.scss";
 import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
@@ -94,6 +94,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @observable.shallow _layoutElements: ViewDefResult[] = []; // shallow because some layout items (eg pivot labels) are just generated 'divs' and can't be frozen as observables
     @observable _clusterSets: (Doc[])[] = [];
 
+    @computed get fitToContentScaling() { return this.fitToContent ? NumCast(this.layoutDoc.fitToContentScaling, 1) : 1; }
     @computed get fitToContent() { return (this.props.fitToBox || this.Document._fitToBox) && !this.isAnnotationOverlay; }
     @computed get parentScaling() { return this.props.ContentScaling && this.fitToContent && !this.isAnnotationOverlay ? this.props.ContentScaling() : 1; }
     @computed get contentBounds() { return aggregateBounds(this._layoutElements.filter(e => e.bounds && !e.bounds.z).map(e => e.bounds!), NumCast(this.layoutDoc._xPadding, 10), NumCast(this.layoutDoc._yPadding, 10)); }
@@ -104,8 +105,9 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     private easing = () => this.props.Document.panTransformType === "Ease";
     private panX = () => this.fitToContent ? (this.contentBounds.x + this.contentBounds.r) / 2 : this.Document._panX || 0;
     private panY = () => this.fitToContent ? (this.contentBounds.y + this.contentBounds.b) / 2 : this.Document._panY || 0;
-    private zoomScaling = () => (1 / this.parentScaling) * (this.fitToContent ?
-        Math.min(this.props.PanelHeight() / (this.contentBounds.b - this.contentBounds.y), this.props.PanelWidth() / (this.contentBounds.r - this.contentBounds.x)) :
+    private zoomScaling = () => (this.fitToContentScaling / this.parentScaling) * (this.fitToContent ?
+        Math.min(this.props.PanelHeight() / (this.contentBounds.b - this.contentBounds.y),
+            this.props.PanelWidth() / (this.contentBounds.r - this.contentBounds.x)) :
         this.Document.scale || 1)
 
     private centeringShiftX = () => !this.nativeWidth && !this.isAnnotationOverlay ? this.props.PanelWidth() / 2 / this.parentScaling : 0;  // shift so pan position is at center of window for non-overlay collections
@@ -971,7 +973,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         const newPool = new Map<string, any>();
         const engine = StrCast(this.layoutDoc._layoutEngine) || this.props.layoutEngine?.();
         switch (engine) {
-            case "pass": break;
+            case "pass": return { newPool, computedElementData: this.doEngineLayout(newPool, computerPassLayout) }
             case "timeline": return { newPool, computedElementData: this.doEngineLayout(newPool, computeTimelineLayout) };
             case "pivot": return { newPool, computedElementData: this.doEngineLayout(newPool, computePivotLayout) };
             case "starburst": return { newPool, computedElementData: this.doEngineLayout(newPool, computerStarburstLayout) };
@@ -993,6 +995,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         this._cachedPool.clear();
         Array.from(newPool.keys()).forEach(k => this._cachedPool.set(k, newPool.get(k)));
         const elements: ViewDefResult[] = computedElementData.slice();
+        const engine = this.props.layoutEngine?.() || this.props.Document._layoutEngine;
         this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)).forEach(pair =>
             elements.push({
                 ele: <CollectionFreeFormDocumentView
@@ -1000,7 +1003,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                     {...this.getChildDocumentViewProps(pair.layout, pair.data)}
                     dataProvider={this.childDataProvider}
                     LayoutDoc={this.childLayoutDocFunc}
-                    pointerEvents={this.props.layoutEngine?.() || this.props.Document._layoutEngine ? false : undefined}
+                    pointerEvents={engine && engine !== "starburst" ? false : undefined}
                     jitterRotation={NumCast(this.props.Document.jitterRotation)}
                     fitToBox={this.props.fitToBox || BoolCast(this.props.freezeChildDimensions)}
                     FreezeDimensions={BoolCast(this.props.freezeChildDimensions)}
@@ -1030,14 +1033,12 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     layoutStarburst = action(() => {
         if (this.layoutDoc._layoutEngine === undefined) {
-            this.layoutDoc._layoutEngine = "starburst";
-            this.layoutDoc.overflow = "visible";
+            Doc.makeStarburst(this.layoutDoc);
         } else {
-
-            this.layoutDoc._layoutEngine = "pass";
+            this.layoutDoc._layoutEngine = undefined;
             this.layoutDoc.overflow = "hidden";
+            this.layoutDoc._fitToBox = undefined;
         }
-
     });
     layoutDocsInGrid = () => {
         UndoManager.RunInBatch(() => {
@@ -1141,7 +1142,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @computed get marqueeView() {
         return <MarqueeView {...this.props} nudge={this.nudge} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments} addDocument={this.addDocument}
             addLiveTextDocument={this.addLiveTextBox} getContainerTransform={this.getContainerTransform} getTransform={this.getTransform} isAnnotationOverlay={this.isAnnotationOverlay}>
-            <CollectionFreeFormViewPannableContents centeringShiftX={this.centeringShiftX} centeringShiftY={this.centeringShiftY}
+            <CollectionFreeFormViewPannableContents centeringShiftX={this.centeringShiftX} centeringShiftY={this.centeringShiftY} shifted={!this.nativeHeight && !this.isAnnotationOverlay}
                 easing={this.easing} zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
                 {this.children}
             </CollectionFreeFormViewPannableContents>
@@ -1216,6 +1217,7 @@ interface CollectionFreeFormViewPannableContentsProps {
     zoomScaling: () => number;
     easing: () => boolean;
     children: () => JSX.Element[];
+    shifted: boolean;
 }
 
 @observer
@@ -1227,7 +1229,11 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
         const panx = -this.props.panX();
         const pany = -this.props.panY();
         const zoom = this.props.zoomScaling();
-        return <div className={freeformclass} style={{ touchAction: "none", borderRadius: "inherit", transform: `translate(${cenx}px, ${ceny}px) scale(${zoom}) translate(${panx}px, ${pany}px)` }}>
+        return <div className={freeformclass}
+            style={{
+                width: this.props.shifted ? 0 : undefined, height: this.props.shifted ? 0 : undefined,
+                transform: `translate(${cenx}px, ${ceny}px) scale(${zoom}) translate(${panx}px, ${pany}px)`
+            }}>
             {this.props.children()}
         </div>;
     }

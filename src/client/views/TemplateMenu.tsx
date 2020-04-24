@@ -112,8 +112,7 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     render() {
         const firstDoc = this.props.docViews[0].props.Document;
         const templateName = StrCast(firstDoc.layoutKey, "layout").replace("layout_", "");
-        const noteTypesDoc = Cast(Doc.UserDoc().noteTypes, Doc, null);
-        const noteTypes = DocListCast(noteTypesDoc?.data);
+        const noteTypes = DocListCast(Cast(Doc.UserDoc()["template-notes"], Doc, null));
         const addedTypes = DocListCast(Cast(Doc.UserDoc().templateButtons, Doc, null)?.data);
         const layout = Doc.Layout(firstDoc);
         const templateMenu: Array<JSX.Element> = [];
@@ -123,11 +122,9 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
         templateMenu.push(<OtherToggle key={"float"} name={"Float"} checked={firstDoc.z ? true : false} toggle={this.toggleFloat} />);
         templateMenu.push(<OtherToggle key={"chrome"} name={"Chrome"} checked={layout._chromeStatus !== "disabled"} toggle={this.toggleChrome} />);
         templateMenu.push(<OtherToggle key={"default"} name={"Default"} checked={templateName === "layout"} toggle={this.toggleDefault} />);
-        if (noteTypesDoc) {
-            addedTypes.concat(noteTypes).map(template => template.treeViewChecked = ComputedField.MakeFunction(`templateIsUsed(self,firstDoc)`, {}, { firstDoc }));
-            this._addedKeys && Array.from(this._addedKeys).filter(key => !noteTypes.some(nt => nt.title === key)).forEach(template => templateMenu.push(
-                <OtherToggle key={template} name={template} checked={templateName === template} toggle={e => this.toggleLayout(e, template)} />));
-        }
+        addedTypes.concat(noteTypes).map(template => template.treeViewChecked = ComputedField.MakeFunction(`templateIsUsed(self,firstDoc)`, {}, { firstDoc }));
+        this._addedKeys && Array.from(this._addedKeys).filter(key => !noteTypes.some(nt => nt.title === key)).forEach(template => templateMenu.push(
+            <OtherToggle key={template} name={template} checked={templateName === template} toggle={e => this.toggleLayout(e, template)} />));
         return <ul className="template-list" style={{ display: "block" }}>
             <input placeholder="+ layout" ref={this._customRef} onKeyPress={this.onCustomKeypress} />
             {templateMenu}

@@ -14,7 +14,7 @@ import { PrefetchProxy, ProxyField } from "./Proxy";
 import { FieldId, RefField } from "./RefField";
 import { RichTextField } from "./RichTextField";
 import { listSpec } from "./Schema";
-import { ComputedField } from "./ScriptField";
+import { ComputedField, ScriptField } from "./ScriptField";
 import { Cast, FieldValue, NumCast, StrCast, ToConstructor, ScriptCast } from "./Types";
 import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, updateFunction } from "./util";
 import { Docs } from "../client/documents/Documents";
@@ -911,6 +911,22 @@ export namespace Doc {
             return DocListCast(curPres.data).findIndex((val) => Doc.AreProtosEqual(val, doc)) !== -1;
         }
         return false;
+    }
+
+    export function makeStarburst(newCollection: Doc) {
+        newCollection._layoutEngine = "starburst";
+        newCollection._fitToBox = true;
+        newCollection.overflow = "visible";
+        const script = "if (self._layoutEngine === 'starburst') {" +
+            "     self._layoutEngine = 'pass';" +
+            "     self.overflow = undefined;" +
+            "     self.fitToContentScaling=undefined;" +
+            " } else {" +
+            "    self._layoutEngine = 'starburst';" +
+            "    self.overflow = 'visible';" +
+            "    self.fitToContentScaling=10;" +
+            " };";
+        newCollection.onClick = ScriptField.MakeScript(script, { self: Doc.name });
     }
 
 

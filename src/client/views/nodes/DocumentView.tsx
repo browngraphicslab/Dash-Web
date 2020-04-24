@@ -562,7 +562,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         let docLayoutTemplate: Opt<Doc>;
         const iconViews = DocListCast(Cast(Doc.UserDoc()["template-icons"], Doc, null)?.data);
         const templBtns = DocListCast(Cast(Doc.UserDoc()["template-buttons"], Doc, null)?.data);
-        const noteTypes = DocListCast(Cast(Doc.UserDoc().noteTypes, Doc, null)?.data);
+        const noteTypes = DocListCast(Cast(Doc.UserDoc()["template-notes"], Doc, null)?.data);
         const clickFuncs = DocListCast(Cast(Doc.UserDoc().clickFuncs, Doc, null)?.data);
         const allTemplates = iconViews.concat(templBtns).concat(noteTypes).concat(clickFuncs).map(btnDoc => (btnDoc.dragFactory as Doc) || btnDoc).filter(doc => doc.isTemplateDoc);
         // bcz: this is hacky -- want to have different templates be applied depending on the "type" of a document.  but type is not reliable and there could be other types of template searches so this should be generalized

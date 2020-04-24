@@ -405,7 +405,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         !this.props.Document.rootDocument && funcs.push({
             description: "Make Template", event: () => {
                 this.props.Document.isTemplateDoc = makeTemplate(this.props.Document, true);
-                Doc.AddDocToList(Cast(Doc.UserDoc().noteTypes, Doc, null), "data", this.props.Document);
+                Doc.AddDocToList(Cast(Doc.UserDoc()["template-notes"], Doc, null), "data", this.props.Document);
             }, icon: "eye"
         });
         funcs.push({ description: "Toggle Single Line", event: () => this.props.Document._singleLine = !this.props.Document._singleLine, icon: "expand-arrows-alt" });
@@ -433,9 +433,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         const change = cm.findByDescription("Change Perspective...");
         const changeItems: ContextMenuProps[] = change && "subitems" in change ? change.subitems : [];
 
-        const noteTypesDoc = Cast(Doc.UserDoc().noteTypes, Doc, null);
-        const noteTypes = DocListCast(noteTypesDoc?.data);
-        noteTypes.forEach(note => {
+        const noteTypesDoc = Cast(Doc.UserDoc()["template-notes"], Doc, null);
+        DocListCast(noteTypesDoc?.data).forEach(note => {
             changeItems.push({
                 description: StrCast(note.title), event: () => {
                     Doc.setNativeView(this.props.Document);

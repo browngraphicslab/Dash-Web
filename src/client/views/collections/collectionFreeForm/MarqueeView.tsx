@@ -20,6 +20,7 @@ import { CognitiveServices } from "../../../cognitive_services/CognitiveServices
 import { RichTextField } from "../../../../new_fields/RichTextField";
 import { CollectionView } from "../CollectionView";
 import { FormattedTextBox } from "../../nodes/FormattedTextBox";
+import { ScriptField } from "../../../../new_fields/ScriptField";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -333,6 +334,25 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
     }
 
     @action
+    pileup = (e: KeyboardEvent | React.PointerEvent | undefined) => {
+        const bounds = this.Bounds;
+        const selected = this.marqueeSelect(false);
+        selected.map(d => {
+            this.props.removeDocument(d);
+            d.x = NumCast(d.x) - bounds.left - bounds.width / 2;
+            d.y = NumCast(d.y) - bounds.top - bounds.height / 2;
+            d.displayTimecode = undefined;  // bcz: this should be automatic somehow.. along with any other properties that were logically associated with the original collection
+            return d;
+        });
+        const newCollection = this.getCollection(selected, false);
+        this.props.addDocument(newCollection);
+        this.props.selectDocuments([newCollection], []);
+        MarqueeOptionsMenu.Instance.fadeOut(true);
+        this.hideMarquee();
+        Doc.makeStarburst(newCollection);
+    }
+
+    @action
     collection = (e: KeyboardEvent | React.PointerEvent | undefined) => {
         const bounds = this.Bounds;
         const selected = this.marqueeSelect(false);
@@ -476,7 +496,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             this.delete();
             e.stopPropagation();
         }
-        if (e.key === "c" || e.key === "b" || e.key === "t" || e.key === "s" || e.key === "S") {
+        if (e.key === "c" || e.key === "b" || e.key === "t" || e.key === "s" || e.key === "S" || e.key === "p") {
             this._commandExecuted = true;
             e.stopPropagation();
             e.preventDefault();
@@ -489,6 +509,9 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             }
             if (e.key === "b") {
                 this.background(e);
+            }
+            if (e.key === "p") {
+                this.pileup(e);
             }
             this.cleanupInteractions(false);
         }

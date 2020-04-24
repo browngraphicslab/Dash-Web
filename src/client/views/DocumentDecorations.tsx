@@ -165,8 +165,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         return true;
     }
 
-    onCloseDown = (e: React.PointerEvent): void => {
-        setupMoveUpEvents(this, e, (e, d) => false, (e) => { }, this.onMinimizeClick);
+    onIconifyDown = (e: React.PointerEvent): void => {
+        setupMoveUpEvents(this, e, (e, d) => false, (e) => { }, this.onIconifyClick);
     }
     @undoBatch
     @action
@@ -200,7 +200,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     }
     @undoBatch
     @action
-    onMinimizeClick = (e: PointerEvent): void => {
+    onIconifyClick = (e: PointerEvent): void => {
         if (e.button === 0) {
             const selectedDocs = SelectionManager.SelectedDocuments().map(sd => sd);
             selectedDocs.map(dv => {
@@ -408,9 +408,9 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             <div className="documentDecorations-contextMenu" title="Show context menu" onPointerDown={this.onSettingsDown}>
                 <FontAwesomeIcon size="lg" icon="cog" />
             </div>) : (
-                <div className="documentDecorations-minimizeButton" title="Iconify" onPointerDown={this.onMaximizeDown}>
+                <div className="documentDecorations-minimizeButton" title="Iconify" onPointerDown={this.onIconifyDown}>
                     {/* Currently, this is set to be enabled if there is no ink selected. It might be interesting to think about minimizing ink if it's useful? -syip2*/}
-                    {SelectionManager.SelectedDocuments().length === 1 ? DocumentDecorations.DocumentIcon(StrCast(seldoc.props.Document.layout, "...")) : "..."}
+                    <FontAwesomeIcon className="documentdecorations-times" icon={faTimes} size="lg" />
                 </div>);
 
         const titleArea = this._edtingTitle ?
@@ -465,8 +465,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             }}>
                 {maximizeIcon}
                 {titleArea}
-                <div className="documentDecorations-closeButton" title="Close Document" onPointerDown={this.onCloseDown}>
-                    <FontAwesomeIcon className="documentdecorations-times" icon={faTimes} size="lg" />
+                <div className="documentDecorations-closeButton" title="Open Document in Tab" onPointerDown={this.onMaximizeDown}>
+                    {SelectionManager.SelectedDocuments().length === 1 ? DocumentDecorations.DocumentIcon(StrCast(seldoc.props.Document.layout, "...")) : "..."}
                 </div>
                 <div id="documentDecorations-topLeftResizer" className="documentDecorations-resizer"
                     onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
