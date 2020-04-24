@@ -113,8 +113,8 @@ export function computerStarburstLayout(
         const deg = i / childDocs.length * Math.PI * 2;
         docMap.set(doc, {
             type: "doc",
-            x: Math.sin(deg) * burstDim[0] / 3 - NumCast(pivotDoc.starburstX),
-            y: Math.cos(deg) * burstDim[1] / 3 - NumCast(pivotDoc.starburstY),
+            x: Math.cos(deg) * (burstDim[0] / 3) - doc[WidthSym]() / 2,
+            y: Math.sin(deg) * (burstDim[1] / 3) - doc[HeightSym]() / 2,
             width: doc[WidthSym](),
             height: doc[HeightSym](),
             payload: undefined

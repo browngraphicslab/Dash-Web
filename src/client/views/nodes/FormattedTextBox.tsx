@@ -13,22 +13,24 @@ import { EditorState, NodeSelection, Plugin, TextSelection, Transaction } from "
 import { ReplaceStep } from 'prosemirror-transform';
 import { EditorView } from "prosemirror-view";
 import { DateField } from '../../../new_fields/DateField';
-import { DataSym, Doc, DocListCastAsync, Field, HeightSym, Opt, WidthSym, DocListCast } from "../../../new_fields/Doc";
+import { DataSym, Doc, DocListCast, DocListCastAsync, Field, HeightSym, Opt, WidthSym } from "../../../new_fields/Doc";
 import { documentSchema } from '../../../new_fields/documentSchemas';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { InkTool } from '../../../new_fields/InkField';
+import { PrefetchProxy } from '../../../new_fields/Proxy';
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { RichTextUtils } from '../../../new_fields/RichTextUtils';
 import { createSchema, makeInterface } from "../../../new_fields/Schema";
-import { Cast, NumCast, StrCast, BoolCast, DateCast } from "../../../new_fields/Types";
+import { Cast, DateCast, NumCast, StrCast } from "../../../new_fields/Types";
 import { TraceMobx } from '../../../new_fields/util';
-import { addStyleSheet, addStyleSheetRule, clearStyleSheetRules, emptyFunction, numberRange, returnOne, Utils, returnTrue, returnZero } from '../../../Utils';
+import { addStyleSheet, addStyleSheetRule, clearStyleSheetRules, emptyFunction, numberRange, returnOne, returnZero, Utils } from '../../../Utils';
 import { GoogleApiClientUtils, Pulls, Pushes } from '../../apis/google_docs/GoogleApiClientUtils';
 import { DocServer } from "../../DocServer";
 import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentType } from '../../documents/DocumentTypes';
 import { DictationManager } from '../../util/DictationManager';
 import { DragManager } from "../../util/DragManager";
+import { makeTemplate } from '../../util/DropConverter';
 import buildKeymap from "../../util/ProsemirrorExampleTransfer";
 import RichTextMenu from '../../util/RichTextMenu';
 import { RichTextRules } from "../../util/RichTextRules";
@@ -46,9 +48,6 @@ import { FieldView, FieldViewProps } from "./FieldView";
 import "./FormattedTextBox.scss";
 import { FormattedTextBoxComment, formattedTextBoxCommentPlugin } from './FormattedTextBoxComment';
 import React = require("react");
-import { PrefetchProxy } from '../../../new_fields/Proxy';
-import { makeTemplate } from '../../util/DropConverter';
-import { DocumentView } from './DocumentView';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -436,24 +435,24 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         const noteTypesDoc = Cast(Doc.UserDoc()["template-notes"], Doc, null);
         DocListCast(noteTypesDoc?.data).forEach(note => {
             changeItems.push({
-                description: StrCast(note.title), event: () => {
+                description: StrCast(note.title), event: undoBatch(() => {
                     Doc.setNativeView(this.props.Document);
-                    DocumentView.makeCustomViewClicked(this.rootDoc, Docs.Create.TreeDocument, StrCast(note.title), note);
-                }, icon: "eye"
+                    Doc.makeCustomViewClicked(this.rootDoc, Docs.Create.TreeDocument, StrCast(note.title), note);
+                }), icon: "eye"
             });
         });
-        changeItems.push({ description: "FreeForm", event: () => DocumentView.makeCustomViewClicked(this.rootDoc, Docs.Create.FreeformDocument, "freeform"), icon: "eye" });
+        changeItems.push({ description: "FreeForm", event: undoBatch(() => Doc.makeCustomViewClicked(this.rootDoc, Docs.Create.FreeformDocument, "freeform"), "change view"), icon: "eye" });
         !change && cm.addItem({ description: "Change Perspective...", subitems: changeItems, icon: "external-link-alt" });
 
         const open = cm.findByDescription("Open New Perspective...");
         const openItems: ContextMenuProps[] = open && "subitems" in open ? open.subitems : [];
 
         openItems.push({
-            description: "FreeForm", event: () => {
+            description: "FreeForm", event: undoBatch(() => {
                 const alias = Doc.MakeAlias(this.rootDoc);
-                DocumentView.makeCustomViewClicked(alias, Docs.Create.FreeformDocument, "freeform");
+                Doc.makeCustomViewClicked(alias, Docs.Create.FreeformDocument, "freeform");
                 this.props.addDocTab(alias, "onRight");
-            }, icon: "eye"
+            }), icon: "eye"
         });
         !open && cm.addItem({ description: "Open New Perspective...", subitems: openItems, icon: "external-link-alt" });
 

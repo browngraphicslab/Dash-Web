@@ -307,7 +307,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     UndoManager.RunInBatch(func, "on click");
                 } else func();
             } else if (this.Document["onClick-rawScript"] && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes("ScriptingBox")) {// bcz: hack? don't edit a script if you're clicking on a scripting box itself
-                UndoManager.RunInBatch(() => DocumentView.makeCustomViewClicked(this.props.Document, undefined, "onClick"), "edit onClick");
+                UndoManager.RunInBatch(() => Doc.makeCustomViewClicked(this.props.Document, undefined, "onClick"), "edit onClick");
                 //ScriptBox.EditButtonScript("On Button Clicked ...", this.props.Document, "onClick", e.clientX, e.clientY), "on button click");
             } else if (this.Document.isLinkButton) {
                 DocListCast(this.props.Document.links).length && this.followLinkClick(e.altKey, e.ctrlKey, e.shiftKey);
@@ -400,6 +400,19 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             this.addMoveListeners();
             this.removeEndListeners();
             this.addEndListeners();
+        }
+    }
+
+    public iconify() {
+        const layoutKey = Cast(this.props.Document.layoutKey, "string", null);
+        const collapse = layoutKey !== "layout_icon";
+        if (collapse) {
+            this.switchViews(collapse, "icon");
+            if (layoutKey && layoutKey !== "layout") this.props.Document.deiconifyLayout = layoutKey.replace("layout_", "");
+        } else {
+            const deiconifyLayout = Cast(this.props.Document.deiconifyLayout, "string", null);
+            this.switchViews(deiconifyLayout ? true : false, deiconifyLayout);
+            this.props.Document.deiconifyLayout = undefined;
         }
     }
 
@@ -547,56 +560,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @undoBatch
     deleteClicked = (): void => { SelectionManager.DeselectAll(); this.props.removeDocument?.(this.props.Document); }
 
-    // applies a custom template to a document.  the template is identified by it's short name (e.g, slideView not layout_slideView)
-    static makeCustomViewClicked = (doc: Doc, creator: Opt<(documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc>, templateSignature: string = "custom", docLayoutTemplate?: Doc) => {
-        const batch = UndoManager.StartBatch("makeCustomViewClicked");
-        runInAction(() => {
-            doc.layoutKey = "layout_" + templateSignature;
-            if (doc[doc.layoutKey] === undefined) {
-                DocumentView.createCustomView(doc, creator, templateSignature, docLayoutTemplate);
-            }
-        });
-        batch.end();
-    }
-    static findTemplate(templateName: string, type: string, signature: string) {
-        let docLayoutTemplate: Opt<Doc>;
-        const iconViews = DocListCast(Cast(Doc.UserDoc()["template-icons"], Doc, null)?.data);
-        const templBtns = DocListCast(Cast(Doc.UserDoc()["template-buttons"], Doc, null)?.data);
-        const noteTypes = DocListCast(Cast(Doc.UserDoc()["template-notes"], Doc, null)?.data);
-        const clickFuncs = DocListCast(Cast(Doc.UserDoc().clickFuncs, Doc, null)?.data);
-        const allTemplates = iconViews.concat(templBtns).concat(noteTypes).concat(clickFuncs).map(btnDoc => (btnDoc.dragFactory as Doc) || btnDoc).filter(doc => doc.isTemplateDoc);
-        // bcz: this is hacky -- want to have different templates be applied depending on the "type" of a document.  but type is not reliable and there could be other types of template searches so this should be generalized
-        // first try to find a template that matches the specific document type (<typeName>_<templateName>).  otherwise, fallback to a general match on <templateName>
-        !docLayoutTemplate && allTemplates.forEach(tempDoc => StrCast(tempDoc.title) === templateName + "_" + type && (docLayoutTemplate = tempDoc));
-        !docLayoutTemplate && allTemplates.forEach(tempDoc => StrCast(tempDoc.title) === templateName && (docLayoutTemplate = tempDoc));
-        return docLayoutTemplate;
-    }
-    static createCustomView = (doc: Doc, creator: Opt<(documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc>, templateSignature: string = "custom", docLayoutTemplate?: Doc) => {
-        const templateName = templateSignature.replace(/\(.*\)/, "");
-        docLayoutTemplate = docLayoutTemplate || DocumentView.findTemplate(templateName, StrCast(doc.type), templateSignature);
-
-        const customName = "layout_" + templateSignature;
-        const _width = NumCast(doc._width);
-        const _height = NumCast(doc._height);
-        const options = { title: "data", backgroundColor: StrCast(doc.backgroundColor), _autoHeight: true, _width, x: -_width / 2, y: - _height / 2, _showSidebar: false };
-
-        let fieldTemplate: Opt<Doc>;
-        if (doc.data instanceof RichTextField || typeof (doc.data) === "string") {
-            fieldTemplate = Docs.Create.TextDocument("", options);
-        } else if (doc.data instanceof PdfField) {
-            fieldTemplate = Docs.Create.PdfDocument("http://www.msn.com", options);
-        } else if (doc.data instanceof VideoField) {
-            fieldTemplate = Docs.Create.VideoDocument("http://www.cs.brown.edu", options);
-        } else if (doc.data instanceof AudioField) {
-            fieldTemplate = Docs.Create.AudioDocument("http://www.cs.brown.edu", options);
-        } else if (doc.data instanceof ImageField) {
-            fieldTemplate = Docs.Create.ImageDocument("http://www.cs.brown.edu", options);
-        }
-        const docTemplate = docLayoutTemplate || creator?.(fieldTemplate ? [fieldTemplate] : [], { title: customName + "(" + doc.title + ")", isTemplateDoc: true, _width: _width + 20, _height: Math.max(100, _height + 45) });
-
-        fieldTemplate && Doc.MakeMetadataFieldTemplate(fieldTemplate, docTemplate ? Doc.GetProto(docTemplate) : docTemplate);
-        docTemplate && Doc.ApplyTemplateTo(docTemplate, doc, customName, undefined);
-    }
 
     @undoBatch
     toggleLinkButtonBehavior = (): void => {
@@ -665,15 +628,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             DocUtils.MakeLink({ doc: this.props.Document }, { doc: portal }, "portal to");
         }
         this.Document.isLinkButton = true;
-    }
-
-    @undoBatch
-    @action
-    setCustomView = (custom: boolean, layout: string): void => {
-        Doc.setNativeView(this.props.Document);
-        if (custom) {
-            DocumentView.makeCustomViewClicked(this.props.Document, Docs.Create.StackingDocument, layout, undefined);
-        }
     }
 
     @undoBatch
@@ -747,7 +701,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         onClicks.push({ description: this.Document.ignoreClick ? "Select" : "Do Nothing", event: () => this.Document.ignoreClick = !this.Document.ignoreClick, icon: this.Document.ignoreClick ? "unlock" : "lock" });
         onClicks.push({ description: this.Document.isLinkButton ? "Remove Follow Behavior" : "Follow Link in Place", event: this.toggleFollowInPlace, icon: "concierge-bell" });
         onClicks.push({ description: this.Document.isLinkButton || this.Document.onClick ? "Remove Click Behavior" : "Follow Link", event: this.toggleLinkButtonBehavior, icon: "concierge-bell" });
-        onClicks.push({ description: "Edit onClick Script", event: () => UndoManager.RunInBatch(() => DocumentView.makeCustomViewClicked(this.props.Document, undefined, "onClick"), "edit onClick"), icon: "edit" });
+        onClicks.push({ description: "Edit onClick Script", event: () => UndoManager.RunInBatch(() => Doc.makeCustomViewClicked(this.props.Document, undefined, "onClick"), "edit onClick"), icon: "edit" });
         !existingOnClick && cm.addItem({ description: "OnClick...", subitems: onClicks, icon: "hand-point-right" });
 
         const funcs: ContextMenuProps[] = [];
@@ -1114,7 +1068,14 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @computed get ignorePointerEvents() {
         return this.props.pointerEvents === false || (this.Document.isBackground && !this.isSelected() && !SelectionManager.GetIsDragging()) || (this.Document.type === DocumentType.INK && InkingControl.Instance.selectedTool !== InkTool.None);
     }
-
+    @undoBatch
+    @action
+    setCustomView = (custom: boolean, layout: string): void => {
+        Doc.setNativeView(this.props.Document);
+        if (custom) {
+            Doc.makeCustomViewClicked(this.props.Document, Docs.Create.StackingDocument, layout, undefined);
+        }
+    }
     @observable _animate = 0;
     switchViews = action((custom: boolean, view: string) => {
         SelectionManager.SetIsDragging(true);

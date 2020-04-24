@@ -17,7 +17,8 @@ import { listSpec } from "./Schema";
 import { ComputedField, ScriptField } from "./ScriptField";
 import { Cast, FieldValue, NumCast, StrCast, ToConstructor, ScriptCast } from "./Types";
 import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, updateFunction } from "./util";
-import { Docs } from "../client/documents/Documents";
+import { Docs, DocumentOptions } from "../client/documents/Documents";
+import { PdfField, VideoField, AudioField, ImageField } from "./URLField";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -913,18 +914,86 @@ export namespace Doc {
         return false;
     }
 
-    export function makeStarburst(newCollection: Doc) {
-        newCollection._layoutEngine = "starburst";
-        newCollection._fitToBox = true;
+    // applies a custom template to a document.  the template is identified by it's short name (e.g, slideView not layout_slideView)
+    export function makeCustomViewClicked(doc: Doc, creator: Opt<(documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc>, templateSignature: string = "custom", docLayoutTemplate?: Doc) {
+        const batch = UndoManager.StartBatch("makeCustomViewClicked");
+        runInAction(() => {
+            doc.layoutKey = "layout_" + templateSignature;
+            if (doc[doc.layoutKey] === undefined) {
+                createCustomView(doc, creator, templateSignature, docLayoutTemplate);
+            }
+        });
+        batch.end();
+    }
+    export function findTemplate(templateName: string, type: string, signature: string) {
+        let docLayoutTemplate: Opt<Doc>;
+        const iconViews = DocListCast(Cast(Doc.UserDoc()["template-icons"], Doc, null)?.data);
+        const templBtns = DocListCast(Cast(Doc.UserDoc()["template-buttons"], Doc, null)?.data);
+        const noteTypes = DocListCast(Cast(Doc.UserDoc()["template-notes"], Doc, null)?.data);
+        const clickFuncs = DocListCast(Cast(Doc.UserDoc().clickFuncs, Doc, null)?.data);
+        const allTemplates = iconViews.concat(templBtns).concat(noteTypes).concat(clickFuncs).map(btnDoc => (btnDoc.dragFactory as Doc) || btnDoc).filter(doc => doc.isTemplateDoc);
+        // bcz: this is hacky -- want to have different templates be applied depending on the "type" of a document.  but type is not reliable and there could be other types of template searches so this should be generalized
+        // first try to find a template that matches the specific document type (<typeName>_<templateName>).  otherwise, fallback to a general match on <templateName>
+        !docLayoutTemplate && allTemplates.forEach(tempDoc => StrCast(tempDoc.title) === templateName + "_" + type && (docLayoutTemplate = tempDoc));
+        !docLayoutTemplate && allTemplates.forEach(tempDoc => StrCast(tempDoc.title) === templateName && (docLayoutTemplate = tempDoc));
+        return docLayoutTemplate;
+    }
+    export function createCustomView(doc: Doc, creator: Opt<(documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc>, templateSignature: string = "custom", docLayoutTemplate?: Doc) {
+        const templateName = templateSignature.replace(/\(.*\)/, "");
+        docLayoutTemplate = docLayoutTemplate || findTemplate(templateName, StrCast(doc.type), templateSignature);
+
+        const customName = "layout_" + templateSignature;
+        const _width = NumCast(doc._width);
+        const _height = NumCast(doc._height);
+        const options = { title: "data", backgroundColor: StrCast(doc.backgroundColor), _autoHeight: true, _width, x: -_width / 2, y: - _height / 2, _showSidebar: false };
+
+        let fieldTemplate: Opt<Doc>;
+        if (doc.data instanceof RichTextField || typeof (doc.data) === "string") {
+            fieldTemplate = Docs.Create.TextDocument("", options);
+        } else if (doc.data instanceof PdfField) {
+            fieldTemplate = Docs.Create.PdfDocument("http://www.msn.com", options);
+        } else if (doc.data instanceof VideoField) {
+            fieldTemplate = Docs.Create.VideoDocument("http://www.cs.brown.edu", options);
+        } else if (doc.data instanceof AudioField) {
+            fieldTemplate = Docs.Create.AudioDocument("http://www.cs.brown.edu", options);
+        } else if (doc.data instanceof ImageField) {
+            fieldTemplate = Docs.Create.ImageDocument("http://www.cs.brown.edu", options);
+        }
+        const docTemplate = docLayoutTemplate || creator?.(fieldTemplate ? [fieldTemplate] : [], { title: customName + "(" + doc.title + ")", isTemplateDoc: true, _width: _width + 20, _height: Math.max(100, _height + 45) });
+
+        fieldTemplate && Doc.MakeMetadataFieldTemplate(fieldTemplate, docTemplate ? Doc.GetProto(docTemplate) : docTemplate);
+        docTemplate && Doc.ApplyTemplateTo(docTemplate, doc, customName, undefined);
+    }
+    export function makeCustomView(doc: Doc, custom: boolean, layout: string) {
+        Doc.setNativeView(doc);
+        if (custom) {
+            makeCustomViewClicked(doc, Docs.Create.StackingDocument, layout, undefined);
+        }
+    }
+    export function iconify(doc: Doc) {
+        const layoutKey = Cast(doc.layoutKey, "string", null);
+        Doc.makeCustomViewClicked(doc, Docs.Create.StackingDocument, "icon", undefined);
+        if (layoutKey && layoutKey !== "layout") doc.deiconifyLayout = layoutKey.replace("layout_", "");
+    }
+
+    export function pileup(newCollection: Doc) {
+        newCollection._layoutEngine = "pass";
         newCollection.overflow = "visible";
         const script = "if (self._layoutEngine === 'starburst') {" +
-            "     self._layoutEngine = 'pass';" +
             "     self.overflow = undefined;" +
-            "     self.fitToContentScaling=undefined;" +
+            "     self.x = self.x + self._width/2 - 55; " +
+            "     self.y = self.y + self._height/2 - 55; " +
+            "     self._width = self._height = 110;" +
+            "     self._layoutEngine = 'pass';" +
             " } else {" +
-            "    self._layoutEngine = 'starburst';" +
             "    self.overflow = 'visible';" +
-            "    self.fitToContentScaling=10;" +
+            "    !self.starburstRadius && (self.starburstRadius = 500);" +
+            "    if (self._layoutEngine === 'pass') { " +
+            "       self.x = self.x + self._width/2 - 12.5; " +
+            "       self.y = self.y + self._height/2 - 12.5; " +
+            "    }; " +
+            "    self._width = self._height = 25;" +
+            "    self._layoutEngine = 'starburst';" +
             " };";
         newCollection.onClick = ScriptField.MakeScript(script, { self: Doc.name });
     }

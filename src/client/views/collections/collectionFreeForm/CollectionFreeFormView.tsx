@@ -885,13 +885,20 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         };
     }
 
-    addDocTab = (doc: Doc, where: string) => {
+    addDocTab = action((doc: Doc, where: string) => {
+        if (where === "inParent") {
+            const pt = this.getTransform().transformPoint(NumCast(doc.x), NumCast(doc.y));
+            doc.x = pt[0];
+            doc.y = pt[1];
+            this.props.addDocument(doc);
+            return true;
+        }
         if (where === "inPlace" && this.layoutDoc.isInPlaceContainer) {
             this.dataDoc[this.props.fieldKey] = new List<Doc>([doc]);
             return true;
         }
         return this.props.addDocTab(doc, where);
-    }
+    })
     getCalculatedPositions(params: { doc: Doc, index: number, collection: Doc, docs: Doc[], state: any }): PoolData {
         const result = this.Document.arrangeScript?.script.run(params, console.log);
         if (result?.success) {
@@ -1031,15 +1038,15 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         super.setCursorPosition(this.getTransform().transformPoint(e.clientX, e.clientY));
     }
 
-    layoutStarburst = action(() => {
-        if (this.layoutDoc._layoutEngine === undefined) {
-            Doc.makeStarburst(this.layoutDoc);
-        } else {
-            this.layoutDoc._layoutEngine = undefined;
-            this.layoutDoc.overflow = "hidden";
-            this.layoutDoc._fitToBox = undefined;
-        }
-    });
+    promoteCollection = undoBatch(action(() => {
+        this.childDocs.forEach(doc => {
+            const scr = this.getTransform().inverse().transformPoint(NumCast(doc.x), NumCast(doc.y));
+            doc.x = scr?.[0];
+            doc.y = scr?.[1];
+            this.props.addDocTab(doc, "inParent") && this.props.removeDocument(doc);
+        })
+        this.props.ContainingCollectionView?.removeDocument(this.props.Document);
+    }));
     layoutDocsInGrid = () => {
         UndoManager.RunInBatch(() => {
             const docs = this.childLayoutPairs;
@@ -1073,7 +1080,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         optionItems.push({ description: `${this.Document._LODdisable ? "Enable LOD" : "Disable LOD"}`, event: () => this.Document._LODdisable = !this.Document._LODdisable, icon: "table" });
         optionItems.push({ description: `${this.fitToContent ? "Unset" : "Set"} Fit To Container`, event: () => this.Document._fitToBox = !this.fitToContent, icon: !this.fitToContent ? "expand-arrows-alt" : "compress-arrows-alt" });
         optionItems.push({ description: `${this.Document.useClusters ? "Uncluster" : "Use Clusters"}`, event: () => this.updateClusters(!this.Document.useClusters), icon: "braille" });
-        optionItems.push({ description: "Arrange Starburst", event: this.layoutStarburst, icon: "table" });
+        this.props.ContainingCollectionView && optionItems.push({ description: "Promote Collection", event: this.promoteCollection, icon: "table" });
         optionItems.push({ description: "Arrange contents in grid", event: this.layoutDocsInGrid, icon: "table" });
         // layoutItems.push({ description: "Analyze Strokes", event: this.analyzeStrokes, icon: "paint-brush" });
         optionItems.push({ description: "Jitter Rotation", event: action(() => this.props.Document.jitterRotation = (this.props.Document.jitterRotation ? 0 : 10)), icon: "paint-brush" });

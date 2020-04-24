@@ -193,7 +193,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             const selectedDocs = SelectionManager.SelectedDocuments();
             if (selectedDocs.length) {
                 //CollectionDockingView.Instance?.OpenFullScreen(selectedDocs[0], selectedDocs[0].props.LibraryPath);
-                CollectionDockingView.AddRightSplit(selectedDocs[0].props.Document, selectedDocs[0].props.LibraryPath);
+                CollectionDockingView.AddRightSplit(Doc.MakeAlias(selectedDocs[0].props.Document), selectedDocs[0].props.LibraryPath);
             }
         }
         SelectionManager.DeselectAll();
@@ -202,19 +202,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @action
     onIconifyClick = (e: PointerEvent): void => {
         if (e.button === 0) {
-            const selectedDocs = SelectionManager.SelectedDocuments().map(sd => sd);
-            selectedDocs.map(dv => {
-                const layoutKey = Cast(dv.props.Document.layoutKey, "string", null);
-                const collapse = layoutKey !== "layout_icon";
-                if (collapse) {
-                    dv.switchViews(collapse, "icon");
-                    if (layoutKey && layoutKey !== "layout") dv.props.Document.deiconifyLayout = layoutKey.replace("layout_", "");
-                } else {
-                    const deiconifyLayout = Cast(dv.props.Document.deiconifyLayout, "string", null);
-                    dv.switchViews(deiconifyLayout ? true : false, deiconifyLayout);
-                    dv.props.Document.deiconifyLayout = undefined;
-                }
-            });
+            SelectionManager.SelectedDocuments().forEach(dv => dv?.iconify());
         }
         SelectionManager.DeselectAll();
     }
