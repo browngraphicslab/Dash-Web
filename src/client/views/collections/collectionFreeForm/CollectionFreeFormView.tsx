@@ -898,7 +898,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             return true;
         }
         return this.props.addDocTab(doc, where);
-    })
+    });
     getCalculatedPositions(params: { doc: Doc, index: number, collection: Doc, docs: Doc[], state: any }): PoolData {
         const result = this.Document.arrangeScript?.script.run(params, console.log);
         if (result?.success) {
@@ -980,7 +980,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         const newPool = new Map<string, any>();
         const engine = StrCast(this.layoutDoc._layoutEngine) || this.props.layoutEngine?.();
         switch (engine) {
-            case "pass": return { newPool, computedElementData: this.doEngineLayout(newPool, computerPassLayout) }
+            case "pass": return { newPool, computedElementData: this.doEngineLayout(newPool, computerPassLayout) };
             case "timeline": return { newPool, computedElementData: this.doEngineLayout(newPool, computeTimelineLayout) };
             case "pivot": return { newPool, computedElementData: this.doEngineLayout(newPool, computePivotLayout) };
             case "starburst": return { newPool, computedElementData: this.doEngineLayout(newPool, computerStarburstLayout) };
@@ -1044,7 +1044,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             doc.x = scr?.[0];
             doc.y = scr?.[1];
             this.props.addDocTab(doc, "inParent") && this.props.removeDocument(doc);
-        })
+        });
         this.props.ContainingCollectionView?.removeDocument(this.props.Document);
     }));
     layoutDocsInGrid = () => {

@@ -111,7 +111,7 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
         const childTemplateName = StrCast(this.props.Document.childTemplateName);
         if (containedDoc && childTemplateName && !containedDoc["layout_" + childTemplateName]) {
             setTimeout(() => {
-                DocumentView.createCustomView(containedDoc, Docs.Create.StackingDocument, childTemplateName);
+                Doc.createCustomView(containedDoc, Docs.Create.StackingDocument, childTemplateName);
                 Doc.expandTemplateLayout(Cast(containedDoc["layout_" + childTemplateName], Doc, null), containedDoc, undefined);
             }, 0);
         }

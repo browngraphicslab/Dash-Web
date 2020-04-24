@@ -108,7 +108,8 @@ export function computerStarburstLayout(
     viewDefsToJSX: (views: ViewDefBounds[]) => ViewDefResult[]
 ) {
     const docMap = new Map<Doc, ViewDefBounds>();
-    const burstDim = [NumCast(pivotDoc.starburstRadius, panelDim[0]), NumCast(pivotDoc.starburstRadius, panelDim[1])]
+    const burstDim = [NumCast(pivotDoc.starburstRadius, panelDim[0]), NumCast(pivotDoc.starburstRadius, panelDim[1])];
+    const scaleDim = [NumCast(pivotDoc._starburstWidth, burstDim[0]) * 5, NumCast(pivotDoc._starburstHeight, burstDim[1]) * 5];
     childDocs.forEach((doc, i) => {
         const deg = i / childDocs.length * Math.PI * 2;
         docMap.set(doc, {
@@ -120,7 +121,7 @@ export function computerStarburstLayout(
             payload: undefined
         });
     });
-    return normalizeResults(burstDim, 12, childPairs, docMap, poolData, viewDefsToJSX, [], 0, [], childDocs.filter(c => !filterDocs.includes(c)));
+    return normalizeResults(scaleDim, 12, childPairs, docMap, poolData, viewDefsToJSX, [], 0, [], childDocs.filter(c => !filterDocs.includes(c)));
 }
 
 
