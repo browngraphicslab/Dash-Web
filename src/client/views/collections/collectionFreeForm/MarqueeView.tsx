@@ -337,31 +337,13 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
     pileup = (e: KeyboardEvent | React.PointerEvent | undefined) => {
         const selected = this.marqueeSelect(false);
         SelectionManager.DeselectAll();
-
-        let w = 0, h = 0;
-        selected.forEach((d, i) => {
-            Doc.iconify(d);
-            w = Math.max(d[WidthSym](), w);
-            h = Math.max(d[HeightSym](), h);
-        });
-        selected.forEach((d, i) => {
-            this.props.removeDocument(d);
-            d.x = Math.cos(Math.PI * 2 * i / selected.length) * 10 - w / 2;
-            d.y = Math.sin(Math.PI * 2 * i / selected.length) * 10 - h / 2;
-            d.displayTimecode = undefined;  // bcz: this should be automatic somehow.. along with any other properties that were logically associated with the original collection
-        });
+        selected.forEach(d => this.props.removeDocument(d));
         const newCollection = this.getCollection(selected, false);
-        newCollection.x = NumCast(newCollection.x) + NumCast(newCollection._width) / 2 - 55;
-        newCollection.y = NumCast(newCollection.y) + NumCast(newCollection._height) / 2 - 55;
-        newCollection._width = newCollection._height = 110;
-        //newCollection.borderRounding = "40px";
-        newCollection.jitterRotation = 10;
-        newCollection._backgroundColor = "yellow";
+        Doc.pileup(newCollection, selected);
         this.props.addDocument(newCollection);
         this.props.selectDocuments([newCollection], []);
         MarqueeOptionsMenu.Instance.fadeOut(true);
         this.hideMarquee();
-        Doc.pileup(newCollection);
     }
 
     @action

@@ -976,7 +976,26 @@ export namespace Doc {
         if (layoutKey && layoutKey !== "layout") doc.deiconifyLayout = layoutKey.replace("layout_", "");
     }
 
-    export function pileup(newCollection: Doc) {
+    export function pileup(newCollection: Doc, selected: Doc[]) {
+        let w = 0, h = 0;
+        selected.forEach((d, i) => {
+            Doc.iconify(d);
+            w = Math.max(d[WidthSym](), w);
+            h = Math.max(d[HeightSym](), h);
+        });
+        h = Math.max(h, w * 4 / 3); // converting to an icon does not update the height right away.  so this is a fallback hack to try to do something reasonable
+        selected.forEach((d, i) => {
+            d.x = Math.cos(Math.PI * 2 * i / selected.length) * 10 - w / 2;
+            d.y = Math.sin(Math.PI * 2 * i / selected.length) * 10 - h / 2;
+            d.displayTimecode = undefined;  // bcz: this should be automatic somehow.. along with any other properties that were logically associated with the original collection
+        });
+        newCollection.x = NumCast(newCollection.x) + NumCast(newCollection._width) / 2 - 55;
+        newCollection.y = NumCast(newCollection.y) + NumCast(newCollection._height) / 2 - 55;
+        newCollection._width = newCollection._height = 110;
+        //newCollection.borderRounding = "40px";
+        newCollection.jitterRotation = 10;
+        newCollection._backgroundColor = "gray";
+
         newCollection._layoutEngine = "pass";
         newCollection.overflow = "visible";
         const script = "if (self._layoutEngine === 'starburst') {" +
