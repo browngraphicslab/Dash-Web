@@ -12,7 +12,7 @@ import { TraceMobx } from "../../../new_fields/util";
 import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
-    dataProvider?: (doc: Doc) => { x: number, y: number, zIndex?: number, highlight?: boolean, width: number, height: number, z: number, transition?: string } | undefined;
+    dataProvider?: (doc: Doc, replica?: string) => { x: number, y: number, zIndex?: number, highlight?: boolean, width: number, height: number, z: number, transition?: string, replica: string } | undefined;
     x?: number;
     y?: number;
     z?: number;
@@ -23,6 +23,7 @@ export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     jitterRotation: number;
     transition?: string;
     fitToBox?: boolean;
+    replica?: string;
 }
 
 @observer
@@ -46,7 +47,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         return (hgt === undefined && this.nativeWidth && this.nativeHeight) ? this.width * this.nativeHeight / this.nativeWidth : hgt;
     }
     @computed get freezeDimensions() { return this.props.FreezeDimensions; }
-    @computed get dataProvider() { return this.props.dataProvider && this.props.dataProvider(this.props.Document) ? this.props.dataProvider(this.props.Document) : undefined; }
+    @computed get dataProvider() { return this.props.dataProvider?.(this.props.Document, this.props.replica); }
     @computed get nativeWidth() { return NumCast(this.layoutDoc._nativeWidth, this.props.NativeWidth() || (this.freezeDimensions ? this.layoutDoc[WidthSym]() : 0)); }
     @computed get nativeHeight() { return NumCast(this.layoutDoc._nativeHeight, this.props.NativeHeight() || (this.freezeDimensions ? this.layoutDoc[HeightSym]() : 0)); }
 

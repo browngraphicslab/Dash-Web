@@ -85,8 +85,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     private _clusterDistance: number = 75;
     private _hitCluster = false;
     private _layoutComputeReaction: IReactionDisposer | undefined;
-    private _layoutPoolData = new ObservableMap<string, any>();
-    private _cachedPool: Map<string, any> = new Map();
+    private _layoutPoolData = new ObservableMap<string, PoolData>();
+    private _cachedPool: Map<string, PoolData> = new Map();
     @observable private _pullCoords: number[] = [0, 0];
     @observable private _pullDirection: string = "";
 
@@ -728,7 +728,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         if (!this.isAnnotationOverlay && clamp) {
             // this section wraps the pan position, horizontally and/or vertically whenever the content is panned out of the viewing bounds
             const docs = this.childLayoutPairs.filter(pair => pair.layout instanceof Doc).map(pair => pair.layout);
-            const measuredDocs = docs.filter(doc => doc && this.childDataProvider(doc)).map(doc => this.childDataProvider(doc));
+            const measuredDocs = docs.filter(doc => doc && this.childDataProvider(doc, "")).map(doc => this.childDataProvider(doc, ""));
             if (measuredDocs.length) {
                 const ranges = measuredDocs.reduce(({ xrange, yrange }, { x, y, width, height }) =>  // computes range of content
                     ({
@@ -899,16 +899,16 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         }
         return this.props.addDocTab(doc, where);
     });
-    getCalculatedPositions(params: { doc: Doc, index: number, collection: Doc, docs: Doc[], state: any }): PoolData {
+    getCalculatedPositions(params: { pair: { layout: Doc, data?: Doc }, index: number, collection: Doc, docs: Doc[], state: any }): PoolData {
         const result = this.Document.arrangeScript?.script.run(params, console.log);
         if (result?.success) {
-            return { ...result, transition: "transform 1s" };
+            return { ...result, pair: params.pair, transition: "transform 1s" };
         }
-        const layoutDoc = Doc.Layout(params.doc);
-        const { x, y, z, color, zIndex } = params.doc;
+        const layoutDoc = Doc.Layout(params.pair.layout);
+        const { x, y, z, color, zIndex } = params.pair.layout;
         return {
             x: NumCast(x), y: NumCast(y), z: Cast(z, "number"), color: StrCast(color), zIndex: Cast(zIndex, "number"),
-            width: Cast(layoutDoc._width, "number"), height: Cast(layoutDoc._height, "number")
+            width: Cast(layoutDoc._width, "number"), height: Cast(layoutDoc._height, "number"), pair: params.pair
         };
     }
 
@@ -946,20 +946,19 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         }
     }
 
-    childDataProvider = computedFn(function childDataProvider(this: any, doc: Doc) {
-        return this._layoutPoolData.get(doc[Id]);
+    childDataProvider = computedFn(function childDataProvider(this: any, doc: Doc, replica: Opt<string>) {
+        return this._layoutPoolData.get(doc[Id] + (replica || ""));
     }.bind(this));
 
     doEngineLayout(poolData: Map<string, PoolData>,
         engine: (
             poolData: Map<string, PoolData>,
             pivotDoc: Doc,
-            childDocs: Doc[],
             filterDocs: Doc[],
             childPairs: { layout: Doc, data?: Doc }[],
             panelDim: number[],
             viewDefsToJSX: ((views: ViewDefBounds[]) => ViewDefResult[])) => ViewDefResult[]) {
-        return engine(poolData, this.props.Document, this.childDocs, this.childDocs,
+        return engine(poolData, this.props.Document, this.childDocs,
             this.childLayoutPairs, [this.props.PanelWidth(), this.props.PanelHeight()], this.viewDefsToJSX);
     }
 
@@ -970,14 +969,14 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         const elements = initResult && initResult.success ? this.viewDefsToJSX(initResult.result.views) : [];
 
         this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)).map((pair, i) => {
-            const pos = this.getCalculatedPositions({ doc: pair.layout, index: i, collection: this.Document, docs: layoutDocs, state });
+            const pos = this.getCalculatedPositions({ pair, index: i, collection: this.Document, docs: layoutDocs, state });
             poolData.set(pair.layout[Id], pos);
         });
         return elements;
     }
 
     @computed get doInternalLayoutComputation() {
-        const newPool = new Map<string, any>();
+        const newPool = new Map<string, PoolData>();
         const engine = StrCast(this.layoutDoc._layoutEngine) || this.props.layoutEngine?.();
         switch (engine) {
             case "pass": return { newPool, computedElementData: this.doEngineLayout(newPool, computerPassLayout) };
@@ -992,22 +991,22 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     get doLayoutComputation() {
         const { newPool, computedElementData } = this.doInternalLayoutComputation;
         runInAction(() =>
-            Array.from(newPool.keys()).map(key => {
-                const lastPos = this._cachedPool.get(key); // last computed pos
-                const newPos = newPool.get(key);
+            Array.from(newPool.entries()).map(entry => {
+                const lastPos = this._cachedPool.get(entry[0]); // last computed pos
+                const newPos = entry[1];
                 if (!lastPos || newPos.x !== lastPos.x || newPos.y !== lastPos.y || newPos.z !== lastPos.z || newPos.zIndex !== lastPos.zIndex || newPos.width !== lastPos.width || newPos.height !== lastPos.height) {
-                    this._layoutPoolData.set(key, newPos);
+                    this._layoutPoolData.set(entry[0], newPos);
                 }
             }));
         this._cachedPool.clear();
-        Array.from(newPool.keys()).forEach(k => this._cachedPool.set(k, newPool.get(k)));
+        Array.from(newPool.entries()).forEach(k => this._cachedPool.set(k[0], k[1]));
         const elements: ViewDefResult[] = computedElementData.slice();
-        const engine = this.props.layoutEngine?.() || this.props.Document._layoutEngine;
-        this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)).forEach(pair =>
+        Array.from(newPool.entries()).filter(entry => this.isCurrent(entry[1].pair.layout)).forEach(entry =>
             elements.push({
                 ele: <CollectionFreeFormDocumentView
-                    key={pair.layout[Id]}
-                    {...this.getChildDocumentViewProps(pair.layout, pair.data)}
+                    key={entry[1].pair.layout[Id] + (entry[1].replica || "")}
+                    {...this.getChildDocumentViewProps(entry[1].pair.layout, entry[1].pair.data)}
+                    replica={entry[1].replica}
                     dataProvider={this.childDataProvider}
                     LayoutDoc={this.childLayoutDocFunc}
                     pointerEvents={this.props.viewDefDivClick ? false : undefined}
@@ -1015,7 +1014,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                     fitToBox={this.props.fitToBox || BoolCast(this.props.freezeChildDimensions)}
                     FreezeDimensions={BoolCast(this.props.freezeChildDimensions)}
                 />,
-                bounds: this.childDataProvider(pair.layout)
+                bounds: this.childDataProvider(entry[1].pair.layout, entry[1].replica)
             }));
 
         return elements;

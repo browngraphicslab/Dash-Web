@@ -9,6 +9,7 @@ import React = require("react");
 import { Id, ToString } from "../../../../new_fields/FieldSymbols";
 import { ObjectField } from "../../../../new_fields/ObjectField";
 import { RefField } from "../../../../new_fields/RefField";
+import { listSpec } from "../../../../new_fields/Schema";
 
 export interface ViewDefBounds {
     type: string;
@@ -24,6 +25,8 @@ export interface ViewDefBounds {
     highlight?: boolean;
     color?: string;
     payload: any;
+    replica?: string;
+    pair?: { layout: Doc, data?: Doc };
 }
 
 export interface PoolData {
@@ -36,6 +39,8 @@ export interface PoolData {
     color?: string;
     transition?: string;
     highlight?: boolean;
+    replica?: string;
+    pair: { layout: Doc, data?: Doc }
 }
 
 export interface ViewDefResult {
@@ -72,100 +77,111 @@ function getTextWidth(text: string, font: string): number {
 
 interface PivotColumn {
     docs: Doc[];
+    replicas: string[];
     filters: string[];
 }
 
 export function computerPassLayout(
     poolData: Map<string, PoolData>,
     pivotDoc: Doc,
-    childDocs: Doc[],
     filterDocs: Doc[],
     childPairs: { layout: Doc, data?: Doc }[],
     panelDim: number[],
     viewDefsToJSX: (views: ViewDefBounds[]) => ViewDefResult[]
 ) {
-    const docMap = new Map<Doc, ViewDefBounds>();
-    childDocs.forEach((doc, i) => {
-        docMap.set(doc, {
+    const docMap = new Map<string, ViewDefBounds>();
+    childPairs.forEach(({ layout, data }, i) => {
+        docMap.set(layout[Id], {
             type: "doc",
-            x: NumCast(doc.x),
-            y: NumCast(doc.y),
-            width: doc[WidthSym](),
-            height: doc[HeightSym](),
-            payload: undefined
+            x: NumCast(layout.x),
+            y: NumCast(layout.y),
+            width: layout[WidthSym](),
+            height: layout[HeightSym](),
+            payload: undefined,
+            pair: { layout, data },
+            replica: ""
         });
     });
-    return normalizeResults(panelDim, 12, childPairs, docMap, poolData, viewDefsToJSX, [], 0, [], childDocs.filter(c => !filterDocs.includes(c)));
+    return normalizeResults(panelDim, 12, childPairs, docMap, poolData, viewDefsToJSX, [], 0, [], childPairs.filter(c => !filterDocs.includes(c.layout)));
 }
 
 export function computerStarburstLayout(
     poolData: Map<string, PoolData>,
     pivotDoc: Doc,
-    childDocs: Doc[],
     filterDocs: Doc[],
     childPairs: { layout: Doc, data?: Doc }[],
     panelDim: number[],
     viewDefsToJSX: (views: ViewDefBounds[]) => ViewDefResult[]
 ) {
-    const docMap = new Map<Doc, ViewDefBounds>();
+    const docMap = new Map<string, ViewDefBounds>();
     const burstRadius = [NumCast(pivotDoc._starburstRadius, panelDim[0]), NumCast(pivotDoc._starburstRadius, panelDim[1])];
     const docScale = NumCast(pivotDoc._starburstDocScale);
     const docSize = docScale * 100; // assume a icon sized at 100
     const scaleDim = [burstRadius[0] + docSize, burstRadius[1] + docSize];
-    childDocs.forEach((doc, i) => {
-        const deg = i / childDocs.length * Math.PI * 2;
-        docMap.set(doc, {
+    childPairs.forEach((pair, i) => {
+        const deg = i / childPairs.length * Math.PI * 2;
+        docMap.set(pair.layout[Id], {
             type: "doc",
-            x: Math.cos(deg) * (burstRadius[0] / 3) - docScale * doc[WidthSym]() / 2,
-            y: Math.sin(deg) * (burstRadius[1] / 3) - docScale * doc[HeightSym]() / 2,
-            width: docScale * doc[WidthSym](),
-            height: docScale * doc[HeightSym](),
-            payload: undefined
+            x: Math.cos(deg) * (burstRadius[0] / 3) - docScale * pair.layout[WidthSym]() / 2,
+            y: Math.sin(deg) * (burstRadius[1] / 3) - docScale * pair.layout[HeightSym]() / 2,
+            width: docScale * pair.layout[WidthSym](),
+            height: docScale * pair.layout[HeightSym](),
+            payload: undefined,
+            replica: ""
         });
     });
-    return normalizeResults(scaleDim, 12, childPairs, docMap, poolData, viewDefsToJSX, [], 0, [], childDocs.filter(c => !filterDocs.includes(c)));
+    return normalizeResults(scaleDim, 12, childPairs, docMap, poolData, viewDefsToJSX, [], 0, [], childPairs.filter(c => !filterDocs.includes(c.layout)));
 }
 
 
 export function computePivotLayout(
     poolData: Map<string, PoolData>,
     pivotDoc: Doc,
-    childDocs: Doc[],
     filterDocs: Doc[],
     childPairs: { layout: Doc, data?: Doc }[],
     panelDim: number[],
     viewDefsToJSX: (views: ViewDefBounds[]) => ViewDefResult[]
 ) {
-    const docMap = new Map<Doc, ViewDefBounds>();
+    const docMap = new Map<string, ViewDefBounds>();
     const fieldKey = "data";
     const pivotColumnGroups = new Map<FieldResult<Field>, PivotColumn>();
 
     const pivotFieldKey = toLabel(pivotDoc._pivotField);
     for (const doc of filterDocs) {
+        const lval = Cast(doc[pivotFieldKey], listSpec("string"), null);
         const val = Field.toString(doc[pivotFieldKey] as Field);
-        if (val) {
-            !pivotColumnGroups.get(val) && pivotColumnGroups.set(val, { docs: [], filters: [val] });
+        if (lval) {
+            lval.forEach((val, i) => {
+                !pivotColumnGroups.get(val) && pivotColumnGroups.set(val, { docs: [], filters: [val], replicas: [] });
+                pivotColumnGroups.get(val)!.docs.push(doc);
+                pivotColumnGroups.get(val)!.replicas.push(i.toString());
+            });
+        } else if (val) {
+            !pivotColumnGroups.get(val) && pivotColumnGroups.set(val, { docs: [], filters: [val], replicas: [] });
             pivotColumnGroups.get(val)!.docs.push(doc);
+            pivotColumnGroups.get(val)!.replicas.push("");
         } else {
-            docMap.set(doc, {
+            docMap.set(doc[Id], {
                 type: "doc",
                 x: 0,
                 y: 0,
                 zIndex: -99,
                 width: 0,
                 height: 0,
-                payload: undefined
+                payload: undefined,
+                pair: { layout: doc },
+                replica: ""
             })
         }
     }
     let nonNumbers = 0;
-    childDocs.map(doc => {
-        const num = toNumber(doc[pivotFieldKey]);
+    childPairs.map(pair => {
+        const num = toNumber(pair.layout[pivotFieldKey]);
         if (num === undefined || Number.isNaN(num)) {
             nonNumbers++;
         }
     });
-    const pivotNumbers = nonNumbers / childDocs.length < .1;
+    const pivotNumbers = nonNumbers / childPairs.length < .1;
     if (pivotColumnGroups.size > 10) {
         const arrayofKeys = Array.from(pivotColumnGroups.keys());
         const sortedKeys = pivotNumbers ? arrayofKeys.sort((n1: FieldResult, n2: FieldResult) => toNumber(n1)! - toNumber(n2)!) : arrayofKeys.sort();
@@ -177,6 +193,7 @@ export function computePivotLayout(
                 const newgrp = pivotColumnGroups.get(sortedKeys[j])!;
                 curgrp.docs.push(...newgrp.docs);
                 curgrp.filters.push(...newgrp.filters);
+                curgrp.replicas.push(...newgrp.replicas);
                 pivotColumnGroups.delete(sortedKeys[j]);
             }
         }
@@ -226,7 +243,7 @@ export function computePivotLayout(
             fontSize,
             payload: val
         });
-        for (const doc of val.docs) {
+        val.docs.forEach((doc, i) => {
             const layoutDoc = Doc.Layout(doc);
             let wid = pivotAxisWidth;
             let hgt = layoutDoc._nativeWidth ? (NumCast(layoutDoc._nativeHeight) / NumCast(layoutDoc._nativeWidth)) * pivotAxisWidth : pivotAxisWidth;
@@ -234,27 +251,29 @@ export function computePivotLayout(
                 hgt = pivotAxisWidth;
                 wid = layoutDoc._nativeHeight ? (NumCast(layoutDoc._nativeWidth) / NumCast(layoutDoc._nativeHeight)) * pivotAxisWidth : pivotAxisWidth;
             }
-            docMap.set(doc, {
+            docMap.set(doc[Id] + (val.replicas || ""), {
                 type: "doc",
                 x: x + xCount * pivotAxisWidth * expander + (pivotAxisWidth - wid) / 2 + (val.docs.length < numCols ? (numCols - val.docs.length) * pivotAxisWidth / 2 : 0),
                 y: -y + (pivotAxisWidth - hgt) / 2,
                 width: wid,
                 height: hgt,
-                payload: undefined
+                payload: undefined,
+                pair: { layout: doc },
+                replica: val.replicas[i]
             });
             xCount++;
             if (xCount >= numCols) {
                 xCount = 0;
                 y += pivotAxisWidth * expander;
             }
-        }
+        });
         x += pivotAxisWidth * (numCols * expander + gap);
     });
 
     const dividers = sortedPivotKeys.map((key, i) =>
         ({ type: "div", color: "lightGray", x: i * pivotAxisWidth * (numCols * expander + gap) - pivotAxisWidth * (expander - 1) / 2, y: -maxColHeight + pivotAxisWidth, width: pivotAxisWidth * numCols * expander, height: maxColHeight, payload: pivotColumnGroups.get(key)!.filters }));
     groupNames.push(...dividers);
-    return normalizeResults(panelDim, max_text, childPairs, docMap, poolData, viewDefsToJSX, groupNames, 0, [], childDocs.filter(c => !filterDocs.includes(c)));
+    return normalizeResults(panelDim, max_text, childPairs, docMap, poolData, viewDefsToJSX, groupNames, 0, [], childPairs.filter(c => !filterDocs.includes(c.layout)));
 }
 
 function toNumber(val: FieldResult<Field>) {
@@ -264,7 +283,6 @@ function toNumber(val: FieldResult<Field>) {
 export function computeTimelineLayout(
     poolData: Map<string, PoolData>,
     pivotDoc: Doc,
-    childDocs: Doc[],
     filterDocs: Doc[],
     childPairs: { layout: Doc, data?: Doc }[],
     panelDim: number[],
@@ -272,7 +290,7 @@ export function computeTimelineLayout(
 ) {
     const fieldKey = "data";
     const pivotDateGroups = new Map<number, Doc[]>();
-    const docMap = new Map<Doc, ViewDefBounds>();
+    const docMap = new Map<string, ViewDefBounds>();
     const groupNames: ViewDefBounds[] = [];
     const timelineFieldKey = Field.toString(pivotDoc._pivotField as Field);
     const curTime = toNumber(pivotDoc[fieldKey + "-timelineCur"]);
@@ -351,7 +369,7 @@ export function computeTimelineLayout(
     }
 
     const divider = { type: "div", color: Cast(Doc.UserDoc().activeWorkspace, Doc, null)?.darkScheme ? "dimGray" : "black", x: 0, y: 0, width: panelDim[0], height: -1, payload: undefined };
-    return normalizeResults(panelDim, fontHeight, childPairs, docMap, poolData, viewDefsToJSX, groupNames, (maxTime - minTime) * scaling, [divider], childDocs.filter(c => !filterDocs.includes(c)));
+    return normalizeResults(panelDim, fontHeight, childPairs, docMap, poolData, viewDefsToJSX, groupNames, (maxTime - minTime) * scaling, [divider], childPairs.filter(c => !filterDocs.includes(c.layout)));
 
     function layoutDocsAtTime(keyDocs: Doc[], key: number) {
         keyDocs.forEach(doc => {
@@ -363,43 +381,51 @@ export function computeTimelineLayout(
                 hgt = pivotAxisWidth;
                 wid = layoutDoc._nativeHeight ? (NumCast(layoutDoc._nativeWidth) / NumCast(layoutDoc._nativeHeight)) * pivotAxisWidth : pivotAxisWidth;
             }
-            docMap.set(doc, {
+            docMap.set(doc[Id], {
                 type: "doc",
                 x: x, y: -Math.sqrt(stack) * pivotAxisWidth / 2 - pivotAxisWidth + (pivotAxisWidth - hgt) / 2,
-                zIndex: (curTime === key ? 1000 : zind++), highlight: curTime === key, width: wid / (Math.max(stack, 1)), height: hgt / (Math.max(stack, 1)), payload: undefined
+                zIndex: (curTime === key ? 1000 : zind++),
+                highlight: curTime === key,
+                width: wid / (Math.max(stack, 1)),
+                height: hgt / (Math.max(stack, 1)),
+                payload: undefined,
+                pair: { layout: doc },
+                replica: ""
             });
             stacking[stack] = x + pivotAxisWidth;
         });
     }
 }
 
-function normalizeResults(panelDim: number[], fontHeight: number, childPairs: { data?: Doc, layout: Doc }[], docMap: Map<Doc, ViewDefBounds>,
+function normalizeResults(panelDim: number[], fontHeight: number, childPairs: { data?: Doc, layout: Doc }[], docMap: Map<string, ViewDefBounds>,
     poolData: Map<string, PoolData>, viewDefsToJSX: (views: ViewDefBounds[]) => ViewDefResult[], groupNames: ViewDefBounds[], minWidth: number, extras: ViewDefBounds[],
-    extraDocs: Doc[]): ViewDefResult[] {
+    extraDocs: { data?: Doc, layout: Doc }[]): ViewDefResult[] {
     const grpEles = groupNames.map(gn => ({ x: gn.x, y: gn.y, width: gn.width, height: gn.height }) as ViewDefBounds);
-    const docEles = childPairs.filter(d => docMap.get(d.layout)).map(pair => docMap.get(pair.layout) as ViewDefBounds);
+    const docEles = Array.from(docMap.entries()).map(ele => ele[1]);
     const aggBounds = aggregateBounds(docEles.concat(grpEles).filter(e => e.zIndex !== -99), 0, 0);
     aggBounds.r = Math.max(minWidth, aggBounds.r - aggBounds.x);
     const wscale = panelDim[0] / (aggBounds.r - aggBounds.x);
     let scale = wscale * (aggBounds.b - aggBounds.y) > panelDim[1] ? (panelDim[1]) / (aggBounds.b - aggBounds.y) : wscale;
     if (Number.isNaN(scale)) scale = 1;
 
-    childPairs.filter(d => docMap.get(d.layout)).map(pair => {
-        const newPosRaw = docMap.get(pair.layout);
+    Array.from(docMap.entries()).filter(ele => ele[1].pair).map(ele => {
+        const newPosRaw = ele[1];
         if (newPosRaw) {
             const newPos = {
                 x: newPosRaw.x * scale,
                 y: newPosRaw.y * scale,
                 z: newPosRaw.z,
+                replica: newPosRaw.replica,
                 highlight: newPosRaw.highlight,
                 zIndex: newPosRaw.zIndex,
                 width: (newPosRaw.width || 0) * scale,
-                height: newPosRaw.height! * scale
+                height: newPosRaw.height! * scale,
+                pair: ele[1].pair!
             };
-            poolData.set(pair.layout[Id], { transition: "transform 1s", ...newPos });
+            poolData.set(newPos.pair.layout[Id] + (newPos.replica || ""), { transition: "transform 1s", ...newPos });
         }
     });
-    extraDocs.map(ed => poolData.set(ed[Id], { x: 0, y: 0, zIndex: -99 }));
+    extraDocs.map(ed => poolData.set(ed.layout[Id], { x: 0, y: 0, zIndex: -99, pair: ed }));
 
     return viewDefsToJSX(extras.concat(groupNames).map(gname => ({
         type: gname.type,
