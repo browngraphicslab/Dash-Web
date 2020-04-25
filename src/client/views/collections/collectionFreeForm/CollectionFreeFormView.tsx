@@ -902,7 +902,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     getCalculatedPositions(params: { pair: { layout: Doc, data?: Doc }, index: number, collection: Doc, docs: Doc[], state: any }): PoolData {
         const result = this.Document.arrangeScript?.script.run(params, console.log);
         if (result?.success) {
-            return { ...result, pair: params.pair, transition: "transform 1s" };
+            return { x: 0, y: 0, transition: "transform 1s", ...result, pair: params.pair };
         }
         const layoutDoc = Doc.Layout(params.pair.layout);
         const { x, y, z, color, zIndex } = params.pair.layout;
@@ -954,12 +954,11 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         engine: (
             poolData: Map<string, PoolData>,
             pivotDoc: Doc,
-            filterDocs: Doc[],
             childPairs: { layout: Doc, data?: Doc }[],
             panelDim: number[],
-            viewDefsToJSX: ((views: ViewDefBounds[]) => ViewDefResult[])) => ViewDefResult[]) {
-        return engine(poolData, this.props.Document, this.childDocs,
-            this.childLayoutPairs, [this.props.PanelWidth(), this.props.PanelHeight()], this.viewDefsToJSX);
+            viewDefsToJSX: ((views: ViewDefBounds[]) => ViewDefResult[])) => ViewDefResult[]
+    ) {
+        return engine(poolData, this.props.Document, this.childLayoutPairs, [this.props.PanelWidth(), this.props.PanelHeight()], this.viewDefsToJSX);
     }
 
     doFreeformLayout(poolData: Map<string, PoolData>) {
@@ -977,7 +976,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     @computed get doInternalLayoutComputation() {
         const newPool = new Map<string, PoolData>();
-        const engine = StrCast(this.layoutDoc._layoutEngine) || this.props.layoutEngine?.();
+        const engine = this.props.layoutEngine?.() || StrCast(this.layoutDoc._layoutEngine);
         switch (engine) {
             case "pass": return { newPool, computedElementData: this.doEngineLayout(newPool, computerPassLayout) };
             case "timeline": return { newPool, computedElementData: this.doEngineLayout(newPool, computeTimelineLayout) };
@@ -1001,6 +1000,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         this._cachedPool.clear();
         Array.from(newPool.entries()).forEach(k => this._cachedPool.set(k[0], k[1]));
         const elements: ViewDefResult[] = computedElementData.slice();
+        const engine = this.props.layoutEngine?.() || StrCast(this.props.Document._layoutEngine);
         Array.from(newPool.entries()).filter(entry => this.isCurrent(entry[1].pair.layout)).forEach(entry =>
             elements.push({
                 ele: <CollectionFreeFormDocumentView
@@ -1009,8 +1009,9 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                     replica={entry[1].replica}
                     dataProvider={this.childDataProvider}
                     LayoutDoc={this.childLayoutDocFunc}
-                    pointerEvents={this.props.viewDefDivClick ? false : undefined}
-                    jitterRotation={NumCast(this.props.Document.jitterRotation)}
+                    pointerEvents={this.props.viewDefDivClick || (engine === "pass" && !this.props.isSelected(true)) ?
+                        false : undefined}
+                    jitterRotation={NumCast(this.props.Document._jitterRotation)}
                     fitToBox={this.props.fitToBox || BoolCast(this.props.freezeChildDimensions)}
                     FreezeDimensions={BoolCast(this.props.freezeChildDimensions)}
                 />,
@@ -1082,7 +1083,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         this.props.ContainingCollectionView && optionItems.push({ description: "Promote Collection", event: this.promoteCollection, icon: "table" });
         optionItems.push({ description: "Arrange contents in grid", event: this.layoutDocsInGrid, icon: "table" });
         // layoutItems.push({ description: "Analyze Strokes", event: this.analyzeStrokes, icon: "paint-brush" });
-        optionItems.push({ description: "Jitter Rotation", event: action(() => this.props.Document.jitterRotation = (this.props.Document.jitterRotation ? 0 : 10)), icon: "paint-brush" });
+        optionItems.push({ description: "Jitter Rotation", event: action(() => this.props.Document._jitterRotation = (this.props.Document._jitterRotation ? 0 : 10)), icon: "paint-brush" });
         optionItems.push({
             description: "Import document", icon: "upload", event: ({ x, y }) => {
                 const input = document.createElement("input");

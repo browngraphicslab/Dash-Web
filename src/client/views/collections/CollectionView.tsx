@@ -46,6 +46,7 @@ import { InteractionUtils } from '../../util/InteractionUtils';
 import { ObjectField } from '../../../new_fields/ObjectField';
 import CollectionMapView from './CollectionMapView';
 import { Transform } from 'prosemirror-transform';
+import { CollectionPileView } from './CollectionPileView';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -67,7 +68,8 @@ export enum CollectionViewType {
     Carousel = "carousel",
     Linear = "linear",
     Staff = "staff",
-    Map = "map"
+    Map = "map",
+    Pile = "pileup"
 }
 
 export interface CollectionRenderProps {
@@ -169,6 +171,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
             case CollectionViewType.Multicolumn: return (<CollectionMulticolumnView key="collview" {...props} />);
             case CollectionViewType.Multirow: return (<CollectionMultirowView key="rpwview" {...props} />);
             case CollectionViewType.Linear: { return (<CollectionLinearView key="collview" {...props} />); }
+            case CollectionViewType.Pile: { return (<CollectionPileView key="collview" {...props} />); }
             case CollectionViewType.Carousel: { return (<CollectionCarouselView key="collview" {...props} />); }
             case CollectionViewType.Stacking: { this.props.Document.singleColumn = true; return (<CollectionStackingView key="collview" {...props} />); }
             case CollectionViewType.Masonry: { this.props.Document.singleColumn = false; return (<CollectionStackingView key="collview" {...props} />); }

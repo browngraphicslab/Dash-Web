@@ -976,7 +976,8 @@ export namespace Doc {
         if (layoutKey && layoutKey !== "layout" && layoutKey !== "layout_icon") doc.deiconifyLayout = layoutKey.replace("layout_", "");
     }
 
-    export function pileup(newCollection: Doc, selected: Doc[]) {
+    export function pileup(selected: Doc[], x: number, y: number) {
+        const newCollection = Docs.Create.PileDocument(selected, { title: "pileup", x: x - 55, y: y - 55, _width: 110, _height: 100, _LODdisable: true });
         let w = 0, h = 0;
         selected.forEach((d, i) => {
             Doc.iconify(d);
@@ -993,12 +994,10 @@ export namespace Doc {
         newCollection.y = NumCast(newCollection.y) + NumCast(newCollection._height) / 2 - 55;
         newCollection._width = newCollection._height = 110;
         //newCollection.borderRounding = "40px";
-        newCollection.jitterRotation = 10;
+        newCollection._jitterRotation = 10;
         newCollection._backgroundColor = "gray";
-
-        newCollection._layoutEngine = "pass";
         newCollection.overflow = "visible";
-        newCollection.onClick = ScriptField.MakeScript("toggleStarburst(self, this)", { self: Doc.name, this: Doc.name });
+        return newCollection;
     }
 
 
@@ -1056,27 +1055,3 @@ Scripting.addGlobal(function selectedDocs(container: Doc, excludeCollections: bo
 });
 Scripting.addGlobal(function setDocFilter(container: Doc, key: string, value: any, modifiers?: "check" | "x" | undefined) { Doc.setDocFilter(container, key, value, modifiers); });
 Scripting.addGlobal(function setDocFilterRange(container: Doc, key: string, range: number[]) { Doc.setDocFilterRange(container, key, range); });
-Scripting.addGlobal(function toggleStarburst(self: Doc, tLayout: Doc) {
-    if (self._layoutEngine === 'starburst') {
-        const defaultSize = 110;
-        tLayout.overflow = undefined;
-        self.x = NumCast(self.x) + tLayout[WidthSym]() / 2 - NumCast(tLayout._starburstPileWidth, defaultSize) / 2;
-        self.y = NumCast(self.y) + tLayout[HeightSym]() / 2 - NumCast(tLayout._starburstPileHeight, defaultSize) / 2;
-        tLayout._width = NumCast(tLayout._starburstPileWidth, defaultSize);
-        tLayout._height = NumCast(tLayout._starburstPileHeight, defaultSize);
-        self._layoutEngine = 'pass';
-    } else {
-        const defaultSize = 25;
-        tLayout.overflow = 'visible';
-        !tLayout._starburstRadius && (tLayout._starburstRadius = 500);
-        !tLayout._starburstDocScale && (tLayout._starburstDocScale = 2.5);
-        if (self._layoutEngine === 'pass') {
-            self.x = NumCast(self.x) + tLayout[WidthSym]() / 2 - defaultSize / 2;
-            self.y = NumCast(self.y) + tLayout[HeightSym]() / 2 - defaultSize / 2;
-            tLayout._starburstPileWidth = tLayout[WidthSym]();
-            tLayout._starburstPileHeight = tLayout[HeightSym]();
-        }
-        tLayout._width = tLayout._height = defaultSize;
-        self._layoutEngine = 'starburst';
-    }
-});

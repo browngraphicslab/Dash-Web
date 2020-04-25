@@ -400,9 +400,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             if (generatedDocuments.length) {
                 const set = generatedDocuments.length > 1 && generatedDocuments.map(d => Doc.iconify(d));
                 if (set) {
-                    const pile = Docs.Create.FreeformDocument(generatedDocuments, { ...options, title: "pile", _LODdisable: true, });
-                    Doc.pileup(pile, generatedDocuments);
-                    addDocument(pile);
+                    addDocument(Doc.pileup(generatedDocuments, options.x!, options.y!));
                 } else {
                     generatedDocuments.forEach(addDocument);
                 }
