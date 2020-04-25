@@ -83,6 +83,7 @@ export namespace DragManager {
     }
     export let AbortDrag: () => void = emptyFunction;
     export type MoveFunction = (document: Doc, targetCollection: Doc | undefined, addDocument: (document: Doc) => boolean) => boolean;
+    export type RemoveFunction = (document: Doc) => boolean;
 
     export interface DragDropDisposer { (): void; }
     export interface DragOptions {
@@ -138,6 +139,7 @@ export namespace DragManager {
         userDropAction: dropActionType;
         embedDoc?: boolean;
         moveDocument?: MoveFunction;
+        removeDocument?: RemoveFunction;
         isSelectionMove?: boolean; // indicates that an explicitly selected Document is being dragged.  this will suppress onDragStart scripts
     }
     export class LinkDragData {
@@ -351,12 +353,17 @@ export namespace DragManager {
 
         let lastX = downX;
         let lastY = downY;
+        let alias = "alias";
         const moveHandler = (e: PointerEvent) => {
             e.preventDefault(); // required or dragging text menu link item ends up dragging the link button as native drag/drop
             if (dragData instanceof DocumentDragData) {
                 dragData.userDropAction = e.ctrlKey && e.altKey ? "copy" : e.ctrlKey ? "alias" : undefined;
             }
             if (e.shiftKey && CollectionDockingView.Instance && dragData.droppedDocuments.length === 1) {
+                !dragData.dropAction && (dragData.dropAction = alias);
+                if (dragData.dropAction === "move") {
+                    dragData.removeDocument?.(dragData.draggedDocuments[0]);
+                }
                 AbortDrag();
                 finishDrag?.(new DragCompleteEvent(true, dragData));
                 CollectionDockingView.Instance.StartOtherDrag({
@@ -366,7 +373,7 @@ export namespace DragManager {
                     button: 0
                 }, dragData.droppedDocuments);
             }
-            //TODO: Why can't we use e.movementX and e.movementY?
+            alias = "move";
             const moveX = e.pageX - lastX;
             const moveY = e.pageY - lastY;
             lastX = e.pageX;

@@ -14,6 +14,7 @@ import { returnTrue, emptyFunction, returnFalse, returnOne, emptyPath, returnZer
 import { Transform } from "../util/Transform";
 import { ScriptField, ComputedField } from "../../new_fields/ScriptField";
 import { Scripting } from "../util/Scripting";
+import { List } from "../../new_fields/List";
 
 @observer
 class TemplateToggle extends React.Component<{ template: Template, checked: boolean, toggle: (event: React.ChangeEvent<HTMLInputElement>, template: Template) => void }> {
@@ -106,8 +107,8 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
 
     return100 = () => 100;
     @computed get scriptField() {
-        return ScriptField.MakeScript("switchView(firstDoc, this)", { this: Doc.name, heading: "string", checked: "string", containingTreeView: Doc.name, firstDoc: Doc.name },
-            { firstDoc: this.props.docViews[0].props.Document });
+        return ScriptField.MakeScript("docs.map(d => switchView(d, this))", { this: Doc.name, heading: "string", checked: "string", containingTreeView: Doc.name, firstDoc: Doc.name },
+            { docs: new List<Doc>(this.props.docViews.map(dv => dv.props.Document)) });
     }
     render() {
         const firstDoc = this.props.docViews[0].props.Document;

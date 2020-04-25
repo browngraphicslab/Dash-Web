@@ -11,6 +11,7 @@ import "./CollectionPileView.scss";
 import React = require("react");
 import { setupMoveUpEvents, emptyFunction, returnFalse } from "../../../Utils";
 import { SelectionManager } from "../../util/SelectionManager";
+import { UndoManager } from "../../util/UndoManager";
 
 @observer
 export class CollectionPileView extends CollectionSubView(doc => doc) {
@@ -34,7 +35,10 @@ export class CollectionPileView extends CollectionSubView(doc => doc) {
     layoutEngine = () => this._layoutEngine;
 
     @computed get contents() {
-        return <div className="collectionPileView-innards" style={{ width: "100%", pointerEvents: this._contentsActive && (this.props.active() || this.layoutEngine() === "starburst") ? undefined : "none" }} >
+        return <div className="collectionPileView-innards" style={{
+            width: "100%",
+            pointerEvents: this.layoutEngine() !== "pass" && (this.props.active() || this.layoutEngine() === "starburst") ? undefined : "none"
+        }} >
             <CollectionFreeFormView {...this.props} layoutEngine={this.layoutEngine} />
         </div>;
     }
@@ -71,9 +75,32 @@ export class CollectionPileView extends CollectionSubView(doc => doc) {
         }
     });
 
+    _undoBatch: UndoManager.Batch | undefined;
     pointerDown = (e: React.PointerEvent) => {
+        let dist = 0;
         // this._lastTap should be set to 0, and this._doubleTap should be set to false in the class header
-        setupMoveUpEvents(this, e, returnFalse, emptyFunction, emptyFunction, false, false); // this sets _doubleTap
+        setupMoveUpEvents(this, e, (e: PointerEvent, down: number[], delta: number[]) => {
+            if (this.layoutEngine() === "pass" && this.childDocs.length && this.props.isSelected(true)) {
+                dist += Math.sqrt(delta[0] * delta[0] + delta[1] * delta[1]);
+                if (dist > 100) {
+                    if (!this._undoBatch) {
+                        this._undoBatch = UndoManager.StartBatch("layout pile");
+                    }
+                    const doc = this.childDocs[0];
+                    doc.x = e.clientX;
+                    doc.y = e.clientY;
+                    this.props.addDocTab(doc, "inParent") && this.props.removeDocument(doc);
+                    dist = 0;
+                }
+            }
+            return false;
+        }, () => {
+            this._undoBatch?.end();
+            this._undoBatch = undefined;
+            if (!this.childDocs.length) {
+                this.props.ContainingCollectionView?.removeDocument(this.props.Document);
+            }
+        }, emptyFunction, false, this.layoutEngine() === "pass" && this.props.isSelected(true)); // this sets _doubleTap
     }
 
     onClick = (e: React.MouseEvent) => {
@@ -81,10 +108,11 @@ export class CollectionPileView extends CollectionSubView(doc => doc) {
             SelectionManager.DeselectAll();
             this.toggleStarburst();
             e.stopPropagation();
-        } else if (this.layoutEngine() === "pass") {
-            runInAction(() => this._contentsActive = false);
-            setTimeout(action(() => this._contentsActive = true), 300);
         }
+        // else if (this.layoutEngine() === "pass") {
+        //     runInAction(() => this._contentsActive = false);
+        //     setTimeout(action(() => this._contentsActive = true), 300);
+        // }
     }
 
     render() {
