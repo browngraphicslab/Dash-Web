@@ -1004,7 +1004,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 if (!lastPos || newPos.x !== lastPos.x || newPos.y !== lastPos.y || newPos.z !== lastPos.z || newPos.zIndex !== lastPos.zIndex) {
                     this._layoutPoolData.set(entry[0], newPos);
                 }
-                if (!lastPos || newPos.height !== lastPos.height) {
+                if (!lastPos || newPos.height !== lastPos.height || newPos.width !== lastPos.width) {
                     this._layoutSizeData.set(entry[0], { width: newPos.width, height: newPos.height });
                 }
             }));
