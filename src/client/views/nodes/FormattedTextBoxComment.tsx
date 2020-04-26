@@ -16,7 +16,6 @@ import React = require("react");
 import { Docs } from "../../documents/Documents";
 import wiki from "wikijs";
 import { DocumentType } from "../../documents/DocumentTypes";
-import { DocumentView } from "./DocumentView";
 
 export let formattedTextBoxCommentPlugin = new Plugin({
     view(editorView) { return new FormattedTextBoxComment(editorView); }
