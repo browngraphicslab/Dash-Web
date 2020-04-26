@@ -179,7 +179,8 @@ export namespace DragManager {
 
     export function MakeDropTarget(
         element: HTMLElement,
-        dropFunc: (e: Event, de: DropEvent) => void
+        dropFunc: (e: Event, de: DropEvent) => void,
+        preDropFunc?: (e: Event, de: DropEvent) => void
     ): DragDropDisposer {
         if ("canDrop" in element.dataset) {
             throw new Error(
@@ -187,10 +188,13 @@ export namespace DragManager {
             );
         }
         element.dataset.canDrop = "true";
-        const handler = (e: Event) => { dropFunc(e, (e as CustomEvent<DropEvent>).detail); };
+        const handler = (e: Event) => dropFunc(e, (e as CustomEvent<DropEvent>).detail);
+        const preDropHandler = (e: Event) => preDropFunc?.(e, (e as CustomEvent<DropEvent>).detail);
         element.addEventListener("dashOnDrop", handler);
+        preDropFunc && element.addEventListener("dashPreDrop", preDropHandler);
         return () => {
             element.removeEventListener("dashOnDrop", handler);
+            preDropFunc && element.removeEventListener("dashPreDrop", preDropHandler);
             delete element.dataset.canDrop;
         };
     }
@@ -425,6 +429,20 @@ export namespace DragManager {
         });
         if (target) {
             const complete = new DragCompleteEvent(false, dragData);
+            target.dispatchEvent(
+                new CustomEvent<DropEvent>("dashPreDrop", {
+                    bubbles: true,
+                    detail: {
+                        x: e.x,
+                        y: e.y,
+                        complete: complete,
+                        shiftKey: e.shiftKey,
+                        altKey: e.altKey,
+                        metaKey: e.metaKey,
+                        ctrlKey: e.ctrlKey
+                    }
+                })
+            );
             finishDrag?.(complete);
             target.dispatchEvent(
                 new CustomEvent<DropEvent>("dashOnDrop", {

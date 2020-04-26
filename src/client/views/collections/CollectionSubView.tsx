@@ -64,7 +64,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             this.multiTouchDisposer?.();
             if (ele) {
                 this._mainCont = ele;
-                this.dropDisposer = DragManager.MakeDropTarget(ele, this.onInternalDrop.bind(this));
+                this.dropDisposer = DragManager.MakeDropTarget(ele, this.onInternalDrop.bind(this), this.onInternalPreDrop.bind(this));
                 this.gestureDisposer = GestureUtils.MakeGestureTarget(ele, this.onGesture.bind(this));
                 this.multiTouchDisposer = InteractionUtils.MakeMultiTouchTarget(ele, this.onTouchStart.bind(this));
             }
@@ -206,6 +206,11 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
 
         @undoBatch
         protected onGesture(e: Event, ge: GestureUtils.GestureEvent) {
+        }
+
+        protected onInternalPreDrop(e: Event, de: DragManager.DropEvent): boolean {
+            // de.complete.docDragData!.dropAction = "alias";  bcz: for example, you can convert all drops to aliases here
+            return true;
         }
 
         @undoBatch
