@@ -727,7 +727,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                         }
                     });
                 });
-                const { TextDocument, ImageDocument, CarouselDocument, TreeDocument } = Docs.Create;
+                const { TextDocument, ImageDocument, CarouselDocument } = Docs.Create;
                 const { Document } = this.props;
                 const fallbackImg = "http://www.cs.brown.edu/~bcz/face.gif";
                 const detailedTemplate = `{ "doc": { "type": "doc", "content": [  { "type": "paragraph", "content": [ { "type": "dashField", "attrs": { "fieldKey": "year" } } ] },  { "type": "paragraph", "content": [ { "type": "dashField", "attrs": { "fieldKey": "company" } } ] }  ] }, "selection":{"type":"text","anchor":1,"head":1},"storedMarks":[] }`;
@@ -735,9 +735,10 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                 const textDoc = TextDocument("", { title: "details", _autoHeight: true });
                 const detailView = Docs.Create.StackingDocument([
                     CarouselDocument([], { title: "data", _height: 350, _itemIndex: 0, backgroundColor: "#9b9b9b3F" }),
-                    textDoc,
+                    // textDoc,
                     TextDocument("", { title: "shortDescription", _autoHeight: true }),
-                    TreeDocument([], { title: "narratives", _height: 75, treeViewHideTitle: true })
+                    // TreeDocument([], { title: "narratives", _height: 75, treeViewHideTitle: true }),
+                    TextDocument("", { title: "longDescription", _height: 350 })
                 ], { _chromeStatus: "disabled", _width: 300, _height: 300, _autoHeight: true, title: "detailView" });
                 textDoc.data = new RichTextField(detailedTemplate, "year company");
                 detailView.isTemplateDoc = makeTemplate(detailView);
