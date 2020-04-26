@@ -54,7 +54,7 @@ export class MovableColumn extends React.Component<MovableColumnProps> {
     }
 
     createColDropTarget = (ele: HTMLDivElement) => {
-        this._colDropDisposer && this._colDropDisposer();
+        this._colDropDisposer?.();
         if (ele) {
             this._colDropDisposer = DragManager.MakeDropTarget(ele, this.colDrop.bind(this));
         }

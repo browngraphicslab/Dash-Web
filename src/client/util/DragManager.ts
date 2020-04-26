@@ -1,5 +1,5 @@
 import { Doc, Field, DocListCast } from "../../new_fields/Doc";
-import { Cast, ScriptCast } from "../../new_fields/Types";
+import { Cast, ScriptCast, StrCast } from "../../new_fields/Types";
 import { emptyFunction } from "../../Utils";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import * as globalCssVariables from "../views/globalCssVariables.scss";
@@ -180,7 +180,7 @@ export namespace DragManager {
     export function MakeDropTarget(
         element: HTMLElement,
         dropFunc: (e: Event, de: DropEvent) => void,
-        preDropFunc?: (e: Event, de: DropEvent) => void
+        doc?:Doc
     ): DragDropDisposer {
         if ("canDrop" in element.dataset) {
             throw new Error(
@@ -189,12 +189,17 @@ export namespace DragManager {
         }
         element.dataset.canDrop = "true";
         const handler = (e: Event) => dropFunc(e, (e as CustomEvent<DropEvent>).detail);
-        const preDropHandler = (e: Event) => preDropFunc?.(e, (e as CustomEvent<DropEvent>).detail);
+        const preDropHandler = (e:Event) => {
+            const de = (e as CustomEvent<DropEvent>).detail;
+            if (de.complete.docDragData && doc?.targetDropAction) {
+                de.complete.docDragData!.dropAction = StrCast(doc.targetDropAction) as dropActionType;
+            }
+        }
         element.addEventListener("dashOnDrop", handler);
-        preDropFunc && element.addEventListener("dashPreDrop", preDropHandler);
+        doc && element.addEventListener("dashPreDrop", preDropHandler);
         return () => {
             element.removeEventListener("dashOnDrop", handler);
-            preDropFunc && element.removeEventListener("dashPreDrop", preDropHandler);
+            doc && element.removeEventListener("dashPreDrop", preDropHandler);
             delete element.dataset.canDrop;
         };
     }

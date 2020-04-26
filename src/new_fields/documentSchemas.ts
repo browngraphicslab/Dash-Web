@@ -8,7 +8,8 @@ export const documentSchema = createSchema({
     layout: "string",           // this is the native layout string for the document.  templates can be added using other fields and setting layoutKey below
     layoutKey: "string",        // holds the field key for the field that actually holds the current lyoat
     title: "string",            // document title (can be on either data document or layout)
-    dropAction: "string",       // override specifying what should happen when this document is dropped (can be "alias" or "copy")
+    dropAction: "string",       // override specifying what should happen when this document is dropped (can be "alias", "copy", "move")
+    targetDropAction: "string",  // allows the target of a drop event to specify the dropAction ("alias", "copy", "move")
     childDropAction: "string",  // specify the override for what should happen when the child of a collection is dragged from it and dropped (can be "alias" or "copy")
     _autoHeight: "boolean",     // whether the height of the document should be computed automatically based on its contents
     _nativeWidth: "number",     // native width of document which determines how much document contents are scaled when the document's width is set

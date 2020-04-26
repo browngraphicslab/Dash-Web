@@ -32,7 +32,7 @@ export class LabelBox extends ViewBoxBaseComponent<FieldViewProps, LabelDocument
     protected createDropTarget = (ele: HTMLDivElement) => {
         this.dropDisposer?.();
         if (ele) {
-            this.dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this));
+            this.dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this), this.props.Document);
         }
     }
 

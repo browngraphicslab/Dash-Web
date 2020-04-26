@@ -76,7 +76,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
 
     protected createDropTarget = (ele: HTMLDivElement) => {
         this._dropDisposer && this._dropDisposer();
-        ele && (this._dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this)));
+        ele && (this._dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this), this.props.Document));
     }
 
     @undoBatch

@@ -143,7 +143,7 @@ class TreeView extends React.Component<TreeViewProps> {
 
     protected createTreeDropTarget = (ele: HTMLDivElement) => {
         this._treedropDisposer && this._treedropDisposer();
-        ele && (this._treedropDisposer = DragManager.MakeDropTarget(ele, this.treeDrop.bind(this)));
+        ele && (this._treedropDisposer = DragManager.MakeDropTarget(ele, this.treeDrop.bind(this)), this.props.document);
     }
 
     onPointerEnter = (e: React.PointerEvent): void => {
@@ -663,7 +663,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
     protected createTreeDropTarget = (ele: HTMLDivElement) => {
         this.treedropDisposer?.();
         if (this._mainEle = ele) {
-            this.treedropDisposer = DragManager.MakeDropTarget(ele, this.onInternalDrop.bind(this));
+            this.treedropDisposer = DragManager.MakeDropTarget(ele, this.onInternalDrop.bind(this), this.props.Document);
         }
     }
 

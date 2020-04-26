@@ -253,7 +253,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     protected createDropTarget = (ele: HTMLDivElement) => {
         this.ProseRef = ele;
         this.dropDisposer?.();
-        ele && (this.dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this)));
+        ele && (this.dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this), this.props.Document));
     }
 
     @undoBatch
