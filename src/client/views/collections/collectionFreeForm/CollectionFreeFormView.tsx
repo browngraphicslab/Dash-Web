@@ -86,6 +86,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     private _hitCluster = false;
     private _layoutComputeReaction: IReactionDisposer | undefined;
     private _layoutPoolData = new ObservableMap<string, PoolData>();
+    private _layoutSizeData = new ObservableMap<string, { width?: number, height?: number }>();
     private _cachedPool: Map<string, PoolData> = new Map();
     @observable private _pullCoords: number[] = [0, 0];
     @observable private _pullDirection: string = "";
@@ -903,13 +904,13 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     getCalculatedPositions(params: { pair: { layout: Doc, data?: Doc }, index: number, collection: Doc, docs: Doc[], state: any }): PoolData {
         const result = this.Document.arrangeScript?.script.run(params, console.log);
         if (result?.success) {
-            return { x: 0, y: 0, transition: "transform 1s", ...result, pair: params.pair };
+            return { x: 0, y: 0, transition: "transform 1s", ...result, pair: params.pair, replica: "" };
         }
         const layoutDoc = Doc.Layout(params.pair.layout);
         const { x, y, z, color, zIndex } = params.pair.layout;
         return {
             x: NumCast(x), y: NumCast(y), z: Cast(z, "number"), color: StrCast(color), zIndex: Cast(zIndex, "number"),
-            width: Cast(layoutDoc._width, "number"), height: Cast(layoutDoc._height, "number"), pair: params.pair
+            width: Cast(layoutDoc._width, "number"), height: Cast(layoutDoc._height, "number"), pair: params.pair, replica: ""
         };
     }
 
@@ -949,6 +950,9 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     childDataProvider = computedFn(function childDataProvider(this: any, doc: Doc, replica: string) {
         return this._layoutPoolData.get(doc[Id] + (replica || ""));
+    }.bind(this));
+    childSizeProvider = computedFn(function childSizeProvider(this: any, doc: Doc, replica: string) {
+        return this._layoutSizeData.get(doc[Id] + (replica || ""));
     }.bind(this));
 
     doEngineLayout(poolData: Map<string, PoolData>,
@@ -997,8 +1001,11 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             Array.from(newPool.entries()).map(entry => {
                 const lastPos = this._cachedPool.get(entry[0]); // last computed pos
                 const newPos = entry[1];
-                if (!lastPos || newPos.x !== lastPos.x || newPos.y !== lastPos.y || newPos.z !== lastPos.z || newPos.zIndex !== lastPos.zIndex || newPos.width !== lastPos.width || newPos.height !== lastPos.height) {
+                if (!lastPos || newPos.x !== lastPos.x || newPos.y !== lastPos.y || newPos.z !== lastPos.z || newPos.zIndex !== lastPos.zIndex) {
                     this._layoutPoolData.set(entry[0], newPos);
+                }
+                if (!lastPos || newPos.height !== lastPos.height) {
+                    this._layoutSizeData.set(entry[0], { width: newPos.width, height: newPos.height });
                 }
             }));
         this._cachedPool.clear();
@@ -1012,6 +1019,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                     {...this.getChildDocumentViewProps(entry[1].pair.layout, entry[1].pair.data)}
                     replica={entry[1].replica}
                     dataProvider={this.childDataProvider}
+                    sizeProvider={this.childSizeProvider}
                     LayoutDoc={this.childLayoutDocFunc}
                     pointerEvents={
                         this.backgroundActive ?
