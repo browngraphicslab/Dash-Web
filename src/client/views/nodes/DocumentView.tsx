@@ -1072,7 +1072,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                     layoutKey={this.finalLayoutKey} />
             </div>);
         const titleView = (!showTitle ? (null) :
-            <div className={`documentView-titleWrapper${showTitleHover ? "-hover" : ""}`} style={{
+            <div className={`documentView-titleWrapper${showTitleHover ? "-hover" : ""}`} key="title" style={{
                 position: showTextTitle ? "relative" : "absolute",
                 pointerEvents: this.onClickHandler || this.Document.ignoreClick ? "none" : undefined,
             }}>
@@ -1086,10 +1086,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         return !showTitle && !showCaption ?
             this.contents :
             <div className="documentView-styleWrapper" >
-                <div className="documentView-styleContentWrapper" style={{ height: showTextTitle ? `calc(100% - ${this.chromeHeight()}px)` : "100%", top: showTextTitle ? this.chromeHeight() : undefined }}>
-                    {this.contents}
-                </div>
-                {titleView}
+                {this.Document.type !== DocumentType.RTF ? <> {this.contents} {titleView} </> : <> {titleView} {this.contents} </>}
                 {captionView}
             </div>;
     }

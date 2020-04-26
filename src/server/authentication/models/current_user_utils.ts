@@ -167,7 +167,7 @@ export class CurrentUserUtils {
             doc["template-icon-view"] = new PrefetchProxy(iconView);
         }
         if (doc["template-icon-view-rtf"] === undefined) {
-            const iconRtfView = Docs.Create.LabelDocument({ title: "icon_" + DocumentType.RTF, textTransform: "unset", letterSpacing: "unset", _width: 150, _height: 30, isTemplateDoc: true, onClick: ScriptField.MakeScript("deiconifyView(self)") });
+            const iconRtfView = Docs.Create.LabelDocument({ title: "icon_" + DocumentType.RTF, textTransform: "unset", letterSpacing: "unset", _width: 150, _height: 70, _xPadding: 10, _yPadding: 10, isTemplateDoc: true, onClick: ScriptField.MakeScript("deiconifyView(self)") });
             iconRtfView.isTemplateDoc = makeTemplate(iconRtfView, true, "icon_" + DocumentType.RTF);
             doc["template-icon-view-rtf"] = new PrefetchProxy(iconRtfView);
         }
@@ -214,7 +214,7 @@ export class CurrentUserUtils {
             { title: "Drag a screenshot", label: "Grab", icon: "photo-video", ignoreClick: true, drag: 'Docs.Create.ScreenshotDocument("", { _width: 400, _height: 200, title: "screen snapshot" })' },
             { title: "Drag a webcam", label: "Cam", icon: "video", ignoreClick: true, drag: 'Docs.Create.WebCamDocument("", { _width: 400, _height: 400, title: "a test cam" })' },
             { title: "Drag a audio recorder", label: "Audio", icon: "microphone", ignoreClick: true, drag: `Docs.Create.AudioDocument("${nullAudio}", { _width: 200, title: "ready to record audio" })` },
-            { title: "Drag a clickable button", label: "Btn", icon: "bolt", ignoreClick: true, drag: 'Docs.Create.ButtonDocument({ _width: 150, _height: 50, title: "Button" })' },
+            { title: "Drag a clickable button", label: "Btn", icon: "bolt", ignoreClick: true, drag: 'Docs.Create.ButtonDocument({ _width: 150, _height: 50, _xPadding:10, _yPadding: 10, title: "Button" })' },
             { title: "Drag a presentation view", label: "Prezi", icon: "tv", click: 'openOnRight(Doc.UserDoc().activePresentation = getCopy(this.dragFactory, true))', drag: `Doc.UserDoc().activePresentation = getCopy(this.dragFactory,true)`, dragFactory: doc.emptyPresentation as Doc },
             { title: "Drag a search box", label: "Query", icon: "search", ignoreClick: true, drag: 'Docs.Create.QueryDocument({ _width: 200, title: "an image of a cat" })' },
             { title: "Drag a scripting box", label: "Script", icon: "terminal", ignoreClick: true, drag: 'Docs.Create.ScriptingDocument(undefined, { _width: 200, _height: 250 title: "untitled script" })' },

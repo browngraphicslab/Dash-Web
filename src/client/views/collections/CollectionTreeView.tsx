@@ -261,7 +261,7 @@ class TreeView extends React.Component<TreeViewProps> {
     docHeight = () => {
         const layoutDoc = Doc.Layout(this.props.document);
         const bounds = this.boundsOfCollectionDocument;
-        return Math.min(this.MAX_EMBED_HEIGHT, (() => {
+        return Math.max(70, Math.min(this.MAX_EMBED_HEIGHT, (() => {
             const aspect = NumCast(layoutDoc._nativeHeight, layoutDoc._fitWidth ? 0 : layoutDoc[HeightSym]()) / NumCast(layoutDoc._nativeWidth, layoutDoc._fitWidth ? 1 : layoutDoc[WidthSym]());
             if (aspect) return this.docWidth() * aspect;
             if (bounds) return this.docWidth() * (bounds.b - bounds.y) / (bounds.r - bounds.x);
@@ -269,7 +269,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 Math.min(this.docWidth() * NumCast(layoutDoc.scrollHeight, NumCast(layoutDoc._nativeHeight)) / NumCast(layoutDoc._nativeWidth,
                     NumCast(this.props.containingCollection._height)))) :
                 NumCast(layoutDoc._height) ? NumCast(layoutDoc._height) : 50;
-        })());
+        })()));
     }
 
     @computed get expandedField() {
@@ -321,6 +321,9 @@ class TreeView extends React.Component<TreeViewProps> {
         return rows;
     }
 
+    rtfWidth = () => Math.min(Doc.Layout(this.props.document)?.[WidthSym](), this.props.panelWidth() - 20);
+    rtfHeight = () => this.rtfWidth() < Doc.Layout(this.props.document)?.[WidthSym]() ? Math.min(Doc.Layout(this.props.document)?.[HeightSym](), this.MAX_EMBED_HEIGHT) : this.MAX_EMBED_HEIGHT;
+
     @computed get renderContent() {
         const expandKey = this.treeViewExpandedView === this.fieldKey ? this.fieldKey : this.treeViewExpandedView === "links" ? "links" : undefined;
         if (expandKey !== undefined) {
@@ -355,8 +358,10 @@ class TreeView extends React.Component<TreeViewProps> {
                     backgroundColor={this.props.backgroundColor}
                     fitToBox={this.boundsOfCollectionDocument !== undefined}
                     FreezeDimensions={true}
-                    PanelWidth={this.docWidth}
-                    PanelHeight={this.docHeight}
+                    NativeWidth={layoutDoc.type === DocumentType.RTF ? this.rtfWidth : undefined}
+                    NativeHeight={layoutDoc.type === DocumentType.RTF ? this.rtfHeight : undefined}
+                    PanelWidth={layoutDoc.type === DocumentType.RTF ? this.rtfWidth : this.docWidth}
+                    PanelHeight={layoutDoc.type === DocumentType.RTF ? this.rtfHeight : this.docHeight}
                     getTransform={this.docTransform}
                     CollectionDoc={this.props.containingCollection}
                     CollectionView={undefined}

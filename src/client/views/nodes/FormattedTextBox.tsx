@@ -194,7 +194,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
             const tsel = this._editorView.state.selection.$from;
             tsel.marks().filter(m => m.type === this._editorView!.state.schema.marks.user_mark).map(m => AudioBox.SetScrubTime(Math.max(0, m.attrs.modified * 1000)));
-            const curText = state.doc.textBetween(0, state.doc.content.size, "\n\n");
+            const curText = state.doc.textBetween(0, state.doc.content.size, " \n");
             const curTemp = Cast(this.props.Document[this.props.fieldKey + "-textTemplate"], RichTextField);
             if (!this._applyingChange) {
                 this._applyingChange = true;
@@ -1211,7 +1211,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         return (
             <div className={`formattedTextBox-cont`} ref={this._ref}
                 style={{
-                    height: this.layoutDoc._autoHeight && this.props.renderDepth ? "max-content" : undefined,
+                    height: this.layoutDoc._autoHeight && this.props.renderDepth ? "max-content" : `calc(100% - ${this.props.ChromeHeight?.() || 0}px`,
                     background: this.props.hideOnLeave ? "rgba(0,0,0 ,0.4)" : StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"]),
                     opacity: this.props.hideOnLeave ? (this._entered ? 1 : 0.1) : 1,
                     color: this.props.hideOnLeave ? "white" : "inherit",

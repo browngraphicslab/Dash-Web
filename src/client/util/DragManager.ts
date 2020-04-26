@@ -180,7 +180,7 @@ export namespace DragManager {
     export function MakeDropTarget(
         element: HTMLElement,
         dropFunc: (e: Event, de: DropEvent) => void,
-        doc?:Doc
+        doc?: Doc
     ): DragDropDisposer {
         if ("canDrop" in element.dataset) {
             throw new Error(
@@ -189,12 +189,12 @@ export namespace DragManager {
         }
         element.dataset.canDrop = "true";
         const handler = (e: Event) => dropFunc(e, (e as CustomEvent<DropEvent>).detail);
-        const preDropHandler = (e:Event) => {
+        const preDropHandler = (e: Event) => {
             const de = (e as CustomEvent<DropEvent>).detail;
             if (de.complete.docDragData && doc?.targetDropAction) {
-                de.complete.docDragData!.dropAction = StrCast(doc.targetDropAction) as dropActionType;
+                de.complete.docDragData.dropAction = StrCast(doc.targetDropAction) as dropActionType;
             }
-        }
+        };
         element.addEventListener("dashOnDrop", handler);
         doc && element.addEventListener("dashPreDrop", preDropHandler);
         return () => {
