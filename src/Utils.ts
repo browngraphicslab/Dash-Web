@@ -504,8 +504,9 @@ export function setupMoveUpEvents(
     e: React.PointerEvent,
     moveEvent: (e: PointerEvent, down: number[], delta: number[]) => boolean,
     upEvent: (e: PointerEvent) => void,
-    clickEvent: (e: PointerEvent) => void,
-    stopPropagation: boolean = true
+    clickEvent: (e: PointerEvent, doubleTap?: boolean) => void,
+    stopPropagation: boolean = true,
+    stopMovePropagation: boolean = true
 ) {
     (target as any)._downX = (target as any)._lastX = e.clientX;
     (target as any)._downY = (target as any)._lastY = e.clientY;
@@ -520,12 +521,15 @@ export function setupMoveUpEvents(
         }
         (target as any)._lastX = e.clientX;
         (target as any)._lastY = e.clientY;
-        e.stopPropagation();
+        stopMovePropagation && e.stopPropagation();
     };
+    (target as any)._doubleTap = false;
     const _upEvent = (e: PointerEvent): void => {
+        (target as any)._doubleTap = (Date.now() - (target as any)._lastTap < 300);
+        (target as any)._lastTap = Date.now();
         upEvent(e);
         if (Math.abs(e.clientX - (target as any)._downX) < 4 && Math.abs(e.clientY - (target as any)._downY) < 4) {
-            clickEvent(e);
+            clickEvent(e, (target as any)._doubleTap);
         }
         document.removeEventListener("pointermove", _moveEvent);
         document.removeEventListener("pointerup", _upEvent);

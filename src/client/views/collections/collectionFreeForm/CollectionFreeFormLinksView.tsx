@@ -36,7 +36,7 @@ export class CollectionFreeFormLinksView extends React.Component {
     }
 
     render() {
-        return <div className="collectionfreeformlinksview-container">
+        return SelectionManager.GetIsDragging() ? (null) : <div className="collectionfreeformlinksview-container">
             <svg className="collectionfreeformlinksview-svgCanvas">
                 {this.uniqueConnections}
             </svg>

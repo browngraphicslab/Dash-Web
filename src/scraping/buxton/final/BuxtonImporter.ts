@@ -275,8 +275,8 @@ async function extractFileContents(pathToDocument: string): Promise<DocumentCont
 
     for (let i = 3; i < captionTargets.length; i += 3) {
         const row = captionTargets.slice(i, i + 3);
-        captions.push(row[1]);
-        embeddedFileNames.push(row[2]);
+        embeddedFileNames.push(row[1]);
+        captions.push(row[2]);
     }
 
     // extract all hyperlinks embedded in the document

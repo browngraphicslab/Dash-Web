@@ -88,7 +88,6 @@ export class FormattedTextBoxComment {
                     if (FormattedTextBoxComment.linkDoc.type !== DocumentType.LINK) {
                         textBox.props.addDocTab(FormattedTextBoxComment.linkDoc, e.ctrlKey ? "inTab" : "onRight");
                     } else {
-                        DocumentView._focusHack = [];
                         DocumentManager.Instance.FollowLink(FormattedTextBoxComment.linkDoc, textBox.props.Document,
                             (doc: Doc, followLinkLocation: string) => textBox.props.addDocTab(doc, e.ctrlKey ? "inTab" : followLinkLocation));
                     }
