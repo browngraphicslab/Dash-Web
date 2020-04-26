@@ -60,8 +60,7 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
         window.addEventListener("pointerup", this.onPointerUp);
     }
 
-    private resizeUpdater: Lambda = () => { };
-
+    private resizeUpdater: Lambda | undefined;
     componentWillMount() {
         this.props.Document.clipWidth = this.props.PanelWidth() / 2;
 
@@ -72,11 +71,10 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
     }
 
     componentWillUnmount() {
-        this.resizeUpdater();
+        if (this.resizeUpdater) this.resizeUpdater();
     }
 
     private onPointerMove = ({ movementX }: PointerEvent) => {
-        //is it ok to use NumCast
         const width = movementX * this.props.ScreenToLocalTransform().Scale + NumCast(this.props.Document.clipWidth);
         if (width && width > 5 && width < this.props.PanelWidth()) {
             this.props.Document.clipWidth = width;

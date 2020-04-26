@@ -189,7 +189,7 @@ export class CurrentUserUtils {
                 { _nativeWidth: undefined, _nativeHeight: undefined, _LODdisable: true, _width: 150, _height: 100, title: "freeform" });
         }
         return [
-            { title: "Drag a comparison box", label: "Comparison", icon: "cat", ignoreClick: true, drag: 'Docs.Create.ComparisonDocument()' },
+            { title: "Drag a comparison box", label: "Comp", icon: "columns", ignoreClick: true, drag: 'Docs.Create.ComparisonDocument()' },
             { title: "Drag a collection", label: "Col", icon: "folder", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyCollection as Doc },
             { title: "Drag a web page", label: "Web", icon: "globe-asia", ignoreClick: true, drag: 'Docs.Create.WebDocument("", { title: "New Webpage" })' },
             { title: "Drag a cat image", label: "Img", icon: "cat", ignoreClick: true, drag: 'Docs.Create.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", { _width: 250, _nativeWidth:250, title: "an image of a cat" })' },
