@@ -493,7 +493,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
             {!this.props.isSelected() || this.props.PanelHeight() < 100 || this.props.Document.hideFilterView ? (null) :
                 <div className="collectionTimeView-dragger" title="library View Dragger" onPointerDown={this.onPointerDown} style={{ right: this.facetWidth() - 10 }} />
             }
-            {this.filterView}
+            {this.facetWidth() < 10 ? (null) : this.filterView}
         </div>);
     }
 }

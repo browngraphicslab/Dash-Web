@@ -508,7 +508,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         if (this.layoutDoc.targetScale && (Math.abs(e.pageX - this._downX) < 3 && Math.abs(e.pageY - this._downY) < 3)) {
             if (Date.now() - this._lastTap < 300) {
                 const docpt = this.getTransform().transformPoint(e.clientX, e.clientY);
-                this.scaleAtPt(docpt, NumCast(this.layoutDoc.targetScale, NumCast(this.layoutDoc.scale)));
+                this.scaleAtPt(docpt, 1);
                 e.stopPropagation();
                 e.preventDefault();
             }
@@ -853,7 +853,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @computed get libraryPath() { return this.props.LibraryPath ? [...this.props.LibraryPath, this.props.Document] : []; }
     @computed get onChildClickHandler() { return this.props.childClickScript || ScriptCast(this.Document.onChildClick); }
     backgroundHalo = () => BoolCast(this.Document.useClusters);
-
+    @computed get backgroundActive() { return this.layoutDoc.isBackground && (this.props.ContainingCollectionView?.active() || this.props.active()); }
+    parentActive = () => this.props.active() || this.backgroundActive ? true : false;
     getChildDocumentViewProps(childLayout: Doc, childData?: Doc): DocumentViewProps {
         return {
             ...this.props,
@@ -879,7 +880,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             focus: this.focusDocument,
             backgroundColor: this.getClusterColor,
             backgroundHalo: this.backgroundHalo,
-            parentActive: this.props.active,
+            parentActive: this.parentActive,
             bringToFront: this.bringToFront,
             addDocTab: this.addDocTab,
         };
@@ -946,7 +947,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         }
     }
 
-    childDataProvider = computedFn(function childDataProvider(this: any, doc: Doc, replica: Opt<string>) {
+    childDataProvider = computedFn(function childDataProvider(this: any, doc: Doc, replica: string) {
         return this._layoutPoolData.get(doc[Id] + (replica || ""));
     }.bind(this));
 
@@ -975,6 +976,9 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     }
 
     @computed get doInternalLayoutComputation() {
+        TraceMobx();
+
+
         const newPool = new Map<string, PoolData>();
         const engine = this.props.layoutEngine?.() || StrCast(this.layoutDoc._layoutEngine);
         switch (engine) {
@@ -1009,8 +1013,10 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                     replica={entry[1].replica}
                     dataProvider={this.childDataProvider}
                     LayoutDoc={this.childLayoutDocFunc}
-                    pointerEvents={this.props.viewDefDivClick || (engine === "pass" && !this.props.isSelected(true)) ?
-                        false : undefined}
+                    pointerEvents={
+                        this.backgroundActive ?
+                            true :
+                            (this.props.viewDefDivClick || (engine === "pass" && !this.props.isSelected(true))) ? false : undefined}
                     jitterRotation={NumCast(this.props.Document._jitterRotation)}
                     fitToBox={this.props.fitToBox || BoolCast(this.props.freezeChildDimensions)}
                     FreezeDimensions={BoolCast(this.props.freezeChildDimensions)}
@@ -1164,6 +1170,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         const wscale = nw ? this.props.PanelWidth() / nw : 1;
         return wscale < hscale ? wscale : hscale;
     }
+    @computed get backgroundEvents() { return this.layoutDoc.isBackground && SelectionManager.GetIsDragging(); }
     render() {
         TraceMobx();
         const clientRect = this._mainCont?.getBoundingClientRect();
@@ -1179,7 +1186,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             onWheel={this.onPointerWheel} onClick={this.onClick}  //pointerEvents: SelectionManager.GetIsDragging() ? "all" : undefined,
             onPointerDown={this.onPointerDown} onPointerMove={this.onCursorMove} onDrop={this.onExternalDrop.bind(this)} onContextMenu={this.onContextMenu}
             style={{
-                pointerEvents: SelectionManager.GetIsDragging() ? "all" : undefined,
+                pointerEvents: this.backgroundEvents ? "all" : undefined,
                 transform: this.contentScaling ? `scale(${this.contentScaling})` : "",
                 transformOrigin: this.contentScaling ? "left top" : "",
                 width: this.contentScaling ? `${100 / this.contentScaling}%` : "",

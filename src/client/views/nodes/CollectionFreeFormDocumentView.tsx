@@ -12,7 +12,7 @@ import { TraceMobx } from "../../../new_fields/util";
 import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
-    dataProvider?: (doc: Doc, replica?: string) => { x: number, y: number, zIndex?: number, highlight?: boolean, width: number, height: number, z: number, transition?: string, replica: string } | undefined;
+    dataProvider?: (doc: Doc, replica: string) => { x: number, y: number, zIndex?: number, highlight?: boolean, width: number, height: number, z: number, transition?: string, replica: string } | undefined;
     x?: number;
     y?: number;
     z?: number;
@@ -23,7 +23,7 @@ export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     jitterRotation: number;
     transition?: string;
     fitToBox?: boolean;
-    replica?: string;
+    replica: string;
 }
 
 @observer

@@ -39,7 +39,7 @@ export interface PoolData {
     color?: string;
     transition?: string;
     highlight?: boolean;
-    replica?: string;
+    replica: string;
     pair: { layout: Doc, data?: Doc };
 }
 
