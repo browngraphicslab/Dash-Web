@@ -10,15 +10,35 @@ import { DocServer } from "../DocServer";
 import { CollectionViewType } from "../views/collections/CollectionView";
 import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
 import React = require("react");
+import * as ReactDOM from 'react-dom';
+import "./DashFieldView.scss";
 
 
-interface IDashFieldView {
+export class DashFieldView {
+    _fieldWrapper: HTMLDivElement; // container for label and value
+
+    constructor(node: any, view: any, getPos: any, tbox: FormattedTextBox) {
+        this._fieldWrapper = document.createElement("p");
+        this._fieldWrapper.style.width = node.attrs.width;
+        this._fieldWrapper.style.height = node.attrs.height;
+        this._fieldWrapper.style.fontWeight = "bold";
+        this._fieldWrapper.style.position = "relative";
+        this._fieldWrapper.style.display = "inline-block";
+        ReactDOM.render(<DashFieldViewInternal node={node} view={view} getPos={getPos} tbox={tbox} />, this._fieldWrapper);
+        (this as any).dom = this._fieldWrapper;
+    }
+    destroy() {
+        ReactDOM.unmountComponentAtNode(this._fieldWrapper);
+    }
+
+}
+interface IDashFieldViewInternal {
     node: any,
     view: any,
     getPos: any,
     tbox: FormattedTextBox
 }
-export class DashFieldView extends React.Component<IDashFieldView> {
+export class DashFieldViewInternal extends React.Component<IDashFieldViewInternal> {
 
     _reactionDisposer: IReactionDisposer | undefined;
     _textBoxDoc?: Doc; //Added "?""
@@ -26,7 +46,7 @@ export class DashFieldView extends React.Component<IDashFieldView> {
     _fieldKey?: string; //Added "?" and added "as string"
     _options: Doc[] = [];
 
-    constructor(props: IDashFieldView) {
+    constructor(props: IDashFieldViewInternal) {
         super(props)
         this._fieldKey = this.props.node.attrs.fieldKey;
         this._textBoxDoc = this.props.tbox.props.Document;
@@ -37,23 +57,27 @@ export class DashFieldView extends React.Component<IDashFieldView> {
         } else {
             this.setDashDoc(this.props.tbox.props.DataDoc || this.props.tbox.dataDoc);
         }
-
+    }
+    componentWillUnmount() {
         this._reactionDisposer?.();
+    }
+    componentDidMount() {
         var elementFieldCheck = document.getElementById("fieldCheckId") as HTMLInputElement;
-        this._reactionDisposer = reaction(() => { // this reaction will update the displayed text whenever the document's fieldKey's value changes
-            const dashVal = this._dashDoc?.[this._fieldKey as string];
-            return StrCast(dashVal).startsWith(":=") || dashVal === "" ? Doc.Layout(this.props.tbox.props.Document)[this._fieldKey as string] : dashVal;
-        }, fval => {
-            const boolVal = Cast(fval, "boolean", null);
-            if (boolVal === true || boolVal === false) {
-                elementFieldCheck.checked = boolVal;
-            } else {
-                elementFieldCheck.innerHTML = Field.toString(fval as Field) || "";
-            }
-            elementFieldCheck.style.display = (boolVal === true || boolVal === false) ? "inline-block" : "none";
-            elementFieldCheck.style.display = !(boolVal === true || boolVal === false) ? "inline-block" : "none";
-        }, { fireImmediately: true });
-
+        if (elementFieldCheck) {
+            this._reactionDisposer = reaction(() => { // this reaction will update the displayed text whenever the document's fieldKey's value changes
+                const dashVal = this._dashDoc?.[this._fieldKey as string];
+                return StrCast(dashVal).startsWith(":=") || dashVal === "" ? Doc.Layout(this.props.tbox.props.Document)[this._fieldKey as string] : dashVal;
+            }, fval => {
+                const boolVal = Cast(fval, "boolean", null);
+                if (boolVal === true || boolVal === false) {
+                    elementFieldCheck.checked = boolVal;
+                } else {
+                    //  elementFieldCheck.innerHTML = Field.toString(fval as Field) || "";
+                }
+                elementFieldCheck.style.display = (boolVal === true || boolVal === false) ? "inline-block" : "none";
+                elementFieldCheck.style.display = !(boolVal === true || boolVal === false) ? "inline-block" : "none";
+            }, { fireImmediately: true });
+        }
     }
 
     setDashDoc = (doc: Doc) => {
@@ -63,12 +87,12 @@ export class DashFieldView extends React.Component<IDashFieldView> {
         }
         // NOTE: if the field key starts with "@", then the actual field key is stored in the field 'fieldKey' (removing the @).
         this._fieldKey = this._fieldKey?.startsWith("@") ? StrCast(this.props.tbox.props.Document[StrCast(this._fieldKey as string).substring(1)]) : this._fieldKey as string;
-        var elementlabelSpan = document.getElementById("labelSpanId") as HTMLElement;
-        elementlabelSpan.innerHTML = `${this._fieldKey}: `;
-        const fieldVal = Cast(this._dashDoc?.[this._fieldKey], "boolean", null);
-        var elementfieldCheck = document.getElementById("fieldCheckId") as HTMLElement;
-        elementfieldCheck.style.display = (fieldVal === true || fieldVal === false) ? "inline-block" : "none";
-        elementfieldCheck.style.display = !(fieldVal === true || fieldVal === false) ? "inline-block" : "none";
+        // var elementlabelSpan = document.getElementById("labelSpanId") as HTMLElement;
+        // elementlabelSpan.innerHTML = `${this._fieldKey}: `;
+        // const fieldVal = Cast(this._dashDoc?.[this._fieldKey], "boolean", null);
+        // var elementfieldCheck = document.getElementById("fieldCheckId") as HTMLElement;
+        // elementfieldCheck.style.display = (fieldVal === true || fieldVal === false) ? "inline-block" : "none";
+        // elementfieldCheck.style.display = !(fieldVal === true || fieldVal === false) ? "inline-block" : "none";
     };
 
     updateText = (forceMatch: boolean) => {
@@ -85,7 +109,7 @@ export class DashFieldView extends React.Component<IDashFieldView> {
             (options instanceof Doc) && DocListCast(options.data).forEach(opt => (forceMatch ? StrCast(opt.title).startsWith(newText) : StrCast(opt.title) === newText) && (modText = StrCast(opt.title)));
             var elementfieldSpan = document.getElementById("fieldSpanId") as HTMLElement;
             if (modText) {
-                elementfieldSpan.innerHTML = this._dashDoc![this._fieldKey as string] = modText;
+                //  elementfieldSpan.innerHTML = this._dashDoc![this._fieldKey as string] = modText;
                 Doc.addFieldEnumerations(this._textBoxDoc, this._fieldKey as string, []);
             } // if the text starts with a ':=' then treat it as an expression by making a computed field from its value storing it in the key
             else if (elementfieldSpan.innerText.startsWith(":=")) {
@@ -172,18 +196,8 @@ export class DashFieldView extends React.Component<IDashFieldView> {
     render() {
 
         const fieldStyle = {
-            width: this.props.node.props.width,
-            height: this.props.node.props.height,
-            position: 'relative' as 'relative',
-            display: 'inline-flex'
-        };
-
-        let enumerablesStyle = {
-            width: "10px",
-            height: "10px",
-            position: 'relative' as 'relative',
-            display: 'none',
-            background: "dimGray"
+            width: this.props.node.attrs.width,
+            height: this.props.node.attrs.height,
         };
 
         const fieldCheckStyle = {
@@ -212,9 +226,7 @@ export class DashFieldView extends React.Component<IDashFieldView> {
         const fieldSpanId = Utils.GenerateGuid();
 
         return (
-            <div
-                className="fieldWrapper"
-                style={fieldStyle}>
+            <div className="fieldWrapper" style={fieldStyle}>
 
                 <span
                     className="labelSpan"
@@ -247,9 +259,8 @@ export class DashFieldView extends React.Component<IDashFieldView> {
                 </div>
 
                 <div
-                    className="enumerables"
+                    className="enumerablesStyle"
                     id="enumerablesId"
-                    style={enumerablesStyle}
                     onPointerDown={this.onPointerDownEnumerables}>
 
                 </div>
