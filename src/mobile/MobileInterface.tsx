@@ -40,7 +40,7 @@ export class MobileInterface extends React.Component {
     @computed private get userDoc() { return Doc.UserDoc(); }
     @computed private get mainContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeMobile, Doc)) : CurrentUserUtils.GuestMobile; }
     // @observable private currentView: "main" | "ink" | "upload" = "main";
-    private mainDoc: any = CurrentUserUtils.setupMobileMenu(this.userDoc);
+    @observable private mainDoc: any = CurrentUserUtils.setupMobileMenu(this.userDoc);
     @observable private renderView?: () => JSX.Element;
 
     // private inkDoc?: Doc;
