@@ -84,21 +84,22 @@ export class CurrentUserUtils {
 
         if (doc["template-button-detail"] === undefined) {
             const { TextDocument, ImageDocument, CarouselDocument, TreeDocument } = Docs.Create;
-            const fallbackImg = "http://www.cs.brown.edu/~bcz/face.gif";
             const detailedTemplate = `{ "doc": { "type": "doc", "content": [  { "type": "paragraph", "content": [ { "type": "dashField", "attrs": { "fieldKey": "year" } } ] },  { "type": "paragraph", "content": [ { "type": "dashField", "attrs": { "fieldKey": "company" } } ] }  ] }, "selection":{"type":"text","anchor":1,"head":1},"storedMarks":[] }`;
 
-            const textDoc = TextDocument("", { title: "details", _autoHeight: true });
-            const detailView = Docs.Create.MultirowDocument([
+            const textDoc1 = TextDocument("", { title: "shortDescription", treeViewOpen: true, treeViewExpandedView: "layout", _height: 50 });
+            const textDoc2 = TextDocument("", { title: "longDescription", treeViewOpen: false, treeViewExpandedView: "layout", _height: 350 });
+            const detailView = Docs.Create.StackingDocument([
                 CarouselDocument([], { title: "data", _height: 350, _itemIndex: 0, backgroundColor: "#9b9b9b3F" }),
                 TreeDocument([
-                    // textDoc,
-                    TextDocument("", { title: "short description", _autoHeight: true }),
+                    textDoc1,
+                    textDoc2,
                     // TreeDocument([], { title: "narratives", _height: 75, treeViewHideTitle: true }),
-                    TextDocument("", { title: "long description", _height: 350 })
-                ], { title: "stuff", _height: 100 })
-            ], { _chromeStatus: "disabled", _width: 300, _height: 300, _autoHeight: true, title: "detailView" });
-            textDoc.data = new RichTextField(detailedTemplate, "year company");
+                ], { title: "stuff", _height: 300, treeViewHideTitle: true })
+            ], { _chromeStatus: "disabled", _width: 300, _height: 600, title: "detailView" });
+            //textDoc.data = new RichTextField(detailedTemplate, "year company");
             detailView.isTemplateDoc = makeTemplate(detailView);
+            textDoc1.title = "Short Description";
+            textDoc2.title = "Long Description";
 
             doc["template-button-detail"] = CurrentUserUtils.ficon({
                 onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
