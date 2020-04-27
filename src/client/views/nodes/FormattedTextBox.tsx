@@ -55,6 +55,8 @@ library.add(faSmile, faTextHeight, faUpload);
 export interface FormattedTextBoxProps {
     hideOnLeave?: boolean;
     makeLink?: () => Opt<Doc>;
+    xMargin?: number;
+    yMargin?: number;
 }
 
 const richTextSchema = createSchema({
@@ -1204,9 +1206,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             <div className={`formattedTextBox-cont`} ref={this._ref}
                 style={{
                     height: this.layoutDoc._autoHeight && this.props.renderDepth ? "max-content" : `calc(100% - ${this.props.ChromeHeight?.() || 0}px`,
-                    background: this.props.hideOnLeave ? "rgba(0,0,0 ,0.4)" : StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"]),
+                    background: StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"], this.props.hideOnLeave ? "rgba(0,0,0 ,0.4)" : ""),
                     opacity: this.props.hideOnLeave ? (this._entered ? 1 : 0.1) : 1,
-                    color: this.props.hideOnLeave ? "white" : "inherit",
+                    color: StrCast(this.layoutDoc[this.props.fieldKey + "-color"], this.props.hideOnLeave ? "white" : "inherit"),
                     pointerEvents: interactive ? "none" : undefined,
                     fontSize: Cast(this.layoutDoc._fontSize, "number", null),
                     fontFamily: StrCast(this.layoutDoc._fontFamily, "inherit"),
@@ -1227,7 +1229,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 <div className={`formattedTextBox-outer`} style={{ width: `calc(100% - ${this.sidebarWidthPercent})`, }} onScroll={this.onscrolled} ref={this._scrollRef}>
                     <div className={`formattedTextBox-inner${rounded}`} ref={this.createDropTarget}
                         style={{
-                            padding: `${NumCast(this.layoutDoc._yMargin, 0)}px  ${NumCast(this.layoutDoc._xMargin, 0)}px`,
+                            padding: `${NumCast(this.layoutDoc._yMargin, this.props.yMargin || 0)}px  ${NumCast(this.layoutDoc._xMargin, this.props.xMargin || 0)}px`,
                             pointerEvents: ((this.layoutDoc.isLinkButton || this.props.onClick) && !this.props.isSelected()) ? "none" : undefined
                         }} />
                 </div>
