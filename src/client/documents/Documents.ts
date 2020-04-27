@@ -408,7 +408,6 @@ export namespace Docs {
                     const doc = StackingDocument(deviceImages, { title: device.title, _LODdisable: true });
                     const deviceProto = Doc.GetProto(doc);
                     deviceProto.hero = new ImageField(constructed[0].url);
-                    deviceProto.fontFamily = "Arial";
                     Docs.Get.FromJson({ data: device, appendToExisting: { targetDoc: deviceProto } });
                     Doc.AddDocToList(parentProto, "data", doc);
                 } else if (errors) {

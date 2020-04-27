@@ -860,15 +860,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             });
             const startupText = !rtfField && this._editorView && Field.toString(this.dataDoc[fieldKey] as Field);
             if (startupText) {
-                const paragraphSegments = startupText.split("\n\n");
                 const { state: { tr }, dispatch } = this._editorView;
-                if (paragraphSegments.length) {
-                    for (const paragraph of paragraphSegments) {
-                        dispatch(tr.insertText(paragraph));
-                    }
-                } else {
-                    dispatch(tr.insertText(startupText));
-                }
+                dispatch(tr.insertText(startupText));
             }
         }
 

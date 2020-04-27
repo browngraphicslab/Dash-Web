@@ -16,7 +16,7 @@ interface DocumentContents {
     hyperlinks: string[];
     captions: string[];
     embeddedFileNames: string[];
-    longDescriptionParagraphs: string[];
+    longDescription: string;
 }
 
 export interface DeviceDocument {
@@ -269,7 +269,7 @@ async function extractFileContents(pathToDocument: string): Promise<DocumentCont
     const paragraphs = document.find('//*[name()="w:p"]').map(node => Utilities.correctSentences(node.text()).transformed!);
     const start = paragraphs.indexOf(paragraphs.find(el => /Bill Buxton[’']s Notes/.test(el))!) + 1;
     const end = paragraphs.indexOf("Device Details");
-    const longDescriptionParagraphs = paragraphs.slice(start, end);
+    const longDescription = paragraphs.slice(start, end).filter(paragraph => paragraph.length).join("\n\n");
 
     const { length } = captionTargets;
     strictEqual(length > 3, true, "No captions written.");
@@ -292,7 +292,7 @@ async function extractFileContents(pathToDocument: string): Promise<DocumentCont
 
     zip.close();
 
-    return { body, longDescriptionParagraphs, imageData, captions, embeddedFileNames, hyperlinks };
+    return { body, longDescription, imageData, captions, embeddedFileNames, hyperlinks };
 }
 
 const imageEntry = /^word\/media\/\w+\.(jpeg|jpg|png|gif)/;
@@ -308,26 +308,30 @@ async function writeImages(zip: any): Promise<ImageData[]> {
     const imageEntries = allEntries.filter(name => imageEntry.test(name));
 
     const imageUrls: ImageData[] = [];
-    for (const mediaPath of imageEntries) {
-        const getImageStream = () => new Promise<Readable>((resolve, reject) => {
-            zip.stream(mediaPath, (error: any, stream: any) => error ? reject(error) : resolve(stream));
-        });
+    const valid: any[] = [];
 
+    const getImageStream = (mediaPath: string) => new Promise<Readable>((resolve, reject) => {
+        zip.stream(mediaPath, (error: any, stream: any) => error ? reject(error) : resolve(stream));
+    });
+
+    for (const mediaPath of imageEntries) {
         const { width, height, type } = await new Promise<Dimensions>(async resolve => {
             const sizeStream = (createImageSizeStream() as PassThrough).on('size', (dimensions: Dimensions) => {
                 readStream.destroy();
                 resolve(dimensions);
             }).on("error", () => readStream.destroy());
-            const readStream = await getImageStream();
+            const readStream = await getImageStream(mediaPath);
             readStream.pipe(sizeStream);
         });
-        if (Math.abs(width - height) < 10) {
-            continue;
+
+        if (Math.abs(width - height) > 10) {
+            valid.push({ width, height, type, mediaPath });
         }
+    }
 
+    for (const { type, width, height, mediaPath } of valid) {
         const generatedFileName = `upload_${Utils.GenerateGuid()}.${type.toLowerCase()}`;
-        await DashUploadUtils.outputResizedImages(getImageStream, generatedFileName, imageDir);
-
+        await DashUploadUtils.outputResizedImages(() => getImageStream(mediaPath), generatedFileName, imageDir);
         imageUrls.push({
             url: `/files/images/buxton/${generatedFileName}`,
             nativeWidth: width,
@@ -339,11 +343,12 @@ async function writeImages(zip: any): Promise<ImageData[]> {
 }
 
 function analyze(fileName: string, contents: DocumentContents): AnalysisResult {
-    const { body, imageData, captions, hyperlinks, embeddedFileNames, longDescriptionParagraphs } = contents;
+    const { body, imageData, captions, hyperlinks, embeddedFileNames, longDescription } = contents;
     const device: any = {
         hyperlinks,
         captions,
         embeddedFileNames,
+        longDescription,
         __images: imageData
     };
     const errors: { [key: string]: string } = { fileName };
@@ -378,7 +383,6 @@ function analyze(fileName: string, contents: DocumentContents): AnalysisResult {
         return { errors };
     }
 
-    device.longDescription = longDescriptionParagraphs.join("\n\n");
     return { device };
 }
 
