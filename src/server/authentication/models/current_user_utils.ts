@@ -20,6 +20,7 @@ import { PrefetchProxy } from "../../../new_fields/Proxy";
 import { FormattedTextBox } from "../../../client/views/nodes/FormattedTextBox";
 import { MainView } from "../../../client/views/MainView";
 import { DocumentType } from "../../../client/documents/DocumentTypes";
+import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 
 export class CurrentUserUtils {
     private static curr_id: string;
@@ -108,10 +109,15 @@ export class CurrentUserUtils {
             const detailViewOpts = { title: "detailView", _width: 300, _fontFamily: "Arial", _fontSize: 12 };
             const descriptionWrapperOpts = { title: "descriptions", _height: 300, columnWidth: -1, treeViewHideTitle: true, _pivotField: "title" };
 
-            const descriptionWrapper = MasonryDocument([short, long], { ...shared, ...descriptionWrapperOpts });
-            const detailView = Docs.Create.StackingDocument([carousel, details, descriptionWrapper], { ...shared, ...detailViewOpts });
+            const descriptionWrapper = MasonryDocument([details, short, long], { ...shared, ...descriptionWrapperOpts });
+            descriptionWrapper.sectionHeaders = new List<SchemaHeaderField>([
+                new SchemaHeaderField("[Long Description]", "LemonChiffon", undefined, undefined, undefined, true),
+                new SchemaHeaderField("[Details]", "lightBlue", undefined, undefined, undefined, true),
+            ]);
+            const detailView = Docs.Create.StackingDocument([carousel, descriptionWrapper], { ...shared, ...detailViewOpts });
             detailView.isTemplateDoc = makeTemplate(detailView);
 
+            details.title = "Details";
             short.title = "A Short Description";
             long.title = "Long Description";
 

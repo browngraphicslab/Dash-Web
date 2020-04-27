@@ -218,7 +218,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     public hyperlinkTerms = (terms: string[], target: Doc) => {
         if (this._editorView && (this._editorView as any).docView && terms.some(t => t)) {
             const res = terms.filter(t => t).map(term => this.findInNode(this._editorView!, this._editorView!.state.doc, term));
-            let tr = this._editorView.state.tr;
+            const tr = this._editorView.state.tr;
             const flattened: TextSelection[] = [];
             res.map(r => r.map(h => flattened.push(h)));
             const lastSel = Math.min(flattened.length - 1, this._searchIndex);
