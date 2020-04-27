@@ -20,10 +20,7 @@ import { ContentFittingDocumentView } from './ContentFittingDocumentView';
 library.add(faImage, faEye as any, faPaintBrush, faBrain);
 library.add(faFileAudio, faAsterisk);
 
-export const pageSchema = createSchema({
-    beforeDoc: "string",
-    afterDoc: "string"
-});
+export const pageSchema = createSchema({});
 
 type ComparisonDocument = makeInterface<[typeof pageSchema, typeof documentSchema]>;
 const ComparisonDocument = makeInterface(pageSchema, documentSchema);
@@ -39,14 +36,16 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
 
     protected createDropTarget = (ele: HTMLDivElement | null, fieldKey: string) => {
         if (ele) {
-            return DragManager.MakeDropTarget(ele, (event, dropEvent) => this.dropHandler(event, dropEvent, fieldKey));
+            this.props.Document.targetDropAction = "alias";
+            return DragManager.MakeDropTarget(ele, (event, dropEvent) => this.dropHandler(event, dropEvent, fieldKey), this.props.Document);
         }
     }
 
     private dropHandler = (event: Event, dropEvent: DragManager.DropEvent, fieldKey: string) => {
+        event.stopPropagation();
         const droppedDocs = dropEvent.complete.docDragData?.droppedDocuments;
         if (droppedDocs?.length) {
-            this.props.Document[fieldKey] = Doc.MakeAlias(droppedDocs[0]);
+            this.props.Document[fieldKey] = droppedDocs[0];
         }
     }
 
