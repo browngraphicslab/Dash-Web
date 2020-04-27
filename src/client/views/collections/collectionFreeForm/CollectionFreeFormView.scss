@@ -9,6 +9,17 @@
     height: 100%;
     transform-origin: left top;
     border-radius: inherit;
+    touch-action: none;
+    border-radius: inherit;
+}
+
+.collectionfreeformview-viewdef {
+    > .collectionFreeFormDocumentView-container {
+        pointer-events: none;
+        .contentFittingDocumentDocumentView-previewDoc {
+            pointer-events: all;
+        }
+    }
 }
 
 .collectionfreeformview-ease {

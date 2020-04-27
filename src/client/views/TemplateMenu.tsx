@@ -14,6 +14,7 @@ import { returnTrue, emptyFunction, returnFalse, returnOne, emptyPath, returnZer
 import { Transform } from "../util/Transform";
 import { ScriptField, ComputedField } from "../../new_fields/ScriptField";
 import { Scripting } from "../util/Scripting";
+import { List } from "../../new_fields/List";
 
 @observer
 class TemplateToggle extends React.Component<{ template: Template, checked: boolean, toggle: (event: React.ChangeEvent<HTMLInputElement>, template: Template) => void }> {
@@ -106,14 +107,13 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
 
     return100 = () => 100;
     @computed get scriptField() {
-        return ScriptField.MakeScript("switchView(firstDoc, this)", { this: Doc.name, heading: "string", checked: "string", containingTreeView: Doc.name, firstDoc: Doc.name },
-            { firstDoc: this.props.docViews[0].props.Document });
+        return ScriptField.MakeScript("docs.map(d => switchView(d, this))", { this: Doc.name, heading: "string", checked: "string", containingTreeView: Doc.name, firstDoc: Doc.name },
+            { docs: new List<Doc>(this.props.docViews.map(dv => dv.props.Document)) });
     }
     render() {
         const firstDoc = this.props.docViews[0].props.Document;
         const templateName = StrCast(firstDoc.layoutKey, "layout").replace("layout_", "");
-        const noteTypesDoc = Cast(Doc.UserDoc().noteTypes, Doc, null);
-        const noteTypes = DocListCast(noteTypesDoc?.data);
+        const noteTypes = DocListCast(Cast(Doc.UserDoc()["template-notes"], Doc, null));
         const addedTypes = DocListCast(Cast(Doc.UserDoc().templateButtons, Doc, null)?.data);
         const layout = Doc.Layout(firstDoc);
         const templateMenu: Array<JSX.Element> = [];
@@ -123,11 +123,9 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
         templateMenu.push(<OtherToggle key={"float"} name={"Float"} checked={firstDoc.z ? true : false} toggle={this.toggleFloat} />);
         templateMenu.push(<OtherToggle key={"chrome"} name={"Chrome"} checked={layout._chromeStatus !== "disabled"} toggle={this.toggleChrome} />);
         templateMenu.push(<OtherToggle key={"default"} name={"Default"} checked={templateName === "layout"} toggle={this.toggleDefault} />);
-        if (noteTypesDoc) {
-            addedTypes.concat(noteTypes).map(template => template.treeViewChecked = ComputedField.MakeFunction(`templateIsUsed(self,firstDoc)`, {}, { firstDoc }));
-            this._addedKeys && Array.from(this._addedKeys).filter(key => !noteTypes.some(nt => nt.title === key)).forEach(template => templateMenu.push(
-                <OtherToggle key={template} name={template} checked={templateName === template} toggle={e => this.toggleLayout(e, template)} />));
-        }
+        addedTypes.concat(noteTypes).map(template => template.treeViewChecked = ComputedField.MakeFunction(`templateIsUsed(self,firstDoc)`, {}, { firstDoc }));
+        this._addedKeys && Array.from(this._addedKeys).filter(key => !noteTypes.some(nt => nt.title === key)).forEach(template => templateMenu.push(
+            <OtherToggle key={template} name={template} checked={templateName === template} toggle={e => this.toggleLayout(e, template)} />));
         return <ul className="template-list" style={{ display: "block" }}>
             <input placeholder="+ layout" ref={this._customRef} onKeyPress={this.onCustomKeypress} />
             {templateMenu}
@@ -172,7 +170,7 @@ Scripting.addGlobal(function switchView(doc: Doc, template: Doc | undefined) {
         template = Cast(template.dragFactory, Doc, null);
     }
     const templateTitle = StrCast(template?.title);
-    return templateTitle && DocumentView.makeCustomViewClicked(doc, Docs.Create.FreeformDocument, templateTitle, template);
+    return templateTitle && Doc.makeCustomViewClicked(doc, Docs.Create.FreeformDocument, templateTitle, template);
 });
 
 Scripting.addGlobal(function templateIsUsed(templateDoc: Doc, selDoc: Doc) {

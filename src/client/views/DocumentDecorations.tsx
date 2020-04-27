@@ -165,8 +165,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         return true;
     }
 
-    onCloseDown = (e: React.PointerEvent): void => {
-        setupMoveUpEvents(this, e, (e, d) => false, (e) => { }, this.onMinimizeClick);
+    onIconifyDown = (e: React.PointerEvent): void => {
+        setupMoveUpEvents(this, e, (e, d) => false, (e) => { }, this.onIconifyClick);
     }
     @undoBatch
     @action
@@ -193,28 +193,16 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             const selectedDocs = SelectionManager.SelectedDocuments();
             if (selectedDocs.length) {
                 //CollectionDockingView.Instance?.OpenFullScreen(selectedDocs[0], selectedDocs[0].props.LibraryPath);
-                CollectionDockingView.AddRightSplit(selectedDocs[0].props.Document, selectedDocs[0].props.LibraryPath);
+                CollectionDockingView.AddRightSplit(Doc.MakeAlias(selectedDocs[0].props.Document), selectedDocs[0].props.LibraryPath);
             }
         }
         SelectionManager.DeselectAll();
     }
     @undoBatch
     @action
-    onMinimizeClick = (e: PointerEvent): void => {
+    onIconifyClick = (e: PointerEvent): void => {
         if (e.button === 0) {
-            const selectedDocs = SelectionManager.SelectedDocuments().map(sd => sd);
-            selectedDocs.map(dv => {
-                const layoutKey = Cast(dv.props.Document.layoutKey, "string", null);
-                const collapse = layoutKey !== "layout_icon";
-                if (collapse) {
-                    dv.switchViews(collapse, "icon");
-                    if (layoutKey && layoutKey !== "layout") dv.props.Document.deiconifyLayout = layoutKey.replace("layout_", "");
-                } else {
-                    const deiconifyLayout = Cast(dv.props.Document.deiconifyLayout, "string", null);
-                    dv.switchViews(deiconifyLayout ? true : false, deiconifyLayout);
-                    dv.props.Document.deiconifyLayout = undefined;
-                }
-            });
+            SelectionManager.SelectedDocuments().forEach(dv => dv?.iconify());
         }
         SelectionManager.DeselectAll();
     }
@@ -408,9 +396,9 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             <div className="documentDecorations-contextMenu" title="Show context menu" onPointerDown={this.onSettingsDown}>
                 <FontAwesomeIcon size="lg" icon="cog" />
             </div>) : (
-                <div className="documentDecorations-minimizeButton" title="Iconify" onPointerDown={this.onMaximizeDown}>
+                <div className="documentDecorations-minimizeButton" title="Iconify" onPointerDown={this.onIconifyDown}>
                     {/* Currently, this is set to be enabled if there is no ink selected. It might be interesting to think about minimizing ink if it's useful? -syip2*/}
-                    {SelectionManager.SelectedDocuments().length === 1 ? DocumentDecorations.DocumentIcon(StrCast(seldoc.props.Document.layout, "...")) : "..."}
+                    <FontAwesomeIcon className="documentdecorations-times" icon={faTimes} size="lg" />
                 </div>);
 
         const titleArea = this._edtingTitle ?
@@ -465,8 +453,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
             }}>
                 {maximizeIcon}
                 {titleArea}
-                <div className="documentDecorations-closeButton" title="Close Document" onPointerDown={this.onCloseDown}>
-                    <FontAwesomeIcon className="documentdecorations-times" icon={faTimes} size="lg" />
+                <div className="documentDecorations-closeButton" title="Open Document in Tab" onPointerDown={this.onMaximizeDown}>
+                    {SelectionManager.SelectedDocuments().length === 1 ? DocumentDecorations.DocumentIcon(StrCast(seldoc.props.Document.layout, "...")) : "..."}
                 </div>
                 <div id="documentDecorations-topLeftResizer" className="documentDecorations-resizer"
                     onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>

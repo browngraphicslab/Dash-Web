@@ -143,7 +143,6 @@ $linkGap : 3px;
     pointer-events: all;
     text-align: center;
     cursor: pointer;
-    padding-right: 10px;
 }
 
 .documentDecorations-minimizeButton {
@@ -157,7 +156,6 @@ $linkGap : 3px;
     position: absolute;
     left: 0px;
     top: 0px;
-    padding-top: 5px;
     width: $MINIMIZED_ICON_SIZE;
     height: $MINIMIZED_ICON_SIZE;
     max-height: 20px;

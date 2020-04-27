@@ -1,5 +1,5 @@
 import { Doc, Field, DocListCast } from "../../new_fields/Doc";
-import { Cast, ScriptCast } from "../../new_fields/Types";
+import { Cast, ScriptCast, StrCast } from "../../new_fields/Types";
 import { emptyFunction } from "../../Utils";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import * as globalCssVariables from "../views/globalCssVariables.scss";
@@ -83,6 +83,7 @@ export namespace DragManager {
     }
     export let AbortDrag: () => void = emptyFunction;
     export type MoveFunction = (document: Doc, targetCollection: Doc | undefined, addDocument: (document: Doc) => boolean) => boolean;
+    export type RemoveFunction = (document: Doc) => boolean;
 
     export interface DragDropDisposer { (): void; }
     export interface DragOptions {
@@ -138,6 +139,7 @@ export namespace DragManager {
         userDropAction: dropActionType;
         embedDoc?: boolean;
         moveDocument?: MoveFunction;
+        removeDocument?: RemoveFunction;
         isSelectionMove?: boolean; // indicates that an explicitly selected Document is being dragged.  this will suppress onDragStart scripts
     }
     export class LinkDragData {
@@ -177,7 +179,8 @@ export namespace DragManager {
 
     export function MakeDropTarget(
         element: HTMLElement,
-        dropFunc: (e: Event, de: DropEvent) => void
+        dropFunc: (e: Event, de: DropEvent) => void,
+        doc?: Doc
     ): DragDropDisposer {
         if ("canDrop" in element.dataset) {
             throw new Error(
@@ -185,10 +188,18 @@ export namespace DragManager {
             );
         }
         element.dataset.canDrop = "true";
-        const handler = (e: Event) => { dropFunc(e, (e as CustomEvent<DropEvent>).detail); };
+        const handler = (e: Event) => dropFunc(e, (e as CustomEvent<DropEvent>).detail);
+        const preDropHandler = (e: Event) => {
+            const de = (e as CustomEvent<DropEvent>).detail;
+            if (de.complete.docDragData && doc?.targetDropAction) {
+                de.complete.docDragData.dropAction = StrCast(doc.targetDropAction) as dropActionType;
+            }
+        };
         element.addEventListener("dashOnDrop", handler);
+        doc && element.addEventListener("dashPreDrop", preDropHandler);
         return () => {
             element.removeEventListener("dashOnDrop", handler);
+            doc && element.removeEventListener("dashPreDrop", preDropHandler);
             delete element.dataset.canDrop;
         };
     }
@@ -351,12 +362,17 @@ export namespace DragManager {
 
         let lastX = downX;
         let lastY = downY;
+        let alias = "alias";
         const moveHandler = (e: PointerEvent) => {
             e.preventDefault(); // required or dragging text menu link item ends up dragging the link button as native drag/drop
             if (dragData instanceof DocumentDragData) {
                 dragData.userDropAction = e.ctrlKey && e.altKey ? "copy" : e.ctrlKey ? "alias" : undefined;
             }
             if (e.shiftKey && CollectionDockingView.Instance && dragData.droppedDocuments.length === 1) {
+                !dragData.dropAction && (dragData.dropAction = alias);
+                if (dragData.dropAction === "move") {
+                    dragData.removeDocument?.(dragData.draggedDocuments[0]);
+                }
                 AbortDrag();
                 finishDrag?.(new DragCompleteEvent(true, dragData));
                 CollectionDockingView.Instance.StartOtherDrag({
@@ -366,7 +382,7 @@ export namespace DragManager {
                     button: 0
                 }, dragData.droppedDocuments);
             }
-            //TODO: Why can't we use e.movementX and e.movementY?
+            alias = "move";
             const moveX = e.pageX - lastX;
             const moveY = e.pageY - lastY;
             lastX = e.pageX;
@@ -418,6 +434,20 @@ export namespace DragManager {
         });
         if (target) {
             const complete = new DragCompleteEvent(false, dragData);
+            target.dispatchEvent(
+                new CustomEvent<DropEvent>("dashPreDrop", {
+                    bubbles: true,
+                    detail: {
+                        x: e.x,
+                        y: e.y,
+                        complete: complete,
+                        shiftKey: e.shiftKey,
+                        altKey: e.altKey,
+                        metaKey: e.metaKey,
+                        ctrlKey: e.ctrlKey
+                    }
+                })
+            );
             finishDrag?.(complete);
             target.dispatchEvent(
                 new CustomEvent<DropEvent>("dashOnDrop", {

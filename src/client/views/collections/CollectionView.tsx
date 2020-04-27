@@ -47,6 +47,7 @@ import { ObjectField } from '../../../new_fields/ObjectField';
 import CollectionMapView from './CollectionMapView';
 import { Transform } from 'prosemirror-transform';
 import { CollectionGridView } from './collectionGrid/CollectionGridView';
+import { CollectionPileView } from './CollectionPileView';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -69,7 +70,8 @@ export enum CollectionViewType {
     Linear = "linear",
     Staff = "staff",
     Map = "map",
-    Grid = "grid"
+    Grid = "grid",
+    Pile = "pileup"
 }
 
 export interface CollectionRenderProps {
@@ -171,6 +173,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
             case CollectionViewType.Multicolumn: return (<CollectionMulticolumnView key="collview" {...props} />);
             case CollectionViewType.Multirow: return (<CollectionMultirowView key="rpwview" {...props} />);
             case CollectionViewType.Linear: { return (<CollectionLinearView key="collview" {...props} />); }
+            case CollectionViewType.Pile: { return (<CollectionPileView key="collview" {...props} />); }
             case CollectionViewType.Carousel: { return (<CollectionCarouselView key="collview" {...props} />); }
             case CollectionViewType.Stacking: { this.props.Document.singleColumn = true; return (<CollectionStackingView key="collview" {...props} />); }
             case CollectionViewType.Masonry: { this.props.Document.singleColumn = false; return (<CollectionStackingView key="collview" {...props} />); }
@@ -204,7 +207,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
             ContextMenu.Instance.addItem({ description: "Test Freeform", event: () => func(CollectionViewType.Invalid), icon: "project-diagram" });
         }
         subItems.push({ description: "Schema", event: () => func(CollectionViewType.Schema), icon: "th-list" });
-        subItems.push({ description: "Treeview", event: () => func(CollectionViewType.Tree), icon: "tree" });
+        subItems.push({ description: "Tree", event: () => func(CollectionViewType.Tree), icon: "tree" });
         subItems.push({ description: "Stacking", event: () => func(CollectionViewType.Stacking), icon: "ellipsis-v" });
         subItems.push({ description: "Stacking (AutoHeight)", event: () => func(CollectionViewType.Stacking)._autoHeight = true, icon: "ellipsis-v" });
         subItems.push({ description: "Staff", event: () => func(CollectionViewType.Staff), icon: "music" });
@@ -256,7 +259,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
             !existingVm && ContextMenu.Instance.addItem({ description: "View Modes...", subitems: subItems, icon: "eye" });
 
             this.setupViewTypes("Change Perspective...", (vtype => { this.props.Document._viewType = vtype; return this.props.Document; }), true);
-            this.setupViewTypes("Open New Perspective...", vtype => {
+            this.setupViewTypes("Add a Perspective...", vtype => {
                 const newRendition = Doc.MakeAlias(this.props.Document);
                 newRendition._viewType = vtype;
                 this.props.addDocTab(newRendition, "onRight");
@@ -524,7 +527,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
             {!this.props.isSelected() || this.props.PanelHeight() < 100 || this.props.Document.hideFilterView ? (null) :
                 <div className="collectionTimeView-dragger" title="library View Dragger" onPointerDown={this.onPointerDown} style={{ right: this.facetWidth() - 10 }} />
             }
-            {this.filterView}
+            {this.facetWidth() < 10 ? (null) : this.filterView}
         </div>);
     }
 }

@@ -13,22 +13,24 @@ import { EditorState, NodeSelection, Plugin, TextSelection, Transaction } from "
 import { ReplaceStep } from 'prosemirror-transform';
 import { EditorView } from "prosemirror-view";
 import { DateField } from '../../../new_fields/DateField';
-import { DataSym, Doc, DocListCastAsync, Field, HeightSym, Opt, WidthSym, DocListCast } from "../../../new_fields/Doc";
+import { DataSym, Doc, DocListCast, DocListCastAsync, Field, HeightSym, Opt, WidthSym } from "../../../new_fields/Doc";
 import { documentSchema } from '../../../new_fields/documentSchemas';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { InkTool } from '../../../new_fields/InkField';
+import { PrefetchProxy } from '../../../new_fields/Proxy';
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { RichTextUtils } from '../../../new_fields/RichTextUtils';
 import { createSchema, makeInterface } from "../../../new_fields/Schema";
-import { Cast, NumCast, StrCast, BoolCast, DateCast } from "../../../new_fields/Types";
+import { Cast, DateCast, NumCast, StrCast } from "../../../new_fields/Types";
 import { TraceMobx } from '../../../new_fields/util';
-import { addStyleSheet, addStyleSheetRule, clearStyleSheetRules, emptyFunction, numberRange, returnOne, Utils, returnTrue, returnZero } from '../../../Utils';
+import { addStyleSheet, addStyleSheetRule, clearStyleSheetRules, emptyFunction, numberRange, returnOne, returnZero, Utils } from '../../../Utils';
 import { GoogleApiClientUtils, Pulls, Pushes } from '../../apis/google_docs/GoogleApiClientUtils';
 import { DocServer } from "../../DocServer";
 import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentType } from '../../documents/DocumentTypes';
 import { DictationManager } from '../../util/DictationManager';
 import { DragManager } from "../../util/DragManager";
+import { makeTemplate } from '../../util/DropConverter';
 import buildKeymap from "../../util/ProsemirrorExampleTransfer";
 import RichTextMenu from '../../util/RichTextMenu';
 import { RichTextRules } from "../../util/RichTextRules";
@@ -46,9 +48,6 @@ import { FieldView, FieldViewProps } from "./FieldView";
 import "./FormattedTextBox.scss";
 import { FormattedTextBoxComment, formattedTextBoxCommentPlugin } from './FormattedTextBoxComment';
 import React = require("react");
-import { PrefetchProxy } from '../../../new_fields/Proxy';
-import { makeTemplate } from '../../util/DropConverter';
-import { DocumentView } from './DocumentView';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -84,17 +83,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     private _lastX = 0;
     private _lastY = 0;
     private _undoTyping?: UndoManager.Batch;
-    private _searchReactionDisposer?: Lambda;
-    private _recordReactionDisposer: Opt<IReactionDisposer>;
-    private _scrollToRegionReactionDisposer: Opt<IReactionDisposer>;
-    private _reactionDisposer: Opt<IReactionDisposer>;
-    private _heightReactionDisposer: Opt<IReactionDisposer>;
-    private _proxyReactionDisposer: Opt<IReactionDisposer>;
-    private _pullReactionDisposer: Opt<IReactionDisposer>;
-    private _pushReactionDisposer: Opt<IReactionDisposer>;
-    private _buttonBarReactionDisposer: Opt<IReactionDisposer>;
-    private _linkMakerDisposer: Opt<IReactionDisposer>;
-    private _scrollDisposer: Opt<IReactionDisposer>;
+    private _disposers: { [name: string]: IReactionDisposer } = {};
     private dropDisposer?: DragManager.DragDropDisposer;
 
     @computed get _recording() { return this.dataDoc.audioState === "recording"; }
@@ -195,7 +184,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
             const tsel = this._editorView.state.selection.$from;
             tsel.marks().filter(m => m.type === this._editorView!.state.schema.marks.user_mark).map(m => AudioBox.SetScrubTime(Math.max(0, m.attrs.modified * 1000)));
-            const curText = state.doc.textBetween(0, state.doc.content.size, "\n\n");
+            const curText = state.doc.textBetween(0, state.doc.content.size, " \n");
             const curTemp = Cast(this.props.Document[this.props.fieldKey + "-textTemplate"], RichTextField);
             if (!this._applyingChange) {
                 this._applyingChange = true;
@@ -223,6 +212,23 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         }
     }
 
+    // needs a better API for taking in a set of words with target documents instead of just one target
+    public hyperlinkTerms = (terms: string[], target: Doc) => {
+        if (this._editorView && (this._editorView as any).docView && terms.some(t => t)) {
+            const res = terms.filter(t => t).map(term => this.findInNode(this._editorView!, this._editorView!.state.doc, term));
+            let tr = this._editorView.state.tr;
+            const flattened: TextSelection[] = [];
+            res.map(r => r.map(h => flattened.push(h)));
+            const lastSel = Math.min(flattened.length - 1, this._searchIndex);
+            this._searchIndex = ++this._searchIndex > flattened.length - 1 ? 0 : this._searchIndex;
+            const alink = DocUtils.MakeLink({ doc: this.props.Document }, { doc: target }, "automatic")!;
+            const link = this._editorView.state.schema.marks.link.create({
+                href: Utils.prepend("/doc/" + alink[Id]),
+                title: "a link", location: location, linkId: alink[Id], targetId: target[Id]
+            });
+            this._editorView.dispatch(tr.addMark(flattened[lastSel].from, flattened[lastSel].to, link));
+        }
+    }
     public highlightSearchTerms = (terms: string[]) => {
         if (this._editorView && (this._editorView as any).docView && terms.some(t => t)) {
             const mark = this._editorView.state.schema.mark(this._editorView.state.schema.marks.search_highlight);
@@ -254,7 +260,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     protected createDropTarget = (ele: HTMLDivElement) => {
         this.ProseRef = ele;
         this.dropDisposer?.();
-        ele && (this.dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this)));
+        ele && (this.dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this), this.props.Document));
     }
 
     @undoBatch
@@ -342,10 +348,10 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     updateHighlights = () => {
         clearStyleSheetRules(FormattedTextBox._userStyleSheet);
         if (FormattedTextBox._highlights.indexOf("Text from Others") !== -1) {
-            addStyleSheetRule(FormattedTextBox._userStyleSheet, "userMark-remote", { background: "yellow" });
+            addStyleSheetRule(FormattedTextBox._userStyleSheet, "UM-remote", { background: "yellow" });
         }
         if (FormattedTextBox._highlights.indexOf("My Text") !== -1) {
-            addStyleSheetRule(FormattedTextBox._userStyleSheet, "userMark-" + Doc.CurrentUserEmail.replace(".", "").replace("@", ""), { background: "moccasin" });
+            addStyleSheetRule(FormattedTextBox._userStyleSheet, "UM-" + Doc.CurrentUserEmail.replace(".", "").replace("@", ""), { background: "moccasin" });
         }
         if (FormattedTextBox._highlights.indexOf("Todo Items") !== -1) {
             addStyleSheetRule(FormattedTextBox._userStyleSheet, "userTag-" + "todo", { outline: "black solid 1px" });
@@ -360,15 +366,15 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             addStyleSheetRule(FormattedTextBox._userStyleSheet, "userTag-" + "ignore", { "font-size": "1" });
         }
         if (FormattedTextBox._highlights.indexOf("By Recent Minute") !== -1) {
-            addStyleSheetRule(FormattedTextBox._userStyleSheet, "userMark-" + Doc.CurrentUserEmail.replace(".", "").replace("@", ""), { opacity: "0.1" });
+            addStyleSheetRule(FormattedTextBox._userStyleSheet, "UM-" + Doc.CurrentUserEmail.replace(".", "").replace("@", ""), { opacity: "0.1" });
             const min = Math.round(Date.now() / 1000 / 60);
-            numberRange(10).map(i => addStyleSheetRule(FormattedTextBox._userStyleSheet, "userMark-min-" + (min - i), { opacity: ((10 - i - 1) / 10).toString() }));
+            numberRange(10).map(i => addStyleSheetRule(FormattedTextBox._userStyleSheet, "UM-min-" + (min - i), { opacity: ((10 - i - 1) / 10).toString() }));
             setTimeout(() => this.updateHighlights());
         }
         if (FormattedTextBox._highlights.indexOf("By Recent Hour") !== -1) {
-            addStyleSheetRule(FormattedTextBox._userStyleSheet, "userMark-" + Doc.CurrentUserEmail.replace(".", "").replace("@", ""), { opacity: "0.1" });
+            addStyleSheetRule(FormattedTextBox._userStyleSheet, "UM-" + Doc.CurrentUserEmail.replace(".", "").replace("@", ""), { opacity: "0.1" });
             const hr = Math.round(Date.now() / 1000 / 60 / 60);
-            numberRange(10).map(i => addStyleSheetRule(FormattedTextBox._userStyleSheet, "userMark-hr-" + (hr - i), { opacity: ((10 - i - 1) / 10).toString() }));
+            numberRange(10).map(i => addStyleSheetRule(FormattedTextBox._userStyleSheet, "UM-hr-" + (hr - i), { opacity: ((10 - i - 1) / 10).toString() }));
         }
     }
 
@@ -404,8 +410,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         funcs.push({ description: "Reset Default Layout", event: () => Doc.UserDoc().defaultTextLayout = undefined, icon: "eye" });
         !this.props.Document.rootDocument && funcs.push({
             description: "Make Template", event: () => {
-                this.props.Document.isTemplateDoc = makeTemplate(this.props.Document, true);
-                Doc.AddDocToList(Cast(Doc.UserDoc().noteTypes, Doc, null), "data", this.props.Document);
+                this.props.Document.isTemplateDoc = makeTemplate(this.props.Document);
+                Doc.AddDocToList(Cast(Doc.UserDoc()["template-notes"], Doc, null), "data", this.props.Document);
             }, icon: "eye"
         });
         funcs.push({ description: "Toggle Single Line", event: () => this.props.Document._singleLine = !this.props.Document._singleLine, icon: "expand-arrows-alt" });
@@ -433,30 +439,29 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         const change = cm.findByDescription("Change Perspective...");
         const changeItems: ContextMenuProps[] = change && "subitems" in change ? change.subitems : [];
 
-        const noteTypesDoc = Cast(Doc.UserDoc().noteTypes, Doc, null);
-        const noteTypes = DocListCast(noteTypesDoc?.data);
-        noteTypes.forEach(note => {
+        const noteTypesDoc = Cast(Doc.UserDoc()["template-notes"], Doc, null);
+        DocListCast(noteTypesDoc?.data).forEach(note => {
             changeItems.push({
-                description: StrCast(note.title), event: () => {
+                description: StrCast(note.title), event: undoBatch(() => {
                     Doc.setNativeView(this.props.Document);
-                    DocumentView.makeCustomViewClicked(this.rootDoc, Docs.Create.TreeDocument, StrCast(note.title), note);
-                }, icon: "eye"
+                    Doc.makeCustomViewClicked(this.rootDoc, Docs.Create.TreeDocument, StrCast(note.title), note);
+                }), icon: "eye"
             });
         });
-        changeItems.push({ description: "FreeForm", event: () => DocumentView.makeCustomViewClicked(this.rootDoc, Docs.Create.FreeformDocument, "freeform"), icon: "eye" });
+        changeItems.push({ description: "FreeForm", event: undoBatch(() => Doc.makeCustomViewClicked(this.rootDoc, Docs.Create.FreeformDocument, "freeform"), "change view"), icon: "eye" });
         !change && cm.addItem({ description: "Change Perspective...", subitems: changeItems, icon: "external-link-alt" });
 
-        const open = cm.findByDescription("Open New Perspective...");
+        const open = cm.findByDescription("Add a Perspective...");
         const openItems: ContextMenuProps[] = open && "subitems" in open ? open.subitems : [];
 
         openItems.push({
-            description: "FreeForm", event: () => {
+            description: "FreeForm", event: undoBatch(() => {
                 const alias = Doc.MakeAlias(this.rootDoc);
-                DocumentView.makeCustomViewClicked(alias, Docs.Create.FreeformDocument, "freeform");
+                Doc.makeCustomViewClicked(alias, Docs.Create.FreeformDocument, "freeform");
                 this.props.addDocTab(alias, "onRight");
-            }, icon: "eye"
+            }), icon: "eye"
         });
-        !open && cm.addItem({ description: "Open New Perspective...", subitems: openItems, icon: "external-link-alt" });
+        !open && cm.addItem({ description: "Add a Perspective...", subitems: openItems, icon: "external-link-alt" });
 
     }
 
@@ -566,7 +571,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         }
     }
     componentDidMount() {
-        this._buttonBarReactionDisposer = reaction(
+        this._disposers.buttonBar = reaction(
             () => DocumentButtonBar.Instance,
             instance => {
                 if (instance) {
@@ -575,7 +580,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 }
             }
         );
-        this._linkMakerDisposer = reaction(
+        this._disposers.linkMaker = reaction(
             () => this.props.makeLink?.(),
             (linkDoc: Opt<Doc>) => {
                 if (linkDoc) {
@@ -586,8 +591,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             },
             { fireImmediately: true }
         );
-
-        this._reactionDisposer = reaction(
+        this._disposers.editorState = reaction(
             () => {
                 if (this.dataDoc[this.props.fieldKey + "-noTemplate"] || !this.props.Document[this.props.fieldKey + "-textTemplate"]) {
                     return Cast(this.dataDoc[this.props.fieldKey], RichTextField, null)?.Data;
@@ -602,8 +606,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 }
             }
         );
-
-        this._pullReactionDisposer = reaction(
+        this._disposers.pullDoc = reaction(
             () => this.props.Document[Pulls],
             () => {
                 if (!DocumentButtonBar.hasPulledHack) {
@@ -613,8 +616,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 }
             }
         );
-
-        this._pushReactionDisposer = reaction(
+        this._disposers.pushDoc = reaction(
             () => this.props.Document[Pushes],
             () => {
                 if (!DocumentButtonBar.hasPushedHack) {
@@ -623,19 +625,18 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 }
             }
         );
-
-        this._heightReactionDisposer = reaction(
+        this._disposers.height = reaction(
             () => [this.layoutDoc[WidthSym](), this.layoutDoc._autoHeight],
             () => this.tryUpdateHeight()
         );
 
         this.setupEditor(this.config, this.props.fieldKey);
 
-        this._searchReactionDisposer = reaction(() => this.rootDoc.searchMatch,
+        this._disposers.search = reaction(() => this.rootDoc.searchMatch,
             search => search ? this.highlightSearchTerms([Doc.SearchQuery()]) : this.unhighlightSearchTerms(),
             { fireImmediately: true });
 
-        this._recordReactionDisposer = reaction(() => this._recording,
+        this._disposers.record = reaction(() => this._recording,
             () => {
                 if (this._recording) {
                     setTimeout(action(() => {
@@ -645,8 +646,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 } else setTimeout(() => this.stopDictation(true), 0);
             }
         );
-
-        this._scrollToRegionReactionDisposer = reaction(
+        this._disposers.scrollToRegion = reaction(
             () => StrCast(this.layoutDoc.scrollToLinkID),
             async (scrollToLinkID) => {
                 const findLinkFrag = (frag: Fragment, editor: EditorView) => {
@@ -691,8 +691,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             },
             { fireImmediately: true }
         );
-
-        this._scrollDisposer = reaction(() => NumCast(this.props.Document.scrollPos),
+        this._disposers.scroll = reaction(() => NumCast(this.props.Document.scrollPos),
             pos => this._scrollRef.current && this._scrollRef.current.scrollTo({ top: pos }), { fireImmediately: true }
         );
 
@@ -878,7 +877,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             });
             const startupText = !rtfField && this._editorView && Field.toString(this.dataDoc[fieldKey] as Field);
             if (startupText) {
-                this._editorView.dispatch(this._editorView.state.tr.insertText(startupText));
+                const { state: { tr }, dispatch } = this._editorView;
+                dispatch(tr.insertText(startupText));
             }
         }
 
@@ -908,17 +908,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     }
 
     componentWillUnmount() {
-        this._scrollDisposer?.();
-        this._scrollToRegionReactionDisposer?.();
-        this._reactionDisposer?.();
-        this._proxyReactionDisposer?.();
-        this._pushReactionDisposer?.();
-        this._pullReactionDisposer?.();
-        this._heightReactionDisposer?.();
-        this._searchReactionDisposer?.();
-        this._recordReactionDisposer?.();
-        this._buttonBarReactionDisposer?.();
-        this._linkMakerDisposer?.();
+        Object.values(this._disposers).forEach(disposer => disposer?.());
         this._editorView?.destroy();
     }
 
@@ -1213,13 +1203,13 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         return (
             <div className={`formattedTextBox-cont`} ref={this._ref}
                 style={{
-                    height: this.layoutDoc._autoHeight && this.props.renderDepth ? "max-content" : undefined,
+                    height: this.layoutDoc._autoHeight && this.props.renderDepth ? "max-content" : `calc(100% - ${this.props.ChromeHeight?.() || 0}px`,
                     background: this.props.hideOnLeave ? "rgba(0,0,0 ,0.4)" : StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"]),
                     opacity: this.props.hideOnLeave ? (this._entered ? 1 : 0.1) : 1,
                     color: this.props.hideOnLeave ? "white" : "inherit",
                     pointerEvents: interactive ? "none" : undefined,
-                    fontSize: NumCast(this.layoutDoc.fontSize, 13),
-                    fontFamily: StrCast(this.layoutDoc.fontFamily, "Crimson Text"),
+                    fontSize: Cast(this.layoutDoc._fontSize, "number", null),
+                    fontFamily: StrCast(this.layoutDoc._fontFamily, "inherit"),
                 }}
                 onContextMenu={this.specificContextMenu}
                 onKeyDown={this.onKeyPress}
@@ -1237,7 +1227,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 <div className={`formattedTextBox-outer`} style={{ width: `calc(100% - ${this.sidebarWidthPercent})`, }} onScroll={this.onscrolled} ref={this._scrollRef}>
                     <div className={`formattedTextBox-inner${rounded}`} ref={this.createDropTarget}
                         style={{
-                            padding: `${NumCast(this.layoutDoc._xMargin, 0)}px  ${NumCast(this.layoutDoc._yMargin, 0)}px`,
+                            padding: `${NumCast(this.layoutDoc._yMargin, 0)}px  ${NumCast(this.layoutDoc._xMargin, 0)}px`,
                             pointerEvents: ((this.layoutDoc.isLinkButton || this.props.onClick) && !this.props.isSelected()) ? "none" : undefined
                         }} />
                 </div>

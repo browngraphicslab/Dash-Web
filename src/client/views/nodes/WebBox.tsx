@@ -317,7 +317,8 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         if (field instanceof HtmlField) {
             view = <span id="webBox-htmlSpan" dangerouslySetInnerHTML={{ __html: field.html }} />;
         } else if (field instanceof WebField) {
-            view = <iframe ref={this._iframeRef} onLoad={this.iframeLoaded} src={Utils.CorsProxy(field.url.href)} style={{ position: "absolute", width: "100%", height: "100%", top: 0 }} />;
+            const url = this.layoutDoc.UseCors ? Utils.CorsProxy(field.url.href) : field.url.href;
+            view = <iframe ref={this._iframeRef} onLoad={this.iframeLoaded} src={url} style={{ position: "absolute", width: "100%", height: "100%", top: 0 }} />;
         } else {
             view = <iframe ref={this._iframeRef} src={"https://crossorigin.me/https://cs.brown.edu"} style={{ position: "absolute", width: "100%", height: "100%", top: 0 }} />;
         }

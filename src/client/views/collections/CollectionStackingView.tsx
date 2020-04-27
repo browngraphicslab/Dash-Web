@@ -49,7 +49,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     @computed get columnWidth() {
         TraceMobx();
         return Math.min(this.props.PanelWidth() / (this.props as any).ContentScaling() - 2 * this.xMargin,
-            this.isStackingView ? Number.MAX_VALUE : NumCast(this.props.Document.columnWidth, 250));
+            this.isStackingView ? Number.MAX_VALUE : this.props.Document.columnWidth === -1 ? this.props.PanelWidth() - 2 * this.xMargin : NumCast(this.props.Document.columnWidth, 250));
     }
     @computed get NodeWidth() { return this.props.PanelWidth() - this.gridGap; }
 
@@ -189,8 +189,8 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             active={this.props.active}
             whenActiveChanged={this.props.whenActiveChanged}
             addDocTab={this.addDocTab}
-            pinToPres={this.props.pinToPres}>
-        </ContentFittingDocumentView>;
+            pinToPres={this.props.pinToPres}
+        />;
     }
 
     getDocWidth(d?: Doc) {
@@ -303,7 +303,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                     const doc = this.props.DataDoc && this.props.DataDoc.layout === this.layoutDoc ? this.props.DataDoc : this.layoutDoc;
                     this.observer = new _global.ResizeObserver(action((entries: any) => {
                         if (this.props.Document._autoHeight && ref && this.refList.length && !SelectionManager.GetIsDragging()) {
-                            Doc.Layout(doc)._height = Math.max(...this.refList.map(r => Number(getComputedStyle(r).height.replace("px", ""))));
+                            Doc.Layout(doc)._height = Math.min(1200, Math.max(...this.refList.map(r => Number(getComputedStyle(r).height.replace("px", "")))));
                         }
                     }));
                     this.observer.observe(ref);

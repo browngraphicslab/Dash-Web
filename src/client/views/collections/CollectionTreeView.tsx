@@ -3,13 +3,14 @@ import { faAngleRight, faArrowsAltH, faBell, faCamera, faCaretDown, faCaretRight
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, runInAction, untracked } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, Field, HeightSym, WidthSym, DataSym, Opt } from '../../../new_fields/Doc';
+import { DataSym, Doc, DocListCast, Field, HeightSym, Opt, WidthSym } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { List } from '../../../new_fields/List';
+import { RichTextField } from '../../../new_fields/RichTextField';
 import { Document, listSpec } from '../../../new_fields/Schema';
 import { ComputedField, ScriptField } from '../../../new_fields/ScriptField';
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from '../../../new_fields/Types';
-import { emptyFunction, emptyPath, returnFalse, Utils, returnOne, returnZero, returnTransparent, returnTrue, simulateMouseClick } from '../../../Utils';
+import { emptyFunction, emptyPath, returnFalse, returnOne, returnTrue, returnZero, simulateMouseClick, Utils } from '../../../Utils';
 import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentType } from "../../documents/DocumentTypes";
 import { DocumentManager } from '../../util/DocumentManager';
@@ -24,16 +25,14 @@ import { ContextMenuProps } from '../ContextMenuItem';
 import { EditableView } from "../EditableView";
 import { MainView } from '../MainView';
 import { ContentFittingDocumentView } from '../nodes/ContentFittingDocumentView';
+import { DocumentView } from '../nodes/DocumentView';
 import { ImageBox } from '../nodes/ImageBox';
 import { KeyValueBox } from '../nodes/KeyValueBox';
-import { ScriptBox } from '../ScriptBox';
 import { Templates } from '../Templates';
-import { CollectionSubView, SubCollectionViewProps } from "./CollectionSubView";
+import { CollectionSubView } from "./CollectionSubView";
 import "./CollectionTreeView.scss";
+import { CollectionViewType } from './CollectionView';
 import React = require("react");
-import { CollectionViewType, CollectionView } from './CollectionView';
-import { RichTextField } from '../../../new_fields/RichTextField';
-import { DocumentView } from '../nodes/DocumentView';
 
 
 export interface TreeViewProps {
@@ -144,7 +143,7 @@ class TreeView extends React.Component<TreeViewProps> {
 
     protected createTreeDropTarget = (ele: HTMLDivElement) => {
         this._treedropDisposer && this._treedropDisposer();
-        ele && (this._treedropDisposer = DragManager.MakeDropTarget(ele, this.treeDrop.bind(this)));
+        ele && (this._treedropDisposer = DragManager.MakeDropTarget(ele, this.treeDrop.bind(this)), this.props.document);
     }
 
     onPointerEnter = (e: React.PointerEvent): void => {
@@ -262,7 +261,7 @@ class TreeView extends React.Component<TreeViewProps> {
     docHeight = () => {
         const layoutDoc = Doc.Layout(this.props.document);
         const bounds = this.boundsOfCollectionDocument;
-        return Math.min(this.MAX_EMBED_HEIGHT, (() => {
+        return Math.max(70, Math.min(this.MAX_EMBED_HEIGHT, (() => {
             const aspect = NumCast(layoutDoc._nativeHeight, layoutDoc._fitWidth ? 0 : layoutDoc[HeightSym]()) / NumCast(layoutDoc._nativeWidth, layoutDoc._fitWidth ? 1 : layoutDoc[WidthSym]());
             if (aspect) return this.docWidth() * aspect;
             if (bounds) return this.docWidth() * (bounds.b - bounds.y) / (bounds.r - bounds.x);
@@ -270,7 +269,7 @@ class TreeView extends React.Component<TreeViewProps> {
                 Math.min(this.docWidth() * NumCast(layoutDoc.scrollHeight, NumCast(layoutDoc._nativeHeight)) / NumCast(layoutDoc._nativeWidth,
                     NumCast(this.props.containingCollection._height)))) :
                 NumCast(layoutDoc._height) ? NumCast(layoutDoc._height) : 50;
-        })());
+        })()));
     }
 
     @computed get expandedField() {
@@ -322,6 +321,9 @@ class TreeView extends React.Component<TreeViewProps> {
         return rows;
     }
 
+    rtfWidth = () => Math.min(Doc.Layout(this.props.document)?.[WidthSym](), this.props.panelWidth() - 20);
+    rtfHeight = () => this.rtfWidth() < Doc.Layout(this.props.document)?.[WidthSym]() ? Math.min(Doc.Layout(this.props.document)?.[HeightSym](), this.MAX_EMBED_HEIGHT) : this.MAX_EMBED_HEIGHT;
+
     @computed get renderContent() {
         const expandKey = this.treeViewExpandedView === this.fieldKey ? this.fieldKey : this.treeViewExpandedView === "links" ? "links" : undefined;
         if (expandKey !== undefined) {
@@ -346,7 +348,9 @@ class TreeView extends React.Component<TreeViewProps> {
             </div></ul>;
         } else {
             const layoutDoc = Doc.Layout(this.props.document);
-            return <div ref={this._dref} style={{ display: "inline-block", height: this.docHeight() }} key={this.props.document[Id] + this.props.document.title}>
+            const panelHeight = layoutDoc.type === DocumentType.RTF ? this.rtfHeight : this.docHeight;
+            const panelWidth = layoutDoc.type === DocumentType.RTF ? this.rtfWidth : this.docWidth;
+            return <div ref={this._dref} style={{ display: "inline-block", height: panelHeight() }} key={this.props.document[Id] + this.props.document.title}>
                 <ContentFittingDocumentView
                     Document={layoutDoc}
                     DataDocument={this.templateDataDoc}
@@ -356,8 +360,10 @@ class TreeView extends React.Component<TreeViewProps> {
                     backgroundColor={this.props.backgroundColor}
                     fitToBox={this.boundsOfCollectionDocument !== undefined}
                     FreezeDimensions={true}
-                    PanelWidth={this.docWidth}
-                    PanelHeight={this.docHeight}
+                    NativeWidth={layoutDoc.type === DocumentType.RTF ? this.rtfWidth : undefined}
+                    NativeHeight={layoutDoc.type === DocumentType.RTF ? this.rtfHeight : undefined}
+                    PanelWidth={panelWidth}
+                    PanelHeight={panelHeight}
                     getTransform={this.docTransform}
                     CollectionDoc={this.props.containingCollection}
                     CollectionView={undefined}
@@ -664,7 +670,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
     protected createTreeDropTarget = (ele: HTMLDivElement) => {
         this.treedropDisposer?.();
         if (this._mainEle = ele) {
-            this.treedropDisposer = DragManager.MakeDropTarget(ele, this.onInternalDrop.bind(this));
+            this.treedropDisposer = DragManager.MakeDropTarget(ele, this.onInternalDrop.bind(this), this.props.Document);
         }
     }
 
@@ -723,21 +729,10 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                         }
                     });
                 });
-                const { TextDocument, ImageDocument, CarouselDocument, TreeDocument } = Docs.Create;
+                const { ImageDocument } = Docs.Create;
                 const { Document } = this.props;
                 const fallbackImg = "http://www.cs.brown.edu/~bcz/face.gif";
-                const detailedTemplate = `{ "doc": { "type": "doc", "content": [  { "type": "paragraph", "content": [ { "type": "dashField", "attrs": { "fieldKey": "year" } } ] },  { "type": "paragraph", "content": [ { "type": "dashField", "attrs": { "fieldKey": "company" } } ] }  ] }, "selection":{"type":"text","anchor":1,"head":1},"storedMarks":[] }`;
-
-                const textDoc = TextDocument("", { title: "details", _autoHeight: true });
-                const detailView = Docs.Create.StackingDocument([
-                    CarouselDocument([], { title: "data", _height: 350, _itemIndex: 0, backgroundColor: "#9b9b9b3F" }),
-                    textDoc,
-                    TextDocument("", { title: "shortDescription", _autoHeight: true }),
-                    TreeDocument([], { title: "narratives", _height: 75, treeViewHideTitle: true })
-                ], { _chromeStatus: "disabled", _width: 300, _height: 300, _autoHeight: true, title: "detailView" });
-                textDoc.data = new RichTextField(detailedTemplate, "year company");
-                detailView.isTemplateDoc = makeTemplate(detailView);
-
+                const detailView = Cast(Cast(Doc.UserDoc()["template-button-detail"], Doc, null)?.dragFactory, Doc, null);
                 const heroView = ImageDocument(fallbackImg, { title: "heroView", isTemplateDoc: true, isTemplateForField: "hero", }); // this acts like a template doc and a template field ... a little weird, but seems to work?
                 heroView.proto!.layout = ImageBox.LayoutString("hero");
                 heroView._showTitle = "title";
@@ -768,7 +763,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
         const existingOnClick = ContextMenu.Instance.findByDescription("OnClick...");
         const onClicks: ContextMenuProps[] = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
         onClicks.push({
-            description: "Edit onChecked Script", event: () => UndoManager.RunInBatch(() => DocumentView.makeCustomViewClicked(this.props.Document, undefined, "onCheckedClick"), "edit onCheckedClick"), icon: "edit"
+            description: "Edit onChecked Script", event: () => UndoManager.RunInBatch(() => Doc.makeCustomViewClicked(this.props.Document, undefined, "onCheckedClick"), "edit onCheckedClick"), icon: "edit"
         });
         !existingOnClick && ContextMenu.Instance.addItem({ description: "OnClick...", subitems: onClicks, icon: "hand-point-right" });
     }

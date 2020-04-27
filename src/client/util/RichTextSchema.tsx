@@ -15,7 +15,7 @@ import { ObjectField } from "../../new_fields/ObjectField";
 import { listSpec } from "../../new_fields/Schema";
 import { SchemaHeaderField } from "../../new_fields/SchemaHeaderField";
 import { ComputedField } from "../../new_fields/ScriptField";
-import { BoolCast, Cast, NumCast, StrCast } from "../../new_fields/Types";
+import { BoolCast, Cast, NumCast, StrCast, FieldValue } from "../../new_fields/Types";
 import { emptyFunction, returnEmptyString, returnFalse, returnOne, Utils, returnZero } from "../../Utils";
 import { DocServer } from "../DocServer";
 import { Docs } from "../documents/Documents";
@@ -522,8 +522,8 @@ export const marks: { [index: string]: MarkSpec } = {
             const min = Math.round(node.attrs.modified / 12);
             const hr = Math.round(min / 60);
             const day = Math.round(hr / 60 / 24);
-            const remote = node.attrs.userid !== Doc.CurrentUserEmail ? " userMark-remote" : "";
-            return ['span', { class: "userMark-" + uid + remote + " userMark-min-" + min + " userMark-hr-" + hr + " userMark-day-" + day }, 0];
+            const remote = node.attrs.userid !== Doc.CurrentUserEmail ? " UM-remote" : "";
+            return ['span', { class: "UM-" + uid + remote + " UM-min-" + min + " UM-hr-" + hr + " UM-day-" + day }, 0];
         }
     },
     // the id of the user who entered the text
@@ -780,7 +780,7 @@ export class DashDocView {
                     if (dashDocBase instanceof Doc) {
                         const aliasedDoc = Doc.MakeAlias(dashDocBase, docid + alias);
                         aliasedDoc.layoutKey = "layout";
-                        node.attrs.fieldKey && DocumentView.makeCustomViewClicked(aliasedDoc, Docs.Create.StackingDocument, node.attrs.fieldKey, undefined);
+                        node.attrs.fieldKey && Doc.makeCustomViewClicked(aliasedDoc, Docs.Create.StackingDocument, node.attrs.fieldKey, undefined);
                         self.doRender(aliasedDoc, removeDoc, node, view, getPos);
                     }
                 });
@@ -879,7 +879,7 @@ export class DashDocView {
 export class DashFieldView {
     _fieldWrapper: HTMLDivElement; // container for label and value
     _labelSpan: HTMLSpanElement; // field label
-    _fieldSpan: HTMLDivElement;  // field value
+    _fieldSpan: HTMLSpanElement;  // field value
     _fieldCheck: HTMLInputElement;
     _enumerables: HTMLDivElement;  // field value
     _reactionDisposer: IReactionDisposer | undefined;
@@ -891,11 +891,12 @@ export class DashFieldView {
     constructor(node: any, view: any, getPos: any, tbox: FormattedTextBox) {
         this._fieldKey = node.attrs.fieldKey;
         this._textBoxDoc = tbox.props.Document;
-        this._fieldWrapper = document.createElement("div");
+        this._fieldWrapper = document.createElement("p");
         this._fieldWrapper.style.width = node.attrs.width;
         this._fieldWrapper.style.height = node.attrs.height;
+        this._fieldWrapper.style.fontWeight = "bold";
         this._fieldWrapper.style.position = "relative";
-        this._fieldWrapper.style.display = "inline-flex";
+        this._fieldWrapper.style.display = "inline-block";
 
         const self = this;
         this._enumerables = document.createElement("div");
@@ -903,7 +904,6 @@ export class DashFieldView {
         this._enumerables.style.height = "10px";
         this._enumerables.style.position = "relative";
         this._enumerables.style.display = "none";
-        this._enumerables.style.background = "dimGray";
 
         this._enumerables.onpointerdown = async (e) => {
             e.stopPropagation();
@@ -946,13 +946,13 @@ export class DashFieldView {
             self._dashDoc![self._fieldKey] = e.target.checked;
         };
 
-        this._fieldSpan = document.createElement("div");
+        this._fieldSpan = document.createElement("span");
         this._fieldSpan.id = Utils.GenerateGuid();
         this._fieldSpan.contentEditable = "true";
         this._fieldSpan.style.position = "relative";
         this._fieldSpan.style.display = "none";
         this._fieldSpan.style.minWidth = "12px";
-        this._fieldSpan.style.backgroundColor = "rgba(155, 155, 155, 0.24)";
+        this._fieldSpan.style.fontSize = "large";
         this._fieldSpan.onkeypress = function (e: any) { e.stopPropagation(); };
         this._fieldSpan.onkeyup = function (e: any) { e.stopPropagation(); };
         this._fieldSpan.onmousedown = function (e: any) { e.stopPropagation(); self._enumerables.style.display = "inline-block"; };
@@ -966,7 +966,7 @@ export class DashFieldView {
             this._labelSpan.innerHTML = `${self._fieldKey}: `;
             const fieldVal = Cast(this._dashDoc?.[self._fieldKey], "boolean", null);
             this._fieldCheck.style.display = (fieldVal === true || fieldVal === false) ? "inline-block" : "none";
-            this._fieldSpan.style.display = !(fieldVal === true || fieldVal === false) ? "inline-block" : "none";
+            this._fieldSpan.style.display = !(fieldVal === true || fieldVal === false) ? StrCast(this._dashDoc?.[self._fieldKey]) ? "" : "inline-block" : "none";
         };
         this._fieldSpan.onkeydown = function (e: any) {
             e.stopPropagation();
@@ -987,11 +987,10 @@ export class DashFieldView {
         };
 
         this._labelSpan = document.createElement("span");
-        this._labelSpan.style.backgroundColor = "rgba(155, 155, 155, 0.44)";
         this._labelSpan.style.position = "relative";
-        this._labelSpan.style.display = "inline-block";
         this._labelSpan.style.fontSize = "small";
         this._labelSpan.title = "click to see related tags";
+        this._labelSpan.style.fontSize = "x-small";
         this._labelSpan.onpointerdown = function (e: any) {
             e.stopPropagation();
             let container = tbox.props.ContainingCollectionView;
@@ -1029,7 +1028,7 @@ export class DashFieldView {
                 this._fieldSpan.innerHTML = Field.toString(fval as Field) || "";
             }
             this._fieldCheck.style.display = (boolVal === true || boolVal === false) ? "inline-block" : "none";
-            this._fieldSpan.style.display = !(boolVal === true || boolVal === false) ? "inline-block" : "none";
+            this._fieldSpan.style.display = !(fval === true || fval === false) ? (StrCast(fval) ? "" : "inline-block") : "none";
         }, { fireImmediately: true });
 
         this._fieldWrapper.appendChild(this._labelSpan);

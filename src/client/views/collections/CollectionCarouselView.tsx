@@ -27,7 +27,7 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
     protected createDashEventsTarget = (ele: HTMLDivElement) => { //used for stacking and masonry view
         this._dropDisposer?.();
         if (ele) {
-            this._dropDisposer = DragManager.MakeDropTarget(ele, this.onInternalDrop.bind(this));
+            this._dropDisposer = DragManager.MakeDropTarget(ele, this.onInternalDrop.bind(this), this.layoutDoc);
         }
     }
 
