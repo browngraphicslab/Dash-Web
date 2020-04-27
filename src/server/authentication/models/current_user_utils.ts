@@ -100,8 +100,18 @@ export class CurrentUserUtils {
                 },
                 selection: { type: "text", anchor: 1, head: 1 },
                 storedMarks: []
-            };
-            short.text = new RichTextField(JSON.stringify(detailedTemplate), buxtonFieldKeys.join(" "));
+            }; short.text = new RichTextField(JSON.stringify(detailedTemplate), buxtonFieldKeys.join(" "));
+
+            const shared = { _chromeStatus: "disabled", _autoHeight: true, _xMargin: 0 };
+            const detailViewOpts = { title: "detailView", _width: 300, _fontFamily: "Arial", _fontSize: 12 };
+            const descriptionWrapperOpts = { title: "descriptions", _height: 300, columnWidth: -1, treeViewHideTitle: true, _pivotField: "title" };
+
+            const descriptionWrapper = MasonryDocument([short, long], { ...shared, ...descriptionWrapperOpts });
+            const detailView = Docs.Create.StackingDocument([carousel, descriptionWrapper], { ...shared, ...detailViewOpts });
+            detailView.isTemplateDoc = makeTemplate(detailView);
+            short.title = "A Short Description";
+            long.title = "Long Description";
+
 
             const shared = { _chromeStatus: "disabled", _autoHeight: true, _xMargin: 0 };
             const detailViewOpts = { title: "detailView", _width: 300, _fontFamily: "Arial", _fontSize: 12 };
