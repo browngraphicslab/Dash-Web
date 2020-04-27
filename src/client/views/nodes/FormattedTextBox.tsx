@@ -32,7 +32,19 @@ import { DragManager } from "../../util/DragManager";
 import buildKeymap from "../../util/ProsemirrorExampleTransfer";
 import RichTextMenu from '../../util/RichTextMenu';
 import { RichTextRules } from "../../util/RichTextRules";
-import { DashDocCommentView, DashDocView, DashFieldView, FootnoteView, ImageResizeView, OrderedListView, schema, SummaryView } from "../../util/RichTextSchema";
+// import { DashDocCommentView, DashDocView, DashFieldView, FootnoteView, ImageResizeView, OrderedListView, SummaryView } from "../../util/RichTextSchema";
+// import { DashDocCommentView, DashDocView, DashFieldView, FootnoteView, SummaryView } from "../../util/RichTextSchema";
+import { OrderedListView } from "../../util/RichTextSchema";
+import { ImageResizeView } from "../../util/ImageResizeView";
+
+import { DashDocCommentView } from "../../util/DashDocCommentView";
+import { DashFieldView } from "../../util/DashFieldView";
+import { FootnoteView } from "../../util/FootnoteView";
+import { ImageResizeView } from "../../util/ImageResizeView";
+import { SummaryView } from "../../util/SummaryView";
+import { DashDocView } from "../../util/DashDocView";
+
+import { schema } from "../../util/schema_rts";
 import { SelectionManager } from "../../util/SelectionManager";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { CollectionFreeFormView } from '../collections/collectionFreeForm/CollectionFreeFormView';
@@ -833,13 +845,23 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
                 },
                 dispatchTransaction: this.dispatchTransaction,
                 nodeViews: {
-                    dashComment(node, view, getPos) { return new DashDocCommentView(node, view, getPos); },
-                    dashField(node, view, getPos) { return new DashFieldView(node, view, getPos, self); },
-                    dashDoc(node, view, getPos) { return new DashDocView(node, view, getPos, self); },
-                    image(node, view, getPos) { return new ImageResizeView(node, view, getPos, self.props.addDocTab); },
-                    summary(node, view, getPos) { return new SummaryView(node, view, getPos); },
+                    dashComment(node, view, getPos) { return new DashDocCommentView({ node, view, getPos }); },
+                    dashField(node, view, getPos) { return new DashFieldView({ node, view, getPos, self }); },
+                    //dashDoc(node, view, getPos) { return new DashDocView(node, view, getPos, self); },
+                    dashDoc(node, view, getPos) { return new DashDocView({ node, view, getPos, self }); },
+
+                    image(node, view, getPos) {
+                        //const addDocTab = this.props.addDocTab;
+                        return new ImageResizeView({ node, view, getPos, addDocTab: this.props.addDocTab });
+                    },
+
+
+                    // WAS : 
+                    //image(node, view, getPos) { return new ImageResizeView(node, view, getPos, this.props.addDocTab); },
+
+                    summary(node, view, getPos) { return new SummaryView({ node, view, getPos }); },
                     ordered_list(node, view, getPos) { return new OrderedListView(); },
-                    footnote(node, view, getPos) { return new FootnoteView(node, view, getPos); }
+                    footnote(node, view, getPos) { return new FootnoteView({ node, outerView, getPos }); }
                 },
                 clipboardTextSerializer: this.clipboardTextSerializer,
                 handlePaste: this.handlePaste,

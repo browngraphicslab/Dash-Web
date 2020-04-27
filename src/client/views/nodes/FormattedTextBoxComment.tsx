@@ -7,7 +7,7 @@ import { Cast, FieldValue, NumCast } from "../../../new_fields/Types";
 import { emptyFunction, returnEmptyString, returnFalse, Utils, emptyPath } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { DocumentManager } from "../../util/DocumentManager";
-import { schema } from "../../util/RichTextSchema";
+import { schema } from "../../util/schema_rts";
 import { Transform } from "../../util/Transform";
 import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
 import { FormattedTextBox } from "./FormattedTextBox";

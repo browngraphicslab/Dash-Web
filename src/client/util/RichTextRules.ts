@@ -10,7 +10,7 @@ import { Docs, DocUtils } from "../documents/Documents";
 import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
 import { wrappingInputRule } from "./prosemirrorPatches";
 import RichTextMenu from "./RichTextMenu";
-import { schema } from "./RichTextSchema";
+import { schema } from "./schema_rts";
 
 export class RichTextRules {
     public Document: Doc;

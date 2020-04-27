@@ -23,567 +23,23 @@ import { CollectionViewType } from "../views/collections/CollectionView";
 import { DocumentView } from "../views/nodes/DocumentView";
 import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
 import { DocumentManager } from "./DocumentManager";
-import ParagraphNodeSpec from "./ParagraphNodeSpec";
 import { Transform } from "./Transform";
 import React = require("react");
 
-const blockquoteDOM: DOMOutputSpecArray = ["blockquote", 0], hrDOM: DOMOutputSpecArray = ["hr"],
-    preDOM: DOMOutputSpecArray = ["pre", ["code", 0]], brDOM: DOMOutputSpecArray = ["br"], ulDOM: DOMOutputSpecArray = ["ul", 0];
+import { schema } from "./schema_rts";
 
-// :: Object
-// [Specs](#model.NodeSpec) for the nodes defined in this schema.
-export const nodes: { [index: string]: NodeSpec } = {
-    // :: NodeSpec The top level document node.
-    doc: {
-        content: "block+"
-    },
-
-    footnote: {
-        group: "inline",
-        content: "inline*",
-        inline: true,
-        attrs: {
-            visibility: { default: false }
-        },
-        // This makes the view treat the node as a leaf, even though it
-        // technically has content
-        atom: true,
-        toDOM: () => ["footnote", 0],
-        parseDOM: [{ tag: "footnote" }]
-    },
-
-    paragraph: ParagraphNodeSpec,
-
-    // :: NodeSpec A blockquote (`<blockquote>`) wrapping one or more blocks.
-    blockquote: {
-        content: "block+",
-        group: "block",
-        defining: true,
-        parseDOM: [{ tag: "blockquote" }],
-        toDOM() { return blockquoteDOM; }
-    },
-
-    // :: NodeSpec A horizontal rule (`<hr>`).
-    horizontal_rule: {
-        group: "block",
-        parseDOM: [{ tag: "hr" }],
-        toDOM() { return hrDOM; }
-    },
-
-    // :: NodeSpec A heading textblock, with a `level` attribute that
-    // should hold the number 1 to 6. Parsed and serialized as `<h1>` to
-    // `<h6>` elements.
-    heading: {
-        attrs: { level: { default: 1 } },
-        content: "inline*",
-        group: "block",
-        defining: true,
-        parseDOM: [{ tag: "h1", attrs: { level: 1 } },
-        { tag: "h2", attrs: { level: 2 } },
-        { tag: "h3", attrs: { level: 3 } },
-        { tag: "h4", attrs: { level: 4 } },
-        { tag: "h5", attrs: { level: 5 } },
-        { tag: "h6", attrs: { level: 6 } }],
-        toDOM(node: any) { return ["h" + node.attrs.level, 0]; }
-    },
-
-    // :: NodeSpec A code listing. Disallows marks or non-text inline
-    // nodes by default. Represented as a `<pre>` element with a
-    // `<code>` element inside of it.
-    code_block: {
-        content: "text*",
-        marks: "",
-        group: "block",
-        code: true,
-        defining: true,
-        parseDOM: [{ tag: "pre", preserveWhitespace: "full" }],
-        toDOM() { return preDOM; }
-    },
-
-    // :: NodeSpec The text node.
-    text: {
-        group: "inline"
-    },
-
-    dashComment: {
-        attrs: {
-            docid: { default: "" },
-        },
-        inline: true,
-        group: "inline",
-        toDOM(node) {
-            const attrs = { style: `width: 40px` };
-            return ["span", { ...node.attrs, ...attrs }, "←"];
-        },
-    },
-
-    summary: {
-        inline: true,
-        attrs: {
-            visibility: { default: false },
-            text: { default: undefined },
-            textslice: { default: undefined },
-        },
-        group: "inline",
-        toDOM(node) {
-            const attrs = { style: `width: 40px` };
-            return ["span", { ...node.attrs, ...attrs }];
-        },
-    },
-
-    // :: NodeSpec An inline image (`<img>`) node. Supports `src`,
-    // `alt`, and `href` attributes. The latter two default to the empty
-    // string.
-    image: {
-        inline: true,
-        attrs: {
-            src: {},
-            agnostic: { default: null },
-            width: { default: 100 },
-            alt: { default: null },
-            title: { default: null },
-            float: { default: "left" },
-            location: { default: "onRight" },
-            docid: { default: "" }
-        },
-        group: "inline",
-        draggable: true,
-        parseDOM: [{
-            tag: "img[src]", getAttrs(dom: any) {
-                return {
-                    src: dom.getAttribute("src"),
-                    title: dom.getAttribute("title"),
-                    alt: dom.getAttribute("alt"),
-                    width: Math.min(100, Number(dom.getAttribute("width"))),
-                };
-            }
-        }],
-        // TODO if we don't define toDom, dragging the image crashes. Why?
-        toDOM(node) {
-            const attrs = { style: `width: ${node.attrs.width}` };
-            return ["img", { ...node.attrs, ...attrs }];
-        }
-    },
-
-    dashDoc: {
-        inline: true,
-        attrs: {
-            width: { default: 200 },
-            height: { default: 100 },
-            title: { default: null },
-            float: { default: "right" },
-            location: { default: "onRight" },
-            hidden: { default: false },
-            fieldKey: { default: "" },
-            docid: { default: "" },
-            alias: { default: "" }
-        },
-        group: "inline",
-        draggable: false,
-        toDOM(node) {
-            const attrs = { style: `width: ${node.attrs.width}, height: ${node.attrs.height}` };
-            return ["div", { ...node.attrs, ...attrs }];
-        }
-    },
-
-    dashField: {
-        inline: true,
-        attrs: {
-            fieldKey: { default: "" },
-            docid: { default: "" }
-        },
-        group: "inline",
-        draggable: false,
-        toDOM(node) {
-            const attrs = { style: `width: ${node.attrs.width}, height: ${node.attrs.height}` };
-            return ["div", { ...node.attrs, ...attrs }];
-        }
-    },
-
-    video: {
-        inline: true,
-        attrs: {
-            src: {},
-            width: { default: "100px" },
-            alt: { default: null },
-            title: { default: null }
-        },
-        group: "inline",
-        draggable: true,
-        parseDOM: [{
-            tag: "video[src]", getAttrs(dom: any) {
-                return {
-                    src: dom.getAttribute("src"),
-                    title: dom.getAttribute("title"),
-                    alt: dom.getAttribute("alt"),
-                    width: Math.min(100, Number(dom.getAttribute("width"))),
-                };
-            }
-        }],
-        toDOM(node) {
-            const attrs = { style: `width: ${node.attrs.width}` };
-            return ["video", { ...node.attrs, ...attrs }];
-        }
-    },
-
-    // :: NodeSpec A hard line break, represented in the DOM as `<br>`.
-    hard_break: {
-        inline: true,
-        group: "inline",
-        selectable: false,
-        parseDOM: [{ tag: "br" }],
-        toDOM() { return brDOM; }
-    },
-
-    ordered_list: {
-        ...orderedList,
-        content: 'list_item+',
-        group: 'block',
-        attrs: {
-            bulletStyle: { default: 0 },
-            mapStyle: { default: "decimal" },
-            setFontSize: { default: undefined },
-            setFontFamily: { default: "inherit" },
-            setFontColor: { default: "inherit" },
-            inheritedFontSize: { default: undefined },
-            visibility: { default: true },
-            indent: { default: undefined }
-        },
-        toDOM(node: Node<any>) {
-            if (node.attrs.mapStyle === "bullet") return ['ul', 0];
-            const map = node.attrs.bulletStyle ? node.attrs.mapStyle + node.attrs.bulletStyle : "";
-            const fsize = node.attrs.setFontSize ? node.attrs.setFontSize : node.attrs.inheritedFontSize;
-            const ffam = node.attrs.setFontFamily;
-            const color = node.attrs.setFontColor;
-            return node.attrs.visibility ?
-                ['ol', { class: `${map}-ol`, style: `list-style: none; font-size: ${fsize}; font-family: ${ffam}; color:${color}; margin-left: ${node.attrs.indent}` }, 0] :
-                ['ol', { class: `${map}-ol`, style: `list-style: none;` }];
-        }
-    },
-
-    bullet_list: {
-        ...bulletList,
-        content: 'list_item+',
-        group: 'block',
-        // parseDOM: [{ tag: "ul" }, { style: 'list-style-type=disc' }],
-        toDOM(node: Node<any>) {
-            return ['ul', 0];
-        }
-    },
-
-    list_item: {
-        attrs: {
-            bulletStyle: { default: 0 },
-            mapStyle: { default: "decimal" },
-            visibility: { default: true }
-        },
-        ...listItem,
-        content: 'paragraph block*',
-        toDOM(node: any) {
-            const map = node.attrs.bulletStyle ? node.attrs.mapStyle + node.attrs.bulletStyle : "";
-            return node.attrs.visibility ? ["li", { class: `${map}` }, 0] : ["li", { class: `${map}` }, "..."];
-            //return ["li", { class: `${map}` }, 0];
-        }
-    },
-};
-
-const emDOM: DOMOutputSpecArray = ["em", 0];
-const strongDOM: DOMOutputSpecArray = ["strong", 0];
-const codeDOM: DOMOutputSpecArray = ["code", 0];
-
-// :: Object [Specs](#model.MarkSpec) for the marks in the schema.
-export const marks: { [index: string]: MarkSpec } = {
-    // :: MarkSpec A link. Has `href` and `title` attributes. `title`
-    // defaults to the empty string. Rendered and parsed as an `<a>`
-    // element.
-    link: {
-        attrs: {
-            href: {},
-            targetId: { default: "" },
-            linkId: { default: "" },
-            showPreview: { default: true },
-            location: { default: null },
-            title: { default: null },
-            docref: { default: false } // flags whether the linked text comes from a document within Dash.  If so, an attribution label is appended after the text
-        },
-        inclusive: false,
-        parseDOM: [{
-            tag: "a[href]", getAttrs(dom: any) {
-                return { href: dom.getAttribute("href"), location: dom.getAttribute("location"), title: dom.getAttribute("title"), targetId: dom.getAttribute("id") };
-            }
-        }],
-        toDOM(node: any) {
-            return node.attrs.docref && node.attrs.title ?
-                ["div", ["span", `"`], ["span", 0], ["span", `"`], ["br"], ["a", { ...node.attrs, class: "prosemirror-attribution", title: `${node.attrs.title}` }, node.attrs.title], ["br"]] :
-                ["a", { ...node.attrs, id: node.attrs.linkId + node.attrs.targetId, title: `${node.attrs.title}` }, 0];
-        }
-    },
-
-
-    // :: MarkSpec Coloring on text. Has `color` attribute that defined the color of the marked text.
-    pFontColor: {
-        attrs: {
-            color: { default: "#000" }
-        },
-        inclusive: true,
-        parseDOM: [{
-            tag: "span", getAttrs(dom: any) {
-                return { color: dom.getAttribute("color") };
-            }
-        }],
-        toDOM(node: any) {
-            return node.attrs.color ? ['span', { style: 'color:' + node.attrs.color }] : ['span', 0];
-        }
-    },
-
-    marker: {
-        attrs: {
-            highlight: { default: "transparent" }
-        },
-        inclusive: true,
-        parseDOM: [{
-            tag: "span", getAttrs(dom: any) {
-                return { highlight: dom.getAttribute("backgroundColor") };
-            }
-        }],
-        toDOM(node: any) {
-            return node.attrs.highlight ? ['span', { style: 'background-color:' + node.attrs.highlight }] : ['span', { style: 'background-color: transparent' }];
-        }
-    },
-
-    // :: MarkSpec An emphasis mark. Rendered as an `<em>` element.
-    // Has parse rules that also match `<i>` and `font-style: italic`.
-    em: {
-        parseDOM: [{ tag: "i" }, { tag: "em" }, { style: "font-style: italic" }],
-        toDOM() { return emDOM; }
-    },
-
-    // :: MarkSpec A strong mark. Rendered as `<strong>`, parse rules
-    // also match `<b>` and `font-weight: bold`.
-    strong: {
-        parseDOM: [{ tag: "strong" },
-        { tag: "b" },
-        { style: "font-weight" }],
-        toDOM() { return strongDOM; }
-    },
-
-    strikethrough: {
-        parseDOM: [
-            { tag: 'strike' },
-            { style: 'text-decoration=line-through' },
-            { style: 'text-decoration-line=line-through' }
-        ],
-        toDOM: () => ['span', {
-            style: 'text-decoration-line:line-through'
-        }]
-    },
-
-    subscript: {
-        excludes: 'superscript',
-        parseDOM: [
-            { tag: 'sub' },
-            { style: 'vertical-align=sub' }
-        ],
-        toDOM: () => ['sub']
-    },
-
-    superscript: {
-        excludes: 'subscript',
-        parseDOM: [
-            { tag: 'sup' },
-            { style: 'vertical-align=super' }
-        ],
-        toDOM: () => ['sup']
-    },
-
-    mbulletType: {
-        attrs: {
-            bulletType: { default: "decimal" }
-        },
-        toDOM(node: any) {
-            return ['span', {
-                style: `background: ${node.attrs.bulletType === "decimal" ? "yellow" : node.attrs.bulletType === "upper-alpha" ? "blue" : "green"}`
-            }];
-        }
-    },
-
-    metadata: {
-        toDOM() {
-            return ['span', { style: 'font-size:75%; background:rgba(100, 100, 100, 0.2); ' }];
-        }
-    },
-    metadataKey: {
-        toDOM() {
-            return ['span', { style: 'font-style:italic; ' }];
-        }
-    },
-    metadataVal: {
-        toDOM() {
-            return ['span'];
-        }
-    },
-
-    summarizeInclusive: {
-        parseDOM: [
-            {
-                tag: "span",
-                getAttrs: (p: any) => {
-                    if (typeof (p) !== "string") {
-                        const style = getComputedStyle(p);
-                        if (style.textDecoration === "underline") return null;
-                        if (p.parentElement.outerHTML.indexOf("text-decoration: underline") !== -1 &&
-                            p.parentElement.outerHTML.indexOf("text-decoration-style: solid") !== -1) {
-                            return null;
-                        }
-                    }
-                    return false;
-                }
-            },
-        ],
-        inclusive: true,
-        toDOM() {
-            return ['span', {
-                style: 'text-decoration: underline; text-decoration-style: solid; text-decoration-color: rgba(204, 206, 210, 0.92)'
-            }];
-        }
-    },
-
-    summarize: {
-        inclusive: false,
-        parseDOM: [
-            {
-                tag: "span",
-                getAttrs: (p: any) => {
-                    if (typeof (p) !== "string") {
-                        const style = getComputedStyle(p);
-                        if (style.textDecoration === "underline") return null;
-                        if (p.parentElement.outerHTML.indexOf("text-decoration: underline") !== -1 &&
-                            p.parentElement.outerHTML.indexOf("text-decoration-style: dotted") !== -1) {
-                            return null;
-                        }
-                    }
-                    return false;
-                }
-            },
-        ],
-        toDOM() {
-            return ['span', {
-                style: 'text-decoration: underline; text-decoration-style: dotted; text-decoration-color: rgba(204, 206, 210, 0.92)'
-            }];
-        }
-    },
-
-    underline: {
-        parseDOM: [
-            {
-                tag: "span",
-                getAttrs: (p: any) => {
-                    if (typeof (p) !== "string") {
-                        const style = getComputedStyle(p);
-                        if (style.textDecoration === "underline" || p.parentElement.outerHTML.indexOf("text-decoration-style:line") !== -1) {
-                            return null;
-                        }
-                    }
-                    return false;
-                }
-            }
-            // { style: "text-decoration=underline" }
-        ],
-        toDOM: () => ['span', {
-            style: 'text-decoration:underline;text-decoration-style:line'
-        }]
-    },
-
-    search_highlight: {
-        attrs: {
-            selected: { default: false }
-        },
-        parseDOM: [{ style: 'background: yellow' }],
-        toDOM(node: any) {
-            return ['span', {
-                style: `background: ${node.attrs.selected ? "orange" : "yellow"}`
-            }];
-        }
-    },
-
-    // the id of the user who entered the text
-    user_mark: {
-        attrs: {
-            userid: { default: "" },
-            modified: { default: "when?" }, // 1 second intervals since 1970
-        },
-        group: "inline",
-        toDOM(node: any) {
-            const uid = node.attrs.userid.replace(".", "").replace("@", "");
-            const min = Math.round(node.attrs.modified / 12);
-            const hr = Math.round(min / 60);
-            const day = Math.round(hr / 60 / 24);
-            const remote = node.attrs.userid !== Doc.CurrentUserEmail ? " userMark-remote" : "";
-            return ['span', { class: "userMark-" + uid + remote + " userMark-min-" + min + " userMark-hr-" + hr + " userMark-day-" + day }, 0];
-        }
-    },
-    // the id of the user who entered the text
-    user_tag: {
-        attrs: {
-            userid: { default: "" },
-            modified: { default: "when?" }, // 1 second intervals since 1970
-            tag: { default: "" }
-        },
-        group: "inline",
-        inclusive: false,
-        toDOM(node: any) {
-            const uid = node.attrs.userid.replace(".", "").replace("@", "");
-            return ['span', { class: "userTag-" + uid + " userTag-" + node.attrs.tag }, 0];
-        }
-    },
-
-
-    // :: MarkSpec Code font mark. Represented as a `<code>` element.
-    code: {
-        parseDOM: [{ tag: "code" }],
-        toDOM() { return codeDOM; }
-    },
-
-    /* FONTS */
-    pFontFamily: {
-        attrs: {
-            family: { default: "Crimson Text" },
-        },
-        parseDOM: [{
-            tag: "span", getAttrs(dom: any) {
-                const cstyle = getComputedStyle(dom);
-                if (cstyle.font) {
-                    if (cstyle.font.indexOf("Times New Roman") !== -1) return { family: "Times New Roman" };
-                    if (cstyle.font.indexOf("Arial") !== -1) return { family: "Arial" };
-                    if (cstyle.font.indexOf("Georgia") !== -1) return { family: "Georgia" };
-                    if (cstyle.font.indexOf("Comic Sans") !== -1) return { family: "Comic Sans MS" };
-                    if (cstyle.font.indexOf("Tahoma") !== -1) return { family: "Tahoma" };
-                    if (cstyle.font.indexOf("Crimson") !== -1) return { family: "Crimson Text" };
-                }
-            }
-        }],
-        toDOM: (node) => ['span', {
-            style: `font-family: "${node.attrs.family}";`
-        }]
-    },
-
-    /** FONT SIZES */
-    pFontSize: {
-        attrs: {
-            fontSize: { default: 10 }
-        },
-        parseDOM: [{ style: 'font-size: 10px;' }],
-        toDOM: (node) => ['span', {
-            style: `font-size: ${node.attrs.fontSize}px;`
-        }]
-    },
-};
+export class OrderedListView {
+    update(node: any) {
+        return false; // if attr's of an ordered_list (e.g., bulletStyle) change, return false forces the dom node to be recreated which is necessary for the bullet labels to update
+    }
+}
 
 export class ImageResizeView {
     _handle: HTMLElement;
     _img: HTMLElement;
     _outer: HTMLElement;
     constructor(node: any, view: any, getPos: any, addDocTab: any) {
+        //moved
         this._handle = document.createElement("span");
         this._img = document.createElement("img");
         this._outer = document.createElement("span");
@@ -593,7 +49,7 @@ export class ImageResizeView {
         this._outer.style.display = "inline-block";
         this._outer.style.overflow = "hidden";
         (this._outer.style as any).float = node.attrs.float;
-
+        //moved
         this._img.setAttribute("src", node.attrs.src);
         this._img.style.width = "100%";
         this._handle.style.position = "absolute";
@@ -605,6 +61,7 @@ export class ImageResizeView {
         this._handle.style.bottom = "-10px";
         this._handle.style.right = "-10px";
         const self = this;
+        //moved
         this._img.onclick = function (e: any) {
             e.stopPropagation();
             e.preventDefault();
@@ -612,6 +69,7 @@ export class ImageResizeView {
                 view.dispatch(view.state.tr.setSelection(new NodeSelection(view.state.doc.resolve(view.state.selection.from - 2))));
             }
         };
+        //moved
         this._img.onpointerdown = function (e: any) {
             if (e.ctrlKey) {
                 e.preventDefault();
@@ -622,6 +80,7 @@ export class ImageResizeView {
                         document => addDocTab(document, node.attrs.location ? node.attrs.location : "inTab"), false));
             }
         };
+        //moved
         this._handle.onpointerdown = function (e: any) {
             e.preventDefault();
             e.stopPropagation();
@@ -647,7 +106,7 @@ export class ImageResizeView {
             document.addEventListener("pointermove", onpointermove);
             document.addEventListener("pointerup", onpointerup);
         };
-
+        //Moved
         this._outer.appendChild(this._img);
         this._outer.appendChild(this._handle);
         (this as any).dom = this._outer;
@@ -666,15 +125,16 @@ export class ImageResizeView {
     }
 }
 
-
 export class DashDocCommentView {
     _collapsed: HTMLElement;
     _view: any;
     constructor(node: any, view: any, getPos: any) {
+        //moved
         this._collapsed = document.createElement("span");
         this._collapsed.className = "formattedTextBox-inlineComment";
         this._collapsed.id = "DashDocCommentView-" + node.attrs.docid;
         this._view = view;
+        //moved
         const targetNode = () => {  // search forward in the prosemirror doc for the attached dashDocNode that is the target of the comment anchor
             for (let i = getPos() + 1; i < view.state.doc.content.size; i++) {
                 const m = view.state.doc.nodeAt(i);
@@ -687,9 +147,11 @@ export class DashDocCommentView {
             setTimeout(() => { try { view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.tr.doc, getPos() + 2))); } catch (e) { } }, 0);
             return undefined;
         };
+        //moved
         this._collapsed.onpointerdown = (e: any) => {
             e.stopPropagation();
         };
+        //moved
         this._collapsed.onpointerup = (e: any) => {
             const target = targetNode();
             if (target) {
@@ -703,18 +165,22 @@ export class DashDocCommentView {
             }
             e.stopPropagation();
         };
+        //moved
         this._collapsed.onpointerenter = (e: any) => {
             DocServer.GetRefField(node.attrs.docid).then(async dashDoc => dashDoc instanceof Doc && Doc.linkFollowHighlight(dashDoc, false));
             e.preventDefault();
             e.stopPropagation();
         };
+        //moved
         this._collapsed.onpointerleave = (e: any) => {
             DocServer.GetRefField(node.attrs.docid).then(async dashDoc => dashDoc instanceof Doc && Doc.linkFollowUnhighlight());
             e.preventDefault();
             e.stopPropagation();
         };
+
         (this as any).dom = this._collapsed;
     }
+    //moved
     selectNode() { }
 }
 
@@ -731,7 +197,9 @@ export class DashDocView {
         return new Transform(-translateX, -translateY, 1).scale(1 / this.contentScaling() / scale);
     }
     contentScaling = () => NumCast(this._dashDoc!._nativeWidth) > 0 ? this._dashDoc![WidthSym]() / NumCast(this._dashDoc!._nativeWidth) : 1;
+
     outerFocus = (target: Doc) => this._textBox.props.focus(this._textBox.props.Document);  // ideally, this would scroll to show the focus target
+
     constructor(node: any, view: any, getPos: any, tbox: FormattedTextBox) {
         this._textBox = tbox;
         this._dashSpan = document.createElement("div");
@@ -797,11 +265,13 @@ export class DashDocView {
         this._outer.appendChild(this._dashSpan);
         (this as any).dom = this._outer;
     }
+
     doRender(dashDoc: Doc, removeDoc: any, node: any, view: any, getPos: any) {
         this._dashDoc = dashDoc;
         const self = this;
         const dashLayoutDoc = Doc.Layout(dashDoc);
         const finalLayout = node.attrs.docid ? dashDoc : Doc.expandTemplateLayout(dashLayoutDoc, dashDoc, node.attrs.fieldKey);
+
         if (!finalLayout) setTimeout(() => self.doRender(dashDoc, removeDoc, node, view, getPos), 0);
         else {
             this._reactionDisposer?.();
@@ -812,6 +282,7 @@ export class DashDocView {
             }, { fireImmediately: true });
             const doReactRender = (finalLayout: Doc, resolvedDataDoc: Doc) => {
                 ReactDOM.unmountComponentAtNode(this._dashSpan);
+
                 ReactDOM.render(<DocumentView
                     Document={finalLayout}
                     DataDoc={resolvedDataDoc}
@@ -871,7 +342,6 @@ export class DashDocView {
     }
 }
 
-
 export class DashFieldView {
     _fieldWrapper: HTMLDivElement; // container for label and value
     _labelSpan: HTMLSpanElement; // field label
@@ -887,6 +357,7 @@ export class DashFieldView {
     constructor(node: any, view: any, getPos: any, tbox: FormattedTextBox) {
         this._fieldKey = node.attrs.fieldKey;
         this._textBoxDoc = tbox.props.Document;
+
         this._fieldWrapper = document.createElement("div");
         this._fieldWrapper.style.width = node.attrs.width;
         this._fieldWrapper.style.height = node.attrs.height;
@@ -894,6 +365,7 @@ export class DashFieldView {
         this._fieldWrapper.style.display = "inline-flex";
 
         const self = this;
+
         this._enumerables = document.createElement("div");
         this._enumerables.style.width = "10px";
         this._enumerables.style.height = "10px";
@@ -901,11 +373,13 @@ export class DashFieldView {
         this._enumerables.style.display = "none";
         this._enumerables.style.background = "dimGray";
 
+        //Moved
         this._enumerables.onpointerdown = async (e) => {
             e.stopPropagation();
             const collview = await Doc.addFieldEnumerations(self._textBoxDoc, self._fieldKey, [{ title: self._fieldSpan.innerText }]);
             collview instanceof Doc && tbox.props.addDocTab(collview, "onRight");
         };
+        //Moved
         const updateText = (forceMatch: boolean) => {
             self._enumerables.style.display = "none";
             const newText = self._fieldSpan.innerText.startsWith(":=") || self._fieldSpan.innerText.startsWith("=:=") ? ":=-computed-" : self._fieldSpan.innerText;
@@ -930,7 +404,7 @@ export class DashFieldView {
             });
         };
 
-
+        //Moved
         this._fieldCheck = document.createElement("input");
         this._fieldCheck.id = Utils.GenerateGuid();
         this._fieldCheck.type = "checkbox";
@@ -942,6 +416,7 @@ export class DashFieldView {
             self._dashDoc![self._fieldKey] = e.target.checked;
         };
 
+        //Moved
         this._fieldSpan = document.createElement("div");
         this._fieldSpan.id = Utils.GenerateGuid();
         this._fieldSpan.contentEditable = "true";
@@ -954,6 +429,7 @@ export class DashFieldView {
         this._fieldSpan.onmousedown = function (e: any) { e.stopPropagation(); self._enumerables.style.display = "inline-block"; };
         this._fieldSpan.onblur = function (e: any) { updateText(false); };
 
+        // MOVED 
         const setDashDoc = (doc: Doc) => {
             self._dashDoc = doc;
             if (self._options?.length && !self._dashDoc[self._fieldKey]) {
@@ -966,6 +442,8 @@ export class DashFieldView {
             this._fieldCheck.style.display = (fieldVal === true || fieldVal === false) ? "inline-block" : "none";
             this._fieldSpan.style.display = !(fieldVal === true || fieldVal === false) ? "inline-block" : "none";
         };
+
+        //Moved
         this._fieldSpan.onkeydown = function (e: any) {
             e.stopPropagation();
             if ((e.key === "a" && e.ctrlKey) || (e.key === "a" && e.metaKey)) {
@@ -1010,11 +488,15 @@ export class DashFieldView {
             }
         };
         this._labelSpan.innerHTML = `${self._fieldKey}: `;
+        //MOVED
         if (node.attrs.docid) {
-            DocServer.GetRefField(node.attrs.docid).then(async dashDoc => dashDoc instanceof Doc && runInAction(() => setDashDoc(dashDoc)));
+            DocServer.GetRefField(node.attrs.docid).
+                then(async dashDoc => dashDoc instanceof Doc && runInAction(() => setDashDoc(dashDoc)));
         } else {
             setDashDoc(tbox.props.DataDoc || tbox.dataDoc);
         }
+
+        //Moved
         this._reactionDisposer?.();
         this._reactionDisposer = reaction(() => { // this reaction will update the displayed text whenever the document's fieldKey's value changes
             const dashVal = this._dashDoc?.[self._fieldKey];
@@ -1030,6 +512,7 @@ export class DashFieldView {
             this._fieldSpan.style.display = !(boolVal === true || boolVal === false) ? "inline-block" : "none";
         }, { fireImmediately: true });
 
+        //MOVED IN ORDER
         this._fieldWrapper.appendChild(this._labelSpan);
         this._fieldWrapper.appendChild(this._fieldCheck);
         this._fieldWrapper.appendChild(this._fieldSpan);
@@ -1037,16 +520,12 @@ export class DashFieldView {
         (this as any).dom = this._fieldWrapper;
         //updateText(false);
     }
+    //MOVED
     destroy() {
         this._reactionDisposer?.();
     }
+    //moved
     selectNode() { }
-}
-
-export class OrderedListView {
-    update(node: any) {
-        return false; // if attr's of an ordered_list (e.g., bulletStyle) change, return false forces the dom node to be recreated which is necessary for the bullet labels to update
-    }
 }
 
 export class FootnoteView {
@@ -1138,6 +617,7 @@ export class FootnoteView {
         this.innerView = null;
         this.dom.textContent = "";
     }
+
     dispatchInner(tr: any) {
         const { state, transactions } = this.innerView.state.applyTransaction(tr);
         this.innerView.updateState(state);
@@ -1241,22 +721,3 @@ export class SummaryView {
         return TextSelection.create(this._view.state.doc, start, endPos);
     }
 }
-// :: Schema
-// This schema rougly corresponds to the document schema used by
-// [CommonMark](http://commonmark.org/), minus the list elements,
-// which are defined in the [`prosemirror-schema-list`](#schema-list)
-// module.
-//
-// To reuse elements from this schema, extend or read from its
-// `spec.nodes` and `spec.marks` [properties](#model.Schema.spec).
-export const schema = new Schema({ nodes, marks });
-
-const fromJson = schema.nodeFromJSON;
-
-schema.nodeFromJSON = (json: any) => {
-    const node = fromJson(json);
-    if (json.type === schema.nodes.summary.name) {
-        node.attrs.text = Slice.fromJSON(schema, node.attrs.textslice);
-    }
-    return node;
-};

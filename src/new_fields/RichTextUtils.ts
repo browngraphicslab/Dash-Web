@@ -9,7 +9,7 @@ import Color = require('color');
 import { sinkListItem } from "prosemirror-schema-list";
 import { Utils } from "../Utils";
 import { Docs } from "../client/documents/Documents";
-import { schema } from "../client/util/RichTextSchema";
+import { schema } from "../client/util/schema_rts";
 import { GooglePhotos } from "../client/apis/google_docs/GooglePhotosClientUtils";
 import { DocServer } from "../client/DocServer";
 import { Cast, StrCast } from "./Types";

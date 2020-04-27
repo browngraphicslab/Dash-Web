@@ -3,7 +3,7 @@ import AntimodeMenu from "../views/AntimodeMenu";
 import { observable, action, } from "mobx";
 import { observer } from "mobx-react";
 import { Mark, MarkType, Node as ProsNode, NodeType, ResolvedPos, Schema } from "prosemirror-model";
-import { schema } from "./RichTextSchema";
+import { schema } from "./schema_rts";
 import { EditorView } from "prosemirror-view";
 import { EditorState, NodeSelection, TextSelection } from "prosemirror-state";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
