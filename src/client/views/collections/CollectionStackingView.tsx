@@ -189,8 +189,8 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             active={this.props.active}
             whenActiveChanged={this.props.whenActiveChanged}
             addDocTab={this.addDocTab}
-            pinToPres={this.props.pinToPres}>
-        </ContentFittingDocumentView>;
+            pinToPres={this.props.pinToPres}
+        />;
     }
 
     getDocWidth(d?: Doc) {

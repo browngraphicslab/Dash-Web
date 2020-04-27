@@ -348,7 +348,9 @@ class TreeView extends React.Component<TreeViewProps> {
             </div></ul>;
         } else {
             const layoutDoc = Doc.Layout(this.props.document);
-            return <div ref={this._dref} style={{ display: "inline-block", height: this.docHeight() }} key={this.props.document[Id] + this.props.document.title}>
+            const panelHeight = layoutDoc.type === DocumentType.RTF ? this.rtfHeight : this.docHeight;
+            const panelWidth = layoutDoc.type === DocumentType.RTF ? this.rtfWidth : this.docWidth;
+            return <div ref={this._dref} style={{ display: "inline-block", height: panelHeight() }} key={this.props.document[Id] + this.props.document.title}>
                 <ContentFittingDocumentView
                     Document={layoutDoc}
                     DataDocument={this.templateDataDoc}
@@ -360,8 +362,8 @@ class TreeView extends React.Component<TreeViewProps> {
                     FreezeDimensions={true}
                     NativeWidth={layoutDoc.type === DocumentType.RTF ? this.rtfWidth : undefined}
                     NativeHeight={layoutDoc.type === DocumentType.RTF ? this.rtfHeight : undefined}
-                    PanelWidth={layoutDoc.type === DocumentType.RTF ? this.rtfWidth : this.docWidth}
-                    PanelHeight={layoutDoc.type === DocumentType.RTF ? this.rtfHeight : this.docHeight}
+                    PanelWidth={panelWidth}
+                    PanelHeight={panelHeight}
                     getTransform={this.docTransform}
                     CollectionDoc={this.props.containingCollection}
                     CollectionView={undefined}
@@ -727,7 +729,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                         }
                     });
                 });
-                const { TextDocument, ImageDocument, CarouselDocument } = Docs.Create;
+                const { TextDocument, ImageDocument, CarouselDocument, TreeDocument } = Docs.Create;
                 const { Document } = this.props;
                 const fallbackImg = "http://www.cs.brown.edu/~bcz/face.gif";
                 const detailedTemplate = `{ "doc": { "type": "doc", "content": [  { "type": "paragraph", "content": [ { "type": "dashField", "attrs": { "fieldKey": "year" } } ] },  { "type": "paragraph", "content": [ { "type": "dashField", "attrs": { "fieldKey": "company" } } ] }  ] }, "selection":{"type":"text","anchor":1,"head":1},"storedMarks":[] }`;
@@ -735,10 +737,12 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                 const textDoc = TextDocument("", { title: "details", _autoHeight: true });
                 const detailView = Docs.Create.StackingDocument([
                     CarouselDocument([], { title: "data", _height: 350, _itemIndex: 0, backgroundColor: "#9b9b9b3F" }),
-                    // textDoc,
-                    TextDocument("", { title: "shortDescription", _autoHeight: true }),
-                    // TreeDocument([], { title: "narratives", _height: 75, treeViewHideTitle: true }),
-                    TextDocument("", { title: "longDescription", _height: 350 })
+                    TreeDocument([
+                        // textDoc,
+                        TextDocument("", { title: "shortDescription", _autoHeight: true }),
+                        // TreeDocument([], { title: "narratives", _height: 75, treeViewHideTitle: true }),
+                        TextDocument("", { title: "longDescription", _height: 350 })
+                    ], { title: "stuff", _height: 100 })
                 ], { _chromeStatus: "disabled", _width: 300, _height: 300, _autoHeight: true, title: "detailView" });
                 textDoc.data = new RichTextField(detailedTemplate, "year company");
                 detailView.isTemplateDoc = makeTemplate(detailView);
