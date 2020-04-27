@@ -1,4 +1,4 @@
-import { action, computed } from 'mobx';
+import { action, computed, observable } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from "react";
 import { Doc } from '../../../../new_fields/Doc';
@@ -13,22 +13,15 @@ import { CollectionSubView } from '../CollectionSubView';
 import { List } from '../../../../new_fields/List';
 import { returnZero } from '../../../../Utils';
 import Grid from "./Grid";
+import { Layout } from "./Grid";
 
 
 type GridSchema = makeInterface<[typeof documentSchema]>;
 const GridSchema = makeInterface(documentSchema);
 
-interface Layout {
-    i: string;
-    x: number;
-    y: number;
-    w: number;
-    h: number;
-}
-
-
-
 export class CollectionGridView extends CollectionSubView(GridSchema) {
+
+    @observable private layouts: Layout[] | undefined;
 
     /**
      * @returns the transform that will correctly place
@@ -46,7 +39,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
             if (candidate === layout) {
                 return this.props.ScreenToLocalTransform().translate(-offset, 0);
             }
-            //offset += this.lookupPixels(candidate) + resizerWidth;
+            offset += 194 + 10;
         }
         return Transform.Identity(); // type coersion, this case should never be hit
     }
@@ -82,17 +75,37 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
         />;
     }
 
+    //@action
+    set layout(layouts: Layout[]) {
+        this.layouts = layouts;
+        console.log(this.layouts[0]);
+    }
+
+    @computed
+    get layout() {
+        if (this.layouts === undefined) {
+            this.layouts = [];
+            console.log("empty");
+            for (let i = 0; i < this.childLayoutPairs.length; i++) {
+                this.layouts.push(
+                    { i: 'wrapper' + i, x: 2 * (i % 5), y: 2 * Math.floor(i / 5), w: 2, h: 2 }
+                );
+            }
+        }
+        return this.layouts;
+    }
+
     @computed
     private get contents(): [JSX.Element[], Layout[]] {
         const { childLayoutPairs } = this;
         const { Document } = this.props;
         const collector: JSX.Element[] = [];
-        const layoutArray = [];
+        const layoutArray: Layout[] = [];
         for (let i = 0; i < childLayoutPairs.length; i++) {
             const { layout } = childLayoutPairs[i];
             const dxf = () => this.lookupIndividualTransform(layout).translate(-NumCast(Document._xMargin), -NumCast(Document._yMargin));
-            const width = () => this.props.PanelWidth() / 5 - 20;  //this.lookupPixels(layout);
-            const height = () => 200;//PanelHeight() - 2 * NumCast(Document._yMargin) - (BoolCast(Document.showWidthLabels) ? 20 : 0);
+            const width = () => 300;  //this.lookupPixels(layout);
+            const height = () => 300;//PanelHeight() - 2 * NumCast(Document._yMargin) - (BoolCast(Document.showWidthLabels) ? 20 : 0);
             collector.push(
                 <div className={"document-wrapper"}
                     key={"wrapper" + i}
@@ -104,11 +117,11 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
 
             layoutArray.push(
                 { i: 'wrapper' + i, x: 2 * (i % 5), y: 2 * Math.floor(i / 5), w: 2, h: 2 }
+                // add values to document
             );
         }
         return [collector, layoutArray];
     }
-
 
     render(): JSX.Element {
 
@@ -122,7 +135,12 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
                     marginTop: NumCast(this.props.Document._yMargin), marginBottom: NumCast(this.props.Document._yMargin)
                 }} ref={this.createDashEventsTarget}>
 
-                <Grid width={this.props.PanelWidth()} nodeList={contents} layout={layout} />
+                <Grid
+                    width={this.props.PanelWidth()}
+                    nodeList={contents}
+                    layout={layout}
+                    gridView={this}
+                />
             </div>
         );
     }
