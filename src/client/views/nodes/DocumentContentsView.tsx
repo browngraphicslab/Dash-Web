@@ -78,7 +78,7 @@ export class HTMLtag extends React.Component<HTMLtagProps> {
         const style: { [key: string]: any } = {};
         const divKeys = OmitKeys(this.props, ["children", "htmltag", "RootDoc", "Document", "key", "onInput", "onClick", "__proto__"]).omit;
         Object.keys(divKeys).map((prop: string) => {
-            let p = (this.props as any)[prop] as string;
+            const p = (this.props as any)[prop] as string;
             const replacer = (match: any, expr: string, offset: any, string: any) => { // bcz: this executes a script to convert a propery expression string:  { script }  into a value
                 return ScriptField.MakeFunction(expr, { self: Doc.name, this: Doc.name })?.script.run({ self: this.props.RootDoc, this: this.props.Document }).result as string || "";
             };
@@ -178,9 +178,9 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
             }
             return undefined;
             // add input function to props
-        }
-        let onClick = makeFuncProp("onClick");
-        let onInput = makeFuncProp("onInput");
+        };
+        const onClick = makeFuncProp("onClick");
+        const onInput = makeFuncProp("onInput");
 
         const bindings = this.CreateBindings(onClick, onInput);
         //  layoutFrame = splits.length > 1 ? splits[0] + splits[1].replace(/{([^{}]|(?R))*}/, replacer4) : ""; // might have been more elegant if javascript supported recursive patterns

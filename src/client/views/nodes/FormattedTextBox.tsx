@@ -83,17 +83,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     private _lastX = 0;
     private _lastY = 0;
     private _undoTyping?: UndoManager.Batch;
-    private _searchReactionDisposer?: Lambda;
-    private _recordReactionDisposer: Opt<IReactionDisposer>;
-    private _scrollToRegionReactionDisposer: Opt<IReactionDisposer>;
-    private _reactionDisposer: Opt<IReactionDisposer>;
-    private _heightReactionDisposer: Opt<IReactionDisposer>;
-    private _proxyReactionDisposer: Opt<IReactionDisposer>;
-    private _pullReactionDisposer: Opt<IReactionDisposer>;
-    private _pushReactionDisposer: Opt<IReactionDisposer>;
-    private _buttonBarReactionDisposer: Opt<IReactionDisposer>;
-    private _linkMakerDisposer: Opt<IReactionDisposer>;
-    private _scrollDisposer: Opt<IReactionDisposer>;
+    private _disposers: { [name: string]: IReactionDisposer } = {};
     private dropDisposer?: DragManager.DragDropDisposer;
 
     @computed get _recording() { return this.dataDoc.audioState === "recording"; }
@@ -564,7 +554,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         }
     }
     componentDidMount() {
-        this._buttonBarReactionDisposer = reaction(
+        this._disposers.buttonBar = reaction(
             () => DocumentButtonBar.Instance,
             instance => {
                 if (instance) {
@@ -573,7 +563,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 }
             }
         );
-        this._linkMakerDisposer = reaction(
+        this._disposers.linkMaker = reaction(
             () => this.props.makeLink?.(),
             (linkDoc: Opt<Doc>) => {
                 if (linkDoc) {
@@ -584,8 +574,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             },
             { fireImmediately: true }
         );
-
-        this._reactionDisposer = reaction(
+        this._disposers.editorState = reaction(
             () => {
                 if (this.dataDoc[this.props.fieldKey + "-noTemplate"] || !this.props.Document[this.props.fieldKey + "-textTemplate"]) {
                     return Cast(this.dataDoc[this.props.fieldKey], RichTextField, null)?.Data;
@@ -600,8 +589,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 }
             }
         );
-
-        this._pullReactionDisposer = reaction(
+        this._disposers.pullDoc = reaction(
             () => this.props.Document[Pulls],
             () => {
                 if (!DocumentButtonBar.hasPulledHack) {
@@ -611,8 +599,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 }
             }
         );
-
-        this._pushReactionDisposer = reaction(
+        this._disposers.pushDoc = reaction(
             () => this.props.Document[Pushes],
             () => {
                 if (!DocumentButtonBar.hasPushedHack) {
@@ -621,19 +608,18 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 }
             }
         );
-
-        this._heightReactionDisposer = reaction(
+        this._disposers.height = reaction(
             () => [this.layoutDoc[WidthSym](), this.layoutDoc._autoHeight],
             () => this.tryUpdateHeight()
         );
 
         this.setupEditor(this.config, this.props.fieldKey);
 
-        this._searchReactionDisposer = reaction(() => this.rootDoc.searchMatch,
+        this._disposers.search = reaction(() => this.rootDoc.searchMatch,
             search => search ? this.highlightSearchTerms([Doc.SearchQuery()]) : this.unhighlightSearchTerms(),
             { fireImmediately: true });
 
-        this._recordReactionDisposer = reaction(() => this._recording,
+        this._disposers.record = reaction(() => this._recording,
             () => {
                 if (this._recording) {
                     setTimeout(action(() => {
@@ -643,8 +629,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 } else setTimeout(() => this.stopDictation(true), 0);
             }
         );
-
-        this._scrollToRegionReactionDisposer = reaction(
+        this._disposers.scrollToRegion = reaction(
             () => StrCast(this.layoutDoc.scrollToLinkID),
             async (scrollToLinkID) => {
                 const findLinkFrag = (frag: Fragment, editor: EditorView) => {
@@ -689,8 +674,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             },
             { fireImmediately: true }
         );
-
-        this._scrollDisposer = reaction(() => NumCast(this.props.Document.scrollPos),
+        this._disposers.scroll = reaction(() => NumCast(this.props.Document.scrollPos),
             pos => this._scrollRef.current && this._scrollRef.current.scrollTo({ top: pos }), { fireImmediately: true }
         );
 
@@ -876,7 +860,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             });
             const startupText = !rtfField && this._editorView && Field.toString(this.dataDoc[fieldKey] as Field);
             if (startupText) {
-                this._editorView.dispatch(this._editorView.state.tr.insertText(startupText));
+                const { state: { tr }, dispatch } = this._editorView;
+                dispatch(tr.insertText(startupText));
             }
         }
 
@@ -906,17 +891,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     }
 
     componentWillUnmount() {
-        this._scrollDisposer?.();
-        this._scrollToRegionReactionDisposer?.();
-        this._reactionDisposer?.();
-        this._proxyReactionDisposer?.();
-        this._pushReactionDisposer?.();
-        this._pullReactionDisposer?.();
-        this._heightReactionDisposer?.();
-        this._searchReactionDisposer?.();
-        this._recordReactionDisposer?.();
-        this._buttonBarReactionDisposer?.();
-        this._linkMakerDisposer?.();
+        Object.values(this._disposers).forEach(disposer => disposer?.());
         this._editorView?.destroy();
     }
 
