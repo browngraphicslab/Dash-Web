@@ -4,7 +4,6 @@ import { faPalette } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
-import Measure from "react-measure";
 import { Doc } from "../../../new_fields/Doc";
 import { PastelSchemaPalette, SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 import { ScriptField } from "../../../new_fields/ScriptField";
@@ -46,7 +45,6 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
     @observable private _background = "inherit";
     @observable private _createAliasSelected: boolean = false;
     @observable private _collapsed: boolean = false;
-    @observable private _headingsHack: number = 1;
     @observable private _heading = this.props.headingObject ? this.props.headingObject.heading : this.props.heading;
     @observable private _color = this.props.headingObject ? this.props.headingObject.color : "#f1efeb";
 
@@ -55,7 +53,6 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
     private _startDragPosition: { x: number, y: number } = { x: 0, y: 0 };
     private _contRef: React.RefObject<HTMLDivElement> = React.createRef();
     private _sensitivity: number = 16;
-    private _counter: number = 0;
     private _ele: any;
 
     createRowDropRef = (ele: HTMLDivElement | null) => {
@@ -167,7 +164,6 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
     collapseSection = () => {
         this._createAliasSelected = false;
         if (this.props.headingObject) {
-            this._headingsHack++;
             this.props.headingObject.setCollapsed(!this.props.headingObject.collapsed);
             this.toggleVisibility();
         }
@@ -197,6 +193,10 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
         e.stopPropagation();
         e.preventDefault();
 
+        if (this.props.parent.props.Document._chromeStatus === "disabled") {
+            this.collapseSection();
+        }
+
         document.removeEventListener("pointermove", this.startDrag);
         document.removeEventListener("pointerup", this.pointerUp);
     }
@@ -209,7 +209,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
         const [dx, dy] = this.props.screenToLocalTransform().transformDirection(e.clientX, e.clientY);
         this._startDragPosition = { x: dx, y: dy };
 
-        if (this._createAliasSelected) {
+        if (this.props.parent.props.Document._chromeStatus === "disabled" || this._createAliasSelected) {
             document.removeEventListener("pointermove", this.startDrag);
             document.addEventListener("pointermove", this.startDrag);
             document.removeEventListener("pointerup", this.pointerUp);
@@ -261,12 +261,6 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
         </div>);
     }
 
-    handleResize = (size: any) => {
-        if (++this._counter !== 1) {
-            this.getTrueHeight();
-        }
-    }
-
     @computed get contentLayout() {
         const rows = Math.max(1, Math.min(this.props.docList.length, Math.floor((this.props.parent.props.PanelWidth() - 2 * this.props.parent.xMargin) / (this.props.parent.columnWidth + this.props.parent.gridGap))));
         const style = this.props.parent;
@@ -277,7 +271,6 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
             SetValue: this.addDocument,
             contents: "+ NEW",
             HeadingObject: this.props.headingObject,
-            HeadingsHack: this._headingsHack,
             toggle: this.toggleVisibility,
             color: this._color
         };
@@ -308,6 +301,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
 
     @computed get headingView() {
         const heading = this._heading;
+        const noChrome = this.props.parent.props.Document._chromeStatus === "disabled";
         const key = StrCast(this.props.parent.props.Document._pivotField);
         const evContents = heading ? heading : this.props.type && this.props.type === "number" ? "0" : `NO ${key.toUpperCase()} VALUE`;
         const headerEditableViewProps = {
@@ -316,7 +310,6 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
             contents: evContents,
             oneLine: true,
             HeadingObject: this.props.headingObject,
-            HeadingsHack: this._headingsHack,
             toggle: this.toggleVisibility,
             color: this._color
         };
@@ -326,12 +319,12 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
             </div> :
             !this.props.headingObject ? (null) :
                 <div className="collectionStackingView-sectionHeader" ref={this._headerRef} >
-                    <div className="collectionStackingView-sectionHeader-subCont" onPointerDown={this.headerDown}
+                    <div className="collectionStackingView-sectionHeader-subCont" onPointerDown={this.headerDown} onClick={noChrome ? undefined : this.collapseSection}
                         title={evContents === `NO ${key.toUpperCase()} VALUE` ?
                             `Documents that don't have a ${key} value will go here. This column cannot be removed.` : ""}
                         style={{ background: evContents !== `NO ${key.toUpperCase()} VALUE` ? this._color : "lightgrey" }}>
                         <EditableView {...headerEditableViewProps} />
-                        {evContents === `NO ${key.toUpperCase()} VALUE` ? (null) :
+                        {noChrome || evContents === `NO ${key.toUpperCase()} VALUE` ? (null) :
                             <div className="collectionStackingView-sectionColor">
                                 <Flyout anchorPoint={anchorPoints.CENTER_RIGHT} content={this.renderColorPicker()}>
                                     <button className="collectionStackingView-sectionColorButton">
@@ -340,10 +333,10 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
                                 </ Flyout >
                             </div>
                         }
-                        <button className="collectionStackingView-sectionDelete" onClick={this.collapseSection}>
+                        {noChrome ? (null) : <button className="collectionStackingView-sectionDelete" onClick={noChrome ? undefined : this.collapseSection}>
                             <FontAwesomeIcon icon={this._collapsed ? "chevron-down" : "chevron-up"} size="lg" />
-                        </button>
-                        {evContents === `NO  ${key.toUpperCase()} VALUE` ? (null) :
+                        </button>}
+                        {noChrome || evContents === `NO  ${key.toUpperCase()} VALUE` ? (null) :
                             <div className="collectionStackingView-sectionOptions">
                                 <Flyout anchorPoint={anchorPoints.TOP_RIGHT} content={this.renderMenu()}>
                                     <button className="collectionStackingView-sectionOptionButton">
@@ -359,20 +352,14 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
         const background = this._background; //to account for observables in Measure
         const contentlayout = this.contentLayout;
         const headingview = this.headingView;
-        return <Measure offset onResize={this.handleResize}>
-            {({ measureRef }) => {
-                return <div ref={measureRef}>
-                    <div className="collectionStackingView-masonrySection"
-                        style={{ width: this.props.parent.NodeWidth, background }}
-                        ref={this.createRowDropRef}
-                        onPointerEnter={this.pointerEnteredRow}
-                        onPointerLeave={this.pointerLeaveRow}
-                    >
-                        {headingview}
-                        {contentlayout}
-                    </div >
-                </div>;
-            }}
-        </Measure>;
+        return <div className="collectionStackingView-masonrySection"
+            style={{ width: this.props.parent.NodeWidth, background }}
+            ref={this.createRowDropRef}
+            onPointerEnter={this.pointerEnteredRow}
+            onPointerLeave={this.pointerLeaveRow}
+        >
+            {headingview}
+            {contentlayout}
+        </div >;
     }
 }

@@ -1144,7 +1144,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 border: highlighting && borderRounding ? `${highlightStyles[fullDegree]} ${highlightColors[fullDegree]} ${localScale}px` : undefined,
                 boxShadow: this.props.Document.isTemplateForField ? "black 0.2vw 0.2vw 0.8vw" : undefined,
                 background: finalColor,
-                opacity: this.Document.opacity
+                opacity: this.Document.opacity,
+                fontFamily: StrCast(this.Document._fontFamily, "inherit"),
+                fontSize: Cast(this.Document._fontSize, "number", null)
             }}>
             {this.onClickHandler && this.props.ContainingCollectionView?.props.Document._viewType === CollectionViewType.Time ? <>
                 {this.innards}

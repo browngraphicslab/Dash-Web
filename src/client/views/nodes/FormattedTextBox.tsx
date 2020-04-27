@@ -1216,8 +1216,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     opacity: this.props.hideOnLeave ? (this._entered ? 1 : 0.1) : 1,
                     color: this.props.hideOnLeave ? "white" : "inherit",
                     pointerEvents: interactive ? "none" : undefined,
-                    fontSize: NumCast(this.layoutDoc.fontSize, 13),
-                    fontFamily: StrCast(this.layoutDoc.fontFamily, "Crimson Text"),
+                    fontSize: Cast(this.layoutDoc._fontSize, "number", null),
+                    fontFamily: StrCast(this.layoutDoc._fontFamily, "inherit"),
                 }}
                 onContextMenu={this.specificContextMenu}
                 onKeyDown={this.onKeyPress}

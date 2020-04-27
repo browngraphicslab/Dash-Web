@@ -72,7 +72,8 @@ export class LabelBox extends ViewBoxBaseComponent<FieldViewProps, LabelDocument
                 <div className="labelBox-mainButton" style={{
                     background: StrCast(this.layoutDoc.backgroundColor),
                     color: StrCast(this.layoutDoc.color, "inherit"),
-                    fontSize: NumCast(this.layoutDoc.fontSize) || "inherit",
+                    fontSize: NumCast(this.layoutDoc._fontSize) || "inherit",
+                    fontFamily: StrCast(this.layoutDoc._fontFamily) || "inherit",
                     letterSpacing: StrCast(this.layoutDoc.letterSpacing),
                     textTransform: StrCast(this.layoutDoc.textTransform) as any,
                     paddingLeft: NumCast(this.layoutDoc._xPadding),

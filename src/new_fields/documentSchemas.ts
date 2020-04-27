@@ -30,6 +30,8 @@ export const documentSchema = createSchema({
     _replacedChrome: "string",  // what the default chrome is replaced with. Currently only supports the value of 'replaced' for PresBox's.
     _chromeStatus: "string",    // determines the state of the collection chrome. values allowed are 'replaced', 'enabled', 'disabled', 'collapsed'
     _freezeChildDimensions: "boolean", // freezes child document dimensions (e.g., used by time/pivot view to make sure all children will be scaled to fit their display rectangle)
+    _fontSize: "number",
+    _fontFamily: "string",
     isInPlaceContainer: "boolean",// whether the marked object will display addDocTab() calls that target "inPlace" destinations
     color: "string",            // foreground color of document
     backgroundColor: "string",  // background color of document

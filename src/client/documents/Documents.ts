@@ -110,7 +110,8 @@ export interface DocumentOptions {
     isBackground?: boolean;
     isLinkButton?: boolean;
     columnWidth?: number;
-    fontSize?: number;
+    _fontSize?: number;
+    _fontFamily?: string;
     curPage?: number;
     currentTimecode?: number; // the current timecode of a time-based document (e.g., current time of a video)  value is in seconds
     displayTimecode?: number; // the time that a document should be displayed (e.g., time an annotation should be displayed on a video)
