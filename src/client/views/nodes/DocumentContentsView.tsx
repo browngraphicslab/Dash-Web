@@ -126,7 +126,9 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     }
     get layoutDoc() {
         const params = StrCast(this.props.Document.PARAMS);
-        const template: Doc = this.props.LayoutDoc?.() || Doc.Layout(this.props.Document, this.props.layoutKey ? Cast(this.props.Document[this.props.layoutKey], Doc, null) : undefined);
+        // bcz: replaced this with below : is it correct?  change was made to accommodate passing fieldKey's from a layout script
+        // const template: Doc = this.props.LayoutDoc?.() || Doc.Layout(this.props.Document, this.props.layoutKey ? Cast(this.props.Document[this.props.layoutKey], Doc, null) : undefined);
+        const template: Doc = this.props.LayoutDoc?.() ||
         return Doc.expandTemplateLayout(template, this.props.Document, params ? "(" + params + ")" : this.props.layoutKey);
     }
 
