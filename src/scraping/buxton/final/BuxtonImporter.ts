@@ -16,6 +16,7 @@ interface DocumentContents {
     hyperlinks: string[];
     captions: string[];
     embeddedFileNames: string[];
+    longDescriptionParagraphs: string[];
 }
 
 export interface DeviceDocument {
@@ -186,10 +187,6 @@ const RegexMap = new Map<keyof DeviceDocument, Processor<any>>([
         exp: /Short Description:\s+(.*)Bill Buxton[’']s Notes/,
         transformer: Utilities.correctSentences
     }],
-    ["longDescription", {
-        exp: /Bill Buxton[’']s Notes(.*)Device Details/,
-        transformer: Utilities.correctSentences
-    }],
 ]);
 
 const sourceDir = path.resolve(__dirname, "source");
@@ -267,7 +264,12 @@ async function extractFileContents(pathToDocument: string): Promise<DocumentCont
     const body = document.root()?.text() ?? "No body found. Check the import script's XML parser.";
     const captions: string[] = [];
     const embeddedFileNames: string[] = [];
-    const captionTargets = document.find(tableCellXPath).map(node => node.text());
+    const captionTargets = document.find(tableCellXPath).map(node => node.text().trim());
+
+    const paragraphs = document.find('//*[name()="w:p"]').map(node => Utilities.correctSentences(node.text()).transformed!);
+    const start = paragraphs.indexOf(paragraphs.find(el => /Bill Buxton[’']s Notes/.test(el))!) + 1;
+    const end = paragraphs.indexOf("Device Details");
+    const longDescriptionParagraphs = paragraphs.slice(start, end);
 
     const { length } = captionTargets;
     strictEqual(length > 3, true, "No captions written.");
@@ -290,7 +292,7 @@ async function extractFileContents(pathToDocument: string): Promise<DocumentCont
 
     zip.close();
 
-    return { body, imageData, captions, embeddedFileNames, hyperlinks };
+    return { body, longDescriptionParagraphs, imageData, captions, embeddedFileNames, hyperlinks };
 }
 
 const imageEntry = /^word\/media\/\w+\.(jpeg|jpg|png|gif)/;
@@ -337,7 +339,7 @@ async function writeImages(zip: any): Promise<ImageData[]> {
 }
 
 function analyze(fileName: string, contents: DocumentContents): AnalysisResult {
-    const { body, imageData, captions, hyperlinks, embeddedFileNames } = contents;
+    const { body, imageData, captions, hyperlinks, embeddedFileNames, longDescriptionParagraphs } = contents;
     const device: any = {
         hyperlinks,
         captions,
@@ -376,6 +378,7 @@ function analyze(fileName: string, contents: DocumentContents): AnalysisResult {
         return { errors };
     }
 
+    device.longDescription = longDescriptionParagraphs.join("\n\n");
     return { device };
 }
 
