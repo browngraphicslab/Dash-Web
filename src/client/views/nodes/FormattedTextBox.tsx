@@ -212,6 +212,23 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         }
     }
 
+    // needs a better API for taking in a set of words with target documents instead of just one target
+    public hyperlinkTerms = (terms: string[], target: Doc) => {
+        if (this._editorView && (this._editorView as any).docView && terms.some(t => t)) {
+            const res = terms.filter(t => t).map(term => this.findInNode(this._editorView!, this._editorView!.state.doc, term));
+            let tr = this._editorView.state.tr;
+            const flattened: TextSelection[] = [];
+            res.map(r => r.map(h => flattened.push(h)));
+            const lastSel = Math.min(flattened.length - 1, this._searchIndex);
+            this._searchIndex = ++this._searchIndex > flattened.length - 1 ? 0 : this._searchIndex;
+            const alink = DocUtils.MakeLink({ doc: this.props.Document }, { doc: target }, "automatic")!;
+            const link = this._editorView.state.schema.marks.link.create({
+                href: Utils.prepend("/doc/" + alink[Id]),
+                title: "a link", location: location, linkId: alink[Id], targetId: target[Id]
+            });
+            this._editorView.dispatch(tr.addMark(flattened[lastSel].from, flattened[lastSel].to, link));
+        }
+    }
     public highlightSearchTerms = (terms: string[]) => {
         if (this._editorView && (this._editorView as any).docView && terms.some(t => t)) {
             const mark = this._editorView.state.schema.mark(this._editorView.state.schema.marks.search_highlight);
@@ -393,7 +410,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         funcs.push({ description: "Reset Default Layout", event: () => Doc.UserDoc().defaultTextLayout = undefined, icon: "eye" });
         !this.props.Document.rootDocument && funcs.push({
             description: "Make Template", event: () => {
-                this.props.Document.isTemplateDoc = makeTemplate(this.props.Document, true);
+                this.props.Document.isTemplateDoc = makeTemplate(this.props.Document);
                 Doc.AddDocToList(Cast(Doc.UserDoc()["template-notes"], Doc, null), "data", this.props.Document);
             }, icon: "eye"
         });
@@ -1210,7 +1227,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 <div className={`formattedTextBox-outer`} style={{ width: `calc(100% - ${this.sidebarWidthPercent})`, }} onScroll={this.onscrolled} ref={this._scrollRef}>
                     <div className={`formattedTextBox-inner${rounded}`} ref={this.createDropTarget}
                         style={{
-                            padding: `${NumCast(this.layoutDoc._xMargin, 0)}px  ${NumCast(this.layoutDoc._yMargin, 0)}px`,
+                            padding: `${NumCast(this.layoutDoc._yMargin, 0)}px  ${NumCast(this.layoutDoc._xMargin, 0)}px`,
                             pointerEvents: ((this.layoutDoc.isLinkButton || this.props.onClick) && !this.props.isSelected()) ? "none" : undefined
                         }} />
                 </div>
