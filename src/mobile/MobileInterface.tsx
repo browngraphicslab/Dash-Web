@@ -39,6 +39,7 @@ export class MobileInterface extends React.Component {
     @observable static Instance: MobileInterface;
     @computed private get userDoc() { return Doc.UserDoc(); }
     @computed private get mainContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeMobile, Doc)) : CurrentUserUtils.GuestMobile; }
+    @computed private get activeContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeMobile, Doc)) : CurrentUserUtils.GuestMobile; }
     // @observable private currentView: "main" | "ink" | "upload" = "main";
     @observable private mainDoc: any = CurrentUserUtils.setupMobileMenu(this.userDoc);
     @observable private renderView?: () => JSX.Element;
@@ -128,6 +129,8 @@ export class MobileInterface extends React.Component {
 
     displayWorkspaces = () => {
         if (this.mainContainer) {
+            console.log("User workspaces: " + (this.userDoc.myWorkspaces as Doc).contextMenuLabels);
+            const backgroundColor = () => "darkgrey";
             return (
                 <DocumentView
                     Document={this.mainContainer}
@@ -147,7 +150,7 @@ export class MobileInterface extends React.Component {
                     PanelHeight={() => window.screen.height}
                     renderDepth={0}
                     focus={emptyFunction}
-                    backgroundColor={returnEmptyString}
+                    backgroundColor={backgroundColor}
                     parentActive={returnTrue}
                     whenActiveChanged={emptyFunction}
                     bringToFront={emptyFunction}
@@ -179,6 +182,17 @@ export class MobileInterface extends React.Component {
                 </div>
             </div>
         );
+    }
+
+    renderActiveCollection = (userDoc: Doc) => {
+        if (this.activeContainer) {
+            const active = Cast(this.activeContainer.data, listSpec(Doc));
+            if (active) {
+                return (
+                    <div className="mobileInterface-background">HELLO!</div>
+                );
+            }
+        }
     }
 
     onBack = (e: React.MouseEvent) => {
@@ -283,7 +297,8 @@ export class MobileInterface extends React.Component {
                 <GoogleAuthenticationManager /> */}
                 {/* <DocumentDecorations /> */}
                 <div>
-                    {this.renderView ? this.renderView() : this.renderDefaultContent()}
+                    {this.renderActiveCollection(null)}
+                    {this.renderDefaultContent()}
                 </div>
                 {/* <PreviewCursor /> */}
                 {/* <ContextMenu /> */}
