@@ -729,39 +729,10 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                         }
                     });
                 });
-                const { TextDocument, ImageDocument, CarouselDocument, TreeDocument } = Docs.Create;
+                const { ImageDocument } = Docs.Create;
                 const { Document } = this.props;
                 const fallbackImg = "http://www.cs.brown.edu/~bcz/face.gif";
-
-                const carousel = CarouselDocument([], { title: "data", _height: 350, _itemIndex: 0, backgroundColor: "#9b9b9b3F" });
-                const textDoc = TextDocument("", { title: "details", _autoHeight: true });
-                const short = TextDocument("", { title: "shortDescription", _autoHeight: true });
-                const long = TextDocument("", { title: "longDescription", _height: 350 });
-                long.treeViewExpandedView = "layout";
-                const long_wrapper = TreeDocument([long], { title: "Descriptions", _height: 350 });
-
-                // const narratives = TreeDocument([], { title: "narratives", _height: 75, treeViewHideTitle: true }),
-                // const detailView = Cast(Cast(Doc.UserDoc()["template-button-detail"], Doc, null)?.dragFactory, Doc, null);
-
-                textDoc.fontFamily = short.fontFamily = long.fontFamily = carousel.fontFamily = "Arial";
-
-                const detailViewOpts = { _chromeStatus: "disabled", _width: 300, _height: 300, _autoHeight: true, title: "detailView" };
-                const detailView = Docs.Create.StackingDocument([carousel, textDoc, short, long_wrapper], detailViewOpts);
-                detailView.isTemplateDoc = makeTemplate(detailView);
-
-                const buxtonFieldKeys = ["year", "originalPrice", "degreesOfFreedom", "company", "attribute", "primaryKey", "secondaryKey", "dimensions"];
-                const detailedTemplate = {
-                    doc: {
-                        type: "doc", content: buxtonFieldKeys.map(fieldKey => ({
-                            type: "paragraph",
-                            content: [{ type: "dashField", attrs: { fieldKey } }]
-                        }))
-                    },
-                    selection: { type: "text", anchor: 1, head: 1 },
-                    storedMarks: []
-                };
-                textDoc.data = new RichTextField(JSON.stringify(detailedTemplate), buxtonFieldKeys.join(" "));
-
+                const detailView = Cast(Cast(Doc.UserDoc()["template-button-detail"], Doc, null)?.dragFactory, Doc, null);
                 const heroView = ImageDocument(fallbackImg, { title: "heroView", isTemplateDoc: true, isTemplateForField: "hero", }); // this acts like a template doc and a template field ... a little weird, but seems to work?
                 heroView.proto!.layout = ImageBox.LayoutString("hero");
                 heroView._showTitle = "title";
