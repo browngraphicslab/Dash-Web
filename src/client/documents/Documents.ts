@@ -39,7 +39,7 @@ import { filterData} from "../views/search/SearchBox";
 //import { PresField } from "../../new_fields/PresField";
 import { PresElementBox } from "../views/presentationview/PresElementBox";
 import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
-import { QueryBox } from "../views/nodes/QueryBox";
+import { SearchBox } from "../views/search/SearchBox";
 import { ColorBox } from "../views/nodes/ColorBox";
 import { LinkAnchorBox } from "../views/nodes/LinkAnchorBox";
 import { DocHolderBox } from "../views/nodes/DocumentBox";
@@ -191,8 +191,8 @@ export namespace Docs {
                 layout: { view: FormattedTextBox, dataField: "text" },
                 options: { _height: 150, _xMargin: 10, _yMargin: 10 }
             }],
-            [DocumentType.QUERY, {
-                layout: { view: QueryBox, dataField: data },
+            [DocumentType.SEARCH, {
+                layout: { view: SearchBox, dataField: data },
                 options: { _width: 400 }
             }],
             [DocumentType.COLOR, {
@@ -534,8 +534,8 @@ export namespace Docs {
             return instance;
         }
 
-        export function QueryDocument(options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.QUERY), "", options);
+        export function SearchDocument(options: DocumentOptions = {}) {
+            return InstanceFromProto(Prototypes.get(DocumentType.SEARCH), "", options);
         }
 
         export function ColorDocument(options: DocumentOptions = {}) {

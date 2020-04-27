@@ -15,7 +15,7 @@ import { SearchUtil } from '../../util/SearchUtil';
 import "./SearchBox.scss";
 import { SearchItem } from './SearchItem';
 import { IconBar } from './IconBar';
-import { FieldView } from '../nodes/FieldView';
+import { FieldView, FieldViewProps } from '../nodes/FieldView';
 import { DocumentType } from "../../documents/DocumentTypes";
 import { DocumentView } from '../nodes/DocumentView';
 import { SelectionManager } from '../../util/SelectionManager';
@@ -30,17 +30,31 @@ import { faSearch, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faMu
 import { Transform } from '../../util/Transform';
 import { MainView } from "../MainView";
 import { Scripting } from '../../util/Scripting';
-
+import { CollectionView, CollectionViewType } from '../collections/CollectionView';
+import { ViewBoxBaseComponent } from "../DocComponent";
+import { documentSchema } from "../../../new_fields/documentSchemas";
+import { makeInterface, createSchema } from '../../../new_fields/Schema';
 
 library.add(faTimes);
 
-export interface SearchProps {
-    id: string;
-    Document: Doc;
-    sideBar?: Boolean;
-    searchQuery?: string;
-    filterQuery?: filterData;
-}
+// export interface SearchProps {
+//     id: string;
+//     Document: Doc;
+//     sideBar?: Boolean;
+//     searchQuery?: string;
+//     filterQuery?: filterData;
+// }
+
+export const searchSchema = createSchema({
+    id: "string",
+    Document: Doc,
+    sideBar: "boolean",
+    searchQuery: "string",
+});
+
+//add back filterquery
+
+
 
 export enum Keys {
     TITLE = "title",
@@ -55,8 +69,13 @@ export interface filterData{
     basicWordStatus:boolean;
     icons: string[];
 }
+
+type SearchBoxDocument = makeInterface<[typeof documentSchema, typeof searchSchema]>;
+const SearchBoxDocument = makeInterface(documentSchema, searchSchema);
+
+//React.Component<SearchProps> 
 @observer
-export class SearchBox extends React.Component<SearchProps> {
+export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDocument>(SearchBoxDocument) {
 
     @observable private _searchString: string = "";
     @observable private _resultsOpen: boolean = false;
@@ -64,6 +83,7 @@ export class SearchBox extends React.Component<SearchProps> {
     @observable private _results: [Doc, string[], string[]][] = [];
     @observable private _openNoResults: boolean = false;
     @observable private _visibleElements: JSX.Element[] = [];
+    @observable private _visibleDocuments: Doc[] = [];
 
     private _resultsSet = new Map<Doc, number>();
     private _resultsRef = React.createRef<HTMLDivElement>();
@@ -107,20 +127,20 @@ export class SearchBox extends React.Component<SearchProps> {
             this.inputRef.current.focus();
             runInAction(() => this._searchbarOpen = true);
         }
-        if (this.props.searchQuery && this.props.filterQuery && this.newAssign) {
-            console.log(this.props.searchQuery);
-            const sq = this.props.searchQuery;
+        if (this.rootDoc.searchQuery&& this.newAssign) {
+            console.log(this.rootDoc.searchQuery);
+            const sq = this.rootDoc.searchQuery;
             runInAction(() => {
 
-            this._deletedDocsStatus=this.props.filterQuery!.deletedDocsStatus;
-            this._authorFieldStatus=this.props.filterQuery!.authorFieldStatus
-            this._titleFieldStatus=this.props.filterQuery!.titleFieldStatus;
-            this._basicWordStatus=this.props.filterQuery!.basicWordStatus;
-            this._icons=this.props.filterQuery!.icons;
+            // this._deletedDocsStatus=this.props.filterQuery!.deletedDocsStatus;
+            // this._authorFieldStatus=this.props.filterQuery!.authorFieldStatus
+            // this._titleFieldStatus=this.props.filterQuery!.titleFieldStatus;
+            // this._basicWordStatus=this.props.filterQuery!.basicWordStatus;
+            // this._icons=this.props.filterQuery!.icons;
             this.newAssign=false;
             });
             runInAction(() => {
-                this._searchString = sq;
+                this._searchString = StrCast(sq);
                 this.submitSearch();
             });
         }
@@ -334,6 +354,7 @@ export class SearchBox extends React.Component<SearchProps> {
         this._resultsSet.clear();
         this._isSearch = [];
         this._visibleElements = [];
+        this._visibleDocuments = [];
         if (query !== "") {
             this._endIndex = 12;
             this._maxSearchIndex = 0;
@@ -457,7 +478,7 @@ export class SearchBox extends React.Component<SearchProps> {
             basicWordStatus: this._basicWordStatus,
             icons: this._icons,
         }
-        return Docs.Create.QueryDocument({ _autoHeight: true, title: this._searchString, filterQuery: filter, searchQuery: this._searchString });
+        return Docs.Create.SearchDocument({ _autoHeight: true, title: this._searchString, filterQuery: filter, searchQuery: this._searchString });
     }
 
     @action.bound
@@ -480,6 +501,7 @@ export class SearchBox extends React.Component<SearchProps> {
         this._results = [];
         this._resultsSet.clear();
         this._visibleElements = [];
+        this._visibleDocuments=[];
         this._numTotalResults = -1;
         this._endIndex = -1;
         this._curRequest = undefined;
@@ -497,6 +519,7 @@ export class SearchBox extends React.Component<SearchProps> {
         this._endIndex=30;
         if ((this._numTotalResults === 0 || this._results.length === 0) && this._openNoResults) {
             this._visibleElements = [<div className="no-result">No Search Results</div>];
+            //this._visibleDocuments= Docs.Create.
             return;
         }
 
@@ -509,6 +532,8 @@ export class SearchBox extends React.Component<SearchProps> {
         else if (this._visibleElements.length !== this._numTotalResults) {
             // undefined until a searchitem is put in there
             this._visibleElements = Array<JSX.Element>(this._numTotalResults === -1 ? 0 : this._numTotalResults);
+            this._visibleDocuments = Array<Doc>(this._numTotalResults === -1 ? 0 : this._numTotalResults);
+
             // indicates if things are placeholders 
             this._isSearch = Array<undefined>(this._numTotalResults === -1 ? 0 : this._numTotalResults);
         }
@@ -531,6 +556,7 @@ export class SearchBox extends React.Component<SearchProps> {
                         if (result) {
                             const highlights = Array.from([...Array.from(new Set(result[1]).values())]);
                             this._visibleElements[i] = <SearchItem doc={result[0]} query={this._searchString} key={result[0][Id]} lines={result[2]} highlighting={highlights} />;
+                            this._visibleDocuments[i]= result[0];
                             this._isSearch[i] = "search";
                         }
                     }
@@ -539,6 +565,7 @@ export class SearchBox extends React.Component<SearchProps> {
                         if (result) {
                             const highlights = Array.from([...Array.from(new Set(result[1]).values())]);
                             this._visibleElements[i] = <SearchItem doc={result[0]} query={this._searchString} key={result[0][Id]} lines={result[2]} highlighting={highlights} />;
+                            this._visibleDocuments[i] = result[0];
                             this._isSearch[i] = "search";
                         }
                     }
@@ -547,6 +574,7 @@ export class SearchBox extends React.Component<SearchProps> {
         }
         if (this._maxSearchIndex >= this._numTotalResults) {
             this._visibleElements.length = this._results.length;
+            this._visibleDocuments.length = this._results.length;
             this._isSearch.length = this._results.length;
         }
     }
@@ -568,10 +596,10 @@ export class SearchBox extends React.Component<SearchProps> {
         console.log("oi!");
         this._nodeStatus = !this._nodeStatus;
         if (this._nodeStatus) {
-            this.expandSection(`node${this.props.id}`);
+            this.expandSection(`node${this.props.Document[Id]}`);
         }
         else {
-            this.collapseSection(`node${this.props.id}`);
+            this.collapseSection(`node${this.props.Document[Id]}`);
         }
     }
 
@@ -579,10 +607,10 @@ export class SearchBox extends React.Component<SearchProps> {
     handleKeyChange = () => {
         this._keyStatus = !this._keyStatus;
         if (this._keyStatus) {
-            this.expandSection(`key${this.props.id}`);
+            this.expandSection(`key${this.props.Document[Id]}`);
         }
         else {
-            this.collapseSection(`key${this.props.id}`);
+            this.collapseSection(`key${this.props.Document[Id]}`);
         }
     }
 
@@ -590,11 +618,11 @@ export class SearchBox extends React.Component<SearchProps> {
     handleFilterChange = () => {
         this._filterOpen = !this._filterOpen;
         if (this._filterOpen) {
-            this.expandSection(`filterhead${this.props.id}`);
-            document.getElementById(`filterhead${this.props.id}`)!.style.padding = "5";
+            this.expandSection(`filterhead${this.props.Document[Id]}`);
+            document.getElementById(`filterhead${this.props.Document[Id]}`)!.style.padding = "5";
         }
         else {
-            this.collapseSection(`filterhead${this.props.id}`);
+            this.collapseSection(`filterhead${this.props.Document[Id]}`);
 
 
         }
@@ -607,7 +635,7 @@ export class SearchBox extends React.Component<SearchProps> {
 
 
     collapseSection(thing: string) {
-        const id = this.props.id;
+        const id = this.props.Document[Id];
         const element = document.getElementById(thing)!;
         // get the height of the element's inner content, regardless of its actual size
         const sectionHeight = element.scrollHeight;
@@ -686,7 +714,7 @@ export class SearchBox extends React.Component<SearchProps> {
     @computed get docButtons() {
         const nodeBtns = this.props.Document.nodeButtons;
         let width = () => NumCast(this.props.Document.width);
-        if (this.props.sideBar===true){
+        if (this.rootDoc.sideBar===true){
             width = MainView.Instance.flyoutWidthFunc;
         }
         if (nodeBtns instanceof Doc) {
@@ -724,7 +752,7 @@ export class SearchBox extends React.Component<SearchProps> {
     @computed get keyButtons() {
         const nodeBtns = this.props.Document.keyButtons;
         let width = () => NumCast(this.props.Document.width);
-        if (this.props.sideBar===true){
+        if (this.rootDoc.sideBar===true){
             width = MainView.Instance.flyoutWidthFunc;
         }
         if (nodeBtns instanceof Doc) {
@@ -762,7 +790,7 @@ export class SearchBox extends React.Component<SearchProps> {
     @computed get defaultButtons() {
         const defBtns = this.props.Document.defaultButtons;
         let width = () => NumCast(this.props.Document.width);
-        if (this.props.sideBar===true){
+        if (this.rootDoc.sideBar===true){
             width = MainView.Instance.flyoutWidthFunc;
         }
         if (defBtns instanceof Doc) {
@@ -861,11 +889,11 @@ export class SearchBox extends React.Component<SearchProps> {
         });
         doc.defaultButtons= dragCreators;
     }
-
+    childLayoutTemplate = () => this.layoutDoc._viewType === CollectionViewType.Stacking ? Cast(Doc.UserDoc().presentationTemplate, Doc, null) : undefined;
     render() {
 
         return (
-            <div className="searchBox-container">
+            <div style={{pointerEvents:"all"}}className="searchBox-container">
                 <div className="searchBox-bar">
                     <span className="searchBox-barChild searchBox-collection" onPointerDown={SetupDrag(this.collectionRef, () => this._searchString ? this.startDragCollection() : undefined)} ref={this.collectionRef} title="Drag Results as Collection">
                         <FontAwesomeIcon icon="object-group" size="lg" />
@@ -876,17 +904,17 @@ export class SearchBox extends React.Component<SearchProps> {
                     <button className="searchBox-barChild searchBox-filter" style={{transform:"none"}} title="Advanced Filtering Options" onClick={() => this.handleFilterChange()}><FontAwesomeIcon icon="ellipsis-v" color="white" /></button>
                 </div>
 
-                <div id={`filterhead${this.props.id}`} className="filter-form" style={this._filterOpen && this._numTotalResults >0 ? {overflow:"visible"} : {overflow:"hidden"}}>
-                    <div id={`filterhead2${this.props.id}`} className="filter-header"  >
+                <div id={`filterhead${this.props.Document[Id]}`} className="filter-form" style={this._filterOpen && this._numTotalResults >0 ? {overflow:"visible"} : {overflow:"hidden"}}>
+                    <div id={`filterhead2${this.props.Document[Id]}`} className="filter-header"  >
                         {this.defaultButtons}
                         {/* <button className="filter-item" style={this._basicWordStatus ? { background: "#aaaaa3", } : {}} onClick={this.handleWordQueryChange}>Keywords</button>
                         <button className="filter-item" style={this._keyStatus ? { background: "#aaaaa3" } : {}} onClick={this.handleKeyChange}>Keys</button>
                         <button className="filter-item" style={this._nodeStatus ? { background: "#aaaaa3" } : {}} onClick={this.handleNodeChange}>Nodes</button> */}
                     </div>
-                    <div id={`node${this.props.id}`} className="filter-body" style={this._nodeStatus ? { borderTop: "grey 1px solid" } : { borderTop: "0px" }}>
+                    <div id={`node${this.props.Document[Id]}`} className="filter-body" style={this._nodeStatus ? { borderTop: "grey 1px solid" } : { borderTop: "0px" }}>
                         {this.docButtons}
                     </div>
-                    <div className="filter-key" id={`key${this.props.id}`} style={this._keyStatus ? { borderTop: "grey 1px solid" } : { borderTop: "0px" }}>
+                    <div className="filter-key" id={`key${this.props.Document[Id]}`} style={this._keyStatus ? { borderTop: "grey 1px solid" } : { borderTop: "0px" }}>
                         {/* <div className="filter-keybar"> */}
                             {/* <button className="filter-item" style={this._titleFieldStatus ? { background: "#aaaaa3", } : {}} onClick={this.updateTitleStatus}>Title</button>
                             <button className="filter-item" style={this._deletedDocsStatus ? { background: "#aaaaa3", } : {}} onClick={this.updateDataStatus}>Deleted Docs</button>
@@ -894,12 +922,22 @@ export class SearchBox extends React.Component<SearchProps> {
                         {this.keyButtons}
                     </div>
                 </div>
+                {/* <CollectionView {...this.props}
+                        PanelHeight={this.panelHeight}
+                        moveDocument={returnFalse}
+                        childLayoutTemplate={this.childLayoutTemplate}
+                        addDocument={this.addDocument}
+                        removeDocument={returnFalse}
+                        focus={this.selectElement}
+                        ScreenToLocalTransform={this.getTransform} /> */}
                 <div className="searchBox-results" onScroll={this.resultsScrolled} style={{
                     display: this._resultsOpen ? "flex" : "none",
                     height: this.resFull ? "auto" : this.resultHeight,
                     overflow: "visibile" // this.resFull ? "auto" : "visible"
                 }} ref={this._resultsRef}>
                     {this._visibleElements}
+                    
+                    
                 </div>
             </div>
         );
@@ -910,7 +948,7 @@ export class SearchBox extends React.Component<SearchProps> {
 //     console.log("oi");
 //     doc.handleNodeChange();
     
-//     // const dv = DocumentManager.Instance.getDocumentView(doc);
+//     // const dv = DocumentManager.Instance.getD  ocumentView(doc);
 //     // if (dv?.props.Document.layoutKey === layoutKey) dv?.switchViews(otherKey !== "layout", otherKey.replace("layout_", ""));
 //     // else dv?.switchViews(true, layoutKey.replace("layout_", ""));
 // });

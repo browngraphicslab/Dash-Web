@@ -87,7 +87,7 @@ export class CurrentUserUtils {
             { title: "use stamp", icon: "stamp", click: 'activateStamp(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this)', backgroundColor: "orange", ischecked: `sameDocs(this.activePen.pen, this)`, activePen: doc },
             { title: "use eraser", icon: "eraser", click: 'activateEraser(this.activePen.pen = sameDocs(this.activePen.pen, this) ? undefined : this);', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "pink", activePen: doc },
             { title: "use drag", icon: "mouse-pointer", click: 'deactivateInk();this.activePen.pen = this;', ischecked: `sameDocs(this.activePen.pen, this)`, backgroundColor: "white", activePen: doc },
-            { title: "query", icon: "bolt", ignoreClick: true, drag: 'Docs.Create.QueryDocument({ _width: 200, title: "an image of a cat" })' },
+            { title: "query", icon: "bolt", ignoreClick: true, drag: 'Docs.Create.SearchDocument({ _width: 200, title: "an image of a cat" })' },
             // { title: "buxton", icon: "cloud-upload-alt", ignoreClick: true, drag: "Docs.Create.Buxton()" },
         ];
         return docProtoData.filter(d => !alreadyCreatedButtons?.includes(d.title)).map(data => Docs.Create.FontIconDocument({
@@ -254,7 +254,7 @@ export class CurrentUserUtils {
         return Docs.Create.ButtonDocument({
             _width: 50, _height: 25, title: "Search", fontSize: 10,
             letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
-            sourcePanel: Docs.Create.QueryDocument({ title: "search stack", }),
+            sourcePanel: Docs.Create.SearchDocument({ title: "search stack", }),
             targetContainer: sidebarContainer,
             lockedPosition: true,
             onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel")
@@ -279,11 +279,12 @@ export class CurrentUserUtils {
         }));
     }
 
+    // forceActive: true
     /// sets up the default list of buttons to be shown in the expanding button menu at the bottom of the Dash window
     static setupExpandingButtons(doc: Doc) {
         const queryTemplate = Docs.Create.MulticolumnDocument(
             [
-                Docs.Create.QueryDocument({ title: "query", _height: 200, forceActive: true }),
+                Docs.Create.SearchDocument({ title: "query", _height: 200, forceActive:true }),
                 Docs.Create.FreeformDocument([], { title: "data", _height: 100, _LODdisable: true, forceActive: true })
             ],
             { _width: 400, _height: 300, title: "queryView", _chromeStatus: "disabled", _xMargin: 3, _yMargin: 3, _autoHeight: false, forceActive: true, hideFilterView: true });

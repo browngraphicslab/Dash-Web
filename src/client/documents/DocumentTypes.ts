@@ -13,7 +13,7 @@ export enum DocumentType {
     INK = "ink",        // ink stroke
     SCREENSHOT = "screenshot",  // view of a desktop application
     FONTICON = "fonticonbox",   // font icon
-    QUERY = "query",            // search query
+    SEARCH = "search",            // search query
     LABEL = "label",            // simple text label
     BUTTON = "button",          // onClick button
     WEBCAM = "webcam",          // webcam
