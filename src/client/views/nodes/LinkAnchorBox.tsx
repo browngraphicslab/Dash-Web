@@ -4,7 +4,7 @@ import { Doc, DocListCast } from "../../../new_fields/Doc";
 import { documentSchema } from "../../../new_fields/documentSchemas";
 import { makeInterface } from "../../../new_fields/Schema";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
-import { Utils, setupMoveUpEvents } from '../../../Utils';
+import { Utils, setupMoveUpEvents, emptyFunction } from '../../../Utils';
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager } from "../../util/DragManager";
 import { ViewBoxBaseComponent } from "../DocComponent";
@@ -40,7 +40,7 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
     @observable _forceOpen = false;
 
     onPointerDown = (e: React.PointerEvent) => {
-        setupMoveUpEvents(this, e, this.onPointerMove, () => { }, this.onClick, false);
+        setupMoveUpEvents(this, e, this.onPointerMove, emptyFunction, emptyFunction, false);
     }
     onPointerMove = action((e: PointerEvent, down: number[], delta: number[]) => {
         const cdiv = this._ref && this._ref.current && this._ref.current.parentElement;
@@ -63,9 +63,7 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
         return false;
     });
     @action
-    onClick = (e: PointerEvent) => {
-        this._doubleTap = (Date.now() - this._lastTap < 300 && e.button === 0);
-        this._lastTap = Date.now();
+    onClick = (e: React.MouseEvent) => {
         if ((e.button === 2 || e.ctrlKey || !this.layoutDoc.isLinkButton)) {
             this.props.select(false);
         }
@@ -82,6 +80,9 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
         } else {
             this._timeout && clearTimeout(this._timeout);
             this._timeout = undefined;
+            this._doubleTap = false;
+            this.openLinkEditor(e);
+            e.stopPropagation();
         }
     }
 
@@ -130,7 +131,7 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
             </div>
         );
         const small = this.props.PanelWidth() <= 1;
-        return <div className={`linkAnchorBox-cont${small ? "-small" : ""}`} onPointerDown={this.onPointerDown} title={targetTitle} onContextMenu={this.specificContextMenu}
+        return <div className={`linkAnchorBox-cont${small ? "-small" : ""}`} onPointerDown={this.onPointerDown} onClick={this.onClick} title={targetTitle} onContextMenu={this.specificContextMenu}
             ref={this._ref} style={{
                 background: c,
                 left: !small ? `calc(${x}% - 7.5px)` : undefined,
