@@ -82,8 +82,35 @@ export class CurrentUserUtils {
             });
         }
 
+        if (doc["template-button-detail"] === undefined) {
+            const { TextDocument, ImageDocument, CarouselDocument, TreeDocument } = Docs.Create;
+            const detailedTemplate = `{ "doc": { "type": "doc", "content": [  { "type": "paragraph", "content": [ { "type": "dashField", "attrs": { "fieldKey": "year" } } ] },  { "type": "paragraph", "content": [ { "type": "dashField", "attrs": { "fieldKey": "company" } } ] }  ] }, "selection":{"type":"text","anchor":1,"head":1},"storedMarks":[] }`;
+
+            const textDoc1 = TextDocument("", { title: "shortDescription", treeViewOpen: true, treeViewExpandedView: "layout", _height: 50 });
+            const textDoc2 = TextDocument("", { title: "longDescription", treeViewOpen: false, treeViewExpandedView: "layout", _height: 350 });
+            const detailView = Docs.Create.StackingDocument([
+                CarouselDocument([], { title: "data", _height: 350, _itemIndex: 0, backgroundColor: "#9b9b9b3F" }),
+                TreeDocument([
+                    textDoc1,
+                    textDoc2,
+                    // TreeDocument([], { title: "narratives", _height: 75, treeViewHideTitle: true }),
+                ], { title: "stuff", _height: 300, treeViewHideTitle: true })
+            ], { _chromeStatus: "disabled", _width: 300, _height: 600, title: "detailView" });
+            //textDoc.data = new RichTextField(detailedTemplate, "year company");
+            detailView.isTemplateDoc = makeTemplate(detailView);
+            textDoc1.title = "Short Description";
+            textDoc2.title = "Long Description";
+
+            doc["template-button-detail"] = CurrentUserUtils.ficon({
+                onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
+                dragFactory: new PrefetchProxy(detailView) as any as Doc,
+                removeDropProperties: new List<string>(["dropAction"]), title: "detail view", icon: "window-maximize"
+            });
+        }
+
         if (doc["template-buttons"] === undefined) {
-            doc["template-buttons"] = new PrefetchProxy(Docs.Create.MasonryDocument([doc["template-button-slides"] as Doc, doc["template-button-description"] as Doc, doc["template-button-query"] as Doc], {
+            doc["template-buttons"] = new PrefetchProxy(Docs.Create.MasonryDocument([doc["template-button-slides"] as Doc, doc["template-button-description"] as Doc,
+            doc["template-button-query"] as Doc, doc["template-button-detail"] as Doc], {
                 title: "Compound Item Creators", _xMargin: 0, _showTitle: "title",
                 _autoHeight: true, _width: 500, columnWidth: 35, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled",
                 dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }),
