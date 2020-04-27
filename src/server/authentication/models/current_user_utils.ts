@@ -396,7 +396,7 @@ export class CurrentUserUtils {
 
         if (doc["tabs-button-tools"] === undefined) {
             doc["tabs-button-tools"] = new PrefetchProxy(Docs.Create.ButtonDocument({
-                _width: 35, _height: 25, title: "Tools", fontSize: 10,
+                _width: 35, _height: 25, title: "Tools", _fontSize: 10,
                 letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
                 sourcePanel: new PrefetchProxy(Docs.Create.StackingDocument([doc.myCreators as Doc, doc.myColorPicker as Doc], {
                     _width: 500, lockedPosition: true, _chromeStatus: "disabled", title: "tools stack", forceActive: true
@@ -453,7 +453,7 @@ export class CurrentUserUtils {
 
         if (doc["tabs-button-library"] === undefined) {
             doc["tabs-button-library"] = new PrefetchProxy(Docs.Create.ButtonDocument({
-                _width: 50, _height: 25, title: "Library", fontSize: 10,
+                _width: 50, _height: 25, title: "Library", _fontSize: 10,
                 letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
                 sourcePanel: new PrefetchProxy(Docs.Create.TreeDocument([workspaces, documents, recentlyClosed, doc], {
                     title: "Library", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "move", lockedPosition: true, boxShadow: "0 0", dontRegisterChildren: true
@@ -469,7 +469,7 @@ export class CurrentUserUtils {
     static setupSearchBtnPanel(doc: Doc, sidebarContainer: Doc) {
         if (doc["tabs-button-search"] === undefined) {
             doc["tabs-button-search"] = new PrefetchProxy(Docs.Create.ButtonDocument({
-                _width: 50, _height: 25, title: "Search", fontSize: 10,
+                _width: 50, _height: 25, title: "Search", _fontSize: 10,
                 letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
                 sourcePanel: new PrefetchProxy(Docs.Create.QueryDocument({ title: "search stack", })) as any as Doc,
                 searchFileTypes: new List<string>([DocumentType.RTF, DocumentType.IMG, DocumentType.PDF, DocumentType.VID, DocumentType.WEB, DocumentType.SCRIPTING]),
