@@ -89,11 +89,11 @@ export class DashFieldViewInternal extends React.Component<IDashFieldViewInterna
             const boolVal = Cast(fval, "boolean", null);
             const strVal = Field.toString(fval as Field) || "";
 
-            // field value is a boolean, so use a checkbox of similar widget to display it
+            // field value is a boolean, so use a checkbox or similar widget to display it
             if (boolVal === true || boolVal === false) {
                 return <input
                     className="dashFieldView-fieldCheck"
-                    type="checkbox"
+                    type="checkbox" checked={boolVal}
                     onChange={e => this._dashDoc![this._fieldKey] = e.target.checked}
                 />;
             }
