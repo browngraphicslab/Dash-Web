@@ -12,50 +12,49 @@ import { Fragment, Mark, Node, Slice } from "prosemirror-model";
 import { EditorState, NodeSelection, Plugin, TextSelection, Transaction } from "prosemirror-state";
 import { ReplaceStep } from 'prosemirror-transform';
 import { EditorView } from "prosemirror-view";
-import { DateField } from '../../../new_fields/DateField';
-import { DataSym, Doc, DocListCast, DocListCastAsync, Field, HeightSym, Opt, WidthSym } from "../../../new_fields/Doc";
-import { documentSchema } from '../../../new_fields/documentSchemas';
-import { Id } from '../../../new_fields/FieldSymbols';
-import { InkTool } from '../../../new_fields/InkField';
-import { PrefetchProxy } from '../../../new_fields/Proxy';
-import { RichTextField } from "../../../new_fields/RichTextField";
-import { RichTextUtils } from '../../../new_fields/RichTextUtils';
-import { createSchema, makeInterface } from "../../../new_fields/Schema";
-import { Cast, DateCast, NumCast, StrCast } from "../../../new_fields/Types";
-import { TraceMobx } from '../../../new_fields/util';
-import { addStyleSheet, addStyleSheetRule, clearStyleSheetRules, emptyFunction, numberRange, returnOne, returnZero, Utils } from '../../../Utils';
-import { GoogleApiClientUtils, Pulls, Pushes } from '../../apis/google_docs/GoogleApiClientUtils';
-import { DocServer } from "../../DocServer";
-import { Docs, DocUtils } from '../../documents/Documents';
-import { DocumentType } from '../../documents/DocumentTypes';
-import { DictationManager } from '../../util/DictationManager';
-import { DragManager } from "../../util/DragManager";
-import { makeTemplate } from '../../util/DropConverter';
-import buildKeymap from "../../util/ProsemirrorExampleTransfer";
-import RichTextMenu from '../../util/RichTextMenu';
-import { RichTextRules } from "../../util/RichTextRules";
-// import { DashDocCommentView, DashDocView, DashFieldView, FootnoteView, ImageResizeView, OrderedListView, SummaryView } from "../../util/RichTextSchema";
-// import { DashDocCommentView, DashDocView, DashFieldView, FootnoteView, SummaryView } from "../../util/RichTextSchema";
-import { OrderedListView } from "../../util/RichTextSchema";
-import { ImageResizeView } from "../../util/ImageResizeView";
+import { DateField } from '../../../../new_fields/DateField';
+import { DataSym, Doc, DocListCast, DocListCastAsync, Field, HeightSym, Opt, WidthSym } from "../../../../new_fields/Doc";
+import { documentSchema } from '../../../../new_fields/documentSchemas';
+import { Id } from '../../../../new_fields/FieldSymbols';
+import { InkTool } from '../../../../new_fields/InkField';
+import { PrefetchProxy } from '../../../../new_fields/Proxy';
+import { RichTextField } from "../../../../new_fields/RichTextField";
+import { RichTextUtils } from '../../../../new_fields/RichTextUtils';
+import { createSchema, makeInterface } from "../../../../new_fields/Schema";
+import { Cast, DateCast, NumCast, StrCast } from "../../../../new_fields/Types";
+import { TraceMobx } from '../../../../new_fields/util';
+import { addStyleSheet, addStyleSheetRule, clearStyleSheetRules, emptyFunction, numberRange, returnOne, returnZero, Utils } from '../../../../Utils';
+import { GoogleApiClientUtils, Pulls, Pushes } from '../../../apis/google_docs/GoogleApiClientUtils';
+import { DocServer } from "../../../DocServer";
+import { Docs, DocUtils } from '../../../documents/Documents';
+import { DocumentType } from '../../../documents/DocumentTypes';
+import { DictationManager } from '../../../util/DictationManager';
+import { DragManager } from "../../../util/DragManager";
+import { makeTemplate } from '../../../util/DropConverter';
+import buildKeymap from "./ProsemirrorExampleTransfer";
+import RichTextMenu from './RichTextMenu';
+import { RichTextRules } from "./RichTextRules";
+import { DashDocCommentView, DashDocView, FootnoteView, ImageResizeView, OrderedListView, SummaryView } from "./RichTextSchema";
+// import { DashDocCommentView, DashDocView, DashFieldView, FootnoteView, SummaryView } from "./RichTextSchema";
+// import { OrderedListView } from "./RichTextSchema";
+// import { ImageResizeView } from "./ImageResizeView";
+// import { DashDocCommentView } from "./DashDocCommentView";
+// import { FootnoteView } from "./FootnoteView";
+// import { SummaryView } from "./SummaryView";
+// import { DashDocView } from "./DashDocView";
+import { DashFieldView } from "./DashFieldView";
 
-import { DashDocCommentView } from "../../util/DashDocCommentView";
-import { DashFieldView } from "../../util/DashFieldView";
-import { FootnoteView } from "../../util/FootnoteView";
-import { SummaryView } from "../../util/SummaryView";
-import { DashDocView } from "../../util/DashDocView";
-
-import { schema } from "../../util/schema_rts";
-import { SelectionManager } from "../../util/SelectionManager";
-import { undoBatch, UndoManager } from "../../util/UndoManager";
-import { CollectionFreeFormView } from '../collections/collectionFreeForm/CollectionFreeFormView';
-import { ContextMenu } from '../ContextMenu';
-import { ContextMenuProps } from '../ContextMenuItem';
-import { ViewBoxAnnotatableComponent } from "../DocComponent";
-import { DocumentButtonBar } from '../DocumentButtonBar';
-import { InkingControl } from "../InkingControl";
-import { AudioBox } from './AudioBox';
-import { FieldView, FieldViewProps } from "./FieldView";
+import { schema } from "./schema_rts";
+import { SelectionManager } from "../../../util/SelectionManager";
+import { undoBatch, UndoManager } from "../../../util/UndoManager";
+import { CollectionFreeFormView } from '../../collections/collectionFreeForm/CollectionFreeFormView';
+import { ContextMenu } from '../../ContextMenu';
+import { ContextMenuProps } from '../../ContextMenuItem';
+import { ViewBoxAnnotatableComponent } from "../../DocComponent";
+import { DocumentButtonBar } from '../../DocumentButtonBar';
+import { InkingControl } from "../../InkingControl";
+import { AudioBox } from '../AudioBox';
+import { FieldView, FieldViewProps } from "../FieldView";
 import "./FormattedTextBox.scss";
 import { FormattedTextBoxComment, formattedTextBoxCommentPlugin } from './FormattedTextBoxComment';
 import React = require("react");
@@ -877,23 +876,21 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 },
                 dispatchTransaction: this.dispatchTransaction,
                 nodeViews: {
-                    //dashComment(node, view, getPos) { return new DashDocCommentView({ node, view, getPos }); },
+                    dashComment(node, view, getPos) { return new DashDocCommentView(node, view, getPos); },
                     dashField(node, view, getPos) { return new DashFieldView(node, view, getPos, self); },
-                    //dashDoc(node, view, getPos) { return new DashDocView(node, view, getPos, self); },
+                    dashDoc(node, view, getPos) { return new DashDocView(node, view, getPos, self); },
                     // dashDoc(node, view, getPos) { return new DashDocView({ node, view, getPos, self }); },
 
                     // image(node, view, getPos) {
                     //     //const addDocTab = this.props.addDocTab;
                     //     return new ImageResizeView({ node, view, getPos, addDocTab: this.props.addDocTab });
                     // },
-
-
                     // // WAS : 
                     // //image(node, view, getPos) { return new ImageResizeView(node, view, getPos, this.props.addDocTab); },
 
-                    // summary(node, view, getPos) { return new SummaryView({ node, view, getPos }); },
-                    // ordered_list(node, view, getPos) { return new OrderedListView(); },
-                    // footnote(node, view, getPos) { return new FootnoteView({ node, outerView, getPos }); }
+                    summary(node, view, getPos) { return new SummaryView(node, view, getPos); },
+                    ordered_list(node, view, getPos) { return new OrderedListView(); },
+                    footnote(node, view, getPos) { return new FootnoteView(node, view, getPos); }
                 },
                 clipboardTextSerializer: this.clipboardTextSerializer,
                 handlePaste: this.handlePaste,

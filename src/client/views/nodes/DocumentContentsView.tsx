@@ -19,7 +19,7 @@ import { DocumentViewProps } from "./DocumentView";
 import "./DocumentView.scss";
 import { FontIconBox } from "./FontIconBox";
 import { FieldView, FieldViewProps } from "./FieldView";
-import { FormattedTextBox } from "./FormattedTextBox";
+import { FormattedTextBox } from "./formattedText/FormattedTextBox";
 import { ImageBox } from "./ImageBox";
 import { KeyValueBox } from "./KeyValueBox";
 import { PDFBox } from "./PDFBox";

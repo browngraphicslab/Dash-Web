@@ -1,7 +1,7 @@
 import { NodeSelection } from "prosemirror-state";
-import { Doc } from "../../new_fields/Doc";
-import { DocServer } from "../DocServer";
-import { DocumentManager } from "./DocumentManager";
+import { Doc } from "../../../../new_fields/Doc";
+import { DocServer } from "../../../DocServer";
+import { DocumentManager } from "../../../util/DocumentManager";
 import React = require("react");
 
 import { schema } from "./schema_rts";

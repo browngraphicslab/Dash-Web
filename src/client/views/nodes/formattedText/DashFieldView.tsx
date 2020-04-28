@@ -1,13 +1,13 @@
 import { IReactionDisposer, observable, runInAction, computed, action } from "mobx";
-import { Doc, DocListCast, Field } from "../../new_fields/Doc";
-import { List } from "../../new_fields/List";
-import { listSpec } from "../../new_fields/Schema";
-import { SchemaHeaderField } from "../../new_fields/SchemaHeaderField";
-import { ComputedField } from "../../new_fields/ScriptField";
-import { Cast, StrCast } from "../../new_fields/Types";
-import { DocServer } from "../DocServer";
-import { CollectionViewType } from "../views/collections/CollectionView";
-import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
+import { Doc, DocListCast, Field } from "../../../../new_fields/Doc";
+import { List } from "../../../../new_fields/List";
+import { listSpec } from "../../../../new_fields/Schema";
+import { SchemaHeaderField } from "../../../../new_fields/SchemaHeaderField";
+import { ComputedField } from "../../../../new_fields/ScriptField";
+import { Cast, StrCast } from "../../../../new_fields/Types";
+import { DocServer } from "../../../DocServer";
+import { CollectionViewType } from "../../collections/CollectionView";
+import { FormattedTextBox } from "./FormattedTextBox";
 import React = require("react");
 import * as ReactDOM from 'react-dom';
 import "./DashFieldView.scss";
@@ -108,7 +108,7 @@ export class DashFieldViewInternal extends React.Component<IDashFieldViewInterna
                     r?.addEventListener("pointerdown", action((e) => this._showEnumerables = true));
                 }}>
                     {strVal}
-                </span>
+                </span>;
             }
         }
     }

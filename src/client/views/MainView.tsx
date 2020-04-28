@@ -19,7 +19,7 @@ import { DocServer } from '../DocServer';
 import { Docs, DocumentOptions } from '../documents/Documents';
 import { DocumentType } from '../documents/DocumentTypes';
 import { HistoryUtil } from '../util/History';
-import RichTextMenu from '../util/RichTextMenu';
+import RichTextMenu from './nodes/formattedText/RichTextMenu';
 import { Scripting } from '../util/Scripting';
 import SettingsManager from '../util/SettingsManager';
 import SharingManager from '../util/SharingManager';

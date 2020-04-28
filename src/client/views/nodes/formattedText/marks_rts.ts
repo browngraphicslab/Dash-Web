@@ -1,6 +1,6 @@
 import React = require("react");
 import { DOMOutputSpecArray, Fragment, MarkSpec, Node, NodeSpec, Schema, Slice } from "prosemirror-model";
-import { Doc } from "../../new_fields/Doc";
+import { Doc } from "../../../../new_fields/Doc";
 
 
 const emDOM: DOMOutputSpecArray = ["em", 0];

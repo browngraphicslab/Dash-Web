@@ -1,16 +1,16 @@
 import { IReactionDisposer, reaction } from "mobx";
 import { NodeSelection } from "prosemirror-state";
-import { Doc, HeightSym, WidthSym } from "../../new_fields/Doc";
-import { Id } from "../../new_fields/FieldSymbols";
-import { ObjectField } from "../../new_fields/ObjectField";
-import { ComputedField } from "../../new_fields/ScriptField";
-import { BoolCast, Cast, NumCast, StrCast } from "../../new_fields/Types";
-import { emptyFunction, returnEmptyString, returnFalse, Utils, returnZero } from "../../Utils";
-import { DocServer } from "../DocServer";
-import { Docs } from "../documents/Documents";
-import { DocumentView } from "../views/nodes/DocumentView";
-import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
-import { Transform } from "./Transform";
+import { Doc, HeightSym, WidthSym } from "../../../../new_fields/Doc";
+import { Id } from "../../../../new_fields/FieldSymbols";
+import { ObjectField } from "../../../../new_fields/ObjectField";
+import { ComputedField } from "../../../../new_fields/ScriptField";
+import { BoolCast, Cast, NumCast, StrCast } from "../../../../new_fields/Types";
+import { emptyFunction, returnEmptyString, returnFalse, Utils, returnZero } from "../../../../Utils";
+import { DocServer } from "../../../DocServer";
+import { Docs } from "../../../documents/Documents";
+import { DocumentView } from "../DocumentView";
+import { FormattedTextBox } from "./FormattedTextBox";
+import { Transform } from "../../../util/Transform";
 import React = require("react");
 
 interface IDashDocView {

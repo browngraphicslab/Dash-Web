@@ -7,7 +7,7 @@ import { observer } from 'mobx-react';
 import { DocServer } from '../client/DocServer';
 import { Docs } from '../client/documents/Documents';
 import { DocumentManager } from '../client/util/DocumentManager';
-import RichTextMenu from '../client/util/RichTextMenu';
+import RichTextMenu from '../client/views/nodes/formattedText/RichTextMenu';
 import { Scripting } from '../client/util/Scripting';
 import { Transform } from '../client/util/Transform';
 import { CollectionView } from '../client/views/collections/CollectionView';

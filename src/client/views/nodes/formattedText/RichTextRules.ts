@@ -1,15 +1,15 @@
 import { ellipsis, emDash, InputRule, smartQuotes, textblockTypeInputRule } from "prosemirror-inputrules";
 import { NodeSelection, TextSelection } from "prosemirror-state";
-import { DataSym, Doc } from "../../new_fields/Doc";
-import { Id } from "../../new_fields/FieldSymbols";
-import { ComputedField } from "../../new_fields/ScriptField";
-import { Cast, NumCast } from "../../new_fields/Types";
-import { returnFalse, Utils } from "../../Utils";
-import { DocServer } from "../DocServer";
-import { Docs, DocUtils } from "../documents/Documents";
-import { FormattedTextBox } from "../views/nodes/formattedText/FormattedTextBox";
+import { DataSym, Doc } from "../../../../new_fields/Doc";
+import { Id } from "../../../../new_fields/FieldSymbols";
+import { ComputedField } from "../../../../new_fields/ScriptField";
+import { Cast, NumCast } from "../../../../new_fields/Types";
+import { returnFalse, Utils } from "../../../../Utils";
+import { DocServer } from "../../../DocServer";
+import { Docs, DocUtils } from "../../../documents/Documents";
+import { FormattedTextBox } from "./FormattedTextBox";
 import { wrappingInputRule } from "./prosemirrorPatches";
-import RichTextMenu from "../views/nodes/formattedText/RichTextMenu";
+import RichTextMenu from "./RichTextMenu";
 import { schema } from "./schema_rts";
 
 export class RichTextRules {

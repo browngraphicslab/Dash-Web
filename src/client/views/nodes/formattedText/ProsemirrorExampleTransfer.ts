@@ -5,12 +5,12 @@ import { Schema } from "prosemirror-model";
 import { liftListItem, sinkListItem } from "./prosemirrorPatches.js";
 import { splitListItem, wrapInList, } from "prosemirror-schema-list";
 import { EditorState, Transaction, TextSelection } from "prosemirror-state";
-import { SelectionManager } from "./SelectionManager";
-import { Docs } from "../documents/Documents";
-import { NumCast, BoolCast, Cast, StrCast } from "../../new_fields/Types";
-import { Doc } from "../../new_fields/Doc";
-import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
-import { Id } from "../../new_fields/FieldSymbols";
+import { SelectionManager } from "../../../util/SelectionManager";
+import { Docs } from "../../../documents/Documents";
+import { NumCast, BoolCast, Cast, StrCast } from "../../../../new_fields/Types";
+import { Doc } from "../../../../new_fields/Doc";
+import { FormattedTextBox } from "./FormattedTextBox";
+import { Id } from "../../../../new_fields/FieldSymbols";
 
 const mac = typeof navigator !== "undefined" ? /Mac/.test(navigator.platform) : false;
 
