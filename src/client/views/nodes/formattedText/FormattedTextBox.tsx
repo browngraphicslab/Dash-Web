@@ -12,39 +12,49 @@ import { Fragment, Mark, Node, Slice } from "prosemirror-model";
 import { EditorState, NodeSelection, Plugin, TextSelection, Transaction } from "prosemirror-state";
 import { ReplaceStep } from 'prosemirror-transform';
 import { EditorView } from "prosemirror-view";
-import { DateField } from '../../../new_fields/DateField';
-import { DataSym, Doc, DocListCast, DocListCastAsync, Field, HeightSym, Opt, WidthSym } from "../../../new_fields/Doc";
-import { documentSchema } from '../../../new_fields/documentSchemas';
-import { Id } from '../../../new_fields/FieldSymbols';
-import { InkTool } from '../../../new_fields/InkField';
-import { PrefetchProxy } from '../../../new_fields/Proxy';
-import { RichTextField } from "../../../new_fields/RichTextField";
-import { RichTextUtils } from '../../../new_fields/RichTextUtils';
-import { createSchema, makeInterface } from "../../../new_fields/Schema";
-import { Cast, DateCast, NumCast, StrCast } from "../../../new_fields/Types";
-import { TraceMobx } from '../../../new_fields/util';
-import { addStyleSheet, addStyleSheetRule, clearStyleSheetRules, emptyFunction, numberRange, returnOne, returnZero, Utils } from '../../../Utils';
-import { GoogleApiClientUtils, Pulls, Pushes } from '../../apis/google_docs/GoogleApiClientUtils';
-import { DocServer } from "../../DocServer";
-import { Docs, DocUtils } from '../../documents/Documents';
-import { DocumentType } from '../../documents/DocumentTypes';
-import { DictationManager } from '../../util/DictationManager';
-import { DragManager } from "../../util/DragManager";
-import { makeTemplate } from '../../util/DropConverter';
-import buildKeymap from "../../util/ProsemirrorExampleTransfer";
-import RichTextMenu from '../../util/RichTextMenu';
-import { RichTextRules } from "../../util/RichTextRules";
-import { DashDocCommentView, DashDocView, DashFieldView, FootnoteView, ImageResizeView, OrderedListView, schema, SummaryView } from "../../util/RichTextSchema";
-import { SelectionManager } from "../../util/SelectionManager";
-import { undoBatch, UndoManager } from "../../util/UndoManager";
-import { CollectionFreeFormView } from '../collections/collectionFreeForm/CollectionFreeFormView';
-import { ContextMenu } from '../ContextMenu';
-import { ContextMenuProps } from '../ContextMenuItem';
-import { ViewBoxAnnotatableComponent } from "../DocComponent";
-import { DocumentButtonBar } from '../DocumentButtonBar';
-import { InkingControl } from "../InkingControl";
-import { AudioBox } from './AudioBox';
-import { FieldView, FieldViewProps } from "./FieldView";
+import { DateField } from '../../../../new_fields/DateField';
+import { DataSym, Doc, DocListCast, DocListCastAsync, Field, HeightSym, Opt, WidthSym } from "../../../../new_fields/Doc";
+import { documentSchema } from '../../../../new_fields/documentSchemas';
+import { Id } from '../../../../new_fields/FieldSymbols';
+import { InkTool } from '../../../../new_fields/InkField';
+import { PrefetchProxy } from '../../../../new_fields/Proxy';
+import { RichTextField } from "../../../../new_fields/RichTextField";
+import { RichTextUtils } from '../../../../new_fields/RichTextUtils';
+import { createSchema, makeInterface } from "../../../../new_fields/Schema";
+import { Cast, DateCast, NumCast, StrCast } from "../../../../new_fields/Types";
+import { TraceMobx } from '../../../../new_fields/util';
+import { addStyleSheet, addStyleSheetRule, clearStyleSheetRules, emptyFunction, numberRange, returnOne, returnZero, Utils } from '../../../../Utils';
+import { GoogleApiClientUtils, Pulls, Pushes } from '../../../apis/google_docs/GoogleApiClientUtils';
+import { DocServer } from "../../../DocServer";
+import { Docs, DocUtils } from '../../../documents/Documents';
+import { DocumentType } from '../../../documents/DocumentTypes';
+import { DictationManager } from '../../../util/DictationManager';
+import { DragManager } from "../../../util/DragManager";
+import { makeTemplate } from '../../../util/DropConverter';
+import buildKeymap from "./ProsemirrorExampleTransfer";
+import RichTextMenu from './RichTextMenu';
+import { RichTextRules } from "./RichTextRules";
+import { DashDocCommentView, DashDocView, FootnoteView, ImageResizeView, OrderedListView, SummaryView } from "./RichTextSchema";
+// import { DashDocCommentView, DashDocView, DashFieldView, FootnoteView, SummaryView } from "./RichTextSchema";
+// import { OrderedListView } from "./RichTextSchema";
+// import { ImageResizeView } from "./ImageResizeView";
+// import { DashDocCommentView } from "./DashDocCommentView";
+// import { FootnoteView } from "./FootnoteView";
+// import { SummaryView } from "./SummaryView";
+// import { DashDocView } from "./DashDocView";
+import { DashFieldView } from "./DashFieldView";
+
+import { schema } from "./schema_rts";
+import { SelectionManager } from "../../../util/SelectionManager";
+import { undoBatch, UndoManager } from "../../../util/UndoManager";
+import { CollectionFreeFormView } from '../../collections/collectionFreeForm/CollectionFreeFormView';
+import { ContextMenu } from '../../ContextMenu';
+import { ContextMenuProps } from '../../ContextMenuItem';
+import { ViewBoxAnnotatableComponent } from "../../DocComponent";
+import { DocumentButtonBar } from '../../DocumentButtonBar';
+import { InkingControl } from "../../InkingControl";
+import { AudioBox } from '../AudioBox';
+import { FieldView, FieldViewProps } from "../FieldView";
 import "./FormattedTextBox.scss";
 import { FormattedTextBoxComment, formattedTextBoxCommentPlugin } from './FormattedTextBoxComment';
 import React = require("react");
@@ -869,7 +879,15 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     dashComment(node, view, getPos) { return new DashDocCommentView(node, view, getPos); },
                     dashField(node, view, getPos) { return new DashFieldView(node, view, getPos, self); },
                     dashDoc(node, view, getPos) { return new DashDocView(node, view, getPos, self); },
-                    image(node, view, getPos) { return new ImageResizeView(node, view, getPos, self.props.addDocTab); },
+                    // dashDoc(node, view, getPos) { return new DashDocView({ node, view, getPos, self }); },
+
+                    // image(node, view, getPos) {
+                    //     //const addDocTab = this.props.addDocTab;
+                    //     return new ImageResizeView({ node, view, getPos, addDocTab: this.props.addDocTab });
+                    // },
+                    // // WAS : 
+                    // //image(node, view, getPos) { return new ImageResizeView(node, view, getPos, this.props.addDocTab); },
+
                     summary(node, view, getPos) { return new SummaryView(node, view, getPos); },
                     ordered_list(node, view, getPos) { return new OrderedListView(); },
                     footnote(node, view, getPos) { return new FootnoteView(node, view, getPos); }
@@ -1203,6 +1221,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             FormattedTextBoxComment.Hide();
         }
         return (
+
             <div className={`formattedTextBox-cont`} ref={this._ref}
                 style={{
                     height: this.layoutDoc._autoHeight && this.props.renderDepth ? "max-content" : `calc(100% - ${this.props.ChromeHeight?.() || 0}px`,
@@ -1224,7 +1243,15 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 onMouseUp={this.onMouseUp}
                 onWheel={this.onPointerWheel}
                 onPointerEnter={action(() => this._entered = true)}
-                onPointerLeave={action(() => this._entered = false)}
+                onPointerLeave={action((e: React.PointerEvent<HTMLDivElement>) => {
+                    this._entered = false;
+                    const target = document.elementFromPoint(e.nativeEvent.x, e.nativeEvent.y);
+                    for (let child: any = target; child; child = child?.parentElement) {
+                        if (child === this._ref.current!) {
+                            this._entered = true;
+                        }
+                    }
+                })}
             >
                 <div className={`formattedTextBox-outer`} style={{ width: `calc(100% - ${this.sidebarWidthPercent})`, }} onScroll={this.onscrolled} ref={this._scrollRef}>
                     <div className={`formattedTextBox-inner${rounded}`} ref={this.createDropTarget}

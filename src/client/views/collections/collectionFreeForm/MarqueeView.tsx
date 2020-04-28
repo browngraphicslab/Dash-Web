@@ -19,7 +19,7 @@ import React = require("react");
 import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
 import { RichTextField } from "../../../../new_fields/RichTextField";
 import { CollectionView } from "../CollectionView";
-import { FormattedTextBox } from "../../nodes/FormattedTextBox";
+import { FormattedTextBox } from "../../nodes/formattedText/FormattedTextBox";
 import { ScriptField } from "../../../../new_fields/ScriptField";
 
 interface MarqueeViewProps {

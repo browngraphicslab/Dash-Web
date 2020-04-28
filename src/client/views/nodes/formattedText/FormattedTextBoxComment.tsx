@@ -2,20 +2,20 @@ import { Mark, ResolvedPos } from "prosemirror-model";
 import { EditorState, Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import * as ReactDOM from 'react-dom';
-import { Doc, DocCastAsync } from "../../../new_fields/Doc";
-import { Cast, FieldValue, NumCast } from "../../../new_fields/Types";
-import { emptyFunction, returnEmptyString, returnFalse, Utils, emptyPath } from "../../../Utils";
-import { DocServer } from "../../DocServer";
-import { DocumentManager } from "../../util/DocumentManager";
-import { schema } from "../../util/RichTextSchema";
-import { Transform } from "../../util/Transform";
-import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
+import { Doc, DocCastAsync } from "../../../../new_fields/Doc";
+import { Cast, FieldValue, NumCast } from "../../../../new_fields/Types";
+import { emptyFunction, returnEmptyString, returnFalse, Utils, emptyPath } from "../../../../Utils";
+import { DocServer } from "../../../DocServer";
+import { DocumentManager } from "../../../util/DocumentManager";
+import { schema } from "./schema_rts";
+import { Transform } from "../../../util/Transform";
+import { ContentFittingDocumentView } from "../ContentFittingDocumentView";
 import { FormattedTextBox } from "./FormattedTextBox";
 import './FormattedTextBoxComment.scss';
 import React = require("react");
-import { Docs } from "../../documents/Documents";
+import { Docs } from "../../../documents/Documents";
 import wiki from "wikijs";
-import { DocumentType } from "../../documents/DocumentTypes";
+import { DocumentType } from "../../../documents/DocumentTypes";
 
 export let formattedTextBoxCommentPlugin = new Plugin({
     view(editorView) { return new FormattedTextBoxComment(editorView); }

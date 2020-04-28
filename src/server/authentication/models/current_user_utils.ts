@@ -17,7 +17,7 @@ import { CollectionViewType } from "../../../client/views/collections/Collection
 import { makeTemplate } from "../../../client/util/DropConverter";
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { PrefetchProxy } from "../../../new_fields/Proxy";
-import { FormattedTextBox } from "../../../client/views/nodes/FormattedTextBox";
+import { FormattedTextBox } from "../../../client/views/nodes/formattedText/FormattedTextBox";
 import { MainView } from "../../../client/views/MainView";
 import { DocumentType } from "../../../client/documents/DocumentTypes";
 import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
