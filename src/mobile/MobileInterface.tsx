@@ -31,6 +31,7 @@ import { AssignAllExtensions } from '../extensions/General/Extensions';
 import { listSpec } from '../new_fields/Schema';
 import { DocumentManager } from '../client/util/DocumentManager';
 import RichTextMenu from '../client/util/RichTextMenu';
+import { MainView } from '../client/views/MainView';
 
 library.add(faLongArrowAltLeft);
 
@@ -130,7 +131,7 @@ export class MobileInterface extends React.Component {
     displayWorkspaces = () => {
         if (this.mainContainer) {
             console.log("User workspaces: " + (this.userDoc.myWorkspaces as Doc).contextMenuLabels);
-            const backgroundColor = () => "darkgrey";
+            const backgroundColor = () => "white";
             return (
                 <DocumentView
                     Document={this.mainContainer}
@@ -161,7 +162,23 @@ export class MobileInterface extends React.Component {
         }
     }
 
+    handleClick(doc: Doc) {
+        console.log(doc.title)
+        this.switchCurrentView((userDoc: Doc) => doc)
+        this.displayWorkspaces()
+        this.toggleSidebar();
+    }
+
+
     renderDefaultContent = () => {
+        const workspaces = Cast(this.userDoc.myWorkspaces, Doc) as Doc;
+        const buttons = DocListCast(workspaces.data).map((doc: Doc, index: any) => {
+            return (
+                <div
+                    key={index}
+                    onClick={() => this.handleClick(doc)}>{doc.title}</div>)
+        });
+
         return (
             <div>
                 <div className="navbar">
@@ -176,9 +193,13 @@ export class MobileInterface extends React.Component {
                     {/* <div className="item">Workspace 1</div>
                     <div className="item">Workspace 2</div>
                     <div className="item">Workspace 3</div> */}
-                    <div>
-                        {this.displayWorkspaces()}
+                    <div className="item">
+                        {buttons}
                     </div>
+                </div>
+                <div>
+                    {this.renderView}
+
                 </div>
             </div>
         );
@@ -292,12 +313,15 @@ export class MobileInterface extends React.Component {
                 <GestureOverlay>
                     {this.renderView ? this.renderView() : this.renderDefaultContent()}
                 </GestureOverlay> */}
+                {/* <GestureOverlay>
+                    {this.displayWorkspaces()}
+                </GestureOverlay> */}
                 {/* <DictationOverlay />
                 <SharingManager />
                 <GoogleAuthenticationManager /> */}
                 {/* <DocumentDecorations /> */}
+                {this.displayWorkspaces()}
                 <div>
-                    {this.renderActiveCollection(null)}
                     {this.renderDefaultContent()}
                 </div>
                 {/* <PreviewCursor /> */}
