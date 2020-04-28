@@ -136,12 +136,12 @@ export class LinkManager {
         }
     }
     public addGroupToAnchor(linkDoc: Doc, anchor: Doc, groupDoc: Doc, replace: boolean = false) {
-        linkDoc.linkRelationship = groupDoc.linkRelationship;
+        Doc.GetProto(linkDoc).linkRelationship = groupDoc.linkRelationship;
     }
 
     // removes group doc of given group type only from given anchor on given link
     public removeGroupFromAnchor(linkDoc: Doc, anchor: Doc, groupType: string) {
-        linkDoc.linkRelationship = "-ungrouped-";
+        Doc.GetProto(linkDoc).linkRelationship = "-ungrouped-";
     }
 
     // returns map of group type to anchor's links in that group type

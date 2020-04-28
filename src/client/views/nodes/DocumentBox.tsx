@@ -9,7 +9,7 @@ import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { emptyPath } from "../../../Utils";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
-import { DocAnnotatableComponent } from "../DocComponent";
+import { ViewBoxAnnotatableComponent } from "../DocComponent";
 import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
 import "./DocumentBox.scss";
 import { FieldView, FieldViewProps } from "./FieldView";
@@ -18,12 +18,12 @@ import { TraceMobx } from "../../../new_fields/util";
 import { DocumentView } from "./DocumentView";
 import { Docs } from "../../documents/Documents";
 
-type DocBoxSchema = makeInterface<[typeof documentSchema]>;
-const DocBoxDocument = makeInterface(documentSchema);
+type DocHolderBoxSchema = makeInterface<[typeof documentSchema]>;
+const DocHolderBoxDocument = makeInterface(documentSchema);
 
 @observer
-export class DocumentBox extends DocAnnotatableComponent<FieldViewProps, DocBoxSchema>(DocBoxDocument) {
-    public static LayoutString(fieldKey: string) { return FieldView.LayoutString(DocumentBox, fieldKey); }
+export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, DocHolderBoxSchema>(DocHolderBoxDocument) {
+    public static LayoutString(fieldKey: string) { return FieldView.LayoutString(DocHolderBox, fieldKey); }
     _prevSelectionDisposer: IReactionDisposer | undefined;
     _selections: Doc[] = [];
     _curSelection = -1;
@@ -45,7 +45,7 @@ export class DocumentBox extends DocAnnotatableComponent<FieldViewProps, DocBoxS
         funcs.push({ description: (this.props.Document.excludeCollections ? "Include" : "Exclude") + " Collections", event: () => Doc.GetProto(this.props.Document).excludeCollections = !this.props.Document.excludeCollections, icon: "expand-arrows-alt" });
         funcs.push({ description: `${this.props.Document.forceActive ? "Select" : "Force"} Contents Active`, event: () => this.props.Document.forceActive = !this.props.Document.forceActive, icon: "project-diagram" });
 
-        ContextMenu.Instance.addItem({ description: "DocumentBox Funcs...", subitems: funcs, icon: "asterisk" });
+        ContextMenu.Instance.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
     }
     @computed get contentDoc() {
         return (this.props.Document.isTemplateDoc || this.props.Document.isTemplateForField ? this.props.Document : Doc.GetProto(this.props.Document));
@@ -54,7 +54,7 @@ export class DocumentBox extends DocAnnotatableComponent<FieldViewProps, DocBoxS
         this.contentDoc[this.props.fieldKey] = this.props.Document[this.props.fieldKey];
     }
     showSelection = () => {
-        this.contentDoc[this.props.fieldKey] = ComputedField.MakeFunction(`selectedDocs(this,this.excludeCollections,[_last_])?.[0]`);
+        this.contentDoc[this.props.fieldKey] = ComputedField.MakeFunction(`selectedDocs(self,this.excludeCollections,[_last_])?.[0]`);
     }
     isSelectionLocked = () => {
         const kvpstring = Field.toKeyValueString(this.contentDoc, this.props.fieldKey);
@@ -111,7 +111,7 @@ export class DocumentBox extends DocAnnotatableComponent<FieldViewProps, DocBoxS
         const childTemplateName = StrCast(this.props.Document.childTemplateName);
         if (containedDoc && childTemplateName && !containedDoc["layout_" + childTemplateName]) {
             setTimeout(() => {
-                DocumentView.createCustomView(containedDoc, Docs.Create.StackingDocument, childTemplateName);
+                Doc.createCustomView(containedDoc, Docs.Create.StackingDocument, childTemplateName);
                 Doc.expandTemplateLayout(Cast(containedDoc["layout_" + childTemplateName], Doc, null), containedDoc, undefined);
             }, 0);
         }
@@ -120,8 +120,8 @@ export class DocumentBox extends DocAnnotatableComponent<FieldViewProps, DocBoxS
             DataDocument={undefined}
             LibraryPath={emptyPath}
             CollectionView={this as any} // bcz: hack!  need to pass a prop that can be used to select the container (ie, 'this') when the up selector in document decorations is clicked.  currently, the up selector allows only a containing collection to be selected
-            fitToBox={this.props.fitToBox}
-            layoutKey={"layout_" + childTemplateName}
+            fitToBox={true}
+            layoutKey={childTemplateName ? "layout_" + childTemplateName : "layout"}
             rootSelected={this.props.isSelected}
             addDocument={this.props.addDocument}
             moveDocument={this.props.moveDocument}

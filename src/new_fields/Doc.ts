@@ -14,10 +14,11 @@ import { PrefetchProxy, ProxyField } from "./Proxy";
 import { FieldId, RefField } from "./RefField";
 import { RichTextField } from "./RichTextField";
 import { listSpec } from "./Schema";
-import { ComputedField } from "./ScriptField";
+import { ComputedField, ScriptField } from "./ScriptField";
 import { Cast, FieldValue, NumCast, StrCast, ToConstructor, ScriptCast } from "./Types";
 import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, updateFunction } from "./util";
-import { Docs } from "../client/documents/Documents";
+import { Docs, DocumentOptions } from "../client/documents/Documents";
+import { PdfField, VideoField, AudioField, ImageField } from "./URLField";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -80,7 +81,7 @@ export function DocListCastAsync(field: FieldResult, defaultValue?: Doc[]) {
 }
 
 export async function DocCastAsync(field: FieldResult): Promise<Opt<Doc>> {
-    return await Cast(field, Doc);
+    return Cast(field, Doc);
 }
 
 export function DocListCast(field: FieldResult): Doc[] {
@@ -565,8 +566,9 @@ export namespace Doc {
                 } else if (cfield instanceof ComputedField) {
                     copy[key] = ComputedField.MakeFunction(cfield.script.originalScript);
                 } else if (field instanceof ObjectField) {
-                    copy[key] = key.includes("layout[") && doc[key] instanceof Doc ? Doc.MakeCopy(doc[key] as Doc, false) :
-                        doc[key] instanceof Doc ? doc[key] : ObjectField.MakeCopy(field);
+                    copy[key] = doc[key] instanceof Doc ?
+                        key.includes("layout[") ? Doc.MakeCopy(doc[key] as Doc, false) : doc[key] : // reference documents except copy documents that are expanded teplate fields 
+                        ObjectField.MakeCopy(field);
                 } else if (field instanceof Promise) {
                     debugger; //This shouldn't happend...
                 } else {
@@ -575,6 +577,44 @@ export namespace Doc {
             }
         });
 
+        return copy;
+    }
+
+    export function MakeClone(doc: Doc, cloneProto: boolean = true): Doc {
+        const copy = new Doc(undefined, true);
+        const exclude = Cast(doc.excludeFields, listSpec("string"), []);
+        Object.keys(doc).forEach(key => {
+            if (exclude.includes(key)) return;
+            const cfield = ComputedField.WithoutComputed(() => FieldValue(doc[key]));
+            const field = ProxyField.WithoutProxy(() => doc[key]);
+            if (key === "proto" && cloneProto) {
+                if (doc[key] instanceof Doc) {
+                    copy[key] = Doc.MakeClone(doc[key]!, false);
+                }
+            } else {
+                if (field instanceof RefField) {
+                    copy[key] = field;
+                } else if (cfield instanceof ComputedField) {
+                    copy[key] = ComputedField.MakeFunction(cfield.script.originalScript);
+                } else if (field instanceof ObjectField) {
+                    const list = Cast(doc[key], listSpec(Doc));
+                    if (list !== undefined && !(list instanceof Promise)) {
+                        copy[key] = new List<Doc>(list.filter(d => d instanceof Doc).map(d => Doc.MakeCopy(d as Doc, false)));
+                    } else {
+                        copy[key] = doc[key] instanceof Doc ?
+                            key.includes("layout[") ?
+                                Doc.MakeCopy(doc[key] as Doc, false) : doc[key] : // reference documents except copy documents that are expanded teplate fields 
+                            ObjectField.MakeCopy(field);
+                    }
+                } else if (field instanceof Promise) {
+                    debugger; //This shouldn't happend...
+                } else {
+                    copy[key] = field;
+                }
+            }
+        });
+        Doc.SetInPlace(copy, "title", "CLONE: " + doc.title, true);
+        copy.cloneOf = doc;
         return copy;
     }
 
@@ -603,14 +643,6 @@ export namespace Doc {
         return undefined;
     }
     export function ApplyTemplateTo(templateDoc: Doc, target: Doc, targetKey: string, titleTarget: string | undefined) {
-        if (!templateDoc) {
-            target.layout = undefined;
-            target._nativeWidth = undefined;
-            target._nativeHeight = undefined;
-            target.type = undefined;
-            return;
-        }
-
         if (!Doc.AreProtosEqual(target[targetKey] as Doc, templateDoc)) {
             if (target.resolvedDataDoc) {
                 target[targetKey] = new PrefetchProxy(templateDoc);
@@ -645,11 +677,12 @@ export namespace Doc {
             Cast(templateFieldValue, listSpec(Doc), [])?.map(d => d instanceof Doc && MakeMetadataFieldTemplate(d, templateDoc));
             (Doc.GetProto(templateField)[metadataFieldKey] = ObjectField.MakeCopy(templateFieldValue));
         }
-        if (templateCaptionValue instanceof RichTextField && (templateCaptionValue.Text || templateCaptionValue.Data.toString().includes("dashField"))) {
-            templateField["caption-textTemplate"] = ComputedField.MakeFunction(`copyField(this.caption)`, { this: Doc.name });
+        // copy the textTemplates from 'this' (not 'self') because the layout contains the template info, not the original doc
+        if (templateCaptionValue instanceof RichTextField && !templateCaptionValue.Empty()) {
+            templateField["caption-textTemplate"] = ComputedField.MakeFunction(`copyField(this.caption)`);
         }
-        if (templateFieldValue instanceof RichTextField && (templateFieldValue.Text || templateFieldValue.Data.toString().includes("dashField"))) {
-            templateField[metadataFieldKey + "-textTemplate"] = ComputedField.MakeFunction(`copyField(this.${metadataFieldKey})`, { this: Doc.name });
+        if (templateFieldValue instanceof RichTextField && !templateFieldValue.Empty()) {
+            templateField[metadataFieldKey + "-textTemplate"] = ComputedField.MakeFunction(`copyField(this.${metadataFieldKey})`);
         }
 
         // get the layout string that the template uses to specify its layout
@@ -713,7 +746,7 @@ export namespace Doc {
     export function SetUserDoc(doc: Doc) { manager._user_doc = doc; }
     export function IsBrushed(doc: Doc) {
         return computedFn(function IsBrushed(doc: Doc) {
-            return brushManager.BrushedDoc.has(doc) ||  brushManager.BrushedDoc.has(Doc.GetProto(doc));
+            return brushManager.BrushedDoc.has(doc) || brushManager.BrushedDoc.has(Doc.GetProto(doc));
         })(doc);
     }
     // don't bother memoizing (caching) the result if called from a non-reactive context. (plus this avoids a warning message)
@@ -872,6 +905,102 @@ export namespace Doc {
         return id;
     }
 
+    export function isDocPinned(doc: Doc) {
+        //add this new doc to props.Document
+        const curPres = Cast(Doc.UserDoc().activePresentation, Doc) as Doc;
+        if (curPres) {
+            return DocListCast(curPres.data).findIndex((val) => Doc.AreProtosEqual(val, doc)) !== -1;
+        }
+        return false;
+    }
+
+    // applies a custom template to a document.  the template is identified by it's short name (e.g, slideView not layout_slideView)
+    export function makeCustomViewClicked(doc: Doc, creator: Opt<(documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc>, templateSignature: string = "custom", docLayoutTemplate?: Doc) {
+        const batch = UndoManager.StartBatch("makeCustomViewClicked");
+        runInAction(() => {
+            doc.layoutKey = "layout_" + templateSignature;
+            if (doc[doc.layoutKey] === undefined) {
+                createCustomView(doc, creator, templateSignature, docLayoutTemplate);
+            }
+        });
+        batch.end();
+    }
+    export function findTemplate(templateName: string, type: string, signature: string) {
+        let docLayoutTemplate: Opt<Doc>;
+        const iconViews = DocListCast(Cast(Doc.UserDoc()["template-icons"], Doc, null)?.data);
+        const templBtns = DocListCast(Cast(Doc.UserDoc()["template-buttons"], Doc, null)?.data);
+        const noteTypes = DocListCast(Cast(Doc.UserDoc()["template-notes"], Doc, null)?.data);
+        const clickFuncs = DocListCast(Cast(Doc.UserDoc().clickFuncs, Doc, null)?.data);
+        const allTemplates = iconViews.concat(templBtns).concat(noteTypes).concat(clickFuncs).map(btnDoc => (btnDoc.dragFactory as Doc) || btnDoc).filter(doc => doc.isTemplateDoc);
+        // bcz: this is hacky -- want to have different templates be applied depending on the "type" of a document.  but type is not reliable and there could be other types of template searches so this should be generalized
+        // first try to find a template that matches the specific document type (<typeName>_<templateName>).  otherwise, fallback to a general match on <templateName>
+        !docLayoutTemplate && allTemplates.forEach(tempDoc => StrCast(tempDoc.title) === templateName + "_" + type && (docLayoutTemplate = tempDoc));
+        !docLayoutTemplate && allTemplates.forEach(tempDoc => StrCast(tempDoc.title) === templateName && (docLayoutTemplate = tempDoc));
+        return docLayoutTemplate;
+    }
+    export function createCustomView(doc: Doc, creator: Opt<(documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc>, templateSignature: string = "custom", docLayoutTemplate?: Doc) {
+        const templateName = templateSignature.replace(/\(.*\)/, "");
+        docLayoutTemplate = docLayoutTemplate || findTemplate(templateName, StrCast(doc.type), templateSignature);
+
+        const customName = "layout_" + templateSignature;
+        const _width = NumCast(doc._width);
+        const _height = NumCast(doc._height);
+        const options = { title: "data", backgroundColor: StrCast(doc.backgroundColor), _autoHeight: true, _width, x: -_width / 2, y: - _height / 2, _showSidebar: false };
+
+        let fieldTemplate: Opt<Doc>;
+        if (doc.data instanceof RichTextField || typeof (doc.data) === "string") {
+            fieldTemplate = Docs.Create.TextDocument("", options);
+        } else if (doc.data instanceof PdfField) {
+            fieldTemplate = Docs.Create.PdfDocument("http://www.msn.com", options);
+        } else if (doc.data instanceof VideoField) {
+            fieldTemplate = Docs.Create.VideoDocument("http://www.cs.brown.edu", options);
+        } else if (doc.data instanceof AudioField) {
+            fieldTemplate = Docs.Create.AudioDocument("http://www.cs.brown.edu", options);
+        } else if (doc.data instanceof ImageField) {
+            fieldTemplate = Docs.Create.ImageDocument("http://www.cs.brown.edu", options);
+        }
+        const docTemplate = docLayoutTemplate || creator?.(fieldTemplate ? [fieldTemplate] : [], { title: customName + "(" + doc.title + ")", isTemplateDoc: true, _width: _width + 20, _height: Math.max(100, _height + 45) });
+
+        fieldTemplate && Doc.MakeMetadataFieldTemplate(fieldTemplate, docTemplate ? Doc.GetProto(docTemplate) : docTemplate);
+        docTemplate && Doc.ApplyTemplateTo(docTemplate, doc, customName, undefined);
+    }
+    export function makeCustomView(doc: Doc, custom: boolean, layout: string) {
+        Doc.setNativeView(doc);
+        if (custom) {
+            makeCustomViewClicked(doc, Docs.Create.StackingDocument, layout, undefined);
+        }
+    }
+    export function iconify(doc: Doc) {
+        const layoutKey = Cast(doc.layoutKey, "string", null);
+        Doc.makeCustomViewClicked(doc, Docs.Create.StackingDocument, "icon", undefined);
+        if (layoutKey && layoutKey !== "layout" && layoutKey !== "layout_icon") doc.deiconifyLayout = layoutKey.replace("layout_", "");
+    }
+
+    export function pileup(selected: Doc[], x: number, y: number) {
+        const newCollection = Docs.Create.PileDocument(selected, { title: "pileup", x: x - 55, y: y - 55, _width: 110, _height: 100, _LODdisable: true });
+        let w = 0, h = 0;
+        selected.forEach((d, i) => {
+            Doc.iconify(d);
+            w = Math.max(d[WidthSym](), w);
+            h = Math.max(d[HeightSym](), h);
+        });
+        h = Math.max(h, w * 4 / 3); // converting to an icon does not update the height right away.  so this is a fallback hack to try to do something reasonable
+        selected.forEach((d, i) => {
+            d.x = Math.cos(Math.PI * 2 * i / selected.length) * 10 - w / 2;
+            d.y = Math.sin(Math.PI * 2 * i / selected.length) * 10 - h / 2;
+            d.displayTimecode = undefined;  // bcz: this should be automatic somehow.. along with any other properties that were logically associated with the original collection
+        });
+        newCollection.x = NumCast(newCollection.x) + NumCast(newCollection._width) / 2 - 55;
+        newCollection.y = NumCast(newCollection.y) + NumCast(newCollection._height) / 2 - 55;
+        newCollection._width = newCollection._height = 110;
+        //newCollection.borderRounding = "40px";
+        newCollection._jitterRotation = 10;
+        newCollection._backgroundColor = "gray";
+        newCollection.overflow = "visible";
+        return newCollection;
+    }
+
+
     export async function addFieldEnumerations(doc: Opt<Doc>, enumeratedFieldKey: string, enumerations: { title: string, _backgroundColor?: string, color?: string }[]) {
         let optionsCollection = await DocServer.GetRefField(enumeratedFieldKey);
         if (!(optionsCollection instanceof Doc)) {
@@ -899,12 +1028,13 @@ export namespace Doc {
 
 Scripting.addGlobal(function renameAlias(doc: any, n: any) { return StrCast(Doc.GetProto(doc).title).replace(/\([0-9]*\)/, "") + `(${n})`; });
 Scripting.addGlobal(function getProto(doc: any) { return Doc.GetProto(doc); });
-Scripting.addGlobal(function getDocTemplate(doc?: any) { Doc.getDocTemplate(doc); });
+Scripting.addGlobal(function getDocTemplate(doc?: any) { return Doc.getDocTemplate(doc); });
 Scripting.addGlobal(function getAlias(doc: any) { return Doc.MakeAlias(doc); });
 Scripting.addGlobal(function getCopy(doc: any, copyProto: any) { return doc.isTemplateDoc ? Doc.ApplyTemplate(doc) : Doc.MakeCopy(doc, copyProto); });
 Scripting.addGlobal(function copyField(field: any) { return ObjectField.MakeCopy(field); });
 Scripting.addGlobal(function aliasDocs(field: any) { return Doc.aliasDocs(field); });
 Scripting.addGlobal(function docList(field: any) { return DocListCast(field); });
+Scripting.addGlobal(function setInPlace(doc: any, field: any, value: any) { return Doc.SetInPlace(doc, field, value, false); });
 Scripting.addGlobal(function sameDocs(doc1: any, doc2: any) { return Doc.AreProtosEqual(doc1, doc2); });
 Scripting.addGlobal(function deiconifyView(doc: any) { Doc.deiconifyView(doc); });
 Scripting.addGlobal(function undo() { return UndoManager.Undo(); });
@@ -912,14 +1042,14 @@ Scripting.addGlobal(function redo() { return UndoManager.Redo(); });
 Scripting.addGlobal(function DOC(id: string) { console.log("Can't parse a document id in a script"); return "invalid"; });
 Scripting.addGlobal(function assignDoc(doc: Doc, field: string, id: string) { return Doc.assignDocToField(doc, field, id); });
 Scripting.addGlobal(function docCast(doc: FieldResult): any { return DocCastAsync(doc); });
-Scripting.addGlobal(function curPresentationItem() {
-    const curPres = Doc.UserDoc().curPresentation as Doc;
+Scripting.addGlobal(function activePresentationItem() {
+    const curPres = Doc.UserDoc().activePresentation as Doc;
     return curPres && DocListCast(curPres[Doc.LayoutFieldKey(curPres)])[NumCast(curPres._itemIndex)];
 });
-Scripting.addGlobal(function selectDoc(doc: any) { Doc.UserDoc().SelectedDocs = new List([doc]); });
+Scripting.addGlobal(function selectDoc(doc: any) { Doc.UserDoc().activeSelection = new List([doc]); });
 Scripting.addGlobal(function selectedDocs(container: Doc, excludeCollections: boolean, prevValue: any) {
-    const docs = DocListCast(Doc.UserDoc().SelectedDocs).
-        filter(d => !Doc.AreProtosEqual(d, container) && !d.annotationOn && d.type !== DocumentType.DOCUMENT && d.type !== DocumentType.KVP &&
+    const docs = DocListCast(Doc.UserDoc().activeSelection).
+        filter(d => !Doc.AreProtosEqual(d, container) && !d.annotationOn && d.type !== DocumentType.DOCHOLDER && d.type !== DocumentType.KVP &&
             (!excludeCollections || d.type !== DocumentType.COL || !Cast(d.data, listSpec(Doc), null)));
     return docs.length ? new List(docs) : prevValue;
 });

@@ -1,5 +1,5 @@
 import { Doc, Field, DocListCast } from "../../new_fields/Doc";
-import { Cast, ScriptCast } from "../../new_fields/Types";
+import { Cast, ScriptCast, StrCast } from "../../new_fields/Types";
 import { emptyFunction } from "../../Utils";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import * as globalCssVariables from "../views/globalCssVariables.scss";
@@ -19,7 +19,7 @@ import { DateField } from "../../new_fields/DateField";
 import { DocumentView } from "../views/nodes/DocumentView";
 import { UndoManager } from "./UndoManager";
 
-export type dropActionType = "place" | "alias" | "copy" | undefined;
+export type dropActionType = "alias" | "copy" | "move" | undefined; // undefined = move
 export function SetupDrag(
     _reference: React.RefObject<HTMLElement>,
     docFunc: () => Doc | Promise<Doc> | undefined,
@@ -83,6 +83,7 @@ export namespace DragManager {
     }
     export let AbortDrag: () => void = emptyFunction;
     export type MoveFunction = (document: Doc, targetCollection: Doc | undefined, addDocument: (document: Doc) => boolean) => boolean;
+    export type RemoveFunction = (document: Doc) => boolean;
 
     export interface DragDropDisposer { (): void; }
     export interface DragOptions {
@@ -138,6 +139,7 @@ export namespace DragManager {
         userDropAction: dropActionType;
         embedDoc?: boolean;
         moveDocument?: MoveFunction;
+        removeDocument?: RemoveFunction;
         isSelectionMove?: boolean; // indicates that an explicitly selected Document is being dragged.  this will suppress onDragStart scripts
     }
     export class LinkDragData {
@@ -177,7 +179,8 @@ export namespace DragManager {
 
     export function MakeDropTarget(
         element: HTMLElement,
-        dropFunc: (e: Event, de: DropEvent) => void
+        dropFunc: (e: Event, de: DropEvent) => void,
+        doc?: Doc
     ): DragDropDisposer {
         if ("canDrop" in element.dataset) {
             throw new Error(
@@ -185,10 +188,18 @@ export namespace DragManager {
             );
         }
         element.dataset.canDrop = "true";
-        const handler = (e: Event) => { dropFunc(e, (e as CustomEvent<DropEvent>).detail); };
+        const handler = (e: Event) => dropFunc(e, (e as CustomEvent<DropEvent>).detail);
+        const preDropHandler = (e: Event) => {
+            const de = (e as CustomEvent<DropEvent>).detail;
+            if (de.complete.docDragData && doc?.targetDropAction) {
+                de.complete.docDragData.dropAction = StrCast(doc.targetDropAction) as dropActionType;
+            }
+        };
         element.addEventListener("dashOnDrop", handler);
+        doc && element.addEventListener("dashPreDrop", preDropHandler);
         return () => {
             element.removeEventListener("dashOnDrop", handler);
+            doc && element.removeEventListener("dashPreDrop", preDropHandler);
             delete element.dataset.canDrop;
         };
     }
@@ -205,7 +216,7 @@ export namespace DragManager {
             e.docDragData && (e.docDragData.droppedDocuments =
                 dragData.draggedDocuments.map(d => !dragData.isSelectionMove && !dragData.userDropAction && ScriptCast(d.onDragStart) ? addAudioTag(ScriptCast(d.onDragStart).script.run({ this: d }).result) :
                     dragData.userDropAction === "alias" || (!dragData.userDropAction && dragData.dropAction === "alias") ? Doc.MakeAlias(d) :
-                        dragData.userDropAction === "copy" || (!dragData.userDropAction && dragData.dropAction === "copy") ? Doc.MakeCopy(d, true) : d)
+                        dragData.userDropAction === "copy" || (!dragData.userDropAction && dragData.dropAction === "copy") ? Doc.MakeClone(d) : d)
             );
             e.docDragData?.droppedDocuments.forEach((drop: Doc, i: number) =>
                 (dragData?.removeDropProperties || []).concat(Cast(dragData.draggedDocuments[i].removeDropProperties, listSpec("string"), [])).map(prop => drop[prop] = undefined)
@@ -219,10 +230,10 @@ export namespace DragManager {
     // drag a button template and drop a new button 
     export function StartButtonDrag(eles: HTMLElement[], script: string, title: string, vars: { [name: string]: Field }, params: string[], initialize: (button: Doc) => void, downX: number, downY: number, options?: DragOptions) {
         const finishDrag = (e: DragCompleteEvent) => {
-            const bd = Docs.Create.ButtonDocument({ _width: 150, _height: 50, title, isButton: true, onClick: ScriptField.MakeScript(script) });
-            params.map(p => Object.keys(vars).indexOf(p) !== -1 && (Doc.GetProto(bd)[p] = new PrefetchProxy(vars[p] as Doc)));
+            const bd = Docs.Create.ButtonDocument({ _width: 150, _height: 50, title, onClick: ScriptField.MakeScript(script) });
+            params.map(p => Object.keys(vars).indexOf(p) !== -1 && (Doc.GetProto(bd)[p] = new PrefetchProxy(vars[p] as Doc))); // copy all "captured" arguments into document parameterfields
             initialize?.(bd);
-            bd.buttonParams = new List<string>(params);
+            Doc.GetProto(bd)["onClick-paramFieldKeys"] = new List<string>(params);
             e.docDragData && (e.docDragData.droppedDocuments = [bd]);
         };
         StartDrag(eles, new DragManager.DocumentDragData([]), downX, downY, options, finishDrag);
@@ -351,12 +362,17 @@ export namespace DragManager {
 
         let lastX = downX;
         let lastY = downY;
+        let alias = "alias";
         const moveHandler = (e: PointerEvent) => {
             e.preventDefault(); // required or dragging text menu link item ends up dragging the link button as native drag/drop
             if (dragData instanceof DocumentDragData) {
                 dragData.userDropAction = e.ctrlKey && e.altKey ? "copy" : e.ctrlKey ? "alias" : undefined;
             }
             if (e.shiftKey && CollectionDockingView.Instance && dragData.droppedDocuments.length === 1) {
+                !dragData.dropAction && (dragData.dropAction = alias);
+                if (dragData.dropAction === "move") {
+                    dragData.removeDocument?.(dragData.draggedDocuments[0]);
+                }
                 AbortDrag();
                 finishDrag?.(new DragCompleteEvent(true, dragData));
                 CollectionDockingView.Instance.StartOtherDrag({
@@ -366,7 +382,7 @@ export namespace DragManager {
                     button: 0
                 }, dragData.droppedDocuments);
             }
-            //TODO: Why can't we use e.movementX and e.movementY?
+            alias = "move";
             const moveX = e.pageX - lastX;
             const moveY = e.pageY - lastY;
             lastX = e.pageX;
@@ -418,8 +434,21 @@ export namespace DragManager {
         });
         if (target) {
             const complete = new DragCompleteEvent(false, dragData);
+            target.dispatchEvent(
+                new CustomEvent<DropEvent>("dashPreDrop", {
+                    bubbles: true,
+                    detail: {
+                        x: e.x,
+                        y: e.y,
+                        complete: complete,
+                        shiftKey: e.shiftKey,
+                        altKey: e.altKey,
+                        metaKey: e.metaKey,
+                        ctrlKey: e.ctrlKey
+                    }
+                })
+            );
             finishDrag?.(complete);
-            console.log(complete.aborted);
             target.dispatchEvent(
                 new CustomEvent<DropEvent>("dashOnDrop", {
                     bubbles: true,

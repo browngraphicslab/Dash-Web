@@ -15,7 +15,7 @@ import { ObjectField } from "../../new_fields/ObjectField";
 import { listSpec } from "../../new_fields/Schema";
 import { SchemaHeaderField } from "../../new_fields/SchemaHeaderField";
 import { ComputedField } from "../../new_fields/ScriptField";
-import { BoolCast, Cast, NumCast, StrCast } from "../../new_fields/Types";
+import { BoolCast, Cast, NumCast, StrCast, FieldValue } from "../../new_fields/Types";
 import { emptyFunction, returnEmptyString, returnFalse, returnOne, Utils, returnZero } from "../../Utils";
 import { DocServer } from "../DocServer";
 import { Docs } from "../documents/Documents";
@@ -206,7 +206,7 @@ export class DashDocView {
         this._outer = document.createElement("span");
         this._outer.style.position = "relative";
         this._outer.style.textIndent = "0";
-        this._outer.style.border = "1px solid " + StrCast(tbox.Document.color, (Cast(Doc.UserDoc().activeWorkspace, Doc, null).darkScheme ? "dimGray" : "lightGray"));
+        this._outer.style.border = "1px solid " + StrCast(tbox.layoutDoc.color, (Cast(Doc.UserDoc().activeWorkspace, Doc, null).darkScheme ? "dimGray" : "lightGray"));
         this._outer.style.width = node.attrs.width;
         this._outer.style.height = node.attrs.height;
         this._outer.style.display = node.attrs.hidden ? "none" : "inline-block";
@@ -244,7 +244,7 @@ export class DashDocView {
                     if (dashDocBase instanceof Doc) {
                         const aliasedDoc = Doc.MakeAlias(dashDocBase, docid + alias);
                         aliasedDoc.layoutKey = "layout";
-                        node.attrs.fieldKey && DocumentView.makeCustomViewClicked(aliasedDoc, Docs.Create.StackingDocument, node.attrs.fieldKey, undefined);
+                        node.attrs.fieldKey && Doc.makeCustomViewClicked(aliasedDoc, Docs.Create.StackingDocument, node.attrs.fieldKey, undefined);
                         self.doRender(aliasedDoc, removeDoc, node, view, getPos);
                     }
                 });
@@ -319,9 +319,9 @@ export class DashDocView {
             };
             this._renderDisposer?.();
             this._renderDisposer = reaction(() => {
-                if (!Doc.AreProtosEqual(finalLayout, dashDoc)) {
-                    finalLayout.rootDocument = dashDoc.aliasOf;
-                }
+                // if (!Doc.AreProtosEqual(finalLayout, dashDoc)) {
+                //     finalLayout.rootDocument = dashDoc.aliasOf; // bcz: check on this ... why is it here?
+                // }
                 const layoutKey = StrCast(finalLayout.layoutKey);
                 const finalKey = layoutKey && StrCast(finalLayout[layoutKey]).split("'")?.[1];
                 if (finalLayout !== dashDoc && finalKey) {
@@ -345,7 +345,7 @@ export class DashDocView {
 export class DashFieldView {
     _fieldWrapper: HTMLDivElement; // container for label and value
     _labelSpan: HTMLSpanElement; // field label
-    _fieldSpan: HTMLDivElement;  // field value
+    _fieldSpan: HTMLSpanElement;  // field value
     _fieldCheck: HTMLInputElement;
     _enumerables: HTMLDivElement;  // field value
     _reactionDisposer: IReactionDisposer | undefined;
@@ -357,12 +357,12 @@ export class DashFieldView {
     constructor(node: any, view: any, getPos: any, tbox: FormattedTextBox) {
         this._fieldKey = node.attrs.fieldKey;
         this._textBoxDoc = tbox.props.Document;
-
-        this._fieldWrapper = document.createElement("div");
+        this._fieldWrapper = document.createElement("p");
         this._fieldWrapper.style.width = node.attrs.width;
         this._fieldWrapper.style.height = node.attrs.height;
+        this._fieldWrapper.style.fontWeight = "bold";
         this._fieldWrapper.style.position = "relative";
-        this._fieldWrapper.style.display = "inline-flex";
+        this._fieldWrapper.style.display = "inline-block";
 
         const self = this;
 
@@ -371,7 +371,6 @@ export class DashFieldView {
         this._enumerables.style.height = "10px";
         this._enumerables.style.position = "relative";
         this._enumerables.style.display = "none";
-        this._enumerables.style.background = "dimGray";
 
         //Moved
         this._enumerables.onpointerdown = async (e) => {
@@ -416,14 +415,13 @@ export class DashFieldView {
             self._dashDoc![self._fieldKey] = e.target.checked;
         };
 
-        //Moved
-        this._fieldSpan = document.createElement("div");
+        this._fieldSpan = document.createElement("span");
         this._fieldSpan.id = Utils.GenerateGuid();
         this._fieldSpan.contentEditable = "true";
         this._fieldSpan.style.position = "relative";
         this._fieldSpan.style.display = "none";
         this._fieldSpan.style.minWidth = "12px";
-        this._fieldSpan.style.backgroundColor = "rgba(155, 155, 155, 0.24)";
+        this._fieldSpan.style.fontSize = "large";
         this._fieldSpan.onkeypress = function (e: any) { e.stopPropagation(); };
         this._fieldSpan.onkeyup = function (e: any) { e.stopPropagation(); };
         this._fieldSpan.onmousedown = function (e: any) { e.stopPropagation(); self._enumerables.style.display = "inline-block"; };
@@ -435,12 +433,10 @@ export class DashFieldView {
             if (self._options?.length && !self._dashDoc[self._fieldKey]) {
                 self._dashDoc[self._fieldKey] = StrCast(self._options[0].title);
             }
-            // NOTE: if the field key starts with "@", then the actual field key is stored in the field 'fieldKey' (removing the @).
-            self._fieldKey = self._fieldKey.startsWith("@") ? StrCast(tbox.props.Document[StrCast(self._fieldKey).substring(1)]) : self._fieldKey;
             this._labelSpan.innerHTML = `${self._fieldKey}: `;
             const fieldVal = Cast(this._dashDoc?.[self._fieldKey], "boolean", null);
             this._fieldCheck.style.display = (fieldVal === true || fieldVal === false) ? "inline-block" : "none";
-            this._fieldSpan.style.display = !(fieldVal === true || fieldVal === false) ? "inline-block" : "none";
+            this._fieldSpan.style.display = !(fieldVal === true || fieldVal === false) ? StrCast(this._dashDoc?.[self._fieldKey]) ? "" : "inline-block" : "none";
         };
 
         //Moved
@@ -463,11 +459,10 @@ export class DashFieldView {
         };
 
         this._labelSpan = document.createElement("span");
-        this._labelSpan.style.backgroundColor = "rgba(155, 155, 155, 0.44)";
         this._labelSpan.style.position = "relative";
-        this._labelSpan.style.display = "inline-block";
         this._labelSpan.style.fontSize = "small";
         this._labelSpan.title = "click to see related tags";
+        this._labelSpan.style.fontSize = "x-small";
         this._labelSpan.onpointerdown = function (e: any) {
             e.stopPropagation();
             let container = tbox.props.ContainingCollectionView;
@@ -509,7 +504,7 @@ export class DashFieldView {
                 this._fieldSpan.innerHTML = Field.toString(fval as Field) || "";
             }
             this._fieldCheck.style.display = (boolVal === true || boolVal === false) ? "inline-block" : "none";
-            this._fieldSpan.style.display = !(boolVal === true || boolVal === false) ? "inline-block" : "none";
+            this._fieldSpan.style.display = !(fval === true || fval === false) ? (StrCast(fval) ? "" : "inline-block") : "none";
         }, { fireImmediately: true });
 
         //MOVED IN ORDER

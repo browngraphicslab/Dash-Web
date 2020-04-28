@@ -61,16 +61,21 @@
                 pointer-events: all;
                 // margin-top: 10px;
             }
-            .collectionViewBaseChrome-template {
+            .collectionViewBaseChrome-template,
+            .collectionViewBaseChrome-viewModes {
                 display: grid;
                 background: rgb(238, 238, 238);
                 color:grey;
                 margin-top:auto;
                 margin-bottom:auto;
+                margin-left: 5px;
+            }
+            .collectionViewBaseChrome-viewModes {
+                margin-left: 25px;
             }
 
             .collectionViewBaseChrome-viewSpecs {
-                margin-left: 10px;
+                margin-left: 5px;
                 display: grid;
                 
                 .collectionViewBaseChrome-filterIcon {

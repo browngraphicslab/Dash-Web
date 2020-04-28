@@ -63,11 +63,6 @@ export namespace Utils {
         return prepend("/corsProxy/") + encodeURIComponent(url);
     }
 
-    export async function getApiKey(target: string): Promise<string> {
-        const response = await fetch(prepend(`/environment/${target.toUpperCase()}`));
-        return response.text();
-    }
-
     export function CopyText(text: string) {
         const textArea = document.createElement("textarea");
         textArea.value = text;
@@ -475,12 +470,44 @@ export function clearStyleSheetRules(sheet: any) {
     return false;
 }
 
+export function simulateMouseClick(element: Element, x: number, y: number, sx: number, sy: number) {
+    ["pointerdown", "pointerup"].map(event => element.dispatchEvent(
+        new PointerEvent(event, {
+            view: window,
+            bubbles: true,
+            cancelable: true,
+            button: 2,
+            pointerType: "mouse",
+            clientX: x,
+            clientY: y,
+            screenX: sx,
+            screenY: sy,
+        })));
+
+    element.dispatchEvent(
+        new MouseEvent("contextmenu", {
+            view: window,
+            bubbles: true,
+            cancelable: true,
+            button: 2,
+            clientX: x,
+            clientY: y,
+            movementX: 0,
+            movementY: 0,
+            screenX: sx,
+            screenY: sy,
+        }));
+}
+
 export function setupMoveUpEvents(
     target: object,
     e: React.PointerEvent,
     moveEvent: (e: PointerEvent, down: number[], delta: number[]) => boolean,
     upEvent: (e: PointerEvent) => void,
-    clickEvent: (e: PointerEvent) => void) {
+    clickEvent: (e: PointerEvent, doubleTap?: boolean) => void,
+    stopPropagation: boolean = true,
+    stopMovePropagation: boolean = true
+) {
     (target as any)._downX = (target as any)._lastX = e.clientX;
     (target as any)._downY = (target as any)._lastY = e.clientY;
 
@@ -494,18 +521,23 @@ export function setupMoveUpEvents(
         }
         (target as any)._lastX = e.clientX;
         (target as any)._lastY = e.clientY;
-        e.stopPropagation();
+        stopMovePropagation && e.stopPropagation();
     };
+    (target as any)._doubleTap = false;
     const _upEvent = (e: PointerEvent): void => {
+        (target as any)._doubleTap = (Date.now() - (target as any)._lastTap < 300);
+        (target as any)._lastTap = Date.now();
         upEvent(e);
         if (Math.abs(e.clientX - (target as any)._downX) < 4 && Math.abs(e.clientY - (target as any)._downY) < 4) {
-            clickEvent(e);
+            clickEvent(e, (target as any)._doubleTap);
         }
         document.removeEventListener("pointermove", _moveEvent);
         document.removeEventListener("pointerup", _upEvent);
     };
-    e.stopPropagation();
-    e.preventDefault();
+    if (stopPropagation) {
+        e.stopPropagation();
+        e.preventDefault();
+    }
     document.removeEventListener("pointermove", _moveEvent);
     document.removeEventListener("pointerup", _upEvent);
     document.addEventListener("pointermove", _moveEvent);

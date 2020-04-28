@@ -14,7 +14,7 @@ export namespace Database {
     export let disconnect: Function;
     const schema = 'Dash';
     const port = 27017;
-    export const url = `mongodb://localhost:${port}/${schema}`;
+    export const url = `mongodb://localhost:${port}/`;
 
     enum ConnectionStates {
         disconnected = 0,
@@ -35,7 +35,7 @@ export namespace Database {
                         console.log(`mongoose established default connection at ${url}`);
                         resolve();
                     });
-                    mongoose.connect(url, { useNewUrlParser: true });
+                    mongoose.connect(url, { useNewUrlParser: true, useUnifiedTopology: true, dbName: schema });
                 });
             }
         } catch (e) {
@@ -46,17 +46,20 @@ export namespace Database {
         }
     }
 
-    class Database implements IDatabase {
+    export class Database implements IDatabase {
         public static DocumentsCollection = 'documents';
         private MongoClient = mongodb.MongoClient;
         private currentWrites: { [id: string]: Promise<void> } = {};
         private db?: mongodb.Db;
         private onConnect: (() => void)[] = [];
 
-        constructor() {
-            this.MongoClient.connect(url, (_err, client) => {
+        doConnect() {
+            console.error(`\nConnecting to Mongo with URL : ${url}\n`);
+            this.MongoClient.connect(url, { connectTimeoutMS: 30000, socketTimeoutMS: 30000, useUnifiedTopology: true }, (_err, client) => {
+                console.error("mongo connect response\n");
                 if (!client) {
-                    console.error("\nPlease start MongoDB by running 'mongod' in a terminal before continuing...\n");
+                    console.error("\nMongo connect failed with the error:\n");
+                    console.log(_err);
                     process.exit(0);
                 }
                 this.db = client.db();
@@ -65,6 +68,7 @@ export namespace Database {
         }
 
         public async update(id: string, value: any, callback: (err: mongodb.MongoError, res: mongodb.UpdateWriteOpResult) => void, upsert = true, collectionName = Database.DocumentsCollection) {
+
             if (this.db) {
                 const collection = this.db.collection(collectionName);
                 const prom = this.currentWrites[id];

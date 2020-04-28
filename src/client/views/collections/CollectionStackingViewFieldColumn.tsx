@@ -156,7 +156,6 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
     @action
     collapseSection = () => {
         if (this.props.headingObject) {
-            this._headingsHack++;
             this.props.headingObject.setCollapsed(!this.props.headingObject.collapsed);
             this.toggleVisibility();
         }
@@ -224,8 +223,6 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
     @observable private collapsed: boolean = false;
 
     private toggleVisibility = action(() => this.collapsed = !this.collapsed);
-
-    @observable _headingsHack: number = 1;
 
     menuCallback = (x: number, y: number) => {
         ContextMenu.Instance.clearItems();
@@ -300,7 +297,6 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
             contents: evContents,
             oneLine: true,
             HeadingObject: this.props.headingObject,
-            HeadingsHack: this._headingsHack,
             toggle: this.toggleVisibility,
             color: this._color
         };
@@ -309,7 +305,6 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
             SetValue: this.addDocument,
             contents: "+ NEW",
             HeadingObject: this.props.headingObject,
-            HeadingsHack: this._headingsHack,
             toggle: this.toggleVisibility,
             color: this._color
         };
@@ -364,7 +359,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
             <div className="collectionStackingViewFieldColumn" key={heading}
                 style={{
                     width: `${100 / ((uniqueHeadings.length + ((chromeStatus !== 'view-mode' && chromeStatus !== 'disabled') ? 1 : 0)) || 1)}%`,
-                    height: SelectionManager.GetIsDragging() ? "100%" : undefined,
+                    height: undefined, // SelectionManager.GetIsDragging() ? "100%" : undefined,
                     background: this._background
                 }}
                 ref={this.createColumnDropRef} onPointerEnter={this.pointerEntered} onPointerLeave={this.pointerLeave}>

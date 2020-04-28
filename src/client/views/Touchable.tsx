@@ -64,20 +64,15 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
                 case 1:
                     this.handle1PointerDown(te, me);
                     te.persist();
+                    // -- code for radial menu -- 
                     // if (this.holdTimer) {
                     //     clearTimeout(this.holdTimer)
                     //     this.holdTimer = undefined;
                     // }
-                    // console.log(this.holdTimer);
-                    // console.log(this.holdTimer);
                     break;
                 case 2:
                     this.handle2PointersDown(te, me);
-                    // e.stopPropagation();
                     break;
-                // case 5:
-                //     this.handleHandDown(te);
-                //     break;
             }
         }
     }

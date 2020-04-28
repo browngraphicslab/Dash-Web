@@ -2,7 +2,7 @@ import * as React from "react";
 import './ParentDocumentSelector.scss';
 import { Doc } from "../../../new_fields/Doc";
 import { observer } from "mobx-react";
-import { observable, action, runInAction, trace, computed } from "mobx";
+import { observable, action, runInAction, trace, computed, reaction, IReactionDisposer } from "mobx";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { SearchUtil } from "../../util/SearchUtil";
 import { CollectionDockingView } from "./CollectionDockingView";
@@ -31,13 +31,14 @@ type SelectorProps = {
 export class SelectorContextMenu extends React.Component<SelectorProps> {
     @observable private _docs: { col: Doc, target: Doc }[] = [];
     @observable private _otherDocs: { col: Doc, target: Doc }[] = [];
+    _reaction: IReactionDisposer | undefined;
 
-    constructor(props: SelectorProps) {
-        super(props);
-
-        this.fetchDocuments();
+    componentDidMount() {
+        this._reaction = reaction(() => this.props.Document, () => this.fetchDocuments(), { fireImmediately: true });
     }
-
+    componentWillUnmount() {
+        this._reaction?.();
+    }
     async fetchDocuments() {
         const aliases = (await SearchUtil.GetAliasesOfDocument(this.props.Document)).filter(doc => doc !== this.props.Document);
         const { docs } = await SearchUtil.Search("", true, { fq: `data_l:"${this.props.Document[Id]}"` });
@@ -54,7 +55,7 @@ export class SelectorContextMenu extends React.Component<SelectorProps> {
     getOnClick({ col, target }: { col: Doc, target: Doc }) {
         return () => {
             col = Doc.IsPrototype(col) ? Doc.MakeDelegate(col) : col;
-            if (NumCast(col._viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
+            if (col._viewType === CollectionViewType.Freeform) {
                 const newPanX = NumCast(target.x) + NumCast(target._width) / 2;
                 const newPanY = NumCast(target.y) + NumCast(target._height) / 2;
                 col._panX = newPanX;
@@ -94,8 +95,6 @@ export class ParentDocSelector extends React.Component<SelectorProps> {
 
 @observer
 export class DockingViewButtonSelector extends React.Component<{ views: DocumentView[], Stack: any }> {
-    @observable hover = false;
-
     customStylesheet(styles: any) {
         return {
             ...styles,
@@ -105,17 +104,24 @@ export class DockingViewButtonSelector extends React.Component<{ views: Document
             },
         };
     }
+    _ref = React.createRef<HTMLDivElement>();
 
     @computed get flyout() {
         return (
-            <div className="ParentDocumentSelector-flyout" title=" ">
+            <div className="ParentDocumentSelector-flyout" title=" " ref={this._ref}>
                 <DocumentButtonBar views={this.props.views} stack={this.props.Stack} />
             </div>
         );
     }
 
     render() {
-        return <span title="Tap for menu, drag tab as document" onPointerDown={e => { this.props.views[0].select(false); e.stopPropagation(); }} className="buttonSelector">
+        return <span title="Tap for menu, drag tab as document"
+            onPointerDown={e => {
+                if (getComputedStyle(this._ref.current!).width !== "100%") {
+                    e.stopPropagation(); e.preventDefault();
+                }
+                this.props.views[0]?.select(false);
+            }} className="buttonSelector">
             <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={this.flyout} stylesheet={this.customStylesheet}>
                 <FontAwesomeIcon icon={"cog"} size={"sm"} />
             </Flyout>

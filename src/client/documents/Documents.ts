@@ -1,6 +1,3 @@
-import { HistogramField } from "../northstar/dash-fields/HistogramField";
-import { HistogramBox } from "../northstar/dash-nodes/HistogramBox";
-import { HistogramOperation } from "../northstar/operations/HistogramOperation";
 import { CollectionView } from "../views/collections/CollectionView";
 import { CollectionViewType } from "../views/collections/CollectionView";
 import { AudioBox } from "../views/nodes/AudioBox";
@@ -8,21 +5,15 @@ import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
 import { ImageBox } from "../views/nodes/ImageBox";
 import { KeyValueBox } from "../views/nodes/KeyValueBox";
 import { PDFBox } from "../views/nodes/PDFBox";
+import { ScriptingBox } from "../views/nodes/ScriptingBox";
 import { VideoBox } from "../views/nodes/VideoBox";
 import { WebBox } from "../views/nodes/WebBox";
-import { Gateway } from "../northstar/manager/Gateway";
-import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
-import { action } from "mobx";
-import { ColumnAttributeModel } from "../northstar/core/attribute/AttributeModel";
-import { AttributeTransformationModel } from "../northstar/core/attribute/AttributeTransformationModel";
-import { AggregateFunction } from "../northstar/model/idea/idea";
 import { OmitKeys, JSONUtils, Utils } from "../../Utils";
 import { Field, Doc, Opt, DocListCastAsync, FieldResult, DocListCast } from "../../new_fields/Doc";
 import { ImageField, VideoField, AudioField, PdfField, WebField, YoutubeField } from "../../new_fields/URLField";
 import { HtmlField } from "../../new_fields/HtmlField";
 import { List } from "../../new_fields/List";
 import { Cast, NumCast, StrCast } from "../../new_fields/Types";
-import { listSpec } from "../../new_fields/Schema";
 import { DocServer } from "../DocServer";
 import { dropActionType } from "../util/DragManager";
 import { DateField } from "../../new_fields/DateField";
@@ -32,7 +23,7 @@ import { LinkManager } from "../util/LinkManager";
 import { DocumentManager } from "../util/DocumentManager";
 import DirectoryImportBox from "../util/Import & Export/DirectoryImportBox";
 import { Scripting } from "../util/Scripting";
-import { ButtonBox } from "../views/nodes/ButtonBox";
+import { LabelBox } from "../views/nodes/LabelBox";
 import { SliderBox } from "../views/nodes/SliderBox";
 import { FontIconBox } from "../views/nodes/FontIconBox";
 import { SchemaHeaderField } from "../../new_fields/SchemaHeaderField";
@@ -41,16 +32,12 @@ import { ComputedField, ScriptField } from "../../new_fields/ScriptField";
 import { ProxyField } from "../../new_fields/Proxy";
 import { DocumentType } from "./DocumentTypes";
 import { RecommendationsBox } from "../views/RecommendationsBox";
-import { SearchBox } from "../views/search/SearchBox";
-
-//import { PresBox } from "../views/nodes/PresBox";
-//import { PresField } from "../../new_fields/PresField";
 import { PresElementBox } from "../views/presentationview/PresElementBox";
 import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
 import { QueryBox } from "../views/nodes/QueryBox";
 import { ColorBox } from "../views/nodes/ColorBox";
-import { DocuLinkBox } from "../views/nodes/DocuLinkBox";
-import { DocumentBox } from "../views/nodes/DocumentBox";
+import { LinkAnchorBox } from "../views/nodes/LinkAnchorBox";
+import { DocHolderBox } from "../views/nodes/DocumentBox";
 import { InkingStroke } from "../views/InkingStroke";
 import { InkField } from "../../new_fields/InkField";
 import { InkingControl } from "../views/InkingControl";
@@ -61,7 +48,6 @@ import { ContextMenuProps } from "../views/ContextMenuItem";
 import { ContextMenu } from "../views/ContextMenu";
 import { LinkBox } from "../views/nodes/LinkBox";
 import { ScreenshotBox } from "../views/nodes/ScreenshotBox";
-const requestImageSize = require('../util/request-image-size');
 const path = require('path');
 
 export interface DocumentOptions {
@@ -80,7 +66,7 @@ export interface DocumentOptions {
     _showCaption?: string; // which field to display in the caption area.  leave empty to have no caption
     _scrollTop?: number; // scroll location for pdfs
     _chromeStatus?: string;
-    _viewType?: number;
+    _viewType?: string; // sub type of a collection
     _gridGap?: number; // gap between items in masonry view
     _xMargin?: number; // gap between left edge of document and start of masonry/stacking layouts
     _yMargin?: number; // gap between top edge of dcoument and start of masonry/stacking layouts
@@ -92,11 +78,13 @@ export interface DocumentOptions {
     x?: number;
     y?: number;
     z?: number;
+    author?: string;
     dropAction?: dropActionType;
     childDropAction?: dropActionType;
     layoutKey?: string;
     type?: string;
     title?: string;
+    label?: string; // short form of title for use as an icon label
     style?: string;
     page?: number;
     scale?: number;
@@ -116,18 +104,23 @@ export interface DocumentOptions {
     ignoreClick?: boolean;
     lockedPosition?: boolean; // lock the x,y coordinates of the document so that it can't be dragged
     lockedTransform?: boolean; // lock the panx,pany and scale parameters of the document so that it be panned/zoomed
+    isAnnotating?: boolean; // whether we web document is annotation mode where links can't be clicked to allow annotations to be created
     opacity?: number;
     defaultBackgroundColor?: string;
     isBackground?: boolean;
-    isButton?: boolean;
+    isLinkButton?: boolean;
     columnWidth?: number;
-    fontSize?: number;
+    _fontSize?: number;
+    _fontFamily?: string;
     curPage?: number;
     currentTimecode?: number; // the current timecode of a time-based document (e.g., current time of a video)  value is in seconds
     displayTimecode?: number; // the time that a document should be displayed (e.g., time an annotation should be displayed on a video)
     borderRounding?: string;
     boxShadow?: string;
     dontRegisterChildren?: boolean;
+    "onClick-rawScript"?: string; // onClick script in raw text form
+    "onCheckedClick-rawScript"?: string; // onChecked script in raw text form
+    "onCheckedClick-params"?: List<string>; // parameter list for onChecked treeview functions
     _pivotField?: string; // field key used to determine headings for sections in stacking, masonry, pivot views
     schemaColumns?: List<SchemaHeaderField>;
     dockingConfig?: string;
@@ -148,13 +141,14 @@ export interface DocumentOptions {
     icon?: string;
     sourcePanel?: Doc; // panel to display in 'targetContainer' as the result of a button onClick script
     targetContainer?: Doc; // document whose proto will be set to 'panel' as the result of a onClick click script
+    searchFileTypes?: List<string>; // file types allowed in a search query
     strokeWidth?: number;
     treeViewPreventOpen?: boolean; // ignores the treeViewOpen Doc flag which allows a treeViewItem's expand/collapse state to be independent of other views of the same document in the tree view
     treeViewHideTitle?: boolean; // whether to hide the title of a tree view
     treeViewHideHeaderFields?: boolean; // whether to hide the drop down options for tree view items.
     treeViewOpen?: boolean; // whether this document is expanded in a tree view
+    treeViewExpandedView?: string; // which field/thing is displayed when this item is opened in tree view
     treeViewChecked?: ScriptField; // script to call when a tree view checkbox is checked
-    isFacetFilter?: boolean; // whether document functions as a facet filter in a tree view
     limitHeight?: number; // maximum height for newly created (eg, from pasting) text documents
     // [key: string]: Opt<Field>;
     pointerHack?: boolean; // for buttons, allows onClick handler to fire onPointerDown
@@ -189,105 +183,106 @@ export namespace Docs {
         };
         type TemplateMap = Map<DocumentType, PrototypeTemplate>;
         type PrototypeMap = Map<DocumentType, Doc>;
-        const data = "data";
+        const defaultDataKey = "data";
 
         const TemplateMap: TemplateMap = new Map([
-            [DocumentType.TEXT, {
+            [DocumentType.RTF, {
                 layout: { view: FormattedTextBox, dataField: "text" },
                 options: { _height: 150, _xMargin: 10, _yMargin: 10 }
             }],
-            [DocumentType.HIST, {
-                layout: { view: HistogramBox, dataField: data },
-                options: { _height: 300, backgroundColor: "black" }
-            }],
             [DocumentType.QUERY, {
-                layout: { view: QueryBox, dataField: data },
+                layout: { view: QueryBox, dataField: defaultDataKey },
                 options: { _width: 400 }
             }],
             [DocumentType.COLOR, {
-                layout: { view: ColorBox, dataField: data },
+                layout: { view: ColorBox, dataField: defaultDataKey },
                 options: { _nativeWidth: 220, _nativeHeight: 300 }
             }],
             [DocumentType.IMG, {
-                layout: { view: ImageBox, dataField: data },
+                layout: { view: ImageBox, dataField: defaultDataKey },
                 options: {}
             }],
             [DocumentType.WEB, {
-                layout: { view: WebBox, dataField: data },
+                layout: { view: WebBox, dataField: defaultDataKey },
                 options: { _height: 300 }
             }],
             [DocumentType.COL, {
-                layout: { view: CollectionView, dataField: data },
+                layout: { view: CollectionView, dataField: defaultDataKey },
                 options: { _panX: 0, _panY: 0, scale: 1 } // , _width: 500, _height: 500 }
             }],
             [DocumentType.KVP, {
-                layout: { view: KeyValueBox, dataField: data },
+                layout: { view: KeyValueBox, dataField: defaultDataKey },
                 options: { _height: 150 }
             }],
-            [DocumentType.DOCUMENT, {
-                layout: { view: DocumentBox, dataField: data },
+            [DocumentType.DOCHOLDER, {
+                layout: { view: DocHolderBox, dataField: defaultDataKey },
                 options: { _height: 250 }
             }],
             [DocumentType.VID, {
-                layout: { view: VideoBox, dataField: data },
+                layout: { view: VideoBox, dataField: defaultDataKey },
                 options: { currentTimecode: 0 },
             }],
             [DocumentType.AUDIO, {
-                layout: { view: AudioBox, dataField: data },
+                layout: { view: AudioBox, dataField: defaultDataKey },
                 options: { _height: 35, backgroundColor: "lightGray" }
             }],
             [DocumentType.PDF, {
-                layout: { view: PDFBox, dataField: data },
+                layout: { view: PDFBox, dataField: defaultDataKey },
                 options: { curPage: 1 }
             }],
             [DocumentType.IMPORT, {
-                layout: { view: DirectoryImportBox, dataField: data },
+                layout: { view: DirectoryImportBox, dataField: defaultDataKey },
                 options: { _height: 150 }
             }],
             [DocumentType.LINK, {
-                layout: { view: LinkBox, dataField: data },
+                layout: { view: LinkBox, dataField: defaultDataKey },
                 options: { _height: 150 }
             }],
             [DocumentType.LINKDB, {
                 data: new List<Doc>(),
-                layout: { view: EmptyBox, dataField: data },
-                options: { childDropAction: "alias", title: "LINK DB" }
+                layout: { view: EmptyBox, dataField: defaultDataKey },
+                options: { childDropAction: "alias", title: "Global Link Database" }
+            }],
+            [DocumentType.SCRIPTING, {
+                layout: { view: ScriptingBox, dataField: defaultDataKey }
             }],
             [DocumentType.YOUTUBE, {
-                layout: { view: YoutubeBox, dataField: data }
+                layout: { view: YoutubeBox, dataField: defaultDataKey }
+            }],
+            [DocumentType.LABEL, {
+                layout: { view: LabelBox, dataField: defaultDataKey },
             }],
             [DocumentType.BUTTON, {
-                layout: { view: ButtonBox, dataField: data },
+                layout: { view: LabelBox, dataField: "onClick" },
             }],
             [DocumentType.SLIDER, {
-                layout: { view: SliderBox, dataField: data },
+                layout: { view: SliderBox, dataField: defaultDataKey },
             }],
             [DocumentType.PRES, {
-                layout: { view: PresBox, dataField: data },
+                layout: { view: PresBox, dataField: defaultDataKey },
                 options: {}
             }],
             [DocumentType.FONTICON, {
-                layout: { view: FontIconBox, dataField: data },
+                layout: { view: FontIconBox, dataField: defaultDataKey },
                 options: { _width: 40, _height: 40, borderRounding: "100%" },
             }],
             [DocumentType.RECOMMENDATION, {
-                layout: { view: RecommendationsBox, dataField: data },
-                options: { width: 200, height: 200 },
+                layout: { view: RecommendationsBox, dataField: defaultDataKey },
+                options: { _width: 200, _height: 200 },
             }],
             [DocumentType.WEBCAM, {
-                layout: { view: DashWebRTCVideo, dataField: data }
+                layout: { view: DashWebRTCVideo, dataField: defaultDataKey }
             }],
             [DocumentType.PRESELEMENT, {
-                layout: { view: PresElementBox, dataField: data }
+                layout: { view: PresElementBox, dataField: defaultDataKey }
             }],
             [DocumentType.INK, {
-                layout: { view: InkingStroke, dataField: data },
+                layout: { view: InkingStroke, dataField: defaultDataKey },
                 options: { backgroundColor: "transparent" }
             }],
             [DocumentType.SCREENSHOT, {
-                layout: { view: ScreenshotBox, dataField: data },
-                options: {}
-            }]
+                layout: { view: ScreenshotBox, dataField: defaultDataKey },
+            }],
         ]);
 
         // All document prototypes are initialized with at least these values
@@ -414,7 +409,7 @@ export namespace Docs {
                     const doc = StackingDocument(deviceImages, { title: device.title, _LODdisable: true });
                     const deviceProto = Doc.GetProto(doc);
                     deviceProto.hero = new ImageField(constructed[0].url);
-                    Docs.Get.DocumentHierarchyFromJson(device, undefined, deviceProto);
+                    Docs.Get.FromJson({ data: device, appendToExisting: { targetDoc: deviceProto } });
                     Doc.AddDocToList(parentProto, "data", doc);
                 } else if (errors) {
                     console.log(errors);
@@ -437,7 +432,7 @@ export namespace Docs {
         const delegateKeys = ["x", "y", "layoutKey", "_width", "_height", "_panX", "_panY", "_viewType", "_nativeWidth", "_nativeHeight", "dropAction", "childDropAction", "_annotationOn",
             "_chromeStatus", "_autoHeight", "_fitWidth", "_LODdisable", "_itemIndex", "_showSidebar", "_showTitle", "_showCaption", "_showTitleHover", "_backgroundColor",
             "_xMargin", "_yMargin", "_xPadding", "_yPadding", "_singleLine", "_scrollTop",
-            "_color", "isButton", "isBackground", "removeDropProperties", "treeViewOpen"];
+            "_color", "isLinkButton", "isBackground", "removeDropProperties", "treeViewOpen"];
 
         /**
          * This function receives the relevant document prototype and uses
@@ -504,21 +499,16 @@ export namespace Docs {
                 const extension = path.extname(target);
                 target = `${target.substring(0, target.length - extension.length)}_o${extension}`;
             }
-            requestImageSize(Utils.CorsProxy(target))
-                .then((size: any) => {
-                    const aspect = size.height / size.width;
-                    if (!inst._nativeWidth) {
-                        inst._nativeWidth = size.width;
-                    }
-                    inst._nativeHeight = NumCast(inst._nativeWidth) * aspect;
-                    inst._height = NumCast(inst._width) * aspect;
-                })
-                .catch((err: any) => console.log(err));
-            // }
             return inst;
         }
         export function PresDocument(initial: List<Doc> = new List(), options: DocumentOptions = {}) {
             return InstanceFromProto(Prototypes.get(DocumentType.PRES), initial, options);
+        }
+
+        export function ScriptingDocument(script: Opt<ScriptField>, options: DocumentOptions = {}, fieldKey?: string) {
+            const res = InstanceFromProto(Prototypes.get(DocumentType.SCRIPTING), script, options);
+            fieldKey && res.proto instanceof Doc && (res.proto.layout = ScriptingBox.LayoutString(fieldKey));
+            return res;
         }
 
         export function VideoDocument(url: string, options: DocumentOptions = {}) {
@@ -543,10 +533,6 @@ export namespace Docs {
             return instance;
         }
 
-        export function HistogramDocument(histoOp: HistogramOperation, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.HIST), new HistogramField(histoOp), options);
-        }
-
         export function QueryDocument(options: DocumentOptions = {}) {
             return InstanceFromProto(Prototypes.get(DocumentType.QUERY), "", options);
         }
@@ -556,26 +542,28 @@ export namespace Docs {
         }
 
         export function TextDocument(text: string, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.TEXT), text, options, undefined, "text");
+            return InstanceFromProto(Prototypes.get(DocumentType.RTF), text, options, undefined, "text");
         }
 
         export function LinkDocument(source: { doc: Doc, ctx?: Doc }, target: { doc: Doc, ctx?: Doc }, options: DocumentOptions = {}, id?: string) {
-            const doc = InstanceFromProto(Prototypes.get(DocumentType.LINK), undefined, { isButton: true, treeViewHideTitle: true, treeViewOpen: false, removeDropProperties: new List(["isBackground", "isButton"]), ...options });
+            const doc = InstanceFromProto(Prototypes.get(DocumentType.LINK), undefined, { isLinkButton: true, treeViewHideTitle: true, treeViewOpen: false, removeDropProperties: new List(["isBackground", "isLinkButton"]), ...options });
             const linkDocProto = Doc.GetProto(doc);
             linkDocProto.anchor1 = source.doc;
             linkDocProto.anchor2 = target.doc;
+            linkDocProto.anchor1_timecode = source.doc.currentTimecode || source.doc.displayTimecode;
+            linkDocProto.anchor2_timecode = target.doc.currentTimecode || target.doc.displayTimecode;
 
             if (linkDocProto.layout_key1 === undefined) {
-                Cast(linkDocProto.proto, Doc, null).layout_key1 = DocuLinkBox.LayoutString("anchor1");
-                Cast(linkDocProto.proto, Doc, null).layout_key2 = DocuLinkBox.LayoutString("anchor2");
+                Cast(linkDocProto.proto, Doc, null).layout_key1 = LinkAnchorBox.LayoutString("anchor1");
+                Cast(linkDocProto.proto, Doc, null).layout_key2 = LinkAnchorBox.LayoutString("anchor2");
                 Cast(linkDocProto.proto, Doc, null).linkBoxExcludedKeys = new List(["treeViewExpandedView", "treeViewHideTitle", "removeDropProperties", "linkBoxExcludedKeys", "treeViewOpen", "aliasNumber", "isPrototype", "lastOpened", "creationDate", "author"]);
                 Cast(linkDocProto.proto, Doc, null).layoutKey = undefined;
             }
 
             LinkManager.Instance.addLink(doc);
 
-            Doc.GetProto(source.doc).links = ComputedField.MakeFunction("links(this)");
-            Doc.GetProto(target.doc).links = ComputedField.MakeFunction("links(this)");
+            Doc.GetProto(source.doc).links = ComputedField.MakeFunction("links(self)");
+            Doc.GetProto(target.doc).links = ComputedField.MakeFunction("links(self)");
             return doc;
         }
 
@@ -589,6 +577,7 @@ export namespace Docs {
             I.title = "ink";
             I.x = options.x;
             I.y = options.y;
+            I._backgroundColor = "transparent";
             I._width = options._width;
             I._height = options._height;
             I.data = new InkField(points);
@@ -605,39 +594,8 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.PDF), new PdfField(new URL(url)), options);
         }
 
-        export async function DBDocument(url: string, options: DocumentOptions = {}, columnOptions: DocumentOptions = {}) {
-            const schemaName = options.title ? options.title : "-no schema-";
-            const ctlog = await Gateway.Instance.GetSchema(url, schemaName);
-            if (ctlog && ctlog.schemas) {
-                const schema = ctlog.schemas[0];
-                const schemaDoc = Docs.Create.TreeDocument([], { ...options, _nativeWidth: undefined, _nativeHeight: undefined, _width: 150, _height: 100, title: schema.displayName! });
-                const schemaDocuments = Cast(schemaDoc.data, listSpec(Doc), []);
-                if (!schemaDocuments) {
-                    return;
-                }
-                CurrentUserUtils.AddNorthstarSchema(schema, schemaDoc);
-                const docs = schemaDocuments;
-                CurrentUserUtils.GetAllNorthstarColumnAttributes(schema).map(attr => {
-                    DocServer.GetRefField(attr.displayName! + ".alias").then(action((field: Opt<Field>) => {
-                        if (field instanceof Doc) {
-                            docs.push(field);
-                        } else {
-                            const atmod = new ColumnAttributeModel(attr);
-                            const histoOp = new HistogramOperation(schema.displayName!,
-                                new AttributeTransformationModel(atmod, AggregateFunction.None),
-                                new AttributeTransformationModel(atmod, AggregateFunction.Count),
-                                new AttributeTransformationModel(atmod, AggregateFunction.Count));
-                            docs.push(Docs.Create.HistogramDocument(histoOp, { ...columnOptions, _width: 200, _height: 200, title: attr.displayName! }));
-                        }
-                    }));
-                });
-                return schemaDoc;
-            }
-            return Docs.Create.TreeDocument([], { _width: 50, _height: 100, title: schemaName });
-        }
-
         export function WebDocument(url: string, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.WEB), new WebField(new URL(url)), options);
+            return InstanceFromProto(Prototypes.get(DocumentType.WEB), url ? new WebField(new URL(url)) : undefined, { _fitWidth: true, _chromeStatus: url ? "disabled" : "enabled", isAnnotating: true, lockedTransform: true, ...options });
         }
 
         export function HtmlDocument(html: string, options: DocumentOptions = {}) {
@@ -649,15 +607,23 @@ export namespace Docs {
         }
 
         export function DocumentDocument(document?: Doc, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.DOCUMENT), document, { title: document ? document.title + "" : "container", ...options });
+            return InstanceFromProto(Prototypes.get(DocumentType.DOCHOLDER), document, { title: document ? document.title + "" : "container", ...options });
         }
 
         export function FreeformDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
             return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, _viewType: CollectionViewType.Freeform }, id);
         }
 
+        export function PileDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", backgroundColor: "black", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, _viewType: CollectionViewType.Pile }, id);
+        }
+
         export function LinearDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
             return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", backgroundColor: "black", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, _viewType: CollectionViewType.Linear }, id);
+        }
+
+        export function MapDocument(documents: Array<Doc>, options: DocumentOptions = {}) {
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), options);
         }
 
         export function CarouselDocument(documents: Array<Doc>, options: DocumentOptions) {
@@ -688,8 +654,12 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, _viewType: CollectionViewType.Masonry });
         }
 
+        export function LabelDocument(options?: DocumentOptions) {
+            return InstanceFromProto(Prototypes.get(DocumentType.LABEL), undefined, { ...(options || {}) });
+        }
+
         export function ButtonDocument(options?: DocumentOptions) {
-            return InstanceFromProto(Prototypes.get(DocumentType.BUTTON), undefined, { ...(options || {}) });
+            return InstanceFromProto(Prototypes.get(DocumentType.BUTTON), undefined, { ...(options || {}), "onClick-rawScript": "-script-" });
         }
 
         export function SliderDocument(options?: DocumentOptions) {
@@ -744,6 +714,15 @@ export namespace Docs {
 
         const primitives = ["string", "number", "boolean"];
 
+        export interface JsonConversionOpts {
+            data: any;
+            title?: string;
+            appendToExisting?: { targetDoc: Doc, fieldKey?: string };
+            excludeEmptyObjects?: boolean;
+        }
+
+        const defaultKey = "json";
+
         /**
          * This function takes any valid JSON(-like) data, i.e. parsed or unparsed, and at arbitrarily
          * deep levels of nesting, converts the data and structure into nested documents with the appropriate fields.
@@ -761,23 +740,54 @@ export namespace Docs {
          * All TS/JS objects get converted directly to documents, directly preserving the key value structure. Everything else,
          * lacking the key value structure, gets stored as a field in a wrapper document.
          * 
-         * @param input for convenience and flexibility, either a valid JSON string to be parsed,
+         * @param data for convenience and flexibility, either a valid JSON string to be parsed,
          * or the result of any JSON.parse() call.
-         * @param title an optional title to give to the highest parent document in the hierarchy
+         * @param title an optional title to give to the highest parent document in the hierarchy.
+         * If whether this function creates a new document or appendToExisting is specified and that document already has a title,
+         * because this title field can be left undefined for the opposite behavior, including a title will overwrite the existing title.
+         * @param appendToExisting **if specified**, there are two cases, both of which return the target document:
+         * 
+         * 1) the json to be converted can be represented as a document, in which case the target document will act as the root
+         * of the tree and receive all the conversion results as new fields on itself
+         * 2) the json can't be represented as a document, in which case the function will assign the field-level conversion
+         * results to either the specified key on the target document, or to its "json" key by default.
+         * 
+         * If not specified, the function creates and returns a new entirely generic document (different from the Doc.Create calls)
+         * to act as the root of the tree.
+         * 
+         * One might choose to specify this field if you want to write to a document returned from a Document.Create function call,
+         * say a TreeView document that will be rendered, not just an untyped, identityless doc that would otherwise be created
+         * from a default call to new Doc.
+         * 
+         * @param excludeEmptyObjects whether non-primitive objects (TypeScript objects and arrays) should be converted even
+         * if they contain no data. By default, empty objects and arrays are ignored.
          */
-        export function DocumentHierarchyFromJson(input: any, title?: string, appendToTarget?: Doc): Opt<Doc> {
-            if (input === undefined || input === null || ![...primitives, "object"].includes(typeof input)) {
+        export function FromJson({ data, title, appendToExisting, excludeEmptyObjects }: JsonConversionOpts): Opt<Doc> {
+            if (excludeEmptyObjects === undefined) {
+                excludeEmptyObjects = true;
+            }
+            if (data === undefined || data === null || ![...primitives, "object"].includes(typeof data)) {
                 return undefined;
             }
-            input = JSON.parse(typeof input === "string" ? input : JSON.stringify(input));
-            let converted: Doc;
-            if (typeof input === "object" && !(input instanceof Array)) {
-                converted = convertObject(input, title, appendToTarget);
-            } else {
-                (converted = new Doc).json = toField(input);
+            let resolved: any;
+            try {
+                resolved = JSON.parse(typeof data === "string" ? data : JSON.stringify(data));
+            } catch (e) {
+                return undefined;
             }
-            title && (converted.title = title);
-            return converted;
+            let output: Opt<Doc>;
+            if (typeof resolved === "object" && !(resolved instanceof Array)) {
+                output = convertObject(resolved, excludeEmptyObjects, title, appendToExisting?.targetDoc);
+            } else {
+                const result = toField(resolved, excludeEmptyObjects);
+                if (appendToExisting) {
+                    (output = appendToExisting.targetDoc)[appendToExisting.fieldKey || defaultKey] = result;
+                } else {
+                    (output = new Doc).json = result;
+                }
+            }
+            title && output && (output.title = title);
+            return output;
         }
 
         /**
@@ -787,12 +797,24 @@ export namespace Docs {
          * @returns the object mapped from JSON to field values, where each mapping 
          * might involve arbitrary recursion (since toField might itself call convertObject)
          */
-        const convertObject = (object: any, title?: string, target?: Doc): Doc => {
-            const resolved = target ?? new Doc;
-            let result: Opt<Field>;
-            Object.keys(object).map(key => (result = toField(object[key], key)) && (resolved[key] = result));
-            title && !resolved.title && (resolved.title = title);
-            return resolved;
+        const convertObject = (object: any, excludeEmptyObjects: boolean, title?: string, target?: Doc): Opt<Doc> => {
+            const hasEntries = Object.keys(object).length;
+            if (hasEntries || !excludeEmptyObjects) {
+                const resolved = target ?? new Doc;
+                if (hasEntries) {
+                    let result: Opt<Field>;
+                    Object.keys(object).map(key => {
+                        // if excludeEmptyObjects is true, any qualifying conversions from toField will
+                        // be undefined, and thus the results that would have
+                        // otherwise been empty (List or Doc)s will just not be written
+                        if (result = toField(object[key], excludeEmptyObjects, key)) {
+                            resolved[key] = result;
+                        }
+                    });
+                }
+                title && (resolved.title = title);
+                return resolved;
+            }
         };
 
         /**
@@ -802,15 +824,19 @@ export namespace Docs {
          * @returns the list mapped from JSON to field values, where each mapping 
          * might involve arbitrary recursion (since toField might itself call convertList)
          */
-        const convertList = (list: Array<any>): List<Field> => {
+        const convertList = (list: Array<any>, excludeEmptyObjects: boolean): Opt<List<Field>> => {
             const target = new List();
             let result: Opt<Field>;
-            list.map(item => (result = toField(item)) && target.push(result));
-            return target;
+            // if excludeEmptyObjects is true, any qualifying conversions from toField will
+            // be undefined, and thus the results that would have
+            // otherwise been empty (List or Doc)s will just not be written
+            list.map(item => (result = toField(item, excludeEmptyObjects)) && target.push(result));
+            if (target.length || !excludeEmptyObjects) {
+                return target;
+            }
         };
 
-
-        const toField = (data: any, title?: string): Opt<Field> => {
+        const toField = (data: any, excludeEmptyObjects: boolean, title?: string): Opt<Field> => {
             if (data === null || data === undefined) {
                 return undefined;
             }
@@ -818,7 +844,7 @@ export namespace Docs {
                 return data;
             }
             if (typeof data === "object") {
-                return data instanceof Array ? convertList(data) : convertObject(data, title);
+                return data instanceof Array ? convertList(data, excludeEmptyObjects) : convertObject(data, excludeEmptyObjects, title, undefined);
             }
             throw new Error(`How did ${data} of type ${typeof data} end up in JSON?`);
         };
@@ -842,9 +868,6 @@ export namespace Docs {
             } else if (field instanceof AudioField) {
                 created = Docs.Create.AudioDocument((field).url.href, resolved);
                 layout = AudioBox.LayoutString;
-            } else if (field instanceof HistogramField) {
-                created = Docs.Create.HistogramDocument((field).HistoOp, resolved);
-                layout = HistogramBox.LayoutString;
             } else if (field instanceof InkField) {
                 const { selectedColor, selectedWidth, selectedTool } = InkingControl.Instance;
                 created = Docs.Create.InkDocument(selectedColor, selectedTool, Number(selectedWidth), (field).inkData, resolved);
@@ -856,9 +879,11 @@ export namespace Docs {
                 created = Docs.Create.TextDocument("", { ...{ _width: 200, _height: 25, _autoHeight: true }, ...resolved });
                 layout = FormattedTextBox.LayoutString;
             }
-            created.layout = layout?.(fieldKey);
-            created.title = fieldKey;
-            proto && (created.proto = Doc.GetProto(proto));
+            if (created) {
+                created.layout = layout?.(fieldKey);
+                created.title = fieldKey;
+                proto && created.proto && (created.proto = Doc.GetProto(proto));
+            }
             return created;
         }
 
@@ -881,10 +906,6 @@ export namespace Docs {
                 if (!options._width) options._width = 400;
                 if (!options._height) options._height = options._width * 1200 / 927;
             }
-            if (type.indexOf("excel") !== -1) {
-                ctor = Docs.Create.DBDocument;
-                options.dropAction = "copy";
-            }
             if (type.indexOf("html") !== -1) {
                 if (path.includes(window.location.hostname)) {
                     const s = path.split('/');
@@ -902,7 +923,7 @@ export namespace Docs {
                     });
                 }
                 ctor = Docs.Create.WebDocument;
-                options = { _height: options._width, ...options, title: path, _nativeWidth: undefined };
+                options = { ...options, _nativeWidth: 850, _nativeHeight: 962, _width: 500, _height: 566, title: path, };
             }
             return ctor ? ctor(path, options) : undefined;
         }
@@ -945,20 +966,20 @@ export namespace DocUtils {
     export function MakeLink(source: { doc: Doc }, target: { doc: Doc }, linkRelationship: string = "", id?: string) {
         const sv = DocumentManager.Instance.getDocumentView(source.doc);
         if (sv && sv.props.ContainingCollectionDoc === target.doc) return;
-        if (target.doc === CurrentUserUtils.UserDocument) return undefined;
+        if (target.doc === Doc.UserDoc()) return undefined;
 
         const linkDoc = Docs.Create.LinkDocument(source, target, { linkRelationship }, id);
-        Doc.GetProto(linkDoc).title = ComputedField.MakeFunction('this.anchor1.title +" (" + (this.linkRelationship||"to") +") "  + this.anchor2.title');
+        Doc.GetProto(linkDoc).title = ComputedField.MakeFunction('self.anchor1.title +" (" + (self.linkRelationship||"to") +") "  + self.anchor2.title');
 
-        Doc.GetProto(source.doc).links = ComputedField.MakeFunction("links(this)");
-        Doc.GetProto(target.doc).links = ComputedField.MakeFunction("links(this)");
+        Doc.GetProto(source.doc).links = ComputedField.MakeFunction("links(self)");
+        Doc.GetProto(target.doc).links = ComputedField.MakeFunction("links(self)");
         return linkDoc;
     }
 
     export function addDocumentCreatorMenuItems(docTextAdder: (d: Doc) => void, docAdder: (d: Doc) => void, x: number, y: number): void {
         ContextMenu.Instance.addItem({
             description: "Add Note ...",
-            subitems: DocListCast((Doc.UserDoc().noteTypes as Doc).data).map((note, i) => ({
+            subitems: DocListCast((Doc.UserDoc()["template-notes"] as Doc).data).map((note, i) => ({
                 description: ":" + StrCast(note.title),
                 event: (args: { x: number, y: number }) => {
                     const textDoc = Docs.Create.TextDocument("", {
@@ -975,7 +996,7 @@ export namespace DocUtils {
         });
         ContextMenu.Instance.addItem({
             description: "Add Template Doc ...",
-            subitems: DocListCast(Cast(Doc.UserDoc().expandingButtons, Doc, null)?.data).map(btnDoc => Cast(btnDoc?.dragFactory, Doc, null)).filter(doc => doc).map((dragDoc, i) => ({
+            subitems: DocListCast(Cast(Doc.UserDoc().dockedBtns, Doc, null)?.data).map(btnDoc => Cast(btnDoc?.dragFactory, Doc, null)).filter(doc => doc).map((dragDoc, i) => ({
                 description: ":" + StrCast(dragDoc.title),
                 event: (args: { x: number, y: number }) => {
                     const newDoc = Doc.ApplyTemplate(dragDoc);

@@ -20,7 +20,6 @@ import * as request from 'request';
 import RouteSubscriber from './RouteSubscriber';
 import { publicDirectory } from '.';
 import { logPort, } from './ActionUtilities';
-import { Utils } from '../Utils';
 import { blue, yellow } from 'colors';
 import * as cors from "cors";
 

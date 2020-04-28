@@ -1,13 +1,12 @@
-.buttonBox-outerDiv {
+.labelBox-outerDiv {
     width: 100%;
     height: 100%;
-    pointer-events: all;
     border-radius: inherit;
     display: flex;
     flex-direction: column;
 }
 
-.buttonBox-mainButton {
+.labelBox-mainButton {
     width: 100%;
     height: 100%;
     border-radius: inherit;
@@ -17,21 +16,19 @@
     display:flex;
 }
 
-.buttonBox-mainButtonCenter {
+.labelBox-mainButtonCenter {
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
     display: inline;
     align-items: center;
     margin: auto;
 }
 
-.buttonBox-params {
+.labelBox-params {
     display: flex;
     flex-direction: row;
 }
 
-.buttonBox-missingParam {
+.labelBox-missingParam {
     width: 100%;
     background: lightgray;
     border: dimGray solid 1px;

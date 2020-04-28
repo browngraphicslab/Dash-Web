@@ -1,4 +1,4 @@
-import { unlinkSync, createWriteStream, readFileSync, rename, writeFile } from 'fs';
+import { unlinkSync, createWriteStream, readFileSync, rename, writeFile, existsSync } from 'fs';
 import { Utils } from '../Utils';
 import * as path from 'path';
 import * as sharp from 'sharp';
@@ -6,7 +6,7 @@ import request = require('request-promise');
 import { ExifImage } from 'exif';
 import { Opt } from '../new_fields/Doc';
 import { AcceptibleMedia, Upload } from './SharedMediaTypes';
-import { filesDirectory } from '.';
+import { filesDirectory, publicDirectory } from '.';
 import { File } from 'formidable';
 import { basename } from "path";
 import { createIfNotExists } from './ActionUtilities';
@@ -100,7 +100,7 @@ export namespace DashUploadUtils {
             const writeStream = createWriteStream(serverPathToFile(Directory.text, textFilename));
             writeStream.write(result.text, error => error ? reject(error) : resolve());
         });
-        return MoveParsedFile(file, Directory.pdfs);
+        return MoveParsedFile(file, Directory.pdfs, undefined, result.text);
     }
 
     const manualSuffixes = [".webm"];
@@ -136,6 +136,16 @@ export namespace DashUploadUtils {
     };
 
     export async function buildFileDirectories() {
+        if (!existsSync(publicDirectory)) {
+            console.error("\nPlease ensure that the following directory exists...\n");
+            console.log(publicDirectory);
+            process.exit(0);
+        }
+        if (!existsSync(filesDirectory)) {
+            console.error("\nPlease ensure that the following directory exists...\n");
+            console.log(filesDirectory);
+            process.exit(0);
+        }
         const pending = Object.keys(Directory).map(sub => createIfNotExists(`${filesDirectory}/${sub}`));
         return Promise.all(pending);
     }
@@ -227,7 +237,7 @@ export namespace DashUploadUtils {
      * @param suffix If the file doesn't have a suffix and you want to provide it one
      * to appear in the new location
      */
-    export async function MoveParsedFile(file: File, destination: Directory, suffix: string | undefined = undefined): Promise<Upload.FileResponse> {
+    export async function MoveParsedFile(file: File, destination: Directory, suffix: string | undefined = undefined, text?: string): Promise<Upload.FileResponse> {
         const { path: sourcePath } = file;
         let name = path.basename(sourcePath);
         suffix && (name += suffix);
@@ -239,7 +249,8 @@ export namespace DashUploadUtils {
                     result: error ? error : {
                         accessPaths: {
                             agnostic: getAccessPaths(destination, name)
-                        }
+                        },
+                        rawText: text
                     }
                 });
             });
@@ -273,9 +284,22 @@ export namespace DashUploadUtils {
         return information;
     };
 
+    const bufferConverterRec = (layer: any) => {
+        for (const key of Object.keys(layer)) {
+            const val: any = layer[key];
+            if (val instanceof Buffer) {
+                layer[key] = val.toString();
+            } else if (Array.isArray(val) && typeof val[0] === "number") {
+                layer[key] = Buffer.from(val).toString();
+            } else if (typeof val === "object") {
+                bufferConverterRec(val);
+            }
+        }
+    };
+
     const parseExifData = async (source: string): Promise<Upload.EnrichedExifData> => {
         const image = await request.get(source, { encoding: null });
-        return new Promise(resolve => {
+        const { data, error } = await new Promise(resolve => {
             new ExifImage({ image }, (error, data) => {
                 let reason: Opt<string> = undefined;
                 if (error) {
@@ -284,6 +308,8 @@ export namespace DashUploadUtils {
                 resolve({ data, error: reason });
             });
         });
+        data && bufferConverterRec(data);
+        return { data, error };
     };
 
     const { pngs, jpgs, webps, tiffs } = AcceptibleMedia;

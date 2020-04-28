@@ -49,7 +49,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     @computed get columnWidth() {
         TraceMobx();
         return Math.min(this.props.PanelWidth() / (this.props as any).ContentScaling() - 2 * this.xMargin,
-            this.isStackingView ? Number.MAX_VALUE : NumCast(this.props.Document.columnWidth, 250));
+            this.isStackingView ? Number.MAX_VALUE : this.props.Document.columnWidth === -1 ? this.props.PanelWidth() - 2 * this.xMargin : NumCast(this.props.Document.columnWidth, 250));
     }
     @computed get NodeWidth() { return this.props.PanelWidth() - this.gridGap; }
 
@@ -63,7 +63,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             const dxf = () => this.getDocTransform(d, dref.current!);
             this._docXfs.push({ dxf: dxf, width: width, height: height });
             const rowSpan = Math.ceil((height() + this.gridGap) / this.gridGap);
-            const style = this.isStackingView ? { width: width(), marginTop: this.gridGap, height: height() } : { gridRowEnd: `span ${rowSpan}` };
+            const style = this.isStackingView ? { width: width(), marginTop: i ? this.gridGap : 0, height: height() } : { gridRowEnd: `span ${rowSpan}` };
             return <div className={`collectionStackingView-${this.isStackingView ? "columnDoc" : "masonryDoc"}`} key={d[Id]} ref={dref} style={style} >
                 {this.getDisplayDoc(d, (!d.isTemplateDoc && !d.isTemplateForField && !d.PARAMS) ? undefined : this.props.DataDoc, dxf, width)}
             </div>;
@@ -153,6 +153,13 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
     @computed get onChildClickHandler() { return ScriptCast(this.Document.onChildClick); }
     @computed get onClickHandler() { return ScriptCast(this.Document.onChildClick); }
 
+    addDocTab = (doc: Doc, where: string) => {
+        if (where === "inPlace" && this.layoutDoc.isInPlaceContainer) {
+            this.dataDoc[this.props.fieldKey] = new List<Doc>([doc]);
+            return true;
+        }
+        return this.props.addDocTab(doc, where);
+    }
     getDisplayDoc(doc: Doc, dataDoc: Doc | undefined, dxf: () => Transform, width: () => number) {
         const layoutDoc = Doc.Layout(doc, this.props.childLayoutTemplate?.());
         const height = () => this.getDocHeight(doc);
@@ -181,9 +188,9 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             removeDocument={this.props.removeDocument}
             active={this.props.active}
             whenActiveChanged={this.props.whenActiveChanged}
-            addDocTab={this.props.addDocTab}
-            pinToPres={this.props.pinToPres}>
-        </ContentFittingDocumentView>;
+            addDocTab={this.addDocTab}
+            pinToPres={this.props.pinToPres}
+        />;
     }
 
     getDocWidth(d?: Doc) {
@@ -296,7 +303,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
                     const doc = this.props.DataDoc && this.props.DataDoc.layout === this.layoutDoc ? this.props.DataDoc : this.layoutDoc;
                     this.observer = new _global.ResizeObserver(action((entries: any) => {
                         if (this.props.Document._autoHeight && ref && this.refList.length && !SelectionManager.GetIsDragging()) {
-                            Doc.Layout(doc)._height = Math.max(...this.refList.map(r => Number(getComputedStyle(r).height.replace("px", ""))));
+                            Doc.Layout(doc)._height = Math.min(1200, Math.max(...this.refList.map(r => Number(getComputedStyle(r).height.replace("px", "")))));
                         }
                     }));
                     this.observer.observe(ref);
@@ -390,7 +397,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         if (!e.isPropagationStopped()) {
             const subItems: ContextMenuProps[] = [];
             subItems.push({ description: `${this.props.Document.fillColumn ? "Variable Size" : "Autosize"} Column`, event: () => this.props.Document.fillColumn = !this.props.Document.fillColumn, icon: "plus" });
-            ContextMenu.Instance.addItem({ description: "Stacking Options ...", subitems: subItems, icon: "eye" });
+            ContextMenu.Instance.addItem({ description: "Options...", subitems: subItems, icon: "eye" });
         }
     }
 

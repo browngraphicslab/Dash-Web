@@ -14,7 +14,6 @@ import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 import { ComputedField } from "../../../new_fields/ScriptField";
 import { Cast, FieldValue, NumCast, StrCast, BoolCast } from "../../../new_fields/Types";
 import { Docs, DocumentOptions } from "../../documents/Documents";
-import { Gateway } from "../../northstar/manager/Gateway";
 import { CompileScript, Transformer, ts } from "../../util/Scripting";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
@@ -673,27 +672,6 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
         }
     }
 
-    @action
-    makeDB = async () => {
-        let csv: string = this.columns.reduce((val, col) => val + col + ",", "");
-        csv = csv.substr(0, csv.length - 1) + "\n";
-        const self = this;
-        this.childDocs.map(doc => {
-            csv += self.columns.reduce((val, col) => val + (doc[col.heading] ? doc[col.heading]!.toString() : "0") + ",", "");
-            csv = csv.substr(0, csv.length - 1) + "\n";
-        });
-        csv.substring(0, csv.length - 1);
-        const dbName = StrCast(this.props.Document.title);
-        const res = await Gateway.Instance.PostSchema(csv, dbName);
-        if (self.props.CollectionView && self.props.CollectionView.props.addDocument) {
-            const schemaDoc = await Docs.Create.DBDocument("https://www.cs.brown.edu/" + dbName, { title: dbName }, { dbDoc: self.props.Document });
-            if (schemaDoc) {
-                //self.props.CollectionView.props.addDocument(schemaDoc, false);
-                self.props.Document.schemaDoc = schemaDoc;
-            }
-        }
-    }
-
     getField = (row: number, col?: number) => {
         const docs = this.childDocs;
 
@@ -758,7 +736,7 @@ export class SchemaTable extends React.Component<SchemaTableProps> {
                 return (doc as any)[key][row + ${row}][(doc as any).schemaColumns[col + ${col}].heading];
             }
             return ${script}`;
-        const compiled = CompileScript(script, { params: { this: Doc.name }, capturedVariables: { doc: this.props.Document, key: this.props.fieldKey }, typecheck: true, transformer: this.createTransformer(row, col) });
+        const compiled = CompileScript(script, { params: { this: Doc.name }, capturedVariables: { doc: this.props.Document, key: this.props.fieldKey }, typecheck: false, transformer: this.createTransformer(row, col) });
         if (compiled.compiled) {
             doc[field] = new ComputedField(compiled);
             return true;

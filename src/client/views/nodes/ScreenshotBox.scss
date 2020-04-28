@@ -1,5 +1,4 @@
 .screenshotBox {
-    pointer-events: all;
     transform-origin: top left;
     background: white;
     color: black;
@@ -19,10 +18,6 @@
 
 .screenshotBox-content, .screenshotBox-content-interactive, .screenshotBox-content-fullScreen {
     height: Auto; 
-}
-
-.screenshotBox-content-interactive, .screenshotBox-content-fullScreen  {
-    pointer-events: all;
 }
 
 .screenshotBox-uiButtons {

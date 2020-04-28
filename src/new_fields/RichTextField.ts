@@ -4,9 +4,6 @@ import { Deserializable } from "../client/util/SerializationHelper";
 import { Copy, ToScriptString, ToPlainText, ToString } from "./FieldSymbols";
 import { scriptingGlobal } from "../client/util/Scripting";
 
-const delimiter = "\n";
-const joiner = "";
-
 @scriptingGlobal
 @Deserializable("RichTextField")
 export class RichTextField extends ObjectField {
@@ -20,6 +17,10 @@ export class RichTextField extends ObjectField {
         super();
         this.Data = data;
         this.Text = text;
+    }
+
+    Empty() {
+        return !(this.Text || this.Data.toString().includes("dashField"));
     }
 
     [Copy]() {

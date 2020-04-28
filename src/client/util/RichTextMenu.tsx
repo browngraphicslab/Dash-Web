@@ -445,8 +445,8 @@ export default class RichTextMenu extends AntimodeMenu {
         }
 
         const button =
-            <button className="antimodeMenu-button" title="" onPointerDown={onBrushClick} style={this.brushMarks && this.brushMarks.size > 0 ? { backgroundColor: "121212" } : {}}>
-                <FontAwesomeIcon icon="paint-roller" size="lg" style={{ transition: "transform 0.1s", transform: this.brushMarks && this.brushMarks.size > 0 ? "rotate(45deg)" : "" }} />
+            <button className="antimodeMenu-button" title="" onPointerDown={onBrushClick} style={this.brushMarks?.size > 0 ? { backgroundColor: "121212" } : {}}>
+                <FontAwesomeIcon icon="paint-roller" size="lg" style={{ transitionProperty: "transform", transitionDuration: "0.1s", transform: `rotate(${this.brushMarks?.size > 0 ? 45 : 0}deg)` }} />
             </button>;
 
         const dropdownContent =
@@ -790,11 +790,11 @@ export default class RichTextMenu extends AntimodeMenu {
             <div key="button">
                 <div key="collapser">
                     <button className="antimodeMenu-button" key="collapse menu" title="Collapse menu" onClick={this.toggleCollapse} style={{ backgroundColor: this.collapsed ? "#121212" : "", width: 25 }}>
-                        <FontAwesomeIcon icon="chevron-left" size="lg" style={{ transition: "transform 0.3s", transform: this.collapsed ? "rotate(180deg)" : "" }} />
+                        <FontAwesomeIcon icon="chevron-left" size="lg" style={{ transitionProperty: "transform", transitionDuration: "0.3s", transform: `rotate(${this.collapsed ? 180 : 0}deg)` }} />
                     </button>
                 </div>
                 <button className="antimodeMenu-button" key="pin menu" title="Pin menu" onClick={this.toggleMenuPin} style={{ backgroundColor: this.Pinned ? "#121212" : "", display: this.collapsed ? "none" : undefined }}>
-                    <FontAwesomeIcon icon="thumbtack" size="lg" style={{ transition: "transform 0.1s", transform: this.Pinned ? "rotate(45deg)" : "" }} />
+                    <FontAwesomeIcon icon="thumbtack" size="lg" style={{ transitionProperty: "transform", transitionDuration: "0.1s", transform: `rotate(${this.Pinned ? 45 : 0}deg)` }} />
                 </button>
                 {this.getDragger()}
             </div>

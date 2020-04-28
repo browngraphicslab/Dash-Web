@@ -1,16 +1,16 @@
-import * as React from "react";
+import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
-import { observable, action, trace, computed } from "mobx";
-import { Utils, emptyFunction, returnOne, returnTrue, returnEmptyString, returnZero, returnFalse, emptyPath } from "../../Utils";
-
-import './OverlayView.scss';
-import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
-import { DocListCast, Doc } from "../../new_fields/Doc";
+import * as React from "react";
+import { Doc, DocListCast } from "../../new_fields/Doc";
 import { Id } from "../../new_fields/FieldSymbols";
-import { DocumentView } from "./nodes/DocumentView";
-import { Transform } from "../util/Transform";
 import { NumCast } from "../../new_fields/Types";
+import { emptyFunction, emptyPath, returnEmptyString, returnFalse, returnOne, returnTrue, returnZero, Utils } from "../../Utils";
+import { Transform } from "../util/Transform";
 import { CollectionFreeFormLinksView } from "./collections/collectionFreeForm/CollectionFreeFormLinksView";
+import { DocumentView } from "./nodes/DocumentView";
+import './OverlayView.scss';
+import { Scripting } from "../util/Scripting";
+import { ScriptingRepl } from './ScriptingRepl';
 
 export type OverlayDisposer = () => void;
 
@@ -140,10 +140,11 @@ export class OverlayView extends React.Component {
     }
 
     @computed get overlayDocs() {
-        if (!CurrentUserUtils.UserDocument) {
+        const userDocOverlays = Doc.UserDoc().myOverlayDocuments;
+        if (!userDocOverlays) {
             return (null);
         }
-        return CurrentUserUtils.UserDocument.overlays instanceof Doc && DocListCast(CurrentUserUtils.UserDocument.overlays.data).map(d => {
+        return userDocOverlays instanceof Doc && DocListCast(userDocOverlays.data).map(d => {
             setTimeout(() => d.inOverlay = true, 0);
             let offsetx = 0, offsety = 0;
             const onPointerMove = action((e: PointerEvent) => {
@@ -195,7 +196,7 @@ export class OverlayView extends React.Component {
                     addDocTab={returnFalse}
                     pinToPres={emptyFunction}
                     ContainingCollectionView={undefined}
-                    ContainingCollectionDoc={undefined}/>
+                    ContainingCollectionDoc={undefined} />
             </div>;
         });
     }
@@ -212,3 +213,5 @@ export class OverlayView extends React.Component {
         );
     }
 }
+// bcz: ugh ... want to be able to pass ScriptingRepl as tag argument, but that doesn't seem to work.. runtime error
+Scripting.addGlobal(function addOverlayWindow(Tag: string, options: OverlayElementOptions) { const x = <ScriptingRepl />; OverlayView.Instance.addWindow(x, options); });

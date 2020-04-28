@@ -9,10 +9,21 @@
     height: 100%;
     transform-origin: left top;
     border-radius: inherit;
+    touch-action: none;
+    border-radius: inherit;
+}
+
+.collectionfreeformview-viewdef {
+    > .collectionFreeFormDocumentView-container {
+        pointer-events: none;
+        .contentFittingDocumentDocumentView-previewDoc {
+            pointer-events: all;
+        }
+    }
 }
 
 .collectionfreeformview-ease {
-    transition: transform 1s;
+    transition: transform 500ms;
 }
 
 .collectionfreeformview-none {
@@ -36,6 +47,7 @@
         height: 100%;
         display: flex;
         align-items: center;
+        overflow: hidden;
 
         .collectionfreeformview-placeholderSpan {
             font-size: 32;

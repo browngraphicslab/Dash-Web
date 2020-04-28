@@ -7,15 +7,14 @@ import { observer } from "mobx-react";
 import * as rp from 'request-promise';
 import { documentSchema, positionSchema } from "../../../new_fields/documentSchemas";
 import { makeInterface } from "../../../new_fields/Schema";
-import { ScriptField } from "../../../new_fields/ScriptField";
-import { Cast, StrCast } from "../../../new_fields/Types";
+import { Cast, NumCast } from "../../../new_fields/Types";
 import { VideoField } from "../../../new_fields/URLField";
 import { emptyFunction, returnFalse, returnOne, Utils, returnZero } from "../../../Utils";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
-import { DocAnnotatableComponent } from "../DocComponent";
+import { ViewBoxBaseComponent } from "../DocComponent";
 import { InkingControl } from "../InkingControl";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./ScreenshotBox.scss";
@@ -27,7 +26,7 @@ const ScreenshotDocument = makeInterface(documentSchema, positionSchema);
 library.add(faVideo);
 
 @observer
-export class ScreenshotBox extends DocAnnotatableComponent<FieldViewProps, ScreenshotDocument>(ScreenshotDocument) {
+export class ScreenshotBox extends ViewBoxBaseComponent<FieldViewProps, ScreenshotDocument>(ScreenshotDocument) {
     private _reactionDisposer?: IReactionDisposer;
     private _videoRef: HTMLVideoElement | null = null;
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(ScreenshotBox, fieldKey); }
@@ -38,22 +37,21 @@ export class ScreenshotBox extends DocAnnotatableComponent<FieldViewProps, Scree
 
     videoLoad = () => {
         const aspect = this.player!.videoWidth / this.player!.videoHeight;
-        const nativeWidth = (this.Document._nativeWidth || 0);
-        const nativeHeight = (this.Document._nativeHeight || 0);
+        const nativeWidth = (this.layoutDoc._nativeWidth || 0);
+        const nativeHeight = (this.layoutDoc._nativeHeight || 0);
         if (!nativeWidth || !nativeHeight) {
-            if (!this.Document._nativeWidth) this.Document._nativeWidth = 400;
-            this.Document._nativeHeight = (this.Document._nativeWidth || 0) / aspect;
-            this.Document._height = (this.Document._width || 0) / aspect;
+            if (!this.layoutDoc._nativeWidth) this.layoutDoc._nativeWidth = 400;
+            this.layoutDoc._nativeHeight = NumCast(this.layoutDoc._nativeWidth) / aspect;
+            this.layoutDoc._height = NumCast(this.layoutDoc._width) / aspect;
         }
-        if (!this.Document.duration) this.Document.duration = this.player!.duration;
     }
 
     @action public Snapshot() {
-        const width = this.Document._width || 0;
-        const height = this.Document._height || 0;
+        const width = NumCast(this.layoutDoc._width);
+        const height = NumCast(this.layoutDoc._height);
         const canvas = document.createElement('canvas');
         canvas.width = 640;
-        canvas.height = 640 * (this.Document._nativeHeight || 0) / (this.Document._nativeWidth || 1);
+        canvas.height = 640 * NumCast(this.layoutDoc._nativeHeight) / NumCast(this.layoutDoc._nativeWidth, 1);
         const ctx = canvas.getContext('2d');//draw image to canvas. scale to target dimensions
         if (ctx) {
             ctx.rect(0, 0, canvas.width, canvas.height);
@@ -71,7 +69,7 @@ export class ScreenshotBox extends DocAnnotatableComponent<FieldViewProps, Scree
                 setTimeout(() => {
                     if (returnedFilename) {
                         const imageSummary = Docs.Create.ImageDocument(Utils.prepend(returnedFilename), {
-                            x: (this.Document.x || 0) + width, y: (this.Document.y || 0),
+                            x: NumCast(this.layoutDoc.x) + width, y: NumCast(this.layoutDoc.y),
                             _width: 150, _height: height / width * 150, title: "--screenshot--"
                         });
                         this.props.addDocument?.(imageSummary);
@@ -111,7 +109,7 @@ export class ScreenshotBox extends DocAnnotatableComponent<FieldViewProps, Scree
     }
     @observable _screenCapture = false;
     specificContextMenu = (e: React.MouseEvent): void => {
-        const field = Cast(this.dataDoc[this.props.fieldKey], VideoField);
+        const field = Cast(this.dataDoc[this.fieldKey], VideoField);
         if (field) {
             const url = field.url.href;
             const subitems: ContextMenuProps[] = [];
@@ -122,7 +120,7 @@ export class ScreenshotBox extends DocAnnotatableComponent<FieldViewProps, Scree
                     this._videoRef!.srcObject = !this._screenCapture ? undefined : await (navigator.mediaDevices as any).getDisplayMedia({ video: true });
                 }), icon: "expand-arrows-alt"
             });
-            ContextMenu.Instance.addItem({ description: "Screenshot Funcs...", subitems: subitems, icon: "video" });
+            ContextMenu.Instance.addItem({ description: "Options...", subitems: subitems, icon: "video" });
         }
     }
 
@@ -172,16 +170,16 @@ export class ScreenshotBox extends DocAnnotatableComponent<FieldViewProps, Scree
                     PanelWidth={this.props.PanelWidth}
                     NativeHeight={returnZero}
                     NativeWidth={returnZero}
-                    annotationsKey={this.annotationKey}
+                    annotationsKey={""}
                     focus={this.props.focus}
                     isSelected={this.props.isSelected}
                     isAnnotationOverlay={true}
                     select={emptyFunction}
-                    active={this.annotationsActive}
+                    active={returnFalse}
                     ContentScaling={returnOne}
-                    whenActiveChanged={this.whenActiveChanged}
-                    removeDocument={this.removeDocument}
-                    moveDocument={this.moveDocument}
+                    whenActiveChanged={emptyFunction}
+                    removeDocument={returnFalse}
+                    moveDocument={returnFalse}
                     addDocument={returnFalse}
                     CollectionView={undefined}
                     ScreenToLocalTransform={this.props.ScreenToLocalTransform}
@@ -190,7 +188,7 @@ export class ScreenshotBox extends DocAnnotatableComponent<FieldViewProps, Scree
                     {this.contentFunc}
                 </CollectionFreeFormView>
             </div>
-            {this.active() ? this.uIButtons : (null)}
+            {this.props.isSelected() ? this.uIButtons : (null)}
         </div >);
     }
 }

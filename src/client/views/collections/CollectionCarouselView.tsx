@@ -27,7 +27,7 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
     protected createDashEventsTarget = (ele: HTMLDivElement) => { //used for stacking and masonry view
         this._dropDisposer?.();
         if (ele) {
-            this._dropDisposer = DragManager.MakeDropTarget(ele, this.onInternalDrop.bind(this));
+            this._dropDisposer = DragManager.MakeDropTarget(ele, this.onInternalDrop.bind(this), this.layoutDoc);
         }
     }
 
@@ -47,13 +47,22 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
             <>
                 <div className="collectionCarouselView-image" key="image">
                     <ContentFittingDocumentView {...this.props}
+                        renderDepth={this.props.renderDepth + 1}
                         Document={this.childLayoutPairs[index].layout}
                         DataDocument={this.childLayoutPairs[index].data}
                         PanelHeight={this.panelHeight}
                         getTransform={this.props.ScreenToLocalTransform} />
                 </div>
-                <div className="collectionCarouselView-caption" key="caption" style={{ background: this.props.backgroundColor?.(this.props.Document) }}>
-                    <FormattedTextBox key={index} {...this.props} Document={this.childLayoutPairs[index].layout} DataDoc={undefined} fieldKey={"caption"}></FormattedTextBox>
+                <div className="collectionCarouselView-caption" key="caption"
+                    style={{
+                        background: StrCast(this.layoutDoc._captionBackgroundColor, this.props.backgroundColor?.(this.props.Document)),
+                        color: StrCast(this.layoutDoc._captionColor, StrCast(this.layoutDoc.color)),
+                        borderRadius: StrCast(this.layoutDoc._captionBorderRounding),
+                    }}>
+                    <FormattedTextBox key={index} {...this.props}
+                        xMargin={NumCast(this.layoutDoc["caption-xMargin"])}
+                        yMargin={NumCast(this.layoutDoc["caption-yMargin"])}
+                        Document={this.childLayoutPairs[index].layout} DataDoc={undefined} fieldKey={"caption"}></FormattedTextBox>
                 </div>
             </>;
     }

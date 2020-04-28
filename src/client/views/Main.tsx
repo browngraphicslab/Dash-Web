@@ -5,7 +5,6 @@ import * as ReactDOM from 'react-dom';
 import * as React from 'react';
 import { DocServer } from "../DocServer";
 import { AssignAllExtensions } from "../../extensions/General/Extensions";
-process.env.HANDWRITING = "61088486d76c4b12ba578775a5f55422";
 
 AssignAllExtensions();
 

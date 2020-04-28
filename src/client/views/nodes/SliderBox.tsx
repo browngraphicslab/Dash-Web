@@ -1,22 +1,20 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faEdit } from '@fortawesome/free-regular-svg-icons';
-import { computed, runInAction } from 'mobx';
+import { runInAction } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
-import { Handles, Rail, Slider, Tracks, Ticks } from 'react-compound-slider';
-import { Doc } from '../../../new_fields/Doc';
+import { Handles, Rail, Slider, Ticks, Tracks } from 'react-compound-slider';
 import { documentSchema } from '../../../new_fields/documentSchemas';
-import { createSchema, listSpec, makeInterface } from '../../../new_fields/Schema';
+import { createSchema, makeInterface } from '../../../new_fields/Schema';
 import { ScriptField } from '../../../new_fields/ScriptField';
-import { BoolCast, FieldValue, StrCast, NumCast, Cast } from '../../../new_fields/Types';
-import { DragManager } from '../../util/DragManager';
+import { Cast, NumCast, StrCast } from '../../../new_fields/Types';
 import { ContextMenu } from '../ContextMenu';
 import { ContextMenuProps } from '../ContextMenuItem';
-import { DocComponent } from '../DocComponent';
-import './SliderBox.scss';
-import { Handle, TooltipRail, Track, Tick } from './SliderBox-components';
-import { FieldView, FieldViewProps } from './FieldView';
+import { ViewBoxBaseComponent } from '../DocComponent';
 import { ScriptBox } from '../ScriptBox';
+import { FieldView, FieldViewProps } from './FieldView';
+import { Handle, Tick, TooltipRail, Track } from './SliderBox-components';
+import './SliderBox.scss';
 
 
 library.add(faEdit as any);
@@ -32,36 +30,33 @@ type SliderDocument = makeInterface<[typeof SliderSchema, typeof documentSchema]
 const SliderDocument = makeInterface(SliderSchema, documentSchema);
 
 @observer
-export class SliderBox extends DocComponent<FieldViewProps, SliderDocument>(SliderDocument) {
+export class SliderBox extends ViewBoxBaseComponent<FieldViewProps, SliderDocument>(SliderDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(SliderBox, fieldKey); }
-    private dropDisposer?: DragManager.DragDropDisposer;
 
-    @computed get dataDoc() {
-        return this.props.DataDoc &&
-            (this.Document.isTemplateForField || BoolCast(this.props.DataDoc.isTemplateForField) ||
-                this.props.DataDoc.layout === this.Document) ? this.props.DataDoc : Doc.GetProto(this.Document);
-    }
-
+    get minThumbKey() { return this.fieldKey + "-minThumb"; }
+    get maxThumbKey() { return this.fieldKey + "-maxThumb"; }
+    get minKey() { return this.fieldKey + "-min"; }
+    get maxKey() { return this.fieldKey + "-max"; }
     specificContextMenu = (e: React.MouseEvent): void => {
         const funcs: ContextMenuProps[] = [];
         funcs.push({ description: "Edit Thumb Change Script", icon: "edit", event: (obj: any) => ScriptBox.EditButtonScript("On Thumb Change ...", this.props.Document, "onThumbChange", obj.x, obj.y) });
-        ContextMenu.Instance.addItem({ description: "Slider Funcs...", subitems: funcs, icon: "asterisk" });
+        ContextMenu.Instance.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
     }
     onChange = (values: readonly number[]) => runInAction(() => {
-        this.Document._sliderMinThumb = values[0];
-        this.Document._sliderMaxThumb = values[1];
-        Cast(this.Document.onThumbChanged, ScriptField, null)?.script.run({ range: values, this: this.props.Document });
+        this.dataDoc[this.minThumbKey] = values[0];
+        this.dataDoc[this.maxThumbKey] = values[1];
+        Cast(this.layoutDoc.onThumbChanged, ScriptField, null)?.script.run({ self: this.rootDoc, range: values, this: this.layoutDoc });
     })
 
     render() {
-        const domain = [NumCast(this.props.Document._sliderMin), NumCast(this.props.Document._sliderMax)];
-        const defaultValues = [NumCast(this.props.Document._sliderMinThumb), NumCast(this.props.Document._sliderMaxThumb)];
-        return (
+        const domain = [NumCast(this.layoutDoc[this.minKey]), NumCast(this.layoutDoc[this.maxKey])];
+        const defaultValues = [NumCast(this.dataDoc[this.minThumbKey]), NumCast(this.dataDoc[this.maxThumbKey])];
+        return domain[1] <= domain[0] ? (null) : (
             <div className="sliderBox-outerDiv" onContextMenu={this.specificContextMenu} onPointerDown={e => e.stopPropagation()}
-                style={{ boxShadow: this.Document.opacity === 0 ? undefined : StrCast(this.Document.boxShadow, "") }}>
+                style={{ boxShadow: this.layoutDoc.opacity === 0 ? undefined : StrCast(this.layoutDoc.boxShadow, "") }}>
                 <div className="sliderBox-mainButton" onContextMenu={this.specificContextMenu} style={{
-                    background: this.Document.backgroundColor, color: this.Document.color || "black",
-                    fontSize: this.Document.fontSize, letterSpacing: this.Document.letterSpacing || ""
+                    background: StrCast(this.layoutDoc.backgroundColor), color: StrCast(this.layoutDoc.color, "black"),
+                    fontSize: NumCast(this.layoutDoc._fontSize), letterSpacing: StrCast(this.layoutDoc.letterSpacing)
                 }} >
                     <Slider
                         mode={2}
@@ -77,7 +72,7 @@ export class SliderBox extends DocComponent<FieldViewProps, SliderDocument>(Slid
                             {({ handles, activeHandleID, getHandleProps }) => (
                                 <div className="slider-handles">
                                     {handles.map((handle, i) => {
-                                        const value = i === 0 ? this.Document._sliderMinThumb : this.Document._sliderMaxThumb;
+                                        const value = i === 0 ? defaultValues[0] : defaultValues[1];
                                         return (
                                             <div title={String(value)}>
                                                 <Handle

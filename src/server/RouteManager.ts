@@ -2,7 +2,6 @@ import RouteSubscriber from "./RouteSubscriber";
 import { DashUserModel } from "./authentication/models/user_model";
 import { Request, Response, Express } from 'express';
 import { cyan, red, green } from 'colors';
-import { Utils } from "../client/northstar/utils/Utils";
 
 export enum Method {
     GET,

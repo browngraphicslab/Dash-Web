@@ -25,9 +25,9 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         this._anchorDisposer = reaction(() => [this.props.A.props.ScreenToLocalTransform(), this.props.B.props.ScreenToLocalTransform(), this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document), this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document)],
             action(() => {
                 setTimeout(action(() => this._opacity = 1), 0); // since the render code depends on querying the Dom through getBoudndingClientRect, we need to delay triggering render()
-                setTimeout(action(() => this._opacity = 0.05), 750); // this will unhighlight the link line.
-                const acont = this.props.A.props.Document.type === DocumentType.LINK ? this.props.A.ContentDiv!.getElementsByClassName("docuLinkBox-cont") : [];
-                const bcont = this.props.B.props.Document.type === DocumentType.LINK ? this.props.B.ContentDiv!.getElementsByClassName("docuLinkBox-cont") : [];
+                setTimeout(action(() => (!this.props.LinkDocs.length || !this.props.LinkDocs[0].linkDisplay) && (this._opacity = 0.05)), 750); // this will unhighlight the link line.
+                const acont = this.props.A.props.Document.type === DocumentType.LINK ? this.props.A.ContentDiv!.getElementsByClassName("linkAnchorBox-cont") : [];
+                const bcont = this.props.B.props.Document.type === DocumentType.LINK ? this.props.B.ContentDiv!.getElementsByClassName("linkAnchorBox-cont") : [];
                 const adiv = (acont.length ? acont[0] : this.props.A.ContentDiv!);
                 const bdiv = (bcont.length ? bcont[0] : this.props.B.ContentDiv!);
                 const a = adiv.getBoundingClientRect();
@@ -43,7 +43,7 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
                 const afield = StrCast(this.props.A.props.Document[StrCast(this.props.A.props.layoutKey, "layout")]).indexOf("anchor1") === -1 ? "anchor2" : "anchor1";
                 const bfield = afield === "anchor1" ? "anchor2" : "anchor1";
 
-                // really hacky stuff to make the DocuLinkBox display where we want it to:
+                // really hacky stuff to make the LinkAnchorBox display where we want it to:
                 //   if there's an element in the DOM with the id of the opposite anchor, then that DOM element is a hyperlink source for the current anchor and we want to place our link box at it's top right
                 //   otherwise, we just use the computed nearest point on the document boundary to the target Document
                 const targetAhyperlink = window.document.getElementById(this.props.LinkDocs[0][Id] + (this.props.LinkDocs[0][afield] as Doc)[Id]);
@@ -81,8 +81,9 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
     }
 
     render() {
-        const acont = this.props.A.props.Document.type === DocumentType.LINK ? this.props.A.ContentDiv!.getElementsByClassName("docuLinkBox-cont") : [];
-        const bcont = this.props.B.props.Document.type === DocumentType.LINK ? this.props.B.ContentDiv!.getElementsByClassName("docuLinkBox-cont") : [];
+        this.props.A.props.ScreenToLocalTransform().transform(this.props.B.props.ScreenToLocalTransform());
+        const acont = this.props.A.props.Document.type === DocumentType.LINK ? this.props.A.ContentDiv!.getElementsByClassName("linkAnchorBox-cont") : [];
+        const bcont = this.props.B.props.Document.type === DocumentType.LINK ? this.props.B.ContentDiv!.getElementsByClassName("linkAnchorBox-cont") : [];
         const a = (acont.length ? acont[0] : this.props.A.ContentDiv!).getBoundingClientRect();
         const b = (bcont.length ? bcont[0] : this.props.B.ContentDiv!).getBoundingClientRect();
         const apt = Utils.closestPtBetweenRectangles(a.left, a.top, a.width, a.height,
@@ -93,17 +94,26 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
             apt.point.x, apt.point.y);
         const pt1 = [apt.point.x, apt.point.y];
         const pt2 = [bpt.point.x, bpt.point.y];
+        const pt1vec = [pt1[0] - (a.left + a.width / 2), pt1[1] - (a.top + a.height / 2)];
+        const pt2vec = [pt2[0] - (b.left + b.width / 2), pt2[1] - (b.top + b.height / 2)];
+        const pt1len = Math.sqrt((pt1vec[0] * pt1vec[0]) + (pt1vec[1] * pt1vec[1]));
+        const pt2len = Math.sqrt((pt2vec[0] * pt2vec[0]) + (pt2vec[1] * pt2vec[1]));
+        const ptlen = Math.sqrt((pt1[0] - pt2[0]) * (pt1[0] - pt2[0]) + (pt1[1] - pt2[1]) * (pt1[1] - pt2[1])) / 3;
+        const pt1norm = [pt1vec[0] / pt1len * ptlen, pt1vec[1] / pt1len * ptlen];
+        const pt2norm = [pt2vec[0] / pt2len * ptlen, pt2vec[1] / pt2len * ptlen];
         const aActive = this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document);
         const bActive = this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document);
         const text = StrCast(this.props.A.props.Document.linkRelationship);
-        return !aActive && !bActive ? (null) : (<>
+        return !a.width || !b.width || ((!this.props.LinkDocs.length || !this.props.LinkDocs[0].linkDisplay) && !aActive && !bActive) ? (null) : (<>
             <text x={(pt1[0] + pt2[0]) / 2} y={(pt1[1] + pt2[1]) / 2}>
                 {text !== "-ungrouped-" ? text : ""}
             </text>
-            <line key="linkLine" className="collectionfreeformlinkview-linkLine"
+            <path className="collectionfreeformlinkview-linkLine" style={{ opacity: this._opacity, strokeDasharray: "2 2" }}
+                d={`M ${pt1[0]} ${pt1[1]} C ${pt1[0] + pt1norm[0]} ${pt1[1] + pt1norm[1]}, ${pt2[0] + pt2norm[0]} ${pt2[1] + pt2norm[1]}, ${pt2[0]} ${pt2[1]}`} />
+            {/* <line key="linkLine" className="collectionfreeformlinkview-linkLine"
                 style={{ opacity: this._opacity, strokeDasharray: "2 2" }}
                 x1={`${pt1[0]}`} y1={`${pt1[1]}`}
-                x2={`${pt2[0]}`} y2={`${pt2[1]}`} />
+                x2={`${pt2[0]}`} y2={`${pt2[1]}`} /> */}
         </>);
     }
 }
