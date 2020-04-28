@@ -102,13 +102,13 @@ export class DashFieldViewInternal extends React.Component<IDashFieldViewInterna
                 // bcz: this is unfortunate, but since this React component is nested within a non-React text box (prosemirror), we can't
                 // use React events.  Essentially, React events occur after native events have been processed, so corresponding React events
                 // will never fire because Prosemirror has handled the native events.  So we add listeners for native events here.
-                return <span contentEditable={true} ref={r => {
+                return <span contentEditable={true} suppressContentEditableWarning={true} defaultValue={strVal} ref={r => {
                     r?.addEventListener("keydown", e => this.fieldSpanKeyDown(e, r));
                     r?.addEventListener("blur", e => r && this.updateText(r.textContent!, false));
                     r?.addEventListener("pointerdown", action((e) => this._showEnumerables = true));
-                }}>
+                }} >
                     {strVal}
-                </span>;
+                </span>
             }
         }
     }
