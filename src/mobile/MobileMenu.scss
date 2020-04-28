@@ -124,3 +124,29 @@ body {
     left: 0%;
     opacity: 1;
 }
+
+.sidebar .mobile-settings {
+    z-index: 10;
+    background-color: white;
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    font-size: 15px;
+    color: black;
+}
+
+.sidebar .mobile-settings:hover {
+    transform: none !important;
+}
+
+.sidebar .mobile-logout {
+    z-index: 10;
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    font-size: 15px;
+}
+
+.sidebar .mobile-logout:hover {
+    transform: none !important;
+}
