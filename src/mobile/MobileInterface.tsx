@@ -359,7 +359,6 @@ export class MobileInterface extends React.Component {
                 <div>
                     {this.renderDefaultContent()}
                 </div>
-                <SettingsManager />
                 {/* <PreviewCursor /> */}
                 {/* <ContextMenu /> */}
                 {/* <RadialMenu />
@@ -442,7 +441,7 @@ AssignAllExtensions();
     // Scripting.addGlobal(function addWebToMobileUpload() { return MobileInterface.Instance.addWebToCollection(); });
 
 
-// 3
+// 3   
     // renderInkingContent = () => {
         //     console.log("rendering inking content");
         //     // TODO: support panning and zooming
