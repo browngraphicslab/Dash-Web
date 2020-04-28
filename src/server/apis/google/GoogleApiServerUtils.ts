@@ -318,13 +318,14 @@ export namespace GoogleApiServerUtils {
      */
     async function retrieveCredentials(userId: string): Promise<{ credentials: Opt<Credentials>, refreshed: boolean }> {
         let credentials: Opt<Credentials> = await Database.Auxiliary.GoogleAuthenticationToken.Fetch(userId);
-        const refreshed = false;
+        let refreshed = false;
         if (!credentials) {
             return { credentials: undefined, refreshed };
         }
         // check for token expiry
         if (credentials.expiry_date! <= new Date().getTime()) {
             credentials = await refreshAccessToken(credentials, userId);
+            refreshed = true;
         }
         return { credentials, refreshed };
     }

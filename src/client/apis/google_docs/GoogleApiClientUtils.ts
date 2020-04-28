@@ -97,7 +97,7 @@ export namespace GoogleApiClientUtils {
                 const paragraphs = extractParagraphs(document);
                 let text = paragraphs.map(paragraph => paragraph.contents.filter(content => !("inlineObjectId" in content)).map(run => run as docs_v1.Schema$TextRun).join("")).join("");
                 text = text.substring(0, text.length - 1);
-                removeNewlines && text.ReplaceAll("\n", "");
+                removeNewlines && text.replace(/\n/g, "");
                 return { text, paragraphs };
             };
 
@@ -248,7 +248,7 @@ export namespace GoogleApiClientUtils {
                 return undefined;
             }
             requests.push(...options.content.requests);
-            const replies: any = await update({ documentId: documentId, requests });
+            const replies: any = await update({ documentId, requests });
             if ("errors" in replies) {
                 console.log("Write operation failed:");
                 console.log(replies.errors.map((error: any) => error.message));

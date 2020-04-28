@@ -1,82 +1,75 @@
 import React = require("react");
-import { action, computed } from "mobx";
+import { computed } from "mobx";
 import { observer } from "mobx-react";
 import "react-table/react-table.css";
-import { Doc } from "../../../new_fields/Doc";
-import { ComputedField, ScriptField } from "../../../new_fields/ScriptField";
+import { Doc, Opt, WidthSym, HeightSym } from "../../../new_fields/Doc";
+import { ScriptField } from "../../../new_fields/ScriptField";
 import { NumCast, StrCast } from "../../../new_fields/Types";
-import { emptyFunction, returnEmptyString, returnOne } from "../../../Utils";
-import { DragManager } from "../../util/DragManager";
+import { TraceMobx } from "../../../new_fields/util";
+import { emptyFunction, returnOne } from "../../../Utils";
 import { Transform } from "../../util/Transform";
-import { undoBatch } from "../../util/UndoManager";
+import { CollectionView } from "../collections/CollectionView";
 import '../DocumentDecorations.scss';
 import { DocumentView } from "../nodes/DocumentView";
 import "./ContentFittingDocumentView.scss";
-import { CollectionView } from "../collections/CollectionView";
-import { TraceMobx } from "../../../new_fields/util";
+import { dropActionType } from "../../util/DragManager";
 
 interface ContentFittingDocumentViewProps {
-    Document?: Doc;
+    Document: Doc;
     DataDocument?: Doc;
+    LayoutDoc?: () => Opt<Doc>;
+    NativeWidth?: () => number;
+    NativeHeight?: () => number;
+    FreezeDimensions?: boolean;
     LibraryPath: Doc[];
-    childDocs?: Doc[];
     renderDepth: number;
     fitToBox?: boolean;
+    layoutKey?: string;
+    dropAction?: dropActionType;
     PanelWidth: () => number;
     PanelHeight: () => number;
     focus?: (doc: Doc) => void;
     CollectionView?: CollectionView;
     CollectionDoc?: Doc;
     onClick?: ScriptField;
+    backgroundColor?: (doc: Doc) => string | undefined;
     getTransform: () => Transform;
     addDocument?: (document: Doc) => boolean;
     moveDocument?: (document: Doc, target: Doc | undefined, addDoc: ((doc: Doc) => boolean)) => boolean;
     removeDocument?: (document: Doc) => boolean;
     active: (outsideReaction: boolean) => boolean;
     whenActiveChanged: (isActive: boolean) => void;
-    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
+    addDocTab: (document: Doc, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     dontRegisterView?: boolean;
+    rootSelected: (outsideReaction?: boolean) => boolean;
 }
 
 @observer
 export class ContentFittingDocumentView extends React.Component<ContentFittingDocumentViewProps>{
     public get displayName() { return "DocumentView(" + this.props.Document?.title + ")"; } // this makes mobx trace() statements more descriptive
-    private get layoutDoc() { return this.props.Document && Doc.Layout(this.props.Document); }
-    private get nativeWidth() { return NumCast(this.layoutDoc?._nativeWidth, this.props.PanelWidth()); }
-    private get nativeHeight() { return NumCast(this.layoutDoc?._nativeHeight, this.props.PanelHeight()); }
+    private get layoutDoc() { return this.props.LayoutDoc?.() || Doc.Layout(this.props.Document); }
+    @computed get freezeDimensions() { return this.props.FreezeDimensions; }
+    nativeWidth = () => NumCast(this.layoutDoc?._nativeWidth, this.props.NativeWidth?.() || (this.freezeDimensions && this.layoutDoc ? this.layoutDoc[WidthSym]() : this.props.PanelWidth()));
+    nativeHeight = () => NumCast(this.layoutDoc?._nativeHeight, this.props.NativeHeight?.() || (this.freezeDimensions && this.layoutDoc ? this.layoutDoc[HeightSym]() : this.props.PanelHeight()));
     @computed get scaling() {
-        const wscale = this.props.PanelWidth() / (this.nativeWidth || this.props.PanelWidth() || 1);
-        if (wscale * this.nativeHeight > this.props.PanelHeight()) {
-            return (this.props.PanelHeight() / (this.nativeHeight || this.props.PanelHeight() || 1)) || 1;
+        const wscale = this.props.PanelWidth() / this.nativeWidth();
+        if (wscale * this.nativeHeight() > this.props.PanelHeight()) {
+            return (this.props.PanelHeight() / this.nativeHeight()) || 1;
         }
         return wscale || 1;
     }
     private contentScaling = () => this.scaling;
 
-    @undoBatch
-    @action
-    drop = (e: Event, de: DragManager.DropEvent) => {
-        const docDragData = de.complete.docDragData;
-        if (docDragData) {
-            this.props.childDocs && this.props.childDocs.map(otherdoc => {
-                const target = Doc.GetProto(otherdoc);
-                target.layout = ComputedField.MakeFunction("this.image_data[0]");
-                target.layout_custom = Doc.MakeDelegate(docDragData.draggedDocuments[0]);
-            });
-            e.stopPropagation();
-        }
-        return true;
-    }
     private PanelWidth = () => this.panelWidth;
-    private PanelHeight = () => this.panelHeight;;
+    private PanelHeight = () => this.panelHeight;
 
-    @computed get panelWidth() { return this.nativeWidth && (!this.props.Document || !this.props.Document._fitWidth) ? this.nativeWidth * this.contentScaling() : this.props.PanelWidth(); }
-    @computed get panelHeight() { return this.nativeHeight && (!this.props.Document || !this.props.Document._fitWidth) ? this.nativeHeight * this.contentScaling() : this.props.PanelHeight(); }
+    @computed get panelWidth() { return this.nativeWidth && !this.props.Document._fitWidth ? this.nativeWidth() * this.contentScaling() : this.props.PanelWidth(); }
+    @computed get panelHeight() { return this.nativeHeight && !this.props.Document._fitWidth ? this.nativeHeight() * this.contentScaling() : this.props.PanelHeight(); }
 
     private getTransform = () => this.props.getTransform().translate(-this.centeringOffset, -this.centeringYOffset).scale(1 / this.contentScaling());
-    private get centeringOffset() { return this.nativeWidth && (!this.props.Document || !this.props.Document._fitWidth) ? (this.props.PanelWidth() - this.nativeWidth * this.contentScaling()) / 2 : 0; }
-    private get centeringYOffset() { return Math.abs(this.centeringOffset) < 0.001 ? (this.props.PanelHeight() - this.nativeHeight * this.contentScaling()) / 2 : 0; }
+    private get centeringOffset() { return this.nativeWidth() && !this.props.Document._fitWidth ? (this.props.PanelWidth() - this.nativeWidth() * this.contentScaling()) / 2 : 0; }
+    private get centeringYOffset() { return Math.abs(this.centeringOffset) < 0.001 ? (this.props.PanelHeight() - this.nativeHeight() * this.contentScaling()) / 2 : 0; }
 
     @computed get borderRounding() { return StrCast(this.props.Document?.borderRounding); }
 
@@ -91,15 +84,24 @@ export class ContentFittingDocumentView extends React.Component<ContentFittingDo
                     style={{
                         transform: `translate(${this.centeringOffset}px, 0px)`,
                         borderRadius: this.borderRounding,
-                        height: Math.abs(this.centeringYOffset) > 0.001 ? `${100 * this.nativeHeight / this.nativeWidth * this.props.PanelWidth() / this.props.PanelHeight()}%` : this.props.PanelHeight(),
+                        height: Math.abs(this.centeringYOffset) > 0.001 ? `${100 * this.nativeHeight() / this.nativeWidth() * this.props.PanelWidth() / this.props.PanelHeight()}%` : this.props.PanelHeight(),
                         width: Math.abs(this.centeringOffset) > 0.001 ? `${100 * (this.props.PanelWidth() - this.centeringOffset * 2) / this.props.PanelWidth()}%` : this.props.PanelWidth()
                     }}>
                     <DocumentView {...this.props}
                         Document={this.props.Document}
                         DataDoc={this.props.DataDocument}
+                        LayoutDoc={this.props.LayoutDoc}
                         LibraryPath={this.props.LibraryPath}
+                        NativeWidth={this.nativeWidth}
+                        NativeHeight={this.nativeHeight}
+                        PanelWidth={this.PanelWidth}
+                        PanelHeight={this.PanelHeight}
+                        ContentScaling={this.contentScaling}
                         fitToBox={this.props.fitToBox}
+                        layoutKey={this.props.layoutKey}
+                        dropAction={this.props.dropAction}
                         onClick={this.props.onClick}
+                        backgroundColor={this.props.backgroundColor}
                         addDocument={this.props.addDocument}
                         removeDocument={this.props.removeDocument}
                         moveDocument={this.props.moveDocument}
@@ -111,15 +113,9 @@ export class ContentFittingDocumentView extends React.Component<ContentFittingDo
                         parentActive={this.props.active}
                         ScreenToLocalTransform={this.getTransform}
                         renderDepth={this.props.renderDepth}
-                        ContentScaling={this.contentScaling}
-                        PanelWidth={this.PanelWidth}
-                        PanelHeight={this.PanelHeight}
                         focus={this.props.focus || emptyFunction}
-                        backgroundColor={returnEmptyString}
                         bringToFront={emptyFunction}
                         dontRegisterView={this.props.dontRegisterView}
-                        zoomToScale={emptyFunction}
-                        getScale={returnOne}
                     />
                 </div>)}
         </div>);

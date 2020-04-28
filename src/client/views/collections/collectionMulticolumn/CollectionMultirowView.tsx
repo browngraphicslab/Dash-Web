@@ -6,14 +6,15 @@ import * as React from "react";
 import { Doc } from '../../../../new_fields/Doc';
 import { NumCast, StrCast, BoolCast, ScriptCast } from '../../../../new_fields/Types';
 import { ContentFittingDocumentView } from '../../nodes/ContentFittingDocumentView';
-import { Utils } from '../../../../Utils';
+import { Utils, returnZero } from '../../../../Utils';
 import "./collectionMultirowView.scss";
 import { computed, trace, observable, action } from 'mobx';
 import { Transform } from '../../../util/Transform';
 import HeightLabel from './MultirowHeightLabel';
 import ResizeBar from './MultirowResizer';
 import { undoBatch } from '../../../util/UndoManager';
-import { DragManager } from '../../../util/DragManager';
+import { DragManager, dropActionType } from '../../../util/DragManager';
+import { List } from '../../../../new_fields/List';
 
 type MultirowDocument = makeInterface<[typeof documentSchema]>;
 const MultirowDocument = makeInterface(documentSchema);
@@ -190,8 +191,8 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
 
     @undoBatch
     @action
-    drop = (e: Event, de: DragManager.DropEvent) => {
-        if (super.drop(e, de)) {
+    onInternalDrop = (e: Event, de: DragManager.DropEvent) => {
+        if (super.onInternalDrop(e, de)) {
             de.complete.docDragData?.droppedDocuments.forEach(action((d: Doc) => {
                 d.dimUnit = "*";
                 d.dimMagnitude = 1;
@@ -203,18 +204,43 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
 
     @computed get onChildClickHandler() { return ScriptCast(this.Document.onChildClick); }
 
+
+    addDocTab = (doc: Doc, where: string) => {
+        if (where === "inPlace" && this.layoutDoc.isInPlaceContainer) {
+            this.dataDoc[this.props.fieldKey] = new List<Doc>([doc]);
+            return true;
+        }
+        return this.props.addDocTab(doc, where);
+    }
     getDisplayDoc(layout: Doc, dxf: () => Transform, width: () => number, height: () => number) {
         return <ContentFittingDocumentView
-            {...this.props}
             Document={layout}
             DataDocument={layout.resolvedDataDoc as Doc}
-            CollectionDoc={this.props.Document}
+            backgroundColor={this.props.backgroundColor}
+            LayoutDoc={this.props.childLayoutTemplate}
+            LibraryPath={this.props.LibraryPath}
+            FreezeDimensions={this.props.freezeChildDimensions}
+            renderDepth={this.props.renderDepth + 1}
             PanelWidth={width}
             PanelHeight={height}
-            getTransform={dxf}
+            NativeHeight={returnZero}
+            NativeWidth={returnZero}
+            fitToBox={BoolCast(this.props.Document._freezeChildDimensions)}
+            rootSelected={this.rootSelected}
+            dropAction={StrCast(this.props.Document.childDropAction) as dropActionType}
             onClick={this.onChildClickHandler}
-            renderDepth={this.props.renderDepth + 1}
-        />
+            getTransform={dxf}
+            focus={this.props.focus}
+            CollectionDoc={this.props.CollectionView?.props.Document}
+            CollectionView={this.props.CollectionView}
+            addDocument={this.props.addDocument}
+            moveDocument={this.props.moveDocument}
+            removeDocument={this.props.removeDocument}
+            active={this.props.active}
+            whenActiveChanged={this.props.whenActiveChanged}
+            addDocTab={this.addDocTab}
+            pinToPres={this.props.pinToPres}
+        />;
     }
     /**
      * @returns the resolved list of rendered child documents, displayed
@@ -258,6 +284,8 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
         return (
             <div className={"collectionMultirowView_contents"}
                 style={{
+                    width: `calc(100% - ${2 * NumCast(this.props.Document._xMargin)}px)`,
+                    height: `calc(100% - ${2 * NumCast(this.props.Document._yMargin)}px)`,
                     marginLeft: NumCast(this.props.Document._xMargin), marginRight: NumCast(this.props.Document._xMargin),
                     marginTop: NumCast(this.props.Document._yMargin), marginBottom: NumCast(this.props.Document._yMargin)
                 }} ref={this.createDashEventsTarget}>

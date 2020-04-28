@@ -4,7 +4,6 @@
 .filter-form {
     padding: 25px;
     width: 440px;
-    background: whitesmoke;
     position: relative;
     right: 1px;
     color: grey;
@@ -12,9 +11,7 @@
     display: inline-block;
     transform-origin: top;
     overflow: auto;
-    border-radius: 15px;
-    box-shadow: $intermediate-color 0.2vw 0.2vw 0.4vw;
-    border: solid #BBBBBBBB 1px;
+    border-bottom: solid black 3px;
 
     .top-filter-header {
 
@@ -124,7 +121,7 @@
         max-width: 40px;
         flex: initial;
 
-        &.icon{
+        &.icon {
             width: 40px;
             text-align: center;
             margin-bottom: 5px;
@@ -150,7 +147,7 @@
             transition: all 0.2s ease-in-out;
         }
 
-        &.icon:hover + .description {
+        &.icon:hover+.description {
             opacity: 1;
         }
     }

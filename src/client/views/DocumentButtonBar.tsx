@@ -1,15 +1,13 @@
 import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
-import { faArrowAltCircleDown, faArrowAltCircleUp, faCheckCircle, faCloudUploadAlt, faLink, faShare, faStopCircle, faSyncAlt, faTag, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faArrowAltCircleDown, faPhotoVideo, faArrowAltCircleUp, faCheckCircle, faCloudUploadAlt, faLink, faShare, faStopCircle, faSyncAlt, faTag, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast } from "../../new_fields/Doc";
-import { Id } from '../../new_fields/FieldSymbols';
 import { RichTextField } from '../../new_fields/RichTextField';
 import { NumCast, StrCast } from "../../new_fields/Types";
-import { emptyFunction } from "../../Utils";
+import { emptyFunction, setupMoveUpEvents } from "../../Utils";
 import { Pulls, Pushes } from '../apis/google_docs/GoogleApiClientUtils';
-import RichTextMenu from '../util/RichTextMenu';
 import { UndoManager } from "../util/UndoManager";
 import { CollectionDockingView, DockedFrameRenderer } from './collections/CollectionDockingView';
 import { ParentDocSelector } from './collections/ParentDocumentSelector';
@@ -17,13 +15,13 @@ import './collections/ParentDocumentSelector.scss';
 import './DocumentButtonBar.scss';
 import { LinkMenu } from "./linking/LinkMenu";
 import { DocumentView } from './nodes/DocumentView';
-import { GoogleRef } from "./nodes/FormattedTextBox";
+import { GoogleRef } from "./nodes/formattedText/FormattedTextBox";
 import { TemplateMenu } from "./TemplateMenu";
 import { Template, Templates } from "./Templates";
 import React = require("react");
 import { DragManager } from '../util/DragManager';
 import { MetadataEntryMenu } from './MetadataEntryMenu';
-import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
+import GoogleAuthenticationManager from '../apis/GoogleAuthenticationManager';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -38,6 +36,7 @@ library.add(faCheckCircle);
 library.add(faCloudUploadAlt);
 library.add(faSyncAlt);
 library.add(faShare);
+library.add(faPhotoVideo);
 
 const cloud: IconProp = "cloud-upload-alt";
 const fetch: IconProp = "sync-alt";
@@ -106,52 +105,40 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
         this._pullColorAnimating = false;
     });
 
-    get view0() { return this.props.views && this.props.views.length ? this.props.views[0] : undefined; }
+    get view0() { return this.props.views?.[0]; }
 
     @action
-    onLinkButtonMoved = (e: PointerEvent): void => {
-        if (this._linkButton.current !== null && (Math.abs(e.clientX - this._downX) > 3 || Math.abs(e.clientY - this._downY) > 3)) {
-            document.removeEventListener("pointermove", this.onLinkButtonMoved);
-            document.removeEventListener("pointerup", this.onLinkButtonUp);
+    onLinkButtonMoved = (e: PointerEvent) => {
+        if (this._linkButton.current !== null) {
             const linkDrag = UndoManager.StartBatch("Drag Link");
             this.view0 && DragManager.StartLinkDrag(this._linkButton.current, this.view0.props.Document, e.pageX, e.pageY, {
                 dragComplete: dropEv => {
                     const linkDoc = dropEv.linkDragData?.linkDocument as Doc; // equivalent to !dropEve.aborted since linkDocument is only assigned on a completed drop
                     if (this.view0 && linkDoc) {
-                        const proto = Doc.GetProto(linkDoc);
-                        proto.sourceContext = this.view0.props.ContainingCollectionDoc;
+                        Doc.GetProto(linkDoc).linkRelationship = "hyperlink";
 
-                        const anchor2Title = linkDoc.anchor2 instanceof Doc ? StrCast(linkDoc.anchor2.title) : "-untitled-";
-                        const anchor2Id = linkDoc.anchor2 instanceof Doc ? linkDoc.anchor2[Id] : "";
-                        const text = RichTextMenu.Instance.MakeLinkToSelection(linkDoc[Id], anchor2Title, e.ctrlKey ? "onRight" : "inTab", anchor2Id);
-                        if (linkDoc.anchor2 instanceof Doc) {
-                            proto.title = text === "" ? proto.title : text + " to " + linkDoc.anchor2.title; // TODO open to more descriptive descriptions of following in text link
-                        }
+                        // we want to allow specific views to handle the link creation in their own way (e.g., rich text makes text hyperlinks)
+                        // the dragged view can regiser a linkDropCallback to be notified that the link was made and to update their data structures
+                        // however, the dropped document isn't so accessible.  What we do is set the newly created link document on the documentView
+                        // The documentView passes a function prop returning this link doc to its descendants who can react to changes to it.
+                        dropEv.linkDragData?.linkDropCallback?.(dropEv.linkDragData);
+                        runInAction(() => this.view0!._link = linkDoc);
+                        setTimeout(action(() => this.view0!._link = undefined), 0);
                     }
                     linkDrag?.end();
                 },
                 hideSource: false
             });
+            return true;
         }
-        e.stopPropagation();
+        return false;
     }
 
 
     onLinkButtonDown = (e: React.PointerEvent): void => {
-        this._downX = e.clientX;
-        this._downY = e.clientY;
-        document.removeEventListener("pointermove", this.onLinkButtonMoved);
-        document.addEventListener("pointermove", this.onLinkButtonMoved);
-        document.removeEventListener("pointerup", this.onLinkButtonUp);
-        document.addEventListener("pointerup", this.onLinkButtonUp);
-        e.stopPropagation();
+        setupMoveUpEvents(this, e, this.onLinkButtonMoved, emptyFunction, emptyFunction);
     }
 
-    onLinkButtonUp = (e: PointerEvent): void => {
-        document.removeEventListener("pointermove", this.onLinkButtonMoved);
-        document.removeEventListener("pointerup", this.onLinkButtonUp);
-        e.stopPropagation();
-    }
 
     @computed
     get considerGoogleDocsPush() {
@@ -162,7 +149,8 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
             title={`${published ? "Push" : "Publish"} to Google Docs`}
             className="documentButtonBar-linker"
             style={{ animation }}
-            onClick={() => {
+            onClick={async () => {
+                await GoogleAuthenticationManager.Instance.fetchOrGenerateAccessToken();
                 !published && runInAction(() => this.isAnimatingPulse = true);
                 DocumentButtonBar.hasPushedHack = false;
                 targetDoc[Pushes] = NumCast(targetDoc[Pushes]) + 1;
@@ -201,9 +189,9 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
     @computed
     get pinButton() {
         const targetDoc = this.view0?.props.Document;
-        const isPinned = targetDoc && CurrentUserUtils.IsDocPinned(targetDoc);
+        const isPinned = targetDoc && Doc.isDocPinned(targetDoc);
         return !targetDoc ? (null) : <div className="documentButtonBar-linker"
-            title={CurrentUserUtils.IsDocPinned(targetDoc) ? "Unpin from presentation" : "Pin to presentation"}
+            title={Doc.isDocPinned(targetDoc) ? "Unpin from presentation" : "Pin to presentation"}
             style={{ backgroundColor: isPinned ? "black" : "white", color: isPinned ? "white" : "black" }}
 
             onClick={e => {
@@ -240,7 +228,7 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
         return !view0 ? (null) : <div title="Show metadata panel" className="documentButtonBar-linkFlyout">
             <Flyout anchorPoint={anchorPoints.LEFT_TOP}
                 content={<MetadataEntryMenu docs={() => this.props.views.filter(dv => dv).map(dv => dv!.props.Document)} suggestWithFunction />  /* tfs: @bcz This might need to be the data document? */}>
-                <div className={"documentButtonBar-linkButton-" + "empty"} >
+                <div className={"documentButtonBar-linkButton-" + "empty"} onPointerDown={e => e.stopPropagation()} >
                     {<FontAwesomeIcon className="documentdecorations-icon" icon="tag" size="sm" />}
                 </div>
             </Flyout>
@@ -249,37 +237,20 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
 
     @computed
     get contextButton() {
-        return !this.view0 ? (null) : <ParentDocSelector Views={this.props.views.filter(v => v).map(v => v as DocumentView)} Document={this.view0.props.Document} addDocTab={(doc, data, where) => {
-            where === "onRight" ? CollectionDockingView.AddRightSplit(doc, data) :
-                this.props.stack ? CollectionDockingView.Instance.AddTab(this.props.stack, doc, data) :
-                    this.view0?.props.addDocTab(doc, data, "onRight");
+        return !this.view0 ? (null) : <ParentDocSelector Document={this.view0.props.Document} addDocTab={(doc, where) => {
+            where === "onRight" ? CollectionDockingView.AddRightSplit(doc) :
+                this.props.stack ? CollectionDockingView.Instance.AddTab(this.props.stack, doc) :
+                    this.view0?.props.addDocTab(doc, "onRight");
             return true;
         }} />;
     }
 
-    private _downx = 0;
-    private _downy = 0;
-    onAliasButtonUp = (e: PointerEvent): void => {
-        document.removeEventListener("pointermove", this.onAliasButtonMoved);
-        document.removeEventListener("pointerup", this.onAliasButtonUp);
-        e.stopPropagation();
-    }
-
+    @observable _aliasDown = false;
     onAliasButtonDown = (e: React.PointerEvent): void => {
-        this._downx = e.clientX;
-        this._downy = e.clientY;
-        e.stopPropagation();
-        e.preventDefault();
-        document.removeEventListener("pointermove", this.onAliasButtonMoved);
-        document.addEventListener("pointermove", this.onAliasButtonMoved);
-        document.removeEventListener("pointerup", this.onAliasButtonUp);
-        document.addEventListener("pointerup", this.onAliasButtonUp);
+        setupMoveUpEvents(this, e, this.onAliasButtonMoved, emptyFunction, emptyFunction);
     }
-    onAliasButtonMoved = (e: PointerEvent): void => {
-        if (this._dragRef.current !== null && (Math.abs(e.clientX - this._downx) > 4 || Math.abs(e.clientY - this._downy) > 4)) {
-            document.removeEventListener("pointermove", this.onAliasButtonMoved);
-            document.removeEventListener("pointerup", this.onAliasButtonUp);
-
+    onAliasButtonMoved = () => {
+        if (this._dragRef.current) {
             const dragDocView = this.props.views[0]!;
             const dragData = new DragManager.DocumentDragData([dragDocView.props.Document]);
             const [left, top] = dragDocView.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
@@ -290,8 +261,9 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
                 offsetY: dragData.offset[1],
                 hideSource: false
             });
+            return true;
         }
-        e.stopPropagation();
+        return false;
     }
 
     @computed
@@ -299,11 +271,11 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
         const view0 = this.view0;
         const templates: Map<Template, boolean> = new Map();
         Array.from(Object.values(Templates.TemplateList)).map(template =>
-            templates.set(template, this.props.views.reduce((checked, doc) => checked || doc?.getLayoutPropStr("show" + template.Name) ? true : false, false as boolean)));
-        return !view0 ? (null) : <div title="Customize layout" className="documentButtonBar-linkFlyout" ref={this._dragRef}>
-            <Flyout anchorPoint={anchorPoints.LEFT_TOP}
-                content={<TemplateMenu docViews={this.props.views.filter(v => v).map(v => v as DocumentView)} templates={templates} />}>
-                <div className={"documentButtonBar-linkButton-" + "empty"} ref={this._dragRef} onPointerDown={this.onAliasButtonDown} >
+            templates.set(template, this.props.views.reduce((checked, doc) => checked || doc?.props.Document["_show" + template.Name] ? true : false, false as boolean)));
+        return !view0 ? (null) : <div title="Tap: Customize layout.  Drag: Create alias" className="documentButtonBar-linkFlyout" ref={this._dragRef}>
+            <Flyout anchorPoint={anchorPoints.LEFT_TOP} onOpen={action(() => this._aliasDown = true)} onClose={action(() => this._aliasDown = false)}
+                content={!this._aliasDown ? (null) : <TemplateMenu docViews={this.props.views.filter(v => v).map(v => v as DocumentView)} templates={templates} />}>
+                <div className={"documentButtonBar-linkButton-empty"} ref={this._dragRef} onPointerDown={this.onAliasButtonDown} >
                     {<FontAwesomeIcon className="documentdecorations-icon" icon="edit" size="sm" />}
                 </div>
             </Flyout>
@@ -313,10 +285,9 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
     render() {
         if (!this.view0) return (null);
 
-        const isText = this.view0.props.Document.data instanceof RichTextField; // bcz: Todo - can't assume layout is using the 'data' field.  need to add fieldKey to DocumentView
+        const isText = this.view0.props.Document[Doc.LayoutFieldKey(this.view0.props.Document)] instanceof RichTextField;
         const considerPull = isText && this.considerGoogleDocsPull;
         const considerPush = isText && this.considerGoogleDocsPush;
-        Doc.UserDoc().pr
         return <div className="documentButtonBar">
             <div className="documentButtonBar-button">
                 {this.linkButton}

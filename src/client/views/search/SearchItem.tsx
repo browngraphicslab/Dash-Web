@@ -4,24 +4,24 @@ import { faCaretUp, faChartBar, faFile, faFilePdf, faFilm, faFingerprint, faGlob
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast } from "../../../new_fields/Doc";
+import { Doc } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
-import { emptyFunction, returnEmptyString, returnFalse, returnOne, Utils, emptyPath } from "../../../Utils";
+import { emptyFunction, emptyPath, returnFalse, Utils, returnTrue } from "../../../Utils";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager, SetupDrag } from "../../util/DragManager";
 import { SearchUtil } from "../../util/SearchUtil";
 import { Transform } from "../../util/Transform";
 import { SEARCH_THUMBNAIL_SIZE } from "../../views/globalCssVariables.scss";
-import { CollectionViewType } from "../collections/CollectionView";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
+import { CollectionViewType } from "../collections/CollectionView";
+import { ParentDocSelector } from "../collections/ParentDocumentSelector";
 import { ContextMenu } from "../ContextMenu";
+import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
 import { SearchBox } from "./SearchBox";
 import "./SearchItem.scss";
 import "./SelectorContextMenu.scss";
-import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
-import { ButtonSelector, ParentDocSelector } from "../collections/ParentDocumentSelector";
 
 export interface SearchItemProps {
     doc: Doc;
@@ -68,13 +68,13 @@ export class SelectorContextMenu extends React.Component<SearchItemProps> {
     getOnClick({ col, target }: { col: Doc, target: Doc }) {
         return () => {
             col = Doc.IsPrototype(col) ? Doc.MakeDelegate(col) : col;
-            if (NumCast(col._viewType, CollectionViewType.Invalid) === CollectionViewType.Freeform) {
+            if (col._viewType === CollectionViewType.Freeform) {
                 const newPanX = NumCast(target.x) + NumCast(target._width) / 2;
                 const newPanY = NumCast(target.y) + NumCast(target._height) / 2;
                 col._panX = newPanX;
                 col._panY = newPanY;
             }
-            CollectionDockingView.AddRightSplit(col, undefined);
+            CollectionDockingView.AddRightSplit(col);
         };
     }
     render() {
@@ -108,7 +108,7 @@ export class LinkContextMenu extends React.Component<LinkMenuProps> {
 
     unHighlightDoc = (doc: Doc) => () => Doc.UnBrushDoc(doc);
 
-    getOnClick = (col: Doc) => () => CollectionDockingView.AddRightSplit(col, undefined);
+    getOnClick = (col: Doc) => () => CollectionDockingView.AddRightSplit(col);
 
     render() {
         return (
@@ -158,6 +158,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
                 <ContentFittingDocumentView
                     Document={this.props.doc}
                     LibraryPath={emptyPath}
+                    rootSelected={returnFalse}
                     fitToBox={StrCast(this.props.doc.type).indexOf(DocumentType.COL) !== -1}
                     addDocument={returnFalse}
                     removeDocument={returnFalse}
@@ -177,14 +178,13 @@ export class SearchItem extends React.Component<SearchItemProps> {
         }
         const button = layoutresult.indexOf(DocumentType.PDF) !== -1 ? faFilePdf :
             layoutresult.indexOf(DocumentType.IMG) !== -1 ? faImage :
-                layoutresult.indexOf(DocumentType.TEXT) !== -1 ? faStickyNote :
+                layoutresult.indexOf(DocumentType.RTF) !== -1 ? faStickyNote :
                     layoutresult.indexOf(DocumentType.VID) !== -1 ? faFilm :
                         layoutresult.indexOf(DocumentType.COL) !== -1 ? faObjectGroup :
                             layoutresult.indexOf(DocumentType.AUDIO) !== -1 ? faMusic :
                                 layoutresult.indexOf(DocumentType.LINK) !== -1 ? faLink :
-                                    layoutresult.indexOf(DocumentType.HIST) !== -1 ? faChartBar :
-                                        layoutresult.indexOf(DocumentType.WEB) !== -1 ? faGlobeAsia :
-                                            faCaretUp;
+                                    layoutresult.indexOf(DocumentType.WEB) !== -1 ? faGlobeAsia :
+                                        faCaretUp;
         return <div onClick={action(() => { this._useIcons = false; this._displayDim = Number(SEARCH_THUMBNAIL_SIZE); })} >
             <FontAwesomeIcon icon={button} size="2x" />
         </div>;
@@ -272,7 +272,7 @@ export class SearchItem extends React.Component<SearchItemProps> {
 
     @computed
     get contextButton() {
-        return <ParentDocSelector Views={DocumentManager.Instance.DocumentViews} Document={this.props.doc} addDocTab={(doc, data, where) => CollectionDockingView.AddRightSplit(doc, data)} />;
+        return <ParentDocSelector Document={this.props.doc} addDocTab={(doc, where) => CollectionDockingView.AddRightSplit(doc)} />;
     }
 
     render() {

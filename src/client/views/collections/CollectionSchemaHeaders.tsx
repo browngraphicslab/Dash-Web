@@ -5,11 +5,13 @@ import "./CollectionSchemaView.scss";
 import { faPlus, faFont, faHashtag, faAlignJustify, faCheckSquare, faToggleOn, faSortAmountDown, faSortAmountUp, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { library, IconProp } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { Flyout, anchorPoints } from "../DocumentDecorations";
 import { ColumnType } from "./CollectionSchemaView";
 import { faFile } from "@fortawesome/free-regular-svg-icons";
 import { SchemaHeaderField, PastelSchemaPalette } from "../../../new_fields/SchemaHeaderField";
 import { undoBatch } from "../../util/UndoManager";
+const higflyout = require("@hig/flyout");
+export const { anchorPoints } = higflyout;
+export const Flyout = higflyout.default;
 
 library.add(faPlus, faFont, faHashtag, faAlignJustify, faCheckSquare, faToggleOn, faFile as any, faSortAmountDown, faSortAmountUp, faTimes);
 
@@ -289,13 +291,11 @@ class KeysDropdown extends React.Component<KeysDropdownProps> {
     onKeyDown = (e: React.KeyboardEvent): void => {
         if (e.key === "Enter") {
             const keyOptions = this._searchTerm === "" ? this.props.possibleKeys : this.props.possibleKeys.filter(key => key.toUpperCase().indexOf(this._searchTerm.toUpperCase()) > -1);
-            const exactFound = keyOptions.findIndex(key => key.toUpperCase() === this._searchTerm.toUpperCase()) > -1 ||
-                this.props.existingKeys.findIndex(key => key.toUpperCase() === this._searchTerm.toUpperCase()) > -1;
-
-            if (!exactFound && this._searchTerm !== "" && this.props.canAddNew) {
+            if (keyOptions.length) {
+                this.onSelect(keyOptions[0]);
+            } else if (this._searchTerm !== "" && this.props.canAddNew) {
+                this.setSearchTerm(this._searchTerm || this._key);
                 this.onSelect(this._searchTerm);
-            } else {
-                this.setSearchTerm(this._key);
             }
         }
     }
@@ -336,7 +336,7 @@ class KeysDropdown extends React.Component<KeysDropdownProps> {
             this.props.existingKeys.findIndex(key => key.toUpperCase() === this._searchTerm.toUpperCase()) > -1;
 
         const options = keyOptions.map(key => {
-            return <div key={key} className="key-option" onClick={() => { this.onSelect(key); this.setSearchTerm(""); }}>{key}</div>;
+            return <div key={key} className="key-option" onPointerDown={e => e.stopPropagation()} onClick={() => { this.onSelect(key); this.setSearchTerm(""); }}>{key}</div>;
         });
 
         // if search term does not already exist as a group type, give option to create new group type
@@ -354,7 +354,7 @@ class KeysDropdown extends React.Component<KeysDropdownProps> {
             <div className="keys-dropdown">
                 <input className="keys-search" ref={this._inputRef} type="text" value={this._searchTerm} placeholder="Column key" onKeyDown={this.onKeyDown}
                     onChange={e => this.onChange(e.target.value)} onFocus={this.onFocus} onBlur={this.onBlur}></input>
-                <div className="keys-options-wrapper" onPointerEnter={this.onPointerEnter} onPointerOut={this.onPointerOut}>
+                <div className="keys-options-wrapper" onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerOut}>
                     {this.renderOptions()}
                 </div>
             </div >

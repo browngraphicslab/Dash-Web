@@ -1,6 +1,6 @@
 import v4 = require('uuid/v4');
 import v5 = require("uuid/v5");
-import { Socket } from 'socket.io';
+import { Socket, Room } from 'socket.io';
 import { Message } from './server/Message';
 
 export namespace Utils {
@@ -61,11 +61,6 @@ export namespace Utils {
 
     export function CorsProxy(url: string): string {
         return prepend("/corsProxy/") + encodeURIComponent(url);
-    }
-
-    export async function getApiKey(target: string): Promise<string> {
-        const response = await fetch(prepend(`/environment/${target.toUpperCase()}`));
-        return response.text();
     }
 
     export function CopyText(text: string) {
@@ -310,6 +305,12 @@ export namespace Utils {
             handler([arg, loggingCallback('S sending', fn, message.Name)]);
         });
     }
+    export type RoomHandler = (socket: Socket, room: string) => any;
+    export type UsedSockets = Socket | SocketIOClient.Socket;
+    export type RoomMessage = "create or join" | "created" | "joined";
+    export function AddRoomHandler(socket: Socket, message: RoomMessage, handler: RoomHandler) {
+        socket.on(message, room => handler(socket, room));
+    }
 }
 
 export function OmitKeys(obj: any, keys: string[], addKeyFunc?: (dup: any) => void): { omit: any, extract: any } {
@@ -467,4 +468,78 @@ export function clearStyleSheetRules(sheet: any) {
         return true;
     }
     return false;
+}
+
+export function simulateMouseClick(element: Element, x: number, y: number, sx: number, sy: number) {
+    ["pointerdown", "pointerup"].map(event => element.dispatchEvent(
+        new PointerEvent(event, {
+            view: window,
+            bubbles: true,
+            cancelable: true,
+            button: 2,
+            pointerType: "mouse",
+            clientX: x,
+            clientY: y,
+            screenX: sx,
+            screenY: sy,
+        })));
+
+    element.dispatchEvent(
+        new MouseEvent("contextmenu", {
+            view: window,
+            bubbles: true,
+            cancelable: true,
+            button: 2,
+            clientX: x,
+            clientY: y,
+            movementX: 0,
+            movementY: 0,
+            screenX: sx,
+            screenY: sy,
+        }));
+}
+
+export function setupMoveUpEvents(
+    target: object,
+    e: React.PointerEvent,
+    moveEvent: (e: PointerEvent, down: number[], delta: number[]) => boolean,
+    upEvent: (e: PointerEvent) => void,
+    clickEvent: (e: PointerEvent, doubleTap?: boolean) => void,
+    stopPropagation: boolean = true,
+    stopMovePropagation: boolean = true
+) {
+    (target as any)._downX = (target as any)._lastX = e.clientX;
+    (target as any)._downY = (target as any)._lastY = e.clientY;
+
+    const _moveEvent = (e: PointerEvent): void => {
+        if (Math.abs(e.clientX - (target as any)._downX) > 4 || Math.abs(e.clientY - (target as any)._downY) > 4) {
+            if (moveEvent(e, [(target as any)._downX, (target as any)._downY],
+                [e.clientX - (target as any)._lastX, e.clientY - (target as any)._lastY])) {
+                document.removeEventListener("pointermove", _moveEvent);
+                document.removeEventListener("pointerup", _upEvent);
+            }
+        }
+        (target as any)._lastX = e.clientX;
+        (target as any)._lastY = e.clientY;
+        stopMovePropagation && e.stopPropagation();
+    };
+    (target as any)._doubleTap = false;
+    const _upEvent = (e: PointerEvent): void => {
+        (target as any)._doubleTap = (Date.now() - (target as any)._lastTap < 300);
+        (target as any)._lastTap = Date.now();
+        upEvent(e);
+        if (Math.abs(e.clientX - (target as any)._downX) < 4 && Math.abs(e.clientY - (target as any)._downY) < 4) {
+            clickEvent(e, (target as any)._doubleTap);
+        }
+        document.removeEventListener("pointermove", _moveEvent);
+        document.removeEventListener("pointerup", _upEvent);
+    };
+    if (stopPropagation) {
+        e.stopPropagation();
+        e.preventDefault();
+    }
+    document.removeEventListener("pointermove", _moveEvent);
+    document.removeEventListener("pointerup", _upEvent);
+    document.addEventListener("pointermove", _moveEvent);
+    document.addEventListener("pointerup", _upEvent);
 }

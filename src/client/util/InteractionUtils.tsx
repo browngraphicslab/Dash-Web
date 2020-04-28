@@ -1,3 +1,5 @@
+import React = require("react");
+
 export namespace InteractionUtils {
     export const MOUSETYPE = "mouse";
     export const TOUCHTYPE = "touch";
@@ -8,24 +10,9 @@ export namespace InteractionUtils {
     const REACT_POINTER_PEN_BUTTON = 0;
     const ERASER_BUTTON = 5;
 
-    export function CreatePolyline(points: { X: number, Y: number }[], left: number, top: number, color: string, width: number) {
-        const pts = points.reduce((acc: string, pt: { X: number, Y: number }) => acc + `${pt.X - left},${pt.Y - top} `, "");
-        return (
-            <polyline
-                points={pts}
-                style={{
-                    fill: "none",
-                    stroke: color,
-                    strokeWidth: width
-                }}
-            />
-        );
-    }
-
     export class MultiTouchEvent<T extends React.TouchEvent | TouchEvent> {
         constructor(
             readonly fingers: number,
-            // readonly points: T extends React.TouchEvent ? React.TouchList : TouchList,
             readonly targetTouches: T extends React.TouchEvent ? React.Touch[] : Touch[],
             readonly touches: T extends React.TouchEvent ? React.Touch[] : Touch[],
             readonly changedTouches: T extends React.TouchEvent ? React.Touch[] : Touch[],
@@ -35,9 +22,14 @@ export namespace InteractionUtils {
 
     export interface MultiTouchEventDisposer { (): void; }
 
+    /**
+     * 
+     * @param element - element to turn into a touch target
+     * @param startFunc - event handler, typically Touchable.onTouchStart (classes that inherit touchable can pass in this.onTouchStart)
+     */
     export function MakeMultiTouchTarget(
         element: HTMLElement,
-        startFunc: (e: Event, me: MultiTouchEvent<React.TouchEvent>) => void,
+        startFunc: (e: Event, me: MultiTouchEvent<React.TouchEvent>) => void
     ): MultiTouchEventDisposer {
         const onMultiTouchStartHandler = (e: Event) => startFunc(e, (e as CustomEvent<MultiTouchEvent<React.TouchEvent>>).detail);
         // const onMultiTouchMoveHandler = moveFunc ? (e: Event) => moveFunc(e, (e as CustomEvent<MultiTouchEvent<TouchEvent>>).detail) : undefined;
@@ -60,6 +52,22 @@ export namespace InteractionUtils {
         };
     }
 
+    /**
+     * Turns an element onto a target for touch hold handling.
+     * @param element - element to add events to
+     * @param func - function to add to the event
+     */
+    export function MakeHoldTouchTarget(
+        element: HTMLElement,
+        func: (e: Event, me: MultiTouchEvent<React.TouchEvent>) => void
+    ): MultiTouchEventDisposer {
+        const handler = (e: Event) => func(e, (e as CustomEvent<MultiTouchEvent<React.TouchEvent>>).detail);
+        element.addEventListener("dashOnTouchHoldStart", handler);
+        return () => {
+            element.removeEventListener("dashOnTouchHoldStart", handler);
+        };
+    }
+
     export function GetMyTargetTouches(mte: InteractionUtils.MultiTouchEvent<React.TouchEvent | TouchEvent>, prevPoints: Map<number, React.Touch>, ignorePen: boolean): React.Touch[] {
         const myTouches = new Array<React.Touch>();
         for (const pt of mte.touches) {
@@ -79,6 +87,25 @@ export namespace InteractionUtils {
         return myTouches;
     }
 
+    export function CreatePolyline(points: { X: number, Y: number }[], left: number, top: number, color: string, width: number) {
+        const pts = points.reduce((acc: string, pt: { X: number, Y: number }) => acc + `${pt.X - left},${pt.Y - top} `, "");
+        return (
+            <polyline
+                points={pts}
+                style={{
+                    fill: "none",
+                    stroke: color,
+                    strokeWidth: width
+                }}
+            />
+        );
+    }
+
+    /**
+     * Returns whether or not the pointer event passed in is of the type passed in
+     * @param e - pointer event. this event could be from a mouse, a pen, or a finger
+     * @param type - InteractionUtils.(PENTYPE | ERASERTYPE | MOUSETYPE | TOUCHTYPE)
+     */
     export function IsType(e: PointerEvent | React.PointerEvent, type: string): boolean {
         switch (type) {
             // pen and eraser are both pointer type 'pen', but pen is button 0 and eraser is button 5. -syip2
@@ -91,6 +118,11 @@ export namespace InteractionUtils {
         }
     }
 
+    /**
+     * Returns euclidean distance between two points
+     * @param pt1 
+     * @param pt2 
+     */
     export function TwoPointEuclidist(pt1: React.Touch, pt2: React.Touch): number {
         return Math.sqrt(Math.pow(pt1.clientX - pt2.clientX, 2) + Math.pow(pt1.clientY - pt2.clientY, 2));
     }

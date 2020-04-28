@@ -10,7 +10,6 @@ import { CollectionViewType } from "../views/collections/CollectionView";
 import { Cast, CastCtor } from "../../new_fields/Types";
 import { listSpec } from "../../new_fields/Schema";
 import { AudioField, ImageField } from "../../new_fields/URLField";
-import { HistogramField } from "../northstar/dash-fields/HistogramField";
 import { Utils } from "../../Utils";
 import { RichTextField } from "../../new_fields/RichTextField";
 import { DictationOverlay } from "../views/DictationOverlay";
@@ -282,9 +281,8 @@ export namespace DictationManager {
             [DocumentType.COL, listSpec(Doc)],
             [DocumentType.AUDIO, AudioField],
             [DocumentType.IMG, ImageField],
-            [DocumentType.HIST, HistogramField],
             [DocumentType.IMPORT, listSpec(Doc)],
-            [DocumentType.TEXT, "string"]
+            [DocumentType.RTF, "string"]
         ]);
 
         const tryCast = (view: DocumentView, type: DocumentType) => {
@@ -326,7 +324,7 @@ export namespace DictationManager {
             ["open fields", {
                 action: (target: DocumentView) => {
                     const kvp = Docs.Create.KVPDocument(target.props.Document, { _width: 300, _height: 300 });
-                    target.props.addDocTab(kvp, target.props.DataDoc, "onRight");
+                    target.props.addDocTab(kvp, "onRight");
                 }
             }],
 
@@ -340,7 +338,7 @@ export namespace DictationManager {
                     const proseMirrorState = `{"doc":{"type":"doc","content":[{"type":"bullet_list","content":[{"type":"list_item","content":[{"type":"paragraph","content":[{"type":"text","text":"${prompt}"}]}]}]}]},"selection":{"type":"text","anchor":${anchor},"head":${head}}}`;
                     proto.data = new RichTextField(proseMirrorState);
                     proto.backgroundColor = "#eeffff";
-                    target.props.addDocTab(newBox, proto, "onRight");
+                    target.props.addDocTab(newBox, "onRight");
                 }
             }]
 
@@ -377,7 +375,7 @@ export namespace DictationManager {
             {
                 expression: /view as (freeform|stacking|masonry|schema|tree)/g,
                 action: (target: DocumentView, matches: RegExpExecArray) => {
-                    const mode = CollectionViewType.valueOf(matches[1]);
+                    const mode = matches[1];
                     mode && (target.props.Document._viewType = mode);
                 },
                 restrictTo: [DocumentType.COL]

@@ -22,7 +22,7 @@ import "./DirectoryImportBox.scss";
 import { Networking } from "../../Network";
 import { BatchedArray } from "array-batcher";
 import * as path from 'path';
-import { AcceptibleMedia } from "../../../server/SharedMediaTypes";
+import { AcceptibleMedia, Upload } from "../../../server/SharedMediaTypes";
 
 const unsupported = ["text/html", "text/plain"];
 
@@ -107,25 +107,26 @@ export default class DirectoryImportBox extends React.Component<FieldViewProps> 
         runInAction(() => this.phase = `Internal: uploading ${this.quota - this.completed} files to Dash...`);
 
         const batched = BatchedArray.from(validated, { batchSize: 15 });
-        const uploads = await batched.batchedMapAsync<any>(async (batch, collector) => {
-            const formData = new FormData();
-
+        const uploads = await batched.batchedMapAsync<Upload.FileResponse<Upload.ImageInformation>>(async (batch, collector) => {
             batch.forEach(file => {
                 sizes.push(file.size);
                 modifiedDates.push(file.lastModified);
-                formData.append(Utils.GenerateGuid(), file);
             });
-
-            collector.push(...(await Networking.PostFormDataToServer("/uploadFormData", formData)));
+            collector.push(...(await Networking.UploadFilesToServer<Upload.ImageInformation>(batch)));
             runInAction(() => this.completed += batch.length);
         });
 
-        await Promise.all(uploads.map(async ({ name, type, clientAccessPath, exifData }) => {
-            const path = Utils.prepend(clientAccessPath);
+        await Promise.all(uploads.map(async response => {
+            const { source: { type }, result } = response;
+            if (result instanceof Error) {
+                return;
+            }
+            const { accessPaths, exifData } = result;
+            const path = Utils.prepend(accessPaths.agnostic.client);
             const document = await Docs.Get.DocumentFromType(type, path, { _width: 300, title: name });
             const { data, error } = exifData;
             if (document) {
-                Doc.GetProto(document).exif = error || Docs.Get.DocumentHierarchyFromJson(data);
+                Doc.GetProto(document).exif = error || Docs.Get.FromJson({ data });
                 docs.push(document);
             }
         }));

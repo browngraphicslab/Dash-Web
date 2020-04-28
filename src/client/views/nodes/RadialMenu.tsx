@@ -1,10 +1,9 @@
 import React = require("react");
+import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { action, observable, computed, IReactionDisposer, reaction, runInAction } from "mobx";
-import { RadialMenuItem, RadialMenuProps } from "./RadialMenuItem";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import Measure from "react-measure";
+import MobileInterface from "../../../mobile/MobileInterface";
 import "./RadialMenu.scss";
+import { RadialMenuItem, RadialMenuProps } from "./RadialMenuItem";
 
 @observer
 export class RadialMenu extends React.Component {
@@ -23,13 +22,23 @@ export class RadialMenu extends React.Component {
     @observable private _mouseDown: boolean = false;
     private _reactionDisposer?: IReactionDisposer;
 
+    public used: boolean = false;
+
+
+    catchTouch = (te: React.TouchEvent) => {
+        console.log("caught");
+        te.stopPropagation();
+        te.preventDefault();
+    }
 
     @action
     onPointerDown = (e: PointerEvent) => {
         this._mouseDown = true;
         this._mouseX = e.clientX;
         this._mouseY = e.clientY;
+        this.used = false;
         document.addEventListener("pointermove", this.onPointerMove);
+
     }
 
     @observable
@@ -42,7 +51,6 @@ export class RadialMenu extends React.Component {
         const deltX = this._mouseX - curX;
         const deltY = this._mouseY - curY;
         const scale = Math.hypot(deltY, deltX);
-
         if (scale < 150 && scale > 50) {
             const rad = Math.atan2(deltY, deltX) + Math.PI;
             let closest = 0;
@@ -62,6 +70,7 @@ export class RadialMenu extends React.Component {
     }
     @action
     onPointerUp = (e: PointerEvent) => {
+        this.used = true;
         this._mouseDown = false;
         const curX = e.clientX;
         const curY = e.clientY;
@@ -83,6 +92,7 @@ export class RadialMenu extends React.Component {
 
     @action
     componentDidMount = () => {
+        console.log(this._pageX);
         document.addEventListener("pointerdown", this.onPointerDown);
         document.addEventListener("pointerup", this.onPointerUp);
         this.previewcircle();
@@ -98,7 +108,7 @@ export class RadialMenu extends React.Component {
 
     @observable private _pageX: number = 0;
     @observable private _pageY: number = 0;
-    @observable private _display: boolean = false;
+    @observable _display: boolean = false;
     @observable private _yRelativeToTop: boolean = true;
 
 
@@ -124,35 +134,34 @@ export class RadialMenu extends React.Component {
     displayMenu = (x: number, y: number) => {
         //maxX and maxY will change if the UI/font size changes, but will work for any amount
         //of items added to the menu
-
-        this._pageX = x;
-        this._pageY = y;
+        this._mouseX = x;
+        this._mouseY = y;
         this._shouldDisplay = true;
     }
-
-    get pageX() {
-        const x = this._pageX;
-        if (x < 0) {
-            return 0;
-        }
-        const width = this._width;
-        if (x + width > window.innerWidth - RadialMenu.buffer) {
-            return window.innerWidth - RadialMenu.buffer - width;
-        }
-        return x;
-    }
-
-    get pageY() {
-        const y = this._pageY;
-        if (y < 0) {
-            return 0;
-        }
-        const height = this._height;
-        if (y + height > window.innerHeight - RadialMenu.buffer) {
-            return window.innerHeight - RadialMenu.buffer - height;
-        }
-        return y;
-    }
+    // @computed
+    // get pageX() {
+    //     const x = this._pageX;
+    //     if (x < 0) {
+    //         return 0;
+    //     }
+    //     const width = this._width;
+    //     if (x + width > window.innerWidth - RadialMenu.buffer) {
+    //         return window.innerWidth - RadialMenu.buffer - width;
+    //     }
+    //     return x;
+    // }
+    // @computed
+    // get pageY() {
+    //     const y = this._pageY;
+    //     if (y < 0) {
+    //         return 0;
+    //     }
+    //     const height = this._height;
+    //     if (y + height > window.innerHeight - RadialMenu.buffer) {
+    //         return window.innerHeight - RadialMenu.buffer - height;
+    //     }
+    //     return y;
+    // }
 
     @computed get menuItems() {
         return this._items.map((item, index) => <RadialMenuItem {...item} key={item.description} closeMenu={this.closeMenu} max={this._items.length} min={index} selected={this._closest} />);
@@ -166,7 +175,10 @@ export class RadialMenu extends React.Component {
     }
 
     @action
-    openMenu = () => {
+    openMenu = (x: number, y: number) => {
+
+        this._pageX = x;
+        this._pageY = y;
         this._shouldDisplay;
         this._display = true;
     }
@@ -204,15 +216,15 @@ export class RadialMenu extends React.Component {
 
 
     render() {
-        if (!this._display) {
+        if (!this._display || MobileInterface.Instance) {
             return null;
         }
-        const style = this._yRelativeToTop ? { left: this._mouseX - 150, top: this._mouseY - 150 } :
-            { left: this._mouseX - 150, top: this._mouseY - 150 };
+        const style = this._yRelativeToTop ? { left: this._pageX - 130, top: this._pageY - 130 } :
+            { left: this._pageX - 130, top: this._pageY - 130 };
 
         return (
 
-            <div className="radialMenu-cont" style={style}>
+            <div className="radialMenu-cont" onTouchStart={this.catchTouch} style={style}>
                 <canvas id="newCanvas" style={{ position: "absolute" }} height="300" width="300"> Your browser does not support the HTML5 canvas tag.</canvas>
                 {this.menuItems}
             </div>

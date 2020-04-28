@@ -4,8 +4,9 @@ import { observer } from "mobx-react";
 import { CellInfo } from "react-table";
 import "react-table/react-table.css";
 import { emptyFunction, returnFalse, returnZero, returnOne } from "../../../Utils";
-import { Doc, DocListCast, DocListCastAsync, Field, Opt } from "../../../new_fields/Doc";
+import { Doc, DocListCast, Field, Opt } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
+import { KeyCodes } from "../../util/KeyCodes";
 import { SetupDrag, DragManager } from "../../util/DragManager";
 import { CompileScript } from "../../util/Scripting";
 import { Transform } from "../../util/Transform";
@@ -21,7 +22,6 @@ import { SelectionManager } from "../../util/SelectionManager";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faExpand } from '@fortawesome/free-solid-svg-icons';
 import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
-import { KeyCodes } from "../../northstar/utils/KeyCodes";
 import { undoBatch } from "../../util/UndoManager";
 
 library.add(faExpand);
@@ -35,9 +35,10 @@ export interface CellProps {
     Document: Doc;
     fieldKey: string;
     renderDepth: number;
-    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
+    addDocTab: (document: Doc, where: string) => boolean;
     pinToPres: (document: Doc) => void;
-    moveDocument: (document: Doc, targetCollection: Doc | undefined, addDocument: (document: Doc) => boolean) => boolean;
+    moveDocument: (document: Doc, targetCollection: Doc | undefined,
+        addDocument: (document: Doc) => boolean) => boolean;
     isFocused: boolean;
     changeFocusedCellByIndex: (row: number, col: number) => void;
     setIsEditing: (isEditing: boolean) => void;
@@ -75,16 +76,27 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
 
     @action
     isEditingCallback = (isEditing: boolean): void => {
-        document.addEventListener("keydown", this.onKeyDown);
+        document.removeEventListener("keydown", this.onKeyDown);
+        isEditing && document.addEventListener("keydown", this.onKeyDown);
         this._isEditing = isEditing;
         this.props.setIsEditing(isEditing);
         this.props.changeFocusedCellByIndex(this.props.row, this.props.col);
     }
 
     @action
-    onPointerDown = (e: React.PointerEvent): void => {
+    onPointerDown = async (e: React.PointerEvent): Promise<void> => {
         this.props.changeFocusedCellByIndex(this.props.row, this.props.col);
         this.props.setPreviewDoc(this.props.rowProps.original);
+
+        let url: string;
+        if (url = StrCast(this.props.rowProps.row.href)) {
+            try {
+                new URL(url);
+                const temp = window.open(url)!;
+                temp.blur();
+                window.focus();
+            } catch { }
+        }
 
         // this._isEditing = true;
         // this.props.setIsEditing(true);
@@ -144,6 +156,9 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             Document: this.props.rowProps.original,
             DataDoc: this.props.rowProps.original,
             LibraryPath: [],
+            dropAction: "alias",
+            bringToFront: emptyFunction,
+            rootSelected: returnFalse,
             fieldKey: this.props.rowProps.column.id as string,
             ContainingCollectionView: this.props.CollectionView,
             ContainingCollectionDoc: this.props.CollectionView && this.props.CollectionView.props.Document,
@@ -156,6 +171,8 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
             whenActiveChanged: emptyFunction,
             PanelHeight: returnZero,
             PanelWidth: returnZero,
+            NativeHeight: returnZero,
+            NativeWidth: returnZero,
             addDocTab: this.props.addDocTab,
             pinToPres: this.props.pinToPres,
             ContentScaling: returnOne
@@ -235,7 +252,9 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                                 const script = CompileScript(value, { requiredType: type, typecheck: false, editable: true, addReturn: true, params: { this: Doc.name, $r: "number", $c: "number", $: "any" } });
                                 if (script.compiled) {
                                     DocListCast(this.props.Document[this.props.fieldKey]).
-                                        forEach((doc, i) => this.applyToDoc(doc, i, this.props.col, script.run));
+                                        forEach((doc, i) => value.startsWith(":=") ?
+                                            this.props.setComputed(value.substring(2), doc, this.props.rowProps.column.id!, i, this.props.col) :
+                                            this.applyToDoc(doc, i, this.props.col, script.run));
                                 }
                             }}
                         />

@@ -1,26 +1,28 @@
 import { library } from "@fortawesome/fontawesome-svg-core";
-import { faStickyNote } from '@fortawesome/free-solid-svg-icons';
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, observable } from "mobx";
+import { faStickyNote, faPen, faMousePointer } from '@fortawesome/free-solid-svg-icons';
+import { action, computed, observable, trace, IReactionDisposer, reaction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, FieldResult } from "../../../new_fields/Doc";
+import { documentSchema } from "../../../new_fields/documentSchemas";
 import { HtmlField } from "../../../new_fields/HtmlField";
 import { InkTool } from "../../../new_fields/InkField";
 import { makeInterface } from "../../../new_fields/Schema";
-import { Cast, NumCast } from "../../../new_fields/Types";
+import { Cast, NumCast, BoolCast, StrCast } from "../../../new_fields/Types";
 import { WebField } from "../../../new_fields/URLField";
-import { emptyFunction, returnOne, Utils } from "../../../Utils";
+import { Utils, returnOne, emptyFunction, returnZero } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
-import { SelectionManager } from "../../util/SelectionManager";
-import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
+import { DragManager } from "../../util/DragManager";
+import { ImageUtils } from "../../util/Import & Export/ImageUtils";
+import { ViewBoxAnnotatableComponent } from "../DocComponent";
 import { DocumentDecorations } from "../DocumentDecorations";
 import { InkingControl } from "../InkingControl";
 import { FieldView, FieldViewProps } from './FieldView';
-import { KeyValueBox } from "./KeyValueBox";
 import "./WebBox.scss";
 import React = require("react");
-import { DocAnnotatableComponent } from "../DocComponent";
-import { documentSchema } from "../../../new_fields/documentSchemas";
+import * as WebRequest from 'web-request';
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
+const htmlToText = require("html-to-text");
 
 library.add(faStickyNote);
 
@@ -28,16 +30,57 @@ type WebDocument = makeInterface<[typeof documentSchema]>;
 const WebDocument = makeInterface(documentSchema);
 
 @observer
-export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>(WebDocument) {
+export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocument>(WebDocument) {
 
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(WebBox, fieldKey); }
-    @observable private collapsed: boolean = true;
-    @observable private url: string = "";
+    get _collapsed() { return StrCast(this.layoutDoc._chromeStatus) === "disabled"; }
+    set _collapsed(value) { this.layoutDoc._chromeStatus = !value ? "enabled" : "disabled"; }
+    @observable private _url: string = "hello";
+    @observable private _pressX: number = 0;
+    @observable private _pressY: number = 0;
 
-    componentDidMount() {
+    private _longPressSecondsHack?: NodeJS.Timeout;
+    private _outerRef = React.createRef<HTMLDivElement>();
+    private _iframeRef = React.createRef<HTMLIFrameElement>();
+    private _iframeIndicatorRef = React.createRef<HTMLDivElement>();
+    private _iframeDragRef = React.createRef<HTMLDivElement>();
+    private _reactionDisposer?: IReactionDisposer;
+    private _setPreviewCursor: undefined | ((x: number, y: number, drag: boolean) => void);
 
-        const field = Cast(this.props.Document[this.props.fieldKey], WebField);
-        if (field && field.url.href.indexOf("youtube") !== -1) {
+    iframeLoaded = action((e: any) => {
+        this._iframeRef.current!.contentDocument?.addEventListener('pointerdown', this.iframedown, false);
+        this._iframeRef.current!.contentDocument?.addEventListener('scroll', this.iframeScrolled, false);
+        this.layoutDoc.scrollHeight = this._iframeRef.current!.contentDocument?.children?.[0].scrollHeight || 1000;
+        this._iframeRef.current!.contentDocument!.children[0].scrollTop = NumCast(this.layoutDoc.scrollTop);
+        this._reactionDisposer?.();
+        this._reactionDisposer = reaction(() => this.layoutDoc.scrollY,
+            (scrollY) => {
+                if (scrollY !== undefined) {
+                    this._outerRef.current!.scrollTop = scrollY;
+                    this.layoutDoc.scrollY = undefined;
+                }
+            },
+            { fireImmediately: true }
+        );
+    });
+    setPreviewCursor = (func?: (x: number, y: number, drag: boolean) => void) => this._setPreviewCursor = func;
+    iframedown = (e: PointerEvent) => {
+        this._setPreviewCursor?.(e.screenX, e.screenY, false);
+    }
+    iframeScrolled = (e: any) => {
+        const scroll = e.target?.children?.[0].scrollTop;
+        this.layoutDoc.scrollTop = this._outerRef.current!.scrollTop = scroll;
+    }
+    async componentDidMount() {
+
+        this.setURL();
+
+        this._iframeRef.current!.setAttribute("enable-annotation", "true");
+
+        document.addEventListener("pointerup", this.onLongPressUp);
+        document.addEventListener("pointermove", this.onLongPressMove);
+        const field = Cast(this.rootDoc[this.props.fieldKey], WebField);
+        if (field?.url.href.indexOf("youtube") !== -1) {
             const youtubeaspect = 400 / 315;
             const nativeWidth = NumCast(this.layoutDoc._nativeWidth);
             const nativeHeight = NumCast(this.layoutDoc._nativeHeight);
@@ -46,28 +89,35 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
                 this.layoutDoc._nativeHeight = NumCast(this.layoutDoc._nativeWidth) / youtubeaspect;
                 this.layoutDoc._height = NumCast(this.layoutDoc._width) / youtubeaspect;
             }
+        } else if (field?.url) {
+            const result = await WebRequest.get(Utils.CorsProxy(field.url.href));
+            this.dataDoc.text = htmlToText.fromString(result.content);
         }
+    }
 
-        this.setURL();
+    componentWillUnmount() {
+        this._reactionDisposer?.();
+        document.removeEventListener("pointerup", this.onLongPressUp);
+        document.removeEventListener("pointermove", this.onLongPressMove);
+        this._iframeRef.current!.contentDocument?.removeEventListener('pointerdown', this.iframedown);
+        this._iframeRef.current!.contentDocument?.removeEventListener('scroll', this.iframeScrolled);
     }
 
     @action
     onURLChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        this.url = e.target.value;
+        this._url = e.target.value;
     }
 
     @action
     submitURL = () => {
-        const script = KeyValueBox.CompileKVPScript(`new WebField("${this.url}")`);
-        if (!script) return;
-        KeyValueBox.ApplyKVPScript(this.props.Document, "data", script);
+        this.dataDoc[this.props.fieldKey] = new WebField(new URL(this._url));
     }
 
     @action
     setURL() {
-        const urlField: FieldResult<WebField> = Cast(this.props.Document.data, WebField);
-        if (urlField) this.url = urlField.url.toString();
-        else this.url = "";
+        const urlField: FieldResult<WebField> = Cast(this.dataDoc[this.props.fieldKey], WebField);
+        if (urlField) this._url = urlField.url.toString();
+        else this._url = "";
     }
 
     onValueKeyDown = async (e: React.KeyboardEvent) => {
@@ -77,47 +127,45 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
         }
     }
 
-
-    switchToText = () => {
-        let url: string = "";
-        const field = Cast(this.props.Document[this.props.fieldKey], WebField);
-        if (field) url = field.url.href;
-
-        const newBox = Docs.Create.TextDocument(url, {
-            x: NumCast(this.props.Document.x),
-            y: NumCast(this.props.Document.y),
-            title: url,
-            _width: 200,
-            _height: 70,
-        });
-
-        SelectionManager.SelectedDocuments().map(dv => {
-            dv.props.addDocument && dv.props.addDocument(newBox);
-            dv.props.removeDocument && dv.props.removeDocument(dv.props.Document);
-        });
-
-        Doc.BrushDoc(newBox);
+    toggleNativeDimensions = () => {
+        if (!this.layoutDoc.isAnnotating) {
+            //DocumentView.unfreezeNativeDimensions(this.layoutDoc);
+            this.layoutDoc.lockedTransform = false;
+            this.layoutDoc.isAnnotating = true;
+        }
+        else {
+            //Doc.freezeNativeDimensions(this.layoutDoc, this.props.PanelWidth(), this.props.PanelHeight());
+            this.layoutDoc.lockedTransform = true;
+            this.layoutDoc.isAnnotating = false;
+        }
     }
 
     urlEditor() {
+        const frozen = this.layoutDoc._nativeWidth && this.layoutDoc.isAnnotating;
         return (
-            <div className="webView-urlEditor" style={{ top: this.collapsed ? -70 : 0 }}>
+            <div className="webBox-urlEditor" style={{ top: this._collapsed ? -70 : 0 }}>
                 <div className="urlEditor">
                     <div className="editorBase">
                         <button className="editor-collapse"
                             style={{
-                                top: this.collapsed ? 70 : 10,
-                                transform: `rotate(${this.collapsed ? 180 : 0}deg) scale(${this.collapsed ? 0.5 : 1}) translate(${this.collapsed ? "-100%, -100%" : "0, 0"})`,
-                                opacity: (this.collapsed && !this.props.isSelected()) ? 0 : 0.9,
-                                left: (this.collapsed ? 0 : "unset"),
+                                top: this._collapsed ? 70 : 10,
+                                transform: `rotate(${this._collapsed ? 180 : 0}deg) scale(${this._collapsed ? 0.5 : 1}) translate(${this._collapsed ? "-100%, -100%" : "0, 0"})`,
+                                opacity: (this._collapsed && !this.props.isSelected()) ? 0 : 0.9,
+                                left: (this._collapsed ? 0 : "unset"),
                             }}
                             title="Collapse Url Editor" onClick={this.toggleCollapse}>
                             <FontAwesomeIcon icon="caret-up" size="2x" />
                         </button>
-                        <div style={{ marginLeft: 54, width: "100%", display: this.collapsed ? "none" : "flex" }}>
+                        <div className="webBox-buttons" style={{ display: this._collapsed ? "none" : "flex" }}>
+                            <div className="webBox-freeze" title={"Annotate"} style={{ background: frozen ? "lightBlue" : "gray" }} onClick={this.toggleNativeDimensions} >
+                                <FontAwesomeIcon icon={faPen} size={"2x"} />
+                            </div>
+                            <div className="webBox-freeze" title={"Select"} style={{ background: !frozen ? "lightBlue" : "gray" }} onClick={this.toggleNativeDimensions} >
+                                <FontAwesomeIcon icon={faMousePointer} size={"2x"} />
+                            </div>
                             <input className="webpage-urlInput"
                                 placeholder="ENTER URL"
-                                value={this.url}
+                                value={this._url}
                                 onChange={this.onURLChange}
                                 onKeyDown={this.onValueKeyDown}
                             />
@@ -130,9 +178,6 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
                                 <button className="submitUrl" onClick={this.submitURL}>
                                     SUBMIT
                                 </button>
-                                <div className="switchToText" title="Convert web to text doc" onClick={this.switchToText} style={{ display: "flex", alignItems: "center", justifyContent: "center" }} >
-                                    <FontAwesomeIcon icon={faStickyNote} size={"lg"} />
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -143,7 +188,7 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
 
     @action
     toggleCollapse = () => {
-        this.collapsed = !this.collapsed;
+        this._collapsed = !this._collapsed;
     }
 
     _ignore = 0;
@@ -164,6 +209,107 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
         }
     }
 
+    onLongPressDown = (e: React.PointerEvent) => {
+        this._pressX = e.clientX;
+        this._pressY = e.clientY;
+
+        // find the pressed element in the iframe (currently only works if its an img)
+        let pressedElement: HTMLElement | undefined;
+        let pressedBound: ClientRect | undefined;
+        let selectedText: string = "";
+        let pressedImg: boolean = false;
+        if (this._iframeRef.current) {
+            const B = this._iframeRef.current.getBoundingClientRect();
+            const iframeDoc = this._iframeRef.current.contentDocument;
+            if (B && iframeDoc) {
+                // TODO: this only works when scale = 1 as it is currently only inteded for mobile upload
+                const element = iframeDoc.elementFromPoint(this._pressX - B.left, this._pressY - B.top);
+                if (element && element.nodeName === "IMG") {
+                    pressedBound = element.getBoundingClientRect();
+                    pressedElement = element.cloneNode(true) as HTMLElement;
+                    pressedImg = true;
+                } else {
+                    // check if there is selected text
+                    const text = iframeDoc.getSelection();
+                    if (text && text.toString().length > 0) {
+                        selectedText = text.toString();
+
+                        // get html of the selected text
+                        const range = text.getRangeAt(0);
+                        const contents = range.cloneContents();
+                        const div = document.createElement("div");
+                        div.appendChild(contents);
+                        pressedElement = div;
+
+                        pressedBound = range.getBoundingClientRect();
+                    }
+                }
+            }
+        }
+
+        // mark the pressed element
+        if (pressedElement && pressedBound) {
+            if (this._iframeIndicatorRef.current) {
+                this._iframeIndicatorRef.current.style.top = pressedBound.top + "px";
+                this._iframeIndicatorRef.current.style.left = pressedBound.left + "px";
+                this._iframeIndicatorRef.current.style.width = pressedBound.width + "px";
+                this._iframeIndicatorRef.current.style.height = pressedBound.height + "px";
+                this._iframeIndicatorRef.current.classList.add("active");
+            }
+        }
+
+        // start dragging the pressed element if long pressed
+        this._longPressSecondsHack = setTimeout(() => {
+            if (pressedImg && pressedElement && pressedBound) {
+                e.stopPropagation();
+                e.preventDefault();
+                if (pressedElement.nodeName === "IMG") {
+                    const src = pressedElement.getAttribute("src"); // TODO: may not always work
+                    if (src) {
+                        const doc = Docs.Create.ImageDocument(src);
+                        ImageUtils.ExtractExif(doc);
+
+                        // add clone to div so that dragging ghost is placed properly
+                        if (this._iframeDragRef.current) this._iframeDragRef.current.appendChild(pressedElement);
+
+                        const dragData = new DragManager.DocumentDragData([doc]);
+                        DragManager.StartDocumentDrag([pressedElement], dragData, this._pressX, this._pressY, { hideSource: true });
+                    }
+                }
+            } else if (selectedText && pressedBound && pressedElement) {
+                e.stopPropagation();
+                e.preventDefault();
+                // create doc with the selected text's html
+                const doc = Docs.Create.HtmlDocument(pressedElement.innerHTML);
+
+                // create dragging ghost with the selected text
+                if (this._iframeDragRef.current) this._iframeDragRef.current.appendChild(pressedElement);
+
+                // start the drag
+                const dragData = new DragManager.DocumentDragData([doc]);
+                DragManager.StartDocumentDrag([pressedElement], dragData, this._pressX - pressedBound.top, this._pressY - pressedBound.top, { hideSource: true });
+            }
+        }, 1500);
+    }
+
+    onLongPressMove = (e: PointerEvent) => {
+        // this._pressX = e.clientX;
+        // this._pressY = e.clientY;
+    }
+
+    onLongPressUp = (e: PointerEvent) => {
+        if (this._longPressSecondsHack) {
+            clearTimeout(this._longPressSecondsHack);
+        }
+        if (this._iframeIndicatorRef.current) {
+            this._iframeIndicatorRef.current.classList.remove("active");
+        }
+        if (this._iframeDragRef.current) {
+            while (this._iframeDragRef.current.firstChild) this._iframeDragRef.current.removeChild(this._iframeDragRef.current.firstChild);
+        }
+    }
+
+
     @computed
     get content() {
         const field = this.dataDoc[this.props.fieldKey];
@@ -171,9 +317,10 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
         if (field instanceof HtmlField) {
             view = <span id="webBox-htmlSpan" dangerouslySetInnerHTML={{ __html: field.html }} />;
         } else if (field instanceof WebField) {
-            view = <iframe src={Utils.CorsProxy(field.url.href)} style={{ position: "absolute", width: "100%", height: "100%", top: 0 }} />;
+            const url = this.layoutDoc.UseCors ? Utils.CorsProxy(field.url.href) : field.url.href;
+            view = <iframe ref={this._iframeRef} onLoad={this.iframeLoaded} src={url} style={{ position: "absolute", width: "100%", height: "100%", top: 0 }} />;
         } else {
-            view = <iframe src={"https://crossorigin.me/https://cs.brown.edu"} style={{ position: "absolute", width: "100%", height: "100%", top: 0 }} />;
+            view = <iframe ref={this._iframeRef} src={"https://crossorigin.me/https://cs.brown.edu"} style={{ position: "absolute", width: "100%", height: "100%", top: 0 }} />;
         }
         const content =
             <div style={{ width: "100%", height: "100%", position: "absolute" }} onWheel={this.onPostWheel} onPointerDown={this.onPostPointer} onPointerMove={this.onPostPointer} onPointerUp={this.onPostPointer}>
@@ -181,40 +328,68 @@ export class WebBox extends DocAnnotatableComponent<FieldViewProps, WebDocument>
                 {view}
             </div>;
 
-        const frozen = !this.props.isSelected() || DocumentDecorations.Instance.Interacting;
+        const decInteracting = DocumentDecorations.Instance?.Interacting;
 
-        const classname = "webBox-cont" + (this.props.isSelected() && InkingControl.Instance.selectedTool === InkTool.None && !DocumentDecorations.Instance.Interacting ? "-interactive" : "");
-        return (
-            <>
-                <div className={classname}  >
-                    {content}
-                </div>
-                {!frozen ? (null) : <div className="webBox-overlay" onWheel={this.onPreWheel} onPointerDown={this.onPrePointer} onPointerMove={this.onPrePointer} onPointerUp={this.onPrePointer} />}
-            </>);
+        const frozen = !this.props.isSelected() || decInteracting;
+
+        return (<>
+            <div className={"webBox-cont" + (this.props.isSelected() && InkingControl.Instance.selectedTool === InkTool.None && !decInteracting ? "-interactive" : "")}  >
+                {content}
+            </div>
+            {!frozen ? (null) :
+                <div className="webBox-overlay" style={{ pointerEvents: this.layoutDoc.isBackground ? undefined : "all" }}
+                    onWheel={this.onPreWheel} onPointerDown={this.onPrePointer} onPointerMove={this.onPrePointer} onPointerUp={this.onPrePointer}>
+                    <div className="touch-iframe-overlay" onPointerDown={this.onLongPressDown} >
+                        <div className="indicator" ref={this._iframeIndicatorRef}></div>
+                        <div className="dragger" ref={this._iframeDragRef}></div>
+                    </div>
+                </div>}
+        </>);
     }
+    scrollXf = () => this.props.ScreenToLocalTransform().translate(0, NumCast(this.props.Document.scrollTop));
     render() {
-        return (<div className={"webBox-container"} >
-            <CollectionFreeFormView {...this.props}
-                PanelHeight={this.props.PanelHeight}
-                PanelWidth={this.props.PanelWidth}
-                annotationsKey={this.annotationKey}
-                focus={this.props.focus}
-                isSelected={this.props.isSelected}
-                isAnnotationOverlay={true}
-                select={emptyFunction}
-                active={this.active}
-                ContentScaling={returnOne}
-                whenActiveChanged={this.whenActiveChanged}
-                removeDocument={this.removeDocument}
-                moveDocument={this.moveDocument}
-                addDocument={this.addDocument}
-                CollectionView={undefined}
-                ScreenToLocalTransform={this.props.ScreenToLocalTransform}
-                renderDepth={this.props.renderDepth + 1}
-                ContainingCollectionDoc={this.props.ContainingCollectionDoc}
-                chromeCollapsed={true}>
-                {() => [this.content]}
-            </CollectionFreeFormView>
+        return (<div className={`webBox-container`}
+            style={{
+                transform: `scale(${this.props.ContentScaling()})`,
+                width: `${100 / this.props.ContentScaling()}%`,
+                height: `${100 / this.props.ContentScaling()}%`,
+                pointerEvents: this.layoutDoc.isBackground ? "none" : undefined
+            }} >
+            {this.content}
+            <div className={"webBox-outerContent"} ref={this._outerRef}
+                style={{ pointerEvents: this.layoutDoc.isAnnotating && !this.layoutDoc.isBackground ? "all" : "none" }}
+                onWheel={e => e.stopPropagation()}
+                onScroll={e => {
+                    if (this._iframeRef.current!.contentDocument!.children[0].scrollTop !== this._outerRef.current!.scrollTop) {
+                        this._iframeRef.current!.contentDocument!.children[0].scrollTop = this._outerRef.current!.scrollTop;
+                    }
+                    //this._outerRef.current!.scrollTop !== this._scrollTop && (this._outerRef.current!.scrollTop = this._scrollTop)
+                }}>
+                <div className={"webBox-innerContent"} style={{ height: NumCast(this.layoutDoc.scrollHeight) }}>
+                    <CollectionFreeFormView {...this.props}
+                        PanelHeight={this.props.PanelHeight}
+                        PanelWidth={this.props.PanelWidth}
+                        annotationsKey={this.annotationKey}
+                        NativeHeight={returnZero}
+                        NativeWidth={returnZero}
+                        focus={this.props.focus}
+                        setPreviewCursor={this.setPreviewCursor}
+                        isSelected={this.props.isSelected}
+                        isAnnotationOverlay={true}
+                        select={emptyFunction}
+                        active={this.active}
+                        ContentScaling={returnOne}
+                        whenActiveChanged={this.whenActiveChanged}
+                        removeDocument={this.removeDocument}
+                        moveDocument={this.moveDocument}
+                        addDocument={this.addDocument}
+                        CollectionView={undefined}
+                        ScreenToLocalTransform={this.scrollXf}
+                        renderDepth={this.props.renderDepth + 1}
+                        ContainingCollectionDoc={this.props.ContainingCollectionDoc}>
+                    </CollectionFreeFormView>
+                </div>
+            </div>
         </div >);
     }
 }

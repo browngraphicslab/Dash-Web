@@ -1,3 +1,7 @@
-.inkingStroke-marker {
-    mix-blend-mode: multiply
+.inkingStroke {
+    mix-blend-mode: multiply;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+    overflow: visible !important;
+    transform-origin: top left;
 }

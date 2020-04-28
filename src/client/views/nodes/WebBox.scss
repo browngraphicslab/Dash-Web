@@ -1,20 +1,36 @@
 @import "../globalCssVariables.scss";
 
-.webBox-cont,
-.webBox-cont-interactive {
+
+.webBox-container, .webBox-container-dragging {
+    transform-origin: top left;
+    .webBox-outerContent {
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        overflow: auto;
+        .webBox-innerContent { 
+            width:100%;
+        }
+    }
+    div.webBox-outerContent::-webkit-scrollbar-thumb {
+        display:none;
+    }
+}
+.webBox-cont {
     padding: 0vw;
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
+    transform-origin: top left;
     overflow: auto;
     pointer-events: none;
 }
 
 .webBox-cont-interactive {
-    pointer-events: all;
-
     span {
         user-select: text !important;
     }
@@ -30,22 +46,26 @@
     width: 100%;
     height: 100%;
     position: absolute;
-    pointer-events: all;
 }
 
-.webBox-button {
-    padding: 0vw;
-    border: none;
+.webBox-buttons {
+    margin-left: 44;
+    background:lightGray;
     width: 100%;
-    height: 100%;
+}
+.webBox-freeze {
+    display: flex;
+    align-items: center; 
+    justify-content: center;
+    margin-right: 5px;
+    width: 30px;
 }
 
-.webView-urlEditor {
+.webBox-urlEditor {
     position: relative;
     opacity: 0.9;
     z-index: 9001;
     transition: top .5s;
-    background: lightgrey;
     padding: 10px;
 
 
@@ -90,4 +110,18 @@
     width: 100%;
     margin-right: 10px;
     height: 100%;
+}
+
+.touch-iframe-overlay {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+
+    .indicator {
+        position: absolute;
+
+        &.active {
+            background-color: rgba(0, 0, 0, 0.1);
+        }
+    }
 }

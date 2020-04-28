@@ -7,14 +7,14 @@ import { ObjectField } from "./ObjectField";
 import { action, trace } from "mobx";
 import { Parent, OnUpdate, Update, Id, SelfProxy, Self } from "./FieldSymbols";
 import { DocServer } from "../client/DocServer";
-import { props } from "bluebird";
 
 function _readOnlySetter(): never {
     throw new Error("Documents can't be modified in read-only mode");
 }
 
+const tracing = false;
 export function TraceMobx() {
-    // trace();
+    tracing && trace();
 }
 
 export interface GetterResult {
@@ -101,7 +101,7 @@ export function makeEditable() {
     _setter = _setterImpl;
 }
 
-let layoutProps = ["panX", "panY", "width", "height", "nativeWidth", "nativeHeight", "fitWidth", "fitToBox",
+const layoutProps = ["panX", "panY", "width", "height", "nativeWidth", "nativeHeight", "fitWidth", "fitToBox",
     "LODdisable", "chromeStatus", "viewType", "gridGap", "xMargin", "yMargin", "autoHeight"];
 export function setter(target: any, in_prop: string | symbol | number, value: any, receiver: any): boolean {
     let prop = in_prop;

@@ -9,14 +9,14 @@ import { Doc } from "../../../new_fields/Doc";
 import { InkTool } from "../../../new_fields/InkField";
 import { createSchema, makeInterface } from "../../../new_fields/Schema";
 import { ScriptField } from "../../../new_fields/ScriptField";
-import { Cast, StrCast, NumCast } from "../../../new_fields/Types";
+import { Cast, StrCast } from "../../../new_fields/Types";
 import { VideoField } from "../../../new_fields/URLField";
-import { Utils, emptyFunction, returnOne } from "../../../Utils";
+import { Utils, emptyFunction, returnOne, returnZero } from "../../../Utils";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
-import { DocAnnotatableComponent } from "../DocComponent";
+import { ViewBoxAnnotatableComponent } from "../DocComponent";
 import { DocumentDecorations } from "../DocumentDecorations";
 import { InkingControl } from "../InkingControl";
 import { FieldView, FieldViewProps } from './FieldView';
@@ -33,7 +33,7 @@ const VideoDocument = makeInterface(documentSchema, positionSchema, timeSchema);
 library.add(faVideo);
 
 @observer
-export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocument>(VideoDocument) {
+export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoDocument>(VideoDocument) {
     static _youtubeIframeCounter: number = 0;
     private _reactionDisposer?: IReactionDisposer;
     private _youtubeReactionDisposer?: IReactionDisposer;
@@ -55,14 +55,10 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
 
     videoLoad = () => {
         const aspect = this.player!.videoWidth / this.player!.videoHeight;
-        const nativeWidth = (this.Document._nativeWidth || 0);
-        const nativeHeight = (this.Document._nativeHeight || 0);
-        if (!nativeWidth || !nativeHeight) {
-            if (!this.Document._nativeWidth) this.Document._nativeWidth = this.player!.videoWidth;
-            this.Document._nativeHeight = (this.Document._nativeWidth || 0) / aspect;
-            this.Document._height = (this.Document._width || 0) / aspect;
-        }
-        if (!this.Document.duration) this.Document.duration = this.player!.duration;
+        this.layoutDoc._nativeWidth = this.player!.videoWidth;
+        this.layoutDoc._nativeHeight = (this.layoutDoc._nativeWidth || 0) / aspect;
+        this.layoutDoc._height = (this.layoutDoc._width || 0) / aspect;
+        this.dataDoc[this.fieldKey + "-" + "duration"] = this.player!.duration;
     }
 
     @action public Play = (update: boolean = true) => {
@@ -90,7 +86,7 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
     @action public FullScreen() {
         this._fullScreen = true;
         this.player && this.player.requestFullscreen();
-        this._youtubePlayer && this.props.addDocTab(this.props.Document, this.props.DataDoc, "inTab");
+        this._youtubePlayer && this.props.addDocTab(this.rootDoc, "inTab");
     }
 
     choosePath(url: string) {
@@ -101,11 +97,11 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
     }
 
     @action public Snapshot() {
-        const width = this.Document._width || 0;
-        const height = this.Document._height || 0;
+        const width = (this.layoutDoc._width || 0);
+        const height = (this.layoutDoc._height || 0);
         const canvas = document.createElement('canvas');
         canvas.width = 640;
-        canvas.height = 640 * (this.Document._nativeHeight || 0) / (this.Document._nativeWidth || 1);
+        canvas.height = 640 * (this.layoutDoc._nativeHeight || 0) / (this.layoutDoc._nativeWidth || 1);
         const ctx = canvas.getContext('2d');//draw image to canvas. scale to target dimensions
         if (ctx) {
             ctx.rect(0, 0, canvas.width, canvas.height);
@@ -116,25 +112,28 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
 
         if (!this._videoRef) { // can't find a way to take snapshots of videos
             const b = Docs.Create.ButtonDocument({
-                x: (this.Document.x || 0) + width, y: (this.Document.y || 0),
-                _width: 150, _height: 50, title: (this.Document.currentTimecode || 0).toString()
+                x: (this.layoutDoc.x || 0) + width, y: (this.layoutDoc.y || 1),
+                _width: 150, _height: 50, title: (this.layoutDoc.currentTimecode || 0).toString()
             });
-            b.onClick = ScriptField.MakeScript(`this.currentTimecode = ${(this.Document.currentTimecode || 0)}`);
+            b.onClick = ScriptField.MakeScript(`this.currentTimecode = ${(this.layoutDoc.currentTimecode || 0)}`);
         } else {
             //convert to desired file format
             const dataUrl = canvas.toDataURL('image/png'); // can also use 'image/png'
             // if you want to preview the captured image,
-            const filename = path.basename(encodeURIComponent("snapshot" + StrCast(this.Document.title).replace(/\..*$/, "") + "_" + (this.Document.currentTimecode || 0).toString().replace(/\./, "_")));
+            const filename = path.basename(encodeURIComponent("snapshot" + StrCast(this.rootDoc.title).replace(/\..*$/, "") + "_" + (this.layoutDoc.currentTimecode || 0).toString().replace(/\./, "_")));
             VideoBox.convertDataUri(dataUrl, filename).then(returnedFilename => {
                 if (returnedFilename) {
                     const url = this.choosePath(Utils.prepend(returnedFilename));
                     const imageSummary = Docs.Create.ImageDocument(url, {
-                        x: (this.Document.x || 0) + width, y: (this.Document.y || 0),
-                        _width: 150, _height: height / width * 150, title: "--snapshot" + (this.Document.currentTimecode || 0) + " image-"
+                        _nativeWidth: this.layoutDoc._nativeWidth, _nativeHeight: this.layoutDoc._nativeHeight,
+                        x: (this.layoutDoc.x || 0) + width, y: (this.layoutDoc.y || 0),
+                        _width: 150, _height: height / width * 150, title: "--snapshot" + (this.layoutDoc.currentTimecode || 0) + " image-"
                     });
-                    imageSummary.isButton = true;
+                    Doc.GetProto(imageSummary)["data-nativeWidth"] = this.layoutDoc._nativeWidth;
+                    Doc.GetProto(imageSummary)["data-nativeHeight"] = this.layoutDoc._nativeHeight;
+                    imageSummary.isLinkButton = true;
                     this.props.addDocument && this.props.addDocument(imageSummary);
-                    DocUtils.MakeLink({ doc: imageSummary }, { doc: this.props.Document }, "snapshot from " + this.Document.title, "video frame snapshot");
+                    DocUtils.MakeLink({ doc: imageSummary }, { doc: this.rootDoc }, "video snapshot");
                 }
             });
         }
@@ -142,8 +141,8 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
 
     @action
     updateTimecode = () => {
-        this.player && (this.Document.currentTimecode = this.player.currentTime);
-        this._youtubePlayer && (this.Document.currentTimecode = this._youtubePlayer.getCurrentTime());
+        this.player && (this.layoutDoc.currentTimecode = this.player.currentTime);
+        this._youtubePlayer && (this.layoutDoc.currentTimecode = this._youtubePlayer.getCurrentTime());
     }
 
     componentDidMount() {
@@ -151,12 +150,12 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
 
         if (this.youtubeVideoId) {
             const youtubeaspect = 400 / 315;
-            const nativeWidth = (this.Document._nativeWidth || 0);
-            const nativeHeight = (this.Document._nativeHeight || 0);
+            const nativeWidth = (this.layoutDoc._nativeWidth || 0);
+            const nativeHeight = (this.layoutDoc._nativeHeight || 0);
             if (!nativeWidth || !nativeHeight) {
-                if (!this.Document._nativeWidth) this.Document._nativeWidth = 600;
-                this.Document._nativeHeight = (this.Document._nativeWidth || 0) / youtubeaspect;
-                this.Document._height = (this.Document._width || 0) / youtubeaspect;
+                if (!this.layoutDoc._nativeWidth) this.layoutDoc._nativeWidth = 600;
+                this.layoutDoc._nativeHeight = (this.layoutDoc._nativeWidth || 0) / youtubeaspect;
+                this.layoutDoc._height = (this.layoutDoc._width || 0) / youtubeaspect;
             }
         }
         
@@ -176,7 +175,7 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
             this._videoRef!.ontimeupdate = this.updateTimecode;
             vref.onfullscreenchange = action((e) => this._fullScreen = vref.webkitDisplayingFullscreen);
             this._reactionDisposer && this._reactionDisposer();
-            this._reactionDisposer = reaction(() => this.Document.currentTimecode || 0,
+            this._reactionDisposer = reaction(() => (this.layoutDoc.currentTimecode || 0),
                 time => !this._playing && (vref.currentTime = time), { fireImmediately: true });
         }
     }
@@ -197,6 +196,7 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
             console.log(e);
         }
     }
+    @observable _screenCapture = false;
     specificContextMenu = (e: React.MouseEvent): void => {
         const field = Cast(this.dataDoc[this.props.fieldKey], VideoField);
         if (field) {
@@ -205,17 +205,29 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
             subitems.push({ description: "Copy path", event: () => { Utils.CopyText(url); }, icon: "expand-arrows-alt" });
             subitems.push({ description: "Toggle Show Controls", event: action(() => VideoBox._showControls = !VideoBox._showControls), icon: "expand-arrows-alt" });
             subitems.push({ description: "Take Snapshot", event: () => this.Snapshot(), icon: "expand-arrows-alt" });
-            ContextMenu.Instance.addItem({ description: "Video Funcs...", subitems: subitems, icon: "video" });
+            subitems.push({
+                description: "Screen Capture", event: (async () => {
+                    runInAction(() => this._screenCapture = !this._screenCapture);
+                    this._videoRef!.srcObject = !this._screenCapture ? undefined : await (navigator.mediaDevices as any).getDisplayMedia({ video: true });
+                }), icon: "expand-arrows-alt"
+            });
+            ContextMenu.Instance.addItem({ description: "Options...", subitems: subitems, icon: "video" });
         }
     }
 
     @computed get content() {
-        const field = Cast(this.dataDoc[this.props.fieldKey], VideoField);
+        const field = Cast(this.dataDoc[this.fieldKey], VideoField);
         const interactive = InkingControl.Instance.selectedTool || !this.props.isSelected() ? "" : "-interactive";
         const style = "videoBox-content" + (this._fullScreen ? "-fullScreen" : "") + interactive;
         return !field ? <div>Loading</div> :
-            <video className={`${style}`} key="video" ref={this.setVideoRef} onCanPlay={this.videoLoad} controls={VideoBox._showControls}
-                onPlay={() => this.Play()} onSeeked={this.updateTimecode} onPause={() => this.Pause()} onClick={e => e.preventDefault()}>
+            <video className={`${style}`} key="video" autoPlay={this._screenCapture} ref={this.setVideoRef}
+                style={{ width: this._screenCapture ? "100%" : undefined, height: this._screenCapture ? "100%" : undefined }}
+                onCanPlay={this.videoLoad}
+                controls={VideoBox._showControls}
+                onPlay={() => this.Play()}
+                onSeeked={this.updateTimecode}
+                onPause={() => this.Pause()}
+                onClick={e => e.preventDefault()}>
                 <source src={field.url.href} type="video/mp4" />
                 Not supported.
             </video>;
@@ -248,7 +260,7 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
         const onYoutubePlayerReady = (event: any) => {
             this._reactionDisposer && this._reactionDisposer();
             this._youtubeReactionDisposer && this._youtubeReactionDisposer();
-            this._reactionDisposer = reaction(() => this.Document.currentTimecode, () => !this._playing && this.Seek(this.Document.currentTimecode || 0));
+            this._reactionDisposer = reaction(() => this.layoutDoc.currentTimecode, () => !this._playing && this.Seek((this.layoutDoc.currentTimecode || 0)));
             this._youtubeReactionDisposer = reaction(() => [this.props.isSelected(), DocumentDecorations.Instance.Interacting, InkingControl.Instance.selectedTool], () => {
                 const interactive = InkingControl.Instance.selectedTool === InkTool.None && this.props.isSelected(true) && !DocumentDecorations.Instance.Interacting;
                 iframe.style.pointerEvents = interactive ? "all" : "none";
@@ -263,8 +275,7 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
 
     }
     private get uIButtons() {
-        const scaling = Math.min(1.8, this.props.ScreenToLocalTransform().Scale);
-        const curTime = (this.Document.currentTimecode || 0);
+        const curTime = (this.layoutDoc.currentTimecode || 0);
         return ([<div className="videoBox-time" key="time" onPointerDown={this.onResetDown} >
             <span>{"" + Math.round(curTime)}</span>
             <span style={{ fontSize: 8 }}>{" " + Math.round((curTime - Math.trunc(curTime)) * 100)}</span>
@@ -306,7 +317,7 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
 
     onResetMove = (e: PointerEvent) => {
         this._isResetClick += Math.abs(e.movementX) + Math.abs(e.movementY);
-        this.Seek(Math.max(0, (this.Document.currentTimecode || 0) + Math.sign(e.movementX) * 0.0333));
+        this.Seek(Math.max(0, (this.layoutDoc.currentTimecode || 0) + Math.sign(e.movementX) * 0.0333));
         e.stopImmediatePropagation();
     }
 
@@ -314,22 +325,22 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
     onResetUp = (e: PointerEvent) => {
         document.removeEventListener("pointermove", this.onResetMove, true);
         document.removeEventListener("pointerup", this.onResetUp, true);
-        this._isResetClick < 10 && (this.Document.currentTimecode = 0);
+        this._isResetClick < 10 && (this.layoutDoc.currentTimecode = 0);
     }
 
     @computed get youtubeContent() {
         this._youtubeIframeId = VideoBox._youtubeIframeCounter++;
         this._youtubeContentCreated = this._forceCreateYouTubeIFrame ? true : true;
         const style = "videoBox-content-YouTube" + (this._fullScreen ? "-fullScreen" : "");
-        const start = untracked(() => Math.round(this.Document.currentTimecode || 0));
+        const start = untracked(() => Math.round((this.layoutDoc.currentTimecode || 0)));
         return <iframe key={this._youtubeIframeId} id={`${this.youtubeVideoId + this._youtubeIframeId}-player`}
-            onLoad={this.youtubeIframeLoaded} className={`${style}`} width={(this.Document._nativeWidth || 640)} height={(this.Document._nativeHeight || 390)}
+            onLoad={this.youtubeIframeLoaded} className={`${style}`} width={(this.layoutDoc._nativeWidth || 640)} height={(this.layoutDoc._nativeHeight || 390)}
             src={`https://www.youtube.com/embed/${this.youtubeVideoId}?enablejsapi=1&rel=0&showinfo=1&autoplay=1&mute=1&start=${start}&modestbranding=1&controls=${VideoBox._showControls ? 1 : 0}`} />;
     }
 
     @action.bound
     addDocumentWithTimestamp(doc: Doc): boolean {
-        const curTime = (this.Document.currentTimecode || -1);
+        const curTime = (this.layoutDoc.currentTimecode || -1);
         curTime !== -1 && (doc.displayTimecode = curTime);
         return this.addDocument(doc);
     }
@@ -342,6 +353,8 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
                 <CollectionFreeFormView {...this.props}
                     PanelHeight={this.props.PanelHeight}
                     PanelWidth={this.props.PanelWidth}
+                    NativeHeight={returnZero}
+                    NativeWidth={returnZero}
                     annotationsKey={this.annotationKey}
                     focus={this.props.focus}
                     isSelected={this.props.isSelected}
@@ -356,8 +369,7 @@ export class VideoBox extends DocAnnotatableComponent<FieldViewProps, VideoDocum
                     CollectionView={undefined}
                     ScreenToLocalTransform={this.props.ScreenToLocalTransform}
                     renderDepth={this.props.renderDepth + 1}
-                    ContainingCollectionDoc={this.props.ContainingCollectionDoc}
-                    chromeCollapsed={true}>
+                    ContainingCollectionDoc={this.props.ContainingCollectionDoc}>
                     {this.contentFunc}
                 </CollectionFreeFormView>
             </div>

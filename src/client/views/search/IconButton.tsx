@@ -11,7 +11,6 @@ import '../globalCssVariables.scss';
 import * as _ from "lodash";
 import { IconBar } from './IconBar';
 import { props } from 'bluebird';
-import { FilterBox } from './FilterBox';
 import { Search } from '../../../server/Search';
 import { gravity } from 'sharp';
 
@@ -34,7 +33,7 @@ interface IconButtonProps {
 @observer
 export class IconButton extends React.Component<IconButtonProps>{
 
-    @observable private _isSelected: boolean = FilterBox.Instance.getIcons().indexOf(this.props.type) !== -1;
+    @observable private _isSelected: boolean = IconBar.Instance.getIcons().indexOf(this.props.type) !== -1;
     @observable private _hover = false;
     private _resetReaction?: IReactionDisposer;
     private _selectAllReaction?: IReactionDisposer;
@@ -87,15 +86,13 @@ export class IconButton extends React.Component<IconButtonProps>{
                 return faMusic;
             case (DocumentType.COL):
                 return faObjectGroup;
-            case (DocumentType.HIST):
-                return faChartBar;
             case (DocumentType.IMG):
                 return faImage;
             case (DocumentType.LINK):
                 return faLink;
             case (DocumentType.PDF):
                 return faFilePdf;
-            case (DocumentType.TEXT):
+            case (DocumentType.RTF):
                 return faStickyNote;
             case (DocumentType.VID):
                 return faVideo;
@@ -108,7 +105,7 @@ export class IconButton extends React.Component<IconButtonProps>{
 
     @action.bound
     onClick = () => {
-        const newList: string[] = FilterBox.Instance.getIcons();
+        const newList: string[] = IconBar.Instance.getIcons();
 
         if (!this._isSelected) {
             this._isSelected = true;
@@ -119,21 +116,24 @@ export class IconButton extends React.Component<IconButtonProps>{
             _.pull(newList, this.props.type);
         }
 
-        FilterBox.Instance.updateIcon(newList);
+        IconBar.Instance.updateIcon(newList);
     }
 
     selected = {
         opacity: 1,
-        backgroundColor: "rgb(128, 128, 128)"
+        backgroundColor: "#121721",
+        //backgroundColor: "rgb(128, 128, 128)"
     };
 
     notSelected = {
         opacity: 0.2,
+        backgroundColor: "#121721",
     };
 
     hoverStyle = {
         opacity: 1,
-        backgroundColor: "rgb(178, 206, 248)" //$darker-alt-accent
+        backgroundColor: "rgb(128, 128, 128)"
+        //backgroundColor: "rgb(178, 206, 248)" //$darker-alt-accent
     };
 
     @action.bound
@@ -156,15 +156,13 @@ export class IconButton extends React.Component<IconButtonProps>{
                 return (<FontAwesomeIcon className="fontawesome-icon" icon={faMusic} />);
             case (DocumentType.COL):
                 return (<FontAwesomeIcon className="fontawesome-icon" icon={faObjectGroup} />);
-            case (DocumentType.HIST):
-                return (<FontAwesomeIcon className="fontawesome-icon" icon={faChartBar} />);
             case (DocumentType.IMG):
                 return (<FontAwesomeIcon className="fontawesome-icon" icon={faImage} />);
             case (DocumentType.LINK):
                 return (<FontAwesomeIcon className="fontawesome-icon" icon={faLink} />);
             case (DocumentType.PDF):
                 return (<FontAwesomeIcon className="fontawesome-icon" icon={faFilePdf} />);
-            case (DocumentType.TEXT):
+            case (DocumentType.RTF):
                 return (<FontAwesomeIcon className="fontawesome-icon" icon={faStickyNote} />);
             case (DocumentType.VID):
                 return (<FontAwesomeIcon className="fontawesome-icon" icon={faVideo} />);
@@ -186,7 +184,7 @@ export class IconButton extends React.Component<IconButtonProps>{
                 >
                     {this.getFA()}
                 </div>
-                <div className="filter-description">{this.props.type}</div>
+                {/* <div className="filter-description">{this.props.type}</div> */}
             </div>
         );
     }

@@ -1,17 +1,20 @@
-import { action, observable, runInAction, ObservableSet } from "mobx";
+import { action, observable, runInAction, ObservableSet, trace, computed } from "mobx";
 import { observer } from "mobx-react";
 import { SelectionManager } from "../util/SelectionManager";
 import { undoBatch } from "../util/UndoManager";
 import './TemplateMenu.scss';
 import { DocumentView } from "./nodes/DocumentView";
-import { Template, Templates } from "./Templates";
+import { Template } from "./Templates";
 import React = require("react");
 import { Doc, DocListCast } from "../../new_fields/Doc";
+import { Docs, } from "../documents/Documents";
 import { StrCast, Cast } from "../../new_fields/Types";
-import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
-const higflyout = require("@hig/flyout");
-export const { anchorPoints } = higflyout;
-export const Flyout = higflyout.default;
+import { CollectionTreeView } from "./collections/CollectionTreeView";
+import { returnTrue, emptyFunction, returnFalse, returnOne, emptyPath, returnZero } from "../../Utils";
+import { Transform } from "../util/Transform";
+import { ScriptField, ComputedField } from "../../new_fields/ScriptField";
+import { Scripting } from "../util/Scripting";
+import { List } from "../../new_fields/List";
 
 @observer
 class TemplateToggle extends React.Component<{ template: Template, checked: boolean, toggle: (event: React.ChangeEvent<HTMLInputElement>, template: Template) => void }> {
@@ -48,10 +51,15 @@ export interface TemplateMenuProps {
 
 @observer
 export class TemplateMenu extends React.Component<TemplateMenuProps> {
+    _addedKeys = new ObservableSet();
+    _customRef = React.createRef<HTMLInputElement>();
     @observable private _hidden: boolean = true;
 
     toggleLayout = (e: React.ChangeEvent<HTMLInputElement>, layout: string): void => {
-        this.props.docViews.map(dv => dv.setCustomView(e.target.checked, layout));
+        this.props.docViews.map(dv => dv.switchViews(e.target.checked, layout));
+    }
+    toggleDefault = (e: React.ChangeEvent<HTMLInputElement>): void => {
+        this.props.docViews.map(dv => dv.switchViews(false, "layout"));
     }
 
     toggleFloat = (e: React.ChangeEvent<HTMLInputElement>): void => {
@@ -62,15 +70,14 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
         DocumentView.FloatDoc(topDocView, ex, ey);
     }
 
+    toggleAudio = (e: React.ChangeEvent<HTMLInputElement>): void => {
+        this.props.docViews.map(dv => dv.props.Document._showAudio = e.target.checked);
+    }
 
     @undoBatch
     @action
     toggleTemplate = (event: React.ChangeEvent<HTMLInputElement>, template: Template): void => {
-        if (event.target.checked) {
-            this.props.docViews.map(d => d.Document["show" + template.Name] = template.Name.toLowerCase());
-        } else {
-            this.props.docViews.map(d => d.Document["show" + template.Name] = "");
-        }
+        this.props.docViews.forEach(d => Doc.Layout(d.layoutDoc)["_show" + template.Name] = event.target.checked ? template.Name.toLowerCase() : "");
     }
 
     @action
@@ -81,10 +88,8 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     @undoBatch
     @action
     toggleChrome = (): void => {
-        this.props.docViews.map(dv => {
-            const layout = Doc.Layout(dv.Document);
-            layout._chromeStatus = (layout._chromeStatus !== "disabled" ? "disabled" : "enabled");
-        });
+        this.props.docViews.map(dv => Doc.Layout(dv.layoutDoc)).forEach(layout =>
+            layout._chromeStatus = (layout._chromeStatus !== "disabled" ? "disabled" : StrCast(layout._replacedChrome, "enabled")));
     }
 
     // todo: add brushes to brushMap to save with a style name
@@ -98,28 +103,80 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
         Array.from(Object.keys(Doc.GetProto(this.props.docViews[0].props.Document))).
             filter(key => key.startsWith("layout_")).
             map(key => runInAction(() => this._addedKeys.add(key.replace("layout_", ""))));
-        DocListCast(Cast(CurrentUserUtils.UserDocument.expandingButtons, Doc, null)?.data)?.map(btnDoc => {
-            if (StrCast(Cast(btnDoc?.dragFactory, Doc, null)?.title)) {
-                runInAction(() => this._addedKeys.add(StrCast(Cast(btnDoc?.dragFactory, Doc, null)?.title)));
-            }
-        });
     }
 
-    _addedKeys = new ObservableSet();
-    _customRef = React.createRef<HTMLInputElement>();
+    return100 = () => 100;
+    @computed get scriptField() {
+        return ScriptField.MakeScript("docs.map(d => switchView(d, this))", { this: Doc.name, heading: "string", checked: "string", containingTreeView: Doc.name, firstDoc: Doc.name },
+            { docs: new List<Doc>(this.props.docViews.map(dv => dv.props.Document)) });
+    }
     render() {
-        const layout = Doc.Layout(this.props.docViews[0].Document);
+        const firstDoc = this.props.docViews[0].props.Document;
+        const templateName = StrCast(firstDoc.layoutKey, "layout").replace("layout_", "");
+        const noteTypes = DocListCast(Cast(Doc.UserDoc()["template-notes"], Doc, null));
+        const addedTypes = DocListCast(Cast(Doc.UserDoc().templateButtons, Doc, null)?.data);
+        const layout = Doc.Layout(firstDoc);
         const templateMenu: Array<JSX.Element> = [];
         this.props.templates.forEach((checked, template) =>
             templateMenu.push(<TemplateToggle key={template.Name} template={template} checked={checked} toggle={this.toggleTemplate} />));
-        templateMenu.push(<OtherToggle key={"float"} name={"Float"} checked={this.props.docViews[0].Document.z ? true : false} toggle={this.toggleFloat} />);
+        templateMenu.push(<OtherToggle key={"audio"} name={"Audio"} checked={firstDoc._showAudio ? true : false} toggle={this.toggleAudio} />);
+        templateMenu.push(<OtherToggle key={"float"} name={"Float"} checked={firstDoc.z ? true : false} toggle={this.toggleFloat} />);
         templateMenu.push(<OtherToggle key={"chrome"} name={"Chrome"} checked={layout._chromeStatus !== "disabled"} toggle={this.toggleChrome} />);
-        this._addedKeys && Array.from(this._addedKeys).map(layout =>
-            templateMenu.push(<OtherToggle key={layout} name={layout} checked={StrCast(this.props.docViews[0].Document.layoutKey, "layout") === "layout_" + layout} toggle={e => this.toggleLayout(e, layout)} />)
-        );
+        templateMenu.push(<OtherToggle key={"default"} name={"Default"} checked={templateName === "layout"} toggle={this.toggleDefault} />);
+        addedTypes.concat(noteTypes).map(template => template.treeViewChecked = ComputedField.MakeFunction(`templateIsUsed(self,firstDoc)`, {}, { firstDoc }));
+        this._addedKeys && Array.from(this._addedKeys).filter(key => !noteTypes.some(nt => nt.title === key)).forEach(template => templateMenu.push(
+            <OtherToggle key={template} name={template} checked={templateName === template} toggle={e => this.toggleLayout(e, template)} />));
         return <ul className="template-list" style={{ display: "block" }}>
+            <input placeholder="+ layout" ref={this._customRef} onKeyPress={this.onCustomKeypress} />
             {templateMenu}
-            <input placeholder="+ layout" ref={this._customRef} onKeyPress={this.onCustomKeypress}></input>
+            <CollectionTreeView
+                Document={Doc.UserDoc().templateDocs as Doc}
+                CollectionView={undefined}
+                ContainingCollectionDoc={undefined}
+                ContainingCollectionView={undefined}
+                rootSelected={returnFalse}
+                onCheckedClick={this.scriptField!}
+                onChildClick={this.scriptField!}
+                LibraryPath={emptyPath}
+                dropAction={undefined}
+                active={returnTrue}
+                ContentScaling={returnOne}
+                bringToFront={emptyFunction}
+                focus={emptyFunction}
+                whenActiveChanged={emptyFunction}
+                ScreenToLocalTransform={Transform.Identity}
+                isSelected={returnFalse}
+                pinToPres={emptyFunction}
+                select={emptyFunction}
+                renderDepth={1}
+                addDocTab={returnFalse}
+                NativeHeight={returnZero}
+                NativeWidth={returnZero}
+                PanelWidth={this.return100}
+                PanelHeight={this.return100}
+                treeViewHideHeaderFields={true}
+                annotationsKey={""}
+                dontRegisterView={true}
+                fieldKey={"data"}
+                moveDocument={(doc: Doc) => false}
+                removeDocument={(doc: Doc) => false}
+                addDocument={(doc: Doc) => false} />
         </ul>;
     }
 }
+
+Scripting.addGlobal(function switchView(doc: Doc, template: Doc | undefined) {
+    if (template?.dragFactory) {
+        template = Cast(template.dragFactory, Doc, null);
+    }
+    const templateTitle = StrCast(template?.title);
+    return templateTitle && Doc.makeCustomViewClicked(doc, Docs.Create.FreeformDocument, templateTitle, template);
+});
+
+Scripting.addGlobal(function templateIsUsed(templateDoc: Doc, selDoc: Doc) {
+    if (selDoc) {
+        const template = StrCast(templateDoc.dragFactory ? Cast(templateDoc.dragFactory, Doc, null)?.title : templateDoc.title);
+        return StrCast(selDoc.layoutKey) === "layout_" + template ? 'check' : 'unchecked';
+    }
+    return false;
+});

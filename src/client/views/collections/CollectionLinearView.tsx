@@ -3,8 +3,8 @@ import { observer } from 'mobx-react';
 import * as React from 'react';
 import { Doc, HeightSym, WidthSym } from '../../../new_fields/Doc';
 import { makeInterface } from '../../../new_fields/Schema';
-import { BoolCast, NumCast, StrCast, Cast } from '../../../new_fields/Types';
-import { emptyFunction, returnEmptyString, returnOne, returnTrue, Utils } from '../../../Utils';
+import { BoolCast, NumCast, StrCast, Cast, ScriptCast } from '../../../new_fields/Types';
+import { emptyFunction, returnEmptyString, returnOne, returnTrue, Utils, returnFalse, returnZero } from '../../../Utils';
 import { DragManager } from '../../util/DragManager';
 import { Transform } from '../../util/Transform';
 import "./CollectionLinearView.scss";
@@ -13,7 +13,6 @@ import { CollectionSubView } from './CollectionSubView';
 import { DocumentView } from '../nodes/DocumentView';
 import { documentSchema } from '../../../new_fields/documentSchemas';
 import { Id } from '../../../new_fields/FieldSymbols';
-import { ScriptField } from '../../../new_fields/ScriptField';
 
 
 type LinearDocument = makeInterface<[typeof documentSchema,]>;
@@ -28,18 +27,16 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
     private _selectedDisposer?: IReactionDisposer;
 
     componentWillUnmount() {
-        this._dropDisposer && this._dropDisposer();
-        this._widthDisposer && this._widthDisposer();
-        this._selectedDisposer && this._selectedDisposer();
-        this.childLayoutPairs.filter((pair) => this.isCurrent(pair.layout)).map((pair, ind) => {
-            Cast(pair.layout.proto?.onPointerUp, ScriptField)?.script.run({ this: pair.layout.proto }, console.log);
-        });
+        this._dropDisposer?.();
+        this._widthDisposer?.();
+        this._selectedDisposer?.();
+        this.childLayoutPairs.map((pair, ind) => ScriptCast(pair.layout.proto?.onPointerUp)?.script.run({ this: pair.layout.proto }, console.log));
     }
 
     componentDidMount() {
         // is there any reason this needs to exist? -syip.  yes, it handles autoHeight for stacking views (masonry isn't yet supported).
-        this._widthDisposer = reaction(() => this.props.Document[HeightSym]() + this.childDocs.length + (this.props.Document.isExpanded ? 1 : 0),
-            () => this.props.Document._width = 5 + (this.props.Document.isExpanded ? this.childDocs.length * (this.props.Document[HeightSym]()) : 10),
+        this._widthDisposer = reaction(() => this.props.Document[HeightSym]() + this.childDocs.length + (this.props.Document.linearViewIsExpanded ? 1 : 0),
+            () => this.props.Document._width = 5 + (this.props.Document.linearViewIsExpanded ? this.childDocs.length * (this.props.Document[HeightSym]()) : 10),
             { fireImmediately: true }
         );
 
@@ -48,17 +45,17 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
             (i) => runInAction(() => {
                 this._selectedIndex = i;
                 let selected: any = undefined;
-                this.childLayoutPairs.filter((pair) => this.isCurrent(pair.layout)).map(async (pair, ind) => {
+                this.childLayoutPairs.map(async (pair, ind) => {
                     const isSelected = this._selectedIndex === ind;
                     if (isSelected) {
                         selected = pair;
                     }
                     else {
-                        Cast(pair.layout.proto?.onPointerUp, ScriptField)?.script.run({ this: pair.layout.proto }, console.log);
+                        ScriptCast(pair.layout.proto?.onPointerUp)?.script.run({ this: pair.layout.proto }, console.log);
                     }
                 });
                 if (selected && selected.layout) {
-                    Cast(selected.layout.proto?.onPointerDown, ScriptField)?.script.run({ this: selected.layout.proto }, console.log);
+                    ScriptCast(selected.layout.proto?.onPointerDown)?.script.run({ this: selected.layout.proto }, console.log);
                 }
             }),
             { fireImmediately: true }
@@ -67,37 +64,42 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
     protected createDashEventsTarget = (ele: HTMLDivElement) => { //used for stacking and masonry view
         this._dropDisposer && this._dropDisposer();
         if (ele) {
-            this._dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this));
+            this._dropDisposer = DragManager.MakeDropTarget(ele, this.onInternalDrop.bind(this), this.layoutDoc);
         }
     }
-
-    public isCurrent(doc: Doc) { return !doc.isMinimized && (Math.abs(NumCast(doc.displayTimecode, -1) - NumCast(this.Document.currentTimecode, -1)) < 1.5 || NumCast(doc.displayTimecode, -1) === -1); }
 
     dimension = () => NumCast(this.props.Document._height); // 2 * the padding
     getTransform = (ele: React.RefObject<HTMLDivElement>) => () => {
         if (!ele.current) return Transform.Identity();
         const { scale, translateX, translateY } = Utils.GetScreenTransform(ele.current);
-        return new Transform(-translateX, -translateY, 1 / scale);
+        return new Transform(-translateX, -translateY, 1);
     }
 
     render() {
         const guid = Utils.GenerateGuid();
+        const flexDir: any = StrCast(this.Document.flexDirection);
+        const backgroundColor = StrCast(this.props.Document.backgroundColor, "black");
+        const color = StrCast(this.props.Document.color, "white");
         return <div className="collectionLinearView-outer">
             <div className="collectionLinearView" ref={this.createDashEventsTarget} >
-                <input id={`${guid}`} type="checkbox" checked={BoolCast(this.props.Document.isExpanded)} ref={this.addMenuToggle}
-                    onChange={action((e: any) => this.props.Document.isExpanded = this.addMenuToggle.current!.checked)} />
-                <label htmlFor={`${guid}`} style={{ marginTop: "auto", marginBottom: "auto", background: StrCast(this.props.Document.backgroundColor, "black") === StrCast(this.props.Document.color, "white") ? "black" : StrCast(this.props.Document.backgroundColor, "black") }} title="Close Menu"><p>+</p></label>
+                <label htmlFor={`${guid}`} title="Close Menu" style={{ background: backgroundColor === color ? "black" : backgroundColor }}
+                    onPointerDown={e => e.stopPropagation()} >
+                    <p>+</p>
+                </label>
+                <input id={`${guid}`} type="checkbox" checked={BoolCast(this.props.Document.linearViewIsExpanded)} ref={this.addMenuToggle}
+                    onChange={action((e: any) => this.props.Document.linearViewIsExpanded = this.addMenuToggle.current!.checked)} />
 
-                <div className="collectionLinearView-content" style={{ height: this.dimension(), width: NumCast(this.props.Document._width, 25) }}>
-                    {this.childLayoutPairs.filter((pair) => this.isCurrent(pair.layout)).map((pair, ind) => {
+                <div className="collectionLinearView-content" style={{ height: this.dimension(), flexDirection: flexDir }}>
+                    {this.childLayoutPairs.map((pair, ind) => {
                         const nested = pair.layout._viewType === CollectionViewType.Linear;
                         const dref = React.createRef<HTMLDivElement>();
                         const nativeWidth = NumCast(pair.layout._nativeWidth, this.dimension());
                         const deltaSize = nativeWidth * .15 / 2;
-                        return <div className={`collectionLinearView-docBtn` + (pair.layout.onClick || pair.layout.onDragStart ? "-scalable" : "")} key={pair.layout[Id]} ref={dref}
+                        const scalable = pair.layout.onClick || pair.layout.onDragStart;
+                        return <div className={`collectionLinearView-docBtn` + (scalable ? "-scalable" : "")} key={pair.layout[Id]} ref={dref}
                             style={{
-                                width: nested ? pair.layout[WidthSym]() : this.dimension() - deltaSize,
-                                height: nested && pair.layout.isExpanded ? pair.layout[HeightSym]() : this.dimension() - deltaSize,
+                                width: scalable ? (nested ? pair.layout[WidthSym]() : this.dimension() - deltaSize) : undefined,
+                                height: nested && pair.layout.linearViewIsExpanded ? pair.layout[HeightSym]() : this.dimension() - deltaSize,
                             }}  >
                             <DocumentView
                                 Document={pair.layout}
@@ -107,10 +109,13 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                                 moveDocument={this.props.moveDocument}
                                 addDocTab={this.props.addDocTab}
                                 pinToPres={emptyFunction}
+                                rootSelected={this.props.isSelected}
                                 removeDocument={this.props.removeDocument}
                                 onClick={undefined}
                                 ScreenToLocalTransform={this.getTransform(dref)}
                                 ContentScaling={returnOne}
+                                NativeHeight={returnZero}
+                                NativeWidth={returnZero}
                                 PanelWidth={nested ? pair.layout[WidthSym] : () => this.dimension()}// ugh - need to get rid of this inline function to avoid recomputing
                                 PanelHeight={nested ? pair.layout[HeightSym] : () => this.dimension()}
                                 renderDepth={this.props.renderDepth + 1}
@@ -120,10 +125,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
                                 whenActiveChanged={emptyFunction}
                                 bringToFront={emptyFunction}
                                 ContainingCollectionView={undefined}
-                                ContainingCollectionDoc={undefined}
-                                zoomToScale={emptyFunction}
-                                getScale={returnOne}>
-                            </DocumentView>
+                                ContainingCollectionDoc={undefined} />
                         </div>;
                     })}
                 </div>

@@ -1,10 +1,12 @@
 import * as OpenSocket from 'socket.io-client';
-import { MessageStore, YoutubeQueryTypes } from "./../server/Message";
+import { MessageStore, YoutubeQueryTypes, GestureContent, MobileInkOverlayContent, UpdateMobileInkOverlayPositionContent, MobileDocumentUploadContent } from "./../server/Message";
 import { Opt, Doc } from '../new_fields/Doc';
 import { Utils, emptyFunction } from '../Utils';
 import { SerializationHelper } from './util/SerializationHelper';
 import { RefField } from '../new_fields/RefField';
 import { Id, HandleUpdate } from '../new_fields/FieldSymbols';
+import GestureOverlay from './views/GestureOverlay';
+import MobileInkOverlay from '../mobile/MobileInkOverlay';
 
 /**
  * This class encapsulates the transfer and cross-client synchronization of
@@ -21,7 +23,7 @@ import { Id, HandleUpdate } from '../new_fields/FieldSymbols';
  */
 export namespace DocServer {
     let _cache: { [id: string]: RefField | Promise<Opt<RefField>> } = {};
-    let _socket: SocketIOClient.Socket;
+    export let _socket: SocketIOClient.Socket;
     // this client's distinct GUID created at initialization
     let GUID: string;
     // indicates whether or not a document is currently being udpated, and, if so, its id
@@ -64,6 +66,26 @@ export namespace DocServer {
         }
     }
 
+    export namespace Mobile {
+
+        export function dispatchGesturePoints(content: GestureContent) {
+            Utils.Emit(_socket, MessageStore.GesturePoints, content);
+        }
+
+        export function dispatchOverlayTrigger(content: MobileInkOverlayContent) {
+            // _socket.emit("dispatchBoxTrigger");
+            Utils.Emit(_socket, MessageStore.MobileInkOverlayTrigger, content);
+        }
+
+        export function dispatchOverlayPositionUpdate(content: UpdateMobileInkOverlayPositionContent) {
+            Utils.Emit(_socket, MessageStore.UpdateMobileInkOverlayPosition, content);
+        }
+
+        export function dispatchMobileDocumentUpload(content: MobileDocumentUploadContent) {
+            Utils.Emit(_socket, MessageStore.MobileDocumentUpload, content);
+        }
+    }
+
     const instructions = "This page will automatically refresh after this alert is closed. Expect to reconnect after about 30 seconds.";
     function alertUser(connectionTerminationReason: string) {
         switch (connectionTerminationReason) {
@@ -101,6 +123,21 @@ export namespace DocServer {
         Utils.AddServerHandler(_socket, MessageStore.DeleteField, respondToDelete);
         Utils.AddServerHandler(_socket, MessageStore.DeleteFields, respondToDelete);
         Utils.AddServerHandler(_socket, MessageStore.ConnectionTerminated, alertUser);
+
+        // mobile ink overlay socket events to communicate between mobile view and desktop view
+        _socket.addEventListener("receiveGesturePoints", (content: GestureContent) => {
+            MobileInkOverlay.Instance.drawStroke(content);
+        });
+        _socket.addEventListener("receiveOverlayTrigger", (content: MobileInkOverlayContent) => {
+            GestureOverlay.Instance.enableMobileInkOverlay(content);
+            MobileInkOverlay.Instance.initMobileInkOverlay(content);
+        });
+        _socket.addEventListener("receiveUpdateOverlayPosition", (content: UpdateMobileInkOverlayPositionContent) => {
+            MobileInkOverlay.Instance.updatePosition(content);
+        });
+        _socket.addEventListener("receiveMobileDocumentUpload", (content: MobileDocumentUploadContent) => {
+            MobileInkOverlay.Instance.uploadDocument(content);
+        });
     }
 
     function errorFunc(): never {

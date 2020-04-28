@@ -24,7 +24,8 @@ import { Logger } from "./ProcessFactory";
 import { yellow } from "colors";
 import { DashSessionAgent } from "./DashSession/DashSessionAgent";
 import SessionManager from "./ApiManagers/SessionManager";
-import { AppliedSessionAgent } from "resilient-server-session";
+import { AppliedSessionAgent } from "./DashSession/Session/agents/applied_session_agent";
+import { Utils } from "../Utils";
 
 export const onWindows = process.platform === "win32";
 export let sessionAgent: AppliedSessionAgent;
@@ -37,10 +38,11 @@ export const filesDirectory = path.resolve(publicDirectory, "files");
  * before clients can access the server should be run or awaited here.
  */
 async function preliminaryFunctions() {
+    // Utils.TraceConsoleLog();
+    await DashUploadUtils.buildFileDirectories();
     await Logger.initialize();
     await GoogleCredentialsLoader.loadCredentials();
     GoogleApiServerUtils.processProjectCredentials();
-    await DashUploadUtils.buildFileDirectories();
     if (process.env.DB !== "MEM") {
         await log_execution({
             startMessage: "attempting to initialize mongodb connection",
@@ -86,11 +88,13 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
         secureHandler: ({ res }) => res.redirect("/home")
     });
 
+
     addSupervisedRoute({
         method: Method.GET,
         subscription: "/serverHeartbeat",
         secureHandler: ({ res }) => res.send(true)
     });
+
 
     const serve: PublicHandler = ({ req, res }) => {
         const detector = new mobileDetect(req.headers['user-agent'] || "");
@@ -102,12 +106,17 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
         method: Method.GET,
         subscription: ["/home", new RouteSubscriber("doc").add("docId")],
         secureHandler: serve,
-        publicHandler: ({ req, ...remaining }) => {
+        publicHandler: ({ req, res, ...remaining }) => {
             const { originalUrl: target } = req;
             const sharing = qs.parse(qs.extract(req.originalUrl), { sort: false }).sharing === "true";
             const docAccess = target.startsWith("/doc/");
+            // since this is the public handler, there's no meaning of '/home' to speak of
+            // since there's no user logged in, so the only viable operation
+            // for a guest is to look at a shared document
             if (sharing && docAccess) {
-                serve({ req, ...remaining });
+                serve({ req, res, ...remaining });
+            } else {
+                res.redirect("/login");
             }
         }
     });
@@ -118,6 +127,7 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
     // a field on one client, that change must be broadcast to all other clients)
     WebSocket.start(isRelease);
 }
+
 
 /**
  * This function can be used in two different ways. If not in release mode,
@@ -143,5 +153,6 @@ export async function launchServer() {
 if (process.env.RELEASE) {
     (sessionAgent = new DashSessionAgent()).launch();
 } else {
+    (Database.Instance as Database.Database).doConnect();
     launchServer();
 }

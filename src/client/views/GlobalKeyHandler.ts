@@ -7,8 +7,7 @@ import { action, runInAction } from "mobx";
 import { Doc } from "../../new_fields/Doc";
 import { DictationManager } from "../util/DictationManager";
 import SharingManager from "../util/SharingManager";
-import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
-import { Cast, PromiseValue } from "../../new_fields/Types";
+import { Cast, PromiseValue, NumCast } from "../../new_fields/Types";
 import { ScriptField } from "../../new_fields/ScriptField";
 import { InkingControl } from "./InkingControl";
 import { InkTool } from "../../new_fields/InkField";
@@ -79,6 +78,7 @@ export default class KeyManager {
                 }
                 SelectionManager.DeselectAll();
                 DictationManager.Controls.stop();
+                // RecommendationsBox.Instance.closeMenu();
                 SharingManager.Instance.close();
                 break;
             case "delete":
@@ -88,13 +88,20 @@ export default class KeyManager {
                         return { stopPropagation: false, preventDefault: false };
                     }
                 }
-                UndoManager.RunInBatch(() => {
-                    SelectionManager.SelectedDocuments().map(docView => {
-                        const doc = docView.props.Document;
-                        const remove = docView.props.removeDocument;
-                        remove && remove(doc);
-                    });
-                }, "delete");
+                UndoManager.RunInBatch(() =>
+                    SelectionManager.SelectedDocuments().map(dv => dv.props.removeDocument?.(dv.props.Document)), "delete");
+                break;
+            case "arrowleft":
+                UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.nudge?.(-1, 0)), "nudge left");
+                break;
+            case "arrowright":
+                UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.nudge?.(1, 0)), "nudge right");
+                break;
+            case "arrowup":
+                UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.nudge?.(0, -1)), "nudge up");
+                break;
+            case "arrowdown":
+                UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.nudge?.(0, 1)), "nudge down");
                 break;
         }
 
@@ -105,14 +112,26 @@ export default class KeyManager {
     });
 
     private shift = async (keyname: string) => {
-        let stopPropagation = false;
-        let preventDefault = false;
+        const stopPropagation = false;
+        const preventDefault = false;
 
         switch (keyname) {
-            case "~":
-                DictationManager.Controls.listen({ useOverlay: true, tryExecute: true });
-                stopPropagation = true;
-                preventDefault = true;
+            // case "~":
+            //     DictationManager.Controls.listen({ useOverlay: true, tryExecute: true });
+            //     stopPropagation = true;
+            //     preventDefault = true;
+            case "arrowleft":
+                UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.nudge?.(-10, 0)), "nudge left");
+                break;
+            case "arrowright":
+                UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.nudge?.(10, 0)), "nudge right");
+                break;
+            case "arrowup":
+                UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.nudge?.(0, -10)), "nudge up");
+                break;
+            case "arrowdown":
+                UndoManager.RunInBatch(() => SelectionManager.SelectedDocuments().map(dv => dv.props.nudge?.(0, 10)), "nudge down");
+                break;
         }
 
         return {
@@ -156,7 +175,7 @@ export default class KeyManager {
                         return { stopPropagation: false, preventDefault: false };
                     }
                 }
-                MainView.Instance.mainFreeform && CollectionDockingView.AddRightSplit(MainView.Instance.mainFreeform, undefined);
+                MainView.Instance.mainFreeform && CollectionDockingView.AddRightSplit(MainView.Instance.mainFreeform);
                 break;
             case "arrowleft":
                 if (document.activeElement) {
@@ -174,7 +193,7 @@ export default class KeyManager {
                 }
                 break;
             case "t":
-                PromiseValue(Cast(CurrentUserUtils.UserDocument.Create, Doc)).then(pv => pv && (pv.onClick as ScriptField).script.run({ this: pv }));
+                PromiseValue(Cast(Doc.UserDoc()["tabs-button-tools"], Doc)).then(pv => pv && (pv.onClick as ScriptField).script.run({ this: pv }));
                 if (MainView.Instance.flyoutWidth === 240) {
                     MainView.Instance.flyoutWidth = 0;
                 } else {
@@ -182,7 +201,7 @@ export default class KeyManager {
                 }
                 break;
             case "l":
-                PromiseValue(Cast(CurrentUserUtils.UserDocument.Library, Doc)).then(pv => pv && (pv.onClick as ScriptField).script.run({ this: pv }));
+                PromiseValue(Cast(Doc.UserDoc()["tabs-button-library"], Doc)).then(pv => pv && (pv.onClick as ScriptField).script.run({ this: pv }));
                 if (MainView.Instance.flyoutWidth === 250) {
                     MainView.Instance.flyoutWidth = 0;
                 } else {
@@ -190,7 +209,7 @@ export default class KeyManager {
                 }
                 break;
             case "f":
-                PromiseValue(Cast(CurrentUserUtils.UserDocument.Search, Doc)).then(pv => pv && (pv.onClick as ScriptField).script.run({ this: pv }));
+                PromiseValue(Cast(Doc.UserDoc()["tabs-button-search"], Doc)).then(pv => pv && (pv.onClick as ScriptField).script.run({ this: pv }));
                 if (MainView.Instance.flyoutWidth === 400) {
                     MainView.Instance.flyoutWidth = 0;
                 } else {

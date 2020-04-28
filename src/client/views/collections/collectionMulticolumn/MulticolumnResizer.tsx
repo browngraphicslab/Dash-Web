@@ -4,18 +4,14 @@ import { observable, action } from "mobx";
 import { Doc } from "../../../../new_fields/Doc";
 import { NumCast, StrCast } from "../../../../new_fields/Types";
 import { DimUnit } from "./CollectionMulticolumnView";
+import { UndoManager } from "../../../util/UndoManager";
 
 interface ResizerProps {
     width: number;
     columnUnitLength(): number | undefined;
     toLeft?: Doc;
     toRight?: Doc;
-}
-
-enum ResizeMode {
-    Global = "blue",
-    Pinned = "red",
-    Undefined = "black"
+    select: (isCtrlPressed: boolean) => void;
 }
 
 const resizerOpacity = 1;
@@ -24,18 +20,19 @@ const resizerOpacity = 1;
 export default class ResizeBar extends React.Component<ResizerProps> {
     @observable private isHoverActive = false;
     @observable private isResizingActive = false;
-    @observable private resizeMode = ResizeMode.Undefined;
+    private _resizeUndo?: UndoManager.Batch;
 
     @action
-    private registerResizing = (e: React.PointerEvent<HTMLDivElement>, mode: ResizeMode) => {
+    private registerResizing = (e: React.PointerEvent<HTMLDivElement>) => {
+        this.props.select(false);
         e.stopPropagation();
         e.preventDefault();
-        this.resizeMode = mode;
         window.removeEventListener("pointermove", this.onPointerMove);
         window.removeEventListener("pointerup", this.onPointerUp);
         window.addEventListener("pointermove", this.onPointerMove);
         window.addEventListener("pointerup", this.onPointerUp);
         this.isResizingActive = true;
+        this._resizeUndo = UndoManager.StartBatch("multcol resizing");
     }
 
     private onPointerMove = ({ movementX }: PointerEvent) => {
@@ -49,7 +46,7 @@ export default class ResizeBar extends React.Component<ResizerProps> {
                 const scale = StrCast(toNarrow.dimUnit, "*") === DimUnit.Ratio ? unitLength : 1;
                 toNarrow.dimMagnitude = Math.max(0.05, NumCast(toNarrow.dimMagnitude, 1) - Math.abs(movementX) / scale);
             }
-            if (this.resizeMode === ResizeMode.Pinned && toWiden) {
+            if (toWiden) {
                 const scale = StrCast(toWiden.dimUnit, "*") === DimUnit.Ratio ? unitLength : 1;
                 toWiden.dimMagnitude = Math.max(0.05, NumCast(toWiden.dimMagnitude, 1) + Math.abs(movementX) / scale);
             }
@@ -79,11 +76,12 @@ export default class ResizeBar extends React.Component<ResizerProps> {
 
     @action
     private onPointerUp = () => {
-        this.resizeMode = ResizeMode.Undefined;
         this.isResizingActive = false;
         this.isHoverActive = false;
         window.removeEventListener("pointermove", this.onPointerMove);
         window.removeEventListener("pointerup", this.onPointerUp);
+        this._resizeUndo?.end();
+        this._resizeUndo = undefined;
     }
 
     render() {
@@ -97,16 +95,7 @@ export default class ResizeBar extends React.Component<ResizerProps> {
                 onPointerEnter={action(() => this.isHoverActive = true)}
                 onPointerLeave={action(() => !this.isResizingActive && (this.isHoverActive = false))}
             >
-                <div
-                    className={"multiColumnResizer-hdl"}
-                    onPointerDown={e => this.registerResizing(e, ResizeMode.Pinned)}
-                    style={{ backgroundColor: this.resizeMode }}
-                />
-                <div
-                    className={"multiColumnResizer-hdl"}
-                    onPointerDown={e => this.registerResizing(e, ResizeMode.Global)}
-                    style={{ backgroundColor: this.resizeMode }}
-                />
+                <div className={"multiColumnResizer-hdl"} onPointerDown={e => this.registerResizing(e)} />
             </div>
         );
     }

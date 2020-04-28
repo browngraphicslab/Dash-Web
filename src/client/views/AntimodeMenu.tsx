@@ -16,7 +16,8 @@ export default abstract class AntimodeMenu extends React.Component {
     @observable protected _top: number = -300;
     @observable protected _left: number = -300;
     @observable protected _opacity: number = 1;
-    @observable protected _transition: string = "opacity 0.5s";
+    @observable protected _transitionProperty: string = "opacity";
+    @observable protected _transitionDuration: string = "0.5s";
     @observable protected _transitionDelay: string = "";
     @observable protected _canFade: boolean = true;
 
@@ -34,7 +35,7 @@ export default abstract class AntimodeMenu extends React.Component {
      */
     public jumpTo = (x: number, y: number, forceJump: boolean = false) => {
         if (!this.Pinned || forceJump) {
-            this._transition = this._transitionDelay = "";
+            this._transitionProperty = this._transitionDuration = this._transitionDelay = "";
             this._opacity = 1;
             this._left = x;
             this._top = y;
@@ -49,14 +50,16 @@ export default abstract class AntimodeMenu extends React.Component {
     public fadeOut = (forceOut: boolean) => {
         if (!this.Pinned) {
             if (this._opacity === 0.2) {
-                this._transition = "opacity 0.1s";
+                this._transitionProperty = "opacity";
+                this._transitionDuration = "0.1s";
                 this._transitionDelay = "";
                 this._opacity = 0;
                 this._left = this._top = -300;
             }
 
             if (forceOut) {
-                this._transition = "";
+                this._transitionProperty = "";
+                this._transitionDuration = "";
                 this._transitionDelay = "";
                 this._opacity = 0;
                 this._left = this._top = -300;
@@ -67,7 +70,8 @@ export default abstract class AntimodeMenu extends React.Component {
     @action
     protected pointerLeave = (e: React.PointerEvent) => {
         if (!this.Pinned && this._canFade) {
-            this._transition = "opacity 0.5s";
+            this._transitionProperty = "opacity";
+            this._transitionDuration = "0.5s";
             this._transitionDelay = "1s";
             this._opacity = 0.2;
             setTimeout(() => this.fadeOut(false), 3000);
@@ -76,7 +80,8 @@ export default abstract class AntimodeMenu extends React.Component {
 
     @action
     protected pointerEntered = (e: React.PointerEvent) => {
-        this._transition = "opacity 0.1s";
+        this._transitionProperty = "opacity";
+        this._transitionDuration = "0.1s";
         this._transitionDelay = "";
         this._opacity = 1;
     }
@@ -133,7 +138,7 @@ export default abstract class AntimodeMenu extends React.Component {
     protected getElement(buttons: JSX.Element[]) {
         return (
             <div className="antimodeMenu-cont" onPointerLeave={this.pointerLeave} onPointerEnter={this.pointerEntered} ref={this._mainCont} onContextMenu={this.handleContextMenu}
-                style={{ left: this._left, top: this._top, opacity: this._opacity, transition: this._transition, transitionDelay: this._transitionDelay }}>
+                style={{ left: this._left, top: this._top, opacity: this._opacity, transitionProperty: this._transitionProperty, transitionDuration: this._transitionDuration, transitionDelay: this._transitionDelay }}>
                 {buttons}
                 <div className="antimodeMenu-dragger" onPointerDown={this.dragStart} style={{ width: this.Pinned ? "20px" : "0px" }} />
             </div>
@@ -143,7 +148,7 @@ export default abstract class AntimodeMenu extends React.Component {
     protected getElementWithRows(rows: JSX.Element[], numRows: number, hasDragger: boolean = true) {
         return (
             <div className="antimodeMenu-cont with-rows" onPointerLeave={this.pointerLeave} onPointerEnter={this.pointerEntered} ref={this._mainCont} onContextMenu={this.handleContextMenu}
-                style={{ left: this._left, top: this._top, opacity: this._opacity, transition: this._transition, transitionDelay: this._transitionDelay, height: 35 * numRows + "px" }}>
+                style={{ left: this._left, top: this._top, opacity: this._opacity, transitionProperty: this._transitionProperty, transitionDuration: this._transitionDuration, transitionDelay: this._transitionDelay, height: "auto" }}>
                 {rows}
                 {hasDragger ? <div className="antimodeMenu-dragger" onPointerDown={this.dragStart} style={{ width: this.Pinned ? "20px" : "0px" }} /> : <></>}
             </div>

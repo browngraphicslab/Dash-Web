@@ -20,11 +20,12 @@ export namespace ImageUtils {
             nativeHeight,
             exifData: { error, data }
         } = await Networking.PostToServer("/inspectImage", { source });
-        document.exif = error || Docs.Get.DocumentHierarchyFromJson(data);
+        document.exif = error || Docs.Get.FromJson({ data });
         const proto = Doc.GetProto(document);
         proto["data-nativeWidth"] = nativeWidth;
         proto["data-nativeHeight"] = nativeHeight;
-        proto.contentSize = contentSize;
+        proto["data-path"] = source;
+        proto.contentSize = contentSize ? contentSize : undefined;
         return data !== undefined;
     };
 

@@ -195,10 +195,10 @@ export class MetadataEntryMenu extends React.Component<MetadataEntryProps>{
 
     _ref = React.createRef<HTMLInputElement>();
     render() {
-        return (
-            <div className="metadataEntry-outerDiv" id="metadataEntry-outer">
-                <div className="metadataEntry-inputArea">
-                    Key:
+        return (<div className="metadataEntry-outerDiv" id="metadataEntry-outer" onPointerDown={e => e.stopPropagation()}>
+            <div className="metadataEntry-inputArea">
+                Key:
+                <div className="metadataEntry-autoSuggester" onClick={e => this.autosuggestRef.current!.input?.focus()}  >
                     <Autosuggest inputProps={{ value: this._currentKey, onChange: this.onKeyChange }}
                         getSuggestionValue={this.getSuggestionValue}
                         suggestions={emptyPath}
@@ -207,16 +207,17 @@ export class MetadataEntryMenu extends React.Component<MetadataEntryProps>{
                         onSuggestionsFetchRequested={emptyFunction}
                         onSuggestionsClearRequested={emptyFunction}
                         ref={this.autosuggestRef} />
-                    Value:
+                </div>
+                Value:
                     <input className="metadataEntry-input" ref={this._ref} value={this._currentValue} onClick={e => this._ref.current!.focus()} onChange={this.onValueChange} onKeyDown={this.onValueKeyDown} />
-                    {this.considerChildOptions}
-                </div>
-                <div className="metadataEntry-keys" >
-                    <ul>
-                        {this._allSuggestions.slice().sort().map(s => <li key={s} onClick={action(() => { this._currentKey = s; this.previewValue(); })} >{s}</li>)}
-                    </ul>
-                </div>
+                {this.considerChildOptions}
             </div>
+            <div className="metadataEntry-keys" >
+                <ul>
+                    {this._allSuggestions.slice().sort().map(s => <li key={s} onClick={action(() => { this._currentKey = s; this.previewValue(); })} >{s}</li>)}
+                </ul>
+            </div>
+        </div>
         );
     }
 }

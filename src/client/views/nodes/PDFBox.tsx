@@ -9,25 +9,24 @@ import { ScriptField } from '../../../new_fields/ScriptField';
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { PdfField, URLField } from "../../../new_fields/URLField";
 import { Utils } from '../../../Utils';
-import { KeyCodes } from '../../northstar/utils/KeyCodes';
 import { undoBatch } from '../../util/UndoManager';
 import { panZoomSchema } from '../collections/collectionFreeForm/CollectionFreeFormView';
 import { ContextMenu } from '../ContextMenu';
 import { ContextMenuProps } from '../ContextMenuItem';
-import { DocAnnotatableComponent } from "../DocComponent";
+import { ViewBoxAnnotatableComponent } from "../DocComponent";
 import { PDFViewer } from "../pdf/PDFViewer";
 import { FieldView, FieldViewProps } from './FieldView';
 import { pageSchema } from "./ImageBox";
+import { KeyCodes } from '../../util/KeyCodes';
 import "./PDFBox.scss";
 import React = require("react");
 import { documentSchema } from '../../../new_fields/documentSchemas';
-import { url } from 'inspector';
 
 type PdfDocument = makeInterface<[typeof documentSchema, typeof panZoomSchema, typeof pageSchema]>;
 const PdfDocument = makeInterface(documentSchema, panZoomSchema, pageSchema);
 
 @observer
-export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>(PdfDocument) {
+export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocument>(PdfDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(PDFBox, fieldKey); }
     private _keyValue: string = "";
     private _valueValue: string = "";
@@ -52,11 +51,11 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
         this._initialScale = this.props.ScreenToLocalTransform().Scale;
         const nw = this.Document._nativeWidth = NumCast(this.dataDoc[this.props.fieldKey + "-nativeWidth"], NumCast(this.Document._nativeWidth, 927));
         const nh = this.Document._nativeHeight = NumCast(this.dataDoc[this.props.fieldKey + "-nativeHeight"], NumCast(this.Document._nativeHeight, 1200));
-        !this.Document._fitWidth && !this.Document.ignoreAspect && (this.Document._height = this.Document[WidthSym]() * (nh / nw));
+        !this.Document._fitWidth && (this.Document._height = this.Document[WidthSym]() * (nh / nw));
 
         const backup = "oldPath";
         const { Document } = this.props;
-        const { url: { href } } = Cast(Document[this.props.fieldKey], PdfField)!;
+        const { url: { href } } = Cast(this.dataDoc[this.props.fieldKey], PdfField)!;
         const pathCorrectionTest = /upload\_[a-z0-9]{32}.(.*)/g;
         const matches = pathCorrectionTest.exec(href);
         console.log("\nHere's the { url } being fed into the outer regex:");
@@ -78,9 +77,7 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
         }
     }
 
-    componentWillUnmount() {
-        this._selectReactionDisposer && this._selectReactionDisposer();
-    }
+    componentWillUnmount() { this._selectReactionDisposer?.(); }
     componentDidMount() {
         this._selectReactionDisposer = reaction(() => this.props.isSelected(),
             () => {
@@ -93,14 +90,14 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
         this.dataDoc[this.props.fieldKey + "-numPages"] = np;
         this.dataDoc[this.props.fieldKey + "-nativeWidth"] = this.Document._nativeWidth = nw * 96 / 72;
         this.dataDoc[this.props.fieldKey + "-nativeHeight"] = this.Document._nativeHeight = nh * 96 / 72;
-        !this.Document._fitWidth && !this.Document.ignoreAspect && (this.Document._height = this.Document[WidthSym]() * (nh / nw));
+        !this.Document._fitWidth && (this.Document._height = this.Document[WidthSym]() * (nh / nw));
     }
 
-    public search(string: string, fwd: boolean) { this._pdfViewer && this._pdfViewer.search(string, fwd); }
-    public prevAnnotation() { this._pdfViewer && this._pdfViewer.prevAnnotation(); }
-    public nextAnnotation() { this._pdfViewer && this._pdfViewer.nextAnnotation(); }
-    public backPage() { this._pdfViewer!.gotoPage((this.Document.curPage || 1) - 1); }
-    public forwardPage() { this._pdfViewer!.gotoPage((this.Document.curPage || 1) + 1); }
+    public search = (string: string, fwd: boolean) => { this._pdfViewer?.search(string, fwd); };
+    public prevAnnotation = () => { this._pdfViewer?.prevAnnotation(); };
+    public nextAnnotation = () => { this._pdfViewer?.nextAnnotation(); };
+    public backPage = () => { this._pdfViewer!.gotoPage((this.Document.curPage || 1) - 1); };
+    public forwardPage = () => { this._pdfViewer!.gotoPage((this.Document.curPage || 1) + 1); };
     public gotoPage = (p: number) => { this._pdfViewer!.gotoPage(p); };
 
     @undoBatch
@@ -140,12 +137,12 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
 
     settingsPanel() {
         const pageBtns = <>
-            <button className="pdfBox-overlayButton-iconCont" key="back" title="Page Back"
-                onPointerDown={e => e.stopPropagation()} onClick={e => this.backPage()} style={{ left: 45, top: 5 }}>
+            <button className="pdfBox-overlayButton-back" key="back" title="Page Back"
+                onPointerDown={e => e.stopPropagation()} onClick={e => this.backPage()} >
                 <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-left"} size="sm" />
             </button>
-            <button className="pdfBox-overlayButton-iconCont" key="fwd" title="Page Forward"
-                onPointerDown={e => e.stopPropagation()} onClick={e => this.forwardPage()} style={{ left: 45, top: 5 }}>
+            <button className="pdfBox-overlayButton-fwd" key="fwd" title="Page Forward"
+                onPointerDown={e => e.stopPropagation()} onClick={e => this.forwardPage()} >
                 <FontAwesomeIcon style={{ color: "white" }} icon={"arrow-right"} size="sm" />
             </button>
         </>;
@@ -213,7 +210,7 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
         pdfUrl && funcs.push({ description: "Copy path", event: () => Utils.CopyText(pdfUrl.url.pathname), icon: "expand-arrows-alt" });
         funcs.push({ description: "Toggle Fit Width " + (this.Document._fitWidth ? "Off" : "On"), event: () => this.Document._fitWidth = !this.Document._fitWidth, icon: "expand-arrows-alt" });
 
-        ContextMenu.Instance.addItem({ description: "Pdf Funcs...", subitems: funcs, icon: "asterisk" });
+        ContextMenu.Instance.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
     }
 
     @computed get contentScaling() { return this.props.ContentScaling(); }
@@ -233,7 +230,7 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
     isChildActive = (outsideReaction?: boolean) => this._isChildActive;
     @computed get renderPdfView() {
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField);
-        return <div className={"pdfBox"} onContextMenu={this.specificContextMenu}>
+        return <div className={"pdfBox"} onContextMenu={this.specificContextMenu} style={{ height: this.props.Document._scrollTop && !this.Document._fitWidth ? NumCast(this.Document._height) * this.props.PanelWidth() / NumCast(this.Document._width) : undefined }}>
             <PDFViewer {...this.props} pdf={this._pdf!} url={pdfUrl!.url.pathname} active={this.props.active} loaded={this.loaded}
                 setPdfViewer={this.setPdfViewer} ContainingCollectionView={this.props.ContainingCollectionView}
                 renderDepth={this.props.renderDepth} PanelHeight={this.props.PanelHeight} PanelWidth={this.props.PanelWidth}
@@ -243,7 +240,7 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
                 ScreenToLocalTransform={this.props.ScreenToLocalTransform} select={this.props.select}
                 isSelected={this.props.isSelected} whenActiveChanged={this.whenActiveChanged}
                 isChildActive={this.isChildActive}
-                fieldKey={this.props.fieldKey} startupLive={this._initialScale < 2.5 ? true : false} />
+                fieldKey={this.props.fieldKey} startupLive={this._initialScale < 2.5 || this.props.Document._scrollTop ? true : false} />
             {this.settingsPanel()}
         </div>;
     }
@@ -251,15 +248,15 @@ export class PDFBox extends DocAnnotatableComponent<FieldViewProps, PdfDocument>
     _pdfjsRequested = false;
     render() {
         const pdfUrl = Cast(this.dataDoc[this.props.fieldKey], PdfField, null);
-        if (this.props.isSelected() || this.props.Document.scrollY !== undefined) this._everActive = true;
-        if (pdfUrl && (this._everActive || (this.dataDoc[this.props.fieldKey + "-nativeWidth"] && this.props.ScreenToLocalTransform().Scale < 2.5))) {
+        if (this.props.isSelected() || this.props.renderDepth <= 1 || this.props.Document.scrollY !== undefined) this._everActive = true;
+        if (pdfUrl && (this._everActive || this.props.Document._scrollTop || (this.dataDoc[this.props.fieldKey + "-nativeWidth"] && this.props.ScreenToLocalTransform().Scale < 2.5))) {
             if (pdfUrl instanceof PdfField && this._pdf) {
                 return this.renderPdfView;
             }
             if (!this._pdfjsRequested) {
                 this._pdfjsRequested = true;
                 const promise = Pdfjs.getDocument(pdfUrl.url.href).promise;
-                promise.then(pdf => { runInAction(() => { this._pdf = pdf; console.log("promise"); }) });
+                promise.then(action(pdf => { this._pdf = pdf; console.log("promise"); }));
 
             }
         }

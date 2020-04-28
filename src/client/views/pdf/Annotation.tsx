@@ -1,17 +1,18 @@
 import React = require("react");
 import { action, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, HeightSym, WidthSym, Opt, DocListCastAsync } from "../../../new_fields/Doc";
+import { Doc, DocListCast, HeightSym, WidthSym } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { Cast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
 import { DocumentManager } from "../../util/DocumentManager";
 import PDFMenu from "./PDFMenu";
 import "./Annotation.scss";
+import { DocumentView } from "../nodes/DocumentView";
 
 interface IAnnotationProps {
     anno: Doc;
-    addDocTab: (document: Doc, dataDoc: Opt<Doc>, where: string) => boolean;
+    addDocTab: (document: Doc, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     focus: (doc: Doc) => void;
     dataDoc: Doc;
@@ -30,7 +31,7 @@ interface IRegionAnnotationProps {
     y: number;
     width: number;
     height: number;
-    addDocTab: (document: Doc, dataDoc: Doc | undefined, where: string) => boolean;
+    addDocTab: (document: Doc, where: string) => boolean;
     pinToPres: (document: Doc) => void;
     document: Doc;
     dataDoc: Doc;
@@ -97,9 +98,7 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
         else if (e.button === 0) {
             const annoGroup = await Cast(this.props.document.group, Doc);
             if (annoGroup) {
-                DocumentManager.Instance.FollowLink(undefined, annoGroup,
-                    (doc: Doc, maxLocation: string) => this.props.addDocTab(doc, undefined, e.ctrlKey ? "inTab" : "onRight"),
-                    false, false, undefined);
+                DocumentManager.Instance.FollowLink(undefined, annoGroup, (doc, followLinkLocation) => this.props.addDocTab(doc, e.ctrlKey ? "inTab" : followLinkLocation), false, undefined);
                 e.stopPropagation();
             }
         }

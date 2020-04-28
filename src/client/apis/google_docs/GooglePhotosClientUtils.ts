@@ -1,19 +1,18 @@
-import { Utils } from "../../../Utils";
-import { ImageField } from "../../../new_fields/URLField";
-import { Cast, StrCast } from "../../../new_fields/Types";
-import { Doc, Opt, DocListCastAsync } from "../../../new_fields/Doc";
+import { AssertionError } from "assert";
+import { EditorState } from "prosemirror-state";
+import { Doc, DocListCastAsync, Opt } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
-import Photos = require('googlephotos');
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { RichTextUtils } from "../../../new_fields/RichTextUtils";
-import { EditorState } from "prosemirror-state";
-import { FormattedTextBox } from "../../views/nodes/FormattedTextBox";
+import { Cast, StrCast } from "../../../new_fields/Types";
+import { ImageField } from "../../../new_fields/URLField";
+import { MediaItem, NewMediaItemResult } from "../../../server/apis/google/SharedTypes";
+import { Utils } from "../../../Utils";
 import { Docs, DocumentOptions } from "../../documents/Documents";
-import { NewMediaItemResult, MediaItem } from "../../../server/apis/google/SharedTypes";
-import { AssertionError } from "assert";
-import { DocumentView } from "../../views/nodes/DocumentView";
 import { Networking } from "../../Network";
+import { FormattedTextBox } from "../../views/nodes/formattedText/FormattedTextBox";
 import GoogleAuthenticationManager from "../GoogleAuthenticationManager";
+import Photos = require('googlephotos');
 
 export namespace GooglePhotos {
 
@@ -306,7 +305,7 @@ export namespace GooglePhotos {
         };
 
         export const WriteMediaItemsToServer = async (body: { mediaItems: any[] }): Promise<UploadInformation[]> => {
-            const uploads = await Networking.PostToServer("/googlePhotosMediaDownload", body);
+            const uploads = await Networking.PostToServer("/googlePhotosMediaGet", body);
             return uploads;
         };
 
@@ -340,11 +339,11 @@ export namespace GooglePhotos {
                 const url = data.url.href;
                 const target = Doc.MakeAlias(source);
                 const description = parseDescription(target, descriptionKey);
-                await DocumentView.makeCustomViewClicked(target, undefined, Docs.Create.FreeformDocument);
+                await Doc.makeCustomViewClicked(target, Docs.Create.FreeformDocument);
                 media.push({ url, description });
             }
             if (media.length) {
-                const results = await Networking.PostToServer("/googlePhotosMediaUpload", { media, album });
+                const results = await Networking.PostToServer("/googlePhotosMediaPost", { media, album });
                 return results;
             }
         };

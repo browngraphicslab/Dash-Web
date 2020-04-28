@@ -1551,7 +1551,7 @@
         },
         dimensions: {
             borderWidth: 5,
-            borderGrabWidth: 15,
+            borderGrabWidth: 5,
             minItemHeight: 10,
             minItemWidth: 10,
             headerHeight: 20,
@@ -2796,11 +2796,13 @@
             if (this._isVertical) {
                 dragHandle.css('top', -handleExcessPos);
                 dragHandle.css('height', this._size + handleExcessSize);
+                element.css('cursor', 'row-resize');
                 element.addClass('lm_vertical');
                 element['height'](this._size);
             } else {
                 dragHandle.css('left', -handleExcessPos);
                 dragHandle.css('width', this._size + handleExcessSize);
+                element.css('cursor', 'col-resize');
                 element.addClass('lm_horizontal');
                 element['width'](this._size);
             }
@@ -2868,7 +2870,7 @@
 	 * @type {String}
 	 */
     lm.controls.Tab._template = '<li class="lm_tab"><i class="lm_left"></i>' +
-        '<span class="lm_title"></span><div class="lm_close_tab"></div>' +
+        '<div class="lm_title_wrap"><input class="lm_title"/></div><div class="lm_close_tab"></div>' +
         '<i class="lm_right"></i></li>';
 
     lm.utils.copy(lm.controls.Tab.prototype, {

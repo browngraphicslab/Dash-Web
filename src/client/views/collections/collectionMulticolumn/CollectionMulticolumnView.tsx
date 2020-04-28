@@ -4,8 +4,8 @@ import * as React from "react";
 import { Doc } from '../../../../new_fields/Doc';
 import { documentSchema } from '../../../../new_fields/documentSchemas';
 import { makeInterface } from '../../../../new_fields/Schema';
-import { BoolCast, NumCast, ScriptCast, StrCast } from '../../../../new_fields/Types';
-import { DragManager } from '../../../util/DragManager';
+import { BoolCast, NumCast, ScriptCast, StrCast, Cast } from '../../../../new_fields/Types';
+import { DragManager, dropActionType } from '../../../util/DragManager';
 import { Transform } from '../../../util/Transform';
 import { undoBatch } from '../../../util/UndoManager';
 import { ContentFittingDocumentView } from '../../nodes/ContentFittingDocumentView';
@@ -13,6 +13,8 @@ import { CollectionSubView } from '../CollectionSubView';
 import "./collectionMulticolumnView.scss";
 import ResizeBar from './MulticolumnResizer';
 import WidthLabel from './MulticolumnWidthLabel';
+import { List } from '../../../../new_fields/List';
+import { returnZero } from '../../../../Utils';
 
 type MulticolumnDocument = makeInterface<[typeof documentSchema]>;
 const MulticolumnDocument = makeInterface(documentSchema);
@@ -189,8 +191,8 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
 
     @undoBatch
     @action
-    drop = (e: Event, de: DragManager.DropEvent) => {
-        if (super.drop(e, de)) {
+    onInternalDrop = (e: Event, de: DragManager.DropEvent) => {
+        if (super.onInternalDrop(e, de)) {
             de.complete.docDragData?.droppedDocuments.forEach(action((d: Doc) => {
                 d.dimUnit = "*";
                 d.dimMagnitude = 1;
@@ -202,18 +204,43 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
 
     @computed get onChildClickHandler() { return ScriptCast(this.Document.onChildClick); }
 
+
+    addDocTab = (doc: Doc, where: string) => {
+        if (where === "inPlace" && this.layoutDoc.isInPlaceContainer) {
+            this.dataDoc[this.props.fieldKey] = new List<Doc>([doc]);
+            return true;
+        }
+        return this.props.addDocTab(doc, where);
+    }
     getDisplayDoc(layout: Doc, dxf: () => Transform, width: () => number, height: () => number) {
         return <ContentFittingDocumentView
-            {...this.props}
             Document={layout}
             DataDocument={layout.resolvedDataDoc as Doc}
-            CollectionDoc={this.props.Document}
+            backgroundColor={this.props.backgroundColor}
+            LayoutDoc={this.props.childLayoutTemplate}
+            LibraryPath={this.props.LibraryPath}
+            FreezeDimensions={this.props.freezeChildDimensions}
+            renderDepth={this.props.renderDepth + 1}
             PanelWidth={width}
             PanelHeight={height}
-            getTransform={dxf}
+            NativeHeight={returnZero}
+            NativeWidth={returnZero}
+            fitToBox={BoolCast(this.props.Document._freezeChildDimensions)}
+            rootSelected={this.rootSelected}
+            dropAction={StrCast(this.props.Document.childDropAction) as dropActionType}
             onClick={this.onChildClickHandler}
-            renderDepth={this.props.renderDepth + 1}
-        />
+            getTransform={dxf}
+            focus={this.props.focus}
+            CollectionDoc={this.props.CollectionView?.props.Document}
+            CollectionView={this.props.CollectionView}
+            addDocument={this.props.addDocument}
+            moveDocument={this.props.moveDocument}
+            removeDocument={this.props.removeDocument}
+            active={this.props.active}
+            whenActiveChanged={this.props.whenActiveChanged}
+            addDocTab={this.addDocTab}
+            pinToPres={this.props.pinToPres}
+        />;
     }
     /**
      * @returns the resolved list of rendered child documents, displayed
@@ -242,6 +269,7 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
                 <ResizeBar
                     width={resizerWidth}
                     key={"resizer" + i}
+                    select={this.props.select}
                     columnUnitLength={this.getColumnUnitLength}
                     toLeft={layout}
                     toRight={childLayoutPairs[i + 1]?.layout}

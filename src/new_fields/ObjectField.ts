@@ -1,4 +1,3 @@
-import { Doc } from "./Doc";
 import { RefField } from "./RefField";
 import { OnUpdate, Parent, Copy, ToScriptString, ToString } from "./FieldSymbols";
 import { Scripting } from "../client/util/Scripting";

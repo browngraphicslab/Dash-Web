@@ -1,0 +1,35 @@
+.scriptingBox-outerDiv {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background-color: rgb(241, 239, 235);
+    padding: 10px;
+    .scriptingBox-inputDiv {
+        display: flex;
+        flex-direction: column;
+        height: calc(100% - 30px);
+        .scriptingBox-errorMessage {
+            overflow: auto;
+        }
+        .scripting-params {
+            background: "beige";
+        }
+        .scriptingBox-textArea {
+            width: 100%;
+            height: 100%;
+            box-sizing: border-box;
+            resize: none;
+            padding: 7px;
+        }
+    }
+
+    .scriptingBox-toolbar {
+        width: 100%;
+        height: 30px;
+        .scriptingBox-button {
+            width: 50%
+        }
+    }
+}
+

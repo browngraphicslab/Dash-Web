@@ -1,27 +1,39 @@
 import ApiManager, { Registration } from "./ApiManager";
 import { Method } from "../RouteManager";
 import { exec } from 'child_process';
-import { command_line } from "../ActionUtilities";
 import RouteSubscriber from "../RouteSubscriber";
 import { red } from "colors";
-import { main } from "../../scraping/buxton/node_scraper";
+// import { IBM_Recommender } from "../../client/apis/IBM_Recommender";
+// import { Recommender } from "../Recommender";
+
+// const recommender = new Recommender();
+// recommender.testModel();
+import executeImport from "../../scraping/buxton/final/BuxtonImporter";
 
 export default class UtilManager extends ApiManager {
 
     protected initialize(register: Registration): void {
 
-        register({
-            method: Method.GET,
-            subscription: new RouteSubscriber("environment").add("key"),
-            secureHandler: ({ req, res }) => {
-                const { key } = req.params;
-                const value = process.env[key];
-                if (!value) {
-                    console.log(red(`process.env.${key} is not defined.`));
-                }
-                return res.send(value);
-            }
-        });
+        // register({
+        //     method: Method.POST,
+        //     subscription: "/IBMAnalysis",
+        //     secureHandler: async ({ req, res }) => res.send(await IBM_Recommender.analyze(req.body))
+        // });
+
+        // register({
+        //     method: Method.POST,
+        //     subscription: "/recommender",
+        //     secureHandler: async ({ req, res }) => {
+        //         const keyphrases = req.body.keyphrases;
+        //         const wordvecs = await recommender.vectorize(keyphrases);
+        //         let embedding: Float32Array = new Float32Array();
+        //         if (wordvecs && wordvecs.dataSync()) {
+        //             embedding = wordvecs.dataSync() as Float32Array;
+        //         }
+        //         res.send(embedding);
+        //     }
+        // });
+
 
         register({
             method: Method.GET,
@@ -38,31 +50,6 @@ export default class UtilManager extends ApiManager {
                     });
                 });
             }
-        });
-
-        register({
-            method: Method.GET,
-            subscription: "/buxton",
-            secureHandler: async ({ res }) => {
-                const cwd = './src/scraping/buxton';
-
-                const onResolved = (stdout: string) => { console.log(stdout); res.redirect("/"); };
-                const onRejected = (err: any) => { console.error(err.message); res.send(err); };
-                const tryPython3 = (reason: any) => {
-                    console.log("Initial scraper failed for the following reason:");
-                    console.log(red(reason.Error));
-                    console.log("Falling back to python3...");
-                    return command_line('python3 scraper.py', cwd).then(onResolved, onRejected);
-                };
-
-                return command_line('python scraper.py', cwd).then(onResolved, tryPython3);
-            },
-        });
-
-        register({
-            method: Method.GET,
-            subscription: "/newBuxton",
-            secureHandler: async ({ res }) => res.send(await main())
         });
 
         register({

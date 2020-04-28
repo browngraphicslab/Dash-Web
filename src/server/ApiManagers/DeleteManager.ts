@@ -2,6 +2,11 @@ import ApiManager, { Registration } from "./ApiManager";
 import { Method, _permission_denied, PublicHandler } from "../RouteManager";
 import { WebSocket } from "../Websocket/Websocket";
 import { Database } from "../database";
+import rimraf = require("rimraf");
+import { pathToDirectory, Directory } from "./UploadManager";
+import { filesDirectory } from "..";
+import { DashUploadUtils } from "../DashUploadUtils";
+import { mkdirSync } from "fs";
 
 export default class DeleteManager extends ApiManager {
 
@@ -31,21 +36,19 @@ export default class DeleteManager extends ApiManager {
             }
         });
 
-        const hi: PublicHandler = async ({ res, isRelease }) => {
-            if (isRelease) {
-                return _permission_denied(res, deletionPermissionError);
+        register({
+            method: Method.GET,
+            subscription: "/deleteAssets",
+            secureHandler: async ({ res, isRelease }) => {
+                if (isRelease) {
+                    return _permission_denied(res, deletionPermissionError);
+                }
+                rimraf.sync(filesDirectory);
+                mkdirSync(filesDirectory);
+                await DashUploadUtils.buildFileDirectories();
+                res.redirect("/delete");
             }
-            await Database.Instance.deleteAll('users');
-            res.redirect("/home");
-        };
-
-        // register({
-        //     method: Method.GET,
-        //     subscription: "/deleteUsers",
-        //     onValidation: hi,
-        //     onUnauthenticated: hi
-        // });
-
+        });
 
         register({
             method: Method.GET,

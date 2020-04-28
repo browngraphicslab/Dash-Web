@@ -195,7 +195,6 @@ interface DocumentOptions { }
 declare const Docs: {
     ImageDocument(url: string, options?: DocumentOptions): Doc;
     VideoDocument(url: string, options?: DocumentOptions): Doc;
-    // HistogramDocument(url:string, options?:DocumentOptions);
     TextDocument(options?: DocumentOptions): Doc;
     PdfDocument(url: string, options?: DocumentOptions): Doc;
     WebDocument(url: string, options?: DocumentOptions): Doc;
@@ -207,4 +206,5 @@ declare const Docs: {
     StackingDocument(documents: Doc[], options?: DocumentOptions): Doc;
 };
 
+declare function assignDoc(doc:Doc, field:any, id:any):string;
 declare function d(...args:any[]):any;

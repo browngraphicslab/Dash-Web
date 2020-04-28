@@ -6,18 +6,16 @@ import { Doc, WidthSym, HeightSym } from "../new_fields/Doc";
 import { NumCast } from "../new_fields/Types";
 import { CollectionFreeFormView } from "../client/views/collections/collectionFreeForm/CollectionFreeFormView";
 import { Rect } from "react-measure";
+import { Scripting } from "../client/util/Scripting";
 
 export namespace GestureUtils {
-    namespace GestureDataTypes {
-        export type BoxData = Array<Doc>;
-    }
-
     export class GestureEvent {
         constructor(
             readonly gesture: Gestures,
             readonly points: PointData[],
             readonly bounds: Rect,
-            readonly callbackFn?: Function
+            readonly callbackFn?: Function,
+            readonly text?: any
         ) { }
     }
 
@@ -37,17 +35,12 @@ export namespace GestureUtils {
     export enum Gestures {
         Box = "box",
         Line = "line",
+        StartBracket = "startbracket",
+        EndBracket = "endbracket",
         Stroke = "stroke",
-        Scribble = "scribble"
+        Scribble = "scribble",
+        Text = "text"
     }
 
     export const GestureRecognizer = new NDollarRecognizer(false);
-
-    export function GestureOptions(name: string, gestureData?: any): (params: {}) => any {
-        switch (name) {
-            case Gestures.Box:
-                break;
-        }
-        throw new Error("This means that you're trying to do something with the gesture that hasn't been defined yet. Define it in GestureUtils.ts");
-    }
 }

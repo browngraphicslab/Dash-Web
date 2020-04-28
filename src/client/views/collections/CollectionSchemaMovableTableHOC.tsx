@@ -3,9 +3,9 @@ import { ReactTableDefaults, TableCellRenderer, RowInfo } from "react-table";
 import "./CollectionSchemaView.scss";
 import { Transform } from "../../util/Transform";
 import { Doc } from "../../../new_fields/Doc";
-import { DragManager, SetupDrag } from "../../util/DragManager";
+import { DragManager, SetupDrag, dropActionType } from "../../util/DragManager";
 import { SelectionManager } from "../../util/SelectionManager";
-import { Cast, FieldValue } from "../../../new_fields/Types";
+import { Cast, FieldValue, StrCast } from "../../../new_fields/Types";
 import { ContextMenu } from "../ContextMenu";
 import { action } from "mobx";
 import { library } from '@fortawesome/fontawesome-svg-core';
@@ -54,7 +54,7 @@ export class MovableColumn extends React.Component<MovableColumnProps> {
     }
 
     createColDropTarget = (ele: HTMLDivElement) => {
-        this._colDropDisposer && this._colDropDisposer();
+        this._colDropDisposer?.();
         if (ele) {
             this._colDropDisposer = DragManager.MakeDropTarget(ele, this.colDrop.bind(this));
         }
@@ -135,6 +135,7 @@ export interface MovableRowProps {
     rowFocused: boolean;
     textWrapRow: (doc: Doc) => void;
     rowWrapped: boolean;
+    dropAction: string;
 }
 
 export class MovableRow extends React.Component<MovableRowProps> {
@@ -219,7 +220,7 @@ export class MovableRow extends React.Component<MovableRowProps> {
         if (!doc) return <></>;
 
         const reference = React.createRef<HTMLDivElement>();
-        const onItemDown = SetupDrag(reference, () => doc, this.move);
+        const onItemDown = SetupDrag(reference, () => doc, this.move, StrCast(this.props.dropAction) as dropActionType);
 
         let className = "collectionSchema-row";
         if (this.props.rowFocused) className += " row-focused";
