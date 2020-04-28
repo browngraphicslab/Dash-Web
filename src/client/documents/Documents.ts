@@ -38,6 +38,7 @@ import { filterData} from "../views/search/SearchBox";
 //import { PresBox } from "../views/nodes/PresBox";
 //import { PresField } from "../../new_fields/PresField";
 import { PresElementBox } from "../views/presentationview/PresElementBox";
+import { SearchItem } from "../views/search/SearchItem";
 import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
 import { SearchBox } from "../views/search/SearchBox";
 import { ColorBox } from "../views/nodes/ColorBox";
@@ -276,6 +277,9 @@ export namespace Docs {
             }],
             [DocumentType.PRESELEMENT, {
                 layout: { view: PresElementBox, dataField: data }
+            }],
+            [DocumentType.SEARCHITEM, {
+                layout: { view: SearchItem, dataField: data }
             }],
             [DocumentType.INK, {
                 layout: { view: InkingStroke, dataField: data },
@@ -669,6 +673,10 @@ export namespace Docs {
 
         export function PresElementBoxDocument(options?: DocumentOptions) {
             return InstanceFromProto(Prototypes.get(DocumentType.PRESELEMENT), undefined, { ...(options || {}) });
+        }
+
+        export function SearchItemBoxDocument(options?: DocumentOptions) {
+            return InstanceFromProto(Prototypes.get(DocumentType.SEARCHITEM), undefined, { ...(options || {}) });
         }
 
         export function DockDocument(documents: Array<Doc>, config: string, options: DocumentOptions, id?: string) {

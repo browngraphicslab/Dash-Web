@@ -251,6 +251,7 @@ export class CurrentUserUtils {
 
     // setup the Search button which will display the search panel.  
     static setupSearchPanel(sidebarContainer: Doc) {
+
         return Docs.Create.ButtonDocument({
             _width: 50, _height: 25, title: "Search", fontSize: 10,
             letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
@@ -331,6 +332,8 @@ export class CurrentUserUtils {
 
     // the initial presentation Doc to use
     static setupDefaultPresentation(doc: Doc) {
+        doc.searchItemTemplate = new PrefetchProxy(Docs.Create.SearchItemBoxDocument({ title: "search item template", backgroundColor: "transparent", _xMargin: 5, _height: 46, isTemplateDoc: true, isTemplateForField: "data" }));
+
         doc.presentationTemplate = new PrefetchProxy(Docs.Create.PresElementBoxDocument({ title: "pres element template", backgroundColor: "transparent", _xMargin: 5, _height: 46, isTemplateDoc: true, isTemplateForField: "data" }));
         doc.curPresentation = Docs.Create.PresDocument(new List<Doc>(), { title: "Presentation", _viewType: CollectionViewType.Stacking, _LODdisable: true, _chromeStatus: "replaced", _showTitle: "title", boxShadow: "0 0" });
     }

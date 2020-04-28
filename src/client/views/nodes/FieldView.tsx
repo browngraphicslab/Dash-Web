@@ -51,6 +51,9 @@ export interface FieldViewProps {
     ContentScaling: () => number;
     ChromeHeight?: () => number;
     childLayoutTemplate?: () => Opt<Doc>;
+    highlighting?: string[];
+    lines?: string[];
+    doc?: Doc;
 }
 
 @observer

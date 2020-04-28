@@ -533,7 +533,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             // undefined until a searchitem is put in there
             this._visibleElements = Array<JSX.Element>(this._numTotalResults === -1 ? 0 : this._numTotalResults);
             this._visibleDocuments = Array<Doc>(this._numTotalResults === -1 ? 0 : this._numTotalResults);
-
             // indicates if things are placeholders 
             this._isSearch = Array<undefined>(this._numTotalResults === -1 ? 0 : this._numTotalResults);
         }
@@ -555,7 +554,10 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                         if (i < this._results.length) result = this._results[i];
                         if (result) {
                             const highlights = Array.from([...Array.from(new Set(result[1]).values())]);
-                            this._visibleElements[i] = <SearchItem doc={result[0]} query={this._searchString} key={result[0][Id]} lines={result[2]} highlighting={highlights} />;
+                            result[0].query=this._searchString;
+                            this._visibleElements[i] = <SearchItem {...this.props} doc={result[0]} lines={result[2]} highlighting={highlights} />;
+                            Doc.AddDocToList(this.props.Document, undefined, result[0])
+
                             this._visibleDocuments[i]= result[0];
                             this._isSearch[i] = "search";
                         }
@@ -564,8 +566,10 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                         result = this._results[i];
                         if (result) {
                             const highlights = Array.from([...Array.from(new Set(result[1]).values())]);
-                            this._visibleElements[i] = <SearchItem doc={result[0]} query={this._searchString} key={result[0][Id]} lines={result[2]} highlighting={highlights} />;
+                            result[0].query=this._searchString;
+                            this._visibleElements[i] = <SearchItem {...this.props} doc={result[0]} lines={result[2]} highlighting={highlights} />;
                             this._visibleDocuments[i] = result[0];
+                            Doc.AddDocToList(this.props.Document, undefined, result[0])
                             this._isSearch[i] = "search";
                         }
                     }
@@ -729,7 +733,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                 pinToPres={emptyFunction}
                 onClick={undefined}
                 removeDocument={undefined}
-                ScreenToLocalTransform={Transform.Identity}
+                ScreenToLocalTransform={this.getTransform}
                 ContentScaling={returnOne}
                 PanelWidth={width}
                 PanelHeight={() => 100}
@@ -767,7 +771,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                 pinToPres={emptyFunction}
                 onClick={undefined}
                 removeDocument={undefined}
-                ScreenToLocalTransform={Transform.Identity}
+                ScreenToLocalTransform={this.getTransform}
                 ContentScaling={returnOne}
                 PanelWidth={width}
                 PanelHeight={() => 100}
@@ -805,7 +809,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                 pinToPres={emptyFunction}
                 onClick={undefined}
                 removeDocument={undefined}
-                ScreenToLocalTransform={Transform.Identity}
+                ScreenToLocalTransform={this.getTransform}
                 ContentScaling={returnOne}
                 PanelWidth={width}
                 PanelHeight={() => 100}
@@ -889,7 +893,23 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         });
         doc.defaultButtons= dragCreators;
     }
-    childLayoutTemplate = () => this.layoutDoc._viewType === CollectionViewType.Stacking ? Cast(Doc.UserDoc().presentationTemplate, Doc, null) : undefined;
+    childLayoutTemplate = () => this.layoutDoc._viewType === CollectionViewType.Stacking ? Cast(Doc.UserDoc().searchItemTemplate, Doc, null) : undefined;
+    getTransform = () => {
+    return this.props.ScreenToLocalTransform().translate(-5, -65);// listBox padding-left and pres-box-cont minHeight
+    }
+    panelHeight = () => {
+        return this.props.PanelHeight() - 50;
+    }
+    selectElement = (doc: Doc) => {
+        //this.gotoDocument(this.childDocs.indexOf(doc), NumCast(this.layoutDoc._itemIndex));
+    }
+
+    addDocument = (doc: Doc) => {
+        const newPinDoc = Doc.MakeAlias(doc);
+        newPinDoc.presentationTargetDoc = doc;
+        return Doc.AddDocToList(this.dataDoc, this.fieldKey, newPinDoc);
+    }
+
     render() {
 
         return (
@@ -922,14 +942,16 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                         {this.keyButtons}
                     </div>
                 </div>
-                {/* <CollectionView {...this.props}
+                <CollectionView {...this.props}
+                        children={this._visibleDocuments}
+                        Document={this.props.Document}
                         PanelHeight={this.panelHeight}
                         moveDocument={returnFalse}
                         childLayoutTemplate={this.childLayoutTemplate}
                         addDocument={this.addDocument}
                         removeDocument={returnFalse}
                         focus={this.selectElement}
-                        ScreenToLocalTransform={this.getTransform} /> */}
+                        ScreenToLocalTransform={this.getTransform} />
                 <div className="searchBox-results" onScroll={this.resultsScrolled} style={{
                     display: this._resultsOpen ? "flex" : "none",
                     height: this.resFull ? "auto" : this.resultHeight,

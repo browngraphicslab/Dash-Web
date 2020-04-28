@@ -34,7 +34,7 @@ export class QueryBox extends ViewBoxAnnotatableComponent<FieldViewProps, QueryD
         const dragging = !SelectionManager.GetIsDragging() ? "" : "-dragging";
         return <div className={`queryBox${dragging}`} onWheel={(e) => e.stopPropagation()} >
             
-            <SearchBox Document={this.props.Document}  />
+            <SearchBox  Document={this.props.Document}  />
         </div >;
     }
 }
