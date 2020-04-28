@@ -129,57 +129,43 @@ export class MobileInterface extends React.Component {
 
     displayWorkspaces = () => {
         if (this.mainContainer) {
-            // console.log("User workspaces: " + (this.userDoc.myWorkspaces as Doc).contextMenuLabels);
-            const workspaces = Cast(this.userDoc.myWorkspaces, Doc) as Doc;
-            const list = DocListCast(workspaces.data).map(doc => {
-                console.log("title: " + doc);
-                // return <div className="item">{doc}</div>;
-                DocListCast(doc.data).map((img, i) => {
-                    console.log("img: " + img);
-                    console.log("i:" + i);
-                    const title = (doc.title as any)[0];
-                    if (title) {
-                        console.log("captions: " + title);
-                        Doc.GetProto(img).title = title;
-                    }
-                });
-            });
-            // console.log("Workspace: " + workspace);
-            // console.log("Workspace: " + workspace);
-            // const workspaceCount = DocListCast(workspaces.data).length + 1;
-            // const backgroundColor = () => "darkgrey";
-        } else {
-            return <div className="item">HELLO!</div>;
+            console.log("User workspaces: " + (this.userDoc.myWorkspaces as Doc).contextMenuLabels);
+            const backgroundColor = () => "darkgrey";
+            return (
+                <DocumentView
+                    Document={this.mainContainer}
+                    DataDoc={undefined}
+                    LibraryPath={emptyPath}
+                    addDocument={returnFalse}
+                    addDocTab={returnFalse}
+                    pinToPres={emptyFunction}
+                    rootSelected={returnFalse}
+                    removeDocument={undefined}
+                    onClick={undefined}
+                    ScreenToLocalTransform={Transform.Identity}
+                    ContentScaling={returnOne}
+                    NativeHeight={returnZero}
+                    NativeWidth={returnZero}
+                    PanelWidth={() => window.screen.width}
+                    PanelHeight={() => window.screen.height}
+                    renderDepth={0}
+                    focus={emptyFunction}
+                    backgroundColor={backgroundColor}
+                    parentActive={returnTrue}
+                    whenActiveChanged={emptyFunction}
+                    bringToFront={emptyFunction}
+                    ContainingCollectionView={undefined}
+                    ContainingCollectionDoc={undefined}
+                />
+            );
         }
     }
 
-    /**
-     * 
-     * @param doc: takes in the doc that was clicked on and handles onClick functionality
-     * for the specific Doc, dependeing on doc type. 
-     * If-statements checking document type (eg. if text document open in mobileActive, if
-     * collection, open children etc.)
-     */
-    handleClick(doc: Doc) {
-        console.log("----------------------------");
-        console.log("Title: " + doc.title);
-        console.log("Child docs: " + doc.childDocs);
-
-        console.log("----------------------------");
-    }
-
     renderDefaultContent = () => {
-        const workspaces = Cast(this.userDoc.myWorkspaces, Doc) as Doc;
-        const buttons = DocListCast(workspaces.data).map((doc: Doc, index: any) => {
-            return (
-                <div className="item"
-                    key={index}
-                    onClick={() => this.handleClick(doc)}>{doc.title}</div>);
-        });
-
         return (
             <div>
                 <div className="navbar">
+                    {/* <input className="toggle" id="menuToggle" onClick={this.toggleSidebar}></input> */}
                     <div className="toggle-btn" id="menuButton" onClick={this.toggleSidebar}>
                         <span></span>
                         <span></span>
@@ -187,8 +173,11 @@ export class MobileInterface extends React.Component {
                     </div>
                 </div>
                 <div className="sidebar" id="sidebar">
+                    {/* <div className="item">Workspace 1</div>
+                    <div className="item">Workspace 2</div>
+                    <div className="item">Workspace 3</div> */}
                     <div>
-                        {buttons}
+                        {this.displayWorkspaces()}
                     </div>
                 </div>
             </div>
