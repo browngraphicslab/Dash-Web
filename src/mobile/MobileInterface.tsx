@@ -182,7 +182,6 @@ export class MobileInterface extends React.Component {
         return (
             <div>
                 <div className="navbar">
-                    {/* <input className="toggle" id="menuToggle" onClick={this.toggleSidebar}></input> */}
                     <div className="toggle-btn" id="menuButton" onClick={this.toggleSidebar}>
                         <span></span>
                         <span></span>
