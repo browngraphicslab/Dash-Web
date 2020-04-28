@@ -1,5 +1,5 @@
 import React = require("react");
-import { DOMOtSpecArputray, Fragment, MarkSpec, Node, NodeSpec, Schema, Slice } from "prosemirror-model";
+import { DOMOutputSpecArray, Fragment, MarkSpec, Node, NodeSpec, Schema, Slice } from "prosemirror-model";
 import { bulletList, listItem, orderedList } from 'prosemirror-schema-list';
 import ParagraphNodeSpec from "./ParagraphNodeSpec";
 

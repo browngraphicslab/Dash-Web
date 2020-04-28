@@ -1,58 +1,79 @@
-import { IReactionDisposer, observable, reaction, runInAction } from "mobx";
+import { IReactionDisposer, observable, runInAction, computed, action } from "mobx";
 import { Doc, DocListCast, Field } from "../../new_fields/Doc";
 import { List } from "../../new_fields/List";
 import { listSpec } from "../../new_fields/Schema";
 import { SchemaHeaderField } from "../../new_fields/SchemaHeaderField";
 import { ComputedField } from "../../new_fields/ScriptField";
 import { Cast, StrCast } from "../../new_fields/Types";
-import { Utils } from "../../Utils";
 import { DocServer } from "../DocServer";
 import { CollectionViewType } from "../views/collections/CollectionView";
 import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
 import React = require("react");
 import * as ReactDOM from 'react-dom';
 import "./DashFieldView.scss";
+import { observer } from "mobx-react";
 
 
 export class DashFieldView {
     _fieldWrapper: HTMLDivElement; // container for label and value
 
     constructor(node: any, view: any, getPos: any, tbox: FormattedTextBox) {
-        this._fieldWrapper = document.createElement("p");
+        this._fieldWrapper = document.createElement("div");
         this._fieldWrapper.style.width = node.attrs.width;
         this._fieldWrapper.style.height = node.attrs.height;
         this._fieldWrapper.style.fontWeight = "bold";
         this._fieldWrapper.style.position = "relative";
         this._fieldWrapper.style.display = "inline-block";
-        ReactDOM.render(<DashFieldViewInternal node={node} view={view} getPos={getPos} tbox={tbox} />, this._fieldWrapper);
+        this._fieldWrapper.onkeypress = function (e: any) { e.stopPropagation(); };
+        this._fieldWrapper.onkeydown = function (e: any) { e.stopPropagation(); };
+        this._fieldWrapper.onkeyup = function (e: any) { e.stopPropagation(); };
+        this._fieldWrapper.onmousedown = function (e: any) { e.stopPropagation(); };
+
+        ReactDOM.render(<DashFieldViewInternal
+            fieldKey={node.attrs.fieldKey}
+            docid={node.attrs.docid}
+            width={node.attrs.width}
+            height={node.attrs.height}
+            view={view}
+            getPos={getPos}
+            tbox={tbox}
+        />, this._fieldWrapper);
         (this as any).dom = this._fieldWrapper;
     }
     destroy() {
         ReactDOM.unmountComponentAtNode(this._fieldWrapper);
     }
+    selectNode() { }
 
 }
 interface IDashFieldViewInternal {
-    node: any,
-    view: any,
-    getPos: any,
-    tbox: FormattedTextBox
+    fieldKey: string;
+    docid: string;
+    view: any;
+    getPos: any;
+    tbox: FormattedTextBox;
+    width: number;
+    height: number;
 }
+
+@observer
 export class DashFieldViewInternal extends React.Component<IDashFieldViewInternal> {
 
     _reactionDisposer: IReactionDisposer | undefined;
-    _textBoxDoc?: Doc; //Added "?""
-    @observable _dashDoc: Doc | undefined;
-    _fieldKey?: string; //Added "?" and added "as string"
+    _textBoxDoc: Doc;
+    _fieldKey: string;
     _options: Doc[] = [];
+    _fieldStringRef = React.createRef<HTMLSpanElement>();
+    @observable _showEnumerables: boolean = false;
+    @observable _dashDoc: Doc | undefined;
 
     constructor(props: IDashFieldViewInternal) {
-        super(props)
-        this._fieldKey = this.props.node.attrs.fieldKey;
+        super(props);
+        this._fieldKey = this.props.fieldKey;
         this._textBoxDoc = this.props.tbox.props.Document;
 
-        if (this.props.node.attrs.docid) {
-            DocServer.GetRefField(this.props.node.attrs.docid).
+        if (this.props.docid) {
+            DocServer.GetRefField(this.props.docid).
                 then(async dashDoc => dashDoc instanceof Doc && runInAction(() => this.setDashDoc(dashDoc)));
         } else {
             this.setDashDoc(this.props.tbox.props.DataDoc || this.props.tbox.dataDoc);
@@ -61,114 +82,104 @@ export class DashFieldViewInternal extends React.Component<IDashFieldViewInterna
     componentWillUnmount() {
         this._reactionDisposer?.();
     }
-    componentDidMount() {
-        var elementFieldCheck = document.getElementById("fieldCheckId") as HTMLInputElement;
-        if (elementFieldCheck) {
-            this._reactionDisposer = reaction(() => { // this reaction will update the displayed text whenever the document's fieldKey's value changes
-                const dashVal = this._dashDoc?.[this._fieldKey as string];
-                return StrCast(dashVal).startsWith(":=") || dashVal === "" ? Doc.Layout(this.props.tbox.props.Document)[this._fieldKey as string] : dashVal;
-            }, fval => {
-                const boolVal = Cast(fval, "boolean", null);
-                if (boolVal === true || boolVal === false) {
-                    elementFieldCheck.checked = boolVal;
-                } else {
-                    //  elementFieldCheck.innerHTML = Field.toString(fval as Field) || "";
-                }
-                elementFieldCheck.style.display = (boolVal === true || boolVal === false) ? "inline-block" : "none";
-                elementFieldCheck.style.display = !(boolVal === true || boolVal === false) ? "inline-block" : "none";
-            }, { fireImmediately: true });
+
+    // set the display of the field's value (checkbox for booleans, span of text for strings)
+    @computed get fieldValueContent() {
+        if (this._dashDoc) {
+            const dashVal = this._dashDoc[this._fieldKey];
+            const fval = StrCast(dashVal).startsWith(":=") || dashVal === "" ? Doc.Layout(this._textBoxDoc)[this._fieldKey] : dashVal;
+            const boolVal = Cast(fval, "boolean", null);
+            const strVal = Field.toString(fval as Field) || "";
+
+            // field value is a boolean, so use a checkbox of similar widget to display it
+            if (boolVal === true || boolVal === false) {
+                return <input
+                    className="dashFieldView-fieldCheck"
+                    type="checkbox"
+                    onChange={e => this._dashDoc![this._fieldKey] = e.target.checked}
+                />;
+            }
+            else // field value is a string, so display it as an editable span
+            {
+                // bcz: this is unfortunate, but since this React component is nested within a non-React text box (prosemirror), we can't
+                // use React events.  Essentially, React events occur after native events have been processed, so corresponding React events
+                // will never fire because Prosemirror has handled the native events.  So we add listeners for native events here.
+                return <span contentEditable={true} ref={r => {
+                    r?.addEventListener("keydown", e => this.fieldSpanKeyDown(e, r));
+                    r?.addEventListener("blur", e => r && this.updateText(r.textContent!, false));
+                    r?.addEventListener("pointerdown", action((e) => this._showEnumerables = true));
+                }}>
+                    {strVal}
+                </span>
+            }
         }
     }
 
     setDashDoc = (doc: Doc) => {
         this._dashDoc = doc;
-        if (this._options?.length && !this._dashDoc[this._fieldKey as string]) {
-            this._dashDoc[this._fieldKey as string] = StrCast(this._options[0].title);
+        if (this._options?.length && !this._dashDoc[this._fieldKey]) {
+            this._dashDoc[this._fieldKey] = StrCast(this._options[0].title);
         }
         // NOTE: if the field key starts with "@", then the actual field key is stored in the field 'fieldKey' (removing the @).
-        this._fieldKey = this._fieldKey?.startsWith("@") ? StrCast(this.props.tbox.props.Document[StrCast(this._fieldKey as string).substring(1)]) : this._fieldKey as string;
-        // var elementlabelSpan = document.getElementById("labelSpanId") as HTMLElement;
-        // elementlabelSpan.innerHTML = `${this._fieldKey}: `;
-        // const fieldVal = Cast(this._dashDoc?.[this._fieldKey], "boolean", null);
-        // var elementfieldCheck = document.getElementById("fieldCheckId") as HTMLElement;
-        // elementfieldCheck.style.display = (fieldVal === true || fieldVal === false) ? "inline-block" : "none";
-        // elementfieldCheck.style.display = !(fieldVal === true || fieldVal === false) ? "inline-block" : "none";
-    };
+        //this._fieldKey = this._fieldKey?.startsWith("@") ? StrCast(this._textBoxDoc[StrCast(this._fieldKey as string).substring(1)]) : this._fieldKey as string;
+    }
 
-    updateText = (forceMatch: boolean) => {
-        var elementEnumarables = document.getElementById("enumarablesId") as HTMLElement;
-        elementEnumarables.style.display = "none";
-        var elementfieldSpan = document.getElementById("fieldSpanId") as HTMLElement;
-        const newText = elementfieldSpan.innerText.startsWith(":=") || elementfieldSpan.innerText.startsWith("=:=") ? ":=-computed-" : elementfieldSpan.innerText;
-
-        // look for a document whose id === the fieldKey being displayed.  If there's a match, then that document
-        // holds the different enumerated values for the field in the titles of its collected documents.
-        // if there's a partial match from the start of the input text, complete the text --- TODO: make this an auto suggest box and select from a drop down.
-        DocServer.GetRefField(this._fieldKey as string).then(options => {
-            let modText = "";
-            (options instanceof Doc) && DocListCast(options.data).forEach(opt => (forceMatch ? StrCast(opt.title).startsWith(newText) : StrCast(opt.title) === newText) && (modText = StrCast(opt.title)));
-            var elementfieldSpan = document.getElementById("fieldSpanId") as HTMLElement;
-            if (modText) {
-                //  elementfieldSpan.innerHTML = this._dashDoc![this._fieldKey as string] = modText;
-                Doc.addFieldEnumerations(this._textBoxDoc, this._fieldKey as string, []);
-            } // if the text starts with a ':=' then treat it as an expression by making a computed field from its value storing it in the key
-            else if (elementfieldSpan.innerText.startsWith(":=")) {
-                this._dashDoc![this._fieldKey as string] = ComputedField.MakeFunction(elementfieldSpan.innerText.substring(2));
-            } else if (elementfieldSpan.innerText.startsWith("=:=")) {
-                Doc.Layout(this.props.tbox.props.Document)[this._fieldKey as string] = ComputedField.MakeFunction(elementfieldSpan.innerText.substring(3));
-            } else {
-                this._dashDoc![this._fieldKey as string] = newText;
-            }
-        });
-    };
-
-    onPointerDownEnumerables = async (e: any) => {
-        e.stopPropagation();
-        var elementfieldSpan = document.getElementById("fieldSpanId") as HTMLElement;
-        const collview = await Doc.addFieldEnumerations(this._textBoxDoc, this._fieldKey as string, [{ title: elementfieldSpan.innerText }]);
-        collview instanceof Doc && this.props.tbox.props.addDocTab(collview, "onRight");
-    };
-
-    onChangefieldCheck = (e: any) => {
-        this._dashDoc![this._fieldKey as string] = e.target.checked;
-    };
-
-    onKeyPressfieldSpan = function (e: any) { e.stopPropagation(); };
-
-    onKeyUpfieldSpan = function (e: any) { e.stopPropagation(); };
-
-    onMouseDownfieldSpan = function (e: any) {
-        e.stopPropagation();
-        var element = document.getElementById("enumerables") as HTMLElement;
-        element.style.display = "inline-block";
-    };
-
-    onBlurfieldSpan = (e: any) => { this.updateText(false); }; //Pas importé
-
-    onKeyDownfieldSpan = (e: any) => {
-        e.stopPropagation();
-        if ((e.key === "a" && e.ctrlKey) || (e.key === "a" && e.metaKey)) {
+    // we need to handle all key events on the input span or else they will propagate to prosemirror.
+    @action
+    fieldSpanKeyDown = (e: KeyboardEvent, span: HTMLSpanElement) => {
+        if (e.key === "Enter") {  // handle the enter key by "submitting" the current text to Dash's database. 
+            e.ctrlKey && Doc.addFieldEnumerations(this._textBoxDoc, this._fieldKey, [{ title: span.textContent! }]);
+            this.updateText(span.textContent!, true);
+            e.preventDefault();// prevent default to avoid a newline from being generated and wiping out this field view
+        }
+        if (e.key === "a" && (e.ctrlKey || e.metaKey)) { // handle ctrl-A to select all the text within the span
             if (window.getSelection) {
                 const range = document.createRange();
-                var elementfieldSpan = document.getElementById("fieldSpanId") as HTMLElement;
-
-                range.selectNodeContents(elementfieldSpan);
+                range.selectNodeContents(span);
                 window.getSelection()!.removeAllRanges();
                 window.getSelection()!.addRange(range);
             }
-            e.preventDefault();
+            e.preventDefault(); //prevent default so that all the text in the prosemirror text box isn't selected
         }
-        if (e.key === "Enter") {
-            e.preventDefault();
-            var elementfieldSpan = document.getElementById("fieldSpanId") as HTMLElement;
+        e.stopPropagation();  // we need to handle all events or else they will propagate to prosemirror.
+    }
 
-            e.ctrlKey && Doc.addFieldEnumerations(this._textBoxDoc, this._fieldKey as string, [{ title: elementfieldSpan.innerText }]);
-            this.updateText(true); //added this
+    @action
+    updateText = (nodeText: string, forceMatch: boolean) => {
+        this._showEnumerables = false;
+        if (nodeText) {
+            const newText = nodeText.startsWith(":=") || nodeText.startsWith("=:=") ? ":=-computed-" : nodeText;
+
+            // look for a document whose id === the fieldKey being displayed.  If there's a match, then that document
+            // holds the different enumerated values for the field in the titles of its collected documents.
+            // if there's a partial match from the start of the input text, complete the text --- TODO: make this an auto suggest box and select from a drop down.
+            DocServer.GetRefField(this._fieldKey).then(options => {
+                let modText = "";
+                (options instanceof Doc) && DocListCast(options.data).forEach(opt => (forceMatch ? StrCast(opt.title).startsWith(newText) : StrCast(opt.title) === newText) && (modText = StrCast(opt.title)));
+                if (modText) {
+                    //  elementfieldSpan.innerHTML = this._dashDoc![this._fieldKey as string] = modText;
+                    Doc.addFieldEnumerations(this._textBoxDoc, this._fieldKey, []);
+                    this._dashDoc![this._fieldKey] = modText;
+                } // if the text starts with a ':=' then treat it as an expression by making a computed field from its value storing it in the key
+                else if (nodeText.startsWith(":=")) {
+                    this._dashDoc![this._fieldKey] = ComputedField.MakeFunction(nodeText.substring(2));
+                } else if (nodeText.startsWith("=:=")) {
+                    Doc.Layout(this._textBoxDoc)[this._fieldKey] = ComputedField.MakeFunction(nodeText.substring(3));
+                } else {
+                    this._dashDoc![this._fieldKey] = newText;
+                }
+            });
         }
-    };
+    }
+
+    onPointerDownEnumerables = async (e: any) => {
+        e.stopPropagation();
+        const collview = await Doc.addFieldEnumerations(this._textBoxDoc, this._fieldKey, [{ title: this._fieldKey }]);
+        collview instanceof Doc && this.props.tbox.props.addDocTab(collview, "onRight");
+    }
+
 
     onPointerDownLabelSpan = (e: any) => {
-
         e.stopPropagation();
         let container = this.props.tbox.props.ContainingCollectionView;
         while (container?.props.Document.isTemplateForField || container?.props.Document.isTemplateDoc) {
@@ -181,91 +192,28 @@ export class DashFieldViewInternal extends React.Component<IDashFieldViewInterna
             if (!list) {
                 alias.schemaColumns = list = new List<SchemaHeaderField>();
             }
-            list.map(c => c.heading).indexOf(this._fieldKey as string) === -1 && list.push(new SchemaHeaderField(this._fieldKey, "#f1efeb"));
+            list.map(c => c.heading).indexOf(this._fieldKey) === -1 && list.push(new SchemaHeaderField(this._fieldKey, "#f1efeb"));
             list.map(c => c.heading).indexOf("text") === -1 && list.push(new SchemaHeaderField("text", "#f1efeb"));
-            alias._pivotField = this._fieldKey as string;
+            alias._pivotField = this._fieldKey;
             this.props.tbox.props.addDocTab(alias, "onRight");
         }
-    };
-
-    destroy() {
-        this._reactionDisposer?.();
     }
-    selectNode() { }
 
     render() {
+        return <div className="dashFieldView" style={{
+            width: this.props.width,
+            height: this.props.height,
+        }}>
+            <span className="dashFieldView-labelSpan" title="click to see related tags" onPointerDown={this.onPointerDownLabelSpan}>
+                {this._fieldKey}
+            </span>
 
-        const fieldStyle = {
-            width: this.props.node.attrs.width,
-            height: this.props.node.attrs.height,
-        };
+            <div className="dashFieldView-fieldSpan">
+                {this.fieldValueContent}
+            </div>
 
-        const fieldCheckStyle = {
-            minWidth: "12px",
-            position: 'relative' as 'relative',
-            display: 'none',
-            backgroundColor: "rgba(155, 155, 155, 0.24)"
-        };
+            {!this._showEnumerables ? (null) : <div className="dashFieldView-enumerables" onPointerDown={this.onPointerDownEnumerables} />}
 
-        const fieldSpanStyle = {
-            minWidth: "12px",
-            position: 'relative' as 'relative',
-            display: 'none',
-            backgroundColor: "rgba(155, 155, 155, 0.24)"
-        };
-
-        const labelSpanStyle = {
-            position: 'relative' as 'relative',
-            display: 'inline-block',
-            backgroundColor: "rgba(155, 155, 155, 0.44)",
-            fontSize: "small",
-            title: "click to see related tags"
-        };
-
-        const fieldCheckId = Utils.GenerateGuid();
-        const fieldSpanId = Utils.GenerateGuid();
-
-        return (
-            <div className="fieldWrapper" style={fieldStyle}>
-
-                <span
-                    className="labelSpan"
-                    id='labelSpanId'
-                    style={labelSpanStyle}
-                    onPointerDown={this.onPointerDownLabelSpan}
-                //innerHTML= {this._fieldKey}
-                >
-                </span>
-
-                <input
-                    className="fieldCheck"
-                    id={fieldCheckId}
-                    type="checkbox"
-                    style={fieldCheckStyle}
-                    onChange={this.onChangefieldCheck}>
-                </input>
-
-                <div
-                    className="fieldSpan"
-                    id={fieldSpanId}
-                    contentEditable="true"
-                    style={fieldSpanStyle}
-                    onBlur={this.onBlurfieldSpan}
-                    onKeyDown={this.onKeyDownfieldSpan}
-                    onKeyPress={this.onKeyPressfieldSpan}
-                    onKeyUp={this.onKeyUpfieldSpan}
-                    onMouseDown={this.onMouseDownfieldSpan}
-                >
-                </div>
-
-                <div
-                    className="enumerablesStyle"
-                    id="enumerablesId"
-                    onPointerDown={this.onPointerDownEnumerables}>
-
-                </div>
-
-            </div >
-        )
+        </div >;
     }
 }

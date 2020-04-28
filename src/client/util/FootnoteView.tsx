@@ -18,13 +18,13 @@ interface IFootnoteView {
 
 export class FootnoteView extends React.Component<IFootnoteView>  {
     _innerView: any;
-    _node: any
+    _node: any;
 
     constructor(props: IFootnoteView) {
-        super(props)
-        let node = this.props.node;
+        super(props);
+        const node = this.props.node;
         const outerView = this.props.outerView;
-        let _innerView = this.props.innerView;
+        const _innerView = this.props.innerView;
         const getPos = this.props.getPos;
     }
 
@@ -77,7 +77,7 @@ export class FootnoteView extends React.Component<IFootnoteView>  {
                     if (this.props.outerView.hasFocus()) this.props.innerView.focus();
                 }) as any
             }
-        }))
+        }));
         setTimeout(() => this.props.innerView && this.props.innerView.docView.setSelection(0, 0, this.props.innerView.root, true), 0);
     }
 
@@ -124,7 +124,7 @@ export class FootnoteView extends React.Component<IFootnoteView>  {
     }
 
     toggle = (e: any) => {
-        e.preventDefault()
+        e.preventDefault();
         if (this.props.innerView) this.close();
         else {
             this.open();
@@ -157,6 +157,6 @@ export class FootnoteView extends React.Component<IFootnoteView>  {
 
                 </div >
             </div>
-        )
+        );
     }
 }

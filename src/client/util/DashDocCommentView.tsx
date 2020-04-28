@@ -24,14 +24,14 @@ import React = require("react");
 import { schema } from "./schema_rts";
 
 interface IDashDocCommentView {
-    node: any,
-    view: any,
-    getPos: any
+    node: any;
+    view: any;
+    getPos: any;
 }
 
 export class DashDocCommentView extends React.Component<IDashDocCommentView>{
     constructor(props: IDashDocCommentView) {
-        super(props)
+        super(props);
     }
 
     targetNode = () => {  // search forward in the prosemirror doc for the attached dashDocNode that is the target of the comment anchor
@@ -45,11 +45,9 @@ export class DashDocCommentView extends React.Component<IDashDocCommentView>{
         this.props.view.dispatch(this.props.view.state.tr.insert(this.props.getPos() + 1, dashDoc));
         setTimeout(() => { try { this.props.view.dispatch(this.props.view.state.tr.setSelection(TextSelection.create(this.props.view.state.tr.doc, this.props.getPos() + 2))); } catch (e) { } }, 0);
         return undefined;
-    };
+    }
 
-    onPointerDownCollapse = (e: any) => {
-        e.stopPropagation();
-    };
+    onPointerDownCollapse = (e: any) => e.stopPropagation();
 
     onPointerUpCollapse = (e: any) => {
         const target = this.targetNode();
@@ -63,21 +61,19 @@ export class DashDocCommentView extends React.Component<IDashDocCommentView>{
             }, 0);
         }
         e.stopPropagation();
-    };
+    }
 
     onPointerEnterCollapse = (e: any) => {
         DocServer.GetRefField(this.props.node.attrs.docid).then(async dashDoc => dashDoc instanceof Doc && Doc.linkFollowHighlight(dashDoc, false));
         e.preventDefault();
         e.stopPropagation();
-    };
+    }
 
     onPointerLeaveCollapse = (e: any) => {
         DocServer.GetRefField(this.props.node.attrs.docid).then(async dashDoc => dashDoc instanceof Doc && Doc.linkFollowUnhighlight());
         e.preventDefault();
         e.stopPropagation();
-    };
-
-    selectNode() { }
+    }
 
     render() {
 
@@ -94,6 +90,6 @@ export class DashDocCommentView extends React.Component<IDashDocCommentView>{
             >
 
             </span >
-        )
+        );
     }
 }

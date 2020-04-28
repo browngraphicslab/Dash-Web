@@ -7,15 +7,15 @@ import React = require("react");
 import { schema } from "./schema_rts";
 
 interface IImageResizeView {
-    node: any,
-    view: any,
-    getPos: any,
-    addDocTab: any
+    node: any;
+    view: any;
+    getPos: any;
+    addDocTab: any;
 }
 
 export class ImageResizeView extends React.Component<IImageResizeView> {
     constructor(props: IImageResizeView) {
-        super(props)
+        super(props);
     }
 
     onClickImg = (e: any) => {
@@ -35,19 +35,19 @@ export class ImageResizeView extends React.Component<IImageResizeView> {
                 DocumentManager.Instance.FollowLink(linkDoc, this.props.view.state.schema.Document,
                     document => this.props.addDocTab(document, this.props.node.attrs.location ? this.props.node.attrs.location : "inTab"), false));
         }
-    };
+    }
 
     onPointerDownHandle = (e: any) => {
         e.preventDefault();
         e.stopPropagation();
-        var elementImage = document.getElementById("imageId") as HTMLElement;
+        const elementImage = document.getElementById("imageId") as HTMLElement;
         const wid = Number(getComputedStyle(elementImage).width.replace(/px/, ""));
         const hgt = Number(getComputedStyle(elementImage).height.replace(/px/, ""));
         const startX = e.pageX;
         const startWidth = parseFloat(this.props.node.attrs.width);
 
         const onpointermove = (e: any) => {
-            var elementOuter = document.getElementById("outerId") as HTMLElement;
+            const elementOuter = document.getElementById("outerId") as HTMLElement;
 
             const currentX = e.pageX;
             const diffInPx = currentX - startX;
@@ -59,26 +59,26 @@ export class ImageResizeView extends React.Component<IImageResizeView> {
             document.removeEventListener("pointermove", onpointermove);
             document.removeEventListener("pointerup", onpointerup);
             const pos = this.props.view.state.selection.from;
-            var elementOuter = document.getElementById("outerId") as HTMLElement;
+            const elementOuter = document.getElementById("outerId") as HTMLElement;
             this.props.view.dispatch(this.props.view.state.tr.setNodeMarkup(this.props.getPos(), null, { ...this.props.node.attrs, width: elementOuter.style.width, height: elementOuter.style.height }));
             this.props.view.dispatch(this.props.view.state.tr.setSelection(new NodeSelection(this.props.view.state.doc.resolve(pos))));
         };
 
         document.addEventListener("pointermove", onpointermove);
         document.addEventListener("pointerup", onpointerup);
-    };
+    }
 
     selectNode() {
-        var elementImage = document.getElementById("imageId") as HTMLElement;
-        var elementHandle = document.getElementById("handleId") as HTMLElement;
+        const elementImage = document.getElementById("imageId") as HTMLElement;
+        const elementHandle = document.getElementById("handleId") as HTMLElement;
 
         elementImage.classList.add("ProseMirror-selectednode");
         elementHandle.style.display = "";
     }
 
     deselectNode() {
-        var elementImage = document.getElementById("imageId") as HTMLElement;
-        var elementHandle = document.getElementById("handleId") as HTMLElement;
+        const elementImage = document.getElementById("imageId") as HTMLElement;
+        const elementHandle = document.getElementById("handleId") as HTMLElement;
 
         elementImage.classList.remove("ProseMirror-selectednode");
         elementHandle.style.display = "none";
@@ -93,11 +93,11 @@ export class ImageResizeView extends React.Component<IImageResizeView> {
             display: "inline-block",
             overflow: "hidden",
             float: this.props.node.attrs.float
-        }
+        };
 
         const imageStyle = {
             width: "100%",
-        }
+        };
 
         const handleStyle = {
             position: "absolute",
@@ -109,7 +109,7 @@ export class ImageResizeView extends React.Component<IImageResizeView> {
             bottom: "-10px",
             right: "-10px"
 
-        }
+        };
 
 
 
@@ -133,6 +133,6 @@ export class ImageResizeView extends React.Component<IImageResizeView> {
 
                 </span>
             </div >
-        )
+        );
     }
 }

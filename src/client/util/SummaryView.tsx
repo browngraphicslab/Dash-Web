@@ -4,16 +4,12 @@ import { Fragment, Node, Slice } from "prosemirror-model";
 import React = require("react");
 
 interface ISummaryView {
-    node: any,
-    view: any,
-    getPos: any,
-    self: any
+    node: any;
+    view: any;
+    getPos: any;
+    self: any;
 }
 export class SummaryView extends React.Component<ISummaryView> {
-
-    constructor(props: ISummaryView) {
-        super(props)
-    }
 
     onPointerDown = (e: any) => {
         const visible = !this.props.node.attrs.visibility;
@@ -32,7 +28,7 @@ export class SummaryView extends React.Component<ISummaryView> {
         e.stopPropagation();
         const _collapsed = document.getElementById('collapse') as HTMLElement;
         _collapsed.className = this.className(visible);
-    };
+    }
 
     updateSummarizedText(start?: any) {
         const mtype = this.props.view.state.schema.marks.summarize;
@@ -69,7 +65,7 @@ export class SummaryView extends React.Component<ISummaryView> {
             return js.apply(this, arguments);
         };
 
-        const spanCollapsedClassName = this.className(this.props.node.attrs.visibility)
+        const spanCollapsedClassName = this.className(this.props.node.attrs.visibility);
 
         return (
             <span
@@ -79,7 +75,7 @@ export class SummaryView extends React.Component<ISummaryView> {
             >
 
             </span>
-        )
+        );
 
     }
 }

@@ -14,11 +14,11 @@ import { Transform } from "./Transform";
 import React = require("react");
 
 interface IDashDocView {
-    node: any,
-    view: any,
-    getPos: any,
-    tbox?: FormattedTextBox,
-    self: any
+    node: any;
+    view: any;
+    getPos: any;
+    tbox?: FormattedTextBox;
+    self: any;
 }
 
 export class DashDocView extends React.Component<IDashDocView> {
@@ -34,7 +34,7 @@ export class DashDocView extends React.Component<IDashDocView> {
     //    constructor(node: any, view: any, getPos: any, tbox: FormattedTextBox) {
 
     constructor(props: IDashDocView) {
-        super(props)
+        super(props);
 
         const node = this.props.node;
         this._textBox = this.props.tbox as FormattedTextBox;
@@ -74,7 +74,7 @@ export class DashDocView extends React.Component<IDashDocView> {
         const ns = new NodeSelection(view.state.doc.resolve(pos));
         view.dispatch(view.state.tr.setSelection(ns).deleteSelection());
         return true;
-    };
+    }
 
     getDocTransform = () => {
         const outerElement = document.getElementById('dash-document-view-outer') as HTMLElement;
@@ -105,13 +105,13 @@ export class DashDocView extends React.Component<IDashDocView> {
         if (ele) {
             (ele as HTMLDivElement).style.backgroundColor = "";
         }
-    };
+    }
     onPointerEnter = () => {
         const ele = document.getElementById("DashDocCommentView-" + this.props.node.attrs.docid);
         if (ele) {
             (ele as HTMLDivElement).style.backgroundColor = "orange";
         }
-    };
+    }
     /*endregion*/
 
     componentWillMount = () => {
@@ -147,10 +147,10 @@ export class DashDocView extends React.Component<IDashDocView> {
             (res) => {
 
                 if (res) {
-                    this._finalLayout = res.finalLayout
-                    this._resolvedDataDoc = res.resolvedDataDoc
+                    this._finalLayout = res.finalLayout;
+                    this._resolvedDataDoc = res.resolvedDataDoc;
 
-                    this.forceUpdate() // doReactRender(res.finalLayout, res.resolvedDataDoc),
+                    this.forceUpdate(); // doReactRender(res.finalLayout, res.resolvedDataDoc),
                 }
             },
             { fireImmediately: true });
@@ -189,7 +189,7 @@ export class DashDocView extends React.Component<IDashDocView> {
         const resolvedDataDoc = this._resolvedDataDoc; //Added this
 
         if (!finalLayout) {
-            return <div></div>
+            return <div></div>;
             // if (!finalLayout) setTimeout(() => self.doRender(dashDoc, removeDoc, node, view, getPos), 0);
         } else {
 

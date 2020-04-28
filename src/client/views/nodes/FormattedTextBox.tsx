@@ -867,7 +867,7 @@ export class FormattedTextBox extends DocAnnotatableComponent<(FieldViewProps & 
             });
             const startupText = !rtfField && this._editorView && Field.toString(this.dataDoc[fieldKey] as Field);
             if (startupText) {
-                this._editorView!.dispatch(this._editorView!.state.tr.insertText(startupText));
+                this._editorView.dispatch(this._editorView.state.tr.insertText(startupText));
             }
         }
 
