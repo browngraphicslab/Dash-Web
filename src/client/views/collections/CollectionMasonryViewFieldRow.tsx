@@ -183,8 +183,10 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
 
     @action
     headerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-        setupMoveUpEvents(this, e, this.headerMove, emptyFunction, () => (this.props.parent.props.Document._chromeStatus === "disabled") && this.collapseSection(e));
-        this._createAliasSelected = false;
+        if (e.button === 0 && !e.ctrlKey) {
+            setupMoveUpEvents(this, e, this.headerMove, emptyFunction, () => (this.props.parent.props.Document._chromeStatus === "disabled") && this.collapseSection(e));
+            this._createAliasSelected = false;
+        }
     }
 
     renderColorPicker = () => {
