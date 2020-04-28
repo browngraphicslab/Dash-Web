@@ -938,9 +938,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this._queries = kps.toString();
     }
 
-    onPointerEnter = (e: React.PointerEvent): void => { Doc.BrushDoc(this.props.Document); };
-    onPointerLeave = (e: React.PointerEvent): void => { Doc.UnBrushDoc(this.props.Document); };
-
     // does Document set a layout prop
     // does Document set a layout prop 
     setsLayoutProp = (prop: string) => this.props.Document[prop] !== this.props.Document["default" + prop[0].toUpperCase() + prop.slice(1)] && this.props.Document["default" + prop[0].toUpperCase() + prop.slice(1)];
@@ -1133,7 +1130,19 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         highlighting = highlighting && this.props.focus !== emptyFunction;  // bcz: hack to turn off highlighting onsidebar panel documents.  need to flag a document as not highlightable in a more direct way
         return <div className={`documentView-node${this.topMost ? "-topmost" : ""}`} ref={this._mainCont} onKeyDown={this.onKeyDown}
             onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
-            onPointerEnter={e => Doc.BrushDoc(this.props.Document)} onPointerLeave={e => Doc.UnBrushDoc(this.props.Document)}
+            // onPointerEnter={e => Doc.BrushDoc(this.props.Document)} 
+            // onPointerLeave={e => Doc.BrushDoc(this.props.Document)}
+            onPointerEnter={action(() => Doc.BrushDoc(this.props.Document))}
+            onPointerLeave={action((e: React.PointerEvent<HTMLDivElement>) => {
+                let entered = false;
+                const target = document.elementFromPoint(e.nativeEvent.x, e.nativeEvent.y);
+                for (let child: any = target; child; child = child?.parentElement) {
+                    if (child === this.ContentDiv) {
+                        entered = true;
+                    }
+                }
+                !entered && Doc.UnBrushDoc(this.props.Document);
+            })}
             style={{
                 transformOrigin: this._animate ? "center center" : undefined,
                 transform: this._animate ? `scale(${this._animate})` : undefined,

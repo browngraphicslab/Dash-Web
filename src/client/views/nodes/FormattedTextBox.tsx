@@ -1224,6 +1224,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             FormattedTextBoxComment.Hide();
         }
         return (
+
             <div className={`formattedTextBox-cont`} ref={this._ref}
                 style={{
                     height: this.layoutDoc._autoHeight && this.props.renderDepth ? "max-content" : `calc(100% - ${this.props.ChromeHeight?.() || 0}px`,
@@ -1245,7 +1246,15 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 onMouseUp={this.onMouseUp}
                 onWheel={this.onPointerWheel}
                 onPointerEnter={action(() => this._entered = true)}
-                onPointerLeave={action(() => this._entered = false)}
+                onPointerLeave={action((e: React.PointerEvent<HTMLDivElement>) => {
+                    this._entered = false;
+                    const target = document.elementFromPoint(e.nativeEvent.x, e.nativeEvent.y);
+                    for (let child: any = target; child; child = child?.parentElement) {
+                        if (child === this._ref.current!) {
+                            this._entered = true;
+                        }
+                    }
+                })}
             >
                 <div className={`formattedTextBox-outer`} style={{ width: `calc(100% - ${this.sidebarWidthPercent})`, }} onScroll={this.onscrolled} ref={this._scrollRef}>
                     <div className={`formattedTextBox-inner${rounded}`} ref={this.createDropTarget}
