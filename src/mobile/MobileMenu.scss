@@ -1,3 +1,5 @@
+$navbar-height: 120px;
+
 * {
     margin: 0px;
     padding: 0px;
@@ -14,16 +16,30 @@ body {
     top: 0px;
     left: 0px;
     width: 100vw;
-    height: 150px;
-    background: #000000;
+    height: $navbar-height;
+    background-color: whitesmoke;
+    border-bottom: 5px solid black;
 }
 
 .navbar .toggle-btn {
     position: absolute;
-    right: 20px;
-    height: 150px;
-    width: 150px;
+    left: 20px;
+    top: 30px;
+    height: 70px;
+    width: 70px;
     transition: all 300ms ease-in-out 200ms;
+}
+
+.navbar .header {
+    position: absolute;
+    top: 50%;
+    top: calc(9px + 50%);
+    left: 100px;
+    transform: translate(0%, -50%);
+    font-size: 40;
+    user-select: none;
+    text-transform: uppercase;
+    font-family: Arial, Helvetica, sans-serif;
 }
 
 .navbar .toggle-btn span {
@@ -33,7 +49,7 @@ body {
     transform: translate(-50%, -50%);
     width: 70%;
     height: 4px;
-    background: #FFFFFF;
+    background: black;
     transition: all 200ms ease;
 }
 
@@ -66,30 +82,45 @@ body {
 
 .sidebar {
     position: absolute;
-    top: 150px;
+    top: $navbar-height;
     opacity: 0;
-    right: -100%;
+    left: -100%;
     width: 100vw;
-    height: calc(100vh - 150px);
+    height: calc(100% - 120px);
     z-index: 5;
-    background: rgba(40, 40, 40, 1);
+    background-color: whitesmoke;
     transition: all 400ms ease 50ms;
-    padding: 15px;
+    padding: 20px;
+    // border-right: 5px solid black;
 }
 
 .sidebar .item {
     width: 100%;
-    padding: 13px 6px;
+    padding: 13px 12px;
     border-bottom: 1px solid rgba(200, 200, 200, 0.7);
-    font-family: 'Roboto';
+    font-family: Arial, Helvetica, sans-serif;
     font-style: normal;
     font-weight: normal;
-    font-size: 50px;
+    user-select: none;
+    font-size: 35px;
     text-transform: uppercase;
-    color: rgba(250, 250, 250, 0.95);
+    color: black;
+}
+
+.sidebar .logout {
+    width: 100%;
+    padding: 13px 12px;
+    border-bottom: 1px solid rgba(200, 200, 200, 0.7);
+    font-family: Arial, Helvetica, sans-serif;
+    font-style: normal;
+    font-weight: normal;
+    user-select: none;
+    font-size: 30px;
+    text-transform: uppercase;
+    color: rgb(116, 116, 116);
 }
 
 .sidebar.active {
-    right: 0%;
+    left: 0%;
     opacity: 1;
 }

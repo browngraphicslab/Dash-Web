@@ -32,6 +32,7 @@ import { listSpec } from '../new_fields/Schema';
 import { DocumentManager } from '../client/util/DocumentManager';
 import RichTextMenu from '../client/util/RichTextMenu';
 import { MainView } from '../client/views/MainView';
+import SettingsManager from '../client/util/SettingsManager';
 
 library.add(faLongArrowAltLeft);
 
@@ -44,6 +45,8 @@ export class MobileInterface extends React.Component {
     // @observable private currentView: "main" | "ink" | "upload" = "main";
     @observable private mainDoc: any = CurrentUserUtils.setupMobileMenu(this.userDoc);
     @observable private renderView?: () => JSX.Element;
+
+    public _activeDoc: Doc = this.userDoc;
 
     // private inkDoc?: Doc;
     public drawingInk: boolean = false;
@@ -118,55 +121,84 @@ export class MobileInterface extends React.Component {
         let sidebar = document.getElementById("sidebar") as HTMLElement;
         sidebar.classList.toggle('active');
 
-
-        // let menuToggle = document.getElementById("menuToggle") as HTMLInputElement;
-        // let sidebar = document.getElementById("sidebar");
-        // if (menuToggle.checked) {
-        //     console.log("Checked");
-        // } else {
-        //     console.log("Not checked");
-        // }
+        let header = document.getElementById("header") as HTMLElement;
+        if (sidebar.classList.contains('active')) {
+            header.textContent = "menu";
+        } else {
+            header.textContent = String("//workspaces/" + this._activeDoc.title);
+        }
     }
 
     displayWorkspaces = () => {
         if (this.mainContainer) {
-            console.log("User workspaces: " + (this.userDoc.myWorkspaces as Doc).contextMenuLabels);
-            const backgroundColor = () => "white";
+            const backgroundColor = () => "pink";
             return (
-                <DocumentView
-                    Document={this.mainContainer}
-                    DataDoc={undefined}
-                    LibraryPath={emptyPath}
-                    addDocument={returnFalse}
-                    addDocTab={returnFalse}
-                    pinToPres={emptyFunction}
-                    rootSelected={returnFalse}
-                    removeDocument={undefined}
-                    onClick={undefined}
-                    ScreenToLocalTransform={Transform.Identity}
-                    ContentScaling={returnOne}
-                    NativeHeight={returnZero}
-                    NativeWidth={returnZero}
-                    PanelWidth={() => window.screen.width}
-                    PanelHeight={() => window.screen.height}
-                    renderDepth={0}
-                    focus={emptyFunction}
-                    backgroundColor={backgroundColor}
-                    parentActive={returnTrue}
-                    whenActiveChanged={emptyFunction}
-                    bringToFront={emptyFunction}
-                    ContainingCollectionView={undefined}
-                    ContainingCollectionDoc={undefined}
-                />
+                <div style={{ position: "relative", top: '120px', height: `calc(100% - 120px)`, width: "100%", overflow: "hidden" }}>
+                    <DocumentView
+                        Document={this.mainContainer}
+                        DataDoc={undefined}
+                        LibraryPath={emptyPath}
+                        addDocument={returnFalse}
+                        addDocTab={returnFalse}
+                        pinToPres={emptyFunction}
+                        rootSelected={returnFalse}
+                        removeDocument={undefined}
+                        onClick={undefined}
+                        ScreenToLocalTransform={Transform.Identity}
+                        ContentScaling={returnOne}
+                        NativeHeight={returnZero}
+                        NativeWidth={returnZero}
+                        PanelWidth={() => window.screen.width}
+                        PanelHeight={() => window.screen.height}
+                        renderDepth={0}
+                        focus={emptyFunction}
+                        backgroundColor={backgroundColor}
+                        parentActive={returnTrue}
+                        whenActiveChanged={emptyFunction}
+                        bringToFront={emptyFunction}
+                        ContainingCollectionView={undefined}
+                        ContainingCollectionDoc={undefined}
+                    />
+                </div>
             );
         }
     }
 
     handleClick(doc: Doc) {
-        console.log(doc.title)
-        this.switchCurrentView((userDoc: Doc) => doc)
-        this.displayWorkspaces()
-        this.toggleSidebar();
+        this._activeDoc = doc;
+        let sidebar = document.getElementById("sidebar") as HTMLElement;
+        let header = document.getElementById("header") as HTMLElement;
+        if (sidebar.classList.contains('active')) {
+            header.textContent = String("//workspaces/" + doc.title);
+        }
+
+        console.log(doc.title);
+
+
+        const data = Cast(doc.data, listSpec(Doc));
+        // const path = LibraryPath.reduce((p: string, d: Doc) => p + "/" + (Doc.AreProtosEqual(d, (Doc.UserDoc()["tabs-button-library"] as Doc).sourcePanel as Doc) ? "" : d.title), "");
+        if (data) {
+            const children = DocListCast(doc.data);
+            console.log("SIZE: " + children.length);
+            children.forEach(childDoc => {
+                console.log(childDoc.title);
+            });
+            // collectionDoc[data] = new List<Doc>();
+        } else {
+            this.switchCurrentView((userDoc: Doc) => doc);
+            this.displayWorkspaces();
+            this.toggleSidebar();
+        }
+    }
+
+    buttons = (doc: Doc) => {
+        DocListCast(doc.data).map((childDoc: Doc, index: any) => {
+            console.log(
+                <div
+                    className="item"
+                    key={index}
+                    onClick={() => this.handleClick(childDoc)}>{childDoc.title}</div>);
+        });
     }
 
 
@@ -175,13 +207,15 @@ export class MobileInterface extends React.Component {
         const buttons = DocListCast(workspaces.data).map((doc: Doc, index: any) => {
             return (
                 <div
+                    className="item"
                     key={index}
-                    onClick={() => this.handleClick(doc)}>{doc.title}</div>)
+                    onClick={() => this.handleClick(doc)}>{doc.title}</div>);
         });
 
         return (
             <div>
                 <div className="navbar">
+                    <div className="header" id="header">menu</div>
                     <div className="toggle-btn" id="menuButton" onClick={this.toggleSidebar}>
                         <span></span>
                         <span></span>
@@ -189,16 +223,18 @@ export class MobileInterface extends React.Component {
                     </div>
                 </div>
                 <div className="sidebar" id="sidebar">
-                    {/* <div className="item">Workspace 1</div>
-                    <div className="item">Workspace 2</div>
-                    <div className="item">Workspace 3</div> */}
-                    <div className="item">
+                    <div>
                         {buttons}
+                        <div className="logout" key="settings" onClick={() => SettingsManager.Instance.open()}>
+                            Settings
+                        </div>
+                        <div className="logout" key="logout" onClick={() => window.location.assign(Utils.prepend("/logout"))}>
+                            {CurrentUserUtils.GuestWorkspace ? "Exit" : "Log Out"}
+                        </div>
                     </div>
                 </div>
                 <div>
                     {this.renderView}
-
                 </div>
             </div>
         );
@@ -312,14 +348,14 @@ export class MobileInterface extends React.Component {
                 <GestureOverlay>
                     {this.renderView ? this.renderView() : this.renderDefaultContent()}
                 </GestureOverlay> */}
-                {/* <GestureOverlay>
-                    {this.displayWorkspaces()}
-                </GestureOverlay> */}
+                {/* <GestureOverlay> */}
+                <SettingsManager />
+                {this.displayWorkspaces()}
+                {/* </GestureOverlay> */}
                 {/* <DictationOverlay />
                 <SharingManager />
                 <GoogleAuthenticationManager /> */}
                 {/* <DocumentDecorations /> */}
-                {this.displayWorkspaces()}
                 <div>
                     {this.renderDefaultContent()}
                 </div>
