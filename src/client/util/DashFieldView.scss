@@ -1,6 +1,6 @@
 .dashFieldView {
     position: relative;
-    display: inline-flex;
+    display: inline-block;
 
     .dashFieldView-enumerables {
         width: 10px;
@@ -18,11 +18,12 @@
     .dashFieldView-labelSpan {
         position: relative;
         display: inline-block;
-        background-color: rgba(155, 155, 155, 0.44);
         font-size: small;
     }
     .dashFieldView-fieldSpan {
         min-width: 20px;
+        margin-left: 2px;
+        margin-right: 5px;
         position: relative;
         display: inline-block;
         background-color: rgba(155, 155, 155, 0.24);
