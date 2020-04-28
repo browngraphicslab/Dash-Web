@@ -58,11 +58,9 @@ interface IDashFieldViewInternal {
 
 @observer
 export class DashFieldViewInternal extends React.Component<IDashFieldViewInternal> {
-
     _reactionDisposer: IReactionDisposer | undefined;
     _textBoxDoc: Doc;
     _fieldKey: string;
-    _options: Doc[] = [];
     _fieldStringRef = React.createRef<HTMLSpanElement>();
     @observable _showEnumerables: boolean = false;
     @observable _dashDoc: Doc | undefined;
@@ -74,9 +72,9 @@ export class DashFieldViewInternal extends React.Component<IDashFieldViewInterna
 
         if (this.props.docid) {
             DocServer.GetRefField(this.props.docid).
-                then(async dashDoc => dashDoc instanceof Doc && runInAction(() => this.setDashDoc(dashDoc)));
+                then(action(async dashDoc => dashDoc instanceof Doc && (this._dashDoc = dashDoc)));
         } else {
-            this.setDashDoc(this.props.tbox.props.DataDoc || this.props.tbox.dataDoc);
+            this._dashDoc = this.props.tbox.props.DataDoc || this.props.tbox.dataDoc;
         }
     }
     componentWillUnmount() {
@@ -113,15 +111,6 @@ export class DashFieldViewInternal extends React.Component<IDashFieldViewInterna
                 </span>
             }
         }
-    }
-
-    setDashDoc = (doc: Doc) => {
-        this._dashDoc = doc;
-        if (this._options?.length && !this._dashDoc[this._fieldKey]) {
-            this._dashDoc[this._fieldKey] = StrCast(this._options[0].title);
-        }
-        // NOTE: if the field key starts with "@", then the actual field key is stored in the field 'fieldKey' (removing the @).
-        //this._fieldKey = this._fieldKey?.startsWith("@") ? StrCast(this._textBoxDoc[StrCast(this._fieldKey as string).substring(1)]) : this._fieldKey as string;
     }
 
     // we need to handle all key events on the input span or else they will propagate to prosemirror.
@@ -172,6 +161,7 @@ export class DashFieldViewInternal extends React.Component<IDashFieldViewInterna
         }
     }
 
+    // display a collection of all the enumerable values for this field
     onPointerDownEnumerables = async (e: any) => {
         e.stopPropagation();
         const collview = await Doc.addFieldEnumerations(this._textBoxDoc, this._fieldKey, [{ title: this._fieldKey }]);
@@ -179,6 +169,8 @@ export class DashFieldViewInternal extends React.Component<IDashFieldViewInterna
     }
 
 
+    // clicking on the label creates a pivot view collection of all documents
+    // in the same collection.  The pivot field is the fieldKey of this label
     onPointerDownLabelSpan = (e: any) => {
         e.stopPropagation();
         let container = this.props.tbox.props.ContainingCollectionView;
