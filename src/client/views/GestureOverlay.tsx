@@ -634,7 +634,7 @@ export default class GestureOverlay extends Touchable {
             }
             // if we're not drawing in a toolglass try to recognize as gesture
             else {
-                const result = GestureUtils.GestureRecognizer.Recognize(new Array(points));
+                const result = points.length > 2 && GestureUtils.GestureRecognizer.Recognize(new Array(points));
                 let actionPerformed = false;
                 if (result && result.Score > 0.7) {
                     switch (result.Name) {

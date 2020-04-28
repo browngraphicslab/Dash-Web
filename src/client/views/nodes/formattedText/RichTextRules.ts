@@ -92,7 +92,7 @@ export class RichTextRules {
 
             // create a text display of a metadata field on this or another document, or create a hyperlink portal to another document [[ <fieldKey> : <Doc>]]   // [[:Doc]] => hyperlink   [[fieldKey]] => show field   [[fieldKey:Doc]] => show field of doc
             new InputRule(
-                new RegExp(/\[\[([a-zA-Z_@\? \-0-9]*)(=[a-zA-Z_@\? \-0-9]*)?(:[a-zA-Z_@\? \-0-9]+)?\]\]$/),
+                new RegExp(/\[\[([a-zA-Z_@\? \-0-9]*)(=[a-zA-Z_@\? /\-0-9]*)?(:[a-zA-Z_@\? \-0-9]+)?\]\]$/),
                 (state, match, start, end) => {
                     const fieldKey = match[1];
                     const docid = match[3]?.substring(1);
@@ -110,7 +110,7 @@ export class RichTextRules {
                         return state.tr;
                     }
                     if (value !== "" && value !== undefined) {
-                        const num = value.match(/^[0-9.]/);
+                        const num = value.match(/^[0-9.]$/);
                         this.Document[DataSym][fieldKey] = value === "true" ? true : value === "false" ? false : (num ? Number(value) : value);
                     }
                     const fieldView = state.schema.nodes.dashField.create({ fieldKey, docid });
@@ -118,7 +118,7 @@ export class RichTextRules {
                 }),
             // create an inline view of a document {{ <layoutKey> : <Doc> }}  // {{:Doc}} => show default view of document   {{<layout>}} => show layout for this doc   {{<layout> : Doc}} => show layout for another doc
             new InputRule(
-                new RegExp(/\{\{([a-zA-Z_ \-0-9]*)(\([a-zA-Z0-9…._\-]*\))?(:[a-zA-Z_ \-0-9]+)?\}\}$/),
+                new RegExp(/\{\{([a-zA-Z_ \-0-9]*)(\([a-zA-Z0-9…._/\-]*\))?(:[a-zA-Z_ \-0-9]+)?\}\}$/),
                 (state, match, start, end) => {
                     const fieldKey = match[1] || "";
                     const fieldParam = match[2]?.replace("…", "...") || "";
