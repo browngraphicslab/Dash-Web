@@ -35,8 +35,8 @@ export class Track extends React.Component<IProps> {
     private primitiveWhitelist = [
         "x",
         "y",
-        "width",
-        "height",
+        "_width",
+        "_height",
         "opacity",
     ];
     private objectWhitelist = [

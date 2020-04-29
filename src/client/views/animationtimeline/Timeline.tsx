@@ -467,9 +467,7 @@ export class Timeline extends React.Component<FieldViewProps> {
     timeIndicator(lengthString: string, totalTime: number) {
         if (this.props.Document.isATOn) {
             return (
-                <>
-                    <div key="time-text" className="animation-text" style={{ visibility: this.props.Document.isATOn ? "visible" : "hidden", display: this.props.Document.isATOn ? "flex" : "none" }}>{`Total: ${this.toReadTime(totalTime)}`}</div>
-                </>
+                <div key="time-text" className="animation-text" style={{ visibility: this.props.Document.isATOn ? "visible" : "hidden", display: this.props.Document.isATOn ? "flex" : "none" }}>{`Total: ${this.toReadTime(totalTime)}`}</div>
             );
         }
         else {
