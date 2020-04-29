@@ -1,7 +1,7 @@
 import { action, computed, intercept, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import * as React from "react";
-import { Doc, DocListCast, Opt } from "../../../new_fields/Doc";
+import { Doc, DocListCast, Opt, DocListCastAsync } from "../../../new_fields/Doc";
 import { Copy } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { ObjectField } from "../../../new_fields/ObjectField";
@@ -46,18 +46,15 @@ export class Track extends React.Component<IProps> {
     @computed private get regions() { return DocListCast(this.props.node.regions); }
     @computed private get time() { return NumCast(KeyframeFunc.convertPixelTime(this.props.currentBarX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement)); }
 
-    ////////// life cycle functions///////////////
-    componentWillMount() {
-        if (!this.props.node.regions) this.props.node.regions = new List<Doc>(); //if there is no region, then create new doc to store stuff
+    async componentDidMount() {
+        const regions = await DocListCastAsync(this.props.node.regions);
+        if (!regions) this.props.node.regions = new List<Doc>(); //if there is no region, then create new doc to store stuff
         //these two lines are exactly same from timeline.tsx 
         const relativeHeight = window.innerHeight / 20;
         this._trackHeight = relativeHeight < this.MAX_TITLE_HEIGHT ? relativeHeight : this.MAX_TITLE_HEIGHT; //for responsiveness
-    }
-
-    componentDidMount() {
         this._timelineVisibleReaction = this.timelineVisibleReaction();
         this._currentBarXReaction = this.currentBarXReaction();
-        if (this.regions.length === 0) this.createRegion(this.time);
+        if (DocListCast(this.props.node.regions).length === 0) this.createRegion(this.time);
         this.props.node.hidden = false;
         this.props.node.opacity = 1;
         // this.autoCreateKeyframe();
