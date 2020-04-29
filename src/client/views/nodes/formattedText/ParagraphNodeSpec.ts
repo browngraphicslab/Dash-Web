@@ -1,6 +1,6 @@
-import clamp from './clamp';
-import convertToCSSPTValue from './convertToCSSPTValue';
-import toCSSLineSpacing from './toCSSLineSpacing';
+import clamp from '../../../util/clamp';
+import convertToCSSPTValue from '../../../util/convertToCSSPTValue';
+import toCSSLineSpacing from '../../../util/toCSSLineSpacing';
 import { Node, DOMOutputSpec } from 'prosemirror-model';
 
 //import type { NodeSpec } from './Types';

@@ -215,9 +215,9 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
 
     private dropDisposer?: DragManager.DragDropDisposer;
     protected createDropTarget = (ele: HTMLDivElement) => {
-        this.dropDisposer && this.dropDisposer();
+        this.dropDisposer?.();
         if (ele) {
-            this.dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this));
+            this.dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this), this.document);
         }
     }
 

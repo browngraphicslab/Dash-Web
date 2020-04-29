@@ -54,6 +54,11 @@ export interface FieldViewProps {
     highlighting?: string[];
     lines?: string[];
     doc?: Doc;
+    // properties intended to be used from within layout strings (otherwise use the function equivalents that work more efficiently with React)
+    height?: number;
+    width?: number;
+    background?: string;
+    color?: string;
 }
 
 @observer

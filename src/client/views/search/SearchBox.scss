@@ -9,7 +9,8 @@
     position: absolute;
     font-size: 10px;
     line-height: 1;
-    overflow: auto;
+    overflow-y: auto;
+    overflow-x: visible;
     background: lightgrey,
 }
 

@@ -1,23 +1,21 @@
-import { EditorState, Transaction, TextSelection } from "prosemirror-state";
-import { Node, Fragment, Mark } from "prosemirror-model";
-import { RichTextField } from "./RichTextField";
+import { AssertionError } from "assert";
 import { docs_v1 } from "googleapis";
-import { GoogleApiClientUtils } from "../client/apis/google_docs/GoogleApiClientUtils";
-import { FormattedTextBox } from "../client/views/nodes/FormattedTextBox";
-import { Opt, Doc } from "./Doc";
-import Color = require('color');
+import { Fragment, Mark, Node } from "prosemirror-model";
 import { sinkListItem } from "prosemirror-schema-list";
 import { Utils } from "../Utils";
 import { Docs } from "../client/documents/Documents";
-import { schema } from "../client/util/RichTextSchema";
+import { schema } from "../client/views/nodes/formattedText/schema_rts";
 import { GooglePhotos } from "../client/apis/google_docs/GooglePhotosClientUtils";
 import { DocServer } from "../client/DocServer";
-import { Cast, StrCast } from "./Types";
-import { Id } from "./FieldSymbols";
-import { DocumentView } from "../client/views/nodes/DocumentView";
-import { AssertionError } from "assert";
 import { Networking } from "../client/Network";
-import { extname } from "path";
+import { FormattedTextBox } from "../client/views/nodes/formattedText/FormattedTextBox";
+import { Doc, Opt } from "./Doc";
+import { Id } from "./FieldSymbols";
+import { RichTextField } from "./RichTextField";
+import { Cast, StrCast } from "./Types";
+import Color = require('color');
+import { EditorState, TextSelection, Transaction } from "prosemirror-state";
+import { GoogleApiClientUtils } from "../client/apis/google_docs/GoogleApiClientUtils";
 
 export namespace RichTextUtils {
 
@@ -274,7 +272,7 @@ export namespace RichTextUtils {
             const backingDocId = StrCast(textNote[guid]);
             if (!backingDocId) {
                 const backingDoc = Docs.Create.ImageDocument(agnostic, { _width: 300, _height: 300 });
-                DocumentView.makeCustomViewClicked(backingDoc, Docs.Create.FreeformDocument);
+                Doc.makeCustomViewClicked(backingDoc, Docs.Create.FreeformDocument);
                 docid = backingDoc[Id];
                 textNote[guid] = docid;
             } else {
@@ -403,7 +401,7 @@ export namespace RichTextUtils {
                                     let exported = (await Cast(linkDoc.anchor2, Doc))!;
                                     if (!exported.customLayout) {
                                         exported = Doc.MakeAlias(exported);
-                                        DocumentView.makeCustomViewClicked(exported, Docs.Create.FreeformDocument);
+                                        Doc.makeCustomViewClicked(exported, Docs.Create.FreeformDocument);
                                         linkDoc.anchor2 = exported;
                                     }
                                     url = Utils.shareUrl(exported[Id]);

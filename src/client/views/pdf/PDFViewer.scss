@@ -30,10 +30,6 @@
     .page {
         position: relative;
     }
-    .collectionfreeformview-container {
-        pointer-events: none;
-    }
-
     .pdfViewer-text-selected {
         .textLayer{
            pointer-events: all;
@@ -60,13 +56,8 @@
         left: 0px;
         display: inline-block;
         width:100%;
-        pointer-events: none;
     }
-    .pdfViewer-overlay-inking {
-        .collectionfreeformview-container {
-            pointer-events: all;
-        }
-    }
+    
     .pdfViewer-annotationLayer {
         position: absolute;
         transform-origin: left top;

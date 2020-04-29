@@ -15,7 +15,6 @@ import "./DocumentBox.scss";
 import { FieldView, FieldViewProps } from "./FieldView";
 import React = require("react");
 import { TraceMobx } from "../../../new_fields/util";
-import { DocumentView } from "./DocumentView";
 import { Docs } from "../../documents/Documents";
 
 type DocHolderBoxSchema = makeInterface<[typeof documentSchema]>;
@@ -28,7 +27,7 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
     _selections: Doc[] = [];
     _curSelection = -1;
     componentDidMount() {
-        this._prevSelectionDisposer = reaction(() => this.contentDoc[this.props.fieldKey], (data) => {
+        this._prevSelectionDisposer = reaction(() => this.layoutDoc[this.props.fieldKey], (data) => {
             if (data instanceof Doc && !this.isSelectionLocked()) {
                 this._selections.indexOf(data) !== -1 && this._selections.splice(this._selections.indexOf(data), 1);
                 this._selections.push(data);
@@ -42,22 +41,20 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
     specificContextMenu = (e: React.MouseEvent): void => {
         const funcs: ContextMenuProps[] = [];
         funcs.push({ description: (this.isSelectionLocked() ? "Show" : "Lock") + " Selection", event: () => this.toggleLockSelection, icon: "expand-arrows-alt" });
-        funcs.push({ description: (this.props.Document.excludeCollections ? "Include" : "Exclude") + " Collections", event: () => Doc.GetProto(this.props.Document).excludeCollections = !this.props.Document.excludeCollections, icon: "expand-arrows-alt" });
-        funcs.push({ description: `${this.props.Document.forceActive ? "Select" : "Force"} Contents Active`, event: () => this.props.Document.forceActive = !this.props.Document.forceActive, icon: "project-diagram" });
+        funcs.push({ description: (this.layoutDoc.excludeCollections ? "Include" : "Exclude") + " Collections", event: () => this.layoutDoc.excludeCollections = !this.layoutDoc.excludeCollections, icon: "expand-arrows-alt" });
+        funcs.push({ description: `${this.layoutDoc.forceActive ? "Select" : "Force"} Contents Active`, event: () => this.layoutDoc.forceActive = !this.layoutDoc.forceActive, icon: "project-diagram" });
+        funcs.push({ description: `Show ${this.layoutDoc.childTemplateName !== "keyValue" ? "key values" : "contents"}`, event: () => this.layoutDoc.childTemplateName = this.layoutDoc.childTemplateName ? undefined : "keyValue", icon: "project-diagram" });
 
-        ContextMenu.Instance.addItem({ description: "DocumentBox Funcs...", subitems: funcs, icon: "asterisk" });
-    }
-    @computed get contentDoc() {
-        return (this.props.Document.isTemplateDoc || this.props.Document.isTemplateForField ? this.props.Document : Doc.GetProto(this.props.Document));
+        ContextMenu.Instance.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
     }
     lockSelection = () => {
-        this.contentDoc[this.props.fieldKey] = this.props.Document[this.props.fieldKey];
+        this.layoutDoc[this.props.fieldKey] = this.layoutDoc[this.props.fieldKey];
     }
     showSelection = () => {
-        this.contentDoc[this.props.fieldKey] = ComputedField.MakeFunction(`selectedDocs(self,this.excludeCollections,[_last_])?.[0]`);
+        this.layoutDoc[this.props.fieldKey] = ComputedField.MakeFunction(`selectedDocs(self,this.excludeCollections,[_last_])?.[0]`);
     }
     isSelectionLocked = () => {
-        const kvpstring = Field.toKeyValueString(this.contentDoc, this.props.fieldKey);
+        const kvpstring = Field.toKeyValueString(this.layoutDoc, this.props.fieldKey);
         return !kvpstring || kvpstring.includes("DOC");
     }
     toggleLockSelection = () => {
@@ -67,13 +64,13 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
     prevSelection = () => {
         this.lockSelection();
         if (this._curSelection > 0) {
-            this.contentDoc[this.props.fieldKey] = this._selections[--this._curSelection];
+            this.layoutDoc[this.props.fieldKey] = this._selections[--this._curSelection];
             return true;
         }
     }
     nextSelection = () => {
         if (this._curSelection < this._selections.length - 1 && this._selections.length) {
-            this.contentDoc[this.props.fieldKey] = this._selections[++this._curSelection];
+            this.layoutDoc[this.props.fieldKey] = this._selections[++this._curSelection];
             return true;
         }
     }
@@ -107,11 +104,11 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
     pheight = () => this.props.PanelHeight() - 2 * this.yPad;
     getTransform = () => this.props.ScreenToLocalTransform().translate(-this.xPad, -this.yPad);
     get renderContents() {
-        const containedDoc = Cast(this.contentDoc[this.props.fieldKey], Doc, null);
-        const childTemplateName = StrCast(this.props.Document.childTemplateName);
+        const containedDoc = Cast(this.dataDoc[this.props.fieldKey], Doc, null);
+        const childTemplateName = StrCast(this.layoutDoc.childTemplateName);
         if (containedDoc && childTemplateName && !containedDoc["layout_" + childTemplateName]) {
             setTimeout(() => {
-                DocumentView.createCustomView(containedDoc, Docs.Create.StackingDocument, childTemplateName);
+                Doc.createCustomView(containedDoc, Docs.Create.StackingDocument, childTemplateName);
                 Doc.expandTemplateLayout(Cast(containedDoc["layout_" + childTemplateName], Doc, null), containedDoc, undefined);
             }, 0);
         }
@@ -120,8 +117,8 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
             DataDocument={undefined}
             LibraryPath={emptyPath}
             CollectionView={this as any} // bcz: hack!  need to pass a prop that can be used to select the container (ie, 'this') when the up selector in document decorations is clicked.  currently, the up selector allows only a containing collection to be selected
-            fitToBox={this.props.fitToBox}
-            layoutKey={"layout_" + childTemplateName}
+            fitToBox={true}
+            layoutKey={childTemplateName ? "layout_" + childTemplateName : "layout"}
             rootSelected={this.props.isSelected}
             addDocument={this.props.addDocument}
             moveDocument={this.props.moveDocument}
@@ -145,7 +142,7 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
             onContextMenu={this.specificContextMenu}
             onPointerDown={this.onPointerDown} onClick={this.onClick}
             style={{
-                background: StrCast(this.props.Document.backgroundColor),
+                background: StrCast(this.layoutDoc.backgroundColor),
                 border: `#00000021 solid ${this.xPad}px`,
                 borderTop: `#0000005e solid ${this.yPad}px`,
                 borderBottom: `#0000005e solid ${this.yPad}px`,

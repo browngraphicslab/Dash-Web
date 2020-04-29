@@ -6,7 +6,7 @@ import { observer } from "mobx-react";
 import { Doc, DocListCast } from "../../new_fields/Doc";
 import { RichTextField } from '../../new_fields/RichTextField';
 import { NumCast, StrCast } from "../../new_fields/Types";
-import { emptyFunction } from "../../Utils";
+import { emptyFunction, setupMoveUpEvents } from "../../Utils";
 import { Pulls, Pushes } from '../apis/google_docs/GoogleApiClientUtils';
 import { UndoManager } from "../util/UndoManager";
 import { CollectionDockingView, DockedFrameRenderer } from './collections/CollectionDockingView';
@@ -15,13 +15,12 @@ import './collections/ParentDocumentSelector.scss';
 import './DocumentButtonBar.scss';
 import { LinkMenu } from "./linking/LinkMenu";
 import { DocumentView } from './nodes/DocumentView';
-import { GoogleRef } from "./nodes/FormattedTextBox";
+import { GoogleRef } from "./nodes/formattedText/FormattedTextBox";
 import { TemplateMenu } from "./TemplateMenu";
 import { Template, Templates } from "./Templates";
 import React = require("react");
 import { DragManager } from '../util/DragManager';
 import { MetadataEntryMenu } from './MetadataEntryMenu';
-import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import GoogleAuthenticationManager from '../apis/GoogleAuthenticationManager';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
@@ -109,10 +108,8 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
     get view0() { return this.props.views?.[0]; }
 
     @action
-    onLinkButtonMoved = (e: PointerEvent): void => {
-        if (this._linkButton.current !== null && (Math.abs(e.clientX - this._downX) > 3 || Math.abs(e.clientY - this._downY) > 3)) {
-            document.removeEventListener("pointermove", this.onLinkButtonMoved);
-            document.removeEventListener("pointerup", this.onLinkButtonUp);
+    onLinkButtonMoved = (e: PointerEvent) => {
+        if (this._linkButton.current !== null) {
             const linkDrag = UndoManager.StartBatch("Drag Link");
             this.view0 && DragManager.StartLinkDrag(this._linkButton.current, this.view0.props.Document, e.pageX, e.pageY, {
                 dragComplete: dropEv => {
@@ -132,26 +129,16 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
                 },
                 hideSource: false
             });
+            return true;
         }
-        e.stopPropagation();
+        return false;
     }
 
 
     onLinkButtonDown = (e: React.PointerEvent): void => {
-        this._downX = e.clientX;
-        this._downY = e.clientY;
-        document.removeEventListener("pointermove", this.onLinkButtonMoved);
-        document.addEventListener("pointermove", this.onLinkButtonMoved);
-        document.removeEventListener("pointerup", this.onLinkButtonUp);
-        document.addEventListener("pointerup", this.onLinkButtonUp);
-        e.stopPropagation();
+        setupMoveUpEvents(this, e, this.onLinkButtonMoved, emptyFunction, emptyFunction);
     }
 
-    onLinkButtonUp = (e: PointerEvent): void => {
-        document.removeEventListener("pointermove", this.onLinkButtonMoved);
-        document.removeEventListener("pointerup", this.onLinkButtonUp);
-        e.stopPropagation();
-    }
 
     @computed
     get considerGoogleDocsPush() {
@@ -202,9 +189,9 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
     @computed
     get pinButton() {
         const targetDoc = this.view0?.props.Document;
-        const isPinned = targetDoc && CurrentUserUtils.IsDocPinned(targetDoc);
+        const isPinned = targetDoc && Doc.isDocPinned(targetDoc);
         return !targetDoc ? (null) : <div className="documentButtonBar-linker"
-            title={CurrentUserUtils.IsDocPinned(targetDoc) ? "Unpin from presentation" : "Pin to presentation"}
+            title={Doc.isDocPinned(targetDoc) ? "Unpin from presentation" : "Pin to presentation"}
             style={{ backgroundColor: isPinned ? "black" : "white", color: isPinned ? "white" : "black" }}
 
             onClick={e => {
@@ -258,29 +245,12 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
         }} />;
     }
 
-    private _downx = 0;
-    private _downy = 0;
-    onAliasButtonUp = (e: PointerEvent): void => {
-        document.removeEventListener("pointermove", this.onAliasButtonMoved);
-        document.removeEventListener("pointerup", this.onAliasButtonUp);
-        e.stopPropagation();
-    }
-
+    @observable _aliasDown = false;
     onAliasButtonDown = (e: React.PointerEvent): void => {
-        this._downx = e.clientX;
-        this._downy = e.clientY;
-        e.stopPropagation();
-        e.preventDefault();
-        document.removeEventListener("pointermove", this.onAliasButtonMoved);
-        document.addEventListener("pointermove", this.onAliasButtonMoved);
-        document.removeEventListener("pointerup", this.onAliasButtonUp);
-        document.addEventListener("pointerup", this.onAliasButtonUp);
+        setupMoveUpEvents(this, e, this.onAliasButtonMoved, emptyFunction, emptyFunction);
     }
-    onAliasButtonMoved = (e: PointerEvent): void => {
-        if (this._dragRef.current !== null && (Math.abs(e.clientX - this._downx) > 4 || Math.abs(e.clientY - this._downy) > 4)) {
-            document.removeEventListener("pointermove", this.onAliasButtonMoved);
-            document.removeEventListener("pointerup", this.onAliasButtonUp);
-
+    onAliasButtonMoved = () => {
+        if (this._dragRef.current) {
             const dragDocView = this.props.views[0]!;
             const dragData = new DragManager.DocumentDragData([dragDocView.props.Document]);
             const [left, top] = dragDocView.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
@@ -291,8 +261,9 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
                 offsetY: dragData.offset[1],
                 hideSource: false
             });
+            return true;
         }
-        e.stopPropagation();
+        return false;
     }
 
     @computed
@@ -302,9 +273,9 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
         Array.from(Object.values(Templates.TemplateList)).map(template =>
             templates.set(template, this.props.views.reduce((checked, doc) => checked || doc?.props.Document["_show" + template.Name] ? true : false, false as boolean)));
         return !view0 ? (null) : <div title="Tap: Customize layout.  Drag: Create alias" className="documentButtonBar-linkFlyout" ref={this._dragRef}>
-            <Flyout anchorPoint={anchorPoints.LEFT_TOP}
-                content={<TemplateMenu docViews={this.props.views.filter(v => v).map(v => v as DocumentView)} templates={templates} />}>
-                <div className={"documentButtonBar-linkButton-" + "empty"} ref={this._dragRef} onPointerDown={this.onAliasButtonDown} >
+            <Flyout anchorPoint={anchorPoints.LEFT_TOP} onOpen={action(() => this._aliasDown = true)} onClose={action(() => this._aliasDown = false)}
+                content={!this._aliasDown ? (null) : <TemplateMenu docViews={this.props.views.filter(v => v).map(v => v as DocumentView)} templates={templates} />}>
+                <div className={"documentButtonBar-linkButton-empty"} ref={this._dragRef} onPointerDown={this.onAliasButtonDown} >
                     {<FontAwesomeIcon className="documentdecorations-icon" icon="edit" size="sm" />}
                 </div>
             </Flyout>

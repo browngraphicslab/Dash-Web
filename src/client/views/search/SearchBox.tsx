@@ -34,6 +34,8 @@ import { CollectionView, CollectionViewType } from '../collections/CollectionVie
 import { ViewBoxBaseComponent } from "../DocComponent";
 import { documentSchema } from "../../../new_fields/documentSchemas";
 import { makeInterface, createSchema } from '../../../new_fields/Schema';
+import { listSpec } from '../../../new_fields/Schema';
+
 
 library.add(faTimes);
 
@@ -77,7 +79,8 @@ const SearchBoxDocument = makeInterface(documentSchema, searchSchema);
 @observer
 export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDocument>(SearchBoxDocument) {
 
-    @observable private _searchString: string = "";
+    private get _searchString() { return this.props.searchQuery; }
+    private set _searchString(value) { this.props.setSearchQuery(value); }
     @observable private _resultsOpen: boolean = false;
     @observable private _searchbarOpen: boolean = false;
     @observable private _results: [Doc, string[], string[]][] = [];
@@ -125,7 +128,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     }
         if (this.inputRef.current) {
             this.inputRef.current.focus();
-            runInAction(() => this._searchbarOpen = true);
+            runInAction( () => {this._searchbarOpen = true});
         }
         if (this.rootDoc.searchQuery&& this.newAssign) {
             console.log(this.rootDoc.searchQuery);
@@ -144,7 +147,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                 this.submitSearch();
             });
         }
-    }
+    };
 
 
     @action
@@ -192,7 +195,10 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     //this also serves as an indicator if the word status filter is applied
     @observable private _filterOpen: boolean = false;
     //if icons = all icons, then no icon filter is applied
-    @observable private _icons: string[] = this._allIcons;
+    get _icons() { return this.props.searchFileTypes; }
+    set _icons(value) {
+        this.props.setSearchFileTypes(value);
+    }
     //if all of these are true, no key filter is applied
     @observable private _titleFieldStatus: boolean = true;
     @observable private _authorFieldStatus: boolean = true;
@@ -226,15 +232,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     }
 
     basicRequireWords(query: string): string {
-        const oldWords = query.split(" ");
-        const newWords: string[] = [];
-        oldWords.forEach(word => {
-            const newWrd = "+" + word;
-            newWords.push(newWrd);
-        });
-        query = newWords.join(" ");
-
-        return query;
+        return query.split(" ").join(" + ").replace(/ + /, "");
     }
 
     @action
@@ -272,12 +270,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     get filterTypes() {
         return this._icons.length === this._allIcons.length ? undefined : this._icons;
     }
-
-    @action.bound
-    updateIcon(newArray: string[]) { this._icons = newArray; }
-
-    @action.bound
-    getIcons(): string[] { return this._icons; }
 
     //TODO: basically all of this
     //gets all of the collections of all the docviews that are selected
@@ -377,10 +369,13 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     private get filterQuery() {
         const types = this.filterTypes;
-        const includeDeleted = this.getDataStatus() ? "" : " AND NOT deleted_b:true";
-        const includeIcons = this.getDataStatus() ? "" : " AND NOT type_t:fonticonbox";
+        const baseExpr = "NOT baseProto_b:true";
+        const includeDeleted = this.getDataStatus() ? "" : " NOT deleted_b:true";
+        const includeIcons = this.getDataStatus() ? "" : " NOT type_t:fonticonbox";
+        const typeExpr = !types ? "" : ` (${types.map(type => `({!join from=id to=proto_i}type_t:"${type}" AND NOT type_t:*) OR type_t:"${type}"`).join(" ")})`;
         // fq: type_t:collection OR {!join from=id to=proto_i}type_t:collection   q:text_t:hello
-        return "NOT baseProto_b:true" + includeDeleted + includeIcons + (types ? ` AND (${types.map(type => `({!join from=id to=proto_i}type_t:"${type}" AND NOT type_t:*) OR type_t:"${type}"`).join(" ")})` : "");
+        const query = [baseExpr, includeDeleted, includeIcons, typeExpr].join(" AND ").replace(/AND $/, "");
+        return query;
     }
 
     getDataStatus() { return this._deletedDocsStatus; }
@@ -873,7 +868,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         const button = (opts: DocumentOptions) => new PrefetchProxy( Docs.Create.ButtonDocument({...opts,
             _width: 35, _height: 30,
             borderRounding: "16px", border:"1px solid grey", color:"white", hovercolor: "rgb(170, 170, 163)", letterSpacing: "2px",
-            fontSize: 7,
+            _fontSize: 7,
         }))as any as Doc;
         doc.title=button({ title: "Title", onClick:ScriptField.MakeScript("this.updateTitleStatus")});
         doc.deleted=button({ title: "Deleted", onClick:ScriptField.MakeScript(`handleNodeChange()`)});
@@ -893,7 +888,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         const button = (opts: DocumentOptions) => new PrefetchProxy( Docs.Create.ButtonDocument({...opts,
             _width: 35, _height: 30,
             borderRounding: "16px", border:"1px solid grey", color:"white", hovercolor: "rgb(170, 170, 163)", letterSpacing: "2px",
-            fontSize: 7,
+            _fontSize: 7,
         }))as any as Doc;
         doc.keywords=button({ title: "Keywords", onClick:ScriptField.MakeScript("handleNodeChange(this)")});
         doc.keys=button({ title: "Keys", onClick:ScriptField.MakeScript(`this.handleNodeChange`)});

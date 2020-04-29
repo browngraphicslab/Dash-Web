@@ -76,7 +76,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
 
     protected createDropTarget = (ele: HTMLDivElement) => {
         this._dropDisposer && this._dropDisposer();
-        ele && (this._dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this)));
+        ele && (this._dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this), this.props.Document));
     }
 
     @undoBatch
@@ -180,7 +180,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
             //modes.push({ description: "Recommend", event: this.extractText, icon: "brain" });
             !existingAnalyze && ContextMenu.Instance.addItem({ description: "Analyzers...", subitems: modes, icon: "hand-point-right" });
 
-            ContextMenu.Instance.addItem({ description: "Image Funcs...", subitems: funcs, icon: "asterisk" });
+            ContextMenu.Instance.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
         }
     }
 
@@ -223,8 +223,8 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
             return url.href;//Why is this here
         }
         const ext = path.extname(url.href);
-        const suffix = this.props.renderDepth < 1 ? "_o" : this._curSuffix;
-        return url.href.replace(ext, suffix + ext);
+        this._curSuffix = this.props.renderDepth < 1 ? "_o" : this.layoutDoc[WidthSym]() < 100 ? "_s" : "_m";
+        return url.href.replace(ext, this._curSuffix + ext);
     }
 
     @observable _smallRetryCount = 1;
@@ -250,8 +250,8 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
 
     resize = (imgPath: string) => {
         const cachedNativeSize = {
-            width: NumCast(this.dataDoc[this.fieldKey + "-nativeWidth"]),
-            height: NumCast(this.dataDoc[this.fieldKey + "-nativeHeight"])
+            width: imgPath === this.dataDoc[this.fieldKey + "-path"] ? NumCast(this.dataDoc[this.fieldKey + "-nativeWidth"]) : 0,
+            height: imgPath === this.dataDoc[this.fieldKey + "-path"] ? NumCast(this.dataDoc[this.fieldKey + "-nativeHeight"]) : 0,
         };
         const docAspect = this.layoutDoc[HeightSym]() / this.layoutDoc[WidthSym]();
         const cachedAspect = cachedNativeSize.height / cachedNativeSize.width;
@@ -265,6 +265,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
                         this.layoutDoc._height = this.layoutDoc[WidthSym]() * rotatedAspect;
                         this.dataDoc[this.fieldKey + "-nativeWidth"] = this.layoutDoc._nativeWidth = this.layoutDoc._width;
                         this.dataDoc[this.fieldKey + "-nativeHeight"] = this.layoutDoc._nativeHeight = this.layoutDoc._height;
+                        this.dataDoc[this.fieldKey + "-path"] = imgPath;
                     }
                 })).catch(console.log);
             } else if (Math.abs(1 - docAspect / cachedAspect) > 0.1) {
@@ -359,7 +360,8 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
     }
 
     @computed get nativeSize() {
-        const pw = typeof this.props.PanelWidth === "function" ? this.props.PanelWidth() : typeof this.props.PanelWidth === "number" ? (this.props.PanelWidth as any) as number : 50;
+        TraceMobx();
+        const pw = this.props.PanelWidth?.() || 50;
         const nativeWidth = NumCast(this.dataDoc[this.fieldKey + "-nativeWidth"], pw);
         const nativeHeight = NumCast(this.dataDoc[this.fieldKey + "-nativeHeight"], 1);
         return { nativeWidth, nativeHeight };
@@ -373,7 +375,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
     @computed get paths() {
         const field = Cast(this.dataDoc[this.fieldKey], ImageField, null); // retrieve the primary image URL that is being rendered from the data doc
         const alts = DocListCast(this.dataDoc[this.fieldKey + "-alternates"]); // retrieve alternate documents that may be rendered as alternate images
-        const altpaths = alts.map(doc => Cast(doc[Doc.LayoutFieldKey(doc)], ImageField, null)?.url.href).filter(url => url); // access the primary layout data of the alternate documents
+        const altpaths = alts.map(doc => Cast(doc[Doc.LayoutFieldKey(doc)], ImageField, null)?.url).filter(url => url).map(url => this.choosePath(url)); // access the primary layout data of the alternate documents
         const paths = field ? [this.choosePath(field.url), ...altpaths] : altpaths;
         return paths.length ? paths : [Utils.CorsProxy("http://www.cs.brown.edu/~bcz/noImage.png")];
     }
@@ -422,17 +424,28 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
         </div>;
     }
 
+    // adjust y position to center image in panel aspect is bigger than image aspect.
+    // bcz :note, this is broken for rotated images
+    get ycenter() {
+        const { nativeWidth, nativeHeight } = this.nativeSize;
+        const rotation = NumCast(this.dataDoc[this.fieldKey + "-rotation"]);
+        const aspect = (rotation % 180) ? nativeWidth / nativeHeight : nativeHeight / nativeWidth;
+        return this.props.PanelHeight() / this.props.PanelWidth() > aspect ?
+            (this.props.PanelHeight() - this.props.PanelWidth() * aspect) / 2 : 0;
+    }
+
+    screenToLocalTransform = () => this.props.ScreenToLocalTransform().translate(0, -this.ycenter / this.props.ContentScaling());
+
     contentFunc = () => [this.content];
     render() {
         TraceMobx();
-        const dragging = !SelectionManager.GetIsDragging() ? "" : "-dragging";
-        return (<div className={`imageBox${dragging}`} onContextMenu={this.specificContextMenu}
+        return (<div className={`imageBox`} onContextMenu={this.specificContextMenu}
             style={{
-                transform: this.props.PanelWidth() ? undefined : `scale(${this.props.ContentScaling()})`,
+                transform: this.props.PanelWidth() ? `translate(0px, ${this.ycenter}px)` : `scale(${this.props.ContentScaling()})`,
                 width: this.props.PanelWidth() ? undefined : `${100 / this.props.ContentScaling()}%`,
                 height: this.props.PanelWidth() ? undefined : `${100 / this.props.ContentScaling()}%`,
                 pointerEvents: this.layoutDoc.isBackground ? "none" : undefined,
-                borderRadius: `${Number(StrCast(this.layoutDoc.borderRounding).replace("px", "")) / this.props.ContentScaling()}px`
+                borderRadius: `${Number(StrCast(this.layoutDoc.borderRoundisng).replace("px", "")) / this.props.ContentScaling()}px`
             }} >
             <CollectionFreeFormView {...this.props}
                 forceScaling={true}
@@ -452,7 +465,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
                 moveDocument={this.moveDocument}
                 addDocument={this.addDocument}
                 CollectionView={undefined}
-                ScreenToLocalTransform={this.props.ScreenToLocalTransform}
+                ScreenToLocalTransform={this.screenToLocalTransform}
                 renderDepth={this.props.renderDepth + 1}
                 ContainingCollectionDoc={this.props.ContainingCollectionDoc}>
                 {this.contentFunc}

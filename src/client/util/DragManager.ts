@@ -1,5 +1,5 @@
 import { Doc, Field, DocListCast } from "../../new_fields/Doc";
-import { Cast, ScriptCast } from "../../new_fields/Types";
+import { Cast, ScriptCast, StrCast } from "../../new_fields/Types";
 import { emptyFunction } from "../../Utils";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import * as globalCssVariables from "../views/globalCssVariables.scss";
@@ -18,8 +18,10 @@ import { AudioBox } from "../views/nodes/AudioBox";
 import { DateField } from "../../new_fields/DateField";
 import { DocumentView } from "../views/nodes/DocumentView";
 import { UndoManager } from "./UndoManager";
+import { PointData } from "../../new_fields/InkField";
+import { MainView } from "../views/MainView";
 
-export type dropActionType = "place" | "alias" | "copy" | undefined;
+export type dropActionType = "alias" | "copy" | "move" | undefined; // undefined = move
 export function SetupDrag(
     _reference: React.RefObject<HTMLElement>,
     docFunc: () => Doc | Promise<Doc> | undefined,
@@ -73,6 +75,8 @@ export function SetupDrag(
 
 export namespace DragManager {
     let dragDiv: HTMLDivElement;
+    export let horizSnapLines: number[];
+    export let vertSnapLines: number[];
 
     export function Root() {
         const root = document.getElementById("root");
@@ -83,6 +87,7 @@ export namespace DragManager {
     }
     export let AbortDrag: () => void = emptyFunction;
     export type MoveFunction = (document: Doc, targetCollection: Doc | undefined, addDocument: (document: Doc) => boolean) => boolean;
+    export type RemoveFunction = (document: Doc) => boolean;
 
     export interface DragDropDisposer { (): void; }
     export interface DragOptions {
@@ -138,6 +143,7 @@ export namespace DragManager {
         userDropAction: dropActionType;
         embedDoc?: boolean;
         moveDocument?: MoveFunction;
+        removeDocument?: RemoveFunction;
         isSelectionMove?: boolean; // indicates that an explicitly selected Document is being dragged.  this will suppress onDragStart scripts
     }
     export class LinkDragData {
@@ -177,7 +183,8 @@ export namespace DragManager {
 
     export function MakeDropTarget(
         element: HTMLElement,
-        dropFunc: (e: Event, de: DropEvent) => void
+        dropFunc: (e: Event, de: DropEvent) => void,
+        doc?: Doc
     ): DragDropDisposer {
         if ("canDrop" in element.dataset) {
             throw new Error(
@@ -185,10 +192,18 @@ export namespace DragManager {
             );
         }
         element.dataset.canDrop = "true";
-        const handler = (e: Event) => { dropFunc(e, (e as CustomEvent<DropEvent>).detail); };
+        const handler = (e: Event) => dropFunc(e, (e as CustomEvent<DropEvent>).detail);
+        const preDropHandler = (e: Event) => {
+            const de = (e as CustomEvent<DropEvent>).detail;
+            if (de.complete.docDragData && doc?.targetDropAction) {
+                de.complete.docDragData.dropAction = StrCast(doc.targetDropAction) as dropActionType;
+            }
+        };
         element.addEventListener("dashOnDrop", handler);
+        doc && element.addEventListener("dashPreDrop", preDropHandler);
         return () => {
             element.removeEventListener("dashOnDrop", handler);
+            doc && element.removeEventListener("dashPreDrop", preDropHandler);
             delete element.dataset.canDrop;
         };
     }
@@ -205,7 +220,7 @@ export namespace DragManager {
             e.docDragData && (e.docDragData.droppedDocuments =
                 dragData.draggedDocuments.map(d => !dragData.isSelectionMove && !dragData.userDropAction && ScriptCast(d.onDragStart) ? addAudioTag(ScriptCast(d.onDragStart).script.run({ this: d }).result) :
                     dragData.userDropAction === "alias" || (!dragData.userDropAction && dragData.dropAction === "alias") ? Doc.MakeAlias(d) :
-                        dragData.userDropAction === "copy" || (!dragData.userDropAction && dragData.dropAction === "copy") ? Doc.MakeCopy(d, true) : d)
+                        dragData.userDropAction === "copy" || (!dragData.userDropAction && dragData.dropAction === "copy") ? Doc.MakeClone(d) : d)
             );
             e.docDragData?.droppedDocuments.forEach((drop: Doc, i: number) =>
                 (dragData?.removeDropProperties || []).concat(Cast(dragData.draggedDocuments[i].removeDropProperties, listSpec("string"), [])).map(prop => drop[prop] = undefined)
@@ -281,6 +296,14 @@ export namespace DragManager {
         StartDrag([ele], {}, downX, downY);
     }
 
+    @action
+    export function SetSnapLines(horizLines: number[], vertLines: number[]) {
+        horizSnapLines = horizLines;
+        vertSnapLines = vertLines;
+        MainView.Instance._hLines = horizLines;
+        MainView.Instance._vLines = vertLines;
+    }
+
     function StartDrag(eles: HTMLElement[], dragData: { [id: string]: any }, downX: number, downY: number, options?: DragOptions, finishDrag?: (dropData: DragCompleteEvent) => void) {
         eles = eles.filter(e => e);
         if (!dragDiv) {
@@ -296,12 +319,22 @@ export namespace DragManager {
         const ys: number[] = [];
 
         const docs = dragData instanceof DocumentDragData ? dragData.draggedDocuments : dragData instanceof PdfAnnoDragData ? [dragData.dragDocument] : [];
+        const elesCont = {
+            left: Number.MAX_SAFE_INTEGER,
+            top: Number.MAX_SAFE_INTEGER,
+            right: Number.MIN_SAFE_INTEGER,
+            bottom: Number.MIN_SAFE_INTEGER
+        };
         const dragElements = eles.map(ele => {
             if (!ele.parentNode) dragDiv.appendChild(ele);
             const dragElement = ele.parentNode === dragDiv ? ele : ele.cloneNode(true) as HTMLElement;
             const rect = ele.getBoundingClientRect();
             const scaleX = rect.width / ele.offsetWidth,
                 scaleY = rect.height / ele.offsetHeight;
+            elesCont.left = Math.min(rect.left, elesCont.left);
+            elesCont.top = Math.min(rect.top, elesCont.top);
+            elesCont.right = Math.max(rect.right, elesCont.right);
+            elesCont.bottom = Math.max(rect.bottom, elesCont.bottom);
             xs.push(rect.left);
             ys.push(rect.top);
             scaleXs.push(scaleX);
@@ -351,12 +384,21 @@ export namespace DragManager {
 
         let lastX = downX;
         let lastY = downY;
+        const xFromLeft = downX - elesCont.left;
+        const yFromTop = downY - elesCont.top;
+        const xFromRight = elesCont.right - downX;
+        const yFromBottom = elesCont.bottom - downY;
+        let alias = "alias";
         const moveHandler = (e: PointerEvent) => {
             e.preventDefault(); // required or dragging text menu link item ends up dragging the link button as native drag/drop
             if (dragData instanceof DocumentDragData) {
                 dragData.userDropAction = e.ctrlKey && e.altKey ? "copy" : e.ctrlKey ? "alias" : undefined;
             }
             if (e.shiftKey && CollectionDockingView.Instance && dragData.droppedDocuments.length === 1) {
+                !dragData.dropAction && (dragData.dropAction = alias);
+                if (dragData.dropAction === "move") {
+                    dragData.removeDocument?.(dragData.draggedDocuments[0]);
+                }
                 AbortDrag();
                 finishDrag?.(new DragCompleteEvent(true, dragData));
                 CollectionDockingView.Instance.StartOtherDrag({
@@ -366,11 +408,38 @@ export namespace DragManager {
                     button: 0
                 }, dragData.droppedDocuments);
             }
-            //TODO: Why can't we use e.movementX and e.movementY?
-            const moveX = e.pageX - lastX;
-            const moveY = e.pageY - lastY;
-            lastX = e.pageX;
-            lastY = e.pageY;
+            let thisX = e.pageX;
+            let thisY = e.pageY;
+            const currLeft = e.pageX - xFromLeft;
+            const currTop = e.pageY - yFromTop;
+            const currRight = e.pageX + xFromRight;
+            const currBottom = e.pageY + yFromBottom;
+            const closestLeft = vertSnapLines.reduce((prev, curr) => Math.abs(prev - currLeft) > Math.abs(curr - currLeft) ? curr : prev);
+            const closestTop = horizSnapLines.reduce((prev, curr) => Math.abs(prev - currTop) > Math.abs(curr - currTop) ? curr : prev);
+            const closestRight = vertSnapLines.reduce((prev, curr) => Math.abs(prev - currRight) > Math.abs(curr - currRight) ? curr : prev);
+            const closestBottom = horizSnapLines.reduce((prev, curr) => Math.abs(prev - currBottom) > Math.abs(curr - currBottom) ? curr : prev);
+            const distFromClosestLeft = Math.abs(e.pageX - xFromLeft - closestLeft);
+            const distFromClosestTop = Math.abs(e.pageY - yFromTop - closestTop);
+            const distFromClosestRight = Math.abs(e.pageX + xFromRight - closestRight);
+            const distFromClosestBottom = Math.abs(e.pageY + yFromBottom - closestBottom);
+            if (distFromClosestLeft < 10 && distFromClosestLeft < distFromClosestRight) {
+                thisX = closestLeft + xFromLeft;
+            }
+            else if (distFromClosestRight < 10) {
+                thisX = closestRight - xFromRight;
+            }
+            if (distFromClosestTop < 10 && distFromClosestTop < distFromClosestRight) {
+                thisY = closestTop + yFromTop;
+            }
+            else if (distFromClosestBottom < 10) {
+                thisY = closestBottom - yFromBottom;
+            }
+
+            alias = "move";
+            const moveX = thisX - lastX;
+            const moveY = thisY - lastY;
+            lastX = thisX;
+            lastY = thisY;
             dragElements.map((dragElement, i) => (dragElement.style.transform =
                 `translate(${(xs[i] += moveX) + (options?.offsetX || 0)}px, ${(ys[i] += moveY) + (options?.offsetY || 0)}px)  scale(${scaleXs[i]}, ${scaleYs[i]})`)
             );
@@ -418,6 +487,20 @@ export namespace DragManager {
         });
         if (target) {
             const complete = new DragCompleteEvent(false, dragData);
+            target.dispatchEvent(
+                new CustomEvent<DropEvent>("dashPreDrop", {
+                    bubbles: true,
+                    detail: {
+                        x: e.x,
+                        y: e.y,
+                        complete: complete,
+                        shiftKey: e.shiftKey,
+                        altKey: e.altKey,
+                        metaKey: e.metaKey,
+                        ctrlKey: e.ctrlKey
+                    }
+                })
+            );
             finishDrag?.(complete);
             target.dispatchEvent(
                 new CustomEvent<DropEvent>("dashOnDrop", {

@@ -1,7 +1,6 @@
 .labelBox-outerDiv {
     width: 100%;
     height: 100%;
-    pointer-events: all;
     border-radius: inherit;
     display: flex;
     flex-direction: column;
@@ -19,8 +18,6 @@
 
 .labelBox-mainButtonCenter {
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
     display: inline;
     align-items: center;
     margin: auto;

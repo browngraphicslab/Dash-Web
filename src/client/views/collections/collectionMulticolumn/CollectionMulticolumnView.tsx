@@ -5,7 +5,7 @@ import { Doc } from '../../../../new_fields/Doc';
 import { documentSchema } from '../../../../new_fields/documentSchemas';
 import { makeInterface } from '../../../../new_fields/Schema';
 import { BoolCast, NumCast, ScriptCast, StrCast, Cast } from '../../../../new_fields/Types';
-import { DragManager } from '../../../util/DragManager';
+import { DragManager, dropActionType } from '../../../util/DragManager';
 import { Transform } from '../../../util/Transform';
 import { undoBatch } from '../../../util/UndoManager';
 import { ContentFittingDocumentView } from '../../nodes/ContentFittingDocumentView';
@@ -214,21 +214,32 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
     }
     getDisplayDoc(layout: Doc, dxf: () => Transform, width: () => number, height: () => number) {
         return <ContentFittingDocumentView
-            {...this.props}
             Document={layout}
             DataDocument={layout.resolvedDataDoc as Doc}
-            NativeHeight={returnZero}
-            NativeWidth={returnZero}
-            addDocTab={this.addDocTab}
-            fitToBox={BoolCast(this.props.Document._freezeChildDimensions)}
-            FreezeDimensions={BoolCast(this.props.Document._freezeChildDimensions)}
             backgroundColor={this.props.backgroundColor}
-            CollectionDoc={this.props.Document}
+            LayoutDoc={this.props.childLayoutTemplate}
+            LibraryPath={this.props.LibraryPath}
+            FreezeDimensions={this.props.freezeChildDimensions}
+            renderDepth={this.props.renderDepth + 1}
             PanelWidth={width}
             PanelHeight={height}
-            getTransform={dxf}
+            NativeHeight={returnZero}
+            NativeWidth={returnZero}
+            fitToBox={BoolCast(this.props.Document._freezeChildDimensions)}
+            rootSelected={this.rootSelected}
+            dropAction={StrCast(this.props.Document.childDropAction) as dropActionType}
             onClick={this.onChildClickHandler}
-            renderDepth={this.props.renderDepth + 1}
+            getTransform={dxf}
+            focus={this.props.focus}
+            CollectionDoc={this.props.CollectionView?.props.Document}
+            CollectionView={this.props.CollectionView}
+            addDocument={this.props.addDocument}
+            moveDocument={this.props.moveDocument}
+            removeDocument={this.props.removeDocument}
+            active={this.props.active}
+            whenActiveChanged={this.props.whenActiveChanged}
+            addDocTab={this.addDocTab}
+            pinToPres={this.props.pinToPres}
         />;
     }
     /**

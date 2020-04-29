@@ -8,6 +8,18 @@
     border-radius: 100%;
     transform-origin: top left;
 
+    .fontIconBox-label {
+        background: gray;
+        color:white;
+        margin-left: -10px;
+        border-radius: 8px;
+        width:100%;
+        position: absolute;
+        text-align: center;
+        font-size: 8px;
+        margin-top:4px;
+    }
+
     svg {
         width: 95% !important;
         height: 95%;
