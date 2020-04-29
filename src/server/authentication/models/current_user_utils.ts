@@ -72,8 +72,8 @@ export class CurrentUserUtils {
         }
 
         if (doc["template-button-description"] === undefined) {
-            const descriptionTemplate = Docs.Create.TextDocument("", { title: "text", _height: 100, _showTitle: "title" });
-            Doc.GetProto(descriptionTemplate).layout = FormattedTextBox.LayoutString("description");
+            const descriptionTemplate = Docs.Create.TextDocument("", { title: "header", _height: 100 });
+            Doc.GetProto(descriptionTemplate).layout = "<div><FormattedTextBox {...props} background='orange' height='50px' fieldKey={'header'}/><FormattedTextBox {...props} height='calc(100% - 50px)' fieldKey={'text'}/></div>";
             descriptionTemplate.isTemplateDoc = makeTemplate(descriptionTemplate, true, "descriptionView");
 
             doc["template-button-description"] = CurrentUserUtils.ficon({
@@ -181,9 +181,13 @@ export class CurrentUserUtils {
             doc["template-note-Idea"] as any as Doc, doc["template-note-Topic"] as any as Doc, doc["template-note-Todo"] as any as Doc],
                 { title: "Note Layouts", _height: 75 }));
         } else {
-            const noteTypes = Cast(doc["template-notes"], Doc, null);
-            DocListCastAsync(noteTypes).then(list => noteTypes.data = new List<Doc>([doc["template-note-Note"] as any as Doc,
-            doc["template-note-Idea"] as any as Doc, doc["template-note-Topic"] as any as Doc, doc["template-note-Todo"] as any as Doc]));
+            const curNoteTypes = Cast(doc["template-notes"], Doc, null);
+            const requiredTypes = [doc["template-note-Note"] as any as Doc, doc["template-note-Idea"] as any as Doc,
+            doc["template-note-Topic"] as any as Doc, doc["template-note-Todo"] as any as Doc];
+            DocListCastAsync(curNoteTypes.data).then(async curNotes => {
+                await Promise.all(curNotes!);
+                requiredTypes.map(ntype => Doc.AddDocToList(curNoteTypes, "data", ntype));
+            });
         }
 
         return doc["template-notes"] as Doc;

@@ -1,4 +1,4 @@
-import { GoogleApiWrapper, Map as GeoMap, MapProps, Marker } from "google-maps-react";
+import { GoogleApiWrapper, Map as GeoMap, IMapProps, Marker } from "google-maps-react";
 import { observer } from "mobx-react";
 import { Doc, Opt, DocListCast, FieldResult, Field } from "../../../new_fields/Doc";
 import { documentSchema } from "../../../new_fields/documentSchemas";
@@ -42,7 +42,7 @@ const query = async (data: string | google.maps.LatLngLiteral) => {
 };
 
 @observer
-class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> & { google: any }>(MapSchema) {
+class CollectionMapView extends CollectionSubView<MapSchema, Partial<IMapProps> & { google: any }>(MapSchema) {
 
     private _cancelAddrReq = new Map<string, boolean>();
     private _cancelLocReq = new Map<string, boolean>();
@@ -221,7 +221,7 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
                     zoom={center.zoom || 10}
                     initialCenter={center}
                     center={center}
-                    onIdle={(_props?: MapProps, map?: google.maps.Map) => {
+                    onIdle={(_props?: IMapProps, map?: google.maps.Map) => {
                         if (this.layoutDoc.lockedTransform) {
                             // reset zoom (ideally, we could probably can tell the map to disallow zooming somehow instead)
                             map?.setZoom(center?.zoom || 10);
@@ -233,7 +233,7 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<MapProps> &
                             }))();
                         }
                     }}
-                    onDragend={(_props?: MapProps, map?: google.maps.Map) => {
+                    onDragend={(_props?: IMapProps, map?: google.maps.Map) => {
                         if (this.layoutDoc.lockedTransform) {
                             // reset the drag (ideally, we could probably can tell the map to disallow dragging somehow instead)
                             map?.setCenter({ lat: center?.lat!, lng: center?.lng! });
