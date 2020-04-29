@@ -120,7 +120,7 @@ export class ScreenshotBox extends ViewBoxBaseComponent<FieldViewProps, Screensh
                     this._videoRef!.srcObject = !this._screenCapture ? undefined : await (navigator.mediaDevices as any).getDisplayMedia({ video: true });
                 }), icon: "expand-arrows-alt"
             });
-            ContextMenu.Instance.addItem({ description: "Screenshot Funcs...", subitems: subitems, icon: "video" });
+            ContextMenu.Instance.addItem({ description: "Options...", subitems: subitems, icon: "video" });
         }
     }
 

@@ -11,11 +11,11 @@ import { Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { Docs, DocumentOptions } from "../../documents/Documents";
-import { DragManager } from "../../util/DragManager";
+import { DragManager, dropActionType } from "../../util/DragManager";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { DocComponent } from "../DocComponent";
 import { FieldViewProps } from "../nodes/FieldView";
-import { FormattedTextBox, GoogleRef } from "../nodes/FormattedTextBox";
+import { FormattedTextBox, GoogleRef } from "../nodes/formattedText/FormattedTextBox";
 import { CollectionView } from "./CollectionView";
 import React = require("react");
 import { basename } from 'path';
@@ -64,7 +64,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             this.multiTouchDisposer?.();
             if (ele) {
                 this._mainCont = ele;
-                this.dropDisposer = DragManager.MakeDropTarget(ele, this.onInternalDrop.bind(this));
+                this.dropDisposer = DragManager.MakeDropTarget(ele, this.onInternalDrop.bind(this), this.layoutDoc);
                 this.gestureDisposer = GestureUtils.MakeGestureTarget(ele, this.onGesture.bind(this));
                 this.multiTouchDisposer = InteractionUtils.MakeMultiTouchTarget(ele, this.onTouchStart.bind(this));
             }
@@ -388,6 +388,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                     continue;
                 }
                 const proto = Doc.GetProto(doc);
+                proto.text = result.rawText;
                 proto.fileUpload = basename(pathname).replace("upload_", "").replace(/\.[a-z0-9]*$/, "");
                 if (Upload.isImageInformation(result)) {
                     proto["data-nativeWidth"] = (result.nativeWidth > result.nativeHeight) ? 400 * result.nativeWidth / result.nativeHeight : 400;
@@ -397,8 +398,13 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 generatedDocuments.push(doc);
             }
             if (generatedDocuments.length) {
-                generatedDocuments.forEach(addDocument);
-                completed && completed();
+                const set = generatedDocuments.length > 1 && generatedDocuments.map(d => Doc.iconify(d));
+                if (set) {
+                    addDocument(Doc.pileup(generatedDocuments, options.x!, options.y!));
+                } else {
+                    generatedDocuments.forEach(addDocument);
+                }
+                completed?.();
             } else {
                 if (text && !text.includes("https://")) {
                     addDocument(Docs.Create.TextDocument(text, { ...options, _width: 400, _height: 315 }));

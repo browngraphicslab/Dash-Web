@@ -25,7 +25,7 @@ library.add(faGlobeAsia);
 library.add(faBan);
 
 export interface IconBarProps {
-    setIcons: (icons: string[]) => {};
+    setIcons: (icons: string[]) => void;
 }
 
 
@@ -44,7 +44,7 @@ export class IconBar extends React.Component<IconBarProps> {
 
     @action.bound
     updateIcon(newArray: string[]) {
-    this._icons = newArray;
+        this._icons = newArray;
         this.props.setIcons?.(this._icons);
     }
 

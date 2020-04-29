@@ -1,4 +1,3 @@
-import anime from "animejs";
 import { computed, IReactionDisposer, observable, reaction, trace } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, HeightSym, WidthSym } from "../../../new_fields/Doc";
@@ -13,7 +12,8 @@ import { TraceMobx } from "../../../new_fields/util";
 import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
-    dataProvider?: (doc: Doc) => { x: number, y: number, zIndex?: number, highlight?: boolean, width: number, height: number, z: number, transition?: string } | undefined;
+    dataProvider?: (doc: Doc, replica: string) => { x: number, y: number, zIndex?: number, highlight?: boolean, z: number, transition?: string } | undefined;
+    sizeProvider?: (doc: Doc, replica: string) => { width: number, height: number } | undefined;
     x?: number;
     y?: number;
     z?: number;
@@ -24,24 +24,32 @@ export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     jitterRotation: number;
     transition?: string;
     fitToBox?: boolean;
+    replica: string;
 }
 
 @observer
 export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeFormDocumentViewProps, PositionDocument>(PositionDocument) {
     @observable _animPos: number[] | undefined = undefined;
+    random(min: number, max: number) { // min should not be equal to max
+        const mseed = Math.abs(this.X * this.Y);
+        const seed = (mseed * 9301 + 49297) % 233280;
+        const rnd = seed / 233280;
+        return min + rnd * (max - min);
+    }
     get displayName() { return "CollectionFreeFormDocumentView(" + this.props.Document.title + ")"; } // this makes mobx trace() statements more descriptive
-    get transform() { return `scale(${this.props.ContentScaling()}) translate(${this.X}px, ${this.Y}px) rotate(${anime.random(-1, 1) * this.props.jitterRotation}deg)`; }
+    get transform() { return `scale(${this.props.ContentScaling()}) translate(${this.X}px, ${this.Y}px) rotate(${this.random(-1, 1) * this.props.jitterRotation}deg)`; }
     get X() { return this.renderScriptDim ? this.renderScriptDim.x : this.props.x !== undefined ? this.props.x : this.dataProvider ? this.dataProvider.x : (this.Document.x || 0); }
     get Y() { return this.renderScriptDim ? this.renderScriptDim.y : this.props.y !== undefined ? this.props.y : this.dataProvider ? this.dataProvider.y : (this.Document.y || 0); }
     get ZInd() { return this.dataProvider ? this.dataProvider.zIndex : (this.Document.zIndex || 0); }
     get Highlight() { return this.dataProvider?.highlight; }
-    get width() { return this.renderScriptDim ? this.renderScriptDim.width : this.props.width !== undefined ? this.props.width : this.props.dataProvider && this.dataProvider ? this.dataProvider.width : this.layoutDoc[WidthSym](); }
+    get width() { return this.renderScriptDim ? this.renderScriptDim.width : this.props.width !== undefined ? this.props.width : this.props.sizeProvider && this.sizeProvider ? this.sizeProvider.width : this.layoutDoc[WidthSym](); }
     get height() {
-        const hgt = this.renderScriptDim ? this.renderScriptDim.height : this.props.height !== undefined ? this.props.height : this.props.dataProvider && this.dataProvider ? this.dataProvider.height : this.layoutDoc[HeightSym]();
+        const hgt = this.renderScriptDim ? this.renderScriptDim.height : this.props.height !== undefined ? this.props.height : this.props.sizeProvider && this.sizeProvider ? this.sizeProvider.height : this.layoutDoc[HeightSym]();
         return (hgt === undefined && this.nativeWidth && this.nativeHeight) ? this.width * this.nativeHeight / this.nativeWidth : hgt;
     }
     @computed get freezeDimensions() { return this.props.FreezeDimensions; }
-    @computed get dataProvider() { return this.props.dataProvider && this.props.dataProvider(this.props.Document) ? this.props.dataProvider(this.props.Document) : undefined; }
+    @computed get dataProvider() { return this.props.dataProvider?.(this.props.Document, this.props.replica); }
+    @computed get sizeProvider() { return this.props.sizeProvider?.(this.props.Document, this.props.replica); }
     @computed get nativeWidth() { return NumCast(this.layoutDoc._nativeWidth, this.props.NativeWidth() || (this.freezeDimensions ? this.layoutDoc[WidthSym]() : 0)); }
     @computed get nativeHeight() { return NumCast(this.layoutDoc._nativeHeight, this.props.NativeHeight() || (this.freezeDimensions ? this.layoutDoc[HeightSym]() : 0)); }
 
@@ -65,8 +73,8 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     }
 
     contentScaling = () => this.nativeWidth > 0 && !this.props.fitToBox && !this.freezeDimensions ? this.width / this.nativeWidth : 1;
-    panelWidth = () => (this.dataProvider?.width || this.props.PanelWidth?.());
-    panelHeight = () => (this.dataProvider?.height || this.props.PanelHeight?.());
+    panelWidth = () => (this.sizeProvider?.width || this.props.PanelWidth?.());
+    panelHeight = () => (this.sizeProvider?.height || this.props.PanelHeight?.());
     getTransform = (): Transform => this.props.ScreenToLocalTransform()
         .translate(-this.X, -this.Y)
         .scale(1 / this.contentScaling())

@@ -1,26 +1,26 @@
 import React = require("react");
-import AntimodeMenu from "../views/AntimodeMenu";
+import AntimodeMenu from "../../AntimodeMenu";
 import { observable, action, } from "mobx";
 import { observer } from "mobx-react";
 import { Mark, MarkType, Node as ProsNode, NodeType, ResolvedPos, Schema } from "prosemirror-model";
-import { schema } from "./RichTextSchema";
+import { schema } from "./schema_rts";
 import { EditorView } from "prosemirror-view";
 import { EditorState, NodeSelection, TextSelection } from "prosemirror-state";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
 import { faBold, faItalic, faChevronLeft, faUnderline, faStrikethrough, faSubscript, faSuperscript, faIndent, faEyeDropper, faCaretDown, faPalette, faHighlighter, faLink, faPaintRoller, faSleigh } from "@fortawesome/free-solid-svg-icons";
 import { updateBullets } from "./ProsemirrorExampleTransfer";
-import { FieldViewProps } from "../views/nodes/FieldView";
-import { Cast, StrCast } from "../../new_fields/Types";
-import { FormattedTextBoxProps } from "../views/nodes/FormattedTextBox";
-import { unimplementedFunction, Utils } from "../../Utils";
+import { FieldViewProps } from "../FieldView";
+import { Cast, StrCast } from "../../../../new_fields/Types";
+import { FormattedTextBoxProps } from "./FormattedTextBox";
+import { unimplementedFunction, Utils } from "../../../../Utils";
 import { wrapInList } from "prosemirror-schema-list";
-import { PastelSchemaPalette, DarkPastelSchemaPalette } from '../../new_fields/SchemaHeaderField';
+import { PastelSchemaPalette, DarkPastelSchemaPalette } from '../../../../new_fields/SchemaHeaderField';
 import "./RichTextMenu.scss";
-import { DocServer } from "../DocServer";
-import { Doc } from "../../new_fields/Doc";
-import { SelectionManager } from "./SelectionManager";
-import { LinkManager } from "./LinkManager";
+import { DocServer } from "../../../DocServer";
+import { Doc } from "../../../../new_fields/Doc";
+import { SelectionManager } from "../../../util/SelectionManager";
+import { LinkManager } from "../../../util/LinkManager";
 const { toggleMark, setBlockType } = require("prosemirror-commands");
 
 library.add(faBold, faItalic, faChevronLeft, faUnderline, faStrikethrough, faSuperscript, faSubscript, faIndent, faEyeDropper, faCaretDown, faPalette, faHighlighter, faLink, faPaintRoller);
@@ -445,8 +445,8 @@ export default class RichTextMenu extends AntimodeMenu {
         }
 
         const button =
-            <button className="antimodeMenu-button" title="" onPointerDown={onBrushClick} style={this.brushMarks && this.brushMarks.size > 0 ? { backgroundColor: "121212" } : {}}>
-                <FontAwesomeIcon icon="paint-roller" size="lg" style={{ transition: "transform 0.1s", transform: this.brushMarks && this.brushMarks.size > 0 ? "rotate(45deg)" : "" }} />
+            <button className="antimodeMenu-button" title="" onPointerDown={onBrushClick} style={this.brushMarks?.size > 0 ? { backgroundColor: "121212" } : {}}>
+                <FontAwesomeIcon icon="paint-roller" size="lg" style={{ transitionProperty: "transform", transitionDuration: "0.1s", transform: `rotate(${this.brushMarks?.size > 0 ? 45 : 0}deg)` }} />
             </button>;
 
         const dropdownContent =
@@ -790,11 +790,11 @@ export default class RichTextMenu extends AntimodeMenu {
             <div key="button">
                 <div key="collapser">
                     <button className="antimodeMenu-button" key="collapse menu" title="Collapse menu" onClick={this.toggleCollapse} style={{ backgroundColor: this.collapsed ? "#121212" : "", width: 25 }}>
-                        <FontAwesomeIcon icon="chevron-left" size="lg" style={{ transition: "transform 0.3s", transform: this.collapsed ? "rotate(180deg)" : "" }} />
+                        <FontAwesomeIcon icon="chevron-left" size="lg" style={{ transitionProperty: "transform", transitionDuration: "0.3s", transform: `rotate(${this.collapsed ? 180 : 0}deg)` }} />
                     </button>
                 </div>
                 <button className="antimodeMenu-button" key="pin menu" title="Pin menu" onClick={this.toggleMenuPin} style={{ backgroundColor: this.Pinned ? "#121212" : "", display: this.collapsed ? "none" : undefined }}>
-                    <FontAwesomeIcon icon="thumbtack" size="lg" style={{ transition: "transform 0.1s", transform: this.Pinned ? "rotate(45deg)" : "" }} />
+                    <FontAwesomeIcon icon="thumbtack" size="lg" style={{ transitionProperty: "transform", transitionDuration: "0.1s", transform: `rotate(${this.Pinned ? 45 : 0}deg)` }} />
                 </button>
                 {this.getDragger()}
             </div>

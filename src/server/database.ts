@@ -52,8 +52,6 @@ export namespace Database {
         private currentWrites: { [id: string]: Promise<void> } = {};
         private db?: mongodb.Db;
         private onConnect: (() => void)[] = [];
-        constructor() {
-        }
 
         doConnect() {
             console.error(`\nConnecting to Mongo with URL : ${url}\n`);

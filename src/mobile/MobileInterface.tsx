@@ -1,51 +1,38 @@
 import React = require('react');
-import { observer } from 'mobx-react';
-import { computed, action, observable } from 'mobx';
-import { CurrentUserUtils } from '../server/authentication/models/current_user_utils';
-import { FieldValue, Cast, StrCast } from '../new_fields/Types';
-import { Doc, DocListCast } from '../new_fields/Doc';
-import { Docs } from '../client/documents/Documents';
-import { CollectionView } from '../client/views/collections/CollectionView';
-import { DocumentView } from '../client/views/nodes/DocumentView';
-import { emptyPath, emptyFunction, returnFalse, returnOne, returnEmptyString, returnTrue, returnZero } from '../Utils';
-import { Transform } from '../client/util/Transform';
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faPenNib, faHighlighter, faEraser, faMousePointer, faBreadSlice, faTrash, faCheck, faLongArrowAltLeft } from '@fortawesome/free-solid-svg-icons';
+import { faEraser, faHighlighter, faLongArrowAltLeft, faMousePointer, faPenNib } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { action, computed, observable } from 'mobx';
+import { observer } from 'mobx-react';
+import { DocServer } from '../client/DocServer';
+import { Docs } from '../client/documents/Documents';
+import { DocumentManager } from '../client/util/DocumentManager';
+import RichTextMenu from '../client/views/nodes/formattedText/RichTextMenu';
 import { Scripting } from '../client/util/Scripting';
-import { CollectionFreeFormView } from '../client/views/collections/collectionFreeForm/CollectionFreeFormView';
+import { Transform } from '../client/util/Transform';
+import { CollectionView } from '../client/views/collections/CollectionView';
+import { DocumentDecorations } from '../client/views/DocumentDecorations';
 import GestureOverlay from '../client/views/GestureOverlay';
 import { InkingControl } from '../client/views/InkingControl';
-import { InkTool } from '../new_fields/InkField';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import "./MobileInterface.scss";
-import { SelectionManager } from '../client/util/SelectionManager';
-import { DateField } from '../new_fields/DateField';
-import { GestureUtils } from '../pen-gestures/GestureUtils';
-import { DocServer } from '../client/DocServer';
-import { DocumentDecorations } from '../client/views/DocumentDecorations';
-import { OverlayView } from '../client/views/OverlayView';
-import { DictationOverlay } from '../client/views/DictationOverlay';
-import SharingManager from '../client/util/SharingManager';
-import { PreviewCursor } from '../client/views/PreviewCursor';
-import { ContextMenu } from '../client/views/ContextMenu';
+import { DocumentView } from '../client/views/nodes/DocumentView';
 import { RadialMenu } from '../client/views/nodes/RadialMenu';
-import PDFMenu from '../client/views/pdf/PDFMenu';
-import MarqueeOptionsMenu from '../client/views/collections/collectionFreeForm/MarqueeOptionsMenu';
-import GoogleAuthenticationManager from '../client/apis/GoogleAuthenticationManager';
-import { listSpec } from '../new_fields/Schema';
+import { PreviewCursor } from '../client/views/PreviewCursor';
+import { Doc, DocListCast, FieldResult } from '../new_fields/Doc';
 import { Id } from '../new_fields/FieldSymbols';
-import { DocumentManager } from '../client/util/DocumentManager';
-import RichTextMenu from '../client/util/RichTextMenu';
+import { InkTool } from '../new_fields/InkField';
+import { listSpec } from '../new_fields/Schema';
+import { Cast, FieldValue } from '../new_fields/Types';
 import { WebField } from "../new_fields/URLField";
-import { FieldResult } from "../new_fields/Doc";
-import { List } from '../new_fields/List';
+import { CurrentUserUtils } from '../server/authentication/models/current_user_utils';
+import { emptyFunction, emptyPath, returnEmptyString, returnFalse, returnOne, returnTrue, returnZero } from '../Utils';
+import "./MobileInterface.scss";
 
 library.add(faLongArrowAltLeft);
 
 @observer
 export default class MobileInterface extends React.Component {
     @observable static Instance: MobileInterface;
-    @computed private get userDoc() { return CurrentUserUtils.UserDocument; }
+    @computed private get userDoc() { return Doc.UserDoc(); }
     @computed private get mainContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeMobile, Doc)) : CurrentUserUtils.GuestMobile; }
     // @observable private currentView: "main" | "ink" | "upload" = "main";
     private mainDoc: any = CurrentUserUtils.setupMobileDoc(this.userDoc);
