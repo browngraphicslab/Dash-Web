@@ -580,7 +580,6 @@ export namespace Doc {
                     copy[key] = Doc.MakeCopy(doc[key]!, false);
                 }
             } else {
-                const field = ProxyField.WithoutProxy(() => doc[key]);
                 if (field instanceof RefField) {
                     copy[key] = field;
                 } else if (cfield instanceof ComputedField) {
