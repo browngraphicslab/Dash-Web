@@ -7,7 +7,7 @@ import { computedFn } from "mobx-utils";
 import { Doc, HeightSym, Opt, WidthSym, DocListCast } from "../../../../new_fields/Doc";
 import { documentSchema, positionSchema } from "../../../../new_fields/documentSchemas";
 import { Id } from "../../../../new_fields/FieldSymbols";
-import { InkData, InkField, InkTool } from "../../../../new_fields/InkField";
+import { InkData, InkField, InkTool, PointData } from "../../../../new_fields/InkField";
 import { List } from "../../../../new_fields/List";
 import { RichTextField } from "../../../../new_fields/RichTextField";
 import { createSchema, listSpec, makeInterface } from "../../../../new_fields/Schema";
@@ -1133,6 +1133,77 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         this._timelineRef.current!.timelineContextMenu(e);
     }
 
+    intersectRect(r1: { left: number, top: number, width: number, height: number },
+        r2: { left: number, top: number, width: number, height: number }) {
+        return !(r2.left > r1.left + r1.width || r2.left + r2.width < r1.left || r2.top > r1.top + r1.height || r2.top + r2.height < r1.top);
+    }
+
+    @action
+    onPointerOver = (e: React.PointerEvent) => {
+        if (SelectionManager.GetIsDragging()) {
+            const size = this.props.ScreenToLocalTransform().transformDirection(this.props.PanelWidth(), this.props.PanelHeight());
+            const selRect = { left: this.panX() - size[0] / 2, top: this.panY() - size[1] / 2, width: size[0], height: size[1] };
+            const selection: Doc[] = [];
+            this.getActiveDocuments().filter(doc => !doc.isBackground && doc.z === undefined).map(doc => {
+                const layoutDoc = Doc.Layout(doc);
+                const x = NumCast(doc.x);
+                const y = NumCast(doc.y);
+                const w = NumCast(layoutDoc._width);
+                const h = NumCast(layoutDoc._height);
+                if (this.intersectRect({ left: x, top: y, width: w, height: h }, selRect)) {
+                    selection.push(doc);
+                }
+            });
+            if (!selection.length) {
+                this.getActiveDocuments().filter(doc => doc.z === undefined).map(doc => {
+                    const layoutDoc = Doc.Layout(doc);
+                    const x = NumCast(doc.x);
+                    const y = NumCast(doc.y);
+                    const w = NumCast(layoutDoc._width);
+                    const h = NumCast(layoutDoc._height);
+                    if (this.intersectRect({ left: x, top: y, width: w, height: h }, selRect)) {
+                        selection.push(doc);
+                    }
+                });
+            }
+            if (!selection.length) {
+                const otherBounds = { left: this.panX(), top: this.panY(), width: Math.abs(size[0]), height: Math.abs(size[1]) };
+                this.getActiveDocuments().filter(doc => doc.z !== undefined).map(doc => {
+                    const layoutDoc = Doc.Layout(doc);
+                    const x = NumCast(doc.x);
+                    const y = NumCast(doc.y);
+                    const w = NumCast(layoutDoc._width);
+                    const h = NumCast(layoutDoc._height);
+                    if (this.intersectRect({ left: x, top: y, width: w, height: h }, otherBounds)) {
+                        selection.push(doc);
+                    }
+                });
+            }
+            const horizLines: number[] = [];
+            const vertLines: number[] = [];
+            selection.forEach(doc => {
+                const layoutDoc = Doc.Layout(doc);
+                const x = NumCast(doc.x);
+                const y = NumCast(doc.y);
+                const w = NumCast(layoutDoc._width);
+                const h = NumCast(layoutDoc._height);
+                const topLeftInScreen = this.getTransform().inverse().transformPoint(x, y);
+                const docSize = this.getTransform().inverse().transformDirection(w, h);
+                horizLines.push(topLeftInScreen[1]); // top line
+                horizLines.push(topLeftInScreen[1] + docSize[1]); // bottom line
+                horizLines.push(topLeftInScreen[1] + docSize[1] / 2); // horiz center line
+                vertLines.push(topLeftInScreen[0]);//left line
+                vertLines.push(topLeftInScreen[0] + docSize[0]);// right line
+                vertLines.push(topLeftInScreen[0] + docSize[0] / 2);// vert center line
+            });
+            DragManager.SetSnapLines(horizLines, vertLines);
+        }
+        e.stopPropagation();
+    }
+
+    @observable private _hLines: number[] | undefined;
+    @observable private _vLines: number[] | undefined;
+
     private childViews = () => {
         const children = typeof this.props.children === "function" ? (this.props.children as any)() as JSX.Element[] : [];
         return [
@@ -1196,6 +1267,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         // otherwise, they are stored in fieldKey.  All annotations to this document are stored in the extension document
         return <div className={"collectionfreeformview-container"}
             ref={this.createDashEventsTarget}
+            onPointerOver={this.onPointerOver}
             onWheel={this.onPointerWheel} onClick={this.onClick}  //pointerEvents: SelectionManager.GetIsDragging() ? "all" : undefined,
             onPointerDown={this.onPointerDown} onPointerMove={this.onCursorMove} onDrop={this.onExternalDrop.bind(this)} onContextMenu={this.onContextMenu}
             style={{
@@ -1220,7 +1292,12 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
                 }}>
             </div>
-
+            {/* <div className="snapLines" style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none" }}>
+                <svg style={{ width: "100%", height: "100%" }}>
+                    {this._hLines?.map(l => <line x1="0" y1={l} x2="1000" y2={l} stroke="black" />)}
+                    {this._vLines?.map(l => <line y1="0" x1={l} y2="1000" x2={l} stroke="black" />)}
+                </svg>
+            </div> */}
         </div >;
     }
 }
