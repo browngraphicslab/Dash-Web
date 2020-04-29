@@ -3,69 +3,77 @@
     border-radius: inherit;
     width: 100%;
     height: 100%;
+    background-color: grey;
 
-    .clip-div {
+    .content-wrapper {
         position: absolute;
-        top: 0;
-        left: 0;
-        width: 50%;
-        height: 100%;
-        overflow: hidden;
-        z-index: 999;
+        bottom: 0;
+        width: 100%;
+        height: 95%;
 
-        .beforeBox-cont {
+        .clip-div {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 50%;
             height: 100%;
-            overflow: auto;
-            background-color: rgb(230, 230, 230);
+            overflow: hidden;
+            z-index: 999;
+
+            .beforeBox-cont {
+                height: 100%;
+                overflow: auto;
+                background-color: rgb(240, 240, 240);
+            }
+
+            .slide-bar {
+                position: absolute;
+                width: 5px;
+                height: 100%;
+                top: 0;
+                right: 0;
+                background-color: grey;
+                cursor: ew-resize;
+            }
         }
 
-        .slide-bar {
+        .afterBox-cont {
             position: absolute;
-            width: 5px;
-            height: 100%;
             top: 0;
             right: 0;
-            background-color: white;
-            cursor: ew-resize;
-        }
-    }
-
-    .afterBox-cont {
-        position: absolute;
-        top: 0;
-        right: 0;
-        height: 100%;
-        width: 100%;
-        overflow: hidden;
-        background-color: rgb(200, 200, 200);
-    }
-
-    .clear-button {
-        position: absolute;
-        top: 3px;
-        opacity: 0.8;
-        pointer-events: all;
-        cursor: pointer;
-    }
-
-    .clear-button.before {
-        left: 3px;
-    }
-
-    .clear-button.after {
-        right: 3px;
-    }
-
-    .placeholder {
-        width: 50%;
-        height: 50%;
-        margin-top: 25%;
-        margin-left: 25%;
-
-        .upload-icon {
-            width: 100%;
             height: 100%;
-            opacity: 0.5;
+            width: 100%;
+            overflow: hidden;
+            background-color: lightgray;
+        }
+
+        .clear-button {
+            position: absolute;
+            top: 3px;
+            opacity: 0.8;
+            pointer-events: all;
+            cursor: pointer;
+        }
+
+        .clear-button.before {
+            left: 3px;
+        }
+
+        .clear-button.after {
+            right: 3px;
+        }
+
+        .placeholder {
+            width: 50%;
+            height: 50%;
+            margin-top: 25%;
+            margin-left: 25%;
+
+            .upload-icon {
+                width: 100%;
+                height: 100%;
+                opacity: 0.5;
+            }
         }
     }
 }

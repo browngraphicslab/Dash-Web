@@ -7,9 +7,8 @@ import { observer } from "mobx-react";
 import { Doc } from '../../../new_fields/Doc';
 import { documentSchema } from '../../../new_fields/documentSchemas';
 import { Id } from '../../../new_fields/FieldSymbols';
-import { createSchema, listSpec, makeInterface } from '../../../new_fields/Schema';
-import { ComputedField } from '../../../new_fields/ScriptField';
-import { Cast, NumCast, StrCast } from '../../../new_fields/Types';
+import { createSchema, makeInterface } from '../../../new_fields/Schema';
+import { NumCast, StrCast } from '../../../new_fields/Types';
 import { DragManager } from '../../util/DragManager';
 import { ViewBoxAnnotatableComponent } from '../DocComponent';
 import { FieldView, FieldViewProps } from './FieldView';
@@ -108,24 +107,50 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
         const clipWidth = this.props.Document.clipWidth as Number;
         return (
             <div className="comparisonBox">
-                {/* wraps around before image and slider bar */}
-                <div className="clip-div" style={{ width: clipWidth + "px" }}>
+                <div className="content-wrapper">
+                    <div className="clip-div" style={{ width: clipWidth + "px" }}>
+                        {/* wraps around before image and slider bar */}
+                        <div
+                            className="beforeBox-cont"
+                            key={this.props.Document[Id]}
+                            ref={(ele) => {
+                                this._beforeDropDisposer && this._beforeDropDisposer();
+                                this._beforeDropDisposer = this.createDropTarget(ele, "beforeDoc");
+                            }}
+                            style={{ width: this.props.PanelWidth() }}>
+                            {
+                                beforeDoc ?
+                                    <>
+                                        <ContentFittingDocumentView {...this.props}
+                                            Document={beforeDoc}
+                                            getTransform={this.props.ScreenToLocalTransform} />
+                                        <div className="clear-button before" onClick={(e) => this.clearBeforeDoc(e)}>
+                                            <FontAwesomeIcon className="clear-button before" icon={faTimes} size="sm" />
+                                        </div>
+                                    </>
+                                    :
+                                    <div className="placeholder">
+                                        <FontAwesomeIcon className="upload-icon" icon={faCloudUploadAlt} size="lg" />
+                                    </div>
+                            }
+                        </div>
+                        <div className="slide-bar" onPointerDown={e => this.registerSliding(e)} />
+                    </div>
                     <div
-                        className="beforeBox-cont"
+                        className="afterBox-cont"
                         key={this.props.Document[Id]}
                         ref={(ele) => {
-                            this._beforeDropDisposer && this._beforeDropDisposer();
-                            this._beforeDropDisposer = this.createDropTarget(ele, "beforeDoc");
-                        }}
-                        style={{ width: this.props.PanelWidth() }}>
+                            this._afterDropDisposer && this._afterDropDisposer();
+                            this._afterDropDisposer = this.createDropTarget(ele, "afterDoc");
+                        }}>
                         {
-                            beforeDoc ?
+                            afterDoc ?
                                 <>
                                     <ContentFittingDocumentView {...this.props}
-                                        Document={beforeDoc}
+                                        Document={afterDoc}
                                         getTransform={this.props.ScreenToLocalTransform} />
-                                    <div className="clear-button before" onClick={(e) => this.clearBeforeDoc(e)}>
-                                        <FontAwesomeIcon className="clear-button before" icon={faTimes} size="sm" />
+                                    <div className="clear-button after" onClick={(e) => this.clearAfterDoc(e)}>
+                                        <FontAwesomeIcon className="clear-button after" icon={faTimes} size="sm" />
                                     </div>
                                 </>
                                 :
@@ -134,30 +159,6 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
                                 </div>
                         }
                     </div>
-                    <div className="slide-bar" onPointerDown={e => this.registerSliding(e)} />
-                </div>
-                <div
-                    className="afterBox-cont"
-                    key={this.props.Document[Id]}
-                    ref={(ele) => {
-                        this._afterDropDisposer && this._afterDropDisposer();
-                        this._afterDropDisposer = this.createDropTarget(ele, "afterDoc");
-                    }}>
-                    {
-                        afterDoc ?
-                            <>
-                                <ContentFittingDocumentView {...this.props}
-                                    Document={afterDoc}
-                                    getTransform={this.props.ScreenToLocalTransform} />
-                                <div className="clear-button after" onClick={(e) => this.clearAfterDoc(e)}>
-                                    <FontAwesomeIcon className="clear-button after" icon={faTimes} size="sm" />
-                                </div>
-                            </>
-                            :
-                            <div className="placeholder">
-                                <FontAwesomeIcon className="upload-icon" icon={faCloudUploadAlt} size="lg" />
-                            </div>
-                    }
                 </div>
             </div >);
     }
