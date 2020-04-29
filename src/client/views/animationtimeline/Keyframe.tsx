@@ -4,7 +4,7 @@ import "./Timeline.scss";
 import "../globalCssVariables.scss";
 import { observer } from "mobx-react";
 import { observable, reaction, action, IReactionDisposer, observe, computed, runInAction, trace } from "mobx";
-import { Doc, DocListCast, DocListCastAsync } from "../../../new_fields/Doc";
+import { Doc, DocListCast, DocListCastAsync, Opt } from "../../../new_fields/Doc";
 import { Cast, NumCast } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
 import { createSchema, defaultSpec, makeInterface, listSpec } from "../../../new_fields/Schema";
@@ -55,11 +55,11 @@ export namespace KeyframeFunc {
         }
     };
 
-    export const calcMinLeft = async (region: Doc, currentBarX: number, ref?: Doc) => { //returns the time of the closet keyframe to the left
-        let leftKf: (Doc | undefined) = undefined;
+    export const calcMinLeft = (region: Doc, currentBarX: number, ref?: Doc) => { //returns the time of the closet keyframe to the left
+        let leftKf: Opt<Doc>;
         let time: number = 0;
-        const keyframes = await DocListCastAsync(region.keyframes!);
-        keyframes!.forEach((kf) => {
+        const keyframes = DocListCast(region.keyframes!);
+        keyframes.map((kf) => {
             let compTime = currentBarX;
             if (ref) compTime = NumCast(ref.time);
             if (NumCast(kf.time) < compTime && NumCast(kf.time) >= time) {
@@ -71,11 +71,10 @@ export namespace KeyframeFunc {
     };
 
 
-    export const calcMinRight = async (region: Doc, currentBarX: number, ref?: Doc) => { //returns the time of the closest keyframe to the right 
-        let rightKf: (Doc | undefined) = undefined;
+    export const calcMinRight = (region: Doc, currentBarX: number, ref?: Doc) => { //returns the time of the closest keyframe to the right 
+        let rightKf: Opt<Doc>;
         let time: number = Infinity;
-        const keyframes = await DocListCastAsync(region.keyframes!);
-        keyframes!.forEach((kf) => {
+        DocListCast(region.keyframes!).forEach((kf) => {
             let compTime = currentBarX;
             if (ref) compTime = NumCast(ref.time);
             if (NumCast(kf.time) > compTime && NumCast(kf.time) <= NumCast(time)) {
@@ -239,9 +238,7 @@ export class Keyframe extends React.Component<IProps> {
             this.regiondata.position = futureX;
         }
         const movement = this.regiondata.position - prevX;
-        this.keyframes.forEach(kf => {
-            kf.time = NumCast(kf.time) + movement;
-        });
+        this.keyframes.forEach(kf => kf.time = NumCast(kf.time) + movement);
     }
 
     @action
@@ -338,7 +335,7 @@ export class Keyframe extends React.Component<IProps> {
     makeKeyframeMenu = (kf: Doc, e: MouseEvent) => {
         TimelineMenu.Instance.addItem("button", "Show Data", () => {
             runInAction(() => {
-                const kvp = Docs.Create.KVPDocument(Cast(kf.key, Doc) as Doc, { _width: 300, _height: 300 });
+                const kvp = Docs.Create.KVPDocument(kf, { _width: 300, _height: 300 });
                 CollectionDockingView.AddRightSplit(kvp, emptyPath);
             });
         }),
@@ -370,12 +367,8 @@ export class Keyframe extends React.Component<IProps> {
      */
     @action
     makeRegionMenu = (kf: Doc, e: MouseEvent) => {
-        TimelineMenu.Instance.addItem("button", "Remove Region", () => {
-            runInAction(() => {
-                this.regions.splice(this.regions.indexOf(this.props.RegionData), 1);
-            }
-            );
-        }),
+        TimelineMenu.Instance.addItem("button", "Remove Region", () =>
+            Cast(this.props.node.regions, listSpec(Doc))?.splice(this.regions.indexOf(this.props.RegionData), 1)),
             TimelineMenu.Instance.addItem("input", `fadeIn: ${this.regiondata.fadeIn}ms`, (val) => {
                 runInAction(() => {
                     let cannotMove: boolean = false;
@@ -404,9 +397,9 @@ export class Keyframe extends React.Component<IProps> {
                 runInAction(() => {
                     const prevPosition = this.regiondata.position;
                     let cannotMove: boolean = false;
-                    this.regions.forEach(region => {
-                        if (NumCast(region.position) !== this.regiondata.position) {
-                            if ((val < 0) || (val > NumCast(region.position) && val < NumCast(region.position) + NumCast(region.duration) || (this.regiondata.duration + val > NumCast(region.position) && this.regiondata.duration + val < NumCast(region.position) + NumCast(region.duration)))) {
+                    this.regions.map(region => ({ pos: NumCast(region.position), dur: NumCast(region.duration) })).forEach(({ pos, dur }) => {
+                        if (pos !== this.regiondata.position) {
+                            if ((val < 0) || (val > pos && val < pos + dur || (this.regiondata.duration + val > pos && this.regiondata.duration + val < pos + dur))) {
                                 cannotMove = true;
                             }
                         }
@@ -420,10 +413,10 @@ export class Keyframe extends React.Component<IProps> {
             TimelineMenu.Instance.addItem("input", `duration: ${this.regiondata.duration}ms`, (val) => {
                 runInAction(() => {
                     let cannotMove: boolean = false;
-                    this.regions.forEach(region => {
-                        if (NumCast(region.position) !== this.regiondata.position) {
+                    this.regions.map(region => ({ pos: NumCast(region.position), dur: NumCast(region.duration) })).forEach(({ pos, dur }) => {
+                        if (pos !== this.regiondata.position) {
                             val += this.regiondata.position;
-                            if ((val < 0) || (val > NumCast(region.position) && val < NumCast(region.position) + NumCast(region.duration))) {
+                            if ((val < 0) || (val > pos && val < pos + dur)) {
                                 cannotMove = true;
                             }
                         }

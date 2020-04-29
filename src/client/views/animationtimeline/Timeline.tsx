@@ -593,33 +593,30 @@ export class Timeline extends React.Component<FieldViewProps> {
         trace();
         // change visible and total width
         return (
-            <div>
-                <div style={{ visibility: this._timelineVisible ? "visible" : "hidden" }}>
-                    <div key="timeline_wrapper" style={{ visibility: BoolCast(this.props.Document.isATOn && this._timelineVisible) ? "visible" : "hidden", left: "0px", top: "0px", position: "absolute", width: "100%", transform: "translate(0px, 0px)" }}>
-                        <div key="timeline_container" className="timeline-container" ref={this._timelineContainer} style={{ height: `${this._containerHeight}px`, top: `0px` }}>
-                            <div key="timeline_info" className="info-container" ref={this._infoContainer} onWheel={this.onWheelZoom}>
-                                {this.drawTicks()}
-                                <div key="timeline_scrubber" className="scrubber" style={{ transform: `translate(${this._currentBarX}px)` }}>
-                                    <div key="timeline_scrubberhead" className="scrubberhead" onPointerDown={this.onScrubberDown} ></div>
-                                </div>
-                                <div key="timeline_trackbox" className="trackbox" ref={this._trackbox} onPointerDown={this.onPanDown} style={{ width: `${this._totalLength}px` }}>
-                                    {DocListCast(this.children).map(doc => {
-                                        const track = <Track ref={ref => { this.mapOfTracks.push(ref); }} node={doc} currentBarX={this._currentBarX} changeCurrentBarX={this.changeCurrentBarX} transform={this.props.ScreenToLocalTransform()} time={this._time} tickSpacing={this._tickSpacing} tickIncrement={this._tickIncrement} collection={this.props.Document} timelineVisible={this._timelineVisible} />
-                                        return track;
-                                    })}
-                                </div>
+            <div style={{ visibility: this._timelineVisible ? "visible" : "hidden" }}>
+                <div key="timeline_wrapper" style={{ visibility: BoolCast(this.props.Document.isATOn && this._timelineVisible) ? "visible" : "hidden", left: "0px", top: "0px", position: "absolute", width: "100%", transform: "translate(0px, 0px)" }}>
+                    <div key="timeline_container" className="timeline-container" ref={this._timelineContainer} style={{ height: `${this._containerHeight}px`, top: `0px` }}>
+                        <div key="timeline_info" className="info-container" ref={this._infoContainer} onWheel={this.onWheelZoom}>
+                            {this.drawTicks()}
+                            <div key="timeline_scrubber" className="scrubber" style={{ transform: `translate(${this._currentBarX}px)` }}>
+                                <div key="timeline_scrubberhead" className="scrubberhead" onPointerDown={this.onScrubberDown} ></div>
                             </div>
-                            <div className="currentTime">Current: {this.getCurrentTime()}</div>
-                            <div key="timeline_title" className="title-container" ref={this._titleContainer}>
-                                {DocListCast(this.children).map(doc => <div style={{ height: `${(this._titleHeight)}px` }} className="datapane" onPointerOver={() => { Doc.BrushDoc(doc); }} onPointerOut={() => { Doc.UnBrushDoc(doc); }}><p>{doc.title}</p></div>)}
-                            </div>
-                            <div key="timeline_resize" onPointerDown={this.onResizeDown}>
-                                <FontAwesomeIcon className="resize" icon={faGripLines} />
+                            <div key="timeline_trackbox" className="trackbox" ref={this._trackbox} onPointerDown={this.onPanDown} style={{ width: `${this._totalLength}px` }}>
+                                {DocListCast(this.children).map(doc =>
+                                    <Track ref={ref => this.mapOfTracks.push(ref)} node={doc} currentBarX={this._currentBarX} changeCurrentBarX={this.changeCurrentBarX} transform={this.props.ScreenToLocalTransform()} time={this._time} tickSpacing={this._tickSpacing} tickIncrement={this._tickIncrement} collection={this.props.Document} timelineVisible={this._timelineVisible} />
+                                )}
                             </div>
                         </div>
+                        <div className="currentTime">Current: {this.getCurrentTime()}</div>
+                        <div key="timeline_title" className="title-container" ref={this._titleContainer}>
+                            {DocListCast(this.children).map(doc => <div style={{ height: `${(this._titleHeight)}px` }} className="datapane" onPointerOver={() => { Doc.BrushDoc(doc); }} onPointerOut={() => { Doc.UnBrushDoc(doc); }}><p>{doc.title}</p></div>)}
+                        </div>
+                        <div key="timeline_resize" onPointerDown={this.onResizeDown}>
+                            <FontAwesomeIcon className="resize" icon={faGripLines} />
+                        </div>
                     </div>
-                    {this.timelineToolBox(1, longestTime)}
                 </div>
+                {this.timelineToolBox(1, longestTime)}
             </div>
         );
     }
