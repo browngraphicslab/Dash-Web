@@ -113,7 +113,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             if (template instanceof Doc) {
                 tbox._width = NumCast(template._width);
                 tbox.layoutKey = "layout_" + StrCast(template.title);
-                tbox[StrCast(tbox.layoutKey)] = template;
+                Doc.GetProto(tbox)[StrCast(tbox.layoutKey)] = template;
             }
             this.props.addLiveTextDocument(tbox);
         }

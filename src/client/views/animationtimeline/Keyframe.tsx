@@ -225,7 +225,7 @@ export class Keyframe extends React.Component<IProps> {
             this._mouseToggled = true;
         }
         const left = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.left, this.regiondata, this.regions)!;
-        const right = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.right, this.regiondata, this.regions!);
+        const right = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.right, this.regiondata, this.regions)!;
         const prevX = this.regiondata.position;
         const futureX = this.regiondata.position + KeyframeFunc.convertPixelTime(e.movementX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement);
         if (futureX <= 0) {
@@ -495,7 +495,7 @@ export class Keyframe extends React.Component<IProps> {
             } else {
                 return <div className="keyframe" style={{ left: `${KeyframeFunc.convertPixelTime(NumCast(kf.time), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement) - this.pixelPosition}px` }}>
                     <div className="divider" />
-                </div>
+                </div>;
             }
         });
     }
