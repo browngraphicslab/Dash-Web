@@ -348,6 +348,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     @action
     submitSearch = async () => {
+        this.dataDoc[this.fieldKey] = new List<Doc>([]);
         const query = this._searchString;
         this.getFinalQuery(query);
         this._results = [];
@@ -555,10 +556,15 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                         if (result) {
                             const highlights = Array.from([...Array.from(new Set(result[1]).values())]);
                             result[0].query=this._searchString;
-                            this._visibleElements[i] = <SearchItem {...this.props} doc={result[0]} lines={result[2]} highlighting={highlights} />;
-                            Doc.AddDocToList(this.props.Document, undefined, result[0])
+                            //Make alias
+                            result[0].lines=new List<string>(result[2]);
+                            result[0].highlighting=new List<string>(highlights);
 
-                            this._visibleDocuments[i]= result[0];
+                            this._visibleElements[i] = <SearchItem {...this.props} doc={result[0]} lines={result[2]} highlighting={highlights} />;
+                            debugger;
+                            Doc.AddDocToList(this.dataDoc, this.props.fieldKey, result[0])
+                            //this.fieldkey + dash search results
+                            //ask about document parmater in collection view
                             this._isSearch[i] = "search";
                         }
                     }
@@ -567,9 +573,13 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                         if (result) {
                             const highlights = Array.from([...Array.from(new Set(result[1]).values())]);
                             result[0].query=this._searchString;
+                            result[0].lines=new List<string>(result[2]);
+                            result[0].highlighting=new List<string>(highlights);
+
                             this._visibleElements[i] = <SearchItem {...this.props} doc={result[0]} lines={result[2]} highlighting={highlights} />;
-                            this._visibleDocuments[i] = result[0];
-                            Doc.AddDocToList(this.props.Document, undefined, result[0])
+                            debugger;
+
+                            Doc.AddDocToList(this.dataDoc, this.props.fieldKey, result[0])
                             this._isSearch[i] = "search";
                         }
                     }
@@ -631,6 +641,8 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
         }
     }
+
+   //layoutDoc 
 
     @computed
     get menuHeight() {
@@ -717,7 +729,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     
     @computed get docButtons() {
         const nodeBtns = this.props.Document.nodeButtons;
-        let width = () => NumCast(this.props.Document.width);
+        let width = () => NumCast(this.props.Document._width);
         if (this.rootDoc.sideBar===true){
             width = MainView.Instance.flyoutWidthFunc;
         }
@@ -755,7 +767,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     @computed get keyButtons() {
         const nodeBtns = this.props.Document.keyButtons;
-        let width = () => NumCast(this.props.Document.width);
+        let width = () => NumCast(this.props.Document._width);
         if (this.rootDoc.sideBar===true){
             width = MainView.Instance.flyoutWidthFunc;
         }
@@ -793,7 +805,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     @computed get defaultButtons() {
         const defBtns = this.props.Document.defaultButtons;
-        let width = () => NumCast(this.props.Document.width);
+        let width = () => NumCast(this.props.Document._width);
         if (this.rootDoc.sideBar===true){
             width = MainView.Instance.flyoutWidthFunc;
         }
@@ -909,7 +921,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         newPinDoc.presentationTargetDoc = doc;
         return Doc.AddDocToList(this.dataDoc, this.fieldKey, newPinDoc);
     }
-
+    //Make id layour document
     render() {
 
         return (
@@ -943,7 +955,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                     </div>
                 </div>
                 <CollectionView {...this.props}
-                        children={this._visibleDocuments}
                         Document={this.props.Document}
                         PanelHeight={this.panelHeight}
                         moveDocument={returnFalse}

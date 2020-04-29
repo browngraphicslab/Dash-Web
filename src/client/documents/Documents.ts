@@ -539,7 +539,7 @@ export namespace Docs {
         }
 
         export function SearchDocument(options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.SEARCH), "", options);
+            return InstanceFromProto(Prototypes.get(DocumentType.SEARCH), new List<Doc>([]), options);
         }
 
         export function ColorDocument(options: DocumentOptions = {}) {
