@@ -32,7 +32,7 @@ export class LabelBox extends ViewBoxBaseComponent<FieldViewProps, LabelDocument
     protected createDropTarget = (ele: HTMLDivElement) => {
         this.dropDisposer?.();
         if (ele) {
-            this.dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this));
+            this.dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this), this.props.Document);
         }
     }
 
@@ -72,9 +72,16 @@ export class LabelBox extends ViewBoxBaseComponent<FieldViewProps, LabelDocument
                 <div className="labelBox-mainButton" style={{
                     background: StrCast(this.layoutDoc.backgroundColor),
                     color: StrCast(this.layoutDoc.color, "inherit"),
-                    fontSize: NumCast(this.layoutDoc.fontSize) || "inherit",
+                    fontSize: NumCast(this.layoutDoc._fontSize) || "inherit",
+                    fontFamily: StrCast(this.layoutDoc._fontFamily) || "inherit",
                     letterSpacing: StrCast(this.layoutDoc.letterSpacing),
-                    textTransform: StrCast(this.layoutDoc.textTransform) as any
+                    textTransform: StrCast(this.layoutDoc.textTransform) as any,
+                    paddingLeft: NumCast(this.layoutDoc._xPadding),
+                    paddingRight: NumCast(this.layoutDoc._xPadding),
+                    paddingTop: NumCast(this.layoutDoc._yPadding),
+                    paddingBottom: NumCast(this.layoutDoc._yPadding),
+                    textOverflow: this.layoutDoc._singleLine ? "ellipsis" : undefined,
+                    whiteSpace: this.layoutDoc._singleLine ? "nowrap" : "pre-wrap"
                 }} >
                     <div className="labelBox-mainButtonCenter">
                         {StrCast(this.rootDoc.text, StrCast(this.rootDoc.title))}

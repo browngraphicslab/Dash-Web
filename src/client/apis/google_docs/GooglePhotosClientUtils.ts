@@ -10,7 +10,7 @@ import { MediaItem, NewMediaItemResult } from "../../../server/apis/google/Share
 import { Utils } from "../../../Utils";
 import { Docs, DocumentOptions } from "../../documents/Documents";
 import { Networking } from "../../Network";
-import { FormattedTextBox } from "../../views/nodes/FormattedTextBox";
+import { FormattedTextBox } from "../../views/nodes/formattedText/FormattedTextBox";
 import GoogleAuthenticationManager from "../GoogleAuthenticationManager";
 import Photos = require('googlephotos');
 

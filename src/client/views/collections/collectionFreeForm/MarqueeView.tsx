@@ -1,12 +1,12 @@
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, DataSym, WidthSym, HeightSym } from "../../../../new_fields/Doc";
+import { Doc, DocListCast, DataSym, WidthSym, HeightSym, Opt } from "../../../../new_fields/Doc";
 import { InkField, InkData } from "../../../../new_fields/InkField";
 import { List } from "../../../../new_fields/List";
 import { SchemaHeaderField } from "../../../../new_fields/SchemaHeaderField";
 import { Cast, NumCast, FieldValue, StrCast } from "../../../../new_fields/Types";
 import { Utils } from "../../../../Utils";
-import { Docs, DocUtils } from "../../../documents/Documents";
+import { Docs, DocUtils, DocumentOptions } from "../../../documents/Documents";
 import { SelectionManager } from "../../../util/SelectionManager";
 import { Transform } from "../../../util/Transform";
 import { undoBatch } from "../../../util/UndoManager";
@@ -19,7 +19,7 @@ import React = require("react");
 import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
 import { RichTextField } from "../../../../new_fields/RichTextField";
 import { CollectionView } from "../CollectionView";
-import { FormattedTextBox } from "../../nodes/FormattedTextBox";
+import { FormattedTextBox } from "../../nodes/formattedText/FormattedTextBox";
 import { ScriptField } from "../../../../new_fields/ScriptField";
 
 interface MarqueeViewProps {
@@ -113,7 +113,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             if (template instanceof Doc) {
                 tbox._width = NumCast(template._width);
                 tbox.layoutKey = "layout_" + StrCast(template.title);
-                tbox[StrCast(tbox.layoutKey)] = template;
+                Doc.GetProto(tbox)[StrCast(tbox.layoutKey)] = template;
             }
             this.props.addLiveTextDocument(tbox);
         }
@@ -310,11 +310,10 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         this.hideMarquee();
     }
 
-    getCollection = (selected: Doc[], asTemplate: boolean, isBackground?: boolean) => {
+    getCollection = (selected: Doc[], creator: Opt<(documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc>, isBackground?: boolean) => {
         const bounds = this.Bounds;
         // const inkData = this.ink ? this.ink.inkData : undefined;
-        const creator = asTemplate ? Docs.Create.StackingDocument : Docs.Create.FreeformDocument;
-        const newCollection = creator(selected, {
+        const newCollection = (creator || Docs.Create.FreeformDocument)(selected, {
             x: bounds.left,
             y: bounds.top,
             _panX: 0,
@@ -338,8 +337,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         const selected = this.marqueeSelect(false);
         SelectionManager.DeselectAll();
         selected.forEach(d => this.props.removeDocument(d));
-        const newCollection = this.getCollection(selected, false);
-        Doc.pileup(newCollection, selected);
+        const newCollection = Doc.pileup(selected, this.Bounds.left + this.Bounds.width / 2, this.Bounds.top + this.Bounds.height / 2);
         this.props.addDocument(newCollection);
         this.props.selectDocuments([newCollection], []);
         MarqueeOptionsMenu.Instance.fadeOut(true);
@@ -359,7 +357,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
                 return d;
             });
         }
-        const newCollection = this.getCollection(selected, (e as KeyboardEvent)?.key === "t");
+        const newCollection = this.getCollection(selected, (e as KeyboardEvent)?.key === "t" ? Docs.Create.StackingDocument : undefined);
         this.props.addDocument(newCollection);
         this.props.selectDocuments([newCollection], []);
         MarqueeOptionsMenu.Instance.fadeOut(true);
@@ -470,7 +468,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
     }
     @action
     background = (e: KeyboardEvent | React.PointerEvent | undefined) => {
-        const newCollection = this.getCollection([], false, true);
+        const newCollection = this.getCollection([], undefined, true);
         this.props.addDocument(newCollection);
         MarqueeOptionsMenu.Instance.fadeOut(true);
         this.hideMarquee();

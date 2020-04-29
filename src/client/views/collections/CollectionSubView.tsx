@@ -1,30 +1,30 @@
 import { action, computed, IReactionDisposer, reaction } from "mobx";
+import { basename } from 'path';
 import CursorField from "../../../new_fields/CursorField";
-import { Doc, DocListCast, Opt, WidthSym, HeightSym } from "../../../new_fields/Doc";
+import { Doc, Opt } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
 import { ScriptField } from "../../../new_fields/ScriptField";
-import { Cast, StrCast } from "../../../new_fields/Types";
+import { Cast } from "../../../new_fields/Types";
+import { GestureUtils } from "../../../pen-gestures/GestureUtils";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
+import { Upload } from "../../../server/SharedMediaTypes";
 import { Utils } from "../../../Utils";
+import { GooglePhotos } from "../../apis/google_docs/GooglePhotosClientUtils";
 import { DocServer } from "../../DocServer";
-import { DocumentType } from "../../documents/DocumentTypes";
 import { Docs, DocumentOptions } from "../../documents/Documents";
+import { DocumentType } from "../../documents/DocumentTypes";
+import { Networking } from "../../Network";
 import { DragManager } from "../../util/DragManager";
+import { ImageUtils } from "../../util/Import & Export/ImageUtils";
+import { InteractionUtils } from "../../util/InteractionUtils";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { DocComponent } from "../DocComponent";
 import { FieldViewProps } from "../nodes/FieldView";
-import { FormattedTextBox, GoogleRef } from "../nodes/FormattedTextBox";
+import { FormattedTextBox, GoogleRef } from "../nodes/formattedText/FormattedTextBox";
 import { CollectionView } from "./CollectionView";
 import React = require("react");
-import { basename } from 'path';
-import { GooglePhotos } from "../../apis/google_docs/GooglePhotosClientUtils";
-import { ImageUtils } from "../../util/Import & Export/ImageUtils";
-import { Networking } from "../../Network";
-import { GestureUtils } from "../../../pen-gestures/GestureUtils";
-import { InteractionUtils } from "../../util/InteractionUtils";
-import { Upload } from "../../../server/SharedMediaTypes";
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Doc) => boolean;
@@ -64,7 +64,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             this.multiTouchDisposer?.();
             if (ele) {
                 this._mainCont = ele;
-                this.dropDisposer = DragManager.MakeDropTarget(ele, this.onInternalDrop.bind(this));
+                this.dropDisposer = DragManager.MakeDropTarget(ele, this.onInternalDrop.bind(this), this.layoutDoc);
                 this.gestureDisposer = GestureUtils.MakeGestureTarget(ele, this.onGesture.bind(this));
                 this.multiTouchDisposer = InteractionUtils.MakeMultiTouchTarget(ele, this.onTouchStart.bind(this));
             }
@@ -400,9 +400,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             if (generatedDocuments.length) {
                 const set = generatedDocuments.length > 1 && generatedDocuments.map(d => Doc.iconify(d));
                 if (set) {
-                    const pile = Docs.Create.FreeformDocument(generatedDocuments, { ...options, title: "pile", _LODdisable: true, });
-                    Doc.pileup(pile, generatedDocuments);
-                    addDocument(pile);
+                    addDocument(Doc.pileup(generatedDocuments, options.x!, options.y!));
                 } else {
                     generatedDocuments.forEach(addDocument);
                 }

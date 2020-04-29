@@ -19,7 +19,6 @@ const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
 import React = require("react");
-import { DocumentView } from "../nodes/DocumentView";
 
 @observer
 export class CollectionTimeView extends CollectionSubView(doc => doc) {
@@ -84,7 +83,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
     }
 
     @computed get contents() {
-        return <div className="collectionTimeView-innards" key="timeline" style={{ width: "100%" }} onPointerDown={this.contentsDown}>
+        return <div className="collectionTimeView-innards" key="timeline" style={{ width: "100%", pointerEvents: this.props.active() ? undefined : "none" }} onPointerDown={this.contentsDown}>
             <CollectionFreeFormView {...this.props} childClickScript={this._childClickedScript} viewDefDivClick={this._viewDefDivClick} fitToBox={true} freezeChildDimensions={BoolCast(this.layoutDoc._freezeChildDimensions, true)} layoutEngine={this.layoutEngine} />
         </div>;
     }

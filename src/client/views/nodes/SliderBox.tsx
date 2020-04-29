@@ -56,7 +56,7 @@ export class SliderBox extends ViewBoxBaseComponent<FieldViewProps, SliderDocume
                 style={{ boxShadow: this.layoutDoc.opacity === 0 ? undefined : StrCast(this.layoutDoc.boxShadow, "") }}>
                 <div className="sliderBox-mainButton" onContextMenu={this.specificContextMenu} style={{
                     background: StrCast(this.layoutDoc.backgroundColor), color: StrCast(this.layoutDoc.color, "black"),
-                    fontSize: NumCast(this.layoutDoc.fontSize), letterSpacing: StrCast(this.layoutDoc.letterSpacing)
+                    fontSize: NumCast(this.layoutDoc._fontSize), letterSpacing: StrCast(this.layoutDoc.letterSpacing)
                 }} >
                     <Slider
                         mode={2}

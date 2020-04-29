@@ -1,7 +1,7 @@
 import { CollectionView } from "../views/collections/CollectionView";
 import { CollectionViewType } from "../views/collections/CollectionView";
 import { AudioBox } from "../views/nodes/AudioBox";
-import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
+import { FormattedTextBox } from "../views/nodes/formattedText/FormattedTextBox";
 import { ImageBox } from "../views/nodes/ImageBox";
 import { KeyValueBox } from "../views/nodes/KeyValueBox";
 import { PDFBox } from "../views/nodes/PDFBox";
@@ -110,7 +110,8 @@ export interface DocumentOptions {
     isBackground?: boolean;
     isLinkButton?: boolean;
     columnWidth?: number;
-    fontSize?: number;
+    _fontSize?: number;
+    _fontFamily?: string;
     curPage?: number;
     currentTimecode?: number; // the current timecode of a time-based document (e.g., current time of a video)  value is in seconds
     displayTimecode?: number; // the time that a document should be displayed (e.g., time an annotation should be displayed on a video)
@@ -146,6 +147,7 @@ export interface DocumentOptions {
     treeViewHideTitle?: boolean; // whether to hide the title of a tree view
     treeViewHideHeaderFields?: boolean; // whether to hide the drop down options for tree view items.
     treeViewOpen?: boolean; // whether this document is expanded in a tree view
+    treeViewExpandedView?: string; // which field/thing is displayed when this item is opened in tree view
     treeViewChecked?: ScriptField; // script to call when a tree view checkbox is checked
     limitHeight?: number; // maximum height for newly created (eg, from pasting) text documents
     // [key: string]: Opt<Field>;
@@ -612,6 +614,10 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, _viewType: CollectionViewType.Freeform }, id);
         }
 
+        export function PileDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
+            return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", backgroundColor: "black", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, _viewType: CollectionViewType.Pile }, id);
+        }
+
         export function LinearDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
             return InstanceFromProto(Prototypes.get(DocumentType.COL), new List(documents), { _chromeStatus: "collapsed", backgroundColor: "black", schemaColumns: new List([new SchemaHeaderField("title", "#f1efeb")]), ...options, _viewType: CollectionViewType.Linear }, id);
         }
@@ -1013,3 +1019,4 @@ export namespace DocUtils {
 }
 
 Scripting.addGlobal("Docs", Docs);
+

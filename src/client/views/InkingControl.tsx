@@ -8,7 +8,7 @@ import { Scripting } from "../util/Scripting";
 import { SelectionManager } from "../util/SelectionManager";
 import { undoBatch } from "../util/UndoManager";
 import GestureOverlay from "./GestureOverlay";
-import { FormattedTextBox } from "./nodes/FormattedTextBox";
+import { FormattedTextBox } from "./nodes/formattedText/FormattedTextBox";
 
 export class InkingControl {
     @observable static Instance: InkingControl;

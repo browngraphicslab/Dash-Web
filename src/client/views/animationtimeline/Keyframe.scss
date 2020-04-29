@@ -1,0 +1,105 @@
+@import "./../globalCssVariables.scss";
+
+
+$timelineColor: #9acedf;
+$timelineDark: #77a1aa;
+
+.bar {
+    height: 100%;
+    width: 5px;
+    position: absolute;
+
+    // pointer-events: none; 
+    .menubox {
+        width: 200px;
+        height: 200px;
+        top: 50%;
+        position: relative;
+        background-color: $light-color;
+
+        .menutable {
+            tr:nth-child(odd) {
+                background-color: $light-color-secondary;
+            }
+        }
+    }
+
+    .leftResize {
+        left: -10px;
+        border: 3px solid black;
+    }
+
+    .rightResize {
+        right: -10px;
+        border: 3px solid black;
+    }
+
+    .keyframe-indicator {
+        height: 20px;
+        width: 20px;
+        top: calc(50% - 10px);
+        background-color: white;
+        -ms-transform: rotate(45deg);
+        -webkit-transform: rotate(45deg);
+        transform: rotate(45deg);
+        z-index: 1000;
+        position: absolute;
+    }
+
+    .keyframe-information {
+        display: none;
+        position: relative;
+        // z-index: 100000;
+        // background: $timelineDark;
+        width: 100px;
+        // left: -50px;
+        height: 100px;
+        // top: 40px;
+    }
+
+    .keyframeCircle {
+        left: -10px;
+        border: 3px solid $timelineDark;
+    }
+
+    .fadeLeft {
+        left: 0px;
+        height: 100%;
+        position: absolute;
+        pointer-events: none;
+        background: linear-gradient(to left, $timelineColor 10%, $light-color);
+    }
+
+    .fadeRight {
+        right: 0px;
+        height: 100%;
+        position: absolute;
+        pointer-events: none;
+        background: linear-gradient(to right, $timelineColor 10%, $light-color);
+    }
+
+    .divider {
+        height: 100%;
+        width: 1px;
+        position: absolute;
+        background-color: black;
+        cursor: col-resize;
+        pointer-events: none;
+    }
+
+    .keyframe {
+        height: 100%;
+        position: absolute;
+    }
+
+    .fadeIn-container,
+    .fadeOut-container,
+    .body-container {
+        position: absolute;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        opacity: 0;
+    }
+
+
+}

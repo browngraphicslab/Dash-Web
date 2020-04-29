@@ -2,20 +2,20 @@ import { AssertionError } from "assert";
 import { docs_v1 } from "googleapis";
 import { Fragment, Mark, Node } from "prosemirror-model";
 import { sinkListItem } from "prosemirror-schema-list";
-import { EditorState, TextSelection, Transaction } from "prosemirror-state";
-import { GoogleApiClientUtils } from "../client/apis/google_docs/GoogleApiClientUtils";
+import { Utils } from "../Utils";
+import { Docs } from "../client/documents/Documents";
+import { schema } from "../client/views/nodes/formattedText/schema_rts";
 import { GooglePhotos } from "../client/apis/google_docs/GooglePhotosClientUtils";
 import { DocServer } from "../client/DocServer";
-import { Docs } from "../client/documents/Documents";
 import { Networking } from "../client/Network";
-import { schema } from "../client/util/RichTextSchema";
-import { FormattedTextBox } from "../client/views/nodes/FormattedTextBox";
-import { Utils } from "../Utils";
+import { FormattedTextBox } from "../client/views/nodes/formattedText/FormattedTextBox";
 import { Doc, Opt } from "./Doc";
 import { Id } from "./FieldSymbols";
 import { RichTextField } from "./RichTextField";
 import { Cast, StrCast } from "./Types";
 import Color = require('color');
+import { EditorState, TextSelection, Transaction } from "prosemirror-state";
+import { GoogleApiClientUtils } from "../client/apis/google_docs/GoogleApiClientUtils";
 
 export namespace RichTextUtils {
 

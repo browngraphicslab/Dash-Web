@@ -76,7 +76,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
 
     protected createDropTarget = (ele: HTMLDivElement) => {
         this._dropDisposer && this._dropDisposer();
-        ele && (this._dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this)));
+        ele && (this._dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this), this.props.Document));
     }
 
     @undoBatch
@@ -360,7 +360,8 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
     }
 
     @computed get nativeSize() {
-        const pw = typeof this.props.PanelWidth === "function" ? this.props.PanelWidth() : typeof this.props.PanelWidth === "number" ? (this.props.PanelWidth as any) as number : 50;
+        TraceMobx();
+        const pw = this.props.PanelWidth?.() || 50;
         const nativeWidth = NumCast(this.dataDoc[this.fieldKey + "-nativeWidth"], pw);
         const nativeHeight = NumCast(this.dataDoc[this.fieldKey + "-nativeHeight"], 1);
         return { nativeWidth, nativeHeight };
@@ -374,7 +375,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
     @computed get paths() {
         const field = Cast(this.dataDoc[this.fieldKey], ImageField, null); // retrieve the primary image URL that is being rendered from the data doc
         const alts = DocListCast(this.dataDoc[this.fieldKey + "-alternates"]); // retrieve alternate documents that may be rendered as alternate images
-        const altpaths = alts.map(doc => Cast(doc[Doc.LayoutFieldKey(doc)], ImageField, null)?.url.href).filter(url => url); // access the primary layout data of the alternate documents
+        const altpaths = alts.map(doc => Cast(doc[Doc.LayoutFieldKey(doc)], ImageField, null)?.url).filter(url => url).map(url => this.choosePath(url)); // access the primary layout data of the alternate documents
         const paths = field ? [this.choosePath(field.url), ...altpaths] : altpaths;
         return paths.length ? paths : [Utils.CorsProxy("http://www.cs.brown.edu/~bcz/noImage.png")];
     }
@@ -438,8 +439,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
     contentFunc = () => [this.content];
     render() {
         TraceMobx();
-        const dragging = !SelectionManager.GetIsDragging() ? "" : "-dragging";
-        return (<div className={`imageBox${dragging}`} onContextMenu={this.specificContextMenu}
+        return (<div className={`imageBox`} onContextMenu={this.specificContextMenu}
             style={{
                 transform: this.props.PanelWidth() ? `translate(0px, ${this.ycenter}px)` : `scale(${this.props.ContentScaling()})`,
                 width: this.props.PanelWidth() ? undefined : `${100 / this.props.ContentScaling()}%`,

@@ -17,9 +17,10 @@ import { CollectionViewType } from "../../../client/views/collections/Collection
 import { makeTemplate } from "../../../client/util/DropConverter";
 import { RichTextField } from "../../../new_fields/RichTextField";
 import { PrefetchProxy } from "../../../new_fields/Proxy";
-import { FormattedTextBox } from "../../../client/views/nodes/FormattedTextBox";
+import { FormattedTextBox } from "../../../client/views/nodes/formattedText/FormattedTextBox";
 import { MainView } from "../../../client/views/MainView";
 import { DocumentType } from "../../../client/documents/DocumentTypes";
+import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 
 export class CurrentUserUtils {
     private static curr_id: string;
@@ -71,8 +72,8 @@ export class CurrentUserUtils {
         }
 
         if (doc["template-button-description"] === undefined) {
-            const descriptionTemplate = Docs.Create.TextDocument("", { title: "text", _height: 100, _showTitle: "title" });
-            Doc.GetProto(descriptionTemplate).layout = FormattedTextBox.LayoutString("description");
+            const descriptionTemplate = Docs.Create.TextDocument("", { title: "header", _height: 100 });
+            Doc.GetProto(descriptionTemplate).layout = "<div><FormattedTextBox {...props} background='orange' height='50px' fieldKey={'header'}/><FormattedTextBox {...props} height='calc(100% - 50px)' fieldKey={'text'}/></div>";
             descriptionTemplate.isTemplateDoc = makeTemplate(descriptionTemplate, true, "descriptionView");
 
             doc["template-button-description"] = CurrentUserUtils.ficon({
@@ -82,8 +83,54 @@ export class CurrentUserUtils {
             });
         }
 
+        if (doc["template-button-detail"] === undefined) {
+            const { TextDocument, MasonryDocument, CarouselDocument } = Docs.Create;
+
+            const carousel = CarouselDocument([], { title: "data", _height: 350, _itemIndex: 0, backgroundColor: "#9b9b9b3F" });
+
+            const details = TextDocument("", { title: "details", _height: 350, _autoHeight: true });
+            const short = TextDocument("", { title: "shortDescription", treeViewOpen: true, treeViewExpandedView: "layout", _height: 50, _autoHeight: true });
+            const long = TextDocument("", { title: "longDescription", treeViewOpen: false, treeViewExpandedView: "layout", _height: 350, _autoHeight: true });
+
+            const buxtonFieldKeys = ["year", "originalPrice", "degreesOfFreedom", "company", "attribute", "primaryKey", "secondaryKey", "dimensions"];
+            const detailedTemplate = {
+                doc: {
+                    type: "doc", content: buxtonFieldKeys.map(fieldKey => ({
+                        type: "paragraph",
+                        content: [{ type: "dashField", attrs: { fieldKey } }]
+                    }))
+                },
+                selection: { type: "text", anchor: 1, head: 1 },
+                storedMarks: []
+            };
+            details.text = new RichTextField(JSON.stringify(detailedTemplate), buxtonFieldKeys.join(" "));
+
+            const shared = { _chromeStatus: "disabled", _autoHeight: true, _xMargin: 0 };
+            const detailViewOpts = { title: "detailView", _width: 300, _fontFamily: "Arial", _fontSize: 12 };
+            const descriptionWrapperOpts = { title: "descriptions", _height: 300, columnWidth: -1, treeViewHideTitle: true, _pivotField: "title" };
+
+            const descriptionWrapper = MasonryDocument([details, short, long], { ...shared, ...descriptionWrapperOpts });
+            descriptionWrapper.sectionHeaders = new List<SchemaHeaderField>([
+                new SchemaHeaderField("[Long Description]", "LemonChiffon", undefined, undefined, undefined, true),
+                new SchemaHeaderField("[Details]", "lightBlue", undefined, undefined, undefined, true),
+            ]);
+            const detailView = Docs.Create.StackingDocument([carousel, descriptionWrapper], { ...shared, ...detailViewOpts });
+            detailView.isTemplateDoc = makeTemplate(detailView);
+
+            details.title = "Details";
+            short.title = "A Short Description";
+            long.title = "Long Description";
+
+            doc["template-button-detail"] = CurrentUserUtils.ficon({
+                onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
+                dragFactory: new PrefetchProxy(detailView) as any as Doc,
+                removeDropProperties: new List<string>(["dropAction"]), title: "detail view", icon: "window-maximize"
+            });
+        }
+
         if (doc["template-buttons"] === undefined) {
-            doc["template-buttons"] = new PrefetchProxy(Docs.Create.MasonryDocument([doc["template-button-slides"] as Doc, doc["template-button-description"] as Doc, doc["template-button-query"] as Doc], {
+            doc["template-buttons"] = new PrefetchProxy(Docs.Create.MasonryDocument([doc["template-button-slides"] as Doc, doc["template-button-description"] as Doc,
+            doc["template-button-query"] as Doc, doc["template-button-detail"] as Doc], {
                 title: "Compound Item Creators", _xMargin: 0, _showTitle: "title",
                 _autoHeight: true, _width: 500, columnWidth: 35, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled",
                 dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }),
@@ -134,9 +181,13 @@ export class CurrentUserUtils {
             doc["template-note-Idea"] as any as Doc, doc["template-note-Topic"] as any as Doc, doc["template-note-Todo"] as any as Doc],
                 { title: "Note Layouts", _height: 75 }));
         } else {
-            const noteTypes = Cast(doc["template-notes"], Doc, null);
-            DocListCastAsync(noteTypes).then(list => noteTypes.data = new List<Doc>([doc["template-note-Note"] as any as Doc,
-            doc["template-note-Idea"] as any as Doc, doc["template-note-Topic"] as any as Doc, doc["template-note-Todo"] as any as Doc]));
+            const curNoteTypes = Cast(doc["template-notes"], Doc, null);
+            const requiredTypes = [doc["template-note-Note"] as any as Doc, doc["template-note-Idea"] as any as Doc,
+            doc["template-note-Topic"] as any as Doc, doc["template-note-Todo"] as any as Doc];
+            DocListCastAsync(curNoteTypes.data).then(async curNotes => {
+                await Promise.all(curNotes!);
+                requiredTypes.map(ntype => Doc.AddDocToList(curNoteTypes, "data", ntype));
+            });
         }
 
         return doc["template-notes"] as Doc;
@@ -167,7 +218,7 @@ export class CurrentUserUtils {
             doc["template-icon-view"] = new PrefetchProxy(iconView);
         }
         if (doc["template-icon-view-rtf"] === undefined) {
-            const iconRtfView = Docs.Create.LabelDocument({ title: "icon_" + DocumentType.RTF, textTransform: "unset", letterSpacing: "unset", _width: 150, _height: 30, isTemplateDoc: true, onClick: ScriptField.MakeScript("deiconifyView(self)") });
+            const iconRtfView = Docs.Create.LabelDocument({ title: "icon_" + DocumentType.RTF, textTransform: "unset", letterSpacing: "unset", _width: 150, _height: 70, _xPadding: 10, _yPadding: 10, isTemplateDoc: true, onClick: ScriptField.MakeScript("deiconifyView(self)") });
             iconRtfView.isTemplateDoc = makeTemplate(iconRtfView, true, "icon_" + DocumentType.RTF);
             doc["template-icon-view-rtf"] = new PrefetchProxy(iconRtfView);
         }
@@ -214,7 +265,7 @@ export class CurrentUserUtils {
             { title: "Drag a screenshot", label: "Grab", icon: "photo-video", ignoreClick: true, drag: 'Docs.Create.ScreenshotDocument("", { _width: 400, _height: 200, title: "screen snapshot" })' },
             { title: "Drag a webcam", label: "Cam", icon: "video", ignoreClick: true, drag: 'Docs.Create.WebCamDocument("", { _width: 400, _height: 400, title: "a test cam" })' },
             { title: "Drag a audio recorder", label: "Audio", icon: "microphone", ignoreClick: true, drag: `Docs.Create.AudioDocument("${nullAudio}", { _width: 200, title: "ready to record audio" })` },
-            { title: "Drag a clickable button", label: "Btn", icon: "bolt", ignoreClick: true, drag: 'Docs.Create.ButtonDocument({ _width: 150, _height: 50, title: "Button" })' },
+            { title: "Drag a clickable button", label: "Btn", icon: "bolt", ignoreClick: true, drag: 'Docs.Create.ButtonDocument({ _width: 150, _height: 50, _xPadding:10, _yPadding: 10, title: "Button" })' },
             { title: "Drag a presentation view", label: "Prezi", icon: "tv", click: 'openOnRight(Doc.UserDoc().activePresentation = getCopy(this.dragFactory, true))', drag: `Doc.UserDoc().activePresentation = getCopy(this.dragFactory,true)`, dragFactory: doc.emptyPresentation as Doc },
             { title: "Drag a search box", label: "Query", icon: "search", ignoreClick: true, drag: 'Docs.Create.QueryDocument({ _width: 200, title: "an image of a cat" })' },
             { title: "Drag a scripting box", label: "Script", icon: "terminal", ignoreClick: true, drag: 'Docs.Create.ScriptingDocument(undefined, { _width: 200, _height: 250 title: "untitled script" })' },
@@ -369,7 +420,7 @@ export class CurrentUserUtils {
 
         if (doc["tabs-button-tools"] === undefined) {
             doc["tabs-button-tools"] = new PrefetchProxy(Docs.Create.ButtonDocument({
-                _width: 35, _height: 25, title: "Tools", fontSize: 10,
+                _width: 35, _height: 25, title: "Tools", _fontSize: 10,
                 letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
                 sourcePanel: new PrefetchProxy(Docs.Create.StackingDocument([doc.myCreators as Doc, doc.myColorPicker as Doc], {
                     _width: 500, lockedPosition: true, _chromeStatus: "disabled", title: "tools stack", forceActive: true
@@ -426,7 +477,7 @@ export class CurrentUserUtils {
 
         if (doc["tabs-button-library"] === undefined) {
             doc["tabs-button-library"] = new PrefetchProxy(Docs.Create.ButtonDocument({
-                _width: 50, _height: 25, title: "Library", fontSize: 10,
+                _width: 50, _height: 25, title: "Library", _fontSize: 10,
                 letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
                 sourcePanel: new PrefetchProxy(Docs.Create.TreeDocument([workspaces, documents, recentlyClosed, doc], {
                     title: "Library", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "move", lockedPosition: true, boxShadow: "0 0", dontRegisterChildren: true
@@ -442,7 +493,7 @@ export class CurrentUserUtils {
     static setupSearchBtnPanel(doc: Doc, sidebarContainer: Doc) {
         if (doc["tabs-button-search"] === undefined) {
             doc["tabs-button-search"] = new PrefetchProxy(Docs.Create.ButtonDocument({
-                _width: 50, _height: 25, title: "Search", fontSize: 10,
+                _width: 50, _height: 25, title: "Search", _fontSize: 10,
                 letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
                 sourcePanel: new PrefetchProxy(Docs.Create.QueryDocument({ title: "search stack", })) as any as Doc,
                 searchFileTypes: new List<string>([DocumentType.RTF, DocumentType.IMG, DocumentType.PDF, DocumentType.VID, DocumentType.WEB, DocumentType.SCRIPTING]),

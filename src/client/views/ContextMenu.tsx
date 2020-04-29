@@ -99,6 +99,15 @@ export class ContextMenu extends React.Component {
         }
     }
     @action
+    moveAfter(item: ContextMenuProps, after: ContextMenuProps) {
+        if (this.findByDescription(after.description)) {
+            const curInd = this._items.findIndex((i) => i.description === item.description);
+            this._items.splice(curInd, 1);
+            const afterInd = this._items.findIndex((i) => i.description === after.description);
+            this._items.splice(afterInd + 1, 0, item);
+        }
+    }
+    @action
     setDefaultItem(prefix: string, item: (name: string) => void) {
         this._defaultPrefix = prefix;
         this._defaultItem = item;
