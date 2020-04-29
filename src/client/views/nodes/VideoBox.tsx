@@ -158,8 +158,6 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                 this.layoutDoc._height = (this.layoutDoc._width || 0) / youtubeaspect;
             }
         }
-        
-        this.player && (this.player.style.transform = ""); 
     }
 
     componentWillUnmount() {
