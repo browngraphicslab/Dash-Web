@@ -29,7 +29,7 @@ export class Track extends React.Component<IProps> {
     @observable private _currentBarXReaction: any;
     @observable private _timelineVisibleReaction: any;
     @observable private _autoKfReaction: any;
-    @observable private _newKeyframe: boolean = false; 
+    @observable private _newKeyframe: boolean = false;
     private readonly MAX_TITLE_HEIGHT = 75;
     private _trackHeight = 0;
     private primitiveWhitelist = [
@@ -37,7 +37,7 @@ export class Track extends React.Component<IProps> {
         "y",
         "width",
         "height",
-        "opacity", 
+        "opacity",
     ];
     private objectWhitelist = [
         "data"
@@ -81,17 +81,17 @@ export class Track extends React.Component<IProps> {
     ////////////////////////////////
 
 
-    getLastRegionTime =  () => {
-        let lastTime:number = 0; 
-        let lastRegion:(Doc | undefined); 
+    getLastRegionTime = () => {
+        let lastTime: number = 0;
+        let lastRegion: (Doc | undefined);
         DocListCast(this.regions).forEach(region => {
-            const time = NumCast(region.position); 
+            const time = NumCast(region.position);
             if (lastTime <= time) {
-                lastTime = time; 
-                lastRegion = region; 
+                lastTime = time;
+                lastRegion = region;
             }
-        }); 
-        return lastRegion ? lastTime + NumCast(lastRegion.duration) : 0;  
+        });
+        return lastRegion ? lastTime + NumCast(lastRegion.duration) : 0;
     }
 
     /**
@@ -106,16 +106,16 @@ export class Track extends React.Component<IProps> {
         let kf = keyframes[kfIndex] as Doc; //index in the keyframe
         if (this._newKeyframe) {
             console.log("new keyframe registering");
-            let kfList = DocListCast(this.saveStateRegion!.keyframes); 
+            let kfList = DocListCast(this.saveStateRegion!.keyframes);
             kfList.forEach(kf => {
-                kf.key = this.makeCopy(); 
-                if (kfList.indexOf(kf) === 0  ||  kfList.indexOf(kf) === 3){
-                    (kf.key as Doc).opacity = 0.1; 
-                } else{
-                    (kf.key as Doc).opacity = 1; 
+                kf.key = this.makeCopy();
+                if (kfList.indexOf(kf) === 0 || kfList.indexOf(kf) === 3) {
+                    (kf.key as Doc).opacity = 0.1;
+                } else {
+                    (kf.key as Doc).opacity = 1;
                 }
             });
-            this._newKeyframe = false; 
+            this._newKeyframe = false;
         }
         if (!kf) return;
         if (kf.type === KeyframeFunc.KeyframeType.default) { // only save for non-fades
@@ -225,7 +225,7 @@ export class Track extends React.Component<IProps> {
                     }
                 });
             } else {
-                console.log("reverting state"); 
+                console.log("reverting state");
                 //this.revertState(); 
             }
         });
@@ -241,7 +241,7 @@ export class Track extends React.Component<IProps> {
     timeChange = async () => {
         if (this.saveStateKf !== undefined) {
             await this.saveKeyframe();
-        } else if (this._newKeyframe){
+        } else if (this._newKeyframe) {
             await this.saveKeyframe();
         }
         let regiondata = await this.findRegion(Math.round(this.time)); //finds a region that the scrubber is on
@@ -250,7 +250,7 @@ export class Track extends React.Component<IProps> {
             let rightkf: (Doc | undefined) = await KeyframeFunc.calcMinRight(regiondata, this.time); //right keyframe, if it exists        
             let currentkf: (Doc | undefined) = await this.calcCurrent(regiondata); //if the scrubber is on top of the keyframe
             if (currentkf) {
-                console.log("is current"); 
+                console.log("is current");
                 await this.applyKeys(currentkf);
                 this.saveStateKf = currentkf;
                 this.saveStateRegion = regiondata;
@@ -348,7 +348,7 @@ export class Track extends React.Component<IProps> {
     createRegion = async (time: number) => {
         if (await this.findRegion(time) === undefined) {  //check if there is a region where double clicking (prevents phantom regions)
             let regiondata = KeyframeFunc.defaultKeyframe(); //create keyframe data
-           
+
             regiondata.position = time; //set position
             let rightRegion = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.right, regiondata, this.regions);
 
@@ -356,9 +356,9 @@ export class Track extends React.Component<IProps> {
                 regiondata.duration = rightRegion.position - regiondata.position;
             }
             if (this.regions.length === 0 || !rightRegion || (rightRegion && rightRegion.position - regiondata.position >= NumCast(regiondata.fadeIn) + NumCast(regiondata.fadeOut))) {
-                this.regions.push(regiondata); 
-                this._newKeyframe = true; 
-                this.saveStateRegion = regiondata; 
+                this.regions.push(regiondata);
+                this._newKeyframe = true;
+                this.saveStateRegion = regiondata;
                 return regiondata;
             }
         }
@@ -395,7 +395,7 @@ export class Track extends React.Component<IProps> {
         let doc = new Doc();
         this.primitiveWhitelist.forEach(key => {
             let originalVal = this.props.node[key];
-            if (key === "data"){
+            if (key === "data") {
                 console.log(originalVal);
             }
             doc[key] = originalVal instanceof ObjectField ? originalVal[Copy]() : this.props.node[key];
@@ -407,12 +407,16 @@ export class Track extends React.Component<IProps> {
      * UI sstuff here. Not really much to change
      */
     render() {
+        trace();
         return (
             <div className="track-container">
                 <div className="track">
-                    <div className="inner" ref={this._inner} onDoubleClick={this.onInnerDoubleClick} onPointerOver={() => { Doc.BrushDoc(this.props.node); }} onPointerOut={() => { Doc.UnBrushDoc(this.props.node); }} style={{ height: `${this._trackHeight}px` }}>
-                        {DocListCast(this.regions).map((region) => {
-                            return <Keyframe {...this.props} RegionData={region} makeKeyData={this.makeKeyData} />;
+                    <div className="inner" ref={this._inner} style={{ height: `${this._trackHeight}px` }}
+                        onDoubleClick={this.onInnerDoubleClick}
+                        onPointerOver={() => Doc.BrushDoc(this.props.node)}
+                        onPointerOut={() => Doc.UnBrushDoc(this.props.node)} >
+                        {DocListCast(this.regions).map((region, i) => {
+                            return <Keyframe key={`${i}`} {...this.props} RegionData={region} makeKeyData={this.makeKeyData} />;
                         })}
                     </div>
                 </div>

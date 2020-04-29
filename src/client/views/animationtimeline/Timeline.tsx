@@ -3,7 +3,7 @@ import "./Timeline.scss";
 import { listSpec } from "../../../new_fields/Schema";
 import { observer } from "mobx-react";
 import { Track } from "./Track";
-import { observable, action, computed, runInAction, IReactionDisposer, reaction } from "mobx";
+import { observable, action, computed, runInAction, IReactionDisposer, reaction, trace } from "mobx";
 import { Cast, NumCast, StrCast, BoolCast } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
 import { Doc, DocListCast } from "../../../new_fields/Doc";
@@ -14,8 +14,6 @@ import { TimelineOverview } from "./TimelineOverview";
 import { FieldViewProps } from "../nodes/FieldView";
 import { KeyframeFunc } from "./Keyframe";
 import { Utils } from "../../../Utils";
-import { createPromiseCapability } from "../../../../deploy/assets/pdf.worker";
-
 
 /**
  * Timeline class controls most of timeline functions besides individual keyframe and track mechanism. Main functions are 
@@ -80,7 +78,6 @@ export class Timeline extends React.Component<FieldViewProps> {
 
     // so a reaction can be made
     @observable public _isAuthoring = this.props.Document.isATOn;
-    @observable private _panelWidth = 0;
 
     /**
      * collection get method. Basically defines what defines collection's children. These will be tracked in the timeline. Do not edit. 
@@ -90,7 +87,7 @@ export class Timeline extends React.Component<FieldViewProps> {
         const extendedDocument = ["image", "video", "pdf"].includes(StrCast(this.props.Document.type));
         if (extendedDocument) {
             if (this.props.Document.data_ext) {
-                return Cast((Cast(this.props.Document.data_ext, Doc) as Doc).annotations, listSpec(Doc)) as List<Doc>;
+                return Cast((Cast(this.props.Document[Doc.LayoutFieldKey(this.props.Document) + "-annotations"], Doc) as Doc).annotations, listSpec(Doc)) as List<Doc>;
             } else {
                 return new List<Doc>();
             }
@@ -586,17 +583,14 @@ export class Timeline extends React.Component<FieldViewProps> {
      * basically the only thing you need to edit besides render methods in track (individual track lines) and keyframe (green region)
      */
     render() {
-        runInAction(() => {
-            this._panelWidth = this.props.PanelWidth();
+        setTimeout(() => {
             this.changeLengths();
             // this.toPlay();
-
-
             // this._time = longestTime;
-        });
+        }, 0);
 
         const longestTime = this.findLongestTime();
-
+        trace();
         // change visible and total width
         return (
             <div>

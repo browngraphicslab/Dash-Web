@@ -3,7 +3,7 @@ import "./Keyframe.scss";
 import "./Timeline.scss";
 import "../globalCssVariables.scss";
 import { observer } from "mobx-react";
-import { observable, reaction, action, IReactionDisposer, observe, computed, runInAction } from "mobx";
+import { observable, reaction, action, IReactionDisposer, observe, computed, runInAction, trace } from "mobx";
 import { Doc, DocListCast, DocListCastAsync } from "../../../new_fields/Doc";
 import { Cast, NumCast } from "../../../new_fields/Types";
 import { List } from "../../../new_fields/List";
@@ -13,6 +13,7 @@ import { TimelineMenu } from "./TimelineMenu";
 import { Docs } from "../../documents/Documents";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
+import { emptyPath } from "../../../Utils";
 
 
 
@@ -32,10 +33,10 @@ export namespace KeyframeFunc {
         right = "right"
     }
 
-    export const findAdjacentRegion = (dir: KeyframeFunc.Direction, currentRegion: Doc, regions: List<Doc>): (RegionData | undefined) => {
+    export const findAdjacentRegion = (dir: KeyframeFunc.Direction, currentRegion: Doc, regions: Doc[]): (RegionData | undefined) => {
         let leftMost: (RegionData | undefined) = undefined;
         let rightMost: (RegionData | undefined) = undefined;
-        DocListCast(regions).forEach(region => {
+        regions.forEach(region => {
             const neighbor = RegionData(region);
             if (currentRegion.position! > neighbor.position) {
                 if (!leftMost || neighbor.position > leftMost.position) {
@@ -135,7 +136,7 @@ interface IProps {
     time: number;
     changeCurrentBarX: (x: number) => void;
     transform: Transform;
-    makeKeyData: (region:RegionData, pos: number, kftype:KeyframeFunc.KeyframeType) => Doc; 
+    makeKeyData: (region: RegionData, pos: number, kftype: KeyframeFunc.KeyframeType) => Doc;
 }
 
 
@@ -169,21 +170,24 @@ export class Keyframe extends React.Component<IProps> {
     @observable private _mouseToggled = false;
     @observable private _doubleClickEnabled = false;
 
-    @computed private get regiondata() { return RegionData(this.regions[this.regions.indexOf(this.props.RegionData)] as Doc); }
-    @computed private get regions() { return Cast(this.props.node.regions, listSpec(Doc)) as List<Doc>; }
+    @computed private get regiondata() { return RegionData(this.props.RegionData); }
+    @computed private get regions() { return DocListCast(this.props.node.regions); }
     @computed private get keyframes() { return DocListCast(this.regiondata.keyframes); }
     @computed private get pixelPosition() { return KeyframeFunc.convertPixelTime(this.regiondata.position, "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement); }
     @computed private get pixelDuration() { return KeyframeFunc.convertPixelTime(this.regiondata.duration, "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement); }
     @computed private get pixelFadeIn() { return KeyframeFunc.convertPixelTime(this.regiondata.fadeIn, "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement); }
     @computed private get pixelFadeOut() { return KeyframeFunc.convertPixelTime(this.regiondata.fadeOut, "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement); }
-   
+
+    constructor(props: any) {
+        super(props);
+    }
     componentDidMount() {
         setTimeout(() => {      //giving it a temporary 1sec delay... 
-            if (!this.regiondata.keyframes) this.regiondata.keyframes = new List<Doc>();   
-            const start = this.props.makeKeyData(this.regiondata, this.regiondata.position,  KeyframeFunc.KeyframeType.end);
+            if (!this.regiondata.keyframes) this.regiondata.keyframes = new List<Doc>();
+            const start = this.props.makeKeyData(this.regiondata, this.regiondata.position, KeyframeFunc.KeyframeType.end);
             const fadeIn = this.props.makeKeyData(this.regiondata, this.regiondata.position + this.regiondata.fadeIn, KeyframeFunc.KeyframeType.fade);
             const fadeOut = this.props.makeKeyData(this.regiondata, this.regiondata.position + this.regiondata.duration - this.regiondata.fadeOut, KeyframeFunc.KeyframeType.fade);
-            const finish = this.props.makeKeyData(this.regiondata, this.regiondata.position + this.regiondata.duration,KeyframeFunc.KeyframeType.end);
+            const finish = this.props.makeKeyData(this.regiondata, this.regiondata.position + this.regiondata.duration, KeyframeFunc.KeyframeType.end);
             (fadeIn.key as Doc).opacity = 1;
             (fadeOut.key as Doc).opacity = 1;
             (start.key as Doc).opacity = 0.1;
@@ -191,9 +195,6 @@ export class Keyframe extends React.Component<IProps> {
             this.forceUpdate(); //not needed, if setTimeout is gone...
         }, 1000);
     }
-
-
-
 
     @action
     onBarPointerDown = (e: React.PointerEvent) => {
@@ -316,7 +317,7 @@ export class Keyframe extends React.Component<IProps> {
         if (offset > this.regiondata.fadeIn && offset < this.regiondata.duration - this.regiondata.fadeOut) { //make sure keyframe is not created inbetween fades and ends
             const position = this.regiondata.position;
             this.props.makeKeyData(this.regiondata, Math.round(position + offset), KeyframeFunc.KeyframeType.default);
-            this.regiondata.hasData = true; 
+            this.regiondata.hasData = true;
             this.props.changeCurrentBarX(KeyframeFunc.convertPixelTime(Math.round(position + offset), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement)); //first move the keyframe to the correct location and make a copy so the correct file gets coppied
 
         }
@@ -338,7 +339,7 @@ export class Keyframe extends React.Component<IProps> {
         TimelineMenu.Instance.addItem("button", "Show Data", () => {
             runInAction(() => {
                 const kvp = Docs.Create.KVPDocument(Cast(kf.key, Doc) as Doc, { _width: 300, _height: 300 });
-                CollectionDockingView.AddRightSplit(kvp, (kf.key as Doc).data as Doc);
+                CollectionDockingView.AddRightSplit(kvp, emptyPath);
             });
         }),
             TimelineMenu.Instance.addItem("button", "Delete", () => {
@@ -403,7 +404,7 @@ export class Keyframe extends React.Component<IProps> {
                 runInAction(() => {
                     const prevPosition = this.regiondata.position;
                     let cannotMove: boolean = false;
-                    DocListCast(this.regions).forEach(region => {
+                    this.regions.forEach(region => {
                         if (NumCast(region.position) !== this.regiondata.position) {
                             if ((val < 0) || (val > NumCast(region.position) && val < NumCast(region.position) + NumCast(region.duration) || (this.regiondata.duration + val > NumCast(region.position) && this.regiondata.duration + val < NumCast(region.position) + NumCast(region.duration)))) {
                                 cannotMove = true;
@@ -419,7 +420,7 @@ export class Keyframe extends React.Component<IProps> {
             TimelineMenu.Instance.addItem("input", `duration: ${this.regiondata.duration}ms`, (val) => {
                 runInAction(() => {
                     let cannotMove: boolean = false;
-                    DocListCast(this.regions).forEach(region => {
+                    this.regions.forEach(region => {
                         if (NumCast(region.position) !== this.regiondata.position) {
                             val += this.regiondata.position;
                             if ((val < 0) || (val > NumCast(region.position) && val < NumCast(region.position) + NumCast(region.duration))) {
@@ -479,34 +480,31 @@ export class Keyframe extends React.Component<IProps> {
      * drawing keyframe. Handles both keyframe with a circle (one that you create by double clicking) and one without circle (fades)
      * this probably needs biggest change, since everyone expected all keyframes to have a circle (and draggable)
      */
-    @action
     drawKeyframes = () => {
         const keyframeDivs: JSX.Element[] = [];
-        DocListCast(this.regiondata.keyframes).forEach(kf => {
+        return DocListCast(this.regiondata.keyframes).map(kf => {
             if (kf.type as KeyframeFunc.KeyframeType !== KeyframeFunc.KeyframeType.end) {
-                keyframeDivs.push(
-                    <><div className="keyframe" style={{ left: `${KeyframeFunc.convertPixelTime(NumCast(kf.time), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement) - this.pixelPosition}px` }}>
-                        <div className="divider"></div>
-                        <div className="keyframeCircle keyframe-indicator" onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); this.moveKeyframe(e, kf); }} onContextMenu={(e: React.MouseEvent) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            this.makeKeyframeMenu(kf, e.nativeEvent);
-                        }} onDoubleClick={(e) => { e.preventDefault(); e.stopPropagation(); }}></div>
-
-                    </div>
-                        <div className="keyframe-information"></div>
-                    </>
-
-                );
-            } else {
-                keyframeDivs.push(
+                return <>
                     <div className="keyframe" style={{ left: `${KeyframeFunc.convertPixelTime(NumCast(kf.time), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement) - this.pixelPosition}px` }}>
                         <div className="divider"></div>
+                        <div className="keyframeCircle keyframe-indicator"
+                            onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); this.moveKeyframe(e, kf); }}
+                            onContextMenu={(e: React.MouseEvent) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                this.makeKeyframeMenu(kf, e.nativeEvent);
+                            }}
+                            onDoubleClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+                        </div>
                     </div>
-                );
+                    <div className="keyframe-information" />
+                </>;
+            } else {
+                return <div className="keyframe" style={{ left: `${KeyframeFunc.convertPixelTime(NumCast(kf.time), "mili", "pixel", this.props.tickSpacing, this.props.tickIncrement) - this.pixelPosition}px` }}>
+                    <div className="divider" />
+                </div>
             }
         });
-        return keyframeDivs;
     }
 
     /**
@@ -546,22 +544,23 @@ export class Keyframe extends React.Component<IProps> {
      */
     //154, 206, 223
     render() {
+        trace();
+        console.log(this.props.RegionData.position);
+        console.log(this.regiondata.position);
+        console.log(this.pixelPosition);
         return (
-            <div>
-                <div className="bar" ref={this._bar} style={{
-                    transform: `translate(${this.pixelPosition}px)`,
-                    width: `${this.pixelDuration}px`,
-                    background: `linear-gradient(90deg, rgba(154, 206, 223, 0) 0%, rgba(154, 206, 223, 1) ${this.pixelFadeIn / this.pixelDuration * 100}%, rgba(154, 206, 223, 1) ${(this.pixelDuration - this.pixelFadeOut) / this.pixelDuration * 100}%, rgba(154, 206, 223, 0) 100% )`
-                }}
-                    onPointerDown={this.onBarPointerDown
-                    }>
-                    <div className="leftResize keyframe-indicator" onPointerDown={this.onResizeLeft} ></div>
-                    {/* <div className="keyframe-information"></div> */}
-                    <div className="rightResize keyframe-indicator" onPointerDown={this.onResizeRight}></div>
-                    {/* <div className="keyframe-information"></div> */}
-                    {this.drawKeyframes()}
-                    {this.drawKeyframeDividers()}
-                </div>
+            <div className="bar" ref={this._bar} style={{
+                transform: `translate(${this.pixelPosition}px)`,
+                width: `${this.pixelDuration}px`,
+                background: `linear-gradient(90deg, rgba(154, 206, 223, 0) 0%, rgba(154, 206, 223, 1) ${this.pixelFadeIn / this.pixelDuration * 100}%, rgba(154, 206, 223, 1) ${(this.pixelDuration - this.pixelFadeOut) / this.pixelDuration * 100}%, rgba(154, 206, 223, 0) 100% )`
+            }}
+                onPointerDown={this.onBarPointerDown}>
+                <div className="leftResize keyframe-indicator" onPointerDown={this.onResizeLeft} ></div>
+                {/* <div className="keyframe-information"></div> */}
+                <div className="rightResize keyframe-indicator" onPointerDown={this.onResizeRight}></div>
+                {/* <div className="keyframe-information"></div> */}
+                {this.drawKeyframes()}
+                {this.drawKeyframeDividers()}
             </div>
         );
     }
