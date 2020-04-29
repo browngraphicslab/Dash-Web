@@ -15,6 +15,7 @@ import { FieldView, FieldViewProps } from './FieldView';
 import "./ComparisonBox.scss";
 import React = require("react");
 import { ContentFittingDocumentView } from './ContentFittingDocumentView';
+import { undoBatch } from '../../util/UndoManager';
 
 library.add(faImage, faEye as any, faPaintBrush, faBrain);
 library.add(faFileAudio, faAsterisk);
@@ -40,6 +41,7 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
         }
     }
 
+    @undoBatch
     private dropHandler = (event: Event, dropEvent: DragManager.DropEvent, fieldKey: string) => {
         event.stopPropagation();
         const droppedDocs = dropEvent.complete.docDragData?.droppedDocuments;
@@ -85,12 +87,14 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
         window.removeEventListener("pointerup", this.onPointerUp);
     }
 
+    @undoBatch
     clearBeforeDoc = (e: React.MouseEvent) => {
         e.stopPropagation;
         e.preventDefault;
         delete this.props.Document.beforeDoc;
     }
 
+    @undoBatch
     clearAfterDoc = (e: React.MouseEvent) => {
         e.stopPropagation;
         e.preventDefault;
