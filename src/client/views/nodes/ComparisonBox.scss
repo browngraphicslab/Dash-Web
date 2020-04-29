@@ -9,7 +9,7 @@
         position: absolute;
         bottom: 0;
         width: 100%;
-        height: 95%;
+        height: calc(100% - 15px);
 
         .clip-div {
             position: absolute;
@@ -22,7 +22,7 @@
 
             .beforeBox-cont {
                 height: 100%;
-                overflow: auto;
+                overflow: hidden;
                 background-color: rgb(240, 240, 240);
             }
 
