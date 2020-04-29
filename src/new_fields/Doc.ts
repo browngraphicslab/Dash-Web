@@ -254,6 +254,7 @@ export namespace Doc {
     //         return Cast(field, ctor);
     //     });
     // }
+
     export function RunCachedUpdate(doc: Doc, field: string) {
         const update = doc[CachedUpdates][field];
         if (update) {

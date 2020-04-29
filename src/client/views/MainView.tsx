@@ -42,6 +42,7 @@ import { OverlayView } from './OverlayView';
 import PDFMenu from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
 import { ScriptField } from '../../new_fields/ScriptField';
+import { TimelineMenu } from './animationtimeline/TimelineMenu';
 
 @observer
 export class MainView extends React.Component {
@@ -162,6 +163,9 @@ export class MainView extends React.Component {
         const targets = document.elementsFromPoint(e.x, e.y);
         if (targets && targets.length && targets[0].className.toString().indexOf("contextMenu") === -1) {
             ContextMenu.Instance.closeMenu();
+        }
+        if (targets && (targets.length && targets[0].className.toString() !== "timeline-menu-desc" && targets[0].className.toString() !== "timeline-menu-item" && targets[0].className.toString() !== "timeline-menu-input")) {
+            TimelineMenu.Instance.closeMenu();
         }
     });
 
@@ -580,6 +584,7 @@ export class MainView extends React.Component {
             <MarqueeOptionsMenu />
             <RichTextMenu />
             <OverlayView />
+            <TimelineMenu />
         </div >);
     }
 }

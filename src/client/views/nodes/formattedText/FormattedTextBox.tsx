@@ -1224,10 +1224,10 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
             <div className={`formattedTextBox-cont`} ref={this._ref}
                 style={{
-                    height: this.layoutDoc._autoHeight && this.props.renderDepth ? "max-content" : `calc(100% - ${this.props.ChromeHeight?.() || 0}px`,
-                    background: StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"], this.props.hideOnLeave ? "rgba(0,0,0 ,0.4)" : ""),
+                    height: this.props.height ? this.props.height : this.layoutDoc._autoHeight && this.props.renderDepth ? "max-content" : `calc(100% - ${this.props.ChromeHeight?.() || 0}px`,
+                    background: this.props.background ? this.props.background : StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"], this.props.hideOnLeave ? "rgba(0,0,0 ,0.4)" : ""),
                     opacity: this.props.hideOnLeave ? (this._entered ? 1 : 0.1) : 1,
-                    color: StrCast(this.layoutDoc[this.props.fieldKey + "-color"], this.props.hideOnLeave ? "white" : "inherit"),
+                    color: this.props.color ? this.props.color : StrCast(this.layoutDoc[this.props.fieldKey + "-color"], this.props.hideOnLeave ? "white" : "inherit"),
                     pointerEvents: interactive ? "none" : undefined,
                     fontSize: Cast(this.layoutDoc._fontSize, "number", null),
                     fontFamily: StrCast(this.layoutDoc._fontFamily, "inherit"),
