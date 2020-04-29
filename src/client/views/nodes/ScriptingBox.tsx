@@ -14,6 +14,7 @@ import "./ScriptingBox.scss";
 import { OverlayView } from "../OverlayView";
 import { DocumentIconContainer } from "./DocumentIcon";
 import { List } from "../../../new_fields/List";
+import { DragManager } from "../../util/DragManager";
 
 const ScriptingSchema = createSchema({});
 type ScriptingDocument = makeInterface<[typeof ScriptingSchema, typeof documentSchema]>;
@@ -30,7 +31,8 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     _overlayDisposer?: () => void;
 
     @observable private _errorMessage: string = "";
-    @observable private paramNum: number = -1;
+    @observable private _paramNum: number = 0;
+    @observable private _dropped: boolean = false;
 
     @computed get rawScript() { return StrCast(this.dataDoc[this.props.fieldKey + "-rawScript"], StrCast(this.layoutDoc[this.props.fieldKey + "-rawScript"])); }
     @computed get compileParams() { return Cast(this.dataDoc[this.props.fieldKey + "-params"], listSpec("string"), Cast(this.layoutDoc[this.props.fieldKey + "-params"], listSpec("string"), [])); }
@@ -120,14 +122,17 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         this._overlayDisposer = OverlayView.Instance.addElement(<DocumentIconContainer />, { x: 0, y: 0 });
     }
 
-    keyPressed(event: { key: string; }) {
-        if (event.key === "Enter") {
+    onDrop = (e: Event, de: DragManager.DropEvent, index: any) => {
+        this._dropped = true;
+        const firstParam = this.compileParams[index].split("=");
+        this.compileParams[index] = firstParam[0] + " = " + de.complete.docDragData?.droppedDocuments[0];
+    }
 
-        }
+    onDelete = (parameter: any) => {
+        this.compileParams.filter(s => s !== parameter);
     }
 
     render() {
-        //this.compileParams = new List<string>();
 
         const params = <EditableView
             contents={""}
@@ -138,7 +143,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
             GetValue={() => ""}
             SetValue={value => {
                 if (value !== "" && value !== " ") {
-                    this.paramNum++;
+                    this._paramNum++;
                     const par = this.compileParams;
                     this.compileParams = new List<string>(value.split(";").filter(s => s !== " "));
                     this.compileParams.push.apply(this.compileParams, par);
@@ -148,20 +153,28 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
             }}
         />;
 
-        const listParams = this.compileParams.map((parameter) =>
-            <EditableView
-                contents={parameter}
-                display={"block"}
-                maxHeight={72}
-                height={35}
-                fontSize={12}
-                GetValue={() => parameter}
-                SetValue={value => {
-                    if (value !== "" && value !== " ") {
-                        parameter = value;
-                    } return false;
-                }}
-            />
+        const listParams = this.compileParams.map((parameter, i) =>
+            <div className="scriptingBox-pborder" style={{ background: this._dropped ? "blue" : "" }}>
+                <EditableView
+                    contents={parameter}
+                    display={"block"}
+                    maxHeight={72}
+                    height={35}
+                    fontSize={12}
+                    GetValue={() => parameter}
+                    onDrop={(e: Event, de: DragManager.DropEvent) => this.onDrop(e, de, i)}
+                    SetValue={value => {
+                        if (value !== "" && value !== " ") {
+                            this.compileParams[i] = value;
+                            parameter = value;
+                            return true;
+                        } else {
+                            this.onDelete(parameter);
+                            return true;
+                        }
+                    }}
+                />
+            </div>
         );
 
         return (
@@ -185,7 +198,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
                             {listParams}
                         </div> : null}
                     </div>
-                    <div className="scriptingBox-params" onKeyPress={this.keyPressed}>{params}</div>
+                    <div className="scriptingBox-params">{params}</div>
                     <div className="scriptingBox-errorMessage" style={{ background: this._errorMessage ? "red" : "" }}>{this._errorMessage}</div>
                 </div>
                 {this.rootDoc.layout === "layout" ? <div></div> : (null)}

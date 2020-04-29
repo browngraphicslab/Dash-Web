@@ -5,6 +5,7 @@ import * as Autosuggest from 'react-autosuggest';
 import { ObjectField } from '../../new_fields/ObjectField';
 import { SchemaHeaderField } from '../../new_fields/SchemaHeaderField';
 import "./EditableView.scss";
+import { DragManager } from '../util/DragManager';
 
 export interface EditableProps {
     /**
@@ -49,6 +50,7 @@ export interface EditableProps {
     HeadingsHack?: number;
     toggle?: () => void;
     color?: string | undefined;
+    onDrop?: any;
 }
 
 /**
@@ -76,6 +78,13 @@ export class EditableView extends React.Component<EditableProps> {
         if (nextProps.editing && nextProps.editing !== this._editing) {
             this._editing = nextProps.editing;
             EditableView.loadId = "";
+        }
+    }
+
+    @action
+    componentDidMount() {
+        if (this._ref.current && this.props.onDrop) {
+            DragManager.MakeDropTarget(this._ref.current, this.props.onDrop.bind(this));
         }
     }
 
