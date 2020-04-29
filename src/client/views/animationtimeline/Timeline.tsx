@@ -372,6 +372,18 @@ export class Timeline extends React.Component<FieldViewProps> {
         this.changeCurrentBarX(currCurrent);
     }
 
+
+    resetView(doc: Doc) {
+        doc._panX = doc._customOriginX ?? 0;
+        doc._panY = doc._customOriginY ?? 0;
+        doc.scale = doc._customOriginScale ?? 1;
+    }
+
+    setView(doc: Doc) {
+        doc._customOriginX = doc._panX;
+        doc._customOriginY = doc._panY;
+        doc._customOriginScale = doc.scale;
+    }
     /**
      * zooming mechanism (increment and spacing changes)
      */
@@ -455,8 +467,8 @@ export class Timeline extends React.Component<FieldViewProps> {
                     </div>
                     <div className="time-box overview-tool" style={{ display: this._timelineVisible ? "flex" : "none" }}>
                         {this.timeIndicator(lengthString, totalTime)}
-                        <div className="resetView-tool" title="Return to Default View" onClick={() => Doc.resetView(this.props.Document)}><FontAwesomeIcon icon="compress-arrows-alt" size="lg" /></div>
-                        <div className="resetView-tool" style={{ display: this._isAuthoring ? "flex" : "none" }} title="Set Default View" onClick={() => Doc.setView(this.props.Document)}><FontAwesomeIcon icon="expand-arrows-alt" size="lg" /></div>
+                        <div className="resetView-tool" title="Return to Default View" onClick={() => this.resetView(this.props.Document)}><FontAwesomeIcon icon="compress-arrows-alt" size="lg" /></div>
+                        <div className="resetView-tool" style={{ display: this._isAuthoring ? "flex" : "none" }} title="Set Default View" onClick={() => this.setView(this.props.Document)}><FontAwesomeIcon icon="expand-arrows-alt" size="lg" /></div>
 
                     </div>
                 </div>
