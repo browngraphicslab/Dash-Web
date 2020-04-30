@@ -247,16 +247,20 @@ export class CollectionView extends Touchable<FieldViewProps> {
 
             const existingOnClick = ContextMenu.Instance.findByDescription("OnClick...");
             const onClicks = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
-            const funcs = [{ key: "onChildClick", name: "On Child Clicked", script: undefined as any as ScriptField },
-            { key: "onChildDoubleClick", name: "On Child Double Clicked", script: undefined as any as ScriptField }];
-            DocListCast(Cast(Doc.UserDoc().childClickFuncs, Doc, null).data).forEach(childClick =>
-                funcs.push({ key: StrCast(childClick.scriptKey), name: StrCast(childClick.title), script: ScriptCast(childClick.data) }));
+            const funcs = [
+                { key: "onChildClick", name: "On Child Clicked" },
+                { key: "onChildDoubleClick", name: "On Child Double Clicked" }];
             funcs.map(func => onClicks.push({
                 description: `Edit ${func.name} script`, icon: "edit", event: (obj: any) => {
-                    func.script && (this.props.Document[func.key] = ObjectField.MakeCopy(func.script));
-                    ScriptBox.EditButtonScript(func.name + "...", this.props.Document, func.key, obj.x, obj.y, { thisContainer: Doc.name }, func.script);
+                    ScriptBox.EditButtonScript(func.name + "...", this.props.Document, func.key, obj.x, obj.y, { thisContainer: Doc.name });
                 }
             }));
+            DocListCast(Cast(Doc.UserDoc().childClickFuncs, Doc, null).data).forEach(childClick =>
+                onClicks.push({
+                    description: `Set child ${childClick.title}`,
+                    icon: "edit",
+                    event: () => this.props.Document[StrCast(childClick.targetScriptKey)] = ObjectField.MakeCopy(ScriptCast(childClick.data)),
+                }));
             !existingOnClick && ContextMenu.Instance.addItem({ description: "OnClick...", subitems: onClicks, icon: "hand-point-right" });
 
             const more = ContextMenu.Instance.findByDescription("More...");

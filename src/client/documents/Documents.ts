@@ -95,7 +95,7 @@ export interface DocumentOptions {
     hideHeadings?: boolean; // whether stacking view column headings should be hidden
     isTemplateForField?: string; // the field key for which the containing document is a rendering template
     isTemplateDoc?: boolean;
-    scriptKey?: string; // the script key that a child click func script template document will write into
+    targetScriptKey?: string; // where to write a template script (used by collections with click templates which need to target onClick, onDoubleClick, etc)
     templates?: List<string>;
     backgroundColor?: string | ScriptField;  // background color for data doc 
     _backgroundColor?: string | ScriptField; // background color for each template layout doc ( overrides backgroundColor )

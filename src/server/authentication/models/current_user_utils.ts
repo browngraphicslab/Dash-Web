@@ -593,12 +593,16 @@ export class CurrentUserUtils {
     static setupClickEditorTemplates(doc: Doc) {
         if (doc.childClickFuncs === undefined) {
             const openInTarget = Docs.Create.ScriptingDocument(ScriptField.MakeScript(
-                "docCast(thisContainer.target).then((target) => { target && docCast(this.source).then((source) => { target.proto.data = new List([source || this]); } ); } )",
-                { target: Doc.name }), { title: "On Child Clicked (open in target)", _width: 300, _height: 200, scriptKey: "onChildClick" });
+                "docCast(thisContainer.target).then((target) => {" +
+                "     target && docCast(this.source).then((source) => { " +
+                "           target.proto.data = new List([source || this]); " +
+                "      }); " +
+                "})",
+                { target: Doc.name }), { title: "Click to open in target", _width: 300, _height: 200, targetScriptKey: "onChildClick" });
 
             const openDetail = Docs.Create.ScriptingDocument(ScriptField.MakeScript(
                 "openOnRight(self.doubleClickView)",
-                { target: Doc.name }), { title: "On Child Dbl Clicked (open double click view)", _width: 300, _height: 200, scriptKey: "onChildDoubleClick" });
+                { target: Doc.name }), { title: "Double click to open doubleClickView", _width: 300, _height: 200, targetScriptKey: "onChildDoubleClick" });
 
             doc.childClickFuncs = Docs.Create.TreeDocument([openInTarget, openDetail], { title: "on Child Click function templates" });
         }
