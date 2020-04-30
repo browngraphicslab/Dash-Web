@@ -52,6 +52,7 @@ export class MobileInterface extends React.Component {
     public drawingInk: boolean = false;
 
     // private uploadDoc?: Doc;
+    private _child: Doc = null;
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -122,16 +123,17 @@ export class MobileInterface extends React.Component {
         sidebar.classList.toggle('active');
 
         let header = document.getElementById("header") as HTMLElement;
-        if (sidebar.classList.contains('active')) {
-            header.textContent = "menu";
-        } else {
+
+        if (this._child) {
             header.textContent = String("//workspaces/" + this._activeDoc.title);
+        } else {
+            header.textContent = "menu";
         }
     }
 
     displayWorkspaces = () => {
         if (this.mainContainer) {
-            const backgroundColor = () => "pink";
+            const backgroundColor = () => "white";
             return (
                 <div style={{ position: "relative", top: '120px', height: `calc(100% - 120px)`, width: "100%", overflow: "hidden" }}>
                     <DocumentView
@@ -182,13 +184,15 @@ export class MobileInterface extends React.Component {
             console.log("SIZE: " + children.length);
             children.forEach(childDoc => {
                 console.log(childDoc.title);
+                this._child = doc;
             });
             // collectionDoc[data] = new List<Doc>();
-        } else {
-            this.switchCurrentView((userDoc: Doc) => doc);
-            this.displayWorkspaces();
-            this.toggleSidebar();
         }
+        this.switchCurrentView((userDoc: Doc) => doc);
+        this.displayWorkspaces();
+        //this.toggleSidebar();
+
+
     }
 
     buttons = (doc: Doc) => {
@@ -204,13 +208,23 @@ export class MobileInterface extends React.Component {
 
     renderDefaultContent = () => {
         const workspaces = Cast(this.userDoc.myWorkspaces, Doc) as Doc;
-        const buttons = DocListCast(workspaces.data).map((doc: Doc, index: any) => {
+        let buttons = DocListCast(workspaces.data).map((doc: Doc, index: any) => {
             return (
                 <div
                     className="item"
                     key={index}
                     onClick={() => this.handleClick(doc)}>{doc.title}</div>);
         });
+        if (this._child) {
+            buttons = DocListCast(this._child.data).map((doc: Doc, index: any) => {
+                return (
+                    <div
+                        className="item"
+                        key={index}
+                        onClick={() => this.handleClick(doc)}>{doc.title}</div>);
+            });
+
+        }
 
         return (
             <div>
