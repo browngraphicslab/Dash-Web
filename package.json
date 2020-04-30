@@ -190,6 +190,7 @@
         "mobx-utils": "^5.5.3",
         "mongodb": "^3.5.2",
         "mongoose": "^5.8.9",
+        "node-pre-gyp": "^0.14.0",
         "node-sass": "^4.13.1",
         "node-stream-zip": "^1.9.1",
         "node-tesseract": "^0.2.7",
