@@ -419,12 +419,26 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
         const funcs: ContextMenuProps[] = [];
         this.rootDoc.isTemplateDoc && funcs.push({ description: "Make Default Layout", event: async () => Doc.UserDoc().defaultTextLayout = new PrefetchProxy(this.props.Document), icon: "eye" });
-        !this.rootDoc.isTemplateDoc && funcs.push({ description: "Show Template", event: async () => this.props.addDocTab(Doc.GetProto(this.layoutDoc), "onRight"), icon: "eye" });
         funcs.push({ description: "Reset Default Layout", event: () => Doc.UserDoc().defaultTextLayout = undefined, icon: "eye" });
-        !this.rootDoc.isTemplateDoc && funcs.push({
+        !this.layoutDoc.isTemplateDoc && funcs.push({
             description: "Make Template", event: () => {
-                this.props.Document.isTemplateDoc = makeTemplate(this.props.Document);
+                this.rootDoc.isTemplateDoc = makeTemplate(this.rootDoc);
                 Doc.AddDocToList(Cast(Doc.UserDoc()["template-notes"], Doc, null), "data", this.props.Document);
+            }, icon: "eye"
+        });
+        this.layoutDoc.isTemplateDoc && funcs.push({
+            description: "Make New Template", event: () => {
+                const title = this.rootDoc.title as string;
+                this.rootDoc.layout = (this.layoutDoc as Doc).layout as string;
+                this.rootDoc.title = this.layoutDoc.isTemplateForField as string;
+                this.rootDoc.isTemplateDoc = false;
+                this.rootDoc.isTemplateForField = "";
+                this.rootDoc.layoutKey = "layout";
+                this.rootDoc.isTemplateDoc = makeTemplate(this.rootDoc, true, title);
+                this.rootDoc._width = this.layoutDoc._width || 300;  // the width and height are stored on the template, since we're getting rid of the old template
+                this.rootDoc._height = this.layoutDoc._height || 200;  // we need to copy them over to the root.  This should probably apply to all '_' fields
+                this.rootDoc._backgroundColor = Cast(this.layoutDoc._backgroundColor, "string", null);
+                Doc.AddDocToList(Cast(Doc.UserDoc()["template-notes"], Doc, null), "data", this.rootDoc);
             }, icon: "eye"
         });
         funcs.push({ description: "Toggle Single Line", event: () => this.props.Document._singleLine = !this.props.Document._singleLine, icon: "expand-arrows-alt" });

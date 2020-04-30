@@ -183,7 +183,7 @@ export class Doc extends RefField {
             let renderFieldKey: any;
             const layoutField = templateLayoutDoc[StrCast(templateLayoutDoc.layoutKey, "layout")];
             if (typeof layoutField === "string") {
-                renderFieldKey = layoutField.split("'")[1];
+                renderFieldKey = layoutField.split("fieldKey={'")[1].split("'")[0];//layoutField.split("'")[1];
             } else {
                 return Cast(layoutField, Doc, null);
             }

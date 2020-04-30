@@ -541,8 +541,23 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.COLOR), "", options);
         }
 
-        export function TextDocument(text: string, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.RTF), text, options, undefined, "text");
+        export function TextDocument(text: string, options: DocumentOptions = {}, fieldKey: string = "text") {
+            const rtf = {
+                doc: {
+                    type: "doc", content: [{
+                        type: "paragraph",
+                        content: [{
+                            type: "text",
+                            text
+                        }]
+                    }]
+                },
+                selection: { type: "text", anchor: 1, head: 1 },
+                storedMarks: []
+            };
+
+            const field = text ? new RichTextField(JSON.stringify(rtf), text) : undefined;
+            return InstanceFromProto(Prototypes.get(DocumentType.RTF), field, options, undefined, fieldKey);
         }
 
         export function LinkDocument(source: { doc: Doc, ctx?: Doc }, target: { doc: Doc, ctx?: Doc }, options: DocumentOptions = {}, id?: string) {

@@ -119,9 +119,7 @@ export class Timeline extends React.Component<FieldViewProps> {
     }
 
     componentWillUnmount() {
-        runInAction(() => {
-            this.props.Document.AnimationLength = this._time; //save animation length
-        });
+        this.props.Document.AnimationLength = this._time; //save animation length
     }
     /////////////////////////////////////////////////
 
