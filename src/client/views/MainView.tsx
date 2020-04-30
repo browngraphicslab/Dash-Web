@@ -588,13 +588,13 @@ export class MainView extends React.Component {
             <MarqueeOptionsMenu />
             <RichTextMenu />
             <OverlayView />
-            {/* TO VIEW SNAP LINES
-            <div className="snapLines" style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none" }}>
-                <svg style={{ width: "100%", height: "100%" }}>
-                    {this._hLines?.map(l => <line x1="0" y1={l} x2="2000" y2={l} stroke="black" />)}
-                    {this._vLines?.map(l => <line y1="0" x1={l} y2="2000" x2={l} stroke="black" />)}
-                </svg>
-            </div> */}
+            {// TO VIEW SNAP LINES
+             /* <div className="snapLines" style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none" }}>
+                    <svg style={{ width: "100%", height: "100%" }}>
+                        {this._hLines?.map(l => <line x1="0" y1={l} x2="2000" y2={l} stroke="black" />)}
+                        {this._vLines?.map(l => <line y1="0" x1={l} y2="2000" x2={l} stroke="black" />)}
+                    </svg>
+            </div>*/}
             <TimelineMenu />
         </div >);
     }

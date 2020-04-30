@@ -75,8 +75,8 @@ export function SetupDrag(
 
 export namespace DragManager {
     let dragDiv: HTMLDivElement;
-    export let horizSnapLines: number[];
-    export let vertSnapLines: number[];
+    export let horizSnapLines: number[] = [];
+    export let vertSnapLines: number[] = [];
 
     export function Root() {
         const root = document.getElementById("root");
@@ -296,7 +296,6 @@ export namespace DragManager {
         StartDrag([ele], {}, downX, downY);
     }
 
-    @action
     export function SetSnapLines(horizLines: number[], vertLines: number[]) {
         horizSnapLines = horizLines;
         vertSnapLines = vertLines;
@@ -304,6 +303,36 @@ export namespace DragManager {
         MainView.Instance._vLines = vertLines;
     }
 
+    function snapDrag(e: PointerEvent, xFromLeft: number, yFromTop: number, xFromRight: number, yFromBottom: number) {
+        let thisX = e.pageX;
+        let thisY = e.pageY;
+        const currLeft = e.pageX - xFromLeft;
+        const currTop = e.pageY - yFromTop;
+        const currRight = e.pageX + xFromRight;
+        const currBottom = e.pageY + yFromBottom;
+        const closestLeft = vertSnapLines.reduce((prev, curr) => Math.abs(prev - currLeft) > Math.abs(curr - currLeft) ? curr : prev);
+        const closestTop = horizSnapLines.reduce((prev, curr) => Math.abs(prev - currTop) > Math.abs(curr - currTop) ? curr : prev);
+        const closestRight = vertSnapLines.reduce((prev, curr) => Math.abs(prev - currRight) > Math.abs(curr - currRight) ? curr : prev);
+        const closestBottom = horizSnapLines.reduce((prev, curr) => Math.abs(prev - currBottom) > Math.abs(curr - currBottom) ? curr : prev);
+        const distFromClosestLeft = Math.abs(e.pageX - xFromLeft - closestLeft);
+        const distFromClosestTop = Math.abs(e.pageY - yFromTop - closestTop);
+        const distFromClosestRight = Math.abs(e.pageX + xFromRight - closestRight);
+        const distFromClosestBottom = Math.abs(e.pageY + yFromBottom - closestBottom);
+        if (distFromClosestLeft < 10 && distFromClosestLeft < distFromClosestRight) {
+            thisX = closestLeft + xFromLeft;
+        }
+        else if (distFromClosestRight < 10) {
+            thisX = closestRight - xFromRight;
+        }
+        if (distFromClosestTop < 10 && distFromClosestTop < distFromClosestRight) {
+            thisY = closestTop + yFromTop;
+        }
+        else if (distFromClosestBottom < 10) {
+            thisY = closestBottom - yFromBottom;
+        }
+        return { thisX, thisY };
+    }
+    export let docsBeingDragged: Doc[] = [];
     function StartDrag(eles: HTMLElement[], dragData: { [id: string]: any }, downX: number, downY: number, options?: DragOptions, finishDrag?: (dropData: DragCompleteEvent) => void) {
         eles = eles.filter(e => e);
         if (!dragDiv) {
@@ -318,7 +347,7 @@ export namespace DragManager {
         const xs: number[] = [];
         const ys: number[] = [];
 
-        const docs = dragData instanceof DocumentDragData ? dragData.draggedDocuments : dragData instanceof PdfAnnoDragData ? [dragData.dragDocument] : [];
+        docsBeingDragged = dragData instanceof DocumentDragData ? dragData.draggedDocuments : dragData instanceof PdfAnnoDragData ? [dragData.dragDocument] : [];
         const elesCont = {
             left: Number.MAX_SAFE_INTEGER,
             top: Number.MAX_SAFE_INTEGER,
@@ -354,7 +383,7 @@ export namespace DragManager {
             dragElement.style.width = `${rect.width / scaleX}px`;
             dragElement.style.height = `${rect.height / scaleY}px`;
 
-            if (docs.length) {
+            if (docsBeingDragged.length) {
                 const pdfBox = dragElement.getElementsByTagName("canvas");
                 const pdfBoxSrc = ele.getElementsByTagName("canvas");
                 Array.from(pdfBox).map((pb, i) => pb.getContext('2d')!.drawImage(pdfBoxSrc[i], 0, 0));
@@ -408,32 +437,8 @@ export namespace DragManager {
                     button: 0
                 }, dragData.droppedDocuments);
             }
-            let thisX = e.pageX;
-            let thisY = e.pageY;
-            const currLeft = e.pageX - xFromLeft;
-            const currTop = e.pageY - yFromTop;
-            const currRight = e.pageX + xFromRight;
-            const currBottom = e.pageY + yFromBottom;
-            const closestLeft = vertSnapLines.reduce((prev, curr) => Math.abs(prev - currLeft) > Math.abs(curr - currLeft) ? curr : prev);
-            const closestTop = horizSnapLines.reduce((prev, curr) => Math.abs(prev - currTop) > Math.abs(curr - currTop) ? curr : prev);
-            const closestRight = vertSnapLines.reduce((prev, curr) => Math.abs(prev - currRight) > Math.abs(curr - currRight) ? curr : prev);
-            const closestBottom = horizSnapLines.reduce((prev, curr) => Math.abs(prev - currBottom) > Math.abs(curr - currBottom) ? curr : prev);
-            const distFromClosestLeft = Math.abs(e.pageX - xFromLeft - closestLeft);
-            const distFromClosestTop = Math.abs(e.pageY - yFromTop - closestTop);
-            const distFromClosestRight = Math.abs(e.pageX + xFromRight - closestRight);
-            const distFromClosestBottom = Math.abs(e.pageY + yFromBottom - closestBottom);
-            if (distFromClosestLeft < 10 && distFromClosestLeft < distFromClosestRight) {
-                thisX = closestLeft + xFromLeft;
-            }
-            else if (distFromClosestRight < 10) {
-                thisX = closestRight - xFromRight;
-            }
-            if (distFromClosestTop < 10 && distFromClosestTop < distFromClosestRight) {
-                thisY = closestTop + yFromTop;
-            }
-            else if (distFromClosestBottom < 10) {
-                thisY = closestBottom - yFromBottom;
-            }
+
+            const { thisX, thisY } = snapDrag(e, xFromLeft, yFromTop, xFromRight, yFromBottom);
 
             alias = "move";
             const moveX = thisX - lastX;
@@ -462,7 +467,7 @@ export namespace DragManager {
         };
         const upHandler = (e: PointerEvent) => {
             hideDragShowOriginalElements();
-            dispatchDrag(eles, e, dragData, options, finishDrag);
+            dispatchDrag(eles, e, dragData, xFromLeft, yFromTop, xFromRight, yFromBottom, options, finishDrag);
             SelectionManager.SetIsDragging(false);
             endDrag();
             options?.dragComplete?.(new DragCompleteEvent(false, dragData));
@@ -471,7 +476,8 @@ export namespace DragManager {
         document.addEventListener("pointerup", upHandler);
     }
 
-    function dispatchDrag(dragEles: HTMLElement[], e: PointerEvent, dragData: { [index: string]: any }, options?: DragOptions, finishDrag?: (e: DragCompleteEvent) => void) {
+    function dispatchDrag(dragEles: HTMLElement[], e: PointerEvent, dragData: { [index: string]: any },
+        xFromLeft: number, yFromTop: number, xFromRight: number, yFromBottom: number, options?: DragOptions, finishDrag?: (e: DragCompleteEvent) => void) {
         const removed = dragData.dontHideOnDrop ? [] : dragEles.map(dragEle => {
             const ret = { ele: dragEle, w: dragEle.style.width, h: dragEle.style.height, o: dragEle.style.overflow };
             dragEle.style.width = "0";
@@ -485,14 +491,15 @@ export namespace DragManager {
             r.ele.style.height = r.h;
             r.ele.style.overflow = r.o;
         });
+        const { thisX, thisY } = snapDrag(e, xFromLeft, yFromTop, xFromRight, yFromBottom);
         if (target) {
             const complete = new DragCompleteEvent(false, dragData);
             target.dispatchEvent(
                 new CustomEvent<DropEvent>("dashPreDrop", {
                     bubbles: true,
                     detail: {
-                        x: e.x,
-                        y: e.y,
+                        x: thisX,
+                        y: thisY,
                         complete: complete,
                         shiftKey: e.shiftKey,
                         altKey: e.altKey,
@@ -506,8 +513,8 @@ export namespace DragManager {
                 new CustomEvent<DropEvent>("dashOnDrop", {
                     bubbles: true,
                     detail: {
-                        x: e.x,
-                        y: e.y,
+                        x: thisX,
+                        y: thisY,
                         complete: complete,
                         shiftKey: e.shiftKey,
                         altKey: e.altKey,

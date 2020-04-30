@@ -1129,7 +1129,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 input.click();
             }
         });
-        ContextMenu.Instance.addItem({ description: "Options ...", subitems: optionItems, icon: "eye" });
+        ContextMenu.Instance.addItem({ description: "Options...", subitems: optionItems, icon: "eye" });
         this._timelineRef.current!.timelineContextMenu(e);
     }
 
@@ -1144,51 +1144,24 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             const size = this.props.ScreenToLocalTransform().transformDirection(this.props.PanelWidth(), this.props.PanelHeight());
             const selRect = { left: this.panX() - size[0] / 2, top: this.panY() - size[1] / 2, width: size[0], height: size[1] };
             const selection: Doc[] = [];
-            this.getActiveDocuments().filter(doc => !doc.isBackground && doc.z === undefined).map(doc => {
-                const layoutDoc = Doc.Layout(doc);
-                const x = NumCast(doc.x);
-                const y = NumCast(doc.y);
-                const w = NumCast(layoutDoc._width);
-                const h = NumCast(layoutDoc._height);
-                if (this.intersectRect({ left: x, top: y, width: w, height: h }, selRect)) {
+            const docDims = (doc: Doc, layoutDoc: Doc) => ({ left: NumCast(doc.x), top: NumCast(doc.y), width: NumCast(layoutDoc._width), height: NumCast(layoutDoc._height) });
+            const compareDoc = (doc: Doc, rect: { left: number, top: number, width: number, height: number }) => {
+                if (this.intersectRect(docDims(doc, Doc.Layout(doc)), rect)) {
                     selection.push(doc);
                 }
-            });
-            if (!selection.length) {
-                this.getActiveDocuments().filter(doc => doc.z === undefined).map(doc => {
-                    const layoutDoc = Doc.Layout(doc);
-                    const x = NumCast(doc.x);
-                    const y = NumCast(doc.y);
-                    const w = NumCast(layoutDoc._width);
-                    const h = NumCast(layoutDoc._height);
-                    if (this.intersectRect({ left: x, top: y, width: w, height: h }, selRect)) {
-                        selection.push(doc);
-                    }
-                });
             }
-            if (!selection.length) {
-                const otherBounds = { left: this.panX(), top: this.panY(), width: Math.abs(size[0]), height: Math.abs(size[1]) };
-                this.getActiveDocuments().filter(doc => doc.z !== undefined).map(doc => {
-                    const layoutDoc = Doc.Layout(doc);
-                    const x = NumCast(doc.x);
-                    const y = NumCast(doc.y);
-                    const w = NumCast(layoutDoc._width);
-                    const h = NumCast(layoutDoc._height);
-                    if (this.intersectRect({ left: x, top: y, width: w, height: h }, otherBounds)) {
-                        selection.push(doc);
-                    }
-                });
-            }
+            const otherBounds = { left: this.panX(), top: this.panY(), width: Math.abs(size[0]), height: Math.abs(size[1]) };
+            this.getActiveDocuments().filter(doc => !doc.isBackground && doc.z === undefined).map(doc => compareDoc(doc, selRect));  // first try foreground docs
+            !selection.length && this.getActiveDocuments().filter(doc => doc.z === undefined).map(doc => compareDoc(doc, selRect)); // then background docs
+            !selection.length && this.getActiveDocuments().filter(doc => doc.z !== undefined).map(doc => compareDoc(doc, otherBounds)); // then floating docs
+
             const horizLines: number[] = [];
             const vertLines: number[] = [];
-            selection.forEach(doc => {
-                const layoutDoc = Doc.Layout(doc);
-                const x = NumCast(doc.x);
-                const y = NumCast(doc.y);
-                const w = NumCast(layoutDoc._width);
-                const h = NumCast(layoutDoc._height);
-                const topLeftInScreen = this.getTransform().inverse().transformPoint(x, y);
-                const docSize = this.getTransform().inverse().transformDirection(w, h);
+            selection.filter(doc => !DragManager.docsBeingDragged.includes(doc)).forEach(doc => {
+                const { left, top, width, height } = docDims(doc, Doc.Layout(doc));
+                const topLeftInScreen = this.getTransform().inverse().transformPoint(left, top);
+                const docSize = this.getTransform().inverse().transformDirection(width, height);
+
                 horizLines.push(topLeftInScreen[1]); // top line
                 horizLines.push(topLeftInScreen[1] + docSize[1]); // bottom line
                 horizLines.push(topLeftInScreen[1] + docSize[1] / 2); // horiz center line
@@ -1292,12 +1265,13 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
                 }}>
             </div>
-            {/* <div className="snapLines" style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none" }}>
+            {// uncomment to show snap lines
+             /*<div className="snapLines" style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none" }}>
                 <svg style={{ width: "100%", height: "100%" }}>
                     {this._hLines?.map(l => <line x1="0" y1={l} x2="1000" y2={l} stroke="black" />)}
                     {this._vLines?.map(l => <line y1="0" x1={l} y2="1000" x2={l} stroke="black" />)}
                 </svg>
-            </div> */}
+            </div>*/}
         </div >;
     }
 }
