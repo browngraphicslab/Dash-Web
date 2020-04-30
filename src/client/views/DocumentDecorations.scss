@@ -21,9 +21,13 @@ $linkGap : 3px;
         background: none;
     }
 
+
     .documentDecorations-resizer {
         pointer-events: auto;
         background: $alt-accent;
+        opacity: 0.1;
+    }
+    .documentDecorations-resizer:hover {
         opacity: 1;
     }
 
@@ -80,7 +84,20 @@ $linkGap : 3px;
     #documentDecorations-topLeftResizer,
     #documentDecorations-bottomRightResizer {
         cursor: nwse-resize;
-        background: dimGray;
+        background: unset;
+        opacity: 1;
+    }
+    #documentDecorations-topLeftResizer {
+        border-left: black 2px solid;
+        border-top: black solid 2px;
+    }
+    #documentDecorations-bottomRightResizer {
+        border-right: black 2px solid;
+        border-bottom: black solid 2px;
+    }
+    #documentDecorations-topLeftResizer:hover,
+    #documentDecorations-bottomRightResizer:hover {
+        opacity: 1;
     }
 
     #documentDecorations-bottomRightResizer {
@@ -90,7 +107,22 @@ $linkGap : 3px;
     #documentDecorations-topRightResizer,
     #documentDecorations-bottomLeftResizer {
         cursor: nesw-resize;
+        background: unset;
+        opacity: 1;
+    }
+    #documentDecorations-topRightResizer {
+        border-right: black 2px solid;
+        border-top: black 2px solid;
+    }
+    #documentDecorations-bottomLeftResizer {
+        border-left: black 2px solid;
+        border-bottom: black 2px solid;
+    }
+    #documentDecorations-topRightResizer:hover,
+    #documentDecorations-bottomLeftResizer:hover {
+        cursor: nesw-resize;
         background: dimGray;
+        opacity: 1;
     }
 
     #documentDecorations-topResizer,

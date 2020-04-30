@@ -435,9 +435,11 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 this.rootDoc.isTemplateForField = "";
                 this.rootDoc.layoutKey = "layout";
                 this.rootDoc.isTemplateDoc = makeTemplate(this.rootDoc, true, title);
-                this.rootDoc._width = this.layoutDoc._width || 300;  // the width and height are stored on the template, since we're getting rid of the old template
-                this.rootDoc._height = this.layoutDoc._height || 200;  // we need to copy them over to the root.  This should probably apply to all '_' fields
-                this.rootDoc._backgroundColor = Cast(this.layoutDoc._backgroundColor, "string", null);
+                setTimeout(() => {
+                    this.rootDoc._width = this.layoutDoc._width || 300;  // the width and height are stored on the template, since we're getting rid of the old template
+                    this.rootDoc._height = this.layoutDoc._height || 200;  // we need to copy them over to the root.  This should probably apply to all '_' fields
+                    this.rootDoc._backgroundColor = Cast(this.layoutDoc._backgroundColor, "string", null);
+                }, 10);
                 Doc.AddDocToList(Cast(Doc.UserDoc()["template-notes"], Doc, null), "data", this.rootDoc);
             }, icon: "eye"
         });

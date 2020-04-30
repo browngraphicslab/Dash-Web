@@ -42,7 +42,6 @@ import { OverlayView } from './OverlayView';
 import PDFMenu from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
 import { ScriptField } from '../../new_fields/ScriptField';
-import { DragManager } from '../util/DragManager';
 import { TimelineMenu } from './animationtimeline/TimelineMenu';
 
 @observer
