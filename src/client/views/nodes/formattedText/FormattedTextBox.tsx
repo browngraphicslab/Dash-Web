@@ -1215,11 +1215,20 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 this.layoutDoc._autoHeight = false;
             }
             const nh = this.layoutDoc.isTemplateForField ? 0 : NumCast(this.dataDoc._nativeHeight, 0);
-            const dh = NumCast(this.layoutDoc._height, 0);
+            const dh = NumCast(this.rootDoc._height, 0);
             const newHeight = Math.max(10, (nh ? dh / nh * scrollHeight : scrollHeight) + (this.props.ChromeHeight ? this.props.ChromeHeight() : 0));
             if (Math.abs(newHeight - dh) > 1) { // bcz: Argh!  without this, we get into a React crash if the same document is opened in a freeform view and in the treeview.  no idea why, but after dragging the freeform document, selecting it, and selecting text, it will compute to 1 pixel higher than the treeview which causes a cycle
-                this.layoutDoc._height = newHeight;
-                this.dataDoc._nativeHeight = nh ? scrollHeight : undefined;
+                if (this.rootDoc !== this.layoutDoc && !this.layoutDoc.resolvedDataDoc) {
+                    // if we have a template that hasn't been resolved yet, we can't set the height or we'd be setting it on the unresolved template.  So set a timeout and hope its arrived...
+                    console.log("Delayed height adjustment...");
+                    setTimeout(() => {
+                        this.rootDoc._height = newHeight;
+                        this.dataDoc._nativeHeight = nh ? scrollHeight : undefined;
+                    }, 10);
+                } else {
+                    this.rootDoc._height = newHeight;
+                    this.dataDoc._nativeHeight = nh ? scrollHeight : undefined;
+                }
             }
         }
     }

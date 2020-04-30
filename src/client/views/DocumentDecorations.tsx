@@ -286,12 +286,11 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
         SelectionManager.SelectedDocuments().forEach(action((element: DocumentView) => {
             if (dX !== 0 || dY !== 0 || dW !== 0 || dH !== 0) {
-                const doc = PositionDocument(element.props.Document);
-                const layoutDoc = PositionDocument(Doc.Layout(element.props.Document));
-                let nwidth = layoutDoc._nativeWidth || 0;
-                let nheight = layoutDoc._nativeHeight || 0;
-                const width = (layoutDoc._width || 0);
-                const height = (layoutDoc._height || (nheight / nwidth * width));
+                const doc = PositionDocument(element.rootDoc);
+                let nwidth = doc._nativeWidth || 0;
+                let nheight = doc._nativeHeight || 0;
+                const width = (doc._width || 0);
+                const height = (doc._height || (nheight / nwidth * width));
                 const scale = element.props.ScreenToLocalTransform().Scale * element.props.ContentScaling();
                 if (nwidth && nheight) {
                     if (Math.abs(dW) > Math.abs(dH)) dH = dW * nheight / nwidth;
@@ -303,8 +302,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 doc.y = (doc.y || 0) + dY * (actualdH - height);
                 const fixedAspect = (nwidth && nheight);
                 if (fixedAspect && (!nwidth || !nheight)) {
-                    layoutDoc._nativeWidth = nwidth = layoutDoc._width || 0;
-                    layoutDoc._nativeHeight = nheight = layoutDoc._height || 0;
+                    doc._nativeWidth = nwidth = doc._width || 0;
+                    doc._nativeHeight = nheight = doc._height || 0;
                 }
                 const anno = Cast(doc.annotationOn, Doc, null);
                 if (e.ctrlKey && anno) {
@@ -320,24 +319,24 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 else if (nwidth > 0 && nheight > 0) {
                     if (Math.abs(dW) > Math.abs(dH)) {
                         if (!fixedAspect) {
-                            layoutDoc._nativeWidth = actualdW / (layoutDoc._width || 1) * (layoutDoc._nativeWidth || 0);
+                            doc._nativeWidth = actualdW / (doc._width || 1) * (doc._nativeWidth || 0);
                         }
-                        layoutDoc._width = actualdW;
-                        if (fixedAspect && !layoutDoc._fitWidth) layoutDoc._height = nheight / nwidth * layoutDoc._width;
-                        else layoutDoc._height = actualdH;
+                        doc._width = actualdW;
+                        if (fixedAspect && !doc._fitWidth) doc._height = nheight / nwidth * doc._width;
+                        else doc._height = actualdH;
                     }
                     else {
                         if (!fixedAspect) {
-                            layoutDoc._nativeHeight = actualdH / (layoutDoc._height || 1) * (doc._nativeHeight || 0);
+                            doc._nativeHeight = actualdH / (doc._height || 1) * (doc._nativeHeight || 0);
                         }
-                        layoutDoc._height = actualdH;
-                        if (fixedAspect && !layoutDoc._fitWidth) layoutDoc._width = nwidth / nheight * layoutDoc._height;
-                        else layoutDoc._width = actualdW;
+                        doc._height = actualdH;
+                        if (fixedAspect && !doc._fitWidth) doc._width = nwidth / nheight * doc._height;
+                        else doc._width = actualdW;
                     }
                 } else {
-                    dW && (layoutDoc._width = actualdW);
-                    dH && (layoutDoc._height = actualdH);
-                    dH && layoutDoc._autoHeight && (layoutDoc._autoHeight = false);
+                    dW && (doc._width = actualdW);
+                    dH && (doc._height = actualdH);
+                    dH && doc._autoHeight && (doc._autoHeight = false);
                 }
             }
         }));
