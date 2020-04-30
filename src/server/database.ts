@@ -8,6 +8,7 @@ import { IDatabase } from './IDatabase';
 import { MemoryDatabase } from './MemoryDatabase';
 import * as mongoose from 'mongoose';
 import { Upload } from './SharedMediaTypes';
+import { timeout } from 'async';
 
 export namespace Database {
 
@@ -53,6 +54,7 @@ export namespace Database {
         private db?: mongodb.Db;
         private onConnect: (() => void)[] = [];
 
+
         doConnect() {
             console.error(`\nConnecting to Mongo with URL : ${url}\n`);
             this.MongoClient.connect(url, { connectTimeoutMS: 30000, socketTimeoutMS: 30000, useUnifiedTopology: true }, (_err, client) => {
@@ -66,6 +68,12 @@ export namespace Database {
                 this.onConnect.forEach(fn => fn());
             });
         }
+
+
+
+
+
+
 
         public async update(id: string, value: any, callback: (err: mongodb.MongoError, res: mongodb.UpdateWriteOpResult) => void, upsert = true, collectionName = Database.DocumentsCollection) {
 

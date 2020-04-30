@@ -153,6 +153,6 @@ export async function launchServer() {
 if (process.env.RELEASE) {
     (sessionAgent = new DashSessionAgent()).launch();
 } else {
-    (Database.Instance as Database.Database).doConnect();
+    setTimeout(() => (Database.Instance as Database.Database).doConnect(), 30000);
     launchServer();
 }

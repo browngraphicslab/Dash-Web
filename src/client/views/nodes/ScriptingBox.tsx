@@ -122,14 +122,17 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         this._overlayDisposer = OverlayView.Instance.addElement(<DocumentIconContainer />, { x: 0, y: 0 });
     }
 
+    @action
     onDrop = (e: Event, de: DragManager.DropEvent, index: any) => {
         this._dropped = true;
+        console.log("drop");
         const firstParam = this.compileParams[index].split("=");
-        this.compileParams[index] = firstParam[0] + " = " + de.complete.docDragData?.droppedDocuments[0];
+        this.compileParams[index] = firstParam[0] + " = " + de.complete.docDragData?.droppedDocuments[0].id;
     }
 
-    onDelete = (parameter: any) => {
-        this.compileParams.filter(s => s !== parameter);
+    @action
+    onDelete = (num: number) => {
+        this.compileParams.splice(num, 1);
     }
 
     render() {
@@ -154,7 +157,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         />;
 
         const listParams = this.compileParams.map((parameter, i) =>
-            <div className="scriptingBox-pborder" style={{ background: this._dropped ? "blue" : "" }}>
+            <div className="scriptingBox-pborder" style={{ background: this._dropped ? "yellow" : "" }}>
                 <EditableView
                     contents={parameter}
                     display={"block"}
@@ -169,7 +172,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
                             parameter = value;
                             return true;
                         } else {
-                            this.onDelete(parameter);
+                            this.onDelete(i);
                             return true;
                         }
                     }}
