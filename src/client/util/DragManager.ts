@@ -310,10 +310,10 @@ export namespace DragManager {
         const currTop = e.pageY - yFromTop;
         const currRight = e.pageX + xFromRight;
         const currBottom = e.pageY + yFromBottom;
-        const closestLeft = vertSnapLines.reduce((prev, curr) => Math.abs(prev - currLeft) > Math.abs(curr - currLeft) ? curr : prev, currLeft);
-        const closestTop = horizSnapLines.reduce((prev, curr) => Math.abs(prev - currTop) > Math.abs(curr - currTop) ? curr : prev, currTop);
-        const closestRight = vertSnapLines.reduce((prev, curr) => Math.abs(prev - currRight) > Math.abs(curr - currRight) ? curr : prev, currRight);
-        const closestBottom = horizSnapLines.reduce((prev, curr) => Math.abs(prev - currBottom) > Math.abs(curr - currBottom) ? curr : prev, currBottom);
+        const closestLeft = vertSnapLines.length ? vertSnapLines.reduce((prev, curr) => Math.abs(prev - currLeft) > Math.abs(curr - currLeft) ? curr : prev) : currLeft;
+        const closestTop = horizSnapLines.length ? horizSnapLines.reduce((prev, curr) => Math.abs(prev - currTop) > Math.abs(curr - currTop) ? curr : prev) : currTop;
+        const closestRight = vertSnapLines.length ? vertSnapLines.reduce((prev, curr) => Math.abs(prev - currRight) > Math.abs(curr - currRight) ? curr : prev) : currRight;
+        const closestBottom = horizSnapLines.length ? horizSnapLines.reduce((prev, curr) => Math.abs(prev - currBottom) > Math.abs(curr - currBottom) ? curr : prev) : currBottom;
         const distFromClosestLeft = Math.abs(e.pageX - xFromLeft - closestLeft);
         const distFromClosestTop = Math.abs(e.pageY - yFromTop - closestTop);
         const distFromClosestRight = Math.abs(e.pageX + xFromRight - closestRight);
