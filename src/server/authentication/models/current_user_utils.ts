@@ -1,5 +1,6 @@
 import { action, computed, observable, reaction } from "mobx";
 import * as rp from 'request-promise';
+import { Utils } from "../../../Utils";
 import { DocServer } from "../../../client/DocServer";
 import { Docs, DocumentOptions } from "../../../client/documents/Documents";
 import { UndoManager } from "../../../client/util/UndoManager";
@@ -7,7 +8,7 @@ import { Doc, DocListCast, DocListCastAsync } from "../../../new_fields/Doc";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
 import { ScriptField, ComputedField } from "../../../new_fields/ScriptField";
-import { Cast, PromiseValue, StrCast } from "../../../new_fields/Types";
+import { Cast, PromiseValue, StrCast, NumCast } from "../../../new_fields/Types";
 import { Utils } from "../../../Utils";
 import { nullAudio, ImageField } from "../../../new_fields/URLField";
 import { DragManager } from "../../../client/util/DragManager";
@@ -628,6 +629,9 @@ export class CurrentUserUtils {
         new InkingControl();
         doc.title = Doc.CurrentUserEmail;
         doc.activePen = doc;
+        doc["constants-snapThreshold"] = NumCast(doc["constants-snapThreshold"], 10); // 
+        doc["constants-dragThreshold"] = NumCast(doc["constants-dragThreshold"], 4); // 
+        Utils.DRAG_THRESHOLD = NumCast(doc["constants-dragThreshold"]);
         this.setupDefaultIconTemplates(doc);  // creates a set of icon templates triggered by the document deoration icon
         this.setupDocTemplates(doc); // sets up the template menu of templates
         this.setupRightSidebar(doc);  // sets up the right sidebar collection for mobile upload documents and sharing

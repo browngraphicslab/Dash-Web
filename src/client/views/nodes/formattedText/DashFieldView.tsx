@@ -34,8 +34,6 @@ export class DashFieldView {
             docid={node.attrs.docid}
             width={node.attrs.width}
             height={node.attrs.height}
-            view={view}
-            getPos={getPos}
             tbox={tbox}
         />, this._fieldWrapper);
         (this as any).dom = this._fieldWrapper;
@@ -49,8 +47,6 @@ export class DashFieldView {
 interface IDashFieldViewInternal {
     fieldKey: string;
     docid: string;
-    view: any;
-    getPos: any;
     tbox: FormattedTextBox;
     width: number;
     height: number;

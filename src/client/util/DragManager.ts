@@ -1,5 +1,5 @@
 import { Doc, Field, DocListCast } from "../../new_fields/Doc";
-import { Cast, ScriptCast, StrCast } from "../../new_fields/Types";
+import { Cast, ScriptCast, StrCast, NumCast } from "../../new_fields/Types";
 import { emptyFunction } from "../../Utils";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import * as globalCssVariables from "../views/globalCssVariables.scss";
@@ -305,33 +305,20 @@ export namespace DragManager {
     }
 
     export function snapDrag(e: PointerEvent, xFromLeft: number, yFromTop: number, xFromRight: number, yFromBottom: number) {
-        let thisX = e.pageX;
-        let thisY = e.pageY;
-        const currLeft = e.pageX - xFromLeft;
-        const currTop = e.pageY - yFromTop;
-        const currRight = e.pageX + xFromRight;
-        const currBottom = e.pageY + yFromBottom;
-        const closestLeft = vertSnapLines.length ? vertSnapLines.reduce((prev, curr) => Math.abs(prev - currLeft) > Math.abs(curr - currLeft) ? curr : prev) : currLeft;
-        const closestTop = horizSnapLines.length ? horizSnapLines.reduce((prev, curr) => Math.abs(prev - currTop) > Math.abs(curr - currTop) ? curr : prev) : currTop;
-        const closestRight = vertSnapLines.length ? vertSnapLines.reduce((prev, curr) => Math.abs(prev - currRight) > Math.abs(curr - currRight) ? curr : prev) : currRight;
-        const closestBottom = horizSnapLines.length ? horizSnapLines.reduce((prev, curr) => Math.abs(prev - currBottom) > Math.abs(curr - currBottom) ? curr : prev) : currBottom;
-        const distFromClosestLeft = Math.abs(e.pageX - xFromLeft - closestLeft);
-        const distFromClosestTop = Math.abs(e.pageY - yFromTop - closestTop);
-        const distFromClosestRight = Math.abs(e.pageX + xFromRight - closestRight);
-        const distFromClosestBottom = Math.abs(e.pageY + yFromBottom - closestBottom);
-        if (distFromClosestLeft < 10 && distFromClosestLeft < distFromClosestRight) {
-            thisX = closestLeft + xFromLeft;
+        const snapThreshold = NumCast(Doc.UserDoc()["constants-snapThreshold"], 10);
+        const snapVal = (pts: number[], drag: number, snapLines: number[]) => {
+            if (snapLines.length) {
+                const offs = [pts[0], (pts[0] - pts[1]) / 2, -pts[1]];   // offsets from drag pt
+                const rangePts = [drag - offs[0], drag - offs[1], drag - offs[2]]; // left, mid, right or  top, mid, bottom pts to try to snap to snaplines
+                const closestPts = rangePts.map(pt => snapLines.reduce((nearest, curr) => Math.abs(nearest - pt) > Math.abs(curr - pt) ? curr : nearest));
+                const closestDists = rangePts.map((pt, i) => Math.abs(pt - closestPts[i]));
+                const minIndex = closestDists[0] < closestDists[1] && closestDists[0] < closestDists[2] ? 0 : closestDists[1] < closestDists[2] ? 1 : 2;
+                return closestDists[minIndex] < snapThreshold ? closestPts[minIndex] + offs[minIndex] : drag;
+            }
+            return drag;
         }
-        else if (distFromClosestRight < 10) {
-            thisX = closestRight - xFromRight;
-        }
-        if (distFromClosestTop < 10 && distFromClosestTop < distFromClosestBottom) {
-            thisY = closestTop + yFromTop;
-        }
-        else if (distFromClosestBottom < 10) {
-            thisY = closestBottom - yFromBottom;
-        }
-        return { thisX, thisY };
+
+        return { thisX: snapVal([xFromLeft, xFromRight], e.pageX, vertSnapLines), thisY: snapVal([yFromTop, yFromBottom], e.pageY, horizSnapLines) };
     }
     export let docsBeingDragged: Doc[] = [];
     function StartDrag(eles: HTMLElement[], dragData: { [id: string]: any }, downX: number, downY: number, options?: DragOptions, finishDrag?: (dropData: DragCompleteEvent) => void) {
