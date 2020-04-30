@@ -64,6 +64,7 @@ export interface DocumentViewProps {
     contextMenuItems?: () => { script: ScriptField, label: string }[];
     rootSelected: (outsideReaction?: boolean) => boolean; // whether the root of a template has been selected
     onClick?: ScriptField;
+    onDoubleClick?: ScriptField;
     onPointerDown?: ScriptField;
     onPointerUp?: ScriptField;
     dropAction?: dropActionType;
@@ -116,6 +117,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @computed get nativeWidth() { return NumCast(this.layoutDoc._nativeWidth, this.props.NativeWidth() || (this.freezeDimensions ? this.layoutDoc[WidthSym]() : 0)); }
     @computed get nativeHeight() { return NumCast(this.layoutDoc._nativeHeight, this.props.NativeHeight() || (this.freezeDimensions ? this.layoutDoc[HeightSym]() : 0)); }
     @computed get onClickHandler() { return this.props.onClick || Cast(this.layoutDoc.onClick, ScriptField, null) || this.Document.onClick; }
+    @computed get onDoubleClickHandler() { return this.props.onDoubleClick || Cast(this.layoutDoc.onDoubleClick, ScriptField, null) || this.Document.onDoubleClick; }
     @computed get onPointerDownHandler() { return this.props.onPointerDown ? this.props.onPointerDown : this.Document.onPointerDown; }
     @computed get onPointerUpHandler() { return this.props.onPointerUp ? this.props.onPointerUp : this.Document.onPointerUp; }
     NativeWidth = () => this.nativeWidth;
@@ -289,13 +291,22 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             !this.props.Document.isBackground && this.props.bringToFront(this.props.Document);
             if (this._doubleTap && this.props.renderDepth && !this.onClickHandler?.script) { // disable double-click to show full screen for things that have an on click behavior since clicking them twice can be misinterpreted as a double click
                 if (!(e.nativeEvent as any).formattedHandled) {
-                    const fullScreenAlias = Doc.MakeAlias(this.props.Document);
-                    if (StrCast(fullScreenAlias.layoutKey) !== "layout_fullScreen" && fullScreenAlias.layout_fullScreen) {
-                        fullScreenAlias.layoutKey = "layout_fullScreen";
+                    if (this.onDoubleClickHandler?.script && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes("ScriptingBox")) { // bcz: hack? don't execute script if you're clicking on a scripting box itself
+                        const func = () => this.onDoubleClickHandler.script.run({
+                            this: this.layoutDoc,
+                            self: this.rootDoc,
+                            thisContainer: this.props.ContainingCollectionDoc, shiftKey: e.shiftKey
+                        }, console.log);
+                        func();
+                    } else {
+                        const fullScreenAlias = Doc.MakeAlias(this.props.Document);
+                        if (StrCast(fullScreenAlias.layoutKey) !== "layout_fullScreen" && fullScreenAlias.layout_fullScreen) {
+                            fullScreenAlias.layoutKey = "layout_fullScreen";
+                        }
+                        UndoManager.RunInBatch(() => this.props.addDocTab(fullScreenAlias, "inTab"), "double tap");
+                        SelectionManager.DeselectAll();
+                        Doc.UnBrushDoc(this.props.Document);
                     }
-                    UndoManager.RunInBatch(() => this.props.addDocTab(fullScreenAlias, "inTab"), "double tap");
-                    SelectionManager.DeselectAll();
-                    Doc.UnBrushDoc(this.props.Document);
                 }
             } else if (this.onClickHandler?.script && !StrCast(Doc.LayoutField(this.layoutDoc))?.includes("ScriptingBox")) { // bcz: hack? don't execute script if you're clicking on a scripting box itself
                 //SelectionManager.DeselectAll();

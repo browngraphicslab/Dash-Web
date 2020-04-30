@@ -150,8 +150,8 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         this.createDashEventsTarget(ele!); //so the whole grid is the drop target?
     }
 
-    @computed get onChildClickHandler() { return ScriptCast(this.Document.onChildClick); }
-    @computed get onClickHandler() { return ScriptCast(this.Document.onChildClick); }
+    @computed get onChildClickHandler() { return this.props.childClickScript || ScriptCast(this.Document.onChildClick); }
+    @computed get onChildDoubleClickHandler() { return this.props.childDoubleClickScript || ScriptCast(this.Document.onChildDoubleClick); }
 
     addDocTab = (doc: Doc, where: string) => {
         if (where === "inPlace" && this.layoutDoc.isInPlaceContainer) {
@@ -178,7 +178,8 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             fitToBox={BoolCast(this.props.Document._freezeChildDimensions)}
             rootSelected={this.rootSelected}
             dropAction={StrCast(this.props.Document.childDropAction) as dropActionType}
-            onClick={layoutDoc.isTemplateDoc ? this.onClickHandler : this.onChildClickHandler}
+            onClick={this.onChildClickHandler}
+            onDoubleClick={this.onChildDoubleClickHandler}
             getTransform={dxf}
             focus={this.props.focus}
             CollectionDoc={this.props.CollectionView?.props.Document}

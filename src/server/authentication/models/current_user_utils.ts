@@ -594,9 +594,13 @@ export class CurrentUserUtils {
         if (doc.childClickFuncs === undefined) {
             const openInTarget = Docs.Create.ScriptingDocument(ScriptField.MakeScript(
                 "docCast(thisContainer.target).then((target) => { target && docCast(this.source).then((source) => { target.proto.data = new List([source || this]); } ); } )",
-                { target: Doc.name }), { title: "On Child Clicked (open in target)", _width: 300, _height: 200 });
+                { target: Doc.name }), { title: "On Child Clicked (open in target)", _width: 300, _height: 200, scriptKey: "onChildClick" });
 
-            doc.childClickFuncs = Docs.Create.TreeDocument([openInTarget], { title: "on Child Click function templates" });
+            const openDetail = Docs.Create.ScriptingDocument(ScriptField.MakeScript(
+                "openOnRight(self.doubleClickView)",
+                { target: Doc.name }), { title: "On Child Dbl Clicked (open double click view)", _width: 300, _height: 200, scriptKey: "onChildDoubleClick" });
+
+            doc.childClickFuncs = Docs.Create.TreeDocument([openInTarget, openDetail], { title: "on Child Click function templates" });
         }
         // this is equivalent to using PrefetchProxies to make sure all the childClickFuncs have been retrieved.
         PromiseValue(Cast(doc.childClickFuncs, Doc)).then(func => func && PromiseValue(func.data).then(DocListCast));

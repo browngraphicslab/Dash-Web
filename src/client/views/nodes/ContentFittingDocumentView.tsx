@@ -32,6 +32,7 @@ interface ContentFittingDocumentViewProps {
     CollectionView?: CollectionView;
     CollectionDoc?: Doc;
     onClick?: ScriptField;
+    onDoubleClick?: ScriptField;
     backgroundColor?: (doc: Doc) => string | undefined;
     getTransform: () => Transform;
     addDocument?: (document: Doc) => boolean;

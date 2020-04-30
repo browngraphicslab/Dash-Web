@@ -95,6 +95,7 @@ export interface DocumentOptions {
     hideHeadings?: boolean; // whether stacking view column headings should be hidden
     isTemplateForField?: string; // the field key for which the containing document is a rendering template
     isTemplateDoc?: boolean;
+    scriptKey?: string; // the script key that a child click func script template document will write into
     templates?: List<string>;
     backgroundColor?: string | ScriptField;  // background color for data doc 
     _backgroundColor?: string | ScriptField; // background color for each template layout doc ( overrides backgroundColor )
@@ -132,6 +133,7 @@ export interface DocumentOptions {
     activePen?: Doc; // which pen document is currently active (used as the radio button state for the 'unhecked' pen tool scripts)
     onClick?: ScriptField;
     onChildClick?: ScriptField; // script given to children of a collection to execute when they are clicked
+    onChildDoubleClick?: ScriptField; // script given to children of a collection to execute when they are double clicked
     onPointerDown?: ScriptField;
     onPointerUp?: ScriptField;
     dropConverter?: ScriptField; // script to run when documents are dropped on this Document.

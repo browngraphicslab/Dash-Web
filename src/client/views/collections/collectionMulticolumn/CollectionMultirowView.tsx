@@ -203,7 +203,7 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
 
 
     @computed get onChildClickHandler() { return ScriptCast(this.Document.onChildClick); }
-
+    @computed get onChildDoubleClickHandler() { return ScriptCast(this.Document.onChildDoubleClick); }
 
     addDocTab = (doc: Doc, where: string) => {
         if (where === "inPlace" && this.layoutDoc.isInPlaceContainer) {
@@ -229,6 +229,7 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
             rootSelected={this.rootSelected}
             dropAction={StrCast(this.props.Document.childDropAction) as dropActionType}
             onClick={this.onChildClickHandler}
+            onDoubleClick={this.onChildDoubleClickHandler}
             getTransform={dxf}
             focus={this.props.focus}
             CollectionDoc={this.props.CollectionView?.props.Document}

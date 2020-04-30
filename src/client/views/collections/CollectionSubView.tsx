@@ -43,6 +43,8 @@ export interface CollectionViewProps extends FieldViewProps {
 export interface SubCollectionViewProps extends CollectionViewProps {
     CollectionView: Opt<CollectionView>;
     children?: never | (() => JSX.Element[]) | React.ReactNode;
+    childClickScript?: ScriptField;
+    childDoubleClickScript?: ScriptField;
     freezeChildDimensions?: boolean; // used by TimeView to coerce documents to treat their width height as their native width/height
     overrideDocuments?: Doc[]; // used to override the documents shown by the sub collection to an explicit list (see LinkBox)
     ignoreFields?: string[]; // used in TreeView to ignore specified fields (see LinkBox)
