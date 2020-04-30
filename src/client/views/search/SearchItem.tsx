@@ -4,7 +4,7 @@ import { faCaretUp, faChartBar, faFile, faFilePdf, faFilm, faFingerprint, faGlob
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc } from "../../../new_fields/Doc";
+import { Doc, DocCastAsync } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { emptyFunction, emptyPath, returnFalse, Utils, returnTrue } from "../../../Utils";
@@ -24,7 +24,7 @@ import "./SearchItem.scss";
 import "./SelectorContextMenu.scss";
 import { FieldViewProps, FieldView } from "../nodes/FieldView";
 import { ViewBoxBaseComponent } from "../DocComponent";
-import { makeInterface } from "../../../new_fields/Schema";
+import { makeInterface, createSchema } from "../../../new_fields/Schema";
 import { documentSchema } from "../../../new_fields/documentSchemas";
 
 export interface SearchItemProps {
@@ -128,7 +128,14 @@ export class LinkContextMenu extends React.Component<LinkMenuProps> {
 
 
 type SearchSchema = makeInterface<[typeof documentSchema]>;
+
+export const SearchSchema = createSchema({
+    targetDoc: Doc,
+});
+
 const SearchDocument = makeInterface(documentSchema);
+
+
 
 @observer
 export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchema>(SearchDocument) {
@@ -138,23 +145,23 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
 
     onClick = () => {
         // I dont think this is the best functionality because clicking the name of the collection does that. Change it back if you'd like
-        DocumentManager.Instance.jumpToDocument(this.props.doc!, false);
+        DocumentManager.Instance.jumpToDocument(this.targetDoc, false);
     }
     @observable _useIcons = true;
     @observable _displayDim = 50;
 
     componentDidMount() {
-        Doc.SetSearchQuery(StrCast(this.props.doc!.query));
-        this.props.doc!.searchMatch = true;
+        Doc.SetSearchQuery(StrCast(this.targetDoc.query));
+        this.targetDoc.searchMatch = true;
     }
     componentWillUnmount() {
-        this.props.doc!.searchMatch = undefined;
+        this.targetDoc.searchMatch = undefined;
     }
 
     //@computed
     @action
     public DocumentIcon() {
-        const layoutresult = StrCast(this.props.doc!.type);
+        const layoutresult = StrCast(this.targetDoc.type);
         if (!this._useIcons) {
             const returnXDimension = () => this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE);
             const returnYDimension = () => this._displayDim;
@@ -165,10 +172,10 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
                 })}
                 onPointerEnter={action(() => this._displayDim = this._useIcons ? 50 : Number(SEARCH_THUMBNAIL_SIZE))} >
                 <ContentFittingDocumentView
-                    Document={this.props.doc!}
+                    Document={this.targetDoc}
                     LibraryPath={emptyPath}
                     rootSelected={returnFalse}
-                    fitToBox={StrCast(this.props.doc!.type).indexOf(DocumentType.COL) !== -1}
+                    fitToBox={StrCast(this.targetDoc.type).indexOf(DocumentType.COL) !== -1}
                     addDocument={returnFalse}
                     removeDocument={returnFalse}
                     addDocTab={returnFalse}
@@ -207,36 +214,36 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
     nextHighlight = (e: React.PointerEvent) => {
         e.preventDefault();
         e.button === 0 && SearchBox.Instance.openSearch(e);
-        this.props.doc!.searchMatch = false;
-        setTimeout(() => this.props.doc!.searchMatch = true, 0);
+        this.targetDoc!.searchMatch = false;
+        setTimeout(() => this.targetDoc!.searchMatch = true, 0);
     }
     highlightDoc = (e: React.PointerEvent) => {
-        if (this.props.doc!.type === DocumentType.LINK) {
-            if (this.props.doc!.anchor1 && this.props.doc!.anchor2) {
+        // if (this.targetDoc!.type === DocumentType.LINK) {
+        //     if (this.targetDoc!.anchor1 && this.targetDoc!.anchor2) {
 
-                const doc1 = Cast(this.props.doc!.anchor1, Doc, null);
-                const doc2 = Cast(this.props.doc!.anchor2, Doc, null);
-                Doc.BrushDoc(doc1);
-                Doc.BrushDoc(doc2);
-            }
-        } else {
-            Doc.BrushDoc(this.props.doc!);
-        }
+        //         const doc1 = Cast(this.targetDoc!.anchor1, Doc, null);
+        //         const doc2 = Cast(this.targetDoc!.anchor2, Doc, null);
+        //         Doc.BrushDoc(doc1);
+        //         Doc.BrushDoc(doc2);
+        //     }
+        // } else {
+        //     Doc.BrushDoc(this.targetDoc!);
+        // }
         e.stopPropagation();
     }
 
     unHighlightDoc = (e: React.PointerEvent) => {
-        if (this.props.doc!.type === DocumentType.LINK) {
-            if (this.props.doc!.anchor1 && this.props.doc!.anchor2) {
+        // if (this.targetDoc!.type === DocumentType.LINK) {
+        //     if (this.targetDoc!.anchor1 && this.targetDoc!.anchor2) {
 
-                const doc1 = Cast(this.props.doc!.anchor1, Doc, null);
-                const doc2 = Cast(this.props.doc!.anchor2, Doc, null);
-                Doc.UnBrushDoc(doc1);
-                Doc.UnBrushDoc(doc2);
-            }
-        } else {
-            Doc.UnBrushDoc(this.props.doc!);
-        }
+        //         const doc1 = Cast(this.targetDoc!.anchor1, Doc, null);
+        //         const doc2 = Cast(this.targetDoc!.anchor2, Doc, null);
+        //         Doc.UnBrushDoc(doc1);
+        //         Doc.UnBrushDoc(doc2);
+        //     }
+        // } else {
+        //     Doc.UnBrushDoc(this.targetDoc!);
+        // }
     }
 
     onContextMenu = (e: React.MouseEvent) => {
@@ -245,7 +252,7 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
         ContextMenu.Instance.clearItems();
         ContextMenu.Instance.addItem({
             description: "Copy ID", event: () => {
-                Utils.CopyText(this.props.doc![Id]);
+                Utils.CopyText(StrCast(this.targetDoc[Id]));
             },
             icon: "fingerprint"
         });
@@ -270,7 +277,7 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
             Math.abs(e.clientY - this._downY) > Utils.DRAG_THRESHOLD) {
             document.removeEventListener("pointermove", this.onPointerMoved);
             document.removeEventListener("pointerup", this.onPointerUp);
-            const doc = Doc.IsPrototype(this.props.doc!) ? Doc.MakeDelegate(this.props.doc!) : this.props.doc!;
+            const doc = Doc.IsPrototype(this.targetDoc) ? Doc.MakeDelegate(this.targetDoc) : this.targetDoc;
             DragManager.StartDocumentDrag([this._target], new DragManager.DocumentDragData([doc]), e.clientX, e.clientY);
         }
     }
@@ -281,30 +288,33 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
 
     @computed
     get contextButton() {
-        return <ParentDocSelector Document={this.props.doc!} addDocTab={(doc, where) => CollectionDockingView.AddRightSplit(doc)} />;
+        return <ParentDocSelector Document={this.targetDoc} addDocTab={(doc, where) => CollectionDockingView.AddRightSplit(doc)} />;
     }
 
+    @computed get searchElementDoc() { return this.rootDoc; }
+    @computed get targetDoc() { return this.searchElementDoc?.targetDoc as Doc; }
+
     render() {
-        const doc1 = Cast(this.props.doc!.anchor1, Doc);
-        const doc2 = Cast(this.props.doc!.anchor2, Doc);
+        // const doc1 = Cast(this.targetDoc!.anchor1, Doc);
+        // const doc2 = Cast(this.targetDoc!.anchor2, Doc);
         return <div className="searchItem-overview" onPointerDown={this.pointerDown} onContextMenu={this.onContextMenu}>
             <div className="searchItem" onPointerDown={this.nextHighlight} onPointerEnter={this.highlightDoc} onPointerLeave={this.unHighlightDoc}>
                 <div className="searchItem-body" onClick={this.onClick}>
                     <div className="searchItem-title-container">
-                        <div className="searchItem-title">{StrCast(this.props.doc!.title)}</div>
-                        <div className="searchItem-highlighting">{this.props.highlighting!.length ? "Matched fields:" + this.props.highlighting!.join(", ") : this.props.lines.length ? this.props.lines[0] : ""}</div>
-                        {this.props.lines!.filter((m, i) => i).map((l, i) => <div id={i.toString()} className="searchItem-highlighting">`${l}`</div>)}
+                        <div className="searchItem-title">{StrCast(this.targetDoc.title)}</div>
+                        {/* <div className="searchItem-highlighting">{this.props.highlighting!.length ? "Matched fields:" + this.targetDoc.highlighting!.join(", ") : this.props.lines.length ? this.props.lines[0] : ""}</div> */}
+                        {/* {this.props.lines!.filter((m, i) => i).map((l, i) => <div id={i.toString()} className="searchItem-highlighting">`${l}`</div>)} */}
                     </div>
                 </div>
                 <div className="searchItem-info" style={{ width: this._useIcons ? "30px" : "100%" }}>
                     <div className={`icon-${this._useIcons ? "icons" : "live"}`}>
                         <div className="searchItem-type" title="Click to Preview" onPointerDown={this.onPointerDown}>{this.DocumentIcon()}</div>
-                        <div className="searchItem-label">{this.props.doc!.type ? this.props.doc!.type : "Other"}</div>
+                        <div className="searchItem-label">{this.targetDoc.type ? this.targetDoc.type : "Other"}</div>
                     </div>
                 </div>
                 <div className="searchItem-context" title="Drag as document">
-                    {(doc1 instanceof Doc && doc2 instanceof Doc) && this.props.doc!.type === DocumentType.LINK ? <LinkContextMenu doc1={doc1} doc2={doc2} /> :
-                        this.contextButton}
+                    {/* {(doc1 instanceof Doc && doc2 instanceof Doc) && this.targetDoc!.type === DocumentType.LINK ? <LinkContextMenu doc1={doc1} doc2={doc2} /> :
+                        this.contextButton} */}
                 </div>
             </div>
         </div>;

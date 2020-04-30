@@ -79,8 +79,9 @@ const SearchBoxDocument = makeInterface(documentSchema, searchSchema);
 @observer
 export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDocument>(SearchBoxDocument) {
 
-    private get _searchString() { return this.props.searchQuery; }
-    private set _searchString(value) { this.props.setSearchQuery(value); }
+    // private get _searchString() { return this.rootDoc.searchQuery; }
+    // private set _searchString(value) { this.rootDoc.setSearchQuery(value); }
+    @observable private _searchString: string ="";
     @observable private _resultsOpen: boolean = false;
     @observable private _searchbarOpen: boolean = false;
     @observable private _results: [Doc, string[], string[]][] = [];
@@ -340,6 +341,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     @action
     submitSearch = async () => {
+        console.log(this._searchString);
         this.dataDoc[this.fieldKey] = new List<Doc>([]);
         const query = this._searchString;
         this.getFinalQuery(query);
@@ -368,15 +370,16 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     }
 
     private get filterQuery() {
-        const types = this.filterTypes;
-        const baseExpr = "NOT baseProto_b:true";
-        const includeDeleted = this.getDataStatus() ? "" : " NOT deleted_b:true";
-        const includeIcons = this.getDataStatus() ? "" : " NOT type_t:fonticonbox";
-        const typeExpr = !types ? "" : ` (${types.map(type => `({!join from=id to=proto_i}type_t:"${type}" AND NOT type_t:*) OR type_t:"${type}"`).join(" ")})`;
-        // fq: type_t:collection OR {!join from=id to=proto_i}type_t:collection   q:text_t:hello
-        const query = [baseExpr, includeDeleted, includeIcons, typeExpr].join(" AND ").replace(/AND $/, "");
-        return query;
-    }
+        // const types = this.filterTypes;
+        // const baseExpr = "NOT baseProto_b:true";
+        // const includeDeleted = this.getDataStatus() ? "" : " NOT deleted_b:true";
+        // const includeIcons = this.getDataStatus() ? "" : " NOT type_t:fonticonbox";
+        // const typeExpr = !types ? "" : ` (${types.map(type => `({!join from=id to=proto_i}type_t:"${type}" AND NOT type_t:*) OR type_t:"${type}"`).join(" ")})`;
+        // // fq: type_t:collection OR {!join from=id to=proto_i}type_t:collection   q:text_t:hello
+        // const query = [baseExpr, includeDeleted, includeIcons, typeExpr].join(" AND ").replace(/AND $/, "");
+        // return query;
+        return "";
+        }
 
     getDataStatus() { return this._deletedDocsStatus; }
 
@@ -402,7 +405,8 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                     const docs = await Promise.all(res.docs.map(async doc => (await Cast(doc.extendsDoc, Doc)) || doc));
                     const highlights: typeof res.highlighting = {};
                     docs.forEach((doc, index) => highlights[doc[Id]] = highlightList[index]);
-                    const filteredDocs = this.filterDocsByType(docs);
+                    const filteredDocs = docs;
+                    //this.filterDocsByType(docs);
                     runInAction(() => {
                         //this._results.push(...filteredDocs);
                         filteredDocs.forEach(doc => {
@@ -556,10 +560,8 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                             result[0].highlighting=new List<string>(highlights);
 
                             this._visibleElements[i] = <SearchItem {...this.props} doc={result[0]} lines={result[2]} highlighting={highlights} />;
-                            debugger;
-                            Doc.AddDocToList(this.dataDoc, this.props.fieldKey, result[0])
-                            //this.fieldkey + dash search results
-                            //ask about document parmater in collection view
+                            result[0].targetDoc=result[0];
+                            Doc.AddDocToList(this.dataDoc, this.props.fieldKey, result[0]);
                             this._isSearch[i] = "search";
                         }
                     }
@@ -572,8 +574,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                             result[0].highlighting=new List<string>(highlights);
 
                             this._visibleElements[i] = <SearchItem {...this.props} doc={result[0]} lines={result[2]} highlighting={highlights} />;
-                            debugger;
-
+                            result[0].targetDoc=result[0];
                             Doc.AddDocToList(this.dataDoc, this.props.fieldKey, result[0])
                             this._isSearch[i] = "search";
                         }
@@ -963,7 +964,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                     height: this.resFull ? "auto" : this.resultHeight,
                     overflow: "visibile" // this.resFull ? "auto" : "visible"
                 }} ref={this._resultsRef}>
-                    {this._visibleElements}
+                    {this._visibleElements.length}
                     
                     
                 </div>
