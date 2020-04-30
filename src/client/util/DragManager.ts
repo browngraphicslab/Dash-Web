@@ -324,7 +324,7 @@ export namespace DragManager {
         else if (distFromClosestRight < 10) {
             thisX = closestRight - xFromRight;
         }
-        if (distFromClosestTop < 10 && distFromClosestTop < distFromClosestRight) {
+        if (distFromClosestTop < 10 && distFromClosestTop < distFromClosestBottom) {
             thisY = closestTop + yFromTop;
         }
         else if (distFromClosestBottom < 10) {
