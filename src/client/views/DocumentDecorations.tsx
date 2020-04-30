@@ -20,6 +20,7 @@ import React = require("react");
 import { Id } from '../../new_fields/FieldSymbols';
 import e = require('express');
 import { CollectionDockingView } from './collections/CollectionDockingView';
+import { MainView } from './MainView';
 
 library.add(faCaretUp);
 library.add(faObjectGroup);
@@ -46,6 +47,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     private _linkBoxHeight = 20 + 3; // link button height + margin
     private _titleHeight = 20;
     private _resizeUndo?: UndoManager.Batch;
+    private _offX = 0; _offY = 0;  // offset from click pt to inner edge of resize border
+    private _snapX = 0; _snapY = 0; // last snapped location of resize border
     @observable private _accumulatedTitle = "";
     @observable private _titleControlString: string = "#title";
     @observable private _edtingTitle = false;
@@ -238,12 +241,24 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         setupMoveUpEvents(this, e, this.onPointerMove, this.onPointerUp, (e) => { });
         if (e.button === 0) {
             this._resizeHdlId = e.currentTarget.id;
+            const bounds = e.currentTarget.getBoundingClientRect();
+            this._offX = this._resizeHdlId.toLowerCase().includes("left") ? bounds.right - e.clientX : bounds.left - e.clientX;
+            this._offY = this._resizeHdlId.toLowerCase().includes("top") ? bounds.bottom - e.clientY : bounds.top - e.clientY;
             this.Interacting = true;
             this._resizeUndo = UndoManager.StartBatch("DocDecs resize");
+            SelectionManager.SelectedDocuments()[0].props.setupDragLines?.();
         }
+        this._snapX = e.pageX;
+        this._snapY = e.pageY;
     }
 
     onPointerMove = (e: PointerEvent, down: number[], move: number[]): boolean => {
+        const { thisX, thisY } = DragManager.snapDrag(e, -this._offX, -this._offY, this._offX, this._offY);
+        move[0] = thisX - this._snapX;
+        move[1] = thisY - this._snapY;
+        this._snapX = thisX;
+        this._snapY = thisY;
+
         let dX = 0, dY = 0, dW = 0, dH = 0;
 
         switch (this._resizeHdlId) {
@@ -349,6 +364,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         this.Interacting = false;
         (e.button === 0) && this._resizeUndo?.end();
         this._resizeUndo = undefined;
+        MainView.Instance._hLines = [];
+        MainView.Instance._vLines = [];
     }
 
     @computed

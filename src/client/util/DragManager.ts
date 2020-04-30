@@ -20,6 +20,7 @@ import { DocumentView } from "../views/nodes/DocumentView";
 import { UndoManager } from "./UndoManager";
 import { PointData } from "../../new_fields/InkField";
 import { MainView } from "../views/MainView";
+import { action } from "mobx";
 
 export type dropActionType = "alias" | "copy" | "move" | undefined; // undefined = move
 export function SetupDrag(
@@ -303,7 +304,7 @@ export namespace DragManager {
         MainView.Instance._vLines = vertLines;
     }
 
-    function snapDrag(e: PointerEvent, xFromLeft: number, yFromTop: number, xFromRight: number, yFromBottom: number) {
+    export function snapDrag(e: PointerEvent, xFromLeft: number, yFromTop: number, xFromRight: number, yFromBottom: number) {
         let thisX = e.pageX;
         let thisY = e.pageY;
         const currLeft = e.pageX - xFromLeft;
@@ -454,10 +455,14 @@ export namespace DragManager {
             dragElements.map(dragElement => dragElement.parentNode === dragDiv && dragDiv.removeChild(dragElement));
             eles.map(ele => ele.parentElement && ele.parentElement?.className === dragData.dragDivName ? (ele.parentElement.hidden = false) : (ele.hidden = false));
         };
-        const endDrag = () => {
+        const endDrag = action(() => {
             document.removeEventListener("pointermove", moveHandler, true);
             document.removeEventListener("pointerup", upHandler);
-        };
+            MainView.Instance._hLines = [];
+            MainView.Instance._vLines = [];
+            vertSnapLines.length = 0;
+            horizSnapLines.length = 0;
+        });
 
         AbortDrag = () => {
             hideDragShowOriginalElements();
