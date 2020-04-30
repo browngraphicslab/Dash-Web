@@ -255,7 +255,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
                     ScriptBox.EditButtonScript(func.name + "...", this.props.Document, func.key, obj.x, obj.y, { thisContainer: Doc.name });
                 }
             }));
-            DocListCast(Cast(Doc.UserDoc().childClickFuncs, Doc, null).data).forEach(childClick =>
+            DocListCast(Cast(Doc.UserDoc()["clickFuncs-child"], Doc, null).data).forEach(childClick =>
                 onClicks.push({
                     description: `Set child ${childClick.title}`,
                     icon: "edit",

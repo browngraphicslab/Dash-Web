@@ -591,7 +591,7 @@ export class CurrentUserUtils {
     }
 
     static setupClickEditorTemplates(doc: Doc) {
-        if (doc.childClickFuncs === undefined) {
+        if (doc["clickFuncs-child"] === undefined) {
             const openInTarget = Docs.Create.ScriptingDocument(ScriptField.MakeScript(
                 "docCast(thisContainer.target).then((target) => {" +
                 "     target && docCast(this.source).then((source) => { " +
@@ -604,10 +604,10 @@ export class CurrentUserUtils {
                 "openOnRight(self.doubleClickView)",
                 { target: Doc.name }), { title: "Double click to open doubleClickView", _width: 300, _height: 200, targetScriptKey: "onChildDoubleClick" });
 
-            doc.childClickFuncs = Docs.Create.TreeDocument([openInTarget, openDetail], { title: "on Child Click function templates" });
+            doc["clickFuncs-child"] = Docs.Create.TreeDocument([openInTarget, openDetail], { title: "on Child Click function templates" });
         }
         // this is equivalent to using PrefetchProxies to make sure all the childClickFuncs have been retrieved.
-        PromiseValue(Cast(doc.childClickFuncs, Doc)).then(func => func && PromiseValue(func.data).then(DocListCast));
+        PromiseValue(Cast(doc["clickFuncs-child"], Doc)).then(func => func && PromiseValue(func.data).then(DocListCast));
 
         if (doc.clickFuncs === undefined) {
             const onClick = Docs.Create.ScriptingDocument(undefined, {
