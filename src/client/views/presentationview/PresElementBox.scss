@@ -1,5 +1,4 @@
 .presElementBox-item {
-    padding: 10px;
     display: inline-block;
     background-color: #eeeeee;
     pointer-events: all;
@@ -16,7 +15,6 @@
     user-select: none;
     transition: all .1s; 
     padding: 0px;
-    padding-left: 5px;
     padding-bottom: 3px;
     .documentView-node {
         position: absolute;
@@ -38,7 +36,7 @@
     border-radius: 6px;
 }
 
-.presElementBox-selected {
+.presElementBox-active {
     background: gray;
     color: black;
     border-radius: 6px;
@@ -54,20 +52,27 @@
     padding: 8px;
 }
 
-.presElementBox-interaction {
-    color: gray;
-    float: left;
-    padding: 0px;
-    width: 20px;
-    height: 20px;
-}
 
-.presElementBox-interaction-selected {
-    color: white;
-    float: left;
-    padding: 0px;
-    width: 22px;
-    height: 22px;
+.presElementBox-buttons {
+    display: flow-root;
+    position: relative;
+    width: 100%;
+    height: auto;
+    .presElementBox-interaction {
+        color: gray;
+        float: left;
+        padding: 0px;
+        width: 20px;
+        height: 20px;
+    }
+    .presElementBox-interaction-selected {
+        color: white;
+        float: left;
+        padding: 0px;
+        width: 20px;
+        height: 20px;
+        border: solid 1px darkgray;
+    }
 }
 
 .presElementBox-name {
@@ -82,14 +87,10 @@
 
 .presElementBox-embedded {
     position: relative;
-    margin-top: 22;
     display: flex;
     width: auto;
     justify-content: center;
-    .contentFittingDocumentView {
-        position: absolute;
-        height: 100%;
-    }
+    margin:auto;
 }
 
 .presElementBox-embeddedMask {
