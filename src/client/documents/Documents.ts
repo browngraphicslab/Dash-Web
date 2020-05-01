@@ -379,6 +379,15 @@ export namespace Docs {
      */
     export namespace Create {
 
+        /**
+         * Synchronously returns a collection into which
+         * the device documents will be put. This is initially empty,
+         * but gets populated by updates from the web socket. When everything is over,
+         * this function cleans up after itself.
+         * s
+         * Look at Websocket.ts for the server-side counterpart to this
+         * function.
+         */
         export function Buxton() {
             let responded = false;
             const loading = new Doc;
@@ -391,9 +400,13 @@ export namespace Docs {
             });
             const parentProto = Doc.GetProto(parent);
             const { _socket } = DocServer;
+
+            // just in case, clean up
             _socket.off(MessageStore.BuxtonDocumentResult.Message);
             _socket.off(MessageStore.BuxtonImportComplete.Message);
-            Utils.AddServerHandler(_socket, MessageStore.BuxtonDocumentResult, ({ device, errors }) => {
+
+            // this is where the client handles the receipt of a new valid parsed document
+            Utils.AddServerHandler(_socket, MessageStore.BuxtonDocumentResult, ({ device, invalid: errors }) => {
                 if (!responded) {
                     responded = true;
                     parentProto.data = new List<Doc>();
@@ -408,9 +421,11 @@ export namespace Docs {
                         _nativeWidth: nativeWidth,
                         _nativeHeight: nativeHeight
                     }));
+                    // the main document we create
                     const doc = StackingDocument(deviceImages, { title: device.title, _LODdisable: true });
                     const deviceProto = Doc.GetProto(doc);
                     deviceProto.hero = new ImageField(constructed[0].url);
+                    // add the parsed attributes to this main document
                     Docs.Get.FromJson({ data: device, appendToExisting: { targetDoc: deviceProto } });
                     Doc.AddDocToList(parentProto, "data", doc);
                 } else if (errors) {
@@ -419,14 +434,17 @@ export namespace Docs {
                     alert("A Buxton document import was completely empty (??)");
                 }
             });
+
+            // when the import is complete, we stop listening for these creation
+            // and termination events and alert the user
             Utils.AddServerHandler(_socket, MessageStore.BuxtonImportComplete, ({ deviceCount, errorCount }) => {
                 _socket.off(MessageStore.BuxtonDocumentResult.Message);
                 _socket.off(MessageStore.BuxtonImportComplete.Message);
                 alert(`Successfully imported ${deviceCount} device${deviceCount === 1 ? "" : "s"}, with ${errorCount} error${errorCount === 1 ? "" : "s"}, in ${(Date.now() - startTime) / 1000} seconds.`);
             });
             const startTime = Date.now();
-            Utils.Emit(_socket, MessageStore.BeginBuxtonImport, "");
-            return parent;
+            Utils.Emit(_socket, MessageStore.BeginBuxtonImport, ""); // signal the server to start importing
+            return parent; // synchronously return the collection, to be populateds
         }
 
         Scripting.addGlobal(Buxton);

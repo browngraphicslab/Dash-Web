@@ -10,7 +10,6 @@ import { GoogleCredentialsLoader } from "../credentials/CredentialsLoader";
 import { logPort } from "../ActionUtilities";
 import { timeMap } from "../ApiManagers/UserManager";
 import { green } from "colors";
-import { serverPathToFile, Directory } from "../ApiManagers/UploadManager";
 import { networkInterfaces } from "os";
 import executeImport from "../../scraping/buxton/final/BuxtonImporter";
 
@@ -111,6 +110,12 @@ export namespace WebSocket {
             Utils.AddServerHandler(socket, MessageStore.MobileDocumentUpload, content => processMobileDocumentUpload(socket, content));
             Utils.AddServerHandlerCallback(socket, MessageStore.GetRefField, GetRefField);
             Utils.AddServerHandlerCallback(socket, MessageStore.GetRefFields, GetRefFields);
+
+            /**
+             * Whenever we receive the go-ahead, invoke the import script and pass in
+             * as an emitter and a terminator the functions that simply broadcast a result
+             * or indicate termination to the client via the web socket
+             */
             Utils.AddServerHandler(socket, MessageStore.BeginBuxtonImport, () => {
                 executeImport(
                     deviceOrError => Utils.Emit(socket, MessageStore.BuxtonDocumentResult, deviceOrError),

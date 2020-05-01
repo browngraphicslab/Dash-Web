@@ -9,7 +9,6 @@ import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
 import { ScriptField, ComputedField } from "../../../new_fields/ScriptField";
 import { Cast, PromiseValue, StrCast, NumCast } from "../../../new_fields/Types";
-import { Utils } from "../../../Utils";
 import { nullAudio, ImageField } from "../../../new_fields/URLField";
 import { DragManager } from "../../../client/util/DragManager";
 import { InkingControl } from "../../../client/views/InkingControl";
