@@ -86,7 +86,11 @@ export class CurrentUserUtils {
         if (doc["template-button-detail"] === undefined) {
             const { TextDocument, MasonryDocument, CarouselDocument } = Docs.Create;
 
-            const carousel = CarouselDocument([], { title: "data", _height: 350, _itemIndex: 0, "_carousel-caption-xMargin": 10, "_carousel-caption-yMargin": 10, backgroundColor: "#9b9b9b3F" });
+            const openInTarget = ScriptField.MakeScript("openOnRight(self.doubleClickView)");
+            const carousel = CarouselDocument([], {
+                title: "data", _height: 350, _itemIndex: 0, "_carousel-caption-xMargin": 10, "_carousel-caption-yMargin": 10,
+                onChildDoubleClick: openInTarget, backgroundColor: "#9b9b9b3F"
+            });
 
             const details = TextDocument("", { title: "details", _height: 350, _autoHeight: true });
             const short = TextDocument("", { title: "shortDescription", treeViewOpen: true, treeViewExpandedView: "layout", _height: 100, _autoHeight: true });
@@ -615,10 +619,14 @@ export class CurrentUserUtils {
                 title: "onClick", "onClick-rawScript": "console.log('click')",
                 isTemplateDoc: true, isTemplateForField: "onClick", _width: 300, _height: 200
             }, "onClick");
+            const onDoubleClick = Docs.Create.ScriptingDocument(undefined, {
+                title: "onDoubleClick", "onDoubleClick-rawScript": "console.log('double click')",
+                isTemplateDoc: true, isTemplateForField: "onDoubleClick", _width: 300, _height: 200
+            }, "onDoubleClick");
             const onCheckedClick = Docs.Create.ScriptingDocument(undefined, {
                 title: "onCheckedClick", "onCheckedClick-rawScript": "console.log(heading + checked + containingTreeView)", "onCheckedClick-params": new List<string>(["heading", "checked", "containingTreeView"]), isTemplateDoc: true, isTemplateForField: "onCheckedClick", _width: 300, _height: 200
             }, "onCheckedClick");
-            doc.clickFuncs = Docs.Create.TreeDocument([onClick, onCheckedClick], { title: "onClick funcs" });
+            doc.clickFuncs = Docs.Create.TreeDocument([onClick, onDoubleClick, onCheckedClick], { title: "onClick funcs" });
         }
         PromiseValue(Cast(doc.clickFuncs, Doc)).then(func => func && PromiseValue(func.data).then(DocListCast));
 

@@ -4,7 +4,7 @@ import { observer } from 'mobx-react';
 import * as React from 'react';
 import { documentSchema } from '../../../new_fields/documentSchemas';
 import { makeInterface } from '../../../new_fields/Schema';
-import { NumCast, StrCast } from '../../../new_fields/Types';
+import { NumCast, StrCast, ScriptCast } from '../../../new_fields/Types';
 import { DragManager } from '../../util/DragManager';
 import { ContentFittingDocumentView } from '../nodes/ContentFittingDocumentView';
 import "./CollectionCarouselView.scss";
@@ -48,6 +48,8 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
             <>
                 <div className="collectionCarouselView-image" key="image">
                     <ContentFittingDocumentView {...this.props}
+                        onDoubleClick={ScriptCast(this.layoutDoc.onChildDoubleClick)}
+                        onClick={ScriptCast(this.layoutDoc.onChildClick)}
                         renderDepth={this.props.renderDepth + 1}
                         Document={this.childLayoutPairs[index].layout}
                         DataDoc={this.childLayoutPairs[index].data}
