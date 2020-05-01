@@ -11,7 +11,7 @@ import { listSpec } from "../../../new_fields/Schema";
 import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from "../../../new_fields/Types";
 import { TraceMobx } from "../../../new_fields/util";
-import { Utils, setupMoveUpEvents, emptyFunction, returnZero, returnOne } from "../../../Utils";
+import { Utils, setupMoveUpEvents, emptyFunction, returnZero, returnOne, returnFalse } from "../../../Utils";
 import { DragManager, dropActionType } from "../../util/DragManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
@@ -165,12 +165,13 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         const height = () => this.getDocHeight(doc);
         return <ContentFittingDocumentView
             Document={doc}
-            DataDocument={dataDoc || (doc[DataSym] !== doc && doc[DataSym])}
+            DataDoc={dataDoc || (doc[DataSym] !== doc && doc[DataSym])}
             backgroundColor={this.props.backgroundColor}
             LayoutDoc={this.props.childLayoutTemplate}
             LibraryPath={this.props.LibraryPath}
             FreezeDimensions={this.props.freezeChildDimensions}
             renderDepth={this.props.renderDepth + 1}
+            RenderData={this.props.RenderData}
             PanelWidth={width}
             PanelHeight={height}
             NativeHeight={returnZero}
@@ -180,16 +181,18 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
             dropAction={StrCast(this.props.Document.childDropAction) as dropActionType}
             onClick={this.onChildClickHandler}
             onDoubleClick={this.onChildDoubleClickHandler}
-            getTransform={dxf}
+            ScreenToLocalTransform={dxf}
             focus={this.props.focus}
-            CollectionDoc={this.props.CollectionView?.props.Document}
-            CollectionView={this.props.CollectionView}
+            ContainingCollectionDoc={this.props.CollectionView?.props.Document}
+            ContainingCollectionView={this.props.CollectionView}
             addDocument={this.props.addDocument}
             moveDocument={this.props.moveDocument}
             removeDocument={this.props.removeDocument}
-            active={this.props.active}
+            parentActive={this.props.active}
             whenActiveChanged={this.props.whenActiveChanged}
             addDocTab={this.addDocTab}
+            bringToFront={returnFalse}
+            ContentScaling={returnOne}
             pinToPres={this.props.pinToPres}
         />;
     }

@@ -4,7 +4,7 @@ import { EditorView } from "prosemirror-view";
 import * as ReactDOM from 'react-dom';
 import { Doc, DocCastAsync } from "../../../../new_fields/Doc";
 import { Cast, FieldValue, NumCast } from "../../../../new_fields/Types";
-import { emptyFunction, returnEmptyString, returnFalse, Utils, emptyPath } from "../../../../Utils";
+import { emptyFunction, returnEmptyString, returnFalse, Utils, emptyPath, returnZero, returnOne } from "../../../../Utils";
 import { DocServer } from "../../../DocServer";
 import { DocumentManager } from "../../../util/DocumentManager";
 import { schema } from "./schema_rts";
@@ -192,18 +192,24 @@ export class FormattedTextBoxComment {
                                     fitToBox={true}
                                     moveDocument={returnFalse}
                                     rootSelected={returnFalse}
-                                    getTransform={Transform.Identity}
-                                    active={returnFalse}
+                                    ScreenToLocalTransform={Transform.Identity}
+                                    parentActive={returnFalse}
                                     addDocument={returnFalse}
                                     removeDocument={returnFalse}
                                     addDocTab={returnFalse}
                                     pinToPres={returnFalse}
                                     dontRegisterView={true}
+                                    ContainingCollectionDoc={undefined}
+                                    ContainingCollectionView={undefined}
                                     renderDepth={1}
                                     PanelWidth={() => Math.min(350, NumCast(target._width, 350))}
                                     PanelHeight={() => Math.min(250, NumCast(target._height, 250))}
                                     focus={emptyFunction}
                                     whenActiveChanged={returnFalse}
+                                    bringToFront={returnFalse}
+                                    ContentScaling={returnOne}
+                                    NativeWidth={returnZero}
+                                    NativeHeight={returnZero}
                                 />, FormattedTextBoxComment.tooltipText);
                                 FormattedTextBoxComment.tooltip.style.width = NumCast(target.width) ? `${NumCast(target.width)}` : "100%";
                                 FormattedTextBoxComment.tooltip.style.height = NumCast(target.height) ? `${NumCast(target.height)}` : "100%";

@@ -16,6 +16,7 @@ import { FieldView, FieldViewProps } from './FieldView';
 import "./PresBox.scss";
 import { ViewBoxBaseComponent } from "../DocComponent";
 import { makeInterface } from "../../../new_fields/Schema";
+import { List } from "../../../new_fields/List";
 
 type PresBoxSchema = makeInterface<[typeof documentSchema]>;
 const PresBoxDocument = makeInterface(documentSchema);
@@ -23,20 +24,15 @@ const PresBoxDocument = makeInterface(documentSchema);
 @observer
 export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>(PresBoxDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(PresBox, fieldKey); }
-    private _childReaction: IReactionDisposer | undefined;
     @observable _isChildActive = false;
     @computed get childDocs() { return DocListCast(this.dataDoc[this.fieldKey]); }
     @computed get currentIndex() { return NumCast(this.rootDoc._itemIndex); }
 
     componentDidMount() {
+        this.rootDoc.presBox = this.rootDoc;
         this.rootDoc._forceRenderEngine = "timeline";
         this.rootDoc._replacedChrome = "replaced";
-        this._childReaction = reaction(() => this.childDocs.slice(), (children) => children.forEach((child, i) => child.presentationIndex = i), { fireImmediately: true });
     }
-    componentWillUnmount() {
-        this._childReaction?.();
-    }
-
     updateCurrentPresentation = () => Doc.UserDoc().activePresentation = this.rootDoc;
 
     @undoBatch
@@ -247,16 +243,12 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
 
     initializeViewAliases = (docList: Doc[], viewtype: CollectionViewType) => {
         const hgt = (viewtype === CollectionViewType.Tree) ? 50 : 46;
-        docList.forEach(doc => {
-            doc.presBox = this.rootDoc; // give contained documents a reference to the presentation
-            doc.presCollapsedHeight = hgt;  //  set the collpased height for documents based on the type of view (Tree or Stack) they will be displaye din
-        });
+        this.rootDoc.presCollapsedHeight = hgt;
     }
 
     addDocument = (doc: Doc) => {
-        const newPinDoc = Doc.MakeAlias(doc);
-        newPinDoc.presentationTargetDoc = doc;
-        return Doc.AddDocToList(this.dataDoc, this.fieldKey, newPinDoc);
+        doc.presentationTargetDoc = doc.aliasOf;
+        return Doc.AddDocToList(this.dataDoc, this.fieldKey, doc);
     }
 
     removeDocument = (doc: Doc) => Doc.RemoveDocFromList(this.dataDoc, this.fieldKey, doc);
@@ -280,8 +272,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         this.updateMinimize(e, this.rootDoc._viewType = viewType);
     });
 
+    returnSelf = () => this.rootDoc;
     childLayoutTemplate = () => this.rootDoc._viewType === CollectionViewType.Stacking ? Cast(Doc.UserDoc()["template-presentation"], Doc, null) : undefined;
     render() {
+        this.rootDoc.presOrderedDocs = new List<Doc>(this.childDocs.map((child, i) => child));
         const mode = StrCast(this.rootDoc._viewType) as CollectionViewType;
         this.initializeViewAliases(this.childDocs, mode);
         return <div className="presBox-cont" style={{ minWidth: this.layoutDoc.inOverlay ? 240 : undefined }} >
@@ -314,6 +308,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                         childLayoutTemplate={this.childLayoutTemplate}
                         addDocument={this.addDocument}
                         removeDocument={returnFalse}
+                        RenderData={this.returnSelf}
                         focus={this.selectElement}
                         ScreenToLocalTransform={this.getTransform} />
                     : (null)

@@ -14,7 +14,7 @@ import "./collectionMulticolumnView.scss";
 import ResizeBar from './MulticolumnResizer';
 import WidthLabel from './MulticolumnWidthLabel';
 import { List } from '../../../../new_fields/List';
-import { returnZero } from '../../../../Utils';
+import { returnZero, returnFalse, returnOne } from '../../../../Utils';
 
 type MulticolumnDocument = makeInterface<[typeof documentSchema]>;
 const MulticolumnDocument = makeInterface(documentSchema);
@@ -216,7 +216,7 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
     getDisplayDoc(layout: Doc, dxf: () => Transform, width: () => number, height: () => number) {
         return <ContentFittingDocumentView
             Document={layout}
-            DataDocument={layout.resolvedDataDoc as Doc}
+            DataDoc={layout.resolvedDataDoc as Doc}
             backgroundColor={this.props.backgroundColor}
             LayoutDoc={this.props.childLayoutTemplate}
             LibraryPath={this.props.LibraryPath}
@@ -231,17 +231,19 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
             dropAction={StrCast(this.props.Document.childDropAction) as dropActionType}
             onClick={this.onChildClickHandler}
             onDoubleClick={this.onChildDoubleClickHandler}
-            getTransform={dxf}
+            ScreenToLocalTransform={dxf}
             focus={this.props.focus}
-            CollectionDoc={this.props.CollectionView?.props.Document}
-            CollectionView={this.props.CollectionView}
+            ContainingCollectionDoc={this.props.CollectionView?.props.Document}
+            ContainingCollectionView={this.props.CollectionView}
             addDocument={this.props.addDocument}
             moveDocument={this.props.moveDocument}
             removeDocument={this.props.removeDocument}
-            active={this.props.active}
+            parentActive={this.props.active}
             whenActiveChanged={this.props.whenActiveChanged}
             addDocTab={this.addDocTab}
             pinToPres={this.props.pinToPres}
+            bringToFront={returnFalse}
+            ContentScaling={returnOne}
         />;
     }
     /**

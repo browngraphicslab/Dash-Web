@@ -14,6 +14,7 @@ import { Doc } from '../../../new_fields/Doc';
 import { FormattedTextBox } from '../nodes/formattedText/FormattedTextBox';
 import { ContextMenu } from '../ContextMenu';
 import { ObjectField } from '../../../new_fields/ObjectField';
+import { returnFalse } from '../../../Utils';
 
 type CarouselDocument = makeInterface<[typeof documentSchema,]>;
 const CarouselDocument = makeInterface(documentSchema);
@@ -49,9 +50,12 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
                     <ContentFittingDocumentView {...this.props}
                         renderDepth={this.props.renderDepth + 1}
                         Document={this.childLayoutPairs[index].layout}
-                        DataDocument={this.childLayoutPairs[index].data}
+                        DataDoc={this.childLayoutPairs[index].data}
                         PanelHeight={this.panelHeight}
-                        getTransform={this.props.ScreenToLocalTransform} />
+                        ScreenToLocalTransform={this.props.ScreenToLocalTransform}
+                        bringToFront={returnFalse}
+                        parentActive={this.props.active}
+                    />
                 </div>
                 <div className="collectionCarouselView-caption" key="caption"
                     style={{

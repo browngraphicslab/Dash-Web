@@ -56,6 +56,7 @@ export interface FieldViewProps {
     width?: number;
     background?: string;
     color?: string;
+    RenderData?: () => Doc;
 }
 
 @observer

@@ -81,6 +81,7 @@ export interface DocumentOptions {
     author?: string;
     dropAction?: dropActionType;
     childDropAction?: dropActionType;
+    targetDropAction?: dropActionType;
     layoutKey?: string;
     type?: string;
     title?: string;

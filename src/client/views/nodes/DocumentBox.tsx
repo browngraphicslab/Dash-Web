@@ -6,7 +6,7 @@ import { documentSchema } from "../../../new_fields/documentSchemas";
 import { makeInterface } from "../../../new_fields/Schema";
 import { ComputedField } from "../../../new_fields/ScriptField";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
-import { emptyPath } from "../../../Utils";
+import { emptyPath, returnFalse, returnOne, returnZero } from "../../../Utils";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { ViewBoxAnnotatableComponent } from "../DocComponent";
@@ -114,9 +114,10 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
         }
         const contents = !(containedDoc instanceof Doc) ? (null) : <ContentFittingDocumentView
             Document={containedDoc}
-            DataDocument={undefined}
+            DataDoc={undefined}
             LibraryPath={emptyPath}
-            CollectionView={this as any} // bcz: hack!  need to pass a prop that can be used to select the container (ie, 'this') when the up selector in document decorations is clicked.  currently, the up selector allows only a containing collection to be selected
+            ContainingCollectionView={this as any} // bcz: hack!  need to pass a prop that can be used to select the container (ie, 'this') when the up selector in document decorations is clicked.  currently, the up selector allows only a containing collection to be selected
+            ContainingCollectionDoc={undefined}
             fitToBox={true}
             layoutKey={childTemplateName ? "layout_" + childTemplateName : "layout"}
             rootSelected={this.props.isSelected}
@@ -125,14 +126,18 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
             removeDocument={this.props.removeDocument}
             addDocTab={this.props.addDocTab}
             pinToPres={this.props.pinToPres}
-            getTransform={this.getTransform}
+            ScreenToLocalTransform={this.getTransform}
             renderDepth={this.props.renderDepth + 1}
+            NativeHeight={returnZero}
+            NativeWidth={returnZero}
             PanelWidth={this.pwidth}
             PanelHeight={this.pheight}
             focus={this.props.focus}
-            active={this.props.active}
+            parentActive={this.props.active}
             dontRegisterView={!this.isSelectionLocked()}
             whenActiveChanged={this.props.whenActiveChanged}
+            bringToFront={returnFalse}
+            ContentScaling={returnOne}
         />;
         return contents;
     }

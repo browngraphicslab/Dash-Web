@@ -353,27 +353,31 @@ class TreeView extends React.Component<TreeViewProps> {
             return <div ref={this._dref} style={{ display: "inline-block", height: panelHeight() }} key={this.props.document[Id] + this.props.document.title}>
                 <ContentFittingDocumentView
                     Document={layoutDoc}
-                    DataDocument={this.templateDataDoc}
+                    DataDoc={this.templateDataDoc}
                     LibraryPath={emptyPath}
                     renderDepth={this.props.renderDepth + 1}
                     rootSelected={returnTrue}
                     backgroundColor={this.props.backgroundColor}
                     fitToBox={this.boundsOfCollectionDocument !== undefined}
                     FreezeDimensions={true}
-                    NativeWidth={layoutDoc.type === DocumentType.RTF ? this.rtfWidth : undefined}
-                    NativeHeight={layoutDoc.type === DocumentType.RTF ? this.rtfHeight : undefined}
+                    NativeWidth={layoutDoc.type === DocumentType.RTF ? this.rtfWidth : returnZero}
+                    NativeHeight={layoutDoc.type === DocumentType.RTF ? this.rtfHeight : returnZero}
                     PanelWidth={panelWidth}
                     PanelHeight={panelHeight}
-                    getTransform={this.docTransform}
-                    CollectionDoc={this.props.containingCollection}
-                    CollectionView={undefined}
+                    focus={returnFalse}
+                    ScreenToLocalTransform={this.docTransform}
+                    ContainingCollectionDoc={this.props.containingCollection}
+                    ContainingCollectionView={undefined}
                     addDocument={returnFalse}
                     moveDocument={this.props.moveDocument}
                     removeDocument={returnFalse}
-                    active={this.props.active}
+                    parentActive={this.props.active}
                     whenActiveChanged={emptyFunction}
                     addDocTab={this.props.addDocTab}
-                    pinToPres={this.props.pinToPres} />
+                    pinToPres={this.props.pinToPres}
+                    bringToFront={returnFalse}
+                    ContentScaling={returnOne}
+                />
             </div>;
         }
     }

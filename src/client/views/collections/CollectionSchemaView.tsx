@@ -27,7 +27,7 @@ import "./CollectionSchemaView.scss";
 import { CollectionSubView } from "./CollectionSubView";
 import { CollectionView } from "./CollectionView";
 import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
-import { setupMoveUpEvents, emptyFunction, returnZero, returnOne } from "../../../Utils";
+import { setupMoveUpEvents, emptyFunction, returnZero, returnOne, returnFalse } from "../../../Utils";
 import { DocumentView } from "../nodes/DocumentView";
 
 library.add(faCog, faPlus, faSortUp, faSortDown);
@@ -121,7 +121,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             {!this.previewDocument ? (null) :
                 <ContentFittingDocumentView
                     Document={this.previewDocument}
-                    DataDocument={undefined}
+                    DataDoc={undefined}
                     NativeHeight={returnZero}
                     NativeWidth={returnZero}
                     fitToBox={true}
@@ -132,16 +132,18 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                     rootSelected={this.rootSelected}
                     PanelWidth={this.previewWidth}
                     PanelHeight={this.previewHeight}
-                    getTransform={this.getPreviewTransform}
-                    CollectionDoc={this.props.CollectionView?.props.Document}
-                    CollectionView={this.props.CollectionView}
+                    ScreenToLocalTransform={this.getPreviewTransform}
+                    ContainingCollectionDoc={this.props.CollectionView?.props.Document}
+                    ContainingCollectionView={this.props.CollectionView}
                     moveDocument={this.props.moveDocument}
                     addDocument={this.props.addDocument}
                     removeDocument={this.props.removeDocument}
-                    active={this.props.active}
+                    parentActive={this.props.active}
                     whenActiveChanged={this.props.whenActiveChanged}
                     addDocTab={this.props.addDocTab}
                     pinToPres={this.props.pinToPres}
+                    bringToFront={returnFalse}
+                    ContentScaling={returnOne}
                 />}
         </div>;
     }

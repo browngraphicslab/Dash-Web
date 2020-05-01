@@ -1,12 +1,12 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, IReactionDisposer, reaction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DataSym } from "../../../new_fields/Doc";
+import { Doc, DataSym, DocListCast } from "../../../new_fields/Doc";
 import { documentSchema } from '../../../new_fields/documentSchemas';
 import { Id } from "../../../new_fields/FieldSymbols";
 import { createSchema, makeInterface } from '../../../new_fields/Schema';
 import { Cast, NumCast } from "../../../new_fields/Types";
-import { emptyFunction, emptyPath, returnFalse, returnTrue } from "../../../Utils";
+import { emptyFunction, emptyPath, returnFalse, returnTrue, returnOne, returnZero } from "../../../Utils";
 import { Transform } from "../../util/Transform";
 import { CollectionViewType } from '../collections/CollectionView';
 import { ViewBoxBaseComponent } from '../DocComponent';
@@ -38,13 +38,14 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(PresElementBox, fieldKey); }
 
     _heightDisposer: IReactionDisposer | undefined;
-    @computed get indexInPres() { return NumCast(this.rootDoc.presentationIndex); }
-    @computed get presBoxDoc() { return Cast(this.rootDoc.presBox, Doc) as Doc; }
+    @computed get indexInPres() { return DocListCast(this.presBoxDoc.presOrderedDocs).findIndex(d => d === this.rootDoc); }
+    @computed get presBoxDoc() { return Cast(this.props.RenderData?.().presBox, Doc) as Doc; }
     @computed get targetDoc() { return this.rootDoc.presentationTargetDoc as Doc; }
     @computed get currentIndex() { return NumCast(this.presBoxDoc?._itemIndex); }
+    @computed get collapsedHeight() { return NumCast(this.presBoxDoc?.presCollapsedHeight); }
 
     componentDidMount() {
-        this._heightDisposer = reaction(() => [this.rootDoc.presExpandInlineButton, this.rootDoc.presCollapsedHeight],
+        this._heightDisposer = reaction(() => [this.rootDoc.presExpandInlineButton, this.collapsedHeight],
             params => this.layoutDoc._height = NumCast(params[1]) + (Number(params[0]) ? 100 : 0), { fireImmediately: true });
     }
     componentWillUnmount() {
@@ -147,7 +148,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
      */
     ScreenToLocalListTransform = (xCord: number, yCord: number) => [xCord, yCord];
 
-    embedHeight = () => Math.min(this.props.PanelWidth() - 20, this.props.PanelHeight() - NumCast(this.rootDoc.presCollapsedHeight));
+    embedHeight = () => Math.min(this.props.PanelWidth() - 20, this.props.PanelHeight() - this.collapsedHeight);
     embedWidth = () => this.props.PanelWidth() - 20;
     /**
      * The function that is responsible for rendering the a preview or not for this
@@ -158,7 +159,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
             <div className="presElementBox-embedded" style={{ height: this.embedHeight(), width: this.embedWidth() }}>
                 <ContentFittingDocumentView
                     Document={this.targetDoc}
-                    DataDocument={this.targetDoc[DataSym] !== this.targetDoc && this.targetDoc[DataSym]}
+                    DataDoc={this.targetDoc[DataSym] !== this.targetDoc && this.targetDoc[DataSym]}
                     LibraryPath={emptyPath}
                     fitToBox={true}
                     rootSelected={returnTrue}
@@ -168,12 +169,18 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     pinToPres={returnFalse}
                     PanelWidth={this.embedWidth}
                     PanelHeight={this.embedHeight}
-                    getTransform={Transform.Identity}
-                    active={this.props.active}
+                    ScreenToLocalTransform={Transform.Identity}
+                    parentActive={this.props.active}
                     moveDocument={this.props.moveDocument!}
                     renderDepth={this.props.renderDepth + 1}
                     focus={emptyFunction}
                     whenActiveChanged={returnFalse}
+                    bringToFront={returnFalse}
+                    ContainingCollectionView={undefined}
+                    ContainingCollectionDoc={undefined}
+                    ContentScaling={returnOne}
+                    NativeHeight={returnZero}
+                    NativeWidth={returnZero}
                 />
                 <div className="presElementBox-embeddedMask" />
             </div>;

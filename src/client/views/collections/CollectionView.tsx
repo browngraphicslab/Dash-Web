@@ -113,12 +113,16 @@ export class CollectionView extends Touchable<FieldViewProps> {
 
     @action.bound
     addDocument(doc: Doc): boolean {
-        const targetDataDoc = this.props.Document[DataSym];
-        const docList = DocListCast(targetDataDoc[this.props.fieldKey]);
-        !docList.includes(doc) && (targetDataDoc[this.props.fieldKey] = new List<Doc>([...docList, doc]));  // DocAddToList may write to targetdataDoc's parent ... we don't want this. should really change GetProto to GetDataDoc and test for resolvedDataDoc there
-        // Doc.AddDocToList(targetDataDoc, this.props.fieldKey, doc);
+        if (this.props.addDocument) {
+            this.props.addDocument(doc);
+        } else {
+            const targetDataDoc = this.props.Document[DataSym];
+            const docList = DocListCast(targetDataDoc[this.props.fieldKey]);
+            !docList.includes(doc) && (targetDataDoc[this.props.fieldKey] = new List<Doc>([...docList, doc]));  // DocAddToList may write to targetdataDoc's parent ... we don't want this. should really change GetProto to GetDataDoc and test for resolvedDataDoc there
+            // Doc.AddDocToList(targetDataDoc, this.props.fieldKey, doc);
+            targetDataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
+        }
         doc.context = this.props.Document;
-        targetDataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
         Doc.GetProto(doc).lastOpened = new DateField;
         return true;
     }

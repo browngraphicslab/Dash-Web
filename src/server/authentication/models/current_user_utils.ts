@@ -578,7 +578,7 @@ export class CurrentUserUtils {
         }
         if (doc.activePresentation === undefined) {
             doc.activePresentation = Docs.Create.PresDocument(new List<Doc>(), {
-                title: "Presentation", _viewType: CollectionViewType.Stacking,
+                title: "Presentation", _viewType: CollectionViewType.Stacking, targetDropAction: "alias",
                 _LODdisable: true, _chromeStatus: "replaced", _showTitle: "title", boxShadow: "0 0"
             });
         }
