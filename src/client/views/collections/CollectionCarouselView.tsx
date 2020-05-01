@@ -64,8 +64,8 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
                         borderRadius: StrCast(this.layoutDoc._captionBorderRounding),
                     }}>
                     <FormattedTextBox key={index} {...this.props}
-                        xMargin={NumCast(this.layoutDoc["caption-xMargin"])}
-                        yMargin={NumCast(this.layoutDoc["caption-yMargin"])}
+                        xMargin={NumCast(this.layoutDoc["_carousel-caption-xMargin"])}
+                        yMargin={NumCast(this.layoutDoc["_carousel-caption-yMargin"])}
                         Document={this.childLayoutPairs[index].layout} DataDoc={undefined} fieldKey={"caption"}></FormattedTextBox>
                 </div>
             </>;

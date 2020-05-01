@@ -75,6 +75,8 @@ export interface DocumentOptions {
     _itemIndex?: number; // which item index the carousel viewer is showing
     _showSidebar?: boolean;  //whether an annotationsidebar should be displayed for text docuemnts
     _singleLine?: boolean; // whether text document is restricted to a single line (carriage returns make new document)
+    "_carousel-caption-xMargin"?: number;
+    "_carousel-caption-yMargin"?: number;
     x?: number;
     y?: number;
     z?: number;

@@ -86,7 +86,7 @@ export class CurrentUserUtils {
         if (doc["template-button-detail"] === undefined) {
             const { TextDocument, MasonryDocument, CarouselDocument } = Docs.Create;
 
-            const carousel = CarouselDocument([], { title: "data", _height: 350, _itemIndex: 0, backgroundColor: "#9b9b9b3F" });
+            const carousel = CarouselDocument([], { title: "data", _height: 350, _itemIndex: 0, "_carousel-caption-xMargin": 10, "_carousel-caption-yMargin": 10, backgroundColor: "#9b9b9b3F" });
 
             const details = TextDocument("", { title: "details", _height: 350, _autoHeight: true });
             const short = TextDocument("", { title: "shortDescription", treeViewOpen: true, treeViewExpandedView: "layout", _height: 100, _autoHeight: true });
