@@ -89,7 +89,7 @@ export class CurrentUserUtils {
             const carousel = CarouselDocument([], { title: "data", _height: 350, _itemIndex: 0, backgroundColor: "#9b9b9b3F" });
 
             const details = TextDocument("", { title: "details", _height: 350, _autoHeight: true });
-            const short = TextDocument("", { title: "shortDescription", treeViewOpen: true, treeViewExpandedView: "layout", _height: 50, _autoHeight: true });
+            const short = TextDocument("", { title: "shortDescription", treeViewOpen: true, treeViewExpandedView: "layout", _height: 100, _autoHeight: true });
             const long = TextDocument("", { title: "longDescription", treeViewOpen: false, treeViewExpandedView: "layout", _height: 350, _autoHeight: true });
 
             const buxtonFieldKeys = ["year", "originalPrice", "degreesOfFreedom", "company", "attribute", "primaryKey", "secondaryKey", "dimensions"];
@@ -111,8 +111,9 @@ export class CurrentUserUtils {
 
             const descriptionWrapper = MasonryDocument([details, short, long], { ...shared, ...descriptionWrapperOpts });
             descriptionWrapper.sectionHeaders = new List<SchemaHeaderField>([
-                new SchemaHeaderField("[Long Description]", "LemonChiffon", undefined, undefined, undefined, true),
-                new SchemaHeaderField("[Details]", "lightBlue", undefined, undefined, undefined, true),
+                new SchemaHeaderField("[A Short Description]", "dimGray", undefined, undefined, undefined, false),
+                new SchemaHeaderField("[Long Description]", "dimGray", undefined, undefined, undefined, true),
+                new SchemaHeaderField("[Details]", "dimGray", undefined, undefined, undefined, true),
             ]);
             const detailView = Docs.Create.StackingDocument([carousel, descriptionWrapper], { ...shared, ...detailViewOpts });
             detailView.isTemplateDoc = makeTemplate(detailView);

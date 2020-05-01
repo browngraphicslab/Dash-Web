@@ -20,6 +20,7 @@ export const documentSchema = createSchema({
     _yPadding: "number",        // pixels of padding on top/bottom of collectionfreeformview contents when fitToBox is set
     _xMargin: "number",         // margin added on left/right of most documents to add separation from their container
     _yMargin: "number",         // margin added on top/bottom of most documents to add separation from their container
+    _overflow: "string",        // sets overflow behvavior for CollectionFreeForm views
     _showCaption: "string",     // whether editable caption text is overlayed at the bottom of the document 
     _showTitle: "string",       // the fieldkey whose contents should be displayed at the top of the document
     _showTitleHover: "string",  // the showTitle should be shown only on hover
@@ -36,7 +37,6 @@ export const documentSchema = createSchema({
     color: "string",            // foreground color of document
     backgroundColor: "string",  // background color of document
     opacity: "number",          // opacity of document
-    overflow: "string",         // sets overflow behvavior for CollectionFreeForm views
     creationDate: DateField,    // when the document was created
     links: listSpec(Doc),       // computed (readonly) list of links associated with this document
     onClick: ScriptField,       // script to run when document is clicked (can be overriden by an onClick prop)
@@ -46,7 +46,7 @@ export const documentSchema = createSchema({
     dragFactory: Doc,           // the document that serves as the "template" for the onDragStart script.  ie, to drag out copies of the dragFactory document.
     removeDropProperties: listSpec("string"), // properties that should be removed from the alias/copy/etc of this document when it is dropped
     isTemplateForField: "string",// when specifies a field key, then the containing document is a template that renders the specified field
-    isBackground: "boolean",    // whether document is a background element and ignores input events (can only selet with marquee)
+    isBackground: "boolean",    // whether document is a background element and ignores input events (can only select with marquee)
     treeViewOpen: "boolean",    //  flag denoting whether the documents sub-tree (contents) is visible or hidden
     treeViewExpandedView: "string", // name of field whose contents are being displayed as the document's subtree
     treeViewPreventOpen: "boolean", // ignores the treeViewOpen flag (for allowing a view to not be slaved to other views of the document)

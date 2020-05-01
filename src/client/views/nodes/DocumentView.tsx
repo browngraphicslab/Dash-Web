@@ -666,7 +666,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @undoBatch
     @action
     toggleBackground = (temporary: boolean): void => {
-        this.Document.overflow = temporary ? "visible" : "hidden";
+        this.Document._overflow = temporary ? "visible" : "hidden";
         this.Document.isBackground = !temporary ? !this.Document.isBackground : (this.Document.isBackground ? undefined : true);
         this.Document.isBackground && this.props.bringToFront(this.Document, true);
     }

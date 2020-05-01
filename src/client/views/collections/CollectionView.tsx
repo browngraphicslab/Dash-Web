@@ -71,6 +71,9 @@ export enum CollectionViewType {
     Map = "map",
     Pile = "pileup"
 }
+export interface CollectionViewCustomProps {
+    filterAddDocument: (doc: Doc) => boolean;
+}
 
 export interface CollectionRenderProps {
     addDocument: (document: Doc) => boolean;
@@ -82,7 +85,7 @@ export interface CollectionRenderProps {
 }
 
 @observer
-export class CollectionView extends Touchable<FieldViewProps> {
+export class CollectionView extends Touchable<FieldViewProps & CollectionViewCustomProps> {
     public static LayoutString(fieldStr: string) { return FieldView.LayoutString(CollectionView, fieldStr); }
 
     private _isChildActive = false;   //TODO should this be observable?
@@ -113,15 +116,15 @@ export class CollectionView extends Touchable<FieldViewProps> {
 
     @action.bound
     addDocument(doc: Doc): boolean {
-        if (this.props.addDocument) {
-            this.props.addDocument(doc);
-        } else {
-            const targetDataDoc = this.props.Document[DataSym];
-            const docList = DocListCast(targetDataDoc[this.props.fieldKey]);
-            !docList.includes(doc) && (targetDataDoc[this.props.fieldKey] = new List<Doc>([...docList, doc]));  // DocAddToList may write to targetdataDoc's parent ... we don't want this. should really change GetProto to GetDataDoc and test for resolvedDataDoc there
-            // Doc.AddDocToList(targetDataDoc, this.props.fieldKey, doc);
-            targetDataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
+        if (this.props.filterAddDocument?.(doc) === false) {
+            return false;
         }
+
+        const targetDataDoc = this.props.Document[DataSym];
+        const docList = DocListCast(targetDataDoc[this.props.fieldKey]);
+        !docList.includes(doc) && (targetDataDoc[this.props.fieldKey] = new List<Doc>([...docList, doc]));  // DocAddToList may write to targetdataDoc's parent ... we don't want this. should really change GetProto to GetDataDoc and test for resolvedDataDoc there
+        // Doc.AddDocToList(targetDataDoc, this.props.fieldKey, doc);
+        targetDataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
         doc.context = this.props.Document;
         Doc.GetProto(doc).lastOpened = new DateField;
         return true;

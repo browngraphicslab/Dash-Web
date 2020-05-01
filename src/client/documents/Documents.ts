@@ -98,6 +98,7 @@ export interface DocumentOptions {
     isTemplateDoc?: boolean;
     targetScriptKey?: string; // where to write a template script (used by collections with click templates which need to target onClick, onDoubleClick, etc)
     templates?: List<string>;
+    hero?: ImageField; // primary image that best represents a compound document (e.g., for a buxton device document that has multiple images)
     backgroundColor?: string | ScriptField;  // background color for data doc 
     _backgroundColor?: string | ScriptField; // background color for each template layout doc ( overrides backgroundColor )
     color?: string; // foreground color data doc
@@ -423,11 +424,9 @@ export namespace Docs {
                         _nativeHeight: nativeHeight
                     }));
                     // the main document we create
-                    const doc = StackingDocument(deviceImages, { title: device.title, _LODdisable: true });
-                    const deviceProto = Doc.GetProto(doc);
-                    deviceProto.hero = new ImageField(constructed[0].url);
+                    const doc = StackingDocument(deviceImages, { title: device.title, _LODdisable: true, hero: new ImageField(constructed[0].url) });
                     // add the parsed attributes to this main document
-                    Docs.Get.FromJson({ data: device, appendToExisting: { targetDoc: deviceProto } });
+                    Docs.Get.FromJson({ data: device, appendToExisting: { targetDoc: Doc.GetProto(doc) } });
                     Doc.AddDocToList(parentProto, "data", doc);
                 } else if (errors) {
                     console.log(errors);

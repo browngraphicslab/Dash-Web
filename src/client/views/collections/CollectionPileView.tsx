@@ -53,7 +53,7 @@ export class CollectionPileView extends CollectionSubView(doc => doc) {
     toggleStarburst = action(() => {
         if (this._layoutEngine === 'starburst') {
             const defaultSize = 110;
-            this.layoutDoc.overflow = undefined;
+            this.layoutDoc._overflow = undefined;
             this.rootDoc.x = NumCast(this.rootDoc.x) + this.layoutDoc[WidthSym]() / 2 - NumCast(this.layoutDoc._starburstPileWidth, defaultSize) / 2;
             this.rootDoc.y = NumCast(this.rootDoc.y) + this.layoutDoc[HeightSym]() / 2 - NumCast(this.layoutDoc._starburstPileHeight, defaultSize) / 2;
             this.layoutDoc._width = NumCast(this.layoutDoc._starburstPileWidth, defaultSize);
@@ -61,7 +61,7 @@ export class CollectionPileView extends CollectionSubView(doc => doc) {
             this._layoutEngine = 'pass';
         } else {
             const defaultSize = 25;
-            this.layoutDoc.overflow = 'visible';
+            this.layoutDoc._overflow = 'visible';
             !this.layoutDoc._starburstRadius && (this.layoutDoc._starburstRadius = 500);
             !this.layoutDoc._starburstDocScale && (this.layoutDoc._starburstDocScale = 2.5);
             if (this._layoutEngine === 'pass') {

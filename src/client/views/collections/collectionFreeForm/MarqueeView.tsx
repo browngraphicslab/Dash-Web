@@ -613,7 +613,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
 
     render() {
         return <div className="marqueeView"
-            style={{ overflow: StrCast(this.props.Document.overflow), }}
+            style={{ overflow: StrCast(this.props.Document._overflow), }}
             onScroll={(e) => e.currentTarget.scrollTop = e.currentTarget.scrollLeft = 0} onClick={this.onClick} onPointerDown={this.onPointerDown}>
             {this._visible ? this.marqueeDiv : null}
             {this.props.children}

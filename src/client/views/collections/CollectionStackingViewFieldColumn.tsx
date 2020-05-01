@@ -322,11 +322,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                 <div className="collectionStackingView-sectionHeader-subCont" onPointerDown={this.headerDown}
                     title={evContents === `NO ${key.toUpperCase()} VALUE` ?
                         `Documents that don't have a ${key} value will go here. This column cannot be removed.` : ""}
-                    style={{
-                        width: "100%",
-                        background: evContents !== `NO ${key.toUpperCase()} VALUE` ? this._color : "inherit",
-                        color: "grey"
-                    }}>
+                    style={{ background: evContents !== `NO ${key.toUpperCase()} VALUE` ? this._color : "inherit" }}>
                     <EditableView {...headerEditableViewProps} />
                     {evContents === `NO ${key.toUpperCase()} VALUE` ? (null) :
                         <div className="collectionStackingView-sectionColor">

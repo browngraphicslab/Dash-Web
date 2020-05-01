@@ -997,7 +997,7 @@ export namespace Doc {
         //newCollection.borderRounding = "40px";
         newCollection._jitterRotation = 10;
         newCollection._backgroundColor = "gray";
-        newCollection.overflow = "visible";
+        newCollection._overflow = "visible";
         return newCollection;
     }
 

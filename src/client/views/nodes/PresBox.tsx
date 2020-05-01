@@ -246,9 +246,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         this.rootDoc.presCollapsedHeight = hgt;
     }
 
-    addDocument = (doc: Doc) => {
+    addDocumentFilter = (doc: Doc) => {
         doc.presentationTargetDoc = doc.aliasOf;
-        return Doc.AddDocToList(this.dataDoc, this.fieldKey, doc);
+        return true;
     }
 
     removeDocument = (doc: Doc) => Doc.RemoveDocFromList(this.dataDoc, this.fieldKey, doc);
@@ -306,7 +306,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                         PanelHeight={this.panelHeight}
                         moveDocument={returnFalse}
                         childLayoutTemplate={this.childLayoutTemplate}
-                        addDocument={this.addDocument}
+                        filterAddDocument={this.addDocumentFilter}
                         removeDocument={returnFalse}
                         RenderData={this.returnSelf}
                         focus={this.selectElement}
