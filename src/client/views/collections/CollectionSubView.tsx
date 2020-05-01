@@ -58,7 +58,6 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
         private dropDisposer?: DragManager.DragDropDisposer;
         private gestureDisposer?: GestureUtils.GestureEventDisposer;
         protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
-        private _childLayoutDisposer?: IReactionDisposer;
         protected _mainCont?: HTMLDivElement;
         protected createDashEventsTarget = (ele: HTMLDivElement) => { //used for stacking and masonry view
             this.dropDisposer?.();
@@ -75,25 +74,9 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             this.createDashEventsTarget(ele);
         }
 
-        componentDidMount() {
-            this._childLayoutDisposer = reaction(() => ({ childDocs: this.childDocs, childLayout: Cast(this.props.Document.childLayout, Doc) }),
-                ({ childDocs, childLayout }) => {
-                    if (childLayout instanceof Doc) {
-                        childDocs.map(doc => {
-                            doc.layout_fromParent = childLayout;
-                            doc.layoutKey = "layout_fromParent";
-                        });
-                    }
-                    else if (!(childLayout instanceof Promise)) {
-                        childDocs.filter(d => !d.isTemplateForField).map(doc => doc.layoutKey === "layout_fromParent" && (doc.layoutKey = "layout"));
-                    }
-                }, { fireImmediately: true });
-
-        }
         componentWillUnmount() {
             this.gestureDisposer?.();
             this.multiTouchDisposer?.();
-            this._childLayoutDisposer?.();
         }
 
         @computed get dataDoc() {

@@ -93,7 +93,8 @@ export interface DocumentOptions {
     scale?: number;
     isDisplayPanel?: boolean; // whether the panel functions as GoldenLayout "stack" used to display documents
     forceActive?: boolean;
-    layout?: string | Doc;
+    layout?: string | Doc; // default layout string for a document
+    childLayoutTemplate?: Doc; // template for collection to use to render its children (see PresBox or Buxton layout in tree view)
     hideFilterView?: boolean; // whether to hide the filter popout on collections
     hideHeadings?: boolean; // whether stacking view column headings should be hidden
     isTemplateForField?: string; // the field key for which the containing document is a rendering template
@@ -123,7 +124,7 @@ export interface DocumentOptions {
     borderRounding?: string;
     boxShadow?: string;
     dontRegisterChildren?: boolean;
-    "onDoubleClick-rawScript"?: string // onDoubleClick script in raw text form
+    "onDoubleClick-rawScript"?: string; // onDoubleClick script in raw text form
     "onClick-rawScript"?: string; // onClick script in raw text form
     "onCheckedClick-rawScript"?: string; // onChecked script in raw text form
     "onCheckedClick-params"?: List<string>; // parameter list for onChecked treeview functions

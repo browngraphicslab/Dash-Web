@@ -316,7 +316,7 @@ export namespace DragManager {
                 return closestDists[minIndex] < snapThreshold ? closestPts[minIndex] + offs[minIndex] : drag;
             }
             return drag;
-        }
+        };
 
         return { thisX: snapVal([xFromLeft, xFromRight], e.pageX, vertSnapLines), thisY: snapVal([yFromTop, yFromBottom], e.pageY, horizSnapLines) };
     }

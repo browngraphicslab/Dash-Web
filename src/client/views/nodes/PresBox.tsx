@@ -260,7 +260,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     panelHeight = () => this.props.PanelHeight() - 20;
 
     active = (outsideReaction?: boolean) => ((InkingControl.Instance.selectedTool === InkTool.None && !this.layoutDoc.isBackground) &&
-        (this.layoutDoc.forceActive || this.props.isSelected(outsideReaction) || this._isChildActive || this.props.renderDepth === 0) ? true : false);
+        (this.layoutDoc.forceActive || this.props.isSelected(outsideReaction) || this._isChildActive || this.props.renderDepth === 0) ? true : false)
 
     whenActiveChanged = action((isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive));
 

@@ -725,14 +725,6 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
         }
         ContextMenu.Instance.addItem({
             description: "Buxton Layout", icon: "eye", event: () => {
-                DocListCast(this.dataDoc[this.props.fieldKey]).map(d => {
-                    DocListCast(d.data).map((img, i) => {
-                        const caption = (d.captions as any)[i];
-                        if (caption) {
-                            Doc.GetProto(img).caption = caption;
-                        }
-                    });
-                });
                 const { ImageDocument } = Docs.Create;
                 const { Document } = this.props;
                 const fallbackImg = "http://www.cs.brown.edu/~bcz/face.gif";
@@ -742,21 +734,19 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                 heroView._showTitle = "title";
                 heroView._showTitleHover = "titlehover";
 
-                Doc.AddDocToList(Doc.UserDoc().dockedBtns as Doc, "data",
-                    Docs.Create.FontIconDocument({
-                        title: "hero view", _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, dropAction: "alias",
-                        dragFactory: heroView, removeDropProperties: new List<string>(["dropAction"]), icon: "portrait",
-                        onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
-                    }));
+                const doubleClickView = ImageDocument("http://cs.brown.edu/~bcz/face.gif", { _width: 400 });  // replace with desired double click target
+                DocListCast(this.dataDoc[this.props.fieldKey]).map(d => {
+                    DocListCast(d.data).map((img, i) => {
+                        const caption = (d.captions as any)[i];
+                        if (caption) {
+                            Doc.GetProto(img).caption = caption;
+                            Doc.GetProto(img).doubleClickView = doubleClickView;
+                        }
+                    });
+                    d.layout = ImageBox.LayoutString("hero");
+                });
 
-                Doc.AddDocToList(Doc.UserDoc().dockedBtns as Doc, "data",
-                    Docs.Create.FontIconDocument({
-                        title: "detail view", _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100, dropAction: "alias",
-                        dragFactory: detailView, removeDropProperties: new List<string>(["dropAction"]), icon: "file-alt",
-                        onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
-                    }));
-
-                Document.childLayout = heroView;
+                Document.childLayoutTemplate = heroView;
                 Document.childDetailView = detailView;
                 Document._viewType = CollectionViewType.Time;
                 Document._forceActive = true;

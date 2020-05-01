@@ -104,7 +104,7 @@ export class DashFieldViewInternal extends React.Component<IDashFieldViewInterna
                     r?.addEventListener("pointerdown", action((e) => this._showEnumerables = true));
                 }} >
                     {strVal}
-                </span>
+                </span>;
             }
         }
     }

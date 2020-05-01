@@ -525,8 +525,8 @@ export class Timeline extends React.Component<FieldViewProps> {
     @action.bound
     changeLengths() {
         if (this._infoContainer.current) {
-            this._visibleLength = this._infoContainer.current!.getBoundingClientRect().width; //the visible length of the timeline (the length that you current see)
-            this._visibleStart = this._infoContainer.current!.scrollLeft; //where the div starts
+            this._visibleLength = this._infoContainer.current.getBoundingClientRect().width; //the visible length of the timeline (the length that you current see)
+            this._visibleStart = this._infoContainer.current.scrollLeft; //where the div starts
         }
     }
 

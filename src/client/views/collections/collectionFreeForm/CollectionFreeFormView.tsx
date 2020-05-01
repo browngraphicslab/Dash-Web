@@ -855,9 +855,10 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @computed get libraryPath() { return this.props.LibraryPath ? [...this.props.LibraryPath, this.props.Document] : []; }
     @computed get onChildClickHandler() { return this.props.childClickScript || ScriptCast(this.Document.onChildClick); }
     @computed get onChildDoubleClickHandler() { return this.props.childDoubleClickScript || ScriptCast(this.Document.onChildDoubleClick); }
-    backgroundHalo = () => BoolCast(this.Document.useClusters);
     @computed get backgroundActive() { return this.layoutDoc.isBackground && (this.props.ContainingCollectionView?.active() || this.props.active()); }
+    backgroundHalo = () => BoolCast(this.Document.useClusters);
     parentActive = () => this.props.active() || this.backgroundActive ? true : false;
+    childLayoutFunc = () => this.props.childLayoutTemplate?.() || Cast(this.props.Document.childLayoutTemplate, Doc, null);
     getChildDocumentViewProps(childLayout: Doc, childData?: Doc): DocumentViewProps {
         return {
             ...this.props,
@@ -867,12 +868,12 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             DataDoc: childData,
             Document: childLayout,
             LibraryPath: this.libraryPath,
+            LayoutDoc: this.childLayoutFunc,
             FreezeDimensions: this.props.freezeChildDimensions,
             layoutKey: undefined,
             setupDragLines: this.setupDragLines,
             rootSelected: childData ? this.rootSelected : returnFalse,
             dropAction: StrCast(this.props.Document.childDropAction) as dropActionType,
-            //onClick: undefined, // this.props.onClick,  // bcz: check this out -- I don't think we want to inherit click handlers, or we at least need a way to ignore them
             onClick: this.onChildClickHandler,
             onDoubleClick: this.onChildDoubleClickHandler,
             ScreenToLocalTransform: childLayout.z ? this.getTransformOverlay : this.getTransform,
@@ -999,7 +1000,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         return { newPool, computedElementData: this.doFreeformLayout(newPool) };
     }
 
-    childLayoutDocFunc = () => this.props.childLayoutTemplate?.() || Cast(this.props.Document.childLayoutTemplate, Doc, null);
     get doLayoutComputation() {
         const { newPool, computedElementData } = this.doInternalLayoutComputation;
         runInAction(() =>
@@ -1025,7 +1025,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                     replica={entry[1].replica}
                     dataProvider={this.childDataProvider}
                     sizeProvider={this.childSizeProvider}
-                    LayoutDoc={this.childLayoutDocFunc}
                     pointerEvents={
                         this.backgroundActive ?
                             true :
@@ -1042,7 +1041,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     }
 
     componentDidMount() {
-        super.componentDidMount();
+        super.componentDidMount?.();
         this._layoutComputeReaction = reaction(() => this.doLayoutComputation,
             (elements) => this._layoutElements = elements || [],
             { fireImmediately: true, name: "doLayout" });
@@ -1156,7 +1155,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             if (this.intersectRect(docDims(doc), rect)) {
                 snappableDocs.push(doc);
             }
-        }
+        };
         const snappableDocs: Doc[] = [];  // the set of documents in the visible viewport that we will try to snap to;
         const otherBounds = { left: this.panX(), top: this.panY(), width: Math.abs(size[0]), height: Math.abs(size[1]) };
         this.getActiveDocuments().filter(doc => !doc.isBackground && doc.z === undefined).map(doc => isDocInView(doc, selRect));  // first see if there are any foreground docs to snap to

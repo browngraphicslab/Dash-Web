@@ -128,7 +128,7 @@ export class CollectionStackingView extends CollectionSubView(doc => doc) {
         return layoutDoc._fitWidth ? wid * NumCast(layoutDoc.scrollHeight, nh) / (nw || 1) : layoutDoc[HeightSym]();
     }
     componentDidMount() {
-        super.componentDidMount();
+        super.componentDidMount?.();
 
         // reset section headers when a new filter is inputted
         this._pivotFieldDisposer = reaction(
