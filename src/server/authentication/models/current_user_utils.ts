@@ -257,7 +257,7 @@ export class CurrentUserUtils {
     }[] {
         if (doc.emptyPresentation === undefined) {
             doc.emptyPresentation = Docs.Create.PresDocument(new List<Doc>(),
-                { title: "Presentation", _viewType: CollectionViewType.Stacking, _LODdisable: true, _chromeStatus: "replaced", _showTitle: "title", boxShadow: "0 0" });
+                { title: "Presentation", _viewType: CollectionViewType.Stacking, targetDropAction: "alias", _LODdisable: true, _chromeStatus: "replaced", _showTitle: "title", boxShadow: "0 0" });
         }
         if (doc.emptyCollection === undefined) {
             doc.emptyCollection = Docs.Create.FreeformDocument([],
@@ -576,11 +576,6 @@ export class CurrentUserUtils {
 
     // the initial presentation Doc to use
     static setupDefaultPresentation(doc: Doc) {
-        if (doc["template-presentation"] === undefined) {
-            doc["template-presentation"] = new PrefetchProxy(Docs.Create.PresElementBoxDocument({
-                title: "pres element template", backgroundColor: "transparent", _xMargin: 5, _height: 46, isTemplateDoc: true, isTemplateForField: "data"
-            }));
-        }
         if (doc.activePresentation === undefined) {
             doc.activePresentation = Docs.Create.PresDocument(new List<Doc>(), {
                 title: "Presentation", _viewType: CollectionViewType.Stacking, targetDropAction: "alias",

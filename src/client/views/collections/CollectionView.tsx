@@ -74,6 +74,7 @@ export enum CollectionViewType {
 export interface CollectionViewCustomProps {
     filterAddDocument: (doc: Doc) => boolean;  // allows a document that renders a Collection view to filter or modify any documents added to the collection (see PresBox for an example)
     childLayoutTemplate?: () => Opt<Doc>;  // specify a layout Doc template to use for children of the collection
+    childLayoutString?: string;  // specify a layout string to use for children of the collection
 }
 
 export interface CollectionRenderProps {
@@ -478,6 +479,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             </div>;
     }
     childLayoutTemplate = () => this.props.childLayoutTemplate?.() || Cast(this.props.Document.childLayoutTemplate, Doc, null);
+    childLayoutString = this.props.childLayoutString || StrCast(this.props.Document.childLayoutString);
 
     render() {
         TraceMobx();
@@ -489,7 +491,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             whenActiveChanged: this.whenActiveChanged,
             PanelWidth: this.bodyPanelWidth,
             ChildLayoutTemplate: this.childLayoutTemplate,
-            ChildLayoutString: StrCast(this.props.Document.childLayoutString),
+            ChildLayoutString: this.childLayoutString,
         };
         return (<div className={"collectionView"}
             style={{

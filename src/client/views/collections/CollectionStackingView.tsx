@@ -178,7 +178,6 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
             LibraryPath={this.props.LibraryPath}
             FreezeDimensions={this.props.freezeChildDimensions}
             renderDepth={this.props.renderDepth + 1}
-            RenderData={this.props.RenderData}
             PanelWidth={width}
             PanelHeight={height}
             NativeHeight={returnZero}

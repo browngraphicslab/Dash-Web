@@ -63,9 +63,9 @@ library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
 
 export interface FormattedTextBoxProps {
-    hideOnLeave?: boolean;
-    makeLink?: () => Opt<Doc>;
-    xMargin?: number;
+    makeLink?: () => Opt<Doc>;  // bcz: hack: notifies the text document when the container has made a link.  allows the text doc to react and setup a hyeprlink for any selected text
+    hideOnLeave?: boolean;  // used by DocumentView for setting caption's hide on leave (bcz: would prefer to have caption-hideOnLeave field set or something similar)
+    xMargin?: number;   // used to override document's settings for xMargin --- see CollectionCarouselView
     yMargin?: number;
 }
 

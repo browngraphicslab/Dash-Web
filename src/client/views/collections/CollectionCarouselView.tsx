@@ -69,7 +69,7 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
                     <FormattedTextBox key={index} {...this.props}
                         xMargin={NumCast(this.layoutDoc["_carousel-caption-xMargin"])}
                         yMargin={NumCast(this.layoutDoc["_carousel-caption-yMargin"])}
-                        Document={this.childLayoutPairs[index].layout} DataDoc={undefined} fieldKey={"caption"}></FormattedTextBox>
+                        Document={this.childLayoutPairs[index].layout} DataDoc={undefined} fieldKey={"caption"} />
                 </div>
             </>;
     }

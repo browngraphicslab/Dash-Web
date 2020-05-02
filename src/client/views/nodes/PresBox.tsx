@@ -17,6 +17,8 @@ import "./PresBox.scss";
 import { ViewBoxBaseComponent } from "../DocComponent";
 import { makeInterface } from "../../../new_fields/Schema";
 import { List } from "../../../new_fields/List";
+import { Docs } from "../../documents/Documents";
+import { PrefetchProxy } from "../../../new_fields/Proxy";
 
 type PresBoxSchema = makeInterface<[typeof documentSchema]>;
 const PresBoxDocument = makeInterface(documentSchema);
@@ -24,14 +26,32 @@ const PresBoxDocument = makeInterface(documentSchema);
 @observer
 export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>(PresBoxDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(PresBox, fieldKey); }
+    _docsDisposer: IReactionDisposer | undefined;
+    _viewDisposer: IReactionDisposer | undefined;
     @observable _isChildActive = false;
     @computed get childDocs() { return DocListCast(this.dataDoc[this.fieldKey]); }
-    @computed get currentIndex() { return NumCast(this.rootDoc._itemIndex); }
+    @computed get currentIndex() { return NumCast(this.presElement?.currentIndex); }
+    @computed get presElement() { return Cast(this.rootDoc.presElement, Doc, null); }
+    constructor(props: any) {
+        super(props);
+        if (!this.presElement) {
+            this.rootDoc.presElement = new PrefetchProxy(Docs.Create.PresElementBoxDocument({
+                title: "pres element template", backgroundColor: "transparent", _xMargin: 5, _height: 46, isTemplateDoc: true, isTemplateForField: "data"
+            }));
+        }
+    }
+
+    componentWillUnmount() {
+        this._docsDisposer?.();
+        this._viewDisposer?.();
+    }
 
     componentDidMount() {
         this.rootDoc.presBox = this.rootDoc;
         this.rootDoc._forceRenderEngine = "timeline";
         this.rootDoc._replacedChrome = "replaced";
+        this._docsDisposer = reaction(() => this.childDocs, docs => this.presElement.presOrderedDocs = new List<Doc>(docs), { fireImmediately: true });
+        this._viewDisposer = reaction(() => this.rootDoc._viewType, viewType => this.presElement.presCollapsedHeight = viewType === CollectionViewType.Tree ? 50 : 46, { fireImmediately: true });
     }
     updateCurrentPresentation = () => Doc.UserDoc().activePresentation = this.rootDoc;
 
@@ -166,17 +186,16 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         }
     }
 
-
     //The function that is called when a document is clicked or reached through next or back.
     //it'll also execute the necessary actions if presentation is playing.
     public gotoDocument = (index: number, fromDoc: number) => {
         this.updateCurrentPresentation();
         Doc.UnBrushAllDocs();
         if (index >= 0 && index < this.childDocs.length) {
-            this.rootDoc._itemIndex = index;
+            this.presElement.currentIndex = index;
 
-            if (!this.layoutDoc.presStatus) {
-                this.layoutDoc.presStatus = true;
+            if (!this.presElement.presStatus) {
+                this.presElement.presStatus = true;
                 this.startPresentation(index);
             }
 
@@ -189,10 +208,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     //The function that starts or resets presentaton functionally, depending on status flag.
     startOrResetPres = () => {
         this.updateCurrentPresentation();
-        if (this.layoutDoc.presStatus) {
+        if (this.presElement.presStatus) {
             this.resetPresentation();
         } else {
-            this.layoutDoc.presStatus = true;
+            this.presElement.presStatus = true;
             this.startPresentation(0);
             this.gotoDocument(0, this.currentIndex);
         }
@@ -204,7 +223,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         this.updateCurrentPresentation();
         this.childDocs.forEach(doc => (doc.presentationTargetDoc as Doc).opacity = 1);
         this.rootDoc._itemIndex = 0;
-        this.layoutDoc.presStatus = false;
+        this.presElement.presStatus = false;
     }
 
     //The function that starts the presentation, also checking if actions should be applied
@@ -241,29 +260,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         }
     });
 
-    initializeViewAliases = (docList: Doc[], viewtype: CollectionViewType) => {
-        const hgt = (viewtype === CollectionViewType.Tree) ? 50 : 46;
-        this.rootDoc.presCollapsedHeight = hgt;
-    }
-
-    addDocumentFilter = (doc: Doc) => {
-        doc.presentationTargetDoc = doc.aliasOf;
-        return true;
-    }
-
-    removeDocument = (doc: Doc) => Doc.RemoveDocFromList(this.dataDoc, this.fieldKey, doc);
-
-    selectElement = (doc: Doc) => this.gotoDocument(this.childDocs.indexOf(doc), NumCast(this.rootDoc._itemIndex));
-
-    getTransform = () => this.props.ScreenToLocalTransform().translate(-5, -65);// listBox padding-left and pres-box-cont minHeight
-
-    panelHeight = () => this.props.PanelHeight() - 20;
-
-    active = (outsideReaction?: boolean) => ((InkingControl.Instance.selectedTool === InkTool.None && !this.layoutDoc.isBackground) &&
-        (this.layoutDoc.forceActive || this.props.isSelected(outsideReaction) || this._isChildActive || this.props.renderDepth === 0) ? true : false)
-
-    whenActiveChanged = action((isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive));
-
     @undoBatch
     viewChanged = action((e: React.ChangeEvent) => {
         //@ts-ignore
@@ -272,12 +268,23 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         this.updateMinimize(e, this.rootDoc._viewType = viewType);
     });
 
-    returnSelf = () => this.rootDoc;
-    childLayoutTemplate = () => this.rootDoc._viewType === CollectionViewType.Stacking ? Cast(Doc.UserDoc()["template-presentation"], Doc, null) : undefined;
+    whenActiveChanged = action((isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive));
+    addDocumentFilter = (doc: Doc) => {
+        doc.aliasOf instanceof Doc && (doc.presentationTargetDoc = doc.aliasOf);
+        !this.childDocs.includes(doc) && (doc.presZoomButton = true);
+        return true;
+    }
+    childLayoutTemplate = () => this.rootDoc._viewType !== CollectionViewType.Stacking ? undefined : this.presElement;
+    removeDocument = (doc: Doc) => Doc.RemoveDocFromList(this.dataDoc, this.fieldKey, doc);
+    selectElement = (doc: Doc) => this.gotoDocument(this.childDocs.indexOf(doc), NumCast(this.rootDoc._itemIndex));
+    getTransform = () => this.props.ScreenToLocalTransform().translate(-5, -65);// listBox padding-left and pres-box-cont minHeight
+    panelHeight = () => this.props.PanelHeight() - 20;
+    active = (outsideReaction?: boolean) => ((InkingControl.Instance.selectedTool === InkTool.None && !this.layoutDoc.isBackground) &&
+        (this.layoutDoc.forceActive || this.props.isSelected(outsideReaction) || this._isChildActive || this.props.renderDepth === 0) ? true : false)
+
     render() {
         this.rootDoc.presOrderedDocs = new List<Doc>(this.childDocs.map((child, i) => child));
         const mode = StrCast(this.rootDoc._viewType) as CollectionViewType;
-        this.initializeViewAliases(this.childDocs, mode);
         return <div className="presBox-cont" style={{ minWidth: this.layoutDoc.inOverlay ? 240 : undefined }} >
             <div className="presBox-buttons" style={{ display: this.rootDoc._chromeStatus === "disabled" ? "none" : undefined }}>
                 <select className="presBox-viewPicker"
@@ -308,7 +315,6 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                         childLayoutTemplate={this.childLayoutTemplate}
                         filterAddDocument={this.addDocumentFilter}
                         removeDocument={returnFalse}
-                        RenderData={this.returnSelf}
                         focus={this.selectElement}
                         ScreenToLocalTransform={this.getTransform} />
                     : (null)

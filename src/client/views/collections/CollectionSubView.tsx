@@ -67,7 +67,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             this.multiTouchDisposer?.();
             if (ele) {
                 this._mainCont = ele;
-                this.dropDisposer = DragManager.MakeDropTarget(ele, this.onInternalDrop.bind(this), this.layoutDoc);
+                this.dropDisposer = DragManager.MakeDropTarget(ele, this.onInternalDrop.bind(this), this.layoutDoc, this.onInternalPreDrop.bind(this));
                 this.gestureDisposer = GestureUtils.MakeGestureTarget(ele, this.onGesture.bind(this));
                 this.multiTouchDisposer = InteractionUtils.MakeMultiTouchTarget(ele, this.onTouchStart.bind(this));
             }
@@ -193,6 +193,15 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
 
         @undoBatch
         protected onGesture(e: Event, ge: GestureUtils.GestureEvent) {
+        }
+
+        protected onInternalPreDrop(e: Event, de: DragManager.DropEvent) {
+            if (de.complete.docDragData) {
+                if (de.complete.docDragData.draggedDocuments.some(d => this.childDocs.includes(d))) {
+                    de.complete.docDragData.dropAction = "move";
+                }
+                e.stopPropagation();
+            }
         }
 
         @undoBatch
