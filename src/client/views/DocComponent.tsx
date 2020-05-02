@@ -1,7 +1,7 @@
 import { Doc, Opt, DataSym } from '../../new_fields/Doc';
 import { Touchable } from './Touchable';
 import { computed, action, observable } from 'mobx';
-import { Cast, BoolCast } from '../../new_fields/Types';
+import { Cast, BoolCast, ScriptCast } from '../../new_fields/Types';
 import { listSpec } from '../../new_fields/Schema';
 import { InkingControl } from './InkingControl';
 import { InkTool } from '../../new_fields/InkField';
@@ -33,6 +33,7 @@ export function DocComponent<P extends DocComponentProps, T>(schemaCtor: (doc: D
 interface ViewBoxBaseProps {
     Document: Doc;
     DataDoc?: Doc;
+    ContainingCollectionDoc: Opt<Doc>;
     fieldKey: string;
     isSelected: (outsideReaction?: boolean) => boolean;
     renderDepth: number;
@@ -52,6 +53,8 @@ export function ViewBoxBaseComponent<P extends ViewBoxBaseProps, T>(schemaCtor: 
 
         // key where data is stored
         @computed get fieldKey() { return this.props.fieldKey; }
+
+        lookupField = (field: string) => ScriptCast(this.layoutDoc.lookupField)?.script.run({ self: this.layoutDoc, data: this.rootDoc, field: field, container: this.props.ContainingCollectionDoc }).result;
 
         active = (outsideReaction?: boolean) => !this.props.Document.isBackground && (this.props.rootSelected(outsideReaction) || this.props.isSelected(outsideReaction) || this.props.renderDepth === 0 || this.layoutDoc.forceActive);//  && !InkingControl.Instance.selectedTool;  // bcz: inking state shouldn't affect static tools 
         protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
@@ -86,6 +89,8 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
 
         // key where data is stored
         @computed get fieldKey() { return this.props.fieldKey; }
+
+        lookupField = (field: string) => ScriptCast((this.layoutDoc as any).lookupField)?.script.run({ self: this.layoutDoc, data: this.rootDoc, field: field }).result;
 
         protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
 

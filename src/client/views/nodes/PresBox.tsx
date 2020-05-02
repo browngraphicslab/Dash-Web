@@ -19,6 +19,8 @@ import { makeInterface } from "../../../new_fields/Schema";
 import { List } from "../../../new_fields/List";
 import { Docs } from "../../documents/Documents";
 import { PrefetchProxy } from "../../../new_fields/Proxy";
+import { ScriptField } from "../../../new_fields/ScriptField";
+import { Scripting } from "../../util/Scripting";
 
 type PresBoxSchema = makeInterface<[typeof documentSchema]>;
 const PresBoxDocument = makeInterface(documentSchema);
@@ -26,32 +28,30 @@ const PresBoxDocument = makeInterface(documentSchema);
 @observer
 export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>(PresBoxDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(PresBox, fieldKey); }
-    _docsDisposer: IReactionDisposer | undefined;
-    _viewDisposer: IReactionDisposer | undefined;
     @observable _isChildActive = false;
     @computed get childDocs() { return DocListCast(this.dataDoc[this.fieldKey]); }
     @computed get currentIndex() { return NumCast(this.presElement?.currentIndex); }
-    @computed get presElement() { return Cast(this.rootDoc.presElement, Doc, null); }
+    @computed get presElement() { return Cast(Doc.UserDoc().presElement, Doc, null); }
     constructor(props: any) {
         super(props);
-        if (!this.presElement) {
-            this.rootDoc.presElement = new PrefetchProxy(Docs.Create.PresElementBoxDocument({
+        if (!this.presElement) { // create exactly one presElmentBox template to use by any and all presentations.  Save it to the user doc.
+            Doc.UserDoc().presElement = new PrefetchProxy(Docs.Create.PresElementBoxDocument({
                 title: "pres element template", backgroundColor: "transparent", _xMargin: 5, _height: 46, isTemplateDoc: true, isTemplateForField: "data"
             }));
+            (this.presElement as Doc).lookupField = ScriptField.MakeScript(
+                "const presDoc = container.presentationDoc;" +
+                `if (field === 'indexInPres') return docList(presDoc[presDoc.presentationFieldKey]).indexOf(data);` +
+                "if (field === 'presCollapsedHeight') return presDoc._viewType === CollectionViewType.Stacking ? 50 : 46;" +
+                "return undefined;", { field: "string", data: Doc.name, container: Doc.name });
         }
-    }
-
-    componentWillUnmount() {
-        this._docsDisposer?.();
-        this._viewDisposer?.();
+        this.props.Document.presentationDoc = this.props.Document;
+        this.props.Document.presentationFieldKey = this.fieldKey;
     }
 
     componentDidMount() {
         this.rootDoc.presBox = this.rootDoc;
         this.rootDoc._forceRenderEngine = "timeline";
         this.rootDoc._replacedChrome = "replaced";
-        this._docsDisposer = reaction(() => this.childDocs, docs => this.presElement.presOrderedDocs = new List<Doc>(docs), { fireImmediately: true });
-        this._viewDisposer = reaction(() => this.rootDoc._viewType, viewType => this.presElement.presCollapsedHeight = viewType === CollectionViewType.Tree ? 50 : 46, { fireImmediately: true });
     }
     updateCurrentPresentation = () => Doc.UserDoc().activePresentation = this.rootDoc;
 
@@ -309,6 +309,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             <div className="presBox-listCont" >
                 {mode !== CollectionViewType.Invalid ?
                     <CollectionView {...this.props}
+                        ContainingCollectionDoc={this.props.Document}
                         PanelWidth={this.props.PanelWidth}
                         PanelHeight={this.panelHeight}
                         moveDocument={returnFalse}
@@ -323,3 +324,5 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         </div>;
     }
 }
+Scripting.addGlobal(function lookupPresBoxField(presLayout: Doc, data: Doc, fieldKey: string) {
+});

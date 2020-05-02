@@ -5,7 +5,7 @@ import { Doc, DataSym, DocListCast } from "../../../new_fields/Doc";
 import { documentSchema } from '../../../new_fields/documentSchemas';
 import { Id } from "../../../new_fields/FieldSymbols";
 import { createSchema, makeInterface } from '../../../new_fields/Schema';
-import { Cast, NumCast, BoolCast } from "../../../new_fields/Types";
+import { Cast, NumCast, BoolCast, ScriptCast } from "../../../new_fields/Types";
 import { emptyFunction, emptyPath, returnFalse, returnTrue, returnOne, returnZero } from "../../../Utils";
 import { Transform } from "../../util/Transform";
 import { CollectionViewType } from '../collections/CollectionView';
@@ -38,8 +38,9 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(PresElementBox, fieldKey); }
 
     _heightDisposer: IReactionDisposer | undefined;
-    @computed get indexInPres() { return DocListCast(this.layoutDoc.presOrderedDocs).findIndex(d => d === this.rootDoc); }
-    @computed get collapsedHeight() { return NumCast(this.layoutDoc.presCollapsedHeight); }
+    // these fields are conditionally computed fields on the layout document that take this document as a parameter
+    @computed get indexInPres() { return Number(this.lookupField("indexInPres")); }  // the index field is where this document is in the presBox display list (since this value is different for each presentation element, the value can't be stored on the layout template which is used by all display elements)
+    @computed get collapsedHeight() { return Number(this.lookupField("presCollapsedHeight")); } // the collapsed height changes depending on the state of the presBox.  We could store this on the presentation elmeent template if it's guaranteed to be used only once - but if it's shared by different presentations, then this value must be looked up
     @computed get presStatus() { return BoolCast(this.layoutDoc.presStatus); }
     @computed get currentIndex() { return NumCast(this.layoutDoc.currentIndex); }
     @computed get targetDoc() { return this.rootDoc.presentationTargetDoc as Doc; }
