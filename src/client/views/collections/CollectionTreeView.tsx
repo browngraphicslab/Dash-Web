@@ -31,6 +31,7 @@ import { CollectionSubView } from "./CollectionSubView";
 import "./CollectionTreeView.scss";
 import { CollectionViewType } from './CollectionView';
 import React = require("react");
+import { PrefetchProxy } from '../../../new_fields/Proxy';
 
 
 export interface TreeViewProps {
@@ -745,7 +746,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                 });
 
                 Document.childLayoutTemplate = heroView;
-                Document.childClickedOpenTemplateView = detailView;
+                Document.childClickedOpenTemplateView = new PrefetchProxy(detailView);
                 Document._viewType = CollectionViewType.Time;
                 Document._forceActive = true;
                 Document._pivotField = "company";
