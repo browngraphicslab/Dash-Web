@@ -34,18 +34,20 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @computed get presElement() { return Cast(Doc.UserDoc().presElement, Doc, null); }
     constructor(props: any) {
         super(props);
-        if (!this.presElement) { // create exactly one presElmentBox template to use by any and all presentations.  Save it to the user doc.
+        if (!this.presElement) { // create exactly one presElmentBox template to use by any and all presentations.
             Doc.UserDoc().presElement = new PrefetchProxy(Docs.Create.PresElementBoxDocument({
                 title: "pres element template", backgroundColor: "transparent", _xMargin: 5, _height: 46, isTemplateDoc: true, isTemplateForField: "data"
             }));
+            // this script will be called by each presElement to get rendering-specific info that the PresBox knows about but which isn't written to the PresElement
+            // this is a design choice -- we could write this data to the presElements which would require a reaction to keep it up to date, and it would prevent
+            // the preselement docs from being part of multiple presentations since they would all have the same field, or we'd have to keep per-presentation data
+            // stored on each pres element.  
             (this.presElement as Doc).lookupField = ScriptField.MakeScript(
-                "const presDoc = container.presentationDoc;" +
-                `if (field === 'indexInPres') return docList(presDoc[presDoc.presentationFieldKey]).indexOf(data);` +
-                "if (field === 'presCollapsedHeight') return presDoc._viewType === CollectionViewType.Stacking ? 50 : 46;" +
+                `if (field === 'indexInPres') return docList(container[container.presentationFieldKey]).indexOf(data);` +
+                "if (field === 'presCollapsedHeight') return container._viewType === CollectionViewType.Stacking ? 50 : 46;" +
                 "return undefined;", { field: "string", data: Doc.name, container: Doc.name });
         }
-        this.props.Document.presentationDoc = this.props.Document;
-        this.props.Document.presentationFieldKey = this.fieldKey;
+        this.props.Document.presentationFieldKey = this.fieldKey; // provide info to the presElement script so that it can look up rendering information about the presBox
     }
 
     componentDidMount() {
@@ -172,7 +174,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const srcContext = aliasOf && await DocCastAsync(aliasOf.context);
         if (docToJump === curDoc) {
             //checking if curDoc has navigation open
-            const target = await DocCastAsync(curDoc.presentationTargetDoc);
+            const target = (await DocCastAsync(curDoc.presentationTargetDoc)) || curDoc;
             if (curDoc.presNavButton && target) {
                 DocumentManager.Instance.jumpToDocument(target, false, undefined, srcContext);
             } else if (curDoc.presZoomButton && target) {
