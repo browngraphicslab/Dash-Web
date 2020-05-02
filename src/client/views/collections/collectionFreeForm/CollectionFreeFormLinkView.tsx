@@ -40,7 +40,7 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
                 const bpt = Utils.closestPtBetweenRectangles(bbounds.left, bbounds.top, bbounds.width, bbounds.height,
                     abounds.left, abounds.top, abounds.width, abounds.height,
                     apt.point.x, apt.point.y);
-                const afield = StrCast(this.props.A.props.Document[StrCast(this.props.A.props.layoutKey, "layout")]).indexOf("anchor1") === -1 ? "anchor2" : "anchor1";
+                const afield = this.props.A.props.LayoutTemplateString?.indexOf("anchor1") === -1 ? "anchor2" : "anchor1";
                 const bfield = afield === "anchor1" ? "anchor2" : "anchor1";
 
                 // really hacky stuff to make the LinkAnchorBox display where we want it to:

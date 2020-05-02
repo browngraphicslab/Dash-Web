@@ -6,7 +6,6 @@ import { observer } from "mobx-react";
 import { DataSym, Doc, DocListCast, Field, HeightSym, Opt, WidthSym } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { List } from '../../../new_fields/List';
-import { RichTextField } from '../../../new_fields/RichTextField';
 import { Document, listSpec } from '../../../new_fields/Schema';
 import { ComputedField, ScriptField } from '../../../new_fields/ScriptField';
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from '../../../new_fields/Types';
@@ -15,7 +14,6 @@ import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentType } from "../../documents/DocumentTypes";
 import { DocumentManager } from '../../util/DocumentManager';
 import { DragManager, dropActionType, SetupDrag } from "../../util/DragManager";
-import { makeTemplate } from '../../util/DropConverter';
 import { Scripting } from '../../util/Scripting';
 import { SelectionManager } from '../../util/SelectionManager';
 import { Transform } from '../../util/Transform';
@@ -481,7 +479,7 @@ class TreeView extends React.Component<TreeViewProps> {
                         parentActive={returnTrue}
                         whenActiveChanged={emptyFunction}
                         bringToFront={emptyFunction}
-                        dontRegisterView={BoolCast(this.props.treeViewId.dontRegisterChildren)}
+                        dontRegisterView={BoolCast(this.props.treeViewId.dontRegisterChildViews)}
                         ContainingCollectionView={undefined}
                         ContainingCollectionDoc={this.props.containingCollection}
                     />}
@@ -743,11 +741,11 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                             Doc.GetProto(img).doubleClickView = doubleClickView;
                         }
                     });
-                    d.layout = ImageBox.LayoutString("hero");
+                    Doc.GetProto(d).layout = ImageBox.LayoutString("hero");
                 });
 
                 Document.childLayoutTemplate = heroView;
-                Document.childDetailView = detailView;
+                Document.childClickedOpenTemplateView = detailView;
                 Document._viewType = CollectionViewType.Time;
                 Document._forceActive = true;
                 Document._pivotField = "company";

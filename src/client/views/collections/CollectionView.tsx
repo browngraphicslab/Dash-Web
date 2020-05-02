@@ -72,7 +72,8 @@ export enum CollectionViewType {
     Pile = "pileup"
 }
 export interface CollectionViewCustomProps {
-    filterAddDocument: (doc: Doc) => boolean;
+    filterAddDocument: (doc: Doc) => boolean;  // allows a document that renders a Collection view to filter or modify any documents added to the collection (see PresBox for an example)
+    childLayoutTemplate?: () => Opt<Doc>;  // specify a layout Doc template to use for children of the collection
 }
 
 export interface CollectionRenderProps {
@@ -82,6 +83,8 @@ export interface CollectionRenderProps {
     active: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
     PanelWidth: () => number;
+    ChildLayoutTemplate?: () => Doc;
+    ChildLayoutString?: string;
 }
 
 @observer
@@ -245,8 +248,8 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             if (this.props.Document.childLayout instanceof Doc) {
                 layoutItems.push({ description: "View Child Layout", event: () => this.props.addDocTab(this.props.Document.childLayout as Doc, "onRight"), icon: "project-diagram" });
             }
-            if (this.props.Document.childDetailView instanceof Doc) {
-                layoutItems.push({ description: "View Child Detailed Layout", event: () => this.props.addDocTab(this.props.Document.childDetailView as Doc, "onRight"), icon: "project-diagram" });
+            if (this.props.Document.childClickedOpenTemplateView instanceof Doc) {
+                layoutItems.push({ description: "View Child Detailed Layout", event: () => this.props.addDocTab(this.props.Document.childClickedOpenTemplateView as Doc, "onRight"), icon: "project-diagram" });
             }
             layoutItems.push({ description: `${this.props.Document.isInPlaceContainer ? "Unset" : "Set"} inPlace Container`, event: () => this.props.Document.isInPlaceContainer = !this.props.Document.isInPlaceContainer, icon: "project-diagram" });
 
@@ -474,6 +477,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
                 </div>
             </div>;
     }
+    childLayoutTemplate = () => this.props.childLayoutTemplate?.() || Cast(this.props.Document.childLayoutTemplate, Doc, null);
 
     render() {
         TraceMobx();
@@ -483,7 +487,9 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             moveDocument: this.moveDocument,
             active: this.active,
             whenActiveChanged: this.whenActiveChanged,
-            PanelWidth: this.bodyPanelWidth
+            PanelWidth: this.bodyPanelWidth,
+            ChildLayoutTemplate: this.childLayoutTemplate,
+            ChildLayoutString: StrCast(this.props.Document.childLayoutString),
         };
         return (<div className={"collectionView"}
             style={{

@@ -11,7 +11,7 @@ import { InteractionUtils } from '../util/InteractionUtils';
 ///  DocComponent returns a generic React base class used by views that don't have 'fieldKey' props (e.g.,CollectionFreeFormDocumentView, DocumentView)
 interface DocComponentProps {
     Document: Doc;
-    LayoutDoc?: () => Opt<Doc>;
+    LayoutTemplate?: () => Opt<Doc>;
 }
 export function DocComponent<P extends DocComponentProps, T>(schemaCtor: (doc: Doc) => T) {
     class Component extends Touchable<P> {
@@ -20,7 +20,7 @@ export function DocComponent<P extends DocComponentProps, T>(schemaCtor: (doc: D
         // This is the "The Document" -- it encapsulates, data, layout, and any templates
         @computed get rootDoc() { return Cast(this.props.Document.rootDocument, Doc, null) || this.props.Document; }
         // This is the rendering data of a document -- it may be "The Document", or it may be some template document that holds the rendering info
-        @computed get layoutDoc() { return Doc.Layout(this.props.Document, this.props.LayoutDoc?.()); }
+        @computed get layoutDoc() { return Doc.Layout(this.props.Document, this.props.LayoutTemplate?.()); }
         // This is the data part of a document -- ie, the data that is constant across all views of the document
         @computed get dataDoc() { return this.props.Document[DataSym] as Doc; }
 

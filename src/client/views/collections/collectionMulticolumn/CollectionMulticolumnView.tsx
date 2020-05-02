@@ -218,7 +218,8 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
             Document={layout}
             DataDoc={layout.resolvedDataDoc as Doc}
             backgroundColor={this.props.backgroundColor}
-            LayoutDoc={this.props.childLayoutTemplate}
+            LayoutTemplate={this.props.ChildLayoutTemplate}
+            LayoutTemplateString={this.props.ChildLayoutString}
             LibraryPath={this.props.LibraryPath}
             FreezeDimensions={this.props.freezeChildDimensions}
             renderDepth={this.props.renderDepth + 1}
@@ -226,7 +227,7 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
             PanelHeight={height}
             NativeHeight={returnZero}
             NativeWidth={returnZero}
-            fitToBox={BoolCast(this.props.Document._freezeChildDimensions)}
+            fitToBox={false}
             rootSelected={this.rootSelected}
             dropAction={StrCast(this.props.Document.childDropAction) as dropActionType}
             onClick={this.onChildClickHandler}

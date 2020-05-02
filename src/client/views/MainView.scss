@@ -39,7 +39,12 @@
     }
 }
 
+.mainView-container {
+    color:dimgray;
+}
+
 .mainView-container-dark {
+    color: lightgray;
     .lm_goldenlayout {
         background: dimgray;
     }
@@ -54,7 +59,6 @@
     }
     .contextMenu-cont, .contextMenu-item {
         background: dimGray;
-        color: lightgray;
     }
     .contextMenu-item:hover {
         background: gray;

@@ -7,7 +7,7 @@ import { DocComponent } from "../DocComponent";
 import "./CollectionFreeFormDocumentView.scss";
 import { DocumentView, DocumentViewProps } from "./DocumentView";
 import React = require("react");
-import { PositionDocument } from "../../../new_fields/documentSchemas";
+import { Document } from "../../../new_fields/documentSchemas";
 import { TraceMobx } from "../../../new_fields/util";
 import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
 
@@ -28,7 +28,7 @@ export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
 }
 
 @observer
-export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeFormDocumentViewProps, PositionDocument>(PositionDocument) {
+export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeFormDocumentViewProps, Document>(Document) {
     @observable _animPos: number[] | undefined = undefined;
     random(min: number, max: number) { // min should not be equal to max
         const mseed = Math.abs(this.X * this.Y);

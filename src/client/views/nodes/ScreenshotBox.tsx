@@ -5,7 +5,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, IReactionDisposer, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import * as rp from 'request-promise';
-import { documentSchema, positionSchema } from "../../../new_fields/documentSchemas";
+import { documentSchema } from "../../../new_fields/documentSchemas";
 import { makeInterface } from "../../../new_fields/Schema";
 import { Cast, NumCast } from "../../../new_fields/Types";
 import { VideoField } from "../../../new_fields/URLField";
@@ -20,8 +20,8 @@ import { FieldView, FieldViewProps } from './FieldView';
 import "./ScreenshotBox.scss";
 const path = require('path');
 
-type ScreenshotDocument = makeInterface<[typeof documentSchema, typeof positionSchema]>;
-const ScreenshotDocument = makeInterface(documentSchema, positionSchema);
+type ScreenshotDocument = makeInterface<[typeof documentSchema]>;
+const ScreenshotDocument = makeInterface(documentSchema);
 
 library.add(faVideo);
 

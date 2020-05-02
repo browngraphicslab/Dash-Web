@@ -5,22 +5,21 @@ import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import * as rp from "request-promise";
 import { Doc, DocListCast, HeightSym, Opt, WidthSym } from "../../../new_fields/Doc";
-import { Document, PositionDocument } from '../../../new_fields/documentSchemas';
+import { Document } from '../../../new_fields/documentSchemas';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { InkTool } from '../../../new_fields/InkField';
-import { RichTextField } from '../../../new_fields/RichTextField';
 import { listSpec } from "../../../new_fields/Schema";
 import { SchemaHeaderField } from '../../../new_fields/SchemaHeaderField';
 import { ScriptField } from '../../../new_fields/ScriptField';
 import { BoolCast, Cast, NumCast, StrCast } from "../../../new_fields/Types";
-import { AudioField, ImageField, PdfField, VideoField } from '../../../new_fields/URLField';
+import { ImageField } from '../../../new_fields/URLField';
 import { TraceMobx } from '../../../new_fields/util';
 import { GestureUtils } from '../../../pen-gestures/GestureUtils';
 import { emptyFunction, OmitKeys, returnOne, returnTransparent, Utils } from "../../../Utils";
 import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
 import { ClientRecommender } from '../../ClientRecommender';
 import { DocServer } from "../../DocServer";
-import { Docs, DocumentOptions, DocUtils } from "../../documents/Documents";
+import { Docs, DocUtils } from "../../documents/Documents";
 import { DocumentType } from '../../documents/DocumentTypes';
 import { ClientUtils } from '../../util/ClientUtils';
 import { DocumentManager } from "../../util/DocumentManager";
@@ -42,6 +41,7 @@ import { InkingControl } from '../InkingControl';
 import { KeyphraseQueryView } from '../KeyphraseQueryView';
 import { DocumentContentsView } from "./DocumentContentsView";
 import "./DocumentView.scss";
+import { LinkAnchorBox } from './LinkAnchorBox';
 import { RadialMenu } from './RadialMenu';
 import React = require("react");
 
@@ -58,7 +58,8 @@ export interface DocumentViewProps {
     NativeHeight: () => number;
     Document: Doc;
     DataDoc?: Doc;
-    LayoutDoc?: () => Opt<Doc>;
+    LayoutTemplateString?: string;
+    LayoutTemplate?: () => Opt<Doc>;
     LibraryPath: Doc[];
     fitToBox?: boolean;
     contextMenuItems?: () => { script: ScriptField, label: string }[];
@@ -454,8 +455,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             const dY = -1 * Math.sign(dH);
 
             if (dX !== 0 || dY !== 0 || dW !== 0 || dH !== 0) {
-                const doc = PositionDocument(this.props.Document);
-                const layoutDoc = PositionDocument(Doc.Layout(this.props.Document));
+                const doc = Document(this.props.Document);
+                const layoutDoc = Document(Doc.Layout(this.props.Document));
                 let nwidth = layoutDoc._nativeWidth || 0;
                 let nheight = layoutDoc._nativeHeight || 0;
                 const width = (layoutDoc._width || 0);
@@ -984,13 +985,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     @computed get contents() {
         TraceMobx();
         return (<>
-            <DocumentContentsView key={1} ContainingCollectionView={this.props.ContainingCollectionView}
+            <DocumentContentsView key={1}
+                ContainingCollectionView={this.props.ContainingCollectionView}
                 ContainingCollectionDoc={this.props.ContainingCollectionDoc}
                 NativeWidth={this.NativeWidth}
                 NativeHeight={this.NativeHeight}
                 Document={this.props.Document}
                 DataDoc={this.props.DataDoc}
-                LayoutDoc={this.props.LayoutDoc}
+                LayoutTemplateString={this.props.LayoutTemplateString}
+                LayoutTemplate={this.props.LayoutTemplate}
                 makeLink={this.makeLink}
                 rootSelected={this.rootSelected}
                 RenderData={this.props.RenderData}
@@ -1021,7 +1024,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         </>
         );
     }
-    linkEndpoint = (linkDoc: Doc) => Doc.LinkEndpoint(linkDoc, this.props.Document);
 
     // used to decide whether a link anchor view should be created or not.
     // if it's a tempoarl link (currently just for Audio), then the audioBox will display the anchor and we don't want to display it here.
@@ -1049,12 +1051,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 ContainingCollectionDoc={this.props.Document} // bcz: hack this.props.Document is not a collection  Need a better prop for passing the containing document to the LinkAnchorBox
                 PanelWidth={this.anchorPanelWidth}
                 PanelHeight={this.anchorPanelHeight}
-                layoutKey={this.linkEndpoint(d)}
                 ContentScaling={returnOne}
                 backgroundColor={returnTransparent}
                 removeDocument={this.hideLinkAnchor}
                 pointerEvents={false}
-                LayoutDoc={undefined}
+                LayoutTemplate={undefined}
+                LayoutTemplateString={LinkAnchorBox.LayoutString(`anchor${Doc.LinkEndpoint(d, this.props.Document)}`)}
             />);
     }
     @computed get innards() {
@@ -1073,8 +1075,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             <div className="documentView-captionWrapper" style={{ backgroundColor: StrCast(this.layoutDoc["caption-backgroundColor"]), color: StrCast(this.layoutDoc["caption-color"]) }}>
                 <DocumentContentsView {...OmitKeys(this.props, ['children']).omit}
                     hideOnLeave={true}
-                    forceLayout={"FormattedTextBox"}
-                    forceFieldKey={showCaption}
+                    layoutTemplateString={`<FormattedTextBox {...props} fieldKey={'${showCaption}'}/>`}
                     ContentScaling={this.childScaling}
                     ChromeHeight={this.chromeHeight}
                     isSelected={this.isSelected}

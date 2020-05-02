@@ -21,6 +21,7 @@ import { Docs } from "../../documents/Documents";
 import { ComputedField } from "../../../new_fields/ScriptField";
 import { Networking } from "../../Network";
 import { Upload } from "../../../server/SharedMediaTypes";
+import { LinkAnchorBox } from "./LinkAnchorBox";
 
 // testing testing 
 
@@ -266,7 +267,8 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
                                                 NativeHeight={returnZero}
                                                 NativeWidth={returnZero}
                                                 rootSelected={returnFalse}
-                                                layoutKey={Doc.LinkEndpoint(l, la2)}
+                                                LayoutTemplate={undefined}
+                                                LayoutTemplateString={LinkAnchorBox.LayoutString(`anchor${Doc.LinkEndpoint(l, la2)}`)}
                                                 ContainingCollectionDoc={this.props.Document}
                                                 parentActive={returnTrue}
                                                 bringToFront={emptyFunction}

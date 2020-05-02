@@ -95,6 +95,7 @@ export interface DocumentOptions {
     forceActive?: boolean;
     layout?: string | Doc; // default layout string for a document
     childLayoutTemplate?: Doc; // template for collection to use to render its children (see PresBox or Buxton layout in tree view)
+    childLayoutString?: string; // template string for collection to use to render its children
     hideFilterView?: boolean; // whether to hide the filter popout on collections
     hideHeadings?: boolean; // whether stacking view column headings should be hidden
     isTemplateForField?: string; // the field key for which the containing document is a rendering template
@@ -123,7 +124,7 @@ export interface DocumentOptions {
     displayTimecode?: number; // the time that a document should be displayed (e.g., time an annotation should be displayed on a video)
     borderRounding?: string;
     boxShadow?: string;
-    dontRegisterChildren?: boolean;
+    dontRegisterChildViews?: boolean;
     "onDoubleClick-rawScript"?: string; // onDoubleClick script in raw text form
     "onClick-rawScript"?: string; // onClick script in raw text form
     "onCheckedClick-rawScript"?: string; // onChecked script in raw text form
@@ -592,9 +593,7 @@ export namespace Docs {
             linkDocProto.anchor1_timecode = source.doc.currentTimecode || source.doc.displayTimecode;
             linkDocProto.anchor2_timecode = target.doc.currentTimecode || target.doc.displayTimecode;
 
-            if (linkDocProto.layout_key1 === undefined) {
-                Cast(linkDocProto.proto, Doc, null).layout_key1 = LinkAnchorBox.LayoutString("anchor1");
-                Cast(linkDocProto.proto, Doc, null).layout_key2 = LinkAnchorBox.LayoutString("anchor2");
+            if (linkDocProto.linkBoxExcludedKeys === undefined) {
                 Cast(linkDocProto.proto, Doc, null).linkBoxExcludedKeys = new List(["treeViewExpandedView", "treeViewHideTitle", "removeDropProperties", "linkBoxExcludedKeys", "treeViewOpen", "aliasNumber", "isPrototype", "lastOpened", "creationDate", "author"]);
                 Cast(linkDocProto.proto, Doc, null).layoutKey = undefined;
             }

@@ -2,7 +2,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { IReactionDisposer, reaction, computed } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, Field } from "../../../new_fields/Doc";
-import { documentSchema } from "../../../new_fields/documentSchemas";
+import { documentSchema, collectionSchema } from "../../../new_fields/documentSchemas";
 import { makeInterface } from "../../../new_fields/Schema";
 import { ComputedField } from "../../../new_fields/ScriptField";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
@@ -16,9 +16,11 @@ import { FieldView, FieldViewProps } from "./FieldView";
 import React = require("react");
 import { TraceMobx } from "../../../new_fields/util";
 import { Docs } from "../../documents/Documents";
+import { KeyValueBox } from "./KeyValueBox";
+import { DocumentView } from "./DocumentView";
 
-type DocHolderBoxSchema = makeInterface<[typeof documentSchema]>;
-const DocHolderBoxDocument = makeInterface(documentSchema);
+type DocHolderBoxSchema = makeInterface<[typeof documentSchema, typeof collectionSchema]>;
+const DocHolderBoxDocument = makeInterface(documentSchema, collectionSchema);
 
 @observer
 export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, DocHolderBoxSchema>(DocHolderBoxDocument) {
@@ -43,7 +45,7 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
         funcs.push({ description: (this.isSelectionLocked() ? "Show" : "Lock") + " Selection", event: () => this.toggleLockSelection, icon: "expand-arrows-alt" });
         funcs.push({ description: (this.layoutDoc.excludeCollections ? "Include" : "Exclude") + " Collections", event: () => this.layoutDoc.excludeCollections = !this.layoutDoc.excludeCollections, icon: "expand-arrows-alt" });
         funcs.push({ description: `${this.layoutDoc.forceActive ? "Select" : "Force"} Contents Active`, event: () => this.layoutDoc.forceActive = !this.layoutDoc.forceActive, icon: "project-diagram" });
-        funcs.push({ description: `Show ${this.layoutDoc.childTemplateName !== "keyValue" ? "key values" : "contents"}`, event: () => this.layoutDoc.childTemplateName = this.layoutDoc.childTemplateName ? undefined : "keyValue", icon: "project-diagram" });
+        funcs.push({ description: `Show ${this.layoutDoc.childLayoutTemplateName !== "keyValue" ? "key values" : "contents"}`, event: () => this.layoutDoc.childLayoutString = this.layoutDoc.childLayoutString ? undefined : "<KeyValueBox {...props} />", icon: "project-diagram" });
 
         ContextMenu.Instance.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
     }
@@ -103,6 +105,7 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
     pwidth = () => this.props.PanelWidth() - 2 * this.xPad;
     pheight = () => this.props.PanelHeight() - 2 * this.yPad;
     getTransform = () => this.props.ScreenToLocalTransform().translate(-this.xPad, -this.yPad);
+    isActive = () => this.active() || !this.props.renderDepth;
     get renderContents() {
         const containedDoc = Cast(this.dataDoc[this.props.fieldKey], Doc, null);
         const childTemplateName = StrCast(this.layoutDoc.childTemplateName);
@@ -112,33 +115,62 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
                 Doc.expandTemplateLayout(Cast(containedDoc["layout_" + childTemplateName], Doc, null), containedDoc, undefined);
             }, 0);
         }
-        const contents = !(containedDoc instanceof Doc) ? (null) : <ContentFittingDocumentView
-            Document={containedDoc}
-            DataDoc={undefined}
-            LibraryPath={emptyPath}
-            ContainingCollectionView={this as any} // bcz: hack!  need to pass a prop that can be used to select the container (ie, 'this') when the up selector in document decorations is clicked.  currently, the up selector allows only a containing collection to be selected
-            ContainingCollectionDoc={undefined}
-            fitToBox={true}
-            layoutKey={childTemplateName ? "layout_" + childTemplateName : "layout"}
-            rootSelected={this.props.isSelected}
-            addDocument={this.props.addDocument}
-            moveDocument={this.props.moveDocument}
-            removeDocument={this.props.removeDocument}
-            addDocTab={this.props.addDocTab}
-            pinToPres={this.props.pinToPres}
-            ScreenToLocalTransform={this.getTransform}
-            renderDepth={this.props.renderDepth + 1}
-            NativeHeight={returnZero}
-            NativeWidth={returnZero}
-            PanelWidth={this.pwidth}
-            PanelHeight={this.pheight}
-            focus={this.props.focus}
-            parentActive={this.props.active}
-            dontRegisterView={!this.isSelectionLocked()}
-            whenActiveChanged={this.props.whenActiveChanged}
-            bringToFront={returnFalse}
-            ContentScaling={returnOne}
-        />;
+        const contents = !(containedDoc instanceof Doc) ? (null) : this.layoutDoc.childLayoutString ?
+            <DocumentView
+                Document={containedDoc}
+                DataDoc={undefined}
+                LibraryPath={emptyPath}
+                ContainingCollectionView={this as any} // bcz: hack!  need to pass a prop that can be used to select the container (ie, 'this') when the up selector in document decorations is clicked.  currently, the up selector allows only a containing collection to be selected
+                ContainingCollectionDoc={undefined}
+                fitToBox={true}
+                LayoutTemplateString={StrCast(this.layoutDoc.childLayoutString)}
+                //layoutKey={childTemplateName ? "layout_" + childTemplateName : "layout"}
+                rootSelected={this.props.isSelected}
+                addDocument={this.props.addDocument}
+                moveDocument={this.props.moveDocument}
+                removeDocument={this.props.removeDocument}
+                addDocTab={this.props.addDocTab}
+                pinToPres={this.props.pinToPres}
+                ScreenToLocalTransform={this.getTransform}
+                renderDepth={this.props.renderDepth + 1}
+                NativeHeight={returnZero}
+                NativeWidth={returnZero}
+                PanelWidth={this.pwidth}
+                PanelHeight={this.pheight}
+                focus={this.props.focus}
+                parentActive={this.isActive}
+                dontRegisterView={!this.isSelectionLocked()}
+                whenActiveChanged={this.props.whenActiveChanged}
+                bringToFront={returnFalse}
+                ContentScaling={returnOne} /> :
+            <ContentFittingDocumentView
+                Document={containedDoc}
+                DataDoc={undefined}
+                LibraryPath={emptyPath}
+                ContainingCollectionView={this as any} // bcz: hack!  need to pass a prop that can be used to select the container (ie, 'this') when the up selector in document decorations is clicked.  currently, the up selector allows only a containing collection to be selected
+                ContainingCollectionDoc={undefined}
+                fitToBox={true}
+                LayoutTemplateString={StrCast(this.layoutDoc.childLayoutString)}
+                //layoutKey={childTemplateName ? "layout_" + childTemplateName : "layout"}
+                rootSelected={this.props.isSelected}
+                addDocument={this.props.addDocument}
+                moveDocument={this.props.moveDocument}
+                removeDocument={this.props.removeDocument}
+                addDocTab={this.props.addDocTab}
+                pinToPres={this.props.pinToPres}
+                ScreenToLocalTransform={this.getTransform}
+                renderDepth={this.props.renderDepth + 1}
+                NativeHeight={returnZero}
+                NativeWidth={returnZero}
+                PanelWidth={this.pwidth}
+                PanelHeight={this.pheight}
+                focus={this.props.focus}
+                parentActive={this.isActive}
+                dontRegisterView={!this.isSelectionLocked()}
+                whenActiveChanged={this.props.whenActiveChanged}
+                bringToFront={returnFalse}
+                ContentScaling={returnOne}
+            />;
         return contents;
     }
     render() {

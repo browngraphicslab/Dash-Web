@@ -44,7 +44,6 @@ $linkGap : 3px;
 
     .documentDecorations-radius {
         pointer-events: auto;
-        background: black;
         opacity: 1;
         transform: translate(10px, 10px);
         grid-row: 4;
@@ -88,12 +87,12 @@ $linkGap : 3px;
         opacity: 1;
     }
     #documentDecorations-topLeftResizer {
-        border-left: black 2px solid;
-        border-top: black solid 2px;
+        border-left:  2px solid;
+        border-top:  solid 2px;
     }
     #documentDecorations-bottomRightResizer {
-        border-right: black 2px solid;
-        border-bottom: black solid 2px;
+        border-right:  2px solid;
+        border-bottom:  solid 2px;
     }
     #documentDecorations-topLeftResizer:hover,
     #documentDecorations-bottomRightResizer:hover {
@@ -111,12 +110,12 @@ $linkGap : 3px;
         opacity: 1;
     }
     #documentDecorations-topRightResizer {
-        border-right: black 2px solid;
-        border-top: black 2px solid;
+        border-right:  2px solid;
+        border-top:  2px solid;
     }
     #documentDecorations-bottomLeftResizer {
-        border-left: black 2px solid;
-        border-bottom: black 2px solid;
+        border-left:  2px solid;
+        border-bottom:  2px solid;
     }
     #documentDecorations-topRightResizer:hover,
     #documentDecorations-bottomLeftResizer:hover {
@@ -136,7 +135,6 @@ $linkGap : 3px;
     }
 
     .documentDecorations-contextMenu {
-        background: $alt-accent;
         width: 25px;
         height: calc(100% + 8px); // 8px for the height of the top resizer bar
         grid-column-start: 1;
@@ -144,14 +142,14 @@ $linkGap : 3px;
         pointer-events: all;
     }
     .documentDecorations-title {
-        background: $alt-accent;
         opacity: 1;
         grid-column-start: 3;
         grid-column-end: 4;
         pointer-events: auto;
         overflow: hidden;
         text-align: center;
-        display:flex;
+        display: flex;    
+        border-bottom: solid 1px;
     }
     .publishBox {
         width: 20px;
@@ -168,7 +166,6 @@ $linkGap : 3px;
 
 
 .documentDecorations-closeButton {
-    background: $alt-accent;
     opacity: 1;
     grid-column-start: 4;
     grid-column-end: 6;
@@ -178,7 +175,6 @@ $linkGap : 3px;
 }
 
 .documentDecorations-minimizeButton {
-    background: $alt-accent;
     opacity: 1;
     grid-column-start: 1;
     grid-column-end: 3;

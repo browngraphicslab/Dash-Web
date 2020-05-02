@@ -43,6 +43,8 @@ export interface CollectionViewProps extends FieldViewProps {
 export interface SubCollectionViewProps extends CollectionViewProps {
     CollectionView: Opt<CollectionView>;
     children?: never | (() => JSX.Element[]) | React.ReactNode;
+    ChildLayoutTemplate?: () => Doc;
+    ChildLayoutString?: string;
     childClickScript?: ScriptField;
     childDoubleClickScript?: ScriptField;
     freezeChildDimensions?: boolean; // used by TimeView to coerce documents to treat their width height as their native width/height

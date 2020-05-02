@@ -5,7 +5,7 @@ import { action, computed, IReactionDisposer, observable, ObservableMap, reactio
 import { observer } from "mobx-react";
 import { computedFn } from "mobx-utils";
 import { Doc, HeightSym, Opt, WidthSym, DocListCast } from "../../../../new_fields/Doc";
-import { documentSchema, positionSchema } from "../../../../new_fields/documentSchemas";
+import { documentSchema, collectionSchema } from "../../../../new_fields/documentSchemas";
 import { Id } from "../../../../new_fields/FieldSymbols";
 import { InkData, InkField, InkTool, PointData } from "../../../../new_fields/InkField";
 import { List } from "../../../../new_fields/List";
@@ -66,8 +66,8 @@ export const panZoomSchema = createSchema({
     fitH: "number"
 });
 
-type PanZoomDocument = makeInterface<[typeof panZoomSchema, typeof documentSchema, typeof positionSchema, typeof pageSchema]>;
-const PanZoomDocument = makeInterface(panZoomSchema, documentSchema, positionSchema, pageSchema);
+type PanZoomDocument = makeInterface<[typeof panZoomSchema, typeof collectionSchema, typeof documentSchema, typeof pageSchema]>;
+const PanZoomDocument = makeInterface(panZoomSchema, collectionSchema, documentSchema, pageSchema);
 export type collectionFreeformViewProps = {
     forceScaling?: boolean; // whether to force scaling of content (needed by ImageBox)
     viewDefDivClick?: ScriptField;
@@ -858,7 +858,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @computed get backgroundActive() { return this.layoutDoc.isBackground && (this.props.ContainingCollectionView?.active() || this.props.active()); }
     backgroundHalo = () => BoolCast(this.Document.useClusters);
     parentActive = () => this.props.active() || this.backgroundActive ? true : false;
-    childLayoutFunc = () => this.props.childLayoutTemplate?.() || Cast(this.props.Document.childLayoutTemplate, Doc, null);
     getChildDocumentViewProps(childLayout: Doc, childData?: Doc): DocumentViewProps {
         return {
             ...this.props,
@@ -868,7 +867,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             DataDoc: childData,
             Document: childLayout,
             LibraryPath: this.libraryPath,
-            LayoutDoc: this.childLayoutFunc,
+            LayoutTemplate: this.props.ChildLayoutTemplate,
+            LayoutTemplateString: this.props.ChildLayoutString,
             FreezeDimensions: this.props.freezeChildDimensions,
             layoutKey: undefined,
             setupDragLines: this.setupDragLines,

@@ -14,7 +14,7 @@ import "./ContentFittingDocumentView.scss";
 @observer
 export class ContentFittingDocumentView extends React.Component<DocumentViewProps>{
     public get displayName() { return "DocumentView(" + this.props.Document?.title + ")"; } // this makes mobx trace() statements more descriptive
-    private get layoutDoc() { return this.props.LayoutDoc?.() || Doc.Layout(this.props.Document); }
+    private get layoutDoc() { return this.props.LayoutTemplate?.() || Doc.Layout(this.props.Document); }
     @computed get freezeDimensions() { return this.props.FreezeDimensions; }
     nativeWidth = () => NumCast(this.layoutDoc?._nativeWidth, this.props.NativeWidth?.() || (this.freezeDimensions && this.layoutDoc ? this.layoutDoc[WidthSym]() : this.props.PanelWidth()));
     nativeHeight = () => NumCast(this.layoutDoc?._nativeHeight, this.props.NativeHeight?.() || (this.freezeDimensions && this.layoutDoc ? this.layoutDoc[HeightSym]() : this.props.PanelHeight()));
@@ -56,7 +56,8 @@ export class ContentFittingDocumentView extends React.Component<DocumentViewProp
                     <DocumentView {...this.props}
                         Document={this.props.Document}
                         DataDoc={this.props.DataDoc}
-                        LayoutDoc={this.props.LayoutDoc}
+                        LayoutTemplate={this.props.LayoutTemplate}
+                        LayoutTemplateString={this.props.LayoutTemplateString}
                         LibraryPath={this.props.LibraryPath}
                         NativeWidth={this.nativeWidth}
                         NativeHeight={this.nativeHeight}

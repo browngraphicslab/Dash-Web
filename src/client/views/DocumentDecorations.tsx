@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DataSym, Field } from "../../new_fields/Doc";
-import { PositionDocument } from '../../new_fields/documentSchemas';
+import { Document } from '../../new_fields/documentSchemas';
 import { ScriptField } from '../../new_fields/ScriptField';
 import { Cast, StrCast, NumCast } from "../../new_fields/Types";
 import { Utils, setupMoveUpEvents, emptyFunction, returnFalse, simulateMouseClick } from "../../Utils";
@@ -301,7 +301,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
         SelectionManager.SelectedDocuments().forEach(action((element: DocumentView) => {
             if (dX !== 0 || dY !== 0 || dW !== 0 || dH !== 0) {
-                const doc = PositionDocument(element.rootDoc);
+                const doc = Document(element.rootDoc);
                 let nwidth = doc._nativeWidth || 0;
                 let nheight = doc._nativeHeight || 0;
                 const width = (doc._width || 0);
