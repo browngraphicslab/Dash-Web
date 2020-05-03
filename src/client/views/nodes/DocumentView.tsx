@@ -78,7 +78,6 @@ export interface DocumentViewProps {
     setupDragLines?: () => void;
     renderDepth: number;
     ContentScaling: () => number;
-    RenderData?: () => Doc;
     PanelWidth: () => number;
     PanelHeight: () => number;
     pointerEvents?: boolean;
@@ -996,7 +995,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 LayoutTemplate={this.props.LayoutTemplate}
                 makeLink={this.makeLink}
                 rootSelected={this.rootSelected}
-                RenderData={this.props.RenderData}
                 dontRegisterView={this.props.dontRegisterView}
                 fitToBox={this.props.fitToBox}
                 LibraryPath={this.props.LibraryPath}

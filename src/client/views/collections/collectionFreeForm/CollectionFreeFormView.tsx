@@ -878,7 +878,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             onDoubleClick: this.onChildDoubleClickHandler,
             ScreenToLocalTransform: childLayout.z ? this.getTransformOverlay : this.getTransform,
             renderDepth: this.props.renderDepth + 1,
-            RenderData: this.props.RenderData,
             PanelWidth: childLayout[WidthSym],
             PanelHeight: childLayout[HeightSym],
             ContentScaling: returnOne,

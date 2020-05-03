@@ -74,6 +74,7 @@ export enum CollectionViewType {
 export interface CollectionViewCustomProps {
     filterAddDocument: (doc: Doc) => boolean;  // allows a document that renders a Collection view to filter or modify any documents added to the collection (see PresBox for an example)
     childLayoutTemplate?: () => Opt<Doc>;  // specify a layout Doc template to use for children of the collection
+    childLayoutString?: string;  // specify a layout string to use for children of the collection
 }
 
 export interface CollectionRenderProps {
@@ -200,8 +201,8 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
     private SubView = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
         // currently cant think of a reason for collection docking view to have a chrome. mind may change if we ever have nested docking views -syip
         const chrome = this.props.Document._chromeStatus === "disabled" || this.props.Document._chromeStatus === "replaced" || type === CollectionViewType.Docking ? (null) :
-            <CollectionViewBaseChrome CollectionView={this} key="chrome" PanelWidth={this.bodyPanelWidth} type={type} collapse={this.collapse} />;
-        return [chrome, this.SubViewHelper(type, renderProps)];
+            <CollectionViewBaseChrome key="chrome" CollectionView={this} PanelWidth={this.bodyPanelWidth} type={type} collapse={this.collapse} />;
+        return <>{chrome} {this.SubViewHelper(type, renderProps)}</>;
     }
 
 
@@ -478,6 +479,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             </div>;
     }
     childLayoutTemplate = () => this.props.childLayoutTemplate?.() || Cast(this.props.Document.childLayoutTemplate, Doc, null);
+    childLayoutString = this.props.childLayoutString || StrCast(this.props.Document.childLayoutString);
 
     render() {
         TraceMobx();
@@ -489,7 +491,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             whenActiveChanged: this.whenActiveChanged,
             PanelWidth: this.bodyPanelWidth,
             ChildLayoutTemplate: this.childLayoutTemplate,
-            ChildLayoutString: StrCast(this.props.Document.childLayoutString),
+            ChildLayoutString: this.childLayoutString,
         };
         return (<div className={"collectionView"}
             style={{
@@ -499,7 +501,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             }}
             onContextMenu={this.onContextMenu}>
             {this.showIsTagged()}
-            <div style={{ width: `calc(100% - ${this.facetWidth()}px)` }}>
+            <div className="collectionView-facetCont" style={{ width: `calc(100% - ${this.facetWidth()}px)` }}>
                 {this.collectionViewType !== undefined ? this.SubView(this.collectionViewType, props) : (null)}
             </div>
             {this.lightbox(DocListCast(this.props.Document[this.props.fieldKey]).filter(d => d.type === DocumentType.IMG).map(d =>

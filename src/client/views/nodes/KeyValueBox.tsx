@@ -36,7 +36,7 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
     @observable private _keyInput: string = "";
     @observable private _valueInput: string = "";
     @computed get splitPercentage() { return NumCast(this.props.Document.schemaSplitPercentage, 50); }
-    get fieldDocToLayout() { return this.props.Document; }
+    get fieldDocToLayout() { return this.props.fieldKey ? Cast(this.props.Document[this.props.fieldKey], Doc, null) : this.props.Document; }
 
     @action
     onEnterKey = (e: React.KeyboardEvent): void => {
@@ -238,8 +238,8 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
         const openItems: ContextMenuProps[] = open && "subitems" in open ? open.subitems : [];
         openItems.push({
             description: "Default Perspective", event: () => {
-                this.props.addDocTab(this.fieldDocToLayout, "inTab");
                 this.props.addDocTab(this.props.Document, "close");
+                this.props.addDocTab(this.fieldDocToLayout, "onRight");
             }, icon: "image"
         });
         !open && cm.addItem({ description: "Change Perspective...", subitems: openItems, icon: "external-link-alt" });

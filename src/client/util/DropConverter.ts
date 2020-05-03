@@ -68,7 +68,7 @@ export function convertDropDataToButtons(data: DragManager.DocumentDragData) {
             });
             dbox.dragFactory = layoutDoc;
             dbox.removeDropProperties = doc.removeDropProperties instanceof ObjectField ? ObjectField.MakeCopy(doc.removeDropProperties) : undefined;
-            dbox.onDragStart = ScriptField.MakeFunction('getCopy(this.dragFactory, true)');
+            dbox.onDragStart = ScriptField.MakeFunction('makeDelegate(this.dragFactory)');
         } else if (doc.isButtonBar) {
             dbox.ignoreClick = true;
         }

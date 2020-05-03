@@ -292,6 +292,9 @@ export namespace Doc {
     export function IsPrototype(doc: Doc) {
         return GetT(doc, "isPrototype", "boolean", true);
     }
+    export function IsBaseProto(doc: Doc) {
+        return GetT(doc, "baseProto", "boolean", true);
+    }
     export async function SetInPlace(doc: Doc, key: string, value: Field | undefined, defaultProto: boolean) {
         const hasProto = doc.proto instanceof Doc;
         const onDeleg = Object.getOwnPropertyNames(doc).indexOf(key) !== -1;
@@ -581,30 +584,44 @@ export namespace Doc {
         return copy;
     }
 
-    export function MakeClone(doc: Doc, cloneProto: boolean = true): Doc {
+    export function MakeClone(doc: Doc, cloneMap: Map<Doc, Doc> = new Map()): Doc {
+        if (Doc.IsBaseProto(doc)) return doc;
+        if (cloneMap.get(doc)) return cloneMap.get(doc)!;
         const copy = new Doc(undefined, true);
+        cloneMap.set(doc, copy);
         const exclude = Cast(doc.excludeFields, listSpec("string"), []);
         Object.keys(doc).forEach(key => {
             if (exclude.includes(key)) return;
             const cfield = ComputedField.WithoutComputed(() => FieldValue(doc[key]));
             const field = ProxyField.WithoutProxy(() => doc[key]);
-            if (key === "proto" && cloneProto) {
+            if (key === "proto") {
                 if (doc[key] instanceof Doc) {
-                    copy[key] = Doc.MakeClone(doc[key]!, false);
+                    copy[key] = Doc.MakeClone(doc[key]!, cloneMap);
                 }
             } else {
                 if (field instanceof RefField) {
                     copy[key] = field;
                 } else if (cfield instanceof ComputedField) {
                     copy[key] = ComputedField.MakeFunction(cfield.script.originalScript);
+                    if (field instanceof ObjectField) {
+                        const list = Cast(doc[key], listSpec(Doc));
+                        if (list !== undefined && !(list instanceof Promise)) {
+                            copy[key] = new List<Doc>(list.filter(d => d instanceof Doc).map(d => Doc.MakeClone(d as Doc, cloneMap)));
+                        } else {
+                            copy[key] = doc[key] instanceof Doc ?
+                                key.includes("layout[") ?
+                                    undefined : Doc.MakeClone(doc[key] as Doc, cloneMap) : // reference documents except copy documents that are expanded teplate fields 
+                                ObjectField.MakeCopy(field);
+                        }
+                    }
                 } else if (field instanceof ObjectField) {
                     const list = Cast(doc[key], listSpec(Doc));
                     if (list !== undefined && !(list instanceof Promise)) {
-                        copy[key] = new List<Doc>(list.filter(d => d instanceof Doc).map(d => Doc.MakeCopy(d as Doc, false)));
+                        copy[key] = new List<Doc>(list.filter(d => d instanceof Doc).map(d => Doc.MakeClone(d as Doc, cloneMap)));
                     } else {
                         copy[key] = doc[key] instanceof Doc ?
                             key.includes("layout[") ?
-                                Doc.MakeCopy(doc[key] as Doc, false) : doc[key] : // reference documents except copy documents that are expanded teplate fields 
+                                undefined : Doc.MakeClone(doc[key] as Doc, cloneMap) : // reference documents except copy documents that are expanded teplate fields 
                             ObjectField.MakeCopy(field);
                     }
                 } else if (field instanceof Promise) {
@@ -616,6 +633,7 @@ export namespace Doc {
         });
         Doc.SetInPlace(copy, "title", "CLONE: " + doc.title, true);
         copy.cloneOf = doc;
+        cloneMap.set(doc, copy);
         return copy;
     }
 
