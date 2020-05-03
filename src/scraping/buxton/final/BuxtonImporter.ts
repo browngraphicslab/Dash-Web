@@ -350,8 +350,11 @@ async function parseFiles(wordDocuments: string[], emitter: ResultCallback, term
  * to inspect the structure, since the Node XML library does not expose the parsed
  * structure very well for searching, say in the debug console.
  */
-const tableCellXPath = '//*[name()="w:tbl"]/*[name()="w:tr"]/*[name()="w:tc"]';
-const hyperlinkXPath = '//*[name()="Relationship" and contains(@Type, "hyperlink")]';
+const xPaths = {
+    paragraphs: '//*[name()="w:p"]',
+    tableCells: '//*[name()="w:tbl"]/*[name()="w:tr"]/*[name()="w:tc"]',
+    hyperlinks: '//*[name()="Relationship" and contains(@Type, "hyperlink")]'
+};
 
 /**
  * The meat of the script, images and text content are extracted here
@@ -371,30 +374,31 @@ async function extractFileContents(pathToDocument: string): Promise<DocumentCont
 
     // preserve paragraph formatting and line breaks that would otherwise get lost in the plain text parsing
     // of the XML hierarchy
-    const paragraphs = document.find('//*[name()="w:p"]').map(node => Utilities.correctSentences(node.text()).transformed!);
+    const paragraphs = document.find(xPaths.paragraphs).map(node => Utilities.correctSentences(node.text()).transformed!);
     const start = paragraphs.indexOf(paragraphs.find(el => /Bill Buxton[’']s Notes/.test(el))!) + 1;
     const end = paragraphs.indexOf("Device Details");
     const longDescription = paragraphs.slice(start, end).filter(paragraph => paragraph.length).join("\n\n");
 
     // extract captions from the table cells
-    const tableRowsFlattened = document.find(tableCellXPath).map(node => node.text().trim());
+    const tableRowsFlattened = document.find(xPaths.tableCells).map(node => node.text().trim());
     const { length } = tableRowsFlattened;
-    strictEqual(length > 3, true, "No captions written.");
-    strictEqual(length % 3 === 0, true, "Improper caption formatting.");
+    const numCols = 3;
+    strictEqual(length > numCols, true, "No captions written."); // first row has the headers, not content
+    strictEqual(length % numCols === 0, true, "Improper caption formatting.");
 
-    // break the flat list of strings into groups of three, since there
-    // currently are three columns in the table. Thus, each group represents
+    // break the flat list of strings into groups of numColumns. Thus, each group represents
     // a row in the table, where the first row has no text content since it's
-    // the image, the second has the file name and the third has the caption
-    for (let i = 3; i < tableRowsFlattened.length; i += 3) {
-        const row = tableRowsFlattened.slice(i, i + 3);
+    // the image, the second has the file name and the third has the caption (maybe additional columns
+    // have been added or reordered since this was written, but follow the same appraoch)
+    for (let i = numCols; i < tableRowsFlattened.length; i += numCols) {
+        const row = tableRowsFlattened.slice(i, i + numCols);
         embeddedFileNames.push(row[1]);
         captions.push(row[2]);
     }
 
     // extract all hyperlinks embedded in the document
     const rels = await Utilities.readAndParseXml(zip, "word/_rels/document.xml.rels");
-    const hyperlinks = rels.find(hyperlinkXPath).map(el => el.attrs()[2].value());
+    const hyperlinks = rels.find(xPaths.hyperlinks).map(el => el.attrs()[2].value());
     console.log("Text extracted.");
 
     // write out the images for this document
