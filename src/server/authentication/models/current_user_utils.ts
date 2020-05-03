@@ -49,7 +49,7 @@ export class CurrentUserUtils {
             );
             queryTemplate.isTemplateDoc = makeTemplate(queryTemplate);
             doc["template-button-query"] = CurrentUserUtils.ficon({
-                onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
+                onDragStart: ScriptField.MakeFunction('makeDelegate(this.dragFactory, true)'),
                 dragFactory: new PrefetchProxy(queryTemplate) as any as Doc,
                 removeDropProperties: new List<string>(["dropAction"]), title: "query view", icon: "question-circle"
             });
@@ -65,7 +65,7 @@ export class CurrentUserUtils {
             );
             slideTemplate.isTemplateDoc = makeTemplate(slideTemplate);
             doc["template-button-slides"] = CurrentUserUtils.ficon({
-                onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
+                onDragStart: ScriptField.MakeFunction('makeDelegate(this.dragFactory, true)'),
                 dragFactory: new PrefetchProxy(slideTemplate) as any as Doc,
                 removeDropProperties: new List<string>(["dropAction"]), title: "presentation slide", icon: "address-card"
             });
@@ -74,12 +74,12 @@ export class CurrentUserUtils {
         if (doc["template-button-description"] === undefined) {
             const descriptionTemplate = Docs.Create.TextDocument(" ", { title: "header", _height: 100 }, "header"); // text needs to be a space to allow templateText to be created
             Doc.GetProto(descriptionTemplate).layout =
-                "<div><FormattedTextBox {...props} height='{this._headerHeight||75}`px`' background='{this._headerColor||`orange`}' fieldKey={'header'}/>" +
-                "<FormattedTextBox {...props} height='calc(100% - {self._headerHeight||75}`px`)' fieldKey={'text'}/></div>";
+                "<div><FormattedTextBox {...props} height='{this._headerHeight||75}px' background='{this._headerColor||`orange`}' fieldKey={'header'}/>" +
+                "<FormattedTextBox {...props} height='calc(100% - {this._headerHeight||75}px)' fieldKey={'text'}/></div>";
             descriptionTemplate.isTemplateDoc = makeTemplate(descriptionTemplate, true, "descriptionView");
 
             doc["template-button-description"] = CurrentUserUtils.ficon({
-                onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
+                onDragStart: ScriptField.MakeFunction('makeDelegate(this.dragFactory)'),
                 dragFactory: new PrefetchProxy(descriptionTemplate) as any as Doc,
                 removeDropProperties: new List<string>(["dropAction"]), title: "description view", icon: "window-maximize"
             });
@@ -129,7 +129,7 @@ export class CurrentUserUtils {
             long.title = "Long Description";
 
             doc["template-button-detail"] = CurrentUserUtils.ficon({
-                onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
+                onDragStart: ScriptField.MakeFunction('makeDelegate(this.dragFactory, true)'),
                 dragFactory: new PrefetchProxy(detailView) as any as Doc,
                 removeDropProperties: new List<string>(["dropAction"]), title: "detail view", icon: "window-maximize"
             });
@@ -138,7 +138,7 @@ export class CurrentUserUtils {
         if (doc["template-buttons"] === undefined) {
             doc["template-buttons"] = new PrefetchProxy(Docs.Create.MasonryDocument([doc["template-button-slides"] as Doc, doc["template-button-description"] as Doc,
             doc["template-button-query"] as Doc, doc["template-button-detail"] as Doc], {
-                title: "Compound Item Creators", _xMargin: 0, _showTitle: "title",
+                title: "Document Prototypes", _xMargin: 0, _showTitle: "title",
                 _autoHeight: true, _width: 500, columnWidth: 35, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled",
                 dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }),
             }));

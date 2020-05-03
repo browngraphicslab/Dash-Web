@@ -199,14 +199,17 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             tsel.marks().filter(m => m.type === this._editorView!.state.schema.marks.user_mark).map(m => AudioBox.SetScrubTime(Math.max(0, m.attrs.modified * 1000)));
             const curText = state.doc.textBetween(0, state.doc.content.size, " \n");
             const curTemp = Cast(this.props.Document[this.props.fieldKey + "-textTemplate"], RichTextField);
-            if (!this._applyingChange) {
+            const curProto = Cast(Cast(this.dataDoc.proto, Doc, null)?.[this.fieldKey], RichTextField, null);
+            const json = JSON.stringify(state.toJSON());
+            if (!this._applyingChange && json.replace(/"selection":.*/, "") !== curProto?.Data.replace(/"selection":.*/, "")) {
                 this._applyingChange = true;
                 this.dataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
-                if (!curTemp || curText) { // if no template, or there's text, write it to the document. (if this is driven by a template, then this overwrites the template text which is intended)
-                    this.dataDoc[this.props.fieldKey] = new RichTextField(JSON.stringify(state.toJSON()), curText);
+                if ((!curTemp && !curProto) || curText) { // if no template, or there's text, write it to the document. (if this is driven by a template, then this overwrites the template text which is intended)
+                    this.dataDoc[this.props.fieldKey] = new RichTextField(json, curText);
                     this.dataDoc[this.props.fieldKey + "-noTemplate"] = (curTemp?.Text || "") !== curText; // mark the data field as being split from the template if it has been edited
                 } else { // if we've deleted all the text in a note driven by a template, then restore the template data
-                    this._editorView.updateState(EditorState.fromJSON(this.config, JSON.parse(curTemp.Data)));
+                    this.dataDoc[this.props.fieldKey] = undefined;
+                    this._editorView.updateState(EditorState.fromJSON(this.config, JSON.parse((curProto || curTemp).Data)));
                     this.dataDoc[this.props.fieldKey + "-noTemplate"] = undefined; // mark the data field as not being split from any template it might have
                 }
                 this._applyingChange = false;

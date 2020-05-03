@@ -746,6 +746,10 @@ export namespace Docs {
             };
             return DockDocument(configs.map(c => c.doc), JSON.stringify(layoutConfig), options, id);
         }
+
+        export function DelegateDocument(proto: Doc, options: DocumentOptions = {}) {
+            return InstanceFromProto(proto, undefined, options);
+        }
     }
 
     export namespace Get {
@@ -1052,4 +1056,5 @@ export namespace DocUtils {
 }
 
 Scripting.addGlobal("Docs", Docs);
+Scripting.addGlobal(function makeDelegate(proto: any) { const d = Docs.Create.DelegateDocument(proto, { title: "child of " + proto.title }); return d; });
 

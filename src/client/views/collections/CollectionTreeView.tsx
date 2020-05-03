@@ -742,7 +742,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                             Doc.GetProto(img).doubleClickView = doubleClickView;
                         }
                     });
-                    Doc.GetProto(d).layout = ImageBox.LayoutString("hero");
+                    Doc.GetProto(d).proto = heroView; // all devices "are" heroViews that share the same layout & defaults. Seems better than making them all be independent and copy a layout string  // .layout = ImageBox.LayoutString("hero");
                 });
 
                 Document.childLayoutTemplate = heroView;
