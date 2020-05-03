@@ -201,8 +201,8 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
     private SubView = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
         // currently cant think of a reason for collection docking view to have a chrome. mind may change if we ever have nested docking views -syip
         const chrome = this.props.Document._chromeStatus === "disabled" || this.props.Document._chromeStatus === "replaced" || type === CollectionViewType.Docking ? (null) :
-            <CollectionViewBaseChrome CollectionView={this} key="chrome" PanelWidth={this.bodyPanelWidth} type={type} collapse={this.collapse} />;
-        return [chrome, this.SubViewHelper(type, renderProps)];
+            <CollectionViewBaseChrome key="chrome" CollectionView={this} PanelWidth={this.bodyPanelWidth} type={type} collapse={this.collapse} />;
+        return <>{chrome} {this.SubViewHelper(type, renderProps)}</>;
     }
 
 
@@ -501,7 +501,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             }}
             onContextMenu={this.onContextMenu}>
             {this.showIsTagged()}
-            <div style={{ width: `calc(100% - ${this.facetWidth()}px)` }}>
+            <div className="collectionView-facetCont" style={{ width: `calc(100% - ${this.facetWidth()}px)` }}>
                 {this.collectionViewType !== undefined ? this.SubView(this.collectionViewType, props) : (null)}
             </div>
             {this.lightbox(DocListCast(this.props.Document[this.props.fieldKey]).filter(d => d.type === DocumentType.IMG).map(d =>
