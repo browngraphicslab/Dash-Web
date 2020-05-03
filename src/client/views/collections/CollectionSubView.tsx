@@ -328,23 +328,23 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                     }));
                     return;
                 }
-                let matches: RegExpExecArray | null;
-                if ((matches = /(https:\/\/)?docs\.google\.com\/document\/d\/([^\\]+)\/edit/g.exec(text)) !== null) {
-                    const newBox = Docs.Create.TextDocument("", { ...options, _width: 400, _height: 200, title: "Awaiting title from Google Docs..." });
-                    const proto = newBox.proto!;
-                    const documentId = matches[2];
-                    proto[GoogleRef] = documentId;
-                    proto.data = "Please select this document and then click on its pull button to load its contents from from Google Docs...";
-                    proto.backgroundColor = "#eeeeff";
-                    addDocument(newBox);
-                    return;
-                }
-                if ((matches = /(https:\/\/)?photos\.google\.com\/(u\/3\/)?album\/([^\\]+)/g.exec(text)) !== null) {
-                    const albumId = matches[3];
-                    const mediaItems = await GooglePhotos.Query.AlbumSearch(albumId);
-                    console.log(mediaItems);
-                    return;
-                }
+                // let matches: RegExpExecArray | null;
+                // if ((matches = /(https:\/\/)?docs\.google\.com\/document\/d\/([^\\]+)\/edit/g.exec(text)) !== null) {
+                //     const newBox = Docs.Create.TextDocument("", { ...options, _width: 400, _height: 200, title: "Awaiting title from Google Docs..." });
+                //     const proto = newBox.proto!;
+                //     const documentId = matches[2];
+                //     proto[GoogleRef] = documentId;
+                //     proto.data = "Please select this document and then click on its pull button to load its contents from from Google Docs...";
+                //     proto.backgroundColor = "#eeeeff";
+                //     addDocument(newBox);
+                //     return;
+                // }
+                // if ((matches = /(https:\/\/)?photos\.google\.com\/(u\/3\/)?album\/([^\\]+)/g.exec(text)) !== null) {
+                //     const albumId = matches[3];
+                //     const mediaItems = await GooglePhotos.Query.AlbumSearch(albumId);
+                //     console.log(mediaItems);
+                //     return;
+                // }
             }
 
             const { items } = e.dataTransfer;
