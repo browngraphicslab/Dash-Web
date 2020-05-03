@@ -73,7 +73,9 @@ export class CurrentUserUtils {
 
         if (doc["template-button-description"] === undefined) {
             const descriptionTemplate = Docs.Create.TextDocument(" ", { title: "header", _height: 100 }, "header"); // text needs to be a space to allow templateText to be created
-            Doc.GetProto(descriptionTemplate).layout = "<div><FormattedTextBox {...props} background='orange' height='50px' fieldKey={'header'}/><FormattedTextBox {...props} height='calc(100% - 50px)' fieldKey={'text'}/></div>";
+            Doc.GetProto(descriptionTemplate).layout =
+                "<div><FormattedTextBox {...props} height='{this._headerHeight||75}`px`' background='{this._headerColor||`orange`}' fieldKey={'header'}/>" +
+                "<FormattedTextBox {...props} height='calc(100% - {self._headerHeight||75}`px`)' fieldKey={'text'}/></div>";
             descriptionTemplate.isTemplateDoc = makeTemplate(descriptionTemplate, true, "descriptionView");
 
             doc["template-button-description"] = CurrentUserUtils.ficon({

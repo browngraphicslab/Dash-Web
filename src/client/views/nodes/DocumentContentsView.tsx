@@ -77,11 +77,11 @@ export class HTMLtag extends React.Component<HTMLtagProps> {
     render() {
         const style: { [key: string]: any } = {};
         const divKeys = OmitKeys(this.props, ["children", "htmltag", "RootDoc", "Document", "key", "onInput", "onClick", "__proto__"]).omit;
+        const replacer = (match: any, expr: string, offset: any, string: any) => { // bcz: this executes a script to convert a propery expression string:  { script }  into a value
+            return ScriptField.MakeFunction(expr, { self: Doc.name, this: Doc.name })?.script.run({ self: this.props.RootDoc, this: this.props.Document }).result as string || "";
+        };
         Object.keys(divKeys).map((prop: string) => {
             const p = (this.props as any)[prop] as string;
-            const replacer = (match: any, expr: string, offset: any, string: any) => { // bcz: this executes a script to convert a propery expression string:  { script }  into a value
-                return ScriptField.MakeFunction(expr, { self: Doc.name, this: Doc.name })?.script.run({ self: this.props.RootDoc, this: this.props.Document }).result as string || "";
-            };
             style[prop] = p?.replace(/{([^.'][^}']+)}/g, replacer);
         });
         const Tag = this.props.htmltag as keyof JSX.IntrinsicElements;
