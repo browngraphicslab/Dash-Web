@@ -518,7 +518,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if ((!e.nativeEvent.cancelBubble || this.onClickHandler || this.Document.onDragStart) &&
             // if this is part of a template, let the event go up to the tempalte root unless right/ctrl clicking
             !((this.props.Document.rootDocument) && !(e.ctrlKey || e.button > 0))) {
-            if ((this.active || this.Document.onDragStart || this.onClickHandler) &&
+            if ((this.active || this.Document.onDragStart) &&
                 !e.ctrlKey &&
                 (e.button === 0 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE)) &&
                 !this.Document.inOverlay) {
@@ -541,7 +541,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         if (e.cancelBubble && this.active) {
             document.removeEventListener("pointermove", this.onPointerMove); // stop listening to pointerMove if something else has stopPropagated it (e.g., the MarqueeView)
         }
-        else if (!e.cancelBubble && (SelectionManager.IsSelected(this, true) || this.props.parentActive(true) || this.Document.onDragStart || this.onClickHandler) && !this.Document.lockedPosition && !this.Document.inOverlay) {
+        else if (!e.cancelBubble && (SelectionManager.IsSelected(this, true) || this.props.parentActive(true) || this.Document.onDragStart) && !this.Document.lockedPosition && !this.Document.inOverlay) {
             if (Math.abs(this._downX - e.clientX) > 3 || Math.abs(this._downY - e.clientY) > 3) {
                 if (!e.altKey && (!this.topMost || this.Document.onDragStart || this.onClickHandler) && (e.buttons === 1 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE))) {
                     document.removeEventListener("pointermove", this.onPointerMove);

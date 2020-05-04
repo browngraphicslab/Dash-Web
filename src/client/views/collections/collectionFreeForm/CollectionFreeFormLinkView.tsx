@@ -7,7 +7,7 @@ import React = require("react");
 import v5 = require("uuid/v5");
 import { DocumentType } from "../../../documents/DocumentTypes";
 import { observable, action, reaction, IReactionDisposer } from "mobx";
-import { StrCast } from "../../../../new_fields/Types";
+import { StrCast, Cast } from "../../../../new_fields/Types";
 import { Id } from "../../../../new_fields/FieldSymbols";
 import { SnappingManager } from "../../../util/SnappingManager";
 
@@ -81,12 +81,11 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
     componentWillUnmount() {
         this._anchorDisposer?.();
     }
-
     render() {
         if (SnappingManager.GetIsDragging()) return null;
         this.props.A.props.ScreenToLocalTransform().transform(this.props.B.props.ScreenToLocalTransform());
-        const acont = this.props.A.props.Document.type === DocumentType.LINK ? this.props.A.ContentDiv!.getElementsByClassName("linkAnchorBox-cont") : [];
-        const bcont = this.props.B.props.Document.type === DocumentType.LINK ? this.props.B.ContentDiv!.getElementsByClassName("linkAnchorBox-cont") : [];
+        const acont = this.props.A.ContentDiv!.getElementsByClassName("linkAnchorBox-cont");
+        const bcont = this.props.B.ContentDiv!.getElementsByClassName("linkAnchorBox-cont");
         const a = (acont.length ? acont[0] : this.props.A.ContentDiv!).getBoundingClientRect();
         const b = (bcont.length ? bcont[0] : this.props.B.ContentDiv!).getBoundingClientRect();
         const apt = Utils.closestPtBetweenRectangles(a.left, a.top, a.width, a.height,
@@ -107,7 +106,6 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         const aActive = this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document);
         const bActive = this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document);
         const text = StrCast(this.props.A.props.Document.linkRelationship);
-
         return !a.width || !b.width || ((!this.props.LinkDocs.length || !this.props.LinkDocs[0].linkDisplay) && !aActive && !bActive) ? (null) : (<>
             <text x={(Math.min(pt1[0], pt2[0]) * 2 + Math.max(pt1[0], pt2[0])) / 3} y={(pt1[1] + pt2[1]) / 2}>
                 {text !== "-ungrouped-" ? text : ""}
