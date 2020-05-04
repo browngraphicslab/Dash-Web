@@ -9,6 +9,7 @@ import { DocumentType } from "../../../documents/DocumentTypes";
 import { observable, action, reaction, IReactionDisposer } from "mobx";
 import { StrCast } from "../../../../new_fields/Types";
 import { Id } from "../../../../new_fields/FieldSymbols";
+import { DragManager } from "../../../util/DragManager";
 
 export interface CollectionFreeFormLinkViewProps {
     A: DocumentView;
@@ -24,6 +25,7 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
     componentDidMount() {
         this._anchorDisposer = reaction(() => [this.props.A.props.ScreenToLocalTransform(), this.props.B.props.ScreenToLocalTransform(), this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document), this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document)],
             action(() => {
+                if (DragManager.Vals.Instance.GetIsDragging()) return;
                 setTimeout(action(() => this._opacity = 1), 0); // since the render code depends on querying the Dom through getBoudndingClientRect, we need to delay triggering render()
                 setTimeout(action(() => (!this.props.LinkDocs.length || !this.props.LinkDocs[0].linkDisplay) && (this._opacity = 0.05)), 750); // this will unhighlight the link line.
                 const acont = this.props.A.props.Document.type === DocumentType.LINK ? this.props.A.ContentDiv!.getElementsByClassName("linkAnchorBox-cont") : [];
@@ -81,6 +83,7 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
     }
 
     render() {
+        if (DragManager.Vals.Instance.GetIsDragging()) return null;
         this.props.A.props.ScreenToLocalTransform().transform(this.props.B.props.ScreenToLocalTransform());
         const acont = this.props.A.props.Document.type === DocumentType.LINK ? this.props.A.ContentDiv!.getElementsByClassName("linkAnchorBox-cont") : [];
         const bcont = this.props.B.props.Document.type === DocumentType.LINK ? this.props.B.ContentDiv!.getElementsByClassName("linkAnchorBox-cont") : [];
@@ -110,10 +113,6 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
             </text>
             <path className="collectionfreeformlinkview-linkLine" style={{ opacity: this._opacity, strokeDasharray: "2 2" }}
                 d={`M ${pt1[0]} ${pt1[1]} C ${pt1[0] + pt1norm[0]} ${pt1[1] + pt1norm[1]}, ${pt2[0] + pt2norm[0]} ${pt2[1] + pt2norm[1]}, ${pt2[0]} ${pt2[1]}`} />
-            {/* <line key="linkLine" className="collectionfreeformlinkview-linkLine"
-                style={{ opacity: this._opacity, strokeDasharray: "2 2" }}
-                x1={`${pt1[0]}`} y1={`${pt1[1]}`}
-                x2={`${pt2[0]}`} y2={`${pt2[1]}`} /> */}
         </>);
     }
 }

@@ -74,7 +74,7 @@ export namespace DragManager {
         public StartWindowDrag: Opt<((e: any, dragDocs: Doc[]) => void)> = undefined;
         public SetIsDragging(dragging: boolean) { runInAction(() => this.IsDragging = dragging); }
         public GetIsDragging() { return this.IsDragging; }
-        public clearSnapLines() {
+        @action public clearSnapLines() {
             this.vertSnapLines.length = 0;
             this.horizSnapLines.length = 0;
         }

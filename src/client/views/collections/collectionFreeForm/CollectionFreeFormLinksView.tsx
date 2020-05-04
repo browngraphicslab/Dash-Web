@@ -8,7 +8,6 @@ import "./CollectionFreeFormLinksView.scss";
 import { CollectionFreeFormLinkView } from "./CollectionFreeFormLinkView";
 import React = require("react");
 import { Utils, emptyFunction } from "../../../../Utils";
-import { SelectionManager } from "../../../util/SelectionManager";
 import { DocumentType } from "../../../documents/DocumentTypes";
 import { DragManager } from "../../../util/DragManager";
 
