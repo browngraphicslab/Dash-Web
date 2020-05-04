@@ -43,6 +43,7 @@ interface ContentFittingDocumentViewProps {
     pinToPres: (document: Doc) => void;
     dontRegisterView?: boolean;
     rootSelected: (outsideReaction?: boolean) => boolean;
+    Display?: string;
 }
 
 @observer
@@ -77,7 +78,8 @@ export class ContentFittingDocumentView extends React.Component<ContentFittingDo
         TraceMobx();
         return (<div className="contentFittingDocumentView" style={{
             width: Math.abs(this.centeringYOffset) > 0.001 ? "auto" : this.props.PanelWidth(),
-            height: Math.abs(this.centeringOffset) > 0.0001 ? "auto" : this.props.PanelHeight()
+            height: Math.abs(this.centeringOffset) > 0.0001 ? "auto" : this.props.PanelHeight(),
+            display: this.props.Display /* just added for grid */
         }}>
             {!this.props.Document || !this.props.PanelWidth ? (null) : (
                 <div className="contentFittingDocumentView-previewDoc"

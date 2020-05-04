@@ -16,24 +16,23 @@ interface GridProps {
     nodeList: JSX.Element[] | null;
     layout: Layout[];
     gridView: CollectionGridView;
+    numCols: number;
+    rowHeight: number;
 }
 
 @observer
 export default class Grid extends React.Component<GridProps, GridLayout.ResponsiveProps> {
 
     onLayoutChange(layout: Layout[]) {
-        // for (let i = 0; i < this.props.nodeList!.length; i++) {
-        //     this.props.layout[i] = layout[i];
-        // }
-        console.log("REACHED");
         this.props.gridView.layout = layout;
     }
+
     render() {
         return (
             <GridLayout className="layout"
                 layout={this.props.layout}
-                cols={10}
-                rowHeight={100}
+                cols={this.props.numCols}
+                rowHeight={this.props.rowHeight}
                 width={this.props.width}
                 compactType={null}
                 isDroppable={true}
