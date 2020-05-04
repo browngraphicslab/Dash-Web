@@ -76,7 +76,6 @@ export namespace GooglePhotos {
         }
 
         export const CollectionToAlbum = async (options: AlbumCreationOptions): Promise<Opt<AlbumCreationResult>> => {
-            await GoogleAuthenticationManager.Instance.fetchOrGenerateAccessToken();
             const { collection, title, descriptionKey, tag } = options;
             const dataDocument = Doc.GetProto(collection);
             const images = ((await DocListCastAsync(dataDocument.data)) || []).filter(doc => Cast(doc.data, ImageField));
@@ -157,24 +156,20 @@ export namespace GooglePhotos {
             images && images.forEach(image => tagMapping.set(image[Id], ContentCategories.NONE));
             const values = Object.values(ContentCategories);
             for (const value of values) {
-                if (value !== ContentCategories.NONE) {
-                    const results = await ContentSearch({ included: [value] });
-                    if (results.mediaItems) {
-                        const ids = results.mediaItems.map(item => item.id);
-                        for (const id of ids) {
-                            const image = await Cast(idMapping[id], Doc);
-                            if (image) {
-                                const key = image[Id];
-                                const tags = tagMapping.get(key)!;
-                                if (!tags.includes(value)) {
-                                    tagMapping.set(key, tags + delimiter + value);
-                                }
-                            }
-                        }
+                if (value === ContentCategories.NONE) {
+                    continue;
+                }
+                for (const id of (await ContentSearch({ included: [value] }))?.mediaItems?.map(({ id }) => id)) {
+                    const image = await Cast(idMapping[id], Doc);
+                    if (!image) {
+                        continue;
                     }
+                    const key = image[Id];
+                    const tags = tagMapping.get(key);
+                    !tags?.includes(value) && tagMapping.set(key, tags + delimiter + value);
                 }
             }
-            images && images.forEach(image => {
+            images?.forEach(image => {
                 const concatenated = tagMapping.get(image[Id])!;
                 const tags = concatenated.split(delimiter);
                 if (tags.length > 1) {
@@ -184,7 +179,6 @@ export namespace GooglePhotos {
                     image.googlePhotosTags = ContentCategories.NONE;
                 }
             });
-
         };
 
         interface DateRange {
