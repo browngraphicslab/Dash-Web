@@ -325,12 +325,7 @@ export namespace DashUploadUtils {
             const outputPath = path.resolve(outputDirectory, writtenFiles[suffix] = InjectSize(outputFileName, suffix));
             await new Promise<void>(async (resolve, reject) => {
                 const source = streamProvider();
-                let readStream: Stream;
-                if (source instanceof Promise) {
-                    readStream = await source;
-                } else {
-                    readStream = source;
-                }
+                let readStream: Stream = source instanceof Promise ? await source : source;
                 if (resizer) {
                     readStream = readStream.pipe(resizer.withMetadata());
                 }

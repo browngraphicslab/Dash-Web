@@ -7,6 +7,7 @@ import { Docs } from "../documents/Documents";
 import { ScriptField, ComputedField } from "../../new_fields/ScriptField";
 import { RichTextField } from "../../new_fields/RichTextField";
 import { ImageField } from "../../new_fields/URLField";
+import { Scripting } from "./Scripting";
 
 // 
 // converts 'doc' into a template that can be used to render other documents.
@@ -68,10 +69,11 @@ export function convertDropDataToButtons(data: DragManager.DocumentDragData) {
             });
             dbox.dragFactory = layoutDoc;
             dbox.removeDropProperties = doc.removeDropProperties instanceof ObjectField ? ObjectField.MakeCopy(doc.removeDropProperties) : undefined;
-            dbox.onDragStart = ScriptField.MakeFunction('getCopy(this.dragFactory, true)');
+            dbox.onDragStart = ScriptField.MakeFunction('makeDelegate(this.dragFactory)');
         } else if (doc.isButtonBar) {
             dbox.ignoreClick = true;
         }
         data.droppedDocuments[i] = dbox;
     });
 }
+Scripting.addGlobal(function convertToButtons(dragData: any) { convertDropDataToButtons(dragData as DragManager.DocumentDragData); });

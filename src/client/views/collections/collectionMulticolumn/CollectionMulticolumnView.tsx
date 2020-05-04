@@ -14,7 +14,7 @@ import "./collectionMulticolumnView.scss";
 import ResizeBar from './MulticolumnResizer';
 import WidthLabel from './MulticolumnWidthLabel';
 import { List } from '../../../../new_fields/List';
-import { returnZero } from '../../../../Utils';
+import { returnZero, returnFalse, returnOne } from '../../../../Utils';
 
 type MulticolumnDocument = makeInterface<[typeof documentSchema]>;
 const MulticolumnDocument = makeInterface(documentSchema);
@@ -203,6 +203,7 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
 
 
     @computed get onChildClickHandler() { return ScriptCast(this.Document.onChildClick); }
+    @computed get onChildDoubleClickHandler() { return ScriptCast(this.Document.onChildDoubleClick); }
 
 
     addDocTab = (doc: Doc, where: string) => {
@@ -215,9 +216,10 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
     getDisplayDoc(layout: Doc, dxf: () => Transform, width: () => number, height: () => number) {
         return <ContentFittingDocumentView
             Document={layout}
-            DataDocument={layout.resolvedDataDoc as Doc}
+            DataDoc={layout.resolvedDataDoc as Doc}
             backgroundColor={this.props.backgroundColor}
-            LayoutDoc={this.props.childLayoutTemplate}
+            LayoutTemplate={this.props.ChildLayoutTemplate}
+            LayoutTemplateString={this.props.ChildLayoutString}
             LibraryPath={this.props.LibraryPath}
             FreezeDimensions={this.props.freezeChildDimensions}
             renderDepth={this.props.renderDepth + 1}
@@ -225,21 +227,24 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
             PanelHeight={height}
             NativeHeight={returnZero}
             NativeWidth={returnZero}
-            fitToBox={BoolCast(this.props.Document._freezeChildDimensions)}
+            fitToBox={false}
             rootSelected={this.rootSelected}
             dropAction={StrCast(this.props.Document.childDropAction) as dropActionType}
             onClick={this.onChildClickHandler}
-            getTransform={dxf}
+            onDoubleClick={this.onChildDoubleClickHandler}
+            ScreenToLocalTransform={dxf}
             focus={this.props.focus}
-            CollectionDoc={this.props.CollectionView?.props.Document}
-            CollectionView={this.props.CollectionView}
+            ContainingCollectionDoc={this.props.CollectionView?.props.Document}
+            ContainingCollectionView={this.props.CollectionView}
             addDocument={this.props.addDocument}
             moveDocument={this.props.moveDocument}
             removeDocument={this.props.removeDocument}
-            active={this.props.active}
+            parentActive={this.props.active}
             whenActiveChanged={this.props.whenActiveChanged}
             addDocTab={this.addDocTab}
             pinToPres={this.props.pinToPres}
+            bringToFront={returnFalse}
+            ContentScaling={returnOne}
         />;
     }
     /**

@@ -1,5 +1,5 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faTerminal, faCalculator, faWindowMaximize, faAddressCard, faQuestionCircle, faArrowDown, faArrowUp, faBolt, faBullseye, faCaretUp, faCat, faCheck, faChevronRight, faClipboard, faClone, faCloudUploadAlt, faCommentAlt, faCompressArrowsAlt, faCut, faEllipsisV, faEraser, faExclamation, faFileAlt, faFileAudio, faFilePdf, faFilm, faFilter, faFont, faGlobeAsia, faHighlighter, faLongArrowAltRight, faMicrophone, faMousePointer, faMusic, faObjectGroup, faPause, faPen, faPenNib, faPhone, faPlay, faPortrait, faRedoAlt, faStamp, faStickyNote, faThumbtack, faTree, faTv, faUndoAlt, faVideo } from '@fortawesome/free-solid-svg-icons';
+import { faTerminal, faFile as fileSolid, faLocationArrow, faSearch, faFileDownload, faStop, faCalculator, faWindowMaximize, faAddressCard, faQuestionCircle, faArrowLeft, faArrowRight, faArrowDown, faArrowUp, faBolt, faBullseye, faCaretUp, faCat, faCheck, faChevronRight, faClipboard, faClone, faCloudUploadAlt, faCommentAlt, faCompressArrowsAlt, faCut, faEllipsisV, faEraser, faExclamation, faFileAlt, faFileAudio, faFilePdf, faFilm, faFilter, faFont, faGlobeAsia, faHighlighter, faLongArrowAltRight, faMicrophone, faMousePointer, faMusic, faObjectGroup, faPause, faPen, faPenNib, faPhone, faPlay, faPortrait, faRedoAlt, faStamp, faStickyNote, faThumbtack, faTree, faTv, faUndoAlt, faVideo } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, reaction, runInAction } from 'mobx';
 import { observer } from 'mobx-react';
@@ -19,7 +19,7 @@ import { DocServer } from '../DocServer';
 import { Docs, DocumentOptions } from '../documents/Documents';
 import { DocumentType } from '../documents/DocumentTypes';
 import { HistoryUtil } from '../util/History';
-import RichTextMenu from '../util/RichTextMenu';
+import RichTextMenu from './nodes/formattedText/RichTextMenu';
 import { Scripting } from '../util/Scripting';
 import SettingsManager from '../util/SettingsManager';
 import SharingManager from '../util/SharingManager';
@@ -42,6 +42,8 @@ import { OverlayView } from './OverlayView';
 import PDFMenu from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
 import { ScriptField } from '../../new_fields/ScriptField';
+import { TimelineMenu } from './animationtimeline/TimelineMenu';
+import { DragManager } from '../util/DragManager';
 
 @observer
 export class MainView extends React.Component {
@@ -103,6 +105,11 @@ export class MainView extends React.Component {
         }
 
         library.add(faTerminal);
+        library.add(faLocationArrow);
+        library.add(faSearch);
+        library.add(fileSolid);
+        library.add(faFileDownload);
+        library.add(faStop);
         library.add(faCalculator);
         library.add(faWindowMaximize);
         library.add(faFileAlt);
@@ -141,6 +148,8 @@ export class MainView extends React.Component {
         library.add(faCaretUp);
         library.add(faFilter);
         library.add(faBullseye);
+        library.add(faArrowLeft);
+        library.add(faArrowRight);
         library.add(faArrowDown);
         library.add(faArrowUp);
         library.add(faCloudUploadAlt);
@@ -162,6 +171,9 @@ export class MainView extends React.Component {
         const targets = document.elementsFromPoint(e.x, e.y);
         if (targets && targets.length && targets[0].className.toString().indexOf("contextMenu") === -1) {
             ContextMenu.Instance.closeMenu();
+        }
+        if (targets && (targets.length && targets[0].className.toString() !== "timeline-menu-desc" && targets[0].className.toString() !== "timeline-menu-item" && targets[0].className.toString() !== "timeline-menu-input")) {
+            TimelineMenu.Instance.closeMenu();
         }
     });
 
@@ -580,6 +592,14 @@ export class MainView extends React.Component {
             <MarqueeOptionsMenu />
             <RichTextMenu />
             <OverlayView />
+            {// TO VIEW SNAP LINES
+                <div className="snapLines" style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none" }}>
+                    <svg style={{ width: "100%", height: "100%" }}>
+                        {DragManager.Vals.Instance.horizSnapLines.map((l: any) => <line x1="0" y1={l} x2="2000" y2={l} stroke="black" opacity={0.3} strokeWidth={0.5} strokeDasharray={"1 1"} />)}
+                        {DragManager.Vals.Instance.vertSnapLines.map((l: any) => <line y1="0" x1={l} y2="2000" x2={l} stroke="black" opacity={0.3} strokeWidth={0.5} strokeDasharray={"1 1"} />)}
+                    </svg>
+                </div>}
+            <TimelineMenu />
         </div >);
     }
 }

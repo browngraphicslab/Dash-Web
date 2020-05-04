@@ -73,6 +73,11 @@ export enum CollectionViewType {
     Grid = "grid",
     Pile = "pileup"
 }
+export interface CollectionViewCustomProps {
+    filterAddDocument: (doc: Doc) => boolean;  // allows a document that renders a Collection view to filter or modify any documents added to the collection (see PresBox for an example)
+    childLayoutTemplate?: () => Opt<Doc>;  // specify a layout Doc template to use for children of the collection
+    childLayoutString?: string;  // specify a layout string to use for children of the collection
+}
 
 export interface CollectionRenderProps {
     addDocument: (document: Doc) => boolean;
@@ -81,10 +86,12 @@ export interface CollectionRenderProps {
     active: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
     PanelWidth: () => number;
+    ChildLayoutTemplate?: () => Doc;
+    ChildLayoutString?: string;
 }
 
 @observer
-export class CollectionView extends Touchable<FieldViewProps> {
+export class CollectionView extends Touchable<FieldViewProps & CollectionViewCustomProps> {
     public static LayoutString(fieldStr: string) { return FieldView.LayoutString(CollectionView, fieldStr); }
 
     private _isChildActive = false;   //TODO should this be observable?
@@ -115,12 +122,16 @@ export class CollectionView extends Touchable<FieldViewProps> {
 
     @action.bound
     addDocument(doc: Doc): boolean {
+        if (this.props.filterAddDocument?.(doc) === false) {
+            return false;
+        }
+
         const targetDataDoc = this.props.Document[DataSym];
         const docList = DocListCast(targetDataDoc[this.props.fieldKey]);
         !docList.includes(doc) && (targetDataDoc[this.props.fieldKey] = new List<Doc>([...docList, doc]));  // DocAddToList may write to targetdataDoc's parent ... we don't want this. should really change GetProto to GetDataDoc and test for resolvedDataDoc there
         // Doc.AddDocToList(targetDataDoc, this.props.fieldKey, doc);
-        doc.context = this.props.Document;
         targetDataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
+        doc.context = this.props.Document;
         Doc.GetProto(doc).lastOpened = new DateField;
         return true;
     }
@@ -193,8 +204,8 @@ export class CollectionView extends Touchable<FieldViewProps> {
     private SubView = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
         // currently cant think of a reason for collection docking view to have a chrome. mind may change if we ever have nested docking views -syip
         const chrome = this.props.Document._chromeStatus === "disabled" || this.props.Document._chromeStatus === "replaced" || type === CollectionViewType.Docking ? (null) :
-            <CollectionViewBaseChrome CollectionView={this} key="chrome" PanelWidth={this.bodyPanelWidth} type={type} collapse={this.collapse} />;
-        return [chrome, this.SubViewHelper(type, renderProps)];
+            <CollectionViewBaseChrome key="chrome" CollectionView={this} PanelWidth={this.bodyPanelWidth} type={type} collapse={this.collapse} />;
+        return <>{chrome} {this.SubViewHelper(type, renderProps)}</>;
     }
 
 
@@ -272,8 +283,8 @@ export class CollectionView extends Touchable<FieldViewProps> {
             if (this.props.Document.childLayout instanceof Doc) {
                 layoutItems.push({ description: "View Child Layout", event: () => this.props.addDocTab(this.props.Document.childLayout as Doc, "onRight"), icon: "project-diagram" });
             }
-            if (this.props.Document.childDetailView instanceof Doc) {
-                layoutItems.push({ description: "View Child Detailed Layout", event: () => this.props.addDocTab(this.props.Document.childDetailView as Doc, "onRight"), icon: "project-diagram" });
+            if (this.props.Document.childClickedOpenTemplateView instanceof Doc) {
+                layoutItems.push({ description: "View Child Detailed Layout", event: () => this.props.addDocTab(this.props.Document.childClickedOpenTemplateView as Doc, "onRight"), icon: "project-diagram" });
             }
             layoutItems.push({ description: `${this.props.Document.isInPlaceContainer ? "Unset" : "Set"} inPlace Container`, event: () => this.props.Document.isInPlaceContainer = !this.props.Document.isInPlaceContainer, icon: "project-diagram" });
 
@@ -281,15 +292,20 @@ export class CollectionView extends Touchable<FieldViewProps> {
 
             const existingOnClick = ContextMenu.Instance.findByDescription("OnClick...");
             const onClicks = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
-            const funcs = [{ key: "onChildClick", name: "On Child Clicked", script: undefined as any as ScriptField }];
-            DocListCast(Cast(Doc.UserDoc().childClickFuncs, Doc, null).data).forEach(childClick =>
-                funcs.push({ key: "onChildClick", name: StrCast(childClick.title), script: ScriptCast(childClick.script) }));
+            const funcs = [
+                { key: "onChildClick", name: "On Child Clicked" },
+                { key: "onChildDoubleClick", name: "On Child Double Clicked" }];
             funcs.map(func => onClicks.push({
                 description: `Edit ${func.name} script`, icon: "edit", event: (obj: any) => {
-                    func.script && (this.props.Document[func.key] = ObjectField.MakeCopy(func.script));
                     ScriptBox.EditButtonScript(func.name + "...", this.props.Document, func.key, obj.x, obj.y, { thisContainer: Doc.name });
                 }
             }));
+            DocListCast(Cast(Doc.UserDoc()["clickFuncs-child"], Doc, null).data).forEach(childClick =>
+                onClicks.push({
+                    description: `Set child ${childClick.title}`,
+                    icon: "edit",
+                    event: () => this.props.Document[StrCast(childClick.targetScriptKey)] = ObjectField.MakeCopy(ScriptCast(childClick.data)),
+                }));
             !existingOnClick && ContextMenu.Instance.addItem({ description: "OnClick...", subitems: onClicks, icon: "hand-point-right" });
 
             const more = ContextMenu.Instance.findByDescription("More...");
@@ -496,6 +512,8 @@ export class CollectionView extends Touchable<FieldViewProps> {
                 </div>
             </div>;
     }
+    childLayoutTemplate = () => this.props.childLayoutTemplate?.() || Cast(this.props.Document.childLayoutTemplate, Doc, null);
+    childLayoutString = this.props.childLayoutString || StrCast(this.props.Document.childLayoutString);
 
     render() {
         TraceMobx();
@@ -505,7 +523,9 @@ export class CollectionView extends Touchable<FieldViewProps> {
             moveDocument: this.moveDocument,
             active: this.active,
             whenActiveChanged: this.whenActiveChanged,
-            PanelWidth: this.bodyPanelWidth
+            PanelWidth: this.bodyPanelWidth,
+            ChildLayoutTemplate: this.childLayoutTemplate,
+            ChildLayoutString: this.childLayoutString,
         };
         return (<div className={"collectionView"}
             style={{
@@ -515,7 +535,7 @@ export class CollectionView extends Touchable<FieldViewProps> {
             }}
             onContextMenu={this.onContextMenu}>
             {this.showIsTagged()}
-            <div style={{ width: `calc(100% - ${this.facetWidth()}px)` }}>
+            <div className="collectionView-facetCont" style={{ width: `calc(100% - ${this.facetWidth()}px)` }}>
                 {this.collectionViewType !== undefined ? this.SubView(this.collectionViewType, props) : (null)}
             </div>
             {this.lightbox(DocListCast(this.props.Document[this.props.fieldKey]).filter(d => d.type === DocumentType.IMG).map(d =>

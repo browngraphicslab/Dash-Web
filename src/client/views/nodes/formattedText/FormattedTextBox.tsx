@@ -12,49 +12,62 @@ import { Fragment, Mark, Node, Slice } from "prosemirror-model";
 import { EditorState, NodeSelection, Plugin, TextSelection, Transaction } from "prosemirror-state";
 import { ReplaceStep } from 'prosemirror-transform';
 import { EditorView } from "prosemirror-view";
-import { DateField } from '../../../new_fields/DateField';
-import { DataSym, Doc, DocListCast, DocListCastAsync, Field, HeightSym, Opt, WidthSym } from "../../../new_fields/Doc";
-import { documentSchema } from '../../../new_fields/documentSchemas';
-import { Id } from '../../../new_fields/FieldSymbols';
-import { InkTool } from '../../../new_fields/InkField';
-import { PrefetchProxy } from '../../../new_fields/Proxy';
-import { RichTextField } from "../../../new_fields/RichTextField";
-import { RichTextUtils } from '../../../new_fields/RichTextUtils';
-import { createSchema, makeInterface } from "../../../new_fields/Schema";
-import { Cast, DateCast, NumCast, StrCast } from "../../../new_fields/Types";
-import { TraceMobx } from '../../../new_fields/util';
-import { addStyleSheet, addStyleSheetRule, clearStyleSheetRules, emptyFunction, numberRange, returnOne, returnZero, Utils } from '../../../Utils';
-import { GoogleApiClientUtils, Pulls, Pushes } from '../../apis/google_docs/GoogleApiClientUtils';
-import { DocServer } from "../../DocServer";
-import { Docs, DocUtils } from '../../documents/Documents';
-import { DocumentType } from '../../documents/DocumentTypes';
-import { DictationManager } from '../../util/DictationManager';
-import { DragManager } from "../../util/DragManager";
-import { makeTemplate } from '../../util/DropConverter';
-import buildKeymap from "../../util/ProsemirrorExampleTransfer";
-import RichTextMenu from '../../util/RichTextMenu';
-import { RichTextRules } from "../../util/RichTextRules";
-import { DashDocCommentView, DashDocView, DashFieldView, FootnoteView, ImageResizeView, OrderedListView, schema, SummaryView } from "../../util/RichTextSchema";
-import { SelectionManager } from "../../util/SelectionManager";
-import { undoBatch, UndoManager } from "../../util/UndoManager";
-import { CollectionFreeFormView } from '../collections/collectionFreeForm/CollectionFreeFormView';
-import { ContextMenu } from '../ContextMenu';
-import { ContextMenuProps } from '../ContextMenuItem';
-import { ViewBoxAnnotatableComponent } from "../DocComponent";
-import { DocumentButtonBar } from '../DocumentButtonBar';
-import { InkingControl } from "../InkingControl";
-import { AudioBox } from './AudioBox';
-import { FieldView, FieldViewProps } from "./FieldView";
+import { DateField } from '../../../../new_fields/DateField';
+import { DataSym, Doc, DocListCast, DocListCastAsync, Field, HeightSym, Opt, WidthSym } from "../../../../new_fields/Doc";
+import { documentSchema } from '../../../../new_fields/documentSchemas';
+import { Id } from '../../../../new_fields/FieldSymbols';
+import { InkTool } from '../../../../new_fields/InkField';
+import { PrefetchProxy } from '../../../../new_fields/Proxy';
+import { RichTextField } from "../../../../new_fields/RichTextField";
+import { RichTextUtils } from '../../../../new_fields/RichTextUtils';
+import { createSchema, makeInterface } from "../../../../new_fields/Schema";
+import { Cast, DateCast, NumCast, StrCast } from "../../../../new_fields/Types";
+import { TraceMobx } from '../../../../new_fields/util';
+import { addStyleSheet, addStyleSheetRule, clearStyleSheetRules, emptyFunction, numberRange, returnOne, returnZero, Utils } from '../../../../Utils';
+import { GoogleApiClientUtils, Pulls, Pushes } from '../../../apis/google_docs/GoogleApiClientUtils';
+import { DocServer } from "../../../DocServer";
+import { Docs, DocUtils } from '../../../documents/Documents';
+import { DocumentType } from '../../../documents/DocumentTypes';
+import { DictationManager } from '../../../util/DictationManager';
+import { DragManager } from "../../../util/DragManager";
+import { makeTemplate } from '../../../util/DropConverter';
+import buildKeymap from "./ProsemirrorExampleTransfer";
+import RichTextMenu from './RichTextMenu';
+import { RichTextRules } from "./RichTextRules";
+import { DashDocCommentView, DashDocView, FootnoteView, ImageResizeView, OrderedListView, SummaryView } from "./RichTextSchema";
+// import { DashDocCommentView, DashDocView, DashFieldView, FootnoteView, SummaryView } from "./RichTextSchema";
+// import { OrderedListView } from "./RichTextSchema";
+// import { ImageResizeView } from "./ImageResizeView";
+// import { DashDocCommentView } from "./DashDocCommentView";
+// import { FootnoteView } from "./FootnoteView";
+// import { SummaryView } from "./SummaryView";
+// import { DashDocView } from "./DashDocView";
+import { DashFieldView } from "./DashFieldView";
+
+import { schema } from "./schema_rts";
+import { SelectionManager } from "../../../util/SelectionManager";
+import { undoBatch, UndoManager } from "../../../util/UndoManager";
+import { CollectionFreeFormView } from '../../collections/collectionFreeForm/CollectionFreeFormView';
+import { ContextMenu } from '../../ContextMenu';
+import { ContextMenuProps } from '../../ContextMenuItem';
+import { ViewBoxAnnotatableComponent } from "../../DocComponent";
+import { DocumentButtonBar } from '../../DocumentButtonBar';
+import { InkingControl } from "../../InkingControl";
+import { AudioBox } from '../AudioBox';
+import { FieldView, FieldViewProps } from "../FieldView";
 import "./FormattedTextBox.scss";
 import { FormattedTextBoxComment, formattedTextBoxCommentPlugin } from './FormattedTextBoxComment';
 import React = require("react");
+import { ScriptField } from '../../../../new_fields/ScriptField';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
 
 export interface FormattedTextBoxProps {
-    hideOnLeave?: boolean;
-    makeLink?: () => Opt<Doc>;
+    makeLink?: () => Opt<Doc>;  // bcz: hack: notifies the text document when the container has made a link.  allows the text doc to react and setup a hyeprlink for any selected text
+    hideOnLeave?: boolean;  // used by DocumentView for setting caption's hide on leave (bcz: would prefer to have caption-hideOnLeave field set or something similar)
+    xMargin?: number;   // used to override document's settings for xMargin --- see CollectionCarouselView
+    yMargin?: number;
 }
 
 const richTextSchema = createSchema({
@@ -185,15 +198,21 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             const tsel = this._editorView.state.selection.$from;
             tsel.marks().filter(m => m.type === this._editorView!.state.schema.marks.user_mark).map(m => AudioBox.SetScrubTime(Math.max(0, m.attrs.modified * 1000)));
             const curText = state.doc.textBetween(0, state.doc.content.size, " \n");
-            const curTemp = Cast(this.props.Document[this.props.fieldKey + "-textTemplate"], RichTextField);
-            if (!this._applyingChange) {
+            const curTemp = Cast(this.props.Document[this.props.fieldKey + "-textTemplate"], RichTextField);               // the actual text in the text box
+            const curProto = Cast(Cast(this.dataDoc.proto, Doc, null)?.[this.fieldKey], RichTextField, null);              // the default text inherited from a prototype
+            const curLayout = this.rootDoc !== this.layoutDoc ? Cast(this.layoutDoc[this.fieldKey], RichTextField, null) : undefined; // the default text stored in a layout template
+            const json = JSON.stringify(state.toJSON());
+            if (!this._applyingChange && json.replace(/"selection":.*/, "") !== curProto?.Data.replace(/"selection":.*/, "")) {
                 this._applyingChange = true;
                 this.dataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
-                if (!curTemp || curText) { // if no template, or there's text, write it to the document. (if this is driven by a template, then this overwrites the template text which is intended)
-                    this.dataDoc[this.props.fieldKey] = new RichTextField(JSON.stringify(state.toJSON()), curText);
-                    this.dataDoc[this.props.fieldKey + "-noTemplate"] = (curTemp?.Text || "") !== curText; // mark the data field as being split from the template if it has been edited
+                if ((!curTemp && !curProto) || curText) { // if no template, or there's text that didn't come from the layout template, write it to the document. (if this is driven by a template, then this overwrites the template text which is intended)
+                    if (curText !== curLayout?.Text) {
+                        this.dataDoc[this.props.fieldKey] = new RichTextField(json, curText);
+                        this.dataDoc[this.props.fieldKey + "-noTemplate"] = (curTemp?.Text || "") !== curText; // mark the data field as being split from the template if it has been edited
+                    }
                 } else { // if we've deleted all the text in a note driven by a template, then restore the template data
-                    this._editorView.updateState(EditorState.fromJSON(this.config, JSON.parse(curTemp.Data)));
+                    this.dataDoc[this.props.fieldKey] = undefined;
+                    this._editorView.updateState(EditorState.fromJSON(this.config, JSON.parse((curProto || curTemp).Data)));
                     this.dataDoc[this.props.fieldKey + "-noTemplate"] = undefined; // mark the data field as not being split from any template it might have
                 }
                 this._applyingChange = false;
@@ -216,7 +235,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     public hyperlinkTerms = (terms: string[], target: Doc) => {
         if (this._editorView && (this._editorView as any).docView && terms.some(t => t)) {
             const res = terms.filter(t => t).map(term => this.findInNode(this._editorView!, this._editorView!.state.doc, term));
-            let tr = this._editorView.state.tr;
+            const tr = this._editorView.state.tr;
             const flattened: TextSelection[] = [];
             res.map(r => r.map(h => flattened.push(h)));
             const lastSel = Math.min(flattened.length - 1, this._searchIndex);
@@ -406,12 +425,29 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         const cm = ContextMenu.Instance;
 
         const funcs: ContextMenuProps[] = [];
-        this.props.Document.isTemplateDoc && funcs.push({ description: "Make Default Layout", event: async () => Doc.UserDoc().defaultTextLayout = new PrefetchProxy(this.props.Document), icon: "eye" });
+        this.rootDoc.isTemplateDoc && funcs.push({ description: "Make Default Layout", event: async () => Doc.UserDoc().defaultTextLayout = new PrefetchProxy(this.props.Document), icon: "eye" });
         funcs.push({ description: "Reset Default Layout", event: () => Doc.UserDoc().defaultTextLayout = undefined, icon: "eye" });
-        !this.props.Document.rootDocument && funcs.push({
+        !this.layoutDoc.isTemplateDoc && funcs.push({
             description: "Make Template", event: () => {
-                this.props.Document.isTemplateDoc = makeTemplate(this.props.Document);
+                this.rootDoc.isTemplateDoc = makeTemplate(this.rootDoc);
                 Doc.AddDocToList(Cast(Doc.UserDoc()["template-notes"], Doc, null), "data", this.props.Document);
+            }, icon: "eye"
+        });
+        this.layoutDoc.isTemplateDoc && funcs.push({
+            description: "Make New Template", event: () => {
+                const title = this.rootDoc.title as string;
+                this.rootDoc.layout = (this.layoutDoc as Doc).layout as string;
+                this.rootDoc.title = this.layoutDoc.isTemplateForField as string;
+                this.rootDoc.isTemplateDoc = false;
+                this.rootDoc.isTemplateForField = "";
+                this.rootDoc.layoutKey = "layout";
+                this.rootDoc.isTemplateDoc = makeTemplate(this.rootDoc, true, title);
+                setTimeout(() => {
+                    this.rootDoc._width = this.layoutDoc._width || 300;  // the width and height are stored on the template, since we're getting rid of the old template
+                    this.rootDoc._height = this.layoutDoc._height || 200;  // we need to copy them over to the root.  This should probably apply to all '_' fields
+                    this.rootDoc._backgroundColor = Cast(this.layoutDoc._backgroundColor, "string", null);
+                }, 10);
+                Doc.AddDocToList(Cast(Doc.UserDoc()["template-notes"], Doc, null), "data", this.rootDoc);
             }, icon: "eye"
         });
         funcs.push({ description: "Toggle Single Line", event: () => this.props.Document._singleLine = !this.props.Document._singleLine, icon: "expand-arrows-alt" });
@@ -867,7 +903,15 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                     dashComment(node, view, getPos) { return new DashDocCommentView(node, view, getPos); },
                     dashField(node, view, getPos) { return new DashFieldView(node, view, getPos, self); },
                     dashDoc(node, view, getPos) { return new DashDocView(node, view, getPos, self); },
-                    image(node, view, getPos) { return new ImageResizeView(node, view, getPos, self.props.addDocTab); },
+                    // dashDoc(node, view, getPos) { return new DashDocView({ node, view, getPos, self }); },
+
+                    // image(node, view, getPos) {
+                    //     //const addDocTab = this.props.addDocTab;
+                    //     return new ImageResizeView({ node, view, getPos, addDocTab: this.props.addDocTab });
+                    // },
+                    // // WAS : 
+                    // //image(node, view, getPos) { return new ImageResizeView(node, view, getPos, this.props.addDocTab); },
+
                     summary(node, view, getPos) { return new SummaryView(node, view, getPos); },
                     ordered_list(node, view, getPos) { return new OrderedListView(); },
                     footnote(node, view, getPos) { return new FootnoteView(node, view, getPos); }
@@ -1178,11 +1222,20 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 this.layoutDoc._autoHeight = false;
             }
             const nh = this.layoutDoc.isTemplateForField ? 0 : NumCast(this.dataDoc._nativeHeight, 0);
-            const dh = NumCast(this.layoutDoc._height, 0);
+            const dh = NumCast(this.rootDoc._height, 0);
             const newHeight = Math.max(10, (nh ? dh / nh * scrollHeight : scrollHeight) + (this.props.ChromeHeight ? this.props.ChromeHeight() : 0));
             if (Math.abs(newHeight - dh) > 1) { // bcz: Argh!  without this, we get into a React crash if the same document is opened in a freeform view and in the treeview.  no idea why, but after dragging the freeform document, selecting it, and selecting text, it will compute to 1 pixel higher than the treeview which causes a cycle
-                this.layoutDoc._height = newHeight;
-                this.dataDoc._nativeHeight = nh ? scrollHeight : undefined;
+                if (this.rootDoc !== this.layoutDoc && !this.layoutDoc.resolvedDataDoc) {
+                    // if we have a template that hasn't been resolved yet, we can't set the height or we'd be setting it on the unresolved template.  So set a timeout and hope its arrived...
+                    console.log("Delayed height adjustment...");
+                    setTimeout(() => {
+                        this.rootDoc._height = newHeight;
+                        this.dataDoc._nativeHeight = nh ? scrollHeight : undefined;
+                    }, 10);
+                } else {
+                    this.rootDoc._height = newHeight;
+                    this.dataDoc._nativeHeight = nh ? scrollHeight : undefined;
+                }
             }
         }
     }
@@ -1193,6 +1246,15 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     @computed get sidebarColor() { return StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"], StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"], "transparent")); }
     render() {
         TraceMobx();
+        const style: { [key: string]: any } = {};
+        const divKeys = ["width", "height", "background"];
+        const replacer = (match: any, expr: string, offset: any, string: any) => { // bcz: this executes a script to convert a propery expression string:  { script }  into a value
+            return ScriptField.MakeFunction(expr, { self: Doc.name, this: Doc.name })?.script.run({ self: this.rootDoc, this: this.layoutDoc }).result as string || "";
+        };
+        divKeys.map((prop: string) => {
+            const p = (this.props as any)[prop] as string;
+            p && (style[prop] = p?.replace(/{([^.'][^}']+)}/g, replacer));
+        });
         const rounded = StrCast(this.layoutDoc.borderRounding) === "100%" ? "-rounded" : "";
         const interactive = InkingControl.Instance.selectedTool || this.layoutDoc.isBackground;
         if (this.props.isSelected()) {
@@ -1201,15 +1263,17 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             FormattedTextBoxComment.Hide();
         }
         return (
+
             <div className={`formattedTextBox-cont`} ref={this._ref}
                 style={{
-                    height: this.layoutDoc._autoHeight && this.props.renderDepth ? "max-content" : `calc(100% - ${this.props.ChromeHeight?.() || 0}px`,
-                    background: this.props.hideOnLeave ? "rgba(0,0,0 ,0.4)" : StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"]),
+                    height: this.props.height ? this.props.height : this.layoutDoc._autoHeight && this.props.renderDepth ? "max-content" : `calc(100% - ${this.props.ChromeHeight?.() || 0}px`,
+                    background: this.props.background ? this.props.background : StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"], this.props.hideOnLeave ? "rgba(0,0,0 ,0.4)" : ""),
                     opacity: this.props.hideOnLeave ? (this._entered ? 1 : 0.1) : 1,
-                    color: this.props.hideOnLeave ? "white" : "inherit",
+                    color: this.props.color ? this.props.color : StrCast(this.layoutDoc[this.props.fieldKey + "-color"], this.props.hideOnLeave ? "white" : "inherit"),
                     pointerEvents: interactive ? "none" : undefined,
                     fontSize: Cast(this.layoutDoc._fontSize, "number", null),
                     fontFamily: StrCast(this.layoutDoc._fontFamily, "inherit"),
+                    ...style
                 }}
                 onContextMenu={this.specificContextMenu}
                 onKeyDown={this.onKeyPress}
@@ -1222,12 +1286,20 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 onMouseUp={this.onMouseUp}
                 onWheel={this.onPointerWheel}
                 onPointerEnter={action(() => this._entered = true)}
-                onPointerLeave={action(() => this._entered = false)}
+                onPointerLeave={action((e: React.PointerEvent<HTMLDivElement>) => {
+                    this._entered = false;
+                    const target = document.elementFromPoint(e.nativeEvent.x, e.nativeEvent.y);
+                    for (let child: any = target; child; child = child?.parentElement) {
+                        if (child === this._ref.current!) {
+                            this._entered = true;
+                        }
+                    }
+                })}
             >
                 <div className={`formattedTextBox-outer`} style={{ width: `calc(100% - ${this.sidebarWidthPercent})`, }} onScroll={this.onscrolled} ref={this._scrollRef}>
                     <div className={`formattedTextBox-inner${rounded}`} ref={this.createDropTarget}
                         style={{
-                            padding: `${NumCast(this.layoutDoc._yMargin, 0)}px  ${NumCast(this.layoutDoc._xMargin, 0)}px`,
+                            padding: `${NumCast(this.layoutDoc._yMargin, this.props.yMargin || 0)}px  ${NumCast(this.layoutDoc._xMargin, this.props.xMargin || 0)}px`,
                             pointerEvents: ((this.layoutDoc.isLinkButton || this.props.onClick) && !this.props.isSelected()) ? "none" : undefined
                         }} />
                 </div>

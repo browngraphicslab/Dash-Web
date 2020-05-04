@@ -1,7 +1,7 @@
 import { Doc, Opt, DataSym } from '../../new_fields/Doc';
 import { Touchable } from './Touchable';
 import { computed, action, observable } from 'mobx';
-import { Cast, BoolCast } from '../../new_fields/Types';
+import { Cast, BoolCast, ScriptCast } from '../../new_fields/Types';
 import { listSpec } from '../../new_fields/Schema';
 import { InkingControl } from './InkingControl';
 import { InkTool } from '../../new_fields/InkField';
@@ -11,7 +11,7 @@ import { InteractionUtils } from '../util/InteractionUtils';
 ///  DocComponent returns a generic React base class used by views that don't have 'fieldKey' props (e.g.,CollectionFreeFormDocumentView, DocumentView)
 interface DocComponentProps {
     Document: Doc;
-    LayoutDoc?: () => Opt<Doc>;
+    LayoutTemplate?: () => Opt<Doc>;
 }
 export function DocComponent<P extends DocComponentProps, T>(schemaCtor: (doc: Doc) => T) {
     class Component extends Touchable<P> {
@@ -20,7 +20,7 @@ export function DocComponent<P extends DocComponentProps, T>(schemaCtor: (doc: D
         // This is the "The Document" -- it encapsulates, data, layout, and any templates
         @computed get rootDoc() { return Cast(this.props.Document.rootDocument, Doc, null) || this.props.Document; }
         // This is the rendering data of a document -- it may be "The Document", or it may be some template document that holds the rendering info
-        @computed get layoutDoc() { return Doc.Layout(this.props.Document); }
+        @computed get layoutDoc() { return Doc.Layout(this.props.Document, this.props.LayoutTemplate?.()); }
         // This is the data part of a document -- ie, the data that is constant across all views of the document
         @computed get dataDoc() { return this.props.Document[DataSym] as Doc; }
 
@@ -33,6 +33,7 @@ export function DocComponent<P extends DocComponentProps, T>(schemaCtor: (doc: D
 interface ViewBoxBaseProps {
     Document: Doc;
     DataDoc?: Doc;
+    ContainingCollectionDoc: Opt<Doc>;
     fieldKey: string;
     isSelected: (outsideReaction?: boolean) => boolean;
     renderDepth: number;
@@ -52,6 +53,8 @@ export function ViewBoxBaseComponent<P extends ViewBoxBaseProps, T>(schemaCtor: 
 
         // key where data is stored
         @computed get fieldKey() { return this.props.fieldKey; }
+
+        lookupField = (field: string) => ScriptCast(this.layoutDoc.lookupField)?.script.run({ self: this.layoutDoc, data: this.rootDoc, field: field, container: this.props.ContainingCollectionDoc }).result;
 
         active = (outsideReaction?: boolean) => !this.props.Document.isBackground && (this.props.rootSelected(outsideReaction) || this.props.isSelected(outsideReaction) || this.props.renderDepth === 0 || this.layoutDoc.forceActive);//  && !InkingControl.Instance.selectedTool;  // bcz: inking state shouldn't affect static tools 
         protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
@@ -86,6 +89,8 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
 
         // key where data is stored
         @computed get fieldKey() { return this.props.fieldKey; }
+
+        lookupField = (field: string) => ScriptCast((this.layoutDoc as any).lookupField)?.script.run({ self: this.layoutDoc, data: this.rootDoc, field: field }).result;
 
         protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
 

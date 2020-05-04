@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DataSym, Field } from "../../new_fields/Doc";
-import { PositionDocument } from '../../new_fields/documentSchemas';
+import { Document } from '../../new_fields/documentSchemas';
 import { ScriptField } from '../../new_fields/ScriptField';
 import { Cast, StrCast, NumCast } from "../../new_fields/Types";
 import { Utils, setupMoveUpEvents, emptyFunction, returnFalse, simulateMouseClick } from "../../Utils";
@@ -20,6 +20,7 @@ import React = require("react");
 import { Id } from '../../new_fields/FieldSymbols';
 import e = require('express');
 import { CollectionDockingView } from './collections/CollectionDockingView';
+import { MainView } from './MainView';
 
 library.add(faCaretUp);
 library.add(faObjectGroup);
@@ -46,6 +47,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     private _linkBoxHeight = 20 + 3; // link button height + margin
     private _titleHeight = 20;
     private _resizeUndo?: UndoManager.Batch;
+    private _offX = 0; _offY = 0;  // offset from click pt to inner edge of resize border
+    private _snapX = 0; _snapY = 0; // last snapped location of resize border
     @observable private _accumulatedTitle = "";
     @observable private _titleControlString: string = "#title";
     @observable private _edtingTitle = false;
@@ -238,12 +241,24 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         setupMoveUpEvents(this, e, this.onPointerMove, this.onPointerUp, (e) => { });
         if (e.button === 0) {
             this._resizeHdlId = e.currentTarget.id;
+            const bounds = e.currentTarget.getBoundingClientRect();
+            this._offX = this._resizeHdlId.toLowerCase().includes("left") ? bounds.right - e.clientX : bounds.left - e.clientX;
+            this._offY = this._resizeHdlId.toLowerCase().includes("top") ? bounds.bottom - e.clientY : bounds.top - e.clientY;
             this.Interacting = true;
             this._resizeUndo = UndoManager.StartBatch("DocDecs resize");
+            SelectionManager.SelectedDocuments()[0].props.setupDragLines?.();
         }
+        this._snapX = e.pageX;
+        this._snapY = e.pageY;
     }
 
     onPointerMove = (e: PointerEvent, down: number[], move: number[]): boolean => {
+        const { thisX, thisY } = DragManager.snapDrag(e, -this._offX, -this._offY, this._offX, this._offY);
+        move[0] = thisX - this._snapX;
+        move[1] = thisY - this._snapY;
+        this._snapX = thisX;
+        this._snapY = thisY;
+
         let dX = 0, dY = 0, dW = 0, dH = 0;
 
         switch (this._resizeHdlId) {
@@ -286,12 +301,11 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
         SelectionManager.SelectedDocuments().forEach(action((element: DocumentView) => {
             if (dX !== 0 || dY !== 0 || dW !== 0 || dH !== 0) {
-                const doc = PositionDocument(element.props.Document);
-                const layoutDoc = PositionDocument(Doc.Layout(element.props.Document));
-                let nwidth = layoutDoc._nativeWidth || 0;
-                let nheight = layoutDoc._nativeHeight || 0;
-                const width = (layoutDoc._width || 0);
-                const height = (layoutDoc._height || (nheight / nwidth * width));
+                const doc = Document(element.rootDoc);
+                let nwidth = doc._nativeWidth || 0;
+                let nheight = doc._nativeHeight || 0;
+                const width = (doc._width || 0);
+                const height = (doc._height || (nheight / nwidth * width));
                 const scale = element.props.ScreenToLocalTransform().Scale * element.props.ContentScaling();
                 if (nwidth && nheight) {
                     if (Math.abs(dW) > Math.abs(dH)) dH = dW * nheight / nwidth;
@@ -303,8 +317,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 doc.y = (doc.y || 0) + dY * (actualdH - height);
                 const fixedAspect = (nwidth && nheight);
                 if (fixedAspect && (!nwidth || !nheight)) {
-                    layoutDoc._nativeWidth = nwidth = layoutDoc._width || 0;
-                    layoutDoc._nativeHeight = nheight = layoutDoc._height || 0;
+                    doc._nativeWidth = nwidth = doc._width || 0;
+                    doc._nativeHeight = nheight = doc._height || 0;
                 }
                 const anno = Cast(doc.annotationOn, Doc, null);
                 if (e.ctrlKey && anno) {
@@ -320,24 +334,24 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 else if (nwidth > 0 && nheight > 0) {
                     if (Math.abs(dW) > Math.abs(dH)) {
                         if (!fixedAspect) {
-                            layoutDoc._nativeWidth = actualdW / (layoutDoc._width || 1) * (layoutDoc._nativeWidth || 0);
+                            doc._nativeWidth = actualdW / (doc._width || 1) * (doc._nativeWidth || 0);
                         }
-                        layoutDoc._width = actualdW;
-                        if (fixedAspect && !layoutDoc._fitWidth) layoutDoc._height = nheight / nwidth * layoutDoc._width;
-                        else layoutDoc._height = actualdH;
+                        doc._width = actualdW;
+                        if (fixedAspect && !doc._fitWidth) doc._height = nheight / nwidth * doc._width;
+                        else doc._height = actualdH;
                     }
                     else {
                         if (!fixedAspect) {
-                            layoutDoc._nativeHeight = actualdH / (layoutDoc._height || 1) * (doc._nativeHeight || 0);
+                            doc._nativeHeight = actualdH / (doc._height || 1) * (doc._nativeHeight || 0);
                         }
-                        layoutDoc._height = actualdH;
-                        if (fixedAspect && !layoutDoc._fitWidth) layoutDoc._width = nwidth / nheight * layoutDoc._height;
-                        else layoutDoc._width = actualdW;
+                        doc._height = actualdH;
+                        if (fixedAspect && !doc._fitWidth) doc._width = nwidth / nheight * doc._height;
+                        else doc._width = actualdW;
                     }
                 } else {
-                    dW && (layoutDoc._width = actualdW);
-                    dH && (layoutDoc._height = actualdH);
-                    dH && layoutDoc._autoHeight && (layoutDoc._autoHeight = false);
+                    dW && (doc._width = actualdW);
+                    dH && (doc._height = actualdH);
+                    dH && doc._autoHeight && (doc._autoHeight = false);
                 }
             }
         }));
@@ -350,6 +364,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         this.Interacting = false;
         (e.button === 0) && this._resizeUndo?.end();
         this._resizeUndo = undefined;
+        DragManager.Vals.Instance.clearSnapLines();
     }
 
     @computed
@@ -388,7 +403,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         const darkScheme = Cast(Doc.UserDoc().activeWorkspace, Doc, null)?.darkScheme ? "dimgray" : undefined;
         const bounds = this.Bounds;
         const seldoc = SelectionManager.SelectedDocuments().length ? SelectionManager.SelectedDocuments()[0] : undefined;
-        if (SelectionManager.GetIsDragging() || bounds.r - bounds.x < 2 || bounds.x === Number.MAX_VALUE || !seldoc || this._hidden || isNaN(bounds.r) || isNaN(bounds.b) || isNaN(bounds.x) || isNaN(bounds.y)) {
+        if (DragManager.Vals.Instance.GetIsDragging() || bounds.r - bounds.x < 2 || bounds.x === Number.MAX_VALUE || !seldoc || this._hidden || isNaN(bounds.r) || isNaN(bounds.b) || isNaN(bounds.x) || isNaN(bounds.y)) {
             return (null);
         }
         const minimal = bounds.r - bounds.x < 100 ? true : false;
@@ -473,10 +488,11 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-bottomRightResizer" className="documentDecorations-resizer"
                     onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
-                {seldoc.props.renderDepth <= 1 || !seldoc.props.ContainingCollectionView ? (null) : <div id="documentDecorations-levelSelector" className="documentDecorations-selector" title="tap to select containing document"
-                    onPointerDown={this.onSelectorUp} onContextMenu={(e) => e.preventDefault()}>
-                    <FontAwesomeIcon className="documentdecorations-times" icon={faArrowAltCircleUp} size="lg" />
-                </div>}
+                {seldoc.props.renderDepth <= 1 || !seldoc.props.ContainingCollectionView ? (null) :
+                    <div id="documentDecorations-levelSelector" className="documentDecorations-selector"
+                        title="tap to select containing document" onPointerDown={this.onSelectorUp} onContextMenu={e => e.preventDefault()}>
+                        <FontAwesomeIcon className="documentdecorations-times" icon={faArrowAltCircleUp} size="lg" />
+                    </div>}
                 <div id="documentDecorations-borderRadius" className="documentDecorations-radius"
                     onPointerDown={this.onRadiusDown} onContextMenu={(e) => e.preventDefault()}></div>
 

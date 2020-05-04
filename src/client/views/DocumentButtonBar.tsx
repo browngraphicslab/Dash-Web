@@ -15,7 +15,7 @@ import './collections/ParentDocumentSelector.scss';
 import './DocumentButtonBar.scss';
 import { LinkMenu } from "./linking/LinkMenu";
 import { DocumentView } from './nodes/DocumentView';
-import { GoogleRef } from "./nodes/FormattedTextBox";
+import { GoogleRef } from "./nodes/formattedText/FormattedTextBox";
 import { TemplateMenu } from "./TemplateMenu";
 import { Template, Templates } from "./Templates";
 import React = require("react");

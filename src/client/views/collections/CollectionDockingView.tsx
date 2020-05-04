@@ -68,10 +68,11 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         //Why is this here?
         (window as any).React = React;
         (window as any).ReactDOM = ReactDOM;
+        DragManager.Vals.Instance.StartWindowDrag = this.StartOtherDrag;
     }
     hack: boolean = false;
     undohack: any = null;
-    public StartOtherDrag(e: any, dragDocs: Doc[]) {
+    public StartOtherDrag = (e: any, dragDocs: Doc[]) => {
         let config: any;
         if (dragDocs.length === 1) {
             config = CollectionDockingView.makeDocumentConfig(dragDocs[0]);
@@ -499,7 +500,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 const stack = tab.contentItem.parent;
                 // shifts the focus to this tab when another tab is dragged over it
                 tab.element[0].onmouseenter = (e: any) => {
-                    if (!this._isPointerDown || !SelectionManager.GetIsDragging()) return;
+                    if (!this._isPointerDown || !DragManager.Vals.Instance.GetIsDragging()) return;
                     const activeContentItem = tab.header.parent.getActiveContentItem();
                     if (tab.contentItem !== activeContentItem) {
                         tab.header.parent.setActiveContentItem(tab.contentItem);
@@ -685,6 +686,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         if (curPres) {
             const pinDoc = Doc.MakeAlias(doc);
             pinDoc.presentationTargetDoc = doc;
+            pinDoc.presZoomButton = true;
             Doc.AddDocToList(curPres, "data", pinDoc);
             if (!DocumentManager.Instance.getDocumentView(curPres)) {
                 CollectionDockingView.AddRightSplit(curPres);

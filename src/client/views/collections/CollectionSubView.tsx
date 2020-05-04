@@ -1,30 +1,30 @@
 import { action, computed, IReactionDisposer, reaction } from "mobx";
+import { basename } from 'path';
 import CursorField from "../../../new_fields/CursorField";
-import { Doc, DocListCast, Opt, WidthSym, HeightSym } from "../../../new_fields/Doc";
+import { Doc, Opt } from "../../../new_fields/Doc";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
 import { ScriptField } from "../../../new_fields/ScriptField";
-import { Cast, StrCast } from "../../../new_fields/Types";
+import { Cast } from "../../../new_fields/Types";
+import { GestureUtils } from "../../../pen-gestures/GestureUtils";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
+import { Upload } from "../../../server/SharedMediaTypes";
 import { Utils } from "../../../Utils";
+import { GooglePhotos } from "../../apis/google_docs/GooglePhotosClientUtils";
 import { DocServer } from "../../DocServer";
-import { DocumentType } from "../../documents/DocumentTypes";
 import { Docs, DocumentOptions } from "../../documents/Documents";
-import { DragManager, dropActionType } from "../../util/DragManager";
+import { DocumentType } from "../../documents/DocumentTypes";
+import { Networking } from "../../Network";
+import { DragManager } from "../../util/DragManager";
+import { ImageUtils } from "../../util/Import & Export/ImageUtils";
+import { InteractionUtils } from "../../util/InteractionUtils";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { DocComponent } from "../DocComponent";
 import { FieldViewProps } from "../nodes/FieldView";
-import { FormattedTextBox, GoogleRef } from "../nodes/FormattedTextBox";
+import { FormattedTextBox, GoogleRef } from "../nodes/formattedText/FormattedTextBox";
 import { CollectionView } from "./CollectionView";
 import React = require("react");
-import { basename } from 'path';
-import { GooglePhotos } from "../../apis/google_docs/GooglePhotosClientUtils";
-import { ImageUtils } from "../../util/Import & Export/ImageUtils";
-import { Networking } from "../../Network";
-import { GestureUtils } from "../../../pen-gestures/GestureUtils";
-import { InteractionUtils } from "../../util/InteractionUtils";
-import { Upload } from "../../../server/SharedMediaTypes";
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Doc) => boolean;
@@ -43,6 +43,10 @@ export interface CollectionViewProps extends FieldViewProps {
 export interface SubCollectionViewProps extends CollectionViewProps {
     CollectionView: Opt<CollectionView>;
     children?: never | (() => JSX.Element[]) | React.ReactNode;
+    ChildLayoutTemplate?: () => Doc;
+    ChildLayoutString?: string;
+    childClickScript?: ScriptField;
+    childDoubleClickScript?: ScriptField;
     freezeChildDimensions?: boolean; // used by TimeView to coerce documents to treat their width height as their native width/height
     overrideDocuments?: Doc[]; // used to override the documents shown by the sub collection to an explicit list (see LinkBox)
     ignoreFields?: string[]; // used in TreeView to ignore specified fields (see LinkBox)
@@ -56,7 +60,6 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
         private dropDisposer?: DragManager.DragDropDisposer;
         private gestureDisposer?: GestureUtils.GestureEventDisposer;
         protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
-        private _childLayoutDisposer?: IReactionDisposer;
         protected _mainCont?: HTMLDivElement;
         protected createDashEventsTarget = (ele: HTMLDivElement) => { //used for stacking and masonry view
             this.dropDisposer?.();
@@ -64,7 +67,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             this.multiTouchDisposer?.();
             if (ele) {
                 this._mainCont = ele;
-                this.dropDisposer = DragManager.MakeDropTarget(ele, this.onInternalDrop.bind(this), this.layoutDoc);
+                this.dropDisposer = DragManager.MakeDropTarget(ele, this.onInternalDrop.bind(this), this.layoutDoc, this.onInternalPreDrop.bind(this));
                 this.gestureDisposer = GestureUtils.MakeGestureTarget(ele, this.onGesture.bind(this));
                 this.multiTouchDisposer = InteractionUtils.MakeMultiTouchTarget(ele, this.onTouchStart.bind(this));
             }
@@ -73,25 +76,9 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             this.createDashEventsTarget(ele);
         }
 
-        componentDidMount() {
-            this._childLayoutDisposer = reaction(() => ({ childDocs: this.childDocs, childLayout: Cast(this.props.Document.childLayout, Doc) }),
-                ({ childDocs, childLayout }) => {
-                    if (childLayout instanceof Doc) {
-                        childDocs.map(doc => {
-                            doc.layout_fromParent = childLayout;
-                            doc.layoutKey = "layout_fromParent";
-                        });
-                    }
-                    else if (!(childLayout instanceof Promise)) {
-                        childDocs.filter(d => !d.isTemplateForField).map(doc => doc.layoutKey === "layout_fromParent" && (doc.layoutKey = "layout"));
-                    }
-                }, { fireImmediately: true });
-
-        }
         componentWillUnmount() {
             this.gestureDisposer?.();
             this.multiTouchDisposer?.();
-            this._childLayoutDisposer?.();
         }
 
         @computed get dataDoc() {
@@ -206,6 +193,15 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
 
         @undoBatch
         protected onGesture(e: Event, ge: GestureUtils.GestureEvent) {
+        }
+
+        protected onInternalPreDrop(e: Event, de: DragManager.DropEvent) {
+            if (de.complete.docDragData) {
+                if (de.complete.docDragData.draggedDocuments.some(d => this.childDocs.includes(d))) {
+                    de.complete.docDragData.dropAction = "move";
+                }
+                e.stopPropagation();
+            }
         }
 
         @undoBatch
@@ -332,23 +328,23 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                     }));
                     return;
                 }
-                let matches: RegExpExecArray | null;
-                if ((matches = /(https:\/\/)?docs\.google\.com\/document\/d\/([^\\]+)\/edit/g.exec(text)) !== null) {
-                    const newBox = Docs.Create.TextDocument("", { ...options, _width: 400, _height: 200, title: "Awaiting title from Google Docs..." });
-                    const proto = newBox.proto!;
-                    const documentId = matches[2];
-                    proto[GoogleRef] = documentId;
-                    proto.data = "Please select this document and then click on its pull button to load its contents from from Google Docs...";
-                    proto.backgroundColor = "#eeeeff";
-                    addDocument(newBox);
-                    return;
-                }
-                if ((matches = /(https:\/\/)?photos\.google\.com\/(u\/3\/)?album\/([^\\]+)/g.exec(text)) !== null) {
-                    const albumId = matches[3];
-                    const mediaItems = await GooglePhotos.Query.AlbumSearch(albumId);
-                    console.log(mediaItems);
-                    return;
-                }
+                // let matches: RegExpExecArray | null;
+                // if ((matches = /(https:\/\/)?docs\.google\.com\/document\/d\/([^\\]+)\/edit/g.exec(text)) !== null) {
+                //     const newBox = Docs.Create.TextDocument("", { ...options, _width: 400, _height: 200, title: "Awaiting title from Google Docs..." });
+                //     const proto = newBox.proto!;
+                //     const documentId = matches[2];
+                //     proto[GoogleRef] = documentId;
+                //     proto.data = "Please select this document and then click on its pull button to load its contents from from Google Docs...";
+                //     proto.backgroundColor = "#eeeeff";
+                //     addDocument(newBox);
+                //     return;
+                // }
+                // if ((matches = /(https:\/\/)?photos\.google\.com\/(u\/3\/)?album\/([^\\]+)/g.exec(text)) !== null) {
+                //     const albumId = matches[3];
+                //     const mediaItems = await GooglePhotos.Query.AlbumSearch(albumId);
+                //     console.log(mediaItems);
+                //     return;
+                // }
             }
 
             const { items } = e.dataTransfer;

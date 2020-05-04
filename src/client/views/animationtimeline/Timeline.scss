@@ -1,0 +1,322 @@
+@import "./../globalCssVariables.scss";
+
+$timelineColor: #9acedf;
+$timelineDark: #77a1aa;
+
+.timeline-toolbox {
+    position: absolute;
+    margin: 0px;
+    padding: 0px;
+    display: flex;
+    align-items: flex-start;
+    flex-direction: row;
+    // justify-content: space-evenly;
+    align-items: center;
+    top: 3px;
+    width: 100%;
+
+    .overview-tool {
+        display: flex;
+        justify-content: center;
+    }
+
+    .playbackControls {
+        display: flex;
+        margin-left: 30px;
+        max-width: 84px;
+        width: 84px;
+
+        .timeline-icon {
+            color: $timelineColor;
+            margin-left: 3px;
+        }
+
+    }
+
+    .grid-box {
+        display: flex;
+        // grid-template-columns: [first] 20% [line2] 20% [line3] 60%;
+        width: calc(100% - 150px);
+        // width: 100%;
+        margin-left: 10px;
+
+        .time-box {
+            margin-left: 10px;
+            min-width: 140px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            .resetView-tool {
+                width: 30px;
+                height: 30px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                margin: 3px;
+                color: $timelineDark;
+            }
+
+            .resetView-tool:hover {
+                -webkit-transform: scale(1.1);
+                -ms-transform: scale(1.1);
+                transform: scale(1.1);
+                transition: .2s ease;
+            }
+        }
+
+        .mode-box {
+            display: flex;
+            margin-left: 5px;
+        }
+
+        .overview-box {
+            width: 80%;
+            display: flex;
+        }
+
+        div {
+            padding: 0px;
+            // margin-left: 10px;
+        }
+    }
+
+    .overview-tool {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .animation-text {
+        // font-size: 16px;
+        height: auto;
+        width: auto;
+        white-space: nowrap;
+        font-size: 14px;
+        color: black;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+    }
+
+    .round-toggle {
+        height: 20px;
+        width: 40px;
+        min-width: 40px;
+        background-color: white;
+        border: 2px solid $timelineDark;
+        border-radius: 20px;
+        animation-fill-mode: forwards;
+        animation-duration: 500ms;
+        top: 30px;
+        margin-left: 5px;
+
+        input {
+            position: absolute;
+            opacity: 0;
+            height: 0;
+            width: 0;
+        }
+
+        .round-toggle-slider {
+            height: 17px;
+            width: 17px;
+            background-color: white;
+            border: 2px solid $timelineDark;
+            border-radius: 50%;
+            transition: transform 500ms ease-in-out;
+            margin-left: 0px;
+            // margin-top: 0.5px;
+        }
+    }
+
+}
+
+.time-input {
+    height: 20px;
+    // width: 120px;
+    width: 100%;
+    white-space: nowrap;
+    font-size: 12px;
+    color: black;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding-left: 5px;
+    margin-left: 5px;
+}
+
+.tick {
+    height: 100%;
+    width: 2px;
+    background-color: black;
+    color: black;
+}
+
+.number-label {
+    color: black;
+    transform: rotate(-90deg) translate(-15px, 8px);
+    font-size: .85em;
+}
+
+.timeline-container {
+    width: 100%;
+    height: 300px;
+    position: absolute;
+    background-color: $light-color-secondary;
+    border-bottom: 2px solid $timelineDark;
+    transition: transform 500ms ease;
+
+    .info-container {
+        margin-top: 50px;
+        right: 20px;
+        position: absolute;
+        height: calc(100% - 100px);
+        width: calc(100% - 140px);
+        overflow: hidden;
+
+        .scrubberbox {
+            position: absolute;
+            background-color: transparent;
+            height: 30px;
+            width: 100%;
+
+        }
+
+        .scrubber {
+            top: 30px;
+            height: 100%;
+            width: 2px;
+            position: absolute;
+            z-index: 1001;
+            background-color: black;
+            pointer-events: none;
+
+            .scrubberhead {
+                top: -20px;
+                height: 20px;
+                width: 20px;
+                background-color: white;
+                border-radius: 50%;
+                border: 3px solid black;
+                left: -9px;
+                position: absolute;
+                pointer-events: all;
+            }
+        }
+
+        .trackbox {
+            top: 30px;
+            height: calc(100% - 30px);
+            // height: 100%;
+            // height: 100%;
+            width: 100%;
+            border-top: 2px solid black;
+            border-bottom: 2px solid black;
+            overflow: hidden;
+            // overflow-y: scroll;
+            background-color: white;
+            position: absolute;
+            // box-shadow: -10px 0px 10px 10px red;
+        }
+
+    }
+
+    .currentTime {
+        // background: red;
+        font-size: 12px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 40px;
+        top: 40px;
+        position: relative;
+        width: 100px;
+        margin-left: 20px;
+    }
+
+    .title-container {
+        // margin-top: 80px;
+        margin-top: 40px;
+        margin-left: 20px;
+        height: calc(100% - 100px - 30px);
+        // height: 100%;
+        width: 100px;
+        background-color: white;
+        overflow: hidden;
+        border-left: 2px solid black;
+        border-top: 2px solid black;
+        border-bottom: 2px solid black;
+        border-right: 2px solid $timelineDark;
+
+        .datapane {
+            top: 0px;
+            width: 100px;
+            height: 30%;
+            border: 1px solid $dark-color;
+            font-size: 12px;
+            line-height: 11px;
+            background-color: $timelineDark;
+            color: white;
+            position: relative;
+            float: left;
+            padding: 3px;
+            border-style: solid;
+            overflow-y: scroll;
+            overflow-x: hidden;
+
+            p {
+                hyphens: auto;
+            }
+
+        }
+    }
+
+    .resize {
+        bottom: 0px;
+        position: absolute;
+        height: 20px;
+        width: 40px;
+        left: calc(50% - 25px);
+        color: $timelineDark;
+    }
+}
+
+
+
+.overview {
+    position: absolute;
+    height: 50px;
+    width: 200px;
+    background-color: black;
+
+    .container {
+        position: absolute;
+        float: left 0px;
+        top: 25%;
+        height: 75%;
+        width: 100%;
+        background-color: grey;
+    }
+}
+
+
+.timeline-checker {
+    height: auto;
+    width: auto;
+    overflow: hidden;
+    position: absolute;
+    display: flex;
+    padding: 10px 10px;
+
+    div {
+        height: auto;
+        width: auto;
+        overflow: hidden;
+        margin: 0px 10px;
+        cursor: pointer
+    }
+
+    .check {
+        width: 50px;
+        height: 50px;
+    }
+}

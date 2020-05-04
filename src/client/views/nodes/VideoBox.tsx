@@ -21,14 +21,14 @@ import { DocumentDecorations } from "../DocumentDecorations";
 import { InkingControl } from "../InkingControl";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./VideoBox.scss";
-import { documentSchema, positionSchema } from "../../../new_fields/documentSchemas";
+import { documentSchema } from "../../../new_fields/documentSchemas";
 const path = require('path');
 
 export const timeSchema = createSchema({
     currentTimecode: "number",  // the current time of a video or other linear, time-based document.  Note, should really get set on an extension field, but that's more complicated when it needs to be set since the extension doc needs to be found first
 });
-type VideoDocument = makeInterface<[typeof documentSchema, typeof positionSchema, typeof timeSchema]>;
-const VideoDocument = makeInterface(documentSchema, positionSchema, timeSchema);
+type VideoDocument = makeInterface<[typeof documentSchema, typeof timeSchema]>;
+const VideoDocument = makeInterface(documentSchema, timeSchema);
 
 library.add(faVideo);
 
