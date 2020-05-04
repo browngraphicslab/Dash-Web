@@ -21,6 +21,7 @@ import { FormattedTextBox } from "../../../client/views/nodes/formattedText/Form
 import { MainView } from "../../../client/views/MainView";
 import { DocumentType } from "../../../client/documents/DocumentTypes";
 import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
+import { faBoxOpen } from "@fortawesome/free-solid-svg-icons";
 
 export class CurrentUserUtils {
     private static curr_id: string;
@@ -85,6 +86,26 @@ export class CurrentUserUtils {
             });
         }
 
+        if (doc["template-button-switch"] === undefined) {
+            const { FreeformDocument, MulticolumnDocument } = Docs.Create;
+
+            const yes = FreeformDocument([], { title: "yes", _height: 100, _width: 100, _LODdisable: true });
+            const no = FreeformDocument([], { title: "no", _height: 100, _width: 100, _LODdisable: true });
+            Doc.GetProto(yes).backgroundColor = ComputedField.MakeFunction("self[this.PARAMS] ? 'green':'red'");
+            // Doc.GetProto(no).backgroundColor = ComputedField.MakeFunction("!self[this.PARAMS] ? 'red':'white'");
+            // Doc.GetProto(yes).onClick = ScriptField.MakeScript("self[this.PARAMS] = true");
+            Doc.GetProto(yes).onClick = ScriptField.MakeScript("self[this.PARAMS] = !self[this.PARAMS]");
+            // Doc.GetProto(no).onClick = ScriptField.MakeScript("self[this.PARAMS] = false");
+            const box = MulticolumnDocument([/*no, */ yes], { title: "value", _width: 40, _height: 40, });
+            box.isTemplateDoc = makeTemplate(box, true, "switch");
+
+            doc["template-button-switch"] = CurrentUserUtils.ficon({
+                onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
+                dragFactory: new PrefetchProxy(box) as any as Doc,
+                removeDropProperties: new List<string>(["dropAction"]), title: "data switch", icon: "toggle-on"
+            });
+        }
+
         if (doc["template-button-detail"] === undefined) {
             const { TextDocument, MasonryDocument, CarouselDocument } = Docs.Create;
 
@@ -137,8 +158,8 @@ export class CurrentUserUtils {
 
         if (doc["template-buttons"] === undefined) {
             doc["template-buttons"] = new PrefetchProxy(Docs.Create.MasonryDocument([doc["template-button-slides"] as Doc, doc["template-button-description"] as Doc,
-            doc["template-button-query"] as Doc, doc["template-button-detail"] as Doc], {
-                title: "Document Prototypes", _xMargin: 0, _showTitle: "title",
+            doc["template-button-query"] as Doc, doc["template-button-detail"] as Doc, doc["template-button-switch"] as Doc], {
+                title: "Advanced Item Prototypes", _xMargin: 0, _showTitle: "title",
                 _autoHeight: true, _width: 500, columnWidth: 35, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled",
                 dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }),
             }));
