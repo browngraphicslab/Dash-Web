@@ -147,7 +147,7 @@ class TreeView extends React.Component<TreeViewProps> {
 
     onPointerEnter = (e: React.PointerEvent): void => {
         this.props.active(true) && Doc.BrushDoc(this.dataDoc);
-        if (e.buttons === 1 && SelectionManager.GetIsDragging()) {
+        if (e.buttons === 1 && DragManager.Vals.Instance.GetIsDragging()) {
             this._header!.current!.className = "treeViewItem-header";
             document.addEventListener("pointermove", this.onDragMove, true);
         }
@@ -451,7 +451,7 @@ class TreeView extends React.Component<TreeViewProps> {
                     fontWeight: this.props.document.searchMatch ? "bold" : undefined,
                     textDecoration: Doc.GetT(this.props.document, "title", "string", true) ? "underline" : undefined,
                     outline: BoolCast(this.props.document.workspaceBrush) ? "dashed 1px #06123232" : undefined,
-                    pointerEvents: this.props.active() || SelectionManager.GetIsDragging() ? undefined : "none"
+                    pointerEvents: this.props.active() || DragManager.Vals.Instance.GetIsDragging() ? undefined : "none"
                 }} >
                 {Doc.GetT(this.props.document, "editTitle", "boolean", true) ?
                     this.editableView("title") :

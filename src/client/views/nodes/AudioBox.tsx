@@ -17,10 +17,9 @@ import { ContextMenu } from "../ContextMenu";
 import { Id } from "../../../new_fields/FieldSymbols";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { DocumentView } from "./DocumentView";
-import { Docs } from "../../documents/Documents";
+import { Docs, DocUtils } from "../../documents/Documents";
 import { ComputedField } from "../../../new_fields/ScriptField";
 import { Networking } from "../../Network";
-import { Upload } from "../../../server/SharedMediaTypes";
 import { LinkAnchorBox } from "./LinkAnchorBox";
 
 // testing testing 
@@ -57,7 +56,6 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
     @computed get audioState(): undefined | "recording" | "paused" | "playing" { return this.dataDoc.audioState as (undefined | "recording" | "paused" | "playing"); }
     set audioState(value) { this.dataDoc.audioState = value; }
     public static SetScrubTime = (timeInMillisFrom1970: number) => { runInAction(() => AudioBox._scrubTime = 0); runInAction(() => AudioBox._scrubTime = timeInMillisFrom1970); };
-    public static ActiveRecordings: Doc[] = [];
 
     @computed get recordingStart() { return Cast(this.dataDoc[this.props.fieldKey + "-recordingStart"], DateField)?.date.getTime(); }
     async slideTemplate() { return (await Cast((await Cast(Doc.UserDoc().slidesBtn, Doc) as Doc).dragFactory, Doc) as Doc); }
@@ -145,7 +143,7 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
         this._stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         this._recorder = new MediaRecorder(this._stream);
         this.dataDoc[this.props.fieldKey + "-recordingStart"] = new DateField(new Date());
-        AudioBox.ActiveRecordings.push(this.props.Document);
+        DocUtils.ActiveRecordings.push(this.props.Document);
         this._recorder.ondataavailable = async (e: any) => {
             const [{ result }] = await Networking.UploadFilesToServer(e.data);
             if (!(result instanceof Error)) {
@@ -172,8 +170,8 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
         this.dataDoc.duration = (new Date().getTime() - this._recordStart) / 1000;
         this.audioState = "paused";
         this._stream?.getAudioTracks()[0].stop();
-        const ind = AudioBox.ActiveRecordings.indexOf(this.props.Document);
-        ind !== -1 && (AudioBox.ActiveRecordings.splice(ind, 1));
+        const ind = DocUtils.ActiveRecordings.indexOf(this.props.Document);
+        ind !== -1 && (DocUtils.ActiveRecordings.splice(ind, 1));
     });
 
     recordClick = (e: React.MouseEvent) => {

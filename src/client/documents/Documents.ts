@@ -139,6 +139,7 @@ export interface DocumentOptions {
     ischecked?: ScriptField; // returns whether a font icon box is checked
     activePen?: Doc; // which pen document is currently active (used as the radio button state for the 'unhecked' pen tool scripts)
     onClick?: ScriptField;
+    onDoubleClick?: ScriptField;
     onChildClick?: ScriptField; // script given to children of a collection to execute when they are clicked
     onChildDoubleClick?: ScriptField; // script given to children of a collection to execute when they are double clicked
     onPointerDown?: ScriptField;
@@ -493,7 +494,7 @@ export namespace Docs {
             const dataDoc = MakeDataDelegate(proto, protoProps, data, fieldKey);
             const viewDoc = Doc.MakeDelegate(dataDoc, delegId);
 
-            viewDoc.type !== DocumentType.LINK && AudioBox.ActiveRecordings.map(d => DocUtils.MakeLink({ doc: viewDoc }, { doc: d }, "audio link", "audio timeline"));
+            viewDoc.type !== DocumentType.LINK && DocUtils.MakeLinkToActiveAudio(viewDoc);
 
             return Doc.assign(viewDoc, delegateProps, true);
         }
@@ -645,7 +646,7 @@ export namespace Docs {
         }
 
         export function DocumentDocument(document?: Doc, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.DOCHOLDER), document, { title: document ? document.title + "" : "container", ...options });
+            return InstanceFromProto(Prototypes.get(DocumentType.DOCHOLDER), document, { title: document ? document.title + "" : "container", targetDropAction: "move", ...options });
         }
 
         export function FreeformDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
@@ -1005,6 +1006,11 @@ export namespace DocUtils {
         });
     }
 
+    export let ActiveRecordings: Doc[] = [];
+
+    export function MakeLinkToActiveAudio(doc: Doc) {
+        DocUtils.ActiveRecordings.map(d => DocUtils.MakeLink({ doc: doc }, { doc: d }, "audio link", "audio timeline"));
+    }
     export function MakeLink(source: { doc: Doc }, target: { doc: Doc }, linkRelationship: string = "", id?: string) {
         const sv = DocumentManager.Instance.getDocumentView(source.doc);
         if (sv && sv.props.ContainingCollectionDoc === target.doc) return;

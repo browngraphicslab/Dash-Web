@@ -1,26 +1,16 @@
-import { Doc, Field, DocListCast } from "../../new_fields/Doc";
-import { Cast, ScriptCast, StrCast, NumCast } from "../../new_fields/Types";
-import { emptyFunction } from "../../Utils";
-import { CollectionDockingView } from "../views/collections/CollectionDockingView";
-import * as globalCssVariables from "../views/globalCssVariables.scss";
-import { DocumentManager } from "./DocumentManager";
-import { LinkManager } from "./LinkManager";
-import { SelectionManager } from "./SelectionManager";
-import { SchemaHeaderField } from "../../new_fields/SchemaHeaderField";
-import { Docs, DocUtils } from "../documents/Documents";
-import { ScriptField } from "../../new_fields/ScriptField";
+import { action, observable, runInAction } from "mobx";
+import { DateField } from "../../new_fields/DateField";
+import { Doc, Field, Opt } from "../../new_fields/Doc";
 import { List } from "../../new_fields/List";
 import { PrefetchProxy } from "../../new_fields/Proxy";
 import { listSpec } from "../../new_fields/Schema";
-import { Scripting } from "./Scripting";
-import { convertDropDataToButtons } from "./DropConverter";
-import { AudioBox } from "../views/nodes/AudioBox";
-import { DateField } from "../../new_fields/DateField";
-import { DocumentView } from "../views/nodes/DocumentView";
+import { SchemaHeaderField } from "../../new_fields/SchemaHeaderField";
+import { ScriptField } from "../../new_fields/ScriptField";
+import { Cast, NumCast, ScriptCast, StrCast } from "../../new_fields/Types";
+import { emptyFunction } from "../../Utils";
+import { Docs, DocUtils } from "../documents/Documents";
+import * as globalCssVariables from "../views/globalCssVariables.scss";
 import { UndoManager } from "./UndoManager";
-import { PointData } from "../../new_fields/InkField";
-import { MainView } from "../views/MainView";
-import { action } from "mobx";
 
 export type dropActionType = "alias" | "copy" | "move" | undefined; // undefined = move
 export function SetupDrag(
@@ -56,10 +46,10 @@ export function SetupDrag(
     const onItemDown = async (e: React.PointerEvent) => {
         if (e.button === 0) {
             e.stopPropagation();
-            if (e.shiftKey && CollectionDockingView.Instance) {
+            if (e.shiftKey) {
                 e.persist();
                 const dragDoc = await docFunc();
-                dragDoc && CollectionDockingView.Instance.StartOtherDrag({
+                dragDoc && DragManager.Vals.Instance.StartWindowDrag?.({
                     pageX: e.pageX,
                     pageY: e.pageY,
                     preventDefault: emptyFunction,
@@ -76,8 +66,19 @@ export function SetupDrag(
 
 export namespace DragManager {
     let dragDiv: HTMLDivElement;
-    export let horizSnapLines: number[] = [];
-    export let vertSnapLines: number[] = [];
+    export class Vals {
+        static Instance: Vals = new Vals();
+        @observable public IsDragging: boolean = false;
+        @observable public horizSnapLines: number[] = [];
+        @observable public vertSnapLines: number[] = [];
+        public StartWindowDrag: Opt<((e: any, dragDocs: Doc[]) => void)> = undefined;
+        public SetIsDragging(dragging: boolean) { runInAction(() => this.IsDragging = dragging); }
+        public GetIsDragging() { return this.IsDragging; }
+        public clearSnapLines() {
+            this.vertSnapLines.length = 0;
+            this.horizSnapLines.length = 0;
+        }
+    }
 
     export function Root() {
         const root = document.getElementById("root");
@@ -215,7 +216,7 @@ export namespace DragManager {
     export function StartDocumentDrag(eles: HTMLElement[], dragData: DocumentDragData, downX: number, downY: number, options?: DragOptions) {
         const addAudioTag = (dropDoc: any) => {
             dropDoc && !dropDoc.creationDate && (dropDoc.creationDate = new DateField);
-            dropDoc instanceof Doc && AudioBox.ActiveRecordings.map(d => DocUtils.MakeLink({ doc: dropDoc }, { doc: d }, "audio link", "audio timeline"));
+            dropDoc instanceof Doc && DocUtils.MakeLinkToActiveAudio(dropDoc);
             return dropDoc;
         };
         const batch = UndoManager.StartBatch("dragging");
@@ -246,40 +247,6 @@ export namespace DragManager {
         StartDrag(eles, new DragManager.DocumentDragData([]), downX, downY, options, finishDrag);
     }
 
-    // drag links and drop link targets (aliasing them if needed)
-    export async function StartLinkTargetsDrag(dragEle: HTMLElement, docView: DocumentView, downX: number, downY: number, sourceDoc: Doc, specificLinks?: Doc[]) {
-        const draggedDocs = (specificLinks ? specificLinks : DocListCast(sourceDoc.links)).map(link => LinkManager.Instance.getOppositeAnchor(link, sourceDoc)).filter(l => l) as Doc[];
-
-        if (draggedDocs.length) {
-            const moddrag: Doc[] = [];
-            for (const draggedDoc of draggedDocs) {
-                const doc = await Cast(draggedDoc.annotationOn, Doc);
-                if (doc) moddrag.push(doc);
-            }
-
-            const dragData = new DragManager.DocumentDragData(moddrag.length ? moddrag : draggedDocs);
-            dragData.moveDocument = (doc: Doc, targetCollection: Doc | undefined, addDocument: (doc: Doc) => boolean): boolean => {
-                docView.props.removeDocument?.(doc);
-                addDocument(doc);
-                return true;
-            };
-            const containingView = docView.props.ContainingCollectionView;
-            const finishDrag = (e: DragCompleteEvent) =>
-                e.docDragData && (e.docDragData.droppedDocuments =
-                    dragData.draggedDocuments.reduce((droppedDocs, d) => {
-                        const dvs = DocumentManager.Instance.getDocumentViews(d).filter(dv => dv.props.ContainingCollectionView === containingView);
-                        if (dvs.length) {
-                            dvs.forEach(dv => droppedDocs.push(dv.props.Document));
-                        } else {
-                            droppedDocs.push(Doc.MakeAlias(d));
-                        }
-                        return droppedDocs;
-                    }, [] as Doc[]));
-
-            StartDrag([dragEle], dragData, downX, downY, undefined, finishDrag);
-        }
-    }
-
     // drag&drop the pdf annotation anchor which will create a text note  on drop via a dropCompleted() DragOption 
     export function StartPdfAnnoDrag(eles: HTMLElement[], dragData: PdfAnnoDragData, downX: number, downY: number, options?: DragOptions) {
         StartDrag(eles, dragData, downX, downY, options);
@@ -300,10 +267,8 @@ export namespace DragManager {
     }
 
     export function SetSnapLines(horizLines: number[], vertLines: number[]) {
-        horizSnapLines = horizLines;
-        vertSnapLines = vertLines;
-        MainView.Instance._hLines = horizLines;
-        MainView.Instance._vLines = vertLines;
+        DragManager.Vals.Instance.horizSnapLines.push(...horizLines);
+        DragManager.Vals.Instance.vertSnapLines.push(...vertLines);
     }
 
     export function snapDrag(e: PointerEvent, xFromLeft: number, yFromTop: number, xFromRight: number, yFromBottom: number) {
@@ -320,10 +285,13 @@ export namespace DragManager {
             return drag;
         };
 
-        return { thisX: snapVal([xFromLeft, xFromRight], e.pageX, vertSnapLines), thisY: snapVal([yFromTop, yFromBottom], e.pageY, horizSnapLines) };
+        return {
+            thisX: snapVal([xFromLeft, xFromRight], e.pageX, DragManager.Vals.Instance.vertSnapLines),
+            thisY: snapVal([yFromTop, yFromBottom], e.pageY, DragManager.Vals.Instance.horizSnapLines)
+        };
     }
     export let docsBeingDragged: Doc[] = [];
-    function StartDrag(eles: HTMLElement[], dragData: { [id: string]: any }, downX: number, downY: number, options?: DragOptions, finishDrag?: (dropData: DragCompleteEvent) => void) {
+    export function StartDrag(eles: HTMLElement[], dragData: { [id: string]: any }, downX: number, downY: number, options?: DragOptions, finishDrag?: (dropData: DragCompleteEvent) => void) {
         eles = eles.filter(e => e);
         if (!dragDiv) {
             dragDiv = document.createElement("div");
@@ -331,7 +299,7 @@ export namespace DragManager {
             dragDiv.style.pointerEvents = "none";
             DragManager.Root().appendChild(dragDiv);
         }
-        SelectionManager.SetIsDragging(true);
+        DragManager.Vals.Instance.SetIsDragging(true);
         const scaleXs: number[] = [];
         const scaleYs: number[] = [];
         const xs: number[] = [];
@@ -413,14 +381,14 @@ export namespace DragManager {
             if (dragData instanceof DocumentDragData) {
                 dragData.userDropAction = e.ctrlKey && e.altKey ? "copy" : e.ctrlKey ? "alias" : undefined;
             }
-            if (e.shiftKey && CollectionDockingView.Instance && dragData.droppedDocuments.length === 1) {
+            if (e.shiftKey && dragData.droppedDocuments.length === 1) {
                 !dragData.dropAction && (dragData.dropAction = alias);
                 if (dragData.dropAction === "move") {
                     dragData.removeDocument?.(dragData.draggedDocuments[0]);
                 }
                 AbortDrag();
                 finishDrag?.(new DragCompleteEvent(true, dragData));
-                CollectionDockingView.Instance.StartOtherDrag({
+                DragManager.Vals.Instance.StartWindowDrag?.({
                     pageX: e.pageX,
                     pageY: e.pageY,
                     preventDefault: emptyFunction,
@@ -447,22 +415,19 @@ export namespace DragManager {
         const endDrag = action(() => {
             document.removeEventListener("pointermove", moveHandler, true);
             document.removeEventListener("pointerup", upHandler);
-            MainView.Instance._hLines = [];
-            MainView.Instance._vLines = [];
-            vertSnapLines.length = 0;
-            horizSnapLines.length = 0;
+            DragManager.Vals.Instance.clearSnapLines();
         });
 
         AbortDrag = () => {
             hideDragShowOriginalElements();
-            SelectionManager.SetIsDragging(false);
+            DragManager.Vals.Instance.SetIsDragging(false);
             options?.dragComplete?.(new DragCompleteEvent(true, dragData));
             endDrag();
         };
         const upHandler = (e: PointerEvent) => {
             hideDragShowOriginalElements();
             dispatchDrag(eles, e, dragData, xFromLeft, yFromTop, xFromRight, yFromBottom, options, finishDrag);
-            SelectionManager.SetIsDragging(false);
+            DragManager.Vals.Instance.SetIsDragging(false);
             endDrag();
             options?.dragComplete?.(new DragCompleteEvent(false, dragData));
         };
@@ -520,4 +485,3 @@ export namespace DragManager {
         }
     }
 }
-Scripting.addGlobal(function convertToButtons(dragData: any) { convertDropDataToButtons(dragData as DragManager.DocumentDragData); });

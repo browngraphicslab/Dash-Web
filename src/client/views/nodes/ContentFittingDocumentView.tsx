@@ -3,7 +3,7 @@ import { computed } from "mobx";
 import { observer } from "mobx-react";
 import "react-table/react-table.css";
 import { Doc, Opt, WidthSym, HeightSym } from "../../../new_fields/Doc";
-import { NumCast, StrCast } from "../../../new_fields/Types";
+import { NumCast, StrCast, Cast } from "../../../new_fields/Types";
 import { TraceMobx } from "../../../new_fields/util";
 import { emptyFunction, returnOne } from "../../../Utils";
 import '../DocumentDecorations.scss';
@@ -14,7 +14,11 @@ import "./ContentFittingDocumentView.scss";
 @observer
 export class ContentFittingDocumentView extends React.Component<DocumentViewProps>{
     public get displayName() { return "DocumentView(" + this.props.Document?.title + ")"; } // this makes mobx trace() statements more descriptive
-    private get layoutDoc() { return this.props.LayoutTemplate?.() || Doc.Layout(this.props.Document); }
+    private get layoutDoc() {
+        return this.props.LayoutTemplate?.() ||
+            (this.props.layoutKey && Doc.Layout(this.props.Document, Cast(this.props.Document[this.props.layoutKey], Doc, null))) ||
+            Doc.Layout(this.props.Document);
+    }
     @computed get freezeDimensions() { return this.props.FreezeDimensions; }
     nativeWidth = () => NumCast(this.layoutDoc?._nativeWidth, this.props.NativeWidth?.() || (this.freezeDimensions && this.layoutDoc ? this.layoutDoc[WidthSym]() : this.props.PanelWidth()));
     nativeHeight = () => NumCast(this.layoutDoc?._nativeHeight, this.props.NativeHeight?.() || (this.freezeDimensions && this.layoutDoc ? this.layoutDoc[HeightSym]() : this.props.PanelHeight()));

@@ -10,6 +10,7 @@ import React = require("react");
 import { Utils, emptyFunction } from "../../../../Utils";
 import { SelectionManager } from "../../../util/SelectionManager";
 import { DocumentType } from "../../../documents/DocumentTypes";
+import { DragManager } from "../../../util/DragManager";
 
 @observer
 export class CollectionFreeFormLinksView extends React.Component {
@@ -36,7 +37,7 @@ export class CollectionFreeFormLinksView extends React.Component {
     }
 
     render() {
-        return SelectionManager.GetIsDragging() ? (null) : <div className="collectionfreeformlinksview-container">
+        return DragManager.Vals.Instance.GetIsDragging() ? (null) : <div className="collectionfreeformlinksview-container">
             <svg className="collectionfreeformlinksview-svgCanvas">
                 {this.uniqueConnections}
             </svg>

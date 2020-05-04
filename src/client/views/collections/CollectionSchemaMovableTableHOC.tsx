@@ -32,7 +32,7 @@ export class MovableColumn extends React.Component<MovableColumnProps> {
     private _dragRef: React.RefObject<HTMLDivElement> = React.createRef();
 
     onPointerEnter = (e: React.PointerEvent): void => {
-        if (e.buttons === 1 && SelectionManager.GetIsDragging()) {
+        if (e.buttons === 1 && DragManager.Vals.Instance.GetIsDragging()) {
             this._header!.current!.className = "collectionSchema-col-wrapper";
             document.addEventListener("pointermove", this.onDragMove, true);
         }
@@ -143,7 +143,7 @@ export class MovableRow extends React.Component<MovableRowProps> {
     private _rowDropDisposer?: DragManager.DragDropDisposer;
 
     onPointerEnter = (e: React.PointerEvent): void => {
-        if (e.buttons === 1 && SelectionManager.GetIsDragging()) {
+        if (e.buttons === 1 && DragManager.Vals.Instance.GetIsDragging()) {
             this._header!.current!.className = "collectionSchema-row-wrapper";
             document.addEventListener("pointermove", this.onDragMove, true);
         }

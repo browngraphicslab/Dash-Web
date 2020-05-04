@@ -11,6 +11,7 @@ import { SearchBox } from "../search/SearchBox";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./QueryBox.scss";
 import { List } from "../../../new_fields/List";
+import { DragManager } from "../../util/DragManager";
 
 type QueryDocument = makeInterface<[typeof documentSchema]>;
 const QueryDocument = makeInterface(documentSchema);
@@ -27,7 +28,7 @@ export class QueryBox extends ViewBoxAnnotatableComponent<FieldViewProps, QueryD
     }
 
     render() {
-        const dragging = !SelectionManager.GetIsDragging() ? "" : "-dragging";
+        const dragging = !DragManager.Vals.Instance.GetIsDragging() ? "" : "-dragging";
         return <div className={`queryBox${dragging}`} onWheel={(e) => e.stopPropagation()} >
             <SearchBox
                 id={this.props.Document[Id]}

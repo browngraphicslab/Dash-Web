@@ -189,7 +189,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                 this._document[props.fieldKey] instanceof Doc ? "alias" : this.props.Document.schemaDoc ? "copy" : undefined)(e);
         };
         const onPointerEnter = (e: React.PointerEvent): void => {
-            if (e.buttons === 1 && SelectionManager.GetIsDragging() && (type === "document" || type === undefined)) {
+            if (e.buttons === 1 && DragManager.Vals.Instance.GetIsDragging() && (type === "document" || type === undefined)) {
                 dragRef.current!.className = "collectionSchemaView-cellContainer doc-drag-over";
             }
         };

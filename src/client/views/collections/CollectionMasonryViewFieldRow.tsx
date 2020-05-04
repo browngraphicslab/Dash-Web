@@ -132,7 +132,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
         this._color = color;
     }
 
-    pointerEnteredRow = action(() => SelectionManager.GetIsDragging() && (this._background = "#b4b4b4"));
+    pointerEnteredRow = action(() => DragManager.Vals.Instance.GetIsDragging() && (this._background = "#b4b4b4"));
 
     @action
     pointerLeaveRow = () => {

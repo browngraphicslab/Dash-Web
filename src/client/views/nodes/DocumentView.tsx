@@ -1102,7 +1102,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     }
     @computed get ignorePointerEvents() {
         return this.props.pointerEvents === false ||
-            (this.Document.isBackground && !this.isSelected() && !SelectionManager.GetIsDragging()) ||
+            (this.Document.isBackground && !this.isSelected() && !DragManager.Vals.Instance.GetIsDragging()) ||
             (this.Document.type === DocumentType.INK && InkingControl.Instance.selectedTool !== InkTool.None);
     }
     @undoBatch

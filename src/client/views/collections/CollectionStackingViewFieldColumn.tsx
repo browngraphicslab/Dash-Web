@@ -120,7 +120,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
 
     @action
     pointerEntered = () => {
-        if (SelectionManager.GetIsDragging()) {
+        if (DragManager.Vals.Instance.GetIsDragging()) {
             this._background = "#b4b4b4";
         }
     }
@@ -355,7 +355,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
             <div className="collectionStackingViewFieldColumn" key={heading}
                 style={{
                     width: `${100 / ((uniqueHeadings.length + ((chromeStatus !== 'view-mode' && chromeStatus !== 'disabled') ? 1 : 0)) || 1)}%`,
-                    height: undefined, // SelectionManager.GetIsDragging() ? "100%" : undefined,
+                    height: undefined, // DragManager.Vals.Instance.GetIsDragging() ? "100%" : undefined,
                     background: this._background
                 }}
                 ref={this.createColumnDropRef} onPointerEnter={this.pointerEntered} onPointerLeave={this.pointerLeave}>

@@ -1,23 +1,24 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { IReactionDisposer, reaction, computed } from "mobx";
+import { action, IReactionDisposer, reaction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, Field } from "../../../new_fields/Doc";
-import { documentSchema, collectionSchema } from "../../../new_fields/documentSchemas";
+import { collectionSchema, documentSchema } from "../../../new_fields/documentSchemas";
 import { makeInterface } from "../../../new_fields/Schema";
 import { ComputedField } from "../../../new_fields/ScriptField";
 import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
+import { TraceMobx } from "../../../new_fields/util";
 import { emptyPath, returnFalse, returnOne, returnZero } from "../../../Utils";
+import { DocumentType } from "../../documents/DocumentTypes";
+import { DragManager } from "../../util/DragManager";
+import { undoBatch } from "../../util/UndoManager";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { ViewBoxAnnotatableComponent } from "../DocComponent";
 import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
 import "./DocumentBox.scss";
+import { DocumentView } from "./DocumentView";
 import { FieldView, FieldViewProps } from "./FieldView";
 import React = require("react");
-import { TraceMobx } from "../../../new_fields/util";
-import { Docs } from "../../documents/Documents";
-import { KeyValueBox } from "./KeyValueBox";
-import { DocumentView } from "./DocumentView";
 
 type DocHolderBoxSchema = makeInterface<[typeof documentSchema, typeof collectionSchema]>;
 const DocHolderBoxDocument = makeInterface(documentSchema, collectionSchema);
@@ -26,7 +27,9 @@ const DocHolderBoxDocument = makeInterface(documentSchema, collectionSchema);
 export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, DocHolderBoxSchema>(DocHolderBoxDocument) {
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(DocHolderBox, fieldKey); }
     _prevSelectionDisposer: IReactionDisposer | undefined;
+    _dropDisposer?: DragManager.DragDropDisposer;
     _selections: Doc[] = [];
+    _contRef = React.createRef<HTMLDivElement>();
     _curSelection = -1;
     componentDidMount() {
         this._prevSelectionDisposer = reaction(() => this.layoutDoc[this.props.fieldKey], (data) => {
@@ -101,21 +104,15 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
             e.stopPropagation();
         }
     }
-    _contRef = React.createRef<HTMLDivElement>();
     pwidth = () => this.props.PanelWidth() - 2 * this.xPad;
     pheight = () => this.props.PanelHeight() - 2 * this.yPad;
     getTransform = () => this.props.ScreenToLocalTransform().translate(-this.xPad, -this.yPad);
     isActive = () => this.active() || !this.props.renderDepth;
+    layoutTemplateDoc = () => Cast(this.props.Document.childLayoutTemplate, Doc, null);
     get renderContents() {
         const containedDoc = Cast(this.dataDoc[this.props.fieldKey], Doc, null);
-        const childTemplateName = StrCast(this.layoutDoc.childTemplateName);
-        if (containedDoc && childTemplateName && !containedDoc["layout_" + childTemplateName]) {
-            setTimeout(() => {
-                Doc.createCustomView(containedDoc, Docs.Create.StackingDocument, childTemplateName);
-                Doc.expandTemplateLayout(Cast(containedDoc["layout_" + childTemplateName], Doc, null), containedDoc, undefined);
-            }, 0);
-        }
-        const contents = !(containedDoc instanceof Doc) ? (null) : this.layoutDoc.childLayoutString ?
+        const layoutTemplate = StrCast(this.layoutDoc.childLayoutString);
+        const contents = !(containedDoc instanceof Doc) ? (null) : this.layoutDoc.childLayoutString || this.layoutTemplateDoc() ?
             <DocumentView
                 Document={containedDoc}
                 DataDoc={undefined}
@@ -123,8 +120,8 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
                 ContainingCollectionView={this as any} // bcz: hack!  need to pass a prop that can be used to select the container (ie, 'this') when the up selector in document decorations is clicked.  currently, the up selector allows only a containing collection to be selected
                 ContainingCollectionDoc={undefined}
                 fitToBox={true}
-                LayoutTemplateString={StrCast(this.layoutDoc.childLayoutString)}
-                //layoutKey={childTemplateName ? "layout_" + childTemplateName : "layout"}
+                LayoutTemplateString={layoutTemplate}
+                LayoutTemplate={this.layoutTemplateDoc}
                 rootSelected={this.props.isSelected}
                 addDocument={this.props.addDocument}
                 moveDocument={this.props.moveDocument}
@@ -139,7 +136,7 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
                 PanelHeight={this.pheight}
                 focus={this.props.focus}
                 parentActive={this.isActive}
-                dontRegisterView={!this.isSelectionLocked()}
+                dontRegisterView={true}
                 whenActiveChanged={this.props.whenActiveChanged}
                 bringToFront={returnFalse}
                 ContentScaling={returnOne} /> :
@@ -150,8 +147,8 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
                 ContainingCollectionView={this as any} // bcz: hack!  need to pass a prop that can be used to select the container (ie, 'this') when the up selector in document decorations is clicked.  currently, the up selector allows only a containing collection to be selected
                 ContainingCollectionDoc={undefined}
                 fitToBox={true}
-                LayoutTemplateString={StrCast(this.layoutDoc.childLayoutString)}
-                //layoutKey={childTemplateName ? "layout_" + childTemplateName : "layout"}
+                LayoutTemplateString={layoutTemplate}
+                LayoutTemplate={this.layoutTemplateDoc}
                 rootSelected={this.props.isSelected}
                 addDocument={this.props.addDocument}
                 moveDocument={this.props.moveDocument}
@@ -166,7 +163,7 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
                 PanelHeight={this.pheight}
                 focus={this.props.focus}
                 parentActive={this.isActive}
-                dontRegisterView={!this.isSelectionLocked()}
+                dontRegisterView={true}
                 whenActiveChanged={this.props.whenActiveChanged}
                 bringToFront={returnFalse}
                 ContentScaling={returnOne}
@@ -185,10 +182,26 @@ export class DocHolderBox extends ViewBoxAnnotatableComponent<FieldViewProps, Do
                 borderBottom: `#0000005e solid ${this.yPad}px`,
             }}>
             {this.renderContents}
-            <div className="documentBox-lock" onClick={this.onLockClick}
+            <div className="documentBox-lock" onClick={this.onLockClick} ref={this.createDropTarget}
                 style={{ marginTop: - this.yPad }}>
                 <FontAwesomeIcon icon={this.isSelectionLocked() ? "lock" : "unlock"} size="sm" />
             </div>
         </div >;
     }
+
+    @undoBatch
+    @action
+    drop = (e: Event, de: DragManager.DropEvent) => {
+        if (de.complete.docDragData) {
+            if (de.complete.docDragData.draggedDocuments[0].type === DocumentType.FONTICON) {
+                const doc = Cast(de.complete.docDragData.draggedDocuments[0].dragFactory, Doc, null);
+                this.props.Document.childLayoutTemplate = doc;
+            }
+        }
+    }
+    protected createDropTarget = (ele: HTMLDivElement) => {
+        this._dropDisposer?.();
+        ele && (this._dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this), this.props.Document));
+    }
+
 }

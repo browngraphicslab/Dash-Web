@@ -12,6 +12,7 @@ import React = require("react");
 import { setupMoveUpEvents, emptyFunction, returnFalse } from "../../../Utils";
 import { SelectionManager } from "../../util/SelectionManager";
 import { UndoManager } from "../../util/UndoManager";
+import { DragManager } from "../../util/DragManager";
 
 @observer
 export class CollectionPileView extends CollectionSubView(doc => doc) {
@@ -78,7 +79,7 @@ export class CollectionPileView extends CollectionSubView(doc => doc) {
     _undoBatch: UndoManager.Batch | undefined;
     pointerDown = (e: React.PointerEvent) => {
         let dist = 0;
-        SelectionManager.SetIsDragging(true);
+        DragManager.Vals.Instance.SetIsDragging(true);
         // this._lastTap should be set to 0, and this._doubleTap should be set to false in the class header
         setupMoveUpEvents(this, e, (e: PointerEvent, down: number[], delta: number[]) => {
             if (this.layoutEngine() === "pass" && this.childDocs.length && this.props.isSelected(true)) {
@@ -98,7 +99,7 @@ export class CollectionPileView extends CollectionSubView(doc => doc) {
         }, () => {
             this._undoBatch?.end();
             this._undoBatch = undefined;
-            SelectionManager.SetIsDragging(false);
+            DragManager.Vals.Instance.SetIsDragging(false);
             if (!this.childDocs.length) {
                 this.props.ContainingCollectionView?.removeDocument(this.props.Document);
             }
