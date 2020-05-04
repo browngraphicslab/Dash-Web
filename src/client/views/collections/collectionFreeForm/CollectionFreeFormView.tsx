@@ -857,7 +857,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @computed get onChildDoubleClickHandler() { return this.props.childDoubleClickScript || ScriptCast(this.Document.onChildDoubleClick); }
     @computed get backgroundActive() { return this.layoutDoc.isBackground && (this.props.ContainingCollectionView?.active() || this.props.active()); }
     backgroundHalo = () => BoolCast(this.Document.useClusters);
-    parentActive = () => this.props.active() || this.backgroundActive ? true : false;
+    parentActive = (outsideReaction: boolean) => this.props.active(outsideReaction) || this.backgroundActive ? true : false;
     getChildDocumentViewProps(childLayout: Doc, childData?: Doc): DocumentViewProps {
         return {
             ...this.props,
