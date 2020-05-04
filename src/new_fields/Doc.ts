@@ -19,6 +19,7 @@ import { Cast, FieldValue, NumCast, StrCast, ToConstructor, ScriptCast } from ".
 import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, updateFunction } from "./util";
 import { Docs, DocumentOptions } from "../client/documents/Documents";
 import { PdfField, VideoField, AudioField, ImageField } from "./URLField";
+import { LinkManager } from "../client/util/LinkManager";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -589,6 +590,7 @@ export namespace Doc {
         if (cloneMap.get(doc)) return cloneMap.get(doc)!;
         const copy = new Doc(undefined, true);
         cloneMap.set(doc, copy);
+        if (LinkManager.Instance.getAllLinks().includes(doc)) LinkManager.Instance.addLink(copy);
         const exclude = Cast(doc.excludeFields, listSpec("string"), []);
         Object.keys(doc).forEach(key => {
             if (exclude.includes(key)) return;
