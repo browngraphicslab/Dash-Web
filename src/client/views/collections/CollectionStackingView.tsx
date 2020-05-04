@@ -14,7 +14,6 @@ import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from "../../../new_field
 import { TraceMobx } from "../../../new_fields/util";
 import { emptyFunction, returnFalse, returnOne, returnZero, setupMoveUpEvents, Utils } from "../../../Utils";
 import { DragManager, dropActionType } from "../../util/DragManager";
-import { SelectionManager } from "../../util/SelectionManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
 import { ContextMenu } from "../ContextMenu";
@@ -26,7 +25,7 @@ import "./CollectionStackingView.scss";
 import { CollectionStackingViewFieldColumn } from "./CollectionStackingViewFieldColumn";
 import { CollectionSubView } from "./CollectionSubView";
 import { CollectionViewType } from "./CollectionView";
-import { ScriptField } from "../../../new_fields/ScriptField";
+import { SnappingManager } from "../../util/SnappingManager";
 const _global = (window /* browser */ || global /* node */) as any;
 
 type StackingDocument = makeInterface<[typeof collectionSchema, typeof documentSchema]>;
@@ -312,7 +311,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
                     this.refList.push(ref);
                     const doc = this.props.DataDoc && this.props.DataDoc.layout === this.layoutDoc ? this.props.DataDoc : this.layoutDoc;
                     this.observer = new _global.ResizeObserver(action((entries: any) => {
-                        if (this.props.Document._autoHeight && ref && this.refList.length && !DragManager.Vals.Instance.GetIsDragging()) {
+                        if (this.props.Document._autoHeight && ref && this.refList.length && !SnappingManager.GetIsDragging()) {
                             Doc.Layout(doc)._height = Math.min(1200, Math.max(...this.refList.map(r => Number(getComputedStyle(r).height.replace("px", "")))));
                         }
                     }));
@@ -359,7 +358,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
                     this.refList.push(ref);
                     const doc = this.props.DataDoc && this.props.DataDoc.layout === this.layoutDoc ? this.props.DataDoc : this.layoutDoc;
                     this.observer = new _global.ResizeObserver(action((entries: any) => {
-                        if (this.props.Document._autoHeight && ref && this.refList.length && !DragManager.Vals.Instance.GetIsDragging()) {
+                        if (this.props.Document._autoHeight && ref && this.refList.length && !SnappingManager.GetIsDragging()) {
                             Doc.Layout(doc)._height = this.refList.reduce((p, r) => p + Number(getComputedStyle(r).height.replace("px", "")), 0);
                         }
                     }));

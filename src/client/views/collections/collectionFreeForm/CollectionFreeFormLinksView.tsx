@@ -9,7 +9,7 @@ import { CollectionFreeFormLinkView } from "./CollectionFreeFormLinkView";
 import React = require("react");
 import { Utils, emptyFunction } from "../../../../Utils";
 import { DocumentType } from "../../../documents/DocumentTypes";
-import { DragManager } from "../../../util/DragManager";
+import { SnappingManager } from "../../../util/SnappingManager";
 
 @observer
 export class CollectionFreeFormLinksView extends React.Component {
@@ -36,7 +36,7 @@ export class CollectionFreeFormLinksView extends React.Component {
     }
 
     render() {
-        return DragManager.Vals.Instance.GetIsDragging() ? (null) : <div className="collectionfreeformlinksview-container">
+        return SnappingManager.GetIsDragging() ? (null) : <div className="collectionfreeformlinksview-container">
             <svg className="collectionfreeformlinksview-svgCanvas">
                 {this.uniqueConnections}
             </svg>

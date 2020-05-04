@@ -37,7 +37,7 @@ import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
 import { QueryBox } from "../views/nodes/QueryBox";
 import { ColorBox } from "../views/nodes/ColorBox";
 import { LinkAnchorBox } from "../views/nodes/LinkAnchorBox";
-import { DocHolderBox } from "../views/nodes/DocumentBox";
+import { DocHolderBox } from "../views/nodes/DocHolderBox";
 import { InkingStroke } from "../views/InkingStroke";
 import { InkField } from "../../new_fields/InkField";
 import { InkingControl } from "../views/InkingControl";

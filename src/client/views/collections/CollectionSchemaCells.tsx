@@ -18,11 +18,11 @@ import "./CollectionSchemaView.scss";
 import { CollectionView } from "./CollectionView";
 import { NumCast, StrCast, BoolCast, FieldValue, Cast } from "../../../new_fields/Types";
 import { Docs } from "../../documents/Documents";
-import { SelectionManager } from "../../util/SelectionManager";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faExpand } from '@fortawesome/free-solid-svg-icons';
 import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 import { undoBatch } from "../../util/UndoManager";
+import { SnappingManager } from "../../util/SnappingManager";
 
 library.add(faExpand);
 
@@ -189,7 +189,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
                 this._document[props.fieldKey] instanceof Doc ? "alias" : this.props.Document.schemaDoc ? "copy" : undefined)(e);
         };
         const onPointerEnter = (e: React.PointerEvent): void => {
-            if (e.buttons === 1 && DragManager.Vals.Instance.GetIsDragging() && (type === "document" || type === undefined)) {
+            if (e.buttons === 1 && SnappingManager.GetIsDragging() && (type === "document" || type === undefined)) {
                 dragRef.current!.className = "collectionSchemaView-cellContainer doc-drag-over";
             }
         };

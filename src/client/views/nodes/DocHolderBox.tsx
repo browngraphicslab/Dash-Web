@@ -15,7 +15,7 @@ import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { ViewBoxAnnotatableComponent } from "../DocComponent";
 import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
-import "./DocumentBox.scss";
+import "./DocHolderBox.scss";
 import { DocumentView } from "./DocumentView";
 import { FieldView, FieldViewProps } from "./FieldView";
 import React = require("react");

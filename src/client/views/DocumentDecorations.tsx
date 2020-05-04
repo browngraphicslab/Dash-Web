@@ -21,6 +21,7 @@ import { Id } from '../../new_fields/FieldSymbols';
 import e = require('express');
 import { CollectionDockingView } from './collections/CollectionDockingView';
 import { MainView } from './MainView';
+import { SnappingManager } from '../util/SnappingManager';
 
 library.add(faCaretUp);
 library.add(faObjectGroup);
@@ -364,7 +365,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         this.Interacting = false;
         (e.button === 0) && this._resizeUndo?.end();
         this._resizeUndo = undefined;
-        DragManager.Vals.Instance.clearSnapLines();
+        SnappingManager.clearSnapLines();
     }
 
     @computed
@@ -403,7 +404,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         const darkScheme = Cast(Doc.UserDoc().activeWorkspace, Doc, null)?.darkScheme ? "dimgray" : undefined;
         const bounds = this.Bounds;
         const seldoc = SelectionManager.SelectedDocuments().length ? SelectionManager.SelectedDocuments()[0] : undefined;
-        if (DragManager.Vals.Instance.GetIsDragging() || bounds.r - bounds.x < 2 || bounds.x === Number.MAX_VALUE || !seldoc || this._hidden || isNaN(bounds.r) || isNaN(bounds.b) || isNaN(bounds.x) || isNaN(bounds.y)) {
+        if (SnappingManager.GetIsDragging() || bounds.r - bounds.x < 2 || bounds.x === Number.MAX_VALUE || !seldoc || this._hidden || isNaN(bounds.r) || isNaN(bounds.b) || isNaN(bounds.x) || isNaN(bounds.y)) {
             return (null);
         }
         const minimal = bounds.r - bounds.x < 100 ? true : false;

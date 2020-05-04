@@ -9,7 +9,7 @@ import { DocumentType } from "../../../documents/DocumentTypes";
 import { observable, action, reaction, IReactionDisposer } from "mobx";
 import { StrCast } from "../../../../new_fields/Types";
 import { Id } from "../../../../new_fields/FieldSymbols";
-import { DragManager } from "../../../util/DragManager";
+import { SnappingManager } from "../../../util/SnappingManager";
 
 export interface CollectionFreeFormLinkViewProps {
     A: DocumentView;
@@ -25,7 +25,7 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
     componentDidMount() {
         this._anchorDisposer = reaction(() => [this.props.A.props.ScreenToLocalTransform(), this.props.B.props.ScreenToLocalTransform(), this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document), this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document)],
             action(() => {
-                if (DragManager.Vals.Instance.GetIsDragging()) return;
+                if (SnappingManager.GetIsDragging()) return;
                 setTimeout(action(() => this._opacity = 1), 0); // since the render code depends on querying the Dom through getBoudndingClientRect, we need to delay triggering render()
                 setTimeout(action(() => (!this.props.LinkDocs.length || !this.props.LinkDocs[0].linkDisplay) && (this._opacity = 0.05)), 750); // this will unhighlight the link line.
                 const acont = this.props.A.props.Document.type === DocumentType.LINK ? this.props.A.ContentDiv!.getElementsByClassName("linkAnchorBox-cont") : [];
@@ -83,7 +83,7 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
     }
 
     render() {
-        if (DragManager.Vals.Instance.GetIsDragging()) return null;
+        if (SnappingManager.GetIsDragging()) return null;
         this.props.A.props.ScreenToLocalTransform().transform(this.props.B.props.ScreenToLocalTransform());
         const acont = this.props.A.props.Document.type === DocumentType.LINK ? this.props.A.ContentDiv!.getElementsByClassName("linkAnchorBox-cont") : [];
         const bcont = this.props.B.props.Document.type === DocumentType.LINK ? this.props.B.ContentDiv!.getElementsByClassName("linkAnchorBox-cont") : [];
@@ -107,8 +107,9 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         const aActive = this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document);
         const bActive = this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document);
         const text = StrCast(this.props.A.props.Document.linkRelationship);
+
         return !a.width || !b.width || ((!this.props.LinkDocs.length || !this.props.LinkDocs[0].linkDisplay) && !aActive && !bActive) ? (null) : (<>
-            <text x={(pt1[0] + pt2[0]) / 2} y={(pt1[1] + pt2[1]) / 2}>
+            <text x={(Math.min(pt1[0], pt2[0]) * 2 + Math.max(pt1[0], pt2[0])) / 3} y={(pt1[1] + pt2[1]) / 2}>
                 {text !== "-ungrouped-" ? text : ""}
             </text>
             <path className="collectionfreeformlinkview-linkLine" style={{ opacity: this._opacity, strokeDasharray: "2 2" }}

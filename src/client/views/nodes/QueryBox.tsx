@@ -5,13 +5,12 @@ import { documentSchema } from "../../../new_fields/documentSchemas";
 import { Id } from '../../../new_fields/FieldSymbols';
 import { makeInterface, listSpec } from "../../../new_fields/Schema";
 import { StrCast, Cast } from "../../../new_fields/Types";
-import { SelectionManager } from "../../util/SelectionManager";
 import { ViewBoxAnnotatableComponent } from '../DocComponent';
 import { SearchBox } from "../search/SearchBox";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./QueryBox.scss";
 import { List } from "../../../new_fields/List";
-import { DragManager } from "../../util/DragManager";
+import { SnappingManager } from "../../util/SnappingManager";
 
 type QueryDocument = makeInterface<[typeof documentSchema]>;
 const QueryDocument = makeInterface(documentSchema);
@@ -28,7 +27,7 @@ export class QueryBox extends ViewBoxAnnotatableComponent<FieldViewProps, QueryD
     }
 
     render() {
-        const dragging = !DragManager.Vals.Instance.GetIsDragging() ? "" : "-dragging";
+        const dragging = !SnappingManager.GetIsDragging() ? "" : "-dragging";
         return <div className={`queryBox${dragging}`} onWheel={(e) => e.stopPropagation()} >
             <SearchBox
                 id={this.props.Document[Id]}

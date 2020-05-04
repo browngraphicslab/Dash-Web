@@ -4,7 +4,6 @@ import "./CollectionSchemaView.scss";
 import { Transform } from "../../util/Transform";
 import { Doc } from "../../../new_fields/Doc";
 import { DragManager, SetupDrag, dropActionType } from "../../util/DragManager";
-import { SelectionManager } from "../../util/SelectionManager";
 import { Cast, FieldValue, StrCast } from "../../../new_fields/Types";
 import { ContextMenu } from "../ContextMenu";
 import { action } from "mobx";
@@ -14,6 +13,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { DocumentManager } from "../../util/DocumentManager";
 import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 import { undoBatch } from "../../util/UndoManager";
+import { SnappingManager } from "../../util/SnappingManager";
 
 library.add(faGripVertical, faTrash);
 
@@ -32,7 +32,7 @@ export class MovableColumn extends React.Component<MovableColumnProps> {
     private _dragRef: React.RefObject<HTMLDivElement> = React.createRef();
 
     onPointerEnter = (e: React.PointerEvent): void => {
-        if (e.buttons === 1 && DragManager.Vals.Instance.GetIsDragging()) {
+        if (e.buttons === 1 && SnappingManager.GetIsDragging()) {
             this._header!.current!.className = "collectionSchema-col-wrapper";
             document.addEventListener("pointermove", this.onDragMove, true);
         }
@@ -143,7 +143,7 @@ export class MovableRow extends React.Component<MovableRowProps> {
     private _rowDropDisposer?: DragManager.DragDropDisposer;
 
     onPointerEnter = (e: React.PointerEvent): void => {
-        if (e.buttons === 1 && DragManager.Vals.Instance.GetIsDragging()) {
+        if (e.buttons === 1 && SnappingManager.GetIsDragging()) {
             this._header!.current!.className = "collectionSchema-row-wrapper";
             document.addEventListener("pointermove", this.onDragMove, true);
         }

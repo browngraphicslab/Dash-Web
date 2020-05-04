@@ -6,6 +6,7 @@ import { observer } from "mobx-react";
 import { DataSym, Doc, DocListCast, Field, HeightSym, Opt, WidthSym } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { List } from '../../../new_fields/List';
+import { PrefetchProxy } from '../../../new_fields/Proxy';
 import { Document, listSpec } from '../../../new_fields/Schema';
 import { ComputedField, ScriptField } from '../../../new_fields/ScriptField';
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from '../../../new_fields/Types';
@@ -13,6 +14,7 @@ import { emptyFunction, emptyPath, returnFalse, returnOne, returnTrue, returnZer
 import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentType } from "../../documents/DocumentTypes";
 import { DocumentManager } from '../../util/DocumentManager';
+import { SnappingManager } from '../../util/SnappingManager';
 import { DragManager, dropActionType, SetupDrag } from "../../util/DragManager";
 import { Scripting } from '../../util/Scripting';
 import { SelectionManager } from '../../util/SelectionManager';
@@ -31,7 +33,6 @@ import { CollectionSubView } from "./CollectionSubView";
 import "./CollectionTreeView.scss";
 import { CollectionViewType } from './CollectionView';
 import React = require("react");
-import { PrefetchProxy } from '../../../new_fields/Proxy';
 
 
 export interface TreeViewProps {
@@ -147,7 +148,7 @@ class TreeView extends React.Component<TreeViewProps> {
 
     onPointerEnter = (e: React.PointerEvent): void => {
         this.props.active(true) && Doc.BrushDoc(this.dataDoc);
-        if (e.buttons === 1 && DragManager.Vals.Instance.GetIsDragging()) {
+        if (e.buttons === 1 && SnappingManager.GetIsDragging()) {
             this._header!.current!.className = "treeViewItem-header";
             document.addEventListener("pointermove", this.onDragMove, true);
         }
@@ -451,7 +452,7 @@ class TreeView extends React.Component<TreeViewProps> {
                     fontWeight: this.props.document.searchMatch ? "bold" : undefined,
                     textDecoration: Doc.GetT(this.props.document, "title", "string", true) ? "underline" : undefined,
                     outline: BoolCast(this.props.document.workspaceBrush) ? "dashed 1px #06123232" : undefined,
-                    pointerEvents: this.props.active() || DragManager.Vals.Instance.GetIsDragging() ? undefined : "none"
+                    pointerEvents: this.props.active() || SnappingManager.GetIsDragging() ? undefined : "none"
                 }} >
                 {Doc.GetT(this.props.document, "editTitle", "boolean", true) ?
                     this.editableView("title") :

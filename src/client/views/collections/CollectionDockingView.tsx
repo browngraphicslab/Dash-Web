@@ -30,6 +30,7 @@ import { SubCollectionViewProps } from "./CollectionSubView";
 import { DockingViewButtonSelector } from './ParentDocumentSelector';
 import React = require("react");
 import { CollectionViewType } from './CollectionView';
+import { SnappingManager } from '../../util/SnappingManager';
 library.add(faFile);
 const _global = (window /* browser */ || global /* node */) as any;
 
@@ -68,7 +69,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         //Why is this here?
         (window as any).React = React;
         (window as any).ReactDOM = ReactDOM;
-        DragManager.Vals.Instance.StartWindowDrag = this.StartOtherDrag;
+        DragManager.StartWindowDrag = this.StartOtherDrag;
     }
     hack: boolean = false;
     undohack: any = null;
@@ -500,7 +501,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 const stack = tab.contentItem.parent;
                 // shifts the focus to this tab when another tab is dragged over it
                 tab.element[0].onmouseenter = (e: any) => {
-                    if (!this._isPointerDown || !DragManager.Vals.Instance.GetIsDragging()) return;
+                    if (!this._isPointerDown || !SnappingManager.GetIsDragging()) return;
                     const activeContentItem = tab.header.parent.getActiveContentItem();
                     if (tab.contentItem !== activeContentItem) {
                         tab.header.parent.setActiveContentItem(tab.contentItem);

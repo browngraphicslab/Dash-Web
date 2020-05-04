@@ -11,6 +11,7 @@ import { emptyFunction } from "../../Utils";
 import { Docs, DocUtils } from "../documents/Documents";
 import * as globalCssVariables from "../views/globalCssVariables.scss";
 import { UndoManager } from "./UndoManager";
+import { SnappingManager } from "./SnappingManager";
 
 export type dropActionType = "alias" | "copy" | "move" | undefined; // undefined = move
 export function SetupDrag(
@@ -49,7 +50,7 @@ export function SetupDrag(
             if (e.shiftKey) {
                 e.persist();
                 const dragDoc = await docFunc();
-                dragDoc && DragManager.Vals.Instance.StartWindowDrag?.({
+                dragDoc && DragManager.StartWindowDrag?.({
                     pageX: e.pageX,
                     pageY: e.pageY,
                     preventDefault: emptyFunction,
@@ -66,19 +67,7 @@ export function SetupDrag(
 
 export namespace DragManager {
     let dragDiv: HTMLDivElement;
-    export class Vals {
-        static Instance: Vals = new Vals();
-        @observable public IsDragging: boolean = false;
-        @observable public horizSnapLines: number[] = [];
-        @observable public vertSnapLines: number[] = [];
-        public StartWindowDrag: Opt<((e: any, dragDocs: Doc[]) => void)> = undefined;
-        public SetIsDragging(dragging: boolean) { runInAction(() => this.IsDragging = dragging); }
-        public GetIsDragging() { return this.IsDragging; }
-        @action public clearSnapLines() {
-            this.vertSnapLines.length = 0;
-            this.horizSnapLines.length = 0;
-        }
-    }
+    export let StartWindowDrag: Opt<((e: any, dragDocs: Doc[]) => void)> = undefined;
 
     export function Root() {
         const root = document.getElementById("root");
@@ -267,8 +256,7 @@ export namespace DragManager {
     }
 
     export function SetSnapLines(horizLines: number[], vertLines: number[]) {
-        DragManager.Vals.Instance.horizSnapLines.push(...horizLines);
-        DragManager.Vals.Instance.vertSnapLines.push(...vertLines);
+        SnappingManager.setSnapLines(horizLines, vertLines);
     }
 
     export function snapDrag(e: PointerEvent, xFromLeft: number, yFromTop: number, xFromRight: number, yFromBottom: number) {
@@ -286,8 +274,8 @@ export namespace DragManager {
         };
 
         return {
-            thisX: snapVal([xFromLeft, xFromRight], e.pageX, DragManager.Vals.Instance.vertSnapLines),
-            thisY: snapVal([yFromTop, yFromBottom], e.pageY, DragManager.Vals.Instance.horizSnapLines)
+            thisX: snapVal([xFromLeft, xFromRight], e.pageX, SnappingManager.vertSnapLines()),
+            thisY: snapVal([yFromTop, yFromBottom], e.pageY, SnappingManager.horizSnapLines())
         };
     }
     export let docsBeingDragged: Doc[] = [];
@@ -299,7 +287,7 @@ export namespace DragManager {
             dragDiv.style.pointerEvents = "none";
             DragManager.Root().appendChild(dragDiv);
         }
-        DragManager.Vals.Instance.SetIsDragging(true);
+        SnappingManager.SetIsDragging(true);
         const scaleXs: number[] = [];
         const scaleYs: number[] = [];
         const xs: number[] = [];
@@ -388,7 +376,7 @@ export namespace DragManager {
                 }
                 AbortDrag();
                 finishDrag?.(new DragCompleteEvent(true, dragData));
-                DragManager.Vals.Instance.StartWindowDrag?.({
+                DragManager.StartWindowDrag?.({
                     pageX: e.pageX,
                     pageY: e.pageY,
                     preventDefault: emptyFunction,
@@ -415,19 +403,19 @@ export namespace DragManager {
         const endDrag = action(() => {
             document.removeEventListener("pointermove", moveHandler, true);
             document.removeEventListener("pointerup", upHandler);
-            DragManager.Vals.Instance.clearSnapLines();
+            SnappingManager.clearSnapLines();
         });
 
         AbortDrag = () => {
             hideDragShowOriginalElements();
-            DragManager.Vals.Instance.SetIsDragging(false);
+            SnappingManager.SetIsDragging(false);
             options?.dragComplete?.(new DragCompleteEvent(true, dragData));
             endDrag();
         };
         const upHandler = (e: PointerEvent) => {
             hideDragShowOriginalElements();
             dispatchDrag(eles, e, dragData, xFromLeft, yFromTop, xFromRight, yFromBottom, options, finishDrag);
-            DragManager.Vals.Instance.SetIsDragging(false);
+            SnappingManager.SetIsDragging(false);
             endDrag();
             options?.dragComplete?.(new DragCompleteEvent(false, dragData));
         };

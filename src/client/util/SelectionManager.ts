@@ -8,6 +8,7 @@ export namespace SelectionManager {
 
     class Manager {
 
+        @observable IsDragging: boolean = false;
         SelectedDocuments: ObservableMap<DocumentView, boolean> = new ObservableMap();
 
         @action
@@ -53,6 +54,8 @@ export namespace SelectionManager {
         manager.SelectDoc(docView, ctrlPressed);
     }
 
+    export function SetIsDragging(dragging: boolean) { runInAction(() => manager.IsDragging = dragging); }
+    export function GetIsDragging() { return manager.IsDragging; }
     // computed functions, such as used in IsSelected generate errors if they're called outside of a
     // reaction context.  Specifying the context with 'outsideReaction' allows an efficiency feature
     // to avoid unnecessary mobx invalidations when running inside a reaction.

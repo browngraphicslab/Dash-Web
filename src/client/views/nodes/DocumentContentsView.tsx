@@ -14,7 +14,7 @@ import { LabelBox } from "./LabelBox";
 import { SliderBox } from "./SliderBox";
 import { LinkBox } from "./LinkBox";
 import { ScriptingBox } from "./ScriptingBox";
-import { DocHolderBox } from "./DocumentBox";
+import { DocHolderBox } from "./DocHolderBox";
 import { DocumentViewProps } from "./DocumentView";
 import "./DocumentView.scss";
 import { FontIconBox } from "./FontIconBox";

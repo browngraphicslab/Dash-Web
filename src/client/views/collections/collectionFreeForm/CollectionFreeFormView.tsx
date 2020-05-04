@@ -45,6 +45,7 @@ import { MarqueeView } from "./MarqueeView";
 import React = require("react");
 import { CollectionViewType } from "../CollectionView";
 import { Timeline } from "../../animationtimeline/Timeline";
+import { SnappingManager } from "../../../util/SnappingManager";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
@@ -1174,7 +1175,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         DragManager.SetSnapLines(horizLines, vertLines);
     }
     onPointerOver = (e: React.PointerEvent) => {
-        if (DragManager.Vals.Instance.GetIsDragging()) {
+        if (SnappingManager.GetIsDragging()) {
             this.setupDragLines();
         }
         e.stopPropagation();
@@ -1233,7 +1234,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         const wscale = nw ? this.props.PanelWidth() / nw : 1;
         return wscale < hscale ? wscale : hscale;
     }
-    @computed get backgroundEvents() { return this.layoutDoc.isBackground && DragManager.Vals.Instance.GetIsDragging(); }
+    @computed get backgroundEvents() { return this.layoutDoc.isBackground && SnappingManager.GetIsDragging(); }
     render() {
         TraceMobx();
         const clientRect = this._mainCont?.getBoundingClientRect();
@@ -1247,7 +1248,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         return <div className={"collectionfreeformview-container"}
             ref={this.createDashEventsTarget}
             onPointerOver={this.onPointerOver}
-            onWheel={this.onPointerWheel} onClick={this.onClick}  //pointerEvents: DragManager.Vals.Instance.GetIsDragging() ? "all" : undefined,
+            onWheel={this.onPointerWheel} onClick={this.onClick}  //pointerEvents: DraggingManager.GetIsDragging() ? "all" : undefined,
             onPointerDown={this.onPointerDown} onPointerMove={this.onCursorMove} onDrop={this.onExternalDrop.bind(this)} onContextMenu={this.onContextMenu}
             style={{
                 pointerEvents: this.backgroundEvents ? "all" : undefined,
