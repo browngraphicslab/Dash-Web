@@ -130,10 +130,6 @@ export namespace Database {
             return collectionNames;
         }
 
-        public async clear() {
-            return Promise.all((await this.getCollectionNames()).map(collection => this.dropSchema(collection)));
-        }
-
         public delete(query: any, collectionName?: string): Promise<mongodb.DeleteWriteOpResultObject>;
         public delete(id: string, collectionName?: string): Promise<mongodb.DeleteWriteOpResultObject>;
         public delete(id: any, collectionName = DocumentsCollection) {
