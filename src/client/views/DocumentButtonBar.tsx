@@ -1,5 +1,5 @@
 import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
-import { faArrowAltCircleDown, faPhotoVideo, faArrowAltCircleUp, faCheckCircle, faCloudUploadAlt, faLink, faShare, faStopCircle, faSyncAlt, faTag, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faArrowAltCircleDown, faPhotoVideo, faArrowAltCircleUp, faArrowAltCircleRight, faCheckCircle, faCloudUploadAlt, faLink, faShare, faStopCircle, faSyncAlt, faTag, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
@@ -32,6 +32,7 @@ library.add(faTag);
 library.add(faTimes);
 library.add(faArrowAltCircleDown);
 library.add(faArrowAltCircleUp);
+library.add(faArrowAltCircleRight);
 library.add(faStopCircle);
 library.add(faCheckCircle);
 library.add(faCloudUploadAlt);
@@ -41,6 +42,12 @@ library.add(faPhotoVideo);
 
 const cloud: IconProp = "cloud-upload-alt";
 const fetch: IconProp = "sync-alt";
+
+enum UtilityButtonState {
+    Default,
+    OpenRight,
+    OpenExternally
+}
 
 @observer
 export class DocumentButtonBar extends React.Component<{ views: (DocumentView | undefined)[], stack?: any }, {}> {
@@ -58,7 +65,7 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
     @observable public isAnimatingFetch = false;
     @observable public isAnimatingPulse = false;
 
-    @observable private openHover = false;
+    @observable private openHover: UtilityButtonState = UtilityButtonState.Default;
 
     @observable public static Instance: DocumentButtonBar;
     public static hasPushedHack = false;
@@ -166,18 +173,32 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
         const dataDoc = targetDoc && Doc.GetProto(targetDoc);
         const animation = this.isAnimatingFetch ? "spin 0.5s linear infinite" : "none";
         return !targetDoc || !dataDoc || !dataDoc[GoogleRef] ? (null) : <div className="documentButtonBar-linker"
-            title={`${!dataDoc.unchanged ? "Pull from" : "Fetch"} Google Docs`}
+            title={(() => {
+                switch (this.openHover) {
+                    default:
+                    case UtilityButtonState.Default: return `${!dataDoc.unchanged ? "Pull from" : "Fetch"} Google Docs`;
+                    case UtilityButtonState.OpenRight: return "Open in Right Split";
+                    case UtilityButtonState.OpenExternally: return "Open in new Browser Tab";
+                }
+            })()}
             style={{ backgroundColor: this.pullColor }}
-            onPointerEnter={e => (e.altKey || e.shiftKey) && runInAction(() => this.openHover = true)}
-            onPointerLeave={action(() => this.openHover = false)}
+            onPointerEnter={action(e => {
+                if (e.altKey) {
+                    this.openHover = UtilityButtonState.OpenExternally;
+                } else if (e.shiftKey) {
+                    this.openHover = UtilityButtonState.OpenRight;
+                }
+            })}
+            onPointerLeave={action(() => this.openHover = UtilityButtonState.Default)}
             onClick={e => {
+                const googleDocUrl = `https://docs.google.com/document/d/${dataDoc[GoogleRef]}/edit`;
                 if (e.shiftKey) {
                     e.preventDefault();
-                    CollectionDockingView.AddRightSplit(Docs.Create.WebDocument(`https://docs.google.com/document/d/${dataDoc[GoogleRef]}/edit`,
-                        { _width: 600, _nativeWidth: 960, _nativeHeight: 800, isAnnotating: false }));
+                    const options = { _width: 600, _nativeWidth: 960, _nativeHeight: 800, isAnnotating: false };
+                    CollectionDockingView.AddRightSplit(Docs.Create.WebDocument(googleDocUrl, options));
                 } else if (e.altKey) {
                     e.preventDefault();
-                    window.open(`https://docs.google.com/document/d/${dataDoc[GoogleRef]}/edit`);
+                    window.open(googleDocUrl);
                 } else {
                     this.clearPullColor();
                     DocumentButtonBar.hasPulledHack = false;
@@ -187,7 +208,14 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
             }}>
             <FontAwesomeIcon className="documentdecorations-icon" size="sm"
                 style={{ WebkitAnimation: animation, MozAnimation: animation }}
-                icon={this.openHover ? "share" : dataDoc.unchanged === false ? (this.pullIcon as any) : fetch}
+                icon={(() => {
+                    switch (this.openHover) {
+                        default:
+                        case UtilityButtonState.Default: return dataDoc.unchanged === false ? (this.pullIcon as any) : fetch;
+                        case UtilityButtonState.OpenRight: return "arrow-alt-circle-right";
+                        case UtilityButtonState.OpenExternally: return "share";
+                    }
+                })()}
             />
         </div>;
     }
