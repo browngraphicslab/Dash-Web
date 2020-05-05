@@ -22,6 +22,7 @@ import { MainView } from "../../../client/views/MainView";
 import { DocumentType } from "../../../client/documents/DocumentTypes";
 import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 import { faBoxOpen } from "@fortawesome/free-solid-svg-icons";
+import { CollectionMulticolumnView, DimUnit } from "../../../client/views/collections/collectionMulticolumn/CollectionMulticolumnView";
 
 export class CurrentUserUtils {
     private static curr_id: string;
@@ -87,16 +88,28 @@ export class CurrentUserUtils {
         }
 
         if (doc["template-button-switch"] === undefined) {
-            const { FreeformDocument, MulticolumnDocument } = Docs.Create;
+            const { FreeformDocument, MulticolumnDocument, TextDocument } = Docs.Create;
 
-            const yes = FreeformDocument([], { title: "yes", _height: 100, _width: 100, _LODdisable: true });
+            const yes = FreeformDocument([], { title: "yes", _height: 35, _width: 50, _LODdisable: true, _dimUnit: DimUnit.Pixel, _dimMagnitude: 40 });
+            const name = TextDocument("name", { title: "name", _height: 35, _width: 70, _dimMagnitude: 1 });
             const no = FreeformDocument([], { title: "no", _height: 100, _width: 100, _LODdisable: true });
+            const labelTemplate = {
+                doc: {
+                    type: "doc", content: [{
+                        type: "paragraph",
+                        content: [{ type: "dashField", attrs: { fieldKey: "PARAMS", hideKey: true } }]
+                    }]
+                },
+                selection: { type: "text", anchor: 1, head: 1 },
+                storedMarks: []
+            };
+            Doc.GetProto(name).text = new RichTextField(JSON.stringify(labelTemplate), "PARAMS");
             Doc.GetProto(yes).backgroundColor = ComputedField.MakeFunction("self[this.PARAMS] ? 'green':'red'");
             // Doc.GetProto(no).backgroundColor = ComputedField.MakeFunction("!self[this.PARAMS] ? 'red':'white'");
             // Doc.GetProto(yes).onClick = ScriptField.MakeScript("self[this.PARAMS] = true");
             Doc.GetProto(yes).onClick = ScriptField.MakeScript("self[this.PARAMS] = !self[this.PARAMS]");
             // Doc.GetProto(no).onClick = ScriptField.MakeScript("self[this.PARAMS] = false");
-            const box = MulticolumnDocument([/*no, */ yes], { title: "value", _width: 40, _height: 40, });
+            const box = MulticolumnDocument([/*no, */ yes, name], { title: "value", _width: 120, _height: 35, });
             box.isTemplateDoc = makeTemplate(box, true, "switch");
 
             doc["template-button-switch"] = CurrentUserUtils.ficon({

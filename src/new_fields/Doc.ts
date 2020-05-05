@@ -467,6 +467,7 @@ export namespace Doc {
         return (layoutDoc.isTemplateForField || layoutDoc.isTemplateDoc) && dataDoc && layoutDoc !== dataDoc;
     }
 
+    const _pendingMap: Map<string, boolean> = new Map();
     //
     // Returns an expanded template layout for a target data document if there is a template relationship
     // between the two. If so, the layoutDoc is expanded into a new document that inherits the properties 
@@ -492,13 +493,16 @@ export namespace Doc {
         const layoutFielddKey = Doc.LayoutFieldKey(templateLayoutDoc);
         const expandedLayoutFieldKey = (templateField || layoutFielddKey) + "-layout[" + templateLayoutDoc[Id] + (args ? `(${args})` : "") + "]";
         let expandedTemplateLayout = targetDoc?.[expandedLayoutFieldKey];
+
         if (templateLayoutDoc.resolvedDataDoc instanceof Promise) {
             expandedTemplateLayout = undefined;
+            _pendingMap.set(targetDoc[Id] + expandedLayoutFieldKey, true);
         }
-        else if (expandedTemplateLayout === undefined) {
-            if (templateLayoutDoc.resolvedDataDoc === Doc.GetProto(targetDoc) && templateLayoutDoc.PARAMS === StrCast(targetDoc.PARAMS)) {
+        else if (expandedTemplateLayout === undefined && !_pendingMap.get(targetDoc[Id] + expandedLayoutFieldKey + args)) {
+            if (templateLayoutDoc.resolvedDataDoc === (targetDoc.rootDocument || Doc.GetProto(targetDoc)) && templateLayoutDoc.PARAMS === StrCast(targetDoc.PARAMS)) {
                 expandedTemplateLayout = templateLayoutDoc; // reuse an existing template layout if its for the same document with the same params
             } else {
+                _pendingMap.set(targetDoc[Id] + expandedLayoutFieldKey + args, true);
                 templateLayoutDoc.resolvedDataDoc && (templateLayoutDoc = Cast(templateLayoutDoc.proto, Doc, null) || templateLayoutDoc); // if the template has already been applied (ie, a nested template), then use the template's prototype
                 setTimeout(action(() => {
                     if (!targetDoc[expandedLayoutFieldKey]) {
@@ -513,6 +517,7 @@ export namespace Doc {
                         if (dataDoc[templateField] === undefined && templateLayoutDoc[templateField] instanceof List) {
                             dataDoc[templateField] = ComputedField.MakeFunction(`ObjectField.MakeCopy(templateLayoutDoc["${templateField}"] as List)`, { templateLayoutDoc: Doc.name }, { templateLayoutDoc });
                         }
+                        _pendingMap.delete(targetDoc[Id] + expandedLayoutFieldKey + args);
                     }
                 }), 0);
             }

@@ -58,6 +58,8 @@ export interface DocumentOptions {
     _height?: number;
     _nativeWidth?: number;
     _nativeHeight?: number;
+    _dimMagnitude?: number; // magnitude of collectionMulti{row,col} view element
+    _dimUnit?: string; // "px" or "*" (default = "*")
     _fitWidth?: boolean;
     _fitToBox?: boolean; // whether a freeformview should zoom/scale to create a shrinkwrapped view of its contents
     _LODdisable?: boolean;
@@ -455,10 +457,7 @@ export namespace Docs {
 
         Scripting.addGlobal(Buxton);
 
-        const delegateKeys = ["x", "y", "layoutKey", "_width", "_height", "_panX", "_panY", "_viewType", "_nativeWidth", "_nativeHeight", "dropAction", "childDropAction", "_annotationOn",
-            "_chromeStatus", "_autoHeight", "_fitWidth", "_LODdisable", "_itemIndex", "_showSidebar", "_showTitle", "_showCaption", "_showTitleHover", "_backgroundColor",
-            "_xMargin", "_yMargin", "_xPadding", "_yPadding", "_singleLine", "_scrollTop",
-            "_color", "isLinkButton", "isBackground", "removeDropProperties", "treeViewOpen"];
+        const delegateKeys = ["x", "y", "layoutKey", "dropAction", "childDropAction", "isLinkButton", "isBackground", "removeDropProperties", "treeViewOpen"];
 
         /**
          * This function receives the relevant document prototype and uses
@@ -479,7 +478,7 @@ export namespace Docs {
          * main document.
          */
         export function InstanceFromProto(proto: Doc, data: Field | undefined, options: DocumentOptions, delegId?: string, fieldKey: string = "data") {
-            const { omit: protoProps, extract: delegateProps } = OmitKeys(options, delegateKeys);
+            const { omit: protoProps, extract: delegateProps } = OmitKeys(options, delegateKeys, "^_");
 
             if (!("author" in protoProps)) {
                 protoProps.author = Doc.CurrentUserEmail;
