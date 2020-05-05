@@ -135,7 +135,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
 
     CreateBindings(onClick: Opt<ScriptField>, onInput: Opt<ScriptField>): JsxBindings {
         const list = {
-            ...OmitKeys(this.props, ['parentActive'], (obj: any) => obj.active = this.props.parentActive).omit,
+            ...OmitKeys(this.props, ['parentActive'], "", (obj: any) => obj.active = this.props.parentActive).omit,
             RootDoc: Cast(this.layoutDoc?.rootDocument, Doc, null) || this.layoutDoc,
             Document: this.layoutDoc,
             DataDoc: this.dataDoc,

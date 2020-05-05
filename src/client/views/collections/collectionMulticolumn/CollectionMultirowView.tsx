@@ -46,12 +46,12 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
      */
     @computed
     private get ratioDefinedDocs() {
-        return this.childLayoutPairs.map(pair => pair.layout).filter(layout => StrCast(layout.dimUnit, "*") === DimUnit.Ratio);
+        return this.childLayoutPairs.map(pair => pair.layout).filter(layout => StrCast(layout._dimUnit, "*") === DimUnit.Ratio);
     }
 
     /**
-     * This loops through all childLayoutPairs and extracts the values for dimUnit
-     * and dimUnit, ignoring any that are malformed. Additionally, it then
+     * This loops through all childLayoutPairs and extracts the values for _dimUnit
+     * and _dimUnit, ignoring any that are malformed. Additionally, it then
      * normalizes the ratio values so that one * value is always 1, with the remaining
      * values proportionate to that easily readable metric.
      * @returns the list of the resolved width specifiers (unit and magnitude pairs)
@@ -62,8 +62,8 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
         let starSum = 0;
         const heightSpecifiers: HeightSpecifier[] = [];
         this.childLayoutPairs.map(pair => {
-            const unit = StrCast(pair.layout.dimUnit, "*");
-            const magnitude = NumCast(pair.layout.dimMagnitude, 1);
+            const unit = StrCast(pair.layout._dimUnit, "*");
+            const magnitude = NumCast(pair.layout._dimMagnitude, 1);
             if (unit && magnitude && magnitude > 0 && resolvedUnits.includes(unit)) {
                 (unit === DimUnit.Ratio) && (starSum += magnitude);
                 heightSpecifiers.push({ magnitude, unit });
@@ -83,9 +83,9 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
         setTimeout(() => {
             const { ratioDefinedDocs } = this;
             if (this.childLayoutPairs.length) {
-                const minimum = Math.min(...ratioDefinedDocs.map(layout => NumCast(layout.dimMagnitude, 1)));
+                const minimum = Math.min(...ratioDefinedDocs.map(layout => NumCast(layout._dimMagnitude, 1)));
                 if (minimum !== 0) {
-                    ratioDefinedDocs.forEach(layout => layout.dimMagnitude = NumCast(layout.dimMagnitude, 1) / minimum);
+                    ratioDefinedDocs.forEach(layout => layout._dimMagnitude = NumCast(layout._dimMagnitude, 1) / minimum);
                 }
             }
         });
@@ -161,8 +161,8 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
         if (rowUnitLength === undefined) {
             return 0; // we're still waiting on promises to resolve
         }
-        let height = NumCast(layout.dimMagnitude, 1);
-        if (StrCast(layout.dimUnit, "*") === DimUnit.Ratio) {
+        let height = NumCast(layout._dimMagnitude, 1);
+        if (StrCast(layout._dimUnit, "*") === DimUnit.Ratio) {
             height *= rowUnitLength;
         }
         return height;
@@ -194,8 +194,8 @@ export class CollectionMultirowView extends CollectionSubView(MultirowDocument) 
     onInternalDrop = (e: Event, de: DragManager.DropEvent) => {
         if (super.onInternalDrop(e, de)) {
             de.complete.docDragData?.droppedDocuments.forEach(action((d: Doc) => {
-                d.dimUnit = "*";
-                d.dimMagnitude = 1;
+                d._dimUnit = "*";
+                d._dimMagnitude = 1;
             }));
         }
         return false;
