@@ -33,6 +33,7 @@ import { CollectionSubView } from "./CollectionSubView";
 import "./CollectionTreeView.scss";
 import { CollectionViewType } from './CollectionView';
 import React = require("react");
+import { makeTemplate } from '../../util/DropConverter';
 
 
 export interface TreeViewProps {
@@ -743,8 +744,15 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                             Doc.GetProto(img).doubleClickView = doubleClickView;
                         }
                     });
+                    Doc.GetProto(d).type = "buxton";
                     Doc.GetProto(d).proto = heroView; // all devices "are" heroViews that share the same layout & defaults. Seems better than making them all be independent and copy a layout string  // .layout = ImageBox.LayoutString("hero");
                 });
+
+                const iconBuxtonView = ImageDocument(fallbackImg, { title: "hero", _width: 60, onDoubleClick: ScriptField.MakeScript("deiconifyView(self)") });
+                iconBuxtonView.isTemplateDoc = makeTemplate(iconBuxtonView, true, "icon_buxton");
+                Doc.UserDoc()["template-icon-view-buxton"] = new PrefetchProxy(iconBuxtonView);
+                const tempIcons = Doc.GetProto(Cast(Doc.UserDoc()["template-icons"], Doc, null));
+                Doc.AddDocToList(tempIcons, "data", iconBuxtonView);
 
                 Document.childLayoutTemplate = heroView;
                 Document.childClickedOpenTemplateView = new PrefetchProxy(detailView);
