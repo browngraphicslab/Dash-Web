@@ -89,8 +89,6 @@ export default class UserManager extends ApiManager {
             }
         });
 
-
-
         register({
             method: Method.GET,
             subscription: "/activity",

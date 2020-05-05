@@ -56,7 +56,7 @@ export default class GooglePhotosManager extends ApiManager {
                 const { media } = req.body;
 
                 // first we need to ensure that we know the google account to which these photos will be uploaded
-                const token = await GoogleApiServerUtils.retrieveAccessToken(user.id);
+                const token = (await GoogleApiServerUtils.retrieveCredentials(user.id))?.credentials?.access_token;
                 if (!token) {
                     return _error(res, authenticationError);
                 }

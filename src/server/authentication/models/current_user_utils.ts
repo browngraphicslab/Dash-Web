@@ -293,7 +293,7 @@ export class CurrentUserUtils {
                 { _width: 250, _height: 250, title: "container" });
         }
         if (doc.emptyWebpage === undefined) {
-            doc.emptyWebpage = Docs.Create.WebDocument("", { title: "New Webpage", _width: 600 })
+            doc.emptyWebpage = Docs.Create.WebDocument("", { title: "New Webpage", _width: 600 });
         }
         return [
             { title: "Drag a collection", label: "Col", icon: "folder", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyCollection as Doc },
@@ -315,7 +315,8 @@ export class CurrentUserUtils {
             // { title: "use eraser", icon: "eraser", click: 'activateEraser(this.activePen.inkPen = sameDocs(this.activePen.inkPen, this) ? undefined : this);', ischecked: `sameDocs(this.activePen.inkPen, this)`, backgroundColor: "pink", activePen: doc },
             // { title: "use drag", icon: "mouse-pointer", click: 'deactivateInk();this.activePen.inkPen = this;', ischecked: `sameDocs(this.activePen.inkPen, this)`, backgroundColor: "white", activePen: doc },
             { title: "Drag a document previewer", label: "Prev", icon: "expand", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory,true)', dragFactory: doc.emptyDocHolder as Doc },
-            { title: "Drag a Calculator REPL", label: "repl", icon: "calculator", click: 'addOverlayWindow("ScriptingRepl", { x: 300, y: 100, width: 200, height: 200, title: "Scripting REPL" })' },
+            { title: "Toggle a Calculator REPL", label: "repl", icon: "calculator", click: 'addOverlayWindow("ScriptingRepl", { x: 300, y: 100, width: 200, height: 200, title: "Scripting REPL" })' },
+            { title: "Connect a Google Account", label: "Google Account", icon: "external-link-alt", click: 'GoogleAuthenticationManager.Instance.fetchOrGenerateAccessToken(true)' },
         ];
 
     }
@@ -331,21 +332,22 @@ export class CurrentUserUtils {
                 alreadyCreatedButtons = dragDocs.map(d => StrCast(d.title));
             }
         }
-        const creatorBtns = CurrentUserUtils.creatorBtnDescriptors(doc).filter(d => !alreadyCreatedButtons?.includes(d.title)).
-            map(data => Docs.Create.FontIconDocument({
-                _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100,
-                icon: data.icon,
-                title: data.title,
-                label: data.label,
-                ignoreClick: data.ignoreClick,
-                dropAction: "copy",
-                onDragStart: data.drag ? ScriptField.MakeFunction(data.drag) : undefined,
-                onClick: data.click ? ScriptField.MakeScript(data.click) : undefined,
-                ischecked: data.ischecked ? ComputedField.MakeFunction(data.ischecked) : undefined,
-                activePen: data.activePen,
-                backgroundColor: data.backgroundColor, removeDropProperties: new List<string>(["dropAction"]),
-                dragFactory: data.dragFactory,
-            }));
+        const buttons = CurrentUserUtils.creatorBtnDescriptors(doc).filter(d => !alreadyCreatedButtons?.includes(d.title));
+        const creatorBtns = buttons.map(({ title, label, icon, ignoreClick, drag, click, ischecked, activePen, backgroundColor, dragFactory }) => Docs.Create.FontIconDocument({
+            _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100,
+            icon,
+            title,
+            label,
+            ignoreClick,
+            dropAction: "copy",
+            onDragStart: drag ? ScriptField.MakeFunction(drag) : undefined,
+            onClick: click ? ScriptField.MakeScript(click) : undefined,
+            ischecked: ischecked ? ComputedField.MakeFunction(ischecked) : undefined,
+            activePen,
+            backgroundColor,
+            removeDropProperties: new List<string>(["dropAction"]),
+            dragFactory,
+        }));
 
         if (dragCreatorSet === undefined) {
             doc.myItemCreators = new PrefetchProxy(Docs.Create.MasonryDocument(creatorBtns, {

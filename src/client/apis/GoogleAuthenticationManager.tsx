@@ -1,10 +1,11 @@
-import { observable, action, reaction, runInAction } from "mobx";
+import { observable, action, reaction, runInAction, IReactionDisposer } from "mobx";
 import { observer } from "mobx-react";
 import * as React from "react";
 import MainViewModal from "../views/MainViewModal";
 import { Opt } from "../../new_fields/Doc";
 import { Networking } from "../Network";
 import "./GoogleAuthenticationManager.scss";
+import { Scripting } from "../util/Scripting";
 
 const AuthenticationUrl = "https://accounts.google.com/o/oauth2/v2/auth";
 const prompt = "Paste authorization code here...";
@@ -15,64 +16,89 @@ export default class GoogleAuthenticationManager extends React.Component<{}> {
     private authenticationLink: Opt<string> = undefined;
     @observable private openState = false;
     @observable private authenticationCode: Opt<string> = undefined;
-    @observable private clickedState = false;
+    @observable private showPasteTargetState = false;
     @observable private success: Opt<boolean> = undefined;
     @observable private displayLauncher = true;
-    @observable private avatar: Opt<string> = undefined;
-    @observable private username: Opt<string> = undefined;
+    @observable private credentials: any;
+    private disposer: Opt<IReactionDisposer>;
 
     private set isOpen(value: boolean) {
         runInAction(() => this.openState = value);
     }
 
-    private set hasBeenClicked(value: boolean) {
-        runInAction(() => this.clickedState = value);
+    private set shouldShowPasteTarget(value: boolean) {
+        runInAction(() => this.showPasteTargetState = value);
     }
 
-    public fetchOrGenerateAccessToken = async () => {
-        const response = await Networking.FetchFromServer("/readGoogleAccessToken");
+    public cancel() {
+        this.openState && this.resetState(0, 0);
+    }
+
+    public fetchOrGenerateAccessToken = async (displayIfFound = false) => {
+        let response: any = await Networking.FetchFromServer("/readGoogleAccessToken");
+
         // if this is an authentication url, activate the UI to register the new access token
         if (new RegExp(AuthenticationUrl).test(response)) {
             this.isOpen = true;
             this.authenticationLink = response;
             return new Promise<string>(async resolve => {
-                const disposer = reaction(
+                this.disposer?.();
+                this.disposer = reaction(
                     () => this.authenticationCode,
                     async authenticationCode => {
-                        if (authenticationCode) {
-                            disposer();
-                            const { access_token, avatar, name } = await Networking.PostToServer("/writeGoogleAccessToken", { authenticationCode });
+                        if (authenticationCode && /\d{1}\/[\w-]{55}/.test(authenticationCode)) {
+                            this.disposer?.();
+                            const response = await Networking.PostToServer("/writeGoogleAccessToken", { authenticationCode });
                             runInAction(() => {
-                                this.avatar = avatar;
-                                this.username = name;
-                                this.hasBeenClicked = false;
-                                this.success = false;
+                                this.success = true;
+                                this.credentials = response;
                             });
-                            this.beginFadeout();
-                            resolve(access_token);
+                            this.resetState();
+                            resolve(response.access_token);
                         }
                     }
                 );
             });
         }
-        // otherwise, we already have a valid, stored access token
-        return response;
+
+        // otherwise, we already have a valid, stored access token and user info
+        response = JSON.parse(response);
+        if (displayIfFound) {
+            runInAction(() => {
+                this.success = true;
+                this.credentials = response;
+            });
+            this.resetState(-1, -1);
+            this.isOpen = true;
+        }
+        return response.access_token;
     }
 
-    beginFadeout = action(() => {
-        this.success = true;
-        this.authenticationCode = undefined;
-        this.displayLauncher = false;
-        this.hasBeenClicked = false;
-        setTimeout(action(() => {
-            this.isOpen = false;
-            setTimeout(action(() => {
+    resetState = action((visibleForMS: number = 3000, fadesOutInMS: number = 500) => {
+        if (!visibleForMS && !fadesOutInMS) {
+            runInAction(() => {
+                this.isOpen = false;
                 this.success = undefined;
                 this.displayLauncher = true;
-                this.avatar = undefined;
-                this.username = undefined;
-            }), 500);
-        }), 3000);
+                this.credentials = undefined;
+                this.shouldShowPasteTarget = false;
+                this.authenticationCode = undefined;
+            });
+            return;
+        }
+        this.authenticationCode = undefined;
+        this.displayLauncher = false;
+        this.shouldShowPasteTarget = false;
+        if (visibleForMS > 0 && fadesOutInMS > 0) {
+            setTimeout(action(() => {
+                this.isOpen = false;
+                setTimeout(action(() => {
+                    this.success = undefined;
+                    this.displayLauncher = true;
+                    this.credentials = undefined;
+                }), fadesOutInMS);
+            }), visibleForMS);
+        }
     });
 
     constructor(props: {}) {
@@ -83,27 +109,38 @@ export default class GoogleAuthenticationManager extends React.Component<{}> {
     private get renderPrompt() {
         return (
             <div className={'authorize-container'}>
+
                 {this.displayLauncher ? <button
                     className={"dispatch"}
                     onClick={() => {
                         window.open(this.authenticationLink);
-                        setTimeout(() => this.hasBeenClicked = true, 500);
+                        setTimeout(() => this.shouldShowPasteTarget = true, 500);
                     }}
-                    style={{ marginBottom: this.clickedState ? 15 : 0 }}
+                    style={{ marginBottom: this.showPasteTargetState ? 15 : 0 }}
                 >Authorize a Google account...</button> : (null)}
-                {this.clickedState ? <input
+                {this.showPasteTargetState ? <input
                     className={'paste-target'}
                     onChange={action(e => this.authenticationCode = e.currentTarget.value)}
                     placeholder={prompt}
                 /> : (null)}
-                {this.avatar ? <img
-                    className={'avatar'}
-                    src={this.avatar}
-                /> : (null)}
-                {this.username ? <span
-                    className={'welcome'}
-                >Welcome to Dash, {this.username}
-                </span> : (null)}
+                {this.credentials ?
+                    <>
+                        <img
+                            className={'avatar'}
+                            src={this.credentials.userInfo.picture}
+                        />
+                        <span
+                            className={'welcome'}
+                        >Welcome to Dash, {this.credentials.userInfo.name}
+                        </span>
+                        <div
+                            className={'disconnect'}
+                            onClick={async () => {
+                                await Networking.FetchFromServer("/revokeGoogleAccessToken");
+                                this.resetState(0, 0);
+                            }}
+                        >Disconnect Account</div>
+                    </> : (null)}
             </div>
         );
     }
@@ -126,3 +163,5 @@ export default class GoogleAuthenticationManager extends React.Component<{}> {
     }
 
 }
+
+Scripting.addGlobal("GoogleAuthenticationManager", GoogleAuthenticationManager);

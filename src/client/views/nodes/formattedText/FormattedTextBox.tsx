@@ -59,6 +59,7 @@ import "./FormattedTextBox.scss";
 import { FormattedTextBoxComment, formattedTextBoxCommentPlugin } from './FormattedTextBoxComment';
 import React = require("react");
 import { ScriptField } from '../../../../new_fields/ScriptField';
+import GoogleAuthenticationManager from '../../../apis/GoogleAuthenticationManager';
 
 library.add(faEdit);
 library.add(faSmile, faTextHeight, faUpload);
@@ -784,7 +785,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         let pullSuccess = false;
         if (exportState !== undefined) {
             pullSuccess = true;
-            dataDoc.data = new RichTextField(JSON.stringify(exportState.state.toJSON()));
+            dataDoc[this.props.fieldKey] = new RichTextField(JSON.stringify(exportState.state.toJSON()));
             setTimeout(() => {
                 if (this._editorView) {
                     const state = this._editorView.state;
@@ -802,13 +803,15 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     }
 
     checkState = (exportState: Opt<GoogleApiClientUtils.Docs.ImportResult>, dataDoc: Doc) => {
-        if (exportState && this._editorView) {
-            const equalContent = isEqual(this._editorView.state.doc, exportState.state.doc);
-            const equalTitles = dataDoc.title === exportState.title;
-            const unchanged = equalContent && equalTitles;
-            dataDoc.unchanged = unchanged;
-            DocumentButtonBar.Instance.setPullState(unchanged);
-        }
+        GoogleAuthenticationManager.Instance.fetchOrGenerateAccessToken().then(() => {
+            if (exportState && this._editorView) {
+                const equalContent = isEqual(this._editorView.state.doc, exportState.state.doc);
+                const equalTitles = dataDoc.title === exportState.title;
+                const unchanged = equalContent && equalTitles;
+                dataDoc.unchanged = unchanged;
+                DocumentButtonBar.Instance.setPullState(unchanged);
+            }
+        });
     }
 
     clipboardTextSerializer = (slice: Slice): string => {

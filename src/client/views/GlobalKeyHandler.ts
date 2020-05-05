@@ -12,6 +12,7 @@ import { ScriptField } from "../../new_fields/ScriptField";
 import { InkingControl } from "./InkingControl";
 import { InkTool } from "../../new_fields/InkField";
 import { DocumentView } from "./nodes/DocumentView";
+import GoogleAuthenticationManager from "../apis/GoogleAuthenticationManager";
 
 const modifiers = ["control", "meta", "shift", "alt"];
 type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo | Promise<KeyControlInfo>;
@@ -79,6 +80,7 @@ export default class KeyManager {
                 SelectionManager.DeselectAll();
                 DictationManager.Controls.stop();
                 // RecommendationsBox.Instance.closeMenu();
+                GoogleAuthenticationManager.Instance.cancel();
                 SharingManager.Instance.close();
                 break;
             case "delete":
