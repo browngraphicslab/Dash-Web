@@ -22,6 +22,7 @@ import React = require("react");
 import { DragManager } from '../util/DragManager';
 import { MetadataEntryMenu } from './MetadataEntryMenu';
 import GoogleAuthenticationManager from '../apis/GoogleAuthenticationManager';
+import { Docs } from '../documents/Documents';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -167,10 +168,14 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
         return !targetDoc || !dataDoc || !dataDoc[GoogleRef] ? (null) : <div className="documentButtonBar-linker"
             title={`${!dataDoc.unchanged ? "Pull from" : "Fetch"} Google Docs`}
             style={{ backgroundColor: this.pullColor }}
-            onPointerEnter={e => e.altKey && runInAction(() => this.openHover = true)}
+            onPointerEnter={e => (e.altKey || e.shiftKey) && runInAction(() => this.openHover = true)}
             onPointerLeave={action(() => this.openHover = false)}
             onClick={e => {
-                if (e.altKey) {
+                if (e.shiftKey) {
+                    e.preventDefault();
+                    CollectionDockingView.AddRightSplit(Docs.Create.WebDocument(`https://docs.google.com/document/d/${dataDoc[GoogleRef]}/edit`,
+                        { _width: 600, _nativeWidth: 960, _nativeHeight: 800, isAnnotating: false }));
+                } else if (e.altKey) {
                     e.preventDefault();
                     window.open(`https://docs.google.com/document/d/${dataDoc[GoogleRef]}/edit`);
                 } else {
