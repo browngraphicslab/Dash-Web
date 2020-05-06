@@ -249,9 +249,10 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
     _curSuffix = "_m";
 
     resize = (imgPath: string) => {
+        const basePath = imgPath.replace(/_[oms]./, "");
         const cachedNativeSize = {
-            width: imgPath === this.dataDoc[this.fieldKey + "-path"] ? NumCast(this.dataDoc[this.fieldKey + "-nativeWidth"]) : 0,
-            height: imgPath === this.dataDoc[this.fieldKey + "-path"] ? NumCast(this.dataDoc[this.fieldKey + "-nativeHeight"]) : 0,
+            width: basePath === this.dataDoc[this.fieldKey + "-path"] ? NumCast(this.dataDoc[this.fieldKey + "-nativeWidth"]) : 0,
+            height: basePath === this.dataDoc[this.fieldKey + "-path"] ? NumCast(this.dataDoc[this.fieldKey + "-nativeHeight"]) : 0,
         };
         const docAspect = this.layoutDoc[HeightSym]() / this.layoutDoc[WidthSym]();
         const cachedAspect = cachedNativeSize.height / cachedNativeSize.width;
@@ -265,7 +266,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
                         this.layoutDoc._height = this.layoutDoc[WidthSym]() * rotatedAspect;
                         this.dataDoc[this.fieldKey + "-nativeWidth"] = this.layoutDoc._nativeWidth = this.layoutDoc._width;
                         this.dataDoc[this.fieldKey + "-nativeHeight"] = this.layoutDoc._nativeHeight = this.layoutDoc._height;
-                        this.dataDoc[this.fieldKey + "-path"] = imgPath;
+                        this.dataDoc[this.fieldKey + "-path"] = basePath;
                     }
                 })).catch(console.log);
             } else if (Math.abs(1 - docAspect / cachedAspect) > 0.1) {
