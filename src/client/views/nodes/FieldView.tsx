@@ -43,6 +43,7 @@ export interface FieldViewProps {
     whenActiveChanged: (isActive: boolean) => void;
     dontRegisterView?: boolean;
     focus: (doc: Doc) => void;
+    ignoreAutoHeight?: boolean;
     PanelWidth: () => number;
     PanelHeight: () => number;
     NativeHeight: () => number;

@@ -985,7 +985,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         }
         if (e.button === 0 && this.active(true) && !e.altKey && !e.ctrlKey && !e.metaKey) {
             if (e.clientX < this.ProseRef!.getBoundingClientRect().right) { // don't stop propagation if clicking in the sidebar
-                e.stopPropagation();
+                //e.stopPropagation();
             }
         }
         if (e.button === 2 || (e.button === 0 && e.ctrlKey)) {
@@ -1217,7 +1217,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     @action
     tryUpdateHeight(limitHeight?: number) {
         let scrollHeight = this._ref.current?.scrollHeight;
-        if (this.layoutDoc._autoHeight && scrollHeight &&
+        if (this.layoutDoc._autoHeight && !this.props.ignoreAutoHeight && scrollHeight &&
             getComputedStyle(this._ref.current!.parentElement!).top === "0px") {  // if top === 0, then the text box is growing upward (as the overlay caption) which doesn't contribute to the height computation
             if (limitHeight && scrollHeight > limitHeight) {
                 scrollHeight = limitHeight;

@@ -5,7 +5,7 @@ import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast } from "../../new_fields/Doc";
 import { RichTextField } from '../../new_fields/RichTextField';
-import { NumCast, StrCast } from "../../new_fields/Types";
+import { NumCast, StrCast, Cast } from "../../new_fields/Types";
 import { emptyFunction, setupMoveUpEvents } from "../../Utils";
 import { Pulls, Pushes } from '../apis/google_docs/GoogleApiClientUtils';
 import { UndoManager } from "../util/UndoManager";
@@ -170,11 +170,16 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
             style={{ backgroundColor: this.pullColor }}
             onPointerEnter={e => (e.altKey || e.shiftKey) && runInAction(() => this.openHover = true)}
             onPointerLeave={action(() => this.openHover = false)}
-            onClick={e => {
+            onClick={async (e: React.MouseEvent) => {
                 if (e.shiftKey) {
                     e.preventDefault();
-                    CollectionDockingView.AddRightSplit(Docs.Create.WebDocument(`https://docs.google.com/document/d/${dataDoc[GoogleRef]}/edit`,
-                        { _width: 600, _nativeWidth: 960, _nativeHeight: 800, isAnnotating: false }));
+                    let googleDoc = await Cast(dataDoc.googleDoc, Doc);
+                    if (!googleDoc) {
+                        googleDoc = Docs.Create.WebDocument(`https://docs.google.com/document/d/${dataDoc[GoogleRef]}/edit`,
+                            { _width: 600, _nativeWidth: 960, _nativeHeight: 800, isAnnotating: false });
+                        dataDoc.googleDoc = googleDoc;
+                    }
+                    CollectionDockingView.AddRightSplit(googleDoc);
                 } else if (e.altKey) {
                     e.preventDefault();
                     window.open(`https://docs.google.com/document/d/${dataDoc[GoogleRef]}/edit`);

@@ -63,6 +63,7 @@ export interface DocumentViewProps {
     LayoutTemplate?: () => Opt<Doc>;
     LibraryPath: Doc[];
     fitToBox?: boolean;
+    ignoreAutoHeight?: boolean;
     contextMenuItems?: () => { script: ScriptField, label: string }[];
     rootSelected: (outsideReaction?: boolean) => boolean; // whether the root of a template has been selected
     onClick?: ScriptField;
@@ -1009,6 +1010,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 renderDepth={this.props.renderDepth}
                 PanelWidth={this.panelWidth}
                 PanelHeight={this.panelHeight}
+                ignoreAutoHeight={this.props.ignoreAutoHeight}
                 focus={this.props.focus}
                 parentActive={this.props.parentActive}
                 whenActiveChanged={this.props.whenActiveChanged}
