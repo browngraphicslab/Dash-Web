@@ -12,7 +12,7 @@ import { listSpec, makeInterface } from "../../../new_fields/Schema";
 import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from "../../../new_fields/Types";
 import { TraceMobx } from "../../../new_fields/util";
-import { emptyFunction, returnFalse, returnOne, returnZero, setupMoveUpEvents, Utils } from "../../../Utils";
+import { emptyFunction, returnFalse, returnOne, returnZero, setupMoveUpEvents, Utils, smoothScroll } from "../../../Utils";
 import { DragManager, dropActionType } from "../../util/DragManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
@@ -165,6 +165,24 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
         return this.props.addDocTab(doc, where);
     }
 
+
+    focusDocument = (doc: Doc, willZoom: boolean, scale?: number, afterFocus?: () => boolean) => {
+        Doc.BrushDoc(this.props.Document);
+        this.props.focus(this.props.Document);
+        Doc.linkFollowHighlight(doc);
+
+        const found = this._mainCont && Array.from(this._mainCont.getElementsByClassName("documentView-node")).find((node: any) => node.id === doc[Id]);
+        if (found) {
+            const top = found.getBoundingClientRect().top;
+            const localTop = this.props.ScreenToLocalTransform().transformPoint(0, top);
+            smoothScroll(500, this._mainCont!, localTop[1] + this._mainCont!.scrollTop);
+        }
+        afterFocus && setTimeout(() => {
+            if (afterFocus?.()) {
+            }
+        }, 500);
+    }
+
     getDisplayDoc(doc: Doc, dataDoc: Doc | undefined, dxf: () => Transform, width: () => number) {
         const layoutDoc = Doc.Layout(doc, this.props.ChildLayoutTemplate?.());
         const height = () => this.getDocHeight(doc);
@@ -187,7 +205,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
             onClick={this.onChildClickHandler}
             onDoubleClick={this.onChildDoubleClickHandler}
             ScreenToLocalTransform={dxf}
-            focus={this.props.focus}
+            focus={this.focusDocument}
             ContainingCollectionDoc={this.props.CollectionView?.props.Document}
             ContainingCollectionView={this.props.CollectionView}
             addDocument={this.props.addDocument}

@@ -80,12 +80,9 @@ export class LabelBox extends ViewBoxBaseComponent<FieldViewProps, LabelDocument
                     paddingRight: NumCast(this.layoutDoc._xPadding),
                     paddingTop: NumCast(this.layoutDoc._yPadding),
                     paddingBottom: NumCast(this.layoutDoc._yPadding),
-                    textOverflow: this.layoutDoc._singleLine ? "ellipsis" : undefined,
-                    whiteSpace: this.layoutDoc._singleLine ? "nowrap" : "pre-wrap"
+                    whiteSpace: this.layoutDoc._singleLine ? "pre" : "pre-wrap"
                 }} >
-                    <div className="labelBox-mainButtonCenter">
-                        {StrCast(this.rootDoc.text, StrCast(this.rootDoc.title))}
-                    </div>
+                    {StrCast(this.rootDoc.text, StrCast(this.rootDoc.title))}
                 </div>
                 <div className="labelBox-fieldKeyParams" >
                     {!missingParams?.length ? (null) : missingParams.map(m => <div key={m} className="labelBox-missingParam">{m}</div>)}

@@ -231,7 +231,21 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             }
             return false;
         }
+        readUploadedFileAsText = (inputFile: File) => {
+            const temporaryFileReader = new FileReader();
 
+            return new Promise((resolve, reject) => {
+                temporaryFileReader.onerror = () => {
+                    temporaryFileReader.abort();
+                    reject(new DOMException("Problem parsing input file."));
+                };
+
+                temporaryFileReader.onload = () => {
+                    resolve(temporaryFileReader.result);
+                };
+                temporaryFileReader.readAsText(inputFile);
+            });
+        };
         @undoBatch
         @action
         protected async onExternalDrop(e: React.DragEvent, options: DocumentOptions, completed?: () => void) {
@@ -369,7 +383,16 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 }
                 if (item.kind === "file") {
                     const file = item.getAsFile();
-                    file && file.type && files.push(file);
+                    file?.type && files.push(file);
+
+                    file?.type === "application/json" && this.readUploadedFileAsText(file).then(result => {
+                        console.log(result);
+                        const json = JSON.parse(result as string) as any;
+                        addDocument(Docs.Create.TreeDocument(
+                            json["rectangular-puzzle"].crossword.clues[0].clue.map((c: any) =>
+                                Docs.Create.LabelDocument({ title: c["#text"], _width: 120, _height: 20 })
+                            ), { _width: 150, _height: 600, title: "across", backgroundColor: "white", _singleLine: true }));
+                    });
                 }
             }
             for (const { source: { name, type }, result } of await Networking.UploadFilesToServer(files)) {
