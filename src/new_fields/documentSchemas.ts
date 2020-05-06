@@ -44,6 +44,7 @@ export const documentSchema = createSchema({
     _chromeStatus: "string",    // determines the state of the collection chrome. values allowed are 'replaced', 'enabled', 'disabled', 'collapsed'
     _fontSize: "number",
     _fontFamily: "string",
+    _sidebarWidthPercent: "string", // percent of text window width taken up by sidebar
 
     // appearance properties on the data document
     backgroundColor: "string",  // background color of document

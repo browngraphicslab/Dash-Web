@@ -300,7 +300,7 @@ export class MainView extends React.Component {
 
     defaultBackgroundColors = (doc: Doc) => {
         if (this.darkScheme) {
-            switch (doc.type) {
+            switch (doc?.type) {
                 case DocumentType.RTF || DocumentType.LABEL || DocumentType.BUTTON: return "#2d2d2d";
                 case DocumentType.LINK:
                 case DocumentType.COL: {
@@ -309,7 +309,7 @@ export class MainView extends React.Component {
                 default: return "black";
             }
         } else {
-            switch (doc.type) {
+            switch (doc?.type) {
                 case DocumentType.RTF: return "#f1efeb";
                 case DocumentType.BUTTON:
                 case DocumentType.LABEL: return "lightgray";

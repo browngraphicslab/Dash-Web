@@ -6,7 +6,7 @@ import { DocumentType } from "../client/documents/DocumentTypes";
 import { Scripting, scriptingGlobal } from "../client/util/Scripting";
 import { afterDocDeserialize, autoObject, Deserializable, SerializationHelper } from "../client/util/SerializationHelper";
 import { UndoManager } from "../client/util/UndoManager";
-import { intersectRect } from "../Utils";
+import { intersectRect, Utils } from "../Utils";
 import { HandleUpdate, Id, OnUpdate, Parent, Self, SelfProxy, ToScriptString, ToString, Update, Copy } from "./FieldSymbols";
 import { List } from "./List";
 import { ObjectField } from "./ObjectField";
@@ -20,6 +20,7 @@ import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, u
 import { Docs, DocumentOptions } from "../client/documents/Documents";
 import { PdfField, VideoField, AudioField, ImageField } from "./URLField";
 import { LinkManager } from "../client/util/LinkManager";
+import { string32 } from "../../deploy/assets/pdf.worker";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -590,47 +591,64 @@ export namespace Doc {
         return copy;
     }
 
-    export function MakeClone(doc: Doc, cloneMap: Map<Doc, Doc> = new Map()): Doc {
+    export function MakeClone(doc: Doc): Doc {
+        let cloneMap = new Map<string, Doc>();
+        let rtfMap: { copy: Doc, key: string, field: RichTextField }[] = [];
+        const copy = Doc.makeClone(doc, cloneMap, rtfMap);
+        rtfMap.map(({ copy, key, field }) => {
+            const replacer = (match: any, attr: string, id: string, offset: any, string: any) => {
+                const mapped = cloneMap.get(id);
+                return attr + "\"" + (mapped ? mapped[Id] : id) + "\"";
+            };
+            const replacer2 = (match: any, href: string, id: string, offset: any, string: any) => {
+                const mapped = cloneMap.get(id);
+                return href + (mapped ? mapped[Id] : id);
+            };
+            const regex = `(${Utils.prepend("/doc/")})([^"]*)`;
+            var re = new RegExp(regex, "g");
+            copy[key] = new RichTextField(field.Data.replace(/("docid":|"targetId":|"linkId":)"([^"]+)"/g, replacer).replace(re, replacer2), field.Text);
+        });
+        return copy;
+    }
+
+    export function makeClone(doc: Doc, cloneMap: Map<string, Doc>, rtfs: { copy: Doc, key: string, field: RichTextField }[]): Doc {
         if (Doc.IsBaseProto(doc)) return doc;
-        if (cloneMap.get(doc)) return cloneMap.get(doc)!;
+        if (cloneMap.get(doc[Id])) return cloneMap.get(doc[Id])!;
         const copy = new Doc(undefined, true);
-        cloneMap.set(doc, copy);
-        if (LinkManager.Instance.getAllLinks().includes(doc)) LinkManager.Instance.addLink(copy);
+        cloneMap.set(doc[Id], copy);
+        if (LinkManager.Instance.getAllLinks().includes(doc) && LinkManager.Instance.getAllLinks().indexOf(copy) === -1) LinkManager.Instance.addLink(copy);
         const exclude = Cast(doc.excludeFields, listSpec("string"), []);
         Object.keys(doc).forEach(key => {
             if (exclude.includes(key)) return;
             const cfield = ComputedField.WithoutComputed(() => FieldValue(doc[key]));
             const field = ProxyField.WithoutProxy(() => doc[key]);
+            const copyObjectField = (field: ObjectField) => {
+                const list = Cast(doc[key], listSpec(Doc));
+                if (list !== undefined && !(list instanceof Promise)) {
+                    copy[key] = new List<Doc>(list.filter(d => d instanceof Doc).map(d => Doc.makeClone(d as Doc, cloneMap, rtfs)));
+                } else if (doc[key] instanceof Doc)
+                    copy[key] = key.includes("layout[") ? undefined : Doc.makeClone(doc[key] as Doc, cloneMap, rtfs); // reference documents except copy documents that are expanded teplate fields 
+                else {
+                    copy[key] = ObjectField.MakeCopy(field);
+                    if (field instanceof RichTextField) {
+                        if (field.Data.includes('"docid":') || field.Data.includes('"targetId":') || field.Data.includes('"linkId":')) {
+                            rtfs.push({ copy, key, field });
+                        }
+                    }
+                }
+            }
             if (key === "proto") {
                 if (doc[key] instanceof Doc) {
-                    copy[key] = Doc.MakeClone(doc[key]!, cloneMap);
+                    copy[key] = Doc.makeClone(doc[key]!, cloneMap, rtfs);
                 }
             } else {
                 if (field instanceof RefField) {
                     copy[key] = field;
                 } else if (cfield instanceof ComputedField) {
                     copy[key] = ComputedField.MakeFunction(cfield.script.originalScript);
-                    if (field instanceof ObjectField) {
-                        const list = Cast(doc[key], listSpec(Doc));
-                        if (list !== undefined && !(list instanceof Promise)) {
-                            copy[key] = new List<Doc>(list.filter(d => d instanceof Doc).map(d => Doc.MakeClone(d as Doc, cloneMap)));
-                        } else {
-                            copy[key] = doc[key] instanceof Doc ?
-                                key.includes("layout[") ?
-                                    undefined : Doc.MakeClone(doc[key] as Doc, cloneMap) : // reference documents except copy documents that are expanded teplate fields 
-                                ObjectField.MakeCopy(field);
-                        }
-                    }
+                    (key === "links" && field instanceof ObjectField) && copyObjectField(field);
                 } else if (field instanceof ObjectField) {
-                    const list = Cast(doc[key], listSpec(Doc));
-                    if (list !== undefined && !(list instanceof Promise)) {
-                        copy[key] = new List<Doc>(list.filter(d => d instanceof Doc).map(d => Doc.MakeClone(d as Doc, cloneMap)));
-                    } else {
-                        copy[key] = doc[key] instanceof Doc ?
-                            key.includes("layout[") ?
-                                undefined : Doc.MakeClone(doc[key] as Doc, cloneMap) : // reference documents except copy documents that are expanded teplate fields 
-                            ObjectField.MakeCopy(field);
-                    }
+                    copyObjectField(field);
                 } else if (field instanceof Promise) {
                     debugger; //This shouldn't happend...
                 } else {
@@ -640,7 +658,7 @@ export namespace Doc {
         });
         Doc.SetInPlace(copy, "title", "CLONE: " + doc.title, true);
         copy.cloneOf = doc;
-        cloneMap.set(doc, copy);
+        cloneMap.set(doc[Id], copy);
         return copy;
     }
 
