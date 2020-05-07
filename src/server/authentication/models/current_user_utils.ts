@@ -21,8 +21,7 @@ import { FormattedTextBox } from "../../../client/views/nodes/formattedText/Form
 import { MainView } from "../../../client/views/MainView";
 import { DocumentType } from "../../../client/documents/DocumentTypes";
 import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
-import { faBoxOpen } from "@fortawesome/free-solid-svg-icons";
-import { CollectionMulticolumnView, DimUnit } from "../../../client/views/collections/collectionMulticolumn/CollectionMulticolumnView";
+import { DimUnit } from "../../../client/views/collections/collectionMulticolumn/CollectionMulticolumnView";
 
 export class CurrentUserUtils {
     private static curr_id: string;
@@ -282,8 +281,12 @@ export class CurrentUserUtils {
             doc["template-icon-view-col"] as Doc, doc["template-icon-view-rtf"] as Doc], { title: "icon templates", _height: 75 }));
         } else {
             const templateIconsDoc = Cast(doc["template-icons"], Doc, null);
-            DocListCastAsync(templateIconsDoc).then(list => templateIconsDoc.data = new List<Doc>([doc["template-icon-view"] as Doc, doc["template-icon-view-img"] as Doc,
-            doc["template-icon-view-col"] as Doc, doc["template-icon-view-rtf"] as Doc]));
+            const requiredTypes = [doc["template-icon-view"] as Doc, doc["template-icon-view-img"] as Doc,
+            doc["template-icon-view-col"] as Doc, doc["template-icon-view-rtf"] as Doc];
+            DocListCastAsync(templateIconsDoc.data).then(async curIcons => {
+                await Promise.all(curIcons!);
+                requiredTypes.map(ntype => Doc.AddDocToList(templateIconsDoc, "data", ntype));
+            });
         }
         return doc["template-icons"] as Doc;
     }
@@ -501,7 +504,7 @@ export class CurrentUserUtils {
     static setupDocumentCollection(doc: Doc) {
         if (doc.myDocuments === undefined) {
             doc.myDocuments = new PrefetchProxy(Docs.Create.TreeDocument([], {
-                title: "DOCUMENTS", _height: 42, forceActive: true, boxShadow: "0 0", treeViewPreventOpen: true, lockedPosition: true,
+                title: "DOCUMENTS", _height: 42, forceActive: true, boxShadow: "0 0", treeViewPreventOpen: false, lockedPosition: true,
             }));
         }
         return doc.myDocuments as Doc;

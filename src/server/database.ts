@@ -291,7 +291,7 @@ export namespace Database {
         }
     }
 
-    export const Instance: IDatabase = getDatabase();
+    export const Instance = getDatabase();
 
     export namespace Auxiliary {
 

@@ -2,12 +2,13 @@ import { Deserializable, autoObject, afterDocDeserialize } from "../client/util/
 import { Field } from "./Doc";
 import { setter, getter, deleteProperty, updateFunction } from "./util";
 import { serializable, alias, list } from "serializr";
-import { observable, action } from "mobx";
+import { observable, action, runInAction } from "mobx";
 import { ObjectField } from "./ObjectField";
 import { RefField } from "./RefField";
 import { ProxyField } from "./Proxy";
-import { Self, Update, Parent, OnUpdate, SelfProxy, ToScriptString, ToString, Copy } from "./FieldSymbols";
+import { Self, Update, Parent, OnUpdate, SelfProxy, ToScriptString, ToString, Copy, Id } from "./FieldSymbols";
 import { Scripting } from "../client/util/Scripting";
+import { DocServer } from "../client/DocServer";
 
 const listHandlers: any = {
     /// Mutator methods
@@ -54,11 +55,13 @@ const listHandlers: any = {
         return res;
     },
     sort(cmpFunc: any) {
+        this[Self].__realFields(); // coerce retrieving entire array
         const res = this[Self].__fields.sort(cmpFunc ? (first: any, second: any) => cmpFunc(toRealField(first), toRealField(second)) : undefined);
         this[Update]();
         return res;
     },
     splice: action(function (this: any, start: number, deleteCount: number, ...items: any[]) {
+        this[Self].__realFields(); // coerce retrieving entire array
         items = items.map(toObjectField);
         const list = this[Self];
         for (let i = 0; i < items.length; i++) {
@@ -94,102 +97,102 @@ const listHandlers: any = {
     },
     /// Accessor methods
     concat: action(function (this: any, ...items: any[]) {
+        this[Self].__realFields();
         return this[Self].__fields.map(toRealField).concat(...items);
     }),
     includes(valueToFind: any, fromIndex: number) {
-        const fields = this[Self].__fields;
         if (valueToFind instanceof RefField) {
-            return fields.map(toRealField).includes(valueToFind, fromIndex);
+            return this[Self].__realFields().includes(valueToFind, fromIndex);
         } else {
-            return fields.includes(valueToFind, fromIndex);
+            return this[Self].__fields.includes(valueToFind, fromIndex);
         }
     },
     indexOf(valueToFind: any, fromIndex: number) {
-        const fields = this[Self].__fields;
         if (valueToFind instanceof RefField) {
-            return fields.map(toRealField).indexOf(valueToFind, fromIndex);
+            return this[Self].__realFields().indexOf(valueToFind, fromIndex);
         } else {
-            return fields.indexOf(valueToFind, fromIndex);
+            return this[Self].__fields.indexOf(valueToFind, fromIndex);
         }
     },
     join(separator: any) {
+        this[Self].__realFields();
         return this[Self].__fields.map(toRealField).join(separator);
     },
     lastIndexOf(valueToFind: any, fromIndex: number) {
-        const fields = this[Self].__fields;
         if (valueToFind instanceof RefField) {
-            return fields.map(toRealField).lastIndexOf(valueToFind, fromIndex);
+            return this[Self].__realFields().lastIndexOf(valueToFind, fromIndex);
         } else {
-            return fields.lastIndexOf(valueToFind, fromIndex);
+            return this[Self].__fields.lastIndexOf(valueToFind, fromIndex);
         }
     },
     slice(begin: number, end: number) {
+        this[Self].__realFields();
         return this[Self].__fields.slice(begin, end).map(toRealField);
     },
 
     /// Iteration methods
     entries() {
-        return this[Self].__fields.map(toRealField).entries();
+        return this[Self].__realFields().entries();
     },
     every(callback: any, thisArg: any) {
-        return this[Self].__fields.map(toRealField).every(callback, thisArg);
+        return this[Self].__realFields().every(callback, thisArg);
         // TODO This is probably more efficient, but technically the callback can take the array, which would mean we would have to map the actual array anyway.
         // If we don't want to support the array parameter, we should use this version instead
         // return this[Self].__fields.every((element:any, index:number, array:any) => callback(toRealField(element), index, array), thisArg);
     },
     filter(callback: any, thisArg: any) {
-        return this[Self].__fields.map(toRealField).filter(callback, thisArg);
+        return this[Self].__realFields().filter(callback, thisArg);
         // TODO This is probably more efficient, but technically the callback can take the array, which would mean we would have to map the actual array anyway.
         // If we don't want to support the array parameter, we should use this version instead
         // return this[Self].__fields.filter((element:any, index:number, array:any) => callback(toRealField(element), index, array), thisArg);
     },
     find(callback: any, thisArg: any) {
-        return this[Self].__fields.map(toRealField).find(callback, thisArg);
+        return this[Self].__realFields().find(callback, thisArg);
         // TODO This is probably more efficient, but technically the callback can take the array, which would mean we would have to map the actual array anyway.
         // If we don't want to support the array parameter, we should use this version instead
         // return this[Self].__fields.find((element:any, index:number, array:any) => callback(toRealField(element), index, array), thisArg);
     },
     findIndex(callback: any, thisArg: any) {
-        return this[Self].__fields.map(toRealField).findIndex(callback, thisArg);
+        return this[Self].__realFields().findIndex(callback, thisArg);
         // TODO This is probably more efficient, but technically the callback can take the array, which would mean we would have to map the actual array anyway.
         // If we don't want to support the array parameter, we should use this version instead
         // return this[Self].__fields.findIndex((element:any, index:number, array:any) => callback(toRealField(element), index, array), thisArg);
     },
     forEach(callback: any, thisArg: any) {
-        return this[Self].__fields.map(toRealField).forEach(callback, thisArg);
+        return this[Self].__realFields().forEach(callback, thisArg);
         // TODO This is probably more efficient, but technically the callback can take the array, which would mean we would have to map the actual array anyway.
         // If we don't want to support the array parameter, we should use this version instead
         // return this[Self].__fields.forEach((element:any, index:number, array:any) => callback(toRealField(element), index, array), thisArg);
     },
     map(callback: any, thisArg: any) {
-        return this[Self].__fields.map(toRealField).map(callback, thisArg);
+        return this[Self].__realFields().map(callback, thisArg);
         // TODO This is probably more efficient, but technically the callback can take the array, which would mean we would have to map the actual array anyway.
         // If we don't want to support the array parameter, we should use this version instead
         // return this[Self].__fields.map((element:any, index:number, array:any) => callback(toRealField(element), index, array), thisArg);
     },
     reduce(callback: any, initialValue: any) {
-        return this[Self].__fields.map(toRealField).reduce(callback, initialValue);
+        return this[Self].__realFields().reduce(callback, initialValue);
         // TODO This is probably more efficient, but technically the callback can take the array, which would mean we would have to map the actual array anyway.
         // If we don't want to support the array parameter, we should use this version instead
         // return this[Self].__fields.reduce((acc:any, element:any, index:number, array:any) => callback(acc, toRealField(element), index, array), initialValue);
     },
     reduceRight(callback: any, initialValue: any) {
-        return this[Self].__fields.map(toRealField).reduceRight(callback, initialValue);
+        return this[Self].__realFields().reduceRight(callback, initialValue);
         // TODO This is probably more efficient, but technically the callback can take the array, which would mean we would have to map the actual array anyway.
         // If we don't want to support the array parameter, we should use this version instead
         // return this[Self].__fields.reduceRight((acc:any, element:any, index:number, array:any) => callback(acc, toRealField(element), index, array), initialValue);
     },
     some(callback: any, thisArg: any) {
-        return this[Self].__fields.map(toRealField).some(callback, thisArg);
+        return this[Self].__realFields().some(callback, thisArg);
         // TODO This is probably more efficient, but technically the callback can take the array, which would mean we would have to map the actual array anyway.
         // If we don't want to support the array parameter, we should use this version instead
         // return this[Self].__fields.some((element:any, index:number, array:any) => callback(toRealField(element), index, array), thisArg);
     },
     values() {
-        return this[Self].__fields.map(toRealField).values();
+        return this[Self].__realFields().values();
     },
     [Symbol.iterator]() {
-        return this[Self].__fields.map(toRealField).values();
+        return this[Self].__realFields().values();
     }
 };
 
@@ -254,6 +257,31 @@ class ListImpl<T extends Field> extends ObjectField {
 
     [key: number]: T | (T extends RefField ? Promise<T> : never);
 
+    // this requests all ProxyFields at the same time to avoid the overhead
+    // of separate network requests and separate updates to the React dom.
+    private __realFields() {
+        const waiting = this.__fields.filter(f => f instanceof ProxyField && f.promisedValue());
+        const promised = waiting.map(f => f instanceof ProxyField ? f.promisedValue() : "");
+        // if we find any ProxyFields that don't have a current value, then
+        // start the server request for all of them
+        if (promised.length) {
+            const promise = DocServer.GetRefFields(promised);
+            // as soon as we get the fields from the server, set all the list values in one
+            // action to generate one React dom update.
+            promise.then(fields => runInAction(() => {
+                waiting.map((w, i) => w instanceof ProxyField && w.setValue(fields[promised[i]]));
+            }));
+            // we also have to mark all lists items with this promise so that any calls to them
+            // will await the batch request.
+            // This counts on the handler for 'promise' in the call above being invoked before the
+            // handler for 'promise' in the lines below.
+            waiting.map((w, i) => {
+                w instanceof ProxyField && w.setPromise(promise.then(fields => fields[promised[i]]));
+            });
+        }
+        return this.__fields.map(toRealField);
+    }
+
     @serializable(alias("fields", list(autoObject(), { afterDeserialize: afterDocDeserialize })))
     private get __fields() {
         return this.___fields;
@@ -283,7 +311,7 @@ class ListImpl<T extends Field> extends ObjectField {
         // console.log(diff);
         const update = this[OnUpdate];
         // update && update(diff);
-        update && update();
+        update?.();
     }
 
     private [Self] = this;

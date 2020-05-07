@@ -499,7 +499,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
             </div >
             <div className="link-button-container" style={{ left: bounds.x - this._resizeBorderWidth / 2, top: bounds.b + this._resizeBorderWidth / 2 }}>
-                <DocumentButtonBar views={SelectionManager.SelectedDocuments()} />
+                <DocumentButtonBar views={SelectionManager.SelectedDocuments} />
             </div>
         </div >
         );

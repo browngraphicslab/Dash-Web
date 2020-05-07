@@ -517,14 +517,14 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                         DragManager.StartDocumentDrag([gearSpan], dragData, e.clientX, e.clientY);
                     }
                 };
-                let rendered = false;
+
                 tab.buttonDisposer = reaction(() => ((view: Opt<DocumentView>) => view ? [view] : [])(DocumentManager.Instance.getDocumentView(doc)),
                     (views) => {
-                        !rendered && ReactDOM.render(<span title="Drag as document" className="collectionDockingView-dragAsDocument" onPointerDown={onDown} >
-                            <DockingViewButtonSelector views={views} Stack={stack} />
+                        ReactDOM.render(<span title="Drag as document" className="collectionDockingView-dragAsDocument" onPointerDown={onDown} >
+                            <DockingViewButtonSelector views={() => views} Stack={stack} />
                         </span>,
                             gearSpan);
-                        rendered = true;
+                        tab.buttonDisposer?.();
                     });
 
                 tab.reactComponents = [gearSpan];

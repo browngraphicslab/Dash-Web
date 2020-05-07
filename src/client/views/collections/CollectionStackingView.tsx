@@ -57,6 +57,14 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
     }
     @computed get NodeWidth() { return this.props.PanelWidth() - this.gridGap; }
 
+    constructor(props: any) {
+        super(props);
+
+        if (this.sectionHeaders === undefined) {
+            this.props.Document.sectionHeaders = new List<SchemaHeaderField>();
+        }
+    }
+
     children(docs: Doc[], columns?: number) {
         TraceMobx();
         this._docXfs.length = 0;
@@ -85,7 +93,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
             setTimeout(() => this.props.Document.sectionHeaders = new List<SchemaHeaderField>(), 0);
             return new Map<SchemaHeaderField, Doc[]>();
         }
-        const sectionHeaders: SchemaHeaderField[] = Array.from(this.sectionHeaders);
+        const sectionHeaders = Array.from(this.sectionHeaders);
         const fields = new Map<SchemaHeaderField, Doc[]>(sectionHeaders.map(sh => [sh, []] as [SchemaHeaderField, []]));
         let changed = false;
         this.filteredChildren.map(d => {

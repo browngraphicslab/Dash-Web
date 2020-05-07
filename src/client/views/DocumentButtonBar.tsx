@@ -50,11 +50,9 @@ enum UtilityButtonState {
 }
 
 @observer
-export class DocumentButtonBar extends React.Component<{ views: (DocumentView | undefined)[], stack?: any }, {}> {
+export class DocumentButtonBar extends React.Component<{ views: () => (DocumentView | undefined)[], stack?: any }, {}> {
     private _linkButton = React.createRef<HTMLDivElement>();
     private _dragRef = React.createRef<HTMLDivElement>();
-    private _downX = 0;
-    private _downY = 0;
     private _pullAnimating = false;
     private _pushAnimating = false;
     private _pullColorAnimating = false;
@@ -71,7 +69,7 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
     public static hasPushedHack = false;
     public static hasPulledHack = false;
 
-    constructor(props: { views: (DocumentView | undefined)[] }) {
+    constructor(props: { views: () => (DocumentView | undefined)[] }) {
         super(props);
         runInAction(() => DocumentButtonBar.Instance = this);
     }
@@ -113,7 +111,7 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
         this._pullColorAnimating = false;
     });
 
-    get view0() { return this.props.views?.[0]; }
+    get view0() { return this.props.views()?.[0]; }
 
     @action
     onLinkButtonMoved = (e: PointerEvent) => {
@@ -265,7 +263,7 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
         const view0 = this.view0;
         return !view0 ? (null) : <div title="Show metadata panel" className="documentButtonBar-linkFlyout">
             <Flyout anchorPoint={anchorPoints.LEFT_TOP}
-                content={<MetadataEntryMenu docs={() => this.props.views.filter(dv => dv).map(dv => dv!.props.Document)} suggestWithFunction />  /* tfs: @bcz This might need to be the data document? */}>
+                content={<MetadataEntryMenu docs={() => this.props.views().filter(dv => dv).map(dv => dv!.props.Document)} suggestWithFunction />  /* tfs: @bcz This might need to be the data document? */}>
                 <div className={"documentButtonBar-linkButton-" + "empty"} onPointerDown={e => e.stopPropagation()} >
                     {<FontAwesomeIcon className="documentdecorations-icon" icon="tag" size="sm" />}
                 </div>
@@ -289,7 +287,7 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
     }
     onAliasButtonMoved = () => {
         if (this._dragRef.current) {
-            const dragDocView = this.props.views[0]!;
+            const dragDocView = this.view0!;
             const dragData = new DragManager.DocumentDragData([dragDocView.props.Document]);
             const [left, top] = dragDocView.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
             dragData.embedDoc = true;
@@ -308,16 +306,18 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
     get templateButton() {
         const view0 = this.view0;
         const templates: Map<Template, boolean> = new Map();
+        const views = this.props.views();
         Array.from(Object.values(Templates.TemplateList)).map(template =>
-            templates.set(template, this.props.views.reduce((checked, doc) => checked || doc?.props.Document["_show" + template.Name] ? true : false, false as boolean)));
-        return !view0 ? (null) : <div title="Tap: Customize layout.  Drag: Create alias" className="documentButtonBar-linkFlyout" ref={this._dragRef}>
-            <Flyout anchorPoint={anchorPoints.LEFT_TOP} onOpen={action(() => this._aliasDown = true)} onClose={action(() => this._aliasDown = false)}
-                content={!this._aliasDown ? (null) : <TemplateMenu docViews={this.props.views.filter(v => v).map(v => v as DocumentView)} templates={templates} />}>
-                <div className={"documentButtonBar-linkButton-empty"} ref={this._dragRef} onPointerDown={this.onAliasButtonDown} >
-                    {<FontAwesomeIcon className="documentdecorations-icon" icon="edit" size="sm" />}
-                </div>
-            </Flyout>
-        </div>;
+            templates.set(template, views.reduce((checked, doc) => checked || doc?.props.Document["_show" + template.Name] ? true : false, false as boolean)));
+        return !view0 ? (null) :
+            <div title="Tap: Customize layout.  Drag: Create alias" className="documentButtonBar-linkFlyout" ref={this._dragRef}>
+                <Flyout anchorPoint={anchorPoints.LEFT_TOP} onOpen={action(() => this._aliasDown = true)} onClose={action(() => this._aliasDown = false)}
+                    content={!this._aliasDown ? (null) : <TemplateMenu docViews={views.filter(v => v).map(v => v as DocumentView)} templates={templates} />}>
+                    <div className={"documentButtonBar-linkButton-empty"} ref={this._dragRef} onPointerDown={this.onAliasButtonDown} >
+                        {<FontAwesomeIcon className="documentdecorations-icon" icon="edit" size="sm" />}
+                    </div>
+                </Flyout>
+            </div>;
     }
 
     render() {
