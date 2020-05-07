@@ -198,7 +198,6 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
 
     @action
     onPointerUp = (e: PointerEvent): void => {
-        if (!this.props.active(true)) this.props.selectDocuments([this.props.Document], []);
         if (this._visible) {
             const mselect = this.marqueeSelect();
             if (!e.shiftKey) {
@@ -300,10 +299,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
 
     @action
     delete = () => {
-        this.marqueeSelect(false).map(d => this.props.removeDocument(d));
-        if (this.ink) {
-            // this.marqueeInkDelete(this.ink.inkData);
-        }
+        this.props.removeDocument(this.marqueeSelect(false) as any as Doc);
         SelectionManager.DeselectAll();
         this.cleanupInteractions(false);
         MarqueeOptionsMenu.Instance.fadeOut(true);
@@ -349,13 +345,14 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         const bounds = this.Bounds;
         const selected = this.marqueeSelect(false);
         if (e instanceof KeyboardEvent ? e.key === "c" : true) {
-            selected.map(d => {
-                this.props.removeDocument(d);
+            selected.map(action(d => {
+                //this.props.removeDocument(d);
                 d.x = NumCast(d.x) - bounds.left - bounds.width / 2;
                 d.y = NumCast(d.y) - bounds.top - bounds.height / 2;
                 d.displayTimecode = undefined;  // bcz: this should be automatic somehow.. along with any other properties that were logically associated with the original collection
                 return d;
-            });
+            }));
+            this.props.removeDocument(selected as any as Doc);
         }
         const newCollection = this.getCollection(selected, (e as KeyboardEvent)?.key === "t" ? Docs.Create.StackingDocument : undefined);
         this.props.addDocument(newCollection);

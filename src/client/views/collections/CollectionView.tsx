@@ -15,9 +15,7 @@ import { ImageField } from '../../../new_fields/URLField';
 import { TraceMobx } from '../../../new_fields/util';
 import { Utils, setupMoveUpEvents, returnFalse, returnZero, emptyPath, emptyFunction, returnOne } from '../../../Utils';
 import { DocumentType } from '../../documents/DocumentTypes';
-import { DocumentManager } from '../../util/DocumentManager';
 import { ImageUtils } from '../../util/Import & Export/ImageUtils';
-import { SelectionManager } from '../../util/SelectionManager';
 import { ContextMenu } from "../ContextMenu";
 import { FieldView, FieldViewProps } from '../nodes/FieldView';
 import { ScriptBox } from '../ScriptBox';
@@ -45,7 +43,6 @@ import { ScriptField, ComputedField } from '../../../new_fields/ScriptField';
 import { InteractionUtils } from '../../util/InteractionUtils';
 import { ObjectField } from '../../../new_fields/ObjectField';
 import CollectionMapView from './CollectionMapView';
-import { Transform } from 'prosemirror-transform';
 import { CollectionPileView } from './CollectionPileView';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
@@ -119,35 +116,32 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
     whenActiveChanged = (isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive);
 
     @action.bound
-    addDocument(doc: Doc): boolean {
-        if (this.props.filterAddDocument?.(doc) === false) {
-            return false;
+    addDocument = (doc: Doc): boolean => {
+        if (doc instanceof Doc) {
+            if (this.props.filterAddDocument?.(doc) === false) {
+                return false;
+            }
         }
-
+        const docs = doc instanceof Doc ? [doc] : doc as any as Doc[];
         const targetDataDoc = this.props.Document[DataSym];
         const docList = DocListCast(targetDataDoc[this.props.fieldKey]);
-        !docList.includes(doc) && (targetDataDoc[this.props.fieldKey] = new List<Doc>([...docList, doc]));  // DocAddToList may write to targetdataDoc's parent ... we don't want this. should really change GetProto to GetDataDoc and test for resolvedDataDoc there
-        // Doc.AddDocToList(targetDataDoc, this.props.fieldKey, doc);
-        targetDataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
-        doc.context = this.props.Document;
-        Doc.GetProto(doc).lastOpened = new DateField;
+        const added = docs.filter(d => !docList.includes(d));
+        if (added.length) {
+            added.map(doc => doc.context = this.props.Document);
+            targetDataDoc[this.props.fieldKey] = new List<Doc>([...docList, ...added]);
+            targetDataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
+        }
         return true;
     }
 
     @action.bound
-    removeDocument(doc: Doc): boolean {
+    removeDocument = (doc: any): boolean => {
+        const docs = doc instanceof Doc ? [doc] : doc as Doc[];
         const targetDataDoc = this.props.Document[DataSym];
-        const docView = DocumentManager.Instance.getDocumentView(doc, this.props.ContainingCollectionView);
-        docView && SelectionManager.DeselectDoc(docView);
         const value = DocListCast(targetDataDoc[this.props.fieldKey]);
-        let index = value.reduce((p, v, i) => (v instanceof Doc && v === doc) ? i : p, -1);
-        index = index !== -1 ? index : value.reduce((p, v, i) => (v instanceof Doc && Doc.AreProtosEqual(v, doc)) ? i : p, -1);
-
-        doc.context = undefined;
-        ContextMenu.Instance?.clearItems();
-        if (index !== -1) {
-            value.splice(index, 1);
-            targetDataDoc[this.props.fieldKey] = new List<Doc>(value);
+        const result = value.filter(v => !docs.includes(v));
+        if (result.length !== value.length) {
+            targetDataDoc[this.props.fieldKey] = new List<Doc>(result);
             return true;
         }
         return false;
@@ -158,7 +152,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
     // otherwise, the document being moved must be able to be removed from its container before
     // moving it into the target.  
     @action.bound
-    moveDocument(doc: Doc, targetCollection: Doc | undefined, addDocument: (doc: Doc) => boolean): boolean {
+    moveDocument = (doc: Doc, targetCollection: Doc | undefined, addDocument: (doc: Doc) => boolean): boolean => {
         if (Doc.AreProtosEqual(this.props.Document, targetCollection)) {
             return true;
         }
@@ -166,10 +160,14 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
     }
 
     showIsTagged = () => {
-        const children = DocListCast(this.props.Document[this.props.fieldKey]);
-        const imageProtos = children.filter(doc => Cast(doc.data, ImageField)).map(Doc.GetProto);
-        const allTagged = imageProtos.length > 0 && imageProtos.every(image => image.googlePhotosTags);
-        return !allTagged ? (null) : <img id={"google-tags"} src={"/assets/google_tags.png"} />;
+        return (null);
+        // this section would display an icon in the bototm right of a collection to indicate that all 
+        // photos had been processed through Google's content analysis API and Google's tags had been
+        // assigned to the documents googlePhotosTags field.
+        // const children = DocListCast(this.props.Document[this.props.fieldKey]);
+        // const imageProtos = children.filter(doc => Cast(doc.data, ImageField)).map(Doc.GetProto);
+        // const allTagged = imageProtos.length > 0 && imageProtos.every(image => image.googlePhotosTags);
+        // return !allTagged ? (null) : <img id={"google-tags"} src={"/assets/google_tags.png"} />;
     }
 
     private SubViewHelper = (type: CollectionViewType, renderProps: CollectionRenderProps) => {

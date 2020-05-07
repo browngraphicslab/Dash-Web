@@ -6,7 +6,7 @@ import { Id } from "../../../new_fields/FieldSymbols";
 import { List } from "../../../new_fields/List";
 import { listSpec } from "../../../new_fields/Schema";
 import { ScriptField } from "../../../new_fields/ScriptField";
-import { Cast } from "../../../new_fields/Types";
+import { Cast, ScriptCast } from "../../../new_fields/Types";
 import { GestureUtils } from "../../../pen-gestures/GestureUtils";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { Upload } from "../../../server/SharedMediaTypes";
@@ -208,19 +208,18 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
         @action
         protected onInternalDrop(e: Event, de: DragManager.DropEvent): boolean {
             const docDragData = de.complete.docDragData;
-            (this.props.Document.dropConverter instanceof ScriptField) &&
-                this.props.Document.dropConverter.script.run({ dragData: docDragData }); /// bcz: check this 
+            ScriptCast(this.props.Document.dropConverter)?.script.run({ dragData: docDragData });
             if (docDragData) {
                 let added = false;
                 if (docDragData.dropAction || docDragData.userDropAction) {
-                    added = docDragData.droppedDocuments.reduce((added: boolean, d) => this.props.addDocument(d) || added, false);
+                    added = this.props.addDocument(docDragData.droppedDocuments as any as Doc);
                 } else if (docDragData.moveDocument) {
-                    const movedDocs = docDragData.draggedDocuments;
-                    added = movedDocs.reduce((added: boolean, d, i) =>
-                        docDragData.droppedDocuments[i] !== d ? this.props.addDocument(docDragData.droppedDocuments[i]) :
-                            docDragData.moveDocument?.(d, this.props.Document, this.props.addDocument) || added, false);
+                    const movedDocs = docDragData.droppedDocuments.filter((d, i) => docDragData.draggedDocuments[i] === d);
+                    const addedDocs = docDragData.droppedDocuments.filter((d, i) => docDragData.draggedDocuments[i] !== d);
+                    const res = addedDocs.length ? this.props.addDocument(addedDocs as any as Doc) : true;
+                    added = movedDocs.length ? docDragData.moveDocument(movedDocs as any as Doc, this.props.Document, this.props.addDocument) : res;
                 } else {
-                    added = docDragData.droppedDocuments.reduce((added: boolean, d) => this.props.addDocument(d) || added, false);
+                    added = this.props.addDocument(docDragData.droppedDocuments as any as Doc);
                 }
                 e.stopPropagation();
                 return added;
@@ -389,8 +388,13 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                         console.log(result);
                         const json = JSON.parse(result as string) as any;
                         addDocument(Docs.Create.TreeDocument(
-                            json["rectangular-puzzle"].crossword.clues[0].clue.map((c: any) =>
-                                Docs.Create.LabelDocument({ title: c["#text"], _width: 120, _height: 20 })
+                            json["rectangular-puzzle"].crossword.clues[0].clue.map((c: any) => {
+                                const label = Docs.Create.LabelDocument({ title: c["#text"], _width: 120, _height: 20 });
+                                const proto = Doc.GetProto(label)
+                                proto._width = 120;
+                                proto._height = 20;
+                                return proto;
+                            }
                             ), { _width: 150, _height: 600, title: "across", backgroundColor: "white", _singleLine: true }));
                     });
                 }
