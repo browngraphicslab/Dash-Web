@@ -123,7 +123,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         FormattedTextBox.SelectOnLoad = newBox[Id];// track the new text box so we can give it a prop that tells it to focus itself when it's displayed
         this.addDocument(newBox);
     }
-    private addDocument = (newBox: Doc) => {
+    private addDocument = (newBox: Doc | Doc[]) => {
         if (newBox instanceof Doc) {
             const added = this.props.addDocument(newBox);
             added && this.bringToFront(newBox);
@@ -184,7 +184,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                                 const nh = NumCast(layoutDoc._nativeHeight);
                                 layoutDoc._height = nw && nh ? nh / nw * NumCast(layoutDoc._width) : 300;
                             }
-                            d.isBackground === undefined && (d.zIndex = zsorted.length + 1 + i);
+                            d.isBackground === undefined && (d.zIndex = zsorted.length + 1 + i); // bringToFront
                         }
                     });
 

@@ -271,9 +271,12 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     });
 
     whenActiveChanged = action((isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive));
-    addDocumentFilter = (doc: Doc) => {
-        doc.aliasOf instanceof Doc && (doc.presentationTargetDoc = doc.aliasOf);
-        !this.childDocs.includes(doc) && (doc.presZoomButton = true);
+    addDocumentFilter = (doc: Doc|Doc[]) => {
+        const docs = doc instanceof Doc ? [doc]: doc;
+        docs.forEach(doc => {
+            doc.aliasOf instanceof Doc && (doc.presentationTargetDoc = doc.aliasOf);
+            !this.childDocs.includes(doc) && (doc.presZoomButton = true);
+        });
         return true;
     }
     childLayoutTemplate = () => this.rootDoc._viewType !== CollectionViewType.Stacking ? undefined : this.presElement;

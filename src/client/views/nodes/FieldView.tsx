@@ -31,11 +31,11 @@ export interface FieldViewProps {
     select: (isCtrlPressed: boolean) => void;
     rootSelected: (outsideReaction?: boolean) => boolean;
     renderDepth: number;
-    addDocument?: (document: Doc) => boolean;
+    addDocument?: (document: Doc | Doc[]) => boolean;
     addDocTab: (document: Doc, where: string) => boolean;
     pinToPres: (document: Doc) => void;
-    removeDocument?: (document: Doc) => boolean;
-    moveDocument?: (document: Doc, targetCollection: Doc | undefined, addDocument: (document: Doc) => boolean) => boolean;
+    removeDocument?: (document: Doc | Doc[]) => boolean;
+    moveDocument?: (document: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (document: Doc | Doc[]) => boolean) => boolean;
     backgroundColor?: (document: Doc) => string | undefined;
     ScreenToLocalTransform: () => Transform;
     bringToFront: (doc: Doc, sendToBack?: boolean) => void;

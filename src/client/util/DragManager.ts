@@ -77,8 +77,8 @@ export namespace DragManager {
         return root;
     }
     export let AbortDrag: () => void = emptyFunction;
-    export type MoveFunction = (document: Doc, targetCollection: Doc | undefined, addDocument: (document: Doc) => boolean) => boolean;
-    export type RemoveFunction = (document: Doc) => boolean;
+    export type MoveFunction = (document: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (document: Doc | Doc[]) => boolean) => boolean;
+    export type RemoveFunction = (document: Doc | Doc[]) => boolean;
 
     export interface DragDropDisposer { (): void; }
     export interface DragOptions {

@@ -299,7 +299,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
 
     @action
     delete = () => {
-        this.props.removeDocument(this.marqueeSelect(false) as any as Doc);
+        this.props.removeDocument(this.marqueeSelect(false));
         SelectionManager.DeselectAll();
         this.cleanupInteractions(false);
         MarqueeOptionsMenu.Instance.fadeOut(true);
@@ -352,7 +352,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
                 d.displayTimecode = undefined;  // bcz: this should be automatic somehow.. along with any other properties that were logically associated with the original collection
                 return d;
             }));
-            this.props.removeDocument(selected as any as Doc);
+            this.props.removeDocument(selected);
         }
         const newCollection = this.getCollection(selected, (e as KeyboardEvent)?.key === "t" ? Docs.Create.StackingDocument : undefined);
         this.props.addDocument(newCollection);

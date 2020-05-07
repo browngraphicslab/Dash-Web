@@ -520,9 +520,9 @@ export class MainView extends React.Component {
         return !this._flyoutTranslate ? (<div className="mainView-expandFlyoutButton" title="Re-attach sidebar" onPointerDown={MainView.expandFlyout}><FontAwesomeIcon icon="chevron-right" color="grey" size="lg" /></div>) : (null);
     }
 
-    addButtonDoc = (doc: Doc) => Doc.AddDocToList(Doc.UserDoc().dockedBtns as Doc, "data", doc);
-    remButtonDoc = (doc: Doc) => Doc.RemoveDocFromList(Doc.UserDoc().dockedBtns as Doc, "data", doc);
-    moveButtonDoc = (doc: Doc, targetCollection: Doc | undefined, addDocument: (document: Doc) => boolean) => this.remButtonDoc(doc) && addDocument(doc);
+    addButtonDoc = (doc: Doc | Doc[]) => (doc instanceof Doc ? [doc] : doc).reduce((flg: boolean, doc) => flg && Doc.AddDocToList(Doc.UserDoc().dockedBtns as Doc, "data", doc), true);
+    remButtonDoc = (doc: Doc | Doc[]) => (doc instanceof Doc ? [doc] : doc).reduce((flg: boolean, doc) => flg && Doc.RemoveDocFromList(Doc.UserDoc().dockedBtns as Doc, "data", doc), true);
+    moveButtonDoc = (doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (document: Doc | Doc[]) => boolean) => this.remButtonDoc(doc) && addDocument(doc);
 
     buttonBarXf = () => {
         if (!this._docBtnRef.current) return Transform.Identity();

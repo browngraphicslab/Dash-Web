@@ -158,9 +158,9 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
                 annotationsKey={""}
                 dontRegisterView={true}
                 fieldKey={"data"}
-                moveDocument={(doc: Doc) => false}
-                removeDocument={(doc: Doc) => false}
-                addDocument={(doc: Doc) => false} />
+                moveDocument={returnFalse}
+                removeDocument={returnFalse}
+                addDocument={returnFalse} />
         </ul>;
     }
 }

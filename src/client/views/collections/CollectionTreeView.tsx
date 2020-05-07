@@ -44,7 +44,7 @@ export interface TreeViewProps {
     containingCollection: Doc;
     prevSibling?: Doc;
     renderDepth: number;
-    deleteDoc: (doc: Doc) => boolean;
+    deleteDoc: (doc: Doc | Doc[]) => boolean;
     moveDocument: DragManager.MoveFunction;
     dropAction: dropActionType;
     addDocTab: (doc: Doc, where: string, libraryPath?: Doc[]) => boolean;
@@ -52,7 +52,7 @@ export interface TreeViewProps {
     panelWidth: () => number;
     panelHeight: () => number;
     ChromeHeight: undefined | (() => number);
-    addDocument: (doc: Doc, relativeTo?: Doc, before?: boolean) => boolean;
+    addDocument: (doc: Doc | Doc[], relativeTo?: Doc, before?: boolean) => boolean;
     indentDocument?: () => void;
     outdentDocument?: () => void;
     ScreenToLocalTransform: () => Transform;
@@ -133,14 +133,16 @@ class TreeView extends React.Component<TreeViewProps> {
     @undoBatch delete = () => this.props.deleteDoc(this.props.document);
     @undoBatch openRight = () => this.props.addDocTab(this.props.dropAction === "alias" ? Doc.MakeAlias(this.props.document) : this.props.document, "onRight", this.props.libraryPath);
     @undoBatch indent = () => this.props.addDocument(this.props.document) && this.delete();
-    @undoBatch move = (doc: Doc, target: Doc | undefined, addDoc: (doc: Doc) => boolean) => {
+    @undoBatch move = (doc: Doc | Doc[], target: Doc | undefined, addDoc: (doc: Doc | Doc[]) => boolean) => {
         return this.props.document !== target && this.props.deleteDoc(doc) && addDoc(doc);
     }
-    @undoBatch @action remove = (document: Document, key: string) => {
-        return Doc.RemoveDocFromList(this.dataDoc, key, document);
+    @undoBatch @action remove = (doc: Doc | Doc[], key: string) => {
+        return (doc instanceof Doc ? [doc] : doc).reduce((flg, doc) =>
+            flg && Doc.RemoveDocFromList(this.dataDoc, key, doc), true);
     }
-    @undoBatch @action removeDoc = (document: Document) => {
-        return Doc.RemoveDocFromList(this.props.containingCollection, Doc.LayoutFieldKey(this.props.containingCollection), document);
+    @undoBatch @action removeDoc = (doc: Doc | Doc[]) => {
+        return (doc instanceof Doc ? [doc] : doc).reduce((flg, doc) =>
+            flg && Doc.RemoveDocFromList(this.props.containingCollection, Doc.LayoutFieldKey(this.props.containingCollection), doc), true);
     }
 
     protected createTreeDropTarget = (ele: HTMLDivElement) => {
@@ -224,9 +226,10 @@ class TreeView extends React.Component<TreeViewProps> {
         if (de.complete.docDragData) {
             e.stopPropagation();
             if (de.complete.docDragData.draggedDocuments[0] === this.props.document) return true;
-            let addDoc = (doc: Doc) => this.props.addDocument(doc, undefined, before);
+            let addDoc = (doc: Doc | Doc[]) => this.props.addDocument(doc, undefined, before);
             if (inside) {
-                addDoc = (doc: Doc) => Doc.AddDocToList(this.dataDoc, this.fieldKey, doc) || addDoc(doc);
+                addDoc = (doc: Doc | Doc[]) => (doc instanceof Doc ? [doc] : doc).reduce(
+                    ((flg: boolean, doc) => flg && Doc.AddDocToList(this.dataDoc, this.fieldKey, doc)), true) || addDoc(doc);
             }
             const movedDocs = (de.complete.docDragData.treeViewId === this.props.treeViewId[Id] ? de.complete.docDragData.draggedDocuments : de.complete.docDragData.droppedDocuments);
             const move = de.complete.docDragData.dropAction === "move" || de.complete.docDragData.dropAction;
@@ -286,8 +289,9 @@ class TreeView extends React.Component<TreeViewProps> {
             let contentElement: (JSX.Element | null)[] | JSX.Element = [];
 
             if (contents instanceof Doc || (Cast(contents, listSpec(Doc)) && (Cast(contents, listSpec(Doc))!.length && Cast(contents, listSpec(Doc))![0] instanceof Doc))) {
-                const remDoc = (doc: Doc) => this.remove(doc, key);
-                const addDoc = (doc: Doc, addBefore?: Doc, before?: boolean) => Doc.AddDocToList(this.dataDoc, key, doc, addBefore, before, false, true);
+                const remDoc = (doc: Doc | Doc[]) => this.remove(doc, key);
+                const addDoc = (doc: Doc | Doc[], addBefore?: Doc, before?: boolean) => (doc instanceof Doc ? [doc] : doc).reduce(
+                    (flg, doc) => flg && Doc.AddDocToList(this.dataDoc, key, doc, addBefore, before, false, true), true);
                 contentElement = TreeView.GetChildElements(contents instanceof Doc ? [contents] :
                     DocListCast(contents), this.props.treeViewId, doc, undefined, key, this.props.containingCollection, this.props.prevSibling, addDoc, remDoc, this.move,
                     this.props.dropAction, this.props.addDocTab, this.props.pinToPres, this.props.backgroundColor, this.props.ScreenToLocalTransform, this.props.outerXf, this.props.active,
@@ -330,8 +334,9 @@ class TreeView extends React.Component<TreeViewProps> {
         TraceMobx();
         const expandKey = this.treeViewExpandedView === this.fieldKey ? this.fieldKey : this.treeViewExpandedView === "links" ? "links" : undefined;
         if (expandKey !== undefined) {
-            const remDoc = (doc: Doc) => this.remove(doc, expandKey);
-            const addDoc = (doc: Doc, addBefore?: Doc, before?: boolean) => Doc.AddDocToList(this.dataDoc, expandKey, doc, addBefore, before, false, true);
+            const remDoc = (doc: Doc | Doc[]) => this.remove(doc, expandKey);
+            const addDoc = (doc: Doc | Doc[], addBefore?: Doc, before?: boolean) =>
+                (doc instanceof Doc ? [doc] : doc).reduce((flg, doc) => flg && Doc.AddDocToList(this.dataDoc, expandKey, doc, addBefore, before, false, true), true);
             const docs = expandKey === "links" ? this.childLinks : this.childDocs;
             const sortKey = `${this.fieldKey}-sortAscending`;
             return <ul key={expandKey + "more"} onClick={(e) => {
@@ -464,6 +469,7 @@ class TreeView extends React.Component<TreeViewProps> {
                         ref={this._docRef}
                         Document={this.props.document}
                         DataDoc={undefined}
+                        treeViewId={this.props.treeViewId[Id]}
                         LibraryPath={this.props.libraryPath || emptyPath}
                         addDocument={undefined}
                         addDocTab={this.props.addDocTab}
@@ -529,8 +535,8 @@ class TreeView extends React.Component<TreeViewProps> {
         key: string,
         parentCollectionDoc: Doc | undefined,
         parentPrevSibling: Doc | undefined,
-        add: (doc: Doc, relativeTo?: Doc, before?: boolean) => boolean,
-        remove: ((doc: Doc) => boolean),
+        add: (doc: Doc | Doc[], relativeTo?: Doc, before?: boolean) => boolean,
+        remove: ((doc: Doc | Doc[]) => boolean),
         move: DragManager.MoveFunction,
         dropAction: dropActionType,
         addDocTab: (doc: Doc, where: string) => boolean,
@@ -619,7 +625,7 @@ class TreeView extends React.Component<TreeViewProps> {
                     remove(child);
                 }
             };
-            const addDocument = (doc: Doc, relativeTo?: Doc, before?: boolean) => {
+            const addDocument = (doc: Doc | Doc[], relativeTo?: Doc, before?: boolean) => {
                 return add(doc, relativeTo ? relativeTo : docs[i], before !== undefined ? before : false);
             };
             const childLayout = Doc.Layout(pair.layout);
@@ -689,22 +695,26 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
     }
 
     @action
-    remove = (document: Document): boolean => {
-        const children = Cast(this.props.Document[DataSym][this.props.fieldKey], listSpec(Doc), []);
-        if (children.indexOf(document) !== -1) {
-            children.splice(children.indexOf(document), 1);
+    remove = (doc: Doc | Doc[]): boolean => {
+        const docs = doc instanceof Doc ? [doc] : doc as Doc[];
+        const targetDataDoc = this.props.Document[DataSym];
+        const value = DocListCast(targetDataDoc[this.props.fieldKey]);
+        const result = value.filter(v => !docs.includes(v));
+        if (result.length !== value.length) {
+            targetDataDoc[this.props.fieldKey] = new List<Doc>(result);
             return true;
         }
         return false;
     }
     @action
-    addDoc = (doc: Document, relativeTo: Opt<Doc>, before?: boolean): boolean => {
-        const doAddDoc = () =>
-            Doc.AddDocToList(this.props.Document[DataSym], this.props.fieldKey, doc, relativeTo, before, false, false, false);
+    addDoc = (doc: Doc | Doc[], relativeTo: Opt<Doc>, before?: boolean): boolean => {
+        const doAddDoc = (doc: Doc | Doc[]) =>
+            (doc instanceof Doc ? [doc] : doc).reduce((flg, doc) =>
+                flg && Doc.AddDocToList(this.props.Document[DataSym], this.props.fieldKey, doc, relativeTo, before, false, false, false), true);
         if (this.props.Document.resolvedDataDoc instanceof Promise) {
-            this.props.Document.resolvedDataDoc.then((resolved: any) => doAddDoc());
+            this.props.Document.resolvedDataDoc.then((resolved: any) => doAddDoc(doc));
         } else {
-            doAddDoc();
+            doAddDoc(doc);
         }
         return true;
     }
@@ -788,8 +798,8 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
     render() {
         if (!(this.props.Document instanceof Doc)) return (null);
         const dropAction = StrCast(this.props.Document.childDropAction) as dropActionType;
-        const addDoc = (doc: Doc, relativeTo?: Doc, before?: boolean) => this.addDoc(doc, relativeTo, before);
-        const moveDoc = (d: Doc, target: Doc | undefined, addDoc: (doc: Doc) => boolean) => this.props.moveDocument(d, target, addDoc);
+        const addDoc = (doc: Doc | Doc[], relativeTo?: Doc, before?: boolean) => this.addDoc(doc, relativeTo, before);
+        const moveDoc = (d: Doc | Doc[], target: Doc | undefined, addDoc: (doc: Doc | Doc[]) => boolean) => this.props.moveDocument(d, target, addDoc);
         const childDocs = this.props.overrideDocuments ? this.props.overrideDocuments : this.childDocs;
         return !childDocs ? (null) : (
             <div className="collectionTreeView-dropTarget" id="body"

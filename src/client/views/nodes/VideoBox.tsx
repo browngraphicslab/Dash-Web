@@ -337,9 +337,12 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     }
 
     @action.bound
-    addDocumentWithTimestamp(doc: Doc): boolean {
-        const curTime = (this.layoutDoc.currentTimecode || -1);
-        curTime !== -1 && (doc.displayTimecode = curTime);
+    addDocumentWithTimestamp(doc: Doc|Doc[]): boolean {
+        const docs = doc instanceof Doc ? [doc] : doc;
+        docs.forEach(doc => {
+            const curTime = (this.layoutDoc.currentTimecode || -1);
+            curTime !== -1 && (doc.displayTimecode = curTime);
+        })
         return this.addDocument(doc);
     }
 

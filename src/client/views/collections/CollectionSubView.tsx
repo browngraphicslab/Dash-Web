@@ -27,9 +27,9 @@ import { CollectionView } from "./CollectionView";
 import React = require("react");
 
 export interface CollectionViewProps extends FieldViewProps {
-    addDocument: (document: Doc) => boolean;
-    removeDocument: (document: Doc) => boolean;
-    moveDocument: (document: Doc, targetCollection: Doc | undefined, addDocument: (document: Doc) => boolean) => boolean;
+    addDocument: (document: Doc | Doc[]) => boolean;
+    removeDocument: (document: Doc | Doc[]) => boolean;
+    moveDocument: (document: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (document: Doc | Doc[]) => boolean) => boolean;
     PanelWidth: () => number;
     PanelHeight: () => number;
     VisibleHeight?: () => number;
@@ -212,14 +212,14 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             if (docDragData) {
                 let added = false;
                 if (docDragData.dropAction || docDragData.userDropAction) {
-                    added = this.props.addDocument(docDragData.droppedDocuments as any as Doc);
+                    added = this.props.addDocument(docDragData.droppedDocuments);
                 } else if (docDragData.moveDocument) {
                     const movedDocs = docDragData.droppedDocuments.filter((d, i) => docDragData.draggedDocuments[i] === d);
                     const addedDocs = docDragData.droppedDocuments.filter((d, i) => docDragData.draggedDocuments[i] !== d);
-                    const res = addedDocs.length ? this.props.addDocument(addedDocs as any as Doc) : true;
-                    added = movedDocs.length ? docDragData.moveDocument(movedDocs as any as Doc, this.props.Document, this.props.addDocument) : res;
+                    const res = addedDocs.length ? this.props.addDocument(addedDocs) : true;
+                    added = movedDocs.length ? docDragData.moveDocument(movedDocs, this.props.Document, this.props.addDocument) : res;
                 } else {
-                    added = this.props.addDocument(docDragData.droppedDocuments as any as Doc);
+                    added = this.props.addDocument(docDragData.droppedDocuments);
                 }
                 e.stopPropagation();
                 return added;

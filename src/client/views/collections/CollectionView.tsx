@@ -116,13 +116,13 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
     whenActiveChanged = (isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive);
 
     @action.bound
-    addDocument = (doc: Doc): boolean => {
+    addDocument = (doc: Doc | Doc[]): boolean => {
         if (doc instanceof Doc) {
             if (this.props.filterAddDocument?.(doc) === false) {
                 return false;
             }
         }
-        const docs = doc instanceof Doc ? [doc] : doc as any as Doc[];
+        const docs = doc instanceof Doc ? [doc] : doc;
         const targetDataDoc = this.props.Document[DataSym];
         const docList = DocListCast(targetDataDoc[this.props.fieldKey]);
         const added = docs.filter(d => !docList.includes(d));

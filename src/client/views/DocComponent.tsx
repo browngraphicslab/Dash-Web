@@ -1,4 +1,4 @@
-import { Doc, Opt, DataSym } from '../../new_fields/Doc';
+import { Doc, Opt, DataSym, DocListCast } from '../../new_fields/Doc';
 import { Touchable } from './Touchable';
 import { computed, action, observable } from 'mobx';
 import { Cast, BoolCast, ScriptCast } from '../../new_fields/Types';
@@ -6,6 +6,8 @@ import { listSpec } from '../../new_fields/Schema';
 import { InkingControl } from './InkingControl';
 import { InkTool } from '../../new_fields/InkField';
 import { InteractionUtils } from '../util/InteractionUtils';
+import { List } from '../../new_fields/List';
+import { DateField } from '../../new_fields/DateField';
 
 
 ///  DocComponent returns a generic React base class used by views that don't have 'fieldKey' props (e.g.,CollectionFreeFormDocumentView, DocumentView)
@@ -99,22 +101,37 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
         public get annotationKey() { return this._annotationKey; }
 
         @action.bound
-        removeDocument(doc: Doc): boolean {
-            Doc.GetProto(doc).annotationOn = undefined;
-            const value = Cast(this.dataDoc[this.props.fieldKey + "-" + this._annotationKey], listSpec(Doc), []);
-            const index = value ? Doc.IndexOf(doc, value.map(d => d as Doc), true) : -1;
-            return index !== -1 && value && value.splice(index, 1) ? true : false;
+        removeDocument(doc: Doc | Doc[]): boolean {
+            const docs = doc instanceof Doc ? [doc] : doc;
+            docs.map(doc => doc.annotationOn = undefined);
+            const targetDataDoc = this.dataDoc;
+            const value = DocListCast(targetDataDoc[this.props.fieldKey + "-" + this._annotationKey]);
+            const result = value.filter(v => !docs.includes(v));
+            if (result.length !== value.length) {
+                targetDataDoc[this.props.fieldKey] = new List<Doc>(result);
+                return true;
+            }
+            return false;
         }
         // if the moved document is already in this overlay collection nothing needs to be done.
         // otherwise, if the document can be removed from where it was, it will then be added to this document's overlay collection. 
         @action.bound
-        moveDocument(doc: Doc, targetCollection: Doc | undefined, addDocument: (doc: Doc) => boolean): boolean {
+        moveDocument(doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (doc: Doc | Doc[]) => boolean): boolean {
             return Doc.AreProtosEqual(this.props.Document, targetCollection) ? true : this.removeDocument(doc) ? addDocument(doc) : false;
         }
         @action.bound
-        addDocument(doc: Doc): boolean {
-            doc.context = Doc.GetProto(doc).annotationOn = this.props.Document;
-            return Doc.AddDocToList(this.dataDoc, this.props.fieldKey + "-" + this._annotationKey, doc) ? true : false;
+        addDocument(doc: Doc | Doc[]): boolean {
+            const docs = doc instanceof Doc ? [doc] : doc;
+            docs.map(doc => doc.context = Doc.GetProto(doc).annotationOn = this.props.Document);
+            const targetDataDoc = this.props.Document[DataSym];
+            const docList = DocListCast(targetDataDoc[this.props.fieldKey + "-" + this._annotationKey]);
+            const added = docs.filter(d => !docList.includes(d));
+            if (added.length) {
+                added.map(doc => doc.context = this.props.Document);
+                targetDataDoc[this.props.fieldKey + "-" + this._annotationKey] = new List<Doc>([...docList, ...added]);
+                targetDataDoc[this.props.fieldKey + "-" + this._annotationKey + "-lastModified"] = new DateField(new Date(Date.now()));
+            }
+            return true;
         }
 
         whenActiveChanged = action((isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive));

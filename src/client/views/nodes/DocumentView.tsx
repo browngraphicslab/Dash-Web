@@ -70,12 +70,13 @@ export interface DocumentViewProps {
     onDoubleClick?: ScriptField;
     onPointerDown?: ScriptField;
     onPointerUp?: ScriptField;
+    treeViewId?: string;
     dropAction?: dropActionType;
     dragDivName?: string;
     nudge?: (x: number, y: number) => void;
-    addDocument?: (doc: Doc) => boolean;
-    removeDocument?: (doc: Doc) => boolean;
-    moveDocument?: (doc: Doc, targetCollection: Doc | undefined, addDocument: (document: Doc) => boolean) => boolean;
+    addDocument?: (doc: Doc | Doc[]) => boolean;
+    removeDocument?: (doc: Doc | Doc[]) => boolean;
+    moveDocument?: (doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (document: Doc | Doc[]) => boolean) => boolean;
     ScreenToLocalTransform: () => Transform;
     setupDragLines?: () => void;
     renderDepth: number;
@@ -243,6 +244,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             dragData.removeDocument = this.props.removeDocument;
             dragData.moveDocument = this.props.moveDocument;//  this.Document.onDragStart ? undefined : this.props.moveDocument;
             dragData.dragDivName = this.props.dragDivName;
+            dragData.treeViewId = this.props.treeViewId;
             DragManager.StartDocumentDrag([this._mainCont.current], dragData, x, y, { hideSource: !dropAction && !this.Document.onDragStart });
         }
     }
@@ -1043,7 +1045,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     makeLink = () => this._link; // pass the link placeholde to child views so they can react to make a specialized anchor.  This is essentially a function call to the descendants since the value of the _link variable will immediately get set back to undefined.
 
     @undoBatch
-    hideLinkAnchor = (doc: Doc) => doc.hidden = true
+    hideLinkAnchor = (doc: Doc | Doc[]) => (doc instanceof Doc ? [doc] : doc).reduce((flg: boolean, doc) => flg && (doc.hidden = true), true)
     anchorPanelWidth = () => this.props.PanelWidth() || 1;
     anchorPanelHeight = () => this.props.PanelHeight() || 1;
     @computed get anchors() {
@@ -1143,7 +1145,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const highlightStyles = ["solid", "dashed", "solid", "solid", "solid", "solid", "solid"];
         let highlighting = fullDegree && this.layoutDoc.type !== DocumentType.FONTICON && this.layoutDoc._viewType !== CollectionViewType.Linear;
         highlighting = highlighting && this.props.focus !== emptyFunction;  // bcz: hack to turn off highlighting onsidebar panel documents.  need to flag a document as not highlightable in a more direct way
-        return <div className={`documentView-node${this.topMost ? "-topmost" : ""}`} 
+        return <div className={`documentView-node${this.topMost ? "-topmost" : ""}`}
             id={this.props.Document[Id]}
             ref={this._mainCont} onKeyDown={this.onKeyDown}
             onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
