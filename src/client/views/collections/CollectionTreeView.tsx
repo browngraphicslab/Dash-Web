@@ -1,7 +1,5 @@
-import { library } from '@fortawesome/fontawesome-svg-core';
-import { faAngleRight, faArrowsAltH, faBell, faCamera, faCaretDown, faCaretRight, faCaretSquareDown, faCaretSquareRight, faExpand, faMinus, faPlus, faTrash, faTrashAlt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, observable, runInAction, untracked } from "mobx";
+import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { DataSym, Doc, DocListCast, Field, HeightSym, Opt, WidthSym } from '../../../new_fields/Doc';
 import { Id } from '../../../new_fields/FieldSymbols';
@@ -36,7 +34,6 @@ import React = require("react");
 import { makeTemplate } from '../../util/DropConverter';
 import { TraceMobx } from '../../../new_fields/util';
 
-
 export interface TreeViewProps {
     document: Doc;
     dataDoc?: Doc;
@@ -63,24 +60,12 @@ export interface TreeViewProps {
     active: (outsideReaction?: boolean) => boolean;
     treeViewHideHeaderFields: () => boolean;
     treeViewPreventOpen: boolean;
-    renderedIds: string[];
+    renderedIds: string[]; // list of document ids rendered used to avoid unending expansion of items in a cycle
     onCheckedClick?: ScriptField;
     onChildClick?: ScriptField;
     ignoreFields?: string[];
 }
 
-library.add(faTrashAlt);
-library.add(faAngleRight);
-library.add(faBell);
-library.add(faTrash);
-library.add(faCamera);
-library.add(faExpand);
-library.add(faCaretDown);
-library.add(faCaretRight);
-library.add(faCaretSquareDown);
-library.add(faCaretSquareRight);
-library.add(faArrowsAltH);
-library.add(faPlus, faMinus);
 @observer
 /**
  * Renders a treeView of a collection of documents
@@ -91,13 +76,14 @@ library.add(faPlus, faMinus);
  * treeViewExpandedView : name of field whose contents are being displayed as the document's subtree
  */
 class TreeView extends React.Component<TreeViewProps> {
+    static _editTitleScript: ScriptField | undefined;
     private _header?: React.RefObject<HTMLDivElement> = React.createRef();
     private _treedropDisposer?: DragManager.DragDropDisposer;
     private _dref = React.createRef<HTMLDivElement>();
     private _tref = React.createRef<HTMLDivElement>();
+    private _docRef = React.createRef<DocumentView>();
 
     get displayName() { return "TreeView(" + this.props.document.title + ")"; }  // this makes mobx trace() statements more descriptive
-
     get defaultExpandedView() { return this.childDocs ? this.fieldKey : StrCast(this.props.document.defaultExpandedView, "fields"); }
     @observable _overrideTreeViewOpen = false; // override of the treeViewOpen field allowing the display state to be independent of the document's state
     set treeViewOpen(c: boolean) { if (this.props.treeViewPreventOpen) this._overrideTreeViewOpen = c; else this.props.document.treeViewOpen = this._overrideTreeViewOpen = c; }
@@ -111,7 +97,7 @@ class TreeView extends React.Component<TreeViewProps> {
     }
     childDocList(field: string) {
         const layout = Doc.LayoutField(this.props.document) instanceof Doc ? Doc.LayoutField(this.props.document) as Doc : undefined;
-        return ((this.props.dataDoc ? Cast(this.props.dataDoc[field], listSpec(Doc)) : undefined) ||
+        return ((this.props.dataDoc ? DocListCast(this.props.dataDoc[field]) : undefined) ||
             (layout ? Cast(layout[field], listSpec(Doc)) : undefined) ||
             Cast(this.props.document[field], listSpec(Doc))) as Doc[];
     }
@@ -411,7 +397,10 @@ class TreeView extends React.Component<TreeViewProps> {
     @computed
     get renderBullet() {
         const checked = this.props.document.type === DocumentType.COL ? undefined : this.onCheckedClick ? (this.props.document.treeViewChecked ? this.props.document.treeViewChecked : "unchecked") : undefined;
-        return <div className="bullet" title="view inline" onClick={this.bulletClick} style={{ color: StrCast(this.props.document.color, checked === "unchecked" ? "white" : "inherit"), opacity: checked === "unchecked" ? undefined : 0.4 }}>
+        return <div className="bullet"
+            title={this.childDocs?.length ? `click to see ${this.childDocs?.length} items` : "view fields"}
+            onClick={this.bulletClick}
+            style={{ color: StrCast(this.props.document.color, checked === "unchecked" ? "white" : "inherit"), opacity: checked === "unchecked" ? undefined : 0.4 }}>
             {<FontAwesomeIcon icon={checked === "check" ? "check" : (checked === "x" ? "times" : checked === "unchecked" ? "square" : !this.treeViewOpen ? (this.childDocs ? "caret-square-right" : "caret-right") : (this.childDocs ? "caret-square-down" : "caret-down"))} />}
         </div>;
     }
@@ -425,8 +414,6 @@ class TreeView extends React.Component<TreeViewProps> {
         const focusScript = ScriptField.MakeFunction(`DocFocus(self)`);
         return [{ script: focusScript!, label: "Focus" }];
     }
-    _docRef = React.createRef<DocumentView>();
-    _editTitleScript: ScriptField | undefined;
     /**
      * Renders the EditableView title element for placement into the tree.
      */
@@ -434,8 +421,7 @@ class TreeView extends React.Component<TreeViewProps> {
     get renderTitle() {
         TraceMobx();
         const onItemDown = SetupDrag(this._tref, () => this.dataDoc, this.move, this.props.dropAction, this.props.treeViewId[Id], true);
-        //!this._editTitleScript && (this._editTitleScript = ScriptField.MakeFunction("setInPlace(this, 'editTitle', true)"));
-
+        (!TreeView._editTitleScript) && (TreeView._editTitleScript = ScriptField.MakeFunction("setInPlace(this, 'editTitle', true)"));
         const headerElements = (
             <>
                 <FontAwesomeIcon icon="cog" size="sm" onClick={e => this.showContextMenu(e)}></FontAwesomeIcon>
@@ -475,7 +461,7 @@ class TreeView extends React.Component<TreeViewProps> {
                         addDocTab={this.props.addDocTab}
                         rootSelected={returnTrue}
                         pinToPres={emptyFunction}
-                        onClick={this.props.onChildClick || this._editTitleScript}
+                        onClick={this.props.onChildClick || TreeView._editTitleScript}
                         dropAction={this.props.dropAction}
                         moveDocument={this.move}
                         removeDocument={this.removeDoc}
@@ -512,12 +498,14 @@ class TreeView extends React.Component<TreeViewProps> {
                         e.stopPropagation();
                         e.preventDefault();
                     }
-                }} onPointerDown={e => {
-                    if (this.props.active(true)) {
-                        e.stopPropagation();
-                        e.preventDefault();
-                    }
-                }} onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}>
+                }}
+                    onPointerDown={e => {
+                        if (this.props.active(true)) {
+                            e.stopPropagation();
+                            e.preventDefault();
+                        }
+                    }}
+                    onPointerEnter={this.onPointerEnter} onPointerLeave={this.onPointerLeave}>
                     {this.renderBullet}
                     {this.renderTitle}
                 </div>
@@ -790,7 +778,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
         return <div id="toolbar" key="toolbar">
             <button className="toolbar-button round-button" title="Empty"
                 onClick={undoBatch(action(() => Doc.GetProto(this.props.Document)[this.props.fieldKey] = undefined))}>
-                <FontAwesomeIcon icon={faTrash} size="sm" />
+                <FontAwesomeIcon icon={"trash"} size="sm" />
             </button>
         </div >;
     }

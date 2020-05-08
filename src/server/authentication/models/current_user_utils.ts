@@ -50,7 +50,7 @@ export class CurrentUserUtils {
             );
             queryTemplate.isTemplateDoc = makeTemplate(queryTemplate);
             doc["template-button-query"] = CurrentUserUtils.ficon({
-                onDragStart: ScriptField.MakeFunction('makeDelegate(this.dragFactory, true)'),
+                onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
                 dragFactory: new PrefetchProxy(queryTemplate) as any as Doc,
                 removeDropProperties: new List<string>(["dropAction"]), title: "query view", icon: "question-circle"
             });
@@ -66,7 +66,7 @@ export class CurrentUserUtils {
             );
             slideTemplate.isTemplateDoc = makeTemplate(slideTemplate);
             doc["template-button-slides"] = CurrentUserUtils.ficon({
-                onDragStart: ScriptField.MakeFunction('makeDelegate(this.dragFactory, true)'),
+                onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
                 dragFactory: new PrefetchProxy(slideTemplate) as any as Doc,
                 removeDropProperties: new List<string>(["dropAction"]), title: "presentation slide", icon: "address-card"
             });
@@ -162,7 +162,7 @@ export class CurrentUserUtils {
             long.title = "Long Description";
 
             doc["template-button-detail"] = CurrentUserUtils.ficon({
-                onDragStart: ScriptField.MakeFunction('makeDelegate(this.dragFactory, true)'),
+                onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
                 dragFactory: new PrefetchProxy(detailView) as any as Doc,
                 removeDropProperties: new List<string>(["dropAction"]), title: "detail view", icon: "window-maximize"
             });
@@ -176,7 +176,13 @@ export class CurrentUserUtils {
                 dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }),
             }));
         } else {
-            DocListCast(Cast(doc["template-buttons"], Doc, null)?.data); // prefetch templates
+            const curButnTypes = Cast(doc["template-buttons"], Doc, null);
+            const requiredTypes = [doc["template-button-slides"] as Doc, doc["template-button-description"] as Doc,
+            doc["template-button-query"] as Doc, doc["template-button-detail"] as Doc, doc["template-button-switch"] as Doc];
+            DocListCastAsync(curButnTypes.data).then(async curBtns => {
+                await Promise.all(curBtns!);
+                requiredTypes.map(btype => Doc.AddDocToList(curButnTypes, "data", btype));
+            });
         }
         return doc["template-buttons"] as Doc;
     }
