@@ -166,7 +166,7 @@ class TreeView extends React.Component<TreeViewProps> {
         })}
         OnFillDown={undoBatch((value: string) => {
             Doc.SetInPlace(this.props.document, key, value, false);
-            const doc = Docs.Create.FreeformDocument([], { title: "-", x: 0, y: 0, _width: 100, _height: 25, templates: new List<string>([Templates.Title.Layout]) });
+            const doc = Docs.Create.FreeformDocument([], { title: "-", x: 0, y: 0, _width: 100, _height: 25, _LODdisable: true, templates: new List<string>([Templates.Title.Layout]) });
             Doc.SetInPlace(this.props.document, "editTitle", undefined, false);
             Doc.SetInPlace(doc, "editTitle", true, false);
             return this.props.addDocument(doc);
@@ -801,7 +801,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                     SetValue={undoBatch((value: string) => Doc.SetInPlace(this.dataDoc, "title", value, false) || true)}
                     OnFillDown={undoBatch((value: string) => {
                         Doc.SetInPlace(this.dataDoc, "title", value, false);
-                        const doc = Docs.Create.FreeformDocument([], { title: "", x: 0, y: 0, _width: 100, _height: 25, templates: new List<string>([Templates.Title.Layout]) });
+                        const doc = Docs.Create.FreeformDocument([], { title: "", x: 0, y: 0, _width: 100, _height: 25, _LODdisable: true, templates: new List<string>([Templates.Title.Layout]) });
                         EditableView.loadId = doc[Id];
                         Doc.SetInPlace(doc, "editTitle", true, false);
                         this.addDoc(doc, childDocs.length ? childDocs[0] : undefined, true);

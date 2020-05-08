@@ -169,7 +169,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         this._downY = this._lastY = e.clientY;
         if (e.button === 2 || (e.button === 0 && (e.altKey || MarqueeView.DragMarquee))) {
             this.setPreviewCursor(e.clientX, e.clientY, true);
-            if (e.altKey || MarqueeView.DragMarquee) {
+            if (e.altKey || (MarqueeView.DragMarquee && this.props.active(true))) {
                 //e.stopPropagation(); // bcz: removed so that you can alt-click on button in a collection to switch link following behaviors.
                 e.preventDefault();
             }
@@ -613,7 +613,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
 
     render() {
         return <div className="marqueeView"
-            style={{ overflow: StrCast(this.props.Document._overflow), cursor: MarqueeView.DragMarquee ? "crosshair" : "hand" }}
+            style={{ overflow: StrCast(this.props.Document._overflow), cursor: MarqueeView.DragMarquee && this ? "crosshair" : "hand" }}
             onScroll={(e) => e.currentTarget.scrollTop = e.currentTarget.scrollLeft = 0} onClick={this.onClick} onPointerDown={this.onPointerDown}>
             {this._visible ? this.marqueeDiv : null}
             {this.props.children}
