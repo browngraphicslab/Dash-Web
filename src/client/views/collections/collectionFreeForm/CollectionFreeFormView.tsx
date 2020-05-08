@@ -563,7 +563,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                     document.removeEventListener("pointerup", this.onPointerUp);
                     return;
                 }
-                (MarqueeView.DragState || e.altKey) && this.pan(e);
+                (!MarqueeView.DragMarquee || e.altKey) && this.pan(e);
             }
             e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers
             e.preventDefault();
@@ -709,7 +709,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     @action
     zoom = (pointX: number, pointY: number, deltaY: number): void => {
-        let deltaScale = deltaY > 0 ? (1 / 1.1) : 1.1;
+        let deltaScale = deltaY > 0 ? (1 / 1.05) : 1.05;
         if (deltaScale * this.zoomScaling() < 1 && this.isAnnotationOverlay) {
             deltaScale = 1 / this.zoomScaling();
         }
@@ -732,7 +732,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         }
         else if (this.props.active(true)) {
             e.stopPropagation();
-            this.zoom(e.clientX, e.clientY, e.deltaY);
+            if (!e.ctrlKey) this.setPan(this.panX() + e.deltaX, this.panY() + e.deltaY, "None", true);
+            else this.zoom(e.clientX, e.clientY, e.deltaY);
         }
         this.props.Document.targetScale = NumCast(this.props.Document.scale);
     }

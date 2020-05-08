@@ -37,7 +37,7 @@ interface MarqueeViewProps {
 @observer
 export class MarqueeView extends React.Component<SubCollectionViewProps & MarqueeViewProps>
 {
-    @observable public static DragState = true;
+    @observable public static DragMarquee = false;
     @observable _lastX: number = 0;
     @observable _lastY: number = 0;
     @observable _downX: number = 0;
@@ -166,9 +166,9 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
     onPointerDown = (e: React.PointerEvent): void => {
         this._downX = this._lastX = e.clientX;
         this._downY = this._lastY = e.clientY;
-        if (e.button === 2 || (e.button === 0 && (e.altKey || !MarqueeView.DragState))) {
+        if (e.button === 2 || (e.button === 0 && (e.altKey || MarqueeView.DragMarquee))) {
             this.setPreviewCursor(e.clientX, e.clientY, true);
-            if (e.altKey || !MarqueeView.DragState) {
+            if (e.altKey || MarqueeView.DragMarquee) {
                 //e.stopPropagation(); // bcz: removed so that you can alt-click on button in a collection to switch link following behaviors.
                 e.preventDefault();
             }
@@ -193,7 +193,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         } else {
             this.cleanupInteractions(true); // stop listening for events if another lower-level handle (e.g. another Marquee) has stopPropagated this
         }
-        if (e.altKey || !MarqueeView.DragState) {
+        if (e.altKey || MarqueeView.DragMarquee) {
             e.preventDefault();
         }
     }
@@ -228,7 +228,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         };
         document.addEventListener("pointerdown", hideMarquee);
 
-        if (e.altKey || !MarqueeView.DragState) {
+        if (e.altKey || MarqueeView.DragMarquee) {
             e.preventDefault();
         }
     }
@@ -612,7 +612,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
 
     render() {
         return <div className="marqueeView"
-            style={{ overflow: StrCast(this.props.Document._overflow), cursor: MarqueeView.DragState ? "hand" : "crosshair" }}
+            style={{ overflow: StrCast(this.props.Document._overflow), cursor: MarqueeView.DragMarquee ? "crosshair" : "hand" }}
             onScroll={(e) => e.currentTarget.scrollTop = e.currentTarget.scrollLeft = 0} onClick={this.onClick} onPointerDown={this.onPointerDown}>
             {this._visible ? this.marqueeDiv : null}
             {this.props.children}

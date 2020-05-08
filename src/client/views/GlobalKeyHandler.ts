@@ -68,7 +68,7 @@ export default class KeyManager {
     private unmodified = action((keyname: string, e: KeyboardEvent) => {
         switch (keyname) {
             case " ":
-                MarqueeView.DragState = !MarqueeView.DragState;
+                MarqueeView.DragMarquee = !MarqueeView.DragMarquee;
                 break;
             case "escape":
                 const main = MainView.Instance;
