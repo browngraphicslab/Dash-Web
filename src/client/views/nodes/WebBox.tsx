@@ -48,10 +48,12 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     private _setPreviewCursor: undefined | ((x: number, y: number, drag: boolean) => void);
 
     iframeLoaded = action((e: any) => {
-        this._iframeRef.current!.contentDocument?.addEventListener('pointerdown', this.iframedown, false);
-        this._iframeRef.current!.contentDocument?.addEventListener('scroll', this.iframeScrolled, false);
-        this.layoutDoc.scrollHeight = this._iframeRef.current!.contentDocument?.children?.[0].scrollHeight || 1000;
-        this._iframeRef.current!.contentDocument && (this._iframeRef.current!.contentDocument.children[0].scrollTop = NumCast(this.layoutDoc.scrollTop));
+        if (this._iframeRef.current?.contentDocument) {
+            this._iframeRef.current.contentDocument.addEventListener('pointerdown', this.iframedown, false);
+            this._iframeRef.current.contentDocument.addEventListener('scroll', this.iframeScrolled, false);
+            this.layoutDoc.scrollHeight = this._iframeRef.current.contentDocument.children?.[0].scrollHeight || 1000;
+            this._iframeRef.current.contentDocument.children[0].scrollTop = NumCast(this.layoutDoc.scrollTop);
+        }
         this._reactionDisposer?.();
         this._reactionDisposer = reaction(() => this.layoutDoc.scrollY,
             (scrollY) => {

@@ -1149,8 +1149,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             id={this.props.Document[Id]}
             ref={this._mainCont} onKeyDown={this.onKeyDown}
             onContextMenu={this.onContextMenu} onPointerDown={this.onPointerDown} onClick={this.onClick}
-            // onPointerEnter={e => Doc.BrushDoc(this.props.Document)} 
-            // onPointerLeave={e => Doc.BrushDoc(this.props.Document)}
             onPointerEnter={action(() => Doc.BrushDoc(this.props.Document))}
             onPointerLeave={action((e: React.PointerEvent<HTMLDivElement>) => {
                 let entered = false;

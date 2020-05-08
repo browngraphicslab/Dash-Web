@@ -1177,7 +1177,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             DragManager.SetSnapLines([], []);
             return;
         }
-        const size = this.props.ScreenToLocalTransform().transformDirection(this.props.PanelWidth(), this.props.PanelHeight());
+        const size = this.getTransform().transformDirection(this.props.PanelWidth(), this.props.PanelHeight());
         const selRect = { left: this.panX() - size[0] / 2, top: this.panY() - size[1] / 2, width: size[0], height: size[1] };
         const docDims = (doc: Doc) => ({ left: NumCast(doc.x), top: NumCast(doc.y), width: NumCast(doc._width), height: NumCast(doc._height) });
         const isDocInView = (doc: Doc, rect: { left: number, top: number, width: number, height: number }) => {
