@@ -95,7 +95,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
         // to its children which may be templates.
         // If 'annotationField' is specified, then all children exist on that field of the extension document, otherwise, they exist directly on the data document under 'fieldKey'
         @computed get dataField() {
-            return this.dataDoc[this.props.fieldKey + (this.props.annotationsKey ? "-" + this.props.annotationsKey : "")];
+            return this.dataDoc[this.props.annotationsKey || this.props.fieldKey];
         }
 
         get childLayoutPairs(): { layout: Doc; data: Doc; }[] {

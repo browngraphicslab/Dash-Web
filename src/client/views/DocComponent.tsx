@@ -97,18 +97,17 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
         protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
 
         _annotationKey: string = "annotations";
-        public set annotationKey(val: string) { this._annotationKey = val; }
-        public get annotationKey() { return this._annotationKey; }
+        public get annotationKey() { return this.fieldKey + "-" + this._annotationKey; }
 
         @action.bound
         removeDocument(doc: Doc | Doc[]): boolean {
             const docs = doc instanceof Doc ? [doc] : doc;
             docs.map(doc => doc.annotationOn = undefined);
-            const targetDataDoc = this.dataDoc;
-            const value = DocListCast(targetDataDoc[this.props.fieldKey + "-" + this._annotationKey]);
+            const targetDataDoc = this.dataDoc; this
+            const value = DocListCast(targetDataDoc[this.annotationKey]);
             const result = value.filter(v => !docs.includes(v));
             if (result.length !== value.length) {
-                targetDataDoc[this.props.fieldKey] = new List<Doc>(result);
+                targetDataDoc[this.annotationKey] = new List<Doc>(result);
                 return true;
             }
             return false;
@@ -124,12 +123,12 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
             const docs = doc instanceof Doc ? [doc] : doc;
             docs.map(doc => doc.context = Doc.GetProto(doc).annotationOn = this.props.Document);
             const targetDataDoc = this.props.Document[DataSym];
-            const docList = DocListCast(targetDataDoc[this.props.fieldKey + "-" + this._annotationKey]);
+            const docList = DocListCast(targetDataDoc[this.annotationKey]);
             const added = docs.filter(d => !docList.includes(d));
             if (added.length) {
                 added.map(doc => doc.context = this.props.Document);
-                targetDataDoc[this.props.fieldKey + "-" + this._annotationKey] = new List<Doc>([...docList, ...added]);
-                targetDataDoc[this.props.fieldKey + "-" + this._annotationKey + "-lastModified"] = new DateField(new Date(Date.now()));
+                targetDataDoc[this.annotationKey] = new List<Doc>([...docList, ...added]);
+                targetDataDoc[this.annotationKey + "-lastModified"] = new DateField(new Date(Date.now()));
             }
             return true;
         }

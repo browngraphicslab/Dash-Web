@@ -1081,7 +1081,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             <div className="documentView-captionWrapper" style={{ backgroundColor: StrCast(this.layoutDoc["caption-backgroundColor"]), color: StrCast(this.layoutDoc["caption-color"]) }}>
                 <DocumentContentsView {...OmitKeys(this.props, ['children']).omit}
                     hideOnLeave={true}
-                    layoutTemplateString={`<FormattedTextBox {...props} fieldKey={'${showCaption}'}/>`}
+                    LayoutTemplateString={`<FormattedTextBox {...props} fieldKey={'${showCaption}'}/>`}
                     ContentScaling={this.childScaling}
                     ChromeHeight={this.chromeHeight}
                     isSelected={this.isSelected}
