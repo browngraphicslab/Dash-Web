@@ -1,24 +1,25 @@
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, DataSym, WidthSym, HeightSym, Opt } from "../../../../new_fields/Doc";
-import { InkField, InkData } from "../../../../new_fields/InkField";
+import { Doc, Opt } from "../../../../new_fields/Doc";
+import { InkData, InkField } from "../../../../new_fields/InkField";
 import { List } from "../../../../new_fields/List";
+import { RichTextField } from "../../../../new_fields/RichTextField";
 import { SchemaHeaderField } from "../../../../new_fields/SchemaHeaderField";
-import { Cast, NumCast, FieldValue, StrCast } from "../../../../new_fields/Types";
+import { Cast, FieldValue, NumCast, StrCast } from "../../../../new_fields/Types";
 import { Utils } from "../../../../Utils";
-import { Docs, DocUtils, DocumentOptions } from "../../../documents/Documents";
+import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
+import { Docs, DocumentOptions, DocUtils } from "../../../documents/Documents";
 import { SelectionManager } from "../../../util/SelectionManager";
 import { Transform } from "../../../util/Transform";
 import { undoBatch } from "../../../util/UndoManager";
 import { ContextMenu } from "../../ContextMenu";
+import { FormattedTextBox } from "../../nodes/formattedText/FormattedTextBox";
 import { PreviewCursor } from "../../PreviewCursor";
 import { SubCollectionViewProps } from "../CollectionSubView";
+import { CollectionView } from "../CollectionView";
 import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
 import "./MarqueeView.scss";
 import React = require("react");
-import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
-import { RichTextField } from "../../../../new_fields/RichTextField";
-import { CollectionView } from "../CollectionView";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -550,7 +551,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
     marqueeSelect(selectBackgrounds: boolean = true) {
         const selRect = this.Bounds;
         const selection: Doc[] = [];
-        this.props.activeDocuments().filter(doc => !doc.isBackground && doc.z === undefined).map(doc => {
+        this.props.activeDocuments().filter(doc => !doc.isBackground && !doc.z).map(doc => {
             const layoutDoc = Doc.Layout(doc);
             const x = NumCast(doc.x);
             const y = NumCast(doc.y);
