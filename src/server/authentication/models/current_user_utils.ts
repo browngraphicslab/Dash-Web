@@ -688,6 +688,8 @@ export class CurrentUserUtils {
         new InkingControl();
         doc.title = Doc.CurrentUserEmail;
         doc.activePen = doc;
+        doc.inkColor = StrCast(doc.backgroundColor, "");
+        doc.fontSize = NumCast(doc.fontSize, 12);
         doc["constants-snapThreshold"] = NumCast(doc["constants-snapThreshold"], 10); // 
         doc["constants-dragThreshold"] = NumCast(doc["constants-dragThreshold"], 4); // 
         Utils.DRAG_THRESHOLD = NumCast(doc["constants-dragThreshold"]);
