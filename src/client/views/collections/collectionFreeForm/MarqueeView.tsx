@@ -19,8 +19,6 @@ import React = require("react");
 import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
 import { RichTextField } from "../../../../new_fields/RichTextField";
 import { CollectionView } from "../CollectionView";
-import { FormattedTextBox } from "../../nodes/formattedText/FormattedTextBox";
-import { ScriptField } from "../../../../new_fields/ScriptField";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -39,7 +37,7 @@ interface MarqueeViewProps {
 @observer
 export class MarqueeView extends React.Component<SubCollectionViewProps & MarqueeViewProps>
 {
-    private _mainCont = React.createRef<HTMLDivElement>();
+    @observable public static DragState = true;
     @observable _lastX: number = 0;
     @observable _lastY: number = 0;
     @observable _downX: number = 0;
@@ -168,9 +166,9 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
     onPointerDown = (e: React.PointerEvent): void => {
         this._downX = this._lastX = e.clientX;
         this._downY = this._lastY = e.clientY;
-        if (e.button === 2 || (e.button === 0 && e.altKey)) {
+        if (e.button === 2 || (e.button === 0 && (e.altKey || !MarqueeView.DragState))) {
             this.setPreviewCursor(e.clientX, e.clientY, true);
-            if (e.altKey) {
+            if (e.altKey || !MarqueeView.DragState) {
                 //e.stopPropagation(); // bcz: removed so that you can alt-click on button in a collection to switch link following behaviors.
                 e.preventDefault();
             }
@@ -195,7 +193,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         } else {
             this.cleanupInteractions(true); // stop listening for events if another lower-level handle (e.g. another Marquee) has stopPropagated this
         }
-        if (e.altKey) {
+        if (e.altKey || !MarqueeView.DragState) {
             e.preventDefault();
         }
     }
@@ -230,7 +228,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         };
         document.addEventListener("pointerdown", hideMarquee);
 
-        if (e.altKey) {
+        if (e.altKey || !MarqueeView.DragState) {
             e.preventDefault();
         }
     }
@@ -614,7 +612,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
 
     render() {
         return <div className="marqueeView"
-            style={{ overflow: StrCast(this.props.Document._overflow), }}
+            style={{ overflow: StrCast(this.props.Document._overflow), cursor: MarqueeView.DragState ? "hand" : "crosshair" }}
             onScroll={(e) => e.currentTarget.scrollTop = e.currentTarget.scrollLeft = 0} onClick={this.onClick} onPointerDown={this.onPointerDown}>
             {this._visible ? this.marqueeDiv : null}
             {this.props.children}

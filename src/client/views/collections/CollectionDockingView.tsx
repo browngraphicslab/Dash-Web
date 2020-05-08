@@ -683,16 +683,19 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
      **/
     @undoBatch
     @action
-    public static PinDoc(doc: Doc) {
-        //add this new doc to props.Document
-        const curPres = Cast(Doc.UserDoc().activePresentation, Doc) as Doc;
-        if (curPres) {
-            const pinDoc = Doc.MakeAlias(doc);
-            pinDoc.presentationTargetDoc = doc;
-            pinDoc.presZoomButton = true;
-            Doc.AddDocToList(curPres, "data", pinDoc);
-            if (!DocumentManager.Instance.getDocumentView(curPres)) {
-                CollectionDockingView.AddRightSplit(curPres);
+    public static PinDoc(doc: Doc, unpin = false) {
+        if (unpin) DockedFrameRenderer.UnpinDoc(doc);
+        else {
+            //add this new doc to props.Document
+            const curPres = Cast(Doc.UserDoc().activePresentation, Doc) as Doc;
+            if (curPres) {
+                const pinDoc = Doc.MakeAlias(doc);
+                pinDoc.presentationTargetDoc = doc;
+                pinDoc.presZoomButton = true;
+                Doc.AddDocToList(curPres, "data", pinDoc);
+                if (!DocumentManager.Instance.getDocumentView(curPres)) {
+                    CollectionDockingView.AddRightSplit(curPres);
+                }
             }
         }
     }

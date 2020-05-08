@@ -229,16 +229,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
         return !targetDoc ? (null) : <div className="documentButtonBar-linker"
             title={Doc.isDocPinned(targetDoc) ? "Unpin from presentation" : "Pin to presentation"}
             style={{ backgroundColor: isPinned ? "black" : "white", color: isPinned ? "white" : "black" }}
-
-            onClick={e => {
-                if (isPinned) {
-                    DockedFrameRenderer.UnpinDoc(targetDoc);
-                }
-                else {
-                    targetDoc.sourceContext = this.view0?.props.ContainingCollectionDoc; // bcz: !! Shouldn't need this ... use search to lookup contexts dynamically
-                    DockedFrameRenderer.PinDoc(targetDoc);
-                }
-            }}>
+            onClick={e => DockedFrameRenderer.PinDoc(targetDoc, isPinned)}>
             <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="map-pin"
             />
         </div>;

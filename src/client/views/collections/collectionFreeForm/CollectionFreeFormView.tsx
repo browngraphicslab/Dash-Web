@@ -563,7 +563,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                     document.removeEventListener("pointerup", this.onPointerUp);
                     return;
                 }
-                this.pan(e);
+                (MarqueeView.DragState || e.altKey) && this.pan(e);
             }
             e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers
             e.preventDefault();

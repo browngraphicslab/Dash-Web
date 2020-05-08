@@ -13,6 +13,8 @@ import { InkingControl } from "./InkingControl";
 import { InkTool } from "../../new_fields/InkField";
 import { DocumentView } from "./nodes/DocumentView";
 import GoogleAuthenticationManager from "../apis/GoogleAuthenticationManager";
+import { CollectionFreeFormView } from "./collections/collectionFreeForm/CollectionFreeFormView";
+import { MarqueeView } from "./collections/collectionFreeForm/MarqueeView";
 
 const modifiers = ["control", "meta", "shift", "alt"];
 type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo | Promise<KeyControlInfo>;
@@ -65,6 +67,9 @@ export default class KeyManager {
 
     private unmodified = action((keyname: string, e: KeyboardEvent) => {
         switch (keyname) {
+            case " ":
+                MarqueeView.DragState = !MarqueeView.DragState;
+                break;
             case "escape":
                 const main = MainView.Instance;
                 InkingControl.Instance.switchTool(InkTool.None);

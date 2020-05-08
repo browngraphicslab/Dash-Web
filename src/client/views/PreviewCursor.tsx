@@ -81,7 +81,7 @@ export class PreviewCursor extends React.Component<{}> {
         if (e.key !== "Escape" && e.key !== "Backspace" && e.key !== "Delete" && e.key !== "CapsLock" &&
             e.key !== "Alt" && e.key !== "Shift" && e.key !== "Meta" && e.key !== "Control" &&
             e.key !== "Insert" && e.key !== "Home" && e.key !== "End" && e.key !== "PageUp" && e.key !== "PageDown" &&
-            e.key !== "NumLock" &&
+            e.key !== "NumLock" && e.key !== " " &&
             (e.keyCode < 112 || e.keyCode > 123) && // F1 thru F12 keys
             !e.key.startsWith("Arrow") &&
             !e.defaultPrevented) {
