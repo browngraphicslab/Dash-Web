@@ -170,7 +170,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         if (e.button === 2 || (e.button === 0 && (e.altKey || MarqueeView.DragMarquee))) {
             if (e.altKey || (MarqueeView.DragMarquee && this.props.active(true))) {
                 this.setPreviewCursor(e.clientX, e.clientY, true);
-                (!e.altKey) && e.stopPropagation(); // bcz: removed so that you can alt-click on button in a collection to switch link following behaviors.
+                // (!e.altKey) && e.stopPropagation(); // bcz: removed so that you can alt-click on button in a collection to switch link following behaviors.
                 e.preventDefault();
             }
             // bcz: do we need this?   it kills the context menu on the main collection if !altKey
@@ -211,6 +211,11 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             const docs = mselect.length ? mselect : [this.props.Document];
             this.props.selectDocuments(docs, []);
         }
+        const hideMarquee = () => {
+            this.hideMarquee();
+            MarqueeOptionsMenu.Instance.fadeOut(true);
+            document.removeEventListener("pointerdown", hideMarquee);
+        };
         if (!this._commandExecuted && (Math.abs(this.Bounds.height * this.Bounds.width) > 100)) {
             MarqueeOptionsMenu.Instance.createCollection = this.collection;
             MarqueeOptionsMenu.Instance.delete = this.delete;
@@ -219,15 +224,11 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             MarqueeOptionsMenu.Instance.showMarquee = this.showMarquee;
             MarqueeOptionsMenu.Instance.hideMarquee = this.hideMarquee;
             MarqueeOptionsMenu.Instance.jumpTo(e.clientX, e.clientY);
+            document.addEventListener("pointerdown", hideMarquee);
+        } else {
+            this.hideMarquee();
         }
         this.cleanupInteractions(true, this._commandExecuted);
-
-        const hideMarquee = () => {
-            this.hideMarquee();
-            MarqueeOptionsMenu.Instance.fadeOut(true);
-            document.removeEventListener("pointerdown", hideMarquee);
-        };
-        document.addEventListener("pointerdown", hideMarquee);
 
         if (e.altKey || MarqueeView.DragMarquee) {
             e.preventDefault();
