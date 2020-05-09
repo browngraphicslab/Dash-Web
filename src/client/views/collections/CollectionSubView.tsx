@@ -246,7 +246,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 };
                 temporaryFileReader.readAsText(inputFile);
             });
-        };
+        }
         @undoBatch
         @action
         protected async onExternalDrop(e: React.DragEvent, options: DocumentOptions, completed?: () => void) {
@@ -388,11 +388,11 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
 
                     file?.type === "application/json" && this.readUploadedFileAsText(file).then(result => {
                         console.log(result);
-                        const json = JSON.parse(result as string) as any;
+                        const json = JSON.parse(result as string);
                         addDocument(Docs.Create.TreeDocument(
                             json["rectangular-puzzle"].crossword.clues[0].clue.map((c: any) => {
                                 const label = Docs.Create.LabelDocument({ title: c["#text"], _width: 120, _height: 20 });
-                                const proto = Doc.GetProto(label)
+                                const proto = Doc.GetProto(label);
                                 proto._width = 120;
                                 proto._height = 20;
                                 return proto;

@@ -342,7 +342,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         docs.forEach(doc => {
             const curTime = (this.layoutDoc.currentTimecode || -1);
             curTime !== -1 && (doc.displayTimecode = curTime);
-        })
+        });
         return this.addDocument(doc);
     }
 

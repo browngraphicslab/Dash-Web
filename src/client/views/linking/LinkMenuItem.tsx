@@ -38,7 +38,7 @@ export async function StartLinkTargetsDrag(dragEle: HTMLElement, docView: Docume
         }
 
         const dragData = new DragManager.DocumentDragData(moddrag.length ? moddrag : draggedDocs);
-        dragData.moveDocument = (doc: Doc, targetCollection: Doc | undefined, addDocument: (doc: Doc) => boolean): boolean => {
+        dragData.moveDocument = (doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (doc: Doc | Doc[]) => boolean): boolean => {
             docView.props.removeDocument?.(doc);
             addDocument(doc);
             return true;

@@ -592,8 +592,8 @@ export namespace Doc {
     }
 
     export function MakeClone(doc: Doc): Doc {
-        let cloneMap = new Map<string, Doc>();
-        let rtfMap: { copy: Doc, key: string, field: RichTextField }[] = [];
+        const cloneMap = new Map<string, Doc>();
+        const rtfMap: { copy: Doc, key: string, field: RichTextField }[] = [];
         const copy = Doc.makeClone(doc, cloneMap, rtfMap);
         rtfMap.map(({ copy, key, field }) => {
             const replacer = (match: any, attr: string, id: string, offset: any, string: any) => {
@@ -605,7 +605,7 @@ export namespace Doc {
                 return href + (mapped ? mapped[Id] : id);
             };
             const regex = `(${Utils.prepend("/doc/")})([^"]*)`;
-            var re = new RegExp(regex, "g");
+            const re = new RegExp(regex, "g");
             copy[key] = new RichTextField(field.Data.replace(/("docid":|"targetId":|"linkId":)"([^"]+)"/g, replacer).replace(re, replacer2), field.Text);
         });
         return copy;
@@ -626,9 +626,9 @@ export namespace Doc {
                 const list = Cast(doc[key], listSpec(Doc));
                 if (list !== undefined && !(list instanceof Promise)) {
                     copy[key] = new List<Doc>(list.filter(d => d instanceof Doc).map(d => Doc.makeClone(d as Doc, cloneMap, rtfs)));
-                } else if (doc[key] instanceof Doc)
+                } else if (doc[key] instanceof Doc) {
                     copy[key] = key.includes("layout[") ? undefined : Doc.makeClone(doc[key] as Doc, cloneMap, rtfs); // reference documents except copy documents that are expanded teplate fields 
-                else {
+                } else {
                     copy[key] = ObjectField.MakeCopy(field);
                     if (field instanceof RichTextField) {
                         if (field.Data.includes('"docid":') || field.Data.includes('"targetId":') || field.Data.includes('"linkId":')) {
@@ -636,7 +636,7 @@ export namespace Doc {
                         }
                     }
                 }
-            }
+            };
             if (key === "proto") {
                 if (doc[key] instanceof Doc) {
                     copy[key] = Doc.makeClone(doc[key]!, cloneMap, rtfs);

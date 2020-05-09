@@ -152,7 +152,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
     // otherwise, the document being moved must be able to be removed from its container before
     // moving it into the target.  
     @action.bound
-    moveDocument = (doc: Doc, targetCollection: Doc | undefined, addDocument: (doc: Doc | Doc[]) => boolean): boolean => {
+    moveDocument = (doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (doc: Doc | Doc[]) => boolean): boolean => {
         if (Doc.AreProtosEqual(this.props.Document, targetCollection)) {
             return true;
         }

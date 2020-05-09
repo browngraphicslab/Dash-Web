@@ -37,8 +37,8 @@ export interface CellProps {
     renderDepth: number;
     addDocTab: (document: Doc, where: string) => boolean;
     pinToPres: (document: Doc) => void;
-    moveDocument: (document: Doc, targetCollection: Doc | undefined,
-        addDocument: (document: Doc) => boolean) => boolean;
+    moveDocument: (document: Doc | Doc[], targetCollection: Doc | undefined,
+        addDocument: (document: Doc | Doc[]) => boolean) => boolean;
     isFocused: boolean;
     changeFocusedCellByIndex: (row: number, col: number) => void;
     setIsEditing: (isEditing: boolean) => void;
@@ -185,7 +185,7 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         const onItemDown = (e: React.PointerEvent) => {
             fieldIsDoc && SetupDrag(this._focusRef,
                 () => this._document[props.fieldKey] instanceof Doc ? this._document[props.fieldKey] : this._document,
-                this._document[props.fieldKey] instanceof Doc ? (doc: Doc, target: Doc | undefined, addDoc: (newDoc: Doc) => any) => addDoc(doc) : this.props.moveDocument,
+                this._document[props.fieldKey] instanceof Doc ? (doc: Doc | Doc[], target: Doc | undefined, addDoc: (newDoc: Doc | Doc[]) => any) => addDoc(doc) : this.props.moveDocument,
                 this._document[props.fieldKey] instanceof Doc ? "alias" : this.props.Document.schemaDoc ? "copy" : undefined)(e);
         };
         const onPointerEnter = (e: React.PointerEvent): void => {

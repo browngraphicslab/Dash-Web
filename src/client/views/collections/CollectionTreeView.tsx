@@ -673,7 +673,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
 
     @action
     remove = (doc: Doc | Doc[]): boolean => {
-        const docs = doc instanceof Doc ? [doc] : doc as Doc[];
+        const docs = doc instanceof Doc ? [doc] : doc;
         const targetDataDoc = this.props.Document[DataSym];
         const value = DocListCast(targetDataDoc[this.props.fieldKey]);
         const result = value.filter(v => !docs.includes(v));

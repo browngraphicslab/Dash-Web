@@ -103,7 +103,7 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
         removeDocument(doc: Doc | Doc[]): boolean {
             const docs = doc instanceof Doc ? [doc] : doc;
             docs.map(doc => doc.annotationOn = undefined);
-            const targetDataDoc = this.dataDoc; this
+            const targetDataDoc = this.dataDoc;
             const value = DocListCast(targetDataDoc[this.annotationKey]);
             const result = value.filter(v => !docs.includes(v));
             if (result.length !== value.length) {

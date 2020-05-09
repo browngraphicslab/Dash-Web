@@ -250,7 +250,7 @@ export namespace DocServer {
         if (cached !== undefined && !(cached instanceof Promise)) {
             return cached;
         }
-    }
+    };
 
     let _GetRefField: (id: string) => Promise<Opt<RefField>> = errorFunc;
     let _GetCachedRefField: (id: string) => Opt<RefField> = errorFunc;

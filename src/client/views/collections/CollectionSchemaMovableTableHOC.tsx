@@ -130,8 +130,8 @@ export class MovableColumn extends React.Component<MovableColumnProps> {
 export interface MovableRowProps {
     rowInfo: RowInfo;
     ScreenToLocalTransform: () => Transform;
-    addDoc: (doc: Doc, relativeTo?: Doc, before?: boolean) => boolean;
-    removeDoc: (doc: Doc) => boolean;
+    addDoc: (doc: Doc | Doc[], relativeTo?: Doc, before?: boolean) => boolean;
+    removeDoc: (doc: Doc | Doc[]) => boolean;
     rowFocused: boolean;
     textWrapRow: (doc: Doc) => void;
     rowWrapped: boolean;
@@ -183,7 +183,7 @@ export class MovableRow extends React.Component<MovableRowProps> {
         if (docDragData) {
             e.stopPropagation();
             if (docDragData.draggedDocuments[0] === rowDoc) return true;
-            const addDocument = (doc: Doc) => this.props.addDoc(doc, rowDoc, before);
+            const addDocument = (doc: Doc | Doc[]) => this.props.addDoc(doc, rowDoc, before);
             const movedDocs = docDragData.draggedDocuments;
             return (docDragData.dropAction || docDragData.userDropAction) ?
                 docDragData.droppedDocuments.reduce((added: boolean, d) => this.props.addDoc(d, rowDoc, before) || added, false)
@@ -201,7 +201,7 @@ export class MovableRow extends React.Component<MovableRowProps> {
 
     @undoBatch
     @action
-    move: DragManager.MoveFunction = (doc: Doc, targetCollection: Doc | undefined, addDoc) => {
+    move: DragManager.MoveFunction = (doc: Doc | Doc[], targetCollection: Doc | undefined, addDoc) => {
         const targetView = targetCollection && DocumentManager.Instance.getDocumentView(targetCollection);
         if (targetView && targetView.props.ContainingCollectionDoc) {
             return doc !== targetCollection && doc !== targetView.props.ContainingCollectionDoc && this.props.removeDoc(doc) && addDoc(doc);

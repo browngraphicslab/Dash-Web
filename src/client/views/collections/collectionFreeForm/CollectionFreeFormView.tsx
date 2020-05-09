@@ -786,7 +786,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             }
             doc.zIndex = zlast + 1;
         }
-    })
+    });
 
     scaleAtPt(docpt: number[], scale: number) {
         const screenXY = this.getTransform().inverse().transformPoint(docpt[0], docpt[1]);

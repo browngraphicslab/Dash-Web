@@ -323,7 +323,7 @@ export function OmitKeys(obj: any, keys: string[], pattern?: string, addKeyFunc?
     pattern && Array.from(Object.keys(omit)).filter(key => key.match(pattern)).forEach(key => {
         extract[key] = omit[key];
         delete omit[key];
-    })
+    });
     addKeyFunc?.(omit);
     return { omit, extract };
 }
