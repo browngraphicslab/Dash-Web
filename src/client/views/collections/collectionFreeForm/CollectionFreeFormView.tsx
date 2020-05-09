@@ -732,7 +732,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         }
         else if (this.props.active(true)) {
             e.stopPropagation();
-            if (!e.ctrlKey) this.setPan(this.panX() + e.deltaX, this.panY() + e.deltaY, "None", true);
+            if (!e.ctrlKey && MarqueeView.DragMarquee) this.setPan(this.panX() + e.deltaX, this.panY() + e.deltaY, "None", true);
             else this.zoom(e.clientX, e.clientY, e.deltaY);
         }
         this.props.Document.targetScale = NumCast(this.props.Document.scale);
