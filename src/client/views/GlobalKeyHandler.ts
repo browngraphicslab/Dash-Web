@@ -15,6 +15,7 @@ import { DocumentView } from "./nodes/DocumentView";
 import GoogleAuthenticationManager from "../apis/GoogleAuthenticationManager";
 import { CollectionFreeFormView } from "./collections/collectionFreeForm/CollectionFreeFormView";
 import { MarqueeView } from "./collections/collectionFreeForm/MarqueeView";
+import { Id } from "../../new_fields/FieldSymbols";
 
 const modifiers = ["control", "meta", "shift", "alt"];
 type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo | Promise<KeyControlInfo>;
@@ -240,8 +241,17 @@ export default class KeyManager {
                 break;
             case "a":
             case "v":
+                stopPropagation = false;
+                preventDefault = false;
+                break;
             case "x":
             case "c":
+                SelectionManager.SelectedDocuments().length && navigator.clipboard.writeText("__DashDocId:" + SelectionManager.SelectedDocuments()[0].Document[Id]);
+                // window.getSelection()?.removeAllRanges();
+                // let range = document.createRange();
+                // range.selectNode(SelectionManager.SelectedDocuments()[0].ContentDiv!);
+                // window.getSelection()?.addRange(range);
+                // document.execCommand('copy');
                 stopPropagation = false;
                 preventDefault = false;
                 break;

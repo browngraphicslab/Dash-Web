@@ -410,7 +410,6 @@ class TreeView extends React.Component<TreeViewProps> {
     @computed
     get renderTitle() {
         TraceMobx();
-        const onItemDown = SetupDrag(this._tref, () => this.dataDoc, this.move, this.props.dropAction, this.props.treeViewId[Id], true);
         (!TreeView._editTitleScript) && (TreeView._editTitleScript = ScriptField.MakeFunction("setInPlace(self, 'editTitle', true)"));
         const headerElements = (
             <>
@@ -432,7 +431,7 @@ class TreeView extends React.Component<TreeViewProps> {
             <FontAwesomeIcon title="open in pane on right" icon="angle-right" size="lg" />
         </div>);
         return <>
-            <div className="docContainer" ref={this._tref} title="click to edit title" id={`docContainer-${this.props.parentKey}`} onPointerDown={onItemDown}
+            <div className="docContainer" ref={this._tref} title="click to edit title" id={`docContainer-${this.props.parentKey}`}
                 style={{
                     fontWeight: this.props.document.searchMatch ? "bold" : undefined,
                     textDecoration: Doc.GetT(this.props.document, "title", "string", true) ? "underline" : undefined,

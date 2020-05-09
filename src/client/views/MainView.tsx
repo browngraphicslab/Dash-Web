@@ -249,8 +249,7 @@ export class MainView extends React.Component {
             title: "Collection " + workspaceCount,
         };
         const freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
-        Doc.AddDocToList(Doc.GetProto(Doc.UserDoc().myDocuments as Doc), "data", freeformDoc);
-        const mainDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600, path: [Doc.UserDoc().myDocuments as Doc] }], { title: `Workspace ${workspaceCount}` }, id, "row");
+        const mainDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600, path: [Doc.UserDoc().myCatalog as Doc] }], { title: `Workspace ${workspaceCount}` }, id, "row");
 
         const toggleTheme = ScriptField.MakeScript(`self.darkScheme = !self.darkScheme`);
         mainDoc.contextMenuScripts = new List<ScriptField>([toggleTheme!]);

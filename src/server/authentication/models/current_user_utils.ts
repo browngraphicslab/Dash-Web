@@ -507,13 +507,13 @@ export class CurrentUserUtils {
 
         return doc.myWorkspaces as Doc;
     }
-    static setupDocumentCollection(doc: Doc) {
-        if (doc.myDocuments === undefined) {
-            doc.myDocuments = new PrefetchProxy(Docs.Create.TreeDocument([], {
-                title: "DOCUMENTS", _height: 42, forceActive: true, boxShadow: "0 0", treeViewPreventOpen: false, lockedPosition: true,
+    static setupCatalog(doc: Doc) {
+        if (doc.myCatalog === undefined) {
+            doc.myCatalog = new PrefetchProxy(Docs.Create.TreeDocument([], {
+                title: "CATALOG", _height: 42, forceActive: true, boxShadow: "0 0", treeViewPreventOpen: false, lockedPosition: true,
             }));
         }
-        return doc.myDocuments as Doc;
+        return doc.myCatalog as Doc;
     }
     static setupRecentlyClosed(doc: Doc) {
         // setup Recently Closed library item
@@ -533,7 +533,7 @@ export class CurrentUserUtils {
     // setup the Library button which will display the library panel.  This panel includes a collection of workspaces, documents, and recently closed views
     static setupLibraryPanel(doc: Doc, sidebarContainer: Doc) {
         const workspaces = CurrentUserUtils.setupWorkspaces(doc);
-        const documents = CurrentUserUtils.setupDocumentCollection(doc);
+        const documents = CurrentUserUtils.setupCatalog(doc);
         const recentlyClosed = CurrentUserUtils.setupRecentlyClosed(doc);
 
         if (doc["tabs-button-library"] === undefined) {
@@ -541,7 +541,7 @@ export class CurrentUserUtils {
                 _width: 50, _height: 25, title: "Library", _fontSize: 10,
                 letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
                 sourcePanel: new PrefetchProxy(Docs.Create.TreeDocument([workspaces, documents, recentlyClosed, doc], {
-                    title: "Library", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "move", lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true
+                    title: "Library", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias", lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true
                 })) as any as Doc,
                 targetContainer: new PrefetchProxy(sidebarContainer) as any as Doc,
                 onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel;")

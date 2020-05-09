@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import * as rp from "request-promise";
-import { Doc, DocListCast, HeightSym, Opt, WidthSym } from "../../../new_fields/Doc";
+import { Doc, DocListCast, HeightSym, Opt, WidthSym, DataSym } from "../../../new_fields/Doc";
 import { Document } from '../../../new_fields/documentSchemas';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { InkTool } from '../../../new_fields/InkField';
@@ -15,7 +15,7 @@ import { BoolCast, Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { ImageField } from '../../../new_fields/URLField';
 import { TraceMobx } from '../../../new_fields/util';
 import { GestureUtils } from '../../../pen-gestures/GestureUtils';
-import { emptyFunction, OmitKeys, returnOne, returnTransparent, Utils } from "../../../Utils";
+import { emptyFunction, OmitKeys, returnOne, returnTransparent, Utils, emptyPath } from "../../../Utils";
 import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
 import { ClientRecommender } from '../../ClientRecommender';
 import { DocServer } from "../../DocServer";
@@ -549,7 +549,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 if (!e.altKey && (!this.topMost || this.Document.onDragStart || this.onClickHandler) && (e.buttons === 1 || InteractionUtils.IsType(e, InteractionUtils.TOUCHTYPE))) {
                     document.removeEventListener("pointermove", this.onPointerMove);
                     document.removeEventListener("pointerup", this.onPointerUp);
-                    this.startDragging(this._downX, this._downY, this.props.dropAction ? this.props.dropAction : this.Document.dropAction ? this.Document.dropAction as any : e.ctrlKey || e.altKey ? "alias" : undefined);
+                    this.startDragging(this._downX, this._downY, ((e.ctrlKey || e.altKey) && "alias") || (this.props.dropAction || this.Document.dropAction || undefined) as dropActionType);
                 }
             }
             e.stopPropagation(); // doesn't actually stop propagation since all our listeners are listening to events on 'document'  however it does mark the event as cancelBubble=true which we test for in the move event handlers
@@ -721,6 +721,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
         let open = cm.findByDescription("Add a Perspective...");
         const openItems: ContextMenuProps[] = open && "subitems" in open ? open.subitems : [];
+        openItems.push({ description: "New Echo        ", event: () => this.props.addDocTab(Doc.MakeAlias(this.props.Document), "onRight"), icon: "layer-group" });
         openItems.push({ description: "Open Fields     ", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { _width: 300, _height: 300 }), "onRight"), icon: "layer-group" });
         templateDoc && openItems.push({ description: "Open Template   ", event: () => this.props.addDocTab(templateDoc, "onRight"), icon: "eye" });
         if (!open) {
@@ -864,8 +865,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const path = this.props.LibraryPath.reduce((p: string, d: Doc) => p + "/" + (Doc.AreProtosEqual(d, (Doc.UserDoc()["tabs-button-library"] as Doc).sourcePanel as Doc) ? "" : d.title), "");
         cm.addItem({
             description: `path: ${path}`, event: () => {
-                this.props.LibraryPath.map(lp => Doc.GetProto(lp).treeViewOpen = lp.treeViewOpen = true);
-                Doc.linkFollowHighlight(this.props.Document);
+                if (this.props.LibraryPath !== emptyPath) {
+                    this.props.LibraryPath.map(lp => Doc.GetProto(lp).treeViewOpen = lp.treeViewOpen = true);
+                    Doc.linkFollowHighlight(this.props.Document);
+                } else {
+                    Doc.AddDocToList(Doc.GetProto(Doc.UserDoc().myCatalog as Doc), "data", this.props.Document[DataSym]);
+                }
             }, icon: "check"
         });
     }

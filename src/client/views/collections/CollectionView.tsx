@@ -69,15 +69,15 @@ export enum CollectionViewType {
     Pile = "pileup"
 }
 export interface CollectionViewCustomProps {
-    filterAddDocument: (doc: Doc) => boolean;  // allows a document that renders a Collection view to filter or modify any documents added to the collection (see PresBox for an example)
+    filterAddDocument: (doc: Doc | Doc[]) => boolean;  // allows a document that renders a Collection view to filter or modify any documents added to the collection (see PresBox for an example)
     childLayoutTemplate?: () => Opt<Doc>;  // specify a layout Doc template to use for children of the collection
     childLayoutString?: string;  // specify a layout string to use for children of the collection
 }
 
 export interface CollectionRenderProps {
-    addDocument: (document: Doc) => boolean;
-    removeDocument: (document: Doc) => boolean;
-    moveDocument: (document: Doc, targetCollection: Doc | undefined, addDocument: (document: Doc) => boolean) => boolean;
+    addDocument: (document: Doc | Doc[]) => boolean;
+    removeDocument: (document: Doc | Doc[]) => boolean;
+    moveDocument: (document: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (document: Doc | Doc[]) => boolean) => boolean;
     active: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
     PanelWidth: () => number;
@@ -152,7 +152,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
     // otherwise, the document being moved must be able to be removed from its container before
     // moving it into the target.  
     @action.bound
-    moveDocument = (doc: Doc, targetCollection: Doc | undefined, addDocument: (doc: Doc) => boolean): boolean => {
+    moveDocument = (doc: Doc, targetCollection: Doc | undefined, addDocument: (doc: Doc | Doc[]) => boolean): boolean => {
         if (Doc.AreProtosEqual(this.props.Document, targetCollection)) {
             return true;
         }

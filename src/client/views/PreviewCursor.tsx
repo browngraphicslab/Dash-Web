@@ -6,6 +6,7 @@ import "./PreviewCursor.scss";
 import { Docs } from '../documents/Documents';
 import { Doc } from '../../new_fields/Doc';
 import { Transform } from "../util/Transform";
+import { DocServer } from '../DocServer';
 
 @observer
 export class PreviewCursor extends React.Component<{}> {
@@ -47,6 +48,18 @@ export class PreviewCursor extends React.Component<{}> {
                         // nativeWidth: 300, nativeHeight: 472.5,
                         x: newPoint[0], y: newPoint[1]
                     }));
+                }
+
+                if (e.clipboardData.getData("text/plain").includes("__DashDocId:")) {
+                    const docid = e.clipboardData.getData("text/plain").split("__DashDocId:")[1];
+                    return DocServer.GetRefField(docid).then(doc => {
+                        if (doc instanceof Doc) {
+                            const alias = Doc.MakeAlias(doc);
+                            alias.x = newPoint[0];
+                            alias.y = newPoint[1];
+                            PreviewCursor._addDocument(alias);
+                        }
+                    });
                 }
 
                 // creates text document

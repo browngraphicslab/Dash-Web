@@ -527,7 +527,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                                 gearSpan);
                             tab.buttonDisposer?.();
                         }
-                    });
+                    }, { fireImmediately: true });
 
                 tab.reactComponents = [gearSpan];
                 tab.element.append(gearSpan);

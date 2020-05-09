@@ -176,7 +176,7 @@ export namespace DragManager {
         element: HTMLElement,
         dropFunc: (e: Event, de: DropEvent) => void,
         doc?: Doc,
-        preDropFunc?: (e: Event, de: DropEvent) => void,
+        preDropFunc?: (e: Event, de: DropEvent, targetAction: dropActionType) => void,
     ): DragDropDisposer {
         if ("canDrop" in element.dataset) {
             throw new Error(
@@ -187,10 +187,7 @@ export namespace DragManager {
         const handler = (e: Event) => dropFunc(e, (e as CustomEvent<DropEvent>).detail);
         const preDropHandler = (e: Event) => {
             const de = (e as CustomEvent<DropEvent>).detail;
-            if (de.complete.docDragData && doc?.targetDropAction) {
-                de.complete.docDragData.dropAction = StrCast(doc.targetDropAction) as dropActionType;
-            }
-            preDropFunc?.(e, de);
+            preDropFunc?.(e, de, StrCast(doc?.targetDropAction) as dropActionType);
         };
         element.addEventListener("dashOnDrop", handler);
         doc && element.addEventListener("dashPreDrop", preDropHandler);

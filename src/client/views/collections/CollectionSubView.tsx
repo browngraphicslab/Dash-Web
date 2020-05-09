@@ -16,7 +16,7 @@ import { DocServer } from "../../DocServer";
 import { Docs, DocumentOptions } from "../../documents/Documents";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { Networking } from "../../Network";
-import { DragManager } from "../../util/DragManager";
+import { DragManager, dropActionType } from "../../util/DragManager";
 import { ImageUtils } from "../../util/Import & Export/ImageUtils";
 import { InteractionUtils } from "../../util/InteractionUtils";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
@@ -195,10 +195,12 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
         protected onGesture(e: Event, ge: GestureUtils.GestureEvent) {
         }
 
-        protected onInternalPreDrop(e: Event, de: DragManager.DropEvent) {
+        protected onInternalPreDrop(e: Event, de: DragManager.DropEvent, targetAction: dropActionType) {
             if (de.complete.docDragData) {
-                if (de.complete.docDragData.draggedDocuments.some(d => this.childDocs.includes(d))) {
-                    de.complete.docDragData.dropAction = "move";
+                // if targetDropAction is, say 'alias', but we're just dragging within a collection, we want to ignore the targetAction.
+                // otherwise, the targetAction should become the actual action (which can still be overridden by the userDropAction -eg, shift/ctrl keys)
+                if (targetAction && !de.complete.docDragData.draggedDocuments.some(d => d.context === this.props.Document && this.childDocs.includes(d))) {
+                    de.complete.docDragData.dropAction = targetAction;
                 }
                 e.stopPropagation();
             }
