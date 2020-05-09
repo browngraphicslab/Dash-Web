@@ -168,9 +168,9 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         this._downX = this._lastX = e.clientX;
         this._downY = this._lastY = e.clientY;
         if (e.button === 2 || (e.button === 0 && (e.altKey || MarqueeView.DragMarquee))) {
-            this.setPreviewCursor(e.clientX, e.clientY, true);
             if (e.altKey || (MarqueeView.DragMarquee && this.props.active(true))) {
-                //e.stopPropagation(); // bcz: removed so that you can alt-click on button in a collection to switch link following behaviors.
+                this.setPreviewCursor(e.clientX, e.clientY, true);
+                (!e.altKey) && e.stopPropagation(); // bcz: removed so that you can alt-click on button in a collection to switch link following behaviors.
                 e.preventDefault();
             }
             // bcz: do we need this?   it kills the context menu on the main collection if !altKey
