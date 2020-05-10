@@ -1,7 +1,7 @@
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faEye, faEyeSlash } from "@fortawesome/free-regular-svg-icons";
 import { faBraille, faChalkboard, faCompass, faCompressArrowsAlt, faExpandArrowsAlt, faFileUpload, faPaintBrush, faTable, faUpload } from "@fortawesome/free-solid-svg-icons";
-import { action, computed, IReactionDisposer, observable, ObservableMap, reaction, runInAction } from "mobx";
+import { action, computed, IReactionDisposer, observable, ObservableMap, reaction, runInAction, _allowStateChangesInsideComputed } from "mobx";
 import { observer } from "mobx-react";
 import { computedFn } from "mobx-utils";
 import { Doc, HeightSym, Opt, WidthSym, DocListCast } from "../../../../new_fields/Doc";
@@ -1061,9 +1061,19 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 bounds: this.childDataProvider(entry[1].pair.layout, entry[1].replica)
             }));
 
+        // size contents according to dimensions of containing panel and current scale factor of collection
+        if (this.props.isAnnotationOverlay) {
+            this.props.Document.scale = Math.max(1, NumCast(this.props.Document.scale));
+        } else if (this.props.PanelWidth() && this.props.Document[WidthSym]() && !this.props.isAnnotationOverlay) {
+            this.props.Document.scale = this.props.PanelWidth() / this.props.Document[WidthSym]() * NumCast(this.props.Document.scale, 1);
+            this.props.Document._width = this.props.PanelWidth();
+            this.props.Document._height = this.props.PanelHeight();
+        }
+
         return elements;
     }
 
+    @action
     componentDidMount() {
         super.componentDidMount?.();
         this._layoutComputeReaction = reaction(() => this.doLayoutComputation,
