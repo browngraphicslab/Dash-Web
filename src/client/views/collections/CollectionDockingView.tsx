@@ -71,8 +71,6 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         (window as any).ReactDOM = ReactDOM;
         DragManager.StartWindowDrag = this.StartOtherDrag;
     }
-    hack: boolean = false;
-    undohack: any = null;
     public StartOtherDrag = (e: any, dragDocs: Doc[]) => {
         let config: any;
         if (dragDocs.length === 1) {
@@ -192,6 +190,29 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         return retVal;
     }
 
+    @undoBatch
+    @action
+    public static ReplaceTab(document: Doc, stack: any): Opt<Doc> {
+        if (!CollectionDockingView.Instance) return undefined;
+        const instance = CollectionDockingView.Instance;
+        const replaceTab = (doc: Doc, child: any): Opt<Doc> => {
+            for (let i = 0; i < child.contentItems.length; i++) {
+                if (child.contentItems[i].isRow || child.contentItems[i].isColumn || child.contentItems[i].isStack) {
+                    const val = replaceTab(doc, child.contentItems[i]);
+                    if (val) return val;
+                } else if (child.contentItems[i].config.component === "DocumentFrameRenderer" &&
+                    child.contentItems[i].config.props.documentId === doc[Id]) {
+                    const alias = Doc.MakeAlias(doc);
+                    child.contentItems[i].config.props.documentId = alias[Id];
+                    child.contentItems[i].config.title = alias.title;
+                    instance.stateChanged();
+                    return alias;
+                }
+            }
+            return undefined;
+        }
+        return replaceTab(document, instance._goldenLayout.root);
+    }
 
     //
     //  Creates a vertical split on the right side of the docking view, and then adds the Document to the right of that split
@@ -455,12 +476,6 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         const json = JSON.stringify(this._goldenLayout.toConfig());
         this.props.Document.dockingConfig = json;
         this.updateDataField(json);
-
-        if (this.undohack && !this.hack) {
-            this.undohack.end();
-            this.undohack = undefined;
-        }
-        this.hack = false;
     }
 
     itemDropped = () => {
@@ -789,6 +804,13 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             return CollectionDockingView.AddRightSplit(doc, libraryPath);
         } else if (location === "close") {
             return CollectionDockingView.CloseRightSplit(doc);
+        } else if (location === "replace") {
+            const alias = CollectionDockingView.ReplaceTab(doc, this._stack);
+            if (alias) {
+                runInAction(() => this._document = alias);
+                return true;
+            }
+            return false;
         } else {// if (location === "inPlace") {
             return CollectionDockingView.Instance.AddTab(this._stack, doc, libraryPath);
         }

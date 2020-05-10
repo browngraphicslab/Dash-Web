@@ -128,6 +128,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         const added = docs.filter(d => !docList.includes(d));
         if (added.length) {
             added.map(doc => doc.context = this.props.Document);
+            added.map(add => Doc.AddDocToList(Cast(Doc.UserDoc().myCatalog, Doc, null), "data", add));
             targetDataDoc[this.props.fieldKey] = new List<Doc>([...docList, ...added]);
             targetDataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
         }

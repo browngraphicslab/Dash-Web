@@ -305,11 +305,14 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                         }, console.log);
                         func();
                     } else {
-                        const fullScreenAlias = Doc.MakeAlias(this.props.Document);
-                        if (StrCast(fullScreenAlias.layoutKey) !== "layout_fullScreen" && fullScreenAlias.layout_fullScreen) {
-                            fullScreenAlias.layoutKey = "layout_fullScreen";
-                        }
-                        UndoManager.RunInBatch(() => this.props.addDocTab(fullScreenAlias, "inTab"), "double tap");
+                        UndoManager.RunInBatch(() => {
+                            if (StrCast(this.props.Document.layoutKey) !== "layout_fullScreen" && this.props.Document.layout_fullScreen) {
+                                const fullScreenAlias = Doc.MakeAlias(this.props.Document);
+                                fullScreenAlias.layoutKey = "layout_fullScreen";
+                                this.props.addDocTab(fullScreenAlias, "inTab");
+                                this.props.addDocTab(this.props.Document, "inTab");
+                            }
+                        }, "double tap");
                         SelectionManager.DeselectAll();
                         Doc.UnBrushDoc(this.props.Document);
                     }

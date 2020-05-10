@@ -339,6 +339,13 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         }
         this._hitCluster = this.props.Document.useClusters ? this.pickCluster(this.getTransform().transformPoint(e.clientX, e.clientY)) !== -1 : false;
         if (e.button === 0 && (!e.shiftKey || this._hitCluster) && !e.altKey && !e.ctrlKey && this.props.active(true)) {
+
+            if (!this.props.Document.aliasOf && !this.props.ContainingCollectionView) {
+                this.props.addDocTab(this.props.Document, "replace");
+                e.stopPropagation();
+                e.preventDefault();
+                return;
+            }
             document.removeEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointermove", this.onPointerMove);
