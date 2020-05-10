@@ -83,12 +83,14 @@ export class MainView extends React.Component {
         firstScriptTag.parentNode!.insertBefore(tag, firstScriptTag);
         window.removeEventListener("keydown", KeyManager.Instance.handle);
         window.addEventListener("keydown", KeyManager.Instance.handle);
+        window.addEventListener("paste", KeyManager.Instance.paste);
     }
 
     componentWillUnMount() {
         window.removeEventListener("keydown", KeyManager.Instance.handle);
         window.removeEventListener("pointerdown", this.globalPointerDown);
         window.removeEventListener("pointerup", this.globalPointerUp);
+        window.removeEventListener("paste", KeyManager.Instance.paste);
     }
 
     constructor(props: Readonly<{}>) {

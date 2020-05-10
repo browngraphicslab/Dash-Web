@@ -1246,8 +1246,16 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         return false;
     });
     @computed get marqueeView() {
-        return <MarqueeView {...this.props} nudge={this.nudge} activeDocuments={this.getActiveDocuments} selectDocuments={this.selectDocuments} addDocument={this.addDocument}
-            addLiveTextDocument={this.addLiveTextBox} getContainerTransform={this.getContainerTransform} getTransform={this.getTransform} isAnnotationOverlay={this.isAnnotationOverlay}>
+        return <MarqueeView {...this.props}
+            nudge={this.nudge}
+            addDocTab={this.addDocTab}
+            activeDocuments={this.getActiveDocuments}
+            selectDocuments={this.selectDocuments}
+            addDocument={this.addDocument}
+            addLiveTextDocument={this.addLiveTextBox}
+            getContainerTransform={this.getContainerTransform}
+            getTransform={this.getTransform}
+            isAnnotationOverlay={this.isAnnotationOverlay}>
             <CollectionFreeFormViewPannableContents centeringShiftX={this.centeringShiftX} centeringShiftY={this.centeringShiftY} shifted={!this.nativeHeight && !this.isAnnotationOverlay}
                 easing={this.easing} viewDefDivClick={this.props.viewDefDivClick} zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
                 {this.children}

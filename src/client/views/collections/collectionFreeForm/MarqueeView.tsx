@@ -24,13 +24,10 @@ import React = require("react");
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
     getTransform: () => Transform;
-    addDocument: (doc: Doc) => boolean;
     activeDocuments: () => Doc[];
     selectDocuments: (docs: Doc[], ink: { Document: Doc, Ink: Map<any, any> }[]) => void;
-    removeDocument: (doc: Doc) => boolean;
     addLiveTextDocument: (doc: Doc) => void;
     isSelected: () => boolean;
-    isAnnotationOverlay?: boolean;
     nudge: (x: number, y: number) => boolean;
     setPreviewCursor?: (func: (x: number, y: number, drag: boolean) => void) => void;
 }
@@ -248,7 +245,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         } else {
             this._downX = x;
             this._downY = y;
-            PreviewCursor.Show(x, y, this.onKeyPress, this.props.addLiveTextDocument, this.props.getTransform, this.props.addDocument, this.props.nudge);
+            PreviewCursor.Show(x, y, this.onKeyPress, this.props.addLiveTextDocument, this.props.getTransform, this.props.addDocument, this.props.addDocTab, this.props.nudge);
         }
     });
 

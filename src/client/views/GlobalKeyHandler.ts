@@ -1,10 +1,10 @@
-import { UndoManager } from "../util/UndoManager";
+import { UndoManager, undoBatch } from "../util/UndoManager";
 import { SelectionManager } from "../util/SelectionManager";
 import { CollectionDockingView } from "./collections/CollectionDockingView";
 import { MainView } from "./MainView";
 import { DragManager } from "../util/DragManager";
 import { action, runInAction } from "mobx";
-import { Doc } from "../../new_fields/Doc";
+import { Doc, DocListCast } from "../../new_fields/Doc";
 import { DictationManager } from "../util/DictationManager";
 import SharingManager from "../util/SharingManager";
 import { Cast, PromiseValue, NumCast } from "../../new_fields/Types";
@@ -16,6 +16,11 @@ import GoogleAuthenticationManager from "../apis/GoogleAuthenticationManager";
 import { CollectionFreeFormView } from "./collections/collectionFreeForm/CollectionFreeFormView";
 import { MarqueeView } from "./collections/collectionFreeForm/MarqueeView";
 import { Id } from "../../new_fields/FieldSymbols";
+import { DocumentDecorations } from "./DocumentDecorations";
+import { DocumentType } from "../documents/DocumentTypes";
+import { DocServer } from "../DocServer";
+import { List } from "../../new_fields/List";
+import { DateField } from "../../new_fields/DateField";
 
 const modifiers = ["control", "meta", "shift", "alt"];
 type KeyHandler = (keycode: string, e: KeyboardEvent) => KeyControlInfo | Promise<KeyControlInfo>;
@@ -245,15 +250,25 @@ export default class KeyManager {
                 preventDefault = false;
                 break;
             case "x":
+                if (SelectionManager.SelectedDocuments().length) {
+                    const bds = DocumentDecorations.Instance.Bounds;
+                    const pt = [bds.x + (bds.r - bds.x) / 2, bds.y + (bds.b - bds.y) / 2];
+                    const text = `__DashDocId(${pt[0]},${pt[1]}):` + SelectionManager.SelectedDocuments().map(dv => dv.Document[Id]).join(":");
+                    SelectionManager.SelectedDocuments().length && navigator.clipboard.writeText(text);
+                    DocumentDecorations.Instance.onCloseClick(undefined);
+                    stopPropagation = false;
+                    preventDefault = false;
+                }
+                break;
             case "c":
-                SelectionManager.SelectedDocuments().length && navigator.clipboard.writeText("__DashDocId:" + SelectionManager.SelectedDocuments()[0].Document[Id]);
-                // window.getSelection()?.removeAllRanges();
-                // let range = document.createRange();
-                // range.selectNode(SelectionManager.SelectedDocuments()[0].ContentDiv!);
-                // window.getSelection()?.addRange(range);
-                // document.execCommand('copy');
-                stopPropagation = false;
-                preventDefault = false;
+                if (SelectionManager.SelectedDocuments().length) {
+                    const bds = DocumentDecorations.Instance.Bounds;
+                    const pt = [bds.x + (bds.r - bds.x) / 2, bds.y + (bds.b - bds.y) / 2];
+                    const text = `__DashDocId(${pt[0]},${pt[1]}):` + SelectionManager.SelectedDocuments().map(dv => dv.Document[Id]).join(":");
+                    SelectionManager.SelectedDocuments().length && navigator.clipboard.writeText(text);;
+                    stopPropagation = false;
+                    preventDefault = false;
+                }
                 break;
         }
 
@@ -262,6 +277,36 @@ export default class KeyManager {
             preventDefault: preventDefault
         };
     });
+
+    public paste(e: ClipboardEvent) {
+        if (e.clipboardData?.getData("text/plain") !== "" && e.clipboardData?.getData("text/plain").startsWith("__DashDocId(")) {
+            const first = SelectionManager.SelectedDocuments().length ? SelectionManager.SelectedDocuments()[0] : undefined;
+            if (first?.props.Document.type === DocumentType.COL) {
+                const docids = e.clipboardData.getData("text/plain").split(":");
+                let count = 1;
+                const list: Doc[] = [];
+                const targetDataDoc = Doc.GetProto(first.props.Document);
+                const fieldKey = Doc.LayoutFieldKey(first.props.Document);
+                const docList = DocListCast(targetDataDoc[fieldKey]);
+                docids.map((did, i) => i && DocServer.GetRefField(did).then(doc => {
+                    count++;
+                    if (doc instanceof Doc) {
+                        list.push(doc);
+                    }
+                    if (count === docids.length) {
+                        const added = list.filter(d => !docList.includes(d));
+                        if (added.length) {
+                            added.map(doc => doc.context = targetDataDoc);
+                            undoBatch(() => {
+                                targetDataDoc[fieldKey] = new List<Doc>([...docList, ...added]);
+                                targetDataDoc[fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
+                            })();
+                        }
+                    }
+                }));
+            }
+        }
+    }
 
     async printClipboard() {
         const text: string = await navigator.clipboard.readText();

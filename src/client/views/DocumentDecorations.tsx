@@ -174,8 +174,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     }
     @undoBatch
     @action
-    onCloseClick = async (e: PointerEvent) => {
-        if (e.button === 0) {
+    onCloseClick = async (e: PointerEvent | undefined) => {
+        if (!e?.button) {
             const recent = Cast(Doc.UserDoc().myRecentlyClosed, Doc) as Doc;
             const selected = SelectionManager.SelectedDocuments().slice();
             SelectionManager.DeselectAll();

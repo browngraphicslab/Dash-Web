@@ -396,7 +396,7 @@ class TreeView extends React.Component<TreeViewProps> {
     }
 
     showContextMenu = (e: React.MouseEvent) => {
-        simulateMouseClick(this._docRef.current!.ContentDiv!, e.clientX, e.clientY + 30, e.screenX, e.screenY + 30);
+        this._docRef.current?.ContentDiv && simulateMouseClick(this._docRef.current.ContentDiv, e.clientX, e.clientY + 30, e.screenX, e.screenY + 30);
         e.stopPropagation();
     }
     focusOnDoc = (doc: Doc) => DocumentManager.Instance.getFirstDocumentView(doc)?.props.focus(doc, true);
@@ -772,6 +772,9 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
         </div >;
     }
 
+    onKeyPress = (e: React.KeyboardEvent) => {
+        console.log(e);
+    }
     render() {
         if (!(this.props.Document instanceof Doc)) return (null);
         const dropAction = StrCast(this.props.Document.childDropAction) as dropActionType;
@@ -786,6 +789,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                     paddingRight: `${NumCast(this.props.Document._xPadding, 10)}px`,
                     paddingTop: `${NumCast(this.props.Document._yPadding, 20)}px`
                 }}
+                onKeyPress={this.onKeyPress}
                 onContextMenu={this.onContextMenu}
                 onWheel={(e: React.WheelEvent) => this._mainEle && this._mainEle.scrollHeight > this._mainEle.clientHeight && e.stopPropagation()}
                 onDrop={this.onTreeDrop}
