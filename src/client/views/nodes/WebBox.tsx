@@ -129,14 +129,12 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         }
     }
 
-    toggleNativeDimensions = () => {
+    toggleAnnotationMode = () => {
         if (!this.layoutDoc.isAnnotating) {
-            //DocumentView.unfreezeNativeDimensions(this.layoutDoc);
             this.layoutDoc.lockedTransform = false;
             this.layoutDoc.isAnnotating = true;
         }
         else {
-            //Doc.freezeNativeDimensions(this.layoutDoc, this.props.PanelWidth(), this.props.PanelHeight());
             this.layoutDoc.lockedTransform = true;
             this.layoutDoc.isAnnotating = false;
         }
@@ -158,10 +156,10 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                             <FontAwesomeIcon icon="caret-up" size="2x" />
                         </button>
                         <div className="webBox-buttons" style={{ display: this._collapsed ? "none" : "flex" }}>
-                            <div className="webBox-freeze" title={"Annotate"} style={{ background: this.layoutDoc.isAnnotating ? "lightBlue" : "gray" }} onClick={this.toggleNativeDimensions} >
+                            <div className="webBox-freeze" title={"Annotate"} style={{ background: this.layoutDoc.isAnnotating ? "lightBlue" : "gray" }} onClick={this.toggleAnnotationMode} >
                                 <FontAwesomeIcon icon={faPen} size={"2x"} />
                             </div>
-                            <div className="webBox-freeze" title={"Select"} style={{ background: !this.layoutDoc.isAnnotating ? "lightBlue" : "gray" }} onClick={this.toggleNativeDimensions} >
+                            <div className="webBox-freeze" title={"Select"} style={{ background: !this.layoutDoc.isAnnotating ? "lightBlue" : "gray" }} onClick={this.toggleAnnotationMode} >
                                 <FontAwesomeIcon icon={faMousePointer} size={"2x"} />
                             </div>
                             <input className="webpage-urlInput"

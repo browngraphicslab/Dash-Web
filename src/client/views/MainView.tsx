@@ -249,6 +249,7 @@ export class MainView extends React.Component {
             _width: this._panelWidth * .7,
             _height: this._panelHeight,
             title: "Collection " + workspaceCount,
+            _LODdisable: true
         };
         const freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
         const mainDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600, path: [Doc.UserDoc().myCatalog as Doc] }], { title: `Workspace ${workspaceCount}` }, id, "row");

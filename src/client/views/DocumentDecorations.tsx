@@ -301,6 +301,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         }
 
         SelectionManager.SelectedDocuments().forEach(action((element: DocumentView) => {
+            if (e.ctrlKey && !element.props.Document._nativeHeight) element.toggleNativeDimensions();
             if (dX !== 0 || dY !== 0 || dW !== 0 || dH !== 0) {
                 const doc = Document(element.rootDoc);
                 let nwidth = doc._nativeWidth || 0;

@@ -648,18 +648,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @undoBatch
     @action
-    public static unfreezeNativeDimensions(layoutDoc: Doc) {
-        layoutDoc._nativeWidth = undefined;
-        layoutDoc._nativeHeight = undefined;
-    }
-
     toggleNativeDimensions = () => {
-        if (this.Document._nativeWidth || this.Document._nativeHeight) {
-            DocumentView.unfreezeNativeDimensions(this.layoutDoc);
-        }
-        else {
-            Doc.freezeNativeDimensions(this.layoutDoc, this.props.PanelWidth(), this.props.PanelHeight());
-        }
+        Doc.toggleNativeDimensions(this.layoutDoc, this.props.ContentScaling(), this.props.PanelWidth(), this.props.PanelHeight());
     }
 
     @undoBatch
@@ -735,10 +725,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
         let options = cm.findByDescription("Options...");
         const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
-        optionItems.push({ description: `${this.Document._chromeStatus !== "disabled" ? "Hide" : "Show"} Chrome`, event: () => this.Document._chromeStatus = (this.Document._chromeStatus !== "disabled" ? "disabled" : "enabled"), icon: "project-diagram" });
-        optionItems.push({ description: `${this.Document._autoHeight ? "Variable Height" : "Auto Height"}`, event: () => this.layoutDoc._autoHeight = !this.layoutDoc._autoHeight, icon: "plus" });
-        optionItems.push({ description: this.Document.lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document.lockedPosition) ? "unlock" : "lock" });
-        optionItems.push({ description: this.Document.lockedTransform ? "Unlock Transform" : "Lock Transform", event: this.toggleLockTransform, icon: BoolCast(this.Document.lockedTransform) ? "unlock" : "lock" });
         if (!options) {
             options = { description: "Options...", subitems: optionItems, icon: "compass" };
             cm.addItem(options);
@@ -757,6 +743,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         onClicks.push({ description: "Edit onClick Script", event: () => UndoManager.RunInBatch(() => Doc.makeCustomViewClicked(this.props.Document, undefined, "onClick"), "edit onClick"), icon: "edit" });
         !existingOnClick && cm.addItem({ description: "OnClick...", subitems: onClicks, icon: "hand-point-right" });
 
+
         const funcs: ContextMenuProps[] = [];
         if (this.Document.onDragStart) {
             funcs.push({ description: "Drag an Alias", icon: "edit", event: () => this.Document.dragFactory && (this.Document.onDragStart = ScriptField.MakeFunction('getAlias(this.dragFactory)')) });
@@ -768,7 +755,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const more = cm.findByDescription("More...");
         const moreItems: ContextMenuProps[] = more && "subitems" in more ? more.subitems : [];
         moreItems.push({ description: "Make View of Metadata Field", event: () => Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.DataDoc), icon: "concierge-bell" });
-        moreItems.push({ description: !this.Document._nativeWidth || !this.Document._nativeHeight ? "Freeze" : "Unfreeze", event: this.toggleNativeDimensions, icon: "snowflake" });
+        moreItems.push({ description: `${this.Document._chromeStatus !== "disabled" ? "Hide" : "Show"} Chrome`, event: () => this.Document._chromeStatus = (this.Document._chromeStatus !== "disabled" ? "disabled" : "enabled"), icon: "project-diagram" });
+        moreItems.push({ description: this.Document.lockedTransform ? "Unlock Transform" : "Lock Transform", event: this.toggleLockTransform, icon: BoolCast(this.Document.lockedTransform) ? "unlock" : "lock" });
+        moreItems.push({ description: this.Document.lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document.lockedPosition) ? "unlock" : "lock" });
 
         if (!ClientUtils.RELEASE) {
             // let copies: ContextMenuProps[] = [];
@@ -794,6 +783,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             // a.download = `DocExport-${this.props.Document[Id]}.zip`;
             // a.click();
         });
+
         const recommender_subitems: ContextMenuProps[] = [];
 
         recommender_subitems.push({
@@ -826,6 +816,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         moreItems.push({ description: "Publish", event: () => DocUtils.Publish(this.props.Document, this.Document.title || "", this.props.addDocument, this.props.removeDocument), icon: "file" });
         moreItems.push({ description: "Undo Debug Test", event: () => UndoManager.TraceOpenBatches(), icon: "exclamation" });
         !more && cm.addItem({ description: "More...", subitems: moreItems, icon: "hand-point-right" });
+
+        cm.moveAfter(cm.findByDescription("More...")!, cm.findByDescription("OnClick...")!);
+
         runInAction(() => {
             if (!ClientUtils.RELEASE) {
                 const setWriteMode = (mode: DocServer.WriteMode) => {

@@ -20,7 +20,6 @@ import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, u
 import { Docs, DocumentOptions } from "../client/documents/Documents";
 import { PdfField, VideoField, AudioField, ImageField } from "./URLField";
 import { LinkManager } from "../client/util/LinkManager";
-import { string32 } from "../../deploy/assets/pdf.worker";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -936,17 +935,26 @@ export namespace Doc {
             }
         }
     }
-
-    export function freezeNativeDimensions(layoutDoc: Doc, width: number, height: number): void {
-        layoutDoc._autoHeight = false;
-        if (!layoutDoc._nativeWidth) {
-            layoutDoc._nativeWidth = NumCast(layoutDoc._width, width);
-            layoutDoc._nativeHeight = NumCast(layoutDoc._height, height);
-        }
-    }
     export function assignDocToField(doc: Doc, field: string, id: string) {
         DocServer.GetRefField(id).then(layout => layout instanceof Doc && (doc[field] = layout));
         return id;
+    }
+
+    export function toggleNativeDimensions(layoutDoc: Doc, contentScale: number, panelWidth: number, panelHeight: number) {
+        runInAction(() => {
+            if (layoutDoc._nativeWidth || layoutDoc._nativeHeight) {
+                layoutDoc.scale = NumCast(layoutDoc.scale, 1) * contentScale;
+                layoutDoc._nativeWidth = undefined;
+                layoutDoc._nativeHeight = undefined;
+            }
+            else {
+                layoutDoc._autoHeight = false;
+                if (!layoutDoc._nativeWidth) {
+                    layoutDoc._nativeWidth = NumCast(layoutDoc._width, panelWidth);
+                    layoutDoc._nativeHeight = NumCast(layoutDoc._height, panelHeight);
+                }
+            }
+        });
     }
 
     export function isDocPinned(doc: Doc) {

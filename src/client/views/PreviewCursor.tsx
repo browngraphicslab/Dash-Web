@@ -46,7 +46,7 @@ export class PreviewCursor extends React.Component<{}> {
                 else if (re.test(e.clipboardData.getData("text/plain"))) {
                     const url = e.clipboardData.getData("text/plain");
                     undoBatch(() => PreviewCursor._addDocument(Docs.Create.WebDocument(url, {
-                        title: url, _width: 500, _height: 300,
+                        title: url, _width: 500, _height: 300, UseCors: true,
                         // nativeWidth: 300, nativeHeight: 472.5,
                         x: newPoint[0], y: newPoint[1]
                     })))();

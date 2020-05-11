@@ -405,6 +405,11 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         this.layoutDoc._sidebarWidthPercent = "" + 100 * (1 - (e.clientX - bounds.left) / bounds.width) + "%";
         return false;
     }
+    @undoBatch
+    @action
+    toggleNativeDimensions = () => {
+        Doc.toggleNativeDimensions(this.layoutDoc, this.props.ContentScaling(), this.props.NativeWidth(), this.props.NativeHeight());
+    }
 
     public static get DefaultLayout(): Doc | string | undefined {
         return Cast(Doc.UserDoc().defaultTextLayout, Doc, null) || StrCast(Doc.UserDoc().defaultTextLayout, null);
@@ -438,6 +443,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 Doc.AddDocToList(Cast(Doc.UserDoc()["template-notes"], Doc, null), "data", this.rootDoc);
             }, icon: "eye"
         });
+        //funcs.push({ description: `${this.Document._autoHeight ? "Variable Height" : "Auto Height"}`, event: () => this.layoutDoc._autoHeight = !this.layoutDoc._autoHeight, icon: "plus" });
+        funcs.push({ description: !this.layoutDoc._nativeWidth || !this.layoutDoc._nativeHeight ? "Freeze" : "Unfreeze", event: this.toggleNativeDimensions, icon: "snowflake" });
         funcs.push({ description: "Toggle Single Line", event: () => this.layoutDoc._singleLine = !this.layoutDoc._singleLine, icon: "expand-arrows-alt" });
         funcs.push({ description: "Toggle Sidebar", event: () => this.layoutDoc._showSidebar = !this.layoutDoc._showSidebar, icon: "expand-arrows-alt" });
         funcs.push({ description: "Toggle Dictation Icon", event: () => this.layoutDoc._showAudio = !this.layoutDoc._showAudio, icon: "expand-arrows-alt" });
@@ -649,9 +656,13 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 }
             }
         );
-        this._disposers.height = reaction(
+        this._disposers.autoHeight = reaction(
             () => [this.layoutDoc[WidthSym](), this.layoutDoc._autoHeight],
             () => this.tryUpdateHeight()
+        );
+        this._disposers.height = reaction(
+            () => this.layoutDoc[HeightSym](),
+            height => height <= 20 && (this.layoutDoc._autoHeight = true)
         );
 
         this.setupEditor(this.config, this.props.fieldKey);
@@ -1206,6 +1217,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     render() {
         TraceMobx();
         const style: { [key: string]: any } = {};
+        const scale = this.props.ContentScaling() * NumCast(this.layoutDoc.scale, 1);
         const divKeys = ["width", "height", "background"];
         const replacer = (match: any, expr: string, offset: any, string: any) => { // bcz: this executes a script to convert a propery expression string:  { script }  into a value
             return ScriptField.MakeFunction(expr, { self: Doc.name, this: Doc.name })?.script.run({ self: this.rootDoc, this: this.layoutDoc }).result as string || "";
@@ -1258,6 +1270,10 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 <div className={`formattedTextBox-outer`} style={{ width: `calc(100% - ${this.sidebarWidthPercent})`, }} onScroll={this.onscrolled} ref={this._scrollRef}>
                     <div className={`formattedTextBox-inner${rounded}`} ref={this.createDropTarget}
                         style={{
+                            transform: `scale(${scale})`,
+                            transformOrigin: "top left",
+                            width: `${100 / scale}%`,
+                            height: `${100 / scale}%`,
                             padding: `${NumCast(this.layoutDoc._yMargin, this.props.yMargin || 0)}px  ${NumCast(this.layoutDoc._xMargin, this.props.xMargin || 0)}px`,
                             pointerEvents: ((this.layoutDoc.isLinkButton || this.props.onClick) && !this.props.isSelected()) ? "none" : undefined
                         }} />

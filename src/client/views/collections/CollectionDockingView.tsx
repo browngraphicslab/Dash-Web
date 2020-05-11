@@ -755,8 +755,10 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     }
 
     get layoutDoc() { return this._document && Doc.Layout(this._document); }
-    panelWidth = () => this.layoutDoc && this.layoutDoc.maxWidth ? Math.min(Math.max(NumCast(this.layoutDoc._width), NumCast(this.layoutDoc._nativeWidth)), this._panelWidth) : this._panelWidth;
-    panelHeight = () => this._panelHeight;
+    nativeAspect = () => this.nativeWidth() ? this.nativeWidth() / this.nativeHeight() : 0;
+    panelWidth = () => this.layoutDoc?.maxWidth ? Math.min(Math.max(NumCast(this.layoutDoc._width), NumCast(this.layoutDoc._nativeWidth)), this._panelWidth) :
+        (this.nativeAspect() && this.nativeAspect() < this._panelWidth / this._panelHeight ? this._panelHeight * this.nativeAspect() : this._panelWidth);
+    panelHeight = () => this.nativeAspect() && this.nativeAspect() > this._panelWidth / this._panelHeight ? this._panelWidth / this.nativeAspect() : this._panelHeight;
 
     nativeWidth = () => !this.layoutDoc!._fitWidth ? NumCast(this.layoutDoc!._nativeWidth) || this._panelWidth : 0;
     nativeHeight = () => !this.layoutDoc!._fitWidth ? NumCast(this.layoutDoc!._nativeHeight) || this._panelHeight : 0;
@@ -794,7 +796,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
         return Transform.Identity();
     }
     get previewPanelCenteringOffset() { return this.nativeWidth() ? (this._panelWidth - this.nativeWidth() * this.contentScaling()) / 2 : 0; }
-    get widthpercent() { return this.nativeWidth() ? `${(this.nativeWidth() * this.contentScaling()) / this.panelWidth() * 100}%` : undefined; }
+    get widthpercent() { return this.nativeWidth() ? `${(this.nativeWidth() * this.contentScaling()) / this._panelWidth * 100}%` : undefined; }
 
     addDocTab = (doc: Doc, location: string, libraryPath?: Doc[]) => {
         SelectionManager.DeselectAll();
@@ -832,8 +834,8 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             ContentScaling={this.contentScaling}
             PanelWidth={this.panelWidth}
             PanelHeight={this.panelHeight}
-            NativeHeight={returnZero}
-            NativeWidth={returnZero}
+            NativeHeight={this.nativeHeight}
+            NativeWidth={this.nativeWidth}
             ScreenToLocalTransform={this.ScreenToLocalTransform}
             renderDepth={0}
             parentActive={returnTrue}

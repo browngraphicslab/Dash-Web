@@ -113,8 +113,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             this.props.PanelWidth() / (this.contentBounds.r - this.contentBounds.x)) :
         this.Document.scale || 1)
 
-    private centeringShiftX = () => !this.nativeWidth && !this.isAnnotationOverlay ? this.props.PanelWidth() / 2 / this.parentScaling : 0;  // shift so pan position is at center of window for non-overlay collections
-    private centeringShiftY = () => !this.nativeHeight && !this.isAnnotationOverlay ? this.props.PanelHeight() / 2 / this.parentScaling : 0;// shift so pan position is at center of window for non-overlay collections
+    private centeringShiftX = () => !this.isAnnotationOverlay ? this.props.PanelWidth() / 2 / this.parentScaling / this.contentScaling : 0;  // shift so pan position is at center of window for non-overlay collections
+    private centeringShiftY = () => !this.isAnnotationOverlay ? this.props.PanelHeight() / 2 / this.parentScaling / this.contentScaling : 0;// shift so pan position is at center of window for non-overlay collections
     private getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.borderWidth + 1, -this.borderWidth + 1).translate(-this.centeringShiftX(), -this.centeringShiftY()).transform(this.getLocalTransform());
     private getTransformOverlay = (): Transform => this.props.ScreenToLocalTransform().translate(-this.borderWidth + 1, -this.borderWidth + 1);
     private getContainerTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.borderWidth, -this.borderWidth);
@@ -340,12 +340,12 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         this._hitCluster = this.props.Document.useClusters ? this.pickCluster(this.getTransform().transformPoint(e.clientX, e.clientY)) !== -1 : false;
         if (e.button === 0 && (!e.shiftKey || this._hitCluster) && !e.altKey && !e.ctrlKey && this.props.active(true)) {
 
-            if (!this.props.Document.aliasOf && !this.props.ContainingCollectionView) {
-                this.props.addDocTab(this.props.Document, "replace");
-                e.stopPropagation();
-                e.preventDefault();
-                return;
-            }
+            // if (!this.props.Document.aliasOf && !this.props.ContainingCollectionView) {
+            //     this.props.addDocTab(this.props.Document, "replace");
+            //     e.stopPropagation();
+            //     e.preventDefault();
+            //     return;
+            // }
             document.removeEventListener("pointermove", this.onPointerMove);
             document.removeEventListener("pointerup", this.onPointerUp);
             document.addEventListener("pointermove", this.onPointerMove);
@@ -1068,13 +1068,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 bounds: this.childDataProvider(entry[1].pair.layout, entry[1].replica)
             }));
 
-        // size contents according to dimensions of containing panel and current scale factor of collection
         if (this.props.isAnnotationOverlay) {
             this.props.Document.scale = Math.max(1, NumCast(this.props.Document.scale));
-        } else if (this.props.PanelWidth() && this.props.Document[WidthSym]() && !this.props.isAnnotationOverlay) {
-            this.props.Document.scale = this.props.PanelWidth() / this.props.Document[WidthSym]() * NumCast(this.props.Document.scale, 1);
-            this.props.Document._width = this.props.PanelWidth();
-            this.props.Document._height = this.props.PanelHeight();
         }
 
         return elements;
@@ -1129,6 +1124,11 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             });
         }, "arrange contents");
     }
+    @undoBatch
+    @action
+    toggleNativeDimensions = () => {
+        Doc.toggleNativeDimensions(this.layoutDoc, this.props.ContentScaling(), this.props.NativeWidth(), this.props.NativeHeight());
+    }
 
     private thumbIdentifier?: number;
 
@@ -1138,6 +1138,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
 
         optionItems.push({ description: "reset view", event: () => { this.props.Document._panX = this.props.Document._panY = 0; this.props.Document.scale = 1; }, icon: "compress-arrows-alt" });
+        optionItems.push({ description: !this.layoutDoc._nativeWidth || !this.layoutDoc._nativeHeight ? "Freeze" : "Unfreeze", event: this.toggleNativeDimensions, icon: "snowflake" });
         optionItems.push({ description: `${this.Document._LODdisable ? "Enable LOD" : "Disable LOD"}`, event: () => this.Document._LODdisable = !this.Document._LODdisable, icon: "table" });
         optionItems.push({ description: `${this.fitToContent ? "Unset" : "Set"} Fit To Container`, event: () => this.Document._fitToBox = !this.fitToContent, icon: !this.fitToContent ? "expand-arrows-alt" : "compress-arrows-alt" });
         optionItems.push({ description: `${this.Document.useClusters ? "Uncluster" : "Use Clusters"}`, event: () => this.updateClusters(!this.Document.useClusters), icon: "braille" });
