@@ -107,10 +107,10 @@ export class SummaryViewInternal extends React.Component<ISummaryViewInternal>{
         for (let i: number = start + 1; i < this.props.view.state.doc.nodeSize - 1; i++) {
             let skip = false;
             this.props.view.state.doc.nodesBetween(start, i, (node: Node, pos: number, parent: Node, index: number) => {
-                if (this.props.node.isLeaf && !visited.has(node) && !skip) {
-                    if (this.props.node.marks.find((m: any) => m.type === mtype || m.type === mtypeInc)) {
+                if (node.isLeaf && !visited.has(node) && !skip) {
+                    if (node.marks.find((m: any) => m.type === mtype || m.type === mtypeInc)) {
                         visited.add(node);
-                        endPos = i + this.props.node.nodeSize - 1;
+                        endPos = i + node.nodeSize - 1;
                     }
                     else skip = true;
                 }
