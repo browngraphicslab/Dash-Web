@@ -107,7 +107,9 @@
     position: absolute;
     left: 0;
     bottom: 0;
-    font-size: 8px;
+    border-radius: 25%;
+    margin-left: -5px;
+    background: darkblue;
 }
 
 .mainView-settings:hover {

@@ -658,11 +658,18 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         );
         this._disposers.autoHeight = reaction(
             () => [this.layoutDoc[WidthSym](), this.layoutDoc._autoHeight],
-            () => this.tryUpdateHeight()
+            () => setTimeout(() => this.tryUpdateHeight(), 0)
         );
         this._disposers.height = reaction(
             () => this.layoutDoc[HeightSym](),
-            height => height <= 20 && (this.layoutDoc._autoHeight = true)
+            action(height => {
+                if (height <= 20) {
+                    if (this.layoutDoc._nativeWidth || this.layoutDoc._nativeHeight) {
+                        Doc.toggleNativeDimensions(this.layoutDoc, this.props.ContentScaling(), this.props.PanelWidth(), this.props.PanelHeight());
+                    }
+                    this.layoutDoc._delayAutoHeight = true;
+                }
+            })
         );
 
         this.setupEditor(this.config, this.props.fieldKey);
@@ -1184,8 +1191,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     @action
     tryUpdateHeight(limitHeight?: number) {
         let scrollHeight = this._ref.current?.scrollHeight;
-        if (this.layoutDoc._autoHeight && !this.props.ignoreAutoHeight && scrollHeight &&
-            getComputedStyle(this._ref.current!.parentElement!).top === "0px") {  // if top === 0, then the text box is growing upward (as the overlay caption) which doesn't contribute to the height computation
+        if (this.layoutDoc._autoHeight && !this.props.ignoreAutoHeight && scrollHeight) {  // if top === 0, then the text box is growing upward (as the overlay caption) which doesn't contribute to the height computation
+            scrollHeight = scrollHeight * NumCast(this.layoutDoc.scale, 1);
             if (limitHeight && scrollHeight > limitHeight) {
                 scrollHeight = limitHeight;
                 this.layoutDoc.limitHeight = undefined;
@@ -1234,87 +1241,90 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             FormattedTextBoxComment.Hide();
         }
         return (
-
-            <div className={`formattedTextBox-cont`} ref={this._ref}
-                style={{
-                    height: this.props.height ? this.props.height : this.layoutDoc._autoHeight && this.props.renderDepth ? "max-content" : `calc(100% - ${this.props.ChromeHeight?.() || 0}px`,
-                    background: this.props.background ? this.props.background : StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"], this.props.hideOnLeave ? "rgba(0,0,0 ,0.4)" : ""),
-                    opacity: this.props.hideOnLeave ? (this._entered ? 1 : 0.1) : 1,
-                    color: this.props.color ? this.props.color : StrCast(this.layoutDoc[this.props.fieldKey + "-color"], this.props.hideOnLeave ? "white" : "inherit"),
-                    pointerEvents: interactive ? "none" : undefined,
-                    fontSize: Cast(this.layoutDoc._fontSize, "number", null),
-                    fontFamily: StrCast(this.layoutDoc._fontFamily, "inherit"),
-                    ...style
-                }}
-                onContextMenu={this.specificContextMenu}
-                onKeyDown={this.onKeyPress}
-                onFocus={this.onFocused}
-                onClick={this.onClick}
-                onPointerMove={e => this.hitBulletTargets(e.clientX, e.clientY, e.shiftKey, true)}
-                onBlur={this.onBlur}
-                onPointerUp={this.onPointerUp}
-                onPointerDown={this.onPointerDown}
-                onMouseUp={this.onMouseUp}
-                onWheel={this.onPointerWheel}
-                onPointerEnter={action(() => this._entered = true)}
-                onPointerLeave={action((e: React.PointerEvent<HTMLDivElement>) => {
-                    this._entered = false;
-                    const target = document.elementFromPoint(e.nativeEvent.x, e.nativeEvent.y);
-                    for (let child: any = target; child; child = child?.parentElement) {
-                        if (child === this._ref.current!) {
-                            this._entered = true;
+            <div className={"formattedTextBox-cont"} style={{
+                transform: `scale(${scale})`,
+                transformOrigin: "top left",
+                width: `${100 / scale}%`,
+                height: `${100 / scale}%`,
+            }}>
+                <div className={`formattedTextBox-cont`} ref={this._ref}
+                    style={{
+                        width: "100%",
+                        height: this.props.height ? this.props.height : this.layoutDoc._autoHeight && this.props.renderDepth ? "max-content" : `calc(100% - ${this.props.ChromeHeight?.() || 0}px`,
+                        background: this.props.background ? this.props.background : StrCast(this.layoutDoc[this.props.fieldKey + "-backgroundColor"], this.props.hideOnLeave ? "rgba(0,0,0 ,0.4)" : ""),
+                        opacity: this.props.hideOnLeave ? (this._entered ? 1 : 0.1) : 1,
+                        color: this.props.color ? this.props.color : StrCast(this.layoutDoc[this.props.fieldKey + "-color"], this.props.hideOnLeave ? "white" : "inherit"),
+                        pointerEvents: interactive ? "none" : undefined,
+                        fontSize: Cast(this.layoutDoc._fontSize, "number", null),
+                        fontFamily: StrCast(this.layoutDoc._fontFamily, "inherit"),
+                        ...style
+                    }}
+                    onContextMenu={this.specificContextMenu}
+                    onKeyDown={this.onKeyPress}
+                    onFocus={this.onFocused}
+                    onClick={this.onClick}
+                    onPointerMove={e => this.hitBulletTargets(e.clientX, e.clientY, e.shiftKey, true)}
+                    onBlur={this.onBlur}
+                    onPointerUp={this.onPointerUp}
+                    onPointerDown={this.onPointerDown}
+                    onMouseUp={this.onMouseUp}
+                    onWheel={this.onPointerWheel}
+                    onPointerEnter={action(() => this._entered = true)}
+                    onPointerLeave={action((e: React.PointerEvent<HTMLDivElement>) => {
+                        this._entered = false;
+                        const target = document.elementFromPoint(e.nativeEvent.x, e.nativeEvent.y);
+                        for (let child: any = target; child; child = child?.parentElement) {
+                            if (child === this._ref.current!) {
+                                this._entered = true;
+                            }
                         }
-                    }
-                })}
-            >
-                <div className={`formattedTextBox-outer`} style={{ width: `calc(100% - ${this.sidebarWidthPercent})`, }} onScroll={this.onscrolled} ref={this._scrollRef}>
-                    <div className={`formattedTextBox-inner${rounded}`} ref={this.createDropTarget}
-                        style={{
-                            transform: `scale(${scale})`,
-                            transformOrigin: "top left",
-                            width: `${100 / scale}%`,
-                            height: `${100 / scale}%`,
-                            padding: `${NumCast(this.layoutDoc._yMargin, this.props.yMargin || 0)}px  ${NumCast(this.layoutDoc._xMargin, this.props.xMargin || 0)}px`,
-                            pointerEvents: ((this.layoutDoc.isLinkButton || this.props.onClick) && !this.props.isSelected()) ? "none" : undefined
-                        }} />
+                    })}
+                >
+                    <div className={`formattedTextBox-outer`} style={{ width: `calc(100% - ${this.sidebarWidthPercent})`, }} onScroll={this.onscrolled} ref={this._scrollRef}>
+                        <div className={`formattedTextBox-inner${rounded}`} ref={this.createDropTarget}
+                            style={{
+                                padding: `${NumCast(this.layoutDoc._yMargin, this.props.yMargin || 0)}px  ${NumCast(this.layoutDoc._xMargin, this.props.xMargin || 0)}px`,
+                                pointerEvents: ((this.layoutDoc.isLinkButton || this.props.onClick) && !this.props.isSelected()) ? "none" : undefined
+                            }} />
+                    </div>
+                    {!this.layoutDoc._showSidebar ? (null) : this.sidebarWidthPercent === "0%" ?
+                        <div className="formattedTextBox-sidebar-handle" onPointerDown={this.sidebarDown} /> :
+                        <div className={"formattedTextBox-sidebar" + (InkingControl.Instance.selectedTool !== InkTool.None ? "-inking" : "")}
+                            style={{ width: `${this.sidebarWidthPercent}`, backgroundColor: `${this.sidebarColor}` }}>
+                            <CollectionFreeFormView {...this.props}
+                                PanelHeight={this.props.PanelHeight}
+                                PanelWidth={this.sidebarWidth}
+                                NativeHeight={returnZero}
+                                NativeWidth={returnZero}
+                                annotationsKey={this.annotationKey}
+                                isAnnotationOverlay={false}
+                                focus={this.props.focus}
+                                isSelected={this.props.isSelected}
+                                select={emptyFunction}
+                                active={this.annotationsActive}
+                                ContentScaling={returnOne}
+                                whenActiveChanged={this.whenActiveChanged}
+                                removeDocument={this.removeDocument}
+                                moveDocument={this.moveDocument}
+                                addDocument={this.addDocument}
+                                CollectionView={undefined}
+                                ScreenToLocalTransform={this.sidebarScreenToLocal}
+                                renderDepth={this.props.renderDepth + 1}
+                                ContainingCollectionDoc={this.props.ContainingCollectionDoc}>
+                            </CollectionFreeFormView>
+                            <div className="formattedTextBox-sidebar-handle" onPointerDown={this.sidebarDown} />
+                        </div>}
+                    {!this.layoutDoc._showAudio ? (null) :
+                        <div className="formattedTextBox-dictation"
+                            onPointerDown={e => {
+                                runInAction(() => this._recording = !this._recording);
+                                setTimeout(() => this._editorView!.focus(), 500);
+                                e.stopPropagation();
+                            }} >
+                            <FontAwesomeIcon className="formattedTExtBox-audioFont"
+                                style={{ color: this._recording ? "red" : "blue", opacity: this._recording ? 1 : 0.5, display: this.props.isSelected() ? "" : "none" }} icon={"microphone"} size="sm" />
+                        </div>}
                 </div>
-                {!this.layoutDoc._showSidebar ? (null) : this.sidebarWidthPercent === "0%" ?
-                    <div className="formattedTextBox-sidebar-handle" onPointerDown={this.sidebarDown} /> :
-                    <div className={"formattedTextBox-sidebar" + (InkingControl.Instance.selectedTool !== InkTool.None ? "-inking" : "")}
-                        style={{ width: `${this.sidebarWidthPercent}`, backgroundColor: `${this.sidebarColor}` }}>
-                        <CollectionFreeFormView {...this.props}
-                            PanelHeight={this.props.PanelHeight}
-                            PanelWidth={this.sidebarWidth}
-                            NativeHeight={returnZero}
-                            NativeWidth={returnZero}
-                            annotationsKey={this.annotationKey}
-                            isAnnotationOverlay={false}
-                            focus={this.props.focus}
-                            isSelected={this.props.isSelected}
-                            select={emptyFunction}
-                            active={this.annotationsActive}
-                            ContentScaling={returnOne}
-                            whenActiveChanged={this.whenActiveChanged}
-                            removeDocument={this.removeDocument}
-                            moveDocument={this.moveDocument}
-                            addDocument={this.addDocument}
-                            CollectionView={undefined}
-                            ScreenToLocalTransform={this.sidebarScreenToLocal}
-                            renderDepth={this.props.renderDepth + 1}
-                            ContainingCollectionDoc={this.props.ContainingCollectionDoc}>
-                        </CollectionFreeFormView>
-                        <div className="formattedTextBox-sidebar-handle" onPointerDown={this.sidebarDown} />
-                    </div>}
-                {!this.layoutDoc._showAudio ? (null) :
-                    <div className="formattedTextBox-dictation"
-                        onPointerDown={e => {
-                            runInAction(() => this._recording = !this._recording);
-                            setTimeout(() => this._editorView!.focus(), 500);
-                            e.stopPropagation();
-                        }} >
-                        <FontAwesomeIcon className="formattedTExtBox-audioFont"
-                            style={{ color: this._recording ? "red" : "blue", opacity: this._recording ? 1 : 0.5, display: this.props.isSelected() ? "" : "none" }} icon={"microphone"} size="sm" />
-                    </div>}
             </div>
         );
     }

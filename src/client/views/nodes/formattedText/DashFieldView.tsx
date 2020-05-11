@@ -79,11 +79,13 @@ export class DashFieldViewInternal extends React.Component<IDashFieldViewInterna
         this._reactionDisposer?.();
     }
 
+    multiValueDelimeter = ";";
+
     // set the display of the field's value (checkbox for booleans, span of text for strings)
     @computed get fieldValueContent() {
         if (this._dashDoc) {
             const dashVal = this._dashDoc[this._fieldKey] || (this._fieldKey === "PARAMS" ? this._textBoxDoc[this._fieldKey] : "");
-            const fval = StrCast(dashVal).startsWith(":=") || dashVal === "" ? Doc.Layout(this._textBoxDoc)[this._fieldKey] : dashVal;
+            const fval = dashVal instanceof List ? dashVal.join(this.multiValueDelimeter) : StrCast(dashVal).startsWith(":=") || dashVal === "" ? Doc.Layout(this._textBoxDoc)[this._fieldKey] : dashVal;
             const boolVal = Cast(fval, "boolean", null);
             const strVal = Field.toString(fval as Field) || "";
 
@@ -153,8 +155,9 @@ export class DashFieldViewInternal extends React.Component<IDashFieldViewInterna
                 } else if (nodeText.startsWith("=:=")) {
                     Doc.Layout(this._textBoxDoc)[this._fieldKey] = ComputedField.MakeFunction(nodeText.substring(3));
                 } else {
+                    const splits = newText.split(this.multiValueDelimeter);
                     if (this._fieldKey !== "PARAMS" || !this._textBoxDoc[this._fieldKey] || this._dashDoc?.PARAMS) {
-                        this._dashDoc![this._fieldKey] = newText;
+                        this._dashDoc![this._fieldKey] = splits.length > 1 ? new List<string>(splits) : newText;
                     }
                 }
             });

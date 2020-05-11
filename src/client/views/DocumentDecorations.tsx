@@ -237,6 +237,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         return false;
     }
 
+    _initialAutoHeight = false;
     @action
     onPointerDown = (e: React.PointerEvent): void => {
         setupMoveUpEvents(this, e, this.onPointerMove, this.onPointerUp, (e) => { });
@@ -251,6 +252,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         }
         this._snapX = e.pageX;
         this._snapY = e.pageY;
+        this._initialAutoHeight = true;
     }
 
     onPointerMove = (e: PointerEvent, down: number[], move: number[]): boolean => {
@@ -353,7 +355,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 } else {
                     dW && (doc._width = actualdW);
                     dH && (doc._height = actualdH);
-                    dH && doc._autoHeight && (doc._autoHeight = false);
+                    dH && this._initialAutoHeight && (doc._autoHeight = this._initialAutoHeight = false);
                 }
             }
         }));
@@ -362,6 +364,10 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
     @action
     onPointerUp = (e: PointerEvent): void => {
+        SelectionManager.SelectedDocuments().map(dv => {
+            dv.layoutDoc._delayAutoHeight && (dv.layoutDoc._autoHeight = true);
+            dv.layoutDoc._delayAutoHeight = undefined;
+        });
         this._resizeHdlId = "";
         this.Interacting = false;
         (e.button === 0) && this._resizeUndo?.end();

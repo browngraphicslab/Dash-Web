@@ -493,10 +493,7 @@ export class MainView extends React.Component {
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined} />
                 <button className="mainView-settings" key="settings" onClick={() => SettingsManager.Instance.open()}>
-                    Settings
-                </button>
-                <button className="mainView-logout" key="logout" onClick={() => window.location.assign(Utils.prepend("/logout"))}>
-                    {CurrentUserUtils.GuestWorkspace ? "Exit" : "Log Out"}
+                    <FontAwesomeIcon icon="cog" size="lg" />
                 </button>
             </div>
             {this.docButtons}

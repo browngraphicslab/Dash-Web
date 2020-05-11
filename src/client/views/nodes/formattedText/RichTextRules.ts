@@ -11,6 +11,7 @@ import { FormattedTextBox } from "./FormattedTextBox";
 import { wrappingInputRule } from "./prosemirrorPatches";
 import RichTextMenu from "./RichTextMenu";
 import { schema } from "./schema_rts";
+import { List } from "../../../../new_fields/List";
 
 export class RichTextRules {
     public Document: Doc;
@@ -64,11 +65,12 @@ export class RichTextRules {
 
             // create an inline view of a tag stored under the '#' field
             new InputRule(
-                new RegExp(/#([a-zA-Z_\-]+[a-zA-Z_\-0-9]*)\s$/),
+                new RegExp(/#([a-zA-Z_\-]+[a-zA-Z_;\-0-9]*)\s$/),
                 (state, match, start, end) => {
                     const tag = match[1];
                     if (!tag) return state.tr;
-                    this.Document[DataSym]["#"] = tag;
+                    const multiple = tag.split(";");
+                    this.Document[DataSym]["#"] = multiple.length > 1 ? new List(multiple) : tag;
                     const fieldView = state.schema.nodes.dashField.create({ fieldKey: "#" });
                     return state.tr.deleteRange(start, end).insert(start, fieldView);
                 }),

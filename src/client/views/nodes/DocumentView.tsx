@@ -1084,7 +1084,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 <DocumentContentsView {...OmitKeys(this.props, ['children']).omit}
                     hideOnLeave={true}
                     LayoutTemplateString={`<FormattedTextBox {...props} fieldKey={'${showCaption}'}/>`}
-                    ContentScaling={this.childScaling}
+                    ContentScaling={returnOne}
                     ChromeHeight={this.chromeHeight}
                     isSelected={this.isSelected}
                     select={this.select}
