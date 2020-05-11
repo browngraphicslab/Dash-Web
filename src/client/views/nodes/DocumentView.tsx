@@ -310,6 +310,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                                 const fullScreenAlias = Doc.MakeAlias(this.props.Document);
                                 fullScreenAlias.layoutKey = "layout_fullScreen";
                                 this.props.addDocTab(fullScreenAlias, "inTab");
+                            } else {
                                 this.props.addDocTab(this.props.Document, "inTab");
                             }
                         }, "double tap");

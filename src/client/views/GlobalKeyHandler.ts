@@ -265,7 +265,7 @@ export default class KeyManager {
                     const bds = DocumentDecorations.Instance.Bounds;
                     const pt = [bds.x + (bds.r - bds.x) / 2, bds.y + (bds.b - bds.y) / 2];
                     const text = `__DashDocId(${pt[0]},${pt[1]}):` + SelectionManager.SelectedDocuments().map(dv => dv.Document[Id]).join(":");
-                    SelectionManager.SelectedDocuments().length && navigator.clipboard.writeText(text);;
+                    SelectionManager.SelectedDocuments().length && navigator.clipboard.writeText(text);
                     stopPropagation = false;
                     preventDefault = false;
                 }

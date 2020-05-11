@@ -210,7 +210,7 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
                 }
             }
             return undefined;
-        }
+        };
         return replaceTab(document, instance._goldenLayout.root);
     }
 

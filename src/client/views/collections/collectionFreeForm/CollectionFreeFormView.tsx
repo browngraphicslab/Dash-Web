@@ -724,7 +724,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         const [x, y] = this.getTransform().transformPoint(pointX, pointY);
         const localTransform = this.getLocalTransform().inverse().scaleAbout(deltaScale, x, y);
 
-        if (localTransform.Scale >= 0.15) {
+        if (localTransform.Scale >= 0.15 || localTransform.Scale > this.zoomScaling()) {
             const safeScale = Math.min(Math.max(0.15, localTransform.Scale), 40);
             this.props.Document.scale = Math.abs(safeScale);
             this.setPan(-localTransform.TranslateX / safeScale, -localTransform.TranslateY / safeScale);
