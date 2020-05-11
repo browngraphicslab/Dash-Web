@@ -34,13 +34,13 @@ import { makeTemplate } from '../../../util/DropConverter';
 import buildKeymap from "./ProsemirrorExampleTransfer";
 import RichTextMenu from './RichTextMenu';
 import { RichTextRules } from "./RichTextRules";
-import { DashDocCommentView, DashDocView, FootnoteView, ImageResizeView, OrderedListView, SummaryView } from "./RichTextSchema";
+import { DashDocCommentView, DashDocView, FootnoteView, ImageResizeView, OrderedListView } from "./RichTextSchema";
 // import { DashDocCommentView, DashDocView, DashFieldView, FootnoteView, SummaryView } from "./RichTextSchema";
 // import { OrderedListView } from "./RichTextSchema";
 // import { ImageResizeView } from "./ImageResizeView";
 // import { DashDocCommentView } from "./DashDocCommentView";
 // import { FootnoteView } from "./FootnoteView";
-// import { SummaryView } from "./SummaryView";
+import { SummaryView } from "./SummaryView";
 // import { DashDocView } from "./DashDocView";
 import { DashFieldView } from "./DashFieldView";
 
