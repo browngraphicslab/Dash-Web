@@ -3,7 +3,7 @@ import { faCaretUp, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faT
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DataSym, Field } from "../../new_fields/Doc";
+import { Doc, DataSym, Field, WidthSym, HeightSym } from "../../new_fields/Doc";
 import { Document } from '../../new_fields/documentSchemas';
 import { ScriptField } from '../../new_fields/ScriptField';
 import { Cast, StrCast, NumCast } from "../../new_fields/Types";
@@ -262,24 +262,29 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
     onPointerMove = (e: PointerEvent, down: number[], move: number[]): boolean => {
         const first = SelectionManager.SelectedDocuments()[0];
-        const fixedAspect = NumCast(first.layoutDoc._nativeWidth) !== 0;
-        let { thisX, thisY } = DragManager.snapDrag(e, -this._offX, -this._offY, this._offX, this._offY, fixedAspect);
-        if (fixedAspect) {  // if aspect is set, then any snapped movement must be coerced to match the aspect ratio
-            const aspect = NumCast(first.layoutDoc._nativeWidth) / NumCast(first.layoutDoc._nativeHeight);
-            const deltaX = thisX - this._snapX;
-            const deltaY = thisY - this._snapY;
-            if (thisX !== e.pageX) {
-                const snapY = deltaX / aspect + this._snapY;
-                thisY = Math.abs(deltaX / aspect) < 10 ? snapY : thisY;
-            } else {
-                const snapX = deltaY * aspect + this._snapX;
-                thisX = Math.abs(deltaY * aspect) < 10 ? snapX : thisX;
+        let thisPt = { thisX: e.clientX - this._offX, thisY: e.clientY - this._offY };
+        const fixedAspect = first.layoutDoc._nativeWidth ? NumCast(first.layoutDoc._nativeWidth) / NumCast(first.layoutDoc._nativeHeight) : 0;
+        if (fixedAspect) { // need to generalize for bl and tr drag handles
+            const project = (p: number[], a: number[], b: number[]) => {
+                var atob = [b[0] - a[0], b[1] - a[1]];
+                var atop = [p[0] - a[0], p[1] - a[1]];
+                var len = atob[0] * atob[0] + atob[1] * atob[1];
+                var dot = atop[0] * atob[0] + atop[1] * atob[1];
+                var t = dot / len;
+                dot = (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]);
+                return [a[0] + atob[0] * t, a[1] + atob[1] * t];
             }
+            const tl = first.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
+            const drag = project([e.clientX + this._offX, e.clientY + this._offY], tl, [tl[0] + fixedAspect, tl[1] + 1])
+            thisPt = DragManager.snapDragAspect(drag, fixedAspect);
+        } else {
+            thisPt = DragManager.snapDrag(e, -this._offX, -this._offY, this._offX, this._offY);
         }
-        move[0] = thisX - this._snapX;
-        move[1] = thisY - this._snapY;
-        this._snapX = thisX;
-        this._snapY = thisY;
+
+        move[0] = thisPt.thisX - this._snapX;
+        move[1] = thisPt.thisY - this._snapY;
+        this._snapX = thisPt.thisX;
+        this._snapY = thisPt.thisY;
 
         let dX = 0, dY = 0, dW = 0, dH = 0;
         const unfreeze = () =>

@@ -255,9 +255,42 @@ export namespace DragManager {
     export function SetSnapLines(horizLines: number[], vertLines: number[]) {
         SnappingManager.setSnapLines(horizLines, vertLines);
     }
+    export function snapDragAspect(dragPt: number[], snapAspect: number) {
+        let closest = NumCast(Doc.UserDoc()["constants-snapThreshold"], 10);
+        let near = dragPt;
+        const intersect = (x1: number, y1: number, x2: number, y2: number, x3: number, y3: number, x4: number, y4: number, dragx: number, dragy: number) => {
+            if ((x1 === x2 && y1 === y2) || (x3 === x4 && y3 === y4)) return undefined; // Check if none of the lines are of length 0
+            const denominator = ((y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1));
+            if (denominator === 0) return undefined;  // Lines are parallel
 
+            let ua = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) / denominator;
+            // let ub = ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) / denominator;
+            //if (ua < 0 || ua > 1 || ub < 0 || ub > 1)  return undefined;  // is the intersection along the segments
+
+            // Return a object with the x and y coordinates of the intersection
+            let x = x1 + ua * (x2 - x1)
+            let y = y1 + ua * (y2 - y1)
+            const dist = Math.sqrt((dragx - x) * (dragx - x) + (dragy - y) * (dragy - y));
+            return { pt: [x, y], dist }
+        }
+        SnappingManager.vertSnapLines().forEach((xCoord, i) => {
+            const pt = intersect(dragPt[0], dragPt[1], dragPt[0] + snapAspect, dragPt[1] + 1, xCoord, -1, xCoord, 1, dragPt[0], dragPt[1]);
+            if (pt && pt.dist < closest) {
+                closest = pt.dist;
+                near = pt.pt;
+            }
+        });
+        SnappingManager.horizSnapLines().forEach((yCoord, i) => {
+            const pt = intersect(dragPt[0], dragPt[1], dragPt[0] + snapAspect, dragPt[1] + 1, -1, yCoord, 1, yCoord, dragPt[0], dragPt[1]);
+            if (pt && pt.dist < closest) {
+                closest = pt.dist;
+                near = pt.pt;
+            }
+        });
+        return { thisX: near[0], thisY: near[1] };
+    }
     // snap to the active snap lines - if oneAxis is set (eg, for maintaining aspect ratios), then it only snaps to the nearest horizontal/vertical line 
-    export function snapDrag(e: PointerEvent, xFromLeft: number, yFromTop: number, xFromRight: number, yFromBottom: number, oneAxis: boolean = false) {
+    export function snapDrag(e: PointerEvent, xFromLeft: number, yFromTop: number, xFromRight: number, yFromBottom: number) {
         const snapThreshold = NumCast(Doc.UserDoc()["constants-snapThreshold"], 10);
         const snapVal = (pts: number[], drag: number, snapLines: number[]) => {
             if (snapLines.length) {
@@ -266,15 +299,13 @@ export namespace DragManager {
                 const closestPts = rangePts.map(pt => snapLines.reduce((nearest, curr) => Math.abs(nearest - pt) > Math.abs(curr - pt) ? curr : nearest));
                 const closestDists = rangePts.map((pt, i) => Math.abs(pt - closestPts[i]));
                 const minIndex = closestDists[0] < closestDists[1] && closestDists[0] < closestDists[2] ? 0 : closestDists[1] < closestDists[2] ? 1 : 2;
-                return closestDists[minIndex] < snapThreshold ? [closestDists[minIndex], closestPts[minIndex] + offs[minIndex]] : [Number.MAX_VALUE, drag];
+                return closestDists[minIndex] < snapThreshold ? closestPts[minIndex] + offs[minIndex] : drag;
             }
-            return [Number.MAX_VALUE, drag];
+            return drag;
         };
-        const xsnap = snapVal([xFromLeft, xFromRight], e.pageX, SnappingManager.vertSnapLines());
-        const ysnap = snapVal([yFromTop, yFromBottom], e.pageY, SnappingManager.horizSnapLines());
         return {
-            thisX: !oneAxis || xsnap[0] < ysnap[0] ? xsnap[1] : e.pageX,
-            thisY: !oneAxis || xsnap[0] > ysnap[0] ? ysnap[1] : e.pageY
+            thisX: snapVal([xFromLeft, xFromRight], e.pageX, SnappingManager.vertSnapLines()),
+            thisY: snapVal([yFromTop, yFromBottom], e.pageY, SnappingManager.horizSnapLines())
         };
     }
     export let docsBeingDragged: Doc[] = [];
