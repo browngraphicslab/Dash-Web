@@ -263,8 +263,8 @@ export default class KeyManager {
             case "c":
                 if (SelectionManager.SelectedDocuments().length) {
                     const bds = DocumentDecorations.Instance.Bounds;
-                    const pt = [bds.x + (bds.r - bds.x) / 2, bds.y + (bds.b - bds.y) / 2];
-                    const text = `__DashDocId(${pt[0]},${pt[1]}):` + SelectionManager.SelectedDocuments().map(dv => dv.Document[Id]).join(":");
+                    const pt = SelectionManager.SelectedDocuments()[0].props.ScreenToLocalTransform().transformPoint(bds.x + (bds.r - bds.x) / 2, bds.y + (bds.b - bds.y) / 2);
+                    const text = `__DashDocId(${pt?.[0] || 0},${pt?.[1] || 0}):` + SelectionManager.SelectedDocuments().map(dv => dv.Document[Id]).join(":");
                     SelectionManager.SelectedDocuments().length && navigator.clipboard.writeText(text);
                     stopPropagation = false;
                     preventDefault = false;

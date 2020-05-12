@@ -7,8 +7,8 @@ import { Docs } from '../documents/Documents';
 import { Doc } from '../../new_fields/Doc';
 import { Transform } from "../util/Transform";
 import { DocServer } from '../DocServer';
-import { NumCast } from '../../new_fields/Types';
 import { undoBatch } from '../util/UndoManager';
+import { NumCast } from '../../new_fields/Types';
 
 @observer
 export class PreviewCursor extends React.Component<{}> {
@@ -57,22 +57,23 @@ export class PreviewCursor extends React.Component<{}> {
                     const strs = docids[0].split(",");
                     const ptx = Number(strs[0].substring("__DashDocId(".length));
                     const pty = Number(strs[1].substring(0, strs[1].length - 1));
-                    const center = PreviewCursor._getTransform().transformPoint(ptx, pty);
                     let count = 1;
                     const list: Doc[] = [];
                     docids.map((did, i) => i && DocServer.GetRefField(did).then(doc => {
                         count++;
                         if (doc instanceof Doc) {
                             const alias = Doc.MakeClone(doc);
-                            alias.x = newPoint[0] + NumCast(doc.x) - center[0];
-                            alias.y = newPoint[1] + NumCast(doc.y) - center[1];
+                            const deltaX = NumCast(doc.x) - ptx;
+                            const deltaY = NumCast(doc.y) - pty;
+                            alias.x = newPoint[0] + deltaX;
+                            alias.y = newPoint[1] + deltaY;
                             list.push(alias);
                         }
                         if (count === docids.length) {
                             undoBatch(() => PreviewCursor._addDocument(list))();
                         }
                     }));
-
+                    e.stopPropagation();
                 } else {
                     // creates text document
                     undoBatch(() => PreviewCursor._addLiveTextDoc(Docs.Create.TextDocument("", {
