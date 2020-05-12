@@ -256,7 +256,8 @@ export namespace DragManager {
         SnappingManager.setSnapLines(horizLines, vertLines);
     }
 
-    export function snapDrag(e: PointerEvent, xFromLeft: number, yFromTop: number, xFromRight: number, yFromBottom: number) {
+    // snap to the active snap lines - if oneAxis is set (eg, for maintaining aspect ratios), then it only snaps to the nearest horizontal/vertical line 
+    export function snapDrag(e: PointerEvent, xFromLeft: number, yFromTop: number, xFromRight: number, yFromBottom: number, oneAxis: boolean = false) {
         const snapThreshold = NumCast(Doc.UserDoc()["constants-snapThreshold"], 10);
         const snapVal = (pts: number[], drag: number, snapLines: number[]) => {
             if (snapLines.length) {
@@ -265,14 +266,15 @@ export namespace DragManager {
                 const closestPts = rangePts.map(pt => snapLines.reduce((nearest, curr) => Math.abs(nearest - pt) > Math.abs(curr - pt) ? curr : nearest));
                 const closestDists = rangePts.map((pt, i) => Math.abs(pt - closestPts[i]));
                 const minIndex = closestDists[0] < closestDists[1] && closestDists[0] < closestDists[2] ? 0 : closestDists[1] < closestDists[2] ? 1 : 2;
-                return closestDists[minIndex] < snapThreshold ? closestPts[minIndex] + offs[minIndex] : drag;
+                return closestDists[minIndex] < snapThreshold ? [closestDists[minIndex], closestPts[minIndex] + offs[minIndex]] : [Number.MAX_VALUE, drag];
             }
-            return drag;
+            return [Number.MAX_VALUE, drag];
         };
-
+        const xsnap = snapVal([xFromLeft, xFromRight], e.pageX, SnappingManager.vertSnapLines());
+        const ysnap = snapVal([yFromTop, yFromBottom], e.pageY, SnappingManager.horizSnapLines());
         return {
-            thisX: snapVal([xFromLeft, xFromRight], e.pageX, SnappingManager.vertSnapLines()),
-            thisY: snapVal([yFromTop, yFromBottom], e.pageY, SnappingManager.horizSnapLines())
+            thisX: !oneAxis || xsnap[0] < ysnap[0] ? xsnap[1] : e.pageX,
+            thisY: !oneAxis || xsnap[0] > ysnap[0] ? ysnap[1] : e.pageY
         };
     }
     export let docsBeingDragged: Doc[] = [];

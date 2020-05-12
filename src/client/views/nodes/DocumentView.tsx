@@ -704,7 +704,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }
 
         const cm = ContextMenu.Instance;
-        const templateDoc = Cast(this.props.Document[StrCast(this.props.Document.layoutKey)], Doc, null);
 
         const customScripts = Cast(this.props.Document.contextMenuScripts, listSpec(ScriptField), []);
         Cast(this.props.Document.contextMenuLabels, listSpec("string"), []).forEach((label, i) =>
@@ -713,24 +712,15 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             cm.addItem({ description: item.label, event: () => item.script.script.run({ this: this.layoutDoc, self: this.rootDoc }), icon: "sticky-note" }));
 
 
-        let open = cm.findByDescription("Add a Perspective...");
-        const openItems: ContextMenuProps[] = open && "subitems" in open ? open.subitems : [];
-        openItems.push({ description: "New Echo        ", event: () => this.props.addDocTab(Doc.MakeAlias(this.props.Document), "onRight"), icon: "layer-group" });
-        openItems.push({ description: "Open Fields     ", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { _width: 300, _height: 300 }), "onRight"), icon: "layer-group" });
-        templateDoc && openItems.push({ description: "Open Template   ", event: () => this.props.addDocTab(templateDoc, "onRight"), icon: "eye" });
-        if (!open) {
-            open = { description: "Add a Perspective....", subitems: openItems, icon: "external-link-alt" };
-            cm.addItem(open);
-        }
-
         let options = cm.findByDescription("Options...");
         const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
+        const templateDoc = Cast(this.props.Document[StrCast(this.props.Document.layoutKey)], Doc, null);
+        optionItems.push({ description: "Open Fields ", event: () => this.props.addDocTab(Docs.Create.KVPDocument(this.props.Document, { _width: 300, _height: 300 }), "onRight"), icon: "layer-group" });
+        templateDoc && optionItems.push({ description: "Open Template   ", event: () => this.props.addDocTab(templateDoc, "onRight"), icon: "eye" });
         if (!options) {
             options = { description: "Options...", subitems: optionItems, icon: "compass" };
             cm.addItem(options);
         }
-
-        cm.moveAfter(options, open);
 
         const existingOnClick = cm.findByDescription("OnClick...");
         const onClicks: ContextMenuProps[] = existingOnClick && "subitems" in existingOnClick ? existingOnClick.subitems : [];
@@ -763,9 +753,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             // let copies: ContextMenuProps[] = [];
             moreItems.push({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document[Id]), icon: "fingerprint" });
             // cm.addItem({ description: "Copy...", subitems: copies, icon: "copy" });
-        }
-        if (Cast(this.props.Document.data, ImageField)) {
-            moreItems.push({ description: "Export to Google Photos", event: () => GooglePhotos.Transactions.UploadImages([this.props.Document]), icon: "caret-square-right" });
         }
         if (Cast(Doc.GetProto(this.props.Document).data, listSpec(Doc))) {
             moreItems.push({ description: "Export to Google Photos Album", event: () => GooglePhotos.Export.CollectionToAlbum({ collection: this.props.Document }).then(console.log), icon: "caret-square-right" });
@@ -820,47 +807,38 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         cm.moveAfter(cm.findByDescription("More...")!, cm.findByDescription("OnClick...")!);
 
         runInAction(() => {
-            if (!ClientUtils.RELEASE) {
-                const setWriteMode = (mode: DocServer.WriteMode) => {
-                    DocServer.AclsMode = mode;
-                    const mode1 = mode;
-                    const mode2 = mode === DocServer.WriteMode.Default ? mode : DocServer.WriteMode.Playground;
-                    DocServer.setFieldWriteMode("x", mode1);
-                    DocServer.setFieldWriteMode("y", mode1);
-                    DocServer.setFieldWriteMode("_width", mode1);
-                    DocServer.setFieldWriteMode("_height", mode1);
+            const setWriteMode = (mode: DocServer.WriteMode) => {
+                DocServer.AclsMode = mode;
+                const mode1 = mode;
+                const mode2 = mode === DocServer.WriteMode.Default ? mode : DocServer.WriteMode.Playground;
+                DocServer.setFieldWriteMode("x", mode1);
+                DocServer.setFieldWriteMode("y", mode1);
+                DocServer.setFieldWriteMode("_width", mode1);
+                DocServer.setFieldWriteMode("_height", mode1);
 
-                    DocServer.setFieldWriteMode("_panX", mode2);
-                    DocServer.setFieldWriteMode("_panY", mode2);
-                    DocServer.setFieldWriteMode("scale", mode2);
-                    DocServer.setFieldWriteMode("_viewType", mode2);
-                };
-                const aclsMenu: ContextMenuProps[] = [];
-                aclsMenu.push({ description: "Default (write/read all)", event: () => setWriteMode(DocServer.WriteMode.Default), icon: DocServer.AclsMode === DocServer.WriteMode.Default ? "check" : "exclamation" });
-                aclsMenu.push({ description: "Playground (write own/no read)", event: () => setWriteMode(DocServer.WriteMode.Playground), icon: DocServer.AclsMode === DocServer.WriteMode.Playground ? "check" : "exclamation" });
-                aclsMenu.push({ description: "Live Playground (write own/read others)", event: () => setWriteMode(DocServer.WriteMode.LivePlayground), icon: DocServer.AclsMode === DocServer.WriteMode.LivePlayground ? "check" : "exclamation" });
-                aclsMenu.push({ description: "Live Readonly (no write/read others)", event: () => setWriteMode(DocServer.WriteMode.LiveReadonly), icon: DocServer.AclsMode === DocServer.WriteMode.LiveReadonly ? "check" : "exclamation" });
-                cm.addItem({ description: "Collaboration ACLs...", subitems: aclsMenu, icon: "share" });
-            }
+                DocServer.setFieldWriteMode("_panX", mode2);
+                DocServer.setFieldWriteMode("_panY", mode2);
+                DocServer.setFieldWriteMode("scale", mode2);
+                DocServer.setFieldWriteMode("_viewType", mode2);
+            };
+            const aclsMenu: ContextMenuProps[] = [];
+            aclsMenu.push({ description: "Share", event: () => SharingManager.Instance.open(this), icon: "external-link-alt" });
+            aclsMenu.push({ description: "Default (write/read all)", event: () => setWriteMode(DocServer.WriteMode.Default), icon: DocServer.AclsMode === DocServer.WriteMode.Default ? "check" : "exclamation" });
+            aclsMenu.push({ description: "Playground (write own/no read)", event: () => setWriteMode(DocServer.WriteMode.Playground), icon: DocServer.AclsMode === DocServer.WriteMode.Playground ? "check" : "exclamation" });
+            aclsMenu.push({ description: "Live Playground (write own/read others)", event: () => setWriteMode(DocServer.WriteMode.LivePlayground), icon: DocServer.AclsMode === DocServer.WriteMode.LivePlayground ? "check" : "exclamation" });
+            aclsMenu.push({ description: "Live Readonly (no write/read others)", event: () => setWriteMode(DocServer.WriteMode.LiveReadonly), icon: DocServer.AclsMode === DocServer.WriteMode.LiveReadonly ? "check" : "exclamation" });
+            cm.addItem({ description: "Collaboration ...", subitems: aclsMenu, icon: "share" });
         });
         runInAction(() => {
-            cm.addItem({
-                description: "Share",
-                event: () => SharingManager.Instance.open(this),
-                icon: "external-link-alt"
-            });
-
             if (!this.topMost && !(e instanceof Touch)) {
                 // DocumentViews should stop propagation of this event
                 e.stopPropagation();
             }
             ContextMenu.Instance.displayMenu(e.pageX - 15, e.pageY - 15);
-            if (!SelectionManager.IsSelected(this, true)) {
-                SelectionManager.SelectDoc(this, false);
-            }
+            !SelectionManager.IsSelected(this, true) && SelectionManager.SelectDoc(this, false);
         });
         const path = this.props.LibraryPath.reduce((p: string, d: Doc) => p + "/" + (Doc.AreProtosEqual(d, (Doc.UserDoc()["tabs-button-library"] as Doc).sourcePanel as Doc) ? "" : d.title), "");
-        cm.addItem({
+        const item = ({
             description: `path: ${path}`, event: () => {
                 if (this.props.LibraryPath !== emptyPath) {
                     this.props.LibraryPath.map(lp => Doc.GetProto(lp).treeViewOpen = lp.treeViewOpen = true);
@@ -870,6 +848,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 }
             }, icon: "check"
         });
+        //cm.addItem(item);
     }
 
     recommender = async () => {

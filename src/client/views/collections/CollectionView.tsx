@@ -234,7 +234,6 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
     onContextMenu = (e: React.MouseEvent): void => {
         if (!e.isPropagationStopped() && this.props.Document[Id] !== CurrentUserUtils.MainDocId) { // need to test this because GoldenLayout causes a parallel hierarchy in the React DOM for its children and the main document view7
 
-            this.setupViewTypes("Change Perspective...", (vtype => { this.props.Document._viewType = vtype; return this.props.Document; }), true);
             this.setupViewTypes("Add a Perspective...", vtype => {
                 const newRendition = Doc.MakeAlias(this.props.Document);
                 newRendition._viewType = vtype;

@@ -20,7 +20,6 @@ import React = require("react");
 import { Id } from '../../new_fields/FieldSymbols';
 import e = require('express');
 import { CollectionDockingView } from './collections/CollectionDockingView';
-import { MainView } from './MainView';
 import { SnappingManager } from '../util/SnappingManager';
 
 library.add(faCaretUp);
@@ -238,6 +237,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     }
 
     _initialAutoHeight = false;
+    _dragHeights = new Map<Doc, number>();
     @action
     onPointerDown = (e: React.PointerEvent): void => {
         setupMoveUpEvents(this, e, this.onPointerMove, this.onPointerUp, (e) => { });
@@ -253,17 +253,38 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         this._snapX = e.pageX;
         this._snapY = e.pageY;
         this._initialAutoHeight = true;
+        DragManager.docsBeingDragged = SelectionManager.SelectedDocuments().map(dv => dv.rootDoc);
+        SelectionManager.SelectedDocuments().map(dv => {
+            this._dragHeights.set(dv.layoutDoc, NumCast(dv.layoutDoc._height));
+            dv.layoutDoc._delayAutoHeight = dv.layoutDoc._height;
+        });
     }
 
     onPointerMove = (e: PointerEvent, down: number[], move: number[]): boolean => {
-        const { thisX, thisY } = DragManager.snapDrag(e, -this._offX, -this._offY, this._offX, this._offY);
+        const first = SelectionManager.SelectedDocuments()[0];
+        const fixedAspect = NumCast(first.layoutDoc._nativeWidth) !== 0;
+        let { thisX, thisY } = DragManager.snapDrag(e, -this._offX, -this._offY, this._offX, this._offY, fixedAspect);
+        if (fixedAspect) {  // if aspect is set, then any snapped movement must be coerced to match the aspect ratio
+            const aspect = NumCast(first.layoutDoc._nativeWidth) / NumCast(first.layoutDoc._nativeHeight);
+            const deltaX = thisX - this._snapX;
+            const deltaY = thisY - this._snapY;
+            if (thisX !== e.pageX) {
+                const snapY = deltaX / aspect + this._snapY;
+                thisY = Math.abs(deltaX / aspect) < 10 ? snapY : thisY;
+            } else {
+                const snapX = deltaY * aspect + this._snapX;
+                thisX = Math.abs(deltaY * aspect) < 10 ? snapX : thisX;
+            }
+        }
         move[0] = thisX - this._snapX;
         move[1] = thisY - this._snapY;
         this._snapX = thisX;
         this._snapY = thisY;
 
         let dX = 0, dY = 0, dW = 0, dH = 0;
-
+        const unfreeze = () =>
+            SelectionManager.SelectedDocuments().forEach(action((element: DocumentView) =>
+                (element.rootDoc.type === DocumentType.RTF && element.layoutDoc._nativeHeight) && element.toggleNativeDimensions()));
         switch (this._resizeHdlId) {
             case "": break;
             case "documentDecorations-topLeftResizer":
@@ -278,6 +299,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 dH = -move[1];
                 break;
             case "documentDecorations-topResizer":
+                unfreeze();
                 dY = -1;
                 dH = -move[1];
                 break;
@@ -291,13 +313,16 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 dH = move[1];
                 break;
             case "documentDecorations-bottomResizer":
+                unfreeze();
                 dH = move[1];
                 break;
             case "documentDecorations-leftResizer":
+                unfreeze();
                 dX = -1;
                 dW = -move[0];
                 break;
             case "documentDecorations-rightResizer":
+                unfreeze();
                 dW = move[0];
                 break;
         }
@@ -309,9 +334,12 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 let nwidth = doc._nativeWidth || 0;
                 let nheight = doc._nativeHeight || 0;
                 const width = (doc._width || 0);
-                const height = (doc._height || (nheight / nwidth * width));
+                let height = (doc._height || (nheight / nwidth * width));
                 const scale = element.props.ScreenToLocalTransform().Scale * element.props.ContentScaling();
                 if (nwidth && nheight) {
+                    if (nwidth / nheight !== width / height) {
+                        height = nheight / nwidth * width;
+                    }
                     if (Math.abs(dW) > Math.abs(dH)) dH = dW * nheight / nwidth;
                     else dW = dH * nwidth / nheight;
                 }
@@ -365,7 +393,10 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @action
     onPointerUp = (e: PointerEvent): void => {
         SelectionManager.SelectedDocuments().map(dv => {
-            dv.layoutDoc._delayAutoHeight && (dv.layoutDoc._autoHeight = true);
+            if (NumCast(dv.layoutDoc._delayAutoHeight) < this._dragHeights.get(dv.layoutDoc)!) {
+                dv.nativeWidth > 0 && Doc.toggleNativeDimensions(dv.layoutDoc, dv.props.ContentScaling(), dv.panelWidth(), dv.panelHeight());
+                dv.layoutDoc._autoHeight = true;
+            }
             dv.layoutDoc._delayAutoHeight = undefined;
         });
         this._resizeHdlId = "";

@@ -1133,19 +1133,25 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     private thumbIdentifier?: number;
 
     onContextMenu = (e: React.MouseEvent) => {
-        if (this.props.children && this.props.annotationsKey) return;
+        if (this.props.annotationsKey) return;
+
+        ContextMenu.Instance.addItem({
+            description: (this._timelineVisible ? "Close" : "Open") + " Animation Timeline", event: action(() => {
+                this._timelineVisible = !this._timelineVisible;
+            }), icon: this._timelineVisible ? faEyeSlash : faEye
+        });
+
         const options = ContextMenu.Instance.findByDescription("Options...");
         const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
 
         optionItems.push({ description: "reset view", event: () => { this.props.Document._panX = this.props.Document._panY = 0; this.props.Document.scale = 1; }, icon: "compress-arrows-alt" });
-        optionItems.push({ description: !this.layoutDoc._nativeWidth || !this.layoutDoc._nativeHeight ? "Freeze" : "Unfreeze", event: this.toggleNativeDimensions, icon: "snowflake" });
-        optionItems.push({ description: `${this.Document._LODdisable ? "Enable LOD" : "Disable LOD"}`, event: () => this.Document._LODdisable = !this.Document._LODdisable, icon: "table" });
+        optionItems.push({ description: "Reset default note style", event: () => Doc.UserDoc().defaultTextLayout = undefined, icon: "eye" });
+        optionItems.push({ description: (!this.layoutDoc._nativeWidth || !this.layoutDoc._nativeHeight ? "Freeze" : "Unfreeze") + " Aspect", event: this.toggleNativeDimensions, icon: "snowflake" });
         optionItems.push({ description: `${this.fitToContent ? "Unset" : "Set"} Fit To Container`, event: () => this.Document._fitToBox = !this.fitToContent, icon: !this.fitToContent ? "expand-arrows-alt" : "compress-arrows-alt" });
         optionItems.push({ description: `${this.Document.useClusters ? "Uncluster" : "Use Clusters"}`, event: () => this.updateClusters(!this.Document.useClusters), icon: "braille" });
         this.props.ContainingCollectionView && optionItems.push({ description: "Promote Collection", event: this.promoteCollection, icon: "table" });
         optionItems.push({ description: "Arrange contents in grid", event: this.layoutDocsInGrid, icon: "table" });
         // layoutItems.push({ description: "Analyze Strokes", event: this.analyzeStrokes, icon: "paint-brush" });
-        optionItems.push({ description: "Jitter Rotation", event: action(() => this.props.Document._jitterRotation = (this.props.Document._jitterRotation ? 0 : 10)), icon: "paint-brush" });
         optionItems.push({
             description: "Import document", icon: "upload", event: ({ x, y }) => {
                 const input = document.createElement("input");
@@ -1173,14 +1179,9 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 input.click();
             }
         });
+        optionItems.push({ description: `${this.Document._LODdisable ? "Enable LOD" : "Disable LOD"}`, event: () => this.Document._LODdisable = !this.Document._LODdisable, icon: "table" });
         ContextMenu.Instance.addItem({ description: "Options...", subitems: optionItems, icon: "eye" });
 
-
-        ContextMenu.Instance.addItem({
-            description: (this._timelineVisible ? "Close" : "Open") + " Animation Timeline", event: action(() => {
-                this._timelineVisible = !this._timelineVisible;
-            }), icon: this._timelineVisible ? faEyeSlash : faEye
-        });
     }
     @observable _timelineVisible = false;
 

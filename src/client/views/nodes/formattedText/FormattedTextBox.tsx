@@ -419,9 +419,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
 
         const funcs: ContextMenuProps[] = [];
         this.rootDoc.isTemplateDoc && funcs.push({ description: "Make Default Layout", event: async () => Doc.UserDoc().defaultTextLayout = new PrefetchProxy(this.rootDoc), icon: "eye" });
-        funcs.push({ description: "Reset Default Layout", event: () => Doc.UserDoc().defaultTextLayout = undefined, icon: "eye" });
         !this.layoutDoc.isTemplateDoc && funcs.push({
-            description: "Make Template", event: () => {
+            description: "Convert to use as a style", event: () => {
                 this.rootDoc.isTemplateDoc = makeTemplate(this.rootDoc);
                 Doc.AddDocToList(Cast(Doc.UserDoc()["template-notes"], Doc, null), "data", this.rootDoc);
             }, icon: "eye"
@@ -444,11 +443,15 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             }, icon: "eye"
         });
         //funcs.push({ description: `${this.Document._autoHeight ? "Variable Height" : "Auto Height"}`, event: () => this.layoutDoc._autoHeight = !this.layoutDoc._autoHeight, icon: "plus" });
-        funcs.push({ description: !this.layoutDoc._nativeWidth || !this.layoutDoc._nativeHeight ? "Freeze" : "Unfreeze", event: this.toggleNativeDimensions, icon: "snowflake" });
+        funcs.push({ description: (!this.layoutDoc._nativeWidth || !this.layoutDoc._nativeHeight ? "Freeze" : "Unfreeze") + " Aspect", event: this.toggleNativeDimensions, icon: "snowflake" });
         funcs.push({ description: "Toggle Single Line", event: () => this.layoutDoc._singleLine = !this.layoutDoc._singleLine, icon: "expand-arrows-alt" });
-        funcs.push({ description: "Toggle Sidebar", event: () => this.layoutDoc._showSidebar = !this.layoutDoc._showSidebar, icon: "expand-arrows-alt" });
-        funcs.push({ description: "Toggle Dictation Icon", event: () => this.layoutDoc._showAudio = !this.layoutDoc._showAudio, icon: "expand-arrows-alt" });
-        funcs.push({ description: "Toggle Menubar", event: () => this.toggleMenubar(), icon: "expand-arrows-alt" });
+
+        const uicontrols: ContextMenuProps[] = [];
+        uicontrols.push({ description: "Toggle Sidebar", event: () => this.layoutDoc._showSidebar = !this.layoutDoc._showSidebar, icon: "expand-arrows-alt" });
+        uicontrols.push({ description: "Toggle Dictation Icon", event: () => this.layoutDoc._showAudio = !this.layoutDoc._showAudio, icon: "expand-arrows-alt" });
+        uicontrols.push({ description: "Toggle Menubar", event: () => this.toggleMenubar(), icon: "expand-arrows-alt" });
+
+        funcs.push({ description: "UI Controls...", subitems: uicontrols, icon: "asterisk" });
 
         const highlighting: ContextMenuProps[] = [];
         ["My Text", "Text from Others", "Todo Items", "Important Items", "Ignore Items", "Disagree Items", "By Recent Minute", "By Recent Hour"].forEach(option =>
@@ -481,19 +484,6 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         });
         changeItems.push({ description: "FreeForm", event: undoBatch(() => Doc.makeCustomViewClicked(this.rootDoc, Docs.Create.FreeformDocument, "freeform"), "change view"), icon: "eye" });
         !change && cm.addItem({ description: "Change Perspective...", subitems: changeItems, icon: "external-link-alt" });
-
-        const open = cm.findByDescription("Add a Perspective...");
-        const openItems: ContextMenuProps[] = open && "subitems" in open ? open.subitems : [];
-
-        openItems.push({
-            description: "FreeForm", event: undoBatch(() => {
-                const alias = Doc.MakeAlias(this.rootDoc);
-                Doc.makeCustomViewClicked(alias, Docs.Create.FreeformDocument, "freeform");
-                this.props.addDocTab(alias, "onRight");
-            }), icon: "eye"
-        });
-        !open && cm.addItem({ description: "Add a Perspective...", subitems: openItems, icon: "external-link-alt" });
-
     }
 
     recordDictation = () => {
@@ -663,11 +653,8 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
         this._disposers.height = reaction(
             () => this.layoutDoc[HeightSym](),
             action(height => {
-                if (height <= 20) {
-                    if (this.layoutDoc._nativeWidth || this.layoutDoc._nativeHeight) {
-                        Doc.toggleNativeDimensions(this.layoutDoc, this.props.ContentScaling(), this.props.PanelWidth(), this.props.PanelHeight());
-                    }
-                    this.layoutDoc._delayAutoHeight = true;
+                if (height <= 20 && height < NumCast(this.layoutDoc._delayAutoHeight, 20)) {
+                    this.layoutDoc._delayAutoHeight = height;
                 }
             })
         );
@@ -1202,7 +1189,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             const dh = NumCast(this.rootDoc._height, 0);
             const newHeight = Math.max(10, (nh ? dh / nh * scrollHeight : scrollHeight) + (this.props.ChromeHeight ? this.props.ChromeHeight() : 0));
             if (Math.abs(newHeight - dh) > 1) { // bcz: Argh!  without this, we get into a React crash if the same document is opened in a freeform view and in the treeview.  no idea why, but after dragging the freeform document, selecting it, and selecting text, it will compute to 1 pixel higher than the treeview which causes a cycle
-                if (this.rootDoc !== this.layoutDoc && !this.layoutDoc.resolvedDataDoc) {
+                if (this.rootDoc !== this.layoutDoc.doc && !this.layoutDoc.resolvedDataDoc) {
                     // if we have a template that hasn't been resolved yet, we can't set the height or we'd be setting it on the unresolved template.  So set a timeout and hope its arrived...
                     console.log("Delayed height adjustment...");
                     setTimeout(() => {

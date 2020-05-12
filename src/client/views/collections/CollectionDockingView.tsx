@@ -757,7 +757,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
     get layoutDoc() { return this._document && Doc.Layout(this._document); }
     nativeAspect = () => this.nativeWidth() ? this.nativeWidth() / this.nativeHeight() : 0;
     panelWidth = () => this.layoutDoc?.maxWidth ? Math.min(Math.max(NumCast(this.layoutDoc._width), NumCast(this.layoutDoc._nativeWidth)), this._panelWidth) :
-        (this.nativeAspect() && this.nativeAspect() < this._panelWidth / this._panelHeight ? this._panelHeight * this.nativeAspect() : this._panelWidth);
+        (this.nativeAspect() && this.nativeAspect() < this._panelWidth / this._panelHeight ? this._panelHeight * this.nativeAspect() : this._panelWidth)
     panelHeight = () => this.nativeAspect() && this.nativeAspect() > this._panelWidth / this._panelHeight ? this._panelWidth / this.nativeAspect() : this._panelHeight;
 
     nativeWidth = () => !this.layoutDoc!._fitWidth ? NumCast(this.layoutDoc!._nativeWidth) || this._panelWidth : 0;

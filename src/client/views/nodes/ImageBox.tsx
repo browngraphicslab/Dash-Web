@@ -29,6 +29,7 @@ import FaceRectangles from './FaceRectangles';
 import { FieldView, FieldViewProps } from './FieldView';
 import "./ImageBox.scss";
 import React = require("react");
+import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
 const requestImageSize = require('../../util/request-image-size');
 const path = require('path');
 const { Howl } = require('howler');
@@ -158,6 +159,8 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
         if (field) {
             const funcs: ContextMenuProps[] = [];
             funcs.push({ description: "Rotate", event: this.rotate, icon: "expand-arrows-alt" });
+            funcs.push({ description: "Export to Google Photos", event: () => GooglePhotos.Transactions.UploadImages([this.props.Document]), icon: "caret-square-right" });
+            funcs.push({ description: "Copy path", event: () => Utils.CopyText(field.url.href), icon: "expand-arrows-alt" });
             // funcs.push({
             //     description: "Reset Native Dimensions", event: action(async () => {
             //         const curNW = NumCast(this.dataDoc[this.fieldKey + "-nativeWidth"]);
@@ -184,7 +187,6 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
 
             const existingMore = ContextMenu.Instance.findByDescription("More...");
             const mores: ContextMenuProps[] = existingMore && "subitems" in existingMore ? existingMore.subitems : [];
-            mores.push({ description: "Copy path", event: () => Utils.CopyText(field.url.href), icon: "expand-arrows-alt" });
             !existingMore && ContextMenu.Instance.addItem({ description: "More...", subitems: mores, icon: "hand-point-right" });
         }
     }
