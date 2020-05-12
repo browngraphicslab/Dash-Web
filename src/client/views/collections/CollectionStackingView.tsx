@@ -175,8 +175,8 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
 
 
     focusDocument = (doc: Doc, willZoom: boolean, scale?: number, afterFocus?: () => boolean) => {
-        Doc.BrushDoc(this.props.Document);
-        this.props.focus(this.props.Document);
+        Doc.BrushDoc(doc);
+        this.props.focus(doc);
         Doc.linkFollowHighlight(doc);
 
         const found = this._mainCont && Array.from(this._mainCont.getElementsByClassName("documentView-node")).find((node: any) => node.id === doc[Id]);
@@ -186,8 +186,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
             smoothScroll(500, this._mainCont!, localTop[1] + this._mainCont!.scrollTop);
         }
         afterFocus && setTimeout(() => {
-            if (afterFocus?.()) {
-            }
+            if (afterFocus?.()) { }
         }, 500);
     }
 
