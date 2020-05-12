@@ -73,7 +73,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
             const width = () => this.getDocWidth(d);
             const dref = React.createRef<HTMLDivElement>();
             const dxf = () => this.getDocTransform(d, dref.current!);
-            this._docXfs.push({ dxf: dxf, width: width, height: height });
+            this._docXfs.push({ dxf, width, height });
             const rowSpan = Math.ceil((height() + this.gridGap) / this.gridGap);
             const style = this.isStackingView ? { width: width(), marginTop: i ? this.gridGap : 0, height: height() } : { gridRowEnd: `span ${rowSpan}` };
             return <div className={`collectionStackingView-${this.isStackingView ? "columnDoc" : "masonryDoc"}`} key={d[Id]} ref={dref} style={style} >

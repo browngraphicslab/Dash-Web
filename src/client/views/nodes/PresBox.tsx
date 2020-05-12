@@ -44,7 +44,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             // stored on each pres element.  
             (this.presElement as Doc).lookupField = ScriptField.MakeScript(
                 `if (field === 'indexInPres') return docList(container[container.presentationFieldKey]).indexOf(data);` +
-                "if (field === 'presCollapsedHeight') return container._viewType === CollectionViewType.Stacking ? 50 : 46;" +
+                `if (field === 'presCollapsedHeight') return container._viewType === '${CollectionViewType.Stacking}' ? 50 : 46;` +
                 "return undefined;", { field: "string", data: Doc.name, container: Doc.name });
         }
         this.props.Document.presentationFieldKey = this.fieldKey; // provide info to the presElement script so that it can look up rendering information about the presBox
@@ -271,8 +271,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     });
 
     whenActiveChanged = action((isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive));
-    addDocumentFilter = (doc: Doc|Doc[]) => {
-        const docs = doc instanceof Doc ? [doc]: doc;
+    addDocumentFilter = (doc: Doc | Doc[]) => {
+        const docs = doc instanceof Doc ? [doc] : doc;
         docs.forEach(doc => {
             doc.aliasOf instanceof Doc && (doc.presentationTargetDoc = doc.aliasOf);
             !this.childDocs.includes(doc) && (doc.presZoomButton = true);

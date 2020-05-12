@@ -669,7 +669,11 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     toggleBackground = (temporary: boolean): void => {
         this.Document._overflow = temporary ? "visible" : "hidden";
         this.Document.isBackground = !temporary ? !this.Document.isBackground : (this.Document.isBackground ? undefined : true);
-        this.Document.isBackground && this.props.bringToFront(this.Document, true);
+        if (this.Document.isBackground) {
+            this.props.bringToFront(this.props.Document, true);
+            this.props.Document[DataSym][Doc.LayoutFieldKey(this.Document) + "-nativeWidth"] = this.Document[WidthSym]();
+            this.props.Document[DataSym][Doc.LayoutFieldKey(this.Document) + "-nativeHeight"] = this.Document[HeightSym]();
+        }
     }
 
     @undoBatch

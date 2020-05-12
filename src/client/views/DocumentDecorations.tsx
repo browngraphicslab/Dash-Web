@@ -264,7 +264,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         const first = SelectionManager.SelectedDocuments()[0];
         let thisPt = { thisX: e.clientX - this._offX, thisY: e.clientY - this._offY };
         const fixedAspect = first.layoutDoc._nativeWidth ? NumCast(first.layoutDoc._nativeWidth) / NumCast(first.layoutDoc._nativeHeight) : 0;
-        if (fixedAspect) { // need to generalize for bl and tr drag handles
+        if (fixedAspect && (this._resizeHdlId === "documentDecorations-bottomRightResizer" || this._resizeHdlId === "documentDecorations-topLeftResizer")) { // need to generalize for bl and tr drag handles
             const project = (p: number[], a: number[], b: number[]) => {
                 var atob = [b[0] - a[0], b[1] - a[1]];
                 var atop = [p[0] - a[0], p[1] - a[1]];

@@ -707,6 +707,7 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
                 const pinDoc = Doc.MakeAlias(doc);
                 pinDoc.presentationTargetDoc = doc;
                 pinDoc.presZoomButton = true;
+                pinDoc.context = curPres;
                 Doc.AddDocToList(curPres, "data", pinDoc);
                 if (!DocumentManager.Instance.getDocumentView(curPres)) {
                     CollectionDockingView.AddRightSplit(curPres);
