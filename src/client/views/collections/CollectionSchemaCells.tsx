@@ -18,11 +18,11 @@ import "./CollectionSchemaView.scss";
 import { CollectionView } from "./CollectionView";
 import { NumCast, StrCast, BoolCast, FieldValue, Cast } from "../../../new_fields/Types";
 import { Docs } from "../../documents/Documents";
-import { SelectionManager } from "../../util/SelectionManager";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faExpand } from '@fortawesome/free-solid-svg-icons';
 import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 import { undoBatch } from "../../util/UndoManager";
+import { SnappingManager } from "../../util/SnappingManager";
 
 library.add(faExpand);
 
@@ -37,8 +37,8 @@ export interface CellProps {
     renderDepth: number;
     addDocTab: (document: Doc, where: string) => boolean;
     pinToPres: (document: Doc) => void;
-    moveDocument: (document: Doc, targetCollection: Doc | undefined,
-        addDocument: (document: Doc) => boolean) => boolean;
+    moveDocument: (document: Doc | Doc[], targetCollection: Doc | undefined,
+        addDocument: (document: Doc | Doc[]) => boolean) => boolean;
     isFocused: boolean;
     changeFocusedCellByIndex: (row: number, col: number) => void;
     setIsEditing: (isEditing: boolean) => void;
@@ -185,11 +185,11 @@ export class CollectionSchemaCell extends React.Component<CellProps> {
         const onItemDown = (e: React.PointerEvent) => {
             fieldIsDoc && SetupDrag(this._focusRef,
                 () => this._document[props.fieldKey] instanceof Doc ? this._document[props.fieldKey] : this._document,
-                this._document[props.fieldKey] instanceof Doc ? (doc: Doc, target: Doc | undefined, addDoc: (newDoc: Doc) => any) => addDoc(doc) : this.props.moveDocument,
+                this._document[props.fieldKey] instanceof Doc ? (doc: Doc | Doc[], target: Doc | undefined, addDoc: (newDoc: Doc | Doc[]) => any) => addDoc(doc) : this.props.moveDocument,
                 this._document[props.fieldKey] instanceof Doc ? "alias" : this.props.Document.schemaDoc ? "copy" : undefined)(e);
         };
         const onPointerEnter = (e: React.PointerEvent): void => {
-            if (e.buttons === 1 && SelectionManager.GetIsDragging() && (type === "document" || type === undefined)) {
+            if (e.buttons === 1 && SnappingManager.GetIsDragging() && (type === "document" || type === undefined)) {
                 dragRef.current!.className = "collectionSchemaView-cellContainer doc-drag-over";
             }
         };

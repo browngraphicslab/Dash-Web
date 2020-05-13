@@ -1,10 +1,8 @@
 import ApiManager, { Registration } from "./ApiManager";
 import { Method, _permission_denied } from "../RouteManager";
 import { GoogleApiServerUtils } from "../apis/google/GoogleApiServerUtils";
-import { Database } from "../database";
 import RouteSubscriber from "../RouteSubscriber";
-
-const deletionPermissionError = "Cannot perform specialized delete outside of the development environment!";
+import { Database } from "../database";
 
 const EndpointHandlerMap = new Map<GoogleApiServerUtils.Action, GoogleApiServerUtils.ApiRouter>([
     ["create", (api, params) => api.create(params)],
@@ -20,11 +18,11 @@ export default class GeneralGoogleManager extends ApiManager {
             method: Method.GET,
             subscription: "/readGoogleAccessToken",
             secureHandler: async ({ user, res }) => {
-                const token = await GoogleApiServerUtils.retrieveAccessToken(user.id);
-                if (!token) {
+                const { credentials } = (await GoogleApiServerUtils.retrieveCredentials(user.id));
+                if (!credentials?.access_token) {
                     return res.send(GoogleApiServerUtils.generateAuthenticationUrl());
                 }
-                return res.send(token);
+                return res.send(credentials);
             }
         });
 
@@ -33,6 +31,15 @@ export default class GeneralGoogleManager extends ApiManager {
             subscription: "/writeGoogleAccessToken",
             secureHandler: async ({ user, req, res }) => {
                 res.send(await GoogleApiServerUtils.processNewUser(user.id, req.body.authenticationCode));
+            }
+        });
+
+        register({
+            method: Method.GET,
+            subscription: "/revokeGoogleAccessToken",
+            secureHandler: async ({ user, res }) => {
+                await Database.Auxiliary.GoogleAuthenticationToken.Revoke(user.id);
+                res.send();
             }
         });
 

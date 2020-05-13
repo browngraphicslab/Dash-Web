@@ -197,9 +197,10 @@ export default class RichTextMenu extends AntimodeMenu {
             } else {
                 toggleMark(mark.type, mark.attrs)(state, (tx: any) => {
                     const { from, $from, to, empty } = tx.selection;
-                    if (!tx.doc.rangeHasMark(from, to, mark.type)) {
-                        toggleMark(mark.type, mark.attrs)({ tr: tx, doc: tx.doc, selection: tx.selection, storedMarks: tx.storedMarks }, dispatch);
-                    } else dispatch(tx);
+                    // if (!tx.doc.rangeHasMark(from, to, mark.type)) {
+                    //     toggleMark(mark.type, mark.attrs)({ tr: tx, doc: tx.doc, selection: tx.selection, storedMarks: tx.storedMarks }, dispatch);
+                    // } else
+                    dispatch(tx);
                 });
             }
         }

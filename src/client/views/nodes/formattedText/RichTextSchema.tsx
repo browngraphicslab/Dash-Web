@@ -217,6 +217,7 @@ export class DashDocView {
         this._dashSpan.style.height = node.attrs.height;
         this._dashSpan.style.position = "absolute";
         this._dashSpan.style.display = "inline-block";
+        this._dashSpan.style.whiteSpace = "normal";
         this._dashSpan.onpointerleave = () => {
             const ele = document.getElementById("DashDocCommentView-" + node.attrs.docid);
             if (ele) {

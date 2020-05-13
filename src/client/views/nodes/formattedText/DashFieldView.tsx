@@ -34,8 +34,7 @@ export class DashFieldView {
             docid={node.attrs.docid}
             width={node.attrs.width}
             height={node.attrs.height}
-            view={view}
-            getPos={getPos}
+            hideKey={node.attrs.hideKey}
             tbox={tbox}
         />, this._fieldWrapper);
         (this as any).dom = this._fieldWrapper;
@@ -49,8 +48,7 @@ export class DashFieldView {
 interface IDashFieldViewInternal {
     fieldKey: string;
     docid: string;
-    view: any;
-    getPos: any;
+    hideKey: boolean;
     tbox: FormattedTextBox;
     width: number;
     height: number;
@@ -81,11 +79,13 @@ export class DashFieldViewInternal extends React.Component<IDashFieldViewInterna
         this._reactionDisposer?.();
     }
 
+    multiValueDelimeter = ";";
+
     // set the display of the field's value (checkbox for booleans, span of text for strings)
     @computed get fieldValueContent() {
         if (this._dashDoc) {
-            const dashVal = this._dashDoc[this._fieldKey];
-            const fval = StrCast(dashVal).startsWith(":=") || dashVal === "" ? Doc.Layout(this._textBoxDoc)[this._fieldKey] : dashVal;
+            const dashVal = this._dashDoc[this._fieldKey] || (this._fieldKey === "PARAMS" ? this._textBoxDoc[this._fieldKey] : "");
+            const fval = dashVal instanceof List ? dashVal.join(this.multiValueDelimeter) : StrCast(dashVal).startsWith(":=") || dashVal === "" ? Doc.Layout(this._textBoxDoc)[this._fieldKey] : dashVal;
             const boolVal = Cast(fval, "boolean", null);
             const strVal = Field.toString(fval as Field) || "";
 
@@ -108,7 +108,7 @@ export class DashFieldViewInternal extends React.Component<IDashFieldViewInterna
                     r?.addEventListener("pointerdown", action((e) => this._showEnumerables = true));
                 }} >
                     {strVal}
-                </span>
+                </span>;
             }
         }
     }
@@ -155,7 +155,10 @@ export class DashFieldViewInternal extends React.Component<IDashFieldViewInterna
                 } else if (nodeText.startsWith("=:=")) {
                     Doc.Layout(this._textBoxDoc)[this._fieldKey] = ComputedField.MakeFunction(nodeText.substring(3));
                 } else {
-                    this._dashDoc![this._fieldKey] = newText;
+                    const splits = newText.split(this.multiValueDelimeter);
+                    if (this._fieldKey !== "PARAMS" || !this._textBoxDoc[this._fieldKey] || this._dashDoc?.PARAMS) {
+                        this._dashDoc![this._fieldKey] = splits.length > 1 ? new List<string>(splits) : newText;
+                    }
                 }
             });
         }
@@ -196,9 +199,10 @@ export class DashFieldViewInternal extends React.Component<IDashFieldViewInterna
             width: this.props.width,
             height: this.props.height,
         }}>
-            <span className="dashFieldView-labelSpan" title="click to see related tags" onPointerDown={this.onPointerDownLabelSpan}>
-                {this._fieldKey}
-            </span>
+            {this.props.hideKey ? (null) :
+                <span className="dashFieldView-labelSpan" title="click to see related tags" onPointerDown={this.onPointerDownLabelSpan}>
+                    {this._fieldKey}
+                </span>}
 
             <div className="dashFieldView-fieldSpan">
                 {this.fieldValueContent}

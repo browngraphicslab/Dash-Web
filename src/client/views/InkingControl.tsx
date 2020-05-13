@@ -34,7 +34,8 @@ export class InkingControl {
 
     @undoBatch
     switchColor = action((color: ColorState): void => {
-        Doc.UserDoc().inkColor = color.hex + (color.rgb.a !== undefined ? this.decimalToHexString(Math.round(color.rgb.a * 255)) : "ff");
+        Doc.UserDoc().backgroundColor = color.hex.startsWith("#") ?
+            color.hex + (color.rgb.a !== undefined ? this.decimalToHexString(Math.round(color.rgb.a * 255)) : "ff") : color.hex;
 
         if (InkingControl.Instance.selectedTool === InkTool.None) {
             const selected = SelectionManager.SelectedDocuments();
@@ -44,9 +45,9 @@ export class InkingControl {
                         view.props.Document.isTemplateForField ? view.props.Document : Doc.GetProto(view.props.Document);
                 if (targetDoc) {
                     if (StrCast(Doc.Layout(view.props.Document).layout).indexOf("FormattedTextBox") !== -1 && FormattedTextBox.HadSelection) {
-                        Doc.Layout(view.props.Document).color = Doc.UserDoc().inkColor;
+                        Doc.Layout(view.props.Document).color = Doc.UserDoc().bacgroundColor;
                     } else {
-                        Doc.Layout(view.props.Document)._backgroundColor = Doc.UserDoc().inkColor; // '_backgroundColor' is template specific.  'backgroundColor' would apply to all templates, but has no UI at the moment
+                        Doc.Layout(view.props.Document)._backgroundColor = Doc.UserDoc().backgroundColor; // '_backgroundColor' is template specific.  'backgroundColor' would apply to all templates, but has no UI at the moment
                     }
                 }
             });

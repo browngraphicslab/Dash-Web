@@ -11,7 +11,6 @@ export namespace SelectionManager {
         @observable IsDragging: boolean = false;
         SelectedDocuments: ObservableMap<DocumentView, boolean> = new ObservableMap();
 
-
         @action
         SelectDoc(docView: DocumentView, ctrlPressed: boolean): void {
             // if doc is not in SelectedDocuments, add it
@@ -55,6 +54,8 @@ export namespace SelectionManager {
         manager.SelectDoc(docView, ctrlPressed);
     }
 
+    export function SetIsDragging(dragging: boolean) { runInAction(() => manager.IsDragging = dragging); }
+    export function GetIsDragging() { return manager.IsDragging; }
     // computed functions, such as used in IsSelected generate errors if they're called outside of a
     // reaction context.  Specifying the context with 'outsideReaction' allows an efficiency feature
     // to avoid unnecessary mobx invalidations when running inside a reaction.
@@ -77,9 +78,6 @@ export namespace SelectionManager {
         manager.DeselectAll();
         if (found) manager.SelectDoc(found, false);
     }
-
-    export function SetIsDragging(dragging: boolean) { runInAction(() => manager.IsDragging = dragging); }
-    export function GetIsDragging() { return manager.IsDragging; }
 
     export function SelectedDocuments(): Array<DocumentView> {
         return Array.from(manager.SelectedDocuments.keys());

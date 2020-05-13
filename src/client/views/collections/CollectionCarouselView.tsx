@@ -2,9 +2,9 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { observable, computed } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
-import { documentSchema } from '../../../new_fields/documentSchemas';
+import { documentSchema, collectionSchema } from '../../../new_fields/documentSchemas';
 import { makeInterface } from '../../../new_fields/Schema';
-import { NumCast, StrCast } from '../../../new_fields/Types';
+import { NumCast, StrCast, ScriptCast, Cast } from '../../../new_fields/Types';
 import { DragManager } from '../../util/DragManager';
 import { ContentFittingDocumentView } from '../nodes/ContentFittingDocumentView';
 import "./CollectionCarouselView.scss";
@@ -14,9 +14,10 @@ import { Doc } from '../../../new_fields/Doc';
 import { FormattedTextBox } from '../nodes/formattedText/FormattedTextBox';
 import { ContextMenu } from '../ContextMenu';
 import { ObjectField } from '../../../new_fields/ObjectField';
+import { returnFalse } from '../../../Utils';
 
-type CarouselDocument = makeInterface<[typeof documentSchema,]>;
-const CarouselDocument = makeInterface(documentSchema);
+type CarouselDocument = makeInterface<[typeof documentSchema, typeof collectionSchema]>;
+const CarouselDocument = makeInterface(documentSchema, collectionSchema);
 
 @observer
 export class CollectionCarouselView extends CollectionSubView(CarouselDocument) {
@@ -39,7 +40,6 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
         e.stopPropagation();
         this.layoutDoc._itemIndex = (NumCast(this.layoutDoc._itemIndex) - 1 + this.childLayoutPairs.length) % this.childLayoutPairs.length;
     }
-
     panelHeight = () => this.props.PanelHeight() - 50;
     @computed get content() {
         const index = NumCast(this.layoutDoc._itemIndex);
@@ -47,11 +47,18 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
             <>
                 <div className="collectionCarouselView-image" key="image">
                     <ContentFittingDocumentView {...this.props}
+                        onDoubleClick={ScriptCast(this.layoutDoc.onChildDoubleClick)}
+                        onClick={ScriptCast(this.layoutDoc.onChildClick)}
                         renderDepth={this.props.renderDepth + 1}
+                        LayoutTemplate={this.props.ChildLayoutTemplate}
+                        LayoutTemplateString={this.props.ChildLayoutString}
                         Document={this.childLayoutPairs[index].layout}
-                        DataDocument={this.childLayoutPairs[index].data}
+                        DataDoc={this.childLayoutPairs[index].data}
                         PanelHeight={this.panelHeight}
-                        getTransform={this.props.ScreenToLocalTransform} />
+                        ScreenToLocalTransform={this.props.ScreenToLocalTransform}
+                        bringToFront={returnFalse}
+                        parentActive={this.props.active}
+                    />
                 </div>
                 <div className="collectionCarouselView-caption" key="caption"
                     style={{
@@ -60,9 +67,9 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
                         borderRadius: StrCast(this.layoutDoc._captionBorderRounding),
                     }}>
                     <FormattedTextBox key={index} {...this.props}
-                        xMargin={NumCast(this.layoutDoc["caption-xMargin"])}
-                        yMargin={NumCast(this.layoutDoc["caption-yMargin"])}
-                        Document={this.childLayoutPairs[index].layout} DataDoc={undefined} fieldKey={"caption"}></FormattedTextBox>
+                        xMargin={NumCast(this.layoutDoc["_carousel-caption-xMargin"])}
+                        yMargin={NumCast(this.layoutDoc["_carousel-caption-yMargin"])}
+                        Document={this.childLayoutPairs[index].layout} DataDoc={undefined} fieldKey={"caption"} />
                 </div>
             </>;
     }

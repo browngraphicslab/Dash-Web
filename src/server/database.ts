@@ -4,7 +4,7 @@ import { Opt } from '../new_fields/Doc';
 import { Utils, emptyFunction } from '../Utils';
 import { Credentials } from 'google-auth-library';
 import { GoogleApiServerUtils } from './apis/google/GoogleApiServerUtils';
-import { IDatabase } from './IDatabase';
+import { IDatabase, DocumentsCollection } from './IDatabase';
 import { MemoryDatabase } from './MemoryDatabase';
 import * as mongoose from 'mongoose';
 import { Upload } from './SharedMediaTypes';
@@ -14,7 +14,7 @@ export namespace Database {
     export let disconnect: Function;
     const schema = 'Dash';
     const port = 27017;
-    export const url = `mongodb://localhost:${port}/`;
+    export const url = `mongodb://localhost:${port}/${schema}`;
 
     enum ConnectionStates {
         disconnected = 0,
@@ -47,28 +47,29 @@ export namespace Database {
     }
 
     export class Database implements IDatabase {
-        public static DocumentsCollection = 'documents';
         private MongoClient = mongodb.MongoClient;
         private currentWrites: { [id: string]: Promise<void> } = {};
         private db?: mongodb.Db;
         private onConnect: (() => void)[] = [];
 
-        doConnect() {
+        async doConnect() {
             console.error(`\nConnecting to Mongo with URL : ${url}\n`);
-            this.MongoClient.connect(url, { connectTimeoutMS: 30000, socketTimeoutMS: 30000, useUnifiedTopology: true }, (_err, client) => {
-                console.error("mongo connect response\n");
-                if (!client) {
-                    console.error("\nMongo connect failed with the error:\n");
-                    console.log(_err);
-                    process.exit(0);
-                }
-                this.db = client.db();
-                this.onConnect.forEach(fn => fn());
+            return new Promise<void>(resolve => {
+                this.MongoClient.connect(url, { connectTimeoutMS: 30000, socketTimeoutMS: 30000, useUnifiedTopology: true }, (_err, client) => {
+                    console.error("mongo connect response\n");
+                    if (!client) {
+                        console.error("\nMongo connect failed with the error:\n");
+                        console.log(_err);
+                        process.exit(0);
+                    }
+                    this.db = client.db();
+                    this.onConnect.forEach(fn => fn());
+                    resolve();
+                });
             });
         }
 
-        public async update(id: string, value: any, callback: (err: mongodb.MongoError, res: mongodb.UpdateWriteOpResult) => void, upsert = true, collectionName = Database.DocumentsCollection) {
-
+        public async update(id: string, value: any, callback: (err: mongodb.MongoError, res: mongodb.UpdateWriteOpResult) => void, upsert = true, collectionName = DocumentsCollection) {
             if (this.db) {
                 const collection = this.db.collection(collectionName);
                 const prom = this.currentWrites[id];
@@ -93,7 +94,7 @@ export namespace Database {
             }
         }
 
-        public replace(id: string, value: any, callback: (err: mongodb.MongoError, res: mongodb.UpdateWriteOpResult) => void, upsert = true, collectionName = Database.DocumentsCollection) {
+        public replace(id: string, value: any, callback: (err: mongodb.MongoError, res: mongodb.UpdateWriteOpResult) => void, upsert = true, collectionName = DocumentsCollection) {
             if (this.db) {
                 const collection = this.db.collection(collectionName);
                 const prom = this.currentWrites[id];
@@ -117,9 +118,21 @@ export namespace Database {
             }
         }
 
+        public async getCollectionNames() {
+            const cursor = this.db?.listCollections();
+            const collectionNames: string[] = [];
+            if (cursor) {
+                while (await cursor.hasNext()) {
+                    const collection: any = await cursor.next();
+                    collection && collectionNames.push(collection.name);
+                }
+            }
+            return collectionNames;
+        }
+
         public delete(query: any, collectionName?: string): Promise<mongodb.DeleteWriteOpResultObject>;
         public delete(id: string, collectionName?: string): Promise<mongodb.DeleteWriteOpResultObject>;
-        public delete(id: any, collectionName = Database.DocumentsCollection) {
+        public delete(id: any, collectionName = DocumentsCollection) {
             if (typeof id === "string") {
                 id = { _id: id };
             }
@@ -131,25 +144,26 @@ export namespace Database {
             }
         }
 
-        public async deleteAll(collectionName = Database.DocumentsCollection, persist = true): Promise<any> {
-            return new Promise(resolve => {
-                const executor = async (database: mongodb.Db) => {
-                    if (persist) {
-                        await database.collection(collectionName).deleteMany({});
-                    } else {
-                        await database.dropCollection(collectionName);
-                    }
-                    resolve();
-                };
-                if (this.db) {
-                    executor(this.db);
+        public async dropSchema(...targetSchemas: string[]): Promise<any> {
+            const executor = async (database: mongodb.Db) => {
+                const existing = await Instance.getCollectionNames();
+                let valid: string[];
+                if (targetSchemas.length) {
+                    valid = targetSchemas.filter(collection => existing.includes(collection));
                 } else {
-                    this.onConnect.push(() => this.db && executor(this.db));
+                    valid = existing;
                 }
-            });
+                const pending = Promise.all(valid.map(schemaName => database.dropCollection(schemaName)));
+                return (await pending).every(dropOutcome => dropOutcome);
+            };
+            if (this.db) {
+                return executor(this.db);
+            } else {
+                this.onConnect.push(() => this.db && executor(this.db));
+            }
         }
 
-        public async insert(value: any, collectionName = Database.DocumentsCollection) {
+        public async insert(value: any, collectionName = DocumentsCollection) {
             if (this.db) {
                 if ("id" in value) {
                     value._id = value.id;
@@ -177,7 +191,7 @@ export namespace Database {
             }
         }
 
-        public getDocument(id: string, fn: (result?: Transferable) => void, collectionName = "newDocuments") {
+        public getDocument(id: string, fn: (result?: Transferable) => void, collectionName = DocumentsCollection) {
             if (this.db) {
                 this.db.collection(collectionName).findOne({ _id: id }, (err, result) => {
                     if (result) {
@@ -193,7 +207,7 @@ export namespace Database {
             }
         }
 
-        public getDocuments(ids: string[], fn: (result: Transferable[]) => void, collectionName = Database.DocumentsCollection) {
+        public getDocuments(ids: string[], fn: (result: Transferable[]) => void, collectionName = DocumentsCollection) {
             if (this.db) {
                 this.db.collection(collectionName).find({ _id: { "$in": ids } }).toArray((err, docs) => {
                     if (err) {
@@ -211,7 +225,7 @@ export namespace Database {
             }
         }
 
-        public async visit(ids: string[], fn: (result: any) => string[] | Promise<string[]>, collectionName = "newDocuments"): Promise<void> {
+        public async visit(ids: string[], fn: (result: any) => string[] | Promise<string[]>, collectionName = DocumentsCollection): Promise<void> {
             if (this.db) {
                 const visited = new Set<string>();
                 while (ids.length) {
@@ -238,7 +252,7 @@ export namespace Database {
             }
         }
 
-        public query(query: { [key: string]: any }, projection?: { [key: string]: 0 | 1 }, collectionName = "newDocuments"): Promise<mongodb.Cursor> {
+        public query(query: { [key: string]: any }, projection?: { [key: string]: 0 | 1 }, collectionName = DocumentsCollection): Promise<mongodb.Cursor> {
             if (this.db) {
                 let cursor = this.db.collection(collectionName).find(query);
                 if (projection) {
@@ -252,7 +266,7 @@ export namespace Database {
             }
         }
 
-        public updateMany(query: any, update: any, collectionName = "newDocuments") {
+        public updateMany(query: any, update: any, collectionName = DocumentsCollection) {
             if (this.db) {
                 const db = this.db;
                 return new Promise<mongodb.WriteOpResult>(res => db.collection(collectionName).update(query, update, (_, result) => res(result)));
@@ -277,12 +291,13 @@ export namespace Database {
         }
     }
 
-    export const Instance: IDatabase = getDatabase();
+    export const Instance = getDatabase();
 
     export namespace Auxiliary {
 
         export enum AuxiliaryCollections {
-            GooglePhotosUploadHistory = "uploadedFromGooglePhotos"
+            GooglePhotosUploadHistory = "uploadedFromGooglePhotos",
+            GoogleAuthentication = "googleAuthentication"
         }
 
         const SanitizedCappedQuery = async (query: { [key: string]: any }, collection: string, cap: number, removeId = true) => {
@@ -306,27 +321,30 @@ export namespace Database {
 
         export namespace GoogleAuthenticationToken {
 
-            const GoogleAuthentication = "googleAuthentication";
-
-            export type StoredCredentials = Credentials & { _id: string };
+            type StoredCredentials = GoogleApiServerUtils.EnrichedCredentials & { _id: string };
 
             export const Fetch = async (userId: string, removeId = true): Promise<Opt<StoredCredentials>> => {
-                return SanitizedSingletonQuery<StoredCredentials>({ userId }, GoogleAuthentication, removeId);
+                return SanitizedSingletonQuery<StoredCredentials>({ userId }, AuxiliaryCollections.GoogleAuthentication, removeId);
             };
 
             export const Write = async (userId: string, enrichedCredentials: GoogleApiServerUtils.EnrichedCredentials) => {
-                return Instance.insert({ userId, canAccess: [], ...enrichedCredentials }, GoogleAuthentication);
+                return Instance.insert({ userId, canAccess: [], ...enrichedCredentials }, AuxiliaryCollections.GoogleAuthentication);
             };
 
             export const Update = async (userId: string, access_token: string, expiry_date: number) => {
                 const entry = await Fetch(userId, false);
                 if (entry) {
                     const parameters = { $set: { access_token, expiry_date } };
-                    return Instance.update(entry._id, parameters, emptyFunction, true, GoogleAuthentication);
+                    return Instance.update(entry._id, parameters, emptyFunction, true, AuxiliaryCollections.GoogleAuthentication);
                 }
             };
 
-            export const DeleteAll = () => Instance.deleteAll(GoogleAuthentication, false);
+            export const Revoke = async (userId: string) => {
+                const entry = await Fetch(userId, false);
+                if (entry) {
+                    Instance.delete({ _id: entry._id }, AuxiliaryCollections.GoogleAuthentication);
+                }
+            };
 
         }
 
@@ -336,12 +354,6 @@ export namespace Database {
                 ...information
             };
             return Instance.insert(bundle, AuxiliaryCollections.GooglePhotosUploadHistory);
-        };
-
-        export const DeleteAll = async (persist = false) => {
-            const collectionNames = Object.values(AuxiliaryCollections);
-            const pendingDeletions = collectionNames.map(name => Instance.deleteAll(name, persist));
-            return Promise.all(pendingDeletions);
         };
 
     }

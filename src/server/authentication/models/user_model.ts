@@ -74,9 +74,9 @@ userSchema.pre("save", function save(next) {
 
 const comparePassword: comparePasswordFunction = function (this: DashUserModel, candidatePassword, cb) {
     // Choose one of the following bodies for authentication logic.
-    // secure
+    // secure (expected, default)
     bcrypt.compare(candidatePassword, this.password, cb);
-    // bypass password
+    // bypass password (debugging)
     // cb(undefined, true);
 };
 

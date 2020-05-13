@@ -81,9 +81,9 @@ export class ScriptBox extends React.Component<ScriptBoxProps> {
         );
     }
     //let l = docList(this.source[0].data).length; if (l) { let ind = this.target[0].index !== undefined ? (this.target[0].index+1) % l : 0;  this.target[0].index = ind;  this.target[0].proto = getProto(docList(this.source[0].data)[ind]);}
-    public static EditButtonScript(title: string, doc: Doc, fieldKey: string, clientX: number, clientY: number, contextParams?: { [name: string]: string }) {
+    public static EditButtonScript(title: string, doc: Doc, fieldKey: string, clientX: number, clientY: number, contextParams?: { [name: string]: string }, defaultScript?: ScriptField) {
         let overlayDisposer: () => void = emptyFunction;
-        const script = ScriptCast(doc[fieldKey]);
+        const script = ScriptCast(doc[fieldKey]) || defaultScript;
         let originalText: string | undefined = undefined;
         if (script) {
             originalText = script.script.originalScript;

@@ -136,7 +136,7 @@ function Run(script: string | undefined, customParams: string[], diagnostics: an
             if (batch) {
                 batch.end();
             }
-            onError && onError(error);
+            onError?.(error);
             return { success: false, error, result: errorVal };
         }
     };

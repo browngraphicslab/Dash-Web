@@ -7,8 +7,9 @@ import React = require("react");
 import v5 = require("uuid/v5");
 import { DocumentType } from "../../../documents/DocumentTypes";
 import { observable, action, reaction, IReactionDisposer } from "mobx";
-import { StrCast } from "../../../../new_fields/Types";
+import { StrCast, Cast } from "../../../../new_fields/Types";
 import { Id } from "../../../../new_fields/FieldSymbols";
+import { SnappingManager } from "../../../util/SnappingManager";
 
 export interface CollectionFreeFormLinkViewProps {
     A: DocumentView;
@@ -24,6 +25,7 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
     componentDidMount() {
         this._anchorDisposer = reaction(() => [this.props.A.props.ScreenToLocalTransform(), this.props.B.props.ScreenToLocalTransform(), this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document), this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document)],
             action(() => {
+                if (SnappingManager.GetIsDragging()) return;
                 setTimeout(action(() => this._opacity = 1), 0); // since the render code depends on querying the Dom through getBoudndingClientRect, we need to delay triggering render()
                 setTimeout(action(() => (!this.props.LinkDocs.length || !this.props.LinkDocs[0].linkDisplay) && (this._opacity = 0.05)), 750); // this will unhighlight the link line.
                 const acont = this.props.A.props.Document.type === DocumentType.LINK ? this.props.A.ContentDiv!.getElementsByClassName("linkAnchorBox-cont") : [];
@@ -40,7 +42,7 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
                 const bpt = Utils.closestPtBetweenRectangles(bbounds.left, bbounds.top, bbounds.width, bbounds.height,
                     abounds.left, abounds.top, abounds.width, abounds.height,
                     apt.point.x, apt.point.y);
-                const afield = StrCast(this.props.A.props.Document[StrCast(this.props.A.props.layoutKey, "layout")]).indexOf("anchor1") === -1 ? "anchor2" : "anchor1";
+                const afield = this.props.A.props.LayoutTemplateString?.indexOf("anchor1") === -1 ? "anchor2" : "anchor1";
                 const bfield = afield === "anchor1" ? "anchor2" : "anchor1";
 
                 // really hacky stuff to make the LinkAnchorBox display where we want it to:
@@ -79,11 +81,11 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
     componentWillUnmount() {
         this._anchorDisposer?.();
     }
-
     render() {
+        if (SnappingManager.GetIsDragging()) return null;
         this.props.A.props.ScreenToLocalTransform().transform(this.props.B.props.ScreenToLocalTransform());
-        const acont = this.props.A.props.Document.type === DocumentType.LINK ? this.props.A.ContentDiv!.getElementsByClassName("linkAnchorBox-cont") : [];
-        const bcont = this.props.B.props.Document.type === DocumentType.LINK ? this.props.B.ContentDiv!.getElementsByClassName("linkAnchorBox-cont") : [];
+        const acont = this.props.A.ContentDiv!.getElementsByClassName("linkAnchorBox-cont");
+        const bcont = this.props.B.ContentDiv!.getElementsByClassName("linkAnchorBox-cont");
         const a = (acont.length ? acont[0] : this.props.A.ContentDiv!).getBoundingClientRect();
         const b = (bcont.length ? bcont[0] : this.props.B.ContentDiv!).getBoundingClientRect();
         const apt = Utils.closestPtBetweenRectangles(a.left, a.top, a.width, a.height,
@@ -105,15 +107,11 @@ export class CollectionFreeFormLinkView extends React.Component<CollectionFreeFo
         const bActive = this.props.A.isSelected() || Doc.IsBrushed(this.props.A.props.Document);
         const text = StrCast(this.props.A.props.Document.linkRelationship);
         return !a.width || !b.width || ((!this.props.LinkDocs.length || !this.props.LinkDocs[0].linkDisplay) && !aActive && !bActive) ? (null) : (<>
-            <text x={(pt1[0] + pt2[0]) / 2} y={(pt1[1] + pt2[1]) / 2}>
+            <text x={(Math.min(pt1[0], pt2[0]) * 2 + Math.max(pt1[0], pt2[0])) / 3} y={(pt1[1] + pt2[1]) / 2}>
                 {text !== "-ungrouped-" ? text : ""}
             </text>
             <path className="collectionfreeformlinkview-linkLine" style={{ opacity: this._opacity, strokeDasharray: "2 2" }}
                 d={`M ${pt1[0]} ${pt1[1]} C ${pt1[0] + pt1norm[0]} ${pt1[1] + pt1norm[1]}, ${pt2[0] + pt2norm[0]} ${pt2[1] + pt2norm[1]}, ${pt2[0]} ${pt2[1]}`} />
-            {/* <line key="linkLine" className="collectionfreeformlinkview-linkLine"
-                style={{ opacity: this._opacity, strokeDasharray: "2 2" }}
-                x1={`${pt1[0]}`} y1={`${pt1[1]}`}
-                x2={`${pt2[0]}`} y2={`${pt2[1]}`} /> */}
         </>);
     }
 }

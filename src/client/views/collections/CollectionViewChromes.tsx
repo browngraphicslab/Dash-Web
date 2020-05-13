@@ -44,9 +44,9 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
         initialize: emptyFunction,
     };
     _narrativeCommand = {
-        params: ["target", "source"], title: "=> click item view",
-        script: "this.target.childDetailView = getDocTemplate(this.source?.[0])",
-        immediate: (source: Doc[]) => this.target.childDetailView = Doc.getDocTemplate(source?.[0]),
+        params: ["target", "source"], title: "=> click clicked open view",
+        script: "this.target.childClickedOpenTemplateView = getDocTemplate(this.source?.[0])",
+        immediate: (source: Doc[]) => this.target.childClickedOpenTemplateView = Doc.getDocTemplate(source?.[0]),
         initialize: emptyFunction,
     };
     _contentCommand = {

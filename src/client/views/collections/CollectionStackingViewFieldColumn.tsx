@@ -13,7 +13,6 @@ import { ImageField } from "../../../new_fields/URLField";
 import { TraceMobx } from "../../../new_fields/util";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
-import { SelectionManager } from "../../util/SelectionManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
 import { ContextMenu } from "../ContextMenu";
@@ -23,6 +22,7 @@ import { CollectionStackingView } from "./CollectionStackingView";
 import { setupMoveUpEvents, emptyFunction } from "../../../Utils";
 import "./CollectionStackingView.scss";
 import { listSpec } from "../../../new_fields/Schema";
+import { SnappingManager } from "../../util/SnappingManager";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -120,7 +120,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
 
     @action
     pointerEntered = () => {
-        if (SelectionManager.GetIsDragging()) {
+        if (SnappingManager.GetIsDragging()) {
             this._background = "#b4b4b4";
         }
     }
@@ -322,11 +322,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                 <div className="collectionStackingView-sectionHeader-subCont" onPointerDown={this.headerDown}
                     title={evContents === `NO ${key.toUpperCase()} VALUE` ?
                         `Documents that don't have a ${key} value will go here. This column cannot be removed.` : ""}
-                    style={{
-                        width: "100%",
-                        background: evContents !== `NO ${key.toUpperCase()} VALUE` ? this._color : "inherit",
-                        color: "grey"
-                    }}>
+                    style={{ background: evContents !== `NO ${key.toUpperCase()} VALUE` ? this._color : "inherit" }}>
                     <EditableView {...headerEditableViewProps} />
                     {evContents === `NO ${key.toUpperCase()} VALUE` ? (null) :
                         <div className="collectionStackingView-sectionColor">
@@ -359,7 +355,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
             <div className="collectionStackingViewFieldColumn" key={heading}
                 style={{
                     width: `${100 / ((uniqueHeadings.length + ((chromeStatus !== 'view-mode' && chromeStatus !== 'disabled') ? 1 : 0)) || 1)}%`,
-                    height: undefined, // SelectionManager.GetIsDragging() ? "100%" : undefined,
+                    height: undefined, // DraggingManager.GetIsDragging() ? "100%" : undefined,
                     background: this._background
                 }}
                 ref={this.createColumnDropRef} onPointerEnter={this.pointerEntered} onPointerLeave={this.pointerLeave}>

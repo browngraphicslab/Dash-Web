@@ -94,7 +94,7 @@ export class ParentDocSelector extends React.Component<SelectorProps> {
 }
 
 @observer
-export class DockingViewButtonSelector extends React.Component<{ views: DocumentView[], Stack: any }> {
+export class DockingViewButtonSelector extends React.Component<{ views: () => DocumentView[], Stack: any }> {
     customStylesheet(styles: any) {
         return {
             ...styles,
@@ -120,7 +120,7 @@ export class DockingViewButtonSelector extends React.Component<{ views: Document
                 if (getComputedStyle(this._ref.current!).width !== "100%") {
                     e.stopPropagation(); e.preventDefault();
                 }
-                this.props.views[0]?.select(false);
+                this.props.views()[0]?.select(false);
             }} className="buttonSelector">
             <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={this.flyout} stylesheet={this.customStylesheet}>
                 <FontAwesomeIcon icon={"cog"} size={"sm"} />

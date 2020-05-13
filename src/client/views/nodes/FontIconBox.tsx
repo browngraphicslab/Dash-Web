@@ -10,6 +10,7 @@ import { Utils } from "../../../Utils";
 import { runInAction, observable, reaction, IReactionDisposer } from 'mobx';
 import { Doc } from '../../../new_fields/Doc';
 import { ContextMenu } from '../ContextMenu';
+import { ScriptField } from '../../../new_fields/ScriptField';
 const FontIconSchema = createSchema({
     icon: "string"
 });
@@ -23,7 +24,7 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
     _ref: React.RefObject<HTMLButtonElement> = React.createRef();
     _backgroundReaction: IReactionDisposer | undefined;
     componentDidMount() {
-        this._backgroundReaction = reaction(() => this.props.Document.backgroundColor,
+        this._backgroundReaction = reaction(() => this.layoutDoc.backgroundColor,
             () => {
                 if (this._ref && this._ref.current) {
                     const col = Utils.fromRGBAstr(getComputedStyle(this._ref.current).backgroundColor);
@@ -35,13 +36,21 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
     }
 
     showTemplate = (): void => {
-        const dragFactory = Cast(this.props.Document.dragFactory, Doc, null);
+        const dragFactory = Cast(this.layoutDoc.dragFactory, Doc, null);
         dragFactory && this.props.addDocTab(dragFactory, "onRight");
+    }
+    dragAsTemplate = (): void => {
+        this.layoutDoc.onDragStart = ScriptField.MakeFunction('getCopy(this.dragFactory, true)');
+    }
+    useAsPrototype = (): void => {
+        this.layoutDoc.onDragStart = ScriptField.MakeFunction('makeDelegate(this.dragFactory, true)');
     }
 
     specificContextMenu = (): void => {
         const cm = ContextMenu.Instance;
         cm.addItem({ description: "Show Template", event: this.showTemplate, icon: "tag" });
+        cm.addItem({ description: "Use as Render Template", event: this.dragAsTemplate, icon: "tag" });
+        cm.addItem({ description: "Use as Prototype", event: this.useAsPrototype, icon: "tag" });
     }
 
     componentWillUnmount() {
@@ -49,12 +58,12 @@ export class FontIconBox extends DocComponent<FieldViewProps, FontIconDocument>(
     }
 
     render() {
-        const referenceDoc = (this.props.Document.dragFactory instanceof Doc ? this.props.Document.dragFactory : this.props.Document);
+        const referenceDoc = (this.layoutDoc.dragFactory instanceof Doc ? this.layoutDoc.dragFactory : this.layoutDoc);
         const referenceLayout = Doc.Layout(referenceDoc);
-        return <button className="fontIconBox-outerDiv" title={StrCast(this.props.Document.title)} ref={this._ref} onContextMenu={this.specificContextMenu}
+        return <button className="fontIconBox-outerDiv" title={StrCast(this.layoutDoc.title)} ref={this._ref} onContextMenu={this.specificContextMenu}
             style={{
                 background: StrCast(referenceLayout.backgroundColor),
-                boxShadow: this.props.Document.ischecked ? `4px 4px 12px black` : undefined
+                boxShadow: this.layoutDoc.ischecked ? `4px 4px 12px black` : undefined
             }}>
             <FontAwesomeIcon className="fontIconBox-icon" icon={this.dataDoc.icon as any} color={this._foregroundColor} size="sm" />
             {!this.rootDoc.label ? (null) : <div className="fontIconBox-label"> {StrCast(this.rootDoc.label).substring(0, 5)} </div>}

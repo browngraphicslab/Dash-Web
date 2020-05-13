@@ -3,6 +3,8 @@
 
 .webBox-container, .webBox-container-dragging {
     transform-origin: top left;
+    width: 100%;
+    height: 100%;
     .webBox-outerContent {
         width: 100%;
         height: 100%;
@@ -66,8 +68,6 @@
     opacity: 0.9;
     z-index: 9001;
     transition: top .5s;
-    padding: 10px;
-
 
     .urlEditor {
         display: grid;

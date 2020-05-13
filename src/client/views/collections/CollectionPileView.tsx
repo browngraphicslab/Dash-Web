@@ -12,6 +12,7 @@ import React = require("react");
 import { setupMoveUpEvents, emptyFunction, returnFalse } from "../../../Utils";
 import { SelectionManager } from "../../util/SelectionManager";
 import { UndoManager } from "../../util/UndoManager";
+import { SnappingManager } from "../../util/SnappingManager";
 
 @observer
 export class CollectionPileView extends CollectionSubView(doc => doc) {
@@ -53,7 +54,7 @@ export class CollectionPileView extends CollectionSubView(doc => doc) {
     toggleStarburst = action(() => {
         if (this._layoutEngine === 'starburst') {
             const defaultSize = 110;
-            this.layoutDoc.overflow = undefined;
+            this.layoutDoc._overflow = undefined;
             this.rootDoc.x = NumCast(this.rootDoc.x) + this.layoutDoc[WidthSym]() / 2 - NumCast(this.layoutDoc._starburstPileWidth, defaultSize) / 2;
             this.rootDoc.y = NumCast(this.rootDoc.y) + this.layoutDoc[HeightSym]() / 2 - NumCast(this.layoutDoc._starburstPileHeight, defaultSize) / 2;
             this.layoutDoc._width = NumCast(this.layoutDoc._starburstPileWidth, defaultSize);
@@ -61,7 +62,7 @@ export class CollectionPileView extends CollectionSubView(doc => doc) {
             this._layoutEngine = 'pass';
         } else {
             const defaultSize = 25;
-            this.layoutDoc.overflow = 'visible';
+            this.layoutDoc._overflow = 'visible';
             !this.layoutDoc._starburstRadius && (this.layoutDoc._starburstRadius = 500);
             !this.layoutDoc._starburstDocScale && (this.layoutDoc._starburstDocScale = 2.5);
             if (this._layoutEngine === 'pass') {
@@ -78,7 +79,7 @@ export class CollectionPileView extends CollectionSubView(doc => doc) {
     _undoBatch: UndoManager.Batch | undefined;
     pointerDown = (e: React.PointerEvent) => {
         let dist = 0;
-        SelectionManager.SetIsDragging(true);
+        SnappingManager.SetIsDragging(true);
         // this._lastTap should be set to 0, and this._doubleTap should be set to false in the class header
         setupMoveUpEvents(this, e, (e: PointerEvent, down: number[], delta: number[]) => {
             if (this.layoutEngine() === "pass" && this.childDocs.length && this.props.isSelected(true)) {
@@ -98,7 +99,7 @@ export class CollectionPileView extends CollectionSubView(doc => doc) {
         }, () => {
             this._undoBatch?.end();
             this._undoBatch = undefined;
-            SelectionManager.SetIsDragging(false);
+            SnappingManager.SetIsDragging(false);
             if (!this.childDocs.length) {
                 this.props.ContainingCollectionView?.removeDocument(this.props.Document);
             }

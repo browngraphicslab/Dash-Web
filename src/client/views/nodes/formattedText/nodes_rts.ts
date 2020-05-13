@@ -166,7 +166,8 @@ export const nodes: { [index: string]: NodeSpec } = {
         inline: true,
         attrs: {
             fieldKey: { default: "" },
-            docid: { default: "" }
+            docid: { default: "" },
+            hideKey: { default: false }
         },
         group: "inline",
         draggable: false,

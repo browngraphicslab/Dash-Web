@@ -29,6 +29,7 @@ import FaceRectangles from './FaceRectangles';
 import { FieldView, FieldViewProps } from './FieldView';
 import "./ImageBox.scss";
 import React = require("react");
+import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
 const requestImageSize = require('../../util/request-image-size');
 const path = require('path');
 const { Howl } = require('howler');
@@ -157,21 +158,22 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
         const field = Cast(this.dataDoc[this.fieldKey], ImageField);
         if (field) {
             const funcs: ContextMenuProps[] = [];
-            funcs.push({ description: "Copy path", event: () => Utils.CopyText(field.url.href), icon: "expand-arrows-alt" });
             funcs.push({ description: "Rotate", event: this.rotate, icon: "expand-arrows-alt" });
-            funcs.push({
-                description: "Reset Native Dimensions", event: action(async () => {
-                    const curNW = NumCast(this.dataDoc[this.fieldKey + "-nativeWidth"]);
-                    const curNH = NumCast(this.dataDoc[this.fieldKey + "-nativeHeight"]);
-                    if (this.props.PanelWidth() / this.props.PanelHeight() > curNW / curNH) {
-                        this.dataDoc[this.fieldKey + "-nativeWidth"] = this.props.PanelHeight() * curNW / curNH;
-                        this.dataDoc[this.fieldKey + "-nativeHeight"] = this.props.PanelHeight();
-                    } else {
-                        this.dataDoc[this.fieldKey + "-nativeWidth"] = this.props.PanelWidth();
-                        this.dataDoc[this.fieldKey + "-nativeHeight"] = this.props.PanelWidth() * curNH / curNW;
-                    }
-                }), icon: "expand-arrows-alt"
-            });
+            funcs.push({ description: "Export to Google Photos", event: () => GooglePhotos.Transactions.UploadImages([this.props.Document]), icon: "caret-square-right" });
+            funcs.push({ description: "Copy path", event: () => Utils.CopyText(field.url.href), icon: "expand-arrows-alt" });
+            // funcs.push({
+            //     description: "Reset Native Dimensions", event: action(async () => {
+            //         const curNW = NumCast(this.dataDoc[this.fieldKey + "-nativeWidth"]);
+            //         const curNH = NumCast(this.dataDoc[this.fieldKey + "-nativeHeight"]);
+            //         if (this.props.PanelWidth() / this.props.PanelHeight() > curNW / curNH) {
+            //             this.dataDoc[this.fieldKey + "-nativeWidth"] = this.props.PanelHeight() * curNW / curNH;
+            //             this.dataDoc[this.fieldKey + "-nativeHeight"] = this.props.PanelHeight();
+            //         } else {
+            //             this.dataDoc[this.fieldKey + "-nativeWidth"] = this.props.PanelWidth();
+            //             this.dataDoc[this.fieldKey + "-nativeHeight"] = this.props.PanelWidth() * curNH / curNW;
+            //         }
+            //     }), icon: "expand-arrows-alt"
+            // });
 
             const existingAnalyze = ContextMenu.Instance.findByDescription("Analyzers...");
             const modes: ContextMenuProps[] = existingAnalyze && "subitems" in existingAnalyze ? existingAnalyze.subitems : [];
@@ -181,6 +183,11 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
             !existingAnalyze && ContextMenu.Instance.addItem({ description: "Analyzers...", subitems: modes, icon: "hand-point-right" });
 
             ContextMenu.Instance.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
+
+
+            const existingMore = ContextMenu.Instance.findByDescription("More...");
+            const mores: ContextMenuProps[] = existingMore && "subitems" in existingMore ? existingMore.subitems : [];
+            !existingMore && ContextMenu.Instance.addItem({ description: "More...", subitems: mores, icon: "hand-point-right" });
         }
     }
 
@@ -249,9 +256,10 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
     _curSuffix = "_m";
 
     resize = (imgPath: string) => {
+        const basePath = imgPath.replace(/_[oms]./, "");
         const cachedNativeSize = {
-            width: imgPath === this.dataDoc[this.fieldKey + "-path"] ? NumCast(this.dataDoc[this.fieldKey + "-nativeWidth"]) : 0,
-            height: imgPath === this.dataDoc[this.fieldKey + "-path"] ? NumCast(this.dataDoc[this.fieldKey + "-nativeHeight"]) : 0,
+            width: basePath === this.dataDoc[this.fieldKey + "-path"] ? NumCast(this.dataDoc[this.fieldKey + "-nativeWidth"]) : 0,
+            height: basePath === this.dataDoc[this.fieldKey + "-path"] ? NumCast(this.dataDoc[this.fieldKey + "-nativeHeight"]) : 0,
         };
         const docAspect = this.layoutDoc[HeightSym]() / this.layoutDoc[WidthSym]();
         const cachedAspect = cachedNativeSize.height / cachedNativeSize.width;
@@ -265,7 +273,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
                         this.layoutDoc._height = this.layoutDoc[WidthSym]() * rotatedAspect;
                         this.dataDoc[this.fieldKey + "-nativeWidth"] = this.layoutDoc._nativeWidth = this.layoutDoc._width;
                         this.dataDoc[this.fieldKey + "-nativeHeight"] = this.layoutDoc._nativeHeight = this.layoutDoc._height;
-                        this.dataDoc[this.fieldKey + "-path"] = imgPath;
+                        this.dataDoc[this.fieldKey + "-path"] = basePath;
                     }
                 })).catch(console.log);
             } else if (Math.abs(1 - docAspect / cachedAspect) > 0.1) {

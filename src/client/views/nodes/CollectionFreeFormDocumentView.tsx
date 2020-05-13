@@ -7,20 +7,15 @@ import { DocComponent } from "../DocComponent";
 import "./CollectionFreeFormDocumentView.scss";
 import { DocumentView, DocumentViewProps } from "./DocumentView";
 import React = require("react");
-import { PositionDocument } from "../../../new_fields/documentSchemas";
+import { Document } from "../../../new_fields/documentSchemas";
 import { TraceMobx } from "../../../new_fields/util";
 import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     dataProvider?: (doc: Doc, replica: string) => { x: number, y: number, zIndex?: number, highlight?: boolean, z: number, transition?: string } | undefined;
     sizeProvider?: (doc: Doc, replica: string) => { width: number, height: number } | undefined;
-    x?: number;
-    y?: number;
-    z?: number;
     zIndex?: number;
     highlight?: boolean;
-    width?: number;
-    height?: number;
     jitterRotation: number;
     transition?: string;
     fitToBox?: boolean;
@@ -28,7 +23,7 @@ export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
 }
 
 @observer
-export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeFormDocumentViewProps, PositionDocument>(PositionDocument) {
+export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeFormDocumentViewProps, Document>(Document) {
     @observable _animPos: number[] | undefined = undefined;
     random(min: number, max: number) { // min should not be equal to max
         const mseed = Math.abs(this.X * this.Y);
@@ -38,13 +33,13 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     }
     get displayName() { return "CollectionFreeFormDocumentView(" + this.props.Document.title + ")"; } // this makes mobx trace() statements more descriptive
     get transform() { return `scale(${this.props.ContentScaling()}) translate(${this.X}px, ${this.Y}px) rotate(${this.random(-1, 1) * this.props.jitterRotation}deg)`; }
-    get X() { return this.renderScriptDim ? this.renderScriptDim.x : this.props.x !== undefined ? this.props.x : this.dataProvider ? this.dataProvider.x : (this.Document.x || 0); }
-    get Y() { return this.renderScriptDim ? this.renderScriptDim.y : this.props.y !== undefined ? this.props.y : this.dataProvider ? this.dataProvider.y : (this.Document.y || 0); }
+    get X() { return this.dataProvider ? this.dataProvider.x : (this.Document.x || 0); }
+    get Y() { return this.dataProvider ? this.dataProvider.y : (this.Document.y || 0); }
     get ZInd() { return this.dataProvider ? this.dataProvider.zIndex : (this.Document.zIndex || 0); }
     get Highlight() { return this.dataProvider?.highlight; }
-    get width() { return this.renderScriptDim ? this.renderScriptDim.width : this.props.width !== undefined ? this.props.width : this.props.sizeProvider && this.sizeProvider ? this.sizeProvider.width : this.layoutDoc[WidthSym](); }
+    get width() { return this.props.sizeProvider && this.sizeProvider ? this.sizeProvider.width : this.layoutDoc[WidthSym](); }
     get height() {
-        const hgt = this.renderScriptDim ? this.renderScriptDim.height : this.props.height !== undefined ? this.props.height : this.props.sizeProvider && this.sizeProvider ? this.sizeProvider.height : this.layoutDoc[HeightSym]();
+        const hgt = this.props.sizeProvider && this.sizeProvider ? this.sizeProvider.height : this.layoutDoc[HeightSym]();
         return (hgt === undefined && this.nativeWidth && this.nativeHeight) ? this.width * this.nativeHeight / this.nativeWidth : hgt;
     }
     @computed get freezeDimensions() { return this.props.FreezeDimensions; }
@@ -75,10 +70,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     contentScaling = () => this.nativeWidth > 0 && !this.props.fitToBox && !this.freezeDimensions ? this.width / this.nativeWidth : 1;
     panelWidth = () => (this.sizeProvider?.width || this.props.PanelWidth?.());
     panelHeight = () => (this.sizeProvider?.height || this.props.PanelHeight?.());
-    getTransform = (): Transform => this.props.ScreenToLocalTransform()
-        .translate(-this.X, -this.Y)
-        .scale(1 / this.contentScaling())
-
+    getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.X, -this.Y).scale(1 / this.contentScaling());
     focusDoc = (doc: Doc) => this.props.focus(doc, false);
     NativeWidth = () => this.nativeWidth;
     NativeHeight = () => this.nativeHeight;
@@ -115,13 +107,11 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                     PanelWidth={this.panelWidth}
                     PanelHeight={this.panelHeight} />
                 : <ContentFittingDocumentView {...this.props}
-                    CollectionDoc={this.props.ContainingCollectionDoc}
-                    DataDocument={this.props.DataDoc}
-                    getTransform={this.getTransform}
+                    ContainingCollectionDoc={this.props.ContainingCollectionDoc}
+                    DataDoc={this.props.DataDoc}
+                    ScreenToLocalTransform={this.getTransform}
                     NativeHeight={this.NativeHeight}
                     NativeWidth={this.NativeWidth}
-                    active={this.props.parentActive}
-                    focus={this.focusDoc}
                     PanelWidth={this.panelWidth}
                     PanelHeight={this.panelHeight}
                 />}

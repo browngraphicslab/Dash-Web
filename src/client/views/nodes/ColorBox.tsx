@@ -24,7 +24,7 @@ export class ColorBox extends ViewBoxBaseComponent<FieldViewProps, ColorDocument
             onPointerDown={e => e.button === 0 && !e.ctrlKey && e.stopPropagation()}
             style={{ transform: `scale(${this.props.ContentScaling()})`, width: `${100 / this.props.ContentScaling()}%`, height: `${100 / this.props.ContentScaling()}%` }} >
 
-            <SketchPicker onChange={InkingControl.Instance.switchColor}
+            <SketchPicker onChange={InkingControl.Instance.switchColor} presetColors={['#D0021B', '#F5A623', '#F8E71C', '#8B572A', '#7ED321', '#417505', '#9013FE', '#4A90E2', '#50E3C2', '#B8E986', '#000000', '#4A4A4A', '#9B9B9B', '#FFFFFF', '#f1efeb', 'transparent']}
                 color={StrCast(CurrentUserUtils.ActivePen ? CurrentUserUtils.ActivePen.backgroundColor : undefined,
                     StrCast(selDoc?._backgroundColor, StrCast(selDoc?.backgroundColor, "black")))} />
         </div>;

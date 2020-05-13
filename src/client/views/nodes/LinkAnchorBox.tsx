@@ -17,7 +17,6 @@ import { LinkEditor } from "../linking/LinkEditor";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { SelectionManager } from "../../util/SelectionManager";
 import { TraceMobx } from "../../../new_fields/util";
-import { DocumentView } from "./DocumentView";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;

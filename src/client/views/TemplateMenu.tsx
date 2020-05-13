@@ -113,8 +113,8 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     render() {
         const firstDoc = this.props.docViews[0].props.Document;
         const templateName = StrCast(firstDoc.layoutKey, "layout").replace("layout_", "");
-        const noteTypes = DocListCast(Cast(Doc.UserDoc()["template-notes"], Doc, null));
-        const addedTypes = DocListCast(Cast(Doc.UserDoc().templateButtons, Doc, null)?.data);
+        const noteTypes = DocListCast(Cast(Doc.UserDoc()["template-notes"], Doc, null)?.data);
+        const addedTypes = DocListCast(Cast(Doc.UserDoc()["template-buttons"], Doc, null)?.data);
         const layout = Doc.Layout(firstDoc);
         const templateMenu: Array<JSX.Element> = [];
         this.props.templates.forEach((checked, template) =>
@@ -158,9 +158,9 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
                 annotationsKey={""}
                 dontRegisterView={true}
                 fieldKey={"data"}
-                moveDocument={(doc: Doc) => false}
-                removeDocument={(doc: Doc) => false}
-                addDocument={(doc: Doc) => false} />
+                moveDocument={returnFalse}
+                removeDocument={returnFalse}
+                addDocument={returnFalse} />
         </ul>;
     }
 }
