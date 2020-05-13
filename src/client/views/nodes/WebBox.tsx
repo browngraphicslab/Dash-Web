@@ -308,18 +308,19 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         }
     }
 
+    //const href = "https://brown365-my.sharepoint.com/personal/bcz_ad_brown_edu/_layouts/15/Doc.aspx?sourcedoc={31aa3178-4c21-4474-b367-877d0a7135e4}&action=embedview&wdStartOn=1";
 
     @computed
     get content() {
         const field = this.dataDoc[this.props.fieldKey];
         let view;
         if (field instanceof HtmlField) {
-            view = <span id="webBox-htmlSpan" dangerouslySetInnerHTML={{ __html: field.html }} />;
+            view = <span className="webBox-htmlSpan" dangerouslySetInnerHTML={{ __html: field.html }} />;
         } else if (field instanceof WebField) {
             const url = this.layoutDoc.UseCors ? Utils.CorsProxy(field.url.href) : field.url.href;
-            view = <iframe ref={this._iframeRef} onLoad={this.iframeLoaded} src={url} style={{ position: "absolute", width: "100%", height: "100%", top: 0 }} />;
+            view = <iframe className="webBox-iframe" ref={this._iframeRef} src={url} onLoad={this.iframeLoaded} />;
         } else {
-            view = <iframe ref={this._iframeRef} src={"https://crossorigin.me/https://cs.brown.edu"} style={{ position: "absolute", width: "100%", height: "100%", top: 0 }} />;
+            view = <iframe className="webBox-iframe" ref={this._iframeRef} src={"https://crossorigin.me/https://cs.brown.edu"} />;
         }
 
         const decInteracting = DocumentDecorations.Instance?.Interacting;

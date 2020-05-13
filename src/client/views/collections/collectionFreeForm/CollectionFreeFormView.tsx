@@ -893,6 +893,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             FreezeDimensions: this.props.freezeChildDimensions,
             layoutKey: undefined,
             setupDragLines: this.setupDragLines,
+            dontRegisterView: this.props.dontRegisterView,
             rootSelected: childData ? this.rootSelected : returnFalse,
             dropAction: StrCast(this.props.Document.childDropAction) as dropActionType,
             onClick: this.onChildClickHandler,

@@ -319,6 +319,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                         childLayoutTemplate={this.childLayoutTemplate}
                         filterAddDocument={this.addDocumentFilter}
                         removeDocument={returnFalse}
+                        dontRegisterView={true}
                         focus={this.selectElement}
                         ScreenToLocalTransform={this.getTransform} />
                     : (null)
