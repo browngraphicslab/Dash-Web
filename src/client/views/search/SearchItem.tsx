@@ -144,21 +144,23 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
     @observable _selected: boolean = false;
 
     onClick = () => {
-        // I dont think this is the best functionality because clicking the name of the collection does that. Change it back if you'd like
         DocumentManager.Instance.jumpToDocument(this.targetDoc, false);
     }
     @observable _useIcons = true;
     @observable _displayDim = 50;
 
+    @computed get query() { return StrCast(this.lookupField("query")); }
+
     componentDidMount() {
-        Doc.SetSearchQuery(StrCast(this.targetDoc.query));
+
+        console.log(this.query);
+        Doc.SetSearchQuery(this.query);
         this.targetDoc.searchMatch = true;
     }
     componentWillUnmount() {
         this.targetDoc.searchMatch = undefined;
     }
 
-    //@computed
     @action
     public DocumentIcon() {
         const layoutresult = StrCast(this.targetDoc.type);
@@ -308,7 +310,8 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
                 <div className="searchItem-body" onClick={this.onClick}>
                     <div className="searchItem-title-container">
                         <div className="searchItem-title">{StrCast(this.targetDoc.title)}</div>
-                        {/* <div className="searchItem-highlighting">{this.props.highlighting!.length ? "Matched fields:" + this.targetDoc.highlighting!.join(", ") : this.props.lines.length ? this.props.lines[0] : ""}</div> */}
+                        <div className="searchItem-highlighting">{StrCast(this.targetDoc.highlighting).length ? "Matched fields:" + StrCast(this.targetDoc.highlighting) : //this.props.lines.length ? this.props.lines[0] : 
+                        ""}</div>
                         {/* {this.props.lines!.filter((m, i) => i).map((l, i) => <div id={i.toString()} className="searchItem-highlighting">`${l}`</div>)} */}
                     </div>
                 </div>

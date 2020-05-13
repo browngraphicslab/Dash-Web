@@ -116,12 +116,26 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         super(props);
         SearchBox.Instance = this;
         this.resultsScrolled = this.resultsScrolled.bind(this);
+        this.rootDoc._viewType = CollectionViewType.Stacking;
+
+       new PrefetchProxy(Docs.Create.SearchItemBoxDocument({ title: "search item template", 
+       backgroundColor: "transparent", _xMargin: 5, _height: 46, isTemplateDoc: true, isTemplateForField: "data" }));
+
+
+        if (!this.searchItemTemplate) { // create exactly one presElmentBox template to use by any and all presentations.
+            Doc.UserDoc().searchItemTemplate = new PrefetchProxy(Docs.Create.SearchItemBoxDocument({ title: "search item template", backgroundColor: "transparent", _xMargin: 5, _height: 46, isTemplateDoc: true, isTemplateForField: "data" }));
+            // this script will be called by each presElement to get rendering-specific info that the PresBox knows about but which isn't written to the PresElement
+            // this is a design choice -- we could write this data to the presElements which would require a reaction to keep it up to date, and it would prevent
+            // the preselement docs from being part of multiple presentations since they would all have the same field, or we'd have to keep per-presentation data
+            // stored on each pres element.  
+            (this.searchItemTemplate as Doc).lookupField = ScriptField.MakeFunction("lookupSearchBoxField(container, field, data)",
+                { field: "string", data: Doc.name, container: Doc.name });
+        }
     }
     @observable setupButtons =false;
     componentDidMount = () => {
         console.log(this.setupButtons);
         if (this.setupButtons==false){
-        console.log("Yuh");
             this.setupDocTypeButtons();
             this.setupKeyButtons();
             this.setupDefaultButtons();
@@ -144,7 +158,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             this.newAssign=false;
             });
             runInAction(() => {
-                this._searchString = StrCast(sq);
+                this.layoutDoc._searchString = StrCast(sq);
                 this.submitSearch();
             });
         }
@@ -156,7 +170,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     @action.bound
     onChange(e: React.ChangeEvent<HTMLInputElement>) {
-        this._searchString = e.target.value;
+        this.layoutDoc._searchString = e.target.value;
 
         this._openNoResults = false;
         this._results = [];
@@ -341,9 +355,9 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     @action
     submitSearch = async () => {
-        console.log(this._searchString);
+        console.log(StrCast(this.layoutDoc._searchString));
         this.dataDoc[this.fieldKey] = new List<Doc>([]);
-        const query = this._searchString;
+        const query = StrCast(this.layoutDoc._searchString);
         this.getFinalQuery(query);
         this._results = [];
         this._resultsSet.clear();
@@ -438,7 +452,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     collectionRef = React.createRef<HTMLSpanElement>();
     startDragCollection = async () => {
-        const res = await this.getAllResults(this.getFinalQuery(this._searchString));
+        const res = await this.getAllResults(this.getFinalQuery(StrCast(this.layoutDoc._searchString)));
         const filtered = this.filterDocsByType(res.docs);
         const docs = filtered.map(doc => {
             const isProto = Doc.GetT(doc, "isPrototype", "boolean", true);
@@ -478,7 +492,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             basicWordStatus: this._basicWordStatus,
             icons: this._icons,
         }
-        return Docs.Create.SearchDocument({ _autoHeight: true, title: this._searchString, filterQuery: filter, searchQuery: this._searchString });
+        return Docs.Create.SearchDocument({ _autoHeight: true, title: StrCast(this.layoutDoc._searchString), filterQuery: filter, searchQuery: StrCast(this.layoutDoc._searchString) });
     }
 
     @action.bound
@@ -550,16 +564,17 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                 if (this._isSearch[i] !== "search") {
                     let result: [Doc, string[], string[]] | undefined = undefined;
                     if (i >= this._results.length) {
-                        this.getResults(this._searchString);
+                        this.getResults(StrCast(this.layoutDoc._searchString));
                         if (i < this._results.length) result = this._results[i];
                         if (result) {
                             const highlights = Array.from([...Array.from(new Set(result[1]).values())]);
-                            result[0].query=this._searchString;
+                            result[0].query=StrCast(this.layoutDoc._searchString);
                             //Make alias
                             result[0].lines=new List<string>(result[2]);
-                            result[0].highlighting=new List<string>(highlights);
+                            result[0].highlighting=highlights.join(", ");
 
-                            this._visibleElements[i] = <SearchItem {...this.props} doc={result[0]} lines={result[2]} highlighting={highlights} />;
+                            this._visibleDocuments[i] = result[0];
+                            //<SearchItem {...this.props} doc={result[0]} lines={result[2]} highlighting={highlights} />;
                             result[0].targetDoc=result[0];
                             Doc.AddDocToList(this.dataDoc, this.props.fieldKey, result[0]);
                             this._isSearch[i] = "search";
@@ -569,11 +584,12 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                         result = this._results[i];
                         if (result) {
                             const highlights = Array.from([...Array.from(new Set(result[1]).values())]);
-                            result[0].query=this._searchString;
+                            result[0].query=StrCast(this.layoutDoc._searchString);
                             result[0].lines=new List<string>(result[2]);
-                            result[0].highlighting=new List<string>(highlights);
+                            result[0].highlighting=highlights.join(", ");
 
-                            this._visibleElements[i] = <SearchItem {...this.props} doc={result[0]} lines={result[2]} highlighting={highlights} />;
+                            //this._visibleElements[i] = <SearchItem {...this.props} doc={result[0]} lines={result[2]} highlighting={highlights} />;
+                            this._visibleDocuments[i]=result[0];
                             result[0].targetDoc=result[0];
                             Doc.AddDocToList(this.dataDoc, this.props.fieldKey, result[0])
                             this._isSearch[i] = "search";
@@ -901,7 +917,9 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         });
         doc.defaultButtons= dragCreators;
     }
-    childLayoutTemplate = () => this.layoutDoc._viewType === CollectionViewType.Stacking ? Cast(Doc.UserDoc().searchItemTemplate, Doc, null) : undefined;
+    @computed get searchItemTemplate() { return Cast(Doc.UserDoc().searchItemTemplate, Doc, null); }
+
+    childLayoutTemplate = () => this.layoutDoc._viewType === CollectionViewType.Stacking ? this.searchItemTemplate: undefined;
     getTransform = () => {
     return this.props.ScreenToLocalTransform().translate(-5, -65);// listBox padding-left and pres-box-cont minHeight
     }
@@ -923,10 +941,10 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         return (
             <div style={{pointerEvents:"all"}}className="searchBox-container">
                 <div className="searchBox-bar">
-                    <span className="searchBox-barChild searchBox-collection" onPointerDown={SetupDrag(this.collectionRef, () => this._searchString ? this.startDragCollection() : undefined)} ref={this.collectionRef} title="Drag Results as Collection">
+                    <span className="searchBox-barChild searchBox-collection" onPointerDown={SetupDrag(this.collectionRef, () => StrCast(this.layoutDoc._searchString) ? this.startDragCollection() : undefined)} ref={this.collectionRef} title="Drag Results as Collection">
                         <FontAwesomeIcon icon="object-group" size="lg" />
                     </span>
-                    <input value={this._searchString} onChange={this.onChange} type="text" placeholder="Search..." id="search-input" ref={this.inputRef}
+                    <input value={StrCast(this.layoutDoc._searchString)} onChange={this.onChange} type="text" placeholder="Search..." id="search-input" ref={this.inputRef}
                         className="searchBox-barChild searchBox-input" onPointerDown={this.openSearch} onKeyPress={this.enter} onFocus={this.openSearch}
                         style={{ width: this._searchbarOpen ? "500px" : "100px" }} />
                     <button className="searchBox-barChild searchBox-filter" style={{transform:"none"}} title="Advanced Filtering Options" onClick={() => this.handleFilterChange()}><FontAwesomeIcon icon="ellipsis-v" color="white" /></button>
@@ -981,3 +999,12 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 //     // if (dv?.props.Document.layoutKey === layoutKey) dv?.switchViews(otherKey !== "layout", otherKey.replace("layout_", ""));
 //     // else dv?.switchViews(true, layoutKey.replace("layout_", ""));
 // });
+
+Scripting.addGlobal(function lookupSearchBoxField(container: Doc, field: string, data: Doc) {
+    // if (field === 'indexInPres') return DocListCast(container[StrCast(container.presentationFieldKey)]).indexOf(data);
+    // if (field === 'presCollapsedHeight') return container._viewType === CollectionViewType.Stacking ? 50 : 46;
+    // if (field === 'presStatus') return container.presStatus;
+    // if (field === '_itemIndex') return container._itemIndex;
+        if (field == "query") return container._searchString;
+    return undefined;
+});
