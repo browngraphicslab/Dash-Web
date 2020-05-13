@@ -15,7 +15,7 @@ import { SearchUtil } from "../../util/SearchUtil";
 import { Transform } from "../../util/Transform";
 import { SEARCH_THUMBNAIL_SIZE } from "../../views/globalCssVariables.scss";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
-import { CollectionViewType } from "../collections/CollectionView";
+import { CollectionViewType, CollectionView } from "../collections/CollectionView";
 import { ParentDocSelector } from "../collections/ParentDocumentSelector";
 import { ContextMenu } from "../ContextMenu";
 import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
@@ -26,6 +26,10 @@ import { FieldViewProps, FieldView } from "../nodes/FieldView";
 import { ViewBoxBaseComponent } from "../DocComponent";
 import { makeInterface, createSchema } from "../../../new_fields/Schema";
 import { documentSchema } from "../../../new_fields/documentSchemas";
+import { PrefetchProxy } from "../../../new_fields/Proxy";
+import { Docs } from "../../documents/Documents";
+import { ScriptField } from "../../../new_fields/ScriptField";
+import { CollectionStackingView } from "../collections/CollectionStackingView";
 
 export interface SearchItemProps {
     doc: Doc;
@@ -53,6 +57,7 @@ export class SelectorContextMenu extends React.Component<SearchItemProps> {
     constructor(props: SearchItemProps) {
         super(props);
         this.fetchDocuments();
+        
     }
 
     async fetchDocuments() {
@@ -139,7 +144,24 @@ const SearchDocument = makeInterface(documentSchema);
 
 @observer
 export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchema>(SearchDocument) {
+    
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(SearchItem, fieldKey); }
+
+    constructor(props:any){
+        super(props);
+        this.targetDoc._viewType= CollectionViewType.Stacking;
+        this.rootDoc._viewType = CollectionViewType.Stacking;
+        if (!this.searchItemTemplate) { // create exactly one presElmentBox template to use by any and all presentations.
+            Doc.UserDoc().searchItemTemplate = new PrefetchProxy(Docs.Create.SearchItemBoxDocument({ title: "search item template", backgroundColor: "transparent", _xMargin: 5, _height: 46, isTemplateDoc: true, isTemplateForField: "data" }));
+            // this script will be called by each presElement to get rendering-specific info that the PresBox knows about but which isn't written to the PresElement
+            // this is a design choice -- we could write this data to the presElements which would require a reaction to keep it up to date, and it would prevent
+            // the preselement docs from being part of multiple presentations since they would all have the same field, or we'd have to keep per-presentation data
+            // stored on each pres element.  
+            (this.searchItemTemplate as Doc).lookupField = ScriptField.MakeFunction("lookupSearchBoxField(container, field, data)",
+                { field: "string", data: Doc.name, container: Doc.name });
+        }
+
+    }
 
     @observable _selected: boolean = false;
 
@@ -302,9 +324,41 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
     @computed get searchElementDoc() { return this.rootDoc; }
     @computed get targetDoc() { return this.searchElementDoc?.targetDoc as Doc; }
 
+    @computed get searchItemTemplate() { return Cast(Doc.UserDoc().searchItemTemplate, Doc, null); }
+    childLayoutTemplate = () => this.layoutDoc._viewType === CollectionViewType.Stacking ? this.searchItemTemplate: undefined;
+    getTransform = () => {
+    return this.props.ScreenToLocalTransform().translate(-5, -65);// listBox padding-left and pres-box-cont minHeight
+    }
+    panelHeight = () => {
+        return this.props.PanelHeight();
+    }
+    selectElement = (doc: Doc) => {
+        //this.gotoDocument(this.childDocs.indexOf(doc), NumCast(this.layoutDoc._itemIndex));
+    }
+
+    addDocument = (doc: Doc) => {
+        const newPinDoc = Doc.MakeAlias(doc);
+        newPinDoc.presentationTargetDoc = doc;
+        return Doc.AddDocToList(this.dataDoc, this.fieldKey, newPinDoc);
+    }
     render() {
         // const doc1 = Cast(this.targetDoc!.anchor1, Doc);
         // const doc2 = Cast(this.targetDoc!.anchor2, Doc);
+        if (this.targetDoc.isBucket === true){
+            this.props.Document._viewType=CollectionViewType.Stacking;  
+            this.props.Document._height=160;
+
+            return <CollectionView {...this.props}
+            Document={this.props.Document}
+            PanelHeight={this.panelHeight}
+            moveDocument={returnFalse}
+            childLayoutTemplate={this.childLayoutTemplate}
+            addDocument={this.addDocument}
+            removeDocument={returnFalse}
+            focus={this.selectElement}
+            ScreenToLocalTransform={this.getTransform} />
+        }
+        else {
         return <div className="searchItem-overview" onPointerDown={this.pointerDown} onContextMenu={this.onContextMenu}>
             <div className="searchItem" onPointerDown={this.nextHighlight} onPointerEnter={this.highlightDoc} onPointerLeave={this.unHighlightDoc}>
                 <div className="searchItem-body" onClick={this.onClick}>
@@ -327,5 +381,6 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
                 </div>
             </div>
         </div>;
+        }
     }
 } 

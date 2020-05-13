@@ -550,6 +550,14 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             // indicates if things are placeholders 
             this._isSearch = Array<undefined>(this._numTotalResults === -1 ? 0 : this._numTotalResults);
         }
+        let bucket = Docs.Create.StackingDocument([],{ _viewType:CollectionViewType.Stacking,title: `bucket` });
+        bucket.targetDoc = bucket;
+     
+        bucket._viewType === CollectionViewType.Stacking;
+
+        bucket.isBucket=true;
+
+        Doc.AddDocToList(this.dataDoc, this.props.fieldKey, bucket);
 
         for (let i = 0; i < this._numTotalResults; i++) {
             //if the index is out of the window then put a placeholder in
@@ -562,6 +570,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             }
             else {
                 if (this._isSearch[i] !== "search") {
+
                     let result: [Doc, string[], string[]] | undefined = undefined;
                     if (i >= this._results.length) {
                         this.getResults(StrCast(this.layoutDoc._searchString));
@@ -576,7 +585,8 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                             this._visibleDocuments[i] = result[0];
                             //<SearchItem {...this.props} doc={result[0]} lines={result[2]} highlighting={highlights} />;
                             result[0].targetDoc=result[0];
-                            Doc.AddDocToList(this.dataDoc, this.props.fieldKey, result[0]);
+                           
+                            Doc.AddDocToList(bucket, this.props.fieldKey, result[0]);
                             this._isSearch[i] = "search";
                         }
                     }
@@ -591,7 +601,8 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                             //this._visibleElements[i] = <SearchItem {...this.props} doc={result[0]} lines={result[2]} highlighting={highlights} />;
                             this._visibleDocuments[i]=result[0];
                             result[0].targetDoc=result[0];
-                            Doc.AddDocToList(this.dataDoc, this.props.fieldKey, result[0])
+
+                            Doc.AddDocToList(bucket, this.props.fieldKey, result[0]);
                             this._isSearch[i] = "search";
                         }
                     }
@@ -927,7 +938,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         return this.props.PanelHeight() - 50;
     }
     selectElement = (doc: Doc) => {
-        //this.gotoDocument(this.childDocs.indexOf(doc), NumCast(this.layoutDoc._itemIndex));
+        //this.gotoDocument(this.childDocs.indexOf(doc), NumCasst(this.layoutDoc._itemIndex));
     }
 
     addDocument = (doc: Doc) => {
@@ -972,11 +983,12 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                         Document={this.props.Document}
                         PanelHeight={this.panelHeight}
                         moveDocument={returnFalse}
+                        NativeHeight={()=>400}
                         childLayoutTemplate={this.childLayoutTemplate}
                         addDocument={this.addDocument}
                         removeDocument={returnFalse}
                         focus={this.selectElement}
-                        ScreenToLocalTransform={this.getTransform} />
+                        ScreenToLocalTransform={Transform.Identity} />
                 <div className="searchBox-results" onScroll={this.resultsScrolled} style={{
                     display: this._resultsOpen ? "flex" : "none",
                     height: this.resFull ? "auto" : this.resultHeight,

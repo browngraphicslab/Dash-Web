@@ -216,7 +216,7 @@ export namespace WebSocket {
         "script": ["_t", value => value.script.originalScript],
         "RichTextField": ["_t", value => value.Text],
         "date": ["_d", value => new Date(value.date).toISOString()],
-        "proxy": ["_i", "fieldId"],
+        // "proxy": ["_i", "fieldId"],
         "list": ["_l", list => {
             const results = [];
             for (const value of list.fields) {
@@ -230,15 +230,18 @@ export namespace WebSocket {
     };
 
     function ToSearchTerm(val: any): { suffix: string, value: any } | undefined {
+        // console.log(val);
+
         if (val === null || val === undefined) {
             return;
         }
         const type = val.__type || typeof val;
+        // console.log(type);
+
         let suffix = suffixMap[type];
         if (!suffix) {
             return;
         }
-
         if (Array.isArray(suffix)) {
             const accessor = suffix[1];
             if (typeof accessor === "function") {
@@ -248,7 +251,7 @@ export namespace WebSocket {
             }
             suffix = suffix[0];
         }
-
+        // console.log(suffix);
         return { suffix, value: val };
     }
 

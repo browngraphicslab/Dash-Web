@@ -176,7 +176,7 @@ export namespace SolrManager {
         "audio": ["_t", "url"],
         "web": ["_t", "url"],
         "date": ["_d", value => new Date(value.date).toISOString()],
-        "proxy": ["_i", "fieldId"],
+        // "proxy": ["_i", "fieldId"],
         "list": ["_l", list => {
             const results = [];
             for (const value of list.fields) {
@@ -193,8 +193,11 @@ export namespace SolrManager {
         if (val === null || val === undefined) {
             return;
         }
+        console.log(val);
         const type = val.__type || typeof val;
+        console.log(type);
         let suffix = suffixMap[type];
+        console.log(suffix);
         if (!suffix) {
             return;
         }
