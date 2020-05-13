@@ -451,9 +451,21 @@ async function writeImages(zip: any): Promise<ImageData[]> {
         });
 
         // if it's not an icon, by this rough heuristic, i.e. is it not square
-        if (Math.abs(width - height) > 10) {
-            valid.push({ width, height, type, mediaPath });
+        const number = Number(/image(\d+)/.exec(mediaPath)![1]);
+        if (number > 5 || width - height > 10) {
+            valid.push({ width, height, type, mediaPath, number });
         }
+    }
+
+    valid.sort((a, b) => a.number - b.number);
+
+    const [{ width: first_w, height: first_h }, { width: second_w, height: second_h }] = valid;
+    if (Math.abs(first_w / second_w - first_h / second_h) < 0.01) {
+        const first_size = first_w * first_h;
+        const second_size = second_w * second_h;
+        const target = first_size >= second_size ? 1 : 0;
+        valid.splice(target, 1);
+        console.log(`Heuristically removed image with size ${target ? second_size : first_size}`);
     }
 
     // for each valid image, output the _o, _l, _m, and _s files
