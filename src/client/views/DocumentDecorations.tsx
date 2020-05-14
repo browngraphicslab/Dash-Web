@@ -266,16 +266,16 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         const fixedAspect = first.layoutDoc._nativeWidth ? NumCast(first.layoutDoc._nativeWidth) / NumCast(first.layoutDoc._nativeHeight) : 0;
         if (fixedAspect && (this._resizeHdlId === "documentDecorations-bottomRightResizer" || this._resizeHdlId === "documentDecorations-topLeftResizer")) { // need to generalize for bl and tr drag handles
             const project = (p: number[], a: number[], b: number[]) => {
-                var atob = [b[0] - a[0], b[1] - a[1]];
-                var atop = [p[0] - a[0], p[1] - a[1]];
-                var len = atob[0] * atob[0] + atob[1] * atob[1];
-                var dot = atop[0] * atob[0] + atop[1] * atob[1];
-                var t = dot / len;
+                const atob = [b[0] - a[0], b[1] - a[1]];
+                const atop = [p[0] - a[0], p[1] - a[1]];
+                const len = atob[0] * atob[0] + atob[1] * atob[1];
+                let dot = atop[0] * atob[0] + atop[1] * atob[1];
+                const t = dot / len;
                 dot = (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]);
                 return [a[0] + atob[0] * t, a[1] + atob[1] * t];
-            }
+            };
             const tl = first.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
-            const drag = project([e.clientX + this._offX, e.clientY + this._offY], tl, [tl[0] + fixedAspect, tl[1] + 1])
+            const drag = project([e.clientX + this._offX, e.clientY + this._offY], tl, [tl[0] + fixedAspect, tl[1] + 1]);
             thisPt = DragManager.snapDragAspect(drag, fixedAspect);
         } else {
             thisPt = DragManager.snapDrag(e, -this._offX, -this._offY, this._offX, this._offY);

@@ -1,4 +1,4 @@
-import { GoogleApiWrapper, Map as GeoMap, MapProps as IMapProps, Marker } from "google-maps-react";
+import { GoogleApiWrapper, Map as GeoMap, IMapProps, Marker } from "google-maps-react";
 import { observer } from "mobx-react";
 import { Doc, Opt, DocListCast, FieldResult, Field } from "../../../new_fields/Doc";
 import { documentSchema } from "../../../new_fields/documentSchemas";

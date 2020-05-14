@@ -11,11 +11,11 @@ import { InkData, InkField, InkTool, PointData } from "../../../../new_fields/In
 import { List } from "../../../../new_fields/List";
 import { RichTextField } from "../../../../new_fields/RichTextField";
 import { createSchema, listSpec, makeInterface } from "../../../../new_fields/Schema";
-import { ScriptField } from "../../../../new_fields/ScriptField";
-import { BoolCast, Cast, FieldValue, NumCast, ScriptCast, StrCast } from "../../../../new_fields/Types";
+import { ScriptField, ComputedField } from "../../../../new_fields/ScriptField";
+import { BoolCast, Cast, FieldValue, NumCast, ScriptCast, StrCast, PromiseValue } from "../../../../new_fields/Types";
 import { TraceMobx } from "../../../../new_fields/util";
 import { GestureUtils } from "../../../../pen-gestures/GestureUtils";
-import { aggregateBounds, intersectRect, returnOne, Utils, returnZero, returnFalse } from "../../../../Utils";
+import { aggregateBounds, intersectRect, returnOne, Utils, returnZero, returnFalse, numberRange } from "../../../../Utils";
 import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
 import { DocServer } from "../../../DocServer";
 import { Docs } from "../../../documents/Documents";
@@ -124,6 +124,17 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         this.addDocument(newBox);
     }
     private addDocument = (newBox: Doc | Doc[]) => {
+        const timecode = Cast(this.props.Document.timecode, "number", null);
+        if (timecode !== undefined) {
+            ((newBox instanceof Doc) ? [newBox] : newBox).map(doc => {
+                doc["x-indexed"] = new List<number>(numberRange(timecode + 1).map(i => NumCast(doc.x)));
+                doc["x-indexed"] = new List<number>(numberRange(timecode + 1).map(i => NumCast(doc.y)));
+                doc.timecode = ComputedField.MakeFunction("collection.timecode", {}, { collection: this.props.Document });
+                doc.x = ComputedField.MakeInterpolated("x", "timecode");
+                doc.y = ComputedField.MakeInterpolated("y", "timecode");
+            });
+        }
+
         if (newBox instanceof Doc) {
             const added = this.props.addDocument(newBox);
             added && this.bringToFront(newBox);
@@ -1132,6 +1143,39 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         Doc.toggleNativeDimensions(this.layoutDoc, this.props.ContentScaling(), this.props.NativeWidth(), this.props.NativeHeight());
     }
 
+    @undoBatch
+    @action
+    snaphsotInterpolated = (): void => {
+        if (this.props.Document.timecode === undefined) {
+            this.childDocs.map(doc => {
+                this.props.Document.timecode = 0;
+                doc["x-indexed"] = new List<number>([NumCast(doc.x)]);
+                doc["y-indexed"] = new List<number>([NumCast(doc.y)]);
+                doc.timecode = ComputedField.MakeFunction("collection.timecode", {}, { collection: this.props.Document });
+                doc.x = ComputedField.MakeInterpolated("x", "timecode");
+                doc.y = ComputedField.MakeInterpolated("y", "timecode");
+            });
+        }
+        const timecode = NumCast(this.props.Document.timecode);
+        this.childDocs.map(doc => {
+            const xindexed = Cast(doc['x-indexed'], listSpec("number"), null);
+            const yindexed = Cast(doc['y-indexed'], listSpec("number"), null);
+            xindexed.length <= timecode && xindexed.push(NumCast(doc.x));
+            yindexed.length <= timecode && yindexed.push(NumCast(doc.y));
+        });
+        this.childDocs.map(doc => doc.transition = "transform 1s");
+        this.props.Document.timecode = Math.max(0, timecode + 1);
+        setTimeout(() => this.childDocs.map(doc => doc.transition = undefined), 1010);
+    }
+    @undoBatch
+    @action
+    backupInterpolated = (): void => {
+        this.childDocs.map(doc => doc.transition = "transform 1s");
+        this.props.Document.timecode = Math.max(0, NumCast(this.props.Document.timecode) - 1);
+        setTimeout(() => this.childDocs.map(doc => doc.transition = undefined), 1010);
+    }
+
+
     private thumbIdentifier?: number;
 
     onContextMenu = (e: React.MouseEvent) => {
@@ -1142,6 +1186,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 this._timelineVisible = !this._timelineVisible;
             }), icon: this._timelineVisible ? faEyeSlash : faEye
         });
+        ContextMenu.Instance.addItem({ description: "Advance", event: this.snaphsotInterpolated, icon: BoolCast(this.Document.lockedTransform) ? "unlock" : "lock" });
+        ContextMenu.Instance.addItem({ description: "Backup ", event: this.backupInterpolated, icon: BoolCast(this.Document.lockedTransform) ? "unlock" : "lock" });
 
         const options = ContextMenu.Instance.findByDescription("Options...");
         const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
