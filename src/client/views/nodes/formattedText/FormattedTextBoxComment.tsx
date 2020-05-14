@@ -211,8 +211,8 @@ export class FormattedTextBoxComment {
                                     NativeWidth={returnZero}
                                     NativeHeight={returnZero}
                                 />, FormattedTextBoxComment.tooltipText);
-                                FormattedTextBoxComment.tooltip.style.width = NumCast(target.width) ? `${NumCast(target.width)}` : "100%";
-                                FormattedTextBoxComment.tooltip.style.height = NumCast(target.height) ? `${NumCast(target.height)}` : "100%";
+                                FormattedTextBoxComment.tooltip.style.width = NumCast(target._width) ? `${NumCast(target._width)}` : "100%";
+                                FormattedTextBoxComment.tooltip.style.height = NumCast(target._height) ? `${NumCast(target._height)}` : "100%";
                             }
                             // let ext = (target && target.type !== DocumentType.PDFANNO && Doc.fieldExtensionDoc(target, "data")) || target; // try guessing that the target doc's data is in the 'data' field.  probably need an 'overviewLayout' and then just display the target Document ....
                             // let text = ext && StrCast(ext.text);
