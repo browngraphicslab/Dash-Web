@@ -311,7 +311,8 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     //const href = "https://brown365-my.sharepoint.com/personal/bcz_ad_brown_edu/_layouts/15/Doc.aspx?sourcedoc={31aa3178-4c21-4474-b367-877d0a7135e4}&action=embedview&wdStartOn=1";
 
     @computed
-    get content() {
+    get urlContent() {
+
         const field = this.dataDoc[this.props.fieldKey];
         let view;
         if (field instanceof HtmlField) {
@@ -322,7 +323,11 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         } else {
             view = <iframe className="webBox-iframe" ref={this._iframeRef} src={"https://crossorigin.me/https://cs.brown.edu"} />;
         }
-
+        return view;
+    }
+    @computed
+    get content() {
+        const view = this.urlContent;
         const decInteracting = DocumentDecorations.Instance?.Interacting;
 
         const frozen = !this.props.isSelected() || decInteracting;

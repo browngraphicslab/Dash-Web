@@ -206,7 +206,8 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<IMapProps> 
     render() {
         const { childLayoutPairs } = this;
         const { Document, fieldKey, active, google } = this.props;
-        let center = this.getLocation(Document, `${fieldKey}-mapCenter`, false);
+        const mapLoc = this.getLocation(this.rootDoc, `${fieldKey}-mapCenter`, false);
+        let center = mapLoc;
         if (center === undefined) {
             const childLocations = childLayoutPairs.map(({ layout }) => this.getLocation(layout, Doc.LayoutFieldKey(layout), false));
             center = childLocations.find(location => location) || defaultLocation;
@@ -246,6 +247,7 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<IMapProps> 
                     }}
                 >
                     {this.reactiveContents}
+                    {mapLoc ? this.renderMarker(this.rootDoc) : undefined}
                 </GeoMap>
             </div>
         </div>;
