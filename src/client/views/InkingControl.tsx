@@ -3,7 +3,7 @@ import { ColorState } from 'react-color';
 import { Doc } from "../../new_fields/Doc";
 import { InkTool } from "../../new_fields/InkField";
 import { FieldValue, NumCast, StrCast } from "../../new_fields/Types";
-import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
+import { CurrentUserUtils } from "../util/CurrentUserUtils";
 import { Scripting } from "../util/Scripting";
 import { SelectionManager } from "../util/SelectionManager";
 import { undoBatch } from "../util/UndoManager";

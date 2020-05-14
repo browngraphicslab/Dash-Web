@@ -1,13 +1,13 @@
-import { default as User, DashUserModel, AuthToken } from "../models/user_model";
+import { default as User, DashUserModel } from "./DashUserModel";
 import { Request, Response, NextFunction } from "express";
 import * as passport from "passport";
 import { IVerifyOptions } from "passport-local";
-import "../config/passport";
+import "./Passport";
 import flash = require("express-flash");
 import * as async from 'async';
 import * as nodemailer from 'nodemailer';
 import c = require("crypto");
-import { Utils } from "../../../Utils";
+import { Utils } from "../../Utils";
 import { MailOptions } from "nodemailer/lib/stream-transport";
 
 /**
@@ -111,7 +111,7 @@ export let postLogin = (req: Request, res: Response, next: NextFunction) => {
         return res.redirect("/signup");
     }
 
-    passport.authenticate("local", (err: Error, user: DashUserModel, info: IVerifyOptions) => {
+    passport.authenticate("local", (err: Error, user: DashUserModel, _info: IVerifyOptions) => {
         if (err) { next(err); return; }
         if (!user) {
             return res.redirect("/signup");

@@ -4,7 +4,7 @@ import { SketchPicker } from 'react-color';
 import { documentSchema } from "../../../new_fields/documentSchemas";
 import { makeInterface } from "../../../new_fields/Schema";
 import { StrCast } from "../../../new_fields/Types";
-import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
+import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 import { SelectionManager } from "../../util/SelectionManager";
 import { ViewBoxBaseComponent } from "../DocComponent";
 import { InkingControl } from "../InkingControl";

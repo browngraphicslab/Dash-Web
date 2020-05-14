@@ -35,7 +35,7 @@ import { CollectionTimeView } from './CollectionTimeView';
 import { CollectionTreeView } from "./CollectionTreeView";
 import './CollectionView.scss';
 import { CollectionViewBaseChrome } from './CollectionViewChromes';
-import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
+import { CurrentUserUtils } from '../../util/CurrentUserUtils';
 import { Id } from '../../../new_fields/FieldSymbols';
 import { listSpec } from '../../../new_fields/Schema';
 import { Docs } from '../../documents/Documents';

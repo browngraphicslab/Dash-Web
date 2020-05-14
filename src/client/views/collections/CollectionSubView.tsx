@@ -8,7 +8,7 @@ import { listSpec } from "../../../new_fields/Schema";
 import { ScriptField } from "../../../new_fields/ScriptField";
 import { Cast, ScriptCast } from "../../../new_fields/Types";
 import { GestureUtils } from "../../../pen-gestures/GestureUtils";
-import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
+import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 import { Upload } from "../../../server/SharedMediaTypes";
 import { Utils } from "../../../Utils";
 import { GooglePhotos } from "../../apis/google_docs/GooglePhotosClientUtils";

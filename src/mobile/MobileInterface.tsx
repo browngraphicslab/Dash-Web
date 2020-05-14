@@ -10,7 +10,6 @@ import { DocumentManager } from '../client/util/DocumentManager';
 import RichTextMenu from '../client/views/nodes/formattedText/RichTextMenu';
 import { Scripting } from '../client/util/Scripting';
 import { Transform } from '../client/util/Transform';
-import { CollectionView } from '../client/views/collections/CollectionView';
 import { DocumentDecorations } from '../client/views/DocumentDecorations';
 import GestureOverlay from '../client/views/GestureOverlay';
 import { InkingControl } from '../client/views/InkingControl';
@@ -23,9 +22,10 @@ import { InkTool } from '../new_fields/InkField';
 import { listSpec } from '../new_fields/Schema';
 import { Cast, FieldValue } from '../new_fields/Types';
 import { WebField } from "../new_fields/URLField";
-import { CurrentUserUtils } from '../server/authentication/models/current_user_utils';
+import { CurrentUserUtils } from '../client/util/CurrentUserUtils';
 import { emptyFunction, emptyPath, returnEmptyString, returnFalse, returnOne, returnTrue, returnZero } from '../Utils';
 import "./MobileInterface.scss";
+import { CollectionView } from '../client/views/collections/CollectionView';
 
 library.add(faLongArrowAltLeft);
 

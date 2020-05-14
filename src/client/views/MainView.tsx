@@ -19,7 +19,7 @@ import { List } from '../../new_fields/List';
 import { listSpec } from '../../new_fields/Schema';
 import { BoolCast, Cast, FieldValue, StrCast } from '../../new_fields/Types';
 import { TraceMobx } from '../../new_fields/util';
-import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
+import { CurrentUserUtils } from '../util/CurrentUserUtils';
 import { emptyFunction, emptyPath, returnFalse, returnOne, returnZero, returnTrue, Utils } from '../../Utils';
 import GoogleAuthenticationManager from '../apis/GoogleAuthenticationManager';
 import { DocServer } from '../DocServer';
