@@ -35,7 +35,7 @@ export class InkingControl {
     @undoBatch
     switchColor = action((color: ColorState): void => {
         Doc.UserDoc().backgroundColor = color.hex.startsWith("#") ?
-            color.hex + (color.rgb.a !== undefined ? this.decimalToHexString(Math.round(color.rgb.a * 255)) : "ff") : color.hex;
+            color.hex + (color.rgb.a ? this.decimalToHexString(Math.round(color.rgb.a * 255)) : "ff") : color.hex;
 
         if (InkingControl.Instance.selectedTool === InkTool.None) {
             const selected = SelectionManager.SelectedDocuments();

@@ -945,6 +945,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         const { x, y, z, color, zIndex } = params.pair.layout;
         return {
             x: NumCast(x), y: NumCast(y), z: Cast(z, "number"), color: StrCast(color), zIndex: Cast(zIndex, "number"),
+            transition: StrCast(layoutDoc.transition),
             width: Cast(layoutDoc._width, "number"), height: Cast(layoutDoc._height, "number"), pair: params.pair, replica: ""
         };
     }
