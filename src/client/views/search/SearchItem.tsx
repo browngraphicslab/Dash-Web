@@ -341,6 +341,14 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
         newPinDoc.presentationTargetDoc = doc;
         return Doc.AddDocToList(this.dataDoc, this.fieldKey, newPinDoc);
     }
+
+    newsearch(){
+       runInAction(()=>{
+        SearchBox.Instance._searchString="";
+        SearchBox.Instance.submitSearch();
+       }) 
+    }
+
     render() {
         // const doc1 = Cast(this.targetDoc!.anchor1, Doc);
         // const doc2 = Cast(this.targetDoc!.anchor2, Doc);
@@ -357,13 +365,16 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
             <CollectionView {...this.props}
             Document={this.props.Document}
             PanelHeight={this.panelHeight}
+            whenActiveChanged={emptyFunction}
+            onClick={undefined}
+
             moveDocument={returnFalse}
             childLayoutTemplate={this.childLayoutTemplate}
             addDocument={this.addDocument}
             removeDocument={returnFalse}
             focus={this.selectElement}
             ScreenToLocalTransform={this.getTransform} />
-            <button className="bucket-expand">
+            <button onClick={()=>this.newsearch()}className="bucket-expand" style={{transform:"none", fontSize:"100%",textTransform:"none", background: "lightgray",color: "black", bottom: 8, fontFamily:"Arial, sans-serif"}}>See all results...
             </button>
             </div>
         }

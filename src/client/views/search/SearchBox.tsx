@@ -81,7 +81,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     // private get _searchString() { return this.rootDoc.searchQuery; }
     // private set _searchString(value) { this.rootDoc.setSearchQuery(value); }
-    @observable private _searchString: string ="";
+    @observable _searchString: string ="";
     @observable private _resultsOpen: boolean = false;
     @observable private _searchbarOpen: boolean = false;
     @observable private _results: [Doc, string[], string[]][] = [];
@@ -357,6 +357,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     submitSearch = async () => {
         console.log(StrCast(this.layoutDoc._searchString));
         this.dataDoc[this.fieldKey] = new List<Doc>([]);
+        this.buckets=[];
         const query = StrCast(this.layoutDoc._searchString);
         this.getFinalQuery(query);
         this._results = [];
@@ -364,12 +365,14 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         this._isSearch = [];
         this._visibleElements = [];
         this._visibleDocuments = [];
+        console.log(query);
         if (query !== "") {
+            console.log("yes")
             this._endIndex = 12;
             this._maxSearchIndex = 0;
             this._numTotalResults = -1;
+            console.log("yesss");
             await this.getResults(query);
-
             runInAction(() => {
                 this._resultsOpen = true;
                 this._searchbarOpen = true;
@@ -378,6 +381,26 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             });
         }
     }
+    
+    @action private makebuckets(){
+        console.log("we made it");
+        console.log(this._numTotalResults);
+        while (this.buckets!.length <this._numTotalResults/3){
+            console.log("yeet");
+
+            let bucket = Docs.Create.StackingDocument([],{ _viewType:CollectionViewType.Stacking,title: `bucket` });
+            bucket.targetDoc = bucket;      
+            bucket._viewType === CollectionViewType.Stacking;
+            bucket.bucketfield = "Default";
+            bucket.isBucket=true;
+            Doc.AddDocToList(this.dataDoc, this.props.fieldKey, bucket);
+            this.buckets!.push(bucket);
+            console.log(this.buckets!.length);
+            
+            }
+    }
+
+    @observable buckets:Doc[]|undefined;
 
     getAllResults = async (query: string) => {
         return SearchUtil.Search(query, true, { fq: this.filterQuery, start: 0, rows: 10000000 });
@@ -524,6 +547,8 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     @action
     resultsScrolled = (e?: React.UIEvent<HTMLDivElement>) => {
         if (!this._resultsRef.current) return;
+        this.makebuckets();
+
         const scrollY = e ? e.currentTarget.scrollTop : this._resultsRef.current ? this._resultsRef.current.scrollTop : 0;
         const itemHght = 53;
         const startIndex = Math.floor(Math.max(0, scrollY / itemHght));
@@ -550,15 +575,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             // indicates if things are placeholders 
             this._isSearch = Array<undefined>(this._numTotalResults === -1 ? 0 : this._numTotalResults);
         }
-        let bucket = Docs.Create.StackingDocument([],{ _viewType:CollectionViewType.Stacking,title: `bucket` });
-        bucket.targetDoc = bucket;
-     
-        bucket._viewType === CollectionViewType.Stacking;
-        bucket.bucketfield = "Default";
 
-        bucket.isBucket=true;
-
-        Doc.AddDocToList(this.dataDoc, this.props.fieldKey, bucket);
 
         for (let i = 0; i < this._numTotalResults; i++) {
             //if the index is out of the window then put a placeholder in
@@ -577,7 +594,9 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                         this.getResults(StrCast(this.layoutDoc._searchString));
                         if (i < this._results.length) result = this._results[i];
                         if (result) {
+                            if (StrCast(result[0].type)!=="search"){
                             const highlights = Array.from([...Array.from(new Set(result[1]).values())]);
+                            
                             result[0].query=StrCast(this.layoutDoc._searchString);
                             //Make alias
                             result[0].lines=new List<string>(result[2]);
@@ -586,14 +605,19 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                             this._visibleDocuments[i] = result[0];
                             //<SearchItem {...this.props} doc={result[0]} lines={result[2]} highlighting={highlights} />;
                             result[0].targetDoc=result[0];
-                           
-                            Doc.AddDocToList(bucket, this.props.fieldKey, result[0]);
+                            console.log(this.buckets!.length);
+
+                            Doc.AddDocToList(this.buckets![Math.floor(i/3)], this.props.fieldKey, result[0]);
                             this._isSearch[i] = "search";
                         }
+                        }
+
                     }
                     else {
                         result = this._results[i];
                         if (result) {
+                            if (StrCast(result[0].type)!=="search"){
+
                             const highlights = Array.from([...Array.from(new Set(result[1]).values())]);
                             result[0].query=StrCast(this.layoutDoc._searchString);
                             result[0].lines=new List<string>(result[2]);
@@ -602,9 +626,11 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                             //this._visibleElements[i] = <SearchItem {...this.props} doc={result[0]} lines={result[2]} highlighting={highlights} />;
                             this._visibleDocuments[i]=result[0];
                             result[0].targetDoc=result[0];
+                            console.log(this.buckets!.length);
 
-                            Doc.AddDocToList(bucket, this.props.fieldKey, result[0]);
+                            Doc.AddDocToList(this.buckets![Math.floor(i/3)], this.props.fieldKey, result[0]);
                             this._isSearch[i] = "search";
+                            }
                         }
                     }
                 }
