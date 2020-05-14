@@ -161,3 +161,26 @@
 .collection-item {
     width: 35px;
 }
+
+.bucket-title{
+    width:auto;
+    padding: 5px;
+    height: auto;
+    top: -18;
+    z-index: 55;
+    position: absolute;
+}
+
+.bucket-expand{
+    bottom: 0;
+    position: absolute;
+    width: 100%;
+    height: 15;
+    transform:none;
+    .bucket-expand:hover{
+        transform:none;
+    }
+    button:hover{
+        transform:none;
+    }
+}

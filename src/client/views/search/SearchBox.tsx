@@ -554,6 +554,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         bucket.targetDoc = bucket;
      
         bucket._viewType === CollectionViewType.Stacking;
+        bucket.bucketfield = "Default";
 
         bucket.isBucket=true;
 
@@ -948,6 +949,8 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     }
     //Make id layour document
     render() {
+        this.props.Document._gridGap=20;
+        this.props.Document._searchDoc=true;
 
         return (
             <div style={{pointerEvents:"all"}}className="searchBox-container">

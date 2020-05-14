@@ -346,9 +346,15 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
         // const doc2 = Cast(this.targetDoc!.anchor2, Doc);
         if (this.targetDoc.isBucket === true){
             this.props.Document._viewType=CollectionViewType.Stacking;  
-            this.props.Document._height=160;
+            this.props.Document._chromeStatus='disabled';
 
-            return <CollectionView {...this.props}
+            this.props.Document._height=185;
+
+            return <div>
+            <div className="bucket-title">
+                {StrCast(this.rootDoc.bucketfield)}
+            </div>
+            <CollectionView {...this.props}
             Document={this.props.Document}
             PanelHeight={this.panelHeight}
             moveDocument={returnFalse}
@@ -357,6 +363,9 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
             removeDocument={returnFalse}
             focus={this.selectElement}
             ScreenToLocalTransform={this.getTransform} />
+            <button className="bucket-expand">
+            </button>
+            </div>
         }
         else {
         return <div className="searchItem-overview" onPointerDown={this.pointerDown} onContextMenu={this.onContextMenu}>
