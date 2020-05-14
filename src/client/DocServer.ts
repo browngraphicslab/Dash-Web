@@ -108,7 +108,7 @@ export namespace DocServer {
     export function init(protocol: string, hostname: string, port: number, identifier: string) {
         _cache = {};
         GUID = identifier;
-        _socket = OpenSocket(`${protocol}//${hostname}:${port}`);
+        _socket = OpenSocket(`${protocol}//${hostname}:${port}`);// OpenSocket(`https://7f079dda.ngrok.io`);// if using ngrok, create a special address for the websocket
 
         _GetCachedRefField = _GetCachedRefFieldImpl;
         _GetRefField = _GetRefFieldImpl;
