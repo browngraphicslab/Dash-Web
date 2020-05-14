@@ -1,6 +1,6 @@
 import ApiManager, { Registration } from "./ApiManager";
 import { Method, _permission_denied } from "../RouteManager";
-import { WebSocket } from "../Websocket/Websocket";
+import { WebSocket } from "../websocket";
 import { Database } from "../database";
 import rimraf = require("rimraf");
 import { filesDirectory } from "..";

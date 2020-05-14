@@ -38,7 +38,7 @@ export default class GeneralGoogleManager extends ApiManager {
             method: Method.GET,
             subscription: "/revokeGoogleAccessToken",
             secureHandler: async ({ user, res }) => {
-                await Database.Auxiliary.GoogleAuthenticationToken.Revoke(user.id);
+                await Database.Auxiliary.GoogleAccessToken.Revoke(user.id);
                 res.send();
             }
         });

@@ -2,7 +2,7 @@ import { Email, pathFromRoot } from "../ActionUtilities";
 import { red, yellow, green, cyan } from "colors";
 import { get } from "request-promise";
 import { Utils } from "../../Utils";
-import { WebSocket } from "../Websocket/Websocket";
+import { WebSocket } from "../websocket";
 import { MessageStore } from "../Message";
 import { launchServer, onWindows } from "..";
 import { readdirSync, statSync, createWriteStream, readFileSync, unlinkSync } from "fs";

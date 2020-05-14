@@ -12,8 +12,7 @@ import { observer } from 'mobx-react';
 import { observable } from 'mobx';
 import { Utils } from '../Utils';
 import MobileInterface from './MobileInterface';
-import { CurrentUserUtils } from '../server/authentication/models/current_user_utils';
-import { Scripting } from '../client/util/Scripting';
+import { CurrentUserUtils } from '../client/util/CurrentUserUtils';
 
 
 

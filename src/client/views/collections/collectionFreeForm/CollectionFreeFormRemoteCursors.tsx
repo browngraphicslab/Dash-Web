@@ -3,7 +3,7 @@ import * as mobxUtils from 'mobx-utils';
 import CursorField from "../../../../new_fields/CursorField";
 import { listSpec } from "../../../../new_fields/Schema";
 import { Cast } from "../../../../new_fields/Types";
-import { CurrentUserUtils } from "../../../../server/authentication/models/current_user_utils";
+import { CurrentUserUtils } from "../../../util/CurrentUserUtils";
 import { CollectionViewProps } from "../CollectionSubView";
 import "./CollectionFreeFormView.scss";
 import React = require("react");

@@ -13,7 +13,7 @@ import { DocUtils, Docs } from "../documents/Documents";
 import { undoBatch } from "../util/UndoManager";
 import { Scripting } from "../util/Scripting";
 import { FieldValue, Cast, NumCast, BoolCast } from "../../new_fields/Types";
-import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
+import { CurrentUserUtils } from "../util/CurrentUserUtils";
 import HorizontalPalette from "./Palette";
 import { Utils, emptyPath, emptyFunction, returnFalse, returnOne, returnEmptyString, returnTrue, numberRange, returnZero } from "../../Utils";
 import { DocumentView } from "./nodes/DocumentView";

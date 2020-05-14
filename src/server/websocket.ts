@@ -1,18 +1,18 @@
-import { Utils } from "../../Utils";
-import { MessageStore, Transferable, Types, Diff, YoutubeQueryInput, YoutubeQueryTypes, GestureContent, MobileInkOverlayContent, UpdateMobileInkOverlayPositionContent, MobileDocumentUploadContent, RoomMessage } from "../Message";
-import { Client } from "../Client";
+import { Utils } from "../Utils";
+import { MessageStore, Transferable, Types, Diff, YoutubeQueryInput, YoutubeQueryTypes, GestureContent, MobileInkOverlayContent, UpdateMobileInkOverlayPositionContent, MobileDocumentUploadContent, RoomMessage } from "./Message";
+import { Client } from "./Client";
 import { Socket } from "socket.io";
-import { Database } from "../database";
-import { Search } from "../Search";
+import { Database } from "./database";
+import { Search } from "./Search";
 import * as io from 'socket.io';
-import YoutubeApi from "../apis/youtube/youtubeApiSample";
-import { GoogleCredentialsLoader } from "../credentials/CredentialsLoader";
-import { logPort } from "../ActionUtilities";
-import { timeMap } from "../ApiManagers/UserManager";
+import YoutubeApi from "./apis/youtube/youtubeApiSample";
+import { GoogleCredentialsLoader } from "./apis/google/CredentialsLoader";
+import { logPort } from "./ActionUtilities";
+import { timeMap } from "./ApiManagers/UserManager";
 import { green } from "colors";
 import { networkInterfaces } from "os";
-import executeImport from "../../scraping/buxton/final/BuxtonImporter";
-import { DocumentsCollection } from "../IDatabase";
+import executeImport from "../scraping/buxton/final/BuxtonImporter";
+import { DocumentsCollection } from "./IDatabase";
 
 export namespace WebSocket {
 
@@ -21,15 +21,7 @@ export namespace WebSocket {
     export const socketMap = new Map<SocketIO.Socket, string>();
     export let disconnect: Function;
 
-
-    export async function start(isRelease: boolean) {
-        await preliminaryFunctions();
-        initialize(isRelease);
-    }
-
-    async function preliminaryFunctions() {
-    }
-    function initialize(isRelease: boolean) {
+    export function initialize(isRelease: boolean) {
         const endpoint = io();
         endpoint.on("connection", function (socket: Socket) {
             _socket = socket;
