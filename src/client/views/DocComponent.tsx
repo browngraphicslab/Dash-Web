@@ -8,6 +8,7 @@ import { InkTool } from '../../new_fields/InkField';
 import { InteractionUtils } from '../util/InteractionUtils';
 import { List } from '../../new_fields/List';
 import { DateField } from '../../new_fields/DateField';
+import { ScriptField } from '../../new_fields/ScriptField';
 
 
 ///  DocComponent returns a generic React base class used by views that don't have 'fieldKey' props (e.g.,CollectionFreeFormDocumentView, DocumentView)
@@ -93,6 +94,19 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
         @computed get fieldKey() { return this.props.fieldKey; }
 
         lookupField = (field: string) => ScriptCast((this.layoutDoc as any).lookupField)?.script.run({ self: this.layoutDoc, data: this.rootDoc, field: field }).result;
+
+        styleFromLayoutString = (scale: number) => {
+            const style: { [key: string]: any } = {};
+            const divKeys = ["width", "height", "background", "top", "position"];
+            const replacer = (match: any, expr: string, offset: any, string: any) => { // bcz: this executes a script to convert a property expression string:  { script }  into a value
+                return ScriptField.MakeFunction(expr, { self: Doc.name, this: Doc.name, scale: "number" })?.script.run({ self: this.rootDoc, this: this.layoutDoc, scale }).result as string || "";
+            };
+            divKeys.map((prop: string) => {
+                const p = (this.props as any)[prop] as string;
+                p && (style[prop] = p?.replace(/{([^.'][^}']+)}/g, replacer));
+            });
+            return style;
+        }
 
         protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
 
