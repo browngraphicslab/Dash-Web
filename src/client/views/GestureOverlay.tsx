@@ -38,10 +38,8 @@ import { SelectionManager } from "../util/SelectionManager";
 export default class GestureOverlay extends Touchable {
     static Instance: GestureOverlay;
 
-    @observable public Color: string = "rgb(0, 0, 0)";
-    @observable public Width: number = 2;
     @observable public SavedColor?: string;
-    @observable public SavedWidth?: number;
+    @observable public SavedWidth?: string;
     @observable public Tool: ToolglassTools = ToolglassTools.None;
 
     @observable private _thumbX?: number;
@@ -711,12 +709,12 @@ export default class GestureOverlay extends Touchable {
             this._palette,
             [this._strokes.map(l => {
                 const b = this.getBounds(l);
-                return <svg key={b.left} width={b.width} height={b.height} style={{ transform: `translate(${b.left}px, ${b.top}px)`, pointerEvents: "none", position: "absolute", zIndex: 30000 }}>
-                    {InteractionUtils.CreatePolyline(l, b.left, b.top, GestureOverlay.Instance.Color, GestureOverlay.Instance.Width)}
+                return <svg key={b.left} width={b.width} height={b.height} style={{ transform: `translate(${b.left}px, ${b.top}px)`, pointerEvents: "none", position: "absolute", zIndex: 30000, overflow: "visible" }}>
+                    {InteractionUtils.CreatePolyline(l, b.left, b.top, InkingControl.Instance.selectedColor, InkingControl.Instance.selectedWidth)}
                 </svg>;
             }),
-            this._points.length <= 1 ? (null) : <svg width={B.width} height={B.height} style={{ transform: `translate(${B.left}px, ${B.top}px)`, pointerEvents: "none", position: "absolute", zIndex: 30000 }}>
-                {InteractionUtils.CreatePolyline(this._points, B.left, B.top, GestureOverlay.Instance.Color, GestureOverlay.Instance.Width)}
+            this._points.length <= 1 ? (null) : <svg width={B.width} height={B.height} style={{ transform: `translate(${B.left}px, ${B.top}px)`, pointerEvents: "none", position: "absolute", zIndex: 30000, overflow: "visible" }}>
+                {InteractionUtils.CreatePolyline(this._points, B.left, B.top, InkingControl.Instance.selectedColor, InkingControl.Instance.selectedWidth)}
             </svg>]
         ];
     }
@@ -806,16 +804,16 @@ Scripting.addGlobal(function setToolglass(tool: any) {
 });
 Scripting.addGlobal(function setPen(width: any, color: any) {
     runInAction(() => {
-        GestureOverlay.Instance.SavedColor = GestureOverlay.Instance.Color;
-        GestureOverlay.Instance.Color = color;
-        GestureOverlay.Instance.SavedWidth = GestureOverlay.Instance.Width;
-        GestureOverlay.Instance.Width = width;
+        GestureOverlay.Instance.SavedColor = InkingControl.Instance.selectedColor;
+        InkingControl.Instance.updateSelectedColor(color);
+        GestureOverlay.Instance.SavedWidth = InkingControl.Instance.selectedWidth;
+        InkingControl.Instance.switchWidth(width);
     });
 });
 Scripting.addGlobal(function resetPen() {
     runInAction(() => {
-        GestureOverlay.Instance.Color = GestureOverlay.Instance.SavedColor ?? "rgb(0, 0, 0)";
-        GestureOverlay.Instance.Width = GestureOverlay.Instance.SavedWidth ?? 2;
+        InkingControl.Instance.updateSelectedColor(GestureOverlay.Instance.SavedColor ?? "rgb(0, 0, 0)");
+        InkingControl.Instance.switchWidth(GestureOverlay.Instance.SavedWidth ?? "2");
     });
 });
 Scripting.addGlobal(function createText(text: any, x: any, y: any) {

@@ -607,7 +607,7 @@ export namespace Docs {
             return doc;
         }
 
-        export function InkDocument(color: string, tool: number, strokeWidth: number, points: { X: number, Y: number }[], options: DocumentOptions = {}) {
+        export function InkDocument(color: string, tool: number, strokeWidth: string, points: { X: number, Y: number }[], options: DocumentOptions = {}) {
             const I = new Doc();
             I.type = DocumentType.INK;
             I.layout = InkingStroke.LayoutString("data");
