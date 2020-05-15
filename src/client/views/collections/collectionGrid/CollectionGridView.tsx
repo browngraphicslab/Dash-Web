@@ -67,20 +67,21 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
         return <ContentFittingDocumentView
             {...this.props}
             Document={layout}
-            DataDocument={layout.resolvedDataDoc as Doc}
+            DataDoc={layout.resolvedDataDoc as Doc}
             NativeHeight={returnZero}
             NativeWidth={returnZero}
             addDocTab={this.addDocTab}
             fitToBox={BoolCast(this.props.Document._freezeChildDimensions)}
             FreezeDimensions={BoolCast(this.props.Document._freezeChildDimensions)}
             backgroundColor={this.props.backgroundColor}
-            CollectionDoc={this.props.Document}
+            ContainingCollectionDoc={this.props.Document}
             PanelWidth={width}
             PanelHeight={height}
-            getTransform={dxf}
+            ScreenToLocalTransform={dxf}
             onClick={this.onChildClickHandler}
             renderDepth={this.props.renderDepth + 1}
-            Display={"contents"}
+            parentActive={this.props.active}
+        //Display={"contents"}
         />;
     }
 
@@ -145,6 +146,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
                     layoutDoc.h = 2;
 
                     this.layoutDocs.push(layoutDoc);
+                    this.props.Document.highest = i;
                 }
                 this.props.Document.gridLayouts = new List<Doc>(this.layoutDocs);
             }
@@ -156,7 +158,6 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
     @computed
     private get contents(): [JSX.Element[], Layout[]] {
         const { childLayoutPairs } = this;
-        const { Document } = this.props;
         const collector: JSX.Element[] = [];
         const layoutArray: Layout[] = [];
 
