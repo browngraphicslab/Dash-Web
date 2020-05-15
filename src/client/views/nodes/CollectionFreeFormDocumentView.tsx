@@ -146,7 +146,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 opacity: this.Opacity,
                 zIndex: this.ZInd,
                 display: this.ZInd === -99 ? "none" : undefined,
-                pointerEvents: this.props.Document.isBackground ? "none" : this.props.pointerEvents ? "all" : undefined
+                pointerEvents: this.props.Document.isBackground || this.Opacity === 0 ? "none" : this.props.pointerEvents ? "all" : undefined
             }} >
 
             {!this.props.fitToBox ?
