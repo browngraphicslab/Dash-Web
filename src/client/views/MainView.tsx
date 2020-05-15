@@ -1,6 +1,6 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import {
-    faTrashAlt, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
+    faTrashAlt, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
     faTerminal, faToggleOn, faFile as fileSolid, faExternalLinkAlt, faLocationArrow, faSearch, faFileDownload, faStop, faCalculator, faWindowMaximize, faAddressCard,
     faQuestionCircle, faArrowLeft, faArrowRight, faArrowDown, faArrowUp, faBolt, faBullseye, faCaretUp, faCat, faCheck, faChevronRight, faClipboard, faClone, faCloudUploadAlt,
     faCommentAlt, faCompressArrowsAlt, faCut, faEllipsisV, faEraser, faExclamation, faFileAlt, faFileAudio, faFilePdf, faFilm, faFilter, faFont, faGlobeAsia, faHighlighter,
@@ -121,6 +121,8 @@ export class MainView extends React.Component {
         library.add(faCamera);
         library.add(faExpand);
         library.add(faCaretDown);
+        library.add(faCaretUp);
+        library.add(faCaretLeft);
         library.add(faCaretRight);
         library.add(faCaretSquareDown);
         library.add(faCaretSquareRight);
@@ -168,7 +170,6 @@ export class MainView extends React.Component {
         library.add(faThumbtack);
         library.add(faLongArrowAltRight);
         library.add(faCheck);
-        library.add(faCaretUp);
         library.add(faFilter);
         library.add(faBullseye);
         library.add(faArrowLeft);

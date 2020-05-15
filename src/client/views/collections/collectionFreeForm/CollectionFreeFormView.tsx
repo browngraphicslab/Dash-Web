@@ -46,6 +46,7 @@ import React = require("react");
 import { CollectionViewType } from "../CollectionView";
 import { Timeline } from "../../animationtimeline/Timeline";
 import { SnappingManager } from "../../../util/SnappingManager";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
@@ -53,6 +54,7 @@ export const panZoomSchema = createSchema({
     _panX: "number",
     _panY: "number",
     scale: "number",
+    timecode: "number",
     arrangeScript: ScriptField,
     arrangeInit: ScriptField,
     useClusters: "boolean",
@@ -124,15 +126,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         this.addDocument(newBox);
     }
     addDocument = (newBox: Doc | Doc[]) => {
-        const timecode = Cast(this.props.Document.timecode, "number", null);
-        if (timecode !== undefined) {
-            ((newBox instanceof Doc) ? [newBox] : newBox).map(doc => {
-                doc["x-indexed"] = new List<number>(numberRange(timecode + 1).map(i => NumCast(doc.x)));
-                doc["y-indexed"] = new List<number>(numberRange(timecode + 1).map(i => NumCast(doc.y)));
-                doc.timecode = ComputedField.MakeFunction("collection.timecode", {}, { collection: this.props.Document });
-                doc.x = ComputedField.MakeInterpolated("x", "timecode");
-                doc.y = ComputedField.MakeInterpolated("y", "timecode");
-            });
+        if (this.Document.timecode !== undefined) {
+            CollectionFreeFormDocumentView.setupKeyframes((newBox instanceof Doc) ? [newBox] : newBox, this.Document.timecode, this.props.Document);
         }
 
         if (newBox instanceof Doc) {
@@ -145,6 +140,25 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             // bcz: deal with clusters
         }
     }
+
+    @undoBatch
+    @action
+    nextKeyframe = (): void => {
+        if (this.props.Document.timecode === undefined) {
+            this.props.Document.timecode = 0;
+            CollectionFreeFormDocumentView.setupKeyframes(this.childDocs, 0, this.props.Document);
+        }
+        const timecode = NumCast(this.props.Document.timecode);
+        CollectionFreeFormDocumentView.updateKeyframe(this.childDocs, timecode);
+        this.props.Document.timecode = Math.max(0, timecode + 1);
+    }
+    @undoBatch
+    @action
+    prevKeyframe = (): void => {
+        CollectionFreeFormDocumentView.gotoKeyframe(this.childDocs.slice());
+        this.props.Document.timecode = Math.max(0, NumCast(this.props.Document.timecode) - 1);
+    }
+
     private selectDocuments = (docs: Doc[]) => {
         SelectionManager.DeselectAll();
         docs.map(doc => DocumentManager.Instance.getDocumentView(doc)).map(dv => dv && SelectionManager.SelectDoc(dv, true));
@@ -185,8 +199,12 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                         for (let i = 0; i < droppedDocs.length; i++) {
                             const d = droppedDocs[i];
                             const layoutDoc = Doc.Layout(d);
-                            d.x = x + NumCast(d.x) - dropX;
-                            d.y = y + NumCast(d.y) - dropY;
+                            if (this.Document.timecode !== undefined) {
+                                CollectionFreeFormDocumentView.setValues(this.Document.timecode, d, x + NumCast(d.x) - dropX, y + NumCast(d.y) - dropY, Cast(d.opacity, "number", null));
+                            } else {
+                                d.x = x + NumCast(d.x) - dropX;
+                                d.y = y + NumCast(d.y) - dropY;
+                            }
                             if (!NumCast(layoutDoc._width)) {
                                 layoutDoc._width = 300;
                             }
@@ -953,10 +971,15 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             return { x: 0, y: 0, transition: "transform 1s", ...result, pair: params.pair, replica: "" };
         }
         const layoutDoc = Doc.Layout(params.pair.layout);
-        const { x, y, z, color, zIndex } = params.pair.layout;
+        const { x, y, opacity } = this.Document.timecode === undefined ? params.pair.layout :
+            CollectionFreeFormDocumentView.getValues(params.pair.layout, this.Document.timecode);
+        if (this.Document.timecode !== undefined) {
+            const time = this.Document.timecode || 0;
+        }
+        const { z, color, zIndex } = params.pair.layout;
         return {
             x: NumCast(x), y: NumCast(y), z: Cast(z, "number"), color: StrCast(color), zIndex: Cast(zIndex, "number"),
-            transition: StrCast(layoutDoc.transition),
+            transition: StrCast(layoutDoc.transition), opacity: Cast(opacity, "number", null),
             width: Cast(layoutDoc._width, "number"), height: Cast(layoutDoc._height, "number"), pair: params.pair, replica: ""
         };
     }
@@ -1142,39 +1165,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         Doc.toggleNativeDimensions(this.layoutDoc, this.props.ContentScaling(), this.props.NativeWidth(), this.props.NativeHeight());
     }
 
-    @undoBatch
-    @action
-    snaphsotInterpolated = (): void => {
-        if (this.props.Document.timecode === undefined) {
-            this.childDocs.map(doc => {
-                this.props.Document.timecode = 0;
-                doc["x-indexed"] = new List<number>([NumCast(doc.x)]);
-                doc["y-indexed"] = new List<number>([NumCast(doc.y)]);
-                doc.timecode = ComputedField.MakeFunction("collection.timecode", {}, { collection: this.props.Document });
-                doc.x = ComputedField.MakeInterpolated("x", "timecode");
-                doc.y = ComputedField.MakeInterpolated("y", "timecode");
-            });
-        }
-        const timecode = NumCast(this.props.Document.timecode);
-        this.childDocs.map(doc => {
-            const xindexed = Cast(doc['x-indexed'], listSpec("number"), null);
-            const yindexed = Cast(doc['y-indexed'], listSpec("number"), null);
-            xindexed.length <= timecode + 1 && xindexed.push(NumCast(doc.x));
-            yindexed.length <= timecode + 1 && yindexed.push(NumCast(doc.y));
-        });
-        this.childDocs.map(doc => doc.transition = "transform 1s");
-        this.props.Document.timecode = Math.max(0, timecode + 1);
-        setTimeout(() => this.childDocs.map(doc => doc.transition = undefined), 1010);
-    }
-    @undoBatch
-    @action
-    backupInterpolated = (): void => {
-        this.childDocs.map(doc => doc.transition = "transform 1s");
-        this.props.Document.timecode = Math.max(0, NumCast(this.props.Document.timecode) - 1);
-        setTimeout(() => this.childDocs.map(doc => doc.transition = undefined), 1010);
-    }
-
-
     private thumbIdentifier?: number;
 
     onContextMenu = (e: React.MouseEvent) => {
@@ -1185,8 +1175,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 this._timelineVisible = !this._timelineVisible;
             }), icon: this._timelineVisible ? faEyeSlash : faEye
         });
-        ContextMenu.Instance.addItem({ description: "Advance", event: this.snaphsotInterpolated, icon: BoolCast(this.Document.lockedTransform) ? "unlock" : "lock" });
-        ContextMenu.Instance.addItem({ description: "Backup ", event: this.backupInterpolated, icon: BoolCast(this.Document.lockedTransform) ? "unlock" : "lock" });
+        ContextMenu.Instance.addItem({ description: "Advance", event: this.nextKeyframe, icon: BoolCast(this.Document.lockedTransform) ? "unlock" : "lock" });
+        ContextMenu.Instance.addItem({ description: "Backup ", event: this.prevKeyframe, icon: BoolCast(this.Document.lockedTransform) ? "unlock" : "lock" });
 
         const options = ContextMenu.Instance.findByDescription("Options...");
         const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
@@ -1342,18 +1332,14 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     render() {
         TraceMobx();
         const clientRect = this._mainCont?.getBoundingClientRect();
-        // update the actual dimensions of the collection so that they can inquired (e.g., by a minimap)
-        // this.Document.fitX = this.contentBounds && this.contentBounds.x;
-        // this.Document.fitY = this.contentBounds && this.contentBounds.y;
-        // this.Document.fitW = this.contentBounds && (this.contentBounds.r - this.contentBounds.x);
-        // this.Document.fitH = this.contentBounds && (this.contentBounds.b - this.contentBounds.y);
-        // if isAnnotationOverlay is set, then children will be stored in the extension document for the fieldKey.
-        // otherwise, they are stored in fieldKey.  All annotations to this document are stored in the extension document
-        return <div className={"collectionfreeformview-container"}
-            ref={this.createDashEventsTarget}
+        return <div className={"collectionfreeformview-container"} ref={this.createDashEventsTarget}
             onPointerOver={this.onPointerOver}
-            onWheel={this.onPointerWheel} onClick={this.onClick}  //pointerEvents: DraggingManager.GetIsDragging() ? "all" : undefined,
-            onPointerDown={this.onPointerDown} onPointerMove={this.onCursorMove} onDrop={this.onExternalDrop.bind(this)} onContextMenu={this.onContextMenu}
+            onWheel={this.onPointerWheel}
+            onClick={this.onClick}
+            onPointerDown={this.onPointerDown}
+            onPointerMove={this.onCursorMove}
+            onDrop={this.onExternalDrop.bind(this)}
+            onContextMenu={this.onContextMenu}
             style={{
                 pointerEvents: this.backgroundEvents ? "all" : undefined,
                 transform: this.contentScaling ? `scale(${this.contentScaling})` : "",
@@ -1364,12 +1350,22 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             {!this.Document._LODdisable && !this.props.active() && !this.props.isAnnotationOverlay && !this.props.annotationsKey && this.props.renderDepth > 0 ?
                 this.placeholder : this.marqueeView}
             <CollectionFreeFormOverlayView elements={this.elementFunc} />
-
+            {this.isAnnotationOverlay ? (null) :
+                <>
+                    <div key="back" style={{ position: "absolute", width: 20, height: 20, right: 0, bottom: 0, }} onClick={this.nextKeyframe}>
+                        <FontAwesomeIcon icon={"caret-right"} size={"lg"} />
+                    </div>
+                    <div key="fwd" style={{ position: "absolute", width: 20, height: 20, right: 20, bottom: 0, }}>
+                        {NumCast(this.props.Document.timecode)}
+                    </div>
+                    <div key="fwd" style={{ position: "absolute", width: 20, height: 20, right: 40, bottom: 0, }} onClick={this.prevKeyframe}>
+                        <FontAwesomeIcon icon={"caret-left"} size={"lg"} />
+                    </div>
+                </>}
             <div className={"pullpane-indicator"}
                 style={{
                     display: this._pullDirection ? "block" : "none",
                     top: clientRect ? this._pullDirection === "bottom" ? this._pullCoords[1] - clientRect.y : 0 : "auto",
-                    // left: clientRect ? this._pullDirection === "right" ? this._pullCoords[0] - clientRect.x - MainView.Instance.flyoutWidth : 0 : "auto",
                     left: clientRect ? this._pullDirection === "right" ? this._pullCoords[0] - clientRect.x : 0 : "auto",
                     width: clientRect ? this._pullDirection === "left" ? this._pullCoords[0] - clientRect.left : this._pullDirection === "right" ? clientRect.right - this._pullCoords[0] : clientRect.width : 0,
                     height: clientRect ? this._pullDirection === "top" ? this._pullCoords[1] - clientRect.top : this._pullDirection === "bottom" ? clientRect.bottom - this._pullCoords[1] : clientRect.height : 0,
