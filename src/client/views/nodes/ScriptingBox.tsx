@@ -127,7 +127,10 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         this._dropped = true;
         console.log("drop");
         const firstParam = this.compileParams[index].split("=");
-        this.compileParams[index] = firstParam[0] + " = " + de.complete.docDragData?.droppedDocuments[0].id;
+        const dropped = de.complete.docDragData?.droppedDocuments;
+        if (dropped?.length) {
+            this.compileParams[index] = firstParam[0] + " = " + dropped[0].id;
+        }
     }
 
     @action
@@ -157,7 +160,16 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         />;
 
         const listParams = this.compileParams.map((parameter, i) =>
-            <div className="scriptingBox-pborder" style={{ background: this._dropped ? "yellow" : "" }}>
+            <div className="scriptingBox-pborder"
+                onFocus={this.onFocus}
+                onBlur={e => this._overlayDisposer?.()}
+                onKeyPress={e => {
+                    if (e.key === "Enter") {
+                        this._overlayDisposer?.();
+                    }
+                }
+                }
+                style={{ background: this._dropped ? "yellow" : "" }}>
                 <EditableView
                     contents={parameter}
                     display={"block"}
@@ -201,7 +213,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
                             {listParams}
                         </div> : null}
                     </div>
-                    <div className="scriptingBox-params">{params}</div>
+                    <div className="scriptingBox-params" >{params}</div>
                     <div className="scriptingBox-errorMessage" style={{ background: this._errorMessage ? "red" : "" }}>{this._errorMessage}</div>
                 </div>
                 {this.rootDoc.layout === "layout" ? <div></div> : (null)}
