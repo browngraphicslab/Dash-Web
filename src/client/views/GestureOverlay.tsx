@@ -6,14 +6,14 @@ import { computed, observable, action, runInAction, IReactionDisposer, reaction,
 import { GestureUtils } from "../../pen-gestures/GestureUtils";
 import { InteractionUtils } from "../util/InteractionUtils";
 import { InkingControl } from "./InkingControl";
-import { InkTool, InkData } from "../../new_fields/InkField";
-import { Doc } from "../../new_fields/Doc";
+import { InkTool, InkData } from "../../fields/InkField";
+import { Doc } from "../../fields/Doc";
 import { LinkManager } from "../util/LinkManager";
 import { DocUtils, Docs } from "../documents/Documents";
 import { undoBatch } from "../util/UndoManager";
 import { Scripting } from "../util/Scripting";
-import { FieldValue, Cast, NumCast, BoolCast } from "../../new_fields/Types";
-import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
+import { FieldValue, Cast, NumCast, BoolCast } from "../../fields/Types";
+import { CurrentUserUtils } from "../util/CurrentUserUtils";
 import HorizontalPalette from "./Palette";
 import { Utils, emptyPath, emptyFunction, returnFalse, returnOne, returnEmptyString, returnTrue, numberRange, returnZero } from "../../Utils";
 import { DocumentView } from "./nodes/DocumentView";
@@ -22,9 +22,9 @@ import { DocumentContentsView } from "./nodes/DocumentContentsView";
 import { CognitiveServices } from "../cognitive_services/CognitiveServices";
 import { DocServer } from "../DocServer";
 import htmlToImage from "html-to-image";
-import { ScriptField } from "../../new_fields/ScriptField";
-import { listSpec } from "../../new_fields/Schema";
-import { List } from "../../new_fields/List";
+import { ScriptField } from "../../fields/ScriptField";
+import { listSpec } from "../../fields/Schema";
+import { List } from "../../fields/List";
 import { CollectionViewType } from "./collections/CollectionView";
 import TouchScrollableMenu, { TouchScrollableMenuItem } from "./TouchScrollableMenu";
 import MobileInterface from "../../mobile/MobileInterface";
@@ -38,10 +38,8 @@ import { SelectionManager } from "../util/SelectionManager";
 export default class GestureOverlay extends Touchable {
     static Instance: GestureOverlay;
 
-    @observable public Color: string = "rgb(0, 0, 0)";
-    @observable public Width: number = 2;
     @observable public SavedColor?: string;
-    @observable public SavedWidth?: number;
+    @observable public SavedWidth?: string;
     @observable public Tool: ToolglassTools = ToolglassTools.None;
 
     @observable private _thumbX?: number;
@@ -711,12 +709,12 @@ export default class GestureOverlay extends Touchable {
             this._palette,
             [this._strokes.map(l => {
                 const b = this.getBounds(l);
-                return <svg key={b.left} width={b.width} height={b.height} style={{ transform: `translate(${b.left}px, ${b.top}px)`, pointerEvents: "none", position: "absolute", zIndex: 30000 }}>
-                    {InteractionUtils.CreatePolyline(l, b.left, b.top, GestureOverlay.Instance.Color, GestureOverlay.Instance.Width)}
+                return <svg key={b.left} width={b.width} height={b.height} style={{ transform: `translate(${b.left}px, ${b.top}px)`, pointerEvents: "none", position: "absolute", zIndex: 30000, overflow: "visible" }}>
+                    {InteractionUtils.CreatePolyline(l, b.left, b.top, InkingControl.Instance.selectedColor, InkingControl.Instance.selectedWidth)}
                 </svg>;
             }),
-            this._points.length <= 1 ? (null) : <svg width={B.width} height={B.height} style={{ transform: `translate(${B.left}px, ${B.top}px)`, pointerEvents: "none", position: "absolute", zIndex: 30000 }}>
-                {InteractionUtils.CreatePolyline(this._points, B.left, B.top, GestureOverlay.Instance.Color, GestureOverlay.Instance.Width)}
+            this._points.length <= 1 ? (null) : <svg width={B.width} height={B.height} style={{ transform: `translate(${B.left}px, ${B.top}px)`, pointerEvents: "none", position: "absolute", zIndex: 30000, overflow: "visible" }}>
+                {InteractionUtils.CreatePolyline(this._points, B.left, B.top, InkingControl.Instance.selectedColor, InkingControl.Instance.selectedWidth)}
             </svg>]
         ];
     }
@@ -806,16 +804,16 @@ Scripting.addGlobal(function setToolglass(tool: any) {
 });
 Scripting.addGlobal(function setPen(width: any, color: any) {
     runInAction(() => {
-        GestureOverlay.Instance.SavedColor = GestureOverlay.Instance.Color;
-        GestureOverlay.Instance.Color = color;
-        GestureOverlay.Instance.SavedWidth = GestureOverlay.Instance.Width;
-        GestureOverlay.Instance.Width = width;
+        GestureOverlay.Instance.SavedColor = InkingControl.Instance.selectedColor;
+        InkingControl.Instance.updateSelectedColor(color);
+        GestureOverlay.Instance.SavedWidth = InkingControl.Instance.selectedWidth;
+        InkingControl.Instance.switchWidth(width);
     });
 });
 Scripting.addGlobal(function resetPen() {
     runInAction(() => {
-        GestureOverlay.Instance.Color = GestureOverlay.Instance.SavedColor ?? "rgb(0, 0, 0)";
-        GestureOverlay.Instance.Width = GestureOverlay.Instance.SavedWidth ?? 2;
+        InkingControl.Instance.updateSelectedColor(GestureOverlay.Instance.SavedColor ?? "rgb(0, 0, 0)");
+        InkingControl.Instance.switchWidth(GestureOverlay.Instance.SavedWidth ?? "2");
     });
 });
 Scripting.addGlobal(function createText(text: any, x: any, y: any) {

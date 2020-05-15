@@ -2,11 +2,11 @@ import React = require("react");
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, DocCastAsync } from "../../../new_fields/Doc";
-import { InkTool } from "../../../new_fields/InkField";
-import { BoolCast, Cast, NumCast, StrCast } from "../../../new_fields/Types";
+import { Doc, DocListCast, DocCastAsync } from "../../../fields/Doc";
+import { InkTool } from "../../../fields/InkField";
+import { BoolCast, Cast, NumCast, StrCast } from "../../../fields/Types";
 import { returnFalse } from "../../../Utils";
-import { documentSchema } from "../../../new_fields/documentSchemas";
+import { documentSchema } from "../../../fields/documentSchemas";
 import { DocumentManager } from "../../util/DocumentManager";
 import { undoBatch } from "../../util/UndoManager";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
@@ -15,11 +15,11 @@ import { InkingControl } from "../InkingControl";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./PresBox.scss";
 import { ViewBoxBaseComponent } from "../DocComponent";
-import { makeInterface } from "../../../new_fields/Schema";
-import { List } from "../../../new_fields/List";
+import { makeInterface } from "../../../fields/Schema";
+import { List } from "../../../fields/List";
 import { Docs } from "../../documents/Documents";
-import { PrefetchProxy } from "../../../new_fields/Proxy";
-import { ScriptField } from "../../../new_fields/ScriptField";
+import { PrefetchProxy } from "../../../fields/Proxy";
+import { ScriptField } from "../../../fields/ScriptField";
 import { Scripting } from "../../util/Scripting";
 
 type PresBoxSchema = makeInterface<[typeof documentSchema]>;
@@ -30,7 +30,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(PresBox, fieldKey); }
     @observable _isChildActive = false;
     @computed get childDocs() { return DocListCast(this.dataDoc[this.fieldKey]); }
-    @computed get currentIndex() { return NumCast(this.presElement?.currentIndex); }
+    @computed get itemIndex() { return NumCast(this.rootDoc._itemIndex); }
     @computed get presElement() { return Cast(Doc.UserDoc().presElement, Doc, null); }
     constructor(props: any) {
         super(props);
@@ -42,10 +42,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             // this is a design choice -- we could write this data to the presElements which would require a reaction to keep it up to date, and it would prevent
             // the preselement docs from being part of multiple presentations since they would all have the same field, or we'd have to keep per-presentation data
             // stored on each pres element.  
-            (this.presElement as Doc).lookupField = ScriptField.MakeScript(
-                `if (field === 'indexInPres') return docList(container[container.presentationFieldKey]).indexOf(data);` +
-                "if (field === 'presCollapsedHeight') return container._viewType === CollectionViewType.Stacking ? 50 : 46;" +
-                "return undefined;", { field: "string", data: Doc.name, container: Doc.name });
+            (this.presElement as Doc).lookupField = ScriptField.MakeFunction("lookupPresBoxField(container, field, data)",
+                { field: "string", data: Doc.name, container: Doc.name });
         }
         this.props.Document.presentationFieldKey = this.fieldKey; // provide info to the presElement script so that it can look up rendering information about the presBox
     }
@@ -61,15 +59,15 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @action
     next = () => {
         this.updateCurrentPresentation();
-        if (this.childDocs[this.currentIndex + 1] !== undefined) {
-            let nextSelected = this.currentIndex + 1;
-            this.gotoDocument(nextSelected, this.currentIndex);
+        if (this.childDocs[this.itemIndex + 1] !== undefined) {
+            let nextSelected = this.itemIndex + 1;
+            this.gotoDocument(nextSelected, this.itemIndex);
 
             for (nextSelected = nextSelected + 1; nextSelected < this.childDocs.length; nextSelected++) {
                 if (!this.childDocs[nextSelected].groupButton) {
                     break;
                 } else {
-                    this.gotoDocument(nextSelected, this.currentIndex);
+                    this.gotoDocument(nextSelected, this.itemIndex);
                 }
             }
         }
@@ -79,18 +77,18 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @action
     back = () => {
         this.updateCurrentPresentation();
-        const docAtCurrent = this.childDocs[this.currentIndex];
+        const docAtCurrent = this.childDocs[this.itemIndex];
         if (docAtCurrent) {
             //check if any of the group members had used zooming in including the current document
             //If so making sure to zoom out, which goes back to state before zooming action
-            let prevSelected = this.currentIndex;
+            let prevSelected = this.itemIndex;
             let didZoom = docAtCurrent.zoomButton;
             for (; !didZoom && prevSelected > 0 && this.childDocs[prevSelected].groupButton; prevSelected--) {
                 didZoom = this.childDocs[prevSelected].zoomButton;
             }
             prevSelected = Math.max(0, prevSelected - 1);
 
-            this.gotoDocument(prevSelected, this.currentIndex);
+            this.gotoDocument(prevSelected, this.itemIndex);
         }
     }
 
@@ -194,10 +192,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         this.updateCurrentPresentation();
         Doc.UnBrushAllDocs();
         if (index >= 0 && index < this.childDocs.length) {
-            this.presElement.currentIndex = index;
+            this.rootDoc._itemIndex = index;
 
-            if (!this.presElement.presStatus) {
-                this.presElement.presStatus = true;
+            if (!this.layoutDoc.presStatus) {
+                this.layoutDoc.presStatus = true;
                 this.startPresentation(index);
             }
 
@@ -210,12 +208,12 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     //The function that starts or resets presentaton functionally, depending on status flag.
     startOrResetPres = () => {
         this.updateCurrentPresentation();
-        if (this.presElement.presStatus) {
+        if (this.layoutDoc.presStatus) {
             this.resetPresentation();
         } else {
-            this.presElement.presStatus = true;
+            this.layoutDoc.presStatus = true;
             this.startPresentation(0);
-            this.gotoDocument(0, this.currentIndex);
+            this.gotoDocument(0, this.itemIndex);
         }
     }
 
@@ -225,7 +223,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         this.updateCurrentPresentation();
         this.childDocs.forEach(doc => (doc.presentationTargetDoc as Doc).opacity = 1);
         this.rootDoc._itemIndex = 0;
-        this.presElement.presStatus = false;
+        this.layoutDoc.presStatus = false;
     }
 
     //The function that starts the presentation, also checking if actions should be applied
@@ -271,14 +269,17 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     });
 
     whenActiveChanged = action((isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive));
-    addDocumentFilter = (doc: Doc) => {
-        doc.aliasOf instanceof Doc && (doc.presentationTargetDoc = doc.aliasOf);
-        !this.childDocs.includes(doc) && (doc.presZoomButton = true);
+    addDocumentFilter = (doc: Doc | Doc[]) => {
+        const docs = doc instanceof Doc ? [doc] : doc;
+        docs.forEach(doc => {
+            doc.aliasOf instanceof Doc && (doc.presentationTargetDoc = doc.aliasOf);
+            !this.childDocs.includes(doc) && (doc.presZoomButton = true);
+        });
         return true;
     }
     childLayoutTemplate = () => this.rootDoc._viewType !== CollectionViewType.Stacking ? undefined : this.presElement;
     removeDocument = (doc: Doc) => Doc.RemoveDocFromList(this.dataDoc, this.fieldKey, doc);
-    selectElement = (doc: Doc) => this.gotoDocument(this.childDocs.indexOf(doc), NumCast(this.rootDoc._itemIndex));
+    selectElement = (doc: Doc) => this.gotoDocument(this.childDocs.indexOf(doc), NumCast(this.itemIndex));
     getTransform = () => this.props.ScreenToLocalTransform().translate(-5, -65);// listBox padding-left and pres-box-cont minHeight
     panelHeight = () => this.props.PanelHeight() - 20;
     active = (outsideReaction?: boolean) => ((InkingControl.Instance.selectedTool === InkTool.None && !this.layoutDoc.isBackground) &&
@@ -318,6 +319,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                         childLayoutTemplate={this.childLayoutTemplate}
                         filterAddDocument={this.addDocumentFilter}
                         removeDocument={returnFalse}
+                        dontRegisterView={true}
                         focus={this.selectElement}
                         ScreenToLocalTransform={this.getTransform} />
                     : (null)
@@ -326,5 +328,10 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         </div>;
     }
 }
-Scripting.addGlobal(function lookupPresBoxField(presLayout: Doc, data: Doc, fieldKey: string) {
+Scripting.addGlobal(function lookupPresBoxField(container: Doc, field: string, data: Doc) {
+    if (field === 'indexInPres') return DocListCast(container[StrCast(container.presentationFieldKey)]).indexOf(data);
+    if (field === 'presCollapsedHeight') return container._viewType === CollectionViewType.Stacking ? 50 : 46;
+    if (field === 'presStatus') return container.presStatus;
+    if (field === '_itemIndex') return container._itemIndex;
+    return undefined;
 });

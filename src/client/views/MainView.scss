@@ -22,6 +22,15 @@
     z-index: 1;
 }
 
+.mainView-snapLines {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events:none;
+}
+
 .mainView-container, .mainView-container-dark {
     input {
         color: unset !important;
@@ -98,7 +107,9 @@
     position: absolute;
     left: 0;
     bottom: 0;
-    font-size: 8px;
+    border-radius: 25%;
+    margin-left: -5px;
+    background: darkblue;
 }
 
 .mainView-settings:hover {

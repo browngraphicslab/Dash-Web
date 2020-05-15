@@ -313,14 +313,18 @@ export namespace Utils {
     }
 }
 
-export function OmitKeys(obj: any, keys: string[], addKeyFunc?: (dup: any) => void): { omit: any, extract: any } {
+export function OmitKeys(obj: any, keys: string[], pattern?: string, addKeyFunc?: (dup: any) => void): { omit: any, extract: any } {
     const omit: any = { ...obj };
     const extract: any = {};
     keys.forEach(key => {
         extract[key] = omit[key];
         delete omit[key];
     });
-    addKeyFunc && addKeyFunc(omit);
+    pattern && Array.from(Object.keys(omit)).filter(key => key.match(pattern)).forEach(key => {
+        extract[key] = omit[key];
+        delete omit[key];
+    });
+    addKeyFunc?.(omit);
     return { omit, extract };
 }
 

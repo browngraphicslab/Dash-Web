@@ -1,14 +1,14 @@
 import { observer } from "mobx-react";
-import { documentSchema } from "../../new_fields/documentSchemas";
-import { InkData, InkField, InkTool } from "../../new_fields/InkField";
-import { makeInterface } from "../../new_fields/Schema";
-import { Cast, StrCast, NumCast } from "../../new_fields/Types";
+import { documentSchema } from "../../fields/documentSchemas";
+import { InkData, InkField, InkTool } from "../../fields/InkField";
+import { makeInterface } from "../../fields/Schema";
+import { Cast, StrCast, NumCast } from "../../fields/Types";
 import { ViewBoxBaseComponent } from "./DocComponent";
 import { InkingControl } from "./InkingControl";
 import "./InkingStroke.scss";
 import { FieldView, FieldViewProps } from "./nodes/FieldView";
 import React = require("react");
-import { TraceMobx } from "../../new_fields/util";
+import { TraceMobx } from "../../fields/util";
 import { InteractionUtils } from "../util/InteractionUtils";
 import { ContextMenu } from "./ContextMenu";
 import { CognitiveServices } from "../cognitive_services/CognitiveServices";
@@ -40,7 +40,7 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
         const bottom = Math.max(...ys);
         const points = InteractionUtils.CreatePolyline(data, left, top,
             StrCast(this.layoutDoc.color, InkingControl.Instance.selectedColor),
-            NumCast(this.layoutDoc.strokeWidth, parseInt(InkingControl.Instance.selectedWidth)));
+            StrCast(this.layoutDoc.strokeWidth, InkingControl.Instance.selectedWidth));
         const width = right - left;
         const height = bottom - top;
         const scaleX = this.props.PanelWidth() / width;

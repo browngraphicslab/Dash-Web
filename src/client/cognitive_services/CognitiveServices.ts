@@ -1,12 +1,12 @@
 import * as request from "request-promise";
-import { Doc, Field } from "../../new_fields/Doc";
-import { Cast } from "../../new_fields/Types";
+import { Doc, Field } from "../../fields/Doc";
+import { Cast } from "../../fields/Types";
 import { Docs } from "../documents/Documents";
 import { Utils } from "../../Utils";
-import { InkData } from "../../new_fields/InkField";
+import { InkData } from "../../fields/InkField";
 import { UndoManager } from "../util/UndoManager";
 import requestPromise = require("request-promise");
-import { List } from "../../new_fields/List";
+import { List } from "../../fields/List";
 import { ClientRecommender } from "../ClientRecommender";
 
 type APIManager<D> = { converter: BodyConverter<D>, requester: RequestExecutor };

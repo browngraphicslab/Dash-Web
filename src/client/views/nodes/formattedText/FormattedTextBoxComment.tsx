@@ -2,8 +2,8 @@ import { Mark, ResolvedPos } from "prosemirror-model";
 import { EditorState, Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import * as ReactDOM from 'react-dom';
-import { Doc, DocCastAsync } from "../../../../new_fields/Doc";
-import { Cast, FieldValue, NumCast } from "../../../../new_fields/Types";
+import { Doc, DocCastAsync } from "../../../../fields/Doc";
+import { Cast, FieldValue, NumCast } from "../../../../fields/Types";
 import { emptyFunction, returnEmptyString, returnFalse, Utils, emptyPath, returnZero, returnOne } from "../../../../Utils";
 import { DocServer } from "../../../DocServer";
 import { DocumentManager } from "../../../util/DocumentManager";
@@ -91,7 +91,7 @@ export class FormattedTextBoxComment {
                             (doc: Doc, followLinkLocation: string) => textBox.props.addDocTab(doc, e.ctrlKey ? "inTab" : followLinkLocation));
                     }
                 } else if (textBox && (FormattedTextBoxComment.tooltipText as any).href) {
-                    textBox.props.addDocTab(Docs.Create.WebDocument((FormattedTextBoxComment.tooltipText as any).href, { title: (FormattedTextBoxComment.tooltipText as any).href, _width: 200, _height: 400 }), "onRight");
+                    textBox.props.addDocTab(Docs.Create.WebDocument((FormattedTextBoxComment.tooltipText as any).href, { title: (FormattedTextBoxComment.tooltipText as any).href, _width: 200, _height: 400, UseCors: true }), "onRight");
                 }
                 keep && textBox && FormattedTextBoxComment.start !== undefined && textBox.adoptAnnotation(
                     FormattedTextBoxComment.start, FormattedTextBoxComment.end, FormattedTextBoxComment.mark);
@@ -211,8 +211,8 @@ export class FormattedTextBoxComment {
                                     NativeWidth={returnZero}
                                     NativeHeight={returnZero}
                                 />, FormattedTextBoxComment.tooltipText);
-                                FormattedTextBoxComment.tooltip.style.width = NumCast(target.width) ? `${NumCast(target.width)}` : "100%";
-                                FormattedTextBoxComment.tooltip.style.height = NumCast(target.height) ? `${NumCast(target.height)}` : "100%";
+                                FormattedTextBoxComment.tooltip.style.width = NumCast(target._width) ? `${NumCast(target._width)}` : "100%";
+                                FormattedTextBoxComment.tooltip.style.height = NumCast(target._height) ? `${NumCast(target._height)}` : "100%";
                             }
                             // let ext = (target && target.type !== DocumentType.PDFANNO && Doc.fieldExtensionDoc(target, "data")) || target; // try guessing that the target doc's data is in the 'data' field.  probably need an 'overviewLayout' and then just display the target Document ....
                             // let text = ext && StrCast(ext.text);

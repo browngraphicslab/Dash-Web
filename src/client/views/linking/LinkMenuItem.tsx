@@ -3,8 +3,8 @@ import { faArrowRight, faChevronDown, faChevronUp, faEdit, faEye, faTimes } from
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, observable } from 'mobx';
 import { observer } from "mobx-react";
-import { Doc, DocListCast } from '../../../new_fields/Doc';
-import { Cast, StrCast } from '../../../new_fields/Types';
+import { Doc, DocListCast } from '../../../fields/Doc';
+import { Cast, StrCast } from '../../../fields/Types';
 import { DragManager } from '../../util/DragManager';
 import { LinkManager } from '../../util/LinkManager';
 import { ContextMenu } from '../ContextMenu';
@@ -38,7 +38,7 @@ export async function StartLinkTargetsDrag(dragEle: HTMLElement, docView: Docume
         }
 
         const dragData = new DragManager.DocumentDragData(moddrag.length ? moddrag : draggedDocs);
-        dragData.moveDocument = (doc: Doc, targetCollection: Doc | undefined, addDocument: (doc: Doc) => boolean): boolean => {
+        dragData.moveDocument = (doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (doc: Doc | Doc[]) => boolean): boolean => {
             docView.props.removeDocument?.(doc);
             addDocument(doc);
             return true;

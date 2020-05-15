@@ -1,17 +1,18 @@
-import { Utils } from "../../Utils";
-import { MessageStore, Transferable, Types, Diff, YoutubeQueryInput, YoutubeQueryTypes, GestureContent, MobileInkOverlayContent, UpdateMobileInkOverlayPositionContent, MobileDocumentUploadContent, RoomMessage } from "../Message";
-import { Client } from "../Client";
+import { Utils } from "../Utils";
+import { MessageStore, Transferable, Types, Diff, YoutubeQueryInput, YoutubeQueryTypes, GestureContent, MobileInkOverlayContent, UpdateMobileInkOverlayPositionContent, MobileDocumentUploadContent, RoomMessage } from "./Message";
+import { Client } from "./Client";
 import { Socket } from "socket.io";
-import { Database } from "../database";
-import { Search } from "../Search";
+import { Database } from "./database";
+import { Search } from "./Search";
 import * as io from 'socket.io';
-import YoutubeApi from "../apis/youtube/youtubeApiSample";
-import { GoogleCredentialsLoader } from "../credentials/CredentialsLoader";
-import { logPort } from "../ActionUtilities";
-import { timeMap } from "../ApiManagers/UserManager";
+import YoutubeApi from "./apis/youtube/youtubeApiSample";
+import { GoogleCredentialsLoader } from "./apis/google/CredentialsLoader";
+import { logPort } from "./ActionUtilities";
+import { timeMap } from "./ApiManagers/UserManager";
 import { green } from "colors";
 import { networkInterfaces } from "os";
-import executeImport from "../../scraping/buxton/final/BuxtonImporter";
+import executeImport from "../scraping/buxton/final/BuxtonImporter";
+import { DocumentsCollection } from "./IDatabase";
 
 export namespace WebSocket {
 
@@ -20,15 +21,7 @@ export namespace WebSocket {
     export const socketMap = new Map<SocketIO.Socket, string>();
     export let disconnect: Function;
 
-
-    export async function start(isRelease: boolean) {
-        await preliminaryFunctions();
-        initialize(isRelease);
-    }
-
-    async function preliminaryFunctions() {
-    }
-    function initialize(isRelease: boolean) {
+    export function initialize(isRelease: boolean) {
         const endpoint = io();
         endpoint.on("connection", function (socket: Socket) {
             _socket = socket;
@@ -96,7 +89,7 @@ export namespace WebSocket {
             Utils.AddServerHandlerCallback(socket, MessageStore.GetField, getField);
             Utils.AddServerHandlerCallback(socket, MessageStore.GetFields, getFields);
             if (isRelease) {
-                Utils.AddServerHandler(socket, MessageStore.DeleteAll, deleteFields);
+                Utils.AddServerHandler(socket, MessageStore.DeleteAll, () => doDelete(false));
             }
 
             Utils.AddServerHandler(socket, MessageStore.CreateField, CreateField);
@@ -163,24 +156,10 @@ export namespace WebSocket {
         }
     }
 
-    export async function deleteFields() {
-        await Database.Instance.deleteAll();
-        if (process.env.DISABLE_SEARCH !== "true") {
-            await Search.clear();
-        }
-        await Database.Instance.deleteAll('newDocuments');
-    }
-
-    // export async function deleteUserDocuments() {
-    //     await Database.Instance.deleteAll();
-    //     await Database.Instance.deleteAll('newDocuments');
-    // }
-
-    export async function deleteAll() {
-        await Database.Instance.deleteAll();
-        await Database.Instance.deleteAll('newDocuments');
-        await Database.Instance.deleteAll('sessions');
-        await Database.Instance.deleteAll('users');
+    export async function doDelete(onlyFields = true) {
+        const target: string[] = [];
+        onlyFields && target.push(DocumentsCollection);
+        await Database.Instance.dropSchema(...target);
         if (process.env.DISABLE_SEARCH !== "true") {
             await Search.clear();
         }
@@ -210,11 +189,11 @@ export namespace WebSocket {
     }
 
     function GetRefField([id, callback]: [string, (result?: Transferable) => void]) {
-        Database.Instance.getDocument(id, callback, "newDocuments");
+        Database.Instance.getDocument(id, callback);
     }
 
     function GetRefFields([ids, callback]: [string[], (result?: Transferable[]) => void]) {
-        Database.Instance.getDocuments(ids, callback, "newDocuments");
+        Database.Instance.getDocuments(ids, callback);
     }
 
     const suffixMap: { [type: string]: (string | [string, string | ((json: any) => any)]) } = {
@@ -271,7 +250,7 @@ export namespace WebSocket {
 
     function UpdateField(socket: Socket, diff: Diff) {
         Database.Instance.update(diff.id, diff.diff,
-            () => socket.broadcast.emit(MessageStore.UpdateField.Message, diff), false, "newDocuments");
+            () => socket.broadcast.emit(MessageStore.UpdateField.Message, diff), false);
         const docfield = diff.diff.$set || diff.diff.$unset;
         if (!docfield) {
             return;
@@ -296,7 +275,7 @@ export namespace WebSocket {
     }
 
     function DeleteField(socket: Socket, id: string) {
-        Database.Instance.delete({ _id: id }, "newDocuments").then(() => {
+        Database.Instance.delete({ _id: id }).then(() => {
             socket.broadcast.emit(MessageStore.DeleteField.Message, id);
         });
 
@@ -304,14 +283,14 @@ export namespace WebSocket {
     }
 
     function DeleteFields(socket: Socket, ids: string[]) {
-        Database.Instance.delete({ _id: { $in: ids } }, "newDocuments").then(() => {
+        Database.Instance.delete({ _id: { $in: ids } }).then(() => {
             socket.broadcast.emit(MessageStore.DeleteFields.Message, ids);
         });
         Search.deleteDocuments(ids);
     }
 
     function CreateField(newValue: any) {
-        Database.Instance.insert(newValue, "newDocuments");
+        Database.Instance.insert(newValue);
     }
 
 }

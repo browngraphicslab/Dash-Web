@@ -1,11 +1,11 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, IReactionDisposer, reaction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DataSym, DocListCast } from "../../../new_fields/Doc";
-import { documentSchema } from '../../../new_fields/documentSchemas';
-import { Id } from "../../../new_fields/FieldSymbols";
-import { createSchema, makeInterface } from '../../../new_fields/Schema';
-import { Cast, NumCast, BoolCast, ScriptCast } from "../../../new_fields/Types";
+import { Doc, DataSym, DocListCast } from "../../../fields/Doc";
+import { documentSchema } from '../../../fields/documentSchemas';
+import { Id } from "../../../fields/FieldSymbols";
+import { createSchema, makeInterface } from '../../../fields/Schema';
+import { Cast, NumCast, BoolCast, ScriptCast } from "../../../fields/Types";
 import { emptyFunction, emptyPath, returnFalse, returnTrue, returnOne, returnZero } from "../../../Utils";
 import { Transform } from "../../util/Transform";
 import { CollectionViewType } from '../collections/CollectionView';
@@ -41,8 +41,8 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
     // these fields are conditionally computed fields on the layout document that take this document as a parameter
     @computed get indexInPres() { return Number(this.lookupField("indexInPres")); }  // the index field is where this document is in the presBox display list (since this value is different for each presentation element, the value can't be stored on the layout template which is used by all display elements)
     @computed get collapsedHeight() { return Number(this.lookupField("presCollapsedHeight")); } // the collapsed height changes depending on the state of the presBox.  We could store this on the presentation elemnt template if it's used by only one presentation - but if it's shared by multiple, then this value must be looked up
-    @computed get presStatus() { return BoolCast(this.layoutDoc.presStatus); }
-    @computed get currentIndex() { return NumCast(this.layoutDoc.currentIndex); }
+    @computed get presStatus() { return BoolCast(this.lookupField("presStatus")); }
+    @computed get itemIndex() { return NumCast(this.lookupField("_itemIndex")); }
     @computed get targetDoc() { return Cast(this.rootDoc.presentationTargetDoc, Doc, null) || this.rootDoc; }
 
     componentDidMount() {
@@ -62,11 +62,11 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         e.stopPropagation();
         this.rootDoc.presHideTillShownButton = !this.rootDoc.presHideTillShownButton;
         if (!this.rootDoc.presHideTillShownButton) {
-            if (this.indexInPres >= this.currentIndex && this.targetDoc) {
+            if (this.indexInPres >= this.itemIndex && this.targetDoc) {
                 this.targetDoc.opacity = 1;
             }
         } else {
-            if (this.presStatus && this.indexInPres > this.currentIndex && this.targetDoc) {
+            if (this.presStatus && this.indexInPres > this.itemIndex && this.targetDoc) {
                 this.targetDoc.opacity = 0;
             }
         }
@@ -82,12 +82,12 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         e.stopPropagation();
         this.rootDoc.presHideAfterButton = !this.rootDoc.presHideAfterButton;
         if (!this.rootDoc.presHideAfterButton) {
-            if (this.indexInPres <= this.currentIndex && this.targetDoc) {
+            if (this.indexInPres <= this.itemIndex && this.targetDoc) {
                 this.targetDoc.opacity = 1;
             }
         } else {
             if (this.rootDoc.presFadeButton) this.rootDoc.presFadeButton = false;
-            if (this.presStatus && this.indexInPres < this.currentIndex && this.targetDoc) {
+            if (this.presStatus && this.indexInPres < this.itemIndex && this.targetDoc) {
                 this.targetDoc.opacity = 0;
             }
         }
@@ -103,12 +103,12 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         e.stopPropagation();
         this.rootDoc.presFadeButton = !this.rootDoc.presFadeButton;
         if (!this.rootDoc.presFadeButton) {
-            if (this.indexInPres <= this.currentIndex && this.targetDoc) {
+            if (this.indexInPres <= this.itemIndex && this.targetDoc) {
                 this.targetDoc.opacity = 1;
             }
         } else {
             this.rootDoc.presHideAfterButton = false;
-            if (this.presStatus && (this.indexInPres < this.currentIndex) && this.targetDoc) {
+            if (this.presStatus && (this.indexInPres < this.itemIndex) && this.targetDoc) {
                 this.targetDoc.opacity = 0.5;
             }
         }
@@ -123,7 +123,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         this.rootDoc.presNavButton = !this.rootDoc.presNavButton;
         if (this.rootDoc.presNavButton) {
             this.rootDoc.presZoomButton = false;
-            if (this.currentIndex === this.indexInPres) {
+            if (this.itemIndex === this.indexInPres) {
                 this.props.focus(this.rootDoc);
             }
         }
@@ -139,7 +139,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         this.rootDoc.presZoomButton = !this.rootDoc.presZoomButton;
         if (this.rootDoc.presZoomButton) {
             this.rootDoc.presNavButton = false;
-            if (this.currentIndex === this.indexInPres) {
+            if (this.itemIndex === this.indexInPres) {
                 this.props.focus(this.rootDoc);
             }
         }
@@ -189,7 +189,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
 
     render() {
         const treecontainer = this.props.ContainingCollectionDoc?._viewType === CollectionViewType.Tree;
-        const className = "presElementBox-item" + (this.currentIndex === this.indexInPres ? " presElementBox-active" : "");
+        const className = "presElementBox-item" + (this.itemIndex === this.indexInPres ? " presElementBox-active" : "");
         const pbi = "presElementBox-interaction";
         return !(this.rootDoc instanceof Doc) || this.targetDoc instanceof Promise ? (null) : (
             <div className={className} key={this.props.Document[Id] + this.indexInPres}

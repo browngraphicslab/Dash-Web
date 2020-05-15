@@ -1,37 +1,34 @@
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, DataSym, WidthSym, HeightSym, Opt } from "../../../../new_fields/Doc";
-import { InkField, InkData } from "../../../../new_fields/InkField";
-import { List } from "../../../../new_fields/List";
-import { SchemaHeaderField } from "../../../../new_fields/SchemaHeaderField";
-import { Cast, NumCast, FieldValue, StrCast } from "../../../../new_fields/Types";
+import { Doc, Opt } from "../../../../fields/Doc";
+import { InkData, InkField } from "../../../../fields/InkField";
+import { List } from "../../../../fields/List";
+import { RichTextField } from "../../../../fields/RichTextField";
+import { SchemaHeaderField } from "../../../../fields/SchemaHeaderField";
+import { Cast, FieldValue, NumCast, StrCast } from "../../../../fields/Types";
 import { Utils } from "../../../../Utils";
-import { Docs, DocUtils, DocumentOptions } from "../../../documents/Documents";
+import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
+import { Docs, DocumentOptions, DocUtils } from "../../../documents/Documents";
 import { SelectionManager } from "../../../util/SelectionManager";
 import { Transform } from "../../../util/Transform";
 import { undoBatch } from "../../../util/UndoManager";
 import { ContextMenu } from "../../ContextMenu";
+import { FormattedTextBox } from "../../nodes/formattedText/FormattedTextBox";
 import { PreviewCursor } from "../../PreviewCursor";
 import { SubCollectionViewProps } from "../CollectionSubView";
+import { CollectionView } from "../CollectionView";
 import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
 import "./MarqueeView.scss";
 import React = require("react");
-import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
-import { RichTextField } from "../../../../new_fields/RichTextField";
-import { CollectionView } from "../CollectionView";
-import { FormattedTextBox } from "../../nodes/formattedText/FormattedTextBox";
-import { ScriptField } from "../../../../new_fields/ScriptField";
+import { InteractionUtils } from "../../../util/InteractionUtils";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
     getTransform: () => Transform;
-    addDocument: (doc: Doc) => boolean;
     activeDocuments: () => Doc[];
     selectDocuments: (docs: Doc[], ink: { Document: Doc, Ink: Map<any, any> }[]) => void;
-    removeDocument: (doc: Doc) => boolean;
     addLiveTextDocument: (doc: Doc) => void;
     isSelected: () => boolean;
-    isAnnotationOverlay?: boolean;
     nudge: (x: number, y: number) => boolean;
     setPreviewCursor?: (func: (x: number, y: number, drag: boolean) => void) => void;
 }
@@ -39,7 +36,7 @@ interface MarqueeViewProps {
 @observer
 export class MarqueeView extends React.Component<SubCollectionViewProps & MarqueeViewProps>
 {
-    private _mainCont = React.createRef<HTMLDivElement>();
+    @observable public static DragMarquee = false;
     @observable _lastX: number = 0;
     @observable _lastY: number = 0;
     @observable _downX: number = 0;
@@ -108,7 +105,11 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             });
         } else if (!e.ctrlKey) {
             FormattedTextBox.SelectOnLoadChar = FormattedTextBox.DefaultLayout ? e.key : "";
-            const tbox = Docs.Create.TextDocument("", { _width: 200, _height: 100, x: x, y: y, _autoHeight: true, title: "-typed text-" });
+            const tbox = Docs.Create.TextDocument("", {
+                _width: 200, _height: 100, x: x, y: y, _autoHeight: true, _fontSize: NumCast(Doc.UserDoc().fontSize),
+                _backgroundColor: StrCast(Doc.UserDoc().backgroundColor),
+                title: "-typed text-"
+            });
             const template = FormattedTextBox.DefaultLayout;
             if (template instanceof Doc) {
                 tbox._width = NumCast(template._width);
@@ -164,12 +165,13 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
     onPointerDown = (e: React.PointerEvent): void => {
         this._downX = this._lastX = e.clientX;
         this._downY = this._lastY = e.clientY;
-        if (e.button === 2 || (e.button === 0 && e.altKey)) {
+        // allow marquee if right click OR alt+left click OR space bar + left click
+        if (e.button === 2 || (e.button === 0 && (e.altKey || (MarqueeView.DragMarquee && this.props.active(true))))) {
+            // if (e.altKey || (MarqueeView.DragMarquee && this.props.active(true))) {
             this.setPreviewCursor(e.clientX, e.clientY, true);
-            if (e.altKey) {
-                //e.stopPropagation(); // bcz: removed so that you can alt-click on button in a collection to switch link following behaviors.
-                e.preventDefault();
-            }
+            // (!e.altKey) && e.stopPropagation(); // bcz: removed so that you can alt-click on button in a collection to switch link following behaviors.
+            e.preventDefault();
+            // }
             // bcz: do we need this?   it kills the context menu on the main collection if !altKey
             // e.stopPropagation();
         }
@@ -191,14 +193,13 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         } else {
             this.cleanupInteractions(true); // stop listening for events if another lower-level handle (e.g. another Marquee) has stopPropagated this
         }
-        if (e.altKey) {
+        if (e.altKey || MarqueeView.DragMarquee) {
             e.preventDefault();
         }
     }
 
     @action
     onPointerUp = (e: PointerEvent): void => {
-        if (!this.props.active(true)) this.props.selectDocuments([this.props.Document], []);
         if (this._visible) {
             const mselect = this.marqueeSelect();
             if (!e.shiftKey) {
@@ -209,6 +210,11 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             const docs = mselect.length ? mselect : [this.props.Document];
             this.props.selectDocuments(docs, []);
         }
+        const hideMarquee = () => {
+            this.hideMarquee();
+            MarqueeOptionsMenu.Instance.fadeOut(true);
+            document.removeEventListener("pointerdown", hideMarquee);
+        };
         if (!this._commandExecuted && (Math.abs(this.Bounds.height * this.Bounds.width) > 100)) {
             MarqueeOptionsMenu.Instance.createCollection = this.collection;
             MarqueeOptionsMenu.Instance.delete = this.delete;
@@ -217,17 +223,13 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             MarqueeOptionsMenu.Instance.showMarquee = this.showMarquee;
             MarqueeOptionsMenu.Instance.hideMarquee = this.hideMarquee;
             MarqueeOptionsMenu.Instance.jumpTo(e.clientX, e.clientY);
+            document.addEventListener("pointerdown", hideMarquee);
+        } else {
+            this.hideMarquee();
         }
         this.cleanupInteractions(true, this._commandExecuted);
 
-        const hideMarquee = () => {
-            this.hideMarquee();
-            MarqueeOptionsMenu.Instance.fadeOut(true);
-            document.removeEventListener("pointerdown", hideMarquee);
-        };
-        document.addEventListener("pointerdown", hideMarquee);
-
-        if (e.altKey) {
+        if (e.altKey || MarqueeView.DragMarquee) {
             e.preventDefault();
         }
     }
@@ -300,10 +302,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
 
     @action
     delete = () => {
-        this.marqueeSelect(false).map(d => this.props.removeDocument(d));
-        if (this.ink) {
-            // this.marqueeInkDelete(this.ink.inkData);
-        }
+        this.props.removeDocument(this.marqueeSelect(false));
         SelectionManager.DeselectAll();
         this.cleanupInteractions(false);
         MarqueeOptionsMenu.Instance.fadeOut(true);
@@ -349,13 +348,14 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         const bounds = this.Bounds;
         const selected = this.marqueeSelect(false);
         if (e instanceof KeyboardEvent ? e.key === "c" : true) {
-            selected.map(d => {
-                this.props.removeDocument(d);
+            selected.map(action(d => {
+                //this.props.removeDocument(d);
                 d.x = NumCast(d.x) - bounds.left - bounds.width / 2;
                 d.y = NumCast(d.y) - bounds.top - bounds.height / 2;
                 d.displayTimecode = undefined;  // bcz: this should be automatic somehow.. along with any other properties that were logically associated with the original collection
                 return d;
-            });
+            }));
+            this.props.removeDocument(selected);
         }
         const newCollection = this.getCollection(selected, (e as KeyboardEvent)?.key === "t" ? Docs.Create.StackingDocument : undefined);
         this.props.addDocument(newCollection);
@@ -551,7 +551,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
     marqueeSelect(selectBackgrounds: boolean = true) {
         const selRect = this.Bounds;
         const selection: Doc[] = [];
-        this.props.activeDocuments().filter(doc => !doc.isBackground && doc.z === undefined).map(doc => {
+        this.props.activeDocuments().filter(doc => !doc.isBackground && !doc.z).map(doc => {
             const layoutDoc = Doc.Layout(doc);
             const x = NumCast(doc.x);
             const y = NumCast(doc.y);
@@ -613,7 +613,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
 
     render() {
         return <div className="marqueeView"
-            style={{ overflow: StrCast(this.props.Document._overflow), }}
+            style={{ overflow: StrCast(this.props.Document._overflow), cursor: MarqueeView.DragMarquee && this ? "crosshair" : "hand" }}
             onScroll={(e) => e.currentTarget.scrollTop = e.currentTarget.scrollLeft = 0} onClick={this.onClick} onPointerDown={this.onPointerDown}>
             {this._visible ? this.marqueeDiv : null}
             {this.props.children}

@@ -9,14 +9,14 @@ import { ScriptingBox } from "../views/nodes/ScriptingBox";
 import { VideoBox } from "../views/nodes/VideoBox";
 import { WebBox } from "../views/nodes/WebBox";
 import { OmitKeys, JSONUtils, Utils } from "../../Utils";
-import { Field, Doc, Opt, DocListCastAsync, FieldResult, DocListCast } from "../../new_fields/Doc";
-import { ImageField, VideoField, AudioField, PdfField, WebField, YoutubeField } from "../../new_fields/URLField";
-import { HtmlField } from "../../new_fields/HtmlField";
-import { List } from "../../new_fields/List";
-import { Cast, NumCast, StrCast } from "../../new_fields/Types";
+import { Field, Doc, Opt, DocListCastAsync, FieldResult, DocListCast } from "../../fields/Doc";
+import { ImageField, VideoField, AudioField, PdfField, WebField, YoutubeField } from "../../fields/URLField";
+import { HtmlField } from "../../fields/HtmlField";
+import { List } from "../../fields/List";
+import { Cast, NumCast, StrCast } from "../../fields/Types";
 import { DocServer } from "../DocServer";
 import { dropActionType } from "../util/DragManager";
-import { DateField } from "../../new_fields/DateField";
+import { DateField } from "../../fields/DateField";
 import { YoutubeBox } from "../apis/youtube/YoutubeBox";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import { LinkManager } from "../util/LinkManager";
@@ -26,10 +26,10 @@ import { Scripting } from "../util/Scripting";
 import { LabelBox } from "../views/nodes/LabelBox";
 import { SliderBox } from "../views/nodes/SliderBox";
 import { FontIconBox } from "../views/nodes/FontIconBox";
-import { SchemaHeaderField } from "../../new_fields/SchemaHeaderField";
+import { SchemaHeaderField } from "../../fields/SchemaHeaderField";
 import { PresBox } from "../views/nodes/PresBox";
-import { ComputedField, ScriptField } from "../../new_fields/ScriptField";
-import { ProxyField } from "../../new_fields/Proxy";
+import { ComputedField, ScriptField } from "../../fields/ScriptField";
+import { ProxyField } from "../../fields/Proxy";
 import { DocumentType } from "./DocumentTypes";
 import { RecommendationsBox } from "../views/RecommendationsBox";
 import { PresElementBox } from "../views/presentationview/PresElementBox";
@@ -37,11 +37,11 @@ import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
 import { QueryBox } from "../views/nodes/QueryBox";
 import { ColorBox } from "../views/nodes/ColorBox";
 import { LinkAnchorBox } from "../views/nodes/LinkAnchorBox";
-import { DocHolderBox } from "../views/nodes/DocumentBox";
+import { DocHolderBox } from "../views/nodes/DocHolderBox";
 import { InkingStroke } from "../views/InkingStroke";
-import { InkField } from "../../new_fields/InkField";
+import { InkField } from "../../fields/InkField";
 import { InkingControl } from "../views/InkingControl";
-import { RichTextField } from "../../new_fields/RichTextField";
+import { RichTextField } from "../../fields/RichTextField";
 import { extname } from "path";
 import { MessageStore } from "../../server/Message";
 import { ContextMenuProps } from "../views/ContextMenuItem";
@@ -58,6 +58,8 @@ export interface DocumentOptions {
     _height?: number;
     _nativeWidth?: number;
     _nativeHeight?: number;
+    _dimMagnitude?: number; // magnitude of collectionMulti{row,col} view element
+    _dimUnit?: string; // "px" or "*" (default = "*")
     _fitWidth?: boolean;
     _fitToBox?: boolean; // whether a freeformview should zoom/scale to create a shrinkwrapped view of its contents
     _LODdisable?: boolean;
@@ -125,6 +127,7 @@ export interface DocumentOptions {
     borderRounding?: string;
     boxShadow?: string;
     dontRegisterChildViews?: boolean;
+    lookupField?: ScriptField; // script that returns the value of a field. This script is passed the rootDoc, layoutDoc, field, and container of the document.  see PresBox.
     "onDoubleClick-rawScript"?: string; // onDoubleClick script in raw text form
     "onClick-rawScript"?: string; // onClick script in raw text form
     "onCheckedClick-rawScript"?: string; // onChecked script in raw text form
@@ -148,6 +151,7 @@ export interface DocumentOptions {
     dragFactory?: Doc; // document to create when dragging with a suitable onDragStart script
     onDragStart?: ScriptField; //script to execute at start of drag operation --  e.g., when a "creator" button is dragged this script generates a different document to drop
     clipboard?: Doc;
+    UseCors?: boolean;
     icon?: string;
     sourcePanel?: Doc; // panel to display in 'targetContainer' as the result of a button onClick script
     targetContainer?: Doc; // document whose proto will be set to 'panel' as the result of a onClick click script
@@ -455,10 +459,7 @@ export namespace Docs {
 
         Scripting.addGlobal(Buxton);
 
-        const delegateKeys = ["x", "y", "layoutKey", "_width", "_height", "_panX", "_panY", "_viewType", "_nativeWidth", "_nativeHeight", "dropAction", "childDropAction", "_annotationOn",
-            "_chromeStatus", "_autoHeight", "_fitWidth", "_LODdisable", "_itemIndex", "_showSidebar", "_showTitle", "_showCaption", "_showTitleHover", "_backgroundColor",
-            "_xMargin", "_yMargin", "_xPadding", "_yPadding", "_singleLine", "_scrollTop",
-            "_color", "isLinkButton", "isBackground", "removeDropProperties", "treeViewOpen"];
+        const delegateKeys = ["x", "y", "layoutKey", "dropAction", "childDropAction", "isLinkButton", "isBackground", "removeDropProperties", "treeViewOpen"];
 
         /**
          * This function receives the relevant document prototype and uses
@@ -479,7 +480,7 @@ export namespace Docs {
          * main document.
          */
         export function InstanceFromProto(proto: Doc, data: Field | undefined, options: DocumentOptions, delegId?: string, fieldKey: string = "data") {
-            const { omit: protoProps, extract: delegateProps } = OmitKeys(options, delegateKeys);
+            const { omit: protoProps, extract: delegateProps } = OmitKeys(options, delegateKeys, "^_");
 
             if (!("author" in protoProps)) {
                 protoProps.author = Doc.CurrentUserEmail;
@@ -606,7 +607,7 @@ export namespace Docs {
             return doc;
         }
 
-        export function InkDocument(color: string, tool: number, strokeWidth: number, points: { X: number, Y: number }[], options: DocumentOptions = {}) {
+        export function InkDocument(color: string, tool: number, strokeWidth: string, points: { X: number, Y: number }[], options: DocumentOptions = {}) {
             const I = new Doc();
             I.type = DocumentType.INK;
             I.layout = InkingStroke.LayoutString("data");

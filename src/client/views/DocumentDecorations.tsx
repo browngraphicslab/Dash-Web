@@ -3,10 +3,10 @@ import { faCaretUp, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faT
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DataSym, Field } from "../../new_fields/Doc";
-import { Document } from '../../new_fields/documentSchemas';
-import { ScriptField } from '../../new_fields/ScriptField';
-import { Cast, StrCast, NumCast } from "../../new_fields/Types";
+import { Doc, DataSym, Field, WidthSym, HeightSym } from "../../fields/Doc";
+import { Document } from '../../fields/documentSchemas';
+import { ScriptField } from '../../fields/ScriptField';
+import { Cast, StrCast, NumCast } from "../../fields/Types";
 import { Utils, setupMoveUpEvents, emptyFunction, returnFalse, simulateMouseClick } from "../../Utils";
 import { DocUtils } from "../documents/Documents";
 import { DocumentType } from '../documents/DocumentTypes';
@@ -17,10 +17,10 @@ import { DocumentButtonBar } from './DocumentButtonBar';
 import './DocumentDecorations.scss';
 import { DocumentView } from "./nodes/DocumentView";
 import React = require("react");
-import { Id } from '../../new_fields/FieldSymbols';
+import { Id } from '../../fields/FieldSymbols';
 import e = require('express');
 import { CollectionDockingView } from './collections/CollectionDockingView';
-import { MainView } from './MainView';
+import { SnappingManager } from '../util/SnappingManager';
 
 library.add(faCaretUp);
 library.add(faObjectGroup);
@@ -173,8 +173,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     }
     @undoBatch
     @action
-    onCloseClick = async (e: PointerEvent) => {
-        if (e.button === 0) {
+    onCloseClick = async (e: PointerEvent | undefined) => {
+        if (!e?.button) {
             const recent = Cast(Doc.UserDoc().myRecentlyClosed, Doc) as Doc;
             const selected = SelectionManager.SelectedDocuments().slice();
             SelectionManager.DeselectAll();
@@ -236,6 +236,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         return false;
     }
 
+    _initialAutoHeight = false;
+    _dragHeights = new Map<Doc, number>();
     @action
     onPointerDown = (e: React.PointerEvent): void => {
         setupMoveUpEvents(this, e, this.onPointerMove, this.onPointerUp, (e) => { });
@@ -250,17 +252,44 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         }
         this._snapX = e.pageX;
         this._snapY = e.pageY;
+        this._initialAutoHeight = true;
+        DragManager.docsBeingDragged = SelectionManager.SelectedDocuments().map(dv => dv.rootDoc);
+        SelectionManager.SelectedDocuments().map(dv => {
+            this._dragHeights.set(dv.layoutDoc, NumCast(dv.layoutDoc._height));
+            dv.layoutDoc._delayAutoHeight = dv.layoutDoc._height;
+        });
     }
 
     onPointerMove = (e: PointerEvent, down: number[], move: number[]): boolean => {
-        const { thisX, thisY } = DragManager.snapDrag(e, -this._offX, -this._offY, this._offX, this._offY);
-        move[0] = thisX - this._snapX;
-        move[1] = thisY - this._snapY;
-        this._snapX = thisX;
-        this._snapY = thisY;
+        const first = SelectionManager.SelectedDocuments()[0];
+        let thisPt = { thisX: e.clientX - this._offX, thisY: e.clientY - this._offY };
+        const fixedAspect = first.layoutDoc._nativeWidth ? NumCast(first.layoutDoc._nativeWidth) / NumCast(first.layoutDoc._nativeHeight) : 0;
+        if (fixedAspect && (this._resizeHdlId === "documentDecorations-bottomRightResizer" || this._resizeHdlId === "documentDecorations-topLeftResizer")) { // need to generalize for bl and tr drag handles
+            const project = (p: number[], a: number[], b: number[]) => {
+                const atob = [b[0] - a[0], b[1] - a[1]];
+                const atop = [p[0] - a[0], p[1] - a[1]];
+                const len = atob[0] * atob[0] + atob[1] * atob[1];
+                let dot = atop[0] * atob[0] + atop[1] * atob[1];
+                const t = dot / len;
+                dot = (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]);
+                return [a[0] + atob[0] * t, a[1] + atob[1] * t];
+            };
+            const tl = first.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
+            const drag = project([e.clientX + this._offX, e.clientY + this._offY], tl, [tl[0] + fixedAspect, tl[1] + 1]);
+            thisPt = DragManager.snapDragAspect(drag, fixedAspect);
+        } else {
+            thisPt = DragManager.snapDrag(e, -this._offX, -this._offY, this._offX, this._offY);
+        }
+
+        move[0] = thisPt.thisX - this._snapX;
+        move[1] = thisPt.thisY - this._snapY;
+        this._snapX = thisPt.thisX;
+        this._snapY = thisPt.thisY;
 
         let dX = 0, dY = 0, dW = 0, dH = 0;
-
+        const unfreeze = () =>
+            SelectionManager.SelectedDocuments().forEach(action((element: DocumentView) =>
+                (element.rootDoc.type === DocumentType.RTF && element.layoutDoc._nativeHeight) && element.toggleNativeDimensions()));
         switch (this._resizeHdlId) {
             case "": break;
             case "documentDecorations-topLeftResizer":
@@ -275,6 +304,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 dH = -move[1];
                 break;
             case "documentDecorations-topResizer":
+                unfreeze();
                 dY = -1;
                 dH = -move[1];
                 break;
@@ -288,26 +318,33 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 dH = move[1];
                 break;
             case "documentDecorations-bottomResizer":
+                unfreeze();
                 dH = move[1];
                 break;
             case "documentDecorations-leftResizer":
+                unfreeze();
                 dX = -1;
                 dW = -move[0];
                 break;
             case "documentDecorations-rightResizer":
+                unfreeze();
                 dW = move[0];
                 break;
         }
 
         SelectionManager.SelectedDocuments().forEach(action((element: DocumentView) => {
+            if (e.ctrlKey && !element.props.Document._nativeHeight) element.toggleNativeDimensions();
             if (dX !== 0 || dY !== 0 || dW !== 0 || dH !== 0) {
                 const doc = Document(element.rootDoc);
                 let nwidth = doc._nativeWidth || 0;
                 let nheight = doc._nativeHeight || 0;
                 const width = (doc._width || 0);
-                const height = (doc._height || (nheight / nwidth * width));
+                let height = (doc._height || (nheight / nwidth * width));
                 const scale = element.props.ScreenToLocalTransform().Scale * element.props.ContentScaling();
                 if (nwidth && nheight) {
+                    if (nwidth / nheight !== width / height) {
+                        height = nheight / nwidth * width;
+                    }
                     if (Math.abs(dW) > Math.abs(dH)) dH = dW * nheight / nwidth;
                     else dW = dH * nwidth / nheight;
                 }
@@ -351,7 +388,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 } else {
                     dW && (doc._width = actualdW);
                     dH && (doc._height = actualdH);
-                    dH && doc._autoHeight && (doc._autoHeight = false);
+                    dH && this._initialAutoHeight && (doc._autoHeight = this._initialAutoHeight = false);
                 }
             }
         }));
@@ -360,11 +397,18 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
     @action
     onPointerUp = (e: PointerEvent): void => {
+        SelectionManager.SelectedDocuments().map(dv => {
+            if (NumCast(dv.layoutDoc._delayAutoHeight) < this._dragHeights.get(dv.layoutDoc)!) {
+                dv.nativeWidth > 0 && Doc.toggleNativeDimensions(dv.layoutDoc, dv.props.ContentScaling(), dv.panelWidth(), dv.panelHeight());
+                dv.layoutDoc._autoHeight = true;
+            }
+            dv.layoutDoc._delayAutoHeight = undefined;
+        });
         this._resizeHdlId = "";
         this.Interacting = false;
         (e.button === 0) && this._resizeUndo?.end();
         this._resizeUndo = undefined;
-        DragManager.Vals.Instance.clearSnapLines();
+        SnappingManager.clearSnapLines();
     }
 
     @computed
@@ -403,7 +447,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         const darkScheme = Cast(Doc.UserDoc().activeWorkspace, Doc, null)?.darkScheme ? "dimgray" : undefined;
         const bounds = this.Bounds;
         const seldoc = SelectionManager.SelectedDocuments().length ? SelectionManager.SelectedDocuments()[0] : undefined;
-        if (DragManager.Vals.Instance.GetIsDragging() || bounds.r - bounds.x < 2 || bounds.x === Number.MAX_VALUE || !seldoc || this._hidden || isNaN(bounds.r) || isNaN(bounds.b) || isNaN(bounds.x) || isNaN(bounds.y)) {
+        if (SnappingManager.GetIsDragging() || bounds.r - bounds.x < 2 || bounds.x === Number.MAX_VALUE || !seldoc || this._hidden || isNaN(bounds.r) || isNaN(bounds.b) || isNaN(bounds.x) || isNaN(bounds.y)) {
             return (null);
         }
         const minimal = bounds.r - bounds.x < 100 ? true : false;
@@ -432,12 +476,14 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     <FontAwesomeIcon size="lg" color={SelectionManager.SelectedDocuments()[0].props.Document.title === SelectionManager.SelectedDocuments()[0].props.Document[Id] ? "green" : undefined} icon="sticky-note"></FontAwesomeIcon>
                 </div>}
             </> :
-            <div className="documentDecorations-title" onPointerDown={this.onTitleDown} >
-                {minimal ? (null) : <div className="documentDecorations-contextMenu" title="Show context menu" onPointerDown={this.onSettingsDown}>
+            <>
+                {minimal ? (null) : <div className="documentDecorations-contextMenu" key="menu" title="Show context menu" onPointerDown={this.onSettingsDown}>
                     <FontAwesomeIcon size="lg" icon="cog" />
                 </div>}
-                <span style={{ width: "calc(100% - 25px)", display: "inline-block" }}>{`${this.selectionTitle}`}</span>
-            </div>;
+                <div className="documentDecorations-title" key="title" onPointerDown={this.onTitleDown} >
+                    <span style={{ width: "calc(100% - 25px)", display: "inline-block" }}>{`${this.selectionTitle}`}</span>
+                </div>
+            </>
 
         bounds.x = Math.max(0, bounds.x - this._resizeBorderWidth / 2) + this._resizeBorderWidth / 2;
         bounds.y = Math.max(0, bounds.y - this._resizeBorderWidth / 2 - this._titleHeight) + this._resizeBorderWidth / 2 + this._titleHeight;
@@ -498,7 +544,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
             </div >
             <div className="link-button-container" style={{ left: bounds.x - this._resizeBorderWidth / 2, top: bounds.b + this._resizeBorderWidth / 2 }}>
-                <DocumentButtonBar views={SelectionManager.SelectedDocuments()} />
+                <DocumentButtonBar views={SelectionManager.SelectedDocuments} />
             </div>
         </div >
         );

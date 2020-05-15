@@ -1,7 +1,7 @@
 import { action, computed, observable } from 'mobx';
-import { Doc, DocListCastAsync, DocListCast, Opt } from '../../new_fields/Doc';
-import { Id } from '../../new_fields/FieldSymbols';
-import { Cast, NumCast, StrCast } from '../../new_fields/Types';
+import { Doc, DocListCastAsync, DocListCast, Opt } from '../../fields/Doc';
+import { Id } from '../../fields/FieldSymbols';
+import { Cast, NumCast, StrCast } from '../../fields/Types';
 import { CollectionDockingView } from '../views/collections/CollectionDockingView';
 import { CollectionView } from '../views/collections/CollectionView';
 import { DocumentView, DocFocusFunc } from '../views/nodes/DocumentView';
@@ -94,37 +94,29 @@ export class DocumentManager {
         // heuristic to return the "best" documents first:
         //   choose an exact match over an alias match
         //   choose documents that have a PanelWidth() over those that don't (the treeview documents have no panelWidth)
-        docViews.map(view => !view.props.Document.presBox && view.props.PanelWidth() > 1 && view.props.Document === toFind && toReturn.push(view));
-        docViews.map(view => !view.props.Document.presBox && view.props.PanelWidth() <= 1 && view.props.Document === toFind && toReturn.push(view));
-        docViews.map(view => !view.props.Document.presBox && view.props.PanelWidth() > 1 && view.props.Document !== toFind && Doc.AreProtosEqual(view.props.Document, toFind) && toReturn.push(view));
-        docViews.map(view => !view.props.Document.presBox && view.props.PanelWidth() <= 1 && view.props.Document !== toFind && Doc.AreProtosEqual(view.props.Document, toFind) && toReturn.push(view));
+        docViews.map(view => view.props.PanelWidth() > 1 && view.props.Document === toFind && toReturn.push(view));
+        docViews.map(view => view.props.PanelWidth() <= 1 && view.props.Document === toFind && toReturn.push(view));
+        docViews.map(view => view.props.PanelWidth() > 1 && view.props.Document !== toFind && Doc.AreProtosEqual(view.props.Document, toFind) && toReturn.push(view));
+        docViews.map(view => view.props.PanelWidth() <= 1 && view.props.Document !== toFind && Doc.AreProtosEqual(view.props.Document, toFind) && toReturn.push(view));
 
         return toReturn;
     }
 
     @computed
     public get LinkedDocumentViews() {
-        const pairs = DocumentManager.Instance.DocumentViews
-            //.filter(dv => (dv.isSelected() || Doc.IsBrushed(dv.props.Document))) // draw links from DocumentViews that are selected or brushed OR
-            // || DocumentManager.Instance.DocumentViews.some(dv2 => {                                                  // Documentviews which
-            //     const rest = DocListCast(dv2.props.Document.links).some(l => Doc.AreProtosEqual(l, dv.props.Document));// are link doc anchors 
-            //     const init = (dv2.isSelected() || Doc.IsBrushed(dv2.props.Document)) && dv2.Document.type !== DocumentType.AUDIO;  // on a view that is selected or brushed
-            //     return init && rest;
-            // }
-            // )
-            .reduce((pairs, dv) => {
-                const linksList = LinkManager.Instance.getAllRelatedLinks(dv.props.Document);
-                pairs.push(...linksList.reduce((pairs, link) => {
-                    const linkToDoc = link && LinkManager.Instance.getOppositeAnchor(link, dv.props.Document);
-                    linkToDoc && DocumentManager.Instance.getDocumentViews(linkToDoc).map(docView1 => {
-                        if (dv.props.Document.type !== DocumentType.LINK || dv.props.LayoutTemplateString !== docView1.props.LayoutTemplateString) {
-                            pairs.push({ a: dv, b: docView1, l: link });
-                        }
-                    });
-                    return pairs;
-                }, [] as { a: DocumentView, b: DocumentView, l: Doc }[]));
+        const pairs = DocumentManager.Instance.DocumentViews.reduce((pairs, dv) => {
+            const linksList = LinkManager.Instance.getAllRelatedLinks(dv.props.Document);
+            pairs.push(...linksList.reduce((pairs, link) => {
+                const linkToDoc = link && LinkManager.Instance.getOppositeAnchor(link, dv.props.Document);
+                linkToDoc && DocumentManager.Instance.getDocumentViews(linkToDoc).map(docView1 => {
+                    if (dv.props.Document.type !== DocumentType.LINK || dv.props.LayoutTemplateString !== docView1.props.LayoutTemplateString) {
+                        pairs.push({ a: dv, b: docView1, l: link });
+                    }
+                });
                 return pairs;
-            }, [] as { a: DocumentView, b: DocumentView, l: Doc }[]);
+            }, [] as { a: DocumentView, b: DocumentView, l: Doc }[]));
+            return pairs;
+        }, [] as { a: DocumentView, b: DocumentView, l: Doc }[]);
 
         return pairs;
     }

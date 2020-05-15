@@ -1,16 +1,17 @@
 import { action, observable, runInAction } from "mobx";
-import { DateField } from "../../new_fields/DateField";
-import { Doc, Field, Opt } from "../../new_fields/Doc";
-import { List } from "../../new_fields/List";
-import { PrefetchProxy } from "../../new_fields/Proxy";
-import { listSpec } from "../../new_fields/Schema";
-import { SchemaHeaderField } from "../../new_fields/SchemaHeaderField";
-import { ScriptField } from "../../new_fields/ScriptField";
-import { Cast, NumCast, ScriptCast, StrCast } from "../../new_fields/Types";
+import { DateField } from "../../fields/DateField";
+import { Doc, Field, Opt } from "../../fields/Doc";
+import { List } from "../../fields/List";
+import { PrefetchProxy } from "../../fields/Proxy";
+import { listSpec } from "../../fields/Schema";
+import { SchemaHeaderField } from "../../fields/SchemaHeaderField";
+import { ScriptField } from "../../fields/ScriptField";
+import { Cast, NumCast, ScriptCast, StrCast } from "../../fields/Types";
 import { emptyFunction } from "../../Utils";
 import { Docs, DocUtils } from "../documents/Documents";
 import * as globalCssVariables from "../views/globalCssVariables.scss";
 import { UndoManager } from "./UndoManager";
+import { SnappingManager } from "./SnappingManager";
 
 export type dropActionType = "alias" | "copy" | "move" | undefined; // undefined = move
 export function SetupDrag(
@@ -49,7 +50,7 @@ export function SetupDrag(
             if (e.shiftKey) {
                 e.persist();
                 const dragDoc = await docFunc();
-                dragDoc && DragManager.Vals.Instance.StartWindowDrag?.({
+                dragDoc && DragManager.StartWindowDrag?.({
                     pageX: e.pageX,
                     pageY: e.pageY,
                     preventDefault: emptyFunction,
@@ -66,19 +67,7 @@ export function SetupDrag(
 
 export namespace DragManager {
     let dragDiv: HTMLDivElement;
-    export class Vals {
-        static Instance: Vals = new Vals();
-        @observable public IsDragging: boolean = false;
-        @observable public horizSnapLines: number[] = [];
-        @observable public vertSnapLines: number[] = [];
-        public StartWindowDrag: Opt<((e: any, dragDocs: Doc[]) => void)> = undefined;
-        public SetIsDragging(dragging: boolean) { runInAction(() => this.IsDragging = dragging); }
-        public GetIsDragging() { return this.IsDragging; }
-        public clearSnapLines() {
-            this.vertSnapLines.length = 0;
-            this.horizSnapLines.length = 0;
-        }
-    }
+    export let StartWindowDrag: Opt<((e: any, dragDocs: Doc[]) => void)> = undefined;
 
     export function Root() {
         const root = document.getElementById("root");
@@ -88,8 +77,8 @@ export namespace DragManager {
         return root;
     }
     export let AbortDrag: () => void = emptyFunction;
-    export type MoveFunction = (document: Doc, targetCollection: Doc | undefined, addDocument: (document: Doc) => boolean) => boolean;
-    export type RemoveFunction = (document: Doc) => boolean;
+    export type MoveFunction = (document: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (document: Doc | Doc[]) => boolean) => boolean;
+    export type RemoveFunction = (document: Doc | Doc[]) => boolean;
 
     export interface DragDropDisposer { (): void; }
     export interface DragOptions {
@@ -187,7 +176,7 @@ export namespace DragManager {
         element: HTMLElement,
         dropFunc: (e: Event, de: DropEvent) => void,
         doc?: Doc,
-        preDropFunc?: (e: Event, de: DropEvent) => void,
+        preDropFunc?: (e: Event, de: DropEvent, targetAction: dropActionType) => void,
     ): DragDropDisposer {
         if ("canDrop" in element.dataset) {
             throw new Error(
@@ -198,10 +187,7 @@ export namespace DragManager {
         const handler = (e: Event) => dropFunc(e, (e as CustomEvent<DropEvent>).detail);
         const preDropHandler = (e: Event) => {
             const de = (e as CustomEvent<DropEvent>).detail;
-            if (de.complete.docDragData && doc?.targetDropAction) {
-                de.complete.docDragData.dropAction = StrCast(doc.targetDropAction) as dropActionType;
-            }
-            preDropFunc?.(e, de);
+            preDropFunc?.(e, de, StrCast(doc?.targetDropAction) as dropActionType);
         };
         element.addEventListener("dashOnDrop", handler);
         doc && element.addEventListener("dashPreDrop", preDropHandler);
@@ -267,10 +253,43 @@ export namespace DragManager {
     }
 
     export function SetSnapLines(horizLines: number[], vertLines: number[]) {
-        DragManager.Vals.Instance.horizSnapLines.push(...horizLines);
-        DragManager.Vals.Instance.vertSnapLines.push(...vertLines);
+        SnappingManager.setSnapLines(horizLines, vertLines);
     }
+    export function snapDragAspect(dragPt: number[], snapAspect: number) {
+        let closest = NumCast(Doc.UserDoc()["constants-snapThreshold"], 10);
+        let near = dragPt;
+        const intersect = (x1: number, y1: number, x2: number, y2: number, x3: number, y3: number, x4: number, y4: number, dragx: number, dragy: number) => {
+            if ((x1 === x2 && y1 === y2) || (x3 === x4 && y3 === y4)) return undefined; // Check if none of the lines are of length 0
+            const denominator = ((y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1));
+            if (denominator === 0) return undefined;  // Lines are parallel
 
+            const ua = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) / denominator;
+            // let ub = ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) / denominator;
+            //if (ua < 0 || ua > 1 || ub < 0 || ub > 1)  return undefined;  // is the intersection along the segments
+
+            // Return a object with the x and y coordinates of the intersection
+            const x = x1 + ua * (x2 - x1);
+            const y = y1 + ua * (y2 - y1);
+            const dist = Math.sqrt((dragx - x) * (dragx - x) + (dragy - y) * (dragy - y));
+            return { pt: [x, y], dist };
+        };
+        SnappingManager.vertSnapLines().forEach((xCoord, i) => {
+            const pt = intersect(dragPt[0], dragPt[1], dragPt[0] + snapAspect, dragPt[1] + 1, xCoord, -1, xCoord, 1, dragPt[0], dragPt[1]);
+            if (pt && pt.dist < closest) {
+                closest = pt.dist;
+                near = pt.pt;
+            }
+        });
+        SnappingManager.horizSnapLines().forEach((yCoord, i) => {
+            const pt = intersect(dragPt[0], dragPt[1], dragPt[0] + snapAspect, dragPt[1] + 1, -1, yCoord, 1, yCoord, dragPt[0], dragPt[1]);
+            if (pt && pt.dist < closest) {
+                closest = pt.dist;
+                near = pt.pt;
+            }
+        });
+        return { thisX: near[0], thisY: near[1] };
+    }
+    // snap to the active snap lines - if oneAxis is set (eg, for maintaining aspect ratios), then it only snaps to the nearest horizontal/vertical line 
     export function snapDrag(e: PointerEvent, xFromLeft: number, yFromTop: number, xFromRight: number, yFromBottom: number) {
         const snapThreshold = NumCast(Doc.UserDoc()["constants-snapThreshold"], 10);
         const snapVal = (pts: number[], drag: number, snapLines: number[]) => {
@@ -284,10 +303,9 @@ export namespace DragManager {
             }
             return drag;
         };
-
         return {
-            thisX: snapVal([xFromLeft, xFromRight], e.pageX, DragManager.Vals.Instance.vertSnapLines),
-            thisY: snapVal([yFromTop, yFromBottom], e.pageY, DragManager.Vals.Instance.horizSnapLines)
+            thisX: snapVal([xFromLeft, xFromRight], e.pageX, SnappingManager.vertSnapLines()),
+            thisY: snapVal([yFromTop, yFromBottom], e.pageY, SnappingManager.horizSnapLines())
         };
     }
     export let docsBeingDragged: Doc[] = [];
@@ -299,7 +317,7 @@ export namespace DragManager {
             dragDiv.style.pointerEvents = "none";
             DragManager.Root().appendChild(dragDiv);
         }
-        DragManager.Vals.Instance.SetIsDragging(true);
+        SnappingManager.SetIsDragging(true);
         const scaleXs: number[] = [];
         const scaleYs: number[] = [];
         const xs: number[] = [];
@@ -388,7 +406,7 @@ export namespace DragManager {
                 }
                 AbortDrag();
                 finishDrag?.(new DragCompleteEvent(true, dragData));
-                DragManager.Vals.Instance.StartWindowDrag?.({
+                DragManager.StartWindowDrag?.({
                     pageX: e.pageX,
                     pageY: e.pageY,
                     preventDefault: emptyFunction,
@@ -415,19 +433,19 @@ export namespace DragManager {
         const endDrag = action(() => {
             document.removeEventListener("pointermove", moveHandler, true);
             document.removeEventListener("pointerup", upHandler);
-            DragManager.Vals.Instance.clearSnapLines();
+            SnappingManager.clearSnapLines();
         });
 
         AbortDrag = () => {
             hideDragShowOriginalElements();
-            DragManager.Vals.Instance.SetIsDragging(false);
+            SnappingManager.SetIsDragging(false);
             options?.dragComplete?.(new DragCompleteEvent(true, dragData));
             endDrag();
         };
         const upHandler = (e: PointerEvent) => {
             hideDragShowOriginalElements();
             dispatchDrag(eles, e, dragData, xFromLeft, yFromTop, xFromRight, yFromBottom, options, finishDrag);
-            DragManager.Vals.Instance.SetIsDragging(false);
+            SnappingManager.SetIsDragging(false);
             endDrag();
             options?.dragComplete?.(new DragCompleteEvent(false, dragData));
         };

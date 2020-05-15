@@ -1,10 +1,10 @@
 import { action, computed } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from "react";
-import { Doc } from '../../../../new_fields/Doc';
-import { documentSchema } from '../../../../new_fields/documentSchemas';
-import { makeInterface } from '../../../../new_fields/Schema';
-import { BoolCast, NumCast, ScriptCast, StrCast, Cast } from '../../../../new_fields/Types';
+import { Doc } from '../../../../fields/Doc';
+import { documentSchema } from '../../../../fields/documentSchemas';
+import { makeInterface } from '../../../../fields/Schema';
+import { BoolCast, NumCast, ScriptCast, StrCast, Cast } from '../../../../fields/Types';
 import { DragManager, dropActionType } from '../../../util/DragManager';
 import { Transform } from '../../../util/Transform';
 import { undoBatch } from '../../../util/UndoManager';
@@ -13,7 +13,7 @@ import { CollectionSubView } from '../CollectionSubView';
 import "./collectionMulticolumnView.scss";
 import ResizeBar from './MulticolumnResizer';
 import WidthLabel from './MulticolumnWidthLabel';
-import { List } from '../../../../new_fields/List';
+import { List } from '../../../../fields/List';
 import { returnZero, returnFalse, returnOne } from '../../../../Utils';
 
 type MulticolumnDocument = makeInterface<[typeof documentSchema]>;
@@ -46,12 +46,12 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
      */
     @computed
     private get ratioDefinedDocs() {
-        return this.childLayoutPairs.map(pair => pair.layout).filter(layout => StrCast(layout.dimUnit, "*") === DimUnit.Ratio);
+        return this.childLayoutPairs.map(pair => pair.layout).filter(layout => StrCast(layout._dimUnit, "*") === DimUnit.Ratio);
     }
 
     /**
-     * This loops through all childLayoutPairs and extracts the values for dimUnit
-     * and dimMagnitude, ignoring any that are malformed. Additionally, it then
+     * This loops through all childLayoutPairs and extracts the values for _dimUnit
+     * and _dimMagnitude, ignoring any that are malformed. Additionally, it then
      * normalizes the ratio values so that one * value is always 1, with the remaining
      * values proportionate to that easily readable metric.
      * @returns the list of the resolved width specifiers (unit and magnitude pairs)
@@ -62,8 +62,8 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
         let starSum = 0;
         const widthSpecifiers: WidthSpecifier[] = [];
         this.childLayoutPairs.map(pair => {
-            const unit = StrCast(pair.layout.dimUnit, "*");
-            const magnitude = NumCast(pair.layout.dimMagnitude, 1);
+            const unit = StrCast(pair.layout._dimUnit, "*");
+            const magnitude = NumCast(pair.layout._dimMagnitude, 1);
             if (unit && magnitude && magnitude > 0 && resolvedUnits.includes(unit)) {
                 (unit === DimUnit.Ratio) && (starSum += magnitude);
                 widthSpecifiers.push({ magnitude, unit });
@@ -83,9 +83,9 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
         setTimeout(() => {
             const { ratioDefinedDocs } = this;
             if (this.childLayoutPairs.length) {
-                const minimum = Math.min(...ratioDefinedDocs.map(doc => NumCast(doc.dimMagnitude, 1)));
+                const minimum = Math.min(...ratioDefinedDocs.map(doc => NumCast(doc._dimMagnitude, 1)));
                 if (minimum !== 0) {
-                    ratioDefinedDocs.forEach(layout => layout.dimMagnitude = NumCast(layout.dimMagnitude, 1) / minimum, 1);
+                    ratioDefinedDocs.forEach(layout => layout._dimMagnitude = NumCast(layout._dimMagnitude, 1) / minimum, 1);
                 }
             }
         });
@@ -161,8 +161,8 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
         if (columnUnitLength === undefined) {
             return 0; // we're still waiting on promises to resolve
         }
-        let width = NumCast(layout.dimMagnitude, 1);
-        if (StrCast(layout.dimUnit, "*") === DimUnit.Ratio) {
+        let width = NumCast(layout._dimMagnitude, 1);
+        if (StrCast(layout._dimUnit, "*") === DimUnit.Ratio) {
             width *= columnUnitLength;
         }
         return width;
@@ -194,8 +194,8 @@ export class CollectionMulticolumnView extends CollectionSubView(MulticolumnDocu
     onInternalDrop = (e: Event, de: DragManager.DropEvent) => {
         if (super.onInternalDrop(e, de)) {
             de.complete.docDragData?.droppedDocuments.forEach(action((d: Doc) => {
-                d.dimUnit = "*";
-                d.dimMagnitude = 1;
+                d._dimUnit = "*";
+                d._dimMagnitude = 1;
             }));
         }
         return false;

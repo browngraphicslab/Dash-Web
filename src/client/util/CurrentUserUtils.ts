@@ -1,26 +1,27 @@
-import { action, computed, observable, reaction } from "mobx";
+import { computed, observable, reaction } from "mobx";
 import * as rp from 'request-promise';
-import { Utils } from "../../../Utils";
-import { DocServer } from "../../../client/DocServer";
-import { Docs, DocumentOptions } from "../../../client/documents/Documents";
-import { UndoManager } from "../../../client/util/UndoManager";
-import { Doc, DocListCast, DocListCastAsync } from "../../../new_fields/Doc";
-import { List } from "../../../new_fields/List";
-import { listSpec } from "../../../new_fields/Schema";
-import { ScriptField, ComputedField } from "../../../new_fields/ScriptField";
-import { Cast, PromiseValue, StrCast, NumCast } from "../../../new_fields/Types";
-import { nullAudio, ImageField } from "../../../new_fields/URLField";
-import { DragManager } from "../../../client/util/DragManager";
-import { InkingControl } from "../../../client/views/InkingControl";
-import { Scripting, CompileScript } from "../../../client/util/Scripting";
-import { CollectionViewType } from "../../../client/views/collections/CollectionView";
-import { makeTemplate } from "../../../client/util/DropConverter";
-import { RichTextField } from "../../../new_fields/RichTextField";
-import { PrefetchProxy } from "../../../new_fields/Proxy";
-import { FormattedTextBox } from "../../../client/views/nodes/formattedText/FormattedTextBox";
-import { MainView } from "../../../client/views/MainView";
-import { DocumentType } from "../../../client/documents/DocumentTypes";
-import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
+import { Utils } from "../../Utils";
+import { DocServer } from "../DocServer";
+import { Docs, DocumentOptions } from "../documents/Documents";
+import { UndoManager } from "./UndoManager";
+import { Doc, DocListCast, DocListCastAsync } from "../../fields/Doc";
+import { List } from "../../fields/List";
+import { listSpec } from "../../fields/Schema";
+import { ScriptField, ComputedField } from "../../fields/ScriptField";
+import { Cast, PromiseValue, StrCast, NumCast } from "../../fields/Types";
+import { nullAudio } from "../../fields/URLField";
+import { DragManager } from "./DragManager";
+import { InkingControl } from "../views/InkingControl";
+import { Scripting } from "./Scripting";
+import { CollectionViewType } from "../views/collections/CollectionView";
+import { makeTemplate } from "./DropConverter";
+import { RichTextField } from "../../fields/RichTextField";
+import { PrefetchProxy } from "../../fields/Proxy";
+import { FormattedTextBox } from "../views/nodes/formattedText/FormattedTextBox";
+import { MainView } from "../views/MainView";
+import { DocumentType } from "../documents/DocumentTypes";
+import { SchemaHeaderField } from "../../fields/SchemaHeaderField";
+import { DimUnit } from "../views/collections/collectionMulticolumn/CollectionMulticolumnView";
 
 export class CurrentUserUtils {
     private static curr_id: string;
@@ -49,7 +50,7 @@ export class CurrentUserUtils {
             );
             queryTemplate.isTemplateDoc = makeTemplate(queryTemplate);
             doc["template-button-query"] = CurrentUserUtils.ficon({
-                onDragStart: ScriptField.MakeFunction('makeDelegate(this.dragFactory, true)'),
+                onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
                 dragFactory: new PrefetchProxy(queryTemplate) as any as Doc,
                 removeDropProperties: new List<string>(["dropAction"]), title: "query view", icon: "question-circle"
             });
@@ -65,7 +66,7 @@ export class CurrentUserUtils {
             );
             slideTemplate.isTemplateDoc = makeTemplate(slideTemplate);
             doc["template-button-slides"] = CurrentUserUtils.ficon({
-                onDragStart: ScriptField.MakeFunction('makeDelegate(this.dragFactory, true)'),
+                onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
                 dragFactory: new PrefetchProxy(slideTemplate) as any as Doc,
                 removeDropProperties: new List<string>(["dropAction"]), title: "presentation slide", icon: "address-card"
             });
@@ -74,14 +75,48 @@ export class CurrentUserUtils {
         if (doc["template-button-description"] === undefined) {
             const descriptionTemplate = Docs.Create.TextDocument(" ", { title: "header", _height: 100 }, "header"); // text needs to be a space to allow templateText to be created
             Doc.GetProto(descriptionTemplate).layout =
-                "<div><FormattedTextBox {...props} height='{this._headerHeight||75}px' background='{this._headerColor||`orange`}' fieldKey={'header'}/>" +
-                "<FormattedTextBox {...props} height='calc(100% - {this._headerHeight||75}px)' fieldKey={'text'}/></div>";
+                "<div>" +
+                "    <FormattedTextBox {...props} height='{this._headerHeight||75}px' background='{this._headerColor||`orange`}' fieldKey={'header'}/>" +
+                "    <FormattedTextBox {...props} position='absolute' top='{(this._headerHeight||75)*scale}px' height='calc({100/scale}% - {this._headerHeight||75}px)' fieldKey={'text'}/>" +
+                "</div>";
             descriptionTemplate.isTemplateDoc = makeTemplate(descriptionTemplate, true, "descriptionView");
 
             doc["template-button-description"] = CurrentUserUtils.ficon({
                 onDragStart: ScriptField.MakeFunction('makeDelegate(this.dragFactory)'),
                 dragFactory: new PrefetchProxy(descriptionTemplate) as any as Doc,
                 removeDropProperties: new List<string>(["dropAction"]), title: "description view", icon: "window-maximize"
+            });
+        }
+
+        if (doc["template-button-switch"] === undefined) {
+            const { FreeformDocument, MulticolumnDocument, TextDocument } = Docs.Create;
+
+            const yes = FreeformDocument([], { title: "yes", _height: 35, _width: 50, _LODdisable: true, _dimUnit: DimUnit.Pixel, _dimMagnitude: 40 });
+            const name = TextDocument("name", { title: "name", _height: 35, _width: 70, _dimMagnitude: 1 });
+            const no = FreeformDocument([], { title: "no", _height: 100, _width: 100, _LODdisable: true });
+            const labelTemplate = {
+                doc: {
+                    type: "doc", content: [{
+                        type: "paragraph",
+                        content: [{ type: "dashField", attrs: { fieldKey: "PARAMS", hideKey: true } }]
+                    }]
+                },
+                selection: { type: "text", anchor: 1, head: 1 },
+                storedMarks: []
+            };
+            Doc.GetProto(name).text = new RichTextField(JSON.stringify(labelTemplate), "PARAMS");
+            Doc.GetProto(yes).backgroundColor = ComputedField.MakeFunction("self[this.PARAMS] ? 'green':'red'");
+            // Doc.GetProto(no).backgroundColor = ComputedField.MakeFunction("!self[this.PARAMS] ? 'red':'white'");
+            // Doc.GetProto(yes).onClick = ScriptField.MakeScript("self[this.PARAMS] = true");
+            Doc.GetProto(yes).onClick = ScriptField.MakeScript("self[this.PARAMS] = !self[this.PARAMS]");
+            // Doc.GetProto(no).onClick = ScriptField.MakeScript("self[this.PARAMS] = false");
+            const box = MulticolumnDocument([/*no, */ yes, name], { title: "value", _width: 120, _height: 35, });
+            box.isTemplateDoc = makeTemplate(box, true, "switch");
+
+            doc["template-button-switch"] = CurrentUserUtils.ficon({
+                onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
+                dragFactory: new PrefetchProxy(box) as any as Doc,
+                removeDropProperties: new List<string>(["dropAction"]), title: "data switch", icon: "toggle-on"
             });
         }
 
@@ -129,7 +164,7 @@ export class CurrentUserUtils {
             long.title = "Long Description";
 
             doc["template-button-detail"] = CurrentUserUtils.ficon({
-                onDragStart: ScriptField.MakeFunction('makeDelegate(this.dragFactory, true)'),
+                onDragStart: ScriptField.MakeFunction('getCopy(this.dragFactory, true)'),
                 dragFactory: new PrefetchProxy(detailView) as any as Doc,
                 removeDropProperties: new List<string>(["dropAction"]), title: "detail view", icon: "window-maximize"
             });
@@ -137,13 +172,19 @@ export class CurrentUserUtils {
 
         if (doc["template-buttons"] === undefined) {
             doc["template-buttons"] = new PrefetchProxy(Docs.Create.MasonryDocument([doc["template-button-slides"] as Doc, doc["template-button-description"] as Doc,
-            doc["template-button-query"] as Doc, doc["template-button-detail"] as Doc], {
-                title: "Document Prototypes", _xMargin: 0, _showTitle: "title",
+            doc["template-button-query"] as Doc, doc["template-button-detail"] as Doc, doc["template-button-switch"] as Doc], {
+                title: "Advanced Item Prototypes", _xMargin: 0, _showTitle: "title",
                 _autoHeight: true, _width: 500, columnWidth: 35, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled",
                 dropConverter: ScriptField.MakeScript("convertToButtons(dragData)", { dragData: DragManager.DocumentDragData.name }),
             }));
         } else {
-            DocListCast(Cast(doc["template-buttons"], Doc, null)?.data); // prefetch templates
+            const curButnTypes = Cast(doc["template-buttons"], Doc, null);
+            const requiredTypes = [doc["template-button-slides"] as Doc, doc["template-button-description"] as Doc,
+            doc["template-button-query"] as Doc, doc["template-button-detail"] as Doc, doc["template-button-switch"] as Doc];
+            DocListCastAsync(curButnTypes.data).then(async curBtns => {
+                await Promise.all(curBtns!);
+                requiredTypes.map(btype => Doc.AddDocToList(curButnTypes, "data", btype));
+            });
         }
         return doc["template-buttons"] as Doc;
     }
@@ -248,8 +289,12 @@ export class CurrentUserUtils {
             doc["template-icon-view-col"] as Doc, doc["template-icon-view-rtf"] as Doc], { title: "icon templates", _height: 75 }));
         } else {
             const templateIconsDoc = Cast(doc["template-icons"], Doc, null);
-            DocListCastAsync(templateIconsDoc).then(list => templateIconsDoc.data = new List<Doc>([doc["template-icon-view"] as Doc, doc["template-icon-view-img"] as Doc,
-            doc["template-icon-view-col"] as Doc, doc["template-icon-view-rtf"] as Doc]));
+            const requiredTypes = [doc["template-icon-view"] as Doc, doc["template-icon-view-img"] as Doc,
+            doc["template-icon-view-col"] as Doc, doc["template-icon-view-rtf"] as Doc];
+            DocListCastAsync(templateIconsDoc.data).then(async curIcons => {
+                await Promise.all(curIcons!);
+                requiredTypes.map(ntype => Doc.AddDocToList(templateIconsDoc, "data", ntype));
+            });
         }
         return doc["template-icons"] as Doc;
     }
@@ -272,7 +317,7 @@ export class CurrentUserUtils {
                 { _width: 250, _height: 250, title: "container" });
         }
         if (doc.emptyWebpage === undefined) {
-            doc.emptyWebpage = Docs.Create.WebDocument("", { title: "New Webpage", _width: 600 })
+            doc.emptyWebpage = Docs.Create.WebDocument("", { title: "New Webpage", _width: 600, UseCors: true });
         }
         return [
             { title: "Drag a collection", label: "Col", icon: "folder", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyCollection as Doc },
@@ -294,7 +339,8 @@ export class CurrentUserUtils {
             // { title: "use eraser", icon: "eraser", click: 'activateEraser(this.activePen.inkPen = sameDocs(this.activePen.inkPen, this) ? undefined : this);', ischecked: `sameDocs(this.activePen.inkPen, this)`, backgroundColor: "pink", activePen: doc },
             // { title: "use drag", icon: "mouse-pointer", click: 'deactivateInk();this.activePen.inkPen = this;', ischecked: `sameDocs(this.activePen.inkPen, this)`, backgroundColor: "white", activePen: doc },
             { title: "Drag a document previewer", label: "Prev", icon: "expand", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory,true)', dragFactory: doc.emptyDocHolder as Doc },
-            { title: "Drag a Calculator REPL", label: "repl", icon: "calculator", click: 'addOverlayWindow("ScriptingRepl", { x: 300, y: 100, width: 200, height: 200, title: "Scripting REPL" })' },
+            { title: "Toggle a Calculator REPL", label: "repl", icon: "calculator", click: 'addOverlayWindow("ScriptingRepl", { x: 300, y: 100, width: 200, height: 200, title: "Scripting REPL" })' },
+            { title: "Connect a Google Account", label: "Google Account", icon: "external-link-alt", click: 'GoogleAuthenticationManager.Instance.fetchOrGenerateAccessToken(true)' },
         ];
 
     }
@@ -310,21 +356,22 @@ export class CurrentUserUtils {
                 alreadyCreatedButtons = dragDocs.map(d => StrCast(d.title));
             }
         }
-        const creatorBtns = CurrentUserUtils.creatorBtnDescriptors(doc).filter(d => !alreadyCreatedButtons?.includes(d.title)).
-            map(data => Docs.Create.FontIconDocument({
-                _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100,
-                icon: data.icon,
-                title: data.title,
-                label: data.label,
-                ignoreClick: data.ignoreClick,
-                dropAction: "copy",
-                onDragStart: data.drag ? ScriptField.MakeFunction(data.drag) : undefined,
-                onClick: data.click ? ScriptField.MakeScript(data.click) : undefined,
-                ischecked: data.ischecked ? ComputedField.MakeFunction(data.ischecked) : undefined,
-                activePen: data.activePen,
-                backgroundColor: data.backgroundColor, removeDropProperties: new List<string>(["dropAction"]),
-                dragFactory: data.dragFactory,
-            }));
+        const buttons = CurrentUserUtils.creatorBtnDescriptors(doc).filter(d => !alreadyCreatedButtons?.includes(d.title));
+        const creatorBtns = buttons.map(({ title, label, icon, ignoreClick, drag, click, ischecked, activePen, backgroundColor, dragFactory }) => Docs.Create.FontIconDocument({
+            _nativeWidth: 100, _nativeHeight: 100, _width: 100, _height: 100,
+            icon,
+            title,
+            label,
+            ignoreClick,
+            dropAction: "copy",
+            onDragStart: drag ? ScriptField.MakeFunction(drag) : undefined,
+            onClick: click ? ScriptField.MakeScript(click) : undefined,
+            ischecked: ischecked ? ComputedField.MakeFunction(ischecked) : undefined,
+            activePen,
+            backgroundColor,
+            removeDropProperties: new List<string>(["dropAction"]),
+            dragFactory,
+        }));
 
         if (dragCreatorSet === undefined) {
             doc.myItemCreators = new PrefetchProxy(Docs.Create.MasonryDocument(creatorBtns, {
@@ -462,13 +509,13 @@ export class CurrentUserUtils {
 
         return doc.myWorkspaces as Doc;
     }
-    static setupDocumentCollection(doc: Doc) {
-        if (doc.myDocuments === undefined) {
-            doc.myDocuments = new PrefetchProxy(Docs.Create.TreeDocument([], {
-                title: "DOCUMENTS", _height: 42, forceActive: true, boxShadow: "0 0", treeViewPreventOpen: true, lockedPosition: true,
+    static setupCatalog(doc: Doc) {
+        if (doc.myCatalog === undefined) {
+            doc.myCatalog = new PrefetchProxy(Docs.Create.TreeDocument([], {
+                title: "CATALOG", _height: 42, forceActive: true, boxShadow: "0 0", treeViewPreventOpen: false, lockedPosition: true,
             }));
         }
-        return doc.myDocuments as Doc;
+        return doc.myCatalog as Doc;
     }
     static setupRecentlyClosed(doc: Doc) {
         // setup Recently Closed library item
@@ -488,7 +535,7 @@ export class CurrentUserUtils {
     // setup the Library button which will display the library panel.  This panel includes a collection of workspaces, documents, and recently closed views
     static setupLibraryPanel(doc: Doc, sidebarContainer: Doc) {
         const workspaces = CurrentUserUtils.setupWorkspaces(doc);
-        const documents = CurrentUserUtils.setupDocumentCollection(doc);
+        const documents = CurrentUserUtils.setupCatalog(doc);
         const recentlyClosed = CurrentUserUtils.setupRecentlyClosed(doc);
 
         if (doc["tabs-button-library"] === undefined) {
@@ -496,7 +543,7 @@ export class CurrentUserUtils {
                 _width: 50, _height: 25, title: "Library", _fontSize: 10,
                 letterSpacing: "0px", textTransform: "unset", borderRounding: "5px 5px 0px 0px", boxShadow: "3px 3px 0px rgb(34, 34, 34)",
                 sourcePanel: new PrefetchProxy(Docs.Create.TreeDocument([workspaces, documents, recentlyClosed, doc], {
-                    title: "Library", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "move", lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true
+                    title: "Library", _xMargin: 5, _yMargin: 5, _gridGap: 5, forceActive: true, childDropAction: "alias", lockedPosition: true, boxShadow: "0 0", dontRegisterChildViews: true
                 })) as any as Doc,
                 targetContainer: new PrefetchProxy(sidebarContainer) as any as Doc,
                 onClick: ScriptField.MakeScript("this.targetContainer.proto = this.sourcePanel;")
@@ -564,7 +611,7 @@ export class CurrentUserUtils {
     static setupDockedButtons(doc: Doc) {
         if (doc["dockedBtn-pen"] === undefined) {
             doc["dockedBtn-pen"] = CurrentUserUtils.ficon({
-                onClick: ScriptField.MakeScript("activatePen(this.activePen.inkPen = sameDocs(this.activePen.inkPen, this) ? undefined : this,2, this.backgroundColor)"),
+                onClick: ScriptField.MakeScript("activatePen(this.activePen.inkPen = sameDocs(this.activePen.inkPen, this) ? undefined : this, this.inkWidth, this.backgroundColor)"),
                 author: "systemTemplates", title: "ink mode", icon: "pen-nib", ischecked: ComputedField.MakeFunction(`sameDocs(this.activePen.inkPen,  this)`), activePen: doc
             });
         }
@@ -643,6 +690,8 @@ export class CurrentUserUtils {
         new InkingControl();
         doc.title = Doc.CurrentUserEmail;
         doc.activePen = doc;
+        doc.inkColor = StrCast(doc.backgroundColor, "rgb(0, 0, 0)");
+        doc.fontSize = NumCast(doc.fontSize, 12);
         doc["constants-snapThreshold"] = NumCast(doc["constants-snapThreshold"], 10); // 
         doc["constants-dragThreshold"] = NumCast(doc["constants-dragThreshold"], 4); // 
         Utils.DRAG_THRESHOLD = NumCast(doc["constants-dragThreshold"]);

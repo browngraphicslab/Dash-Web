@@ -7,17 +7,15 @@ import { observer } from "mobx-react";
 import * as React from 'react';
 import Lightbox from 'react-image-lightbox-with-rotate';
 import 'react-image-lightbox-with-rotate/style.css'; // This only needs to be imported once in your app
-import { DateField } from '../../../new_fields/DateField';
-import { DataSym, Doc, DocListCast, Field, Opt } from '../../../new_fields/Doc';
-import { List } from '../../../new_fields/List';
-import { BoolCast, Cast, NumCast, StrCast, ScriptCast } from '../../../new_fields/Types';
-import { ImageField } from '../../../new_fields/URLField';
-import { TraceMobx } from '../../../new_fields/util';
+import { DateField } from '../../../fields/DateField';
+import { DataSym, Doc, DocListCast, Field, Opt } from '../../../fields/Doc';
+import { List } from '../../../fields/List';
+import { BoolCast, Cast, NumCast, StrCast, ScriptCast } from '../../../fields/Types';
+import { ImageField } from '../../../fields/URLField';
+import { TraceMobx } from '../../../fields/util';
 import { Utils, setupMoveUpEvents, returnFalse, returnZero, emptyPath, emptyFunction, returnOne } from '../../../Utils';
 import { DocumentType } from '../../documents/DocumentTypes';
-import { DocumentManager } from '../../util/DocumentManager';
 import { ImageUtils } from '../../util/Import & Export/ImageUtils';
-import { SelectionManager } from '../../util/SelectionManager';
 import { ContextMenu } from "../ContextMenu";
 import { FieldView, FieldViewProps } from '../nodes/FieldView';
 import { ScriptBox } from '../ScriptBox';
@@ -37,15 +35,14 @@ import { CollectionTimeView } from './CollectionTimeView';
 import { CollectionTreeView } from "./CollectionTreeView";
 import './CollectionView.scss';
 import { CollectionViewBaseChrome } from './CollectionViewChromes';
-import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
-import { Id } from '../../../new_fields/FieldSymbols';
-import { listSpec } from '../../../new_fields/Schema';
+import { CurrentUserUtils } from '../../util/CurrentUserUtils';
+import { Id } from '../../../fields/FieldSymbols';
+import { listSpec } from '../../../fields/Schema';
 import { Docs } from '../../documents/Documents';
-import { ScriptField, ComputedField } from '../../../new_fields/ScriptField';
+import { ScriptField, ComputedField } from '../../../fields/ScriptField';
 import { InteractionUtils } from '../../util/InteractionUtils';
-import { ObjectField } from '../../../new_fields/ObjectField';
+import { ObjectField } from '../../../fields/ObjectField';
 import CollectionMapView from './CollectionMapView';
-import { Transform } from 'prosemirror-transform';
 import { CollectionGridView } from './collectionGrid/CollectionGridView';
 import { CollectionPileView } from './CollectionPileView';
 const higflyout = require("@hig/flyout");
@@ -74,15 +71,15 @@ export enum CollectionViewType {
     Pile = "pileup"
 }
 export interface CollectionViewCustomProps {
-    filterAddDocument: (doc: Doc) => boolean;  // allows a document that renders a Collection view to filter or modify any documents added to the collection (see PresBox for an example)
+    filterAddDocument: (doc: Doc | Doc[]) => boolean;  // allows a document that renders a Collection view to filter or modify any documents added to the collection (see PresBox for an example)
     childLayoutTemplate?: () => Opt<Doc>;  // specify a layout Doc template to use for children of the collection
     childLayoutString?: string;  // specify a layout string to use for children of the collection
 }
 
 export interface CollectionRenderProps {
-    addDocument: (document: Doc) => boolean;
-    removeDocument: (document: Doc) => boolean;
-    moveDocument: (document: Doc, targetCollection: Doc | undefined, addDocument: (document: Doc) => boolean) => boolean;
+    addDocument: (document: Doc | Doc[]) => boolean;
+    removeDocument: (document: Doc | Doc[]) => boolean;
+    moveDocument: (document: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (document: Doc | Doc[]) => boolean) => boolean;
     active: () => boolean;
     whenActiveChanged: (isActive: boolean) => void;
     PanelWidth: () => number;
@@ -121,35 +118,33 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
     whenActiveChanged = (isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive);
 
     @action.bound
-    addDocument(doc: Doc): boolean {
-        if (this.props.filterAddDocument?.(doc) === false) {
-            return false;
+    addDocument = (doc: Doc | Doc[]): boolean => {
+        if (doc instanceof Doc) {
+            if (this.props.filterAddDocument?.(doc) === false) {
+                return false;
+            }
         }
-
+        const docs = doc instanceof Doc ? [doc] : doc;
         const targetDataDoc = this.props.Document[DataSym];
         const docList = DocListCast(targetDataDoc[this.props.fieldKey]);
-        !docList.includes(doc) && (targetDataDoc[this.props.fieldKey] = new List<Doc>([...docList, doc]));  // DocAddToList may write to targetdataDoc's parent ... we don't want this. should really change GetProto to GetDataDoc and test for resolvedDataDoc there
-        // Doc.AddDocToList(targetDataDoc, this.props.fieldKey, doc);
-        targetDataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
-        doc.context = this.props.Document;
-        Doc.GetProto(doc).lastOpened = new DateField;
+        const added = docs.filter(d => !docList.includes(d));
+        if (added.length) {
+            added.map(doc => doc.context = this.props.Document);
+            added.map(add => Doc.AddDocToList(Cast(Doc.UserDoc().myCatalog, Doc, null), "data", add));
+            targetDataDoc[this.props.fieldKey] = new List<Doc>([...docList, ...added]);
+            targetDataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
+        }
         return true;
     }
 
     @action.bound
-    removeDocument(doc: Doc): boolean {
+    removeDocument = (doc: any): boolean => {
+        const docs = doc instanceof Doc ? [doc] : doc as Doc[];
         const targetDataDoc = this.props.Document[DataSym];
-        const docView = DocumentManager.Instance.getDocumentView(doc, this.props.ContainingCollectionView);
-        docView && SelectionManager.DeselectDoc(docView);
         const value = DocListCast(targetDataDoc[this.props.fieldKey]);
-        let index = value.reduce((p, v, i) => (v instanceof Doc && v === doc) ? i : p, -1);
-        index = index !== -1 ? index : value.reduce((p, v, i) => (v instanceof Doc && Doc.AreProtosEqual(v, doc)) ? i : p, -1);
-
-        doc.context = undefined;
-        ContextMenu.Instance?.clearItems();
-        if (index !== -1) {
-            value.splice(index, 1);
-            targetDataDoc[this.props.fieldKey] = new List<Doc>(value);
+        const result = value.filter(v => !docs.includes(v));
+        if (result.length !== value.length) {
+            targetDataDoc[this.props.fieldKey] = new List<Doc>(result);
             return true;
         }
         return false;
@@ -160,7 +155,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
     // otherwise, the document being moved must be able to be removed from its container before
     // moving it into the target.  
     @action.bound
-    moveDocument(doc: Doc, targetCollection: Doc | undefined, addDocument: (doc: Doc) => boolean): boolean {
+    moveDocument = (doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (doc: Doc | Doc[]) => boolean): boolean => {
         if (Doc.AreProtosEqual(this.props.Document, targetCollection)) {
             return true;
         }
@@ -168,10 +163,14 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
     }
 
     showIsTagged = () => {
-        const children = DocListCast(this.props.Document[this.props.fieldKey]);
-        const imageProtos = children.filter(doc => Cast(doc.data, ImageField)).map(Doc.GetProto);
-        const allTagged = imageProtos.length > 0 && imageProtos.every(image => image.googlePhotosTags);
-        return !allTagged ? (null) : <img id={"google-tags"} src={"/assets/google_tags.png"} />;
+        return (null);
+        // this section would display an icon in the bototm right of a collection to indicate that all 
+        // photos had been processed through Google's content analysis API and Google's tags had been
+        // assigned to the documents googlePhotosTags field.
+        // const children = DocListCast(this.props.Document[this.props.fieldKey]);
+        // const imageProtos = children.filter(doc => Cast(doc.data, ImageField)).map(Doc.GetProto);
+        // const allTagged = imageProtos.length > 0 && imageProtos.every(image => image.googlePhotosTags);
+        // return !allTagged ? (null) : <img id={"google-tags"} src={"/assets/google_tags.png"} />;
     }
 
     private SubViewHelper = (type: CollectionViewType, renderProps: CollectionRenderProps) => {
@@ -269,7 +268,6 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             subItems.push({ description: "lightbox", event: action(() => this._isLightboxOpen = true), icon: "eye" });
             !existingVm && ContextMenu.Instance.addItem({ description: "View Modes...", subitems: subItems, icon: "eye" });
 
-            this.setupViewTypes("Change Perspective...", (vtype => { this.props.Document._viewType = vtype; return this.props.Document; }), true);
             this.setupViewTypes("Add a Perspective...", vtype => {
                 const newRendition = Doc.MakeAlias(this.props.Document);
                 newRendition._viewType = vtype;

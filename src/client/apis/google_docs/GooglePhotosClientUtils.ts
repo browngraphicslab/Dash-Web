@@ -1,11 +1,11 @@
 import { AssertionError } from "assert";
 import { EditorState } from "prosemirror-state";
-import { Doc, DocListCastAsync, Opt } from "../../../new_fields/Doc";
-import { Id } from "../../../new_fields/FieldSymbols";
-import { RichTextField } from "../../../new_fields/RichTextField";
-import { RichTextUtils } from "../../../new_fields/RichTextUtils";
-import { Cast, StrCast } from "../../../new_fields/Types";
-import { ImageField } from "../../../new_fields/URLField";
+import { Doc, DocListCastAsync, Opt } from "../../../fields/Doc";
+import { Id } from "../../../fields/FieldSymbols";
+import { RichTextField } from "../../../fields/RichTextField";
+import { RichTextUtils } from "../../../fields/RichTextUtils";
+import { Cast, StrCast } from "../../../fields/Types";
+import { ImageField } from "../../../fields/URLField";
 import { MediaItem, NewMediaItemResult } from "../../../server/apis/google/SharedTypes";
 import { Utils } from "../../../Utils";
 import { Docs, DocumentOptions } from "../../documents/Documents";
@@ -153,21 +153,20 @@ export namespace GooglePhotos {
             }
             const tagMapping = new Map<string, string>();
             const images = (await DocListCastAsync(collection.data))!.map(Doc.GetProto);
-            images && images.forEach(image => tagMapping.set(image[Id], ContentCategories.NONE));
-            const values = Object.values(ContentCategories);
+            images?.forEach(image => tagMapping.set(image[Id], ContentCategories.NONE));
+            const values = Object.values(ContentCategories).filter(value => value !== ContentCategories.NONE);
             for (const value of values) {
-                if (value === ContentCategories.NONE) {
-                    continue;
-                }
-                for (const id of (await ContentSearch({ included: [value] }))?.mediaItems?.map(({ id }) => id)) {
+                const searched = (await ContentSearch({ included: [value] }))?.mediaItems?.map(({ id }) => id);
+                console.log("Searching " + value);
+                console.log(searched);
+                searched?.forEach(async id => {
                     const image = await Cast(idMapping[id], Doc);
-                    if (!image) {
-                        continue;
+                    if (image) {
+                        const key = image[Id];
+                        const tags = tagMapping.get(key);
+                        !tags?.includes(value) && tagMapping.set(key, tags + delimiter + value);
                     }
-                    const key = image[Id];
-                    const tags = tagMapping.get(key);
-                    !tags?.includes(value) && tagMapping.set(key, tags + delimiter + value);
-                }
+                });
             }
             images?.forEach(image => {
                 const concatenated = tagMapping.get(image[Id])!;

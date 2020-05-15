@@ -1,14 +1,14 @@
 import { action, computed, IReactionDisposer, reaction } from "mobx";
 import { basename } from 'path';
-import CursorField from "../../../new_fields/CursorField";
-import { Doc, Opt } from "../../../new_fields/Doc";
-import { Id } from "../../../new_fields/FieldSymbols";
-import { List } from "../../../new_fields/List";
-import { listSpec } from "../../../new_fields/Schema";
-import { ScriptField } from "../../../new_fields/ScriptField";
-import { Cast } from "../../../new_fields/Types";
+import CursorField from "../../../fields/CursorField";
+import { Doc, Opt } from "../../../fields/Doc";
+import { Id } from "../../../fields/FieldSymbols";
+import { List } from "../../../fields/List";
+import { listSpec } from "../../../fields/Schema";
+import { ScriptField } from "../../../fields/ScriptField";
+import { Cast, ScriptCast } from "../../../fields/Types";
 import { GestureUtils } from "../../../pen-gestures/GestureUtils";
-import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
+import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 import { Upload } from "../../../server/SharedMediaTypes";
 import { Utils } from "../../../Utils";
 import { GooglePhotos } from "../../apis/google_docs/GooglePhotosClientUtils";
@@ -16,7 +16,7 @@ import { DocServer } from "../../DocServer";
 import { Docs, DocumentOptions } from "../../documents/Documents";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { Networking } from "../../Network";
-import { DragManager } from "../../util/DragManager";
+import { DragManager, dropActionType } from "../../util/DragManager";
 import { ImageUtils } from "../../util/Import & Export/ImageUtils";
 import { InteractionUtils } from "../../util/InteractionUtils";
 import { undoBatch, UndoManager } from "../../util/UndoManager";
@@ -27,9 +27,9 @@ import { CollectionView } from "./CollectionView";
 import React = require("react");
 
 export interface CollectionViewProps extends FieldViewProps {
-    addDocument: (document: Doc) => boolean;
-    removeDocument: (document: Doc) => boolean;
-    moveDocument: (document: Doc, targetCollection: Doc | undefined, addDocument: (document: Doc) => boolean) => boolean;
+    addDocument: (document: Doc | Doc[]) => boolean;
+    removeDocument: (document: Doc | Doc[]) => boolean;
+    moveDocument: (document: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (document: Doc | Doc[]) => boolean) => boolean;
     PanelWidth: () => number;
     PanelHeight: () => number;
     VisibleHeight?: () => number;
@@ -95,7 +95,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
         // to its children which may be templates.
         // If 'annotationField' is specified, then all children exist on that field of the extension document, otherwise, they exist directly on the data document under 'fieldKey'
         @computed get dataField() {
-            return this.dataDoc[this.props.fieldKey + (this.props.annotationsKey ? "-" + this.props.annotationsKey : "")];
+            return this.dataDoc[this.props.annotationsKey || this.props.fieldKey];
         }
 
         get childLayoutPairs(): { layout: Doc; data: Doc; }[] {
@@ -195,43 +195,60 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
         protected onGesture(e: Event, ge: GestureUtils.GestureEvent) {
         }
 
-        protected onInternalPreDrop(e: Event, de: DragManager.DropEvent) {
+        protected onInternalPreDrop(e: Event, de: DragManager.DropEvent, targetAction: dropActionType) {
             if (de.complete.docDragData) {
-                if (de.complete.docDragData.draggedDocuments.some(d => this.childDocs.includes(d))) {
-                    de.complete.docDragData.dropAction = "move";
+                // if targetDropAction is, say 'alias', but we're just dragging within a collection, we want to ignore the targetAction.
+                // otherwise, the targetAction should become the actual action (which can still be overridden by the userDropAction -eg, shift/ctrl keys)
+                if (targetAction && !de.complete.docDragData.draggedDocuments.some(d => d.context === this.props.Document && this.childDocs.includes(d))) {
+                    de.complete.docDragData.dropAction = targetAction;
                 }
                 e.stopPropagation();
             }
         }
 
+        addDocument = (doc: Doc | Doc[]) => this.props.addDocument(doc);
+
         @undoBatch
         @action
         protected onInternalDrop(e: Event, de: DragManager.DropEvent): boolean {
             const docDragData = de.complete.docDragData;
-            (this.props.Document.dropConverter instanceof ScriptField) &&
-                this.props.Document.dropConverter.script.run({ dragData: docDragData }); /// bcz: check this 
+            ScriptCast(this.props.Document.dropConverter)?.script.run({ dragData: docDragData });
             if (docDragData) {
                 let added = false;
                 if (docDragData.dropAction || docDragData.userDropAction) {
-                    added = docDragData.droppedDocuments.reduce((added: boolean, d) => this.props.addDocument(d) || added, false);
+                    added = this.addDocument(docDragData.droppedDocuments);
                 } else if (docDragData.moveDocument) {
-                    const movedDocs = docDragData.draggedDocuments;
-                    added = movedDocs.reduce((added: boolean, d, i) =>
-                        docDragData.droppedDocuments[i] !== d ? this.props.addDocument(docDragData.droppedDocuments[i]) :
-                            docDragData.moveDocument?.(d, this.props.Document, this.props.addDocument) || added, false);
+                    const movedDocs = docDragData.droppedDocuments.filter((d, i) => docDragData.draggedDocuments[i] === d);
+                    const addedDocs = docDragData.droppedDocuments.filter((d, i) => docDragData.draggedDocuments[i] !== d);
+                    const res = addedDocs.length ? this.addDocument(addedDocs) : true;
+                    added = movedDocs.length ? docDragData.moveDocument(movedDocs, this.props.Document, this.addDocument) : res;
                 } else {
-                    added = docDragData.droppedDocuments.reduce((added: boolean, d) => this.props.addDocument(d) || added, false);
+                    added = this.addDocument(docDragData.droppedDocuments);
                 }
                 e.stopPropagation();
                 return added;
             }
             else if (de.complete.annoDragData) {
                 e.stopPropagation();
-                return this.props.addDocument(de.complete.annoDragData.dropDocument);
+                return this.addDocument(de.complete.annoDragData.dropDocument);
             }
             return false;
         }
+        readUploadedFileAsText = (inputFile: File) => {
+            const temporaryFileReader = new FileReader();
 
+            return new Promise((resolve, reject) => {
+                temporaryFileReader.onerror = () => {
+                    temporaryFileReader.abort();
+                    reject(new DOMException("Problem parsing input file."));
+                };
+
+                temporaryFileReader.onload = () => {
+                    resolve(temporaryFileReader.result);
+                };
+                temporaryFileReader.readAsText(inputFile);
+            });
+        }
         @undoBatch
         @action
         protected async onExternalDrop(e: React.DragEvent, options: DocumentOptions, completed?: () => void) {
@@ -250,7 +267,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
 
             e.stopPropagation();
             e.preventDefault();
-            const { addDocument } = this.props;
+            const { addDocument } = this;
             if (!addDocument) {
                 alert("this.props.addDocument does not exist. Aborting drop operation.");
                 return;
@@ -369,7 +386,21 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                 }
                 if (item.kind === "file") {
                     const file = item.getAsFile();
-                    file && file.type && files.push(file);
+                    file?.type && files.push(file);
+
+                    file?.type === "application/json" && this.readUploadedFileAsText(file).then(result => {
+                        console.log(result);
+                        const json = JSON.parse(result as string);
+                        addDocument(Docs.Create.TreeDocument(
+                            json["rectangular-puzzle"].crossword.clues[0].clue.map((c: any) => {
+                                const label = Docs.Create.LabelDocument({ title: c["#text"], _width: 120, _height: 20 });
+                                const proto = Doc.GetProto(label);
+                                proto._width = 120;
+                                proto._height = 20;
+                                return proto;
+                            }
+                            ), { _width: 150, _height: 600, title: "across", backgroundColor: "white", _singleLine: true }));
+                    });
                 }
             }
             for (const { source: { name, type }, result } of await Networking.UploadFilesToServer(files)) {

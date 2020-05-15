@@ -4,17 +4,16 @@ import { CursorProperty } from "csstype";
 import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import Switch from 'rc-switch';
-import { DataSym, Doc, HeightSym, WidthSym } from "../../../new_fields/Doc";
-import { collectionSchema, documentSchema } from "../../../new_fields/documentSchemas";
-import { Id } from "../../../new_fields/FieldSymbols";
-import { List } from "../../../new_fields/List";
-import { listSpec, makeInterface } from "../../../new_fields/Schema";
-import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
-import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from "../../../new_fields/Types";
-import { TraceMobx } from "../../../new_fields/util";
-import { emptyFunction, returnFalse, returnOne, returnZero, setupMoveUpEvents, Utils } from "../../../Utils";
+import { DataSym, Doc, HeightSym, WidthSym } from "../../../fields/Doc";
+import { collectionSchema, documentSchema } from "../../../fields/documentSchemas";
+import { Id } from "../../../fields/FieldSymbols";
+import { List } from "../../../fields/List";
+import { listSpec, makeInterface } from "../../../fields/Schema";
+import { SchemaHeaderField } from "../../../fields/SchemaHeaderField";
+import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from "../../../fields/Types";
+import { TraceMobx } from "../../../fields/util";
+import { emptyFunction, returnFalse, returnOne, returnZero, setupMoveUpEvents, Utils, smoothScroll } from "../../../Utils";
 import { DragManager, dropActionType } from "../../util/DragManager";
-import { SelectionManager } from "../../util/SelectionManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
 import { ContextMenu } from "../ContextMenu";
@@ -26,7 +25,7 @@ import "./CollectionStackingView.scss";
 import { CollectionStackingViewFieldColumn } from "./CollectionStackingViewFieldColumn";
 import { CollectionSubView } from "./CollectionSubView";
 import { CollectionViewType } from "./CollectionView";
-import { ScriptField } from "../../../new_fields/ScriptField";
+import { SnappingManager } from "../../util/SnappingManager";
 const _global = (window /* browser */ || global /* node */) as any;
 
 type StackingDocument = makeInterface<[typeof collectionSchema, typeof documentSchema]>;
@@ -58,6 +57,14 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
     }
     @computed get NodeWidth() { return this.props.PanelWidth() - this.gridGap; }
 
+    constructor(props: any) {
+        super(props);
+
+        if (this.sectionHeaders === undefined) {
+            this.props.Document.sectionHeaders = new List<SchemaHeaderField>();
+        }
+    }
+
     children(docs: Doc[], columns?: number) {
         TraceMobx();
         this._docXfs.length = 0;
@@ -66,7 +73,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
             const width = () => this.getDocWidth(d);
             const dref = React.createRef<HTMLDivElement>();
             const dxf = () => this.getDocTransform(d, dref.current!);
-            this._docXfs.push({ dxf: dxf, width: width, height: height });
+            this._docXfs.push({ dxf, width, height });
             const rowSpan = Math.ceil((height() + this.gridGap) / this.gridGap);
             const style = this.isStackingView ? { width: width(), marginTop: i ? this.gridGap : 0, height: height() } : { gridRowEnd: `span ${rowSpan}` };
             return <div className={`collectionStackingView-${this.isStackingView ? "columnDoc" : "masonryDoc"}`} key={d[Id]} ref={dref} style={style} >
@@ -86,7 +93,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
             setTimeout(() => this.props.Document.sectionHeaders = new List<SchemaHeaderField>(), 0);
             return new Map<SchemaHeaderField, Doc[]>();
         }
-        const sectionHeaders: SchemaHeaderField[] = Array.from(this.sectionHeaders);
+        const sectionHeaders = Array.from(this.sectionHeaders);
         const fields = new Map<SchemaHeaderField, Doc[]>(sectionHeaders.map(sh => [sh, []] as [SchemaHeaderField, []]));
         let changed = false;
         this.filteredChildren.map(d => {
@@ -166,6 +173,23 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
         return this.props.addDocTab(doc, where);
     }
 
+
+    focusDocument = (doc: Doc, willZoom: boolean, scale?: number, afterFocus?: () => boolean) => {
+        Doc.BrushDoc(doc);
+        this.props.focus(doc);
+        Doc.linkFollowHighlight(doc);
+
+        const found = this._mainCont && Array.from(this._mainCont.getElementsByClassName("documentView-node")).find((node: any) => node.id === doc[Id]);
+        if (found) {
+            const top = found.getBoundingClientRect().top;
+            const localTop = this.props.ScreenToLocalTransform().transformPoint(0, top);
+            smoothScroll(500, this._mainCont!, localTop[1] + this._mainCont!.scrollTop);
+        }
+        afterFocus && setTimeout(() => {
+            if (afterFocus?.()) { }
+        }, 500);
+    }
+
     getDisplayDoc(doc: Doc, dataDoc: Doc | undefined, dxf: () => Transform, width: () => number) {
         const layoutDoc = Doc.Layout(doc, this.props.ChildLayoutTemplate?.());
         const height = () => this.getDocHeight(doc);
@@ -183,12 +207,13 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
             NativeHeight={returnZero}
             NativeWidth={returnZero}
             fitToBox={false}
+            dontRegisterView={this.props.dontRegisterView}
             rootSelected={this.rootSelected}
             dropAction={StrCast(this.props.Document.childDropAction) as dropActionType}
             onClick={this.onChildClickHandler}
             onDoubleClick={this.onChildDoubleClickHandler}
             ScreenToLocalTransform={dxf}
-            focus={this.props.focus}
+            focus={this.focusDocument}
             ContainingCollectionDoc={this.props.CollectionView?.props.Document}
             ContainingCollectionView={this.props.CollectionView}
             addDocument={this.props.addDocument}
@@ -312,7 +337,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
                     this.refList.push(ref);
                     const doc = this.props.DataDoc && this.props.DataDoc.layout === this.layoutDoc ? this.props.DataDoc : this.layoutDoc;
                     this.observer = new _global.ResizeObserver(action((entries: any) => {
-                        if (this.props.Document._autoHeight && ref && this.refList.length && !DragManager.Vals.Instance.GetIsDragging()) {
+                        if (this.props.Document._autoHeight && ref && this.refList.length && !SnappingManager.GetIsDragging()) {
                             Doc.Layout(doc)._height = Math.min(1200, Math.max(...this.refList.map(r => Number(getComputedStyle(r).height.replace("px", "")))));
                         }
                     }));
@@ -359,7 +384,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
                     this.refList.push(ref);
                     const doc = this.props.DataDoc && this.props.DataDoc.layout === this.layoutDoc ? this.props.DataDoc : this.layoutDoc;
                     this.observer = new _global.ResizeObserver(action((entries: any) => {
-                        if (this.props.Document._autoHeight && ref && this.refList.length && !DragManager.Vals.Instance.GetIsDragging()) {
+                        if (this.props.Document._autoHeight && ref && this.refList.length && !SnappingManager.GetIsDragging()) {
                             Doc.Layout(doc)._height = this.refList.reduce((p, r) => p + Number(getComputedStyle(r).height.replace("px", "")), 0);
                         }
                     }));
@@ -407,6 +432,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
         if (!e.isPropagationStopped()) {
             const subItems: ContextMenuProps[] = [];
             subItems.push({ description: `${this.props.Document.fillColumn ? "Variable Size" : "Autosize"} Column`, event: () => this.props.Document.fillColumn = !this.props.Document.fillColumn, icon: "plus" });
+            subItems.push({ description: `${this.Document._autoHeight ? "Variable Height" : "Auto Height"}`, event: () => this.layoutDoc._autoHeight = !this.layoutDoc._autoHeight, icon: "plus" });
             ContextMenu.Instance.addItem({ description: "Options...", subitems: subItems, icon: "eye" });
         }
     }

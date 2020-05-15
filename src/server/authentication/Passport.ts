@@ -1,6 +1,6 @@
 import * as passport from 'passport';
 import * as passportLocal from 'passport-local';
-import { default as User } from '../models/user_model';
+import { default as User } from './DashUserModel';
 
 const LocalStrategy = passportLocal.Strategy;
 
