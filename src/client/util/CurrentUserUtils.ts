@@ -611,7 +611,7 @@ export class CurrentUserUtils {
     static setupDockedButtons(doc: Doc) {
         if (doc["dockedBtn-pen"] === undefined) {
             doc["dockedBtn-pen"] = CurrentUserUtils.ficon({
-                onClick: ScriptField.MakeScript("activatePen(this.activePen.inkPen = sameDocs(this.activePen.inkPen, this) ? undefined : this,2, this.backgroundColor)"),
+                onClick: ScriptField.MakeScript("activatePen(this.activePen.inkPen = sameDocs(this.activePen.inkPen, this) ? undefined : this, this.inkWidth, this.backgroundColor)"),
                 author: "systemTemplates", title: "ink mode", icon: "pen-nib", ischecked: ComputedField.MakeFunction(`sameDocs(this.activePen.inkPen,  this)`), activePen: doc
             });
         }
@@ -690,7 +690,7 @@ export class CurrentUserUtils {
         new InkingControl();
         doc.title = Doc.CurrentUserEmail;
         doc.activePen = doc;
-        doc.inkColor = StrCast(doc.backgroundColor, "");
+        doc.inkColor = StrCast(doc.backgroundColor, "rgb(0, 0, 0)");
         doc.fontSize = NumCast(doc.fontSize, 12);
         doc["constants-snapThreshold"] = NumCast(doc["constants-snapThreshold"], 10); // 
         doc["constants-dragThreshold"] = NumCast(doc["constants-dragThreshold"], 4); // 
