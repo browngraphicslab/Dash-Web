@@ -1,8 +1,8 @@
 import { action, computed, observable } from "mobx";
 import { ColorState } from 'react-color';
-import { Doc } from "../../new_fields/Doc";
-import { InkTool } from "../../new_fields/InkField";
-import { FieldValue, NumCast, StrCast } from "../../new_fields/Types";
+import { Doc } from "../../fields/Doc";
+import { InkTool } from "../../fields/InkField";
+import { FieldValue, NumCast, StrCast } from "../../fields/Types";
 import { CurrentUserUtils } from "../util/CurrentUserUtils";
 import { Scripting } from "../util/Scripting";
 import { SelectionManager } from "../util/SelectionManager";

@@ -1,7 +1,7 @@
-import { Doc, DocListCast } from "../../new_fields/Doc";
-import { List } from "../../new_fields/List";
-import { listSpec } from "../../new_fields/Schema";
-import { Cast, StrCast } from "../../new_fields/Types";
+import { Doc, DocListCast } from "../../fields/Doc";
+import { List } from "../../fields/List";
+import { listSpec } from "../../fields/Schema";
+import { Cast, StrCast } from "../../fields/Types";
 import { Docs } from "../documents/Documents";
 import { Scripting } from "./Scripting";
 

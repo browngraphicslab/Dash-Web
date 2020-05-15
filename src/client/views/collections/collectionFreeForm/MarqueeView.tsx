@@ -1,11 +1,11 @@
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, Opt } from "../../../../new_fields/Doc";
-import { InkData, InkField } from "../../../../new_fields/InkField";
-import { List } from "../../../../new_fields/List";
-import { RichTextField } from "../../../../new_fields/RichTextField";
-import { SchemaHeaderField } from "../../../../new_fields/SchemaHeaderField";
-import { Cast, FieldValue, NumCast, StrCast } from "../../../../new_fields/Types";
+import { Doc, Opt } from "../../../../fields/Doc";
+import { InkData, InkField } from "../../../../fields/InkField";
+import { List } from "../../../../fields/List";
+import { RichTextField } from "../../../../fields/RichTextField";
+import { SchemaHeaderField } from "../../../../fields/SchemaHeaderField";
+import { Cast, FieldValue, NumCast, StrCast } from "../../../../fields/Types";
 import { Utils } from "../../../../Utils";
 import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
 import { Docs, DocumentOptions, DocUtils } from "../../../documents/Documents";

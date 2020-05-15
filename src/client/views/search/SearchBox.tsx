@@ -5,9 +5,9 @@ import { action, computed, observable, runInAction, IReactionDisposer, reaction 
 import { observer } from 'mobx-react';
 import * as React from 'react';
 import * as rp from 'request-promise';
-import { Doc } from '../../../new_fields/Doc';
-import { Id } from '../../../new_fields/FieldSymbols';
-import { Cast, NumCast, StrCast } from '../../../new_fields/Types';
+import { Doc } from '../../../fields/Doc';
+import { Id } from '../../../fields/FieldSymbols';
+import { Cast, NumCast, StrCast } from '../../../fields/Types';
 import { Utils } from '../../../Utils';
 import { Docs } from '../../documents/Documents';
 import { SetupDrag } from '../../util/DragManager';
@@ -19,7 +19,7 @@ import { FieldView } from '../nodes/FieldView';
 import { DocumentType } from "../../documents/DocumentTypes";
 import { DocumentView } from '../nodes/DocumentView';
 import { SelectionManager } from '../../util/SelectionManager';
-import { listSpec } from '../../../new_fields/Schema';
+import { listSpec } from '../../../fields/Schema';
 
 library.add(faTimes);
 

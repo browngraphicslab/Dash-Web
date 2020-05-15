@@ -1,10 +1,10 @@
 import { IReactionDisposer, observable, runInAction, computed, action } from "mobx";
-import { Doc, DocListCast, Field } from "../../../../new_fields/Doc";
-import { List } from "../../../../new_fields/List";
-import { listSpec } from "../../../../new_fields/Schema";
-import { SchemaHeaderField } from "../../../../new_fields/SchemaHeaderField";
-import { ComputedField } from "../../../../new_fields/ScriptField";
-import { Cast, StrCast } from "../../../../new_fields/Types";
+import { Doc, DocListCast, Field } from "../../../../fields/Doc";
+import { List } from "../../../../fields/List";
+import { listSpec } from "../../../../fields/Schema";
+import { SchemaHeaderField } from "../../../../fields/SchemaHeaderField";
+import { ComputedField } from "../../../../fields/ScriptField";
+import { Cast, StrCast } from "../../../../fields/Types";
 import { DocServer } from "../../../DocServer";
 import { CollectionViewType } from "../../collections/CollectionView";
 import { FormattedTextBox } from "./FormattedTextBox";

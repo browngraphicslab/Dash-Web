@@ -1,8 +1,8 @@
 import React = require("react");
-import { Doc, DocListCast } from "../../../new_fields/Doc";
-import { Cast, NumCast } from "../../../new_fields/Types";
+import { Doc, DocListCast } from "../../../fields/Doc";
+import { Cast, NumCast } from "../../../fields/Types";
 import { observer } from "mobx-react";
-import { Id } from "../../../new_fields/FieldSymbols";
+import { Id } from "../../../fields/FieldSymbols";
 import FaceRectangle from "./FaceRectangle";
 
 interface FaceRectanglesProps {

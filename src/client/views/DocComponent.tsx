@@ -1,14 +1,14 @@
-import { Doc, Opt, DataSym, DocListCast } from '../../new_fields/Doc';
+import { Doc, Opt, DataSym, DocListCast } from '../../fields/Doc';
 import { Touchable } from './Touchable';
 import { computed, action, observable } from 'mobx';
-import { Cast, BoolCast, ScriptCast } from '../../new_fields/Types';
-import { listSpec } from '../../new_fields/Schema';
+import { Cast, BoolCast, ScriptCast } from '../../fields/Types';
+import { listSpec } from '../../fields/Schema';
 import { InkingControl } from './InkingControl';
-import { InkTool } from '../../new_fields/InkField';
+import { InkTool } from '../../fields/InkField';
 import { InteractionUtils } from '../util/InteractionUtils';
-import { List } from '../../new_fields/List';
-import { DateField } from '../../new_fields/DateField';
-import { ScriptField } from '../../new_fields/ScriptField';
+import { List } from '../../fields/List';
+import { DateField } from '../../fields/DateField';
+import { ScriptField } from '../../fields/ScriptField';
 
 
 ///  DocComponent returns a generic React base class used by views that don't have 'fieldKey' props (e.g.,CollectionFreeFormDocumentView, DocumentView)

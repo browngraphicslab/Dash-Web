@@ -4,16 +4,16 @@ import { faBraille, faChalkboard, faCompass, faCompressArrowsAlt, faExpandArrows
 import { action, computed, IReactionDisposer, observable, ObservableMap, reaction, runInAction, _allowStateChangesInsideComputed } from "mobx";
 import { observer } from "mobx-react";
 import { computedFn } from "mobx-utils";
-import { Doc, HeightSym, Opt, WidthSym, DocListCast } from "../../../../new_fields/Doc";
-import { documentSchema, collectionSchema } from "../../../../new_fields/documentSchemas";
-import { Id } from "../../../../new_fields/FieldSymbols";
-import { InkData, InkField, InkTool, PointData } from "../../../../new_fields/InkField";
-import { List } from "../../../../new_fields/List";
-import { RichTextField } from "../../../../new_fields/RichTextField";
-import { createSchema, listSpec, makeInterface } from "../../../../new_fields/Schema";
-import { ScriptField } from "../../../../new_fields/ScriptField";
-import { BoolCast, Cast, FieldValue, NumCast, ScriptCast, StrCast } from "../../../../new_fields/Types";
-import { TraceMobx } from "../../../../new_fields/util";
+import { Doc, HeightSym, Opt, WidthSym, DocListCast } from "../../../../fields/Doc";
+import { documentSchema, collectionSchema } from "../../../../fields/documentSchemas";
+import { Id } from "../../../../fields/FieldSymbols";
+import { InkData, InkField, InkTool, PointData } from "../../../../fields/InkField";
+import { List } from "../../../../fields/List";
+import { RichTextField } from "../../../../fields/RichTextField";
+import { createSchema, listSpec, makeInterface } from "../../../../fields/Schema";
+import { ScriptField } from "../../../../fields/ScriptField";
+import { BoolCast, Cast, FieldValue, NumCast, ScriptCast, StrCast } from "../../../../fields/Types";
+import { TraceMobx } from "../../../../fields/util";
 import { GestureUtils } from "../../../../pen-gestures/GestureUtils";
 import { aggregateBounds, intersectRect, returnOne, Utils, returnZero, returnFalse } from "../../../../Utils";
 import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
@@ -1034,8 +1034,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         const { newPool, computedElementData } = this.doInternalLayoutComputation;
         const array = Array.from(newPool.entries());
         runInAction(() => {
-            for (let i = 0; i < array.length; i++) {
-                const entry = array[i];
+            for (const entry of array) {
                 const lastPos = this._cachedPool.get(entry[0]); // last computed pos
                 const newPos = entry[1];
                 if (!lastPos || newPos.x !== lastPos.x || newPos.y !== lastPos.y || newPos.z !== lastPos.z || newPos.zIndex !== lastPos.zIndex) {

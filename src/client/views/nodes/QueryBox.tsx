@@ -1,15 +1,15 @@
 import React = require("react");
 import { IReactionDisposer } from "mobx";
 import { observer } from "mobx-react";
-import { documentSchema } from "../../../new_fields/documentSchemas";
-import { Id } from '../../../new_fields/FieldSymbols';
-import { makeInterface, listSpec } from "../../../new_fields/Schema";
-import { StrCast, Cast } from "../../../new_fields/Types";
+import { documentSchema } from "../../../fields/documentSchemas";
+import { Id } from '../../../fields/FieldSymbols';
+import { makeInterface, listSpec } from "../../../fields/Schema";
+import { StrCast, Cast } from "../../../fields/Types";
 import { ViewBoxAnnotatableComponent } from '../DocComponent';
 import { SearchBox } from "../search/SearchBox";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./QueryBox.scss";
-import { List } from "../../../new_fields/List";
+import { List } from "../../../fields/List";
 import { SnappingManager } from "../../util/SnappingManager";
 
 type QueryDocument = makeInterface<[typeof documentSchema]>;

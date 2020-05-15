@@ -1,11 +1,11 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, IReactionDisposer, reaction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DataSym, DocListCast } from "../../../new_fields/Doc";
-import { documentSchema } from '../../../new_fields/documentSchemas';
-import { Id } from "../../../new_fields/FieldSymbols";
-import { createSchema, makeInterface } from '../../../new_fields/Schema';
-import { Cast, NumCast, BoolCast, ScriptCast } from "../../../new_fields/Types";
+import { Doc, DataSym, DocListCast } from "../../../fields/Doc";
+import { documentSchema } from '../../../fields/documentSchemas';
+import { Id } from "../../../fields/FieldSymbols";
+import { createSchema, makeInterface } from '../../../fields/Schema';
+import { Cast, NumCast, BoolCast, ScriptCast } from "../../../fields/Types";
 import { emptyFunction, emptyPath, returnFalse, returnTrue, returnOne, returnZero } from "../../../Utils";
 import { Transform } from "../../util/Transform";
 import { CollectionViewType } from '../collections/CollectionView';
