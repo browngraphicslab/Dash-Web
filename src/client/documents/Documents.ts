@@ -9,14 +9,14 @@ import { ScriptingBox } from "../views/nodes/ScriptingBox";
 import { VideoBox } from "../views/nodes/VideoBox";
 import { WebBox } from "../views/nodes/WebBox";
 import { OmitKeys, JSONUtils, Utils } from "../../Utils";
-import { Field, Doc, Opt, DocListCastAsync, FieldResult, DocListCast } from "../../new_fields/Doc";
-import { ImageField, VideoField, AudioField, PdfField, WebField, YoutubeField } from "../../new_fields/URLField";
-import { HtmlField } from "../../new_fields/HtmlField";
-import { List } from "../../new_fields/List";
-import { Cast, NumCast, StrCast } from "../../new_fields/Types";
+import { Field, Doc, Opt, DocListCastAsync, FieldResult, DocListCast } from "../../fields/Doc";
+import { ImageField, VideoField, AudioField, PdfField, WebField, YoutubeField } from "../../fields/URLField";
+import { HtmlField } from "../../fields/HtmlField";
+import { List } from "../../fields/List";
+import { Cast, NumCast, StrCast } from "../../fields/Types";
 import { DocServer } from "../DocServer";
 import { dropActionType } from "../util/DragManager";
-import { DateField } from "../../new_fields/DateField";
+import { DateField } from "../../fields/DateField";
 import { YoutubeBox } from "../apis/youtube/YoutubeBox";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import { LinkManager } from "../util/LinkManager";
@@ -26,10 +26,10 @@ import { Scripting } from "../util/Scripting";
 import { LabelBox } from "../views/nodes/LabelBox";
 import { SliderBox } from "../views/nodes/SliderBox";
 import { FontIconBox } from "../views/nodes/FontIconBox";
-import { SchemaHeaderField } from "../../new_fields/SchemaHeaderField";
+import { SchemaHeaderField } from "../../fields/SchemaHeaderField";
 import { PresBox } from "../views/nodes/PresBox";
-import { ComputedField, ScriptField } from "../../new_fields/ScriptField";
-import { ProxyField } from "../../new_fields/Proxy";
+import { ComputedField, ScriptField } from "../../fields/ScriptField";
+import { ProxyField } from "../../fields/Proxy";
 import { DocumentType } from "./DocumentTypes";
 import { RecommendationsBox } from "../views/RecommendationsBox";
 import { PresElementBox } from "../views/presentationview/PresElementBox";
@@ -37,11 +37,11 @@ import { DashWebRTCVideo } from "../views/webcam/DashWebRTCVideo";
 import { QueryBox } from "../views/nodes/QueryBox";
 import { ColorBox } from "../views/nodes/ColorBox";
 import { LinkAnchorBox } from "../views/nodes/LinkAnchorBox";
-import { DocHolderBox } from "../views/nodes/DocumentBox";
+import { DocHolderBox } from "../views/nodes/DocHolderBox";
 import { InkingStroke } from "../views/InkingStroke";
-import { InkField } from "../../new_fields/InkField";
+import { InkField } from "../../fields/InkField";
 import { InkingControl } from "../views/InkingControl";
-import { RichTextField } from "../../new_fields/RichTextField";
+import { RichTextField } from "../../fields/RichTextField";
 import { extname } from "path";
 import { MessageStore } from "../../server/Message";
 import { ContextMenuProps } from "../views/ContextMenuItem";
@@ -58,6 +58,8 @@ export interface DocumentOptions {
     _height?: number;
     _nativeWidth?: number;
     _nativeHeight?: number;
+    _dimMagnitude?: number; // magnitude of collectionMulti{row,col} view element
+    _dimUnit?: string; // "px" or "*" (default = "*")
     _fitWidth?: boolean;
     _fitToBox?: boolean; // whether a freeformview should zoom/scale to create a shrinkwrapped view of its contents
     _LODdisable?: boolean;
@@ -75,12 +77,15 @@ export interface DocumentOptions {
     _itemIndex?: number; // which item index the carousel viewer is showing
     _showSidebar?: boolean;  //whether an annotationsidebar should be displayed for text docuemnts
     _singleLine?: boolean; // whether text document is restricted to a single line (carriage returns make new document)
+    "_carousel-caption-xMargin"?: number;
+    "_carousel-caption-yMargin"?: number;
     x?: number;
     y?: number;
     z?: number;
     author?: string;
     dropAction?: dropActionType;
     childDropAction?: dropActionType;
+    targetDropAction?: dropActionType;
     layoutKey?: string;
     type?: string;
     title?: string;
@@ -90,12 +95,16 @@ export interface DocumentOptions {
     scale?: number;
     isDisplayPanel?: boolean; // whether the panel functions as GoldenLayout "stack" used to display documents
     forceActive?: boolean;
-    layout?: string | Doc;
+    layout?: string | Doc; // default layout string for a document
+    childLayoutTemplate?: Doc; // template for collection to use to render its children (see PresBox or Buxton layout in tree view)
+    childLayoutString?: string; // template string for collection to use to render its children
     hideFilterView?: boolean; // whether to hide the filter popout on collections
     hideHeadings?: boolean; // whether stacking view column headings should be hidden
     isTemplateForField?: string; // the field key for which the containing document is a rendering template
     isTemplateDoc?: boolean;
+    targetScriptKey?: string; // where to write a template script (used by collections with click templates which need to target onClick, onDoubleClick, etc)
     templates?: List<string>;
+    hero?: ImageField; // primary image that best represents a compound document (e.g., for a buxton device document that has multiple images)
     backgroundColor?: string | ScriptField;  // background color for data doc 
     _backgroundColor?: string | ScriptField; // background color for each template layout doc ( overrides backgroundColor )
     color?: string; // foreground color data doc
@@ -117,7 +126,9 @@ export interface DocumentOptions {
     displayTimecode?: number; // the time that a document should be displayed (e.g., time an annotation should be displayed on a video)
     borderRounding?: string;
     boxShadow?: string;
-    dontRegisterChildren?: boolean;
+    dontRegisterChildViews?: boolean;
+    lookupField?: ScriptField; // script that returns the value of a field. This script is passed the rootDoc, layoutDoc, field, and container of the document.  see PresBox.
+    "onDoubleClick-rawScript"?: string; // onDoubleClick script in raw text form
     "onClick-rawScript"?: string; // onClick script in raw text form
     "onCheckedClick-rawScript"?: string; // onChecked script in raw text form
     "onCheckedClick-params"?: List<string>; // parameter list for onChecked treeview functions
@@ -131,13 +142,16 @@ export interface DocumentOptions {
     ischecked?: ScriptField; // returns whether a font icon box is checked
     activePen?: Doc; // which pen document is currently active (used as the radio button state for the 'unhecked' pen tool scripts)
     onClick?: ScriptField;
+    onDoubleClick?: ScriptField;
     onChildClick?: ScriptField; // script given to children of a collection to execute when they are clicked
+    onChildDoubleClick?: ScriptField; // script given to children of a collection to execute when they are double clicked
     onPointerDown?: ScriptField;
     onPointerUp?: ScriptField;
     dropConverter?: ScriptField; // script to run when documents are dropped on this Document.
     dragFactory?: Doc; // document to create when dragging with a suitable onDragStart script
     onDragStart?: ScriptField; //script to execute at start of drag operation --  e.g., when a "creator" button is dragged this script generates a different document to drop
     clipboard?: Doc;
+    UseCors?: boolean;
     icon?: string;
     sourcePanel?: Doc; // panel to display in 'targetContainer' as the result of a button onClick script
     targetContainer?: Doc; // document whose proto will be set to 'panel' as the result of a onClick click script
@@ -377,6 +391,15 @@ export namespace Docs {
      */
     export namespace Create {
 
+        /**
+         * Synchronously returns a collection into which
+         * the device documents will be put. This is initially empty,
+         * but gets populated by updates from the web socket. When everything is over,
+         * this function cleans up after itself.
+         * s
+         * Look at Websocket.ts for the server-side counterpart to this
+         * function.
+         */
         export function Buxton() {
             let responded = false;
             const loading = new Doc;
@@ -389,9 +412,13 @@ export namespace Docs {
             });
             const parentProto = Doc.GetProto(parent);
             const { _socket } = DocServer;
+
+            // just in case, clean up
             _socket.off(MessageStore.BuxtonDocumentResult.Message);
             _socket.off(MessageStore.BuxtonImportComplete.Message);
-            Utils.AddServerHandler(_socket, MessageStore.BuxtonDocumentResult, ({ device, errors }) => {
+
+            // this is where the client handles the receipt of a new valid parsed document
+            Utils.AddServerHandler(_socket, MessageStore.BuxtonDocumentResult, ({ device, invalid: errors }) => {
                 if (!responded) {
                     responded = true;
                     parentProto.data = new List<Doc>();
@@ -406,10 +433,10 @@ export namespace Docs {
                         _nativeWidth: nativeWidth,
                         _nativeHeight: nativeHeight
                     }));
-                    const doc = StackingDocument(deviceImages, { title: device.title, _LODdisable: true });
-                    const deviceProto = Doc.GetProto(doc);
-                    deviceProto.hero = new ImageField(constructed[0].url);
-                    Docs.Get.FromJson({ data: device, appendToExisting: { targetDoc: deviceProto } });
+                    // the main document we create
+                    const doc = StackingDocument(deviceImages, { title: device.title, _LODdisable: true, hero: new ImageField(constructed[0].url) });
+                    // add the parsed attributes to this main document
+                    Docs.Get.FromJson({ data: device, appendToExisting: { targetDoc: Doc.GetProto(doc) } });
                     Doc.AddDocToList(parentProto, "data", doc);
                 } else if (errors) {
                     console.log(errors);
@@ -417,22 +444,22 @@ export namespace Docs {
                     alert("A Buxton document import was completely empty (??)");
                 }
             });
+
+            // when the import is complete, we stop listening for these creation
+            // and termination events and alert the user
             Utils.AddServerHandler(_socket, MessageStore.BuxtonImportComplete, ({ deviceCount, errorCount }) => {
                 _socket.off(MessageStore.BuxtonDocumentResult.Message);
                 _socket.off(MessageStore.BuxtonImportComplete.Message);
                 alert(`Successfully imported ${deviceCount} device${deviceCount === 1 ? "" : "s"}, with ${errorCount} error${errorCount === 1 ? "" : "s"}, in ${(Date.now() - startTime) / 1000} seconds.`);
             });
             const startTime = Date.now();
-            Utils.Emit(_socket, MessageStore.BeginBuxtonImport, "");
-            return parent;
+            Utils.Emit(_socket, MessageStore.BeginBuxtonImport, ""); // signal the server to start importing
+            return parent; // synchronously return the collection, to be populateds
         }
 
         Scripting.addGlobal(Buxton);
 
-        const delegateKeys = ["x", "y", "layoutKey", "_width", "_height", "_panX", "_panY", "_viewType", "_nativeWidth", "_nativeHeight", "dropAction", "childDropAction", "_annotationOn",
-            "_chromeStatus", "_autoHeight", "_fitWidth", "_LODdisable", "_itemIndex", "_showSidebar", "_showTitle", "_showCaption", "_showTitleHover", "_backgroundColor",
-            "_xMargin", "_yMargin", "_xPadding", "_yPadding", "_singleLine", "_scrollTop",
-            "_color", "isLinkButton", "isBackground", "removeDropProperties", "treeViewOpen"];
+        const delegateKeys = ["x", "y", "layoutKey", "dropAction", "childDropAction", "isLinkButton", "isBackground", "removeDropProperties", "treeViewOpen"];
 
         /**
          * This function receives the relevant document prototype and uses
@@ -453,7 +480,7 @@ export namespace Docs {
          * main document.
          */
         export function InstanceFromProto(proto: Doc, data: Field | undefined, options: DocumentOptions, delegId?: string, fieldKey: string = "data") {
-            const { omit: protoProps, extract: delegateProps } = OmitKeys(options, delegateKeys);
+            const { omit: protoProps, extract: delegateProps } = OmitKeys(options, delegateKeys, "^_");
 
             if (!("author" in protoProps)) {
                 protoProps.author = Doc.CurrentUserEmail;
@@ -468,7 +495,7 @@ export namespace Docs {
             const dataDoc = MakeDataDelegate(proto, protoProps, data, fieldKey);
             const viewDoc = Doc.MakeDelegate(dataDoc, delegId);
 
-            viewDoc.type !== DocumentType.LINK && AudioBox.ActiveRecordings.map(d => DocUtils.MakeLink({ doc: viewDoc }, { doc: d }, "audio link", "audio timeline"));
+            viewDoc.type !== DocumentType.LINK && DocUtils.MakeLinkToActiveAudio(viewDoc);
 
             return Doc.assign(viewDoc, delegateProps, true);
         }
@@ -541,8 +568,23 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.COLOR), "", options);
         }
 
-        export function TextDocument(text: string, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.RTF), text, options, undefined, "text");
+        export function TextDocument(text: string, options: DocumentOptions = {}, fieldKey: string = "text") {
+            const rtf = {
+                doc: {
+                    type: "doc", content: [{
+                        type: "paragraph",
+                        content: [{
+                            type: "text",
+                            text
+                        }]
+                    }]
+                },
+                selection: { type: "text", anchor: 1, head: 1 },
+                storedMarks: []
+            };
+
+            const field = text ? new RichTextField(JSON.stringify(rtf), text) : undefined;
+            return InstanceFromProto(Prototypes.get(DocumentType.RTF), field, options, undefined, fieldKey);
         }
 
         export function LinkDocument(source: { doc: Doc, ctx?: Doc }, target: { doc: Doc, ctx?: Doc }, options: DocumentOptions = {}, id?: string) {
@@ -553,9 +595,7 @@ export namespace Docs {
             linkDocProto.anchor1_timecode = source.doc.currentTimecode || source.doc.displayTimecode;
             linkDocProto.anchor2_timecode = target.doc.currentTimecode || target.doc.displayTimecode;
 
-            if (linkDocProto.layout_key1 === undefined) {
-                Cast(linkDocProto.proto, Doc, null).layout_key1 = LinkAnchorBox.LayoutString("anchor1");
-                Cast(linkDocProto.proto, Doc, null).layout_key2 = LinkAnchorBox.LayoutString("anchor2");
+            if (linkDocProto.linkBoxExcludedKeys === undefined) {
                 Cast(linkDocProto.proto, Doc, null).linkBoxExcludedKeys = new List(["treeViewExpandedView", "treeViewHideTitle", "removeDropProperties", "linkBoxExcludedKeys", "treeViewOpen", "aliasNumber", "isPrototype", "lastOpened", "creationDate", "author"]);
                 Cast(linkDocProto.proto, Doc, null).layoutKey = undefined;
             }
@@ -567,7 +607,7 @@ export namespace Docs {
             return doc;
         }
 
-        export function InkDocument(color: string, tool: number, strokeWidth: number, points: { X: number, Y: number }[], options: DocumentOptions = {}) {
+        export function InkDocument(color: string, tool: number, strokeWidth: string, points: { X: number, Y: number }[], options: DocumentOptions = {}) {
             const I = new Doc();
             I.type = DocumentType.INK;
             I.layout = InkingStroke.LayoutString("data");
@@ -607,7 +647,7 @@ export namespace Docs {
         }
 
         export function DocumentDocument(document?: Doc, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.DOCHOLDER), document, { title: document ? document.title + "" : "container", ...options });
+            return InstanceFromProto(Prototypes.get(DocumentType.DOCHOLDER), document, { title: document ? document.title + "" : "container", targetDropAction: "move", ...options });
         }
 
         export function FreeformDocument(documents: Array<Doc>, options: DocumentOptions, id?: string) {
@@ -712,6 +752,10 @@ export namespace Docs {
                 ]
             };
             return DockDocument(configs.map(c => c.doc), JSON.stringify(layoutConfig), options, id);
+        }
+
+        export function DelegateDocument(proto: Doc, options: DocumentOptions = {}) {
+            return InstanceFromProto(proto, undefined, options);
         }
     }
 
@@ -968,6 +1012,11 @@ export namespace DocUtils {
         });
     }
 
+    export let ActiveRecordings: Doc[] = [];
+
+    export function MakeLinkToActiveAudio(doc: Doc) {
+        DocUtils.ActiveRecordings.map(d => DocUtils.MakeLink({ doc: doc }, { doc: d }, "audio link", "audio timeline"));
+    }
     export function MakeLink(source: { doc: Doc }, target: { doc: Doc }, linkRelationship: string = "", id?: string) {
         const sv = DocumentManager.Instance.getDocumentView(source.doc);
         if (sv && sv.props.ContainingCollectionDoc === target.doc) return;
@@ -1019,4 +1068,5 @@ export namespace DocUtils {
 }
 
 Scripting.addGlobal("Docs", Docs);
+Scripting.addGlobal(function makeDelegate(proto: any) { const d = Docs.Create.DelegateDocument(proto, { title: "child of " + proto.title }); return d; });
 

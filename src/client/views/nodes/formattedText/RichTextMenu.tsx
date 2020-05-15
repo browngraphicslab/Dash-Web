@@ -11,14 +11,14 @@ import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
 import { faBold, faItalic, faChevronLeft, faUnderline, faStrikethrough, faSubscript, faSuperscript, faIndent, faEyeDropper, faCaretDown, faPalette, faHighlighter, faLink, faPaintRoller, faSleigh } from "@fortawesome/free-solid-svg-icons";
 import { updateBullets } from "./ProsemirrorExampleTransfer";
 import { FieldViewProps } from "../FieldView";
-import { Cast, StrCast } from "../../../../new_fields/Types";
+import { Cast, StrCast } from "../../../../fields/Types";
 import { FormattedTextBoxProps } from "./FormattedTextBox";
 import { unimplementedFunction, Utils } from "../../../../Utils";
 import { wrapInList } from "prosemirror-schema-list";
-import { PastelSchemaPalette, DarkPastelSchemaPalette } from '../../../../new_fields/SchemaHeaderField';
+import { PastelSchemaPalette, DarkPastelSchemaPalette } from '../../../../fields/SchemaHeaderField';
 import "./RichTextMenu.scss";
 import { DocServer } from "../../../DocServer";
-import { Doc } from "../../../../new_fields/Doc";
+import { Doc } from "../../../../fields/Doc";
 import { SelectionManager } from "../../../util/SelectionManager";
 import { LinkManager } from "../../../util/LinkManager";
 const { toggleMark, setBlockType } = require("prosemirror-commands");
@@ -197,9 +197,10 @@ export default class RichTextMenu extends AntimodeMenu {
             } else {
                 toggleMark(mark.type, mark.attrs)(state, (tx: any) => {
                     const { from, $from, to, empty } = tx.selection;
-                    if (!tx.doc.rangeHasMark(from, to, mark.type)) {
-                        toggleMark(mark.type, mark.attrs)({ tr: tx, doc: tx.doc, selection: tx.selection, storedMarks: tx.storedMarks }, dispatch);
-                    } else dispatch(tx);
+                    // if (!tx.doc.rangeHasMark(from, to, mark.type)) {
+                    //     toggleMark(mark.type, mark.attrs)({ tr: tx, doc: tx.doc, selection: tx.selection, storedMarks: tx.storedMarks }, dispatch);
+                    // } else
+                    dispatch(tx);
                 });
             }
         }

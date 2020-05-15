@@ -1,7 +1,7 @@
 import { computed } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, Opt, Field } from "../../../new_fields/Doc";
-import { Cast, StrCast, NumCast } from "../../../new_fields/Types";
+import { Doc, Opt, Field } from "../../../fields/Doc";
+import { Cast, StrCast, NumCast } from "../../../fields/Types";
 import { OmitKeys, Without, emptyPath } from "../../../Utils";
 import DirectoryImportBox from "../../util/Import & Export/DirectoryImportBox";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
@@ -14,7 +14,7 @@ import { LabelBox } from "./LabelBox";
 import { SliderBox } from "./SliderBox";
 import { LinkBox } from "./LinkBox";
 import { ScriptingBox } from "./ScriptingBox";
-import { DocHolderBox } from "./DocumentBox";
+import { DocHolderBox } from "./DocHolderBox";
 import { DocumentViewProps } from "./DocumentView";
 import "./DocumentView.scss";
 import { FontIconBox } from "./FontIconBox";
@@ -35,8 +35,8 @@ import { WebBox } from "./WebBox";
 import { InkingStroke } from "../InkingStroke";
 import React = require("react");
 import { RecommendationsBox } from "../RecommendationsBox";
-import { TraceMobx } from "../../../new_fields/util";
-import { ScriptField } from "../../../new_fields/ScriptField";
+import { TraceMobx } from "../../../fields/util";
+import { ScriptField } from "../../../fields/ScriptField";
 import XRegExp = require("xregexp");
 
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
@@ -77,11 +77,11 @@ export class HTMLtag extends React.Component<HTMLtagProps> {
     render() {
         const style: { [key: string]: any } = {};
         const divKeys = OmitKeys(this.props, ["children", "htmltag", "RootDoc", "Document", "key", "onInput", "onClick", "__proto__"]).omit;
+        const replacer = (match: any, expr: string, offset: any, string: any) => { // bcz: this executes a script to convert a propery expression string:  { script }  into a value
+            return ScriptField.MakeFunction(expr, { self: Doc.name, this: Doc.name })?.script.run({ self: this.props.RootDoc, this: this.props.Document }).result as string || "";
+        };
         Object.keys(divKeys).map((prop: string) => {
             const p = (this.props as any)[prop] as string;
-            const replacer = (match: any, expr: string, offset: any, string: any) => { // bcz: this executes a script to convert a propery expression string:  { script }  into a value
-                return ScriptField.MakeFunction(expr, { self: Doc.name, this: Doc.name })?.script.run({ self: this.props.RootDoc, this: this.props.Document }).result as string || "";
-            };
             style[prop] = p?.replace(/{([^.'][^}']+)}/g, replacer);
         });
         const Tag = this.props.htmltag as keyof JSX.IntrinsicElements;
@@ -96,8 +96,6 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     isSelected: (outsideReaction: boolean) => boolean,
     select: (ctrl: boolean) => void,
     layoutKey: string,
-    forceLayout?: string,
-    forceFieldKey?: string,
     hideOnLeave?: boolean,
     makeLink?: () => Opt<Doc>,  // function to call when a link is made
 }> {
@@ -105,6 +103,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         TraceMobx();
         if (!this.layoutDoc) return "<p>awaiting layout</p>";
         // const layout = Cast(this.layoutDoc[StrCast(this.layoutDoc.layoutKey, this.layoutDoc === this.props.Document ? this.props.layoutKey : "layout")], "string");  // bcz: replaced this with below... is it right?
+        if (this.props.LayoutTemplateString) return this.props.LayoutTemplateString;
         const layout = Cast(this.layoutDoc[this.layoutDoc === this.props.Document && this.props.layoutKey ? this.props.layoutKey : StrCast(this.layoutDoc.layoutKey, "layout")], "string");
         if (this.props.layoutKey === "layout_keyValue") {
             return StrCast(this.props.Document.layout_keyValue, KeyValueBox.LayoutString("data"));
@@ -127,8 +126,8 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
     get layoutDoc() {
         const params = StrCast(this.props.Document.PARAMS);
         // bcz: replaced this with below : is it correct?  change was made to accommodate passing fieldKey's from a layout script
-        // const template: Doc = this.props.LayoutDoc?.() || Doc.Layout(this.props.Document, this.props.layoutKey ? Cast(this.props.Document[this.props.layoutKey], Doc, null) : undefined);
-        const template: Doc = this.props.LayoutDoc?.() ||
+        // const template: Doc = this.props.LayoutTemplate?.() || Doc.Layout(this.props.Document, this.props.layoutKey ? Cast(this.props.Document[this.props.layoutKey], Doc, null) : undefined);
+        const template: Doc = this.props.LayoutTemplate?.() || (this.props.LayoutTemplateString && this.props.Document) ||
             (this.props.layoutKey && StrCast(this.props.Document[this.props.layoutKey]) && this.props.Document) ||
             Doc.Layout(this.props.Document, this.props.layoutKey ? Cast(this.props.Document[this.props.layoutKey], Doc, null) : undefined);
         return Doc.expandTemplateLayout(template, this.props.Document, params ? "(" + params + ")" : this.props.layoutKey);
@@ -136,7 +135,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
 
     CreateBindings(onClick: Opt<ScriptField>, onInput: Opt<ScriptField>): JsxBindings {
         const list = {
-            ...OmitKeys(this.props, ['parentActive'], (obj: any) => obj.active = this.props.parentActive).omit,
+            ...OmitKeys(this.props, ['parentActive'], "", (obj: any) => obj.active = this.props.parentActive).omit,
             RootDoc: Cast(this.layoutDoc?.rootDocument, Doc, null) || this.layoutDoc,
             Document: this.layoutDoc,
             DataDoc: this.dataDoc,
@@ -186,25 +185,22 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         //  layoutFrame = splits.length > 1 ? splits[0] + splits[1].replace(/{([^{}]|(?R))*}/, replacer4) : ""; // might have been more elegant if javascript supported recursive patterns
 
         return (this.props.renderDepth > 12 || !layoutFrame || !this.layoutDoc) ? (null) :
-            this.props.forceLayout === "FormattedTextBox" && this.props.forceFieldKey ?
-                <FormattedTextBox {...bindings.props} fieldKey={this.props.forceFieldKey} />
-                :
-                <ObserverJsxParser
-                    key={42}
-                    blacklistedAttrs={[]}
-                    renderInWrapper={false}
-                    components={{
-                        FormattedTextBox, ImageBox, DirectoryImportBox, FontIconBox, LabelBox, SliderBox, FieldView,
-                        CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox,
-                        PDFBox, VideoBox, AudioBox, PresBox, YoutubeBox, PresElementBox, QueryBox,
-                        ColorBox, DashWebRTCVideo, LinkAnchorBox, InkingStroke, DocHolderBox, LinkBox, ScriptingBox,
-                        RecommendationsBox, ScreenshotBox, HTMLtag
-                    }}
-                    bindings={bindings}
-                    jsx={layoutFrame}
-                    showWarnings={true}
+            <ObserverJsxParser
+                key={42}
+                blacklistedAttrs={[]}
+                renderInWrapper={false}
+                components={{
+                    FormattedTextBox, ImageBox, DirectoryImportBox, FontIconBox, LabelBox, SliderBox, FieldView,
+                    CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox,
+                    PDFBox, VideoBox, AudioBox, PresBox, YoutubeBox, PresElementBox, QueryBox,
+                    ColorBox, DashWebRTCVideo, LinkAnchorBox, InkingStroke, DocHolderBox, LinkBox, ScriptingBox,
+                    RecommendationsBox, ScreenshotBox, HTMLtag
+                }}
+                bindings={bindings}
+                jsx={layoutFrame}
+                showWarnings={true}
 
-                    onError={(test: any) => { console.log(test); }}
-                />;
+                onError={(test: any) => { console.log(test); }}
+            />;
     }
 }

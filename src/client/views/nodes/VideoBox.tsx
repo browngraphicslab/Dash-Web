@@ -5,12 +5,12 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, IReactionDisposer, observable, reaction, runInAction, untracked } from "mobx";
 import { observer } from "mobx-react";
 import * as rp from 'request-promise';
-import { Doc } from "../../../new_fields/Doc";
-import { InkTool } from "../../../new_fields/InkField";
-import { createSchema, makeInterface } from "../../../new_fields/Schema";
-import { ScriptField } from "../../../new_fields/ScriptField";
-import { Cast, StrCast } from "../../../new_fields/Types";
-import { VideoField } from "../../../new_fields/URLField";
+import { Doc } from "../../../fields/Doc";
+import { InkTool } from "../../../fields/InkField";
+import { createSchema, makeInterface } from "../../../fields/Schema";
+import { ScriptField } from "../../../fields/ScriptField";
+import { Cast, StrCast } from "../../../fields/Types";
+import { VideoField } from "../../../fields/URLField";
 import { Utils, emptyFunction, returnOne, returnZero } from "../../../Utils";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
@@ -21,14 +21,14 @@ import { DocumentDecorations } from "../DocumentDecorations";
 import { InkingControl } from "../InkingControl";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./VideoBox.scss";
-import { documentSchema, positionSchema } from "../../../new_fields/documentSchemas";
+import { documentSchema } from "../../../fields/documentSchemas";
 const path = require('path');
 
 export const timeSchema = createSchema({
     currentTimecode: "number",  // the current time of a video or other linear, time-based document.  Note, should really get set on an extension field, but that's more complicated when it needs to be set since the extension doc needs to be found first
 });
-type VideoDocument = makeInterface<[typeof documentSchema, typeof positionSchema, typeof timeSchema]>;
-const VideoDocument = makeInterface(documentSchema, positionSchema, timeSchema);
+type VideoDocument = makeInterface<[typeof documentSchema, typeof timeSchema]>;
+const VideoDocument = makeInterface(documentSchema, timeSchema);
 
 library.add(faVideo);
 
@@ -337,9 +337,12 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     }
 
     @action.bound
-    addDocumentWithTimestamp(doc: Doc): boolean {
-        const curTime = (this.layoutDoc.currentTimecode || -1);
-        curTime !== -1 && (doc.displayTimecode = curTime);
+    addDocumentWithTimestamp(doc: Doc | Doc[]): boolean {
+        const docs = doc instanceof Doc ? [doc] : doc;
+        docs.forEach(doc => {
+            const curTime = (this.layoutDoc.currentTimecode || -1);
+            curTime !== -1 && (doc.displayTimecode = curTime);
+        });
         return this.addDocument(doc);
     }
 

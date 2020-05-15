@@ -1,9 +1,9 @@
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import * as React from "react";
-import { Doc, DocListCast } from "../../new_fields/Doc";
-import { Id } from "../../new_fields/FieldSymbols";
-import { NumCast } from "../../new_fields/Types";
+import { Doc, DocListCast, Opt } from "../../fields/Doc";
+import { Id } from "../../fields/FieldSymbols";
+import { NumCast } from "../../fields/Types";
 import { emptyFunction, emptyPath, returnEmptyString, returnFalse, returnOne, returnTrue, returnZero, Utils } from "../../Utils";
 import { Transform } from "../util/Transform";
 import { CollectionFreeFormLinksView } from "./collections/collectionFreeForm/CollectionFreeFormLinksView";
@@ -214,4 +214,6 @@ export class OverlayView extends React.Component {
     }
 }
 // bcz: ugh ... want to be able to pass ScriptingRepl as tag argument, but that doesn't seem to work.. runtime error
-Scripting.addGlobal(function addOverlayWindow(Tag: string, options: OverlayElementOptions) { const x = <ScriptingRepl />; OverlayView.Instance.addWindow(x, options); });
+Scripting.addGlobal(function addOverlayWindow(type: string, options: OverlayElementOptions) {
+    OverlayView.Instance.addWindow(<ScriptingRepl />, options);
+});

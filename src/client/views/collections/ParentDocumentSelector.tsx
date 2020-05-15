@@ -1,12 +1,12 @@
 import * as React from "react";
 import './ParentDocumentSelector.scss';
-import { Doc } from "../../../new_fields/Doc";
+import { Doc } from "../../../fields/Doc";
 import { observer } from "mobx-react";
 import { observable, action, runInAction, trace, computed, reaction, IReactionDisposer } from "mobx";
-import { Id } from "../../../new_fields/FieldSymbols";
+import { Id } from "../../../fields/FieldSymbols";
 import { SearchUtil } from "../../util/SearchUtil";
 import { CollectionDockingView } from "./CollectionDockingView";
-import { NumCast, StrCast } from "../../../new_fields/Types";
+import { NumCast, StrCast } from "../../../fields/Types";
 import { CollectionViewType } from "./CollectionView";
 import { DocumentButtonBar } from "../DocumentButtonBar";
 import { DocumentManager } from "../../util/DocumentManager";
@@ -94,7 +94,7 @@ export class ParentDocSelector extends React.Component<SelectorProps> {
 }
 
 @observer
-export class DockingViewButtonSelector extends React.Component<{ views: DocumentView[], Stack: any }> {
+export class DockingViewButtonSelector extends React.Component<{ views: () => DocumentView[], Stack: any }> {
     customStylesheet(styles: any) {
         return {
             ...styles,
@@ -120,7 +120,7 @@ export class DockingViewButtonSelector extends React.Component<{ views: Document
                 if (getComputedStyle(this._ref.current!).width !== "100%") {
                     e.stopPropagation(); e.preventDefault();
                 }
-                this.props.views[0]?.select(false);
+                this.props.views()[0]?.select(false);
             }} className="buttonSelector">
             <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={this.flyout} stylesheet={this.customStylesheet}>
                 <FontAwesomeIcon icon={"cog"} size={"sm"} />

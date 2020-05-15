@@ -1,12 +1,12 @@
 import * as React from "react";
 import "./Timeline.scss";
-import { listSpec } from "../../../new_fields/Schema";
+import { listSpec } from "../../../fields/Schema";
 import { observer } from "mobx-react";
 import { Track } from "./Track";
 import { observable, action, computed, runInAction, IReactionDisposer, reaction, trace } from "mobx";
-import { Cast, NumCast, StrCast, BoolCast } from "../../../new_fields/Types";
-import { List } from "../../../new_fields/List";
-import { Doc, DocListCast } from "../../../new_fields/Doc";
+import { Cast, NumCast, StrCast, BoolCast } from "../../../fields/Types";
+import { List } from "../../../fields/List";
+import { Doc, DocListCast } from "../../../fields/Doc";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlayCircle, faBackward, faForward, faGripLines, faPauseCircle, faEyeSlash, faEye, faCheckCircle, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
 import { ContextMenu } from "../ContextMenu";
@@ -71,7 +71,6 @@ export class Timeline extends React.Component<FieldViewProps> {
     @observable private _tickIncrement = this.DEFAULT_TICK_INCREMENT;
     @observable private _time = 100000; //DEFAULT
     @observable private _playButton = faPlayCircle;
-    @observable private _timelineVisible = false;
     @observable private _mouseToggled = false;
     @observable private _doubleClickEnabled = false;
     @observable private _titleHeight = 0;
@@ -119,9 +118,7 @@ export class Timeline extends React.Component<FieldViewProps> {
     }
 
     componentWillUnmount() {
-        runInAction(() => {
-            this.props.Document.AnimationLength = this._time; //save animation length
-        });
+        this.props.Document.AnimationLength = this._time; //save animation length
     }
     /////////////////////////////////////////////////
 
@@ -339,20 +336,6 @@ export class Timeline extends React.Component<FieldViewProps> {
 
 
     /**
-     * context menu function. 
-     * opens the timeline or closes the timeline. 
-     * Used in: Freeform
-     */
-    timelineContextMenu = (e: React.MouseEvent): void => {
-        ContextMenu.Instance.addItem({
-            description: (this._timelineVisible ? "Close" : "Open") + " Animation Timeline", event: action(() => {
-                this._timelineVisible = !this._timelineVisible;
-            }), icon: this._timelineVisible ? faEyeSlash : faEye
-        });
-    }
-
-
-    /**
      * timeline zoom function 
      * use mouse middle button to zoom in/out the timeline
      */
@@ -465,7 +448,7 @@ export class Timeline extends React.Component<FieldViewProps> {
                             <div key="round-toggle-slider" ref={this._roundToggleRef} className="round-toggle-slider" onPointerDown={this.toggleChecked}> </div>
                         </div>
                     </div>
-                    <div className="time-box overview-tool" style={{ display: this._timelineVisible ? "flex" : "none" }}>
+                    <div className="time-box overview-tool" style={{ display: "flex" }}>
                         {this.timeIndicator(lengthString, totalTime)}
                         <div className="resetView-tool" title="Return to Default View" onClick={() => this.resetView(this.props.Document)}><FontAwesomeIcon icon="compress-arrows-alt" size="lg" /></div>
                         <div className="resetView-tool" style={{ display: this._isAuthoring ? "flex" : "none" }} title="Set Default View" onClick={() => this.setView(this.props.Document)}><FontAwesomeIcon icon="expand-arrows-alt" size="lg" /></div>
@@ -483,10 +466,16 @@ export class Timeline extends React.Component<FieldViewProps> {
             );
         }
         else {
+            const ctime = `Current: ${this.getCurrentTime()}`;
+            const ttime = `Total: ${this.toReadTime(this._time)}`;
             return (
                 <div style={{ flexDirection: "column" }}>
-                    <div className="animation-text" style={{ fontSize: "10px", width: "100%", display: !this.props.Document.isATOn ? "block" : "none" }}>{`Current: ${this.getCurrentTime()}`}</div>
-                    <div className="animation-text" style={{ fontSize: "10px", width: "100%", display: !this.props.Document.isATOn ? "block" : "none" }}>{`Total: ${this.toReadTime(this._time)}`}</div>
+                    <div className="animation-text" style={{ fontSize: "10px", width: "100%", display: !this.props.Document.isATOn ? "block" : "none" }}>
+                        {ctime}
+                    </div>
+                    <div className="animation-text" style={{ fontSize: "10px", width: "100%", display: !this.props.Document.isATOn ? "block" : "none" }}>
+                        {ttime}
+                    </div>
                 </div>
             );
         }
@@ -536,8 +525,8 @@ export class Timeline extends React.Component<FieldViewProps> {
     @action.bound
     changeLengths() {
         if (this._infoContainer.current) {
-            this._visibleLength = this._infoContainer.current!.getBoundingClientRect().width; //the visible length of the timeline (the length that you current see)
-            this._visibleStart = this._infoContainer.current!.scrollLeft; //where the div starts
+            this._visibleLength = this._infoContainer.current.getBoundingClientRect().width; //the visible length of the timeline (the length that you current see)
+            this._visibleStart = this._infoContainer.current.scrollLeft; //where the div starts
         }
     }
 
@@ -603,8 +592,8 @@ export class Timeline extends React.Component<FieldViewProps> {
         trace();
         // change visible and total width
         return (
-            <div style={{ visibility: this._timelineVisible ? "visible" : "hidden" }}>
-                <div key="timeline_wrapper" style={{ visibility: BoolCast(this.props.Document.isATOn && this._timelineVisible) ? "visible" : "hidden", left: "0px", top: "0px", position: "absolute", width: "100%", transform: "translate(0px, 0px)" }}>
+            <div style={{ visibility: "visible" }}>
+                <div key="timeline_wrapper" style={{ visibility: BoolCast(this.props.Document.isATOn) ? "visible" : "hidden", left: "0px", top: "0px", position: "absolute", width: "100%", transform: "translate(0px, 0px)" }}>
                     <div key="timeline_container" className="timeline-container" ref={this._timelineContainer} style={{ height: `${this._containerHeight}px`, top: `0px` }}>
                         <div key="timeline_info" className="info-container" ref={this._infoContainer} onWheel={this.onWheelZoom}>
                             {this.drawTicks()}
@@ -613,7 +602,7 @@ export class Timeline extends React.Component<FieldViewProps> {
                             </div>
                             <div key="timeline_trackbox" className="trackbox" ref={this._trackbox} onPointerDown={this.onPanDown} style={{ width: `${this._totalLength}px` }}>
                                 {DocListCast(this.children).map(doc =>
-                                    <Track ref={ref => this.mapOfTracks.push(ref)} node={doc} currentBarX={this._currentBarX} changeCurrentBarX={this.changeCurrentBarX} transform={this.props.ScreenToLocalTransform()} time={this._time} tickSpacing={this._tickSpacing} tickIncrement={this._tickIncrement} collection={this.props.Document} timelineVisible={this._timelineVisible} />
+                                    <Track ref={ref => this.mapOfTracks.push(ref)} node={doc} currentBarX={this._currentBarX} changeCurrentBarX={this.changeCurrentBarX} transform={this.props.ScreenToLocalTransform()} time={this._time} tickSpacing={this._tickSpacing} tickIncrement={this._tickIncrement} collection={this.props.Document} timelineVisible={true} />
                                 )}
                             </div>
                         </div>

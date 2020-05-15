@@ -4,20 +4,20 @@ import { faPalette } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc } from "../../../new_fields/Doc";
-import { PastelSchemaPalette, SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
-import { ScriptField } from "../../../new_fields/ScriptField";
-import { StrCast, NumCast } from "../../../new_fields/Types";
+import { Doc } from "../../../fields/Doc";
+import { PastelSchemaPalette, SchemaHeaderField } from "../../../fields/SchemaHeaderField";
+import { ScriptField } from "../../../fields/ScriptField";
+import { StrCast, NumCast } from "../../../fields/Types";
 import { numberRange, setupMoveUpEvents, emptyFunction } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
 import { CompileScript } from "../../util/Scripting";
-import { SelectionManager } from "../../util/SelectionManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
 import { EditableView } from "../EditableView";
 import { CollectionStackingView } from "./CollectionStackingView";
 import "./CollectionStackingView.scss";
+import { SnappingManager } from "../../util/SnappingManager";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -132,7 +132,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
         this._color = color;
     }
 
-    pointerEnteredRow = action(() => SelectionManager.GetIsDragging() && (this._background = "#b4b4b4"));
+    pointerEnteredRow = action(() => SnappingManager.GetIsDragging() && (this._background = "#b4b4b4"));
 
     @action
     pointerLeaveRow = () => {

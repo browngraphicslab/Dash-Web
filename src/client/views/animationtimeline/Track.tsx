@@ -1,12 +1,12 @@
 import { action, computed, intercept, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import * as React from "react";
-import { Doc, DocListCast, Opt, DocListCastAsync } from "../../../new_fields/Doc";
-import { Copy } from "../../../new_fields/FieldSymbols";
-import { List } from "../../../new_fields/List";
-import { ObjectField } from "../../../new_fields/ObjectField";
-import { listSpec } from "../../../new_fields/Schema";
-import { Cast, NumCast } from "../../../new_fields/Types";
+import { Doc, DocListCast, Opt, DocListCastAsync } from "../../../fields/Doc";
+import { Copy } from "../../../fields/FieldSymbols";
+import { List } from "../../../fields/List";
+import { ObjectField } from "../../../fields/ObjectField";
+import { listSpec } from "../../../fields/Schema";
+import { Cast, NumCast } from "../../../fields/Types";
 import { Transform } from "../../util/Transform";
 import { Keyframe, KeyframeFunc, RegionData } from "./Keyframe";
 import "./Track.scss";
@@ -90,9 +90,9 @@ export class Track extends React.Component<IProps> {
      */
     @action
     saveKeyframe = async () => {
-        let keyframes = Cast(this.saveStateRegion?.keyframes, listSpec(Doc)) as List<Doc>;
-        let kfIndex = keyframes.indexOf(this.saveStateKf!);
-        let kf = keyframes[kfIndex] as Doc; //index in the keyframe
+        const keyframes = Cast(this.saveStateRegion?.keyframes, listSpec(Doc)) as List<Doc>;
+        const kfIndex = keyframes.indexOf(this.saveStateKf!);
+        const kf = keyframes[kfIndex] as Doc; //index in the keyframe
         if (this._newKeyframe) {
             DocListCast(this.saveStateRegion?.keyframes).forEach((kf, index) => {
                 this.copyDocDataToKeyFrame(kf);
@@ -103,17 +103,17 @@ export class Track extends React.Component<IProps> {
         if (!kf) return;
         if (kf.type === KeyframeFunc.KeyframeType.default) { // only save for non-fades
             this.copyDocDataToKeyFrame(kf);
-            let leftkf = KeyframeFunc.calcMinLeft(this.saveStateRegion!, this.time, kf); // lef keyframe, if it exists
-            let rightkf = KeyframeFunc.calcMinRight(this.saveStateRegion!, this.time, kf); //right keyframe, if it exists 
+            const leftkf = KeyframeFunc.calcMinLeft(this.saveStateRegion!, this.time, kf); // lef keyframe, if it exists
+            const rightkf = KeyframeFunc.calcMinRight(this.saveStateRegion!, this.time, kf); //right keyframe, if it exists 
             if (leftkf?.type === KeyframeFunc.KeyframeType.fade) { //replicating this keyframe to fades
-                let edge = KeyframeFunc.calcMinLeft(this.saveStateRegion!, this.time, leftkf);
+                const edge = KeyframeFunc.calcMinLeft(this.saveStateRegion!, this.time, leftkf);
                 edge && this.copyDocDataToKeyFrame(edge);
                 leftkf && this.copyDocDataToKeyFrame(leftkf);
-                edge && (edge!.opacity = 0.1);
-                leftkf && (leftkf!.opacity = 1);
+                edge && (edge.opacity = 0.1);
+                leftkf && (leftkf.opacity = 1);
             }
             if (rightkf?.type === KeyframeFunc.KeyframeType.fade) {
-                let edge = KeyframeFunc.calcMinRight(this.saveStateRegion!, this.time, rightkf);
+                const edge = KeyframeFunc.calcMinRight(this.saveStateRegion!, this.time, rightkf);
                 edge && this.copyDocDataToKeyFrame(edge);
                 rightkf && this.copyDocDataToKeyFrame(rightkf);
                 edge && (edge.opacity = 0.1);
@@ -142,7 +142,7 @@ export class Track extends React.Component<IProps> {
             //check for region 
             const region = this.findRegion(this.time);
             if (region !== undefined) { //if region at scrub time exist
-                let r = region as RegionData; //for some region is returning undefined... which is not the case
+                const r = region as RegionData; //for some region is returning undefined... which is not the case
                 if (DocListCast(r.keyframes).find(kf => kf.time === this.time) === undefined) { //basically when there is no additional keyframe at that timespot 
                     this.makeKeyData(r, this.time, KeyframeFunc.KeyframeType.default);
                 }
@@ -222,11 +222,11 @@ export class Track extends React.Component<IProps> {
         } else if (this._newKeyframe) {
             await this.saveKeyframe();
         }
-        let regiondata = await this.findRegion(Math.round(this.time)); //finds a region that the scrubber is on
+        const regiondata = await this.findRegion(Math.round(this.time)); //finds a region that the scrubber is on
         if (regiondata) {
-            let leftkf: (Doc | undefined) = await KeyframeFunc.calcMinLeft(regiondata, this.time); // lef keyframe, if it exists
-            let rightkf: (Doc | undefined) = await KeyframeFunc.calcMinRight(regiondata, this.time); //right keyframe, if it exists        
-            let currentkf: (Doc | undefined) = await this.calcCurrent(regiondata); //if the scrubber is on top of the keyframe
+            const leftkf: (Doc | undefined) = await KeyframeFunc.calcMinLeft(regiondata, this.time); // lef keyframe, if it exists
+            const rightkf: (Doc | undefined) = await KeyframeFunc.calcMinRight(regiondata, this.time); //right keyframe, if it exists        
+            const currentkf: (Doc | undefined) = await this.calcCurrent(regiondata); //if the scrubber is on top of the keyframe
             if (currentkf) {
                 console.log("is current");
                 await this.applyKeys(currentkf);
@@ -248,7 +248,7 @@ export class Track extends React.Component<IProps> {
             if (!kf[key]) {
                 this.props.node[key] = undefined;
             } else {
-                let stored = kf[key];
+                const stored = kf[key];
                 this.props.node[key] = stored instanceof ObjectField ? stored[Copy]() : stored;
             }
         });
@@ -261,7 +261,7 @@ export class Track extends React.Component<IProps> {
     @action
     calcCurrent = (region: Doc) => {
         let currentkf: (Doc | undefined) = undefined;
-        let keyframes = DocListCast(region.keyframes!);
+        const keyframes = DocListCast(region.keyframes!);
         keyframes.forEach((kf) => {
             if (NumCast(kf.time) === Math.round(this.time)) currentkf = kf;
         });
@@ -276,12 +276,12 @@ export class Track extends React.Component<IProps> {
     interpolate = async (left: Doc, right: Doc) => {
         this.primitiveWhitelist.forEach(key => {
             if (left[key] && right[key] && typeof (left[key]) === "number" && typeof (right[key]) === "number") { //if it is number, interpolate
-                let dif = NumCast(right[key]) - NumCast(left[key]);
-                let deltaLeft = this.time - NumCast(left.time);
-                let ratio = deltaLeft / (NumCast(right.time) - NumCast(left.time));
+                const dif = NumCast(right[key]) - NumCast(left[key]);
+                const deltaLeft = this.time - NumCast(left.time);
+                const ratio = deltaLeft / (NumCast(right.time) - NumCast(left.time));
                 this.props.node[key] = NumCast(left[key]) + (dif * ratio);
             } else { // case data 
-                let stored = left[key];
+                const stored = left[key];
                 this.props.node[key] = stored instanceof ObjectField ? stored[Copy]() : stored;
             }
         });
@@ -301,8 +301,8 @@ export class Track extends React.Component<IProps> {
      */
     @action
     onInnerDoubleClick = (e: React.MouseEvent) => {
-        let inner = this._inner.current!;
-        let offsetX = Math.round((e.clientX - inner.getBoundingClientRect().left) * this.props.transform.Scale);
+        const inner = this._inner.current!;
+        const offsetX = Math.round((e.clientX - inner.getBoundingClientRect().left) * this.props.transform.Scale);
         this.createRegion(KeyframeFunc.convertPixelTime(offsetX, "mili", "time", this.props.tickSpacing, this.props.tickIncrement));
     }
 
@@ -313,10 +313,10 @@ export class Track extends React.Component<IProps> {
     @action
     createRegion = (time: number) => {
         if (this.findRegion(time) === undefined) {  //check if there is a region where double clicking (prevents phantom regions)
-            let regiondata = KeyframeFunc.defaultKeyframe(); //create keyframe data
+            const regiondata = KeyframeFunc.defaultKeyframe(); //create keyframe data
 
             regiondata.position = time; //set position
-            let rightRegion = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.right, regiondata, this.regions);
+            const rightRegion = KeyframeFunc.findAdjacentRegion(KeyframeFunc.Direction.right, regiondata, this.regions);
 
             if (rightRegion && rightRegion.position - regiondata.position <= 4000) { //edge case when there is less than default 4000 duration space between this and right region
                 regiondata.duration = rightRegion.position - regiondata.position;
@@ -332,7 +332,7 @@ export class Track extends React.Component<IProps> {
 
     @action
     makeKeyData = (regiondata: RegionData, time: number, type: KeyframeFunc.KeyframeType = KeyframeFunc.KeyframeType.default) => { //Kfpos is mouse offsetX, representing time 
-        const trackKeyFrames = DocListCast(regiondata.keyframes)!;
+        const trackKeyFrames = DocListCast(regiondata.keyframes);
         const existingkf = trackKeyFrames.find(TK => TK.time === time);
         if (existingkf) return existingkf;
         //else creates a new doc. 

@@ -6,15 +6,15 @@ import './TemplateMenu.scss';
 import { DocumentView } from "./nodes/DocumentView";
 import { Template } from "./Templates";
 import React = require("react");
-import { Doc, DocListCast } from "../../new_fields/Doc";
+import { Doc, DocListCast } from "../../fields/Doc";
 import { Docs, } from "../documents/Documents";
-import { StrCast, Cast } from "../../new_fields/Types";
+import { StrCast, Cast } from "../../fields/Types";
 import { CollectionTreeView } from "./collections/CollectionTreeView";
 import { returnTrue, emptyFunction, returnFalse, returnOne, emptyPath, returnZero } from "../../Utils";
 import { Transform } from "../util/Transform";
-import { ScriptField, ComputedField } from "../../new_fields/ScriptField";
+import { ScriptField, ComputedField } from "../../fields/ScriptField";
 import { Scripting } from "../util/Scripting";
-import { List } from "../../new_fields/List";
+import { List } from "../../fields/List";
 
 @observer
 class TemplateToggle extends React.Component<{ template: Template, checked: boolean, toggle: (event: React.ChangeEvent<HTMLInputElement>, template: Template) => void }> {
@@ -113,8 +113,8 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
     render() {
         const firstDoc = this.props.docViews[0].props.Document;
         const templateName = StrCast(firstDoc.layoutKey, "layout").replace("layout_", "");
-        const noteTypes = DocListCast(Cast(Doc.UserDoc()["template-notes"], Doc, null));
-        const addedTypes = DocListCast(Cast(Doc.UserDoc().templateButtons, Doc, null)?.data);
+        const noteTypes = DocListCast(Cast(Doc.UserDoc()["template-notes"], Doc, null)?.data);
+        const addedTypes = DocListCast(Cast(Doc.UserDoc()["template-buttons"], Doc, null)?.data);
         const layout = Doc.Layout(firstDoc);
         const templateMenu: Array<JSX.Element> = [];
         this.props.templates.forEach((checked, template) =>
@@ -158,9 +158,9 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
                 annotationsKey={""}
                 dontRegisterView={true}
                 fieldKey={"data"}
-                moveDocument={(doc: Doc) => false}
-                removeDocument={(doc: Doc) => false}
-                addDocument={(doc: Doc) => false} />
+                moveDocument={returnFalse}
+                removeDocument={returnFalse}
+                addDocument={returnFalse} />
         </ul>;
     }
 }

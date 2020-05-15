@@ -1,7 +1,7 @@
 import { Deserializable } from "../client/util/SerializationHelper";
 import { FieldWaiting } from "./Doc";
 import { primitive, serializable } from "serializr";
-import { observable, action } from "mobx";
+import { observable, action, runInAction } from "mobx";
 import { DocServer } from "../client/DocServer";
 import { RefField } from "./RefField";
 import { ObjectField } from "./ObjectField";
@@ -61,6 +61,11 @@ export class ProxyField<T extends RefField> extends ObjectField {
             return undefined;
         }
         if (!this.promise) {
+            const cached = DocServer.GetCachedRefField(this.fieldId);
+            if (cached !== undefined) {
+                runInAction(() => this.cache = cached as any);
+                return cached as any;
+            }
             this.promise = DocServer.GetRefField(this.fieldId).then(action((field: any) => {
                 this.promise = undefined;
                 this.cache = field;
@@ -69,6 +74,17 @@ export class ProxyField<T extends RefField> extends ObjectField {
             }));
         }
         return this.promise as any;
+    }
+    promisedValue(): string { return !this.cache && !this.failed && !this.promise ? this.fieldId : ""; }
+    setPromise(promise: any) {
+        this.promise = promise;
+    }
+    @action
+    setValue(field: any) {
+        this.promise = undefined;
+        this.cache = field;
+        if (field === undefined) this.failed = true;
+        return field;
     }
 }
 

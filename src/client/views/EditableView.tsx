@@ -2,8 +2,8 @@ import React = require('react');
 import { action, observable } from 'mobx';
 import { observer } from 'mobx-react';
 import * as Autosuggest from 'react-autosuggest';
-import { ObjectField } from '../../new_fields/ObjectField';
-import { SchemaHeaderField } from '../../new_fields/SchemaHeaderField';
+import { ObjectField } from '../../fields/ObjectField';
+import { SchemaHeaderField } from '../../fields/SchemaHeaderField';
 import "./EditableView.scss";
 import { DragManager } from '../util/DragManager';
 

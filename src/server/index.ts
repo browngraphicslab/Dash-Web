@@ -11,9 +11,9 @@ import * as qs from 'query-string';
 import UtilManager from './ApiManagers/UtilManager';
 import { SearchManager } from './ApiManagers/SearchManager';
 import UserManager from './ApiManagers/UserManager';
-import { WebSocket } from './Websocket/Websocket';
+import { WebSocket } from './websocket';
 import DownloadManager from './ApiManagers/DownloadManager';
-import { GoogleCredentialsLoader } from './credentials/CredentialsLoader';
+import { GoogleCredentialsLoader } from './apis/google/CredentialsLoader';
 import DeleteManager from "./ApiManagers/DeleteManager";
 import PDFManager from "./ApiManagers/PDFManager";
 import UploadManager from "./ApiManagers/UploadManager";
@@ -25,7 +25,6 @@ import { yellow } from "colors";
 import { DashSessionAgent } from "./DashSession/DashSessionAgent";
 import SessionManager from "./ApiManagers/SessionManager";
 import { AppliedSessionAgent } from "./DashSession/Session/agents/applied_session_agent";
-import { Utils } from "../Utils";
 
 export const onWindows = process.platform === "win32";
 export let sessionAgent: AppliedSessionAgent;
@@ -125,7 +124,7 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
 
     // initialize the web socket (bidirectional communication: if a user changes
     // a field on one client, that change must be broadcast to all other clients)
-    WebSocket.start(isRelease);
+    WebSocket.initialize(isRelease);
 }
 
 

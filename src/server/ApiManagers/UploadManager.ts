@@ -171,7 +171,7 @@ export default class UploadManager extends ApiManager {
                                     await Promise.all(docs.map((doc: any) => new Promise(res => Database.Instance.replace(doc.id, doc, (err, r) => {
                                         err && console.log(err);
                                         res();
-                                    }, true, "newDocuments"))));
+                                    }, true))));
                                 } catch (e) { console.log(e); }
                                 unlink(path_2, () => { });
                             }

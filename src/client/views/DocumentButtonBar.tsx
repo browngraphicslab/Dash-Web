@@ -1,11 +1,11 @@
 import { IconProp, library } from '@fortawesome/fontawesome-svg-core';
-import { faArrowAltCircleDown, faPhotoVideo, faArrowAltCircleUp, faCheckCircle, faCloudUploadAlt, faLink, faShare, faStopCircle, faSyncAlt, faTag, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faArrowAltCircleDown, faPhotoVideo, faArrowAltCircleUp, faArrowAltCircleRight, faCheckCircle, faCloudUploadAlt, faLink, faShare, faStopCircle, faSyncAlt, faTag, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast } from "../../new_fields/Doc";
-import { RichTextField } from '../../new_fields/RichTextField';
-import { NumCast, StrCast } from "../../new_fields/Types";
+import { Doc, DocListCast } from "../../fields/Doc";
+import { RichTextField } from '../../fields/RichTextField';
+import { NumCast, StrCast, Cast } from "../../fields/Types";
 import { emptyFunction, setupMoveUpEvents } from "../../Utils";
 import { Pulls, Pushes } from '../apis/google_docs/GoogleApiClientUtils';
 import { UndoManager } from "../util/UndoManager";
@@ -22,6 +22,7 @@ import React = require("react");
 import { DragManager } from '../util/DragManager';
 import { MetadataEntryMenu } from './MetadataEntryMenu';
 import GoogleAuthenticationManager from '../apis/GoogleAuthenticationManager';
+import { Docs } from '../documents/Documents';
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -31,6 +32,7 @@ library.add(faTag);
 library.add(faTimes);
 library.add(faArrowAltCircleDown);
 library.add(faArrowAltCircleUp);
+library.add(faArrowAltCircleRight);
 library.add(faStopCircle);
 library.add(faCheckCircle);
 library.add(faCloudUploadAlt);
@@ -41,12 +43,16 @@ library.add(faPhotoVideo);
 const cloud: IconProp = "cloud-upload-alt";
 const fetch: IconProp = "sync-alt";
 
+enum UtilityButtonState {
+    Default,
+    OpenRight,
+    OpenExternally
+}
+
 @observer
-export class DocumentButtonBar extends React.Component<{ views: (DocumentView | undefined)[], stack?: any }, {}> {
+export class DocumentButtonBar extends React.Component<{ views: () => (DocumentView | undefined)[], stack?: any }, {}> {
     private _linkButton = React.createRef<HTMLDivElement>();
     private _dragRef = React.createRef<HTMLDivElement>();
-    private _downX = 0;
-    private _downY = 0;
     private _pullAnimating = false;
     private _pushAnimating = false;
     private _pullColorAnimating = false;
@@ -57,13 +63,13 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
     @observable public isAnimatingFetch = false;
     @observable public isAnimatingPulse = false;
 
-    @observable private openHover = false;
+    @observable private openHover: UtilityButtonState = UtilityButtonState.Default;
 
     @observable public static Instance: DocumentButtonBar;
     public static hasPushedHack = false;
     public static hasPulledHack = false;
 
-    constructor(props: { views: (DocumentView | undefined)[] }) {
+    constructor(props: { views: () => (DocumentView | undefined)[] }) {
         super(props);
         runInAction(() => DocumentButtonBar.Instance = this);
     }
@@ -105,7 +111,7 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
         this._pullColorAnimating = false;
     });
 
-    get view0() { return this.props.views?.[0]; }
+    get view0() { return this.props.views()?.[0]; }
 
     @action
     onLinkButtonMoved = (e: PointerEvent) => {
@@ -165,14 +171,37 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
         const dataDoc = targetDoc && Doc.GetProto(targetDoc);
         const animation = this.isAnimatingFetch ? "spin 0.5s linear infinite" : "none";
         return !targetDoc || !dataDoc || !dataDoc[GoogleRef] ? (null) : <div className="documentButtonBar-linker"
-            title={`${!dataDoc.unchanged ? "Pull from" : "Fetch"} Google Docs`}
+            title={(() => {
+                switch (this.openHover) {
+                    default:
+                    case UtilityButtonState.Default: return `${!dataDoc.unchanged ? "Pull from" : "Fetch"} Google Docs`;
+                    case UtilityButtonState.OpenRight: return "Open in Right Split";
+                    case UtilityButtonState.OpenExternally: return "Open in new Browser Tab";
+                }
+            })()}
             style={{ backgroundColor: this.pullColor }}
-            onPointerEnter={e => e.altKey && runInAction(() => this.openHover = true)}
-            onPointerLeave={action(() => this.openHover = false)}
-            onClick={e => {
+            onPointerEnter={action(e => {
                 if (e.altKey) {
+                    this.openHover = UtilityButtonState.OpenExternally;
+                } else if (e.shiftKey) {
+                    this.openHover = UtilityButtonState.OpenRight;
+                }
+            })}
+            onPointerLeave={action(() => this.openHover = UtilityButtonState.Default)}
+            onClick={async e => {
+                const googleDocUrl = `https://docs.google.com/document/d/${dataDoc[GoogleRef]}/edit`;
+                if (e.shiftKey) {
                     e.preventDefault();
-                    window.open(`https://docs.google.com/document/d/${dataDoc[GoogleRef]}/edit`);
+                    let googleDoc = await Cast(dataDoc.googleDoc, Doc);
+                    if (!googleDoc) {
+                        const options = { _width: 600, _nativeWidth: 960, _nativeHeight: 800, isAnnotating: false, UseCors: false };
+                        googleDoc = Docs.Create.WebDocument(googleDocUrl, options);
+                        dataDoc.googleDoc = googleDoc;
+                    }
+                    CollectionDockingView.AddRightSplit(googleDoc);
+                } else if (e.altKey) {
+                    e.preventDefault();
+                    window.open(googleDocUrl);
                 } else {
                     this.clearPullColor();
                     DocumentButtonBar.hasPulledHack = false;
@@ -182,7 +211,14 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
             }}>
             <FontAwesomeIcon className="documentdecorations-icon" size="sm"
                 style={{ WebkitAnimation: animation, MozAnimation: animation }}
-                icon={this.openHover ? "share" : dataDoc.unchanged === false ? (this.pullIcon as any) : fetch}
+                icon={(() => {
+                    switch (this.openHover) {
+                        default:
+                        case UtilityButtonState.Default: return dataDoc.unchanged === false ? (this.pullIcon as any) : fetch;
+                        case UtilityButtonState.OpenRight: return "arrow-alt-circle-right";
+                        case UtilityButtonState.OpenExternally: return "share";
+                    }
+                })()}
             />
         </div>;
     }
@@ -193,16 +229,7 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
         return !targetDoc ? (null) : <div className="documentButtonBar-linker"
             title={Doc.isDocPinned(targetDoc) ? "Unpin from presentation" : "Pin to presentation"}
             style={{ backgroundColor: isPinned ? "black" : "white", color: isPinned ? "white" : "black" }}
-
-            onClick={e => {
-                if (isPinned) {
-                    DockedFrameRenderer.UnpinDoc(targetDoc);
-                }
-                else {
-                    targetDoc.sourceContext = this.view0?.props.ContainingCollectionDoc; // bcz: !! Shouldn't need this ... use search to lookup contexts dynamically
-                    DockedFrameRenderer.PinDoc(targetDoc);
-                }
-            }}>
+            onClick={e => DockedFrameRenderer.PinDoc(targetDoc, isPinned)}>
             <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="map-pin"
             />
         </div>;
@@ -227,7 +254,7 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
         const view0 = this.view0;
         return !view0 ? (null) : <div title="Show metadata panel" className="documentButtonBar-linkFlyout">
             <Flyout anchorPoint={anchorPoints.LEFT_TOP}
-                content={<MetadataEntryMenu docs={() => this.props.views.filter(dv => dv).map(dv => dv!.props.Document)} suggestWithFunction />  /* tfs: @bcz This might need to be the data document? */}>
+                content={<MetadataEntryMenu docs={() => this.props.views().filter(dv => dv).map(dv => dv!.props.Document)} suggestWithFunction />  /* tfs: @bcz This might need to be the data document? */}>
                 <div className={"documentButtonBar-linkButton-" + "empty"} onPointerDown={e => e.stopPropagation()} >
                     {<FontAwesomeIcon className="documentdecorations-icon" icon="tag" size="sm" />}
                 </div>
@@ -251,7 +278,7 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
     }
     onAliasButtonMoved = () => {
         if (this._dragRef.current) {
-            const dragDocView = this.props.views[0]!;
+            const dragDocView = this.view0!;
             const dragData = new DragManager.DocumentDragData([dragDocView.props.Document]);
             const [left, top] = dragDocView.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
             dragData.embedDoc = true;
@@ -270,16 +297,18 @@ export class DocumentButtonBar extends React.Component<{ views: (DocumentView | 
     get templateButton() {
         const view0 = this.view0;
         const templates: Map<Template, boolean> = new Map();
+        const views = this.props.views();
         Array.from(Object.values(Templates.TemplateList)).map(template =>
-            templates.set(template, this.props.views.reduce((checked, doc) => checked || doc?.props.Document["_show" + template.Name] ? true : false, false as boolean)));
-        return !view0 ? (null) : <div title="Tap: Customize layout.  Drag: Create alias" className="documentButtonBar-linkFlyout" ref={this._dragRef}>
-            <Flyout anchorPoint={anchorPoints.LEFT_TOP} onOpen={action(() => this._aliasDown = true)} onClose={action(() => this._aliasDown = false)}
-                content={!this._aliasDown ? (null) : <TemplateMenu docViews={this.props.views.filter(v => v).map(v => v as DocumentView)} templates={templates} />}>
-                <div className={"documentButtonBar-linkButton-empty"} ref={this._dragRef} onPointerDown={this.onAliasButtonDown} >
-                    {<FontAwesomeIcon className="documentdecorations-icon" icon="edit" size="sm" />}
-                </div>
-            </Flyout>
-        </div>;
+            templates.set(template, views.reduce((checked, doc) => checked || doc?.props.Document["_show" + template.Name] ? true : false, false as boolean)));
+        return !view0 ? (null) :
+            <div title="Tap: Customize layout.  Drag: Create alias" className="documentButtonBar-linkFlyout" ref={this._dragRef}>
+                <Flyout anchorPoint={anchorPoints.LEFT_TOP} onOpen={action(() => this._aliasDown = true)} onClose={action(() => this._aliasDown = false)}
+                    content={!this._aliasDown ? (null) : <TemplateMenu docViews={views.filter(v => v).map(v => v as DocumentView)} templates={templates} />}>
+                    <div className={"documentButtonBar-linkButton-empty"} ref={this._dragRef} onPointerDown={this.onAliasButtonDown} >
+                        {<FontAwesomeIcon className="documentdecorations-icon" icon="edit" size="sm" />}
+                    </div>
+                </Flyout>
+            </div>;
     }
 
     render() {

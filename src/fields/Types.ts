@@ -88,8 +88,8 @@ export function DateCast(field: FieldResult) {
     return Cast(field, DateField, null);
 }
 
-export function ScriptCast(field: FieldResult) {
-    return Cast(field, ScriptField, null);
+export function ScriptCast(field: FieldResult, defaultVal: ScriptField | null = null) {
+    return Cast(field, ScriptField, defaultVal);
 }
 
 type WithoutList<T extends Field> = T extends List<infer R> ? (R extends RefField ? (R | Promise<R>)[] : R[]) : T;

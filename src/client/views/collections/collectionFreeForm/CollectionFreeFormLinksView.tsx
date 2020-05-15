@@ -1,15 +1,15 @@
 import { computed } from "mobx";
 import { observer } from "mobx-react";
-import { Doc } from "../../../../new_fields/Doc";
-import { Id } from "../../../../new_fields/FieldSymbols";
+import { Doc } from "../../../../fields/Doc";
+import { Id } from "../../../../fields/FieldSymbols";
 import { DocumentManager } from "../../../util/DocumentManager";
 import { DocumentView } from "../../nodes/DocumentView";
 import "./CollectionFreeFormLinksView.scss";
 import { CollectionFreeFormLinkView } from "./CollectionFreeFormLinkView";
 import React = require("react");
 import { Utils, emptyFunction } from "../../../../Utils";
-import { SelectionManager } from "../../../util/SelectionManager";
 import { DocumentType } from "../../../documents/DocumentTypes";
+import { SnappingManager } from "../../../util/SnappingManager";
 
 @observer
 export class CollectionFreeFormLinksView extends React.Component {
@@ -30,13 +30,13 @@ export class CollectionFreeFormLinksView extends React.Component {
             return drawnPairs;
         }, [] as { a: DocumentView, b: DocumentView, l: Doc[] }[]);
         return connections.filter(c =>
-            c.a.props.layoutKey && c.b.props.layoutKey && c.a.props.Document.type === DocumentType.LINK &&
-            c.a.props.bringToFront !== emptyFunction && c.b.props.bringToFront !== emptyFunction // bcz: this prevents links to be drawn to anchors in CollectionTree views -- this is a hack that should be fixed
+            c.a.props.Document.type === DocumentType.LINK &&
+            c.a.props.pinToPres !== emptyFunction && c.b.props.pinToPres !== emptyFunction // bcz: this prevents links to be drawn to anchors in CollectionTree views -- this is a hack that should be fixed
         ).map(c => <CollectionFreeFormLinkView key={Utils.GenerateGuid()} A={c.a} B={c.b} LinkDocs={c.l} />);
     }
 
     render() {
-        return SelectionManager.GetIsDragging() ? (null) : <div className="collectionfreeformlinksview-container">
+        return SnappingManager.GetIsDragging() ? (null) : <div className="collectionfreeformlinksview-container">
             <svg className="collectionfreeformlinksview-svgCanvas">
                 {this.uniqueConnections}
             </svg>

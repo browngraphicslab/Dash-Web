@@ -76,7 +76,7 @@ async function GarbageCollect(full: boolean = true) {
         if (!fetchIds.length) {
             continue;
         }
-        const docs = await new Promise<{ [key: string]: any }[]>(res => Database.Instance.getDocuments(fetchIds, res, "newDocuments"));
+        const docs = await new Promise<{ [key: string]: any }[]>(res => Database.Instance.getDocuments(fetchIds, res));
         for (const doc of docs) {
             const id = doc.id;
             if (doc === undefined) {
@@ -116,10 +116,10 @@ async function GarbageCollect(full: boolean = true) {
             const count = Math.min(toDelete.length, 5000);
             const toDeleteDocs = toDelete.slice(i, i + count);
             i += count;
-            const result = await Database.Instance.delete({ _id: { $in: toDeleteDocs } }, "newDocuments");
+            const result = await Database.Instance.delete({ _id: { $in: toDeleteDocs } });
             deleted += result.deletedCount || 0;
         }
-        // const result = await Database.Instance.delete({ _id: { $in: toDelete } }, "newDocuments");
+        // const result = await Database.Instance.delete({ _id: { $in: toDelete } });
         console.log(`${deleted} documents deleted`);
 
         await Search.deleteDocuments(toDelete);

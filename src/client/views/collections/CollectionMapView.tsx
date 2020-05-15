@@ -1,10 +1,10 @@
 import { GoogleApiWrapper, Map as GeoMap, IMapProps, Marker } from "google-maps-react";
 import { observer } from "mobx-react";
-import { Doc, Opt, DocListCast, FieldResult, Field } from "../../../new_fields/Doc";
-import { documentSchema } from "../../../new_fields/documentSchemas";
-import { Id } from "../../../new_fields/FieldSymbols";
-import { makeInterface } from "../../../new_fields/Schema";
-import { Cast, NumCast, ScriptCast, StrCast } from "../../../new_fields/Types";
+import { Doc, Opt, DocListCast, FieldResult, Field } from "../../../fields/Doc";
+import { documentSchema } from "../../../fields/documentSchemas";
+import { Id } from "../../../fields/FieldSymbols";
+import { makeInterface } from "../../../fields/Schema";
+import { Cast, NumCast, ScriptCast, StrCast } from "../../../fields/Types";
 import "./CollectionMapView.scss";
 import { CollectionSubView } from "./CollectionSubView";
 import React = require("react");
@@ -47,7 +47,7 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<IMapProps> 
     private _cancelAddrReq = new Map<string, boolean>();
     private _cancelLocReq = new Map<string, boolean>();
     private _initialLookupPending = new Map<string, boolean>();
-    private responders: { location: Lambda, address: Lambda }[] = [];
+    private responders: { locationDisposer: Lambda, addressDisposer: Lambda }[] = [];
 
     /**
      * Note that all the uses of runInAction below are not included
@@ -176,13 +176,16 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<IMapProps> 
     }
 
     @computed get reactiveContents() {
-        this.responders.forEach(({ location, address }) => { location(); address(); });
+        this.responders.forEach(({ locationDisposer, addressDisposer }) => {
+            locationDisposer();
+            addressDisposer();
+        });
         this.responders = [];
         return this.childLayoutPairs.map(({ layout }) => {
             const fieldKey = Doc.LayoutFieldKey(layout);
             const id = layout[Id];
             this.responders.push({
-                location: computed(() => ({ lat: layout[`${fieldKey}-lat`], lng: layout[`${fieldKey}-lng`] }))
+                locationDisposer: computed(() => ({ lat: layout[`${fieldKey}-lat`], lng: layout[`${fieldKey}-lng`] }))
                     .observe(({ oldValue, newValue }) => {
                         if (this._cancelLocReq.get(id)) {
                             this._cancelLocReq.set(id, false);
@@ -190,7 +193,7 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<IMapProps> 
                             this.respondToLocationChange(layout, fieldKey, newValue, oldValue);
                         }
                     }),
-                address: computed(() => Cast(layout[`${fieldKey}-address`], "string", null))
+                addressDisposer: computed(() => Cast(layout[`${fieldKey}-address`], "string", null))
                     .observe(({ oldValue, newValue }) => {
                         if (this._cancelAddrReq.get(id)) {
                             this._cancelAddrReq.set(id, false);
@@ -206,7 +209,8 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<IMapProps> 
     render() {
         const { childLayoutPairs } = this;
         const { Document, fieldKey, active, google } = this.props;
-        let center = this.getLocation(Document, `${fieldKey}-mapCenter`, false);
+        const mapLoc = this.getLocation(this.rootDoc, `${fieldKey}-mapCenter`, false);
+        let center = mapLoc;
         if (center === undefined) {
             const childLocations = childLayoutPairs.map(({ layout }) => this.getLocation(layout, Doc.LayoutFieldKey(layout), false));
             center = childLocations.find(location => location) || defaultLocation;
@@ -246,6 +250,7 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<IMapProps> 
                     }}
                 >
                     {this.reactiveContents}
+                    {mapLoc ? this.renderMarker(this.rootDoc) : undefined}
                 </GeoMap>
             </div>
         </div>;

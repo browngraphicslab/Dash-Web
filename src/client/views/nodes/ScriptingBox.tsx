@@ -1,10 +1,10 @@
 import { action, observable, computed } from "mobx";
 import { observer } from "mobx-react";
 import * as React from "react";
-import { documentSchema } from "../../../new_fields/documentSchemas";
-import { createSchema, makeInterface, listSpec } from "../../../new_fields/Schema";
-import { ScriptField } from "../../../new_fields/ScriptField";
-import { StrCast, ScriptCast, Cast } from "../../../new_fields/Types";
+import { documentSchema } from "../../../fields/documentSchemas";
+import { createSchema, makeInterface, listSpec } from "../../../fields/Schema";
+import { ScriptField } from "../../../fields/ScriptField";
+import { StrCast, ScriptCast, Cast } from "../../../fields/Types";
 import { InteractionUtils } from "../../util/InteractionUtils";
 import { CompileScript, isCompileError, ScriptParam } from "../../util/Scripting";
 import { ViewBoxAnnotatableComponent } from "../DocComponent";
@@ -13,8 +13,12 @@ import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import "./ScriptingBox.scss";
 import { OverlayView } from "../OverlayView";
 import { DocumentIconContainer } from "./DocumentIcon";
+<<<<<<< HEAD
 import { List } from "../../../new_fields/List";
 import { DragManager } from "../../util/DragManager";
+=======
+import { List } from "../../../fields/List";
+>>>>>>> 98c7540fff67c232c1b04f2130ee624f9a70afbd
 
 const ScriptingSchema = createSchema({});
 type ScriptingDocument = makeInterface<[typeof ScriptingSchema, typeof documentSchema]>;

@@ -8,14 +8,14 @@ import { EditorState, NodeSelection, Plugin, TextSelection } from "prosemirror-s
 import { StepMap } from "prosemirror-transform";
 import { EditorView } from "prosemirror-view";
 import * as ReactDOM from 'react-dom';
-import { Doc, DocListCast, Field, HeightSym, WidthSym } from "../../../../new_fields/Doc";
-import { Id } from "../../../../new_fields/FieldSymbols";
-import { List } from "../../../../new_fields/List";
-import { ObjectField } from "../../../../new_fields/ObjectField";
-import { listSpec } from "../../../../new_fields/Schema";
-import { SchemaHeaderField } from "../../../../new_fields/SchemaHeaderField";
-import { ComputedField } from "../../../../new_fields/ScriptField";
-import { BoolCast, Cast, NumCast, StrCast } from "../../../../new_fields/Types";
+import { Doc, DocListCast, Field, HeightSym, WidthSym } from "../../../../fields/Doc";
+import { Id } from "../../../../fields/FieldSymbols";
+import { List } from "../../../../fields/List";
+import { ObjectField } from "../../../../fields/ObjectField";
+import { listSpec } from "../../../../fields/Schema";
+import { SchemaHeaderField } from "../../../../fields/SchemaHeaderField";
+import { ComputedField } from "../../../../fields/ScriptField";
+import { BoolCast, Cast, NumCast, StrCast } from "../../../../fields/Types";
 import { emptyFunction, returnEmptyString, returnFalse, returnOne, Utils, returnZero } from "../../../../Utils";
 import { DocServer } from "../../../DocServer";
 
