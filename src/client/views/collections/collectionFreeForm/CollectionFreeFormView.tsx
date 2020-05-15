@@ -128,7 +128,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         if (timecode !== undefined) {
             ((newBox instanceof Doc) ? [newBox] : newBox).map(doc => {
                 doc["x-indexed"] = new List<number>(numberRange(timecode + 1).map(i => NumCast(doc.x)));
-                doc["x-indexed"] = new List<number>(numberRange(timecode + 1).map(i => NumCast(doc.y)));
+                doc["y-indexed"] = new List<number>(numberRange(timecode + 1).map(i => NumCast(doc.y)));
                 doc.timecode = ComputedField.MakeFunction("collection.timecode", {}, { collection: this.props.Document });
                 doc.x = ComputedField.MakeInterpolated("x", "timecode");
                 doc.y = ComputedField.MakeInterpolated("y", "timecode");
@@ -1160,8 +1160,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         this.childDocs.map(doc => {
             const xindexed = Cast(doc['x-indexed'], listSpec("number"), null);
             const yindexed = Cast(doc['y-indexed'], listSpec("number"), null);
-            xindexed.length <= timecode && xindexed.push(NumCast(doc.x));
-            yindexed.length <= timecode && yindexed.push(NumCast(doc.y));
+            xindexed.length <= timecode + 1 && xindexed.push(NumCast(doc.x));
+            yindexed.length <= timecode + 1 && yindexed.push(NumCast(doc.y));
         });
         this.childDocs.map(doc => doc.transition = "transform 1s");
         this.props.Document.timecode = Math.max(0, timecode + 1);
