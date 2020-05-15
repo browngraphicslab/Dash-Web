@@ -206,6 +206,8 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             }
         }
 
+        addDocument = (doc: Doc | Doc[]) => this.props.addDocument(doc);
+
         @undoBatch
         @action
         protected onInternalDrop(e: Event, de: DragManager.DropEvent): boolean {
@@ -214,21 +216,21 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             if (docDragData) {
                 let added = false;
                 if (docDragData.dropAction || docDragData.userDropAction) {
-                    added = this.props.addDocument(docDragData.droppedDocuments);
+                    added = this.addDocument(docDragData.droppedDocuments);
                 } else if (docDragData.moveDocument) {
                     const movedDocs = docDragData.droppedDocuments.filter((d, i) => docDragData.draggedDocuments[i] === d);
                     const addedDocs = docDragData.droppedDocuments.filter((d, i) => docDragData.draggedDocuments[i] !== d);
-                    const res = addedDocs.length ? this.props.addDocument(addedDocs) : true;
-                    added = movedDocs.length ? docDragData.moveDocument(movedDocs, this.props.Document, this.props.addDocument) : res;
+                    const res = addedDocs.length ? this.addDocument(addedDocs) : true;
+                    added = movedDocs.length ? docDragData.moveDocument(movedDocs, this.props.Document, this.addDocument) : res;
                 } else {
-                    added = this.props.addDocument(docDragData.droppedDocuments);
+                    added = this.addDocument(docDragData.droppedDocuments);
                 }
                 e.stopPropagation();
                 return added;
             }
             else if (de.complete.annoDragData) {
                 e.stopPropagation();
-                return this.props.addDocument(de.complete.annoDragData.dropDocument);
+                return this.addDocument(de.complete.annoDragData.dropDocument);
             }
             return false;
         }
@@ -265,7 +267,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
 
             e.stopPropagation();
             e.preventDefault();
-            const { addDocument } = this.props;
+            const { addDocument } = this;
             if (!addDocument) {
                 alert("this.props.addDocument does not exist. Aborting drop operation.");
                 return;
