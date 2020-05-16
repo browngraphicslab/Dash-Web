@@ -22,6 +22,7 @@ import { publicDirectory } from '.';
 import { logPort, } from './ActionUtilities';
 import { blue, yellow } from 'colors';
 import * as cors from "cors";
+var https = require('https');
 
 /* RouteSetter is a wrapper around the server that prevents the server
    from being exposed. */
@@ -49,27 +50,25 @@ export default async function InitializeServer(routeSetter: RouteSetter) {
     registerRelativePath(app);
 
     const serverPort = isRelease ? Number(process.env.serverPort) : 1050;
-    const server = app.listen(serverPort, () => {
-        logPort("server", serverPort);
-        console.log();
-    });
 
-    // var express = require('express')
-    // var fs = require('fs')
-    // var https = require('https')
-    // var app = express()
+    let server: any;
+    if (isRelease) {
+        server = https.createServer({
+            key: fs.readFileSync(`./${process.env.serverName}.key`),
+            cert: fs.readFileSync(`./${process.env.serverName}.cert`)
+        }, app);
+        server.listen(serverPort, function () {
+            logPort("server", serverPort);
+            console.log();
+            // console.log('Example app listening on port 3000! Go to https://localhost:3000/')
+        });
+    } else {
+        server = app.listen(serverPort, () => {
+            logPort("server", serverPort);
+            console.log();
+        });
+    }
 
-    // app.get('/', function (req, res) {
-    //   res.send('hello world')
-    // })
-
-    // https.createServer({
-    //   key: fs.readFileSync('server.key'),
-    //   cert: fs.readFileSync('server.cert')
-    // }, app)
-    // .listen(3000, function () {
-    //   console.log('Example app listening on port 3000! Go to https://localhost:3000/')
-    // })
     disconnect = async () => new Promise<Error>(resolve => server.close(resolve));
 
     return isRelease;

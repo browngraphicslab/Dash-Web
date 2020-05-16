@@ -256,8 +256,9 @@ export class MainView extends React.Component {
         const mainDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600, path: [Doc.UserDoc().myCatalog as Doc] }], { title: `Workspace ${workspaceCount}` }, id, "row");
 
         const toggleTheme = ScriptField.MakeScript(`self.darkScheme = !self.darkScheme`);
-        mainDoc.contextMenuScripts = new List<ScriptField>([toggleTheme!]);
-        mainDoc.contextMenuLabels = new List<string>(["Toggle Theme Colors"]);
+        const toggleComic = ScriptField.MakeScript(`toggleComicMode()`);
+        mainDoc.contextMenuScripts = new List<ScriptField>([toggleTheme!, toggleComic!]);
+        mainDoc.contextMenuLabels = new List<string>(["Toggle Theme Colors", "Toggle Comic Mode"]);
 
         Doc.AddDocToList(workspaces, "data", mainDoc);
         // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
@@ -629,3 +630,4 @@ export class MainView extends React.Component {
     }
 }
 Scripting.addGlobal(function freezeSidebar() { MainView.expandFlyout(); });
+Scripting.addGlobal(function toggleComicMode() { Doc.UserDoc().fontFamily = "Comic Sans MS"; Doc.UserDoc().renderStyle = Doc.UserDoc().renderStyle === "comic" ? undefined : "comic" });
