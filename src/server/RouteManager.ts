@@ -1,5 +1,5 @@
 import RouteSubscriber from "./RouteSubscriber";
-import { DashUserModel } from "./authentication/models/user_model";
+import { DashUserModel } from "./authentication/DashUserModel";
 import { Request, Response, Express } from 'express';
 import { cyan, red, green } from 'colors';
 

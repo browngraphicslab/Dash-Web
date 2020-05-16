@@ -4,7 +4,7 @@ import * as path from 'path';
 import * as sharp from 'sharp';
 import request = require('request-promise');
 import { ExifImage } from 'exif';
-import { Opt } from '../new_fields/Doc';
+import { Opt } from '../fields/Doc';
 import { AcceptibleMedia, Upload } from './SharedMediaTypes';
 import { filesDirectory, publicDirectory } from '.';
 import { File } from 'formidable';
@@ -325,12 +325,7 @@ export namespace DashUploadUtils {
             const outputPath = path.resolve(outputDirectory, writtenFiles[suffix] = InjectSize(outputFileName, suffix));
             await new Promise<void>(async (resolve, reject) => {
                 const source = streamProvider();
-                let readStream: Stream;
-                if (source instanceof Promise) {
-                    readStream = await source;
-                } else {
-                    readStream = source;
-                }
+                let readStream: Stream = source instanceof Promise ? await source : source;
                 if (resizer) {
                     readStream = readStream.pipe(resizer.withMetadata());
                 }

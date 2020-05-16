@@ -1,16 +1,16 @@
 import { AssertionError } from "assert";
 import { EditorState } from "prosemirror-state";
-import { Doc, DocListCastAsync, Opt } from "../../../new_fields/Doc";
-import { Id } from "../../../new_fields/FieldSymbols";
-import { RichTextField } from "../../../new_fields/RichTextField";
-import { RichTextUtils } from "../../../new_fields/RichTextUtils";
-import { Cast, StrCast } from "../../../new_fields/Types";
-import { ImageField } from "../../../new_fields/URLField";
+import { Doc, DocListCastAsync, Opt } from "../../../fields/Doc";
+import { Id } from "../../../fields/FieldSymbols";
+import { RichTextField } from "../../../fields/RichTextField";
+import { RichTextUtils } from "../../../fields/RichTextUtils";
+import { Cast, StrCast } from "../../../fields/Types";
+import { ImageField } from "../../../fields/URLField";
 import { MediaItem, NewMediaItemResult } from "../../../server/apis/google/SharedTypes";
 import { Utils } from "../../../Utils";
 import { Docs, DocumentOptions } from "../../documents/Documents";
 import { Networking } from "../../Network";
-import { FormattedTextBox } from "../../views/nodes/FormattedTextBox";
+import { FormattedTextBox } from "../../views/nodes/formattedText/FormattedTextBox";
 import GoogleAuthenticationManager from "../GoogleAuthenticationManager";
 import Photos = require('googlephotos');
 
@@ -76,7 +76,6 @@ export namespace GooglePhotos {
         }
 
         export const CollectionToAlbum = async (options: AlbumCreationOptions): Promise<Opt<AlbumCreationResult>> => {
-            await GoogleAuthenticationManager.Instance.fetchOrGenerateAccessToken();
             const { collection, title, descriptionKey, tag } = options;
             const dataDocument = Doc.GetProto(collection);
             const images = ((await DocListCastAsync(dataDocument.data)) || []).filter(doc => Cast(doc.data, ImageField));
@@ -154,27 +153,22 @@ export namespace GooglePhotos {
             }
             const tagMapping = new Map<string, string>();
             const images = (await DocListCastAsync(collection.data))!.map(Doc.GetProto);
-            images && images.forEach(image => tagMapping.set(image[Id], ContentCategories.NONE));
-            const values = Object.values(ContentCategories);
+            images?.forEach(image => tagMapping.set(image[Id], ContentCategories.NONE));
+            const values = Object.values(ContentCategories).filter(value => value !== ContentCategories.NONE);
             for (const value of values) {
-                if (value !== ContentCategories.NONE) {
-                    const results = await ContentSearch({ included: [value] });
-                    if (results.mediaItems) {
-                        const ids = results.mediaItems.map(item => item.id);
-                        for (const id of ids) {
-                            const image = await Cast(idMapping[id], Doc);
-                            if (image) {
-                                const key = image[Id];
-                                const tags = tagMapping.get(key)!;
-                                if (!tags.includes(value)) {
-                                    tagMapping.set(key, tags + delimiter + value);
-                                }
-                            }
-                        }
+                const searched = (await ContentSearch({ included: [value] }))?.mediaItems?.map(({ id }) => id);
+                console.log("Searching " + value);
+                console.log(searched);
+                searched?.forEach(async id => {
+                    const image = await Cast(idMapping[id], Doc);
+                    if (image) {
+                        const key = image[Id];
+                        const tags = tagMapping.get(key);
+                        !tags?.includes(value) && tagMapping.set(key, tags + delimiter + value);
                     }
-                }
+                });
             }
-            images && images.forEach(image => {
+            images?.forEach(image => {
                 const concatenated = tagMapping.get(image[Id])!;
                 const tags = concatenated.split(delimiter);
                 if (tags.length > 1) {
@@ -184,7 +178,6 @@ export namespace GooglePhotos {
                     image.googlePhotosTags = ContentCategories.NONE;
                 }
             });
-
         };
 
         interface DateRange {

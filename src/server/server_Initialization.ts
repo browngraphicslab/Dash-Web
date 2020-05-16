@@ -7,7 +7,7 @@ import * as cookieParser from 'cookie-parser';
 import expressFlash = require('express-flash');
 import flash = require('connect-flash');
 import { Database } from './database';
-import { getForgot, getLogin, getLogout, getReset, getSignup, postForgot, postLogin, postReset, postSignup } from './authentication/controllers/user_controller';
+import { getForgot, getLogin, getLogout, getReset, getSignup, postForgot, postLogin, postReset, postSignup } from './authentication/AuthenticationManager';
 const MongoStore = require('connect-mongo')(session);
 import RouteManager from './RouteManager';
 import * as webpack from 'webpack';
@@ -53,6 +53,23 @@ export default async function InitializeServer(routeSetter: RouteSetter) {
         logPort("server", serverPort);
         console.log();
     });
+
+    // var express = require('express')
+    // var fs = require('fs')
+    // var https = require('https')
+    // var app = express()
+
+    // app.get('/', function (req, res) {
+    //   res.send('hello world')
+    // })
+
+    // https.createServer({
+    //   key: fs.readFileSync('server.key'),
+    //   cert: fs.readFileSync('server.cert')
+    // }, app)
+    // .listen(3000, function () {
+    //   console.log('Example app listening on port 3000! Go to https://localhost:3000/')
+    // })
     disconnect = async () => new Promise<Error>(resolve => server.close(resolve));
 
     return isRelease;
@@ -94,6 +111,8 @@ function determineEnvironment() {
     const label = isRelease ? "release" : "development";
     console.log(`\nrunning server in ${color(label)} mode`);
 
+    // swilkins: I don't think we need to read from ClientUtils.RELEASE anymore. Should be able to invoke process.env.RELEASE
+    // on the client side, thanks to dotenv in webpack.config.js
     let clientUtils = fs.readFileSync("./src/client/util/ClientUtils.ts.temp", "utf8");
     clientUtils = `//AUTO-GENERATED FILE: DO NOT EDIT\n${clientUtils.replace('"mode"', String(isRelease))}`;
     fs.writeFileSync("./src/client/util/ClientUtils.ts", clientUtils, "utf8");

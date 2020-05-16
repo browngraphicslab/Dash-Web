@@ -1,13 +1,13 @@
 
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, Field, FieldResult } from "../../../new_fields/Doc";
-import { List } from "../../../new_fields/List";
-import { RichTextField } from "../../../new_fields/RichTextField";
-import { listSpec } from "../../../new_fields/Schema";
-import { ComputedField, ScriptField } from "../../../new_fields/ScriptField";
-import { Cast, FieldValue, NumCast } from "../../../new_fields/Types";
-import { ImageField } from "../../../new_fields/URLField";
+import { Doc, Field, FieldResult } from "../../../fields/Doc";
+import { List } from "../../../fields/List";
+import { RichTextField } from "../../../fields/RichTextField";
+import { listSpec } from "../../../fields/Schema";
+import { ComputedField, ScriptField } from "../../../fields/ScriptField";
+import { Cast, FieldValue, NumCast } from "../../../fields/Types";
+import { ImageField } from "../../../fields/URLField";
 import { Docs } from "../../documents/Documents";
 import { SetupDrag } from "../../util/DragManager";
 import { CompiledScript, CompileScript, ScriptOptions } from "../../util/Scripting";
@@ -238,8 +238,8 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
         const openItems: ContextMenuProps[] = open && "subitems" in open ? open.subitems : [];
         openItems.push({
             description: "Default Perspective", event: () => {
-                this.props.addDocTab(this.fieldDocToLayout, "inTab");
                 this.props.addDocTab(this.props.Document, "close");
+                this.props.addDocTab(this.fieldDocToLayout, "onRight");
             }, icon: "image"
         });
         !open && cm.addItem({ description: "Change Perspective...", subitems: openItems, icon: "external-link-alt" });

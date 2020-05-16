@@ -87,15 +87,17 @@ export namespace InteractionUtils {
         return myTouches;
     }
 
-    export function CreatePolyline(points: { X: number, Y: number }[], left: number, top: number, color: string, width: number) {
+    export function CreatePolyline(points: { X: number, Y: number }[], left: number, top: number, color: string, width: string) {
         const pts = points.reduce((acc: string, pt: { X: number, Y: number }) => acc + `${pt.X - left},${pt.Y - top} `, "");
         return (
             <polyline
                 points={pts}
                 style={{
                     fill: "none",
-                    stroke: color,
-                    strokeWidth: width
+                    stroke: color ?? "rgb(0, 0, 0)",
+                    strokeWidth: parseInt(width),
+                    strokeLinejoin: "round",
+                    strokeLinecap: "round"
                 }}
             />
         );

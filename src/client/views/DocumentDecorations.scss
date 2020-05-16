@@ -21,9 +21,13 @@ $linkGap : 3px;
         background: none;
     }
 
+
     .documentDecorations-resizer {
         pointer-events: auto;
         background: $alt-accent;
+        opacity: 0.1;
+    }
+    .documentDecorations-resizer:hover {
         opacity: 1;
     }
 
@@ -40,7 +44,6 @@ $linkGap : 3px;
 
     .documentDecorations-radius {
         pointer-events: auto;
-        background: black;
         opacity: 1;
         transform: translate(10px, 10px);
         grid-row: 4;
@@ -69,6 +72,7 @@ $linkGap : 3px;
         grid-column-start: 5;
         grid-column-end: 7;
         border-radius: 100%;
+        background: dimgray;
 
         .borderRadiusTooltip {
             width: 10px;
@@ -80,7 +84,20 @@ $linkGap : 3px;
     #documentDecorations-topLeftResizer,
     #documentDecorations-bottomRightResizer {
         cursor: nwse-resize;
-        background: dimGray;
+        background: unset;
+        opacity: 1;
+    }
+    #documentDecorations-topLeftResizer {
+        border-left:  2px solid;
+        border-top:  solid 2px;
+    }
+    #documentDecorations-bottomRightResizer {
+        border-right:  2px solid;
+        border-bottom:  solid 2px;
+    }
+    #documentDecorations-topLeftResizer:hover,
+    #documentDecorations-bottomRightResizer:hover {
+        opacity: 1;
     }
 
     #documentDecorations-bottomRightResizer {
@@ -90,7 +107,22 @@ $linkGap : 3px;
     #documentDecorations-topRightResizer,
     #documentDecorations-bottomLeftResizer {
         cursor: nesw-resize;
+        background: unset;
+        opacity: 1;
+    }
+    #documentDecorations-topRightResizer {
+        border-right:  2px solid;
+        border-top:  2px solid;
+    }
+    #documentDecorations-bottomLeftResizer {
+        border-left:  2px solid;
+        border-bottom:  2px solid;
+    }
+    #documentDecorations-topRightResizer:hover,
+    #documentDecorations-bottomLeftResizer:hover {
+        cursor: nesw-resize;
         background: dimGray;
+        opacity: 1;
     }
 
     #documentDecorations-topResizer,
@@ -104,22 +136,22 @@ $linkGap : 3px;
     }
 
     .documentDecorations-contextMenu {
-        background: $alt-accent;
         width: 25px;
         height: calc(100% + 8px); // 8px for the height of the top resizer bar
-        grid-column-start: 1;
+        grid-column-start: 2;
         grid-column-end : 2;
         pointer-events: all;
+        padding-left: 5px;
     }
     .documentDecorations-title {
-        background: $alt-accent;
         opacity: 1;
         grid-column-start: 3;
         grid-column-end: 4;
         pointer-events: auto;
         overflow: hidden;
         text-align: center;
-        display:flex;
+        display: flex;    
+        border-bottom: solid 1px;
     }
     .publishBox {
         width: 20px;
@@ -136,7 +168,6 @@ $linkGap : 3px;
 
 
 .documentDecorations-closeButton {
-    background: $alt-accent;
     opacity: 1;
     grid-column-start: 4;
     grid-column-end: 6;
@@ -146,7 +177,6 @@ $linkGap : 3px;
 }
 
 .documentDecorations-minimizeButton {
-    background: $alt-accent;
     opacity: 1;
     grid-column-start: 1;
     grid-column-end: 3;
@@ -156,9 +186,12 @@ $linkGap : 3px;
     position: absolute;
     left: 0px;
     top: 0px;
-    width: $MINIMIZED_ICON_SIZE;
+    width: 8px;
     height: $MINIMIZED_ICON_SIZE;
     max-height: 20px;
+    > svg {
+        margin:0;
+    }
 }
 
 .documentDecorations-background {

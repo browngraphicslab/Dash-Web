@@ -3,9 +3,9 @@ import * as ReactDOM from 'react-dom';
 import { observer } from 'mobx-react';
 import { observable, computed } from 'mobx';
 import { CompileScript } from '../client/util/Scripting';
-import { makeInterface } from '../new_fields/Schema';
-import { ObjectField } from '../new_fields/ObjectField';
-import { RefField } from '../new_fields/RefField';
+import { makeInterface } from '../fields/Schema';
+import { ObjectField } from '../fields/ObjectField';
+import { RefField } from '../fields/RefField';
 import { DocServer } from '../client/DocServer';
 
 @observer

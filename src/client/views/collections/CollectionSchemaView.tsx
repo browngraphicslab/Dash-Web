@@ -6,13 +6,13 @@ import { action, computed, observable, untracked } from "mobx";
 import { observer } from "mobx-react";
 import ReactTable, { CellInfo, Column, ComponentPropsGetterR, Resize, SortingRule } from "react-table";
 import "react-table/react-table.css";
-import { Doc, DocListCast, Field, Opt } from "../../../new_fields/Doc";
-import { Id } from "../../../new_fields/FieldSymbols";
-import { List } from "../../../new_fields/List";
-import { listSpec } from "../../../new_fields/Schema";
-import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
-import { ComputedField } from "../../../new_fields/ScriptField";
-import { Cast, FieldValue, NumCast, StrCast, BoolCast } from "../../../new_fields/Types";
+import { Doc, DocListCast, Field, Opt } from "../../../fields/Doc";
+import { Id } from "../../../fields/FieldSymbols";
+import { List } from "../../../fields/List";
+import { listSpec } from "../../../fields/Schema";
+import { SchemaHeaderField } from "../../../fields/SchemaHeaderField";
+import { ComputedField } from "../../../fields/ScriptField";
+import { Cast, FieldValue, NumCast, StrCast, BoolCast } from "../../../fields/Types";
 import { Docs, DocumentOptions } from "../../documents/Documents";
 import { CompileScript, Transformer, ts } from "../../util/Scripting";
 import { Transform } from "../../util/Transform";
@@ -27,7 +27,7 @@ import "./CollectionSchemaView.scss";
 import { CollectionSubView } from "./CollectionSubView";
 import { CollectionView } from "./CollectionView";
 import { ContentFittingDocumentView } from "../nodes/ContentFittingDocumentView";
-import { setupMoveUpEvents, emptyFunction, returnZero, returnOne } from "../../../Utils";
+import { setupMoveUpEvents, emptyFunction, returnZero, returnOne, returnFalse } from "../../../Utils";
 import { DocumentView } from "../nodes/DocumentView";
 
 library.add(faCog, faPlus, faSortUp, faSortDown);
@@ -121,7 +121,7 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
             {!this.previewDocument ? (null) :
                 <ContentFittingDocumentView
                     Document={this.previewDocument}
-                    DataDocument={undefined}
+                    DataDoc={undefined}
                     NativeHeight={returnZero}
                     NativeWidth={returnZero}
                     fitToBox={true}
@@ -132,16 +132,18 @@ export class CollectionSchemaView extends CollectionSubView(doc => doc) {
                     rootSelected={this.rootSelected}
                     PanelWidth={this.previewWidth}
                     PanelHeight={this.previewHeight}
-                    getTransform={this.getPreviewTransform}
-                    CollectionDoc={this.props.CollectionView?.props.Document}
-                    CollectionView={this.props.CollectionView}
+                    ScreenToLocalTransform={this.getPreviewTransform}
+                    ContainingCollectionDoc={this.props.CollectionView?.props.Document}
+                    ContainingCollectionView={this.props.CollectionView}
                     moveDocument={this.props.moveDocument}
                     addDocument={this.props.addDocument}
                     removeDocument={this.props.removeDocument}
-                    active={this.props.active}
+                    parentActive={this.props.active}
                     whenActiveChanged={this.props.whenActiveChanged}
                     addDocTab={this.props.addDocTab}
                     pinToPres={this.props.pinToPres}
+                    bringToFront={returnFalse}
+                    ContentScaling={returnOne}
                 />}
         </div>;
     }
@@ -205,9 +207,9 @@ export interface SchemaTableProps {
     ContainingCollectionDoc: Opt<Doc>;
     fieldKey: string;
     renderDepth: number;
-    deleteDocument: (document: Doc) => boolean;
-    addDocument: (document: Doc) => boolean;
-    moveDocument: (document: Doc, targetCollection: Doc | undefined, addDocument: (document: Doc) => boolean) => boolean;
+    deleteDocument: (document: Doc | Doc[]) => boolean;
+    addDocument: (document: Doc | Doc[]) => boolean;
+    moveDocument: (document: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (document: Doc | Doc[]) => boolean) => boolean;
     ScreenToLocalTransform: () => Transform;
     active: (outsideReaction: boolean) => boolean;
     onDrop: (e: React.DragEvent<Element>, options: DocumentOptions, completed?: (() => void) | undefined) => void;

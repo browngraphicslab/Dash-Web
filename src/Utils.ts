@@ -4,7 +4,7 @@ import { Socket, Room } from 'socket.io';
 import { Message } from './server/Message';
 
 export namespace Utils {
-    export const DRAG_THRESHOLD = 4;
+    export let DRAG_THRESHOLD = 4;
 
     export function GenerateGuid(): string {
         return v4();
@@ -313,14 +313,18 @@ export namespace Utils {
     }
 }
 
-export function OmitKeys(obj: any, keys: string[], addKeyFunc?: (dup: any) => void): { omit: any, extract: any } {
+export function OmitKeys(obj: any, keys: string[], pattern?: string, addKeyFunc?: (dup: any) => void): { omit: any, extract: any } {
     const omit: any = { ...obj };
     const extract: any = {};
     keys.forEach(key => {
         extract[key] = omit[key];
         delete omit[key];
     });
-    addKeyFunc && addKeyFunc(omit);
+    pattern && Array.from(Object.keys(omit)).filter(key => key.match(pattern)).forEach(key => {
+        extract[key] = omit[key];
+        delete omit[key];
+    });
+    addKeyFunc?.(omit);
     return { omit, extract };
 }
 
@@ -512,7 +516,7 @@ export function setupMoveUpEvents(
     (target as any)._downY = (target as any)._lastY = e.clientY;
 
     const _moveEvent = (e: PointerEvent): void => {
-        if (Math.abs(e.clientX - (target as any)._downX) > 4 || Math.abs(e.clientY - (target as any)._downY) > 4) {
+        if (Math.abs(e.clientX - (target as any)._downX) > Utils.DRAG_THRESHOLD || Math.abs(e.clientY - (target as any)._downY) > Utils.DRAG_THRESHOLD) {
             if (moveEvent(e, [(target as any)._downX, (target as any)._downY],
                 [e.clientX - (target as any)._lastX, e.clientY - (target as any)._lastY])) {
                 document.removeEventListener("pointermove", _moveEvent);

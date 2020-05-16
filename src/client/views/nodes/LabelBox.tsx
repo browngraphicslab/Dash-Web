@@ -3,11 +3,11 @@ import { faEdit } from '@fortawesome/free-regular-svg-icons';
 import { action } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
-import { Doc, DocListCast } from '../../../new_fields/Doc';
-import { documentSchema } from '../../../new_fields/documentSchemas';
-import { List } from '../../../new_fields/List';
-import { createSchema, listSpec, makeInterface } from '../../../new_fields/Schema';
-import { Cast, NumCast, StrCast } from '../../../new_fields/Types';
+import { Doc, DocListCast } from '../../../fields/Doc';
+import { documentSchema } from '../../../fields/documentSchemas';
+import { List } from '../../../fields/List';
+import { createSchema, listSpec, makeInterface } from '../../../fields/Schema';
+import { Cast, NumCast, StrCast } from '../../../fields/Types';
 import { DragManager } from '../../util/DragManager';
 import { undoBatch } from '../../util/UndoManager';
 import { ContextMenu } from '../ContextMenu';
@@ -72,19 +72,17 @@ export class LabelBox extends ViewBoxBaseComponent<FieldViewProps, LabelDocument
                 <div className="labelBox-mainButton" style={{
                     background: StrCast(this.layoutDoc.backgroundColor),
                     color: StrCast(this.layoutDoc.color, "inherit"),
-                    fontSize: NumCast(this.layoutDoc.fontSize) || "inherit",
+                    fontSize: NumCast(this.layoutDoc._fontSize) || "inherit",
+                    fontFamily: StrCast(this.layoutDoc._fontFamily) || "inherit",
                     letterSpacing: StrCast(this.layoutDoc.letterSpacing),
                     textTransform: StrCast(this.layoutDoc.textTransform) as any,
                     paddingLeft: NumCast(this.layoutDoc._xPadding),
                     paddingRight: NumCast(this.layoutDoc._xPadding),
                     paddingTop: NumCast(this.layoutDoc._yPadding),
                     paddingBottom: NumCast(this.layoutDoc._yPadding),
-                    textOverflow: this.layoutDoc._singleLine ? "ellipsis" : undefined,
-                    whiteSpace: this.layoutDoc._singleLine ? "nowrap" : "pre-wrap"
+                    whiteSpace: this.layoutDoc._singleLine ? "pre" : "pre-wrap"
                 }} >
-                    <div className="labelBox-mainButtonCenter">
-                        {StrCast(this.rootDoc.text, StrCast(this.rootDoc.title))}
-                    </div>
+                    {StrCast(this.rootDoc.text, StrCast(this.rootDoc.title))}
                 </div>
                 <div className="labelBox-fieldKeyParams" >
                     {!missingParams?.length ? (null) : missingParams.map(m => <div key={m} className="labelBox-missingParam">{m}</div>)}

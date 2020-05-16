@@ -1,11 +1,11 @@
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, Opt, DocCastAsync } from "../../../new_fields/Doc";
-import { List } from "../../../new_fields/List";
-import { ObjectField } from "../../../new_fields/ObjectField";
-import { RichTextField } from "../../../new_fields/RichTextField";
-import { ComputedField, ScriptField } from "../../../new_fields/ScriptField";
-import { NumCast, StrCast, BoolCast, Cast } from "../../../new_fields/Types";
+import { Doc, Opt, DocCastAsync } from "../../../fields/Doc";
+import { List } from "../../../fields/List";
+import { ObjectField } from "../../../fields/ObjectField";
+import { RichTextField } from "../../../fields/RichTextField";
+import { ComputedField, ScriptField } from "../../../fields/ScriptField";
+import { NumCast, StrCast, BoolCast, Cast } from "../../../fields/Types";
 import { emptyFunction, returnFalse, setupMoveUpEvents } from "../../../Utils";
 import { Scripting } from "../../util/Scripting";
 import { ContextMenu } from "../ContextMenu";
@@ -28,7 +28,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
     @observable _childClickedScript: Opt<ScriptField>;
     @observable _viewDefDivClick: Opt<ScriptField>;
     async componentDidMount() {
-        const detailView = (await DocCastAsync(this.props.Document.childDetailView)) || Doc.findTemplate("detailView", StrCast(this.props.Document.type), "");
+        const detailView = (await DocCastAsync(this.props.Document.childClickedOpenTemplateView)) || Doc.findTemplate("detailView", StrCast(this.props.Document.type), "");
         const childText = "const alias = getAlias(self); switchView(alias, detailView); alias.dropAction='alias'; alias.removeDropProperties=new List<string>(['dropAction']); useRightSplit(alias, shiftKey); ";
         runInAction(() => {
             this._childClickedScript = ScriptField.MakeScript(childText, { this: Doc.name, shiftKey: "boolean" }, { detailView: detailView! });
@@ -84,7 +84,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
 
     @computed get contents() {
         return <div className="collectionTimeView-innards" key="timeline" style={{ width: "100%", pointerEvents: this.props.active() ? undefined : "none" }} onPointerDown={this.contentsDown}>
-            <CollectionFreeFormView {...this.props} childClickScript={this._childClickedScript} viewDefDivClick={this._viewDefDivClick} fitToBox={true} freezeChildDimensions={BoolCast(this.layoutDoc._freezeChildDimensions, true)} layoutEngine={this.layoutEngine} />
+            <CollectionFreeFormView {...this.props} childClickScript={this._childClickedScript} viewDefDivClick={this._viewDefDivClick} fitToBox={true} freezeChildDimensions={true} layoutEngine={this.layoutEngine} />
         </div>;
     }
 

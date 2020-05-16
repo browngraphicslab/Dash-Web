@@ -1,8 +1,8 @@
 import { observable, action, runInAction, ObservableMap } from "mobx";
-import { Doc } from "../../new_fields/Doc";
+import { Doc } from "../../fields/Doc";
 import { DocumentView } from "../views/nodes/DocumentView";
 import { computedFn } from "mobx-utils";
-import { List } from "../../new_fields/List";
+import { List } from "../../fields/List";
 
 export namespace SelectionManager {
 
@@ -10,7 +10,6 @@ export namespace SelectionManager {
 
         @observable IsDragging: boolean = false;
         SelectedDocuments: ObservableMap<DocumentView, boolean> = new ObservableMap();
-
 
         @action
         SelectDoc(docView: DocumentView, ctrlPressed: boolean): void {
@@ -55,6 +54,8 @@ export namespace SelectionManager {
         manager.SelectDoc(docView, ctrlPressed);
     }
 
+    export function SetIsDragging(dragging: boolean) { runInAction(() => manager.IsDragging = dragging); }
+    export function GetIsDragging() { return manager.IsDragging; }
     // computed functions, such as used in IsSelected generate errors if they're called outside of a
     // reaction context.  Specifying the context with 'outsideReaction' allows an efficiency feature
     // to avoid unnecessary mobx invalidations when running inside a reaction.
@@ -77,9 +78,6 @@ export namespace SelectionManager {
         manager.DeselectAll();
         if (found) manager.SelectDoc(found, false);
     }
-
-    export function SetIsDragging(dragging: boolean) { runInAction(() => manager.IsDragging = dragging); }
-    export function GetIsDragging() { return manager.IsDragging; }
 
     export function SelectedDocuments(): Array<DocumentView> {
         return Array.from(manager.SelectedDocuments.keys());
