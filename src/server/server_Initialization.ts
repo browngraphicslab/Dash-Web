@@ -19,9 +19,11 @@ import * as fs from 'fs';
 import * as request from 'request';
 import RouteSubscriber from './RouteSubscriber';
 import { publicDirectory } from '.';
-import { logPort, } from './ActionUtilities';
+import { logPort, pathFromRoot, } from './ActionUtilities';
 import { blue, yellow } from 'colors';
 import * as cors from "cors";
+import { createServer, Server as SecureServer } from "https";
+import { Server } from "http";
 
 /* RouteSetter is a wrapper around the server that prevents the server
    from being exposed. */
@@ -48,30 +50,27 @@ export default async function InitializeServer(routeSetter: RouteSetter) {
     routeSetter(new RouteManager(app, isRelease));
     registerRelativePath(app);
 
-    const serverPort = isRelease ? Number(process.env.serverPort) : 1050;
-    const server = app.listen(serverPort, () => {
-        logPort("server", serverPort);
-        console.log();
-    });
+    const { serverPort } = process.env;
+    const resolved = isRelease && serverPort ? Number(serverPort) : 1050;
 
-    // var express = require('express')
-    // var fs = require('fs')
-    // var https = require('https')
-    // var app = express()
+    let server: Server | SecureServer;
+    if (isRelease) {
+        server = createServer({
+            key: fs.readFileSync(pathFromRoot(`./${process.env.serverName}.key`)),
+            cert: fs.readFileSync(pathFromRoot(`./${process.env.serverName}.crt`))
+        }, app);
+        (server as SecureServer).listen(resolved, () => {
+            logPort("server", resolved);
+            console.log();
+        });
+    } else {
+        server = app.listen(resolved, () => {
+            logPort("server", resolved);
+            console.log();
+        });
+    }
 
-    // app.get('/', function (req, res) {
-    //   res.send('hello world')
-    // })
-
-    // https.createServer({
-    //   key: fs.readFileSync('server.key'),
-    //   cert: fs.readFileSync('server.cert')
-    // }, app)
-    // .listen(3000, function () {
-    //   console.log('Example app listening on port 3000! Go to https://localhost:3000/')
-    // })
     disconnect = async () => new Promise<Error>(resolve => server.close(resolve));
-
     return isRelease;
 }
 

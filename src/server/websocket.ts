@@ -122,9 +122,10 @@ export namespace WebSocket {
             };
         });
 
-        const socketPort = isRelease ? Number(process.env.socketPort) : 4321;
-        endpoint.listen(socketPort);
-        logPort("websocket", socketPort);
+        const { socketPort } = process.env;
+        const resolved = isRelease && socketPort ? Number(socketPort) : 4321;
+        endpoint.listen(resolved);
+        logPort("websocket", resolved);
     }
 
     function processGesturePoints(socket: Socket, content: GestureContent) {

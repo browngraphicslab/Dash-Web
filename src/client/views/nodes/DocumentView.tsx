@@ -1118,7 +1118,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     render() {
         if (!(this.props.Document instanceof Doc)) return (null);
-        const backgroundColor = StrCast(this.layoutDoc._backgroundColor) || StrCast(this.layoutDoc.backgroundColor) || StrCast(this.Document.backgroundColor) || this.props.backgroundColor?.(this.Document);
+        const backgroundColor = Doc.UserDoc().renderStyle === "comic" ? undefined : StrCast(this.layoutDoc._backgroundColor) || StrCast(this.layoutDoc.backgroundColor) || StrCast(this.Document.backgroundColor) || this.props.backgroundColor?.(this.Document);
         const finalColor = this.layoutDoc.type === DocumentType.FONTICON || this.layoutDoc._viewType === CollectionViewType.Linear ? undefined : backgroundColor;
         const fullDegree = Doc.isBrushedHighlightedDegree(this.props.Document);
         const borderRounding = this.layoutDoc.borderRounding;

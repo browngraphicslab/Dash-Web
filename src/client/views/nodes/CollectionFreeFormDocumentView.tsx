@@ -87,9 +87,9 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             const xindexed = Cast(doc['x-indexed'], listSpec("number"), null);
             const yindexed = Cast(doc['y-indexed'], listSpec("number"), null);
             const opacityindexed = Cast(doc['opacity-indexed'], listSpec("number"), null);
-            xindexed.length <= timecode + 1 && xindexed.push(undefined as any as number);
-            yindexed.length <= timecode + 1 && yindexed.push(undefined as any as number);
-            opacityindexed.length <= timecode + 1 && opacityindexed.push(undefined as any as number);
+            xindexed?.length <= timecode + 1 && xindexed.push(undefined as any as number);
+            yindexed?.length <= timecode + 1 && yindexed.push(undefined as any as number);
+            opacityindexed?.length <= timecode + 1 && opacityindexed.push(undefined as any as number);
             doc.transition = "all 1s";
         });
         setTimeout(() => docs.forEach(doc => doc.transition = undefined), 1010);
@@ -129,6 +129,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     NativeHeight = () => this.nativeHeight;
     render() {
         TraceMobx();
+        const backgroundColor = StrCast(this.layoutDoc._backgroundColor) || StrCast(this.layoutDoc.backgroundColor) || StrCast(this.Document.backgroundColor) || this.props.backgroundColor?.(this.Document);
         return <div className="collectionFreeFormDocumentView-container"
             style={{
                 boxShadow:
@@ -148,6 +149,13 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 display: this.ZInd === -99 ? "none" : undefined,
                 pointerEvents: this.props.Document.isBackground || this.Opacity === 0 ? "none" : this.props.pointerEvents ? "all" : undefined
             }} >
+            {Doc.UserDoc().renderStyle !== "comic" ? (null) :
+                <div style={{ width: "100%", height: "100%", position: "absolute" }}>
+                    <svg style={{ transform: `scale(1,${this.props.PanelHeight() / this.props.PanelWidth()})`, transformOrigin: "top left", overflow: "visible" }} viewBox="0 0 12 14">
+                        <path d="M 7 0 C 9 -1 13 1 12 4 C 11 10 13 12 10 12 C 6 12 7 13 2 12 Q -1 11 0 8 C 1 4 0 4 0 2 C 0 0 1 0 1 0 C 3 0 3 1 7 0"
+                            style={{ stroke: "black", fill: backgroundColor, strokeWidth: 0.2 }} />
+                    </svg>
+                </div>}
 
             {!this.props.fitToBox ?
                 <DocumentView {...this.props}

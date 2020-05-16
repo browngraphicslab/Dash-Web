@@ -107,7 +107,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             FormattedTextBox.SelectOnLoadChar = FormattedTextBox.DefaultLayout ? e.key : "";
             const tbox = Docs.Create.TextDocument("", {
                 _width: 200, _height: 100, x: x, y: y, _autoHeight: true, _fontSize: NumCast(Doc.UserDoc().fontSize),
-                _backgroundColor: StrCast(Doc.UserDoc().backgroundColor),
+                _fontFamily: StrCast(Doc.UserDoc().fontFamily), _backgroundColor: StrCast(Doc.UserDoc().backgroundColor),
                 title: "-typed text-"
             });
             const template = FormattedTextBox.DefaultLayout;

@@ -155,6 +155,10 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @undoBatch
     @action
     prevKeyframe = (): void => {
+        if (this.props.Document.timecode === undefined) {
+            this.props.Document.timecode = 0;
+            CollectionFreeFormDocumentView.setupKeyframes(this.childDocs, 0, this.props.Document);
+        }
         CollectionFreeFormDocumentView.gotoKeyframe(this.childDocs.slice());
         this.props.Document.timecode = Math.max(0, NumCast(this.props.Document.timecode) - 1);
     }
@@ -1095,7 +1099,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                         this.backgroundActive ?
                             true :
                             (this.props.viewDefDivClick || (engine === "pass" && !this.props.isSelected(true))) ? false : undefined}
-                    jitterRotation={NumCast(this.props.Document._jitterRotation)}
+                    jitterRotation={NumCast(this.props.Document._jitterRotation) || ((Doc.UserDoc().renderStyle === "comic" ? 10 : 0))}
                     //fitToBox={this.props.fitToBox || BoolCast(this.props.freezeChildDimensions)} // bcz: check this
                     fitToBox={BoolCast(this.props.freezeChildDimensions)} // bcz: check this
                     FreezeDimensions={BoolCast(this.props.freezeChildDimensions)}
@@ -1352,14 +1356,14 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             <CollectionFreeFormOverlayView elements={this.elementFunc} />
             {this.isAnnotationOverlay ? (null) :
                 <>
-                    <div key="fwd" className="backKeyframe" onClick={this.nextKeyframe}>
-                        <FontAwesomeIcon icon={"caret-right"} size={"lg"} />
+                    <div key="back" className="backKeyframe" onClick={this.prevKeyframe}>
+                        <FontAwesomeIcon icon={"caret-left"} size={"lg"} />
                     </div>
-                    <div key="fwd" className="numKeyframe" >
+                    <div key="num" className="numKeyframe" >
                         {NumCast(this.props.Document.timecode)}
                     </div>
-                    <div key="back" className="fwdKeyframe" onClick={this.prevKeyframe}>
-                        <FontAwesomeIcon icon={"caret-left"} size={"lg"} />
+                    <div key="fwd" className="fwdKeyframe" onClick={this.nextKeyframe}>
+                        <FontAwesomeIcon icon={"caret-right"} size={"lg"} />
                     </div>
                 </>}
             <div className={"pullpane-indicator"}
