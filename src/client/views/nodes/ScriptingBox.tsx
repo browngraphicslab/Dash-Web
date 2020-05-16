@@ -12,13 +12,10 @@ import { EditableView } from "../EditableView";
 import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import "./ScriptingBox.scss";
 import { OverlayView } from "../OverlayView";
-import { DocumentIconContainer } from "./DocumentIcon";
-<<<<<<< HEAD
-import { List } from "../../../new_fields/List";
-import { DragManager } from "../../util/DragManager";
-=======
+import { DocumentIconContainer, DocumentIcon } from "./DocumentIcon";
 import { List } from "../../../fields/List";
->>>>>>> 98c7540fff67c232c1b04f2130ee624f9a70afbd
+import { DragManager } from "../../util/DragManager";
+import { Id } from "../../../fields/FieldSymbols";
 
 const ScriptingSchema = createSchema({});
 type ScriptingDocument = makeInterface<[typeof ScriptingSchema, typeof documentSchema]>;
@@ -30,12 +27,12 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
 
     protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer | undefined;
     rowProps: any;
+    _paramNum: number = 0;
     public static LayoutString(fieldStr: string) { return FieldView.LayoutString(ScriptingBox, fieldStr); }
 
     _overlayDisposer?: () => void;
 
     @observable private _errorMessage: string = "";
-    @observable private _paramNum: number = 0;
     @observable private _dropped: boolean = false;
 
     @computed get rawScript() { return StrCast(this.dataDoc[this.props.fieldKey + "-rawScript"], StrCast(this.layoutDoc[this.props.fieldKey + "-rawScript"])); }
@@ -43,6 +40,8 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     set rawScript(value) { this.dataDoc[this.props.fieldKey + "-rawScript"] = value; }
 
     set compileParams(value) { this.dataDoc[this.props.fieldKey + "-params"] = value; }
+
+    @observable private _parameters: any = this.compileParams;
 
     @action
     componentDidMount() {
@@ -80,8 +79,8 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         // return this.dataDoc[this.props.fieldKey] = result.compiled ? new ScriptField(result) : undefined;
         const params = this.compileParams.reduce((o: ScriptParam, p: string) => { o[p] = "any"; return o; }, {} as ScriptParam);
         const result = CompileScript(this.rawScript, {
-            editable: false,
-            transformer: undefined,
+            editable: true,
+            transformer: DocumentIconContainer.getTransformer(),
             params,
             typecheck: true
         });
@@ -100,8 +99,8 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     onRun = () => {
         const params = this.compileParams.reduce((o: ScriptParam, p: string) => { o[p] = "any"; return o; }, {} as ScriptParam);
         const result = CompileScript(this.rawScript, {
-            editable: false,
-            transformer: undefined,
+            editable: true,
+            transformer: DocumentIconContainer.getTransformer(),
             params,
             typecheck: true
         });
@@ -131,15 +130,18 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         this._dropped = true;
         console.log("drop");
         const firstParam = this.compileParams[index].split("=");
-        const dropped = de.complete.docDragData?.droppedDocuments;
-        if (dropped?.length) {
-            this.compileParams[index] = firstParam[0] + " = " + dropped[0].id;
+        const droppedDocs = de.complete.docDragData?.droppedDocuments;
+        if (droppedDocs?.length) {
+            const dropped = droppedDocs[0];
+            this.compileParams[index] = firstParam[0] + " = " + dropped.title;
+            //this._parameters[index] = dropped;
         }
     }
 
     @action
     onDelete = (num: number) => {
         this.compileParams.splice(num, 1);
+        //this._parameters.splice(num, 1);
     }
 
     render() {
@@ -156,7 +158,9 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
                     this._paramNum++;
                     const par = this.compileParams;
                     this.compileParams = new List<string>(value.split(";").filter(s => s !== " "));
+                    //this._parameters.push(this.compileParams);
                     this.compileParams.push.apply(this.compileParams, par);
+                    console.log(this.compileParams);
                     return true;
                 }
                 return false;
@@ -185,6 +189,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
                     SetValue={value => {
                         if (value !== "" && value !== " ") {
                             this.compileParams[i] = value;
+                            //this._parameters[i] = value;
                             parameter = value;
                             return true;
                         } else {

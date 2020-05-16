@@ -53,12 +53,7 @@ export namespace Database {
         private db?: mongodb.Db;
         private onConnect: (() => void)[] = [];
 
-<<<<<<< HEAD
-
-        doConnect() {
-=======
         async doConnect() {
->>>>>>> 98c7540fff67c232c1b04f2130ee624f9a70afbd
             console.error(`\nConnecting to Mongo with URL : ${url}\n`);
             return new Promise<void>(resolve => {
                 this.MongoClient.connect(url, { connectTimeoutMS: 30000, socketTimeoutMS: 30000, useUnifiedTopology: true }, (_err, client) => {
@@ -75,18 +70,7 @@ export namespace Database {
             });
         }
 
-<<<<<<< HEAD
-
-
-
-
-
-
-        public async update(id: string, value: any, callback: (err: mongodb.MongoError, res: mongodb.UpdateWriteOpResult) => void, upsert = true, collectionName = Database.DocumentsCollection) {
-
-=======
         public async update(id: string, value: any, callback: (err: mongodb.MongoError, res: mongodb.UpdateWriteOpResult) => void, upsert = true, collectionName = DocumentsCollection) {
->>>>>>> 98c7540fff67c232c1b04f2130ee624f9a70afbd
             if (this.db) {
                 const collection = this.db.collection(collectionName);
                 const prom = this.currentWrites[id];
