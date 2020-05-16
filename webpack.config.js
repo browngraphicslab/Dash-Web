@@ -16,7 +16,7 @@ const plugins = [
     new webpack.HotModuleReplacementPlugin(),
 ];
 
-(function transferEnvironmentVariables() {
+function transferEnvironmentVariables() {
     const prefix = "_CLIENT_";
     const {
         parsed
@@ -24,13 +24,16 @@ const plugins = [
     if (!parsed) {
         return;
     }
-    plugins.push(new webpack.DefinePlugin(Object.keys(parsed).reduce((mapping, envKey) => {
+    const resolvedClientSide = Object.keys(parsed).reduce((mapping, envKey) => {
         if (envKey.startsWith(prefix)) {
-            mapping[`process.env.${envKey.replace(prefix, "")}`] = JSON.stringify(parsed[envKey]);
+            mapping[`process.env.${envKey.replace(prefix, "")}`] = parsed[envKey];
         }
         return mapping;
-    }, {})));
-})();
+    }, {});
+    plugins.push(new webpack.DefinePlugin(resolvedClientSide));
+}
+
+transferEnvironmentVariables();
 
 module.exports = {
     mode: 'development',
