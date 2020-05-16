@@ -19,10 +19,11 @@ import * as fs from 'fs';
 import * as request from 'request';
 import RouteSubscriber from './RouteSubscriber';
 import { publicDirectory } from '.';
-import { logPort, } from './ActionUtilities';
+import { logPort, pathFromRoot, } from './ActionUtilities';
 import { blue, yellow } from 'colors';
 import * as cors from "cors";
-var https = require('https');
+import { createServer, Server as SecureServer } from "https";
+import { Server } from "http";
 
 /* RouteSetter is a wrapper around the server that prevents the server
    from being exposed. */
@@ -49,28 +50,27 @@ export default async function InitializeServer(routeSetter: RouteSetter) {
     routeSetter(new RouteManager(app, isRelease));
     registerRelativePath(app);
 
-    const serverPort = isRelease ? Number(process.env.serverPort) : 1050;
+    const { serverPort } = process.env;
+    const resolved = isRelease && serverPort ? Number(serverPort) : 1050;
 
-    let server: any;
+    let server: Server | SecureServer;
     if (isRelease) {
-        server = https.createServer({
-            key: fs.readFileSync(`./${process.env.serverName}.key`),
-            cert: fs.readFileSync(`./${process.env.serverName}.cert`)
+        server = createServer({
+            key: fs.readFileSync(pathFromRoot(`./${process.env.serverName}.key`)),
+            cert: fs.readFileSync(pathFromRoot(`./${process.env.serverName}.crt`))
         }, app);
-        server.listen(serverPort, function () {
-            logPort("server", serverPort);
+        (server as SecureServer).listen(resolved, () => {
+            logPort("server", resolved);
             console.log();
-            // console.log('Example app listening on port 3000! Go to https://localhost:3000/')
         });
     } else {
-        server = app.listen(serverPort, () => {
-            logPort("server", serverPort);
+        server = app.listen(resolved, () => {
+            logPort("server", resolved);
             console.log();
         });
     }
 
     disconnect = async () => new Promise<Error>(resolve => server.close(resolve));
-
     return isRelease;
 }
 
