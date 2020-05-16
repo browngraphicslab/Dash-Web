@@ -1,0 +1,68 @@
+.collectionCarouselView-outer {
+    background: white;
+    height: 100%;
+
+    .collectionCarouselView-center-container {
+        width: 70%;
+        margin: auto;
+        overflow: hidden; //fix ContentFittingView position!!
+
+        .collectionCarouselView-caption {
+            height: 50;
+            display: inline-block;
+            width: 100%;
+            margin: auto;
+        }
+
+        .collectionCarouselView-image {
+            height: calc(100% - 50px);
+            width: 70%;
+            display: inline-block;
+            user-select: none;
+        }
+    }
+
+    .collectionCarouselView-prev {
+        position: absolute;
+        height: 50%;
+        width: 50%;
+        background-color: lightgrey;
+        left: 0;
+        top: 25%;
+    }
+
+    .collectionCarouselView-next {
+        position: absolute;
+        height: 50%;
+        width: 50%;
+        background-color: lightgrey;
+        right: 0;
+        top: 25%;
+    }
+}
+
+.carouselView-back,
+.carouselView-fwd {
+    position: absolute;
+    display: flex;
+    top: 50%;
+    width: 30;
+    height: 30;
+    align-items: center;
+    border-radius: 5px;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.46);
+}
+
+.carouselView-fwd {
+    right: 0;
+}
+
+.carouselView-back {
+    left: 0;
+}
+
+.carouselView-back:hover,
+.carouselView-fwd:hover {
+    background: lightgray;
+}
