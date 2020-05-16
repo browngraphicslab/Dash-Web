@@ -9,7 +9,6 @@ import { DragManager } from '../../util/DragManager';
 import { ContentFittingDocumentView } from '../nodes/ContentFittingDocumentView';
 import "./CollectionCarouselView.scss";
 import { CollectionSubView } from './CollectionSubView';
-import { faCaretLeft, faCaretRight } from '@fortawesome/free-solid-svg-icons';
 import { Doc } from '../../../fields/Doc';
 import { FormattedTextBox } from '../nodes/formattedText/FormattedTextBox';
 import { ContextMenu } from '../ContextMenu';
@@ -76,10 +75,10 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
     @computed get buttons() {
         return <>
             <div key="back" className="carouselView-back" style={{ background: `${StrCast(this.props.Document.backgroundColor)}` }} onClick={this.goback}>
-                <FontAwesomeIcon icon={faCaretLeft} size={"2x"} />
+                <FontAwesomeIcon icon={"caret-left"} size={"2x"} />
             </div>
             <div key="fwd" className="carouselView-fwd" style={{ background: `${StrCast(this.props.Document.backgroundColor)}` }} onClick={this.advance}>
-                <FontAwesomeIcon icon={faCaretRight} size={"2x"} />
+                <FontAwesomeIcon icon={"caret-right"} size={"2x"} />
             </div>
         </>;
     }

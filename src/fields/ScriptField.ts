@@ -1,5 +1,5 @@
 import { ObjectField } from "./ObjectField";
-import { CompiledScript, CompileScript, scriptingGlobal, ScriptOptions, CompileError, CompileResult } from "../client/util/Scripting";
+import { CompiledScript, CompileScript, scriptingGlobal, ScriptOptions, CompileError, CompileResult, Scripting } from "../client/util/Scripting";
 import { Copy, ToScriptString, ToString, Parent, SelfProxy } from "./FieldSymbols";
 import { serializable, createSimpleSchema, map, primitive, object, deserialize, PropSchema, custom, SKIP } from "serializr";
 import { Deserializable, autoObject } from "../client/util/SerializationHelper";
@@ -156,11 +156,15 @@ export class ComputedField extends ScriptField {
         return compiled.compiled ? new ComputedField(compiled, setCompiled?.compiled ? setCompiled : undefined) : undefined;
     }
     public static MakeInterpolated(fieldKey: string, interpolatorKey: string) {
-        const getField = ScriptField.CompileScript(`(self['${fieldKey}-indexed'])[self.${interpolatorKey}]`, {}, true, {});
+        const getField = ScriptField.CompileScript(`getIndexVal(self['${fieldKey}-indexed'], self.${interpolatorKey})`, {}, true, {});
         const setField = ScriptField.CompileScript(`(self['${fieldKey}-indexed'])[self.${interpolatorKey}] = value`, { value: "any" }, true, {});
         return getField.compiled ? new ComputedField(getField, setField?.compiled ? setField : undefined) : undefined;
     }
 }
+
+Scripting.addGlobal(function getIndexVal(list: any[], index: number) {
+    return list.reduce((p, x, i) => (i <= index && x !== undefined) || p === undefined ? x : p, undefined as any)
+});
 
 export namespace ComputedField {
     let useComputed = true;
