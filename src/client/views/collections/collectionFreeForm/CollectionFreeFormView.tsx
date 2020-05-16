@@ -1352,13 +1352,13 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             <CollectionFreeFormOverlayView elements={this.elementFunc} />
             {this.isAnnotationOverlay ? (null) :
                 <>
-                    <div key="back" style={{ position: "absolute", width: 20, height: 20, right: 0, bottom: 0, }} onClick={this.nextKeyframe}>
+                    <div key="fwd" className="backKeyframe" onClick={this.nextKeyframe}>
                         <FontAwesomeIcon icon={"caret-right"} size={"lg"} />
                     </div>
-                    <div key="fwd" style={{ position: "absolute", width: 20, height: 20, right: 20, bottom: 0, }}>
+                    <div key="fwd" className="numKeyframe" >
                         {NumCast(this.props.Document.timecode)}
                     </div>
-                    <div key="fwd" style={{ position: "absolute", width: 20, height: 20, right: 40, bottom: 0, }} onClick={this.prevKeyframe}>
+                    <div key="back" className="fwdKeyframe" onClick={this.prevKeyframe}>
                         <FontAwesomeIcon icon={"caret-left"} size={"lg"} />
                     </div>
                 </>}
