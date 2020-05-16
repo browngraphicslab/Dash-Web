@@ -16,7 +16,7 @@ const plugins = [
     new webpack.HotModuleReplacementPlugin(),
 ];
 
-(function transferEnvironmentVariables() {
+function transferEnvironmentVariables() {
     const prefix = "_CLIENT_";
     const {
         parsed
@@ -24,13 +24,16 @@ const plugins = [
     if (!parsed) {
         return;
     }
-    plugins.push(new webpack.DefinePlugin(Object.keys(parsed).reduce((mapping, envKey) => {
+    const resolvedClientSide = Object.keys(parsed).reduce((mapping, envKey) => {
         if (envKey.startsWith(prefix)) {
             mapping[`process.env.${envKey.replace(prefix, "")}`] = JSON.stringify(parsed[envKey]);
         }
         return mapping;
-    }, {})));
-})();
+    }, {});
+    plugins.push(new webpack.DefinePlugin(resolvedClientSide));
+}
+
+transferEnvironmentVariables();
 
 module.exports = {
     mode: 'development',
@@ -63,57 +66,45 @@ module.exports = {
     },
     module: {
         rules: [{
-                test: [/\.tsx?$/],
-                use: [{
-                    loader: 'ts-loader',
-                    options: {
-                        transpileOnly: true
-                    }
-                }]
+            test: [/\.tsx?$/],
+            use: [{
+                loader: 'ts-loader',
+                options: {
+                    transpileOnly: true
+                }
+            }]
+        },
+        {
+            test: /\.scss|css$/,
+            use: [{
+                loader: "style-loader"
             },
             {
-                test: /\.scss|css$/,
-                use: [{
-                        loader: "style-loader"
-                    },
-                    {
-                        loader: "css-loader"
-                    },
-                    {
-                        loader: "sass-loader"
-                    }
-                ]
+                loader: "css-loader"
             },
             {
-                test: /\.(jpg|png|pdf)$/,
-                use: [{
-                    loader: 'file-loader'
-                }]
-            },
-            {
-                test: /\.(png|jpg|gif)$/i,
-                use: [{
-                    loader: 'url-loader',
-                    options: {
-                        limit: 8192
-                    }
-                }]
+                loader: "sass-loader"
             }
+            ]
+        },
+        {
+            test: /\.(jpg|png|pdf)$/,
+            use: [{
+                loader: 'file-loader'
+            }]
+        },
+        {
+            test: /\.(png|jpg|gif)$/i,
+            use: [{
+                loader: 'url-loader',
+                options: {
+                    limit: 8192
+                }
+            }]
+        }
         ]
     },
     plugins,
-    devServer: {
-        compress: false,
-        host: "localhost",
-        contentBase: path.join(__dirname, 'deploy'),
-        port: 4321,
-        hot: true,
-        https: false,
-        overlay: {
-            warnings: true,
-            errors: true
-        }
-    },
     externals: [
         'child_process'
     ]

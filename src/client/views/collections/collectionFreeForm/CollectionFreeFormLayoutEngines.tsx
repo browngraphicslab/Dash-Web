@@ -25,6 +25,7 @@ export interface ViewDefBounds {
     fontSize?: number;
     highlight?: boolean;
     color?: string;
+    opacity?: number;
     replica?: string;
     pair?: { layout: Doc, data?: Doc };
 }
@@ -37,6 +38,7 @@ export interface PoolData {
     width?: number;
     height?: number;
     color?: string;
+    opacity?: number;
     transition?: string;
     highlight?: boolean;
     replica: string;
@@ -416,7 +418,7 @@ function normalizeResults(
                 height: newPosRaw.height! * scale,
                 pair: ele[1].pair
             };
-            poolData.set(newPos.pair.layout[Id] + (newPos.replica || ""), { transition: "transform 1s", ...newPos });
+            poolData.set(newPos.pair.layout[Id] + (newPos.replica || ""), { transition: "all 1s", ...newPos });
         }
     });
 

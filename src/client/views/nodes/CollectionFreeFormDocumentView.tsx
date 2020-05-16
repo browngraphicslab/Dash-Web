@@ -10,9 +10,14 @@ import React = require("react");
 import { Document } from "../../../fields/documentSchemas";
 import { TraceMobx } from "../../../fields/util";
 import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
+import { List } from "../../../fields/List";
+import { numberRange } from "../../../Utils";
+import { ComputedField } from "../../../fields/ScriptField";
+import { listSpec } from "../../../fields/Schema";
+import { docs } from "googleapis/build/src/apis/docs";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
-    dataProvider?: (doc: Doc, replica: string) => { x: number, y: number, zIndex?: number, highlight?: boolean, z: number, transition?: string } | undefined;
+    dataProvider?: (doc: Doc, replica: string) => { x: number, y: number, zIndex?: number, opacity?: number, highlight?: boolean, z: number, transition?: string } | undefined;
     sizeProvider?: (doc: Doc, replica: string) => { width: number, height: number } | undefined;
     zIndex?: number;
     highlight?: boolean;
@@ -35,6 +40,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     get transform() { return `scale(${this.props.ContentScaling()}) translate(${this.X}px, ${this.Y}px) rotate(${this.random(-1, 1) * this.props.jitterRotation}deg)`; }
     get X() { return this.dataProvider ? this.dataProvider.x : (this.Document.x || 0); }
     get Y() { return this.dataProvider ? this.dataProvider.y : (this.Document.y || 0); }
+    get Opacity() { return this.dataProvider ? this.dataProvider.opacity : (this.Document.opacity || 0); }
     get ZInd() { return this.dataProvider ? this.dataProvider.zIndex : (this.Document.zIndex || 0); }
     get Highlight() { return this.dataProvider?.highlight; }
     get width() { return this.props.sizeProvider && this.sizeProvider ? this.sizeProvider.width : this.layoutDoc[WidthSym](); }
@@ -62,6 +68,53 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         }
         return undefined;
     }
+
+    public static getValues(doc: Doc, time: number) {
+        return ({
+            x: Cast(doc["x-indexed"], listSpec("number"), []).reduce((p, x, i) => (i <= time && x !== undefined) || p === undefined ? x : p, undefined as any as number),
+            y: Cast(doc["y-indexed"], listSpec("number"), []).reduce((p, y, i) => (i <= time && y !== undefined) || p === undefined ? y : p, undefined as any as number),
+            opacity: Cast(doc["opacity-indexed"], listSpec("number"), []).reduce((p, o, i) => i <= time || p === undefined ? o : p, undefined as any as number),
+        });
+    }
+
+    public static setValues(timecode: number, d: Doc, x?: number, y?: number, opacity?: number) {
+        Cast(d["x-indexed"], listSpec("number"), [])[timecode] = x as any as number;
+        Cast(d["y-indexed"], listSpec("number"), null)[timecode] = y as any as number;
+        Cast(d["opacity-indexed"], listSpec("number"), null)[timecode] = opacity as any as number;
+    }
+    public static updateKeyframe(docs: Doc[], timecode: number) {
+        docs.forEach(doc => {
+            const xindexed = Cast(doc['x-indexed'], listSpec("number"), null);
+            const yindexed = Cast(doc['y-indexed'], listSpec("number"), null);
+            const opacityindexed = Cast(doc['opacity-indexed'], listSpec("number"), null);
+            xindexed.length <= timecode + 1 && xindexed.push(undefined as any as number);
+            yindexed.length <= timecode + 1 && yindexed.push(undefined as any as number);
+            opacityindexed.length <= timecode + 1 && opacityindexed.push(undefined as any as number);
+            doc.transition = "all 1s";
+        });
+        setTimeout(() => docs.forEach(doc => doc.transition = undefined), 1010);
+    }
+
+    public static gotoKeyframe(docs: Doc[]) {
+        docs.forEach(doc => doc.transition = "all 1s");
+        setTimeout(() => docs.forEach(doc => doc.transition = undefined), 1010);
+    }
+
+    public static setupKeyframes(docs: Doc[], timecode: number, collection: Doc) {
+        docs.forEach(doc => {
+            doc["x-indexed"] = new List<number>(numberRange(timecode).map(i => undefined) as any as number[]);
+            doc["y-indexed"] = new List<number>(numberRange(timecode).map(i => undefined) as any as number[]);
+            doc["opacity-indexed"] = new List<number>(numberRange(timecode).map(i => 0));
+            (doc["x-indexed"] as any).push(NumCast(doc.x));
+            (doc["y-indexed"] as any).push(NumCast(doc.y));
+            (doc["opacity-indexed"] as any).push(NumCast(doc.opacity, 1));
+            doc.timecode = ComputedField.MakeFunction("collection.timecode", {}, { collection });
+            doc.x = ComputedField.MakeInterpolated("x", "timecode");
+            doc.y = ComputedField.MakeInterpolated("y", "timecode");
+            doc.opacity = ComputedField.MakeInterpolated("opacity", "timecode");
+        });
+    }
+
     nudge = (x: number, y: number) => {
         this.props.Document.x = NumCast(this.props.Document.x) + x;
         this.props.Document.y = NumCast(this.props.Document.y) + y;
@@ -79,7 +132,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         return <div className="collectionFreeFormDocumentView-container"
             style={{
                 boxShadow:
-                    this.layoutDoc.opacity === 0 ? undefined :  // if it's not visible, then no shadow
+                    this.Opacity === 0 ? undefined :  // if it's not visible, then no shadow
                         this.layoutDoc.z ? `#9c9396  ${StrCast(this.layoutDoc.boxShadow, "10px 10px 0.9vw")}` :  // if it's a floating doc, give it a big shadow
                             this.props.backgroundHalo?.() ? (`${this.props.backgroundColor?.(this.props.Document)} ${StrCast(this.layoutDoc.boxShadow, `0vw 0vw ${(this.layoutDoc.isBackground ? 100 : 50) / this.props.ContentScaling()}px`)}`) :  // if it's just in a cluster, make the shadown roughly match the cluster border extent
                                 this.layoutDoc.isBackground ? undefined :  // if it's a background & has a cluster color, make the shadow spread really big
@@ -90,9 +143,10 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 transition: this.props.transition ? this.props.transition : this.dataProvider ? this.dataProvider.transition : StrCast(this.layoutDoc.transition),
                 width: this.width,
                 height: this.height,
+                opacity: this.Opacity,
                 zIndex: this.ZInd,
                 display: this.ZInd === -99 ? "none" : undefined,
-                pointerEvents: this.props.Document.isBackground ? "none" : this.props.pointerEvents ? "all" : undefined
+                pointerEvents: this.props.Document.isBackground || this.Opacity === 0 ? "none" : this.props.pointerEvents ? "all" : undefined
             }} >
 
             {!this.props.fitToBox ?
