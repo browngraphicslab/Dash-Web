@@ -26,7 +26,7 @@ function transferEnvironmentVariables() {
     }
     const resolvedClientSide = Object.keys(parsed).reduce((mapping, envKey) => {
         if (envKey.startsWith(prefix)) {
-            mapping[`process.env.${envKey.replace(prefix, "")}`] = parsed[envKey];
+            mapping[`process.env.${envKey.replace(prefix, "")}`] = JSON.stringify(parsed[envKey]);
         }
         return mapping;
     }, {});
