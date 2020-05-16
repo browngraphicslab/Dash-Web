@@ -560,7 +560,7 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.SCREENSHOT), "", options);
         }
 
-        export function ComparisonDocument(options: DocumentOptions = {}) {
+        export function ComparisonDocument(options: DocumentOptions = { title: "Comparison Box" }) {
             return InstanceFromProto(Prototypes.get(DocumentType.COMPARISON), "", options);
         }
 

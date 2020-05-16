@@ -4,11 +4,11 @@ import { faAsterisk, faBrain, faFileAudio, faImage, faPaintBrush, faTimes, faClo
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, runInAction, Lambda } from 'mobx';
 import { observer } from "mobx-react";
-import { Doc } from '../../../new_fields/Doc';
-import { documentSchema } from '../../../new_fields/documentSchemas';
-import { Id } from '../../../new_fields/FieldSymbols';
-import { createSchema, makeInterface } from '../../../new_fields/Schema';
-import { NumCast, StrCast } from '../../../new_fields/Types';
+import { Doc } from '../../../fields/Doc';
+import { documentSchema } from '../../../fields/documentSchemas';
+import { Id } from '../../../fields/FieldSymbols';
+import { createSchema, makeInterface } from '../../../fields/Schema';
+import { NumCast, StrCast } from '../../../fields/Types';
 import { DragManager } from '../../util/DragManager';
 import { ViewBoxAnnotatableComponent } from '../DocComponent';
 import { FieldView, FieldViewProps } from './FieldView';
@@ -127,7 +127,8 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
                                     <>
                                         <ContentFittingDocumentView {...this.props}
                                             Document={beforeDoc}
-                                            getTransform={this.props.ScreenToLocalTransform} />
+                                            parentActive={this.props.active} />
+                                        {/* getTransform={this.props.ScreenToLocalTransform} /> */}
                                         <div className="clear-button before" onClick={(e) => this.clearBeforeDoc(e)}>
                                             <FontAwesomeIcon className="clear-button before" icon={faTimes} size="sm" />
                                         </div>
@@ -152,7 +153,9 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
                                 <>
                                     <ContentFittingDocumentView {...this.props}
                                         Document={afterDoc}
-                                        getTransform={this.props.ScreenToLocalTransform} />
+                                        parentActive={this.props.active}
+                                    // getTransform={this.props.ScreenToLocalTransform}
+                                    />
                                     <div className="clear-button after" onClick={(e) => this.clearAfterDoc(e)}>
                                         <FontAwesomeIcon className="clear-button after" icon={faTimes} size="sm" />
                                     </div>

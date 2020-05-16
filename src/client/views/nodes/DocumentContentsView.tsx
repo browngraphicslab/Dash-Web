@@ -186,28 +186,6 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         //  layoutFrame = splits.length > 1 ? splits[0] + splits[1].replace(/{([^{}]|(?R))*}/, replacer4) : ""; // might have been more elegant if javascript supported recursive patterns
 
         return (this.props.renderDepth > 12 || !layoutFrame || !this.layoutDoc) ? (null) :
-<<<<<<< HEAD
-            this.props.forceLayout === "FormattedTextBox" && this.props.forceFieldKey ?
-                <FormattedTextBox {...bindings.props} fieldKey={this.props.forceFieldKey} />
-                :
-                <ObserverJsxParser
-                    key={42}
-                    blacklistedAttrs={[]}
-                    renderInWrapper={false}
-                    components={{
-                        FormattedTextBox, ImageBox, DirectoryImportBox, FontIconBox, LabelBox, SliderBox, FieldView,
-                        CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox,
-                        PDFBox, VideoBox, AudioBox, PresBox, YoutubeBox, PresElementBox, QueryBox,
-                        ColorBox, DashWebRTCVideo, LinkAnchorBox, InkingStroke, DocHolderBox, LinkBox, ScriptingBox,
-                        RecommendationsBox, ScreenshotBox, HTMLtag, ComparisonBox
-                    }}
-                    bindings={bindings}
-                    jsx={layoutFrame}
-                    showWarnings={true}
-
-                    onError={(test: any) => { console.log(test); }}
-                />;
-=======
             <ObserverJsxParser
                 key={42}
                 blacklistedAttrs={[]}
@@ -217,7 +195,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
                     CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox,
                     PDFBox, VideoBox, AudioBox, PresBox, YoutubeBox, PresElementBox, QueryBox,
                     ColorBox, DashWebRTCVideo, LinkAnchorBox, InkingStroke, DocHolderBox, LinkBox, ScriptingBox,
-                    RecommendationsBox, ScreenshotBox, HTMLtag
+                    RecommendationsBox, ScreenshotBox, HTMLtag, ComparisonBox
                 }}
                 bindings={bindings}
                 jsx={layoutFrame}
@@ -225,6 +203,5 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
 
                 onError={(test: any) => { console.log(test); }}
             />;
->>>>>>> 08b6bf8b51ab631c8cfe9c3e12bfb0ae2dd7b4c7
     }
 }
