@@ -5,7 +5,7 @@ import { observer } from "mobx-react";
 import { Doc, DocListCast, DocCastAsync } from "../../../fields/Doc";
 import { InkTool } from "../../../fields/InkField";
 import { BoolCast, Cast, NumCast, StrCast } from "../../../fields/Types";
-import { returnFalse } from "../../../Utils";
+import { returnFalse, returnOne } from "../../../Utils";
 import { documentSchema } from "../../../fields/documentSchemas";
 import { DocumentManager } from "../../util/DocumentManager";
 import { undoBatch } from "../../util/UndoManager";
@@ -316,6 +316,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                         PanelWidth={this.props.PanelWidth}
                         PanelHeight={this.panelHeight}
                         moveDocument={returnFalse}
+                        childOpacity={returnOne}
                         childLayoutTemplate={this.childLayoutTemplate}
                         filterAddDocument={this.addDocumentFilter}
                         removeDocument={returnFalse}

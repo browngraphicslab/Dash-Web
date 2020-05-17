@@ -574,7 +574,7 @@ export namespace Doc {
                 if (field instanceof RefField) {
                     copy[key] = field;
                 } else if (cfield instanceof ComputedField) {
-                    copy[key] = ComputedField.MakeFunction(cfield.script.originalScript);
+                    copy[key] = cfield[Copy]();// ComputedField.MakeFunction(cfield.script.originalScript);
                 } else if (field instanceof ObjectField) {
                     copy[key] = doc[key] instanceof Doc ?
                         key.includes("layout[") ? Doc.MakeCopy(doc[key] as Doc, false) : doc[key] : // reference documents except copy documents that are expanded teplate fields 

@@ -44,6 +44,7 @@ export interface SubCollectionViewProps extends CollectionViewProps {
     CollectionView: Opt<CollectionView>;
     children?: never | (() => JSX.Element[]) | React.ReactNode;
     ChildLayoutTemplate?: () => Doc;
+    childOpacity?:() => number;
     ChildLayoutString?: string;
     childClickScript?: ScriptField;
     childDoubleClickScript?: ScriptField;
