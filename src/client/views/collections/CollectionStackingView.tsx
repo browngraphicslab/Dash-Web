@@ -213,6 +213,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
             onClick={this.onChildClickHandler}
             onDoubleClick={this.onChildDoubleClickHandler}
             ScreenToLocalTransform={dxf}
+            opacity={this.props.childOpacity}
             focus={this.focusDocument}
             ContainingCollectionDoc={this.props.CollectionView?.props.Document}
             ContainingCollectionView={this.props.CollectionView}
