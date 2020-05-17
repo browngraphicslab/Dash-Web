@@ -1,4 +1,4 @@
-import * as OpenSocket from 'socket.io-client';
+import * as io from 'socket.io-client';
 import { MessageStore, YoutubeQueryTypes, GestureContent, MobileInkOverlayContent, UpdateMobileInkOverlayPositionContent, MobileDocumentUploadContent } from "./../server/Message";
 import { Opt, Doc } from '../fields/Doc';
 import { Utils, emptyFunction } from '../Utils';
@@ -108,7 +108,9 @@ export namespace DocServer {
     export function init(protocol: string, hostname: string, port: number, identifier: string) {
         _cache = {};
         GUID = identifier;
-        _socket = OpenSocket(`${protocol}//${hostname}:${port}`);// OpenSocket(`https://7f079dda.ngrok.io`);// if using ngrok, create a special address for the websocket
+        protocol = protocol.startsWith("https") ? "wss" : "ws";
+        _socket = io.connect(`${protocol}://${hostname}:${port}`);
+        // io.connect(`https://7f079dda.ngrok.io`);// if using ngrok, create a special address for the websocket
 
         _GetCachedRefField = _GetCachedRefFieldImpl;
         _GetRefField = _GetRefFieldImpl;

@@ -1,0 +1,8 @@
+extends ./layout
+
+block content
+    form.form-horizontal(id='admin-form', method='POST')
+        input.form-control(type='password', name='password', id='password', placeholder='Password', autofocus, required)
+        button.btn.btn-success(id='submit', type='submit')
+            i.fa.fa-user-plus
+            | Submit

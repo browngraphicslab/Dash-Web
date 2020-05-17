@@ -1,4 +1,6 @@
-import { readFile } from "fs";
+import { readFile, readFileSync } from "fs";
+import { pathFromRoot } from "../../ActionUtilities";
+import { SecureContextOptions } from "tls";
 
 export namespace GoogleCredentialsLoader {
 
@@ -24,6 +26,20 @@ export namespace GoogleCredentialsLoader {
                 resolve(JSON.parse(content.toString()).installed);
             });
         });
+    }
+
+}
+
+export namespace SSLCredentialsLoader {
+
+    export let Credentials: SecureContextOptions = {};
+
+    export async function loadCredentials() {
+        const { serverName } = process.env;
+        const cert = (suffix: string) => readFileSync(pathFromRoot(`./${serverName}${suffix}`)).toString();
+        Credentials.key = cert(".key");
+        Credentials.cert = cert(".crt");
+        Credentials.ca = cert("-ca.crt");
     }
 
 }
