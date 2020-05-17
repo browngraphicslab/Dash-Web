@@ -149,18 +149,9 @@ export async function launchServer() {
  * log the output of the server process, so it's not ideal for development.
  * So, the 'else' clause is exactly what we've always run when executing npm start.
  */
-<<<<<<< HEAD
-if (process.env.RELEASE) {
-    (sessionAgent = new DashSessionAgent()).launch();
-} else {
-    setTimeout(() => (Database.Instance as Database.Database).doConnect(), 30000);
-    launchServer();
-}
-=======
 // if (process.env.RELEASE) {
 //     (sessionAgent = new DashSessionAgent()).launch();
 // } else {
 (Database.Instance as Database.Database).doConnect();
 launchServer();
 // }
->>>>>>> 9c3d461a9642a4596c55f642af2b55e186b0fe20
