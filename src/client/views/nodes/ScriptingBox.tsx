@@ -15,7 +15,6 @@ import { OverlayView } from "../OverlayView";
 import { DocumentIconContainer, DocumentIcon } from "./DocumentIcon";
 import { List } from "../../../fields/List";
 import { DragManager } from "../../util/DragManager";
-import { Id } from "../../../fields/FieldSymbols";
 
 const ScriptingSchema = createSchema({});
 type ScriptingDocument = makeInterface<[typeof ScriptingSchema, typeof documentSchema]>;
@@ -40,8 +39,6 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     set rawScript(value) { this.dataDoc[this.props.fieldKey + "-rawScript"] = value; }
 
     set compileParams(value) { this.dataDoc[this.props.fieldKey + "-params"] = value; }
-
-    @observable private _parameters: any = this.compileParams;
 
     @action
     componentDidMount() {
@@ -70,14 +67,18 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     onCompile = () => {
         // const params = this.compileParams.reduce((o: ScriptParam, p: string) => { o[p] = "any"; return o; }, {} as ScriptParam);
         // const result = CompileScript(this.rawScript, {
-        //     editable: true,
+        //     editable: true
         //     transformer: DocumentIconContainer.getTransformer(),
         //     params,
         //     typecheck: false
         // });
         // this._errorMessage = isCompileError(result) ? result.errors.map(e => e.messageText).join("\n") : "";
         // return this.dataDoc[this.props.fieldKey] = result.compiled ? new ScriptField(result) : undefined;
+
         const params = this.compileParams.reduce((o: ScriptParam, p: string) => { o[p] = "any"; return o; }, {} as ScriptParam);
+
+        console.log(this.compileParams);
+
         const result = CompileScript(this.rawScript, {
             editable: true,
             transformer: DocumentIconContainer.getTransformer(),
@@ -134,14 +135,12 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         if (droppedDocs?.length) {
             const dropped = droppedDocs[0];
             this.compileParams[index] = firstParam[0] + " = " + dropped.title;
-            //this._parameters[index] = dropped;
         }
     }
 
     @action
     onDelete = (num: number) => {
         this.compileParams.splice(num, 1);
-        //this._parameters.splice(num, 1);
     }
 
     render() {
