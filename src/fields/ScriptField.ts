@@ -144,12 +144,6 @@ export class ComputedField extends ScriptField {
         return new ComputedField(this.script);
     }
 
-    constructor(script: CompiledScript, setterscript?: CompiledScript) {
-        super(script,
-            !setterscript && script?.originalScript.includes("self.displayTimecode") ?
-                ScriptField.CompileScript("self['x' + self.displayTimecode] = value", { value: "any" }, true) : setterscript);
-    }
-
     public static MakeScript(script: string, params: object = {}) {
         const compiled = ScriptField.CompileScript(script, params, false);
         return compiled.compiled ? new ComputedField(compiled) : undefined;
