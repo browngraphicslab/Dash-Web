@@ -120,7 +120,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         this._errorMessage = "";
         if (result.compiled) {
             // this automatically saves
-            result.run({}, (err: any) => {
+            result.run({ self: this.rootDoc, this: this.layoutDoc }, (err: any) => {
                 this._errorMessage = "";
                 this.onError(err);
             });
