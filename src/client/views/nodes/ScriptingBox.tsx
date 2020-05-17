@@ -15,6 +15,7 @@ import { OverlayView } from "../OverlayView";
 import { DocumentIconContainer, DocumentIcon } from "./DocumentIcon";
 import { List } from "../../../fields/List";
 import { DragManager } from "../../util/DragManager";
+import { Doc } from "../../../fields/Doc";
 
 const ScriptingSchema = createSchema({});
 type ScriptingDocument = makeInterface<[typeof ScriptingSchema, typeof documentSchema]>;
@@ -77,7 +78,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
 
         const params = this.compileParams.reduce((o: ScriptParam, p: string) => {
             const param = p.split("=");
-            o[param[0]] = param[1];
+            o[param[0].trim()] = param[1].trim();
             return o;
         },
             {} as ScriptParam);
@@ -145,7 +146,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         const droppedDocs = de.complete.docDragData?.droppedDocuments;
         if (droppedDocs?.length) {
             const dropped = droppedDocs[0];
-            this.compileParams[index] = firstParam[0] + " = " + dropped;
+            this.compileParams[index] = firstParam[0] + " = " + Doc.name; // you can't just bind a variable to a specific Doc.  The Doc would have to be added to 'capturedVariables' field of the compile options, but I think it makes more sense to just be declaring this variable to be a Doc
         }
     }
 
