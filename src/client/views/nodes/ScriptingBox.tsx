@@ -168,11 +168,18 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
             GetValue={() => ""}
             SetValue={value => {
                 if (value !== "" && value !== " ") {
-                    this._paramNum++;
-                    const par = this.compileParams;
-                    this.compileParams = new List<string>(value.split(";").filter(s => s !== " "));
-                    this.compileParams.push.apply(this.compileParams, par);
-                    return true;
+                    const parameter = value.split(":");
+                    if (parameter[1] !== undefined) {
+                        this._errorMessage = "";
+                        this._paramNum++;
+                        const par = this.compileParams;
+                        this.compileParams = new List<string>(value.split(";").filter(s => s !== " "));
+                        this.compileParams.push.apply(this.compileParams, par);
+                        return true;
+                    } else {
+                        //this._errorMessage = "must set type of parameter";
+                        return false;
+                    }
                 }
                 return false;
             }}
