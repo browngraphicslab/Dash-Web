@@ -177,6 +177,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     focus={emptyFunction}
                     whenActiveChanged={returnFalse}
                     bringToFront={returnFalse}
+                    opacity={returnOne}
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined}
                     ContentScaling={returnOne}

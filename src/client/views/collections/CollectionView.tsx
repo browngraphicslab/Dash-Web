@@ -72,6 +72,7 @@ export interface CollectionViewCustomProps {
     filterAddDocument: (doc: Doc | Doc[]) => boolean;  // allows a document that renders a Collection view to filter or modify any documents added to the collection (see PresBox for an example)
     childLayoutTemplate?: () => Opt<Doc>;  // specify a layout Doc template to use for children of the collection
     childLayoutString?: string;  // specify a layout string to use for children of the collection
+    childOpacity?:() => number;
 }
 
 export interface CollectionRenderProps {

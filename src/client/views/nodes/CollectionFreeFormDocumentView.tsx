@@ -36,11 +36,11 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         const rnd = seed / 233280;
         return min + rnd * (max - min);
     }
-    get displayName() { return "CollectionFreeFormDocumentView(" + this.props.Document.title + ")"; } // this makes mobx trace() statements more descriptive
+    get displayName() { return "CollectionFreeFormDocumentView(" + this.rootDoc.title + ")"; } // this makes mobx trace() statements more descriptive
     get transform() { return `scale(${this.props.ContentScaling()}) translate(${this.X}px, ${this.Y}px) rotate(${this.random(-1, 1) * this.props.jitterRotation}deg)`; }
     get X() { return this.dataProvider ? this.dataProvider.x : (this.Document.x || 0); }
     get Y() { return this.dataProvider ? this.dataProvider.y : (this.Document.y || 0); }
-    get Opacity() { return this.dataProvider ? this.dataProvider.opacity : (this.Document.opacity || 0); }
+    get Opacity() { return this.dataProvider ? this.dataProvider.opacity : Cast(this.layoutDoc.opacity, "number", null); }
     get ZInd() { return this.dataProvider ? this.dataProvider.zIndex : (this.Document.zIndex || 0); }
     get Highlight() { return this.dataProvider?.highlight; }
     get width() { return this.props.sizeProvider && this.sizeProvider ? this.sizeProvider.width : this.layoutDoc[WidthSym](); }
@@ -108,10 +108,10 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             (doc["x-indexed"] as any).push(NumCast(doc.x));
             (doc["y-indexed"] as any).push(NumCast(doc.y));
             (doc["opacity-indexed"] as any).push(NumCast(doc.opacity, 1));
-            doc.timecode = ComputedField.MakeFunction("collection.timecode", {}, { collection });
-            doc.x = ComputedField.MakeInterpolated("x", "timecode");
-            doc.y = ComputedField.MakeInterpolated("y", "timecode");
-            doc.opacity = ComputedField.MakeInterpolated("opacity", "timecode");
+            doc.displayTimecode = ComputedField.MakeFunction("collection ? collection.currentTimecode : 0", {}, { collection });
+            doc.x = ComputedField.MakeInterpolated("x", "displayTimecode");
+            doc.y = ComputedField.MakeInterpolated("y", "displayTimecode");
+            doc.opacity = ComputedField.MakeInterpolated("opacity", "displayTimecode");
         });
     }
 
@@ -125,6 +125,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     panelHeight = () => (this.sizeProvider?.height || this.props.PanelHeight?.());
     getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.X, -this.Y).scale(1 / this.contentScaling());
     focusDoc = (doc: Doc) => this.props.focus(doc, false);
+    opacity = () => this.Opacity;
     NativeWidth = () => this.nativeWidth;
     NativeHeight = () => this.nativeHeight;
     render() {
@@ -144,7 +145,6 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 transition: this.props.transition ? this.props.transition : this.dataProvider ? this.dataProvider.transition : StrCast(this.layoutDoc.transition),
                 width: this.width,
                 height: this.height,
-                opacity: this.Opacity,
                 zIndex: this.ZInd,
                 display: this.ZInd === -99 ? "none" : undefined,
                 pointerEvents: this.props.Document.isBackground || this.Opacity === 0 ? "none" : this.props.pointerEvents ? "all" : undefined
@@ -164,6 +164,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                     ContentScaling={this.contentScaling}
                     ScreenToLocalTransform={this.getTransform}
                     backgroundColor={this.props.backgroundColor}
+                    opacity={this.opacity}
                     NativeHeight={this.NativeHeight}
                     NativeWidth={this.NativeWidth}
                     PanelWidth={this.panelWidth}

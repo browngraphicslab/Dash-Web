@@ -92,6 +92,7 @@ export interface DocumentViewProps {
     pinToPres: (document: Doc) => void;
     backgroundHalo?: () => boolean;
     backgroundColor?: (doc: Doc) => string | undefined;
+    opacity?: () => number;
     ChromeHeight?: () => number;
     dontRegisterView?: boolean;
     layoutKey?: string;
@@ -1119,6 +1120,8 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
     render() {
         if (!(this.props.Document instanceof Doc)) return (null);
         const backgroundColor = Doc.UserDoc().renderStyle === "comic" ? undefined : StrCast(this.layoutDoc._backgroundColor) || StrCast(this.layoutDoc.backgroundColor) || StrCast(this.Document.backgroundColor) || this.props.backgroundColor?.(this.Document);
+        const opacity = Cast(this.layoutDoc._opacity, "number", Cast(this.layoutDoc.opacity, "number", Cast(this.Document.opacity, "number", null)));
+        const finalOpacity = this.props.opacity ? this.props.opacity() : opacity;
         const finalColor = this.layoutDoc.type === DocumentType.FONTICON || this.layoutDoc._viewType === CollectionViewType.Linear ? undefined : backgroundColor;
         const fullDegree = Doc.isBrushedHighlightedDegree(this.props.Document);
         const borderRounding = this.layoutDoc.borderRounding;
@@ -1155,7 +1158,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 border: highlighting && borderRounding ? `${highlightStyles[fullDegree]} ${highlightColors[fullDegree]} ${localScale}px` : undefined,
                 boxShadow: this.props.Document.isTemplateForField ? "black 0.2vw 0.2vw 0.8vw" : undefined,
                 background: finalColor,
-                opacity: this.Document.opacity,
+                opacity: finalOpacity,
                 fontFamily: StrCast(this.Document._fontFamily, "inherit"),
                 fontSize: Cast(this.Document._fontSize, "number", null)
             }}>
