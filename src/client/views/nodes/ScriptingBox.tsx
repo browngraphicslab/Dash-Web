@@ -77,7 +77,8 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         // return this.dataDoc[this.props.fieldKey] = result.compiled ? new ScriptField(result) : undefined;
 
         const params = this.compileParams.reduce((o: ScriptParam, p: string) => {
-            const param = p.split("=");
+            const param = p.split(":");
+
             o[param[0].trim()] = param[1].trim();
             return o;
         },
@@ -105,8 +106,8 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     @action
     onRun = () => {
         const params = this.compileParams.reduce((o: ScriptParam, p: string) => {
-            const param = p.split("=");
-            o[param[0]] = param[1];
+            const param = p.split(":");
+            o[param[0].trim()] = param[1].trim();
             return o;
         },
             {} as ScriptParam);
@@ -142,11 +143,12 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     onDrop = (e: Event, de: DragManager.DropEvent, index: any) => {
         this._dropped = true;
         console.log("drop");
-        const firstParam = this.compileParams[index].split("=");
+        const firstParam = this.compileParams[index].split(":");
         const droppedDocs = de.complete.docDragData?.droppedDocuments;
         if (droppedDocs?.length) {
             const dropped = droppedDocs[0];
-            this.compileParams[index] = firstParam[0] + " = " + Doc.name; // you can't just bind a variable to a specific Doc.  The Doc would have to be added to 'capturedVariables' field of the compile options, but I think it makes more sense to just be declaring this variable to be a Doc
+            this.compileParams[index] = firstParam[0] + ":" + Doc.name;
+            // you can't just bind a variable to a specific Doc.  The Doc would have to be added to 'capturedVariables' field of the compile options, but I think it makes more sense to just be declaring this variable to be a Doc
         }
     }
 
@@ -170,7 +172,6 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
                     const par = this.compileParams;
                     this.compileParams = new List<string>(value.split(";").filter(s => s !== " "));
                     this.compileParams.push.apply(this.compileParams, par);
-                    console.log(this.compileParams);
                     return true;
                 }
                 return false;
