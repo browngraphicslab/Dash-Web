@@ -205,5 +205,5 @@ export function _permission_denied(res: Response, message?: string) {
     if (message) {
         res.statusMessage = message;
     }
-    res.status(STATUS.PERMISSION_DENIED).send("Permission Denied!");
+    res.status(STATUS.PERMISSION_DENIED).send(`Permission Denied! ${message}`);
 }

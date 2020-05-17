@@ -10,6 +10,7 @@ import { Database } from './database';
 import { getForgot, getLogin, getLogout, getReset, getSignup, postForgot, postLogin, postReset, postSignup } from './authentication/AuthenticationManager';
 const MongoStore = require('connect-mongo')(session);
 import RouteManager from './RouteManager';
+import { WebSocket } from './websocket';
 import * as webpack from 'webpack';
 const config = require('../../webpack.config');
 const compiler = webpack(config);
@@ -22,8 +23,9 @@ import { publicDirectory } from '.';
 import { logPort, pathFromRoot, } from './ActionUtilities';
 import { blue, yellow } from 'colors';
 import * as cors from "cors";
-import { createServer, Server as SecureServer } from "https";
-import { Server } from "http";
+import { createServer, Server as HttpsServer } from "https";
+import { Server as HttpServer } from "http";
+import { SSLCredentialsLoader } from './apis/google/CredentialsLoader';
 
 /* RouteSetter is a wrapper around the server that prevents the server
    from being exposed. */
@@ -53,22 +55,16 @@ export default async function InitializeServer(routeSetter: RouteSetter) {
     const { serverPort } = process.env;
     const resolved = isRelease && serverPort ? Number(serverPort) : 1050;
 
-    let server: Server | SecureServer;
+    let server: HttpServer | HttpsServer;
     if (isRelease) {
-        server = createServer({
-            key: fs.readFileSync(pathFromRoot(`./${process.env.serverName}.key`)),
-            cert: fs.readFileSync(pathFromRoot(`./${process.env.serverName}.crt`))
-        }, app);
-        (server as SecureServer).listen(resolved, () => {
-            logPort("server", resolved);
-            console.log();
-        });
+        server = createServer(SSLCredentialsLoader.Credentials, app).listen(resolved, () => logPort("server", resolved));
     } else {
-        server = app.listen(resolved, () => {
-            logPort("server", resolved);
-            console.log();
-        });
+        server = app.listen(resolved, () => logPort("server", resolved));
     }
+
+    // initialize the web socket (bidirectional communication: if a user changes
+    // a field on one client, that change must be broadcast to all other clients)
+    WebSocket.initialize(isRelease, app);
 
     disconnect = async () => new Promise<Error>(resolve => server.close(resolve));
     return isRelease;
