@@ -12,7 +12,7 @@ import UtilManager from './ApiManagers/UtilManager';
 import { SearchManager } from './ApiManagers/SearchManager';
 import UserManager from './ApiManagers/UserManager';
 import DownloadManager from './ApiManagers/DownloadManager';
-import { GoogleCredentialsLoader, SSLCredentialsLoader } from './apis/google/CredentialsLoader';
+import { GoogleCredentialsLoader, SSL } from './apis/google/CredentialsLoader';
 import DeleteManager from "./ApiManagers/DeleteManager";
 import PDFManager from "./ApiManagers/PDFManager";
 import UploadManager from "./ApiManagers/UploadManager";
@@ -41,7 +41,7 @@ async function preliminaryFunctions() {
     await DashUploadUtils.buildFileDirectories();
     await Logger.initialize();
     await GoogleCredentialsLoader.loadCredentials();
-    SSLCredentialsLoader.loadCredentials();
+    SSL.loadCredentials();
     GoogleApiServerUtils.processProjectCredentials();
     if (process.env.DB !== "MEM") {
         await log_execution({
@@ -101,6 +101,42 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
         const filename = detector.mobile() !== null ? 'mobile/image.html' : 'index.html';
         res.sendFile(path.join(__dirname, '../../deploy/' + filename));
     };
+
+    /**
+     * Serves a simple password input box for any 
+     */
+    addSupervisedRoute({
+        method: Method.GET,
+        subscription: new RouteSubscriber("admin").add("previous_target"),
+        secureHandler: ({ res, isRelease }) => {
+            const { PASSWORD } = process.env;
+            if (!(isRelease && PASSWORD)) {
+                return res.redirect("/home");
+            }
+            res.render("admin.pug", { title: "Enter Administrator Password" });
+        }
+    });
+
+    addSupervisedRoute({
+        method: Method.POST,
+        subscription: new RouteSubscriber("admin").add("previous_target"),
+        secureHandler: async ({ req, res, isRelease, user: { id } }) => {
+            const { PASSWORD } = process.env;
+            if (!(isRelease && PASSWORD)) {
+                return res.redirect("/home");
+            }
+            const { password } = req.body;
+            const { previous_target } = req.params;
+            let redirect: string;
+            if (password === PASSWORD) {
+                AdminPriviliges.set(id, true);
+                redirect = `/${previous_target.replace(":", "/")}`;
+            } else {
+                redirect = `/admin/${previous_target}`;
+            }
+            res.redirect(redirect);
+        }
+    });
 
     addSupervisedRoute({
         method: Method.GET,

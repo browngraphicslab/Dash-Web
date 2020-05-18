@@ -21,11 +21,11 @@ import * as request from 'request';
 import RouteSubscriber from './RouteSubscriber';
 import { publicDirectory } from '.';
 import { logPort, pathFromRoot, } from './ActionUtilities';
-import { blue, yellow } from 'colors';
+import { blue, yellow, red } from 'colors';
 import * as cors from "cors";
 import { createServer, Server as HttpsServer } from "https";
 import { Server as HttpServer } from "http";
-import { SSLCredentialsLoader } from './apis/google/CredentialsLoader';
+import { SSL } from './apis/google/CredentialsLoader';
 
 /* RouteSetter is a wrapper around the server that prevents the server
    from being exposed. */
@@ -49,18 +49,19 @@ export default async function InitializeServer(routeSetter: RouteSetter) {
 
     const isRelease = determineEnvironment();
 
+    isRelease && !SSL.Loaded && SSL.exit();
+
     routeSetter(new RouteManager(app, isRelease));
     registerRelativePath(app);
 
+    let server: HttpServer | HttpsServer;
     const { serverPort } = process.env;
     const resolved = isRelease && serverPort ? Number(serverPort) : 1050;
-
-    let server: HttpServer | HttpsServer;
-    if (isRelease) {
-        server = createServer(SSLCredentialsLoader.Credentials, app).listen(resolved, () => logPort("server", resolved));
-    } else {
-        server = app.listen(resolved, () => logPort("server", resolved));
-    }
+    await new Promise<void>(resolve => server = isRelease ?
+        createServer(SSL.Credentials, app).listen(resolved, resolve) :
+        app.listen(resolved, resolve)
+    );
+    logPort("server", resolved);
 
     // initialize the web socket (bidirectional communication: if a user changes
     // a field on one client, that change must be broadcast to all other clients)
