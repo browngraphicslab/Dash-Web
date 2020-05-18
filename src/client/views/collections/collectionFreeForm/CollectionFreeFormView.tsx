@@ -438,9 +438,9 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 console.log("end");
                 if (this._inkToTextStartX && this._inkToTextStartY) {
                     const end = this.getTransform().transformPoint(Math.max(...ge.points.map(p => p.X)), Math.max(...ge.points.map(p => p.Y)));
-                    const setDocs = this.getActiveDocuments().filter(s => s.proto?.type === "text" && s.color);
+                    const setDocs = this.getActiveDocuments().filter(s => s.proto?.type === "rtf" && s.color);
                     const sets = setDocs.map((sd) => {
-                        return Cast(sd.data, RichTextField)?.Text as string;
+                        return Cast(sd.text, RichTextField)?.Text as string;
                     });
                     if (sets.length && sets[0]) {
                         this._wordPalette.clear();
@@ -476,6 +476,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                         }
                     });
 
+                    console.log(this._wordPalette)
                     CognitiveServices.Inking.Appliers.InterpretStrokes(strokes).then((results) => {
                         console.log(results);
                         const wordResults = results.filter((r: any) => r.category === "inkWord");

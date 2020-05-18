@@ -77,7 +77,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
 
         this.setURL();
 
-        this._iframeRef.current!.setAttribute("enable-annotation", "true");
+        this._iframeRef.current?.setAttribute("enable-annotation", "true");
 
         document.addEventListener("pointerup", this.onLongPressUp);
         document.addEventListener("pointermove", this.onLongPressMove);
@@ -101,8 +101,8 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         this._reactionDisposer?.();
         document.removeEventListener("pointerup", this.onLongPressUp);
         document.removeEventListener("pointermove", this.onLongPressMove);
-        this._iframeRef.current!.contentDocument?.removeEventListener('pointerdown', this.iframedown);
-        this._iframeRef.current!.contentDocument?.removeEventListener('scroll', this.iframeScrolled);
+        this._iframeRef.current?.contentDocument?.removeEventListener('pointerdown', this.iframedown);
+        this._iframeRef.current?.contentDocument?.removeEventListener('scroll', this.iframeScrolled);
     }
 
     @action
