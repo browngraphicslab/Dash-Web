@@ -298,7 +298,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
             <div className="linkEditor">
                 {this.props.hideback ? (null) : <button className="linkEditor-back" onPointerDown={() => this.props.showLinks()}><FontAwesomeIcon icon="arrow-left" size="sm" /></button>}
                 <div className="linkEditor-info">
-                    <p className="linkEditor-linkedTo">editing link to: <b>{destination.proto!.title}</b></p>
+                    <p className="linkEditor-linkedTo">editing link to: <b>{destination.proto?.title ?? destination.title ?? "untitled"}</b></p>
                     <button className="linkEditor-button" onPointerDown={() => this.deleteLink()} title="Delete link"><FontAwesomeIcon icon="trash" size="sm" /></button>
                 </div>
                 {groups.length > 0 ? groups : <div className="linkEditor-group">There are currently no relationships associated with this link.</div>}
