@@ -20,7 +20,6 @@ import { CollectionView } from "../CollectionView";
 import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
 import "./MarqueeView.scss";
 import React = require("react");
-import { InteractionUtils } from "../../../util/InteractionUtils";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
@@ -66,58 +65,69 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         //make textbox and add it to this collection
         // tslint:disable-next-line:prefer-const
         let [x, y] = this.props.getTransform().transformPoint(this._downX, this._downY);
-        if (e.key === ":") {
-            DocUtils.addDocumentCreatorMenuItems(this.props.addLiveTextDocument, this.props.addDocument, x, y);
+        if (e.key === "?") {
+            ContextMenu.Instance.setDefaultItem("?", (str: string) => {
+                const textDoc = Docs.Create.WebDocument(`http://bing.com/search?q=${str}`, {
+                    _width: 200, x, y, _nativeHeight: 962, _nativeWidth: 800, isAnnotating: false,
+                    title: "bing"
+                });
+                this.props.addDocTab(textDoc, "onRight");
+            });
 
             ContextMenu.Instance.displayMenu(this._downX, this._downY);
-        } else if (e.key === "q" && e.ctrlKey) {
-            e.preventDefault();
-            (async () => {
-                const text: string = await navigator.clipboard.readText();
-                const ns = text.split("\n").filter(t => t.trim() !== "\r" && t.trim() !== "");
-                for (let i = 0; i < ns.length - 1; i++) {
-                    while (!(ns[i].trim() === "" || ns[i].endsWith("-\r") || ns[i].endsWith("-") ||
-                        ns[i].endsWith(";\r") || ns[i].endsWith(";") ||
-                        ns[i].endsWith(".\r") || ns[i].endsWith(".") ||
-                        ns[i].endsWith(":\r") || ns[i].endsWith(":")) && i < ns.length - 1) {
-                        const sub = ns[i].endsWith("\r") ? 1 : 0;
-                        const br = ns[i + 1].trim() === "";
-                        ns.splice(i, 2, ns[i].substr(0, ns[i].length - sub) + ns[i + 1].trimLeft());
-                        if (br) break;
+        } else
+            if (e.key === ":") {
+                DocUtils.addDocumentCreatorMenuItems(this.props.addLiveTextDocument, this.props.addDocument, x, y);
+
+                ContextMenu.Instance.displayMenu(this._downX, this._downY);
+            } else if (e.key === "q" && e.ctrlKey) {
+                e.preventDefault();
+                (async () => {
+                    const text: string = await navigator.clipboard.readText();
+                    const ns = text.split("\n").filter(t => t.trim() !== "\r" && t.trim() !== "");
+                    for (let i = 0; i < ns.length - 1; i++) {
+                        while (!(ns[i].trim() === "" || ns[i].endsWith("-\r") || ns[i].endsWith("-") ||
+                            ns[i].endsWith(";\r") || ns[i].endsWith(";") ||
+                            ns[i].endsWith(".\r") || ns[i].endsWith(".") ||
+                            ns[i].endsWith(":\r") || ns[i].endsWith(":")) && i < ns.length - 1) {
+                            const sub = ns[i].endsWith("\r") ? 1 : 0;
+                            const br = ns[i + 1].trim() === "";
+                            ns.splice(i, 2, ns[i].substr(0, ns[i].length - sub) + ns[i + 1].trimLeft());
+                            if (br) break;
+                        }
                     }
-                }
-                ns.map(line => {
-                    const indent = line.search(/\S|$/);
-                    const newBox = Docs.Create.TextDocument(line, { _width: 200, _height: 35, x: x + indent / 3 * 10, y: y, title: line });
-                    this.props.addDocument(newBox);
-                    y += 40 * this.props.getTransform().Scale;
+                    ns.map(line => {
+                        const indent = line.search(/\S|$/);
+                        const newBox = Docs.Create.TextDocument(line, { _width: 200, _height: 35, x: x + indent / 3 * 10, y: y, title: line });
+                        this.props.addDocument(newBox);
+                        y += 40 * this.props.getTransform().Scale;
+                    });
+                })();
+            } else if (e.key === "b" && e.ctrlKey) {
+                e.preventDefault();
+                navigator.clipboard.readText().then(text => {
+                    const ns = text.split("\n").filter(t => t.trim() !== "\r" && t.trim() !== "");
+                    if (ns.length === 1 && text.startsWith("http")) {
+                        this.props.addDocument(Docs.Create.ImageDocument(text, { _nativeWidth: 300, _width: 300, x: x, y: y }));// paste an image from its URL in the paste buffer
+                    } else {
+                        this.pasteTable(ns, x, y);
+                    }
                 });
-            })();
-        } else if (e.key === "b" && e.ctrlKey) {
-            e.preventDefault();
-            navigator.clipboard.readText().then(text => {
-                const ns = text.split("\n").filter(t => t.trim() !== "\r" && t.trim() !== "");
-                if (ns.length === 1 && text.startsWith("http")) {
-                    this.props.addDocument(Docs.Create.ImageDocument(text, { _nativeWidth: 300, _width: 300, x: x, y: y }));// paste an image from its URL in the paste buffer
-                } else {
-                    this.pasteTable(ns, x, y);
+            } else if (!e.ctrlKey) {
+                FormattedTextBox.SelectOnLoadChar = FormattedTextBox.DefaultLayout ? e.key : "";
+                const tbox = Docs.Create.TextDocument("", {
+                    _width: 200, _height: 100, x: x, y: y, _autoHeight: true, _fontSize: NumCast(Doc.UserDoc().fontSize),
+                    _fontFamily: StrCast(Doc.UserDoc().fontFamily), _backgroundColor: StrCast(Doc.UserDoc().backgroundColor),
+                    title: "-typed text-"
+                });
+                const template = FormattedTextBox.DefaultLayout;
+                if (template instanceof Doc) {
+                    tbox._width = NumCast(template._width);
+                    tbox.layoutKey = "layout_" + StrCast(template.title);
+                    Doc.GetProto(tbox)[StrCast(tbox.layoutKey)] = template;
                 }
-            });
-        } else if (!e.ctrlKey) {
-            FormattedTextBox.SelectOnLoadChar = FormattedTextBox.DefaultLayout ? e.key : "";
-            const tbox = Docs.Create.TextDocument("", {
-                _width: 200, _height: 100, x: x, y: y, _autoHeight: true, _fontSize: NumCast(Doc.UserDoc().fontSize),
-                _fontFamily: StrCast(Doc.UserDoc().fontFamily), _backgroundColor: StrCast(Doc.UserDoc().backgroundColor),
-                title: "-typed text-"
-            });
-            const template = FormattedTextBox.DefaultLayout;
-            if (template instanceof Doc) {
-                tbox._width = NumCast(template._width);
-                tbox.layoutKey = "layout_" + StrCast(template.title);
-                Doc.GetProto(tbox)[StrCast(tbox.layoutKey)] = template;
+                this.props.addLiveTextDocument(tbox);
             }
-            this.props.addLiveTextDocument(tbox);
-        }
         e.stopPropagation();
     }
     //heuristically converts pasted text into a table.
