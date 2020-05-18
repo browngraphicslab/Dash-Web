@@ -117,8 +117,22 @@ body {
     user-select: none;
     font-size: 30px;
     text-transform: uppercase;
-    color: rgb(116, 116, 116);
+    color: black;
 }
+
+.sidebar .settings {
+    width: 100%;
+    padding: 13px 12px;
+    border-bottom: 1px solid rgba(200, 200, 200, 0.7);
+    font-family: Arial, Helvetica, sans-serif;
+    font-style: normal;
+    font-weight: normal;
+    user-select: none;
+    font-size: 30px;
+    text-transform: uppercase;
+    color: black;
+}
+
 
 .sidebar.active {
     left: 0%;

@@ -33,6 +33,8 @@ import { DocumentManager } from '../client/util/DocumentManager';
 import RichTextMenu from '../client/util/RichTextMenu';
 import { MainView } from '../client/views/MainView';
 import SettingsManager from '../client/util/SettingsManager';
+import { Uploader } from "./ImageUpload";
+import { Upload } from '../server/SharedMediaTypes';
 
 library.add(faLongArrowAltLeft);
 
@@ -226,32 +228,65 @@ export class MobileInterface extends React.Component {
 
         }
 
-        return (
-            <div>
-                <div className="navbar">
-                    <div className="header" id="header">menu</div>
-                    <div className="toggle-btn" id="menuButton" onClick={this.toggleSidebar}>
-                        <span></span>
-                        <span></span>
-                        <span></span>
-                    </div>
-                </div>
-                <div className="sidebar" id="sidebar">
-                    <div>
-                        {buttons}
-                        <div className="logout" key="settings" onClick={() => SettingsManager.Instance.open()}>
-                            Settings
-                        </div>
-                        <div className="logout" key="logout" onClick={() => window.location.assign(Utils.prepend("/logout"))}>
-                            {CurrentUserUtils.GuestWorkspace ? "Exit" : "Log Out"}
-                        </div>
-                    </div>
-                </div>
+        if (!this._child) {
+            return (
                 <div>
-                    {this.renderView}
+                    <div className="navbar">
+                        <div className="header" id="header">menu</div>
+                        <div className="toggle-btn" id="menuButton" onClick={this.toggleSidebar}>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                    </div>
+                    <div className="sidebar" id="sidebar">
+                        <div>
+                            {buttons}
+                            <Uploader />
+
+                            <div className="item" key="settings" onClick={() => SettingsManager.Instance.open()}>
+                                Settings
+                        </div>
+                            <div className="item" key="logout" onClick={() => window.location.assign(Utils.prepend("/logout"))}>
+                                {CurrentUserUtils.GuestWorkspace ? "Exit" : "Log Out"}
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        {this.renderView}
+                    </div>
                 </div>
-            </div>
-        );
+            );
+        }
+        else {
+            return (
+                <div>
+                    <div className="navbar">
+                        <div className="header" id="header">menu</div>
+                        <div className="toggle-btn" id="menuButton" onClick={this.toggleSidebar}>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                    </div>
+                    <div className="sidebar" id="sidebar">
+                        <div>
+                            {buttons}
+
+                            {/* <div className="item" key="settings" onClick={() => SettingsManager.Instance.open()}>
+                                Settings
+                            </div>
+                            <div className="item" key="logout" onClick={() => window.location.assign(Utils.prepend("/logout"))}>
+                                {CurrentUserUtils.GuestWorkspace ? "Exit" : "Log Out"}
+                            </div> */}
+                        </div>
+                    </div>
+                    <div>
+                        {this.renderView}
+                    </div>
+                </div>
+            );
+        }
     }
 
     renderActiveCollection = (userDoc: Doc) => {

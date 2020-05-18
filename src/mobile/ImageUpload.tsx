@@ -11,7 +11,6 @@ import { List } from '../new_fields/List';
 import { observer } from 'mobx-react';
 import { observable } from 'mobx';
 import { Utils } from '../Utils';
-import MobileInterface from './MobileInterface';
 import { CurrentUserUtils } from '../server/authentication/models/current_user_utils';
 import { Scripting } from '../client/util/Scripting';
 
@@ -27,7 +26,7 @@ import { Scripting } from '../client/util/Scripting';
 const inputRef = React.createRef<HTMLInputElement>();
 
 @observer
-class Uploader extends React.Component {
+export class Uploader extends React.Component {
     @observable error: string = "";
     @observable status: string = "";
 
@@ -38,6 +37,7 @@ class Uploader extends React.Component {
             await Docs.Prototypes.initialize();
             const imgPrev = document.getElementById("img_preview");
             if (imgPrev) {
+                console.log("1");
                 const files: FileList | null = inputRef.current!.files;
                 if (files && files.length !== 0) {
                     console.log(files[0]);
@@ -78,6 +78,7 @@ class Uploader extends React.Component {
                                 pending.data = new List([doc]);
                             }
                             this.status = "finished";
+                            console.log("hi");
                         }
                     });
 
@@ -94,12 +95,12 @@ class Uploader extends React.Component {
     render() {
         return (
             <div className="imgupload_cont">
-                <label htmlFor="input_image_file" className="upload_label">Choose an Image</label>
+                <label htmlFor="input_image_file" className="upload_label" onClick={this.onClick}>Upload Image</label>
                 <input type="file" accept="image/*" className="input_file" id="input_image_file" ref={inputRef}></input>
-                <button onClick={this.onClick} className="upload_button">Upload</button>
+                {/* <div onClick={this.onClick} className="upload_button">Upload</div> */}
                 <img id="img_preview" src=""></img>
-                <p>{this.status}</p>
-                <p>{this.error}</p>
+                {/* <p>{this.status}</p>
+                <p>{this.error}</p> */}
             </div>
         );
     }
