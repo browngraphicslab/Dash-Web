@@ -65,7 +65,7 @@ export class MainView extends React.Component {
     @observable private _panelHeight: number = 0;
     @observable private _flyoutTranslate: boolean = true;
     @observable public flyoutWidth: number = 250;
-    private get darkScheme() { return BoolCast(Cast(this.userDoc.activeWorkspace, Doc, null)?.darkScheme); }
+    private get darkScheme() { return BoolCast(Cast(this.userDoc?.activeWorkspace, Doc, null)?.darkScheme); }
 
     @computed private get userDoc() { return Doc.UserDoc(); }
     @computed private get mainContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeWorkspace, Doc)) : CurrentUserUtils.GuestWorkspace; }
@@ -138,7 +138,9 @@ export class MainView extends React.Component {
     globalPointerUp = () => this.isPointerDown = false;
 
     initEventListeners = () => {
-        window.addEventListener("drop", (e) => e.preventDefault(), false); // drop event handler
+        window.addEventListener("drop", (e) => {
+            e.preventDefault();
+        }, false); // drop event handler
         window.addEventListener("dragover", (e) => e.preventDefault(), false); // drag event handler
         // click interactions for the context menu
         document.addEventListener("pointerdown", this.globalPointerDown);
