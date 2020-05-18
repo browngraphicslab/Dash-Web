@@ -104,18 +104,20 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         canvas.height = 640 * (this.layoutDoc._nativeHeight || 0) / (this.layoutDoc._nativeWidth || 1);
         const ctx = canvas.getContext('2d');//draw image to canvas. scale to target dimensions
         if (ctx) {
-            ctx.rect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = "blue";
-            ctx.fill();
+            // ctx.rect(0, 0, canvas.width, canvas.height);
+            // ctx.fillStyle = "blue";
+            // ctx.fill();
             this._videoRef && ctx.drawImage(this._videoRef, 0, 0, canvas.width, canvas.height);
         }
 
         if (!this._videoRef) { // can't find a way to take snapshots of videos
-            const b = Docs.Create.ButtonDocument({
+            const b = Docs.Create.LabelDocument({
                 x: (this.layoutDoc.x || 0) + width, y: (this.layoutDoc.y || 1),
-                _width: 150, _height: 50, title: (this.layoutDoc.currentTimecode || 0).toString()
+                _width: 150, _height: 50, title: (this.layoutDoc.currentTimecode || 0).toString(),
             });
-            b.onClick = ScriptField.MakeScript(`this.currentTimecode = ${(this.layoutDoc.currentTimecode || 0)}`);
+            b.isLinkButton = true;
+            this.props.addDocument?.(b);
+            DocUtils.MakeLink({ doc: b }, { doc: this.rootDoc }, "video snapshot");
         } else {
             //convert to desired file format
             const dataUrl = canvas.toDataURL('image/png'); // can also use 'image/png'
@@ -132,7 +134,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                     Doc.GetProto(imageSummary)["data-nativeWidth"] = this.layoutDoc._nativeWidth;
                     Doc.GetProto(imageSummary)["data-nativeHeight"] = this.layoutDoc._nativeHeight;
                     imageSummary.isLinkButton = true;
-                    this.props.addDocument && this.props.addDocument(imageSummary);
+                    this.props.addDocument?.(imageSummary);
                     DocUtils.MakeLink({ doc: imageSummary }, { doc: this.rootDoc }, "video snapshot");
                 }
             });

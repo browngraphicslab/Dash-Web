@@ -127,7 +127,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         this.addDocument(newBox);
     }
     addDocument = (newBox: Doc | Doc[]) => {
-        if (this.Document.currentTimecode !== undefined) {
+        if (this.Document.currentTimecode !== undefined && !this.props.isAnnotationOverlay) {
             CollectionFreeFormDocumentView.setupKeyframes((newBox instanceof Doc) ? [newBox] : newBox, this.Document.currentTimecode, this.props.Document);
         }
 
@@ -206,7 +206,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                         for (let i = 0; i < droppedDocs.length; i++) {
                             const d = droppedDocs[i];
                             const layoutDoc = Doc.Layout(d);
-                            if (this.Document.currentTimecode !== undefined) {
+                            if (this.Document.currentTimecode !== undefined && !this.props.isAnnotationOverlay) {
                                 CollectionFreeFormDocumentView.setValues(this.Document.currentTimecode, d, x + NumCast(d.x) - dropX, y + NumCast(d.y) - dropY, Cast(d.opacity, "number", null));
                             } else {
                                 d.x = x + NumCast(d.x) - dropX;

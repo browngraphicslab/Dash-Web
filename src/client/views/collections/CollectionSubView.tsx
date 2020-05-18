@@ -356,7 +356,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
 
             if (text) {
                 if (text.includes("www.youtube.com/watch")) {
-                    const url = text.replace("youtube.com/watch?v=", "youtube.com/embed/");
+                    const url = text.replace("youtube.com/watch?v=", "youtube.com/embed/").split("&")[0];
                     addDocument(Docs.Create.VideoDocument(url, {
                         ...options,
                         title: url,
