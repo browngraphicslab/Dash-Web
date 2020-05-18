@@ -257,7 +257,7 @@ export namespace DashUploadUtils {
         });
     }
 
-    function getAccessPaths(directory: Directory, fileName: string) {
+    export function getAccessPaths(directory: Directory, fileName: string) {
         return {
             client: clientPathToFile(directory, fileName),
             server: serverPathToFile(directory, fileName)

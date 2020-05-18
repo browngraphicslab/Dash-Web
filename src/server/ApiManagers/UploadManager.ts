@@ -4,14 +4,18 @@ import * as formidable from 'formidable';
 import v4 = require('uuid/v4');
 const AdmZip = require('adm-zip');
 import { extname, basename, dirname } from 'path';
-import { createReadStream, createWriteStream, unlink } from "fs";
+import { createReadStream, createWriteStream, unlink, writeFile } from "fs";
 import { publicDirectory, filesDirectory } from "..";
 import { Database } from "../database";
 import { DashUploadUtils, InjectSize, SizeSuffix } from "../DashUploadUtils";
 import * as sharp from 'sharp';
 import { AcceptibleMedia, Upload } from "../SharedMediaTypes";
 import { normalize } from "path";
+import RouteSubscriber from "../RouteSubscriber";
 const imageDataUri = require('image-data-uri');
+import { isWebUri } from "valid-url";
+import { launch } from "puppeteer";
+import { Opt } from "../../fields/Doc";
 
 export enum Directory {
     parsed_files = "parsed_files",
@@ -61,10 +65,38 @@ export default class UploadManager extends ApiManager {
         });
 
         register({
-            method: Method.GET,
-            subscription: "/hello",
-            secureHandler: ({ req, res }) => {
-                res.send("<h1>world!</h1>");
+            method: Method.POST,
+            subscription: new RouteSubscriber("youtubeScreenshot"),
+            secureHandler: async ({ req, res }) => {
+                const { url, t } = req.query;
+                const parseUrl = (url: string) => {
+                    url = decodeURIComponent(url)
+                    if (!/^(?:f|ht)tps?\:\/\//.test(url)) {
+                        url = 'http://' + url
+                    }
+                    return url;
+                }
+                let targetUrl: string;
+                if (!url || !t || !isWebUri(targetUrl = parseUrl(url as string))) {
+                    return res.send();
+                }
+                const buffer = await captureYoutubeScreenshot(targetUrl, t as string);
+                if (!buffer) {
+                    return res.send();
+                }
+                const resolvedName = `${targetUrl}@${t}.png`;
+                const resolvedPath = serverPathToFile(Directory.images, resolvedName);
+                writeFile(resolvedPath, buffer, async error => {
+                    if (error) {
+                        return res.send();
+                    }
+                    await DashUploadUtils.outputResizedImages(() => createReadStream(resolvedPath), resolvedName, pathToDirectory(Directory.images));
+                    res.send({
+                        accessPaths: {
+                            agnostic: DashUploadUtils.getAccessPaths(Directory.images, resolvedName)
+                        }
+                    } as Upload.FileInformation);
+                });
             }
         });
 
@@ -244,4 +276,26 @@ export default class UploadManager extends ApiManager {
 
     }
 
+}
+
+/**
+ * On success, returns a buffer containing the bytes of a screenshot
+ * of the video specified by @param url at timecode @param t.
+ * 
+ * On failure, returns undefined.
+ */
+async function captureYoutubeScreenshot(targetUrl: string, t: string): Promise<Opt<Buffer>> {
+    const browser = await launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+    const page = await browser.newPage();
+    await page.setViewport({ width: 1920, height: 1080 });
+
+    await page.goto(targetUrl + '&t=' + t, { waitUntil: 'networkidle0' });
+
+    // hide youtube player controls.
+    await page.evaluate(() => (document.querySelector('.ytp-chrome-bottom') as any).style.display = 'none');
+
+    const buffer = await (await page.$('.html5-video-player'))?.screenshot({ encoding: "binary" });
+    await browser.close();
+
+    return buffer;
 }
