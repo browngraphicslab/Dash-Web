@@ -22,7 +22,7 @@
             display: flex;
             flex-direction: row;
             justify-content: center;
-            overflow-y: hidden;
+            overflow-y: scroll;
 
             .scriptingBox-textArea {
                 flex: 70;
@@ -31,7 +31,7 @@
                 box-sizing: border-box;
                 resize: none;
                 padding: 7px;
-                overflow-y: hidden;
+                overflow-y: scroll;
             }
 
             .scriptingBox-plist {
@@ -43,10 +43,31 @@
                 padding: 2px;
                 overflow-y: scroll;
             }
+
+            .scriptingBox-paramNames {
+                flex: 40;
+                width: 40%;
+                box-sizing: border-box;
+                resize: none;
+                padding: 7px;
+                overflow-y: scroll;
+            }
+
+            .scriptingBox-paramInputs {
+                flex: 60;
+                width: 60%;
+                box-sizing: border-box;
+                resize: none;
+                padding: 2px;
+                overflow-y: scroll;
+            }
         }
 
         .scriptingBox-errorMessage {
             overflow: auto;
+            background: "red";
+            background-color: "red";
+            height: 40px;
         }
 
         .scripting-params {
