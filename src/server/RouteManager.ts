@@ -2,6 +2,7 @@ import RouteSubscriber from "./RouteSubscriber";
 import { DashUserModel } from "./authentication/DashUserModel";
 import { Request, Response, Express } from 'express';
 import { cyan, red, green } from 'colors';
+import { AdminPriviliges } from ".";
 
 export enum Method {
     GET,
@@ -25,6 +26,7 @@ export interface RouteInitializer {
     secureHandler: SecureHandler;
     publicHandler?: PublicHandler;
     errorHandler?: ErrorHandler;
+    requireAdminInRelease?: boolean;
 }
 
 const registered = new Map<string, Set<Method>>();
@@ -84,7 +86,7 @@ export default class RouteManager {
      * @param initializer 
      */
     addSupervisedRoute = (initializer: RouteInitializer): void => {
-        const { method, subscription, secureHandler, publicHandler, errorHandler } = initializer;
+        const { method, subscription, secureHandler, publicHandler, errorHandler, requireAdminInRelease: requireAdmin } = initializer;
 
         typeof (initializer.subscription) === "string" && RouteManager.routes.push(initializer.subscription);
         initializer.subscription instanceof RouteSubscriber && RouteManager.routes.push(initializer.subscription.root);
@@ -94,7 +96,7 @@ export default class RouteManager {
         });
         const isRelease = this._isRelease;
         const supervised = async (req: Request, res: Response) => {
-            let { user } = req;
+            let user = req.user as Partial<DashUserModel> | undefined;
             const { originalUrl: target } = req;
             if (process.env.DB === "MEM" && !user) {
                 user = { id: "guest", email: "", userDocumentId: "guestDocId" };
@@ -113,6 +115,13 @@ export default class RouteManager {
                 }
             };
             if (user) {
+                if (requireAdmin && isRelease && process.env.PASSWORD) {
+                    if (AdminPriviliges.get(user.id)) {
+                        AdminPriviliges.delete(user.id);
+                    } else {
+                        return res.redirect(`/admin/${req.originalUrl.substring(1).replace("/", ":")}`);
+                    }
+                }
                 await tryExecute(secureHandler, { ...core, user });
             } else {
                 req.session!.target = target;

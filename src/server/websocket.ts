@@ -8,13 +8,13 @@ import { Database } from "./database";
 import { Search } from "./Search";
 import * as sio from 'socket.io';
 import YoutubeApi from "./apis/youtube/youtubeApiSample";
-import { GoogleCredentialsLoader, SSLCredentialsLoader } from "./apis/google/CredentialsLoader";
+import { GoogleCredentialsLoader, SSL } from "./apis/google/CredentialsLoader";
 import { timeMap } from "./ApiManagers/UserManager";
 import { green } from "colors";
 import { networkInterfaces } from "os";
 import executeImport from "../scraping/buxton/final/BuxtonImporter";
 import { DocumentsCollection } from "./IDatabase";
-import { createServer } from "https";
+import { createServer, Server } from "https";
 import * as express from "express";
 
 export namespace WebSocket {
@@ -25,21 +25,20 @@ export namespace WebSocket {
     export let disconnect: Function;
     const defaultPort = 4321;
 
-    export function initialize(isRelease: boolean, app: express.Express) {
+    export async function initialize(isRelease: boolean, app: express.Express) {
         let io: sio.Server;
-        const log = (port: number) => {
-            logPort("websocket", port);
-            console.log();
-        }
+        let resolved: number;
         if (isRelease) {
             const { socketPort } = process.env;
-            const resolved = socketPort ? Number(socketPort) : defaultPort;
-            const socketEndpoint = createServer(SSLCredentialsLoader.Credentials, app).listen(resolved, () => log(resolved));
-            io = sio(socketEndpoint, SSLCredentialsLoader.Credentials as any);
+            resolved = socketPort ? Number(socketPort) : defaultPort;
+            let socketEndpoint: Server;
+            await new Promise<void>(resolve => socketEndpoint = createServer(SSL.Credentials, app).listen(resolved, resolve));
+            io = sio(socketEndpoint!, SSL.Credentials as any);
         } else {
-            io = sio().listen(defaultPort);
-            log(defaultPort);
+            io = sio().listen(resolved = defaultPort);
         }
+        logPort("websocket", resolved);
+        console.log();
 
         io.on("connection", function (socket: Socket) {
             _socket = socket;
