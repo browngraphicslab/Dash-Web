@@ -1,6 +1,6 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import {
-    faTrashAlt, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
+    faTasks, faTrashAlt, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
     faTerminal, faToggleOn, faFile as fileSolid, faExternalLinkAlt, faLocationArrow, faSearch, faFileDownload, faStop, faCalculator, faWindowMaximize, faAddressCard,
     faQuestionCircle, faArrowLeft, faArrowRight, faArrowDown, faArrowUp, faBolt, faBullseye, faCaretUp, faCat, faCheck, faChevronRight, faClipboard, faClone, faCloudUploadAlt,
     faCommentAlt, faCompressArrowsAlt, faCut, faEllipsisV, faEraser, faExclamation, faFileAlt, faFileAudio, faFilePdf, faFilm, faFilter, faFont, faGlobeAsia, faHighlighter,
@@ -50,7 +50,6 @@ import PDFMenu from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
 import { ScriptField } from '../../fields/ScriptField';
 import { TimelineMenu } from './animationtimeline/TimelineMenu';
-import { DragManager } from '../util/DragManager';
 import { SnappingManager } from '../util/SnappingManager';
 
 @observer
@@ -114,78 +113,12 @@ export class MainView extends React.Component {
             }
         }
 
-        library.add(faTrashAlt);
-        library.add(faAngleRight);
-        library.add(faBell);
-        library.add(faTrash);
-        library.add(faCamera);
-        library.add(faExpand);
-        library.add(faCaretDown);
-        library.add(faCaretUp);
-        library.add(faCaretLeft);
-        library.add(faCaretRight);
-        library.add(faCaretSquareDown);
-        library.add(faCaretSquareRight);
-        library.add(faArrowsAltH);
-        library.add(faPlus, faMinus);
-        library.add(faTerminal);
-        library.add(faToggleOn);
-        library.add(faLocationArrow);
-        library.add(faSearch);
-        library.add(fileSolid);
-        library.add(faFileDownload);
-        library.add(faStop);
-        library.add(faCalculator);
-        library.add(faWindowMaximize);
-        library.add(faFileAlt);
-        library.add(faAddressCard);
-        library.add(faQuestionCircle);
-        library.add(faStickyNote);
-        library.add(faFont);
-        library.add(faExclamation);
-        library.add(faPortrait);
-        library.add(faCat);
-        library.add(faFilePdf);
-        library.add(faObjectGroup);
-        library.add(faTv);
-        library.add(faGlobeAsia);
-        library.add(faUndoAlt);
-        library.add(faRedoAlt);
-        library.add(faMousePointer);
-        library.add(faPen);
-        library.add(faHighlighter);
-        library.add(faEraser);
-        library.add(faFileAudio);
-        library.add(faPenNib);
-        library.add(faMicrophone);
-        library.add(faFilm);
-        library.add(faMusic);
-        library.add(faTree);
-        library.add(faPlay);
-        library.add(faCompressArrowsAlt);
-        library.add(faPause);
-        library.add(faClone);
-        library.add(faCut);
-        library.add(faCommentAlt);
-        library.add(faThumbtack);
-        library.add(faLongArrowAltRight);
-        library.add(faCheck);
-        library.add(faFilter);
-        library.add(faBullseye);
-        library.add(faArrowLeft);
-        library.add(faArrowRight);
-        library.add(faArrowDown);
-        library.add(faArrowUp);
-        library.add(faCloudUploadAlt);
-        library.add(faBolt);
-        library.add(faVideo);
-        library.add(faChevronRight);
-        library.add(faEllipsisV);
-        library.add(faMusic);
-        library.add(faPhone);
-        library.add(faClipboard);
-        library.add(faStamp);
-        library.add(faExternalLinkAlt);
+        library.add(faTasks, faTrashAlt, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
+            faTerminal, faToggleOn, faExternalLinkAlt, faLocationArrow, faSearch, faFileDownload, faStop, faCalculator, faWindowMaximize, faAddressCard, fileSolid,
+            faQuestionCircle, faArrowLeft, faArrowRight, faArrowDown, faArrowUp, faBolt, faBullseye, faCaretUp, faCat, faCheck, faChevronRight, faClipboard, faClone, faCloudUploadAlt,
+            faCommentAlt, faCompressArrowsAlt, faCut, faEllipsisV, faEraser, faExclamation, faFileAlt, faFileAudio, faFilePdf, faFilm, faFilter, faFont, faGlobeAsia, faHighlighter,
+            faLongArrowAltRight, faMicrophone, faMousePointer, faMusic, faObjectGroup, faPause, faPen, faPenNib, faPhone, faPlay, faPortrait, faRedoAlt, faStamp, faStickyNote, faTrashAlt, faAngleRight, faBell,
+            faThumbtack, faTree, faTv, faUndoAlt, faVideo);
         this.initEventListeners();
         this.initAuthenticationRouters();
     }

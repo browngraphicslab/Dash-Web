@@ -348,5 +348,6 @@ Scripting.addGlobal(function lookupPresBoxField(container: Doc, field: string, d
     if (field === 'presCollapsedHeight') return container._viewType === CollectionViewType.Stacking ? 50 : 46;
     if (field === 'presStatus') return container.presStatus;
     if (field === '_itemIndex') return container._itemIndex;
+    if (field === 'presBox') return container;
     return undefined;
 });
