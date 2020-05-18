@@ -26,7 +26,7 @@ export interface RouteInitializer {
     secureHandler: SecureHandler;
     publicHandler?: PublicHandler;
     errorHandler?: ErrorHandler;
-    requireAdminInRelease?: boolean;
+    requireAdminInRelease?: true;
 }
 
 const registered = new Map<string, Set<Method>>();
