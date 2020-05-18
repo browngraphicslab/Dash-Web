@@ -296,11 +296,12 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         (this.layoutDoc.forceActive || this.props.isSelected(outsideReaction) || this._isChildActive || this.props.renderDepth === 0) ? true : false)
 
     render() {
-        console.log("render = " + this.layoutDoc.title + " " + this.layoutDoc.presStatus);
-        const presOrderedDocs = DocListCast(this.rootDoc.presOrderedDocs);
-        if (presOrderedDocs.length != this.childDocs.length || presOrderedDocs.some((pd, i) => pd !== this.childDocs[i])) {
-            this.rootDoc.presOrderedDocs = new List<Doc>(this.childDocs.slice());
-        }
+        // console.log("render = " + this.layoutDoc.title + " " + this.layoutDoc.presStatus);
+        // const presOrderedDocs = DocListCast(this.rootDoc.presOrderedDocs);
+        // if (presOrderedDocs.length != this.childDocs.length || presOrderedDocs.some((pd, i) => pd !== this.childDocs[i])) {
+        //     this.rootDoc.presOrderedDocs = new List<Doc>(this.childDocs.slice());
+        // }
+        this.childDocs.slice(); // needed to insure that the childDocs are loaded for looking up fields 
         const mode = StrCast(this.rootDoc._viewType) as CollectionViewType;
         return <div className="presBox-cont" style={{ minWidth: this.layoutDoc.inOverlay ? 240 : undefined }} >
             <div className="presBox-buttons" style={{ display: this.rootDoc._chromeStatus === "disabled" ? "none" : undefined }}>
