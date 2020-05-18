@@ -186,16 +186,17 @@ export class MainView extends React.Component {
             _LODdisable: true
         };
         const freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
-        const mainDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600, path: [Doc.UserDoc().myCatalog as Doc] }], { title: `Workspace ${workspaceCount}` }, id, "row");
+        const workspaceDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600, path: [Doc.UserDoc().myCatalog as Doc] }], { title: `Workspace ${workspaceCount}` }, id, "row");
 
         const toggleTheme = ScriptField.MakeScript(`self.darkScheme = !self.darkScheme`);
         const toggleComic = ScriptField.MakeScript(`toggleComicMode()`);
-        mainDoc.contextMenuScripts = new List<ScriptField>([toggleTheme!, toggleComic!]);
-        mainDoc.contextMenuLabels = new List<string>(["Toggle Theme Colors", "Toggle Comic Mode"]);
+        const cloneWorkspace = ScriptField.MakeScript(`cloneWorkspace()`);
+        workspaceDoc.contextMenuScripts = new List<ScriptField>([toggleTheme!, toggleComic!, cloneWorkspace!]);
+        workspaceDoc.contextMenuLabels = new List<string>(["Toggle Theme Colors", "Toggle Comic Mode", "New Workspace Layout"]);
 
-        Doc.AddDocToList(workspaces, "data", mainDoc);
+        Doc.AddDocToList(workspaces, "data", workspaceDoc);
         // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
-        setTimeout(() => this.openWorkspace(mainDoc), 0);
+        setTimeout(() => this.openWorkspace(workspaceDoc), 0);
     }
 
     @action
@@ -564,3 +565,10 @@ export class MainView extends React.Component {
 }
 Scripting.addGlobal(function freezeSidebar() { MainView.expandFlyout(); });
 Scripting.addGlobal(function toggleComicMode() { Doc.UserDoc().fontFamily = "Comic Sans MS"; Doc.UserDoc().renderStyle = Doc.UserDoc().renderStyle === "comic" ? undefined : "comic" });
+Scripting.addGlobal(function cloneWorkspace() {
+    const copiedWorkspace = Doc.MakeCopy(Cast(Doc.UserDoc().activeWorkspace, Doc, null), true);
+    const workspaces = Cast(Doc.UserDoc().myWorkspaces, Doc, null);
+    Doc.AddDocToList(workspaces, "data", copiedWorkspace);
+    // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
+    setTimeout(() => MainView.Instance.openWorkspace(copiedWorkspace), 0);
+});

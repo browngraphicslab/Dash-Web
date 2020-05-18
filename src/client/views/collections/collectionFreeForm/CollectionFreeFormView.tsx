@@ -1179,8 +1179,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 this._timelineVisible = !this._timelineVisible;
             }), icon: this._timelineVisible ? faEyeSlash : faEye
         });
-        ContextMenu.Instance.addItem({ description: "Advance", event: this.nextKeyframe, icon: BoolCast(this.Document.lockedTransform) ? "unlock" : "lock" });
-        ContextMenu.Instance.addItem({ description: "Backup ", event: this.prevKeyframe, icon: BoolCast(this.Document.lockedTransform) ? "unlock" : "lock" });
 
         const options = ContextMenu.Instance.findByDescription("Options...");
         const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
