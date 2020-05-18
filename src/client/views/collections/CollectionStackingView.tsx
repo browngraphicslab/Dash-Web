@@ -26,6 +26,7 @@ import { CollectionStackingViewFieldColumn } from "./CollectionStackingViewField
 import { CollectionSubView } from "./CollectionSubView";
 import { CollectionViewType } from "./CollectionView";
 import { SnappingManager } from "../../util/SnappingManager";
+import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
 const _global = (window /* browser */ || global /* node */) as any;
 
 type StackingDocument = makeInterface<[typeof collectionSchema, typeof documentSchema]>;
@@ -191,8 +192,8 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
     }
 
     getDisplayDoc(doc: Doc, dataDoc: Doc | undefined, dxf: () => Transform, width: () => number) {
-        const layoutDoc = Doc.Layout(doc, this.props.ChildLayoutTemplate?.());
         const height = () => this.getDocHeight(doc);
+        const opacity = () => this.Document.currentTimecode === undefined ? this.props.childOpacity?.() : CollectionFreeFormDocumentView.getValues(doc, this.Document.currentTimecode || 0)?.opacity;
         return <ContentFittingDocumentView
             Document={doc}
             DataDoc={dataDoc || (doc[DataSym] !== doc && doc[DataSym])}
@@ -213,7 +214,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
             onClick={this.onChildClickHandler}
             onDoubleClick={this.onChildDoubleClickHandler}
             ScreenToLocalTransform={dxf}
-            opacity={this.props.childOpacity}
+            opacity={opacity}
             focus={this.focusDocument}
             ContainingCollectionDoc={this.props.CollectionView?.props.Document}
             ContainingCollectionView={this.props.CollectionView}
