@@ -2,27 +2,21 @@
     background: white;
     height: 100%;
 
-    .collectionCarouselView-center-container {
+    .collectionCarouselView-image {
+        overflow: hidden; //fix ContentFittingView size
+        position: absolute;
+        height: 100%;
         width: 70%;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
         margin: auto;
-        overflow: hidden; //fix ContentFittingView position!!
-
-        .collectionCarouselView-caption {
-            height: 50;
-            display: inline-block;
-            width: 100%;
-            margin: auto;
-        }
-
-        .collectionCarouselView-image {
-            height: calc(100% - 50px);
-            width: 70%;
-            display: inline-block;
-            user-select: none;
-        }
+        user-select: none;
     }
 
     .collectionCarouselView-prev {
+        overflow: hidden;
         position: absolute;
         height: 50%;
         width: 50%;
@@ -32,6 +26,7 @@
     }
 
     .collectionCarouselView-next {
+        overflow: hidden;
         position: absolute;
         height: 50%;
         width: 50%;
