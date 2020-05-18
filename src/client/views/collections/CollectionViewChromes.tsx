@@ -75,6 +75,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
             case CollectionViewType.Freeform: return this._freeform_commands;
             case CollectionViewType.Time: return this._freeform_commands;
             case CollectionViewType.Carousel: return this._freeform_commands;
+            case CollectionViewType.Carousel3D: return this._freeform_commands;
         }
         return [];
     }

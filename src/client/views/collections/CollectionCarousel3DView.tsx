@@ -2,21 +2,20 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { observable, computed } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
-import { documentSchema } from '../../../new_fields/documentSchemas';
-import { makeInterface } from '../../../new_fields/Schema';
-import { NumCast, StrCast } from '../../../new_fields/Types';
+import { documentSchema, collectionSchema } from '../../../fields/documentSchemas';
+import { makeInterface } from '../../../fields/Schema';
+import { NumCast, StrCast, ScriptCast, Cast } from '../../../fields/Types';
 import { DragManager } from '../../util/DragManager';
 import { ContentFittingDocumentView } from '../nodes/ContentFittingDocumentView';
 import "./CollectionCarousel3DView.scss";
 import { CollectionSubView } from './CollectionSubView';
-import { faCaretLeft, faCaretRight } from '@fortawesome/free-solid-svg-icons';
-import { Doc } from '../../../new_fields/Doc';
-import { FormattedTextBox } from '../nodes/formattedText/FormattedTextBox';
+import { Doc } from '../../../fields/Doc';
 import { ContextMenu } from '../ContextMenu';
-import { ObjectField } from '../../../new_fields/ObjectField';
+import { ObjectField } from '../../../fields/ObjectField';
+import { returnFalse } from '../../../Utils';
 
-type Carousel3DDocument = makeInterface<[typeof documentSchema,]>;
-const Carousel3DDocument = makeInterface(documentSchema);
+type Carousel3DDocument = makeInterface<[typeof documentSchema, typeof collectionSchema]>;
+const Carousel3DDocument = makeInterface(documentSchema, collectionSchema);
 
 @observer
 export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocument) {
@@ -39,44 +38,37 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
         e.stopPropagation();
         this.layoutDoc._itemIndex = (NumCast(this.layoutDoc._itemIndex) - 1 + this.childLayoutPairs.length) % this.childLayoutPairs.length;
     }
-
     panelHeight = () => this.props.PanelHeight() - 50;
     @computed get content() {
         const index = NumCast(this.layoutDoc._itemIndex);
         return !(this.childLayoutPairs?.[index]?.layout instanceof Doc) ? (null) :
             <>
-                <div className="collectionCarouselView-prev"></div>
-                <div className="collectionCarouselView-next"></div>
-                <div className="collectionCarouselView-center-container">
-                    <div className="collectionCarouselView-image" key="image">
-                        <ContentFittingDocumentView {...this.props}
-                            renderDepth={this.props.renderDepth + 1}
-                            Document={this.childLayoutPairs[index].layout}
-                            DataDocument={this.childLayoutPairs[index].data}
-                            PanelHeight={this.panelHeight}
-                            getTransform={this.props.ScreenToLocalTransform} />
-                    </div>
-                    <div className="collectionCarouselView-caption" key="caption"
-                        style={{
-                            background: StrCast(this.layoutDoc._captionBackgroundColor, this.props.backgroundColor?.(this.props.Document)),
-                            color: StrCast(this.layoutDoc._captionColor, StrCast(this.layoutDoc.color)),
-                            borderRadius: StrCast(this.layoutDoc._captionBorderRounding),
-                        }}>
-                        <FormattedTextBox key={index} {...this.props}
-                            xMargin={NumCast(this.layoutDoc["caption-xMargin"])}
-                            yMargin={NumCast(this.layoutDoc["caption-yMargin"])}
-                            Document={this.childLayoutPairs[index].layout} DataDoc={undefined} fieldKey={"caption"}></FormattedTextBox>
-                    </div>
+                <div className="collectionCarouselView-prev" />
+                <div className="collectionCarouselView-next" />
+                <div className="collectionCarouselView-image" key="image">
+                    <ContentFittingDocumentView {...this.props}
+                        onDoubleClick={ScriptCast(this.layoutDoc.onChildDoubleClick)}
+                        onClick={ScriptCast(this.layoutDoc.onChildClick)}
+                        renderDepth={this.props.renderDepth + 1}
+                        LayoutTemplate={this.props.ChildLayoutTemplate}
+                        LayoutTemplateString={this.props.ChildLayoutString}
+                        Document={this.childLayoutPairs[index].layout}
+                        DataDoc={this.childLayoutPairs[index].data}
+                        PanelHeight={this.panelHeight}
+                        ScreenToLocalTransform={this.props.ScreenToLocalTransform}
+                        bringToFront={returnFalse}
+                        parentActive={this.props.active}
+                    />
                 </div>
             </>;
     }
     @computed get buttons() {
         return <>
             <div key="back" className="carouselView-back" style={{ background: `${StrCast(this.props.Document.backgroundColor)}` }} onClick={this.goback}>
-                <FontAwesomeIcon icon={faCaretLeft} size={"2x"} />
+                <FontAwesomeIcon icon={"caret-left"} size={"2x"} />
             </div>
             <div key="fwd" className="carouselView-fwd" style={{ background: `${StrCast(this.props.Document.backgroundColor)}` }} onClick={this.advance}>
-                <FontAwesomeIcon icon={faCaretRight} size={"2x"} />
+                <FontAwesomeIcon icon={"caret-right"} size={"2x"} />
             </div>
         </>;
     }
