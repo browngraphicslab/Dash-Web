@@ -6,14 +6,14 @@ import { Id } from "../../../fields/FieldSymbols";
 import { List } from "../../../fields/List";
 import { listSpec } from "../../../fields/Schema";
 import { ScriptField } from "../../../fields/ScriptField";
-import { Cast, ScriptCast } from "../../../fields/Types";
+import { Cast, ScriptCast, NumCast } from "../../../fields/Types";
 import { GestureUtils } from "../../../pen-gestures/GestureUtils";
 import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 import { Upload } from "../../../server/SharedMediaTypes";
 import { Utils } from "../../../Utils";
 import { GooglePhotos } from "../../apis/google_docs/GooglePhotosClientUtils";
 import { DocServer } from "../../DocServer";
-import { Docs, DocumentOptions } from "../../documents/Documents";
+import { Docs, DocumentOptions, DocUtils } from "../../documents/Documents";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { Networking } from "../../Network";
 import { DragManager, dropActionType } from "../../util/DragManager";
@@ -25,6 +25,8 @@ import { FieldViewProps } from "../nodes/FieldView";
 import { FormattedTextBox, GoogleRef } from "../nodes/formattedText/FormattedTextBox";
 import { CollectionView } from "./CollectionView";
 import React = require("react");
+import { SelectionManager } from "../../util/SelectionManager";
+import { WebField } from "../../../fields/URLField";
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Doc | Doc[]) => boolean;
@@ -44,7 +46,7 @@ export interface SubCollectionViewProps extends CollectionViewProps {
     CollectionView: Opt<CollectionView>;
     children?: never | (() => JSX.Element[]) | React.ReactNode;
     ChildLayoutTemplate?: () => Doc;
-    childOpacity?:() => number;
+    childOpacity?: () => number;
     ChildLayoutString?: string;
     childClickScript?: ScriptField;
     childDoubleClickScript?: ScriptField;
@@ -324,9 +326,28 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                                 }
                             });
                         } else {
-                            const htmlDoc = Docs.Create.HtmlDocument(html, { ...options, title: "-web page-", _width: 300, _height: 300 });
+                            let srcUrl: string | undefined;
+                            let srcWeb: Doc | undefined;
+                            if (SelectionManager.SelectedDocuments().length) {
+                                srcWeb = SelectionManager.SelectedDocuments()[0].props.Document;
+                                srcUrl = (srcWeb.data as WebField).url.href.match(/http[s]?:\/\/[^/]*/)?.[0];
+                            }
+                            let reg = new RegExp(Utils.prepend(""), "g");
+                            const modHtml = srcUrl ? html.replace(reg, srcUrl) : html;
+                            const htmlDoc = Docs.Create.HtmlDocument(modHtml, { ...options, title: "-web page-", _width: 300, _height: 300 });
                             Doc.GetProto(htmlDoc)["data-text"] = text;
                             this.props.addDocument(htmlDoc);
+                            if (srcWeb) {
+                                const focusNode = (SelectionManager.SelectedDocuments()[0].ContentDiv?.getElementsByTagName("iframe")[0].contentDocument?.getSelection()?.focusNode as any);
+                                const rect = "getBoundingClientRect" in focusNode ? focusNode.getBoundingClientRect() : focusNode?.parentElement.getBoundingClientRect();
+                                const x = (rect?.x || 0);
+                                const y = NumCast(srcWeb.scrollTop) + (rect?.y || 0);
+                                const anchor = Docs.Create.FreeformDocument([], { _LODdisable: true, _backgroundColor: "transparent", _width: 25, _height: 25, x, y, annotationOn: srcWeb });
+                                anchor.context = srcWeb;
+                                const key = Doc.LayoutFieldKey(srcWeb);
+                                Doc.AddDocToList(srcWeb, key + "-annotations", anchor);
+                                DocUtils.MakeLink({ doc: htmlDoc }, { doc: anchor });
+                            }
                         }
                         return;
                     }
@@ -335,7 +356,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
 
             if (text) {
                 if (text.includes("www.youtube.com/watch")) {
-                    const url = text.replace("youtube.com/watch?v=", "youtube.com/embed/");
+                    const url = text.replace("youtube.com/watch?v=", "youtube.com/embed/").split("&")[0];
                     addDocument(Docs.Create.VideoDocument(url, {
                         ...options,
                         title: url,

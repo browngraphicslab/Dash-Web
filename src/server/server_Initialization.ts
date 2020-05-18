@@ -10,6 +10,7 @@ import { Database } from './database';
 import { getForgot, getLogin, getLogout, getReset, getSignup, postForgot, postLogin, postReset, postSignup } from './authentication/AuthenticationManager';
 const MongoStore = require('connect-mongo')(session);
 import RouteManager from './RouteManager';
+import { WebSocket } from './websocket';
 import * as webpack from 'webpack';
 const config = require('../../webpack.config');
 const compiler = webpack(config);
@@ -20,10 +21,11 @@ import * as request from 'request';
 import RouteSubscriber from './RouteSubscriber';
 import { publicDirectory } from '.';
 import { logPort, pathFromRoot, } from './ActionUtilities';
-import { blue, yellow } from 'colors';
+import { blue, yellow, red } from 'colors';
 import * as cors from "cors";
-import { createServer, Server as SecureServer } from "https";
-import { Server } from "http";
+import { createServer, Server as HttpsServer } from "https";
+import { Server as HttpServer } from "http";
+import { SSL } from './apis/google/CredentialsLoader';
 
 /* RouteSetter is a wrapper around the server that prevents the server
    from being exposed. */
@@ -47,28 +49,23 @@ export default async function InitializeServer(routeSetter: RouteSetter) {
 
     const isRelease = determineEnvironment();
 
+    isRelease && !SSL.Loaded && SSL.exit();
+
     routeSetter(new RouteManager(app, isRelease));
     registerRelativePath(app);
 
+    let server: HttpServer | HttpsServer;
     const { serverPort } = process.env;
     const resolved = isRelease && serverPort ? Number(serverPort) : 1050;
+    await new Promise<void>(resolve => server = isRelease ?
+        createServer(SSL.Credentials, app).listen(resolved, resolve) :
+        app.listen(resolved, resolve)
+    );
+    logPort("server", resolved);
 
-    let server: Server | SecureServer;
-    if (isRelease) {
-        server = createServer({
-            key: fs.readFileSync(pathFromRoot(`./${process.env.serverName}.key`)),
-            cert: fs.readFileSync(pathFromRoot(`./${process.env.serverName}.crt`))
-        }, app);
-        (server as SecureServer).listen(resolved, () => {
-            logPort("server", resolved);
-            console.log();
-        });
-    } else {
-        server = app.listen(resolved, () => {
-            logPort("server", resolved);
-            console.log();
-        });
-    }
+    // initialize the web socket (bidirectional communication: if a user changes
+    // a field on one client, that change must be broadcast to all other clients)
+    WebSocket.initialize(isRelease, app);
 
     disconnect = async () => new Promise<Error>(resolve => server.close(resolve));
     return isRelease;

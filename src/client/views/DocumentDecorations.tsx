@@ -21,6 +21,7 @@ import { Id } from '../../fields/FieldSymbols';
 import e = require('express');
 import { CollectionDockingView } from './collections/CollectionDockingView';
 import { SnappingManager } from '../util/SnappingManager';
+import { HtmlField } from '../../fields/HtmlField';
 
 library.add(faCaretUp);
 library.add(faObjectGroup);
@@ -289,7 +290,9 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         let dX = 0, dY = 0, dW = 0, dH = 0;
         const unfreeze = () =>
             SelectionManager.SelectedDocuments().forEach(action((element: DocumentView) =>
-                (element.rootDoc.type === DocumentType.RTF && element.layoutDoc._nativeHeight) && element.toggleNativeDimensions()));
+                ((element.rootDoc.type === DocumentType.RTF ||
+                    (element.rootDoc.type === DocumentType.WEB && Doc.LayoutField(element.rootDoc) instanceof HtmlField))
+                    && element.layoutDoc._nativeHeight) && element.toggleNativeDimensions()));
         switch (this._resizeHdlId) {
             case "": break;
             case "documentDecorations-topLeftResizer":

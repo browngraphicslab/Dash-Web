@@ -96,7 +96,7 @@ class DocumentViewer extends React.Component<{ field: Doc }> {
             content = (
                 <div>
                     Document ({this.props.field[Id]})
-                <div style={{ paddingLeft: "25px" }}>
+                    <div style={{ paddingLeft: "25px" }}>
                         {fields}
                     </div>
                 </div>

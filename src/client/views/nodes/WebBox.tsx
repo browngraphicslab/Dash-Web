@@ -22,6 +22,9 @@ import React = require("react");
 import * as WebRequest from 'web-request';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
+import { ContextMenu } from "../ContextMenu";
+import { ContextMenuProps } from "../ContextMenuItem";
+import { undoBatch } from "../../util/UndoManager";
 const htmlToText = require("html-to-text");
 
 library.add(faStickyNote);
@@ -33,7 +36,7 @@ const WebDocument = makeInterface(documentSchema);
 export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocument>(WebDocument) {
 
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(WebBox, fieldKey); }
-    get _collapsed() { return StrCast(this.layoutDoc._chromeStatus) === "disabled"; }
+    get _collapsed() { return StrCast(this.layoutDoc._chromeStatus) !== "enabled"; }
     set _collapsed(value) { this.layoutDoc._chromeStatus = !value ? "enabled" : "disabled"; }
     @observable private _url: string = "hello";
     @observable private _pressX: number = 0;
@@ -48,11 +51,13 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     private _setPreviewCursor: undefined | ((x: number, y: number, drag: boolean) => void);
 
     iframeLoaded = action((e: any) => {
-        if (this._iframeRef.current?.contentDocument) {
-            this._iframeRef.current.contentDocument.addEventListener('pointerdown', this.iframedown, false);
-            this._iframeRef.current.contentDocument.addEventListener('scroll', this.iframeScrolled, false);
-            this.layoutDoc.scrollHeight = this._iframeRef.current.contentDocument.children?.[0].scrollHeight || 1000;
-            this._iframeRef.current.contentDocument.children[0].scrollTop = NumCast(this.layoutDoc.scrollTop);
+        const iframe = this._iframeRef.current;
+        if (iframe && iframe.contentDocument) {
+            iframe.setAttribute("enable-annotation", "true");
+            iframe.contentDocument.addEventListener('pointerdown', this.iframedown, false);
+            iframe.contentDocument.addEventListener('scroll', this.iframeScrolled, false);
+            this.layoutDoc.scrollHeight = iframe.contentDocument.children?.[0].scrollHeight || 1000;
+            iframe.contentDocument.children[0].scrollTop = NumCast(this.layoutDoc.scrollTop);
         }
         this._reactionDisposer?.();
         this._reactionDisposer = reaction(() => this.layoutDoc.scrollY,
@@ -77,8 +82,6 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
 
         this.setURL();
 
-        this._iframeRef.current!.setAttribute("enable-annotation", "true");
-
         document.addEventListener("pointerup", this.onLongPressUp);
         document.addEventListener("pointermove", this.onLongPressMove);
         const field = Cast(this.rootDoc[this.props.fieldKey], WebField);
@@ -86,11 +89,13 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
             const youtubeaspect = 400 / 315;
             const nativeWidth = NumCast(this.layoutDoc._nativeWidth);
             const nativeHeight = NumCast(this.layoutDoc._nativeHeight);
-            if (!nativeWidth || !nativeHeight || Math.abs(nativeWidth / nativeHeight - youtubeaspect) > 0.05) {
-                if (!nativeWidth) this.layoutDoc._nativeWidth = 600;
-                this.layoutDoc._nativeHeight = NumCast(this.layoutDoc._nativeWidth) / youtubeaspect;
-                this.layoutDoc._height = NumCast(this.layoutDoc._width) / youtubeaspect;
-            }
+            if (field) {
+                if (!nativeWidth || !nativeHeight || Math.abs(nativeWidth / nativeHeight - youtubeaspect) > 0.05) {
+                    if (!nativeWidth) this.layoutDoc._nativeWidth = 600;
+                    this.layoutDoc._nativeHeight = NumCast(this.layoutDoc._nativeWidth) / youtubeaspect;
+                    this.layoutDoc._height = NumCast(this.layoutDoc._width) / youtubeaspect;
+                }
+            } // else it's an HTMLfield
         } else if (field?.url) {
             const result = await WebRequest.get(Utils.CorsProxy(field.url.href));
             this.dataDoc.text = htmlToText.fromString(result.content);
@@ -101,8 +106,8 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         this._reactionDisposer?.();
         document.removeEventListener("pointerup", this.onLongPressUp);
         document.removeEventListener("pointermove", this.onLongPressMove);
-        this._iframeRef.current!.contentDocument?.removeEventListener('pointerdown', this.iframedown);
-        this._iframeRef.current!.contentDocument?.removeEventListener('scroll', this.iframeScrolled);
+        this._iframeRef.current?.contentDocument?.removeEventListener('pointerdown', this.iframedown);
+        this._iframeRef.current?.contentDocument?.removeEventListener('scroll', this.iframeScrolled);
     }
 
     @action
@@ -112,6 +117,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
 
     @action
     submitURL = () => {
+        if (!this._url.startsWith("http")) this._url = "http://" + this._url;
         this.dataDoc[this.props.fieldKey] = new WebField(new URL(this._url));
     }
 
@@ -308,6 +314,20 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         }
     }
 
+
+    @undoBatch
+    @action
+    toggleNativeDimensions = () => {
+        Doc.toggleNativeDimensions(this.layoutDoc, this.props.ContentScaling(), this.props.NativeWidth(), this.props.NativeHeight());
+    }
+    specificContextMenu = (e: React.MouseEvent): void => {
+        const cm = ContextMenu.Instance;
+        const funcs: ContextMenuProps[] = [];
+        funcs.push({ description: (!this.layoutDoc._nativeWidth || !this.layoutDoc._nativeHeight ? "Freeze" : "Unfreeze") + " Aspect", event: this.toggleNativeDimensions, icon: "snowflake" });
+        cm.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
+
+    }
+
     //const href = "https://brown365-my.sharepoint.com/personal/bcz_ad_brown_edu/_layouts/15/Doc.aspx?sourcedoc={31aa3178-4c21-4474-b367-877d0a7135e4}&action=embedview&wdStartOn=1";
 
     @computed
@@ -356,14 +376,20 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                 width: Number.isFinite(this.props.ContentScaling()) ? `${100 / this.props.ContentScaling()}%` : "100%",
                 height: Number.isFinite(this.props.ContentScaling()) ? `${100 / this.props.ContentScaling()}%` : "100%",
                 pointerEvents: this.layoutDoc.isBackground ? "none" : undefined
-            }} >
+            }}
+            onContextMenu={this.specificContextMenu}>
+            <base target="_blank" />
             {this.content}
             <div className={"webBox-outerContent"} ref={this._outerRef}
                 style={{ pointerEvents: this.layoutDoc.isAnnotating && !this.layoutDoc.isBackground ? "all" : "none" }}
                 onWheel={e => e.stopPropagation()}
                 onScroll={e => {
-                    if (this._iframeRef.current!.contentDocument!.children[0].scrollTop !== this._outerRef.current!.scrollTop) {
-                        this._iframeRef.current!.contentDocument!.children[0].scrollTop = this._outerRef.current!.scrollTop;
+                    const iframe = this._iframeRef?.current?.contentDocument;
+                    const outerFrame = this._outerRef.current;
+                    if (iframe && outerFrame) {
+                        if (iframe.children[0].scrollTop !== outerFrame.scrollTop) {
+                            iframe.children[0].scrollTop = outerFrame.scrollTop;
+                        }
                     }
                     //this._outerRef.current!.scrollTop !== this._scrollTop && (this._outerRef.current!.scrollTop = this._scrollTop)
                 }}>
