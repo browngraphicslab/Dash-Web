@@ -36,7 +36,7 @@ const WebDocument = makeInterface(documentSchema);
 export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocument>(WebDocument) {
 
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(WebBox, fieldKey); }
-    get _collapsed() { return StrCast(this.layoutDoc._chromeStatus) === "disabled"; }
+    get _collapsed() { return StrCast(this.layoutDoc._chromeStatus) !== "enabled"; }
     set _collapsed(value) { this.layoutDoc._chromeStatus = !value ? "enabled" : "disabled"; }
     @observable private _url: string = "hello";
     @observable private _pressX: number = 0;
@@ -117,6 +117,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
 
     @action
     submitURL = () => {
+        if (!this._url.startsWith("http")) this._url = "http://" + this._url;
         this.dataDoc[this.props.fieldKey] = new WebField(new URL(this._url));
     }
 
@@ -377,6 +378,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                 pointerEvents: this.layoutDoc.isBackground ? "none" : undefined
             }}
             onContextMenu={this.specificContextMenu}>
+            <base target="_blank" />
             {this.content}
             <div className={"webBox-outerContent"} ref={this._outerRef}
                 style={{ pointerEvents: this.layoutDoc.isAnnotating && !this.layoutDoc.isBackground ? "all" : "none" }}
