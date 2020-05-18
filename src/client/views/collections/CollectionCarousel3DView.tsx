@@ -40,6 +40,10 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
         this.layoutDoc._itemIndex = (NumCast(this.layoutDoc._itemIndex) - 1 + this.childLayoutPairs.length) % this.childLayoutPairs.length;
     }
 
+    mainPanelWidth = () => this.props.PanelWidth() * 0.6;
+    sidePanelWidth = () => this.props.PanelWidth() * 0.3;
+    sidePanelHeight = () => this.props.PanelHeight() * 0.5;
+
     @computed get content() {
         const index = NumCast(this.layoutDoc._itemIndex);
         const prevIndex = (index - 1 + this.childLayoutPairs.length) % this.childLayoutPairs.length;
@@ -55,7 +59,8 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
                         LayoutTemplateString={this.props.ChildLayoutString}
                         Document={this.childLayoutPairs[prevIndex].layout}
                         DataDoc={this.childLayoutPairs[prevIndex].data}
-                        PanelHeight={this.props.PanelHeight}
+                        PanelWidth={this.sidePanelWidth}
+                        PanelHeight={this.sidePanelHeight}
                         ScreenToLocalTransform={this.props.ScreenToLocalTransform}
                         bringToFront={returnFalse}
                         parentActive={this.props.active}
@@ -70,7 +75,8 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
                         LayoutTemplateString={this.props.ChildLayoutString}
                         Document={this.childLayoutPairs[nextIndex].layout}
                         DataDoc={this.childLayoutPairs[nextIndex].data}
-                        PanelHeight={this.props.PanelHeight}
+                        PanelWidth={this.sidePanelWidth}
+                        PanelHeight={this.sidePanelHeight}
                         ScreenToLocalTransform={this.props.ScreenToLocalTransform}
                         bringToFront={returnFalse}
                         parentActive={this.props.active}
@@ -85,6 +91,7 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
                         LayoutTemplateString={this.props.ChildLayoutString}
                         Document={this.childLayoutPairs[index].layout}
                         DataDoc={this.childLayoutPairs[index].data}
+                        PanelWidth={this.mainPanelWidth}
                         PanelHeight={this.props.PanelHeight}
                         ScreenToLocalTransform={this.props.ScreenToLocalTransform}
                         bringToFront={returnFalse}

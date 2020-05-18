@@ -3,10 +3,9 @@
     height: 100%;
 
     .collectionCarouselView-image {
-        overflow: hidden; //fix ContentFittingView size
         position: absolute;
         height: 100%;
-        width: 70%;
+        width: 60%;
         top: 0;
         left: 0;
         right: 0;
@@ -16,21 +15,17 @@
     }
 
     .collectionCarouselView-prev {
-        overflow: hidden;
         position: absolute;
         height: 50%;
-        width: 50%;
-        background-color: lightgrey;
+        width: 30%;
         left: 0;
         top: 25%;
     }
 
     .collectionCarouselView-next {
-        overflow: hidden;
         position: absolute;
         height: 50%;
-        width: 50%;
-        background-color: lightgrey;
+        width: 30%;
         right: 0;
         top: 25%;
     }
