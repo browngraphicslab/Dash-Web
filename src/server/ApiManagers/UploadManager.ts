@@ -277,7 +277,9 @@ export default class UploadManager extends ApiManager {
     }
 
 }
-
+function delay(ms: number) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
 /**
  * On success, returns a buffer containing the bytes of a screenshot
  * of the video (optionally, at a timecode) specified by @param targetUrl.
@@ -289,12 +291,19 @@ async function captureYoutubeScreenshot(targetUrl: string): Promise<Opt<Buffer>>
     const page = await browser.newPage();
     await page.setViewport({ width: 1920, height: 1080 });
 
-    await page.goto(targetUrl, { waitUntil: 'networkidle0' });
-
-    // hide youtube player controls.
-    await page.evaluate(() => (document.querySelector('.ytp-chrome-bottom') as any).style.display = 'none');
+    await page.goto(targetUrl, { waitUntil: 'domcontentloaded' as any });
 
     const videoPlayer = await page.$('.html5-video-player');
+    videoPlayer && await page.focus("video");
+    await delay(7000);
+    const ad = await page.$('.ytp-ad-skip-button-text');
+    await ad?.click();
+    await videoPlayer?.click();
+    await delay(1000);
+    // hide youtube player controls.
+    await page.evaluate(() =>
+        (document.querySelector('.ytp-chrome-bottom') as any).style.display = 'none');
+
     const buffer = await videoPlayer?.screenshot({ encoding: "binary" });
     await browser.close();
 
