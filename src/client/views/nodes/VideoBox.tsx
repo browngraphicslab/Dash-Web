@@ -123,22 +123,26 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                 id: this.youtubeVideoId,
                 timecode: this.layoutDoc.currentTimecode
             }).then(response => {
-                this.props.removeDocument?.(b);
-                this.createRealSummaryLink(response?.accessPaths?.agnostic?.client);
+                const resolved = response?.accessPaths?.agnostic?.client;
+                if (resolved) {
+                    this.props.removeDocument?.(b);
+                    this.createRealSummaryLink(resolved);
+                }
             });
         } else {
             //convert to desired file format
             const dataUrl = canvas.toDataURL('image/png'); // can also use 'image/png'
             // if you want to preview the captured image,
             const filename = path.basename(encodeURIComponent("snapshot" + StrCast(this.rootDoc.title).replace(/\..*$/, "") + "_" + (this.layoutDoc.currentTimecode || 0).toString().replace(/\./, "_")));
-            VideoBox.convertDataUri(dataUrl, filename).then(this.createRealSummaryLink);
+            VideoBox.convertDataUri(dataUrl, filename).then((returnedFilename: string) => {
+                if (returnedFilename) {
+                    this.createRealSummaryLink(returnedFilename);
+                }
+            });
         }
     }
 
-    private createRealSummaryLink = (relative: string | undefined) => {
-        if (!relative) {
-            return;
-        }
+    private createRealSummaryLink = (relative: string) => {
         const url = this.choosePath(Utils.prepend(relative));
         const width = (this.layoutDoc._width || 0);
         const height = (this.layoutDoc._height || 0);
