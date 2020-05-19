@@ -280,7 +280,7 @@ export default class UploadManager extends ApiManager {
 
 /**
  * On success, returns a buffer containing the bytes of a screenshot
- * of the video specified by @param url at timecode @param t.
+ * of the video (optionally, at a timecode) specified by @param targetUrl.
  * 
  * On failure, returns undefined.
  */
