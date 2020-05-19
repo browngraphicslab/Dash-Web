@@ -111,7 +111,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
             this._videoRef && ctx.drawImage(this._videoRef, 0, 0, canvas.width, canvas.height);
         }
 
-        if (!this._videoRef) { // can't find a way to take snapshots of videos
+        if (!this._videoRef) {
             const b = Docs.Create.LabelDocument({
                 x: (this.layoutDoc.x || 0) + width, y: (this.layoutDoc.y || 1),
                 _width: 150, _height: 50, title: (this.layoutDoc.currentTimecode || 0).toString(),
