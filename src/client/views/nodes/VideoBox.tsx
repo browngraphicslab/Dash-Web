@@ -124,7 +124,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                 timecode: this.layoutDoc.currentTimecode
             }).then(response => {
                 this.props.removeDocument?.(b);
-                this.createRealSummaryLink(response.accessPaths.agnostic.client);
+                this.createRealSummaryLink(response?.accessPaths?.agnostic?.client);
             });
         } else {
             //convert to desired file format
@@ -135,7 +135,10 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         }
     }
 
-    private createRealSummaryLink = (relative: string) => {
+    private createRealSummaryLink = (relative: string | undefined) => {
+        if (!relative) {
+            return;
+        }
         const url = this.choosePath(Utils.prepend(relative));
         const width = (this.layoutDoc._width || 0);
         const height = (this.layoutDoc._height || 0);
