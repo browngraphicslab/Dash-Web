@@ -55,6 +55,7 @@ export class MobileInterface extends React.Component {
 
     // private uploadDoc?: Doc;
     private _child: Doc = null;
+    private _parents: Array<Doc> = [];
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -133,6 +134,10 @@ export class MobileInterface extends React.Component {
         }
     }
 
+    back = () => {
+
+    }
+
     displayWorkspaces = () => {
         if (this.mainContainer) {
             const backgroundColor = () => "white";
@@ -178,7 +183,8 @@ export class MobileInterface extends React.Component {
 
         console.log(doc.title);
 
-
+        this._parents.push(doc);
+        console.log(this._parents);
         const data = Cast(doc.data, listSpec(Doc));
         // const path = LibraryPath.reduce((p: string, d: Doc) => p + "/" + (Doc.AreProtosEqual(d, (Doc.UserDoc()["tabs-button-library"] as Doc).sourcePanel as Doc) ? "" : d.title), "");
         if (data) {
@@ -217,6 +223,7 @@ export class MobileInterface extends React.Component {
                     key={index}
                     onClick={() => this.handleClick(doc)}>{doc.title}</div>);
         });
+
         if (this._child) {
             buttons = DocListCast(this._child.data).map((doc: Doc, index: any) => {
                 return (
@@ -263,6 +270,9 @@ export class MobileInterface extends React.Component {
                 <div>
                     <div className="navbar">
                         <div className="header" id="header">menu</div>
+                        <div className="back" onClick={this.back}>
+                            &#8592;
+                        </div>
                         <div className="toggle-btn" id="menuButton" onClick={this.toggleSidebar}>
                             <span></span>
                             <span></span>
@@ -272,15 +282,9 @@ export class MobileInterface extends React.Component {
                     <div className="sidebar" id="sidebar">
                         <div>
                             {buttons}
-
-                            {/* <div className="item" key="settings" onClick={() => SettingsManager.Instance.open()}>
-                                Settings
-                            </div>
-                            <div className="item" key="logout" onClick={() => window.location.assign(Utils.prepend("/logout"))}>
-                                {CurrentUserUtils.GuestWorkspace ? "Exit" : "Log Out"}
-                            </div> */}
                         </div>
                     </div>
+
                     <div>
                         {this.renderView}
                     </div>

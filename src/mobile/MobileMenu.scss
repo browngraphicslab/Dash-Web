@@ -23,7 +23,7 @@ body {
 
 .navbar .toggle-btn {
     position: absolute;
-    left: 20px;
+    right: 20px;
     top: 30px;
     height: 70px;
     width: 70px;
@@ -34,7 +34,7 @@ body {
     position: absolute;
     top: 50%;
     top: calc(9px + 50%);
-    left: 100px;
+    right: 100px;
     transform: translate(0%, -50%);
     font-size: 40;
     user-select: none;
@@ -84,7 +84,7 @@ body {
     position: absolute;
     top: $navbar-height;
     opacity: 0;
-    left: -100%;
+    right: -100%;
     width: 100vw;
     height: calc(100% - 120px);
     z-index: 5;
@@ -135,6 +135,19 @@ body {
 
 
 .sidebar.active {
-    left: 0%;
+    right: 0%;
     opacity: 1;
+}
+
+.back {
+    position: absolute;
+    top: 50%;
+    top: calc(9px + 50%);
+    left: 50px;
+    transform: translate(0%, -50%);
+    font-size: 40;
+    user-select: none;
+    text-transform: uppercase;
+    font-family: Arial, Helvetica, sans-serif;
+
 }
