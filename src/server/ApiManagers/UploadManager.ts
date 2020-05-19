@@ -68,34 +68,34 @@ export default class UploadManager extends ApiManager {
             method: Method.POST,
             subscription: new RouteSubscriber("youtubeScreenshot"),
             secureHandler: async ({ req, res }) => {
-                const { url, t } = req.query;
-                const parseUrl = (url: string) => {
-                    url = decodeURIComponent(url)
-                    if (!/^(?:f|ht)tps?\:\/\//.test(url)) {
-                        url = 'http://' + url
-                    }
-                    return url;
-                }
-                let targetUrl: string;
-                if (!url || !t || !isWebUri(targetUrl = parseUrl(url as string))) {
-                    return res.send();
-                }
-                const buffer = await captureYoutubeScreenshot(targetUrl, t as string);
+                const { id, timecode } = req.body;
+                const convert = (raw: string) => {
+                    const number = Math.floor(Number(raw));
+                    const seconds = number % 60;
+                    const minutes = (number - seconds) / 60;
+                    return `${minutes}m${seconds}s`;
+                };
+                const suffix = timecode ? `&t=${convert(timecode)}` : ``;
+                const targetUrl = `https://www.youtube.com/watch?v=${id}${suffix}`;
+                const buffer = await captureYoutubeScreenshot(targetUrl);
                 if (!buffer) {
                     return res.send();
                 }
-                const resolvedName = `${targetUrl}@${t}.png`;
+                const resolvedName = `youtube_capture_${id}_${suffix}.png`;
                 const resolvedPath = serverPathToFile(Directory.images, resolvedName);
-                writeFile(resolvedPath, buffer, async error => {
-                    if (error) {
-                        return res.send();
-                    }
-                    await DashUploadUtils.outputResizedImages(() => createReadStream(resolvedPath), resolvedName, pathToDirectory(Directory.images));
-                    res.send({
-                        accessPaths: {
-                            agnostic: DashUploadUtils.getAccessPaths(Directory.images, resolvedName)
+                return new Promise<void>(resolve => {
+                    writeFile(resolvedPath, buffer, async error => {
+                        if (error) {
+                            return res.send();
                         }
-                    } as Upload.FileInformation);
+                        await DashUploadUtils.outputResizedImages(() => createReadStream(resolvedPath), resolvedName, pathToDirectory(Directory.images));
+                        res.send({
+                            accessPaths: {
+                                agnostic: DashUploadUtils.getAccessPaths(Directory.images, resolvedName)
+                            }
+                        } as Upload.FileInformation);
+                        resolve();
+                    });
                 });
             }
         });
@@ -284,17 +284,19 @@ export default class UploadManager extends ApiManager {
  * 
  * On failure, returns undefined.
  */
-async function captureYoutubeScreenshot(targetUrl: string, t: string): Promise<Opt<Buffer>> {
+async function captureYoutubeScreenshot(targetUrl: string): Promise<Opt<Buffer>> {
     const browser = await launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
     const page = await browser.newPage();
     await page.setViewport({ width: 1920, height: 1080 });
 
-    await page.goto(targetUrl + '&t=' + t, { waitUntil: 'networkidle0' });
+    await page.goto(targetUrl, { waitUntil: 'networkidle2' as any });
 
+    const videoPlayer = await page.$('.html5-video-player');
     // hide youtube player controls.
-    await page.evaluate(() => (document.querySelector('.ytp-chrome-bottom') as any).style.display = 'none');
+    await page.evaluate(() =>
+        (document.querySelector('.ytp-chrome-bottom') as any).style.display = 'none');
 
-    const buffer = await (await page.$('.html5-video-player'))?.screenshot({ encoding: "binary" });
+    const buffer = await videoPlayer?.screenshot({ encoding: "binary" });
     await browser.close();
 
     return buffer;

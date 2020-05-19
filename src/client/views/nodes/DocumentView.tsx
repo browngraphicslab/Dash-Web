@@ -92,7 +92,7 @@ export interface DocumentViewProps {
     pinToPres: (document: Doc) => void;
     backgroundHalo?: () => boolean;
     backgroundColor?: (doc: Doc) => string | undefined;
-    opacity?: () => number;
+    opacity?: () => number | undefined;
     ChromeHeight?: () => number;
     dontRegisterView?: boolean;
     layoutKey?: string;
