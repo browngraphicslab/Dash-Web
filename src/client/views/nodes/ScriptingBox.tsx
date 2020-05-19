@@ -1,4 +1,4 @@
-import { action, observable, computed, _allowStateChangesInsideComputed } from "mobx";
+import { action, observable, computed, _allowStateChangesInsideComputed, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import * as React from "react";
 import { documentSchema } from "../../../fields/documentSchemas";
@@ -16,6 +16,7 @@ import { DocumentIconContainer, DocumentIcon } from "./DocumentIcon";
 import { List } from "../../../fields/List";
 import { DragManager } from "../../util/DragManager";
 import { Doc } from "../../../fields/Doc";
+import { Dropdown } from "prosemirror-menu";
 
 const ScriptingSchema = createSchema({});
 type ScriptingDocument = makeInterface<[typeof ScriptingSchema, typeof documentSchema]>;
@@ -34,10 +35,9 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
 
     @observable private _errorMessage: string = "";
     @observable private _applied: boolean = false;
-    @observable private _paramsNames: any;
-    @observable private _paramsTypes: any;
-    @observable private _paramsValues: any;
-
+    @observable private _paramsNames: string[] = [];
+    @observable private _paramsTypes: string[] = [];
+    @observable private _paramsValues: any[] = [];
 
     @computed get rawScript() { return StrCast(this.dataDoc[this.props.fieldKey + "-rawScript"], StrCast(this.layoutDoc[this.props.fieldKey + "-rawScript"])); }
     @computed get compileParams() { return Cast(this.dataDoc[this.props.fieldKey + "-params"], listSpec("string"), Cast(this.layoutDoc[this.props.fieldKey + "-params"], listSpec("string"), [])); }
@@ -107,6 +107,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         this.props.Document.documentText = this.rawScript;
     }
 
+
     @action
     onRun = () => {
         const params = this.compileParams.reduce((o: ScriptParam, p: string) => {
@@ -167,16 +168,6 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
             this.onError(result.errors);
         }
         this.props.Document.documentText = this.rawScript;
-
-        this._paramsNames = [];
-        this._paramsTypes = [];
-
-        this.compileParams.forEach(element => {
-            const param = element.split(":");
-            this._paramsNames.push(param[0].trim());
-            this._paramsTypes.push(param[1].trim());
-        }
-        );
     }
 
     @action
@@ -196,7 +187,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         const droppedDocs = de.complete.docDragData?.droppedDocuments;
         if (droppedDocs?.length) {
             const dropped = droppedDocs[0];
-            this._paramsValues[index] = dropped;
+            this.props.Document[index] = dropped;
             // you can't just bind a variable to a specific Doc.  The Doc would have to be added to 'capturedVariables' field of the compile options, but I think it makes more sense to just be declaring this variable to be a Doc
         }
     }
@@ -207,6 +198,10 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     }
 
     render() {
+
+        // var Dropdown = require('react-simple-dropdown');
+        // var DropdownTrigger = Dropdown.DropdownTrigger;
+        // var DropdownContent = Dropdown.DropdownContent;
 
         const params = <EditableView
             contents={""}
@@ -219,18 +214,21 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
                 if (value !== "" && value !== " ") {
                     const parameter = value.split(":");
                     if (parameter[1] !== undefined) {
-                        if (parameter[1].trim() === "Doc" || parameter[1].trim() === "string") {
-                            //if (!!!this._paramsNames.includes(parameter[0].trim())) {
-                            this._errorMessage = "";
-                            this._paramNum++;
-                            const par = this.compileParams;
-                            this.compileParams = new List<string>(value.split(";").filter(s => s !== " "));
-                            this.compileParams.push.apply(this.compileParams, par);
-                            return true;
-                            // } else {
-                            //     this._errorMessage = "this name has already been used";
-                            //     return false;
-                            // }
+                        if (parameter[1].trim() === "Doc" || parameter[1].trim() === "string" || parameter[1].split("|")) {
+                            if (!!!this._paramsNames.includes(parameter[0].trim())) {
+                                this._errorMessage = "";
+                                this._paramNum++;
+                                const par = this.compileParams;
+                                this.compileParams = new List<string>(value.split(";").filter(s => s !== " "));
+                                this.compileParams.push.apply(this.compileParams, par);
+                                this._paramsNames.push(parameter[0].trim());
+                                this._paramsTypes.push(parameter[1].trim());
+                                this._paramsValues.push("j");
+                                return true;
+                            } else {
+                                this._errorMessage = "this name has already been used";
+                                return false;
+                            }
                         } else {
                             this._errorMessage = "this type is not supported";
                             return false;
@@ -277,73 +275,114 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
             </div>
         );
 
-        // const settingParams = this._paramsNames.map((parameter: string, i: number) =>
-        //     <div className="scriptingBox-pborder"
-        //         background-color="white"
+        const settingParams = this._paramsNames.map((parameter: string, i: number) =>
+            <div className="scriptingBox-pborder"
+                background-color="white"
 
-        //         onKeyPress={e => {
-        //             if (e.key === "Enter") {
-        //                 this._overlayDisposer?.();
-        //             }
-        //         }
-        //         }
-        //     >
+                onKeyPress={e => {
+                    if (e.key === "Enter") {
+                        this._overlayDisposer?.();
+                    }
+                }
+                }
+            >
 
-        //         {this._paramsTypes[i] === "Doc" ? <div>
-        //             <div className="scriptingBox-wrapper">
+                {this._paramsTypes[i] === "Doc" ? <div>
+                    <div className="scriptingBox-wrapper">
 
-        //                 <div className="scriptingBox-paramNames">
-        //                     {parameter + ":" + this._paramsValues[i] + " = "}
-        //                 </div>
+                        <div className="scriptingBox-paramNames">
+                            {parameter + ":" + this._paramsTypes[i] + " = "}
+                        </div>
 
-        //                 <div className="scriptingBox-paramInputs"
-        //                     onFocus={this.onFocus}>
-        //                     <EditableView
-        //                         contents={this._paramsValues[i]}
-        //                         display={"block"}
-        //                         maxHeight={72}
-        //                         height={35}
-        //                         fontSize={12}
-        //                         GetValue={() => this._paramsValues[i]}
-        //                         onDrop={(e: Event, de: DragManager.DropEvent) => this.onDrop(e, de, i)}
-        //                         SetValue={value => {
-        //                             this._paramsValues[i] = value;
-        //                             return true;
-        //                         }}
-        //                     />
-        //                 </div>
-        //             </div>
-        //         </div> : null}
+                        <div className="scriptingBox-paramInputs"
+                            onFocus={this.onFocus}>
+                            <EditableView
+                                contents={this.props.Document[parameter] ?? "undefined"}
+                                display={"block"}
+                                maxHeight={72}
+                                height={35}
+                                fontSize={14}
+                                GetValue={() => StrCast(this.props.Document[parameter]) ?? "undefined"}
+                                onDrop={(e: Event, de: DragManager.DropEvent) => this.onDrop(e, de, parameter)}
+                                SetValue={value => {
+                                    runInAction(() => {
+                                        const script = CompileScript(
+                                            value, {
+                                            addReturn: true, typecheck: false,
+                                            transformer: DocumentIconContainer.getTransformer(),
+                                            params: { makeInterface: "any" }
+                                        });
+                                        if (!script.compiled) {
+                                            return false;
+                                        } else {
+                                            const results = script.run();
+                                            if (results.success) {
 
-        //         {this._paramsTypes[i] === "string" ? <div>
-        //             <div className="scriptingBox-wrapper">
+                                                this.props.Document[parameter] = results.result;
+                                                return true;
+                                            } else {
+                                                return false;
+                                            }
+                                        }
 
-        //                 <div className="scriptingBox-paramNames">
-        //                     {parameter + ":" + this._paramsValues[i] + " = "}
-        //                 </div>
+                                    });
+                                    return true;
+                                }}
+                            />
+                        </div>
+                    </div>
+                </div> : null}
 
-        //                 <div className="scriptingBox-paramInputs"
-        //                     onFocus={this.onFocus}>
-        //                     <EditableView
-        //                         contents={this._paramsValues[i]}
-        //                         display={"block"}
-        //                         maxHeight={72}
-        //                         height={35}
-        //                         fontSize={12}
-        //                         GetValue={() => this._paramsValues[i]}
-        //                         SetValue={value => {
-        //                             this._paramsValues[i] = value;
-        //                             return true;
-        //                         }}
-        //                     />
-        //                 </div>
-        //             </div>
-        //         </div> : null}
+                {this._paramsTypes[i] === "string" ? <div>
+                    <div className="scriptingBox-wrapper">
 
+                        <div className="scriptingBox-paramNames">
+                            {parameter + ":" + this._paramsValues[i] + " = "}
+                        </div>
 
+                        <div className="scriptingBox-paramInputs"
+                            onFocus={this.onFocus}>
+                            <EditableView
+                                contents={this.props.Document[parameter] ?? "undefined"}
+                                display={"block"}
+                                maxHeight={72}
+                                height={35}
+                                fontSize={12}
+                                GetValue={() => StrCast(this.props.Document[parameter]) ?? "undefined"}
+                                SetValue={value => {
+                                    runInAction(() => {
+                                        this.props.Document[parameter] = value;
+                                        return true;
+                                    });
+                                    return true;
+                                }}
+                            />
+                        </div>
+                    </div>
+                </div> : null}
 
-        //     </div>
-        // );
+                {/* {this._paramsTypes[i].split("|")[1] ? <div>
+                    <div className="scriptingBox-wrapper">
+
+                        <div className="scriptingBox-paramNames">
+                            {parameter + ":" + this._paramsValues[i] + " = "}
+                        </div>
+
+                        <div className="scriptingBox-paramInputs"
+                            onFocus={this.onFocus}>
+                            <Dropdown>
+                                <DropdownTrigger>Profile</DropdownTrigger>
+                                <DropdownContent>
+                                    <div>{this._paramsTypes[0]}</div>
+                                    <div>{this._paramsTypes[1]}</div>
+                                </DropdownContent>
+                            </Dropdown>
+                        </div>
+                    </div>
+                </div> : null} */}
+
+            </div>
+        );
 
         const scriptingInputs = <div className="scriptingBox-inputDiv" style={{ height: "100%" }}
             onPointerDown={e => this.props.isSelected(true) && e.stopPropagation()} >
@@ -386,7 +425,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
             onPointerDown={e => this.props.isSelected(true) && e.stopPropagation()} >
 
             {this.compileParams.length > 0 ? <div className="scriptingBox-plist">
-                {this.compileParams}
+                {settingParams}
             </div> : null}
 
         </div>;
