@@ -67,7 +67,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         let [x, y] = this.props.getTransform().transformPoint(this._downX, this._downY);
         if (e.key === "?") {
             ContextMenu.Instance.setDefaultItem("?", (str: string) => {
-                const textDoc = Docs.Create.WebDocument(`http://bing.com/search?q=${str}`, {
+                const textDoc = Docs.Create.WebDocument(`https://bing.com/search?q=${str}`, {
                     _width: 200, x, y, _nativeHeight: 962, _nativeWidth: 800, isAnnotating: false,
                     title: "bing"
                 });
