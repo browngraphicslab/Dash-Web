@@ -13,6 +13,7 @@ import { Doc } from '../../../fields/Doc';
 import { ContextMenu } from '../ContextMenu';
 import { ObjectField } from '../../../fields/ObjectField';
 import { returnFalse } from '../../../Utils';
+import { ScriptField } from '../../../fields/ScriptField';
 
 type Carousel3DDocument = makeInterface<[typeof documentSchema, typeof collectionSchema]>;
 const Carousel3DDocument = makeInterface(documentSchema, collectionSchema);
@@ -40,6 +41,18 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
         this.layoutDoc._itemIndex = (NumCast(this.layoutDoc._itemIndex) - 1 + this.childLayoutPairs.length) % this.childLayoutPairs.length;
     }
 
+    addCaption = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        const index = NumCast(this.layoutDoc._itemIndex);
+        this.childLayoutPairs[index].layout._showCaption = "caption";
+    }
+
+    // @computed get gobackScript() {
+    //     return ScriptField.MakeScript("this.layoutDoc._itemIndex = index",
+    //         { this: Doc.name, heading: "string", checked: "string", containingTreeView: Doc.name, firstDoc: Doc.name },
+    //         { index: (NumCast(this.layoutDoc._itemIndex) - 1 + this.childLayoutPairs.length) % this.childLayoutPairs.length });
+    // }
+
     mainPanelWidth = () => this.props.PanelWidth() * 0.6;
     sidePanelWidth = () => this.props.PanelWidth() * 0.3;
     sidePanelHeight = () => this.props.PanelHeight() * 0.5;
@@ -50,10 +63,12 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
         const nextIndex = (index + 1 + this.childLayoutPairs.length) % this.childLayoutPairs.length;
         return !(this.childLayoutPairs?.[index]?.layout instanceof Doc) ? (null) :
             <>
-                <div className="collectionCarouselView-prev">
+                <button className="test-button" onClick={this.addCaption}>add caption</button>
+                <div className="collectionCarouselView-prev" onClick={this.goback}>
                     <ContentFittingDocumentView {...this.props}
                         onDoubleClick={ScriptCast(this.layoutDoc.onChildDoubleClick)}
-                        onClick={ScriptCast(this.layoutDoc.onChildClick)}
+                        // onClick={ScriptCast(this.layoutDoc.onChildClick)}
+                        // onClick={this.gobackScript}
                         renderDepth={this.props.renderDepth + 1}
                         LayoutTemplate={this.props.ChildLayoutTemplate}
                         LayoutTemplateString={this.props.ChildLayoutString}
@@ -66,10 +81,10 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
                         parentActive={this.props.active}
                     />
                 </div>
-                <div className="collectionCarouselView-next">
+                <div className="collectionCarouselView-next" onClick={this.advance}>
                     <ContentFittingDocumentView {...this.props}
                         onDoubleClick={ScriptCast(this.layoutDoc.onChildDoubleClick)}
-                        onClick={ScriptCast(this.layoutDoc.onChildClick)}
+                        // onClick={ScriptCast(this.layoutDoc.onChildClick)}
                         renderDepth={this.props.renderDepth + 1}
                         LayoutTemplate={this.props.ChildLayoutTemplate}
                         LayoutTemplateString={this.props.ChildLayoutString}

@@ -2,6 +2,13 @@
     background: white;
     height: 100%;
 
+    .test-button {
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 999;
+    }
+
     .collectionCarouselView-image {
         position: absolute;
         height: 100%;
