@@ -765,10 +765,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             moreItems.push({ description: "Write Back Link to Album", event: () => GooglePhotos.Transactions.AddTextEnrichment(this.props.Document), icon: "caret-square-right" });
         }
         moreItems.push({
-            description: "Download document", icon: "download", event: async () =>
-                console.log(JSON.parse(await rp.get(Utils.CorsProxy("http://localhost:8983/solr/dash/select"), {
+            description: "Download document", icon: "download", event: async () => {
+                const response = await rp.get(Utils.CorsProxy("http://localhost:8983/solr/dash/select"), {
                     qs: { q: 'world', fq: 'NOT baseProto_b:true AND NOT deleted:true', start: '0', rows: '100', hl: true, 'hl.fl': '*' }
-                })))
+                });
+                console.log(response ? JSON.parse(response) : undefined);
+            }
             // const a = document.createElement("a");
             // const url = Utils.prepend(`/downloadId/${this.props.Document[Id]}`);
             // a.href = url;
