@@ -10,6 +10,7 @@ import { Database } from './database';
 import { getForgot, getLogin, getLogout, getReset, getSignup, postForgot, postLogin, postReset, postSignup } from './authentication/AuthenticationManager';
 const MongoStore = require('connect-mongo')(session);
 import RouteManager from './RouteManager';
+import { WebSocket } from './websocket';
 import * as webpack from 'webpack';
 const config = require('../../webpack.config');
 const compiler = webpack(config);
@@ -19,9 +20,12 @@ import * as fs from 'fs';
 import * as request from 'request';
 import RouteSubscriber from './RouteSubscriber';
 import { publicDirectory } from '.';
-import { logPort, } from './ActionUtilities';
-import { blue, yellow } from 'colors';
+import { logPort, pathFromRoot, } from './ActionUtilities';
+import { blue, yellow, red } from 'colors';
 import * as cors from "cors";
+import { createServer, Server as HttpsServer } from "https";
+import { Server as HttpServer } from "http";
+import { SSL } from './apis/google/CredentialsLoader';
 
 /* RouteSetter is a wrapper around the server that prevents the server
    from being exposed. */
@@ -45,33 +49,25 @@ export default async function InitializeServer(routeSetter: RouteSetter) {
 
     const isRelease = determineEnvironment();
 
+    isRelease && !SSL.Loaded && SSL.exit();
+
     routeSetter(new RouteManager(app, isRelease));
     registerRelativePath(app);
 
-    const serverPort = isRelease ? Number(process.env.serverPort) : 1050;
-    const server = app.listen(serverPort, () => {
-        logPort("server", serverPort);
-        console.log();
-    });
+    let server: HttpServer | HttpsServer;
+    const { serverPort } = process.env;
+    const resolved = isRelease && serverPort ? Number(serverPort) : 1050;
+    await new Promise<void>(resolve => server = isRelease ?
+        createServer(SSL.Credentials, app).listen(resolved, resolve) :
+        app.listen(resolved, resolve)
+    );
+    logPort("server", resolved);
 
-    // var express = require('express')
-    // var fs = require('fs')
-    // var https = require('https')
-    // var app = express()
+    // initialize the web socket (bidirectional communication: if a user changes
+    // a field on one client, that change must be broadcast to all other clients)
+    WebSocket.initialize(isRelease, app);
 
-    // app.get('/', function (req, res) {
-    //   res.send('hello world')
-    // })
-
-    // https.createServer({
-    //   key: fs.readFileSync('server.key'),
-    //   cert: fs.readFileSync('server.cert')
-    // }, app)
-    // .listen(3000, function () {
-    //   console.log('Example app listening on port 3000! Go to https://localhost:3000/')
-    // })
     disconnect = async () => new Promise<Error>(resolve => server.close(resolve));
-
     return isRelease;
 }
 
@@ -139,7 +135,7 @@ function registerAuthenticationRoutes(server: express.Express) {
 
 function registerCorsProxy(server: express.Express) {
     const headerCharRegex = /[^\t\x20-\x7e\x80-\xff]/;
-    server.use("/corsProxy", (req, res) => {
+    server.use("/corsProxy", async (req, res) => {
 
         const requrl = decodeURIComponent(req.url.substring(1));
         const referer = req.headers.referer ? decodeURIComponent(req.headers.referer) : "";
@@ -148,8 +144,15 @@ function registerCorsProxy(server: express.Express) {
         // then we redirect again to the cors referer and just add the relative path.
         if (!requrl.startsWith("http") && req.originalUrl.startsWith("/corsProxy") && referer?.includes("corsProxy")) {
             res.redirect(referer + (referer.endsWith("/") ? "" : "/") + requrl);
-        }
-        else {
+        } else {
+            try {
+                await new Promise<void>((resolve, reject) => {
+                    request(requrl).on("response", resolve).on("error", reject);
+                });
+            } catch {
+                console.log(`Malformed CORS url: ${requrl}`);
+                return res.send();
+            }
             req.pipe(request(requrl)).on("response", res => {
                 const headers = Object.keys(res.headers);
                 headers.forEach(headerName => {
@@ -162,7 +165,7 @@ function registerCorsProxy(server: express.Express) {
                         }
                     }
                 });
-            }).pipe(res);
+            }).on("error", () => console.log(`Malformed CORS url: ${requrl}`)).pipe(res);
         }
     });
 }

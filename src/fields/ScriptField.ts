@@ -140,10 +140,8 @@ export class ComputedField extends ScriptField {
     _valueOutsideReaction = (doc: Doc) => this._lastComputedResult = this.script.run({ this: doc, self: Cast(doc.rootDocument, Doc, null) || doc, _last_: this._lastComputedResult }, console.log).result;
 
 
-    constructor(script: CompiledScript, setterscript?: CompiledScript) {
-        super(script,
-            !setterscript && script?.originalScript.includes("self.timecode") ?
-                ScriptField.CompileScript("self['x' + self.timecode] = value", { value: "any" }, true) : setterscript);
+    [Copy](): ObjectField {
+        return new ComputedField(this.script);
     }
 
     public static MakeScript(script: string, params: object = {}) {

@@ -317,7 +317,7 @@ export class CurrentUserUtils {
                 { _width: 250, _height: 250, title: "container" });
         }
         if (doc.emptyWebpage === undefined) {
-            doc.emptyWebpage = Docs.Create.WebDocument("", { title: "New Webpage", _width: 600, UseCors: true });
+            doc.emptyWebpage = Docs.Create.WebDocument("", { title: "New Webpage", _nativeWidth: 850, _nativeHeight: 962, _width: 600, UseCors: true });
         }
         return [
             { title: "Drag a comparison box", label: "Comp", icon: "columns", ignoreClick: true, drag: 'Docs.Create.ComparisonDocument()' },

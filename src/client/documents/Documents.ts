@@ -49,8 +49,6 @@ import { ContextMenu } from "../views/ContextMenu";
 import { LinkBox } from "../views/nodes/LinkBox";
 import { ScreenshotBox } from "../views/nodes/ScreenshotBox";
 import { ComparisonBox } from "../views/nodes/ComparisonBox";
-import CollectionMapView from "../views/collections/CollectionMapView";
-const requestImageSize = require('../util/request-image-size');
 const path = require('path');
 
 export interface DocumentOptions {
@@ -115,7 +113,7 @@ export interface DocumentOptions {
     caption?: RichTextField;
     ignoreClick?: boolean;
     lockedPosition?: boolean; // lock the x,y coordinates of the document so that it can't be dragged
-    lockedTransform?: boolean; // lock the panx,pany and scale parameters of the document so that it be panned/zoomed
+    _lockedTransform?: boolean; // lock the panx,pany and scale parameters of the document so that it be panned/zoomed
     isAnnotating?: boolean; // whether we web document is annotation mode where links can't be clicked to allow annotations to be created
     opacity?: number;
     defaultBackgroundColor?: string;
@@ -561,7 +559,7 @@ export namespace Docs {
         }
 
         export function ComparisonDocument(options: DocumentOptions = { title: "Comparison Box" }) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COMPARISON), "", options);
+            return InstanceFromProto(Prototypes.get(DocumentType.COMPARISON), "", { targetDropAction: "alias", ...options });
         }
 
         export function AudioDocument(url: string, options: DocumentOptions = {}) {
@@ -645,7 +643,7 @@ export namespace Docs {
         }
 
         export function WebDocument(url: string, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.WEB), url ? new WebField(new URL(url)) : undefined, { _fitWidth: true, _chromeStatus: url ? "disabled" : "enabled", isAnnotating: true, lockedTransform: true, ...options });
+            return InstanceFromProto(Prototypes.get(DocumentType.WEB), url ? new WebField(new URL(url)) : undefined, { _fitWidth: true, _chromeStatus: url ? "disabled" : "enabled", isAnnotating: true, _lockedTransform: true, ...options });
         }
 
         export function HtmlDocument(html: string, options: DocumentOptions = {}) {

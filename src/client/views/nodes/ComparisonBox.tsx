@@ -6,9 +6,8 @@ import { action, computed, observable, runInAction, Lambda } from 'mobx';
 import { observer } from "mobx-react";
 import { Doc } from '../../../fields/Doc';
 import { documentSchema } from '../../../fields/documentSchemas';
-import { Id } from '../../../fields/FieldSymbols';
 import { createSchema, makeInterface } from '../../../fields/Schema';
-import { NumCast, StrCast } from '../../../fields/Types';
+import { NumCast, Cast } from '../../../fields/Types';
 import { DragManager } from '../../util/DragManager';
 import { ViewBoxAnnotatableComponent } from '../DocComponent';
 import { FieldView, FieldViewProps } from './FieldView';
@@ -16,14 +15,15 @@ import "./ComparisonBox.scss";
 import React = require("react");
 import { ContentFittingDocumentView } from './ContentFittingDocumentView';
 import { undoBatch } from '../../util/UndoManager';
+import { setupMoveUpEvents, emptyFunction } from '../../../Utils';
 
 library.add(faImage, faEye as any, faPaintBrush, faBrain);
 library.add(faFileAudio, faAsterisk);
 
-export const pageSchema = createSchema({});
+export const comparisonSchema = createSchema({});
 
-type ComparisonDocument = makeInterface<[typeof pageSchema, typeof documentSchema]>;
-const ComparisonDocument = makeInterface(pageSchema, documentSchema);
+type ComparisonDocument = makeInterface<[typeof comparisonSchema, typeof documentSchema]>;
+const ComparisonDocument = makeInterface(comparisonSchema, documentSchema);
 
 @observer
 export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, ComparisonDocument>(ComparisonDocument) {
@@ -33,11 +33,11 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
 
     private _beforeDropDisposer?: DragManager.DragDropDisposer;
     private _afterDropDisposer?: DragManager.DragDropDisposer;
+    private resizeUpdater: Lambda | undefined;
 
     protected createDropTarget = (ele: HTMLDivElement | null, fieldKey: string) => {
         if (ele) {
-            this.props.Document.targetDropAction = "alias";
-            return DragManager.MakeDropTarget(ele, (event, dropEvent) => this.dropHandler(event, dropEvent, fieldKey), this.props.Document);
+            return DragManager.MakeDropTarget(ele, (event, dropEvent) => this.dropHandler(event, dropEvent, fieldKey), this.layoutDoc);
         }
     }
 
@@ -46,118 +46,93 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
         event.stopPropagation();
         const droppedDocs = dropEvent.complete.docDragData?.droppedDocuments;
         if (droppedDocs?.length) {
-            this.props.Document[fieldKey] = droppedDocs[0];
+            this.dataDoc[fieldKey] = droppedDocs[0];
+            droppedDocs[0]._fitWidth = true;
+            droppedDocs[0].isBackgound = true;
         }
     }
 
-    @action
-    private registerSliding = (e: React.PointerEvent<HTMLDivElement>) => {
-        e.stopPropagation();
-        e.preventDefault();
-        window.removeEventListener("pointermove", this.onPointerMove);
-        window.removeEventListener("pointerup", this.onPointerUp);
-        window.addEventListener("pointermove", this.onPointerMove);
-        window.addEventListener("pointerup", this.onPointerUp);
-    }
-
-    private resizeUpdater: Lambda | undefined;
     componentWillMount() {
-        this.props.Document.clipWidth = this.props.PanelWidth() / 2;
+        this.dataDoc.clipWidth = this.props.PanelWidth() / 2;
 
         //preserve before/after ratio during resizing
         this.resizeUpdater = computed(() => this.props.PanelWidth()).observe(({ oldValue, newValue }) =>
-            this.props.Document.clipWidth = NumCast(this.props.Document.clipWidth) / NumCast(oldValue) * newValue
+            this.dataDoc.clipWidth = NumCast(this.dataDoc.clipWidth) / (oldValue || 0) * newValue
         );
     }
 
     componentWillUnmount() {
-        if (this.resizeUpdater) this.resizeUpdater();
+        this.resizeUpdater?.();
     }
 
-    private onPointerMove = ({ movementX }: PointerEvent) => {
-        const width = movementX * this.props.ScreenToLocalTransform().Scale + NumCast(this.props.Document.clipWidth);
-        if (width && width > 5 && width < this.props.PanelWidth()) {
-            this.props.Document.clipWidth = width;
-        }
+    private registerSliding = (e: React.PointerEvent<HTMLDivElement>) => {
+        setupMoveUpEvents(this, e, this.onPointerMove, emptyFunction, emptyFunction);
     }
 
     @action
-    private onPointerUp = () => {
-        window.removeEventListener("pointermove", this.onPointerMove);
-        window.removeEventListener("pointerup", this.onPointerUp);
+    private onPointerMove = ({ movementX }: PointerEvent) => {
+        const width = movementX * this.props.ScreenToLocalTransform().Scale + NumCast(this.dataDoc.clipWidth);
+        if (width && width > 5 && width < this.props.PanelWidth()) {
+            this.dataDoc.clipWidth = width;
+        }
+        return false;
     }
 
     @undoBatch
-    clearBeforeDoc = (e: React.MouseEvent) => {
+    clearDoc = (e: React.MouseEvent, fieldKey: string) => {
         e.stopPropagation;
         e.preventDefault;
-        delete this.props.Document.beforeDoc;
-    }
-
-    @undoBatch
-    clearAfterDoc = (e: React.MouseEvent) => {
-        e.stopPropagation;
-        e.preventDefault;
-        delete this.props.Document.afterDoc;
-    }
-
-    get fieldKey() {
-        return this.props.fieldKey.startsWith("@") ? StrCast(this.props.Document[this.props.fieldKey]) : this.props.fieldKey;
+        delete this.dataDoc[fieldKey];
     }
 
     render() {
-        const beforeDoc = this.props.Document.beforeDoc as Doc;
-        const afterDoc = this.props.Document.afterDoc as Doc;
-        const clipWidth = this.props.Document.clipWidth as Number;
+        const beforeDoc = Cast(this.dataDoc.beforeDoc, Doc, null);
+        const afterDoc = Cast(this.dataDoc.afterDoc, Doc, null);
+        const clipWidth = NumCast(this.dataDoc.clipWidth);
         return (
-            <div className="comparisonBox">
-                <div className="content-wrapper">
-                    <div className="clip-div" style={{ width: clipWidth + "px" }}>
-                        {/* wraps around before image and slider bar */}
-                        <div
-                            className="beforeBox-cont"
-                            key={this.props.Document[Id]}
-                            ref={(ele) => {
-                                this._beforeDropDisposer && this._beforeDropDisposer();
-                                this._beforeDropDisposer = this.createDropTarget(ele, "beforeDoc");
-                            }}
-                            style={{ width: this.props.PanelWidth() }}>
-                            {
-                                beforeDoc ?
-                                    <>
-                                        <ContentFittingDocumentView {...this.props}
-                                            Document={beforeDoc}
-                                            parentActive={this.props.active} />
-                                        {/* getTransform={this.props.ScreenToLocalTransform} /> */}
-                                        <div className="clear-button before" onClick={(e) => this.clearBeforeDoc(e)}>
-                                            <FontAwesomeIcon className="clear-button before" icon={faTimes} size="sm" />
-                                        </div>
-                                    </>
-                                    :
-                                    <div className="placeholder">
-                                        <FontAwesomeIcon className="upload-icon" icon={faCloudUploadAlt} size="lg" />
-                                    </div>
-                            }
-                        </div>
-                        <div className="slide-bar" onPointerDown={e => this.registerSliding(e)} />
-                    </div>
+            <div className={`comparisonBox${this.active() ? "-interactive" : ""}`}>
+                <div
+                    className="afterBox-cont"
+                    key={"after"}
+                    ref={(ele) => {
+                        this._afterDropDisposer?.();
+                        this._afterDropDisposer = this.createDropTarget(ele, "afterDoc");
+                    }}>
+                    {
+                        afterDoc ?
+                            <>
+                                <ContentFittingDocumentView {...this.props}
+                                    Document={afterDoc}
+                                    parentActive={this.props.active}
+                                />
+                                <div className="clear-button after" onClick={e => this.clearDoc(e, "afterDoc")}>
+                                    <FontAwesomeIcon className="clear-button after" icon={faTimes} size="sm" />
+                                </div>
+                            </>
+                            :
+                            <div className="placeholder">
+                                <FontAwesomeIcon className="upload-icon" icon={faCloudUploadAlt} size="lg" />
+                            </div>
+                    }
+                </div>
+                <div className="clip-div" style={{ width: clipWidth + "px" }}>
+                    {/* wraps around before image and slider bar */}
                     <div
-                        className="afterBox-cont"
-                        key={this.props.Document[Id]}
+                        className="beforeBox-cont"
+                        key={"before"}
                         ref={(ele) => {
-                            this._afterDropDisposer && this._afterDropDisposer();
-                            this._afterDropDisposer = this.createDropTarget(ele, "afterDoc");
-                        }}>
+                            this._beforeDropDisposer?.();
+                            this._beforeDropDisposer = this.createDropTarget(ele, "beforeDoc");
+                        }}
+                        style={{ width: this.props.PanelWidth() }}>
                         {
-                            afterDoc ?
+                            beforeDoc ?
                                 <>
                                     <ContentFittingDocumentView {...this.props}
-                                        Document={afterDoc}
-                                        parentActive={this.props.active}
-                                    // getTransform={this.props.ScreenToLocalTransform}
-                                    />
-                                    <div className="clear-button after" onClick={(e) => this.clearAfterDoc(e)}>
-                                        <FontAwesomeIcon className="clear-button after" icon={faTimes} size="sm" />
+                                        Document={beforeDoc}
+                                        parentActive={this.props.active} />
+                                    <div className="clear-button before" onClick={e => this.clearDoc(e, "beforeDoc")}>
+                                        <FontAwesomeIcon className="clear-button before" icon={faTimes} size="sm" />
                                     </div>
                                 </>
                                 :
@@ -165,6 +140,17 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
                                     <FontAwesomeIcon className="upload-icon" icon={faCloudUploadAlt} size="lg" />
                                 </div>
                         }
+                    </div>
+                </div>
+
+                <div className="slide-bar" style={{ left: `calc(${NumCast(this.dataDoc.clipWidth) * 100 / this.props.PanelWidth()}% - 5px)` }} onPointerDown={this.registerSliding}>
+                    <div className="slide-handle" >
+                        <div className="left-handle" onClick={() => this.dataDoc.clipWidth = 5}>
+                            <FontAwesomeIcon icon="caret-left" size="lg" />
+                        </div>
+                        <div className="right-handle" onClick={() => this.dataDoc.clipWidth = this.props.PanelWidth() - 5}>
+                            <FontAwesomeIcon icon="caret-right" size="lg" />
+                        </div>
                     </div>
                 </div>
             </div >);
