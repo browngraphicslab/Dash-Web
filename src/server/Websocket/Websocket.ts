@@ -217,6 +217,7 @@ export namespace WebSocket {
         "RichTextField": ["_t", value => value.Text],
         "date": ["_d", value => new Date(value.date).toISOString()],
         // "proxy": ["_i", "fieldId"],
+        // "proxy": ["", "fieldId"],
         "list": ["_l", list => {
             const results = [];
             for (const value of list.fields) {
@@ -236,7 +237,6 @@ export namespace WebSocket {
             return;
         }
         const type = val.__type || typeof val;
-        // console.log(type);
 
         let suffix = suffixMap[type];
         if (!suffix) {
@@ -248,8 +248,10 @@ export namespace WebSocket {
                 val = accessor(val);
             } else {
                 val = val[accessor];
+
             }
             suffix = suffix[0];
+
         }
         // console.log(suffix);
         return { suffix, value: val };
@@ -266,18 +268,29 @@ export namespace WebSocket {
         if (!docfield) {
             return;
         }
+        //console.log(diff);
         const update: any = { id: diff.id };
+        console.log(update);
         let dynfield = false;
         for (let key in docfield) {
             if (!key.startsWith("fields.")) continue;
             dynfield = true;
             const val = docfield[key];
             key = key.substring(7);
-            Object.values(suffixMap).forEach(suf => update[key + getSuffix(suf)] = { set: null });
+            if (key==="_height"){
+                Object.values(suffixMap).forEach(suf => {update[key] = { set: null };});
+            }
+            else {
+            Object.values(suffixMap).forEach(suf => {update[key + getSuffix(suf)] = { set: null };});
+            }
             const term = ToSearchTerm(val);
             if (term !== undefined) {
                 const { suffix, value } = term;
+                if (key==="_height"){
+                    update[key] = { set: value };
+                }
                 update[key + suffix] = { set: value };
+                console.log(update);
             }
         }
         if (dynfield) {
