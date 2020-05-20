@@ -135,7 +135,7 @@ function registerAuthenticationRoutes(server: express.Express) {
 
 function registerCorsProxy(server: express.Express) {
     const headerCharRegex = /[^\t\x20-\x7e\x80-\xff]/;
-    server.use("/corsProxy", (req, res) => {
+    server.use("/corsProxy", async (req, res) => {
 
         const requrl = decodeURIComponent(req.url.substring(1));
         const referer = req.headers.referer ? decodeURIComponent(req.headers.referer) : "";
@@ -144,8 +144,15 @@ function registerCorsProxy(server: express.Express) {
         // then we redirect again to the cors referer and just add the relative path.
         if (!requrl.startsWith("http") && req.originalUrl.startsWith("/corsProxy") && referer?.includes("corsProxy")) {
             res.redirect(referer + (referer.endsWith("/") ? "" : "/") + requrl);
-        }
-        else {
+        } else {
+            try {
+                await new Promise<void>((resolve, reject) => {
+                    request(requrl).on("response", resolve).on("error", reject);
+                });
+            } catch {
+                console.log(`Malformed CORS url: ${requrl}`);
+                return res.send();
+            }
             req.pipe(request(requrl)).on("response", res => {
                 const headers = Object.keys(res.headers);
                 headers.forEach(headerName => {
@@ -158,7 +165,7 @@ function registerCorsProxy(server: express.Express) {
                         }
                     }
                 });
-            }).pipe(res);
+            }).on("error", () => console.log(`Malformed CORS url: ${requrl}`)).pipe(res);
         }
     });
 }

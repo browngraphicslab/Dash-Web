@@ -769,7 +769,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     @action
     onPointerWheel = (e: React.WheelEvent): void => {
-        if (this.props.Document.lockedTransform || this.props.Document.inOverlay) return;
+        if (this.layoutDoc._lockedTransform || this.props.Document.inOverlay) return;
         if (!e.ctrlKey && this.props.Document.scrollHeight !== undefined) { // things that can scroll vertically should do that instead of zooming
             e.stopPropagation();
         }
@@ -805,7 +805,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 else if (ranges.yrange.max <= (panY - panelDim[1] / 2)) panY = ranges.yrange.min - panelDim[1] / 2;
             }
         }
-        if (!this.Document.lockedTransform || this.Document.inOverlay) {
+        if (!this.layoutDoc._lockedTransform || this.Document.inOverlay) {
             this.Document.panTransformType = panType;
             const scale = this.getLocalTransform().inverse().Scale;
             const newPanX = Math.min((1 - 1 / scale) * this.nativeWidth, Math.max(0, panX));
@@ -1169,6 +1169,12 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         Doc.toggleNativeDimensions(this.layoutDoc, this.props.ContentScaling(), this.props.NativeWidth(), this.props.NativeHeight());
     }
 
+    @undoBatch
+    @action
+    toggleLockTransform = (): void => {
+        this.layoutDoc._lockedTransform = this.layoutDoc._lockedTransform ? undefined : true;
+    }
+
     private thumbIdentifier?: number;
 
     onContextMenu = (e: React.MouseEvent) => {
@@ -1189,6 +1195,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         optionItems.push({ description: `${this.fitToContent ? "Unset" : "Set"} Fit To Container`, event: () => this.Document._fitToBox = !this.fitToContent, icon: !this.fitToContent ? "expand-arrows-alt" : "compress-arrows-alt" });
         optionItems.push({ description: `${this.Document.useClusters ? "Uncluster" : "Use Clusters"}`, event: () => this.updateClusters(!this.Document.useClusters), icon: "braille" });
         this.props.ContainingCollectionView && optionItems.push({ description: "Promote Collection", event: this.promoteCollection, icon: "table" });
+        optionItems.push({ description: this.layoutDoc._lockedTransform ? "Unlock Transform" : "Lock Transform", event: this.toggleLockTransform, icon: this.layoutDoc._lockedTransform ? "unlock" : "lock" });
         optionItems.push({ description: "Arrange contents in grid", event: this.layoutDocsInGrid, icon: "table" });
         // layoutItems.push({ description: "Analyze Strokes", event: this.analyzeStrokes, icon: "paint-brush" });
         optionItems.push({
@@ -1341,6 +1348,9 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             onPointerDown={this.onPointerDown}
             onPointerMove={this.onCursorMove}
             onDrop={this.onExternalDrop.bind(this)}
+            onDragOver={e => {
+                e.preventDefault();
+            }}
             onContextMenu={this.onContextMenu}
             style={{
                 pointerEvents: this.backgroundEvents ? "all" : undefined,

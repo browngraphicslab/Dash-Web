@@ -1,12 +1,12 @@
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faStickyNote, faPen, faMousePointer } from '@fortawesome/free-solid-svg-icons';
-import { action, computed, observable, trace, IReactionDisposer, reaction } from "mobx";
+import { action, computed, observable, trace, IReactionDisposer, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, FieldResult } from "../../../fields/Doc";
+import { Doc, FieldResult, DocListCast } from "../../../fields/Doc";
 import { documentSchema } from "../../../fields/documentSchemas";
 import { HtmlField } from "../../../fields/HtmlField";
 import { InkTool } from "../../../fields/InkField";
-import { makeInterface } from "../../../fields/Schema";
+import { makeInterface, listSpec } from "../../../fields/Schema";
 import { Cast, NumCast, BoolCast, StrCast } from "../../../fields/Types";
 import { WebField } from "../../../fields/URLField";
 import { Utils, returnOne, emptyFunction, returnZero } from "../../../Utils";
@@ -25,6 +25,7 @@ import { CollectionFreeFormView } from "../collections/collectionFreeForm/Collec
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { undoBatch } from "../../util/UndoManager";
+import { List } from "../../../fields/List";
 const htmlToText = require("html-to-text");
 
 library.add(faStickyNote);
@@ -58,13 +59,18 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
             iframe.contentDocument.addEventListener('scroll', this.iframeScrolled, false);
             this.layoutDoc.scrollHeight = iframe.contentDocument.children?.[0].scrollHeight || 1000;
             iframe.contentDocument.children[0].scrollTop = NumCast(this.layoutDoc.scrollTop);
+            iframe.contentDocument.children[0].scrollLeft = NumCast(this.layoutDoc.scrollLeft);
         }
         this._reactionDisposer?.();
-        this._reactionDisposer = reaction(() => this.layoutDoc.scrollY,
-            (scrollY) => {
-                if (scrollY !== undefined) {
-                    this._outerRef.current!.scrollTop = scrollY;
+        this._reactionDisposer = reaction(() => ({ y: this.layoutDoc.scrollY, x: this.layoutDoc.scrollX }),
+            ({ x, y }) => {
+                if (y !== undefined) {
+                    this._outerRef.current!.scrollTop = y;
                     this.layoutDoc.scrollY = undefined;
+                }
+                if (x !== undefined) {
+                    this._outerRef.current!.scrollLeft = x;
+                    this.layoutDoc.scrollX = undefined;
                 }
             },
             { fireImmediately: true }
@@ -75,12 +81,14 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         this._setPreviewCursor?.(e.screenX, e.screenY, false);
     }
     iframeScrolled = (e: any) => {
-        const scroll = e.target?.children?.[0].scrollTop;
-        this.layoutDoc.scrollTop = this._outerRef.current!.scrollTop = scroll;
+        const scrollTop = e.target?.children?.[0].scrollTop;
+        const scrollLeft = e.target?.children?.[0].scrollLeft;
+        this.layoutDoc.scrollTop = this._outerRef.current!.scrollTop = scrollTop;
+        this.layoutDoc.scrollLeft = this._outerRef.current!.scrollLeft = scrollLeft;
     }
     async componentDidMount() {
-
-        this.setURL();
+        const urlField = Cast(this.dataDoc[this.props.fieldKey], WebField);
+        runInAction(() => this._url = urlField?.url.toString() || "");
 
         document.addEventListener("pointerup", this.onLongPressUp);
         document.addEventListener("pointermove", this.onLongPressMove);
@@ -115,17 +123,73 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         this._url = e.target.value;
     }
 
+    onUrlDragover = (e: React.DragEvent) => {
+        e.preventDefault();
+    }
     @action
-    submitURL = () => {
-        if (!this._url.startsWith("http")) this._url = "http://" + this._url;
-        this.dataDoc[this.props.fieldKey] = new WebField(new URL(this._url));
+    onUrlDrop = (e: React.DragEvent) => {
+        const { dataTransfer } = e;
+        const html = dataTransfer.getData("text/html");
+        const uri = dataTransfer.getData("text/uri-list");
+        const url = uri || html || this._url;
+        this._url = url.startsWith(window.location.origin) ?
+            url.replace(window.location.origin, this._url.match(/http[s]?:\/\/[^\/]*/)?.[0] || "") : url;
+        this.submitURL();
+        e.stopPropagation();
     }
 
     @action
-    setURL() {
-        const urlField: FieldResult<WebField> = Cast(this.dataDoc[this.props.fieldKey], WebField);
-        if (urlField) this._url = urlField.url.toString();
-        else this._url = "";
+    forward = () => {
+        const future = Cast(this.dataDoc[this.fieldKey + "-future"], listSpec("string"), null);
+        const history = Cast(this.dataDoc[this.fieldKey + "-history"], listSpec("string"), null);
+        if (future.length) {
+            history.push(this._url);
+            this.dataDoc[this.annotationKey + "-" + this.urlHash(this._url)] = new List<Doc>(DocListCast(this.dataDoc[this.annotationKey]));
+            this.dataDoc[this.fieldKey] = new WebField(new URL(this._url = future.pop()!));
+            this.dataDoc[this.annotationKey] = new List<Doc>(DocListCast(this.dataDoc[this.annotationKey + "-" + this.urlHash(this._url)]));
+        }
+    }
+
+    @action
+    back = () => {
+        const future = Cast(this.dataDoc[this.fieldKey + "-future"], listSpec("string"), null);
+        const history = Cast(this.dataDoc[this.fieldKey + "-history"], listSpec("string"), null);
+        if (history.length) {
+            if (future === undefined) this.dataDoc[this.fieldKey + "-future"] = new List<string>([this._url]);
+            else future.push(this._url);
+            this.dataDoc[this.annotationKey + "-" + this.urlHash(this._url)] = new List<Doc>(DocListCast(this.dataDoc[this.annotationKey]));
+            this.dataDoc[this.fieldKey] = new WebField(new URL(this._url = history.pop()!));
+            this.dataDoc[this.annotationKey] = new List<Doc>(DocListCast(this.dataDoc[this.annotationKey + "-" + this.urlHash(this._url)]));
+        }
+    }
+
+    urlHash(s: string) {
+        return s.split('').reduce((a: any, b: any) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a }, 0);
+    }
+    @action
+    submitURL = () => {
+        if (!this._url.startsWith("http")) this._url = "http://" + this._url;
+        try {
+            const URLy = new URL(this._url);
+            const future = Cast(this.dataDoc[this.fieldKey + "-future"], listSpec("string"), null);
+            const history = Cast(this.dataDoc[this.fieldKey + "-history"], listSpec("string"), null);
+            const annos = DocListCast(this.dataDoc[this.annotationKey]);
+            const url = Cast(this.dataDoc[this.fieldKey], WebField, null)?.url.toString();
+            if (url) {
+                if (history === undefined) {
+                    this.dataDoc[this.fieldKey + "-history"] = new List<string>([url]);
+
+                } else {
+                    history.push(url);
+                }
+                future && (future.length = 0);
+                this.dataDoc[this.annotationKey + "-" + this.urlHash(url)] = new List<Doc>(annos);
+            }
+            this.dataDoc[this.fieldKey] = new WebField(URLy);
+            this.dataDoc[this.annotationKey] = new List<Doc>([]);
+        } catch (e) {
+            console.log("Error in URL :" + this._url);
+        }
     }
 
     onValueKeyDown = async (e: React.KeyboardEvent) => {
@@ -136,19 +200,14 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     }
 
     toggleAnnotationMode = () => {
-        if (!this.layoutDoc.isAnnotating) {
-            this.layoutDoc.lockedTransform = false;
-            this.layoutDoc.isAnnotating = true;
-        }
-        else {
-            this.layoutDoc.lockedTransform = true;
-            this.layoutDoc.isAnnotating = false;
-        }
+        this.layoutDoc.isAnnotating = !this.layoutDoc.isAnnotating;
     }
 
     urlEditor() {
         return (
-            <div className="webBox-urlEditor" style={{ top: this._collapsed ? -70 : 0 }}>
+            <div className="webBox-urlEditor"
+                onDrop={this.onUrlDrop}
+                onDragOver={this.onUrlDragover} style={{ top: this._collapsed ? -70 : 0 }}>
                 <div className="urlEditor">
                     <div className="editorBase">
                         <button className="editor-collapse"
@@ -161,7 +220,9 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                             title="Collapse Url Editor" onClick={this.toggleCollapse}>
                             <FontAwesomeIcon icon="caret-up" size="2x" />
                         </button>
-                        <div className="webBox-buttons" style={{ display: this._collapsed ? "none" : "flex" }}>
+                        <div className="webBox-buttons"
+                            onDrop={this.onUrlDrop}
+                            onDragOver={this.onUrlDragover} style={{ display: this._collapsed ? "none" : "flex" }}>
                             <div className="webBox-freeze" title={"Annotate"} style={{ background: this.layoutDoc.isAnnotating ? "lightBlue" : "gray" }} onClick={this.toggleAnnotationMode} >
                                 <FontAwesomeIcon icon={faPen} size={"2x"} />
                             </div>
@@ -171,6 +232,8 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                             <input className="webpage-urlInput"
                                 placeholder="ENTER URL"
                                 value={this._url}
+                                onDrop={this.onUrlDrop}
+                                onDragOver={this.onUrlDragover}
                                 onChange={this.onURLChange}
                                 onKeyDown={this.onValueKeyDown}
                             />
@@ -178,10 +241,17 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                                 display: "flex",
                                 flexDirection: "row",
                                 justifyContent: "space-between",
-                                minWidth: "100px",
+                                maxWidth: "120px",
                             }}>
-                                <button className="submitUrl" onClick={this.submitURL}>
-                                    SUBMIT
+                                <button className="submitUrl" onClick={this.submitURL}
+                                    onDragOver={this.onUrlDragover} onDrop={this.onUrlDrop}>
+                                    GO
+                                </button>
+                                <button className="submitUrl" onClick={this.back}>
+                                    <FontAwesomeIcon icon="caret-left" size="lg"></FontAwesomeIcon>
+                                </button>
+                                <button className="submitUrl" onClick={this.forward}>
+                                    <FontAwesomeIcon icon="caret-right" size="lg"></FontAwesomeIcon>
                                 </button>
                             </div>
                         </div>
@@ -368,7 +438,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
             {this.urlEditor()}
         </>);
     }
-    scrollXf = () => this.props.ScreenToLocalTransform().translate(0, NumCast(this.props.Document.scrollTop));
+    scrollXf = () => this.props.ScreenToLocalTransform().translate(NumCast(this.layoutDoc.scrollLeft), NumCast(this.layoutDoc.scrollTop));
     render() {
         return (<div className={`webBox-container`}
             style={{
@@ -390,10 +460,13 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                         if (iframe.children[0].scrollTop !== outerFrame.scrollTop) {
                             iframe.children[0].scrollTop = outerFrame.scrollTop;
                         }
+                        if (iframe.children[0].scrollLeft !== outerFrame.scrollLeft) {
+                            iframe.children[0].scrollLeft = outerFrame.scrollLeft;
+                        }
                     }
                     //this._outerRef.current!.scrollTop !== this._scrollTop && (this._outerRef.current!.scrollTop = this._scrollTop)
                 }}>
-                <div className={"webBox-innerContent"} style={{ height: NumCast(this.layoutDoc.scrollHeight) }}>
+                <div className={"webBox-innerContent"} style={{ height: NumCast(this.layoutDoc.scrollHeight), width: 4000 }}>
                     <CollectionFreeFormView {...this.props}
                         PanelHeight={this.props.PanelHeight}
                         PanelWidth={this.props.PanelWidth}
