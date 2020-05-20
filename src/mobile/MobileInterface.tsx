@@ -54,8 +54,9 @@ export class MobileInterface extends React.Component {
     public drawingInk: boolean = false;
 
     // private uploadDoc?: Doc;
-    private _child: Doc = null;
+    private _child: Doc | null = null;
     private _parents: Array<Doc> = [];
+    private _menu: Doc = this.userDoc;
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -135,7 +136,20 @@ export class MobileInterface extends React.Component {
     }
 
     back = () => {
-
+        let doc = Cast(this._parents.pop(), Doc) as Doc;
+        if (doc == Cast(this._menu, Doc) as Doc) {
+            this._child = null;
+            this.userDoc.activeMobile = this.mainDoc;
+        } else {
+            if (doc) {
+                this._child = doc;
+                this.switchCurrentView((userDoc: Doc) => doc);
+            }
+        }
+        if (doc) {
+            this._activeDoc = doc;
+        }
+        //this.switchCurrentView((userDoc: Doc) => doc);
     }
 
     displayWorkspaces = () => {
@@ -174,30 +188,36 @@ export class MobileInterface extends React.Component {
     }
 
     handleClick(doc: Doc) {
+        this._parents.push(this._activeDoc);
         this._activeDoc = doc;
-        let sidebar = document.getElementById("sidebar") as HTMLElement;
-        let header = document.getElementById("header") as HTMLElement;
-        if (sidebar.classList.contains('active')) {
-            header.textContent = String("//workspaces/" + doc.title);
-        }
+        // let sidebar = document.getElementById("sidebar") as HTMLElement;
+        // let header = document.getElementById("header") as HTMLElement;
+        // // if (sidebar.classList.contains('active')) {
+        // //     header.textContent = String("//workspaces/" + doc.title);
+        // // }
+        // let menuButton = document.getElementById("menuButton") as HTMLElement;
+        // menuButton.classList.toggle('active');
+
+        // sidebar.classList.toggle('active');
 
         console.log(doc.title);
 
-        this._parents.push(doc);
-        console.log(this._parents);
+
+
         const data = Cast(doc.data, listSpec(Doc));
         // const path = LibraryPath.reduce((p: string, d: Doc) => p + "/" + (Doc.AreProtosEqual(d, (Doc.UserDoc()["tabs-button-library"] as Doc).sourcePanel as Doc) ? "" : d.title), "");
-        if (data) {
-            const children = DocListCast(doc.data);
-            console.log("SIZE: " + children.length);
-            children.forEach(childDoc => {
-                console.log(childDoc.title);
-                this._child = doc;
-            });
-            // collectionDoc[data] = new List<Doc>();
-        }
+        // if (data) {
+        //     const children = DocListCast(doc.data);
+        //     console.log("SIZE: " + children.length);
+        //     children.forEach(childDoc => {
+        //         console.log(childDoc.title);
+        //         this._child = doc;
+        //     });
+        //     // collectionDoc[data] = new List<Doc>();
+        // }
         this.switchCurrentView((userDoc: Doc) => doc);
-        this.displayWorkspaces();
+        this._child = doc;
+        //this.displayWorkspaces();
         //this.toggleSidebar();
 
 
@@ -260,7 +280,7 @@ export class MobileInterface extends React.Component {
                         </div>
                     </div>
                     <div>
-                        {this.renderView}
+                        {/* {this.renderView} */}
                     </div>
                 </div>
             );

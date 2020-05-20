@@ -37,9 +37,10 @@ export class Uploader extends React.Component {
             await Docs.Prototypes.initialize();
             const imgPrev = document.getElementById("img_preview");
             if (imgPrev) {
-                console.log("1");
+
                 const files: FileList | null = inputRef.current!.files;
                 if (files && files.length !== 0) {
+                    console.log("1");
                     console.log(files[0]);
                     const name = files[0].name;
                     const formData = new FormData();

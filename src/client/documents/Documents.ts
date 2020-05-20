@@ -490,6 +490,7 @@ export namespace Docs {
         }
 
         export function ImageDocument(url: string, options: DocumentOptions = {}) {
+            console.log(url);
             const imgField = new ImageField(new URL(url));
             const inst = InstanceFromProto(Prototypes.get(DocumentType.IMG), imgField, { title: path.basename(url), ...options });
             let target = imgField.url.href;
