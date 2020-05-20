@@ -149,7 +149,6 @@ export class MobileInterface extends React.Component {
         if (doc) {
             this._activeDoc = doc;
         }
-        //this.switchCurrentView((userDoc: Doc) => doc);
     }
 
     displayWorkspaces = () => {
@@ -190,37 +189,11 @@ export class MobileInterface extends React.Component {
     handleClick(doc: Doc) {
         this._parents.push(this._activeDoc);
         this._activeDoc = doc;
-        // let sidebar = document.getElementById("sidebar") as HTMLElement;
-        // let header = document.getElementById("header") as HTMLElement;
-        // // if (sidebar.classList.contains('active')) {
-        // //     header.textContent = String("//workspaces/" + doc.title);
-        // // }
-        // let menuButton = document.getElementById("menuButton") as HTMLElement;
-        // menuButton.classList.toggle('active');
-
-        // sidebar.classList.toggle('active');
-
-        console.log(doc.title);
-
-
-
-        const data = Cast(doc.data, listSpec(Doc));
-        // const path = LibraryPath.reduce((p: string, d: Doc) => p + "/" + (Doc.AreProtosEqual(d, (Doc.UserDoc()["tabs-button-library"] as Doc).sourcePanel as Doc) ? "" : d.title), "");
-        // if (data) {
-        //     const children = DocListCast(doc.data);
-        //     console.log("SIZE: " + children.length);
-        //     children.forEach(childDoc => {
-        //         console.log(childDoc.title);
-        //         this._child = doc;
-        //     });
-        //     // collectionDoc[data] = new List<Doc>();
-        // }
         this.switchCurrentView((userDoc: Doc) => doc);
         this._child = doc;
-        //this.displayWorkspaces();
-        //this.toggleSidebar();
 
-
+        let sidebar = document.getElementById("sidebar") as HTMLElement;
+        sidebar.classList.toggle('active');
     }
 
     buttons = (doc: Doc) => {
@@ -258,7 +231,6 @@ export class MobileInterface extends React.Component {
                         <FontAwesomeIcon className="right" icon="angle-right" size="lg" />
                     </div>);
             });
-
         }
 
         if (!this._child) {
