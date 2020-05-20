@@ -1,36 +1,33 @@
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, DataSym, WidthSym, HeightSym } from "../../../../new_fields/Doc";
-import { InkField, InkData } from "../../../../new_fields/InkField";
-import { List } from "../../../../new_fields/List";
-import { SchemaHeaderField } from "../../../../new_fields/SchemaHeaderField";
-import { Cast, NumCast, FieldValue, StrCast } from "../../../../new_fields/Types";
+import { Doc, Opt } from "../../../../fields/Doc";
+import { InkData, InkField } from "../../../../fields/InkField";
+import { List } from "../../../../fields/List";
+import { RichTextField } from "../../../../fields/RichTextField";
+import { SchemaHeaderField } from "../../../../fields/SchemaHeaderField";
+import { Cast, FieldValue, NumCast, StrCast } from "../../../../fields/Types";
 import { Utils } from "../../../../Utils";
-import { Docs, DocUtils } from "../../../documents/Documents";
+import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
+import { Docs, DocumentOptions, DocUtils } from "../../../documents/Documents";
 import { SelectionManager } from "../../../util/SelectionManager";
 import { Transform } from "../../../util/Transform";
 import { undoBatch } from "../../../util/UndoManager";
 import { ContextMenu } from "../../ContextMenu";
+import { FormattedTextBox } from "../../nodes/formattedText/FormattedTextBox";
 import { PreviewCursor } from "../../PreviewCursor";
 import { SubCollectionViewProps } from "../CollectionSubView";
+import { CollectionView } from "../CollectionView";
 import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
 import "./MarqueeView.scss";
 import React = require("react");
-import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
-import { RichTextField } from "../../../../new_fields/RichTextField";
-import { CollectionView } from "../CollectionView";
-import { FormattedTextBox } from "../../nodes/FormattedTextBox";
 
 interface MarqueeViewProps {
     getContainerTransform: () => Transform;
     getTransform: () => Transform;
-    addDocument: (doc: Doc) => boolean;
     activeDocuments: () => Doc[];
     selectDocuments: (docs: Doc[], ink: { Document: Doc, Ink: Map<any, any> }[]) => void;
-    removeDocument: (doc: Doc) => boolean;
     addLiveTextDocument: (doc: Doc) => void;
     isSelected: () => boolean;
-    isAnnotationOverlay?: boolean;
     nudge: (x: number, y: number) => boolean;
     setPreviewCursor?: (func: (x: number, y: number, drag: boolean) => void) => void;
 }
@@ -38,7 +35,7 @@ interface MarqueeViewProps {
 @observer
 export class MarqueeView extends React.Component<SubCollectionViewProps & MarqueeViewProps>
 {
-    private _mainCont = React.createRef<HTMLDivElement>();
+    @observable public static DragMarquee = false;
     @observable _lastX: number = 0;
     @observable _lastY: number = 0;
     @observable _downX: number = 0;
@@ -68,54 +65,69 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         //make textbox and add it to this collection
         // tslint:disable-next-line:prefer-const
         let [x, y] = this.props.getTransform().transformPoint(this._downX, this._downY);
-        if (e.key === ":") {
-            DocUtils.addDocumentCreatorMenuItems(this.props.addLiveTextDocument, this.props.addDocument, x, y);
+        if (e.key === "?") {
+            ContextMenu.Instance.setDefaultItem("?", (str: string) => {
+                const textDoc = Docs.Create.WebDocument(`https://bing.com/search?q=${str}`, {
+                    _width: 200, x, y, _nativeHeight: 962, _nativeWidth: 800, isAnnotating: false,
+                    title: "bing", UseCors: true
+                });
+                this.props.addDocTab(textDoc, "onRight");
+            });
 
             ContextMenu.Instance.displayMenu(this._downX, this._downY);
-        } else if (e.key === "q" && e.ctrlKey) {
-            e.preventDefault();
-            (async () => {
-                const text: string = await navigator.clipboard.readText();
-                const ns = text.split("\n").filter(t => t.trim() !== "\r" && t.trim() !== "");
-                for (let i = 0; i < ns.length - 1; i++) {
-                    while (!(ns[i].trim() === "" || ns[i].endsWith("-\r") || ns[i].endsWith("-") ||
-                        ns[i].endsWith(";\r") || ns[i].endsWith(";") ||
-                        ns[i].endsWith(".\r") || ns[i].endsWith(".") ||
-                        ns[i].endsWith(":\r") || ns[i].endsWith(":")) && i < ns.length - 1) {
-                        const sub = ns[i].endsWith("\r") ? 1 : 0;
-                        const br = ns[i + 1].trim() === "";
-                        ns.splice(i, 2, ns[i].substr(0, ns[i].length - sub) + ns[i + 1].trimLeft());
-                        if (br) break;
+        } else
+            if (e.key === ":") {
+                DocUtils.addDocumentCreatorMenuItems(this.props.addLiveTextDocument, this.props.addDocument, x, y);
+
+                ContextMenu.Instance.displayMenu(this._downX, this._downY);
+            } else if (e.key === "q" && e.ctrlKey) {
+                e.preventDefault();
+                (async () => {
+                    const text: string = await navigator.clipboard.readText();
+                    const ns = text.split("\n").filter(t => t.trim() !== "\r" && t.trim() !== "");
+                    for (let i = 0; i < ns.length - 1; i++) {
+                        while (!(ns[i].trim() === "" || ns[i].endsWith("-\r") || ns[i].endsWith("-") ||
+                            ns[i].endsWith(";\r") || ns[i].endsWith(";") ||
+                            ns[i].endsWith(".\r") || ns[i].endsWith(".") ||
+                            ns[i].endsWith(":\r") || ns[i].endsWith(":")) && i < ns.length - 1) {
+                            const sub = ns[i].endsWith("\r") ? 1 : 0;
+                            const br = ns[i + 1].trim() === "";
+                            ns.splice(i, 2, ns[i].substr(0, ns[i].length - sub) + ns[i + 1].trimLeft());
+                            if (br) break;
+                        }
                     }
-                }
-                ns.map(line => {
-                    const indent = line.search(/\S|$/);
-                    const newBox = Docs.Create.TextDocument(line, { _width: 200, _height: 35, x: x + indent / 3 * 10, y: y, title: line });
-                    this.props.addDocument(newBox);
-                    y += 40 * this.props.getTransform().Scale;
+                    ns.map(line => {
+                        const indent = line.search(/\S|$/);
+                        const newBox = Docs.Create.TextDocument(line, { _width: 200, _height: 35, x: x + indent / 3 * 10, y: y, title: line });
+                        this.props.addDocument(newBox);
+                        y += 40 * this.props.getTransform().Scale;
+                    });
+                })();
+            } else if (e.key === "b" && e.ctrlKey) {
+                e.preventDefault();
+                navigator.clipboard.readText().then(text => {
+                    const ns = text.split("\n").filter(t => t.trim() !== "\r" && t.trim() !== "");
+                    if (ns.length === 1 && text.startsWith("http")) {
+                        this.props.addDocument(Docs.Create.ImageDocument(text, { _nativeWidth: 300, _width: 300, x: x, y: y }));// paste an image from its URL in the paste buffer
+                    } else {
+                        this.pasteTable(ns, x, y);
+                    }
                 });
-            })();
-        } else if (e.key === "b" && e.ctrlKey) {
-            e.preventDefault();
-            navigator.clipboard.readText().then(text => {
-                const ns = text.split("\n").filter(t => t.trim() !== "\r" && t.trim() !== "");
-                if (ns.length === 1 && text.startsWith("http")) {
-                    this.props.addDocument(Docs.Create.ImageDocument(text, { _nativeWidth: 300, _width: 300, x: x, y: y }));// paste an image from its URL in the paste buffer
-                } else {
-                    this.pasteTable(ns, x, y);
+            } else if (!e.ctrlKey) {
+                FormattedTextBox.SelectOnLoadChar = FormattedTextBox.DefaultLayout ? e.key : "";
+                const tbox = Docs.Create.TextDocument("", {
+                    _width: 200, _height: 100, x: x, y: y, _autoHeight: true, _fontSize: NumCast(Doc.UserDoc().fontSize),
+                    _fontFamily: StrCast(Doc.UserDoc().fontFamily), _backgroundColor: StrCast(Doc.UserDoc().backgroundColor),
+                    title: "-typed text-"
+                });
+                const template = FormattedTextBox.DefaultLayout;
+                if (template instanceof Doc) {
+                    tbox._width = NumCast(template._width);
+                    tbox.layoutKey = "layout_" + StrCast(template.title);
+                    Doc.GetProto(tbox)[StrCast(tbox.layoutKey)] = template;
                 }
-            });
-        } else if (!e.ctrlKey) {
-            FormattedTextBox.SelectOnLoadChar = FormattedTextBox.DefaultLayout ? e.key : "";
-            const tbox = Docs.Create.TextDocument("", { _width: 200, _height: 100, x: x, y: y, _autoHeight: true, title: "-typed text-" });
-            const template = FormattedTextBox.DefaultLayout;
-            if (template instanceof Doc) {
-                tbox._width = NumCast(template._width);
-                tbox.layoutKey = "layout_" + StrCast(template.title);
-                tbox[StrCast(tbox.layoutKey)] = template;
+                this.props.addLiveTextDocument(tbox);
             }
-            this.props.addLiveTextDocument(tbox);
-        }
         e.stopPropagation();
     }
     //heuristically converts pasted text into a table.
@@ -163,12 +175,13 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
     onPointerDown = (e: React.PointerEvent): void => {
         this._downX = this._lastX = e.clientX;
         this._downY = this._lastY = e.clientY;
-        if (e.button === 2 || (e.button === 0 && e.altKey)) {
+        // allow marquee if right click OR alt+left click OR space bar + left click
+        if (e.button === 2 || (e.button === 0 && (e.altKey || (MarqueeView.DragMarquee && this.props.active(true))))) {
+            // if (e.altKey || (MarqueeView.DragMarquee && this.props.active(true))) {
             this.setPreviewCursor(e.clientX, e.clientY, true);
-            if (e.altKey) {
-                //e.stopPropagation(); // bcz: removed so that you can alt-click on button in a collection to switch link following behaviors.
-                e.preventDefault();
-            }
+            // (!e.altKey) && e.stopPropagation(); // bcz: removed so that you can alt-click on button in a collection to switch link following behaviors.
+            e.preventDefault();
+            // }
             // bcz: do we need this?   it kills the context menu on the main collection if !altKey
             // e.stopPropagation();
         }
@@ -190,14 +203,13 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         } else {
             this.cleanupInteractions(true); // stop listening for events if another lower-level handle (e.g. another Marquee) has stopPropagated this
         }
-        if (e.altKey) {
+        if (e.altKey || MarqueeView.DragMarquee) {
             e.preventDefault();
         }
     }
 
     @action
     onPointerUp = (e: PointerEvent): void => {
-        if (!this.props.active(true)) this.props.selectDocuments([this.props.Document], []);
         if (this._visible) {
             const mselect = this.marqueeSelect();
             if (!e.shiftKey) {
@@ -208,6 +220,11 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             const docs = mselect.length ? mselect : [this.props.Document];
             this.props.selectDocuments(docs, []);
         }
+        const hideMarquee = () => {
+            this.hideMarquee();
+            MarqueeOptionsMenu.Instance.fadeOut(true);
+            document.removeEventListener("pointerdown", hideMarquee);
+        };
         if (!this._commandExecuted && (Math.abs(this.Bounds.height * this.Bounds.width) > 100)) {
             MarqueeOptionsMenu.Instance.createCollection = this.collection;
             MarqueeOptionsMenu.Instance.delete = this.delete;
@@ -216,17 +233,13 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             MarqueeOptionsMenu.Instance.showMarquee = this.showMarquee;
             MarqueeOptionsMenu.Instance.hideMarquee = this.hideMarquee;
             MarqueeOptionsMenu.Instance.jumpTo(e.clientX, e.clientY);
+            document.addEventListener("pointerdown", hideMarquee);
+        } else {
+            this.hideMarquee();
         }
         this.cleanupInteractions(true, this._commandExecuted);
 
-        const hideMarquee = () => {
-            this.hideMarquee();
-            MarqueeOptionsMenu.Instance.fadeOut(true);
-            document.removeEventListener("pointerdown", hideMarquee);
-        };
-        document.addEventListener("pointerdown", hideMarquee);
-
-        if (e.altKey) {
+        if (e.altKey || MarqueeView.DragMarquee) {
             e.preventDefault();
         }
     }
@@ -299,21 +312,17 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
 
     @action
     delete = () => {
-        this.marqueeSelect(false).map(d => this.props.removeDocument(d));
-        if (this.ink) {
-            // this.marqueeInkDelete(this.ink.inkData);
-        }
+        this.props.removeDocument(this.marqueeSelect(false));
         SelectionManager.DeselectAll();
         this.cleanupInteractions(false);
         MarqueeOptionsMenu.Instance.fadeOut(true);
         this.hideMarquee();
     }
 
-    getCollection = (selected: Doc[], asTemplate: boolean, isBackground?: boolean) => {
+    getCollection = (selected: Doc[], creator: Opt<(documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc>, isBackground?: boolean) => {
         const bounds = this.Bounds;
         // const inkData = this.ink ? this.ink.inkData : undefined;
-        const creator = asTemplate ? Docs.Create.StackingDocument : Docs.Create.FreeformDocument;
-        const newCollection = creator(selected, {
+        const newCollection = (creator || Docs.Create.FreeformDocument)(selected, {
             x: bounds.left,
             y: bounds.top,
             _panX: 0,
@@ -333,19 +342,32 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
     }
 
     @action
+    pileup = (e: KeyboardEvent | React.PointerEvent | undefined) => {
+        const selected = this.marqueeSelect(false);
+        SelectionManager.DeselectAll();
+        selected.forEach(d => this.props.removeDocument(d));
+        const newCollection = Doc.pileup(selected, this.Bounds.left + this.Bounds.width / 2, this.Bounds.top + this.Bounds.height / 2);
+        this.props.addDocument(newCollection);
+        this.props.selectDocuments([newCollection], []);
+        MarqueeOptionsMenu.Instance.fadeOut(true);
+        this.hideMarquee();
+    }
+
+    @action
     collection = (e: KeyboardEvent | React.PointerEvent | undefined) => {
         const bounds = this.Bounds;
         const selected = this.marqueeSelect(false);
         if (e instanceof KeyboardEvent ? e.key === "c" : true) {
-            selected.map(d => {
-                this.props.removeDocument(d);
+            selected.map(action(d => {
+                //this.props.removeDocument(d);
                 d.x = NumCast(d.x) - bounds.left - bounds.width / 2;
                 d.y = NumCast(d.y) - bounds.top - bounds.height / 2;
                 d.displayTimecode = undefined;  // bcz: this should be automatic somehow.. along with any other properties that were logically associated with the original collection
                 return d;
-            });
+            }));
+            this.props.removeDocument(selected);
         }
-        const newCollection = this.getCollection(selected, (e as KeyboardEvent)?.key === "t");
+        const newCollection = this.getCollection(selected, (e as KeyboardEvent)?.key === "t" ? Docs.Create.StackingDocument : undefined);
         this.props.addDocument(newCollection);
         this.props.selectDocuments([newCollection], []);
         MarqueeOptionsMenu.Instance.fadeOut(true);
@@ -456,7 +478,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
     }
     @action
     background = (e: KeyboardEvent | React.PointerEvent | undefined) => {
-        const newCollection = this.getCollection([], false, true);
+        const newCollection = this.getCollection([], undefined, true);
         this.props.addDocument(newCollection);
         MarqueeOptionsMenu.Instance.fadeOut(true);
         this.hideMarquee();
@@ -476,7 +498,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             this.delete();
             e.stopPropagation();
         }
-        if (e.key === "c" || e.key === "b" || e.key === "t" || e.key === "s" || e.key === "S") {
+        if (e.key === "c" || e.key === "b" || e.key === "t" || e.key === "s" || e.key === "S" || e.key === "p") {
             this._commandExecuted = true;
             e.stopPropagation();
             e.preventDefault();
@@ -489,6 +511,9 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             }
             if (e.key === "b") {
                 this.background(e);
+            }
+            if (e.key === "p") {
+                this.pileup(e);
             }
             this.cleanupInteractions(false);
         }
@@ -536,7 +561,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
     marqueeSelect(selectBackgrounds: boolean = true) {
         const selRect = this.Bounds;
         const selection: Doc[] = [];
-        this.props.activeDocuments().filter(doc => !doc.isBackground && doc.z === undefined).map(doc => {
+        this.props.activeDocuments().filter(doc => !doc.isBackground && !doc.z).map(doc => {
             const layoutDoc = Doc.Layout(doc);
             const x = NumCast(doc.x);
             const y = NumCast(doc.y);
@@ -598,7 +623,8 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
 
     render() {
         return <div className="marqueeView"
-            style={{ overflow: StrCast(this.props.Document.overflow), }}
+            style={{ overflow: StrCast(this.props.Document._overflow), cursor: MarqueeView.DragMarquee && this ? "crosshair" : "hand" }}
+            onDragOver={e => e.preventDefault()}
             onScroll={(e) => e.currentTarget.scrollTop = e.currentTarget.scrollLeft = 0} onClick={this.onClick} onPointerDown={this.onPointerDown}>
             {this._visible ? this.marqueeDiv : null}
             {this.props.children}

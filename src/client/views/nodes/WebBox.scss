@@ -3,6 +3,38 @@
 
 .webBox-container, .webBox-container-dragging {
     transform-origin: top left;
+    width: 100%;
+    height: 100%;
+
+    .webBox-htmlSpan {
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
+    .webBox-cont {
+        pointer-events: none;
+    }
+    .webBox-cont, .webBox-cont-interactive {
+        padding: 0vw;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        transform-origin: top left;
+        overflow: auto;
+        .webBox-iframe {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top:0;
+        }
+    }
+    .webBox-cont-interactive {
+        span {
+            user-select: text !important;
+        }
+    }
     .webBox-outerContent {
         width: 100%;
         height: 100%;
@@ -18,29 +50,7 @@
         display:none;
     }
 }
-.webBox-cont {
-    padding: 0vw;
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    transform-origin: top left;
-    overflow: auto;
-    pointer-events: none;
-}
 
-.webBox-cont-interactive {
-    span {
-        user-select: text !important;
-    }
-}
-
-#webBox-htmlSpan {
-    position: absolute;
-    top: 0;
-    left: 0;
-}
 
 .webBox-overlay {
     width: 100%;
@@ -66,8 +76,6 @@
     opacity: 0.9;
     z-index: 9001;
     transition: top .5s;
-    padding: 10px;
-
 
     .urlEditor {
         display: grid;

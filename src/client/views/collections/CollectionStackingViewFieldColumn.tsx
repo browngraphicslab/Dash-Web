@@ -4,16 +4,15 @@ import { faPalette } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast } from "../../../new_fields/Doc";
-import { RichTextField } from "../../../new_fields/RichTextField";
-import { PastelSchemaPalette, SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
-import { ScriptField } from "../../../new_fields/ScriptField";
-import { NumCast, StrCast, Cast } from "../../../new_fields/Types";
-import { ImageField } from "../../../new_fields/URLField";
-import { TraceMobx } from "../../../new_fields/util";
+import { Doc, DocListCast } from "../../../fields/Doc";
+import { RichTextField } from "../../../fields/RichTextField";
+import { PastelSchemaPalette, SchemaHeaderField } from "../../../fields/SchemaHeaderField";
+import { ScriptField } from "../../../fields/ScriptField";
+import { NumCast, StrCast, Cast } from "../../../fields/Types";
+import { ImageField } from "../../../fields/URLField";
+import { TraceMobx } from "../../../fields/util";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
-import { SelectionManager } from "../../util/SelectionManager";
 import { Transform } from "../../util/Transform";
 import { undoBatch } from "../../util/UndoManager";
 import { ContextMenu } from "../ContextMenu";
@@ -22,7 +21,8 @@ import { EditableView } from "../EditableView";
 import { CollectionStackingView } from "./CollectionStackingView";
 import { setupMoveUpEvents, emptyFunction } from "../../../Utils";
 import "./CollectionStackingView.scss";
-import { listSpec } from "../../../new_fields/Schema";
+import { listSpec } from "../../../fields/Schema";
+import { SnappingManager } from "../../util/SnappingManager";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -120,7 +120,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
 
     @action
     pointerEntered = () => {
-        if (SelectionManager.GetIsDragging()) {
+        if (SnappingManager.GetIsDragging()) {
             this._background = "#b4b4b4";
         }
     }
@@ -156,7 +156,6 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
     @action
     collapseSection = () => {
         if (this.props.headingObject) {
-            this._headingsHack++;
             this.props.headingObject.setCollapsed(!this.props.headingObject.collapsed);
             this.toggleVisibility();
         }
@@ -224,8 +223,6 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
     @observable private collapsed: boolean = false;
 
     private toggleVisibility = action(() => this.collapsed = !this.collapsed);
-
-    @observable _headingsHack: number = 1;
 
     menuCallback = (x: number, y: number) => {
         ContextMenu.Instance.clearItems();
@@ -300,7 +297,6 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
             contents: evContents,
             oneLine: true,
             HeadingObject: this.props.headingObject,
-            HeadingsHack: this._headingsHack,
             toggle: this.toggleVisibility,
             color: this._color
         };
@@ -309,7 +305,6 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
             SetValue: this.addDocument,
             contents: "+ NEW",
             HeadingObject: this.props.headingObject,
-            HeadingsHack: this._headingsHack,
             toggle: this.toggleVisibility,
             color: this._color
         };
@@ -327,11 +322,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
                 <div className="collectionStackingView-sectionHeader-subCont" onPointerDown={this.headerDown}
                     title={evContents === `NO ${key.toUpperCase()} VALUE` ?
                         `Documents that don't have a ${key} value will go here. This column cannot be removed.` : ""}
-                    style={{
-                        width: "100%",
-                        background: evContents !== `NO ${key.toUpperCase()} VALUE` ? this._color : "inherit",
-                        color: "grey"
-                    }}>
+                    style={{ background: evContents !== `NO ${key.toUpperCase()} VALUE` ? this._color : "inherit" }}>
                     <EditableView {...headerEditableViewProps} />
                     {evContents === `NO ${key.toUpperCase()} VALUE` ? (null) :
                         <div className="collectionStackingView-sectionColor">
@@ -364,7 +355,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
             <div className="collectionStackingViewFieldColumn" key={heading}
                 style={{
                     width: `${100 / ((uniqueHeadings.length + ((chromeStatus !== 'view-mode' && chromeStatus !== 'disabled') ? 1 : 0)) || 1)}%`,
-                    height: SelectionManager.GetIsDragging() ? "100%" : undefined,
+                    height: undefined, // DraggingManager.GetIsDragging() ? "100%" : undefined,
                     background: this._background
                 }}
                 ref={this.createColumnDropRef} onPointerEnter={this.pointerEntered} onPointerLeave={this.pointerLeave}>

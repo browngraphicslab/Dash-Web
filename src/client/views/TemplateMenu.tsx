@@ -6,14 +6,16 @@ import './TemplateMenu.scss';
 import { DocumentView } from "./nodes/DocumentView";
 import { Template } from "./Templates";
 import React = require("react");
-import { Doc, DocListCast } from "../../new_fields/Doc";
+import { Doc, DocListCast } from "../../fields/Doc";
 import { Docs, } from "../documents/Documents";
-import { StrCast, Cast } from "../../new_fields/Types";
+import { StrCast, Cast } from "../../fields/Types";
 import { CollectionTreeView } from "./collections/CollectionTreeView";
 import { returnTrue, emptyFunction, returnFalse, returnOne, emptyPath, returnZero } from "../../Utils";
 import { Transform } from "../util/Transform";
-import { ScriptField, ComputedField } from "../../new_fields/ScriptField";
+import { ScriptField, ComputedField } from "../../fields/ScriptField";
 import { Scripting } from "../util/Scripting";
+import { List } from "../../fields/List";
+import { TraceMobx } from "../../fields/util";
 
 @observer
 class TemplateToggle extends React.Component<{ template: Template, checked: boolean, toggle: (event: React.ChangeEvent<HTMLInputElement>, template: Template) => void }> {
@@ -106,15 +108,19 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
 
     return100 = () => 100;
     @computed get scriptField() {
-        return ScriptField.MakeScript("switchView(firstDoc, this)", { this: Doc.name, heading: "string", checked: "string", containingTreeView: Doc.name, firstDoc: Doc.name },
-            { firstDoc: this.props.docViews[0].props.Document });
+        return ScriptField.MakeScript("docs.map(d => switchView(d, this))", { this: Doc.name, heading: "string", checked: "string", containingTreeView: Doc.name, firstDoc: Doc.name },
+            { docs: new List<Doc>(this.props.docViews.map(dv => dv.props.Document)) });
+    }
+    templateIsUsed = (selDoc: Doc, templateDoc: Doc) => {
+        const template = StrCast(templateDoc.dragFactory ? Cast(templateDoc.dragFactory, Doc, null)?.title : templateDoc.title);
+        return StrCast(selDoc.layoutKey) === "layout_" + template ? 'check' : 'unchecked';
     }
     render() {
+        TraceMobx();
         const firstDoc = this.props.docViews[0].props.Document;
         const templateName = StrCast(firstDoc.layoutKey, "layout").replace("layout_", "");
-        const noteTypesDoc = Cast(Doc.UserDoc().noteTypes, Doc, null);
-        const noteTypes = DocListCast(noteTypesDoc?.data);
-        const addedTypes = DocListCast(Cast(Doc.UserDoc().templateButtons, Doc, null)?.data);
+        const noteTypes = DocListCast(Cast(Doc.UserDoc()["template-notes"], Doc, null)?.data);
+        const addedTypes = DocListCast(Cast(Doc.UserDoc()["template-buttons"], Doc, null)?.data);
         const layout = Doc.Layout(firstDoc);
         const templateMenu: Array<JSX.Element> = [];
         this.props.templates.forEach((checked, template) =>
@@ -123,11 +129,9 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
         templateMenu.push(<OtherToggle key={"float"} name={"Float"} checked={firstDoc.z ? true : false} toggle={this.toggleFloat} />);
         templateMenu.push(<OtherToggle key={"chrome"} name={"Chrome"} checked={layout._chromeStatus !== "disabled"} toggle={this.toggleChrome} />);
         templateMenu.push(<OtherToggle key={"default"} name={"Default"} checked={templateName === "layout"} toggle={this.toggleDefault} />);
-        if (noteTypesDoc) {
-            addedTypes.concat(noteTypes).map(template => template.treeViewChecked = ComputedField.MakeFunction(`templateIsUsed(self)`));
-            this._addedKeys && Array.from(this._addedKeys).filter(key => !noteTypes.some(nt => nt.title === key)).forEach(template => templateMenu.push(
-                <OtherToggle key={template} name={template} checked={templateName === template} toggle={e => this.toggleLayout(e, template)} />));
-        }
+        addedTypes.concat(noteTypes).map(template => template.treeViewChecked = this.templateIsUsed(firstDoc, template));
+        this._addedKeys && Array.from(this._addedKeys).filter(key => !noteTypes.some(nt => nt.title === key)).forEach(template => templateMenu.push(
+            <OtherToggle key={template} name={template} checked={templateName === template} toggle={e => this.toggleLayout(e, template)} />));
         return <ul className="template-list" style={{ display: "block" }}>
             <input placeholder="+ layout" ref={this._customRef} onKeyPress={this.onCustomKeypress} />
             {templateMenu}
@@ -160,9 +164,9 @@ export class TemplateMenu extends React.Component<TemplateMenuProps> {
                 annotationsKey={""}
                 dontRegisterView={true}
                 fieldKey={"data"}
-                moveDocument={(doc: Doc) => false}
-                removeDocument={(doc: Doc) => false}
-                addDocument={(doc: Doc) => false} />
+                moveDocument={returnFalse}
+                removeDocument={returnFalse}
+                addDocument={returnFalse} />
         </ul>;
     }
 }
@@ -172,14 +176,5 @@ Scripting.addGlobal(function switchView(doc: Doc, template: Doc | undefined) {
         template = Cast(template.dragFactory, Doc, null);
     }
     const templateTitle = StrCast(template?.title);
-    return templateTitle && DocumentView.makeCustomViewClicked(doc, Docs.Create.FreeformDocument, templateTitle, template);
-});
-
-Scripting.addGlobal(function templateIsUsed(templateDoc: Doc) {
-    const firstDoc = SelectionManager.SelectedDocuments().length ? SelectionManager.SelectedDocuments()[0].props.Document : undefined;
-    if (firstDoc) {
-        const template = StrCast(templateDoc.dragFactory ? Cast(templateDoc.dragFactory, Doc, null)?.title : templateDoc.title);
-        return StrCast(firstDoc.layoutKey) === "layout_" + template ? 'check' : 'unchecked';
-    }
-    return false;
+    return templateTitle && Doc.makeCustomViewClicked(doc, Docs.Create.FreeformDocument, templateTitle, template);
 });

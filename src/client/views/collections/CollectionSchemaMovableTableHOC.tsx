@@ -2,18 +2,18 @@ import React = require("react");
 import { ReactTableDefaults, TableCellRenderer, RowInfo } from "react-table";
 import "./CollectionSchemaView.scss";
 import { Transform } from "../../util/Transform";
-import { Doc } from "../../../new_fields/Doc";
+import { Doc } from "../../../fields/Doc";
 import { DragManager, SetupDrag, dropActionType } from "../../util/DragManager";
-import { SelectionManager } from "../../util/SelectionManager";
-import { Cast, FieldValue, StrCast } from "../../../new_fields/Types";
+import { Cast, FieldValue, StrCast } from "../../../fields/Types";
 import { ContextMenu } from "../ContextMenu";
 import { action } from "mobx";
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { faGripVertical, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { DocumentManager } from "../../util/DocumentManager";
-import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
+import { SchemaHeaderField } from "../../../fields/SchemaHeaderField";
 import { undoBatch } from "../../util/UndoManager";
+import { SnappingManager } from "../../util/SnappingManager";
 
 library.add(faGripVertical, faTrash);
 
@@ -32,7 +32,7 @@ export class MovableColumn extends React.Component<MovableColumnProps> {
     private _dragRef: React.RefObject<HTMLDivElement> = React.createRef();
 
     onPointerEnter = (e: React.PointerEvent): void => {
-        if (e.buttons === 1 && SelectionManager.GetIsDragging()) {
+        if (e.buttons === 1 && SnappingManager.GetIsDragging()) {
             this._header!.current!.className = "collectionSchema-col-wrapper";
             document.addEventListener("pointermove", this.onDragMove, true);
         }
@@ -54,7 +54,7 @@ export class MovableColumn extends React.Component<MovableColumnProps> {
     }
 
     createColDropTarget = (ele: HTMLDivElement) => {
-        this._colDropDisposer && this._colDropDisposer();
+        this._colDropDisposer?.();
         if (ele) {
             this._colDropDisposer = DragManager.MakeDropTarget(ele, this.colDrop.bind(this));
         }
@@ -130,8 +130,8 @@ export class MovableColumn extends React.Component<MovableColumnProps> {
 export interface MovableRowProps {
     rowInfo: RowInfo;
     ScreenToLocalTransform: () => Transform;
-    addDoc: (doc: Doc, relativeTo?: Doc, before?: boolean) => boolean;
-    removeDoc: (doc: Doc) => boolean;
+    addDoc: (doc: Doc | Doc[], relativeTo?: Doc, before?: boolean) => boolean;
+    removeDoc: (doc: Doc | Doc[]) => boolean;
     rowFocused: boolean;
     textWrapRow: (doc: Doc) => void;
     rowWrapped: boolean;
@@ -143,7 +143,7 @@ export class MovableRow extends React.Component<MovableRowProps> {
     private _rowDropDisposer?: DragManager.DragDropDisposer;
 
     onPointerEnter = (e: React.PointerEvent): void => {
-        if (e.buttons === 1 && SelectionManager.GetIsDragging()) {
+        if (e.buttons === 1 && SnappingManager.GetIsDragging()) {
             this._header!.current!.className = "collectionSchema-row-wrapper";
             document.addEventListener("pointermove", this.onDragMove, true);
         }
@@ -183,7 +183,7 @@ export class MovableRow extends React.Component<MovableRowProps> {
         if (docDragData) {
             e.stopPropagation();
             if (docDragData.draggedDocuments[0] === rowDoc) return true;
-            const addDocument = (doc: Doc) => this.props.addDoc(doc, rowDoc, before);
+            const addDocument = (doc: Doc | Doc[]) => this.props.addDoc(doc, rowDoc, before);
             const movedDocs = docDragData.draggedDocuments;
             return (docDragData.dropAction || docDragData.userDropAction) ?
                 docDragData.droppedDocuments.reduce((added: boolean, d) => this.props.addDoc(d, rowDoc, before) || added, false)
@@ -201,7 +201,7 @@ export class MovableRow extends React.Component<MovableRowProps> {
 
     @undoBatch
     @action
-    move: DragManager.MoveFunction = (doc: Doc, targetCollection: Doc | undefined, addDoc) => {
+    move: DragManager.MoveFunction = (doc: Doc | Doc[], targetCollection: Doc | undefined, addDoc) => {
         const targetView = targetCollection && DocumentManager.Instance.getDocumentView(targetCollection);
         if (targetView && targetView.props.ContainingCollectionDoc) {
             return doc !== targetCollection && doc !== targetView.props.ContainingCollectionDoc && this.props.removeDoc(doc) && addDoc(doc);

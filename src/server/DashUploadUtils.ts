@@ -4,7 +4,7 @@ import * as path from 'path';
 import * as sharp from 'sharp';
 import request = require('request-promise');
 import { ExifImage } from 'exif';
-import { Opt } from '../new_fields/Doc';
+import { Opt } from '../fields/Doc';
 import { AcceptibleMedia, Upload } from './SharedMediaTypes';
 import { filesDirectory, publicDirectory } from '.';
 import { File } from 'formidable';
@@ -100,7 +100,7 @@ export namespace DashUploadUtils {
             const writeStream = createWriteStream(serverPathToFile(Directory.text, textFilename));
             writeStream.write(result.text, error => error ? reject(error) : resolve());
         });
-        return MoveParsedFile(file, Directory.pdfs);
+        return MoveParsedFile(file, Directory.pdfs, undefined, result.text);
     }
 
     const manualSuffixes = [".webm"];
@@ -237,7 +237,7 @@ export namespace DashUploadUtils {
      * @param suffix If the file doesn't have a suffix and you want to provide it one
      * to appear in the new location
      */
-    export async function MoveParsedFile(file: File, destination: Directory, suffix: string | undefined = undefined): Promise<Upload.FileResponse> {
+    export async function MoveParsedFile(file: File, destination: Directory, suffix: string | undefined = undefined, text?: string): Promise<Upload.FileResponse> {
         const { path: sourcePath } = file;
         let name = path.basename(sourcePath);
         suffix && (name += suffix);
@@ -249,14 +249,15 @@ export namespace DashUploadUtils {
                     result: error ? error : {
                         accessPaths: {
                             agnostic: getAccessPaths(destination, name)
-                        }
+                        },
+                        rawText: text
                     }
                 });
             });
         });
     }
 
-    function getAccessPaths(directory: Directory, fileName: string) {
+    export function getAccessPaths(directory: Directory, fileName: string) {
         return {
             client: clientPathToFile(directory, fileName),
             server: serverPathToFile(directory, fileName)
@@ -324,12 +325,7 @@ export namespace DashUploadUtils {
             const outputPath = path.resolve(outputDirectory, writtenFiles[suffix] = InjectSize(outputFileName, suffix));
             await new Promise<void>(async (resolve, reject) => {
                 const source = streamProvider();
-                let readStream: Stream;
-                if (source instanceof Promise) {
-                    readStream = await source;
-                } else {
-                    readStream = source;
-                }
+                let readStream: Stream = source instanceof Promise ? await source : source;
                 if (resizer) {
                     readStream = readStream.pipe(resizer.withMetadata());
                 }

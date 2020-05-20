@@ -1,12 +1,13 @@
-import * as OpenSocket from 'socket.io-client';
+import * as io from 'socket.io-client';
 import { MessageStore, YoutubeQueryTypes, GestureContent, MobileInkOverlayContent, UpdateMobileInkOverlayPositionContent, MobileDocumentUploadContent } from "./../server/Message";
-import { Opt, Doc } from '../new_fields/Doc';
+import { Opt, Doc } from '../fields/Doc';
 import { Utils, emptyFunction } from '../Utils';
 import { SerializationHelper } from './util/SerializationHelper';
-import { RefField } from '../new_fields/RefField';
-import { Id, HandleUpdate } from '../new_fields/FieldSymbols';
+import { RefField } from '../fields/RefField';
+import { Id, HandleUpdate } from '../fields/FieldSymbols';
 import GestureOverlay from './views/GestureOverlay';
 import MobileInkOverlay from '../mobile/MobileInkOverlay';
+import { runInAction } from 'mobx';
 
 /**
  * This class encapsulates the transfer and cross-client synchronization of
@@ -107,8 +108,11 @@ export namespace DocServer {
     export function init(protocol: string, hostname: string, port: number, identifier: string) {
         _cache = {};
         GUID = identifier;
-        _socket = OpenSocket(`${protocol}//${hostname}:${port}`);
+        protocol = protocol.startsWith("https") ? "wss" : "ws";
+        _socket = io.connect(`${protocol}://${hostname}:${port}`);
+        // io.connect(`https://7f079dda.ngrok.io`);// if using ngrok, create a special address for the websocket
 
+        _GetCachedRefField = _GetCachedRefFieldImpl;
         _GetRefField = _GetRefFieldImpl;
         _GetRefFields = _GetRefFieldsImpl;
         _CreateField = _CreateFieldImpl;
@@ -243,11 +247,21 @@ export namespace DocServer {
             return Promise.resolve(cached);
         }
     };
+    const _GetCachedRefFieldImpl = (id: string): Opt<RefField> => {
+        const cached = _cache[id];
+        if (cached !== undefined && !(cached instanceof Promise)) {
+            return cached;
+        }
+    };
 
     let _GetRefField: (id: string) => Promise<Opt<RefField>> = errorFunc;
+    let _GetCachedRefField: (id: string) => Opt<RefField> = errorFunc;
 
     export function GetRefField(id: string): Promise<Opt<RefField>> {
         return _GetRefField(id);
+    }
+    export function GetCachedRefField(id: string): Opt<RefField> {
+        return _GetCachedRefField(id);
     }
 
     export async function getYoutubeChannels() {
@@ -308,32 +322,34 @@ export namespace DocServer {
         const deserializeFields = getSerializedFields.then(async fields => {
             const fieldMap: { [id: string]: RefField } = {};
             const proms: Promise<void>[] = [];
-            for (const field of fields) {
-                if (field !== undefined && field !== null) {
-                    // deserialize
-                    const prom = SerializationHelper.Deserialize(field).then(deserialized => {
-                        fieldMap[field.id] = deserialized;
+            runInAction(() => {
+                for (const field of fields) {
+                    if (field !== undefined && field !== null) {
+                        // deserialize
+                        const prom = SerializationHelper.Deserialize(field).then(deserialized => {
+                            fieldMap[field.id] = deserialized;
 
-                        //overwrite or delete any promises (that we inserted as flags
-                        // to indicate that the field was in the process of being fetched). Now everything
-                        // should be an actual value within or entirely absent from the cache.
-                        if (deserialized !== undefined) {
-                            _cache[field.id] = deserialized;
-                        } else {
-                            delete _cache[field.id];
-                        }
-                        return deserialized;
-                    });
-                    // 4) here, for each of the documents we've requested *ourselves* (i.e. weren't promises or found in the cache)
-                    // we set the value at the field's id to a promise that will resolve to the field. 
-                    // When we find that promises exist at keys in the cache, THIS is where they were set, just by some other caller (method).
-                    // The mapping in the .then call ensures that when other callers await these promises, they'll
-                    // get the resolved field
-                    _cache[field.id] = prom;
-                    // adds to a list of promises that will be awaited asynchronously
-                    proms.push(prom);
+                            //overwrite or delete any promises (that we inserted as flags
+                            // to indicate that the field was in the process of being fetched). Now everything
+                            // should be an actual value within or entirely absent from the cache.
+                            if (deserialized !== undefined) {
+                                _cache[field.id] = deserialized;
+                            } else {
+                                delete _cache[field.id];
+                            }
+                            return deserialized;
+                        });
+                        // 4) here, for each of the documents we've requested *ourselves* (i.e. weren't promises or found in the cache)
+                        // we set the value at the field's id to a promise that will resolve to the field. 
+                        // When we find that promises exist at keys in the cache, THIS is where they were set, just by some other caller (method).
+                        // The mapping in the .then call ensures that when other callers await these promises, they'll
+                        // get the resolved field
+                        _cache[field.id] = prom;
+                        // adds to a list of promises that will be awaited asynchronously
+                        proms.push(prom);
+                    }
                 }
-            }
+            });
             await Promise.all(proms);
             return fieldMap;
         });

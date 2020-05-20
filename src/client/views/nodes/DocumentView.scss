@@ -37,6 +37,10 @@
     .documentView-linkAnchorBoxAnchor {
         display:flex;
         overflow: hidden;
+
+        .documentView-node {
+            width:10px !important;
+        }
     }
 
     .documentView-lock {
@@ -71,6 +75,7 @@
         display: inline-block;
         width: 100%;
         height: 100%;
+        border-radius: inherit;
 
         .documentView-styleContentWrapper {
             width: 100%;

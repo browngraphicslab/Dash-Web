@@ -1,10 +1,10 @@
 import React = require("react");
 import { action, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, HeightSym, WidthSym } from "../../../new_fields/Doc";
-import { Id } from "../../../new_fields/FieldSymbols";
-import { List } from "../../../new_fields/List";
-import { Cast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
+import { Doc, DocListCast, HeightSym, WidthSym } from "../../../fields/Doc";
+import { Id } from "../../../fields/FieldSymbols";
+import { List } from "../../../fields/List";
+import { Cast, FieldValue, NumCast, StrCast } from "../../../fields/Types";
 import { DocumentManager } from "../../util/DocumentManager";
 import PDFMenu from "./PDFMenu";
 import "./Annotation.scss";
@@ -98,7 +98,6 @@ class RegionAnnotation extends React.Component<IRegionAnnotationProps> {
         else if (e.button === 0) {
             const annoGroup = await Cast(this.props.document.group, Doc);
             if (annoGroup) {
-                DocumentView._focusHack = [];
                 DocumentManager.Instance.FollowLink(undefined, annoGroup, (doc, followLinkLocation) => this.props.addDocTab(doc, e.ctrlKey ? "inTab" : followLinkLocation), false, undefined);
                 e.stopPropagation();
             }

@@ -16,19 +16,21 @@ const plugins = [
     new webpack.HotModuleReplacementPlugin(),
 ];
 
-const dotenv = require('dotenv');
-
 function transferEnvironmentVariables() {
     const prefix = "_CLIENT_";
-    const env = dotenv.config().parsed;
-    if (env) {
-        plugins.push(new webpack.DefinePlugin(Object.keys(env).reduce((mapping, envKey) => {
-            if (envKey.startsWith(prefix)) {
-                mapping[`process.env.${envKey.replace(prefix, "")}`] = JSON.stringify(env[envKey]);
-            }
-            return mapping;
-        }, {})));
+    const {
+        parsed
+    } = require('dotenv').config();
+    if (!parsed) {
+        return;
     }
+    const resolvedClientSide = Object.keys(parsed).reduce((mapping, envKey) => {
+        if (envKey.startsWith(prefix)) {
+            mapping[`process.env.${envKey.replace(prefix, "")}`] = JSON.stringify(parsed[envKey]);
+        }
+        return mapping;
+    }, {});
+    plugins.push(new webpack.DefinePlugin(resolvedClientSide));
 }
 
 transferEnvironmentVariables();
@@ -102,18 +104,6 @@ module.exports = {
         ]
     },
     plugins,
-    devServer: {
-        compress: false,
-        host: "localhost",
-        contentBase: path.join(__dirname, 'deploy'),
-        port: 4321,
-        hot: true,
-        https: false,
-        overlay: {
-            warnings: true,
-            errors: true
-        }
-    },
     externals: [
         'child_process'
     ]

@@ -1,0 +1,124 @@
+@import "../../globalCssVariables";
+
+.button-dropdown-wrapper {
+    position: relative;
+
+    .dropdown-button {
+        width: 15px;
+        padding-left: 5px;
+        padding-right: 5px;
+    }
+
+    .dropdown-button-combined {
+        width: 50px;
+        display: flex;
+        justify-content: space-between;
+
+        svg:nth-child(2) {
+            margin-top: 2px;
+        }
+    }
+
+    .dropdown {
+        position: absolute;
+        top: 35px;
+        left: 0;
+        background-color: #323232;
+        color: $light-color-secondary;
+        border: 1px solid #4d4d4d;
+        border-radius: 0 6px 6px 6px;
+        box-shadow: 3px 3px 3px rgba(0, 0, 0, 0.25);
+        min-width: 150px;
+        padding: 5px;
+        font-size: 12px;
+        z-index: 10001;
+
+        button {
+            background-color: #323232;
+            border: 1px solid black;
+            border-radius: 1px;
+            padding: 6px;
+            margin: 5px 0;
+            font-size: 10px;
+
+            &:hover {
+                background-color: black;
+            }
+
+            &:last-child {
+                margin-bottom: 0;
+            }
+        }
+    }
+
+    input {
+        color: black;
+    }
+
+}
+
+.richTextMenu {
+    select {
+        background-color: #323232;
+        color: white;
+        border: 1px solid black;
+        // border-top: none;
+        // border-bottom: none;
+        font-size: 12px;
+        height: 100%;
+        margin-right: 3px;
+    
+        &:focus,
+        &:hover {
+            background-color: black;
+        }
+    
+        &::-ms-expand {
+            color: white;
+        }
+    }
+}
+
+.link-menu {
+    .divider {
+        background-color: white;
+        height: 1px;
+        width: 100%;
+    }
+}
+
+.color-preview-button {
+    .color-preview {
+        width: 100%;
+        height: 3px;
+        margin-top: 3px;
+    }
+}
+
+.color-wrapper {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+
+    button.color-button {
+        width: 20px;
+        height: 20px;
+        border-radius: 15px !important;
+        margin: 3px;
+        border: 2px solid transparent !important;
+        padding: 3px;
+
+        &.active {
+            border: 2px solid white !important;
+        }
+    }
+}
+
+.row-2 {
+    display: flex;
+    justify-content: space-between;
+
+    >div {
+        display: flex;
+    }
+}

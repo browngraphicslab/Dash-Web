@@ -5,12 +5,12 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, IReactionDisposer, observable, reaction, runInAction, untracked } from "mobx";
 import { observer } from "mobx-react";
 import * as rp from 'request-promise';
-import { Doc } from "../../../new_fields/Doc";
-import { InkTool } from "../../../new_fields/InkField";
-import { createSchema, makeInterface } from "../../../new_fields/Schema";
-import { ScriptField } from "../../../new_fields/ScriptField";
-import { Cast, StrCast } from "../../../new_fields/Types";
-import { VideoField } from "../../../new_fields/URLField";
+import { Doc } from "../../../fields/Doc";
+import { InkTool } from "../../../fields/InkField";
+import { createSchema, makeInterface } from "../../../fields/Schema";
+import { ScriptField } from "../../../fields/ScriptField";
+import { Cast, StrCast } from "../../../fields/Types";
+import { VideoField } from "../../../fields/URLField";
 import { Utils, emptyFunction, returnOne, returnZero } from "../../../Utils";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
@@ -21,14 +21,15 @@ import { DocumentDecorations } from "../DocumentDecorations";
 import { InkingControl } from "../InkingControl";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./VideoBox.scss";
-import { documentSchema, positionSchema } from "../../../new_fields/documentSchemas";
+import { documentSchema } from "../../../fields/documentSchemas";
+import { Networking } from "../../Network";
 const path = require('path');
 
 export const timeSchema = createSchema({
     currentTimecode: "number",  // the current time of a video or other linear, time-based document.  Note, should really get set on an extension field, but that's more complicated when it needs to be set since the extension doc needs to be found first
 });
-type VideoDocument = makeInterface<[typeof documentSchema, typeof positionSchema, typeof timeSchema]>;
-const VideoDocument = makeInterface(documentSchema, positionSchema, timeSchema);
+type VideoDocument = makeInterface<[typeof documentSchema, typeof timeSchema]>;
+const VideoDocument = makeInterface(documentSchema, timeSchema);
 
 library.add(faVideo);
 
@@ -104,39 +105,57 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
         canvas.height = 640 * (this.layoutDoc._nativeHeight || 0) / (this.layoutDoc._nativeWidth || 1);
         const ctx = canvas.getContext('2d');//draw image to canvas. scale to target dimensions
         if (ctx) {
-            ctx.rect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = "blue";
-            ctx.fill();
+            // ctx.rect(0, 0, canvas.width, canvas.height);
+            // ctx.fillStyle = "blue";
+            // ctx.fill();
             this._videoRef && ctx.drawImage(this._videoRef, 0, 0, canvas.width, canvas.height);
         }
 
-        if (!this._videoRef) { // can't find a way to take snapshots of videos
-            const b = Docs.Create.ButtonDocument({
+        if (!this._videoRef) {
+            const b = Docs.Create.LabelDocument({
                 x: (this.layoutDoc.x || 0) + width, y: (this.layoutDoc.y || 1),
-                _width: 150, _height: 50, title: (this.layoutDoc.currentTimecode || 0).toString()
+                _width: 150, _height: 50, title: (this.layoutDoc.currentTimecode || 0).toString(),
             });
-            b.onClick = ScriptField.MakeScript(`this.currentTimecode = ${(this.layoutDoc.currentTimecode || 0)}`);
+            b.isLinkButton = true;
+            this.props.addDocument?.(b);
+            DocUtils.MakeLink({ doc: b }, { doc: this.rootDoc }, "video snapshot");
+            Networking.PostToServer("/youtubeScreenshot", {
+                id: this.youtubeVideoId,
+                timecode: this.layoutDoc.currentTimecode
+            }).then(response => {
+                const resolved = response?.accessPaths?.agnostic?.client;
+                if (resolved) {
+                    this.props.removeDocument?.(b);
+                    this.createRealSummaryLink(resolved);
+                }
+            });
         } else {
             //convert to desired file format
             const dataUrl = canvas.toDataURL('image/png'); // can also use 'image/png'
             // if you want to preview the captured image,
             const filename = path.basename(encodeURIComponent("snapshot" + StrCast(this.rootDoc.title).replace(/\..*$/, "") + "_" + (this.layoutDoc.currentTimecode || 0).toString().replace(/\./, "_")));
-            VideoBox.convertDataUri(dataUrl, filename).then(returnedFilename => {
+            VideoBox.convertDataUri(dataUrl, filename).then((returnedFilename: string) => {
                 if (returnedFilename) {
-                    const url = this.choosePath(Utils.prepend(returnedFilename));
-                    const imageSummary = Docs.Create.ImageDocument(url, {
-                        _nativeWidth: this.layoutDoc._nativeWidth, _nativeHeight: this.layoutDoc._nativeHeight,
-                        x: (this.layoutDoc.x || 0) + width, y: (this.layoutDoc.y || 0),
-                        _width: 150, _height: height / width * 150, title: "--snapshot" + (this.layoutDoc.currentTimecode || 0) + " image-"
-                    });
-                    Doc.GetProto(imageSummary)["data-nativeWidth"] = this.layoutDoc._nativeWidth;
-                    Doc.GetProto(imageSummary)["data-nativeHeight"] = this.layoutDoc._nativeHeight;
-                    imageSummary.isLinkButton = true;
-                    this.props.addDocument && this.props.addDocument(imageSummary);
-                    DocUtils.MakeLink({ doc: imageSummary }, { doc: this.rootDoc }, "video snapshot");
+                    this.createRealSummaryLink(returnedFilename);
                 }
             });
         }
+    }
+
+    private createRealSummaryLink = (relative: string) => {
+        const url = this.choosePath(Utils.prepend(relative));
+        const width = (this.layoutDoc._width || 0);
+        const height = (this.layoutDoc._height || 0);
+        const imageSummary = Docs.Create.ImageDocument(url, {
+            _nativeWidth: this.layoutDoc._nativeWidth, _nativeHeight: this.layoutDoc._nativeHeight,
+            x: (this.layoutDoc.x || 0) + width, y: (this.layoutDoc.y || 0),
+            _width: 150, _height: height / width * 150, title: "--snapshot" + (this.layoutDoc.currentTimecode || 0) + " image-"
+        });
+        Doc.GetProto(imageSummary)["data-nativeWidth"] = this.layoutDoc._nativeWidth;
+        Doc.GetProto(imageSummary)["data-nativeHeight"] = this.layoutDoc._nativeHeight;
+        imageSummary.isLinkButton = true;
+        this.props.addDocument?.(imageSummary);
+        DocUtils.MakeLink({ doc: imageSummary }, { doc: this.rootDoc }, "video snapshot");
     }
 
     @action
@@ -209,7 +228,7 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
                     this._videoRef!.srcObject = !this._screenCapture ? undefined : await (navigator.mediaDevices as any).getDisplayMedia({ video: true });
                 }), icon: "expand-arrows-alt"
             });
-            ContextMenu.Instance.addItem({ description: "Video Funcs...", subitems: subitems, icon: "video" });
+            ContextMenu.Instance.addItem({ description: "Options...", subitems: subitems, icon: "video" });
         }
     }
 
@@ -337,9 +356,12 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
     }
 
     @action.bound
-    addDocumentWithTimestamp(doc: Doc): boolean {
-        const curTime = (this.layoutDoc.currentTimecode || -1);
-        curTime !== -1 && (doc.displayTimecode = curTime);
+    addDocumentWithTimestamp(doc: Doc | Doc[]): boolean {
+        const docs = doc instanceof Doc ? [doc] : doc;
+        docs.forEach(doc => {
+            const curTime = (this.layoutDoc.currentTimecode || -1);
+            curTime !== -1 && (doc.displayTimecode = curTime);
+        });
         return this.addDocument(doc);
     }
 

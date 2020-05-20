@@ -4,10 +4,10 @@ import { faCaretUp, faChartBar, faFile, faFilePdf, faFilm, faFingerprint, faGlob
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc } from "../../../new_fields/Doc";
-import { Id } from "../../../new_fields/FieldSymbols";
-import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
-import { emptyFunction, emptyPath, returnFalse, Utils, returnTrue } from "../../../Utils";
+import { Doc } from "../../../fields/Doc";
+import { Id } from "../../../fields/FieldSymbols";
+import { Cast, NumCast, StrCast } from "../../../fields/Types";
+import { emptyFunction, emptyPath, returnFalse, Utils, returnTrue, returnOne, returnZero } from "../../../Utils";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager, SetupDrag } from "../../util/DragManager";
@@ -164,14 +164,20 @@ export class SearchItem extends React.Component<SearchItemProps> {
                     removeDocument={returnFalse}
                     addDocTab={returnFalse}
                     pinToPres={returnFalse}
-                    getTransform={Transform.Identity}
+                    ContainingCollectionDoc={undefined}
+                    ContainingCollectionView={undefined}
+                    ScreenToLocalTransform={Transform.Identity}
                     renderDepth={1}
                     PanelWidth={returnXDimension}
                     PanelHeight={returnYDimension}
+                    NativeWidth={returnZero}
+                    NativeHeight={returnZero}
                     focus={emptyFunction}
                     moveDocument={returnFalse}
-                    active={returnFalse}
+                    parentActive={returnFalse}
                     whenActiveChanged={returnFalse}
+                    bringToFront={returnFalse}
+                    ContentScaling={returnOne}
                 />
             </div>;
             return docview;

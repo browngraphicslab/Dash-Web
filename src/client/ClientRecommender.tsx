@@ -1,6 +1,6 @@
-import { Doc, FieldResult } from "../new_fields/Doc";
-import { StrCast, Cast } from "../new_fields/Types";
-import { List } from "../new_fields/List";
+import { Doc, FieldResult } from "../fields/Doc";
+import { StrCast, Cast } from "../fields/Types";
+import { List } from "../fields/List";
 import { CognitiveServices, Confidence, Tag, Service } from "./cognitive_services/CognitiveServices";
 import React = require("react");
 import { observer } from "mobx-react";
@@ -11,11 +11,11 @@ import { observable, action, computed, reaction } from "mobx";
 // var https = require('https');
 import "./ClientRecommender.scss";
 import { JSXElement } from "babel-types";
-import { RichTextField } from "../new_fields/RichTextField";
-import { ToPlainText } from "../new_fields/FieldSymbols";
-import { listSpec } from "../new_fields/Schema";
-import { ComputedField } from "../new_fields/ScriptField";
-import { ImageField } from "../new_fields/URLField";
+import { RichTextField } from "../fields/RichTextField";
+import { ToPlainText } from "../fields/FieldSymbols";
+import { listSpec } from "../fields/Schema";
+import { ComputedField } from "../fields/ScriptField";
+import { ImageField } from "../fields/URLField";
 import { KeyphraseQueryView } from "./views/KeyphraseQueryView";
 import { Networking } from "./Network";
 

@@ -4,10 +4,10 @@ import { runInAction } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
 import { Handles, Rail, Slider, Ticks, Tracks } from 'react-compound-slider';
-import { documentSchema } from '../../../new_fields/documentSchemas';
-import { createSchema, makeInterface } from '../../../new_fields/Schema';
-import { ScriptField } from '../../../new_fields/ScriptField';
-import { Cast, NumCast, StrCast } from '../../../new_fields/Types';
+import { documentSchema } from '../../../fields/documentSchemas';
+import { createSchema, makeInterface } from '../../../fields/Schema';
+import { ScriptField } from '../../../fields/ScriptField';
+import { Cast, NumCast, StrCast } from '../../../fields/Types';
 import { ContextMenu } from '../ContextMenu';
 import { ContextMenuProps } from '../ContextMenuItem';
 import { ViewBoxBaseComponent } from '../DocComponent';
@@ -40,7 +40,7 @@ export class SliderBox extends ViewBoxBaseComponent<FieldViewProps, SliderDocume
     specificContextMenu = (e: React.MouseEvent): void => {
         const funcs: ContextMenuProps[] = [];
         funcs.push({ description: "Edit Thumb Change Script", icon: "edit", event: (obj: any) => ScriptBox.EditButtonScript("On Thumb Change ...", this.props.Document, "onThumbChange", obj.x, obj.y) });
-        ContextMenu.Instance.addItem({ description: "Slider Funcs...", subitems: funcs, icon: "asterisk" });
+        ContextMenu.Instance.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
     }
     onChange = (values: readonly number[]) => runInAction(() => {
         this.dataDoc[this.minThumbKey] = values[0];
@@ -56,7 +56,7 @@ export class SliderBox extends ViewBoxBaseComponent<FieldViewProps, SliderDocume
                 style={{ boxShadow: this.layoutDoc.opacity === 0 ? undefined : StrCast(this.layoutDoc.boxShadow, "") }}>
                 <div className="sliderBox-mainButton" onContextMenu={this.specificContextMenu} style={{
                     background: StrCast(this.layoutDoc.backgroundColor), color: StrCast(this.layoutDoc.color, "black"),
-                    fontSize: NumCast(this.layoutDoc.fontSize), letterSpacing: StrCast(this.layoutDoc.letterSpacing)
+                    fontSize: NumCast(this.layoutDoc._fontSize), letterSpacing: StrCast(this.layoutDoc.letterSpacing)
                 }} >
                     <Slider
                         mode={2}

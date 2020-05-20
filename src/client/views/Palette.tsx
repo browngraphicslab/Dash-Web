@@ -1,8 +1,8 @@
 import { IReactionDisposer, observable, reaction } from "mobx";
 import { observer } from "mobx-react";
 import * as React from "react";
-import { Doc } from "../../new_fields/Doc";
-import { NumCast } from "../../new_fields/Types";
+import { Doc } from "../../fields/Doc";
+import { NumCast } from "../../fields/Types";
 import { emptyFunction, emptyPath, returnEmptyString, returnZero, returnFalse, returnOne, returnTrue } from "../../Utils";
 import { Transform } from "../util/Transform";
 import { DocumentView } from "./nodes/DocumentView";

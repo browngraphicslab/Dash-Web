@@ -1,6 +1,4 @@
 import { Database } from "./database";
-import { Search } from "./Search";
-import * as path from 'path';
 
 //npx ts-node src/server/remapUrl.ts
 
@@ -50,7 +48,7 @@ async function update() {
         return new Promise(res => Database.Instance.update(doc[0], doc[1], () => {
             console.log("wrote " + JSON.stringify(doc[1]));
             res();
-        }, false, "newDocuments"));
+        }, false));
     }));
     console.log("Done");
     // await Promise.all(updates.map(update => {

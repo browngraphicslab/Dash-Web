@@ -1,17 +1,20 @@
-import { Doc, Opt, DataSym } from '../../new_fields/Doc';
+import { Doc, Opt, DataSym, DocListCast } from '../../fields/Doc';
 import { Touchable } from './Touchable';
 import { computed, action, observable } from 'mobx';
-import { Cast } from '../../new_fields/Types';
-import { listSpec } from '../../new_fields/Schema';
+import { Cast, BoolCast, ScriptCast } from '../../fields/Types';
+import { listSpec } from '../../fields/Schema';
 import { InkingControl } from './InkingControl';
-import { InkTool } from '../../new_fields/InkField';
+import { InkTool } from '../../fields/InkField';
 import { InteractionUtils } from '../util/InteractionUtils';
+import { List } from '../../fields/List';
+import { DateField } from '../../fields/DateField';
+import { ScriptField } from '../../fields/ScriptField';
 
 
 ///  DocComponent returns a generic React base class used by views that don't have 'fieldKey' props (e.g.,CollectionFreeFormDocumentView, DocumentView)
 interface DocComponentProps {
     Document: Doc;
-    LayoutDoc?: () => Opt<Doc>;
+    LayoutTemplate?: () => Opt<Doc>;
 }
 export function DocComponent<P extends DocComponentProps, T>(schemaCtor: (doc: Doc) => T) {
     class Component extends Touchable<P> {
@@ -20,7 +23,7 @@ export function DocComponent<P extends DocComponentProps, T>(schemaCtor: (doc: D
         // This is the "The Document" -- it encapsulates, data, layout, and any templates
         @computed get rootDoc() { return Cast(this.props.Document.rootDocument, Doc, null) || this.props.Document; }
         // This is the rendering data of a document -- it may be "The Document", or it may be some template document that holds the rendering info
-        @computed get layoutDoc() { return Doc.Layout(this.props.Document); }
+        @computed get layoutDoc() { return Doc.Layout(this.props.Document, this.props.LayoutTemplate?.()); }
         // This is the data part of a document -- ie, the data that is constant across all views of the document
         @computed get dataDoc() { return this.props.Document[DataSym] as Doc; }
 
@@ -33,6 +36,7 @@ export function DocComponent<P extends DocComponentProps, T>(schemaCtor: (doc: D
 interface ViewBoxBaseProps {
     Document: Doc;
     DataDoc?: Doc;
+    ContainingCollectionDoc: Opt<Doc>;
     fieldKey: string;
     isSelected: (outsideReaction?: boolean) => boolean;
     renderDepth: number;
@@ -53,7 +57,9 @@ export function ViewBoxBaseComponent<P extends ViewBoxBaseProps, T>(schemaCtor: 
         // key where data is stored
         @computed get fieldKey() { return this.props.fieldKey; }
 
-        active = (outsideReaction?: boolean) => !this.props.Document.isBackground && (this.props.rootSelected(outsideReaction) || this.props.isSelected(outsideReaction) || this.props.renderDepth === 0);//  && !InkingControl.Instance.selectedTool;  // bcz: inking state shouldn't affect static tools 
+        lookupField = (field: string) => ScriptCast(this.layoutDoc.lookupField)?.script.run({ self: this.layoutDoc, data: this.rootDoc, field: field, container: this.props.ContainingCollectionDoc }).result;
+
+        active = (outsideReaction?: boolean) => !this.props.Document.isBackground && (this.props.rootSelected(outsideReaction) || this.props.isSelected(outsideReaction) || this.props.renderDepth === 0 || this.layoutDoc.forceActive);//  && !InkingControl.Instance.selectedTool;  // bcz: inking state shouldn't affect static tools 
         protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
     }
     return Component;
@@ -87,34 +93,63 @@ export function ViewBoxAnnotatableComponent<P extends ViewBoxAnnotatableProps, T
         // key where data is stored
         @computed get fieldKey() { return this.props.fieldKey; }
 
+        lookupField = (field: string) => ScriptCast((this.layoutDoc as any).lookupField)?.script.run({ self: this.layoutDoc, data: this.rootDoc, field: field }).result;
+
+        styleFromLayoutString = (scale: number) => {
+            const style: { [key: string]: any } = {};
+            const divKeys = ["width", "height", "background", "top", "position"];
+            const replacer = (match: any, expr: string, offset: any, string: any) => { // bcz: this executes a script to convert a property expression string:  { script }  into a value
+                return ScriptField.MakeFunction(expr, { self: Doc.name, this: Doc.name, scale: "number" })?.script.run({ self: this.rootDoc, this: this.layoutDoc, scale }).result as string || "";
+            };
+            divKeys.map((prop: string) => {
+                const p = (this.props as any)[prop] as string;
+                p && (style[prop] = p?.replace(/{([^.'][^}']+)}/g, replacer));
+            });
+            return style;
+        }
+
         protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer;
 
         _annotationKey: string = "annotations";
-        public set annotationKey(val: string) { this._annotationKey = val; }
-        public get annotationKey() { return this._annotationKey; }
+        public get annotationKey() { return this.fieldKey + "-" + this._annotationKey; }
 
         @action.bound
-        removeDocument(doc: Doc): boolean {
-            Doc.GetProto(doc).annotationOn = undefined;
-            const value = Cast(this.dataDoc[this.props.fieldKey + "-" + this._annotationKey], listSpec(Doc), []);
-            const index = value ? Doc.IndexOf(doc, value.map(d => d as Doc), true) : -1;
-            return index !== -1 && value && value.splice(index, 1) ? true : false;
+        removeDocument(doc: Doc | Doc[]): boolean {
+            const docs = doc instanceof Doc ? [doc] : doc;
+            docs.map(doc => doc.annotationOn = undefined);
+            const targetDataDoc = this.dataDoc;
+            const value = DocListCast(targetDataDoc[this.annotationKey]);
+            const result = value.filter(v => !docs.includes(v));
+            if (result.length !== value.length) {
+                targetDataDoc[this.annotationKey] = new List<Doc>(result);
+                return true;
+            }
+            return false;
         }
         // if the moved document is already in this overlay collection nothing needs to be done.
         // otherwise, if the document can be removed from where it was, it will then be added to this document's overlay collection. 
         @action.bound
-        moveDocument(doc: Doc, targetCollection: Doc | undefined, addDocument: (doc: Doc) => boolean): boolean {
+        moveDocument(doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (doc: Doc | Doc[]) => boolean): boolean {
             return Doc.AreProtosEqual(this.props.Document, targetCollection) ? true : this.removeDocument(doc) ? addDocument(doc) : false;
         }
         @action.bound
-        addDocument(doc: Doc): boolean {
-            doc.context = Doc.GetProto(doc).annotationOn = this.props.Document;
-            return Doc.AddDocToList(this.dataDoc, this.props.fieldKey + "-" + this._annotationKey, doc) ? true : false;
+        addDocument(doc: Doc | Doc[]): boolean {
+            const docs = doc instanceof Doc ? [doc] : doc;
+            docs.map(doc => doc.context = Doc.GetProto(doc).annotationOn = this.props.Document);
+            const targetDataDoc = this.props.Document[DataSym];
+            const docList = DocListCast(targetDataDoc[this.annotationKey]);
+            const added = docs.filter(d => !docList.includes(d));
+            if (added.length) {
+                added.map(doc => doc.context = this.props.Document);
+                targetDataDoc[this.annotationKey] = new List<Doc>([...docList, ...added]);
+                targetDataDoc[this.annotationKey + "-lastModified"] = new DateField(new Date(Date.now()));
+            }
+            return true;
         }
 
         whenActiveChanged = action((isActive: boolean) => this.props.whenActiveChanged(this._isChildActive = isActive));
         active = (outsideReaction?: boolean) => ((InkingControl.Instance.selectedTool === InkTool.None && !this.props.Document.isBackground) &&
-            (this.props.rootSelected(outsideReaction) || this.props.isSelected(outsideReaction) || this._isChildActive || this.props.renderDepth === 0) ? true : false)
+            (this.props.rootSelected(outsideReaction) || this.props.isSelected(outsideReaction) || this._isChildActive || this.props.renderDepth === 0 || BoolCast((this.layoutDoc as any).forceActive)) ? true : false)
         annotationsActive = (outsideReaction?: boolean) => (InkingControl.Instance.selectedTool !== InkTool.None || (this.props.Document.isBackground && this.props.active()) ||
             (this.props.Document.forceActive || this.props.isSelected(outsideReaction) || this._isChildActive || this.props.renderDepth === 0) ? true : false)
     }

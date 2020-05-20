@@ -3,7 +3,7 @@ import "./MetadataEntryMenu.scss";
 import { observer } from 'mobx-react';
 import { observable, action, runInAction, trace, computed, IReactionDisposer, reaction } from 'mobx';
 import { KeyValueBox } from './nodes/KeyValueBox';
-import { Doc, Field, DocListCastAsync } from '../../new_fields/Doc';
+import { Doc, Field, DocListCastAsync } from '../../fields/Doc';
 import * as Autosuggest from 'react-autosuggest';
 import { undoBatch } from '../util/UndoManager';
 import { emptyFunction, emptyPath } from '../../Utils';

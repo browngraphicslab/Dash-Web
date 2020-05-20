@@ -4,15 +4,15 @@ import { Docs } from '../client/documents/Documents';
 import "./ImageUpload.scss";
 import React = require('react');
 import { DocServer } from '../client/DocServer';
-import { Opt, Doc } from '../new_fields/Doc';
-import { Cast } from '../new_fields/Types';
-import { listSpec } from '../new_fields/Schema';
-import { List } from '../new_fields/List';
+import { Opt, Doc } from '../fields/Doc';
+import { Cast } from '../fields/Types';
+import { listSpec } from '../fields/Schema';
+import { List } from '../fields/List';
 import { observer } from 'mobx-react';
 import { observable } from 'mobx';
 import { Utils } from '../Utils';
-import { CurrentUserUtils } from '../server/authentication/models/current_user_utils';
-import { Scripting } from '../client/util/Scripting';
+import MobileInterface from './MobileInterface';
+import { CurrentUserUtils } from '../client/util/CurrentUserUtils';
 
 
 

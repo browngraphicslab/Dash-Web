@@ -1,11 +1,11 @@
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, Opt, DocCastAsync } from "../../../new_fields/Doc";
-import { List } from "../../../new_fields/List";
-import { ObjectField } from "../../../new_fields/ObjectField";
-import { RichTextField } from "../../../new_fields/RichTextField";
-import { ComputedField, ScriptField } from "../../../new_fields/ScriptField";
-import { NumCast, StrCast, BoolCast, Cast } from "../../../new_fields/Types";
+import { Doc, Opt, DocCastAsync } from "../../../fields/Doc";
+import { List } from "../../../fields/List";
+import { ObjectField } from "../../../fields/ObjectField";
+import { RichTextField } from "../../../fields/RichTextField";
+import { ComputedField, ScriptField } from "../../../fields/ScriptField";
+import { NumCast, StrCast, BoolCast, Cast } from "../../../fields/Types";
 import { emptyFunction, returnFalse, setupMoveUpEvents } from "../../../Utils";
 import { Scripting } from "../../util/Scripting";
 import { ContextMenu } from "../ContextMenu";
@@ -19,7 +19,6 @@ const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
 import React = require("react");
-import { DocumentView } from "../nodes/DocumentView";
 
 @observer
 export class CollectionTimeView extends CollectionSubView(doc => doc) {
@@ -29,7 +28,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
     @observable _childClickedScript: Opt<ScriptField>;
     @observable _viewDefDivClick: Opt<ScriptField>;
     async componentDidMount() {
-        const detailView = (await DocCastAsync(this.props.Document.childDetailView)) || DocumentView.findTemplate("detailView", StrCast(this.props.Document.type), "");
+        const detailView = (await DocCastAsync(this.props.Document.childClickedOpenTemplateView)) || Doc.findTemplate("detailView", StrCast(this.props.Document.type), "");
         const childText = "const alias = getAlias(self); switchView(alias, detailView); alias.dropAction='alias'; alias.removeDropProperties=new List<string>(['dropAction']); useRightSplit(alias, shiftKey); ";
         runInAction(() => {
             this._childClickedScript = ScriptField.MakeScript(childText, { this: Doc.name, shiftKey: "boolean" }, { detailView: detailView! });
@@ -84,8 +83,8 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
     }
 
     @computed get contents() {
-        return <div className="collectionTimeView-innards" key="timeline" style={{ width: "100%" }} onPointerDown={this.contentsDown}>
-            <CollectionFreeFormView {...this.props} childClickScript={this._childClickedScript} viewDefDivClick={this._viewDefDivClick} fitToBox={true} freezeChildDimensions={BoolCast(this.layoutDoc._freezeChildDimensions, true)} layoutEngine={this.layoutEngine} />
+        return <div className="collectionTimeView-innards" key="timeline" style={{ width: "100%", pointerEvents: this.props.active() ? undefined : "none" }} onPointerDown={this.contentsDown}>
+            <CollectionFreeFormView {...this.props} childClickScript={this._childClickedScript} viewDefDivClick={this._viewDefDivClick} fitToBox={true} freezeChildDimensions={true} layoutEngine={this.layoutEngine} />
         </div>;
     }
 
@@ -102,7 +101,7 @@ export class CollectionTimeView extends CollectionSubView(doc => doc) {
         layoutItems.push({ description: "Auto Time/Pivot layout", event: () => { doc._forceRenderEngine = undefined; }, icon: "compress-arrows-alt" });
         layoutItems.push({ description: "Sync with presentation", event: () => CollectionTimeView.SyncTimelineToPresentation(doc), icon: "compress-arrows-alt" });
 
-        ContextMenu.Instance.addItem({ description: "Pivot/Time Options ...", subitems: layoutItems, icon: "eye" });
+        ContextMenu.Instance.addItem({ description: "Options...", subitems: layoutItems, icon: "eye" });
     }
     @computed get _allFacets() {
         const facets = new Set<string>();

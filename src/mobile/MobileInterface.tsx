@@ -6,9 +6,8 @@ import { action, computed, observable } from 'mobx';
 import { observer } from 'mobx-react';
 import * as ReactDOM from "react-dom";
 import * as rp from 'request-promise';
-import { CurrentUserUtils } from '../server/authentication/models/current_user_utils';
-import { FieldValue, Cast, StrCast } from '../new_fields/Types';
-import { Doc, DocListCast } from '../new_fields/Doc';
+import { FieldValue, Cast, StrCast } from '../fields/Types';
+import { Doc, DocListCast } from '../fields/Doc';
 import { Docs } from '../client/documents/Documents';
 import { CollectionView } from '../client/views/collections/CollectionView';
 import { DocumentView } from '../client/views/nodes/DocumentView';
@@ -17,24 +16,24 @@ import { Transform } from '../client/util/Transform';
 import { Scripting } from '../client/util/Scripting';
 import GestureOverlay from '../client/views/GestureOverlay';
 import { InkingControl } from '../client/views/InkingControl';
-import { InkTool } from '../new_fields/InkField';
+import { InkTool } from '../fields/InkField';
 import "./MobileInterface.scss";
 import "./MobileMenu.scss";
 import { DocServer } from '../client/DocServer';
 import { DocumentDecorations } from '../client/views/DocumentDecorations';
 import { PreviewCursor } from '../client/views/PreviewCursor';
 import { RadialMenu } from '../client/views/nodes/RadialMenu';
-import { Id } from '../new_fields/FieldSymbols';
-import { WebField } from "../new_fields/URLField";
-import { FieldResult } from "../new_fields/Doc";
+import { Id } from '../fields/FieldSymbols';
+import { WebField } from "../fields/URLField";
+import { FieldResult } from "../fields/Doc";
 import { AssignAllExtensions } from '../extensions/General/Extensions';
-import { listSpec } from '../new_fields/Schema';
+import { listSpec } from '../fields/Schema';
 import { DocumentManager } from '../client/util/DocumentManager';
-import RichTextMenu from '../client/util/RichTextMenu';
 import { MainView } from '../client/views/MainView';
 import SettingsManager from '../client/util/SettingsManager';
 import { Uploader } from "./ImageUpload";
 import { Upload } from '../server/SharedMediaTypes';
+import { CurrentUserUtils } from '../client/util/CurrentUserUtils';
 
 library.add(faLongArrowAltLeft);
 
@@ -372,18 +371,18 @@ export class MobileInterface extends React.Component {
         Docs.Create.WebDocument(url, { _width: 300, _height: 300, title: "Mobile Upload Web Doc" });
     }
 
-    clearUpload = async () => {
-        if (this.mainContainer) {
-            const data = Cast(this.mainContainer.data, listSpec(Doc));
-            if (data) {
-                const collectionDoc = await data[1];
-                const children = DocListCast(collectionDoc.data);
-                children.forEach(doc => {
-                });
-                // collectionDoc[data] = new List<Doc>();
-            }
-        }
-    }
+    // clearUpload = async () => {
+    //     if (this.mainContainer) {
+    //         const data = Cast(this.mainContainer.data, listSpec(Doc));
+    //         if (data) {
+    //             const collectionDoc = await data[1];
+    //             const children = DocListCast(collectionDoc.data);
+    //             children.forEach(doc => {
+    //             });
+    //             // collectionDoc[data] = new List<Doc>();
+    //         }
+    //     }
+    // }
     onDragOver = (e: React.DragEvent) => {
         e.preventDefault();
         e.stopPropagation();

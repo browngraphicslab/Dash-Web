@@ -1,11 +1,11 @@
 import React = require("react");
 import { computed } from "mobx";
 import { observer } from "mobx-react";
-import { DateField } from "../../../new_fields/DateField";
-import { Doc, FieldResult, Opt, Field } from "../../../new_fields/Doc";
-import { List } from "../../../new_fields/List";
-import { ScriptField } from "../../../new_fields/ScriptField";
-import { AudioField, VideoField } from "../../../new_fields/URLField";
+import { DateField } from "../../../fields/DateField";
+import { Doc, FieldResult, Opt, Field } from "../../../fields/Doc";
+import { List } from "../../../fields/List";
+import { ScriptField } from "../../../fields/ScriptField";
+import { AudioField, VideoField } from "../../../fields/URLField";
 import { Transform } from "../../util/Transform";
 import { CollectionView } from "../collections/CollectionView";
 import { AudioBox } from "./AudioBox";
@@ -31,11 +31,11 @@ export interface FieldViewProps {
     select: (isCtrlPressed: boolean) => void;
     rootSelected: (outsideReaction?: boolean) => boolean;
     renderDepth: number;
-    addDocument?: (document: Doc) => boolean;
+    addDocument?: (document: Doc | Doc[]) => boolean;
     addDocTab: (document: Doc, where: string) => boolean;
     pinToPres: (document: Doc) => void;
-    removeDocument?: (document: Doc) => boolean;
-    moveDocument?: (document: Doc, targetCollection: Doc | undefined, addDocument: (document: Doc) => boolean) => boolean;
+    removeDocument?: (document: Doc | Doc[]) => boolean;
+    moveDocument?: (document: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (document: Doc | Doc[]) => boolean) => boolean;
     backgroundColor?: (document: Doc) => string | undefined;
     ScreenToLocalTransform: () => Transform;
     bringToFront: (doc: Doc, sendToBack?: boolean) => void;
@@ -43,6 +43,7 @@ export interface FieldViewProps {
     whenActiveChanged: (isActive: boolean) => void;
     dontRegisterView?: boolean;
     focus: (doc: Doc) => void;
+    ignoreAutoHeight?: boolean;
     PanelWidth: () => number;
     PanelHeight: () => number;
     NativeHeight: () => number;
@@ -50,7 +51,13 @@ export interface FieldViewProps {
     setVideoBox?: (player: VideoBox) => void;
     ContentScaling: () => number;
     ChromeHeight?: () => number;
-    childLayoutTemplate?: () => Opt<Doc>;
+    // properties intended to be used from within layout strings (otherwise use the function equivalents that work more efficiently with React)
+    height?: number;
+    width?: number;
+    background?: string;
+    color?: string;
+    xMargin?: number;
+    yMargin?: number;
 }
 
 @observer
