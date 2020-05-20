@@ -241,7 +241,10 @@ export class MobileInterface extends React.Component {
                 <div
                     className="item"
                     key={index}
-                    onClick={() => this.handleClick(doc)}>{doc.title}</div>);
+                    onClick={() => this.handleClick(doc)}>{doc.title}
+                    <div className="type">{doc.type}</div>
+                    <FontAwesomeIcon className="right" icon="angle-right" size="lg" />
+                </div>);
         });
 
         if (this._child) {
@@ -250,7 +253,10 @@ export class MobileInterface extends React.Component {
                     <div
                         className="item"
                         key={index}
-                        onClick={() => this.handleClick(doc)}>{doc.title}</div>);
+                        onClick={() => this.handleClick(doc)}>{doc.title}
+                        <div className="type">{doc.type}</div>
+                        <FontAwesomeIcon className="right" icon="angle-right" size="lg" />
+                    </div>);
             });
 
         }

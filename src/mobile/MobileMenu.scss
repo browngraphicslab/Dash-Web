@@ -107,6 +107,19 @@ body {
     color: black;
 }
 
+.type {
+    display: inline;
+    text-transform: lowercase;
+    margin-left: 20px;
+    font-size: 35px;
+    font-style: italic;
+    color: rgb(28, 28, 28);
+}
+
+.right {
+    margin-left: 20px;
+}
+
 .sidebar .logout {
     width: 100%;
     padding: 13px 12px;
@@ -149,5 +162,4 @@ body {
     user-select: none;
     text-transform: uppercase;
     font-family: Arial, Helvetica, sans-serif;
-
 }
