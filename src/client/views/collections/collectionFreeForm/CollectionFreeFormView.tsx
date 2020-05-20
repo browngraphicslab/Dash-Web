@@ -1341,7 +1341,9 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             onPointerDown={this.onPointerDown}
             onPointerMove={this.onCursorMove}
             onDrop={this.onExternalDrop.bind(this)}
-            onDragOver={e =>   e.preventDefault() }
+            onDragOver={e => {
+                e.preventDefault();
+            }}
             onContextMenu={this.onContextMenu}
             style={{
                 pointerEvents: this.backgroundEvents ? "all" : undefined,

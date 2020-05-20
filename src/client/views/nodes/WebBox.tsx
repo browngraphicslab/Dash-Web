@@ -116,6 +116,21 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         this._url = e.target.value;
     }
 
+    onUrlDragover = (e: React.DragEvent) => {
+        e.preventDefault();
+    }
+    @action
+    onUrlDrop = (e: React.DragEvent) => {
+        const { dataTransfer } = e;
+        const html = dataTransfer.getData("text/html");
+        const uri = dataTransfer.getData("text/uri-list");
+        const url = uri || html || this._url;
+        this._url = url.startsWith(window.location.origin) ?
+            url.replace(window.location.origin, this._url.match(/http[s]?:\/\/[^\/]*/)?.[0] || "") : url;
+        this.submitURL();
+        e.stopPropagation();
+    }
+
     @action
     forward = () => {
         const future = Cast(this.dataDoc[this.fieldKey + "-future"], listSpec("string"), null);
@@ -140,20 +155,24 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     @action
     submitURL = () => {
         if (!this._url.startsWith("http")) this._url = "http://" + this._url;
-        const future = Cast(this.dataDoc[this.fieldKey + "-future"], listSpec("string"), null);
-        const history = Cast(this.dataDoc[this.fieldKey + "-history"], listSpec("string"), null);
-        const url = Cast(this.dataDoc[this.fieldKey], WebField, null)?.url.toString();
-        if (url) {
-            if (history === undefined) {
-                this.dataDoc[this.fieldKey + "-history"] = new List<string>([url]);
-            } else {
-                history.push(url);
+        try {
+            const URLy = new URL(this._url);
+            const future = Cast(this.dataDoc[this.fieldKey + "-future"], listSpec("string"), null);
+            const history = Cast(this.dataDoc[this.fieldKey + "-history"], listSpec("string"), null);
+            const url = Cast(this.dataDoc[this.fieldKey], WebField, null)?.url.toString();
+            if (url) {
+                if (history === undefined) {
+                    this.dataDoc[this.fieldKey + "-history"] = new List<string>([url]);
+                } else {
+                    history.push(url);
+                }
+                future && (future.length = 0);
             }
-            future && (future.length = 0);
+            this.dataDoc[this.fieldKey] = new WebField(URLy);
+        } catch (e) {
+            console.log("Error in URL :" + this._url);
         }
-        this.dataDoc[this.fieldKey] = new WebField(new URL(this._url));
     }
-
 
     onValueKeyDown = async (e: React.KeyboardEvent) => {
         if (e.key === "Enter") {
@@ -175,7 +194,9 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
 
     urlEditor() {
         return (
-            <div className="webBox-urlEditor" style={{ top: this._collapsed ? -70 : 0 }}>
+            <div className="webBox-urlEditor"
+                onDrop={this.onUrlDrop}
+                onDragOver={this.onUrlDragover} style={{ top: this._collapsed ? -70 : 0 }}>
                 <div className="urlEditor">
                     <div className="editorBase">
                         <button className="editor-collapse"
@@ -188,7 +209,9 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                             title="Collapse Url Editor" onClick={this.toggleCollapse}>
                             <FontAwesomeIcon icon="caret-up" size="2x" />
                         </button>
-                        <div className="webBox-buttons" style={{ display: this._collapsed ? "none" : "flex" }}>
+                        <div className="webBox-buttons"
+                            onDrop={this.onUrlDrop}
+                            onDragOver={this.onUrlDragover} style={{ display: this._collapsed ? "none" : "flex" }}>
                             <div className="webBox-freeze" title={"Annotate"} style={{ background: this.layoutDoc.isAnnotating ? "lightBlue" : "gray" }} onClick={this.toggleAnnotationMode} >
                                 <FontAwesomeIcon icon={faPen} size={"2x"} />
                             </div>
@@ -198,6 +221,8 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                             <input className="webpage-urlInput"
                                 placeholder="ENTER URL"
                                 value={this._url}
+                                onDrop={this.onUrlDrop}
+                                onDragOver={this.onUrlDragover}
                                 onChange={this.onURLChange}
                                 onKeyDown={this.onValueKeyDown}
                             />
@@ -207,7 +232,8 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                                 justifyContent: "space-between",
                                 maxWidth: "120px",
                             }}>
-                                <button className="submitUrl" onClick={this.submitURL}>
+                                <button className="submitUrl" onClick={this.submitURL}
+                                    onDragOver={this.onUrlDragover} onDrop={this.onUrlDrop}>
                                     GO
                                 </button>
                                 <button className="submitUrl" onClick={this.back}>

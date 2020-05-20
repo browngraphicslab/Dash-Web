@@ -146,19 +146,23 @@ function registerCorsProxy(server: express.Express) {
             res.redirect(referer + (referer.endsWith("/") ? "" : "/") + requrl);
         }
         else {
-            req.pipe(request(requrl)).on("response", res => {
-                const headers = Object.keys(res.headers);
-                headers.forEach(headerName => {
-                    const header = res.headers[headerName];
-                    if (Array.isArray(header)) {
-                        res.headers[headerName] = header.filter(h => !headerCharRegex.test(h));
-                    } else if (header) {
-                        if (headerCharRegex.test(header as any)) {
-                            delete res.headers[headerName];
+            try {
+                req.pipe(request(requrl)).on("response", res => {
+                    const headers = Object.keys(res.headers);
+                    headers.forEach(headerName => {
+                        const header = res.headers[headerName];
+                        if (Array.isArray(header)) {
+                            res.headers[headerName] = header.filter(h => !headerCharRegex.test(h));
+                        } else if (header) {
+                            if (headerCharRegex.test(header as any)) {
+                                delete res.headers[headerName];
+                            }
                         }
-                    }
-                });
-            }).pipe(res);
+                    });
+                }).pipe(res);
+            } catch (e) {
+                console.log("problem with Cors URL: " + requrl);
+            }
         }
     });
 }
