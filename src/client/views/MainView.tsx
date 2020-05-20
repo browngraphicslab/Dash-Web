@@ -569,7 +569,7 @@ export class MainView extends React.Component {
     }
 }
 Scripting.addGlobal(function freezeSidebar() { MainView.expandFlyout(); });
-Scripting.addGlobal(function toggleComicMode() { Doc.UserDoc().fontFamily = "Comic Sans MS"; Doc.UserDoc().renderStyle = Doc.UserDoc().renderStyle === "comic" ? undefined : "comic" });
+Scripting.addGlobal(function toggleComicMode() { Doc.UserDoc().fontFamily = "Comic Sans MS"; Doc.UserDoc().renderStyle = Doc.UserDoc().renderStyle === "comic" ? undefined : "comic"; });
 Scripting.addGlobal(function cloneWorkspace() {
     const copiedWorkspace = Doc.MakeCopy(Cast(Doc.UserDoc().activeWorkspace, Doc, null), true);
     const workspaces = Cast(Doc.UserDoc().myWorkspaces, Doc, null);

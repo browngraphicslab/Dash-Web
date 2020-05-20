@@ -213,7 +213,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             this.hideIfNotPresented(index);
             this.showAfterPresented(index);
         }
-    })
+    });
 
     //The function that starts or resets presentaton functionally, depending on status flag.
     startOrResetPres = () => {
