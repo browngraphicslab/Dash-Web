@@ -226,7 +226,7 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<IMapProps> 
                     initialCenter={center}
                     center={center}
                     onIdle={(_props?: IMapProps, map?: google.maps.Map) => {
-                        if (this.layoutDoc.lockedTransform) {
+                        if (this.layoutDoc._lockedTransform) {
                             // reset zoom (ideally, we could probably can tell the map to disallow zooming somehow instead)
                             map?.setZoom(center?.zoom || 10);
                             map?.setCenter({ lat: center?.lat!, lng: center?.lng! });
@@ -238,7 +238,7 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<IMapProps> 
                         }
                     }}
                     onDragend={(_props?: IMapProps, map?: google.maps.Map) => {
-                        if (this.layoutDoc.lockedTransform) {
+                        if (this.layoutDoc._lockedTransform) {
                             // reset the drag (ideally, we could probably can tell the map to disallow dragging somehow instead)
                             map?.setCenter({ lat: center?.lat!, lng: center?.lng! });
                         } else {

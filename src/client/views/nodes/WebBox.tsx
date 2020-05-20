@@ -59,13 +59,18 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
             iframe.contentDocument.addEventListener('scroll', this.iframeScrolled, false);
             this.layoutDoc.scrollHeight = iframe.contentDocument.children?.[0].scrollHeight || 1000;
             iframe.contentDocument.children[0].scrollTop = NumCast(this.layoutDoc.scrollTop);
+            iframe.contentDocument.children[0].scrollLeft = NumCast(this.layoutDoc.scrollLeft);
         }
         this._reactionDisposer?.();
-        this._reactionDisposer = reaction(() => this.layoutDoc.scrollY,
-            (scrollY) => {
-                if (scrollY !== undefined) {
-                    this._outerRef.current!.scrollTop = scrollY;
+        this._reactionDisposer = reaction(() => ({ y: this.layoutDoc.scrollY, x: this.layoutDoc.scrollX }),
+            ({ x, y }) => {
+                if (y !== undefined) {
+                    this._outerRef.current!.scrollTop = y;
                     this.layoutDoc.scrollY = undefined;
+                }
+                if (x !== undefined) {
+                    this._outerRef.current!.scrollLeft = x;
+                    this.layoutDoc.scrollX = undefined;
                 }
             },
             { fireImmediately: true }
@@ -76,8 +81,10 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         this._setPreviewCursor?.(e.screenX, e.screenY, false);
     }
     iframeScrolled = (e: any) => {
-        const scroll = e.target?.children?.[0].scrollTop;
-        this.layoutDoc.scrollTop = this._outerRef.current!.scrollTop = scroll;
+        const scrollTop = e.target?.children?.[0].scrollTop;
+        const scrollLeft = e.target?.children?.[0].scrollLeft;
+        this.layoutDoc.scrollTop = this._outerRef.current!.scrollTop = scrollTop;
+        this.layoutDoc.scrollLeft = this._outerRef.current!.scrollLeft = scrollLeft;
     }
     async componentDidMount() {
         const urlField = Cast(this.dataDoc[this.props.fieldKey], WebField);
@@ -182,14 +189,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     }
 
     toggleAnnotationMode = () => {
-        if (!this.layoutDoc.isAnnotating) {
-            this.layoutDoc.lockedTransform = false;
-            this.layoutDoc.isAnnotating = true;
-        }
-        else {
-            this.layoutDoc.lockedTransform = true;
-            this.layoutDoc.isAnnotating = false;
-        }
+        this.layoutDoc.isAnnotating = !this.layoutDoc.isAnnotating;
     }
 
     urlEditor() {
@@ -427,7 +427,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
             {this.urlEditor()}
         </>);
     }
-    scrollXf = () => this.props.ScreenToLocalTransform().translate(0, NumCast(this.props.Document.scrollTop));
+    scrollXf = () => this.props.ScreenToLocalTransform().translate(NumCast(this.layoutDoc.scrollLeft), NumCast(this.layoutDoc.scrollTop));
     render() {
         return (<div className={`webBox-container`}
             style={{
@@ -449,10 +449,13 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                         if (iframe.children[0].scrollTop !== outerFrame.scrollTop) {
                             iframe.children[0].scrollTop = outerFrame.scrollTop;
                         }
+                        if (iframe.children[0].scrollLeft !== outerFrame.scrollLeft) {
+                            iframe.children[0].scrollLeft = outerFrame.scrollLeft;
+                        }
                     }
                     //this._outerRef.current!.scrollTop !== this._scrollTop && (this._outerRef.current!.scrollTop = this._scrollTop)
                 }}>
-                <div className={"webBox-innerContent"} style={{ height: NumCast(this.layoutDoc.scrollHeight) }}>
+                <div className={"webBox-innerContent"} style={{ height: NumCast(this.layoutDoc.scrollHeight), width: 4000 }}>
                     <CollectionFreeFormView {...this.props}
                         PanelHeight={this.props.PanelHeight}
                         PanelWidth={this.props.PanelWidth}

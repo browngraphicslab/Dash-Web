@@ -683,12 +683,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this.Document.lockedPosition = this.Document.lockedPosition ? undefined : true;
     }
 
-    @undoBatch
-    @action
-    toggleLockTransform = (): void => {
-        this.Document.lockedTransform = this.Document.lockedTransform ? undefined : true;
-    }
-
     @action
     onContextMenu = async (e: React.MouseEvent | Touch): Promise<void> => {
         // the touch onContextMenu is button 0, the pointer onContextMenu is button 2
@@ -751,7 +745,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const moreItems: ContextMenuProps[] = more && "subitems" in more ? more.subitems : [];
         moreItems.push({ description: "Make View of Metadata Field", event: () => Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.DataDoc), icon: "concierge-bell" });
         moreItems.push({ description: `${this.Document._chromeStatus !== "disabled" ? "Hide" : "Show"} Chrome`, event: () => this.Document._chromeStatus = (this.Document._chromeStatus !== "disabled" ? "disabled" : "enabled"), icon: "project-diagram" });
-        moreItems.push({ description: this.Document.lockedTransform ? "Unlock Transform" : "Lock Transform", event: this.toggleLockTransform, icon: BoolCast(this.Document.lockedTransform) ? "unlock" : "lock" });
         moreItems.push({ description: this.Document.lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document.lockedPosition) ? "unlock" : "lock" });
 
         if (!ClientUtils.RELEASE) {
