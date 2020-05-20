@@ -144,6 +144,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         const history = Cast(this.dataDoc[this.fieldKey + "-history"], listSpec("string"), null);
         if (future.length) {
             history.push(this._url);
+            this.dataDoc[this.annotationKey + "-" + this.urlHash(this._url)] = new List<Doc>(DocListCast(this.dataDoc[this.annotationKey]));
             this.dataDoc[this.fieldKey] = new WebField(new URL(this._url = future.pop()!));
             this.dataDoc[this.annotationKey] = new List<Doc>(DocListCast(this.dataDoc[this.annotationKey + "-" + this.urlHash(this._url)]));
         }
@@ -156,6 +157,7 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         if (history.length) {
             if (future === undefined) this.dataDoc[this.fieldKey + "-future"] = new List<string>([this._url]);
             else future.push(this._url);
+            this.dataDoc[this.annotationKey + "-" + this.urlHash(this._url)] = new List<Doc>(DocListCast(this.dataDoc[this.annotationKey]));
             this.dataDoc[this.fieldKey] = new WebField(new URL(this._url = history.pop()!));
             this.dataDoc[this.annotationKey] = new List<Doc>(DocListCast(this.dataDoc[this.annotationKey + "-" + this.urlHash(this._url)]));
         }
