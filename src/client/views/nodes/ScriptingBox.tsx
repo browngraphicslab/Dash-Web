@@ -207,14 +207,17 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         this._paramsValues.splice(this._paramsValues.length - num - 1, 1);
     }
 
-    @undoBatch
-    viewChanged = (e: React.ChangeEvent) => {
+    @action
+    viewChanged = (e: React.ChangeEvent, i: number, name: string) => {
         //@ts-ignore
-        this.document._viewType = e.target.selectedOptions[0].value;
+        this.props.Document[name] = e.target.selectedOptions[0].value;
+        //@ts-ignore
+        this._paramsValues[i] = e.target.selectedOptions[0].value;
     }
 
     @action
     selected = (val: string, index: number, name: string) => {
+        console.log("selected");
         this.stopPropagation;
         this.props.Document[name] = val;
         this._paramsValues[index] = val;
@@ -475,35 +478,24 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
 
                         <div className="scriptingBox-paramInputs">
                             <div className="scriptingBox-viewBase">
-                                <button className="scriptingBox-collapse"
-                                    style={{
-                                        top: this._paramsCollapsed[i] ? 30 : 10,
-                                        transform: `rotate(${this._paramsCollapsed[i] ? 180 : 0}deg) scale(0.5) translate(${this._paramsCollapsed[i] ? "-100%, -100%" : "0, 0"})`,
-                                        opacity: 0.9,
-                                        display: (this._paramsCollapsed[i] && !this.props.isSelected()) ? "none" : undefined,
-                                        left: (this._paramsCollapsed[i] ? 0 : "unset"),
-                                    }}
-                                    onClick={(event) => this.toggleCollapse(i)}>
-                                    <FontAwesomeIcon icon="caret-up" size="2x" />
-                                </button>
-                                <div className="scriptingBox-viewBase" style={{ display: this._paramsCollapsed[i] ? "none" : undefined }}>
-                                    <div className="commandEntry-outerDiv" title="select value">
-                                        <select
-                                            className="scriptingBox-viewPicker"
-                                            onPointerDown={this.stopPropagation}
-                                            onChange={this.viewChanged}
-                                            value={StrCast(this.props.Document[parameter])}>
-                                            {this._paramsTypes[i].split("|").map((type: string, index: number) =>
-                                                <option
-                                                    key={Utils.GenerateGuid()}
-                                                    className="scriptingBox-viewOption"
-                                                    onPointerDown={(e: React.PointerEvent<HTMLOptionElement>) => this.selected(type, i, parameter)}
-                                                    value={type.trim()}>
-                                                    {type.trim()}
-                                                </option>
-                                            )}
-                                        </select>
-                                    </div>
+                                <div className="commandEntry-outerDiv">
+                                    <select
+                                        className="scriptingBox-viewPicker"
+                                        onPointerDown={this.stopPropagation}
+                                        onChange={(e: React.ChangeEvent) => this.viewChanged(e, i, parameter)}
+                                        value={this._paramsValues[i]}>
+
+                                        {this._paramsTypes[i].split("|").map((type: string) =>
+                                            <option
+                                                className="scriptingBox-viewOption"
+                                                onPointerDown={(e: React.PointerEvent<HTMLOptionElement>) =>
+                                                    this.selected(type, i, parameter)}
+                                                value={type.trim()}>
+                                                {type.trim()}
+                                            </option>
+                                        )}
+
+                                    </select>
                                 </div>
                             </div>
                         </div>
