@@ -1,6 +1,7 @@
 .collectionCarouselView-outer {
     background: white;
     height: 100%;
+    perspective: 30em;
 
     .test-button {
         position: absolute;
@@ -12,7 +13,7 @@
     .collectionCarouselView-image {
         position: absolute;
         height: 100%;
-        width: 60%;
+        width: 50%;
         top: 0;
         left: 0;
         right: 0;
@@ -24,17 +25,19 @@
     .collectionCarouselView-prev {
         position: absolute;
         height: 50%;
-        width: 30%;
+        width: 25%;
         left: 0;
         top: 25%;
+        transform: rotateY(-20deg)
     }
 
     .collectionCarouselView-next {
         position: absolute;
         height: 50%;
-        width: 30%;
+        width: 25%;
         right: 0;
         top: 25%;
+        transform: rotateY(20deg)
     }
 }
 
