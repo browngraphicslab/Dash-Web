@@ -1,12 +1,12 @@
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faStickyNote, faPen, faMousePointer } from '@fortawesome/free-solid-svg-icons';
-import { action, computed, observable, trace, IReactionDisposer, reaction } from "mobx";
+import { action, computed, observable, trace, IReactionDisposer, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, FieldResult } from "../../../fields/Doc";
 import { documentSchema } from "../../../fields/documentSchemas";
 import { HtmlField } from "../../../fields/HtmlField";
 import { InkTool } from "../../../fields/InkField";
-import { makeInterface } from "../../../fields/Schema";
+import { makeInterface, listSpec } from "../../../fields/Schema";
 import { Cast, NumCast, BoolCast, StrCast } from "../../../fields/Types";
 import { WebField } from "../../../fields/URLField";
 import { Utils, returnOne, emptyFunction, returnZero } from "../../../Utils";
@@ -25,6 +25,7 @@ import { CollectionFreeFormView } from "../collections/collectionFreeForm/Collec
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { undoBatch } from "../../util/UndoManager";
+import { List } from "../../../fields/List";
 const htmlToText = require("html-to-text");
 
 library.add(faStickyNote);
@@ -79,8 +80,8 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
         this.layoutDoc.scrollTop = this._outerRef.current!.scrollTop = scroll;
     }
     async componentDidMount() {
-
-        this.setURL();
+        const urlField = Cast(this.dataDoc[this.props.fieldKey], WebField);
+        runInAction(() => this._url = urlField?.url.toString() || "");
 
         document.addEventListener("pointerup", this.onLongPressUp);
         document.addEventListener("pointermove", this.onLongPressMove);
@@ -116,17 +117,43 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
     }
 
     @action
-    submitURL = () => {
-        if (!this._url.startsWith("http")) this._url = "http://" + this._url;
-        this.dataDoc[this.props.fieldKey] = new WebField(new URL(this._url));
+    forward = () => {
+        const future = Cast(this.dataDoc[this.fieldKey + "-future"], listSpec("string"), null);
+        const history = Cast(this.dataDoc[this.fieldKey + "-history"], listSpec("string"), null);
+        if (future.length) {
+            history.push(this._url);
+            this.dataDoc[this.fieldKey] = new WebField(new URL(this._url = future.pop()!));
+        }
     }
 
     @action
-    setURL() {
-        const urlField: FieldResult<WebField> = Cast(this.dataDoc[this.props.fieldKey], WebField);
-        if (urlField) this._url = urlField.url.toString();
-        else this._url = "";
+    back = () => {
+        const future = Cast(this.dataDoc[this.fieldKey + "-future"], listSpec("string"), null);
+        const history = Cast(this.dataDoc[this.fieldKey + "-history"], listSpec("string"), null);
+        if (history.length) {
+            if (future === undefined) this.dataDoc[this.fieldKey + "-future"] = new List<string>([this._url]);
+            else future.push(this._url);
+            this.dataDoc[this.fieldKey] = new WebField(new URL(this._url = history.pop()!));
+        }
     }
+
+    @action
+    submitURL = () => {
+        if (!this._url.startsWith("http")) this._url = "http://" + this._url;
+        const future = Cast(this.dataDoc[this.fieldKey + "-future"], listSpec("string"), null);
+        const history = Cast(this.dataDoc[this.fieldKey + "-history"], listSpec("string"), null);
+        const url = Cast(this.dataDoc[this.fieldKey], WebField, null)?.url.toString();
+        if (url) {
+            if (history === undefined) {
+                this.dataDoc[this.fieldKey + "-history"] = new List<string>([url]);
+            } else {
+                history.push(url);
+            }
+            future && (future.length = 0);
+        }
+        this.dataDoc[this.fieldKey] = new WebField(new URL(this._url));
+    }
+
 
     onValueKeyDown = async (e: React.KeyboardEvent) => {
         if (e.key === "Enter") {
@@ -178,10 +205,16 @@ export class WebBox extends ViewBoxAnnotatableComponent<FieldViewProps, WebDocum
                                 display: "flex",
                                 flexDirection: "row",
                                 justifyContent: "space-between",
-                                minWidth: "100px",
+                                maxWidth: "120px",
                             }}>
                                 <button className="submitUrl" onClick={this.submitURL}>
-                                    SUBMIT
+                                    GO
+                                </button>
+                                <button className="submitUrl" onClick={this.back}>
+                                    <FontAwesomeIcon icon="caret-left" size="lg"></FontAwesomeIcon>
+                                </button>
+                                <button className="submitUrl" onClick={this.forward}>
+                                    <FontAwesomeIcon icon="caret-right" size="lg"></FontAwesomeIcon>
                                 </button>
                             </div>
                         </div>

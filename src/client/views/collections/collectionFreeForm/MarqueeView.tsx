@@ -69,7 +69,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             ContextMenu.Instance.setDefaultItem("?", (str: string) => {
                 const textDoc = Docs.Create.WebDocument(`https://bing.com/search?q=${str}`, {
                     _width: 200, x, y, _nativeHeight: 962, _nativeWidth: 800, isAnnotating: false,
-                    title: "bing"
+                    title: "bing", UseCors: true
                 });
                 this.props.addDocTab(textDoc, "onRight");
             });
@@ -624,6 +624,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
     render() {
         return <div className="marqueeView"
             style={{ overflow: StrCast(this.props.Document._overflow), cursor: MarqueeView.DragMarquee && this ? "crosshair" : "hand" }}
+            onDragOver={e => e.preventDefault()}
             onScroll={(e) => e.currentTarget.scrollTop = e.currentTarget.scrollLeft = 0} onClick={this.onClick} onPointerDown={this.onPointerDown}>
             {this._visible ? this.marqueeDiv : null}
             {this.props.children}

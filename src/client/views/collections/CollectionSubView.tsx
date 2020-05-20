@@ -330,7 +330,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                             let srcWeb: Doc | undefined;
                             if (SelectionManager.SelectedDocuments().length) {
                                 srcWeb = SelectionManager.SelectedDocuments()[0].props.Document;
-                                srcUrl = (srcWeb.data as WebField).url.href.match(/http[s]?:\/\/[^/]*/)?.[0];
+                                srcUrl = (srcWeb.data as WebField).url.href?.match(/http[s]?:\/\/[^/]*/)?.[0];
                             }
                             let reg = new RegExp(Utils.prepend(""), "g");
                             const modHtml = srcUrl ? html.replace(reg, srcUrl) : html;
@@ -339,14 +339,16 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                             this.props.addDocument(htmlDoc);
                             if (srcWeb) {
                                 const focusNode = (SelectionManager.SelectedDocuments()[0].ContentDiv?.getElementsByTagName("iframe")[0].contentDocument?.getSelection()?.focusNode as any);
-                                const rect = "getBoundingClientRect" in focusNode ? focusNode.getBoundingClientRect() : focusNode?.parentElement.getBoundingClientRect();
-                                const x = (rect?.x || 0);
-                                const y = NumCast(srcWeb.scrollTop) + (rect?.y || 0);
-                                const anchor = Docs.Create.FreeformDocument([], { _LODdisable: true, _backgroundColor: "transparent", _width: 25, _height: 25, x, y, annotationOn: srcWeb });
-                                anchor.context = srcWeb;
-                                const key = Doc.LayoutFieldKey(srcWeb);
-                                Doc.AddDocToList(srcWeb, key + "-annotations", anchor);
-                                DocUtils.MakeLink({ doc: htmlDoc }, { doc: anchor });
+                                if (focusNode) {
+                                    const rect = "getBoundingClientRect" in focusNode ? focusNode.getBoundingClientRect() : focusNode?.parentElement.getBoundingClientRect();
+                                    const x = (rect?.x || 0);
+                                    const y = NumCast(srcWeb.scrollTop) + (rect?.y || 0);
+                                    const anchor = Docs.Create.FreeformDocument([], { _LODdisable: true, _backgroundColor: "transparent", _width: 25, _height: 25, x, y, annotationOn: srcWeb });
+                                    anchor.context = srcWeb;
+                                    const key = Doc.LayoutFieldKey(srcWeb);
+                                    Doc.AddDocToList(srcWeb, key + "-annotations", anchor);
+                                    DocUtils.MakeLink({ doc: htmlDoc }, { doc: anchor });
+                                }
                             }
                         }
                         return;
