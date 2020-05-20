@@ -7,7 +7,7 @@ import { library, IconProp } from "@fortawesome/fontawesome-svg-core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { ColumnType } from "./CollectionSchemaView";
 import { faFile } from "@fortawesome/free-regular-svg-icons";
-import { SchemaHeaderField, PastelSchemaPalette } from "../../../fields/SchemaHeaderField";
+import { SchemaHeaderField, PastelSchemaPalette } from "../../../new_fields/SchemaHeaderField";
 import { undoBatch } from "../../util/UndoManager";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;

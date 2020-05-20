@@ -1,6 +1,6 @@
 import { Utils } from "../Utils";
 import { Point } from "../pen-gestures/ndollar";
-import { Doc } from "../fields/Doc";
+import { Doc } from "../new_fields/Doc";
 import { Image } from "canvas";
 import { AnalysisResult, ImportResults } from "../scraping/buxton/final/BuxtonImporter";
 

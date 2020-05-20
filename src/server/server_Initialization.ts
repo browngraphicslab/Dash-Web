@@ -7,10 +7,9 @@ import * as cookieParser from 'cookie-parser';
 import expressFlash = require('express-flash');
 import flash = require('connect-flash');
 import { Database } from './database';
-import { getForgot, getLogin, getLogout, getReset, getSignup, postForgot, postLogin, postReset, postSignup } from './authentication/AuthenticationManager';
+import { getForgot, getLogin, getLogout, getReset, getSignup, postForgot, postLogin, postReset, postSignup } from './authentication/controllers/user_controller';
 const MongoStore = require('connect-mongo')(session);
 import RouteManager from './RouteManager';
-import { WebSocket } from './websocket';
 import * as webpack from 'webpack';
 const config = require('../../webpack.config');
 const compiler = webpack(config);
@@ -20,12 +19,9 @@ import * as fs from 'fs';
 import * as request from 'request';
 import RouteSubscriber from './RouteSubscriber';
 import { publicDirectory } from '.';
-import { logPort, pathFromRoot, } from './ActionUtilities';
-import { blue, yellow, red } from 'colors';
+import { logPort, } from './ActionUtilities';
+import { blue, yellow } from 'colors';
 import * as cors from "cors";
-import { createServer, Server as HttpsServer } from "https";
-import { Server as HttpServer } from "http";
-import { SSL } from './apis/google/CredentialsLoader';
 
 /* RouteSetter is a wrapper around the server that prevents the server
    from being exposed. */
@@ -49,25 +45,16 @@ export default async function InitializeServer(routeSetter: RouteSetter) {
 
     const isRelease = determineEnvironment();
 
-    isRelease && !SSL.Loaded && SSL.exit();
-
     routeSetter(new RouteManager(app, isRelease));
     registerRelativePath(app);
 
-    let server: HttpServer | HttpsServer;
-    const { serverPort } = process.env;
-    const resolved = isRelease && serverPort ? Number(serverPort) : 1050;
-    await new Promise<void>(resolve => server = isRelease ?
-        createServer(SSL.Credentials, app).listen(resolved, resolve) :
-        app.listen(resolved, resolve)
-    );
-    logPort("server", resolved);
-
-    // initialize the web socket (bidirectional communication: if a user changes
-    // a field on one client, that change must be broadcast to all other clients)
-    WebSocket.initialize(isRelease, app);
-
+    const serverPort = isRelease ? Number(process.env.serverPort) : 1050;
+    const server = app.listen(serverPort, () => {
+        logPort("server", serverPort);
+        console.log();
+    });
     disconnect = async () => new Promise<Error>(resolve => server.close(resolve));
+
     return isRelease;
 }
 
@@ -107,8 +94,6 @@ function determineEnvironment() {
     const label = isRelease ? "release" : "development";
     console.log(`\nrunning server in ${color(label)} mode`);
 
-    // swilkins: I don't think we need to read from ClientUtils.RELEASE anymore. Should be able to invoke process.env.RELEASE
-    // on the client side, thanks to dotenv in webpack.config.js
     let clientUtils = fs.readFileSync("./src/client/util/ClientUtils.ts.temp", "utf8");
     clientUtils = `//AUTO-GENERATED FILE: DO NOT EDIT\n${clientUtils.replace('"mode"', String(isRelease))}`;
     fs.writeFileSync("./src/client/util/ClientUtils.ts", clientUtils, "utf8");
@@ -146,23 +131,19 @@ function registerCorsProxy(server: express.Express) {
             res.redirect(referer + (referer.endsWith("/") ? "" : "/") + requrl);
         }
         else {
-            try {
-                req.pipe(request(requrl)).on("response", res => {
-                    const headers = Object.keys(res.headers);
-                    headers.forEach(headerName => {
-                        const header = res.headers[headerName];
-                        if (Array.isArray(header)) {
-                            res.headers[headerName] = header.filter(h => !headerCharRegex.test(h));
-                        } else if (header) {
-                            if (headerCharRegex.test(header as any)) {
-                                delete res.headers[headerName];
-                            }
+            req.pipe(request(requrl)).on("response", res => {
+                const headers = Object.keys(res.headers);
+                headers.forEach(headerName => {
+                    const header = res.headers[headerName];
+                    if (Array.isArray(header)) {
+                        res.headers[headerName] = header.filter(h => !headerCharRegex.test(h));
+                    } else if (header) {
+                        if (headerCharRegex.test(header as any)) {
+                            delete res.headers[headerName];
                         }
-                    });
-                }).pipe(res);
-            } catch (e) {
-                console.log("problem with Cors URL: " + requrl);
-            }
+                    }
+                });
+            }).pipe(res);
         }
     });
 }

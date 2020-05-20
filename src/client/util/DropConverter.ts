@@ -1,13 +1,12 @@
 import { DragManager } from "./DragManager";
-import { Doc, DocListCast, Opt } from "../../fields/Doc";
+import { Doc, DocListCast, Opt } from "../../new_fields/Doc";
 import { DocumentType } from "../documents/DocumentTypes";
-import { ObjectField } from "../../fields/ObjectField";
-import { StrCast } from "../../fields/Types";
+import { ObjectField } from "../../new_fields/ObjectField";
+import { StrCast } from "../../new_fields/Types";
 import { Docs } from "../documents/Documents";
-import { ScriptField, ComputedField } from "../../fields/ScriptField";
-import { RichTextField } from "../../fields/RichTextField";
-import { ImageField } from "../../fields/URLField";
-import { Scripting } from "./Scripting";
+import { ScriptField, ComputedField } from "../../new_fields/ScriptField";
+import { RichTextField } from "../../new_fields/RichTextField";
+import { ImageField } from "../../new_fields/URLField";
 
 // 
 // converts 'doc' into a template that can be used to render other documents.
@@ -69,11 +68,10 @@ export function convertDropDataToButtons(data: DragManager.DocumentDragData) {
             });
             dbox.dragFactory = layoutDoc;
             dbox.removeDropProperties = doc.removeDropProperties instanceof ObjectField ? ObjectField.MakeCopy(doc.removeDropProperties) : undefined;
-            dbox.onDragStart = ScriptField.MakeFunction('makeDelegate(this.dragFactory)');
+            dbox.onDragStart = ScriptField.MakeFunction('getCopy(this.dragFactory, true)');
         } else if (doc.isButtonBar) {
             dbox.ignoreClick = true;
         }
         data.droppedDocuments[i] = dbox;
     });
 }
-Scripting.addGlobal(function convertToButtons(dragData: any) { convertDropDataToButtons(dragData as DragManager.DocumentDragData); });

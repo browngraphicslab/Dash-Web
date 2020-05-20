@@ -1,13 +1,13 @@
 
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, Field, FieldResult } from "../../../fields/Doc";
-import { List } from "../../../fields/List";
-import { RichTextField } from "../../../fields/RichTextField";
-import { listSpec } from "../../../fields/Schema";
-import { ComputedField, ScriptField } from "../../../fields/ScriptField";
-import { Cast, FieldValue, NumCast } from "../../../fields/Types";
-import { ImageField } from "../../../fields/URLField";
+import { Doc, Field, FieldResult } from "../../../new_fields/Doc";
+import { List } from "../../../new_fields/List";
+import { RichTextField } from "../../../new_fields/RichTextField";
+import { listSpec } from "../../../new_fields/Schema";
+import { ComputedField, ScriptField } from "../../../new_fields/ScriptField";
+import { Cast, FieldValue, NumCast } from "../../../new_fields/Types";
+import { ImageField } from "../../../new_fields/URLField";
 import { Docs } from "../../documents/Documents";
 import { SetupDrag } from "../../util/DragManager";
 import { CompiledScript, CompileScript, ScriptOptions } from "../../util/Scripting";
@@ -16,8 +16,6 @@ import { FieldView, FieldViewProps } from './FieldView';
 import "./KeyValueBox.scss";
 import { KeyValuePair } from "./KeyValuePair";
 import React = require("react");
-import { ContextMenu } from "../ContextMenu";
-import { ContextMenuProps } from "../ContextMenuItem";
 
 export type KVPScript = {
     script: CompiledScript;
@@ -36,7 +34,11 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
     @observable private _keyInput: string = "";
     @observable private _valueInput: string = "";
     @computed get splitPercentage() { return NumCast(this.props.Document.schemaSplitPercentage, 50); }
-    get fieldDocToLayout() { return this.props.fieldKey ? Cast(this.props.Document[this.props.fieldKey], Doc, null) : this.props.Document; }
+    get fieldDocToLayout() { return this.props.fieldKey ? FieldValue(Cast(this.props.Document[this.props.fieldKey], Doc)) : this.props.Document; }
+
+    constructor(props: FieldViewProps) {
+        super(props);
+    }
 
     @action
     onEnterKey = (e: React.KeyboardEvent): void => {
@@ -232,26 +234,13 @@ export class KeyValueBox extends React.Component<FieldViewProps> {
         return new Doc;
     }
 
-    specificContextMenu = (e: React.MouseEvent): void => {
-        const cm = ContextMenu.Instance;
-        const open = cm.findByDescription("Change Perspective...");
-        const openItems: ContextMenuProps[] = open && "subitems" in open ? open.subitems : [];
-        openItems.push({
-            description: "Default Perspective", event: () => {
-                this.props.addDocTab(this.props.Document, "close");
-                this.props.addDocTab(this.fieldDocToLayout, "onRight");
-            }, icon: "image"
-        });
-        !open && cm.addItem({ description: "Change Perspective...", subitems: openItems, icon: "external-link-alt" });
-    }
-
     render() {
         const dividerDragger = this.splitPercentage === 0 ? (null) :
             <div className="keyValueBox-dividerDragger" style={{ transform: `translate(calc(${100 - this.splitPercentage}% - 5px), 0px)` }}>
                 <div className="keyValueBox-dividerDraggerThumb" onPointerDown={this.onDividerDown} />
             </div>;
 
-        return (<div className="keyValueBox-cont" onWheel={this.onPointerWheel} onContextMenu={this.specificContextMenu} ref={this._mainCont}>
+        return (<div className="keyValueBox-cont" onWheel={this.onPointerWheel} ref={this._mainCont}>
             <table className="keyValueBox-table">
                 <tbody className="keyValueBox-tbody">
                     <tr className="keyValueBox-header">

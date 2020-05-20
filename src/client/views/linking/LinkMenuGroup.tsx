@@ -1,15 +1,15 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action } from "mobx";
 import { observer } from "mobx-react";
-import { Doc } from "../../../fields/Doc";
-import { Id } from "../../../fields/FieldSymbols";
-import { SchemaHeaderField } from "../../../fields/SchemaHeaderField";
+import { Doc } from "../../../new_fields/Doc";
+import { Id } from "../../../new_fields/FieldSymbols";
+import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
 import { Docs } from "../../documents/Documents";
 import { DragManager, SetupDrag } from "../../util/DragManager";
 import { LinkManager } from "../../util/LinkManager";
 import { DocumentView } from "../nodes/DocumentView";
 import './LinkMenu.scss';
-import { LinkMenuItem, StartLinkTargetsDrag } from "./LinkMenuItem";
+import { LinkMenuItem } from "./LinkMenuItem";
 import React = require("react");
 
 interface LinkMenuGroupProps {
@@ -47,7 +47,7 @@ export class LinkMenuGroup extends React.Component<LinkMenuGroupProps> {
             document.removeEventListener("pointerup", this.onLinkButtonUp);
 
             const targets = this.props.group.map(l => LinkManager.Instance.getOppositeAnchor(l, this.props.sourceDoc)).filter(d => d) as Doc[];
-            StartLinkTargetsDrag(this._drag.current, this.props.docView, e.x, e.y, this.props.sourceDoc, targets);
+            DragManager.StartLinkTargetsDrag(this._drag.current, this.props.docView, e.x, e.y, this.props.sourceDoc, targets);
         }
         e.stopPropagation();
     }

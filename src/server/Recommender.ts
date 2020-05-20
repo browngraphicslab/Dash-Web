@@ -1,6 +1,6 @@
-// //import { Doc } from "../fields/Doc";
-// //import { StrCast } from "../fields/Types";
-// //import { List } from "../fields/List";
+// //import { Doc } from "../new_fields/Doc";
+// //import { StrCast } from "../new_fields/Types";
+// //import { List } from "../new_fields/List";
 // //import { CognitiveServices } from "../client/cognitive_services/CognitiveServices";
 
 // // var w2v = require('word2vec');

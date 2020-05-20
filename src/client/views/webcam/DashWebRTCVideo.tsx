@@ -3,7 +3,7 @@ import React = require("react");
 import { CollectionFreeFormDocumentViewProps } from "../nodes/CollectionFreeFormDocumentView";
 import { FieldViewProps, FieldView } from "../nodes/FieldView";
 import { observable, action } from "mobx";
-import { DocumentDecorations } from "../DocumentDecorations";
+import { DocumentDecorations, CloseCall } from "../DocumentDecorations";
 import { InkingControl } from "../InkingControl";
 import "../../views/nodes/WebBox.scss";
 import "./DashWebRTCVideo.scss";

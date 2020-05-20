@@ -3,7 +3,7 @@ import { Method, _error, _success, _invalid } from "../RouteManager";
 import * as path from "path";
 import { GoogleApiServerUtils } from "../apis/google/GoogleApiServerUtils";
 import { BatchedArray, TimeUnit } from "array-batcher";
-import { Opt } from "../../fields/Doc";
+import { Opt } from "../../new_fields/Doc";
 import { DashUploadUtils, InjectSize, SizeSuffix } from "../DashUploadUtils";
 import { Database } from "../database";
 import { red } from "colors";
@@ -56,7 +56,7 @@ export default class GooglePhotosManager extends ApiManager {
                 const { media } = req.body;
 
                 // first we need to ensure that we know the google account to which these photos will be uploaded
-                const token = (await GoogleApiServerUtils.retrieveCredentials(user.id))?.credentials?.access_token;
+                const token = await GoogleApiServerUtils.retrieveAccessToken(user.id);
                 if (!token) {
                     return _error(res, authenticationError);
                 }

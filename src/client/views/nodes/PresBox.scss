@@ -1,52 +1,28 @@
 .presBox-cont {
     position: absolute;
-    pointer-events: inherit;
     z-index: 2;
     box-shadow: #AAAAAA .2vw .2vw .4vw;
+    bottom: 0;
     width: 100%;
-    min-width: 20px;
+    min-width: 120px;
     height: 100%;
     min-height: 41px;
     letter-spacing: 2px;
     overflow: hidden;
     transition: 0.7s opacity ease;
 
-    .presBox-listCont {
-        position: absolute;
-        height: calc(100% - 25px);
-        width: 100%;
-    }
     .presBox-buttons {
+        padding: 10px;
         width: 100%;
         background: gray;
+        padding-right: 10px;
         padding-top: 5px;
         padding-bottom: 5px;
-        display: grid;
-        grid-column-end: 4;
-        grid-column-start: 1;
-        .presBox-viewPicker {
-            height: 25;
-            position: relative;
-            display: inline-block;
-            grid-column: 1/2;
-            min-width: 15px;
-        }
-        select {
-            background: #323232;
-            color: white;
-        }
         .presBox-button {
             margin-right: 2.5%;
             margin-left: 2.5%;
-            height: 25px;
+            width: 20%;
             border-radius: 5px;
-            display: flex;
-            align-items: center;
-            background: #323232;
-            color: white;
-            svg {
-                margin: auto;
-            }
         }
         .collectionViewBaseChrome-viewPicker {
             min-width: 50;

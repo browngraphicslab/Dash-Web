@@ -104,9 +104,9 @@ export function initialize(roomName, handlerUI) {
 
 
     navigator.mediaDevices.getUserMedia({
-        audio: true,
-        video: true
-    })
+            audio: true,
+            video: true
+        })
         .then(gotStream)
         .catch(function (e) {
             alert('getUserMedia() error: ' + e.name);

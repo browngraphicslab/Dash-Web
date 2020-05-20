@@ -3,10 +3,10 @@ import { faBullseye, faLink } from "@fortawesome/free-solid-svg-icons";
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 //import "./SearchBoxDoc.scss";
-import { Doc, DocListCast } from "../../fields/Doc";
-import { Id } from "../../fields/FieldSymbols";
-import { BoolCast, Cast, NumCast, StrCast } from "../../fields/Types";
-import { returnFalse, returnZero } from "../../Utils";
+import { Doc, DocListCast } from "../../new_fields/Doc";
+import { Id } from "../../new_fields/FieldSymbols";
+import { BoolCast, Cast, NumCast, StrCast } from "../../new_fields/Types";
+import { returnFalse } from "../../Utils";
 import { Docs } from "../documents/Documents";
 import { SearchUtil } from "../util/SearchUtil";
 import { EditableView } from "./EditableView";
@@ -398,13 +398,7 @@ export class SearchDocBox extends React.Component<FieldViewProps> {
                 <ContentFittingDocumentView {...this.props}
                     Document={this.content}
                     rootSelected={returnFalse}
-                    bringToFront={returnFalse}
-                    ContainingCollectionDoc={undefined}
-                    ContainingCollectionView={undefined}
-                    NativeWidth={returnZero}
-                    NativeHeight={returnZero}
-                    parentActive={this.props.active}
-                    ScreenToLocalTransform={this.props.ScreenToLocalTransform}>
+                    getTransform={this.props.ScreenToLocalTransform}>
                 </ContentFittingDocumentView>
                 <div
                     style={{

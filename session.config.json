@@ -1,7 +1,7 @@
 {
     "showServerOutput": false,
     "ports": {
-        "server": 443,
+        "server": 1050,
         "socket": 4321
     },
     "polling": {

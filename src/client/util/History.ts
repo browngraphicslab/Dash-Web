@@ -1,4 +1,4 @@
-import { Doc } from "../../fields/Doc";
+import { Doc } from "../../new_fields/Doc";
 import { DocServer } from "../DocServer";
 import { MainView } from "../views/MainView";
 import * as qs from 'query-string';
@@ -40,12 +40,8 @@ export namespace HistoryUtil {
         // }
     }
 
-    let _lastStatePush = 0;
     export function pushState(state: ParsedUrl) {
-        if (Date.now() - _lastStatePush > 1000) {
-            history.pushState(state, "", createUrl(state));
-        }
-        _lastStatePush = Date.now();
+        history.pushState(state, "", createUrl(state));
     }
 
     export function replaceState(state: ParsedUrl) {

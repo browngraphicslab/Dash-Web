@@ -3,8 +3,8 @@ import { faArrowRight, faChevronDown, faChevronUp, faEdit, faEye, faTimes } from
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, observable } from 'mobx';
 import { observer } from "mobx-react";
-import { Doc, DocListCast } from '../../../fields/Doc';
-import { Cast, StrCast } from '../../../fields/Types';
+import { Doc } from '../../../new_fields/Doc';
+import { Cast, StrCast } from '../../../new_fields/Types';
 import { DragManager } from '../../util/DragManager';
 import { LinkManager } from '../../util/LinkManager';
 import { ContextMenu } from '../ContextMenu';
@@ -25,41 +25,6 @@ interface LinkMenuItemProps {
     showEditor: (linkDoc: Doc) => void;
     addDocTab: (document: Doc, where: string) => boolean;
 }
-
-// drag links and drop link targets (aliasing them if needed)
-export async function StartLinkTargetsDrag(dragEle: HTMLElement, docView: DocumentView, downX: number, downY: number, sourceDoc: Doc, specificLinks?: Doc[]) {
-    const draggedDocs = (specificLinks ? specificLinks : DocListCast(sourceDoc.links)).map(link => LinkManager.Instance.getOppositeAnchor(link, sourceDoc)).filter(l => l) as Doc[];
-
-    if (draggedDocs.length) {
-        const moddrag: Doc[] = [];
-        for (const draggedDoc of draggedDocs) {
-            const doc = await Cast(draggedDoc.annotationOn, Doc);
-            if (doc) moddrag.push(doc);
-        }
-
-        const dragData = new DragManager.DocumentDragData(moddrag.length ? moddrag : draggedDocs);
-        dragData.moveDocument = (doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (doc: Doc | Doc[]) => boolean): boolean => {
-            docView.props.removeDocument?.(doc);
-            addDocument(doc);
-            return true;
-        };
-        const containingView = docView.props.ContainingCollectionView;
-        const finishDrag = (e: DragManager.DragCompleteEvent) =>
-            e.docDragData && (e.docDragData.droppedDocuments =
-                dragData.draggedDocuments.reduce((droppedDocs, d) => {
-                    const dvs = DocumentManager.Instance.getDocumentViews(d).filter(dv => dv.props.ContainingCollectionView === containingView);
-                    if (dvs.length) {
-                        dvs.forEach(dv => droppedDocs.push(dv.props.Document));
-                    } else {
-                        droppedDocs.push(Doc.MakeAlias(d));
-                    }
-                    return droppedDocs;
-                }, [] as Doc[]));
-
-        DragManager.StartDrag([dragEle], dragData, downX, downY, undefined, finishDrag);
-    }
-}
-
 
 @observer
 export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
@@ -118,7 +83,7 @@ export class LinkMenuItem extends React.Component<LinkMenuItemProps> {
             document.removeEventListener("pointerup", this.onLinkButtonUp);
 
             this._eleClone.style.transform = `translate(${e.x}px, ${e.y}px)`;
-            StartLinkTargetsDrag(this._eleClone, this.props.docView, e.x, e.y, this.props.sourceDoc, [this.props.linkDoc]);
+            DragManager.StartLinkTargetsDrag(this._eleClone, this.props.docView, e.x, e.y, this.props.sourceDoc, [this.props.linkDoc]);
         }
         e.stopPropagation();
     }

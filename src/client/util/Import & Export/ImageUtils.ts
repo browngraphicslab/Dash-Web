@@ -1,9 +1,9 @@
-import { Doc } from "../../../fields/Doc";
-import { ImageField } from "../../../fields/URLField";
-import { Cast, StrCast } from "../../../fields/Types";
+import { Doc } from "../../../new_fields/Doc";
+import { ImageField } from "../../../new_fields/URLField";
+import { Cast, StrCast } from "../../../new_fields/Types";
 import { Docs } from "../../documents/Documents";
 import { Networking } from "../../Network";
-import { Id } from "../../../fields/FieldSymbols";
+import { Id } from "../../../new_fields/FieldSymbols";
 import { Utils } from "../../../Utils";
 
 export namespace ImageUtils {

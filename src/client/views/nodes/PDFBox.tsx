@@ -3,11 +3,11 @@ import { action, observable, runInAction, reaction, IReactionDisposer, trace, un
 import { observer } from "mobx-react";
 import * as Pdfjs from "pdfjs-dist";
 import "pdfjs-dist/web/pdf_viewer.css";
-import { Opt, WidthSym, Doc, HeightSym } from "../../../fields/Doc";
-import { makeInterface } from "../../../fields/Schema";
-import { ScriptField } from '../../../fields/ScriptField';
-import { Cast, NumCast, StrCast } from "../../../fields/Types";
-import { PdfField, URLField } from "../../../fields/URLField";
+import { Opt, WidthSym, Doc, HeightSym } from "../../../new_fields/Doc";
+import { makeInterface } from "../../../new_fields/Schema";
+import { ScriptField } from '../../../new_fields/ScriptField';
+import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
+import { PdfField, URLField } from "../../../new_fields/URLField";
 import { Utils } from '../../../Utils';
 import { undoBatch } from '../../util/UndoManager';
 import { panZoomSchema } from '../collections/collectionFreeForm/CollectionFreeFormView';
@@ -20,7 +20,7 @@ import { pageSchema } from "./ImageBox";
 import { KeyCodes } from '../../util/KeyCodes';
 import "./PDFBox.scss";
 import React = require("react");
-import { documentSchema } from '../../../fields/documentSchemas';
+import { documentSchema } from '../../../new_fields/documentSchemas';
 
 type PdfDocument = makeInterface<[typeof documentSchema, typeof panZoomSchema, typeof pageSchema]>;
 const PdfDocument = makeInterface(documentSchema, panZoomSchema, pageSchema);
@@ -210,7 +210,7 @@ export class PDFBox extends ViewBoxAnnotatableComponent<FieldViewProps, PdfDocum
         pdfUrl && funcs.push({ description: "Copy path", event: () => Utils.CopyText(pdfUrl.url.pathname), icon: "expand-arrows-alt" });
         funcs.push({ description: "Toggle Fit Width " + (this.Document._fitWidth ? "Off" : "On"), event: () => this.Document._fitWidth = !this.Document._fitWidth, icon: "expand-arrows-alt" });
 
-        ContextMenu.Instance.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
+        ContextMenu.Instance.addItem({ description: "Pdf Funcs...", subitems: funcs, icon: "asterisk" });
     }
 
     @computed get contentScaling() { return this.props.ContentScaling(); }

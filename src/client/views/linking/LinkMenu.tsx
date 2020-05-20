@@ -4,7 +4,7 @@ import { DocumentView } from "../nodes/DocumentView";
 import { LinkEditor } from "./LinkEditor";
 import './LinkMenu.scss';
 import React = require("react");
-import { Doc } from "../../../fields/Doc";
+import { Doc } from "../../../new_fields/Doc";
 import { LinkManager } from "../../util/LinkManager";
 import { LinkMenuGroup } from "./LinkMenuGroup";
 import { faTrash } from '@fortawesome/free-solid-svg-icons';

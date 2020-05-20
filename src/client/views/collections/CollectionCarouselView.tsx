@@ -2,21 +2,21 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { observable, computed } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
-import { documentSchema, collectionSchema } from '../../../fields/documentSchemas';
-import { makeInterface } from '../../../fields/Schema';
-import { NumCast, StrCast, ScriptCast, Cast } from '../../../fields/Types';
+import { documentSchema } from '../../../new_fields/documentSchemas';
+import { makeInterface } from '../../../new_fields/Schema';
+import { NumCast, StrCast } from '../../../new_fields/Types';
 import { DragManager } from '../../util/DragManager';
 import { ContentFittingDocumentView } from '../nodes/ContentFittingDocumentView';
 import "./CollectionCarouselView.scss";
 import { CollectionSubView } from './CollectionSubView';
-import { Doc } from '../../../fields/Doc';
-import { FormattedTextBox } from '../nodes/formattedText/FormattedTextBox';
+import { faCaretLeft, faCaretRight } from '@fortawesome/free-solid-svg-icons';
+import { Doc } from '../../../new_fields/Doc';
+import { FormattedTextBox } from '../nodes/FormattedTextBox';
 import { ContextMenu } from '../ContextMenu';
-import { ObjectField } from '../../../fields/ObjectField';
-import { returnFalse } from '../../../Utils';
+import { ObjectField } from '../../../new_fields/ObjectField';
 
-type CarouselDocument = makeInterface<[typeof documentSchema, typeof collectionSchema]>;
-const CarouselDocument = makeInterface(documentSchema, collectionSchema);
+type CarouselDocument = makeInterface<[typeof documentSchema,]>;
+const CarouselDocument = makeInterface(documentSchema);
 
 @observer
 export class CollectionCarouselView extends CollectionSubView(CarouselDocument) {
@@ -27,7 +27,7 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
     protected createDashEventsTarget = (ele: HTMLDivElement) => { //used for stacking and masonry view
         this._dropDisposer?.();
         if (ele) {
-            this._dropDisposer = DragManager.MakeDropTarget(ele, this.onInternalDrop.bind(this), this.layoutDoc);
+            this._dropDisposer = DragManager.MakeDropTarget(ele, this.onInternalDrop.bind(this));
         }
     }
 
@@ -39,6 +39,7 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
         e.stopPropagation();
         this.layoutDoc._itemIndex = (NumCast(this.layoutDoc._itemIndex) - 1 + this.childLayoutPairs.length) % this.childLayoutPairs.length;
     }
+
     panelHeight = () => this.props.PanelHeight() - 50;
     @computed get content() {
         const index = NumCast(this.layoutDoc._itemIndex);
@@ -46,39 +47,23 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
             <>
                 <div className="collectionCarouselView-image" key="image">
                     <ContentFittingDocumentView {...this.props}
-                        onDoubleClick={ScriptCast(this.layoutDoc.onChildDoubleClick)}
-                        onClick={ScriptCast(this.layoutDoc.onChildClick)}
-                        renderDepth={this.props.renderDepth + 1}
-                        LayoutTemplate={this.props.ChildLayoutTemplate}
-                        LayoutTemplateString={this.props.ChildLayoutString}
                         Document={this.childLayoutPairs[index].layout}
-                        DataDoc={this.childLayoutPairs[index].data}
+                        DataDocument={this.childLayoutPairs[index].data}
                         PanelHeight={this.panelHeight}
-                        ScreenToLocalTransform={this.props.ScreenToLocalTransform}
-                        bringToFront={returnFalse}
-                        parentActive={this.props.active}
-                    />
+                        getTransform={this.props.ScreenToLocalTransform} />
                 </div>
-                <div className="collectionCarouselView-caption" key="caption"
-                    style={{
-                        background: StrCast(this.layoutDoc._captionBackgroundColor, this.props.backgroundColor?.(this.props.Document)),
-                        color: StrCast(this.layoutDoc._captionColor, StrCast(this.layoutDoc.color)),
-                        borderRadius: StrCast(this.layoutDoc._captionBorderRounding),
-                    }}>
-                    <FormattedTextBox key={index} {...this.props}
-                        xMargin={NumCast(this.layoutDoc["_carousel-caption-xMargin"])}
-                        yMargin={NumCast(this.layoutDoc["_carousel-caption-yMargin"])}
-                        Document={this.childLayoutPairs[index].layout} DataDoc={undefined} fieldKey={"caption"} />
+                <div className="collectionCarouselView-caption" key="caption" style={{ background: this.props.backgroundColor?.(this.props.Document) }}>
+                    <FormattedTextBox key={index} {...this.props} Document={this.childLayoutPairs[index].layout} DataDoc={undefined} fieldKey={"caption"}></FormattedTextBox>
                 </div>
             </>;
     }
     @computed get buttons() {
         return <>
             <div key="back" className="carouselView-back" style={{ background: `${StrCast(this.props.Document.backgroundColor)}` }} onClick={this.goback}>
-                <FontAwesomeIcon icon={"caret-left"} size={"2x"} />
+                <FontAwesomeIcon icon={faCaretLeft} size={"2x"} />
             </div>
             <div key="fwd" className="carouselView-fwd" style={{ background: `${StrCast(this.props.Document.backgroundColor)}` }} onClick={this.advance}>
-                <FontAwesomeIcon icon={"caret-right"} size={"2x"} />
+                <FontAwesomeIcon icon={faCaretRight} size={"2x"} />
             </div>
         </>;
     }

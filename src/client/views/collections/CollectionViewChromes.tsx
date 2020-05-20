@@ -2,11 +2,11 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import * as React from "react";
-import { Doc, DocListCast } from "../../../fields/Doc";
-import { Id } from "../../../fields/FieldSymbols";
-import { List } from "../../../fields/List";
-import { listSpec } from "../../../fields/Schema";
-import { BoolCast, Cast, NumCast, StrCast } from "../../../fields/Types";
+import { Doc, DocListCast } from "../../../new_fields/Doc";
+import { Id } from "../../../new_fields/FieldSymbols";
+import { List } from "../../../new_fields/List";
+import { listSpec } from "../../../new_fields/Schema";
+import { BoolCast, Cast, NumCast, StrCast } from "../../../new_fields/Types";
 import { Utils, emptyFunction, setupMoveUpEvents } from "../../../Utils";
 import { DragManager } from "../../util/DragManager";
 import { undoBatch } from "../../util/UndoManager";
@@ -44,9 +44,9 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
         initialize: emptyFunction,
     };
     _narrativeCommand = {
-        params: ["target", "source"], title: "=> click clicked open view",
-        script: "this.target.childClickedOpenTemplateView = getDocTemplate(this.source?.[0])",
-        immediate: (source: Doc[]) => this.target.childClickedOpenTemplateView = Doc.getDocTemplate(source?.[0]),
+        params: ["target", "source"], title: "=> click item view",
+        script: "this.target.childDetailView = getDocTemplate(this.source?.[0])",
+        immediate: (source: Doc[]) => this.target.childDetailView = Doc.getDocTemplate(source?.[0]),
         initialize: emptyFunction,
     };
     _contentCommand = {
@@ -215,9 +215,9 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
 
     private dropDisposer?: DragManager.DragDropDisposer;
     protected createDropTarget = (ele: HTMLDivElement) => {
-        this.dropDisposer?.();
+        this.dropDisposer && this.dropDisposer();
         if (ele) {
-            this.dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this), this.document);
+            this.dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this));
         }
     }
 

@@ -1,13 +1,13 @@
 import { observable, runInAction, action } from "mobx";
 import * as React from "react";
 import MainViewModal from "../views/MainViewModal";
-import { Doc, Opt, DocCastAsync } from "../../fields/Doc";
+import { Doc, Opt, DocCastAsync } from "../../new_fields/Doc";
 import { DocServer } from "../DocServer";
-import { Cast, StrCast } from "../../fields/Types";
+import { Cast, StrCast } from "../../new_fields/Types";
 import * as RequestPromise from "request-promise";
 import { Utils } from "../../Utils";
 import "./SharingManager.scss";
-import { Id } from "../../fields/FieldSymbols";
+import { Id } from "../../new_fields/FieldSymbols";
 import { observer } from "mobx-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { library } from '@fortawesome/fontawesome-svg-core';

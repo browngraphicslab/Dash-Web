@@ -1,8 +1,8 @@
 import * as React from "react";
 import { observer } from "mobx-react";
 import { computed } from "mobx";
-import { Doc } from "../../../../fields/Doc";
-import { NumCast, StrCast, BoolCast } from "../../../../fields/Types";
+import { Doc } from "../../../../new_fields/Doc";
+import { NumCast, StrCast, BoolCast } from "../../../../new_fields/Types";
 import { EditableView } from "../../EditableView";
 import { DimUnit } from "./CollectionMultirowView";
 

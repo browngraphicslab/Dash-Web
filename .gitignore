@@ -12,7 +12,3 @@ src/scraping/buxton/source/
 src/server/public/files/
 src/scraping/acm/package-lock.json
 src/server/session_manager/logs/**/*.log
-*.crt
-*.key
-*.pfx
-*.properties

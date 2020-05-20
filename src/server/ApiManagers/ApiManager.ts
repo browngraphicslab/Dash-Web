@@ -1,4 +1,4 @@
-import { RouteInitializer } from "../RouteManager";
+import RouteManager, { RouteInitializer } from "../RouteManager";
 
 export type Registration = (initializer: RouteInitializer) => void;
 

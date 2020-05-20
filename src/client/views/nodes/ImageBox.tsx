@@ -4,16 +4,16 @@ import { faAsterisk, faBrain, faFileAudio, faImage, faPaintBrush } from '@fortaw
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, runInAction } from 'mobx';
 import { observer } from "mobx-react";
-import { DataSym, Doc, DocListCast, HeightSym, WidthSym } from '../../../fields/Doc';
-import { documentSchema } from '../../../fields/documentSchemas';
-import { Id } from '../../../fields/FieldSymbols';
-import { List } from '../../../fields/List';
-import { ObjectField } from '../../../fields/ObjectField';
-import { createSchema, listSpec, makeInterface } from '../../../fields/Schema';
-import { ComputedField } from '../../../fields/ScriptField';
-import { Cast, NumCast, StrCast } from '../../../fields/Types';
-import { AudioField, ImageField } from '../../../fields/URLField';
-import { TraceMobx } from '../../../fields/util';
+import { DataSym, Doc, DocListCast, HeightSym, WidthSym } from '../../../new_fields/Doc';
+import { documentSchema } from '../../../new_fields/documentSchemas';
+import { Id } from '../../../new_fields/FieldSymbols';
+import { List } from '../../../new_fields/List';
+import { ObjectField } from '../../../new_fields/ObjectField';
+import { createSchema, listSpec, makeInterface } from '../../../new_fields/Schema';
+import { ComputedField } from '../../../new_fields/ScriptField';
+import { Cast, NumCast, StrCast } from '../../../new_fields/Types';
+import { AudioField, ImageField } from '../../../new_fields/URLField';
+import { TraceMobx } from '../../../new_fields/util';
 import { emptyFunction, returnOne, Utils, returnZero } from '../../../Utils';
 import { CognitiveServices, Confidence, Service, Tag } from '../../cognitive_services/CognitiveServices';
 import { Docs } from '../../documents/Documents';
@@ -29,7 +29,6 @@ import FaceRectangles from './FaceRectangles';
 import { FieldView, FieldViewProps } from './FieldView';
 import "./ImageBox.scss";
 import React = require("react");
-import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
 const requestImageSize = require('../../util/request-image-size');
 const path = require('path');
 const { Howl } = require('howler');
@@ -77,7 +76,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
 
     protected createDropTarget = (ele: HTMLDivElement) => {
         this._dropDisposer && this._dropDisposer();
-        ele && (this._dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this), this.props.Document));
+        ele && (this._dropDisposer = DragManager.MakeDropTarget(ele, this.drop.bind(this)));
     }
 
     @undoBatch
@@ -158,22 +157,21 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
         const field = Cast(this.dataDoc[this.fieldKey], ImageField);
         if (field) {
             const funcs: ContextMenuProps[] = [];
-            funcs.push({ description: "Rotate", event: this.rotate, icon: "expand-arrows-alt" });
-            funcs.push({ description: "Export to Google Photos", event: () => GooglePhotos.Transactions.UploadImages([this.props.Document]), icon: "caret-square-right" });
             funcs.push({ description: "Copy path", event: () => Utils.CopyText(field.url.href), icon: "expand-arrows-alt" });
-            // funcs.push({
-            //     description: "Reset Native Dimensions", event: action(async () => {
-            //         const curNW = NumCast(this.dataDoc[this.fieldKey + "-nativeWidth"]);
-            //         const curNH = NumCast(this.dataDoc[this.fieldKey + "-nativeHeight"]);
-            //         if (this.props.PanelWidth() / this.props.PanelHeight() > curNW / curNH) {
-            //             this.dataDoc[this.fieldKey + "-nativeWidth"] = this.props.PanelHeight() * curNW / curNH;
-            //             this.dataDoc[this.fieldKey + "-nativeHeight"] = this.props.PanelHeight();
-            //         } else {
-            //             this.dataDoc[this.fieldKey + "-nativeWidth"] = this.props.PanelWidth();
-            //             this.dataDoc[this.fieldKey + "-nativeHeight"] = this.props.PanelWidth() * curNH / curNW;
-            //         }
-            //     }), icon: "expand-arrows-alt"
-            // });
+            funcs.push({ description: "Rotate", event: this.rotate, icon: "expand-arrows-alt" });
+            funcs.push({
+                description: "Reset Native Dimensions", event: action(async () => {
+                    const curNW = NumCast(this.dataDoc[this.fieldKey + "-nativeWidth"]);
+                    const curNH = NumCast(this.dataDoc[this.fieldKey + "-nativeHeight"]);
+                    if (this.props.PanelWidth() / this.props.PanelHeight() > curNW / curNH) {
+                        this.dataDoc[this.fieldKey + "-nativeWidth"] = this.props.PanelHeight() * curNW / curNH;
+                        this.dataDoc[this.fieldKey + "-nativeHeight"] = this.props.PanelHeight();
+                    } else {
+                        this.dataDoc[this.fieldKey + "-nativeWidth"] = this.props.PanelWidth();
+                        this.dataDoc[this.fieldKey + "-nativeHeight"] = this.props.PanelWidth() * curNH / curNW;
+                    }
+                }), icon: "expand-arrows-alt"
+            });
 
             const existingAnalyze = ContextMenu.Instance.findByDescription("Analyzers...");
             const modes: ContextMenuProps[] = existingAnalyze && "subitems" in existingAnalyze ? existingAnalyze.subitems : [];
@@ -182,12 +180,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
             //modes.push({ description: "Recommend", event: this.extractText, icon: "brain" });
             !existingAnalyze && ContextMenu.Instance.addItem({ description: "Analyzers...", subitems: modes, icon: "hand-point-right" });
 
-            ContextMenu.Instance.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
-
-
-            const existingMore = ContextMenu.Instance.findByDescription("More...");
-            const mores: ContextMenuProps[] = existingMore && "subitems" in existingMore ? existingMore.subitems : [];
-            !existingMore && ContextMenu.Instance.addItem({ description: "More...", subitems: mores, icon: "hand-point-right" });
+            ContextMenu.Instance.addItem({ description: "Image Funcs...", subitems: funcs, icon: "asterisk" });
         }
     }
 
@@ -230,8 +223,8 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
             return url.href;//Why is this here
         }
         const ext = path.extname(url.href);
-        this._curSuffix = this.props.renderDepth < 1 ? "_o" : this.layoutDoc[WidthSym]() < 100 ? "_s" : "_m";
-        return url.href.replace(ext, this._curSuffix + ext);
+        const suffix = this.props.renderDepth < 1 ? "_o" : this._curSuffix;
+        return url.href.replace(ext, suffix + ext);
     }
 
     @observable _smallRetryCount = 1;
@@ -256,10 +249,9 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
     _curSuffix = "_m";
 
     resize = (imgPath: string) => {
-        const basePath = imgPath.replace(/_[oms]./, "");
         const cachedNativeSize = {
-            width: basePath === this.dataDoc[this.fieldKey + "-path"] ? NumCast(this.dataDoc[this.fieldKey + "-nativeWidth"]) : 0,
-            height: basePath === this.dataDoc[this.fieldKey + "-path"] ? NumCast(this.dataDoc[this.fieldKey + "-nativeHeight"]) : 0,
+            width: imgPath === this.dataDoc[this.fieldKey + "-path"] ? NumCast(this.dataDoc[this.fieldKey + "-nativeWidth"]) : 0,
+            height: imgPath === this.dataDoc[this.fieldKey + "-path"] ? NumCast(this.dataDoc[this.fieldKey + "-nativeHeight"]) : 0,
         };
         const docAspect = this.layoutDoc[HeightSym]() / this.layoutDoc[WidthSym]();
         const cachedAspect = cachedNativeSize.height / cachedNativeSize.width;
@@ -273,7 +265,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
                         this.layoutDoc._height = this.layoutDoc[WidthSym]() * rotatedAspect;
                         this.dataDoc[this.fieldKey + "-nativeWidth"] = this.layoutDoc._nativeWidth = this.layoutDoc._width;
                         this.dataDoc[this.fieldKey + "-nativeHeight"] = this.layoutDoc._nativeHeight = this.layoutDoc._height;
-                        this.dataDoc[this.fieldKey + "-path"] = basePath;
+                        this.dataDoc[this.fieldKey + "-path"] = imgPath;
                     }
                 })).catch(console.log);
             } else if (Math.abs(1 - docAspect / cachedAspect) > 0.1) {
@@ -368,8 +360,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
     }
 
     @computed get nativeSize() {
-        TraceMobx();
-        const pw = this.props.PanelWidth?.() || 50;
+        const pw = typeof this.props.PanelWidth === "function" ? this.props.PanelWidth() : typeof this.props.PanelWidth === "number" ? (this.props.PanelWidth as any) as number : 50;
         const nativeWidth = NumCast(this.dataDoc[this.fieldKey + "-nativeWidth"], pw);
         const nativeHeight = NumCast(this.dataDoc[this.fieldKey + "-nativeHeight"], 1);
         return { nativeWidth, nativeHeight };
@@ -383,7 +374,7 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
     @computed get paths() {
         const field = Cast(this.dataDoc[this.fieldKey], ImageField, null); // retrieve the primary image URL that is being rendered from the data doc
         const alts = DocListCast(this.dataDoc[this.fieldKey + "-alternates"]); // retrieve alternate documents that may be rendered as alternate images
-        const altpaths = alts.map(doc => Cast(doc[Doc.LayoutFieldKey(doc)], ImageField, null)?.url).filter(url => url).map(url => this.choosePath(url)); // access the primary layout data of the alternate documents
+        const altpaths = alts.map(doc => Cast(doc[Doc.LayoutFieldKey(doc)], ImageField, null)?.url.href).filter(url => url); // access the primary layout data of the alternate documents
         const paths = field ? [this.choosePath(field.url), ...altpaths] : altpaths;
         return paths.length ? paths : [Utils.CorsProxy("http://www.cs.brown.edu/~bcz/noImage.png")];
     }
@@ -447,7 +438,8 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
     contentFunc = () => [this.content];
     render() {
         TraceMobx();
-        return (<div className={`imageBox`} onContextMenu={this.specificContextMenu}
+        const dragging = !SelectionManager.GetIsDragging() ? "" : "-dragging";
+        return (<div className={`imageBox${dragging}`} onContextMenu={this.specificContextMenu}
             style={{
                 transform: this.props.PanelWidth() ? `translate(0px, ${this.ycenter}px)` : `scale(${this.props.ContentScaling()})`,
                 width: this.props.PanelWidth() ? undefined : `${100 / this.props.ContentScaling()}%`,

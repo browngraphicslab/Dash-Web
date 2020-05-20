@@ -4,7 +4,7 @@ import { Socket, Room } from 'socket.io';
 import { Message } from './server/Message';
 
 export namespace Utils {
-    export let DRAG_THRESHOLD = 4;
+    export const DRAG_THRESHOLD = 4;
 
     export function GenerateGuid(): string {
         return v4();
@@ -313,18 +313,14 @@ export namespace Utils {
     }
 }
 
-export function OmitKeys(obj: any, keys: string[], pattern?: string, addKeyFunc?: (dup: any) => void): { omit: any, extract: any } {
+export function OmitKeys(obj: any, keys: string[], addKeyFunc?: (dup: any) => void): { omit: any, extract: any } {
     const omit: any = { ...obj };
     const extract: any = {};
     keys.forEach(key => {
         extract[key] = omit[key];
         delete omit[key];
     });
-    pattern && Array.from(Object.keys(omit)).filter(key => key.match(pattern)).forEach(key => {
-        extract[key] = omit[key];
-        delete omit[key];
-    });
-    addKeyFunc?.(omit);
+    addKeyFunc && addKeyFunc(omit);
     return { omit, extract };
 }
 
@@ -508,15 +504,14 @@ export function setupMoveUpEvents(
     e: React.PointerEvent,
     moveEvent: (e: PointerEvent, down: number[], delta: number[]) => boolean,
     upEvent: (e: PointerEvent) => void,
-    clickEvent: (e: PointerEvent, doubleTap?: boolean) => void,
-    stopPropagation: boolean = true,
-    stopMovePropagation: boolean = true
+    clickEvent: (e: PointerEvent) => void,
+    stopPropagation: boolean = true
 ) {
     (target as any)._downX = (target as any)._lastX = e.clientX;
     (target as any)._downY = (target as any)._lastY = e.clientY;
 
     const _moveEvent = (e: PointerEvent): void => {
-        if (Math.abs(e.clientX - (target as any)._downX) > Utils.DRAG_THRESHOLD || Math.abs(e.clientY - (target as any)._downY) > Utils.DRAG_THRESHOLD) {
+        if (Math.abs(e.clientX - (target as any)._downX) > 4 || Math.abs(e.clientY - (target as any)._downY) > 4) {
             if (moveEvent(e, [(target as any)._downX, (target as any)._downY],
                 [e.clientX - (target as any)._lastX, e.clientY - (target as any)._lastY])) {
                 document.removeEventListener("pointermove", _moveEvent);
@@ -525,15 +520,12 @@ export function setupMoveUpEvents(
         }
         (target as any)._lastX = e.clientX;
         (target as any)._lastY = e.clientY;
-        stopMovePropagation && e.stopPropagation();
+        e.stopPropagation();
     };
-    (target as any)._doubleTap = false;
     const _upEvent = (e: PointerEvent): void => {
-        (target as any)._doubleTap = (Date.now() - (target as any)._lastTap < 300);
-        (target as any)._lastTap = Date.now();
         upEvent(e);
         if (Math.abs(e.clientX - (target as any)._downX) < 4 && Math.abs(e.clientY - (target as any)._downY) < 4) {
-            clickEvent(e, (target as any)._doubleTap);
+            clickEvent(e);
         }
         document.removeEventListener("pointermove", _moveEvent);
         document.removeEventListener("pointerup", _upEvent);

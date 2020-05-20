@@ -1,13 +1,13 @@
 import React = require("react");
 import { observer } from "mobx-react";
-import { documentSchema } from "../../../fields/documentSchemas";
-import { makeInterface, listSpec } from "../../../fields/Schema";
+import { documentSchema } from "../../../new_fields/documentSchemas";
+import { makeInterface, listSpec } from "../../../new_fields/Schema";
 import { returnFalse, returnZero } from "../../../Utils";
 import { CollectionTreeView } from "../collections/CollectionTreeView";
 import { ViewBoxBaseComponent } from "../DocComponent";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./LinkBox.scss";
-import { Cast } from "../../../fields/Types";
+import { Cast } from "../../../new_fields/Types";
 
 type LinkDocument = makeInterface<[typeof documentSchema]>;
 const LinkDocument = makeInterface(documentSchema);

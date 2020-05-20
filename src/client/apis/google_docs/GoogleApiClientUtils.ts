@@ -1,5 +1,5 @@
 import { docs_v1 } from "googleapis";
-import { Opt } from "../../../fields/Doc";
+import { Opt } from "../../../new_fields/Doc";
 import { isArray } from "util";
 import { EditorState } from "prosemirror-state";
 import { Networking } from "../../Network";
@@ -95,7 +95,7 @@ export namespace GoogleApiClientUtils {
             export type ExtractResult = { text: string, paragraphs: DeconstructedParagraph[] };
             export const extractText = (document: docs_v1.Schema$Document, removeNewlines = false): ExtractResult => {
                 const paragraphs = extractParagraphs(document);
-                let text = paragraphs.map(paragraph => paragraph.contents.filter(content => !("inlineObjectId" in content)).map(run => (run as docs_v1.Schema$TextRun).content).join("")).join("");
+                let text = paragraphs.map(paragraph => paragraph.contents.filter(content => !("inlineObjectId" in content)).map(run => run as docs_v1.Schema$TextRun).join("")).join("");
                 text = text.substring(0, text.length - 1);
                 removeNewlines && text.replace(/\n/g, "");
                 return { text, paragraphs };

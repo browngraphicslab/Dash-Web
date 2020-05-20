@@ -180,16 +180,13 @@
         .collectionStackingView-sectionHeader-subCont {
             outline: none;
             border: 0px;
+            color: $light-color; 
             width: 100%;
+            color: grey;
             letter-spacing: 2px;
             font-size: 75%;
             transition: transform 0.2s;
             position: relative;
-            height: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: lightGray;
 
             .editableView-container-editing-oneLine,
             .editableView-container-editing {

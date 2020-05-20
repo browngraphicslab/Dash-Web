@@ -1,8 +1,6 @@
 const fs = require('fs');
 const readline = require('readline');
-const {
-    google
-} = require('googleapis');
+const { google } = require('googleapis');
 const OAuth2 = google.auth.OAuth2;
 
 
@@ -21,27 +19,21 @@ module.exports.readApiKey = (callback) => {
         }
         callback(content);
     });
-};
+}
 
 module.exports.authorizedGetChannel = (apiKey) => {
     //this didnt get called
     // Authorize a client with the loaded credentials, then call the YouTube API.
     authorize(JSON.parse(apiKey), getChannel);
-};
+}
 
 module.exports.authorizedGetVideos = (apiKey, userInput, callBack) => {
-    authorize(JSON.parse(apiKey), getVideos, {
-        userInput: userInput,
-        callBack: callBack
-    });
-};
+    authorize(JSON.parse(apiKey), getVideos, { userInput: userInput, callBack: callBack });
+}
 
 module.exports.authorizedGetVideoDetails = (apiKey, videoIds, callBack) => {
-    authorize(JSON.parse(apiKey), getVideoDetails, {
-        videoIds: videoIds,
-        callBack: callBack
-    });
-};
+    authorize(JSON.parse(apiKey), getVideoDetails, { videoIds: videoIds, callBack: callBack });
+}
 
 
 /**

@@ -5,7 +5,7 @@ import { observer } from "mobx-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { unimplementedFunction, returnFalse } from "../../../Utils";
 import AntimodeMenu from "../AntimodeMenu";
-import { Doc, Opt } from "../../../fields/Doc";
+import { Doc, Opt } from "../../../new_fields/Doc";
 
 @observer
 export default class PDFMenu extends AntimodeMenu {

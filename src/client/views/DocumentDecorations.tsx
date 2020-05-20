@@ -3,10 +3,10 @@ import { faCaretUp, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faT
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DataSym, Field, WidthSym, HeightSym } from "../../fields/Doc";
-import { Document } from '../../fields/documentSchemas';
-import { ScriptField } from '../../fields/ScriptField';
-import { Cast, StrCast, NumCast } from "../../fields/Types";
+import { Doc, DataSym, Field } from "../../new_fields/Doc";
+import { PositionDocument } from '../../new_fields/documentSchemas';
+import { ScriptField } from '../../new_fields/ScriptField';
+import { Cast, StrCast, NumCast } from "../../new_fields/Types";
 import { Utils, setupMoveUpEvents, emptyFunction, returnFalse, simulateMouseClick } from "../../Utils";
 import { DocUtils } from "../documents/Documents";
 import { DocumentType } from '../documents/DocumentTypes';
@@ -17,11 +17,8 @@ import { DocumentButtonBar } from './DocumentButtonBar';
 import './DocumentDecorations.scss';
 import { DocumentView } from "./nodes/DocumentView";
 import React = require("react");
-import { Id } from '../../fields/FieldSymbols';
+import { Id } from '../../new_fields/FieldSymbols';
 import e = require('express');
-import { CollectionDockingView } from './collections/CollectionDockingView';
-import { SnappingManager } from '../util/SnappingManager';
-import { HtmlField } from '../../fields/HtmlField';
 
 library.add(faCaretUp);
 library.add(faObjectGroup);
@@ -39,6 +36,8 @@ library.add(faCloudUploadAlt);
 library.add(faSyncAlt);
 library.add(faShare);
 
+export type CloseCall = (toBeDeleted: DocumentView[]) => void;
+
 @observer
 export class DocumentDecorations extends React.Component<{}, { value: string }> {
     static Instance: DocumentDecorations;
@@ -48,12 +47,11 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     private _linkBoxHeight = 20 + 3; // link button height + margin
     private _titleHeight = 20;
     private _resizeUndo?: UndoManager.Batch;
-    private _offX = 0; _offY = 0;  // offset from click pt to inner edge of resize border
-    private _snapX = 0; _snapY = 0; // last snapped location of resize border
     @observable private _accumulatedTitle = "";
     @observable private _titleControlString: string = "#title";
     @observable private _edtingTitle = false;
     @observable private _hidden = false;
+    @observable private _addedCloseCalls: CloseCall[] = [];
 
     @observable public Interacting = false;
     @observable public pushIcon: IconProp = "arrow-alt-circle-up";
@@ -91,6 +89,14 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 r: Math.max(bptX, bounds.r), b: Math.max(bptY, bounds.b)
             };
         }, { x: Number.MAX_VALUE, y: Number.MAX_VALUE, r: Number.MIN_VALUE, b: Number.MIN_VALUE });
+    }
+
+    addCloseCall = (handler: CloseCall) => {
+        const currentOffset = this._addedCloseCalls.length - 1;
+        this._addedCloseCalls.push((toBeDeleted: DocumentView[]) => {
+            this._addedCloseCalls.splice(currentOffset, 1);
+            handler(toBeDeleted);
+        });
     }
 
     titleBlur = action((commit: boolean) => {
@@ -138,13 +144,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
     @action onSettingsClick = (e: PointerEvent): void => {
         if (e.button === 0 && !e.altKey && !e.ctrlKey) {
             let child = SelectionManager.SelectedDocuments()[0].ContentDiv!.children[0];
-            while (child.children.length) {
-                const next = Array.from(child.children).find(c => !c.className.includes("collectionViewChrome"));
-                if (next?.className.includes("documentView-node")) break;
-                if (next) child = next;
-                else break;
-            }
-            simulateMouseClick(child, e.clientX, e.clientY + 30, e.screenX, e.screenY + 30);
+            while (child.children.length && child.className !== "jsx-parser") child = child.children[0];
+            simulateMouseClick(child.children[0], e.clientX, e.clientY + 30, e.screenX, e.screenY + 30);
         }
     }
 
@@ -169,16 +170,17 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         return true;
     }
 
-    onIconifyDown = (e: React.PointerEvent): void => {
-        setupMoveUpEvents(this, e, (e, d) => false, (e) => { }, this.onIconifyClick);
+    onCloseDown = (e: React.PointerEvent): void => {
+        setupMoveUpEvents(this, e, (e, d) => false, (e) => { }, this.onCloseClick);
     }
     @undoBatch
     @action
-    onCloseClick = async (e: PointerEvent | undefined) => {
-        if (!e?.button) {
+    onCloseClick = async (e: PointerEvent) => {
+        if (e.button === 0) {
             const recent = Cast(Doc.UserDoc().myRecentlyClosed, Doc) as Doc;
             const selected = SelectionManager.SelectedDocuments().slice();
             SelectionManager.DeselectAll();
+            this._addedCloseCalls.forEach(handler => handler(selected));
 
             selected.map(dv => {
                 recent && Doc.AddDocToList(recent, "data", dv.props.Document, undefined, true, true);
@@ -187,26 +189,26 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         }
     }
     @action
-    onMaximizeDown = (e: React.PointerEvent): void => {
-        setupMoveUpEvents(this, e, (e, d) => false, (e) => { }, this.onMaximizeClick);
+    onMinimizeDown = (e: React.PointerEvent): void => {
+        setupMoveUpEvents(this, e, (e, d) => false, (e) => { }, this.onMinimizeClick);
     }
     @undoBatch
     @action
-    onMaximizeClick = (e: PointerEvent): void => {
+    onMinimizeClick = (e: PointerEvent): void => {
         if (e.button === 0) {
-            const selectedDocs = SelectionManager.SelectedDocuments();
-            if (selectedDocs.length) {
-                //CollectionDockingView.Instance?.OpenFullScreen(selectedDocs[0], selectedDocs[0].props.LibraryPath);
-                CollectionDockingView.AddRightSplit(Doc.MakeAlias(selectedDocs[0].props.Document), selectedDocs[0].props.LibraryPath);
-            }
-        }
-        SelectionManager.DeselectAll();
-    }
-    @undoBatch
-    @action
-    onIconifyClick = (e: PointerEvent): void => {
-        if (e.button === 0) {
-            SelectionManager.SelectedDocuments().forEach(dv => dv?.iconify());
+            const selectedDocs = SelectionManager.SelectedDocuments().map(sd => sd);
+            selectedDocs.map(dv => {
+                const layoutKey = Cast(dv.props.Document.layoutKey, "string", null);
+                const collapse = layoutKey !== "layout_icon";
+                if (collapse) {
+                    dv.switchViews(collapse, "icon");
+                    if (layoutKey && layoutKey !== "layout") dv.props.Document.deiconifyLayout = layoutKey.replace("layout_", "");
+                } else {
+                    const deiconifyLayout = Cast(dv.props.Document.deiconifyLayout, "string", null);
+                    dv.switchViews(deiconifyLayout ? true : false, deiconifyLayout);
+                    dv.props.Document.deiconifyLayout = undefined;
+                }
+            });
         }
         SelectionManager.DeselectAll();
     }
@@ -237,62 +239,19 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         return false;
     }
 
-    _initialAutoHeight = false;
-    _dragHeights = new Map<Doc, number>();
     @action
     onPointerDown = (e: React.PointerEvent): void => {
         setupMoveUpEvents(this, e, this.onPointerMove, this.onPointerUp, (e) => { });
         if (e.button === 0) {
             this._resizeHdlId = e.currentTarget.id;
-            const bounds = e.currentTarget.getBoundingClientRect();
-            this._offX = this._resizeHdlId.toLowerCase().includes("left") ? bounds.right - e.clientX : bounds.left - e.clientX;
-            this._offY = this._resizeHdlId.toLowerCase().includes("top") ? bounds.bottom - e.clientY : bounds.top - e.clientY;
             this.Interacting = true;
             this._resizeUndo = UndoManager.StartBatch("DocDecs resize");
-            SelectionManager.SelectedDocuments()[0].props.setupDragLines?.();
         }
-        this._snapX = e.pageX;
-        this._snapY = e.pageY;
-        this._initialAutoHeight = true;
-        DragManager.docsBeingDragged = SelectionManager.SelectedDocuments().map(dv => dv.rootDoc);
-        SelectionManager.SelectedDocuments().map(dv => {
-            this._dragHeights.set(dv.layoutDoc, NumCast(dv.layoutDoc._height));
-            dv.layoutDoc._delayAutoHeight = dv.layoutDoc._height;
-        });
     }
 
     onPointerMove = (e: PointerEvent, down: number[], move: number[]): boolean => {
-        const first = SelectionManager.SelectedDocuments()[0];
-        let thisPt = { thisX: e.clientX - this._offX, thisY: e.clientY - this._offY };
-        const fixedAspect = first.layoutDoc._nativeWidth ? NumCast(first.layoutDoc._nativeWidth) / NumCast(first.layoutDoc._nativeHeight) : 0;
-        if (fixedAspect && (this._resizeHdlId === "documentDecorations-bottomRightResizer" || this._resizeHdlId === "documentDecorations-topLeftResizer")) { // need to generalize for bl and tr drag handles
-            const project = (p: number[], a: number[], b: number[]) => {
-                const atob = [b[0] - a[0], b[1] - a[1]];
-                const atop = [p[0] - a[0], p[1] - a[1]];
-                const len = atob[0] * atob[0] + atob[1] * atob[1];
-                let dot = atop[0] * atob[0] + atop[1] * atob[1];
-                const t = dot / len;
-                dot = (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]);
-                return [a[0] + atob[0] * t, a[1] + atob[1] * t];
-            };
-            const tl = first.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
-            const drag = project([e.clientX + this._offX, e.clientY + this._offY], tl, [tl[0] + fixedAspect, tl[1] + 1]);
-            thisPt = DragManager.snapDragAspect(drag, fixedAspect);
-        } else {
-            thisPt = DragManager.snapDrag(e, -this._offX, -this._offY, this._offX, this._offY);
-        }
-
-        move[0] = thisPt.thisX - this._snapX;
-        move[1] = thisPt.thisY - this._snapY;
-        this._snapX = thisPt.thisX;
-        this._snapY = thisPt.thisY;
-
         let dX = 0, dY = 0, dW = 0, dH = 0;
-        const unfreeze = () =>
-            SelectionManager.SelectedDocuments().forEach(action((element: DocumentView) =>
-                ((element.rootDoc.type === DocumentType.RTF ||
-                    (element.rootDoc.type === DocumentType.WEB && Doc.LayoutField(element.rootDoc) instanceof HtmlField))
-                    && element.layoutDoc._nativeHeight) && element.toggleNativeDimensions()));
+
         switch (this._resizeHdlId) {
             case "": break;
             case "documentDecorations-topLeftResizer":
@@ -307,7 +266,6 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 dH = -move[1];
                 break;
             case "documentDecorations-topResizer":
-                unfreeze();
                 dY = -1;
                 dH = -move[1];
                 break;
@@ -321,33 +279,27 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 dH = move[1];
                 break;
             case "documentDecorations-bottomResizer":
-                unfreeze();
                 dH = move[1];
                 break;
             case "documentDecorations-leftResizer":
-                unfreeze();
                 dX = -1;
                 dW = -move[0];
                 break;
             case "documentDecorations-rightResizer":
-                unfreeze();
                 dW = move[0];
                 break;
         }
 
         SelectionManager.SelectedDocuments().forEach(action((element: DocumentView) => {
-            if (e.ctrlKey && !element.props.Document._nativeHeight) element.toggleNativeDimensions();
             if (dX !== 0 || dY !== 0 || dW !== 0 || dH !== 0) {
-                const doc = Document(element.rootDoc);
-                let nwidth = doc._nativeWidth || 0;
-                let nheight = doc._nativeHeight || 0;
-                const width = (doc._width || 0);
-                let height = (doc._height || (nheight / nwidth * width));
+                const doc = PositionDocument(element.props.Document);
+                const layoutDoc = PositionDocument(Doc.Layout(element.props.Document));
+                let nwidth = layoutDoc._nativeWidth || 0;
+                let nheight = layoutDoc._nativeHeight || 0;
+                const width = (layoutDoc._width || 0);
+                const height = (layoutDoc._height || (nheight / nwidth * width));
                 const scale = element.props.ScreenToLocalTransform().Scale * element.props.ContentScaling();
                 if (nwidth && nheight) {
-                    if (nwidth / nheight !== width / height) {
-                        height = nheight / nwidth * width;
-                    }
                     if (Math.abs(dW) > Math.abs(dH)) dH = dW * nheight / nwidth;
                     else dW = dH * nwidth / nheight;
                 }
@@ -357,8 +309,8 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 doc.y = (doc.y || 0) + dY * (actualdH - height);
                 const fixedAspect = (nwidth && nheight);
                 if (fixedAspect && (!nwidth || !nheight)) {
-                    doc._nativeWidth = nwidth = doc._width || 0;
-                    doc._nativeHeight = nheight = doc._height || 0;
+                    layoutDoc._nativeWidth = nwidth = layoutDoc._width || 0;
+                    layoutDoc._nativeHeight = nheight = layoutDoc._height || 0;
                 }
                 const anno = Cast(doc.annotationOn, Doc, null);
                 if (e.ctrlKey && anno) {
@@ -374,24 +326,24 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 else if (nwidth > 0 && nheight > 0) {
                     if (Math.abs(dW) > Math.abs(dH)) {
                         if (!fixedAspect) {
-                            doc._nativeWidth = actualdW / (doc._width || 1) * (doc._nativeWidth || 0);
+                            layoutDoc._nativeWidth = actualdW / (layoutDoc._width || 1) * (layoutDoc._nativeWidth || 0);
                         }
-                        doc._width = actualdW;
-                        if (fixedAspect && !doc._fitWidth) doc._height = nheight / nwidth * doc._width;
-                        else doc._height = actualdH;
+                        layoutDoc._width = actualdW;
+                        if (fixedAspect && !layoutDoc._fitWidth) layoutDoc._height = nheight / nwidth * layoutDoc._width;
+                        else layoutDoc._height = actualdH;
                     }
                     else {
                         if (!fixedAspect) {
-                            doc._nativeHeight = actualdH / (doc._height || 1) * (doc._nativeHeight || 0);
+                            layoutDoc._nativeHeight = actualdH / (layoutDoc._height || 1) * (doc._nativeHeight || 0);
                         }
-                        doc._height = actualdH;
-                        if (fixedAspect && !doc._fitWidth) doc._width = nwidth / nheight * doc._height;
-                        else doc._width = actualdW;
+                        layoutDoc._height = actualdH;
+                        if (fixedAspect && !layoutDoc._fitWidth) layoutDoc._width = nwidth / nheight * layoutDoc._height;
+                        else layoutDoc._width = actualdW;
                     }
                 } else {
-                    dW && (doc._width = actualdW);
-                    dH && (doc._height = actualdH);
-                    dH && this._initialAutoHeight && (doc._autoHeight = this._initialAutoHeight = false);
+                    dW && (layoutDoc._width = actualdW);
+                    dH && (layoutDoc._height = actualdH);
+                    dH && layoutDoc._autoHeight && (layoutDoc._autoHeight = false);
                 }
             }
         }));
@@ -400,18 +352,10 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
 
     @action
     onPointerUp = (e: PointerEvent): void => {
-        SelectionManager.SelectedDocuments().map(dv => {
-            if (NumCast(dv.layoutDoc._delayAutoHeight) < this._dragHeights.get(dv.layoutDoc)!) {
-                dv.nativeWidth > 0 && Doc.toggleNativeDimensions(dv.layoutDoc, dv.props.ContentScaling(), dv.panelWidth(), dv.panelHeight());
-                dv.layoutDoc._autoHeight = true;
-            }
-            dv.layoutDoc._delayAutoHeight = undefined;
-        });
         this._resizeHdlId = "";
         this.Interacting = false;
         (e.button === 0) && this._resizeUndo?.end();
         this._resizeUndo = undefined;
-        SnappingManager.clearSnapLines();
     }
 
     @computed
@@ -450,17 +394,17 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         const darkScheme = Cast(Doc.UserDoc().activeWorkspace, Doc, null)?.darkScheme ? "dimgray" : undefined;
         const bounds = this.Bounds;
         const seldoc = SelectionManager.SelectedDocuments().length ? SelectionManager.SelectedDocuments()[0] : undefined;
-        if (SnappingManager.GetIsDragging() || bounds.r - bounds.x < 2 || bounds.x === Number.MAX_VALUE || !seldoc || this._hidden || isNaN(bounds.r) || isNaN(bounds.b) || isNaN(bounds.x) || isNaN(bounds.y)) {
+        if (SelectionManager.GetIsDragging() || bounds.r - bounds.x < 2 || bounds.x === Number.MAX_VALUE || !seldoc || this._hidden || isNaN(bounds.r) || isNaN(bounds.b) || isNaN(bounds.x) || isNaN(bounds.y)) {
             return (null);
         }
         const minimal = bounds.r - bounds.x < 100 ? true : false;
-        const maximizeIcon = minimal ? (
+        const minimizeIcon = minimal ? (
             <div className="documentDecorations-contextMenu" title="Show context menu" onPointerDown={this.onSettingsDown}>
                 <FontAwesomeIcon size="lg" icon="cog" />
             </div>) : (
-                <div className="documentDecorations-minimizeButton" title="Iconify" onPointerDown={this.onIconifyDown}>
+                <div className="documentDecorations-minimizeButton" title="Iconify" onPointerDown={this.onMinimizeDown}>
                     {/* Currently, this is set to be enabled if there is no ink selected. It might be interesting to think about minimizing ink if it's useful? -syip2*/}
-                    <FontAwesomeIcon className="documentdecorations-times" icon={faTimes} size="lg" />
+                    {SelectionManager.SelectedDocuments().length === 1 ? DocumentDecorations.DocumentIcon(StrCast(seldoc.props.Document.layout, "...")) : "..."}
                 </div>);
 
         const titleArea = this._edtingTitle ?
@@ -479,14 +423,12 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     <FontAwesomeIcon size="lg" color={SelectionManager.SelectedDocuments()[0].props.Document.title === SelectionManager.SelectedDocuments()[0].props.Document[Id] ? "green" : undefined} icon="sticky-note"></FontAwesomeIcon>
                 </div>}
             </> :
-            <>
-                {minimal ? (null) : <div className="documentDecorations-contextMenu" key="menu" title="Show context menu" onPointerDown={this.onSettingsDown}>
+            <div className="documentDecorations-title" onPointerDown={this.onTitleDown} >
+                {minimal ? (null) : <div className="documentDecorations-contextMenu" title="Show context menu" onPointerDown={this.onSettingsDown}>
                     <FontAwesomeIcon size="lg" icon="cog" />
                 </div>}
-                <div className="documentDecorations-title" key="title" onPointerDown={this.onTitleDown} >
-                    <span style={{ width: "calc(100% - 25px)", display: "inline-block" }}>{`${this.selectionTitle}`}</span>
-                </div>
-            </>;
+                <span style={{ width: "calc(100% - 25px)", display: "inline-block" }}>{`${this.selectionTitle}`}</span>
+            </div>;
 
         bounds.x = Math.max(0, bounds.x - this._resizeBorderWidth / 2) + this._resizeBorderWidth / 2;
         bounds.y = Math.max(0, bounds.y - this._resizeBorderWidth / 2 - this._titleHeight) + this._resizeBorderWidth / 2 + this._titleHeight;
@@ -515,10 +457,10 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                 left: bounds.x - this._resizeBorderWidth / 2,
                 top: bounds.y - this._resizeBorderWidth / 2 - this._titleHeight,
             }}>
-                {maximizeIcon}
+                {minimizeIcon}
                 {titleArea}
-                <div className="documentDecorations-closeButton" title="Open Document in Tab" onPointerDown={this.onMaximizeDown}>
-                    {SelectionManager.SelectedDocuments().length === 1 ? DocumentDecorations.DocumentIcon(StrCast(seldoc.props.Document.layout, "...")) : "..."}
+                <div className="documentDecorations-closeButton" title="Close Document" onPointerDown={this.onCloseDown}>
+                    <FontAwesomeIcon className="documentdecorations-times" icon={faTimes} size="lg" />
                 </div>
                 <div id="documentDecorations-topLeftResizer" className="documentDecorations-resizer"
                     onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
@@ -537,17 +479,16 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
                 <div id="documentDecorations-bottomRightResizer" className="documentDecorations-resizer"
                     onPointerDown={this.onPointerDown} onContextMenu={(e) => e.preventDefault()}></div>
-                {seldoc.props.renderDepth <= 1 || !seldoc.props.ContainingCollectionView ? (null) :
-                    <div id="documentDecorations-levelSelector" className="documentDecorations-selector"
-                        title="tap to select containing document" onPointerDown={this.onSelectorUp} onContextMenu={e => e.preventDefault()}>
-                        <FontAwesomeIcon className="documentdecorations-times" icon={faArrowAltCircleUp} size="lg" />
-                    </div>}
+                {seldoc.props.renderDepth <= 1 || !seldoc.props.ContainingCollectionView ? (null) : <div id="documentDecorations-levelSelector" className="documentDecorations-selector" title="tap to select containing document"
+                    onPointerDown={this.onSelectorUp} onContextMenu={(e) => e.preventDefault()}>
+                    <FontAwesomeIcon className="documentdecorations-times" icon={faArrowAltCircleUp} size="lg" />
+                </div>}
                 <div id="documentDecorations-borderRadius" className="documentDecorations-radius"
                     onPointerDown={this.onRadiusDown} onContextMenu={(e) => e.preventDefault()}></div>
 
             </div >
             <div className="link-button-container" style={{ left: bounds.x - this._resizeBorderWidth / 2, top: bounds.b + this._resizeBorderWidth / 2 }}>
-                <DocumentButtonBar views={SelectionManager.SelectedDocuments} />
+                <DocumentButtonBar views={SelectionManager.SelectedDocuments()} />
             </div>
         </div >
         );

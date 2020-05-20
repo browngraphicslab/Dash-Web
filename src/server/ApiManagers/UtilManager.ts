@@ -1,6 +1,8 @@
 import ApiManager, { Registration } from "./ApiManager";
 import { Method } from "../RouteManager";
 import { exec } from 'child_process';
+import RouteSubscriber from "../RouteSubscriber";
+import { red } from "colors";
 // import { IBM_Recommender } from "../../client/apis/IBM_Recommender";
 // import { Recommender } from "../Recommender";
 
@@ -31,6 +33,7 @@ export default class UtilManager extends ApiManager {
         //         res.send(embedding);
         //     }
         // });
+
 
         register({
             method: Method.GET,

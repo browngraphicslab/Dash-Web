@@ -4,7 +4,7 @@ import "./MainViewModal.scss";
 export interface MainViewOverlayProps {
     isDisplayed: boolean;
     interactive: boolean;
-    contents: string | JSX.Element | null;
+    contents: string | JSX.Element;
     dialogueBoxStyle?: React.CSSProperties;
     overlayStyle?: React.CSSProperties;
     dialogueBoxDisplayedOpacity?: number;

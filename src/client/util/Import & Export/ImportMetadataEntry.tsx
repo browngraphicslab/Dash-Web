@@ -5,8 +5,8 @@ import { action, computed } from "mobx";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { Doc } from "../../../fields/Doc";
-import { StrCast, BoolCast } from "../../../fields/Types";
+import { Doc } from "../../../new_fields/Doc";
+import { StrCast, BoolCast } from "../../../new_fields/Types";
 
 interface KeyValueProps {
     Document: Doc;

@@ -5,11 +5,11 @@ import { observable, action } from "mobx";
 import "./ScriptBox.scss";
 import { OverlayView } from "./OverlayView";
 import { DocumentIconContainer } from "./nodes/DocumentIcon";
-import { Opt, Doc } from "../../fields/Doc";
+import { Opt, Doc } from "../../new_fields/Doc";
 import { emptyFunction } from "../../Utils";
-import { ScriptCast } from "../../fields/Types";
+import { ScriptCast } from "../../new_fields/Types";
 import { CompileScript } from "../util/Scripting";
-import { ScriptField } from "../../fields/ScriptField";
+import { ScriptField } from "../../new_fields/ScriptField";
 import { DragManager } from "../util/DragManager";
 import { EditableView } from "./EditableView";
 import { getEffectiveTypeRoots } from "typescript";
@@ -81,9 +81,9 @@ export class ScriptBox extends React.Component<ScriptBoxProps> {
         );
     }
     //let l = docList(this.source[0].data).length; if (l) { let ind = this.target[0].index !== undefined ? (this.target[0].index+1) % l : 0;  this.target[0].index = ind;  this.target[0].proto = getProto(docList(this.source[0].data)[ind]);}
-    public static EditButtonScript(title: string, doc: Doc, fieldKey: string, clientX: number, clientY: number, contextParams?: { [name: string]: string }, defaultScript?: ScriptField) {
+    public static EditButtonScript(title: string, doc: Doc, fieldKey: string, clientX: number, clientY: number, contextParams?: { [name: string]: string }) {
         let overlayDisposer: () => void = emptyFunction;
-        const script = ScriptCast(doc[fieldKey]) || defaultScript;
+        const script = ScriptCast(doc[fieldKey]);
         let originalText: string | undefined = undefined;
         if (script) {
             originalText = script.script.originalScript;

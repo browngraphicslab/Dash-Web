@@ -51,8 +51,7 @@ export class ContextMenuItem extends React.Component<ContextMenuProps & { select
 
     currentTimeout?: any;
     static readonly timeout = 300;
-    _overPosY = 0;
-    onPointerEnter = (e: React.MouseEvent) => {
+    onPointerEnter = () => {
         if (this.currentTimeout) {
             clearTimeout(this.currentTimeout);
             this.currentTimeout = undefined;
@@ -60,7 +59,6 @@ export class ContextMenuItem extends React.Component<ContextMenuProps & { select
         if (this.overItem) {
             return;
         }
-        this._overPosY = e.clientY;
         this.currentTimeout = setTimeout(action(() => this.overItem = true), ContextMenuItem.timeout);
     }
 
@@ -90,22 +88,18 @@ export class ContextMenuItem extends React.Component<ContextMenuProps & { select
                 </div>
             );
         } else if ("subitems" in this.props) {
-            const where = !this.overItem ? "" : this._overPosY < window.innerHeight / 3 ? "flex-start" : this._overPosY > window.innerHeight * 2 / 3 ? "flex-end" : "center";
-            const marginTop = !this.overItem ? "" : this._overPosY < window.innerHeight / 3 ? "20px" : this._overPosY > window.innerHeight * 2 / 3 ? "-20px" : "";
             const submenu = !this.overItem ? (null) :
-                <div className="contextMenu-subMenu-cont" style={{ marginLeft: "25%", left: "0px", marginTop }}>
+                <div className="contextMenu-subMenu-cont" style={{ marginLeft: "25%", left: "0px" }}>
                     {this._items.map(prop => <ContextMenuItem {...prop} key={prop.description} closeMenu={this.props.closeMenu} />)}
                 </div>;
             return (
-                <div className={"contextMenu-item" + (this.props.selected ? " contextMenu-itemSelected" : "")} style={{ alignItems: where }}
-                    onMouseLeave={this.onPointerLeave} onMouseEnter={this.onPointerEnter}>
+                <div className={"contextMenu-item" + (this.props.selected ? " contextMenu-itemSelected" : "")} onMouseLeave={this.onPointerLeave} onMouseEnter={this.onPointerEnter}>
                     {this.props.icon ? (
-                        <span className="icon-background" onMouseEnter={this.onPointerLeave} style={{ alignItems: "center" }}>
+                        <span className="icon-background" onMouseEnter={this.onPointerLeave}>
                             <FontAwesomeIcon icon={this.props.icon} size="sm" />
                         </span>
                     ) : null}
-                    <div className="contextMenu-description" onMouseEnter={this.onPointerEnter}
-                        style={{ alignItems: "center" }} >
+                    <div className="contextMenu-description" onMouseEnter={this.onPointerEnter} >
                         {this.props.description}
                         <FontAwesomeIcon icon={faAngleRight} size="lg" style={{ position: "absolute", right: "10px" }} />
                     </div>

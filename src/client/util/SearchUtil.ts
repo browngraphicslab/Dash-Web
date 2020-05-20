@@ -1,7 +1,7 @@
 import * as rp from 'request-promise';
 import { DocServer } from '../DocServer';
-import { Doc } from '../../fields/Doc';
-import { Id } from '../../fields/FieldSymbols';
+import { Doc } from '../../new_fields/Doc';
+import { Id } from '../../new_fields/FieldSymbols';
 import { Utils } from '../../Utils';
 import { DocumentType } from '../documents/DocumentTypes';
 

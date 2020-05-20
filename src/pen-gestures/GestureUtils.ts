@@ -1,9 +1,9 @@
 import { NDollarRecognizer } from "./ndollar";
 import { Type } from "typescript";
-import { InkField, PointData } from "../fields/InkField";
+import { InkField, PointData } from "../new_fields/InkField";
 import { Docs } from "../client/documents/Documents";
-import { Doc, WidthSym, HeightSym } from "../fields/Doc";
-import { NumCast } from "../fields/Types";
+import { Doc, WidthSym, HeightSym } from "../new_fields/Doc";
+import { NumCast } from "../new_fields/Types";
 import { CollectionFreeFormView } from "../client/views/collections/collectionFreeForm/CollectionFreeFormView";
 import { Rect } from "react-measure";
 import { Scripting } from "../client/util/Scripting";

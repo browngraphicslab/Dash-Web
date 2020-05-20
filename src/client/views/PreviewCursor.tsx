@@ -4,18 +4,15 @@ import "normalize.css";
 import * as React from 'react';
 import "./PreviewCursor.scss";
 import { Docs } from '../documents/Documents';
-import { Doc } from '../../fields/Doc';
+import { Doc } from '../../new_fields/Doc';
 import { Transform } from "../util/Transform";
-import { DocServer } from '../DocServer';
-import { undoBatch } from '../util/UndoManager';
-import { NumCast } from '../../fields/Types';
 
 @observer
 export class PreviewCursor extends React.Component<{}> {
     static _onKeyPress?: (e: KeyboardEvent) => void;
     static _getTransform: () => Transform;
-    static _addDocument: (doc: Doc | Doc[]) => void;
     static _addLiveTextDoc: (doc: Doc) => void;
+    static _addDocument: (doc: Doc) => boolean;
     static _nudge: (x: number, y: number) => boolean;
     @observable static _clickPoint = [0, 0];
     @observable public static Visible = false;
@@ -30,77 +27,50 @@ export class PreviewCursor extends React.Component<{}> {
             const newPoint = PreviewCursor._getTransform().transformPoint(PreviewCursor._clickPoint[0], PreviewCursor._clickPoint[1]);
             runInAction(() => PreviewCursor.Visible = false);
 
-            // tests for URL and makes web document
-            const re: any = /^https?:\/\//g;
             if (e.clipboardData.getData("text/plain") !== "") {
                 // tests for youtube and makes video document
                 if (e.clipboardData.getData("text/plain").indexOf("www.youtube.com/watch") !== -1) {
                     const url = e.clipboardData.getData("text/plain").replace("youtube.com/watch?v=", "youtube.com/embed/");
-                    undoBatch(() => PreviewCursor._addDocument(Docs.Create.VideoDocument(url, {
+                    return PreviewCursor._addDocument(Docs.Create.VideoDocument(url, {
                         title: url, _width: 400, _height: 315,
                         _nativeWidth: 600, _nativeHeight: 472.5,
                         x: newPoint[0], y: newPoint[1]
-                    })))();
+                    }));
                 }
 
-                else if (re.test(e.clipboardData.getData("text/plain"))) {
+                // tests for URL and makes web document
+                const re: any = /^https?:\/\//g;
+                if (re.test(e.clipboardData.getData("text/plain"))) {
                     const url = e.clipboardData.getData("text/plain");
-                    undoBatch(() => PreviewCursor._addDocument(Docs.Create.WebDocument(url, {
-                        title: url, _width: 500, _height: 300, UseCors: true,
+                    return PreviewCursor._addDocument(Docs.Create.WebDocument(url, {
+                        title: url, _width: 500, _height: 300,
                         // nativeWidth: 300, nativeHeight: 472.5,
                         x: newPoint[0], y: newPoint[1]
-                    })))();
-                }
-
-                else if (e.clipboardData.getData("text/plain").startsWith("__DashDocId(")) {
-                    const docids = e.clipboardData.getData("text/plain").split(":");
-                    const strs = docids[0].split(",");
-                    const ptx = Number(strs[0].substring("__DashDocId(".length));
-                    const pty = Number(strs[1].substring(0, strs[1].length - 1));
-                    let count = 1;
-                    const list: Doc[] = [];
-
-                    let first: Doc | undefined;
-                    docids.map((did, i) => i && DocServer.GetRefField(did).then(doc => {
-                        count++;
-                        if (doc instanceof Doc) {
-                            i === 1 && (first = doc);
-                            const alias = Doc.MakeClone(doc);
-                            const deltaX = NumCast(doc.x) - NumCast(first!.x) - ptx;
-                            const deltaY = NumCast(doc.y) - NumCast(first!.y) - pty;
-                            alias.x = newPoint[0] + deltaX;
-                            alias.y = newPoint[1] + deltaY;
-                            list.push(alias);
-                        }
-                        if (count === docids.length) {
-                            undoBatch(() => PreviewCursor._addDocument(list))();
-                        }
                     }));
-                    e.stopPropagation();
-                } else {
-                    // creates text document
-                    undoBatch(() => PreviewCursor._addLiveTextDoc(Docs.Create.TextDocument("", {
-                        _width: 500,
-                        limitHeight: 400,
-                        _autoHeight: true,
-                        x: newPoint[0],
-                        y: newPoint[1],
-                        title: "-pasted text-"
-                    })))();
                 }
-            } else
-                //pasting in images
-                if (e.clipboardData.getData("text/html") !== "" && e.clipboardData.getData("text/html").includes("<img src=")) {
-                    const re: any = /<img src="(.*?)"/g;
-                    const arr: any[] = re.exec(e.clipboardData.getData("text/html"));
 
-                    undoBatch(() => PreviewCursor._addDocument(Docs.Create.ImageDocument(
-                        arr[1], {
-                        _width: 300, title: arr[1],
-                        x: newPoint[0],
-                        y: newPoint[1],
-                    })))();
-                }
+                // creates text document
+                return PreviewCursor._addLiveTextDoc(Docs.Create.TextDocument("", {
+                    _width: 500,
+                    limitHeight: 400,
+                    _autoHeight: true,
+                    x: newPoint[0],
+                    y: newPoint[1],
+                    title: "-pasted text-"
+                }));
+            }
+            //pasting in images
+            if (e.clipboardData.getData("text/html") !== "" && e.clipboardData.getData("text/html").includes("<img src=")) {
+                const re: any = /<img src="(.*?)"/g;
+                const arr: any[] = re.exec(e.clipboardData.getData("text/html"));
+
+                return PreviewCursor._addDocument(Docs.Create.ImageDocument(
+                    arr[1], {
+                    _width: 300, title: arr[1],
+                    x: newPoint[0],
+                    y: newPoint[1],
+                }));
+            }
         }
     }
 
@@ -111,7 +81,7 @@ export class PreviewCursor extends React.Component<{}> {
         if (e.key !== "Escape" && e.key !== "Backspace" && e.key !== "Delete" && e.key !== "CapsLock" &&
             e.key !== "Alt" && e.key !== "Shift" && e.key !== "Meta" && e.key !== "Control" &&
             e.key !== "Insert" && e.key !== "Home" && e.key !== "End" && e.key !== "PageUp" && e.key !== "PageDown" &&
-            e.key !== "NumLock" && e.key !== " " &&
+            e.key !== "NumLock" &&
             (e.keyCode < 112 || e.keyCode > 123) && // F1 thru F12 keys
             !e.key.startsWith("Arrow") &&
             !e.defaultPrevented) {
@@ -142,7 +112,7 @@ export class PreviewCursor extends React.Component<{}> {
         onKeyPress: (e: KeyboardEvent) => void,
         addLiveText: (doc: Doc) => void,
         getTransform: () => Transform,
-        addDocument: (doc: Doc | Doc[]) => boolean,
+        addDocument: (doc: Doc) => boolean,
         nudge: (nudgeX: number, nudgeY: number) => boolean) {
         this._clickPoint = [x, y];
         this._onKeyPress = onKeyPress;

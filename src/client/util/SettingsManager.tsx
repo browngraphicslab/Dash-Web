@@ -8,8 +8,6 @@ import { SelectionManager } from "./SelectionManager";
 import "./SettingsManager.scss";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Networking } from "../Network";
-import { CurrentUserUtils } from "./CurrentUserUtils";
-import { Utils } from "../../Utils";
 
 library.add(fa.faWindowClose);
 
@@ -92,9 +90,6 @@ export default class SettingsManager extends React.Component<{}> {
                     <div className="settings-type">
                         <button onClick={this.onClick} value="password">reset password</button>
                         <button onClick={this.onClick} value="data">reset data</button>
-                        <button onClick={() => window.location.assign(Utils.prepend("/logout"))}>
-                            {CurrentUserUtils.GuestWorkspace ? "Exit" : "Log Out"}
-                        </button>
                     </div>
                     {this.settingsContent === "password" ?
                         <div className="settings-content">

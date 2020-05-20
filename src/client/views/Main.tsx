@@ -1,6 +1,6 @@
 import { MainView } from "./MainView";
 import { Docs } from "../documents/Documents";
-import { CurrentUserUtils } from "../util/CurrentUserUtils";
+import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
 import * as ReactDOM from 'react-dom';
 import * as React from 'react';
 import { DocServer } from "../DocServer";

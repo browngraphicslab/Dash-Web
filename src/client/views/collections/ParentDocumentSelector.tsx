@@ -1,12 +1,12 @@
 import * as React from "react";
 import './ParentDocumentSelector.scss';
-import { Doc } from "../../../fields/Doc";
+import { Doc } from "../../../new_fields/Doc";
 import { observer } from "mobx-react";
-import { observable, action, runInAction, trace, computed, reaction, IReactionDisposer } from "mobx";
-import { Id } from "../../../fields/FieldSymbols";
+import { observable, action, runInAction, trace, computed } from "mobx";
+import { Id } from "../../../new_fields/FieldSymbols";
 import { SearchUtil } from "../../util/SearchUtil";
 import { CollectionDockingView } from "./CollectionDockingView";
-import { NumCast, StrCast } from "../../../fields/Types";
+import { NumCast, StrCast } from "../../../new_fields/Types";
 import { CollectionViewType } from "./CollectionView";
 import { DocumentButtonBar } from "../DocumentButtonBar";
 import { DocumentManager } from "../../util/DocumentManager";
@@ -31,14 +31,13 @@ type SelectorProps = {
 export class SelectorContextMenu extends React.Component<SelectorProps> {
     @observable private _docs: { col: Doc, target: Doc }[] = [];
     @observable private _otherDocs: { col: Doc, target: Doc }[] = [];
-    _reaction: IReactionDisposer | undefined;
 
-    componentDidMount() {
-        this._reaction = reaction(() => this.props.Document, () => this.fetchDocuments(), { fireImmediately: true });
+    constructor(props: SelectorProps) {
+        super(props);
+
+        this.fetchDocuments();
     }
-    componentWillUnmount() {
-        this._reaction?.();
-    }
+
     async fetchDocuments() {
         const aliases = (await SearchUtil.GetAliasesOfDocument(this.props.Document)).filter(doc => doc !== this.props.Document);
         const { docs } = await SearchUtil.Search("", true, { fq: `data_l:"${this.props.Document[Id]}"` });
@@ -94,7 +93,7 @@ export class ParentDocSelector extends React.Component<SelectorProps> {
 }
 
 @observer
-export class DockingViewButtonSelector extends React.Component<{ views: () => DocumentView[], Stack: any }> {
+export class DockingViewButtonSelector extends React.Component<{ views: DocumentView[], Stack: any }> {
     customStylesheet(styles: any) {
         return {
             ...styles,
@@ -120,7 +119,7 @@ export class DockingViewButtonSelector extends React.Component<{ views: () => Do
                 if (getComputedStyle(this._ref.current!).width !== "100%") {
                     e.stopPropagation(); e.preventDefault();
                 }
-                this.props.views()[0]?.select(false);
+                this.props.views[0]?.select(false);
             }} className="buttonSelector">
             <Flyout anchorPoint={anchorPoints.LEFT_TOP} content={this.flyout} stylesheet={this.customStylesheet}>
                 <FontAwesomeIcon icon={"cog"} size={"sm"} />

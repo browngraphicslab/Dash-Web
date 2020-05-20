@@ -1,7 +1,7 @@
 import { CollectionSubView } from "./CollectionSubView";
 import React = require("react");
 import { computed, action, IReactionDisposer, reaction, runInAction, observable } from "mobx";
-import { NumCast } from "../../../fields/Types";
+import { NumCast } from "../../../new_fields/Types";
 import "./CollectionStaffView.scss";
 import { observer } from "mobx-react";
 

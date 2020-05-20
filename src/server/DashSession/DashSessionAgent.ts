@@ -2,7 +2,7 @@ import { Email, pathFromRoot } from "../ActionUtilities";
 import { red, yellow, green, cyan } from "colors";
 import { get } from "request-promise";
 import { Utils } from "../../Utils";
-import { WebSocket } from "../websocket";
+import { WebSocket } from "../Websocket/Websocket";
 import { MessageStore } from "../Message";
 import { launchServer, onWindows } from "..";
 import { readdirSync, statSync, createWriteStream, readFileSync, unlinkSync } from "fs";
@@ -37,7 +37,7 @@ export class DashSessionAgent extends AppliedSessionAgent {
         monitor.addReplCommand("debug", [/\S+\@\S+/], async ([to]) => this.dispatchZippedDebugBackup(to));
         monitor.on("backup", this.backup);
         monitor.on("debug", async ({ to }) => this.dispatchZippedDebugBackup(to));
-        monitor.on("delete", WebSocket.doDelete);
+        monitor.on("delete", WebSocket.deleteFields);
         monitor.coreHooks.onCrashDetected(this.dispatchCrashReport);
         return sessionKey;
     }
