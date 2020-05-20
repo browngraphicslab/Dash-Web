@@ -42,6 +42,88 @@
                 resize: none;
                 padding: 2px;
                 overflow-y: scroll;
+
+                .scriptingBox-viewBase {
+                    display: flex;
+
+                    .scriptingBox-viewPicker {
+                        font-size: 75%;
+                        //text-transform: uppercase;
+                        letter-spacing: 2px;
+                        background: rgb(238, 238, 238);
+                        color: grey;
+                        outline-color: black;
+                        border: none;
+                        padding: 12px 10px 11px 10px;
+                    }
+
+                    .scriptingBox-viewPicker:active {
+                        outline-color: black;
+                    }
+
+                    .scriptingBox-cmdPicker {
+                        margin-left: 3px;
+                        margin-right: 0px;
+                        background: rgb(238, 238, 238);
+                        border: none;
+                        color: grey;
+                    }
+
+                    .commandEntry-outerDiv {
+                        pointer-events: all;
+                        background-color: gray;
+                        display: flex;
+                        flex-direction: row;
+
+                        .commandEntry-drop {
+                            color: white;
+                            width: 25px;
+                            margin-top: auto;
+                            margin-bottom: auto;
+                        }
+                    }
+
+                    .scriptingBox-collapse {
+                        transition: all .5s, opacity 0.3s;
+                        position: absolute;
+                        width: 40px;
+                        transform-origin: top left;
+                        pointer-events: all;
+                        // margin-top: 10px;
+                    }
+
+                    .scriptingBox-template,
+                    .scriptingBox-viewModes {
+                        display: grid;
+                        background: rgb(238, 238, 238);
+                        color: grey;
+                        margin-top: auto;
+                        margin-bottom: auto;
+                        margin-left: 5px;
+                    }
+
+                    .scriptingBox-viewModes {
+                        margin-left: 25px;
+                    }
+
+                    .scriptingBox-viewSpecs {
+                        margin-left: 5px;
+                        display: grid;
+
+                        .scriptingBox-filterIcon {
+                            position: relative;
+                            display: flex;
+                            margin: auto;
+                            background: gray;
+                            color: white;
+                            width: 40px;
+                            height: 40px;
+                            align-items: center;
+                            justify-content: center;
+                        }
+                    }
+
+                }
             }
 
             .scriptingBox-paramNames {
