@@ -110,7 +110,7 @@ export interface DocumentOptions {
     _backgroundColor?: string | ScriptField; // background color for each template layout doc ( overrides backgroundColor )
     color?: string; // foreground color data doc
     _color?: string;  // foreground color for each template layout doc (overrides color)
-    clipWidth?: number; // percent transition from before to after in comparisonBox
+    _clipWidth?: number; // percent transition from before to after in comparisonBox
     caption?: RichTextField;
     ignoreClick?: boolean;
     lockedPosition?: boolean; // lock the x,y coordinates of the document so that it can't be dragged
@@ -560,7 +560,7 @@ export namespace Docs {
         }
 
         export function ComparisonDocument(options: DocumentOptions = { title: "Comparison Box" }) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COMPARISON), "", { clipWidth: 50, _backgroundColor:"gray", targetDropAction: "alias", ...options });
+            return InstanceFromProto(Prototypes.get(DocumentType.COMPARISON), "", { _clipWidth: 50, _backgroundColor: "gray", targetDropAction: "alias", ...options });
         }
 
         export function AudioDocument(url: string, options: DocumentOptions = {}) {

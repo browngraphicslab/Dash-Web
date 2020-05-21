@@ -42,23 +42,22 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
         const droppedDocs = dropEvent.complete.docDragData?.droppedDocuments;
         if (droppedDocs?.length) {
             this.dataDoc[fieldKey] = droppedDocs[0];
-            droppedDocs[0].isBackgound = true;
         }
     }
 
     private registerSliding = (e: React.PointerEvent<HTMLDivElement>, targetWidth: number) => {
         setupMoveUpEvents(this, e, this.onPointerMove, emptyFunction, action(() => {
             this._animating = "all 1s";
-            this.dataDoc.clipWidth = targetWidth * 100 / this.props.PanelWidth();
+            this.layoutDoc._clipWidth = targetWidth * 100 / this.props.PanelWidth();
             setTimeout(action(() => this._animating = ""), 1000);
         }), false);
     }
 
     @action
     private onPointerMove = ({ movementX }: PointerEvent) => {
-        const width = movementX * this.props.ScreenToLocalTransform().Scale + NumCast(this.dataDoc.clipWidth) / 100 * this.props.PanelWidth();
+        const width = movementX * this.props.ScreenToLocalTransform().Scale + NumCast(this.layoutDoc._clipWidth) / 100 * this.props.PanelWidth();
         if (width && width > 5 && width < this.props.PanelWidth()) {
-            this.dataDoc.clipWidth = width * 100 / this.props.PanelWidth();
+            this.layoutDoc._clipWidth = width * 100 / this.props.PanelWidth();
         }
         return false;
     }
@@ -70,7 +69,7 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
     }
 
     render() {
-        const clipWidth = NumCast(this.dataDoc.clipWidth) + "%";
+        const clipWidth = NumCast(this.layoutDoc._clipWidth) + "%";
         const childProps: DocumentViewProps = { ...this.props, pointerEvents: false, parentActive: this.props.active };
         const clearButton = (which: string) => {
             return <div className={`clear-button ${which}`} onPointerDown={e => e.stopPropagation()} onClick={e => this.clearDoc(e, `${which}Doc`)}>
