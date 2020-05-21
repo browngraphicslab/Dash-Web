@@ -16,6 +16,7 @@ import React = require("react");
 import { ContentFittingDocumentView } from './ContentFittingDocumentView';
 import { undoBatch } from '../../util/UndoManager';
 import { setupMoveUpEvents, emptyFunction } from '../../../Utils';
+import { SnappingManager } from '../../util/SnappingManager';
 
 library.add(faImage, faEye as any, faPaintBrush, faBrain);
 library.add(faFileAudio, faAsterisk);
@@ -47,7 +48,6 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
         const droppedDocs = dropEvent.complete.docDragData?.droppedDocuments;
         if (droppedDocs?.length) {
             this.dataDoc[fieldKey] = droppedDocs[0];
-            droppedDocs[0]._fitWidth = true;
             droppedDocs[0].isBackgound = true;
         }
     }
@@ -90,7 +90,7 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
         const afterDoc = Cast(this.dataDoc.afterDoc, Doc, null);
         const clipWidth = NumCast(this.dataDoc.clipWidth);
         return (
-            <div className={`comparisonBox${this.active() ? "-interactive" : ""}`}>
+            <div className={`comparisonBox${this.active() || SnappingManager.GetIsDragging() ? "-interactive" : ""}`}>
                 <div
                     className="afterBox-cont"
                     key={"after"}
