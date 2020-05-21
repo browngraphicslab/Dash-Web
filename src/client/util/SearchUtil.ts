@@ -29,16 +29,21 @@ export namespace SearchUtil {
         rows?: number;
         fq?: string;
         allowAliases?: boolean;
+
     }
     export function Search(query: string, returnDocs: true, options?: SearchParams): Promise<DocSearchResult>;
     export function Search(query: string, returnDocs: false, options?: SearchParams): Promise<IdSearchResult>;
     export async function Search(query: string, returnDocs: boolean, options: SearchParams = {}) {
         query = query || "*"; //If we just have a filter query, search for * as the query
         const rpquery = Utils.prepend("/dashsearch");
-        console.log(query);
-        const gotten = await rp.get(rpquery, { qs: { ...options, q: query } });
+        console.log(rpquery);
+        console.log(options);
+        query = query + '&facet=true&facet.field=_height&facet.limit=3';
+        const gotten = await rp.get(rpquery+)
+        // const gotten = await rp.get(rpquery, { qs: { ...options, q: query } });
         console.log(gotten);
         const result: IdSearchResult = gotten.startsWith("<") ? { ids: [], docs: [], numFound: 0, lines: [] } : JSON.parse(gotten);
+        console.log(result);
         if (!returnDocs) {
             return result;
         }
