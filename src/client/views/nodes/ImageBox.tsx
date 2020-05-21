@@ -19,7 +19,6 @@ import { CognitiveServices, Confidence, Service, Tag } from '../../cognitive_ser
 import { Docs } from '../../documents/Documents';
 import { Networking } from '../../Network';
 import { DragManager } from '../../util/DragManager';
-import { SelectionManager } from '../../util/SelectionManager';
 import { undoBatch } from '../../util/UndoManager';
 import { ContextMenu } from "../../views/ContextMenu";
 import { CollectionFreeFormView } from '../collections/collectionFreeForm/CollectionFreeFormView';

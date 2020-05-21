@@ -74,6 +74,7 @@ export interface CollectionViewCustomProps {
     filterAddDocument: (doc: Doc | Doc[]) => boolean;  // allows a document that renders a Collection view to filter or modify any documents added to the collection (see PresBox for an example)
     childLayoutTemplate?: () => Opt<Doc>;  // specify a layout Doc template to use for children of the collection
     childLayoutString?: string;  // specify a layout string to use for children of the collection
+    childOpacity?: () => number;
 }
 
 export interface CollectionRenderProps {
@@ -119,10 +120,8 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
 
     @action.bound
     addDocument = (doc: Doc | Doc[]): boolean => {
-        if (doc instanceof Doc) {
-            if (this.props.filterAddDocument?.(doc) === false) {
-                return false;
-            }
+        if (this.props.filterAddDocument?.(doc) === false) {
+            return false;
         }
         const docs = doc instanceof Doc ? [doc] : doc;
         const targetDataDoc = this.props.Document[DataSym];
@@ -498,7 +497,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         return (<div className={"collectionView"}
             style={{
                 pointerEvents: this.props.Document.isBackground ? "none" : undefined,
-                boxShadow: this.props.Document.isBackground || this.collectionViewType === CollectionViewType.Linear ? undefined :
+                boxShadow: Doc.UserDoc().renderStyle === "comic" || this.props.Document.isBackground || this.collectionViewType === CollectionViewType.Linear ? undefined :
                     `${Cast(Doc.UserDoc().activeWorkspace, Doc, null)?.darkScheme ? "rgb(30, 32, 31)" : "#9c9396"} ${StrCast(this.props.Document.boxShadow, "0.2vw 0.2vw 0.8vw")}`
             }}
             onContextMenu={this.onContextMenu}>

@@ -20,7 +20,9 @@ export const documentSchema = createSchema({
     z: "number",                // z "coordinate" - non-zero specifies the overlay layer of a freeformview
     zIndex: "number",           // zIndex of a document in a freeform view
     scrollY: "number",          // "command" to scroll a document to a position on load (the value will be reset to 0 after that )
+    scrollX: "number",          // "command" to scroll a document to a position on load (the value will be reset to 0 after that )
     scrollTop: "number",        // scroll position of a scrollable document (pdf, text, web)
+    scrollLeft: "number",        // scroll position of a scrollable document (pdf, text, web)
 
     // appearance properties on the layout
     _autoHeight: "boolean",     // whether the height of the document should be computed automatically based on its contents
@@ -74,8 +76,8 @@ export const documentSchema = createSchema({
     isLinkButton: "boolean",    // whether document functions as a link follow button to follow the first link on the document when clicked   
     isBackground: "boolean",    // whether document is a background element and ignores input events (can only select with marquee)
     lockedPosition: "boolean",  // whether the document can be moved (dragged)
-    lockedTransform: "boolean", // whether the document can be panned/zoomed
-
+    _lockedTransform: "boolean",// whether a freeformview can pan/zoom
+    
     // drag drop properties
     dragFactory: Doc,           // the document that serves as the "template" for the onDragStart script.  ie, to drag out copies of the dragFactory document.
     dropAction: "string",       // override specifying what should happen when this document is dropped (can be "alias", "copy", "move")

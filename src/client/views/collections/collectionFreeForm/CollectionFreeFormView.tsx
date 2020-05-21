@@ -54,7 +54,8 @@ export const panZoomSchema = createSchema({
     _panX: "number",
     _panY: "number",
     scale: "number",
-    timecode: "number",
+    currentTimecode: "number",
+    displayTimecode: "number",
     arrangeScript: ScriptField,
     arrangeInit: ScriptField,
     useClusters: "boolean",
@@ -126,8 +127,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         this.addDocument(newBox);
     }
     addDocument = (newBox: Doc | Doc[]) => {
-        if (this.Document.timecode !== undefined) {
-            CollectionFreeFormDocumentView.setupKeyframes((newBox instanceof Doc) ? [newBox] : newBox, this.Document.timecode, this.props.Document);
+        if (this.Document.currentTimecode !== undefined && !this.props.isAnnotationOverlay) {
+            CollectionFreeFormDocumentView.setupKeyframes((newBox instanceof Doc) ? [newBox] : newBox, this.Document.currentTimecode, this.props.Document);
         }
 
         if (newBox instanceof Doc) {
@@ -144,19 +145,25 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @undoBatch
     @action
     nextKeyframe = (): void => {
-        if (this.props.Document.timecode === undefined) {
-            this.props.Document.timecode = 0;
+        const currentTimecode = this.Document.currentTimecode;
+        if (currentTimecode === undefined) {
+            this.Document.currentTimecode = 0;
             CollectionFreeFormDocumentView.setupKeyframes(this.childDocs, 0, this.props.Document);
         }
-        const timecode = NumCast(this.props.Document.timecode);
-        CollectionFreeFormDocumentView.updateKeyframe(this.childDocs, timecode);
-        this.props.Document.timecode = Math.max(0, timecode + 1);
+        CollectionFreeFormDocumentView.updateKeyframe(this.childDocs, currentTimecode || 0);
+        this.Document.currentTimecode = Math.max(0, (currentTimecode || 0) + 1);
+        this.Document.lastTimecode = Math.max(NumCast(this.Document.currentTimecode), NumCast(this.Document.lastTimecode));
     }
     @undoBatch
     @action
     prevKeyframe = (): void => {
+        const currentTimecode = this.Document.currentTimecode;
+        if (currentTimecode === undefined) {
+            this.Document.currentTimecode = 0;
+            CollectionFreeFormDocumentView.setupKeyframes(this.childDocs, 0, this.props.Document);
+        }
         CollectionFreeFormDocumentView.gotoKeyframe(this.childDocs.slice());
-        this.props.Document.timecode = Math.max(0, NumCast(this.props.Document.timecode) - 1);
+        this.Document.currentTimecode = Math.max(0, (currentTimecode || 0) - 1);
     }
 
     private selectDocuments = (docs: Doc[]) => {
@@ -199,8 +206,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                         for (let i = 0; i < droppedDocs.length; i++) {
                             const d = droppedDocs[i];
                             const layoutDoc = Doc.Layout(d);
-                            if (this.Document.timecode !== undefined) {
-                                CollectionFreeFormDocumentView.setValues(this.Document.timecode, d, x + NumCast(d.x) - dropX, y + NumCast(d.y) - dropY, Cast(d.opacity, "number", null));
+                            if (this.Document.currentTimecode !== undefined && !this.props.isAnnotationOverlay) {
+                                CollectionFreeFormDocumentView.setValues(this.Document.currentTimecode, d, x + NumCast(d.x) - dropX, y + NumCast(d.y) - dropY, Cast(d.opacity, "number", null));
                             } else {
                                 d.x = x + NumCast(d.x) - dropX;
                                 d.y = y + NumCast(d.y) - dropY;
@@ -762,7 +769,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
 
     @action
     onPointerWheel = (e: React.WheelEvent): void => {
-        if (this.props.Document.lockedTransform || this.props.Document.inOverlay) return;
+        if (this.layoutDoc._lockedTransform || this.props.Document.inOverlay) return;
         if (!e.ctrlKey && this.props.Document.scrollHeight !== undefined) { // things that can scroll vertically should do that instead of zooming
             e.stopPropagation();
         }
@@ -798,7 +805,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 else if (ranges.yrange.max <= (panY - panelDim[1] / 2)) panY = ranges.yrange.min - panelDim[1] / 2;
             }
         }
-        if (!this.Document.lockedTransform || this.Document.inOverlay) {
+        if (!this.layoutDoc._lockedTransform || this.Document.inOverlay) {
             this.Document.panTransformType = panType;
             const scale = this.getLocalTransform().inverse().Scale;
             const newPanX = Math.min((1 - 1 / scale) * this.nativeWidth, Math.max(0, panX));
@@ -971,11 +978,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             return { x: 0, y: 0, transition: "transform 1s", ...result, pair: params.pair, replica: "" };
         }
         const layoutDoc = Doc.Layout(params.pair.layout);
-        const { x, y, opacity } = this.Document.timecode === undefined ? params.pair.layout :
-            CollectionFreeFormDocumentView.getValues(params.pair.layout, this.Document.timecode);
-        if (this.Document.timecode !== undefined) {
-            const time = this.Document.timecode || 0;
-        }
+        const { x, y, opacity } = this.Document.currentTimecode === undefined ? params.pair.layout :
+            CollectionFreeFormDocumentView.getValues(params.pair.layout, this.Document.currentTimecode || 0);
         const { z, color, zIndex } = params.pair.layout;
         return {
             x: NumCast(x), y: NumCast(y), z: Cast(z, "number"), color: StrCast(color), zIndex: Cast(zIndex, "number"),
@@ -1039,8 +1043,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     doFreeformLayout(poolData: Map<string, PoolData>) {
         const layoutDocs = this.childLayoutPairs.map(pair => pair.layout);
         const initResult = this.Document.arrangeInit && this.Document.arrangeInit.script.run({ docs: layoutDocs, collection: this.Document }, console.log);
-        const state = initResult && initResult.success ? initResult.result.scriptState : undefined;
-        const elements = initResult && initResult.success ? this.viewDefsToJSX(initResult.result.views) : [];
+        const state = initResult?.success ? initResult.result.scriptState : undefined;
+        const elements = initResult?.success ? this.viewDefsToJSX(initResult.result.views) : [];
 
         this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)).map((pair, i) => {
             const pos = this.getCalculatedPositions({ pair, index: i, collection: this.Document, docs: layoutDocs, state });
@@ -1071,7 +1075,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             for (const entry of array) {
                 const lastPos = this._cachedPool.get(entry[0]); // last computed pos
                 const newPos = entry[1];
-                if (!lastPos || newPos.x !== lastPos.x || newPos.y !== lastPos.y || newPos.z !== lastPos.z || newPos.zIndex !== lastPos.zIndex) {
+                if (!lastPos || newPos.opacity !== lastPos.opacity || newPos.x !== lastPos.x || newPos.y !== lastPos.y || newPos.z !== lastPos.z || newPos.zIndex !== lastPos.zIndex) {
                     this._layoutPoolData.set(entry[0], newPos);
                 }
                 if (!lastPos || newPos.height !== lastPos.height || newPos.width !== lastPos.width) {
@@ -1095,7 +1099,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                         this.backgroundActive ?
                             true :
                             (this.props.viewDefDivClick || (engine === "pass" && !this.props.isSelected(true))) ? false : undefined}
-                    jitterRotation={NumCast(this.props.Document._jitterRotation)}
+                    jitterRotation={NumCast(this.props.Document._jitterRotation) || ((Doc.UserDoc().renderStyle === "comic" ? 10 : 0))}
                     //fitToBox={this.props.fitToBox || BoolCast(this.props.freezeChildDimensions)} // bcz: check this
                     fitToBox={BoolCast(this.props.freezeChildDimensions)} // bcz: check this
                     FreezeDimensions={BoolCast(this.props.freezeChildDimensions)}
@@ -1165,6 +1169,12 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         Doc.toggleNativeDimensions(this.layoutDoc, this.props.ContentScaling(), this.props.NativeWidth(), this.props.NativeHeight());
     }
 
+    @undoBatch
+    @action
+    toggleLockTransform = (): void => {
+        this.layoutDoc._lockedTransform = this.layoutDoc._lockedTransform ? undefined : true;
+    }
+
     private thumbIdentifier?: number;
 
     onContextMenu = (e: React.MouseEvent) => {
@@ -1175,8 +1185,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                 this._timelineVisible = !this._timelineVisible;
             }), icon: this._timelineVisible ? faEyeSlash : faEye
         });
-        ContextMenu.Instance.addItem({ description: "Advance", event: this.nextKeyframe, icon: BoolCast(this.Document.lockedTransform) ? "unlock" : "lock" });
-        ContextMenu.Instance.addItem({ description: "Backup ", event: this.prevKeyframe, icon: BoolCast(this.Document.lockedTransform) ? "unlock" : "lock" });
 
         const options = ContextMenu.Instance.findByDescription("Options...");
         const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
@@ -1187,6 +1195,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         optionItems.push({ description: `${this.fitToContent ? "Unset" : "Set"} Fit To Container`, event: () => this.Document._fitToBox = !this.fitToContent, icon: !this.fitToContent ? "expand-arrows-alt" : "compress-arrows-alt" });
         optionItems.push({ description: `${this.Document.useClusters ? "Uncluster" : "Use Clusters"}`, event: () => this.updateClusters(!this.Document.useClusters), icon: "braille" });
         this.props.ContainingCollectionView && optionItems.push({ description: "Promote Collection", event: this.promoteCollection, icon: "table" });
+        optionItems.push({ description: this.layoutDoc._lockedTransform ? "Unlock Transform" : "Lock Transform", event: this.toggleLockTransform, icon: this.layoutDoc._lockedTransform ? "unlock" : "lock" });
         optionItems.push({ description: "Arrange contents in grid", event: this.layoutDocsInGrid, icon: "table" });
         // layoutItems.push({ description: "Analyze Strokes", event: this.analyzeStrokes, icon: "paint-brush" });
         optionItems.push({
@@ -1339,6 +1348,9 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             onPointerDown={this.onPointerDown}
             onPointerMove={this.onCursorMove}
             onDrop={this.onExternalDrop.bind(this)}
+            onDragOver={e => {
+                e.preventDefault();
+            }}
             onContextMenu={this.onContextMenu}
             style={{
                 pointerEvents: this.backgroundEvents ? "all" : undefined,
@@ -1350,16 +1362,16 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             {!this.Document._LODdisable && !this.props.active() && !this.props.isAnnotationOverlay && !this.props.annotationsKey && this.props.renderDepth > 0 ?
                 this.placeholder : this.marqueeView}
             <CollectionFreeFormOverlayView elements={this.elementFunc} />
-            {this.isAnnotationOverlay ? (null) :
+            {this.isAnnotationOverlay || !this.props.isSelected() ? (null) :
                 <>
-                    <div key="fwd" className="backKeyframe" onClick={this.nextKeyframe}>
-                        <FontAwesomeIcon icon={"caret-right"} size={"lg"} />
-                    </div>
-                    <div key="fwd" className="numKeyframe" >
-                        {NumCast(this.props.Document.timecode)}
-                    </div>
-                    <div key="back" className="fwdKeyframe" onClick={this.prevKeyframe}>
+                    <div key="back" className="backKeyframe" onClick={this.prevKeyframe}>
                         <FontAwesomeIcon icon={"caret-left"} size={"lg"} />
+                    </div>
+                    <div key="num" className="numKeyframe" >
+                        {NumCast(this.props.Document.currentTimecode)}
+                    </div>
+                    <div key="fwd" className="fwdKeyframe" onClick={this.nextKeyframe}>
+                        <FontAwesomeIcon icon={"caret-right"} size={"lg"} />
                     </div>
                 </>}
             <div className={"pullpane-indicator"}
