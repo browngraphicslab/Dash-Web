@@ -4,6 +4,7 @@ import { Doc } from '../../new_fields/Doc';
 import { Id } from '../../new_fields/FieldSymbols';
 import { Utils } from '../../Utils';
 import { DocumentType } from '../documents/DocumentTypes';
+import { StringMap } from 'libxmljs';
 
 export namespace SearchUtil {
     export type HighlightingResult = { [id: string]: { [key: string]: string[] } };
@@ -29,7 +30,8 @@ export namespace SearchUtil {
         rows?: number;
         fq?: string;
         allowAliases?: boolean;
-
+        "facet"?:string;
+        "facet.field"?: string;
     }
     export function Search(query: string, returnDocs: true, options?: SearchParams): Promise<DocSearchResult>;
     export function Search(query: string, returnDocs: false, options?: SearchParams): Promise<IdSearchResult>;
@@ -38,9 +40,8 @@ export namespace SearchUtil {
         const rpquery = Utils.prepend("/dashsearch");
         console.log(rpquery);
         console.log(options);
-        query = query + '&facet=true&facet.field=_height&facet.limit=3';
-        const gotten = await rp.get(rpquery+)
-        // const gotten = await rp.get(rpquery, { qs: { ...options, q: query } });
+        console.log({ qs: { ...options, q: query } });
+        const gotten = await rp.get(rpquery, { qs: { ...options, q: query } });
         console.log(gotten);
         const result: IdSearchResult = gotten.startsWith("<") ? { ids: [], docs: [], numFound: 0, lines: [] } : JSON.parse(gotten);
         console.log(result);

@@ -383,10 +383,8 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     }
     
     @action private makebuckets(){
-        console.log("we made it");
         console.log(this._numTotalResults);
         while (this.buckets!.length <this._numTotalResults/3){
-            console.log("yeet");
 
             let bucket = Docs.Create.StackingDocument([],{ _viewType:CollectionViewType.Stacking,title: `bucket` });
             bucket.targetDoc = bucket;      
@@ -429,7 +427,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         }
         this.lockPromise = new Promise(async res => {
             while (this._results.length <= this._endIndex && (this._numTotalResults === -1 || this._maxSearchIndex < this._numTotalResults)) {
-                this._curRequest = SearchUtil.Search(query, true, { fq: this.filterQuery, start: this._maxSearchIndex, rows: this.NumResults, hl: true, "hl.fl": "*" }).then(action(async (res: SearchUtil.DocSearchResult) => {
+                this._curRequest = SearchUtil.Search(query, true, {fq: this.filterQuery, start: this._maxSearchIndex, rows: this.NumResults, hl: true, "hl.fl": "*", "facet":"on", "facet.field":"_height" }).then(action(async (res: SearchUtil.DocSearchResult) => {
                     // happens at the beginning
                     if (res.numFound !== this._numTotalResults && this._numTotalResults === -1) {
                         this._numTotalResults = res.numFound;
