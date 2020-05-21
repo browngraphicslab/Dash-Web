@@ -3,13 +3,6 @@
     height: 100%;
     perspective: 30em;
 
-    .test-button {
-        position: absolute;
-        top: 0;
-        left: 0;
-        z-index: 999;
-    }
-
     .collectionCarouselView-image {
         position: absolute;
         height: 100%;
@@ -41,34 +34,4 @@
         top: 25%;
         transform: rotateY(20deg)
     }
-}
-
-.carouselView-back,
-.carouselView-fwd {
-    position: absolute;
-    display: flex;
-    top: 50%;
-    width: 30;
-    height: 30;
-    align-items: center;
-    border-radius: 5px;
-    justify-content: center;
-    background: rgba(255, 255, 255, 0.46);
-}
-
-.carouselView-fwd {
-    right: 0;
-}
-
-.carouselView-back {
-    left: 0;
-}
-
-.carouselView-back:hover,
-.carouselView-fwd:hover {
-    background: lightgray;
-}
-
-.carouselView-fwd:hover~.collectionCarouselView-image {
-    transform: translateX(50px)
 }

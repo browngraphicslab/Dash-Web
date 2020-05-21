@@ -30,18 +30,17 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
         }
     }
 
-    addCaption = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        const index = NumCast(this.layoutDoc._itemIndex);
-        if (this.childLayoutPairs[index].layout._showCaption !== "caption") {
-            this.childLayoutPairs[index].layout._showCaption = "caption";
-        }
+    @computed get changeIndexScript() {
+        return ScriptField.MakeScript(
+            "collectionLayoutDoc._itemIndex = collectionLayoutDoc[fieldKey].indexOf(self)",
+            { fieldKey: String.name, collectionLayoutDoc: Doc.name },
+            { fieldKey: this.props.fieldKey, collectionLayoutDoc: this.layoutDoc }
+        );
     }
 
     mainPanelWidth = () => this.props.PanelWidth() * 0.6;
     sidePanelWidth = () => this.props.PanelWidth() * 0.3;
     sidePanelHeight = () => this.props.PanelHeight() * 0.5;
-
     @computed get content() {
         const index = NumCast(this.layoutDoc._itemIndex);
         const prevIndex = (index - 1 + this.childLayoutPairs.length) % this.childLayoutPairs.length;
@@ -51,11 +50,7 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
                 <div className="collectionCarouselView-prev">
                     <ContentFittingDocumentView {...this.props}
                         onDoubleClick={ScriptCast(this.layoutDoc.onChildDoubleClick)}
-                        onClick={ScriptField.MakeScript(
-                            "collectionLayoutDoc._itemIndex = collectionLayoutDoc[fieldKey].indexOf(self)",
-                            { fieldKey: String.name, collectionLayoutDoc: Doc.name },
-                            { fieldKey: this.props.fieldKey, collectionLayoutDoc: this.layoutDoc }
-                        )}
+                        onClick={this.changeIndexScript}
                         renderDepth={this.props.renderDepth + 1}
                         LayoutTemplate={this.props.ChildLayoutTemplate}
                         LayoutTemplateString={this.props.ChildLayoutString}
@@ -71,11 +66,7 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
                 <div className="collectionCarouselView-next">
                     <ContentFittingDocumentView {...this.props}
                         onDoubleClick={ScriptCast(this.layoutDoc.onChildDoubleClick)}
-                        onClick={ScriptField.MakeScript(
-                            "collectionLayoutDoc._itemIndex = collectionLayoutDoc[fieldKey].indexOf(self)",
-                            { fieldKey: String.name, collectionLayoutDoc: Doc.name },
-                            { fieldKey: this.props.fieldKey, collectionLayoutDoc: this.layoutDoc }
-                        )}
+                        onClick={this.changeIndexScript}
                         renderDepth={this.props.renderDepth + 1}
                         LayoutTemplate={this.props.ChildLayoutTemplate}
                         LayoutTemplateString={this.props.ChildLayoutString}
