@@ -48,15 +48,15 @@ export class MobileInterface extends React.Component {
     @observable private mainDoc: any = CurrentUserUtils.setupMobileMenu(this.userDoc);
     @observable private renderView?: () => JSX.Element;
 
-    public _activeDoc: Doc = this.userDoc;
+    public _activeDoc: Doc = this.mainDoc;
 
     // private inkDoc?: Doc;
     public drawingInk: boolean = false;
 
-    // private uploadDoc?: Doc;
+    // private _uploadDoc: Doc = this.userDoc;
     private _child: Doc | null = null;
     private _parents: Array<Doc> = [];
-    private _menu: Doc = this.userDoc;
+    private _menu: Doc = this.mainDoc;
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -128,8 +128,8 @@ export class MobileInterface extends React.Component {
 
         let header = document.getElementById("header") as HTMLElement;
 
-        if (this._child) {
-            header.textContent = String("//workspaces/" + this._activeDoc.title);
+        if (!sidebar.classList.contains('active')) {
+            header.textContent = String(this._activeDoc.title);
         } else {
             header.textContent = "menu";
         }
@@ -155,7 +155,7 @@ export class MobileInterface extends React.Component {
         if (this.mainContainer) {
             const backgroundColor = () => "white";
             return (
-                <div style={{ position: "relative", top: '120px', height: `calc(100% - 120px)`, width: "100%", overflow: "hidden" }}>
+                <div style={{ position: "relative", top: '200px', height: `calc(100% - 250px)`, width: "80%", overflow: "hidden", left: "10%" }}>
                     <DocumentView
                         Document={this.mainContainer}
                         DataDoc={undefined}
@@ -187,23 +187,40 @@ export class MobileInterface extends React.Component {
     }
 
     handleClick(doc: Doc) {
-        this._parents.push(this._activeDoc);
-        this._activeDoc = doc;
-        this.switchCurrentView((userDoc: Doc) => doc);
-        this._child = doc;
+        let children = DocListCast(doc.data);
+        if (doc.type !== "collection") {
+            this._parents.push(this._activeDoc);
+            this._activeDoc = doc;
+            this.switchCurrentView((userDoc: Doc) => doc);
+            this.toggleSidebar();
+        } else if (doc.type === "collection" && children.length === 0) {
+            console.log("This collection has no children");
+        } else {
+            this._parents.push(this._activeDoc);
+            this._activeDoc = doc;
+            this.switchCurrentView((userDoc: Doc) => doc);
+            this._child = doc;
+        }
 
-        let sidebar = document.getElementById("sidebar") as HTMLElement;
-        sidebar.classList.toggle('active');
+        // let sidebar = document.getElementById("sidebar") as HTMLElement;
+        // sidebar.classList.toggle('active');
     }
 
-    buttons = (doc: Doc) => {
-        DocListCast(doc.data).map((childDoc: Doc, index: any) => {
-            console.log(
-                <div
-                    className="item"
-                    key={index}
-                    onClick={() => this.handleClick(childDoc)}>{childDoc.title}</div>);
+    createPathname = () => {
+        let pathname = "";
+        this._parents.map((doc: Doc, index: any) => {
+            if (doc === this.mainDoc) {
+                pathname = pathname + doc.title;
+            } else {
+                pathname = pathname + " > " + doc.title;
+            }
         });
+        if (this._activeDoc === this.mainDoc) {
+            pathname = pathname + this._activeDoc.title;
+        } else {
+            pathname = pathname + " > " + this._activeDoc.title;
+        }
+        return pathname;
     }
 
 
@@ -237,28 +254,35 @@ export class MobileInterface extends React.Component {
             return (
                 <div>
                     <div className="navbar">
-                        <div className="header" id="header">menu</div>
+                        <div className="header" id="header">MENU</div>
                         <div className="toggle-btn" id="menuButton" onClick={this.toggleSidebar}>
                             <span></span>
                             <span></span>
                             <span></span>
                         </div>
                     </div>
+                    <div className="pathbar">
+                        <div className="pathname">
+                            {this.createPathname()}
+                        </div>
+                    </div>
                     <div className="sidebar" id="sidebar">
                         <div>
                             {buttons}
-                            <Uploader />
-
+                            <Uploader Document={workspaces} />
+                            <div className="item" key="presentation" onClick={this.recordAudio}>
+                                Record Audio
+                            </div>
+                            <div className="item" key="presentation">
+                                Presentation
+                            </div>
                             <div className="item" key="settings" onClick={() => SettingsManager.Instance.open()}>
                                 Settings
-                        </div>
-                            <div className="item" key="logout" onClick={() => window.location.assign(Utils.prepend("/logout"))}>
-                                {CurrentUserUtils.GuestWorkspace ? "Exit" : "Log Out"}
                             </div>
                         </div>
                     </div>
                     <div>
-                        {/* {this.renderView} */}
+                        {this.renderView}
                     </div>
                 </div>
             );
@@ -268,27 +292,57 @@ export class MobileInterface extends React.Component {
                 <div>
                     <div className="navbar">
                         <div className="header" id="header">menu</div>
-                        <div className="back" onClick={this.back}>
-                            &#8592;
-                        </div>
+
                         <div className="toggle-btn" id="menuButton" onClick={this.toggleSidebar}>
                             <span></span>
                             <span></span>
                             <span></span>
                         </div>
                     </div>
+                    <div className="pathbar">
+                        <div className="pathname">
+                            {this.createPathname()}
+                        </div>
+                    </div>
                     <div className="sidebar" id="sidebar">
+                        <div className="back" onClick={this.back}>
+                            &#8592;
+                        </div>
                         <div>
                             {buttons}
                         </div>
                     </div>
-
-                    <div>
-                        {this.renderView}
-                    </div>
                 </div>
             );
         }
+    }
+
+    recordAudio = () => {
+        // upload to server with known URL 
+        const audioDoc = Docs.Create.AudioDocument;
+        // this._activeDoc = audioDoc;
+    }
+
+    mobileHome = () => {
+        return (
+            <div className="homeContainer">
+                <div className="uploadButton">
+
+                </div>
+                <div className="presentationButton">
+
+                </div>
+                <div className="recordAudioButton">
+
+                </div>
+                <div className="inkButton">
+
+                </div>
+                <div className="settingsButton">
+
+                </div>
+            </div>
+        );
     }
 
     renderActiveCollection = (userDoc: Doc) => {
@@ -445,50 +499,50 @@ AssignAllExtensions();
 
 
 // 1
-    // renderUploadContent() {
-    //     if (this.mainContainer) {
-    //         return (
-    //             <div className="mobileInterface" onDragOver={this.onDragOver}>
-    //                 <div className="mobileInterface-inkInterfaceButtons">
-    //                     <button className="mobileInterface-button cancel" onClick={this.onBack} title="Back">BACK</button>
-    //                     {/* <button className="mobileInterface-button" onClick={this.clearUpload} title="Clear Upload">CLEAR</button> */}
-    //                     {/* <button className="mobileInterface-button" onClick={this.addWeb} title="Add Web Doc to Upload Collection"></button> */}
-    //                     <button className="mobileInterface-button" onClick={this.upload} title="Upload">UPLOAD</button>
-    //                 </div>
-    //                 <DocumentView
-    //                     Document={this.mainContainer}
-    //                     DataDoc={undefined}
-    //                     LibraryPath={emptyPath}
-    //                     addDocument={returnFalse}
-    //                     addDocTab={returnFalse}
-    //                     pinToPres={emptyFunction}
-    //                     rootSelected={returnFalse}
-    //                     removeDocument={undefined}
-    //                     onClick={undefined}
-    //                     ScreenToLocalTransform={Transform.Identity}
-    //                     ContentScaling={returnOne}
-    //                     NativeHeight={returnZero}
-    //                     NativeWidth={returnZero}
-    //                     PanelWidth={() => window.screen.width}
-    //                     PanelHeight={() => window.screen.height}
-    //                     renderDepth={0}
-    //                     focus={emptyFunction}
-    //                     backgroundColor={returnEmptyString}
-    //                     parentActive={returnTrue}
-    //                     whenActiveChanged={emptyFunction}
-    //                     bringToFront={emptyFunction}
-    //                     ContainingCollectionView={undefined}
-    //                     ContainingCollectionDoc={undefined} />
-    //             </div>
-    //         );
-    //     }
-    // }
+// renderUploadContent() {
+//     if (this.mainContainer) {
+//         return (
+//             <div className="mobileInterface" onDragOver={this.onDragOver}>
+//                 <div className="mobileInterface-inkInterfaceButtons">
+//                     <button className="mobileInterface-button cancel" onClick={this.onBack} title="Back">BACK</button>
+//                     {/* <button className="mobileInterface-button" onClick={this.clearUpload} title="Clear Upload">CLEAR</button> */}
+//                     {/* <button className="mobileInterface-button" onClick={this.addWeb} title="Add Web Doc to Upload Collection"></button> */}
+//                     <button className="mobileInterface-button" onClick={this.upload} title="Upload">UPLOAD</button>
+//                 </div>
+//                 <DocumentView
+//                     Document={this.mainContainer}
+//                     DataDoc={undefined}
+//                     LibraryPath={emptyPath}
+//                     addDocument={returnFalse}
+//                     addDocTab={returnFalse}
+//                     pinToPres={emptyFunction}
+//                     rootSelected={returnFalse}
+//                     removeDocument={undefined}
+//                     onClick={undefined}
+//                     ScreenToLocalTransform={Transform.Identity}
+//                     ContentScaling={returnOne}
+//                     NativeHeight={returnZero}
+//                     NativeWidth={returnZero}
+//                     PanelWidth={() => window.screen.width}
+//                     PanelHeight={() => window.screen.height}
+//                     renderDepth={0}
+//                     focus={emptyFunction}
+//                     backgroundColor={returnEmptyString}
+//                     parentActive={returnTrue}
+//                     whenActiveChanged={emptyFunction}
+//                     bringToFront={emptyFunction}
+//                     ContainingCollectionView={undefined}
+//                     ContainingCollectionDoc={undefined} />
+//             </div>
+//         );
+//     }
+// }
 
 // 2
-    // Scripting.addGlobal(function onSwitchMobileInking() { return MobileInterface.Instance.onSwitchInking(); });
-    // Scripting.addGlobal(function renderMobileInking() { return MobileInterface.Instance.renderInkingContent(); });
-    // Scripting.addGlobal(function onSwitchMobileUpload() { return MobileInterface.Instance.onSwitchUpload(); });
-    // Scripting.addGlobal(function renderMobileUpload() { return MobileInterface.Instance.renderUploadContent(); });
+// Scripting.addGlobal(function onSwitchMobileInking() { return MobileInterface.Instance.onSwitchInking(); });
+// Scripting.addGlobal(function renderMobileInking() { return MobileInterface.Instance.renderInkingContent(); });
+// Scripting.addGlobal(function onSwitchMobileUpload() { return MobileInterface.Instance.onSwitchUpload(); });
+// Scripting.addGlobal(function renderMobileUpload() { return MobileInterface.Instance.renderUploadContent(); });
     // Scripting.addGlobal(function addWebToMobileUpload() { return MobileInterface.Instance.addWebToCollection(); });
 
 

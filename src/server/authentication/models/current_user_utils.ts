@@ -292,7 +292,7 @@ export class CurrentUserUtils {
     }
 
     static setupMobileDoc(userDoc: Doc) {
-        return userDoc.activeMoble ?? Docs.Create.MasonryDocument(CurrentUserUtils.setupMobileButtons(userDoc), {
+        return userDoc.activeMobile ?? Docs.Create.MasonryDocument(CurrentUserUtils.setupMobileButtons(userDoc), {
             columnWidth: 100, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled", title: "buttons", _autoHeight: true, _yMargin: 5
         });
     }
@@ -508,7 +508,7 @@ export class CurrentUserUtils {
 
     static setupRightSidebar(doc: Doc) {
         if (doc.rightSidebarCollection === undefined) {
-            doc.rightSidebarCollection = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "Right Sidebar" }));
+            doc.rightSidebarCollection = new PrefetchProxy(Docs.Create.StackingDocument([], { title: "Mobile Collection" }));
         }
     }
 

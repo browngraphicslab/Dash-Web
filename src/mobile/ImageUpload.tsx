@@ -4,18 +4,19 @@ import { Docs } from '../client/documents/Documents';
 import "./ImageUpload.scss";
 import React = require('react');
 import { DocServer } from '../client/DocServer';
-import { Opt, Doc } from '../new_fields/Doc';
+import { Opt, Doc, DocListCast } from '../new_fields/Doc';
 import { Cast } from '../new_fields/Types';
 import { listSpec } from '../new_fields/Schema';
 import { List } from '../new_fields/List';
 import { observer } from 'mobx-react';
 import { observable } from 'mobx';
 import { Utils } from '../Utils';
-import { CurrentUserUtils } from '../server/authentication/models/current_user_utils';
-import { Scripting } from '../client/util/Scripting';
+import { Networking } from '../client/Network';
+import { MobileDocumentUploadContent } from '../server/Message';
 
-
-
+export interface ImageUploadProps {
+    Document: Doc;
+}
 
 // const onPointerDown = (e: React.TouchEvent) => {
 //     let imgInput = document.getElementById("input_image_file");
@@ -26,7 +27,7 @@ import { Scripting } from '../client/util/Scripting';
 const inputRef = React.createRef<HTMLInputElement>();
 
 @observer
-export class Uploader extends React.Component {
+export class Uploader extends React.Component<ImageUploadProps> {
     @observable error: string = "";
     @observable status: string = "";
 
@@ -41,20 +42,15 @@ export class Uploader extends React.Component {
                 if (files && files.length !== 0) {
                     console.log(files[0]);
                     const name = files[0].name;
-                    const formData = new FormData();
-                    formData.append("file", files[0]);
-
-                    const upload = window.location.origin + "/uploadFormData";
+                    const res = await Networking.UploadFilesToServer(files[0]);
                     this.status = "uploading image";
-                    console.log("uploading image", formData);
-                    const res = await fetch(upload, {
-                        method: 'POST',
-                        body: formData
-                    });
                     this.status = "upload image, getting json";
-                    const json = await res.json();
-                    json.map(async (file: any) => {
-                        const path = window.location.origin + file;
+
+                    res.map(async ({ result }) => {
+                        if (result instanceof Error) {
+                            return;
+                        }
+                        const path = Utils.prepend(result.accessPaths.agnostic.client);
                         const doc = Docs.Create.ImageDocument(path, { _nativeWidth: 200, _width: 200, title: name });
 
                         this.status = "getting user document";
@@ -73,12 +69,19 @@ export class Uploader extends React.Component {
                             const data = await Cast(pending.data, listSpec(Doc));
                             if (data) {
                                 data.push(doc);
+                                if (doc) {
+                                    const docList = DocListCast(this.props.Document.data);
+                                    console.log("Before: " + docList);
+                                    docList.push(doc);
+                                    console.log("New: " + docList);
+                                }
                             } else {
                                 pending.data = new List([doc]);
                             }
                             this.status = "finished";
                             console.log("hi");
                         }
+
                     });
 
                     // console.log(window.location.origin + file[0])

@@ -1,4 +1,5 @@
 $navbar-height: 120px;
+$pathbar-height: 50px;
 
 * {
     margin: 0px;
@@ -34,8 +35,8 @@ body {
     position: absolute;
     top: 50%;
     top: calc(9px + 50%);
-    right: 100px;
-    transform: translate(0%, -50%);
+    right: 50%;
+    transform: translate(50%, -50%);
     font-size: 40;
     user-select: none;
     text-transform: uppercase;
@@ -82,11 +83,11 @@ body {
 
 .sidebar {
     position: absolute;
-    top: $navbar-height;
+    top: 200px;
     opacity: 0;
     right: -100%;
     width: 100vw;
-    height: calc(100% - 120px);
+    height: calc(100% - (200px));
     z-index: 5;
     background-color: whitesmoke;
     transition: all 400ms ease 50ms;
@@ -118,6 +119,12 @@ body {
 
 .right {
     margin-left: 20px;
+    z-index: 200;
+}
+
+.left {
+    width: 100%;
+    height: 100%;
 }
 
 .sidebar .logout {
@@ -154,12 +161,53 @@ body {
 
 .back {
     position: absolute;
-    top: 50%;
-    top: calc(9px + 50%);
+    top: -140px;
     left: 50px;
     transform: translate(0%, -50%);
-    font-size: 40;
+    color: black;
+    font-size: 60;
     user-select: none;
     text-transform: uppercase;
+    z-index: 100;
     font-family: Arial, Helvetica, sans-serif;
+}
+
+
+.pathbar {
+    position: absolute;
+    top: 118px;
+    background: #1a1a1a;
+    z-index: 20;
+    border-radius: 0px;
+    width: 100%;
+    height: 80px;
+    transition: all 400ms ease 50ms;
+}
+
+.pathname {
+    position: relative;
+    font-size: 25;
+    top: 50%;
+    width: 90%;
+    left: 3%;
+    color: whitesmoke;
+    transform: translate(0%, -50%);
+    z-index: 20;
+    font-family: sans-serif;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    direction: rtl;
+    text-align: left;
+    text-transform: uppercase;
+}
+
+.homeContainer {
+    position: relative;
+    top: 200px;
+    height: calc(100% - 250px);
+    width: 90%;
+    overflow: scroll;
+    left: 5%;
+    background-color: lightpink;
 }
