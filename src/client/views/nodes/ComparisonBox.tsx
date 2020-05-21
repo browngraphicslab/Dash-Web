@@ -65,8 +65,12 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
         this.resizeUpdater?.();
     }
 
-    private registerSliding = (e: React.PointerEvent<HTMLDivElement>) => {
-        setupMoveUpEvents(this, e, this.onPointerMove, emptyFunction, emptyFunction);
+    private registerSliding = (e: React.PointerEvent<HTMLDivElement>, targetWidth: number) => {
+        setupMoveUpEvents(this, e, this.onPointerMove, emptyFunction, action(() => {
+            this._animating = true;
+            this.dataDoc.clipWidth = targetWidth;
+            setTimeout(action(() => this._animating = false), 1000);
+        }), false);
     }
 
     @action
@@ -85,37 +89,33 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
         delete this.dataDoc[fieldKey];
     }
 
+    @observable _animating = false;
     render() {
         const beforeDoc = Cast(this.dataDoc.beforeDoc, Doc, null);
         const afterDoc = Cast(this.dataDoc.afterDoc, Doc, null);
         const clipWidth = NumCast(this.dataDoc.clipWidth);
         return (
             <div className={`comparisonBox${this.active() || SnappingManager.GetIsDragging() ? "-interactive" : ""}`}>
-                <div
-                    className="afterBox-cont"
-                    key={"after"}
+                <div className="afterBox-cont" key={"after"} onPointerDown={e => this.registerSliding(e, this.props.PanelWidth() - 5)}
                     ref={(ele) => {
                         this._afterDropDisposer?.();
                         this._afterDropDisposer = this.createDropTarget(ele, "afterDoc");
                     }}>
-                    {
-                        afterDoc ?
-                            <>
-                                <ContentFittingDocumentView {...this.props}
-                                    Document={afterDoc}
-                                    parentActive={this.props.active}
-                                />
-                                <div className="clear-button after" onClick={e => this.clearDoc(e, "afterDoc")}>
-                                    <FontAwesomeIcon className="clear-button after" icon={faTimes} size="sm" />
-                                </div>
-                            </>
-                            :
-                            <div className="placeholder">
-                                <FontAwesomeIcon className="upload-icon" icon={faCloudUploadAlt} size="lg" />
-                            </div>
-                    }
+                    {afterDoc ? <>
+                        <ContentFittingDocumentView {...this.props}
+                            Document={afterDoc}
+                            pointerEvents={false}
+                            parentActive={this.props.active}
+                        />
+                        <div className="clear-button after" onClick={e => this.clearDoc(e, "afterDoc")}>
+                            <FontAwesomeIcon className="clear-button after" icon={faTimes} size="sm" />
+                        </div>
+                    </> :
+                        <div className="placeholder">
+                            <FontAwesomeIcon className="upload-icon" icon={faCloudUploadAlt} size="lg" />
+                        </div>}
                 </div>
-                <div className="clip-div" style={{ width: clipWidth + "px" }}>
+                <div className="clip-div" onPointerDown={e => this.registerSliding(e, 5)} style={{ width: clipWidth + "px", transition: this._animating ? "all 1s" : undefined }}>
                     {/* wraps around before image and slider bar */}
                     <div
                         className="beforeBox-cont"
@@ -130,6 +130,7 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
                                 <>
                                     <ContentFittingDocumentView {...this.props}
                                         Document={beforeDoc}
+                                        pointerEvents={false}
                                         parentActive={this.props.active} />
                                     <div className="clear-button before" onClick={e => this.clearDoc(e, "beforeDoc")}>
                                         <FontAwesomeIcon className="clear-button before" icon={faTimes} size="sm" />
@@ -143,15 +144,8 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
                     </div>
                 </div>
 
-                <div className="slide-bar" style={{ left: `calc(${NumCast(this.dataDoc.clipWidth) * 100 / this.props.PanelWidth()}% - 5px)` }} onPointerDown={this.registerSliding}>
-                    <div className="slide-handle" >
-                        <div className="left-handle" onClick={() => this.dataDoc.clipWidth = 5}>
-                            <FontAwesomeIcon icon="caret-left" size="lg" />
-                        </div>
-                        <div className="right-handle" onClick={() => this.dataDoc.clipWidth = this.props.PanelWidth() - 5}>
-                            <FontAwesomeIcon icon="caret-right" size="lg" />
-                        </div>
-                    </div>
+                <div className="slide-bar" style={{ left: `calc(${NumCast(this.dataDoc.clipWidth) * 100 / this.props.PanelWidth()}% - 0.5px)` }}>
+                    <div className="slide-handle" />
                 </div>
             </div >);
     }

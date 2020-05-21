@@ -14,7 +14,6 @@ import { List } from "../../../fields/List";
 import { numberRange } from "../../../Utils";
 import { ComputedField } from "../../../fields/ScriptField";
 import { listSpec } from "../../../fields/Schema";
-import { docs } from "googleapis/build/src/apis/docs";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {
     dataProvider?: (doc: Doc, replica: string) => { x: number, y: number, zIndex?: number, opacity?: number, highlight?: boolean, z: number, transition?: string } | undefined;

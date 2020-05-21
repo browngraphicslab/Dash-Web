@@ -1,6 +1,4 @@
 import React = require("react");
-import { library } from '@fortawesome/fontawesome-svg-core';
-import { faPalette } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
@@ -21,8 +19,6 @@ import { SnappingManager } from "../../util/SnappingManager";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
-
-library.add(faPalette);
 
 interface CMVFieldRowProps {
     rows: () => number;
