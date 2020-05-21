@@ -104,7 +104,6 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         if (this.rootDoc.presProgressivize && !rootTarget?.lastTimecode) {
             rootTarget.currentTimecode = 0;
             CollectionFreeFormDocumentView.setupKeyframes(docs, docs.length, this.presBox);
-            docs.forEach((d, i) => numberRange(docs.length - i).forEach(f => Cast(d["opacity-indexed"], listSpec("number"), [])[f + i] = 1));
             rootTarget.lastTimecode = docs.length - 1;
         }
         docs.forEach((d, i) => i && numberRange(i).forEach(f => Cast(d["opacity-indexed"], listSpec("number"), [])[f] = 0));

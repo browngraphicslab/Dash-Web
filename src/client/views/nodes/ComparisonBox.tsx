@@ -1,6 +1,3 @@
-import { library } from '@fortawesome/fontawesome-svg-core';
-import { faEye } from '@fortawesome/free-regular-svg-icons';
-import { faAsterisk, faBrain, faFileAudio, faImage, faPaintBrush, faTimes, faCloudUploadAlt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, runInAction, Lambda, IReactionDisposer } from 'mobx';
 import { observer } from "mobx-react";
@@ -19,9 +16,6 @@ import { setupMoveUpEvents, emptyFunction } from '../../../Utils';
 import { SnappingManager } from '../../util/SnappingManager';
 import { DocumentViewProps } from './DocumentView';
 
-library.add(faImage, faEye as any, faPaintBrush, faBrain);
-library.add(faFileAudio, faAsterisk);
-
 export const comparisonSchema = createSchema({});
 
 type ComparisonDocument = makeInterface<[typeof comparisonSchema, typeof documentSchema]>;
@@ -29,18 +23,16 @@ const ComparisonDocument = makeInterface(comparisonSchema, documentSchema);
 
 @observer
 export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, ComparisonDocument>(ComparisonDocument) {
-    protected multiTouchDisposer?: import("../../util/InteractionUtils").InteractionUtils.MultiTouchEventDisposer | undefined;
-
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(ComparisonBox, fieldKey); }
+    protected multiTouchDisposer?: import("../../util/InteractionUtils").InteractionUtils.MultiTouchEventDisposer | undefined;
+    private _disposers: (DragManager.DragDropDisposer | undefined)[] = [undefined, undefined];
 
     @observable _animating = "";
-    private _beforeDropDisposer?: DragManager.DragDropDisposer;
-    private _afterDropDisposer?: DragManager.DragDropDisposer;
 
-    protected createDropTarget = (ele: HTMLDivElement | null, fieldKey: string, disposer: Opt<DragManager.DragDropDisposer>) => {
-        disposer?.();
+    protected createDropTarget = (ele: HTMLDivElement | null, fieldKey: string, disposerId: number) => {
+        this._disposers[disposerId]?.();
         if (ele) {
-            return DragManager.MakeDropTarget(ele, (event, dropEvent) => this.dropHandler(event, dropEvent, fieldKey), this.layoutDoc);
+            this._disposers[disposerId] = DragManager.MakeDropTarget(ele, (e, dropEvent) => this.dropHandler(e, dropEvent, fieldKey), this.layoutDoc);
         }
     }
 
@@ -74,7 +66,6 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
     @undoBatch
     clearDoc = (e: React.MouseEvent, fieldKey: string) => {
         e.stopPropagation;
-        e.preventDefault;
         delete this.dataDoc[fieldKey];
     }
 
@@ -82,8 +73,8 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
         const clipWidth = NumCast(this.dataDoc.clipWidth) + "%";
         const childProps: DocumentViewProps = { ...this.props, pointerEvents: false, parentActive: this.props.active };
         const clearButton = (which: string) => {
-            return <div className={`clear-button ${which}`} onClick={e => this.clearDoc(e, `${which}Doc`)}>
-                <FontAwesomeIcon className={`clear-button ${which}`} icon={faTimes} size="sm" />
+            return <div className={`clear-button ${which}`} onPointerDown={e => e.stopPropagation()} onClick={e => this.clearDoc(e, `${which}Doc`)}>
+                <FontAwesomeIcon className={`clear-button ${which}`} icon={"times"} size="sm" />
             </div>
         }
         const displayDoc = (which: string) => {
@@ -93,23 +84,22 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
                 {clearButton(which)}
             </> :  // placeholder image if doc is missing
                 <div className="placeholder">
-                    <FontAwesomeIcon className="upload-icon" icon={faCloudUploadAlt} size="lg" />
+                    <FontAwesomeIcon className="upload-icon" icon={"cloud-upload-alt"} size="lg" />
                 </div>
+        }
+        const displayBox = (which: string, index: number, cover: number) => {
+            return <div className={`${which}Box-cont`} key={which} style={{ width: this.props.PanelWidth() }}
+                onPointerDown={e => this.registerSliding(e, cover)}
+                ref={ele => this.createDropTarget(ele, `${which}Doc`, index)} >
+                {displayDoc(which)}
+            </div>;
         }
 
         return (
             <div className={`comparisonBox${this.active() || SnappingManager.GetIsDragging() ? "-interactive" : ""}`}>
-                <div className="afterBox-cont" key={"after"} style={{ width: this.props.PanelWidth() }}
-                    onPointerDown={e => this.registerSliding(e, this.props.PanelWidth() - 5)}
-                    ref={ele => this._afterDropDisposer = this.createDropTarget(ele, "afterDoc", this._afterDropDisposer)} >
-                    {displayDoc("after")}
-                </div>
+                {displayBox("after", 1, this.props.PanelWidth() - 5)}
                 <div className="clip-div" style={{ width: clipWidth, transition: this._animating, background: StrCast(this.layoutDoc._backgroundColor, "gray") }}>
-                    <div className="beforeBox-cont" key={"before"} style={{ width: this.props.PanelWidth() }}
-                        onPointerDown={e => this.registerSliding(e, 5)}
-                        ref={ele => this._beforeDropDisposer = this.createDropTarget(ele, "beforeDoc", this._beforeDropDisposer)} >
-                        {displayDoc("before")}
-                    </div>
+                    {displayBox("before", 0, 5)}
                 </div>
 
                 <div className="slide-bar" style={{ left: `calc(${clipWidth} - 0.5px)` }}>
