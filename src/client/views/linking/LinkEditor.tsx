@@ -3,8 +3,8 @@ import { faArrowLeft, faCog, faEllipsisV, faExchangeAlt, faPlus, faTable, faTime
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, observable } from "mobx";
 import { observer } from "mobx-react";
-import { Doc } from "../../../new_fields/Doc";
-import { StrCast } from "../../../new_fields/Types";
+import { Doc } from "../../../fields/Doc";
+import { StrCast } from "../../../fields/Types";
 import { Utils } from "../../../Utils";
 import { LinkManager } from "../../util/LinkManager";
 import './LinkEditor.scss';

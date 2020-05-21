@@ -1,5 +1,5 @@
 import { docs_v1 } from "googleapis";
-import { Opt } from "../../../new_fields/Doc";
+import { Opt } from "../../../fields/Doc";
 import { isArray } from "util";
 import { EditorState } from "prosemirror-state";
 import { Networking } from "../../Network";

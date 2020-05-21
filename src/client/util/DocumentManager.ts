@@ -1,7 +1,7 @@
 import { action, computed, observable } from 'mobx';
-import { Doc, DocListCastAsync, DocListCast, Opt } from '../../new_fields/Doc';
-import { Id } from '../../new_fields/FieldSymbols';
-import { Cast, NumCast, StrCast } from '../../new_fields/Types';
+import { Doc, DocListCastAsync, DocListCast, Opt } from '../../fields/Doc';
+import { Id } from '../../fields/FieldSymbols';
+import { Cast, NumCast, StrCast } from '../../fields/Types';
 import { CollectionDockingView } from '../views/collections/CollectionDockingView';
 import { CollectionView } from '../views/collections/CollectionView';
 import { DocumentView, DocFocusFunc } from '../views/nodes/DocumentView';

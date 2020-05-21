@@ -3,15 +3,15 @@ import { DocumentView } from "../views/nodes/DocumentView";
 import { UndoManager } from "./UndoManager";
 import * as interpreter from "words-to-numbers";
 import { DocumentType } from "../documents/DocumentTypes";
-import { Doc, Opt } from "../../new_fields/Doc";
-import { List } from "../../new_fields/List";
+import { Doc, Opt } from "../../fields/Doc";
+import { List } from "../../fields/List";
 import { Docs } from "../documents/Documents";
 import { CollectionViewType } from "../views/collections/CollectionView";
-import { Cast, CastCtor } from "../../new_fields/Types";
-import { listSpec } from "../../new_fields/Schema";
-import { AudioField, ImageField } from "../../new_fields/URLField";
+import { Cast, CastCtor } from "../../fields/Types";
+import { listSpec } from "../../fields/Schema";
+import { AudioField, ImageField } from "../../fields/URLField";
 import { Utils } from "../../Utils";
-import { RichTextField } from "../../new_fields/RichTextField";
+import { RichTextField } from "../../fields/RichTextField";
 import { DictationOverlay } from "../views/DictationOverlay";
 
 /**

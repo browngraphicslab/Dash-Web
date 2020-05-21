@@ -1,7 +1,7 @@
 import { computed } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, Opt, Field } from "../../../new_fields/Doc";
-import { Cast, StrCast, NumCast } from "../../../new_fields/Types";
+import { Doc, Opt, Field } from "../../../fields/Doc";
+import { Cast, StrCast, NumCast } from "../../../fields/Types";
 import { OmitKeys, Without, emptyPath } from "../../../Utils";
 import DirectoryImportBox from "../../util/Import & Export/DirectoryImportBox";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
@@ -30,13 +30,14 @@ import { DashWebRTCVideo } from "../webcam/DashWebRTCVideo";
 import { LinkAnchorBox } from "./LinkAnchorBox";
 import { PresElementBox } from "../presentationview/PresElementBox";
 import { ScreenshotBox } from "./ScreenshotBox";
+import { ComparisonBox } from "./ComparisonBox";
 import { VideoBox } from "./VideoBox";
 import { WebBox } from "./WebBox";
 import { InkingStroke } from "../InkingStroke";
 import React = require("react");
 import { RecommendationsBox } from "../RecommendationsBox";
-import { TraceMobx } from "../../../new_fields/util";
-import { ScriptField } from "../../../new_fields/ScriptField";
+import { TraceMobx } from "../../../fields/util";
+import { ScriptField } from "../../../fields/ScriptField";
 import XRegExp = require("xregexp");
 
 const JsxParser = require('react-jsx-parser').default; //TODO Why does this need to be imported like this?
@@ -194,7 +195,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
                     CollectionFreeFormView, CollectionDockingView, CollectionSchemaView, CollectionView, WebBox, KeyValueBox,
                     PDFBox, VideoBox, AudioBox, PresBox, YoutubeBox, PresElementBox, QueryBox,
                     ColorBox, DashWebRTCVideo, LinkAnchorBox, InkingStroke, DocHolderBox, LinkBox, ScriptingBox,
-                    RecommendationsBox, ScreenshotBox, HTMLtag
+                    RecommendationsBox, ScreenshotBox, HTMLtag, ComparisonBox
                 }}
                 bindings={bindings}
                 jsx={layoutFrame}

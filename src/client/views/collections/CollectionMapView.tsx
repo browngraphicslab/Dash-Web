@@ -1,10 +1,10 @@
-import { GoogleApiWrapper, Map as GeoMap, MapProps as IMapProps, Marker } from "google-maps-react";
+import { GoogleApiWrapper, Map as GeoMap, IMapProps, Marker } from "google-maps-react";
 import { observer } from "mobx-react";
-import { Doc, Opt, DocListCast, FieldResult, Field } from "../../../new_fields/Doc";
-import { documentSchema } from "../../../new_fields/documentSchemas";
-import { Id } from "../../../new_fields/FieldSymbols";
-import { makeInterface } from "../../../new_fields/Schema";
-import { Cast, NumCast, ScriptCast, StrCast } from "../../../new_fields/Types";
+import { Doc, Opt, DocListCast, FieldResult, Field } from "../../../fields/Doc";
+import { documentSchema } from "../../../fields/documentSchemas";
+import { Id } from "../../../fields/FieldSymbols";
+import { makeInterface } from "../../../fields/Schema";
+import { Cast, NumCast, ScriptCast, StrCast } from "../../../fields/Types";
 import "./CollectionMapView.scss";
 import { CollectionSubView } from "./CollectionSubView";
 import React = require("react");
@@ -226,7 +226,7 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<IMapProps> 
                     initialCenter={center}
                     center={center}
                     onIdle={(_props?: IMapProps, map?: google.maps.Map) => {
-                        if (this.layoutDoc.lockedTransform) {
+                        if (this.layoutDoc._lockedTransform) {
                             // reset zoom (ideally, we could probably can tell the map to disallow zooming somehow instead)
                             map?.setZoom(center?.zoom || 10);
                             map?.setCenter({ lat: center?.lat!, lng: center?.lng! });
@@ -238,7 +238,7 @@ class CollectionMapView extends CollectionSubView<MapSchema, Partial<IMapProps> 
                         }
                     }}
                     onDragend={(_props?: IMapProps, map?: google.maps.Map) => {
-                        if (this.layoutDoc.lockedTransform) {
+                        if (this.layoutDoc._lockedTransform) {
                             // reset the drag (ideally, we could probably can tell the map to disallow dragging somehow instead)
                             map?.setCenter({ lat: center?.lat!, lng: center?.lng! });
                         } else {

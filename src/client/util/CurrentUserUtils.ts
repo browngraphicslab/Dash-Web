@@ -4,23 +4,23 @@ import { Utils } from "../../Utils";
 import { DocServer } from "../DocServer";
 import { Docs, DocumentOptions } from "../documents/Documents";
 import { UndoManager } from "./UndoManager";
-import { Doc, DocListCast, DocListCastAsync } from "../../new_fields/Doc";
-import { List } from "../../new_fields/List";
-import { listSpec } from "../../new_fields/Schema";
-import { ScriptField, ComputedField } from "../../new_fields/ScriptField";
-import { Cast, PromiseValue, StrCast, NumCast } from "../../new_fields/Types";
-import { nullAudio } from "../../new_fields/URLField";
+import { Doc, DocListCast, DocListCastAsync } from "../../fields/Doc";
+import { List } from "../../fields/List";
+import { listSpec } from "../../fields/Schema";
+import { ScriptField, ComputedField } from "../../fields/ScriptField";
+import { Cast, PromiseValue, StrCast, NumCast } from "../../fields/Types";
+import { nullAudio } from "../../fields/URLField";
 import { DragManager } from "./DragManager";
 import { InkingControl } from "../views/InkingControl";
 import { Scripting } from "./Scripting";
 import { CollectionViewType } from "../views/collections/CollectionView";
 import { makeTemplate } from "./DropConverter";
-import { RichTextField } from "../../new_fields/RichTextField";
-import { PrefetchProxy } from "../../new_fields/Proxy";
+import { RichTextField } from "../../fields/RichTextField";
+import { PrefetchProxy } from "../../fields/Proxy";
 import { FormattedTextBox } from "../views/nodes/formattedText/FormattedTextBox";
 import { MainView } from "../views/MainView";
 import { DocumentType } from "../documents/DocumentTypes";
-import { SchemaHeaderField } from "../../new_fields/SchemaHeaderField";
+import { SchemaHeaderField } from "../../fields/SchemaHeaderField";
 import { DimUnit } from "../views/collections/collectionMulticolumn/CollectionMulticolumnView";
 
 export class CurrentUserUtils {
@@ -317,9 +317,10 @@ export class CurrentUserUtils {
                 { _width: 250, _height: 250, title: "container" });
         }
         if (doc.emptyWebpage === undefined) {
-            doc.emptyWebpage = Docs.Create.WebDocument("", { title: "New Webpage", _width: 600, UseCors: true });
+            doc.emptyWebpage = Docs.Create.WebDocument("", { title: "New Webpage", _nativeWidth: 850, _nativeHeight: 962, _width: 600, UseCors: true });
         }
         return [
+            { title: "Drag a comparison box", label: "Comp", icon: "columns", ignoreClick: true, drag: 'Docs.Create.ComparisonDocument()' },
             { title: "Drag a collection", label: "Col", icon: "folder", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyCollection as Doc },
             { title: "Drag a web page", label: "Web", icon: "globe-asia", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyWebpage as Doc },
             { title: "Drag a cat image", label: "Img", icon: "cat", ignoreClick: true, drag: 'Docs.Create.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", { _width: 250, _nativeWidth:250, title: "an image of a cat" })' },

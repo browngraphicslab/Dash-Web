@@ -1,12 +1,12 @@
 import React = require("react");
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
+import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, DocCastAsync } from "../../../new_fields/Doc";
-import { InkTool } from "../../../new_fields/InkField";
-import { BoolCast, Cast, NumCast, StrCast } from "../../../new_fields/Types";
-import { returnFalse } from "../../../Utils";
-import { documentSchema } from "../../../new_fields/documentSchemas";
+import { Doc, DocListCast, DocCastAsync } from "../../../fields/Doc";
+import { InkTool } from "../../../fields/InkField";
+import { BoolCast, Cast, NumCast, StrCast } from "../../../fields/Types";
+import { returnFalse, returnOne } from "../../../Utils";
+import { documentSchema } from "../../../fields/documentSchemas";
 import { DocumentManager } from "../../util/DocumentManager";
 import { undoBatch } from "../../util/UndoManager";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
@@ -15,11 +15,10 @@ import { InkingControl } from "../InkingControl";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./PresBox.scss";
 import { ViewBoxBaseComponent } from "../DocComponent";
-import { makeInterface } from "../../../new_fields/Schema";
-import { List } from "../../../new_fields/List";
+import { makeInterface } from "../../../fields/Schema";
 import { Docs } from "../../documents/Documents";
-import { PrefetchProxy } from "../../../new_fields/Proxy";
-import { ScriptField } from "../../../new_fields/ScriptField";
+import { PrefetchProxy } from "../../../fields/Proxy";
+import { ScriptField } from "../../../fields/ScriptField";
 import { Scripting } from "../../util/Scripting";
 
 type PresBoxSchema = makeInterface<[typeof documentSchema]>;
@@ -59,7 +58,13 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
     @action
     next = () => {
         this.updateCurrentPresentation();
-        if (this.childDocs[this.itemIndex + 1] !== undefined) {
+        const presTargetDoc = Cast(this.childDocs[this.itemIndex].presentationTargetDoc, Doc, null);
+        const lastFrame = Cast(presTargetDoc.lastTimecode, "number", null);
+        const curFrame = NumCast(presTargetDoc.currentTimecode);
+        if (lastFrame !== undefined && curFrame < lastFrame) {
+            presTargetDoc.currentTimecode = curFrame + 1;
+        }
+        else if (this.childDocs[this.itemIndex + 1] !== undefined) {
             let nextSelected = this.itemIndex + 1;
             this.gotoDocument(nextSelected, this.itemIndex);
 
@@ -188,11 +193,15 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
 
     //The function that is called when a document is clicked or reached through next or back.
     //it'll also execute the necessary actions if presentation is playing.
-    public gotoDocument = (index: number, fromDoc: number) => {
+    public gotoDocument = action((index: number, fromDoc: number) => {
         this.updateCurrentPresentation();
         Doc.UnBrushAllDocs();
         if (index >= 0 && index < this.childDocs.length) {
             this.rootDoc._itemIndex = index;
+            const presTargetDoc = Cast(this.childDocs[this.itemIndex].presentationTargetDoc, Doc, null);
+            if (presTargetDoc.lastTimecode !== undefined) {
+                presTargetDoc.currentTimecode = 0;
+            }
 
             if (!this.layoutDoc.presStatus) {
                 this.layoutDoc.presStatus = true;
@@ -203,7 +212,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             this.hideIfNotPresented(index);
             this.showAfterPresented(index);
         }
-    }
+    });
 
     //The function that starts or resets presentaton functionally, depending on status flag.
     startOrResetPres = () => {
@@ -286,7 +295,12 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         (this.layoutDoc.forceActive || this.props.isSelected(outsideReaction) || this._isChildActive || this.props.renderDepth === 0) ? true : false)
 
     render() {
-        this.rootDoc.presOrderedDocs = new List<Doc>(this.childDocs.map((child, i) => child));
+        // console.log("render = " + this.layoutDoc.title + " " + this.layoutDoc.presStatus);
+        // const presOrderedDocs = DocListCast(this.rootDoc.presOrderedDocs);
+        // if (presOrderedDocs.length != this.childDocs.length || presOrderedDocs.some((pd, i) => pd !== this.childDocs[i])) {
+        //     this.rootDoc.presOrderedDocs = new List<Doc>(this.childDocs.slice());
+        // }
+        this.childDocs.slice(); // needed to insure that the childDocs are loaded for looking up fields 
         const mode = StrCast(this.rootDoc._viewType) as CollectionViewType;
         return <div className="presBox-cont" style={{ minWidth: this.layoutDoc.inOverlay ? 240 : undefined }} >
             <div className="presBox-buttons" style={{ display: this.rootDoc._chromeStatus === "disabled" ? "none" : undefined }}>
@@ -316,6 +330,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
                         PanelWidth={this.props.PanelWidth}
                         PanelHeight={this.panelHeight}
                         moveDocument={returnFalse}
+                        childOpacity={returnOne}
                         childLayoutTemplate={this.childLayoutTemplate}
                         filterAddDocument={this.addDocumentFilter}
                         removeDocument={returnFalse}
@@ -333,5 +348,6 @@ Scripting.addGlobal(function lookupPresBoxField(container: Doc, field: string, d
     if (field === 'presCollapsedHeight') return container._viewType === CollectionViewType.Stacking ? 50 : 46;
     if (field === 'presStatus') return container.presStatus;
     if (field === '_itemIndex') return container._itemIndex;
+    if (field === 'presBox') return container;
     return undefined;
 });

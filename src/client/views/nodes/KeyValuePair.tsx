@@ -1,6 +1,6 @@
 import { action, observable } from 'mobx';
 import { observer } from "mobx-react";
-import { Doc, Field, Opt } from '../../../new_fields/Doc';
+import { Doc, Field, Opt } from '../../../fields/Doc';
 import { emptyFunction, returnFalse, returnOne, returnZero } from '../../../Utils';
 import { Docs } from '../../documents/Documents';
 import { Transform } from '../../util/Transform';

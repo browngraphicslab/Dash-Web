@@ -3,10 +3,10 @@ import { faCaretUp, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faT
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DataSym, Field, WidthSym, HeightSym } from "../../new_fields/Doc";
-import { Document } from '../../new_fields/documentSchemas';
-import { ScriptField } from '../../new_fields/ScriptField';
-import { Cast, StrCast, NumCast } from "../../new_fields/Types";
+import { Doc, DataSym, Field, WidthSym, HeightSym } from "../../fields/Doc";
+import { Document } from '../../fields/documentSchemas';
+import { ScriptField } from '../../fields/ScriptField';
+import { Cast, StrCast, NumCast } from "../../fields/Types";
 import { Utils, setupMoveUpEvents, emptyFunction, returnFalse, simulateMouseClick } from "../../Utils";
 import { DocUtils } from "../documents/Documents";
 import { DocumentType } from '../documents/DocumentTypes';
@@ -17,10 +17,11 @@ import { DocumentButtonBar } from './DocumentButtonBar';
 import './DocumentDecorations.scss';
 import { DocumentView } from "./nodes/DocumentView";
 import React = require("react");
-import { Id } from '../../new_fields/FieldSymbols';
+import { Id } from '../../fields/FieldSymbols';
 import e = require('express');
 import { CollectionDockingView } from './collections/CollectionDockingView';
 import { SnappingManager } from '../util/SnappingManager';
+import { HtmlField } from '../../fields/HtmlField';
 
 library.add(faCaretUp);
 library.add(faObjectGroup);
@@ -266,16 +267,16 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         const fixedAspect = first.layoutDoc._nativeWidth ? NumCast(first.layoutDoc._nativeWidth) / NumCast(first.layoutDoc._nativeHeight) : 0;
         if (fixedAspect && (this._resizeHdlId === "documentDecorations-bottomRightResizer" || this._resizeHdlId === "documentDecorations-topLeftResizer")) { // need to generalize for bl and tr drag handles
             const project = (p: number[], a: number[], b: number[]) => {
-                var atob = [b[0] - a[0], b[1] - a[1]];
-                var atop = [p[0] - a[0], p[1] - a[1]];
-                var len = atob[0] * atob[0] + atob[1] * atob[1];
-                var dot = atop[0] * atob[0] + atop[1] * atob[1];
-                var t = dot / len;
+                const atob = [b[0] - a[0], b[1] - a[1]];
+                const atop = [p[0] - a[0], p[1] - a[1]];
+                const len = atob[0] * atob[0] + atob[1] * atob[1];
+                let dot = atop[0] * atob[0] + atop[1] * atob[1];
+                const t = dot / len;
                 dot = (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]);
                 return [a[0] + atob[0] * t, a[1] + atob[1] * t];
-            }
+            };
             const tl = first.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
-            const drag = project([e.clientX + this._offX, e.clientY + this._offY], tl, [tl[0] + fixedAspect, tl[1] + 1])
+            const drag = project([e.clientX + this._offX, e.clientY + this._offY], tl, [tl[0] + fixedAspect, tl[1] + 1]);
             thisPt = DragManager.snapDragAspect(drag, fixedAspect);
         } else {
             thisPt = DragManager.snapDrag(e, -this._offX, -this._offY, this._offX, this._offY);
@@ -289,7 +290,10 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         let dX = 0, dY = 0, dW = 0, dH = 0;
         const unfreeze = () =>
             SelectionManager.SelectedDocuments().forEach(action((element: DocumentView) =>
-                (element.rootDoc.type === DocumentType.RTF && element.layoutDoc._nativeHeight) && element.toggleNativeDimensions()));
+                ((element.rootDoc.type === DocumentType.RTF ||
+                    element.rootDoc.type === DocumentType.COMPARISON ||
+                    (element.rootDoc.type === DocumentType.WEB && Doc.LayoutField(element.rootDoc) instanceof HtmlField))
+                    && element.layoutDoc._nativeHeight) && element.toggleNativeDimensions()));
         switch (this._resizeHdlId) {
             case "": break;
             case "documentDecorations-topLeftResizer":
@@ -476,12 +480,14 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
                     <FontAwesomeIcon size="lg" color={SelectionManager.SelectedDocuments()[0].props.Document.title === SelectionManager.SelectedDocuments()[0].props.Document[Id] ? "green" : undefined} icon="sticky-note"></FontAwesomeIcon>
                 </div>}
             </> :
-            <div className="documentDecorations-title" onPointerDown={this.onTitleDown} >
-                {minimal ? (null) : <div className="documentDecorations-contextMenu" title="Show context menu" onPointerDown={this.onSettingsDown}>
+            <>
+                {minimal ? (null) : <div className="documentDecorations-contextMenu" key="menu" title="Show context menu" onPointerDown={this.onSettingsDown}>
                     <FontAwesomeIcon size="lg" icon="cog" />
                 </div>}
-                <span style={{ width: "calc(100% - 25px)", display: "inline-block" }}>{`${this.selectionTitle}`}</span>
-            </div>;
+                <div className="documentDecorations-title" key="title" onPointerDown={this.onTitleDown} >
+                    <span style={{ width: "calc(100% - 25px)", display: "inline-block" }}>{`${this.selectionTitle}`}</span>
+                </div>
+            </>;
 
         bounds.x = Math.max(0, bounds.x - this._resizeBorderWidth / 2) + this._resizeBorderWidth / 2;
         bounds.y = Math.max(0, bounds.y - this._resizeBorderWidth / 2 - this._titleHeight) + this._resizeBorderWidth / 2 + this._titleHeight;

@@ -138,9 +138,10 @@ $linkGap : 3px;
     .documentDecorations-contextMenu {
         width: 25px;
         height: calc(100% + 8px); // 8px for the height of the top resizer bar
-        grid-column-start: 1;
+        grid-column-start: 2;
         grid-column-end : 2;
         pointer-events: all;
+        padding-left: 5px;
     }
     .documentDecorations-title {
         opacity: 1;
@@ -185,9 +186,12 @@ $linkGap : 3px;
     position: absolute;
     left: 0px;
     top: 0px;
-    width: $MINIMIZED_ICON_SIZE;
+    width: 8px;
     height: $MINIMIZED_ICON_SIZE;
     max-height: 20px;
+    > svg {
+        margin:0;
+    }
 }
 
 .documentDecorations-background {

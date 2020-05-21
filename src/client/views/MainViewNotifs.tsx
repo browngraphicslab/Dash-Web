@@ -2,7 +2,7 @@ import { action, computed, observable } from 'mobx';
 import { observer } from 'mobx-react';
 import "normalize.css";
 import * as React from 'react';
-import { Doc, DocListCast, Opt } from '../../new_fields/Doc';
+import { Doc, DocListCast, Opt } from '../../fields/Doc';
 import { emptyFunction } from '../../Utils';
 import { SetupDrag } from '../util/DragManager';
 import "./MainViewNotifs.scss";

@@ -1,8 +1,8 @@
 import * as React from "react";
 import { observer } from "mobx-react";
 import { observable, action } from "mobx";
-import { Doc } from "../../../../new_fields/Doc";
-import { NumCast, StrCast } from "../../../../new_fields/Types";
+import { Doc } from "../../../../fields/Doc";
+import { NumCast, StrCast } from "../../../../fields/Types";
 import { DimUnit } from "./CollectionMulticolumnView";
 import { UndoManager } from "../../../util/UndoManager";
 

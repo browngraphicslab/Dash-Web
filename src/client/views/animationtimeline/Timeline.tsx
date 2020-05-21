@@ -1,12 +1,12 @@
 import * as React from "react";
 import "./Timeline.scss";
-import { listSpec } from "../../../new_fields/Schema";
+import { listSpec } from "../../../fields/Schema";
 import { observer } from "mobx-react";
 import { Track } from "./Track";
 import { observable, action, computed, runInAction, IReactionDisposer, reaction, trace } from "mobx";
-import { Cast, NumCast, StrCast, BoolCast } from "../../../new_fields/Types";
-import { List } from "../../../new_fields/List";
-import { Doc, DocListCast } from "../../../new_fields/Doc";
+import { Cast, NumCast, StrCast, BoolCast } from "../../../fields/Types";
+import { List } from "../../../fields/List";
+import { Doc, DocListCast } from "../../../fields/Doc";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlayCircle, faBackward, faForward, faGripLines, faPauseCircle, faEyeSlash, faEye, faCheckCircle, faTimesCircle } from "@fortawesome/free-solid-svg-icons";
 import { ContextMenu } from "../ContextMenu";

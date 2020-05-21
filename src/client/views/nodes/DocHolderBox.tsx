@@ -1,12 +1,12 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, IReactionDisposer, reaction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, Field } from "../../../new_fields/Doc";
-import { collectionSchema, documentSchema } from "../../../new_fields/documentSchemas";
-import { makeInterface, listSpec } from "../../../new_fields/Schema";
-import { ComputedField } from "../../../new_fields/ScriptField";
-import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
-import { TraceMobx } from "../../../new_fields/util";
+import { Doc, Field } from "../../../fields/Doc";
+import { collectionSchema, documentSchema } from "../../../fields/documentSchemas";
+import { makeInterface, listSpec } from "../../../fields/Schema";
+import { ComputedField } from "../../../fields/ScriptField";
+import { Cast, NumCast, StrCast } from "../../../fields/Types";
+import { TraceMobx } from "../../../fields/util";
 import { emptyPath, returnFalse, returnOne, returnZero } from "../../../Utils";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { DragManager } from "../../util/DragManager";

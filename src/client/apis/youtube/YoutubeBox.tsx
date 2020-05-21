@@ -1,7 +1,7 @@
 import { action, observable, runInAction } from 'mobx';
 import { observer } from "mobx-react";
-import { Doc, DocListCastAsync } from "../../../new_fields/Doc";
-import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
+import { Doc, DocListCastAsync } from "../../../fields/Doc";
+import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { Docs } from "../../documents/Documents";

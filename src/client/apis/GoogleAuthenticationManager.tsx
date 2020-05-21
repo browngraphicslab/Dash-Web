@@ -2,7 +2,7 @@ import { observable, action, reaction, runInAction, IReactionDisposer } from "mo
 import { observer } from "mobx-react";
 import * as React from "react";
 import MainViewModal from "../views/MainViewModal";
-import { Opt } from "../../new_fields/Doc";
+import { Opt } from "../../fields/Doc";
 import { Networking } from "../Network";
 import "./GoogleAuthenticationManager.scss";
 import { Scripting } from "../util/Scripting";

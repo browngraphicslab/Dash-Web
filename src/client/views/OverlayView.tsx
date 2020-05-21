@@ -1,9 +1,9 @@
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import * as React from "react";
-import { Doc, DocListCast, Opt } from "../../new_fields/Doc";
-import { Id } from "../../new_fields/FieldSymbols";
-import { NumCast } from "../../new_fields/Types";
+import { Doc, DocListCast, Opt } from "../../fields/Doc";
+import { Id } from "../../fields/FieldSymbols";
+import { NumCast } from "../../fields/Types";
 import { emptyFunction, emptyPath, returnEmptyString, returnFalse, returnOne, returnTrue, returnZero, Utils } from "../../Utils";
 import { Transform } from "../util/Transform";
 import { CollectionFreeFormLinksView } from "./collections/collectionFreeForm/CollectionFreeFormLinksView";

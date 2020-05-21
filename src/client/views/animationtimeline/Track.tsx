@@ -1,12 +1,12 @@
 import { action, computed, intercept, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import * as React from "react";
-import { Doc, DocListCast, Opt, DocListCastAsync } from "../../../new_fields/Doc";
-import { Copy } from "../../../new_fields/FieldSymbols";
-import { List } from "../../../new_fields/List";
-import { ObjectField } from "../../../new_fields/ObjectField";
-import { listSpec } from "../../../new_fields/Schema";
-import { Cast, NumCast } from "../../../new_fields/Types";
+import { Doc, DocListCast, Opt, DocListCastAsync } from "../../../fields/Doc";
+import { Copy } from "../../../fields/FieldSymbols";
+import { List } from "../../../fields/List";
+import { ObjectField } from "../../../fields/ObjectField";
+import { listSpec } from "../../../fields/Schema";
+import { Cast, NumCast } from "../../../fields/Types";
 import { Transform } from "../../util/Transform";
 import { Keyframe, KeyframeFunc, RegionData } from "./Keyframe";
 import "./Track.scss";

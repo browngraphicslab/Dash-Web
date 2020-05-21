@@ -1,12 +1,12 @@
 import { action, observable, runInAction } from "mobx";
-import { DateField } from "../../new_fields/DateField";
-import { Doc, Field, Opt } from "../../new_fields/Doc";
-import { List } from "../../new_fields/List";
-import { PrefetchProxy } from "../../new_fields/Proxy";
-import { listSpec } from "../../new_fields/Schema";
-import { SchemaHeaderField } from "../../new_fields/SchemaHeaderField";
-import { ScriptField } from "../../new_fields/ScriptField";
-import { Cast, NumCast, ScriptCast, StrCast } from "../../new_fields/Types";
+import { DateField } from "../../fields/DateField";
+import { Doc, Field, Opt } from "../../fields/Doc";
+import { List } from "../../fields/List";
+import { PrefetchProxy } from "../../fields/Proxy";
+import { listSpec } from "../../fields/Schema";
+import { SchemaHeaderField } from "../../fields/SchemaHeaderField";
+import { ScriptField } from "../../fields/ScriptField";
+import { Cast, NumCast, ScriptCast, StrCast } from "../../fields/Types";
 import { emptyFunction } from "../../Utils";
 import { Docs, DocUtils } from "../documents/Documents";
 import * as globalCssVariables from "../views/globalCssVariables.scss";
@@ -263,16 +263,16 @@ export namespace DragManager {
             const denominator = ((y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1));
             if (denominator === 0) return undefined;  // Lines are parallel
 
-            let ua = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) / denominator;
+            const ua = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) / denominator;
             // let ub = ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) / denominator;
             //if (ua < 0 || ua > 1 || ub < 0 || ub > 1)  return undefined;  // is the intersection along the segments
 
             // Return a object with the x and y coordinates of the intersection
-            let x = x1 + ua * (x2 - x1)
-            let y = y1 + ua * (y2 - y1)
+            const x = x1 + ua * (x2 - x1);
+            const y = y1 + ua * (y2 - y1);
             const dist = Math.sqrt((dragx - x) * (dragx - x) + (dragy - y) * (dragy - y));
-            return { pt: [x, y], dist }
-        }
+            return { pt: [x, y], dist };
+        };
         SnappingManager.vertSnapLines().forEach((xCoord, i) => {
             const pt = intersect(dragPt[0], dragPt[1], dragPt[0] + snapAspect, dragPt[1] + 1, xCoord, -1, xCoord, 1, dragPt[0], dragPt[1]);
             if (pt && pt.dist < closest) {

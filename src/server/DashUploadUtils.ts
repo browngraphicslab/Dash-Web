@@ -4,7 +4,7 @@ import * as path from 'path';
 import * as sharp from 'sharp';
 import request = require('request-promise');
 import { ExifImage } from 'exif';
-import { Opt } from '../new_fields/Doc';
+import { Opt } from '../fields/Doc';
 import { AcceptibleMedia, Upload } from './SharedMediaTypes';
 import { filesDirectory, publicDirectory } from '.';
 import { File } from 'formidable';
@@ -257,7 +257,7 @@ export namespace DashUploadUtils {
         });
     }
 
-    function getAccessPaths(directory: Directory, fileName: string) {
+    export function getAccessPaths(directory: Directory, fileName: string) {
         return {
             client: clientPathToFile(directory, fileName),
             server: serverPathToFile(directory, fileName)

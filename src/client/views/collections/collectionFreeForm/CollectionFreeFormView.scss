@@ -41,6 +41,24 @@
     // touch action none means that the browser will handle none of the touch actions. this allows us to implement our own actions.
     touch-action: none;
 
+    .fwdKeyframe, .numKeyframe, .backKeyframe{
+        cursor: pointer;
+        position: absolute;
+        width: 20;
+        height:20;
+        bottom:0;
+        background:gray;
+    }
+    .backKeyframe {
+        right:45;
+    }
+    .numKeyframe {
+        right:25;
+    }
+    .fwdKeyframe {
+        right:5;
+    }
+
     .collectionfreeformview-placeholder {
         background: gray;
         width: 100%;

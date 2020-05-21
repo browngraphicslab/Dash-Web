@@ -4,14 +4,14 @@ import { CursorProperty } from "csstype";
 import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import Switch from 'rc-switch';
-import { DataSym, Doc, HeightSym, WidthSym } from "../../../new_fields/Doc";
-import { collectionSchema, documentSchema } from "../../../new_fields/documentSchemas";
-import { Id } from "../../../new_fields/FieldSymbols";
-import { List } from "../../../new_fields/List";
-import { listSpec, makeInterface } from "../../../new_fields/Schema";
-import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
-import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from "../../../new_fields/Types";
-import { TraceMobx } from "../../../new_fields/util";
+import { DataSym, Doc, HeightSym, WidthSym } from "../../../fields/Doc";
+import { collectionSchema, documentSchema } from "../../../fields/documentSchemas";
+import { Id } from "../../../fields/FieldSymbols";
+import { List } from "../../../fields/List";
+import { listSpec, makeInterface } from "../../../fields/Schema";
+import { SchemaHeaderField } from "../../../fields/SchemaHeaderField";
+import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from "../../../fields/Types";
+import { TraceMobx } from "../../../fields/util";
 import { emptyFunction, returnFalse, returnOne, returnZero, setupMoveUpEvents, Utils, smoothScroll } from "../../../Utils";
 import { DragManager, dropActionType } from "../../util/DragManager";
 import { Transform } from "../../util/Transform";
@@ -26,6 +26,7 @@ import { CollectionStackingViewFieldColumn } from "./CollectionStackingViewField
 import { CollectionSubView } from "./CollectionSubView";
 import { CollectionViewType } from "./CollectionView";
 import { SnappingManager } from "../../util/SnappingManager";
+import { CollectionFreeFormDocumentView } from "../nodes/CollectionFreeFormDocumentView";
 const _global = (window /* browser */ || global /* node */) as any;
 
 type StackingDocument = makeInterface<[typeof collectionSchema, typeof documentSchema]>;
@@ -191,8 +192,8 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
     }
 
     getDisplayDoc(doc: Doc, dataDoc: Doc | undefined, dxf: () => Transform, width: () => number) {
-        const layoutDoc = Doc.Layout(doc, this.props.ChildLayoutTemplate?.());
         const height = () => this.getDocHeight(doc);
+        const opacity = () => this.Document.currentTimecode === undefined ? this.props.childOpacity?.() : CollectionFreeFormDocumentView.getValues(doc, this.Document.currentTimecode || 0)?.opacity;
         return <ContentFittingDocumentView
             Document={doc}
             DataDoc={dataDoc || (doc[DataSym] !== doc && doc[DataSym])}
@@ -213,6 +214,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
             onClick={this.onChildClickHandler}
             onDoubleClick={this.onChildDoubleClickHandler}
             ScreenToLocalTransform={dxf}
+            opacity={opacity}
             focus={this.focusDocument}
             ContainingCollectionDoc={this.props.CollectionView?.props.Document}
             ContainingCollectionView={this.props.CollectionView}

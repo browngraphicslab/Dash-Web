@@ -9,14 +9,14 @@ import { ScriptingBox } from "../views/nodes/ScriptingBox";
 import { VideoBox } from "../views/nodes/VideoBox";
 import { WebBox } from "../views/nodes/WebBox";
 import { OmitKeys, JSONUtils, Utils } from "../../Utils";
-import { Field, Doc, Opt, DocListCastAsync, FieldResult, DocListCast } from "../../new_fields/Doc";
-import { ImageField, VideoField, AudioField, PdfField, WebField, YoutubeField } from "../../new_fields/URLField";
-import { HtmlField } from "../../new_fields/HtmlField";
-import { List } from "../../new_fields/List";
-import { Cast, NumCast, StrCast } from "../../new_fields/Types";
+import { Field, Doc, Opt, DocListCastAsync, FieldResult, DocListCast } from "../../fields/Doc";
+import { ImageField, VideoField, AudioField, PdfField, WebField, YoutubeField } from "../../fields/URLField";
+import { HtmlField } from "../../fields/HtmlField";
+import { List } from "../../fields/List";
+import { Cast, NumCast, StrCast } from "../../fields/Types";
 import { DocServer } from "../DocServer";
 import { dropActionType } from "../util/DragManager";
-import { DateField } from "../../new_fields/DateField";
+import { DateField } from "../../fields/DateField";
 import { YoutubeBox } from "../apis/youtube/YoutubeBox";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import { LinkManager } from "../util/LinkManager";
@@ -26,10 +26,10 @@ import { Scripting } from "../util/Scripting";
 import { LabelBox } from "../views/nodes/LabelBox";
 import { SliderBox } from "../views/nodes/SliderBox";
 import { FontIconBox } from "../views/nodes/FontIconBox";
-import { SchemaHeaderField } from "../../new_fields/SchemaHeaderField";
+import { SchemaHeaderField } from "../../fields/SchemaHeaderField";
 import { PresBox } from "../views/nodes/PresBox";
-import { ComputedField, ScriptField } from "../../new_fields/ScriptField";
-import { ProxyField } from "../../new_fields/Proxy";
+import { ComputedField, ScriptField } from "../../fields/ScriptField";
+import { ProxyField } from "../../fields/Proxy";
 import { DocumentType } from "./DocumentTypes";
 import { RecommendationsBox } from "../views/RecommendationsBox";
 import { PresElementBox } from "../views/presentationview/PresElementBox";
@@ -39,15 +39,16 @@ import { ColorBox } from "../views/nodes/ColorBox";
 import { LinkAnchorBox } from "../views/nodes/LinkAnchorBox";
 import { DocHolderBox } from "../views/nodes/DocHolderBox";
 import { InkingStroke } from "../views/InkingStroke";
-import { InkField } from "../../new_fields/InkField";
+import { InkField } from "../../fields/InkField";
 import { InkingControl } from "../views/InkingControl";
-import { RichTextField } from "../../new_fields/RichTextField";
+import { RichTextField } from "../../fields/RichTextField";
 import { extname } from "path";
 import { MessageStore } from "../../server/Message";
 import { ContextMenuProps } from "../views/ContextMenuItem";
 import { ContextMenu } from "../views/ContextMenu";
 import { LinkBox } from "../views/nodes/LinkBox";
 import { ScreenshotBox } from "../views/nodes/ScreenshotBox";
+import { ComparisonBox } from "../views/nodes/ComparisonBox";
 const path = require('path');
 
 export interface DocumentOptions {
@@ -112,7 +113,7 @@ export interface DocumentOptions {
     caption?: RichTextField;
     ignoreClick?: boolean;
     lockedPosition?: boolean; // lock the x,y coordinates of the document so that it can't be dragged
-    lockedTransform?: boolean; // lock the panx,pany and scale parameters of the document so that it be panned/zoomed
+    _lockedTransform?: boolean; // lock the panx,pany and scale parameters of the document so that it be panned/zoomed
     isAnnotating?: boolean; // whether we web document is annotation mode where links can't be clicked to allow annotations to be created
     opacity?: number;
     defaultBackgroundColor?: string;
@@ -296,6 +297,9 @@ export namespace Docs {
             }],
             [DocumentType.SCREENSHOT, {
                 layout: { view: ScreenshotBox, dataField: defaultDataKey },
+            }],
+            [DocumentType.COMPARISON, {
+                layout: { view: ComparisonBox, dataField: defaultDataKey },
             }],
         ]);
 
@@ -554,6 +558,10 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.SCREENSHOT), "", options);
         }
 
+        export function ComparisonDocument(options: DocumentOptions = { title: "Comparison Box" }) {
+            return InstanceFromProto(Prototypes.get(DocumentType.COMPARISON), "", { targetDropAction: "alias", ...options });
+        }
+
         export function AudioDocument(url: string, options: DocumentOptions = {}) {
             const instance = InstanceFromProto(Prototypes.get(DocumentType.AUDIO), new AudioField(new URL(url)), options);
             Doc.GetProto(instance).backgroundColor = ComputedField.MakeFunction("this._audioState === 'playing' ? 'green':'gray'");
@@ -635,7 +643,7 @@ export namespace Docs {
         }
 
         export function WebDocument(url: string, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.WEB), url ? new WebField(new URL(url)) : undefined, { _fitWidth: true, _chromeStatus: url ? "disabled" : "enabled", isAnnotating: true, lockedTransform: true, ...options });
+            return InstanceFromProto(Prototypes.get(DocumentType.WEB), url ? new WebField(new URL(url)) : undefined, { _fitWidth: true, _chromeStatus: url ? "disabled" : "enabled", isAnnotating: true, _lockedTransform: true, ...options });
         }
 
         export function HtmlDocument(html: string, options: DocumentOptions = {}) {
@@ -914,7 +922,7 @@ export namespace Docs {
                 layout = AudioBox.LayoutString;
             } else if (field instanceof InkField) {
                 const { selectedColor, selectedWidth, selectedTool } = InkingControl.Instance;
-                created = Docs.Create.InkDocument(selectedColor, selectedTool, Number(selectedWidth), (field).inkData, resolved);
+                created = Docs.Create.InkDocument(selectedColor, selectedTool, selectedWidth, (field).inkData, resolved);
                 layout = InkingStroke.LayoutString;
             } else if (field instanceof List && field[0] instanceof Doc) {
                 created = Docs.Create.StackingDocument(DocListCast(field), resolved);

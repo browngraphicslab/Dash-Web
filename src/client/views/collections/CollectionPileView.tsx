@@ -1,8 +1,8 @@
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { HeightSym, Opt, WidthSym } from "../../../new_fields/Doc";
-import { ScriptField } from "../../../new_fields/ScriptField";
-import { BoolCast, NumCast, StrCast } from "../../../new_fields/Types";
+import { HeightSym, Opt, WidthSym } from "../../../fields/Doc";
+import { ScriptField } from "../../../fields/ScriptField";
+import { BoolCast, NumCast, StrCast } from "../../../fields/Types";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
 import { CollectionFreeFormView } from "./collectionFreeForm/CollectionFreeFormView";

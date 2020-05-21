@@ -1,9 +1,9 @@
 import { ObjectField } from "./ObjectField";
-import { CompiledScript, CompileScript, scriptingGlobal, ScriptOptions, CompileError, CompileResult } from "../client/util/Scripting";
+import { CompiledScript, CompileScript, scriptingGlobal, ScriptOptions, CompileError, CompileResult, Scripting } from "../client/util/Scripting";
 import { Copy, ToScriptString, ToString, Parent, SelfProxy } from "./FieldSymbols";
 import { serializable, createSimpleSchema, map, primitive, object, deserialize, PropSchema, custom, SKIP } from "serializr";
 import { Deserializable, autoObject } from "../client/util/SerializationHelper";
-import { Doc, Field } from "../new_fields/Doc";
+import { Doc, Field } from "./Doc";
 import { Plugins, setter } from "./util";
 import { computedFn } from "mobx-utils";
 import { ProxyField } from "./Proxy";
@@ -140,10 +140,8 @@ export class ComputedField extends ScriptField {
     _valueOutsideReaction = (doc: Doc) => this._lastComputedResult = this.script.run({ this: doc, self: Cast(doc.rootDocument, Doc, null) || doc, _last_: this._lastComputedResult }, console.log).result;
 
 
-    constructor(script: CompiledScript, setterscript?: CompiledScript) {
-        super(script,
-            !setterscript && script?.originalScript.includes("self.timecode") ?
-                ScriptField.CompileScript("self['x' + self.timecode] = value", { value: "any" }, true) : setterscript);
+    [Copy](): ObjectField {
+        return new ComputedField(this.script);
     }
 
     public static MakeScript(script: string, params: object = {}) {
@@ -156,11 +154,15 @@ export class ComputedField extends ScriptField {
         return compiled.compiled ? new ComputedField(compiled, setCompiled?.compiled ? setCompiled : undefined) : undefined;
     }
     public static MakeInterpolated(fieldKey: string, interpolatorKey: string) {
-        const getField = ScriptField.CompileScript(`(self['${fieldKey}-indexed'])[self.${interpolatorKey}]`, {}, true, {});
+        const getField = ScriptField.CompileScript(`getIndexVal(self['${fieldKey}-indexed'], self.${interpolatorKey})`, {}, true, {});
         const setField = ScriptField.CompileScript(`(self['${fieldKey}-indexed'])[self.${interpolatorKey}] = value`, { value: "any" }, true, {});
         return getField.compiled ? new ComputedField(getField, setField?.compiled ? setField : undefined) : undefined;
     }
 }
+
+Scripting.addGlobal(function getIndexVal(list: any[], index: number) {
+    return list.reduce((p, x, i) => (i <= index && x !== undefined) || p === undefined ? x : p, undefined as any);
+});
 
 export namespace ComputedField {
     let useComputed = true;
