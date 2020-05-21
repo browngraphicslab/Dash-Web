@@ -560,7 +560,7 @@ export namespace Docs {
         }
 
         export function ComparisonDocument(options: DocumentOptions = { title: "Comparison Box" }) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COMPARISON), "", { clipWidth: 50, targetDropAction: "alias", ...options });
+            return InstanceFromProto(Prototypes.get(DocumentType.COMPARISON), "", { clipWidth: 50, _backgroundColor:"gray", targetDropAction: "alias", ...options });
         }
 
         export function AudioDocument(url: string, options: DocumentOptions = {}) {

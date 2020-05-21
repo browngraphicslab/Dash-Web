@@ -2,9 +2,9 @@ import { library } from '@fortawesome/fontawesome-svg-core';
 import { faEye } from '@fortawesome/free-regular-svg-icons';
 import { faAsterisk, faBrain, faFileAudio, faImage, faPaintBrush, faTimes, faCloudUploadAlt } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { action, computed, observable, runInAction, Lambda } from 'mobx';
+import { action, computed, observable, runInAction, Lambda, IReactionDisposer } from 'mobx';
 import { observer } from "mobx-react";
-import { Doc } from '../../../fields/Doc';
+import { Doc, Opt } from '../../../fields/Doc';
 import { documentSchema } from '../../../fields/documentSchemas';
 import { createSchema, makeInterface } from '../../../fields/Schema';
 import { NumCast, Cast } from '../../../fields/Types';
@@ -17,6 +17,7 @@ import { ContentFittingDocumentView } from './ContentFittingDocumentView';
 import { undoBatch } from '../../util/UndoManager';
 import { setupMoveUpEvents, emptyFunction } from '../../../Utils';
 import { SnappingManager } from '../../util/SnappingManager';
+import { DocumentViewProps } from './DocumentView';
 
 library.add(faImage, faEye as any, faPaintBrush, faBrain);
 library.add(faFileAudio, faAsterisk);
@@ -32,10 +33,12 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
 
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(ComparisonBox, fieldKey); }
 
+    @observable _animating = "";
     private _beforeDropDisposer?: DragManager.DragDropDisposer;
     private _afterDropDisposer?: DragManager.DragDropDisposer;
 
-    protected createDropTarget = (ele: HTMLDivElement | null, fieldKey: string) => {
+    protected createDropTarget = (ele: HTMLDivElement | null, fieldKey: string, disposer: Opt<DragManager.DragDropDisposer>) => {
+        disposer?.();
         if (ele) {
             return DragManager.MakeDropTarget(ele, (event, dropEvent) => this.dropHandler(event, dropEvent, fieldKey), this.layoutDoc);
         }
@@ -53,9 +56,9 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
 
     private registerSliding = (e: React.PointerEvent<HTMLDivElement>, targetWidth: number) => {
         setupMoveUpEvents(this, e, this.onPointerMove, emptyFunction, action(() => {
-            this._animating = true;
+            this._animating = "all 1s";
             this.dataDoc.clipWidth = targetWidth * 100 / this.props.PanelWidth();
-            setTimeout(action(() => this._animating = false), 1000);
+            setTimeout(action(() => this._animating = ""), 1000);
         }), false);
     }
 
@@ -75,62 +78,41 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
         delete this.dataDoc[fieldKey];
     }
 
-    @observable _animating = false;
     render() {
-        const beforeDoc = Cast(this.dataDoc.beforeDoc, Doc, null);
-        const afterDoc = Cast(this.dataDoc.afterDoc, Doc, null);
-        const clipWidth = NumCast(this.dataDoc.clipWidth);
+        const clipWidth = NumCast(this.dataDoc.clipWidth) + "%";
+        const childProps: DocumentViewProps = { ...this.props, pointerEvents: false, parentActive: this.props.active };
+        const clearButton = (which: string) => {
+            return <div className={`clear-button ${which}`} onClick={e => this.clearDoc(e, `${which}Doc`)}>
+                <FontAwesomeIcon className={`clear-button ${which}`} icon={faTimes} size="sm" />
+            </div>
+        }
+        const displayDoc = (which: string) => {
+            const whichDoc = Cast(this.dataDoc[`${which}Doc`], Doc, null);
+            return whichDoc ? <>
+                <ContentFittingDocumentView {...childProps} Document={whichDoc} />
+                {clearButton(which)}
+            </> :  // placeholder image if doc is missing
+                <div className="placeholder">
+                    <FontAwesomeIcon className="upload-icon" icon={faCloudUploadAlt} size="lg" />
+                </div>
+        }
+
         return (
             <div className={`comparisonBox${this.active() || SnappingManager.GetIsDragging() ? "-interactive" : ""}`}>
-                <div className="afterBox-cont" key={"after"} onPointerDown={e => this.registerSliding(e, this.props.PanelWidth() - 5)}
-                    ref={(ele) => {
-                        this._afterDropDisposer?.();
-                        this._afterDropDisposer = this.createDropTarget(ele, "afterDoc");
-                    }}>
-                    {afterDoc ? <>
-                        <ContentFittingDocumentView {...this.props}
-                            Document={afterDoc}
-                            pointerEvents={false}
-                            parentActive={this.props.active}
-                        />
-                        <div className="clear-button after" onClick={e => this.clearDoc(e, "afterDoc")}>
-                            <FontAwesomeIcon className="clear-button after" icon={faTimes} size="sm" />
-                        </div>
-                    </> :
-                        <div className="placeholder">
-                            <FontAwesomeIcon className="upload-icon" icon={faCloudUploadAlt} size="lg" />
-                        </div>}
+                <div className="afterBox-cont" key={"after"} style={{ width: this.props.PanelWidth() }}
+                    onPointerDown={e => this.registerSliding(e, this.props.PanelWidth() - 5)}
+                    ref={ele => this._afterDropDisposer = this.createDropTarget(ele, "afterDoc", this._afterDropDisposer)} >
+                    {displayDoc("after")}
                 </div>
-                <div className="clip-div" onPointerDown={e => this.registerSliding(e, 5)} style={{ width: clipWidth + "%", transition: this._animating ? "all 1s" : undefined }}>
-                    {/* wraps around before image and slider bar */}
-                    <div
-                        className="beforeBox-cont"
-                        key={"before"}
-                        ref={(ele) => {
-                            this._beforeDropDisposer?.();
-                            this._beforeDropDisposer = this.createDropTarget(ele, "beforeDoc");
-                        }}
-                        style={{ width: this.props.PanelWidth() }}>
-                        {
-                            beforeDoc ?
-                                <>
-                                    <ContentFittingDocumentView {...this.props}
-                                        Document={beforeDoc}
-                                        pointerEvents={false}
-                                        parentActive={this.props.active} />
-                                    <div className="clear-button before" onClick={e => this.clearDoc(e, "beforeDoc")}>
-                                        <FontAwesomeIcon className="clear-button before" icon={faTimes} size="sm" />
-                                    </div>
-                                </>
-                                :
-                                <div className="placeholder">
-                                    <FontAwesomeIcon className="upload-icon" icon={faCloudUploadAlt} size="lg" />
-                                </div>
-                        }
+                <div className="clip-div" style={{ width: clipWidth, transition: this._animating, background: "gray" }}>
+                    <div className="beforeBox-cont" key={"before"} style={{ width: this.props.PanelWidth() }}
+                        onPointerDown={e => this.registerSliding(e, 5)}
+                        ref={ele => this._beforeDropDisposer = this.createDropTarget(ele, "beforeDoc", this._beforeDropDisposer)} >
+                        {displayDoc("before")}
                     </div>
                 </div>
 
-                <div className="slide-bar" style={{ left: `calc(${this.dataDoc.clipWidth}% - 0.5px)` }}>
+                <div className="slide-bar" style={{ left: `calc(${clipWidth} - 0.5px)` }}>
                     <div className="slide-handle" />
                 </div>
             </div >);
