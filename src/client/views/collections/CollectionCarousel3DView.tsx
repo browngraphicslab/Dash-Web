@@ -1,4 +1,3 @@
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { observable, computed } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
@@ -31,27 +30,13 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
         }
     }
 
-    advance = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        this.layoutDoc._itemIndex = (NumCast(this.layoutDoc._itemIndex) + 1) % this.childLayoutPairs.length;
-    }
-
-    goback = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        this.layoutDoc._itemIndex = (NumCast(this.layoutDoc._itemIndex) - 1 + this.childLayoutPairs.length) % this.childLayoutPairs.length;
-    }
-
     addCaption = (e: React.MouseEvent) => {
         e.stopPropagation();
         const index = NumCast(this.layoutDoc._itemIndex);
-        this.childLayoutPairs[index].layout._showCaption = "caption";
+        if (this.childLayoutPairs[index].layout._showCaption !== "caption") {
+            this.childLayoutPairs[index].layout._showCaption = "caption";
+        }
     }
-
-    // @computed get gobackScript() {
-    //     return ScriptField.MakeScript("this.layoutDoc._itemIndex = index",
-    //         { this: Doc.name, heading: "string", checked: "string", containingTreeView: Doc.name, firstDoc: Doc.name },
-    //         { index: (NumCast(this.layoutDoc._itemIndex) - 1 + this.childLayoutPairs.length) % this.childLayoutPairs.length });
-    // }
 
     mainPanelWidth = () => this.props.PanelWidth() * 0.6;
     sidePanelWidth = () => this.props.PanelWidth() * 0.3;
@@ -63,12 +48,14 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
         const nextIndex = (index + 1 + this.childLayoutPairs.length) % this.childLayoutPairs.length;
         return !(this.childLayoutPairs?.[index]?.layout instanceof Doc) ? (null) :
             <>
-                <button className="test-button" onClick={this.addCaption}>add caption</button>
-                <div className="collectionCarouselView-prev" onClick={this.goback}>
+                <div className="collectionCarouselView-prev">
                     <ContentFittingDocumentView {...this.props}
                         onDoubleClick={ScriptCast(this.layoutDoc.onChildDoubleClick)}
-                        // onClick={ScriptCast(this.layoutDoc.onChildClick)}
-                        // onClick={this.gobackScript}
+                        onClick={ScriptField.MakeScript(
+                            "collectionLayoutDoc._itemIndex = collectionLayoutDoc[fieldKey].indexOf(self)",
+                            { fieldKey: String.name, collectionLayoutDoc: Doc.name },
+                            { fieldKey: this.props.fieldKey, collectionLayoutDoc: this.layoutDoc }
+                        )}
                         renderDepth={this.props.renderDepth + 1}
                         LayoutTemplate={this.props.ChildLayoutTemplate}
                         LayoutTemplateString={this.props.ChildLayoutString}
@@ -81,10 +68,14 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
                         parentActive={this.props.active}
                     />
                 </div>
-                <div className="collectionCarouselView-next" onClick={this.advance}>
+                <div className="collectionCarouselView-next">
                     <ContentFittingDocumentView {...this.props}
                         onDoubleClick={ScriptCast(this.layoutDoc.onChildDoubleClick)}
-                        // onClick={ScriptCast(this.layoutDoc.onChildClick)}
+                        onClick={ScriptField.MakeScript(
+                            "collectionLayoutDoc._itemIndex = collectionLayoutDoc[fieldKey].indexOf(self)",
+                            { fieldKey: String.name, collectionLayoutDoc: Doc.name },
+                            { fieldKey: this.props.fieldKey, collectionLayoutDoc: this.layoutDoc }
+                        )}
                         renderDepth={this.props.renderDepth + 1}
                         LayoutTemplate={this.props.ChildLayoutTemplate}
                         LayoutTemplateString={this.props.ChildLayoutString}
@@ -100,7 +91,11 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
                 <div className="collectionCarouselView-image" key="image">
                     <ContentFittingDocumentView {...this.props}
                         onDoubleClick={ScriptCast(this.layoutDoc.onChildDoubleClick)}
-                        onClick={ScriptCast(this.layoutDoc.onChildClick)}
+                        onClick={ScriptField.MakeScript(
+                            "child._showCaption = 'caption'",
+                            { child: Doc.name },
+                            { child: this.childLayoutPairs[index].layout }
+                        )}
                         renderDepth={this.props.renderDepth + 1}
                         LayoutTemplate={this.props.ChildLayoutTemplate}
                         LayoutTemplateString={this.props.ChildLayoutString}
@@ -115,17 +110,6 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
                 </div>
             </>;
     }
-    @computed get buttons() {
-        return <>
-            <div key="back" className="carouselView-back" style={{ background: `${StrCast(this.props.Document.backgroundColor)}` }} onClick={this.goback}>
-                <FontAwesomeIcon icon={"caret-left"} size={"2x"} />
-            </div>
-            <div key="fwd" className="carouselView-fwd" style={{ background: `${StrCast(this.props.Document.backgroundColor)}` }} onClick={this.advance}>
-                <FontAwesomeIcon icon={"caret-right"} size={"2x"} />
-            </div>
-        </>;
-    }
-
 
     onContextMenu = (e: React.MouseEvent): void => {
         // need to test if propagation has stopped because GoldenLayout forces a parallel react hierarchy to be created for its top-level layout
@@ -164,7 +148,6 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
     render() {
         return <div className="collectionCarouselView-outer" onClick={this.onClick} onPointerDown={this.onPointerDown} ref={this.createDashEventsTarget} onContextMenu={this.onContextMenu}>
             {this.content}
-            {this.props.Document._chromeStatus !== "replaced" ? this.buttons : (null)}
         </div>;
     }
 }

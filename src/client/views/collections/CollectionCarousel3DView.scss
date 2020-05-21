@@ -20,6 +20,8 @@
         bottom: 0;
         margin: auto;
         user-select: none;
+        transition: transform 0.5s;
+        transform-style: preserve-3d;
     }
 
     .collectionCarouselView-prev {
@@ -65,4 +67,8 @@
 .carouselView-back:hover,
 .carouselView-fwd:hover {
     background: lightgray;
+}
+
+.carouselView-fwd:hover~.collectionCarouselView-image {
+    transform: translateX(50px)
 }
