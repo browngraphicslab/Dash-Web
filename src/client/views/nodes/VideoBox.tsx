@@ -1,6 +1,4 @@
 import React = require("react");
-import { library } from "@fortawesome/fontawesome-svg-core";
-import { faVideo } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, IReactionDisposer, observable, reaction, runInAction, untracked } from "mobx";
 import { observer } from "mobx-react";
@@ -8,7 +6,6 @@ import * as rp from 'request-promise';
 import { Doc } from "../../../fields/Doc";
 import { InkTool } from "../../../fields/InkField";
 import { createSchema, makeInterface } from "../../../fields/Schema";
-import { ScriptField } from "../../../fields/ScriptField";
 import { Cast, StrCast } from "../../../fields/Types";
 import { VideoField } from "../../../fields/URLField";
 import { Utils, emptyFunction, returnOne, returnZero } from "../../../Utils";
@@ -30,8 +27,6 @@ export const timeSchema = createSchema({
 });
 type VideoDocument = makeInterface<[typeof documentSchema, typeof timeSchema]>;
 const VideoDocument = makeInterface(documentSchema, timeSchema);
-
-library.add(faVideo);
 
 @observer
 export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoDocument>(VideoDocument) {
@@ -181,8 +176,8 @@ export class VideoBox extends ViewBoxAnnotatableComponent<FieldViewProps, VideoD
 
     componentWillUnmount() {
         this.Pause();
-        this._reactionDisposer && this._reactionDisposer();
-        this._youtubeReactionDisposer && this._youtubeReactionDisposer();
+        this._reactionDisposer?.();
+        this._youtubeReactionDisposer?.();
     }
 
     @action

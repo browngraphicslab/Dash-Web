@@ -48,6 +48,7 @@ import { ContextMenuProps } from "../views/ContextMenuItem";
 import { ContextMenu } from "../views/ContextMenu";
 import { LinkBox } from "../views/nodes/LinkBox";
 import { ScreenshotBox } from "../views/nodes/ScreenshotBox";
+import { ComparisonBox } from "../views/nodes/ComparisonBox";
 const path = require('path');
 
 export interface DocumentOptions {
@@ -296,6 +297,9 @@ export namespace Docs {
             }],
             [DocumentType.SCREENSHOT, {
                 layout: { view: ScreenshotBox, dataField: defaultDataKey },
+            }],
+            [DocumentType.COMPARISON, {
+                layout: { view: ComparisonBox, dataField: defaultDataKey },
             }],
         ]);
 
@@ -552,6 +556,10 @@ export namespace Docs {
 
         export function ScreenshotDocument(url: string, options: DocumentOptions = {}) {
             return InstanceFromProto(Prototypes.get(DocumentType.SCREENSHOT), "", options);
+        }
+
+        export function ComparisonDocument(options: DocumentOptions = { title: "Comparison Box" }) {
+            return InstanceFromProto(Prototypes.get(DocumentType.COMPARISON), "", { targetDropAction: "alias", ...options });
         }
 
         export function AudioDocument(url: string, options: DocumentOptions = {}) {
@@ -919,7 +927,7 @@ export namespace Docs {
                 layout = AudioBox.LayoutString;
             } else if (field instanceof InkField) {
                 const { selectedColor, selectedWidth, selectedTool } = InkingControl.Instance;
-                created = Docs.Create.InkDocument(selectedColor, selectedTool, Number(selectedWidth), (field).inkData, resolved);
+                created = Docs.Create.InkDocument(selectedColor, selectedTool, selectedWidth, (field).inkData, resolved);
                 layout = InkingStroke.LayoutString;
             } else if (field instanceof List && field[0] instanceof Doc) {
                 created = Docs.Create.StackingDocument(DocListCast(field), resolved);
