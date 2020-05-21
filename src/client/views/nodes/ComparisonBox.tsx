@@ -7,7 +7,7 @@ import { observer } from "mobx-react";
 import { Doc, Opt } from '../../../fields/Doc';
 import { documentSchema } from '../../../fields/documentSchemas';
 import { createSchema, makeInterface } from '../../../fields/Schema';
-import { NumCast, Cast } from '../../../fields/Types';
+import { NumCast, Cast, StrCast } from '../../../fields/Types';
 import { DragManager } from '../../util/DragManager';
 import { ViewBoxAnnotatableComponent } from '../DocComponent';
 import { FieldView, FieldViewProps } from './FieldView';
@@ -104,7 +104,7 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
                     ref={ele => this._afterDropDisposer = this.createDropTarget(ele, "afterDoc", this._afterDropDisposer)} >
                     {displayDoc("after")}
                 </div>
-                <div className="clip-div" style={{ width: clipWidth, transition: this._animating, background: "gray" }}>
+                <div className="clip-div" style={{ width: clipWidth, transition: this._animating, background: StrCast(this.layoutDoc._backgroundColor, "gray") }}>
                     <div className="beforeBox-cont" key={"before"} style={{ width: this.props.PanelWidth() }}
                         onPointerDown={e => this.registerSliding(e, 5)}
                         ref={ele => this._beforeDropDisposer = this.createDropTarget(ele, "beforeDoc", this._beforeDropDisposer)} >
