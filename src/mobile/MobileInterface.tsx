@@ -1,6 +1,6 @@
 import React = require('react');
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faEraser, faHighlighter, faLongArrowAltLeft, faMousePointer, faPenNib, faThumbtack } from '@fortawesome/free-solid-svg-icons';
+import { faEraser, faHighlighter, faLongArrowAltLeft, faMousePointer, faPenNib, faThumbtack, faHome } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable } from 'mobx';
 import { observer } from 'mobx-react';
@@ -35,8 +35,10 @@ import { MainView } from '../client/views/MainView';
 import SettingsManager from '../client/util/SettingsManager';
 import { Uploader } from "./ImageUpload";
 import { Upload } from '../server/SharedMediaTypes';
+import { createTypePredicateNodeWithModifier } from 'typescript';
 
 library.add(faLongArrowAltLeft);
+library.add(faHome);
 
 @observer
 export class MobileInterface extends React.Component {
@@ -57,6 +59,7 @@ export class MobileInterface extends React.Component {
     private _child: Doc | null = null;
     private _parents: Array<Doc> = [];
     private _menu: Doc = this.mainDoc;
+    private _library: Doc = Cast(this.userDoc.myWorkspaces, Doc) as Doc;
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -151,6 +154,13 @@ export class MobileInterface extends React.Component {
         }
     }
 
+    returnHome = () => {
+        this._parents = [];
+        this._activeDoc = this._menu;
+        this.switchCurrentView((userDoc: Doc) => this._menu);
+        this._child = null;
+    }
+
     displayWorkspaces = () => {
         if (this.mainContainer) {
             const backgroundColor = () => "white";
@@ -223,6 +233,13 @@ export class MobileInterface extends React.Component {
         return pathname;
     }
 
+    openLibrary = () => {
+        this._parents.push(this._activeDoc);
+        this._activeDoc = this._menu;
+        this.switchCurrentView((userDoc: Doc) => this._menu);
+        this._child = null;
+        console.log("hi!");
+    }
 
     renderDefaultContent = () => {
         const workspaces = Cast(this.userDoc.myWorkspaces, Doc) as Doc;
@@ -268,9 +285,13 @@ export class MobileInterface extends React.Component {
                     </div>
                     <div className="sidebar" id="sidebar">
                         <div>
+                            <FontAwesomeIcon className="home" icon="home" onClick={this.returnHome} />
                             {buttons}
+                            {/* <div className="item" key="library" onClick={this.openLibrary}>
+                                Library
+                            </div> */}
                             <Uploader Document={workspaces} />
-                            <div className="item" key="presentation" onClick={this.recordAudio}>
+                            <div className="item" key="audio" onClick={this.recordAudio}>
                                 Record Audio
                             </div>
                             <div className="item" key="presentation">
@@ -278,6 +299,9 @@ export class MobileInterface extends React.Component {
                             </div>
                             <div className="item" key="settings" onClick={() => SettingsManager.Instance.open()}>
                                 Settings
+                            </div>
+                            <div className="item" key="home" onClick={this.returnHome}>
+                                Home (click the house)
                             </div>
                         </div>
                     </div>
@@ -292,7 +316,6 @@ export class MobileInterface extends React.Component {
                 <div>
                     <div className="navbar">
                         <div className="header" id="header">menu</div>
-
                         <div className="toggle-btn" id="menuButton" onClick={this.toggleSidebar}>
                             <span></span>
                             <span></span>
@@ -305,11 +328,15 @@ export class MobileInterface extends React.Component {
                         </div>
                     </div>
                     <div className="sidebar" id="sidebar">
+                        <FontAwesomeIcon className="home" icon="home" onClick={this.returnHome} />
                         <div className="back" onClick={this.back}>
                             &#8592;
                         </div>
                         <div>
                             {buttons}
+                        </div>
+                        <div className="item" key="home" onClick={this.returnHome}>
+                            Home
                         </div>
                     </div>
                 </div>
@@ -323,27 +350,27 @@ export class MobileInterface extends React.Component {
         // this._activeDoc = audioDoc;
     }
 
-    mobileHome = () => {
-        return (
-            <div className="homeContainer">
-                <div className="uploadButton">
+    // mobileHome = () => {
+    //     return (
+    //         <div className="homeContainer">
+    //             <div className="uploadButton">
 
-                </div>
-                <div className="presentationButton">
+    //             </div>
+    //             <div className="presentationButton">
 
-                </div>
-                <div className="recordAudioButton">
+    //             </div>
+    //             <div className="recordAudioButton">
 
-                </div>
-                <div className="inkButton">
+    //             </div>
+    //             <div className="inkButton">
 
-                </div>
-                <div className="settingsButton">
+    //             </div>
+    //             <div className="settingsButton">
 
-                </div>
-            </div>
-        );
-    }
+    //             </div>
+    //         </div>
+    //     );
+    // }
 
     renderActiveCollection = (userDoc: Doc) => {
         if (this.activeContainer) {
