@@ -207,7 +207,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                             const d = droppedDocs[i];
                             const layoutDoc = Doc.Layout(d);
                             if (this.Document.currentTimecode !== undefined && !this.props.isAnnotationOverlay) {
-                                CollectionFreeFormDocumentView.setValues(this.Document.currentTimecode, d, x + NumCast(d.x) - dropX, y + NumCast(d.y) - dropY, Cast(d.opacity, "number", null));
+                                const vals = CollectionFreeFormDocumentView.getValues(d, NumCast(d.displayTimecode, 1000));
+                                CollectionFreeFormDocumentView.setValues(this.Document.currentTimecode, d, x + vals.x - dropX, y + vals.y - dropY, vals.opacity);
                             } else {
                                 d.x = x + NumCast(d.x) - dropX;
                                 d.y = y + NumCast(d.y) - dropY;
@@ -1362,7 +1363,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             {!this.Document._LODdisable && !this.props.active() && !this.props.isAnnotationOverlay && !this.props.annotationsKey && this.props.renderDepth > 0 ?
                 this.placeholder : this.marqueeView}
             <CollectionFreeFormOverlayView elements={this.elementFunc} />
-            {this.isAnnotationOverlay || !this.props.isSelected() ? (null) :
+            {this.isAnnotationOverlay || !this.props.isSelected() || this.props.Document._viewType === CollectionViewType.Pile ? (null) :
                 <>
                     <div key="back" className="backKeyframe" onClick={this.prevKeyframe}>
                         <FontAwesomeIcon icon={"caret-left"} size={"lg"} />

@@ -1111,6 +1111,16 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }), 400);
     });
 
+    renderLock() {
+        return (this.Document.isBackground !== undefined || this.isSelected(false)) &&
+            ((this.Document.type === DocumentType.COL && this.Document._viewType !== CollectionViewType.Pile) || this.Document.type === DocumentType.IMG) &&
+            this.props.renderDepth > 0 && this.props.PanelWidth() > 0 ?
+            <div className="documentView-lock" onClick={() => this.toggleBackground(true)}>
+                <FontAwesomeIcon icon={this.Document.isBackground ? "unlock" : "lock"} style={{ color: this.Document.isBackground ? "red" : undefined }} size="lg" />
+            </div>
+            : (null);
+    }
+
     render() {
         if (!(this.props.Document instanceof Doc)) return (null);
         const backgroundColor = Doc.UserDoc().renderStyle === "comic" ? undefined : StrCast(this.layoutDoc._backgroundColor) || StrCast(this.layoutDoc.backgroundColor) || StrCast(this.Document.backgroundColor) || this.props.backgroundColor?.(this.Document);
@@ -1161,11 +1171,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 <div className="documentView-contentBlocker" />
             </> :
                 this.innards}
-            {(this.Document.isBackground !== undefined || this.isSelected(false)) && (this.Document.type === DocumentType.COL || this.Document.type === DocumentType.IMG) && this.props.renderDepth > 0 && this.props.PanelWidth() > 0 ?
-                <div className="documentView-lock" onClick={() => this.toggleBackground(true)}>
-                    <FontAwesomeIcon icon={this.Document.isBackground ? "unlock" : "lock"} style={{ color: this.Document.isBackground ? "red" : undefined }} size="lg" />
-                </div>
-                : (null)}
+            {this.renderLock()}
         </div>;
         { this._showKPQuery ? <KeyphraseQueryView keyphrases={this._queries}></KeyphraseQueryView> : undefined; }
     }

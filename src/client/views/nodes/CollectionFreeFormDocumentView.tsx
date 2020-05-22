@@ -100,13 +100,14 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     }
 
     public static setupKeyframes(docs: Doc[], timecode: number, collection: Doc) {
-        docs.forEach(doc => {
-            doc["x-indexed"] = new List<number>(numberRange(timecode).map(i => undefined) as any as number[]);
-            doc["y-indexed"] = new List<number>(numberRange(timecode).map(i => undefined) as any as number[]);
-            doc["opacity-indexed"] = new List<number>(numberRange(timecode).map(i => 0));
-            (doc["x-indexed"] as any).push(NumCast(doc.x));
-            (doc["y-indexed"] as any).push(NumCast(doc.y));
-            (doc["opacity-indexed"] as any).push(NumCast(doc.opacity, 1));
+        docs.forEach((doc, i) => {
+            const xlist = new List<number>(numberRange(timecode + 1).map(i => undefined) as any as number[]);
+            const ylist = new List<number>(numberRange(timecode + 1).map(i => undefined) as any as number[]);
+            xlist[Math.max(i - 1)] = xlist[timecode + 1] = NumCast(doc.x);
+            ylist[Math.max(i - 1)] = ylist[timecode + 1] = NumCast(doc.y);
+            doc["x-indexed"] = xlist;
+            doc["y-indexed"] = ylist;
+            doc["opacity-indexed"] = new List<number>(numberRange(timecode).map(i => 1));
             doc.displayTimecode = ComputedField.MakeFunction("collection ? collection.currentTimecode : 0", {}, { collection });
             doc.x = ComputedField.MakeInterpolated("x", "displayTimecode");
             doc.y = ComputedField.MakeInterpolated("y", "displayTimecode");
