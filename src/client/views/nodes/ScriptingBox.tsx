@@ -223,7 +223,6 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
 
     @action
     selected = (val: string, index: number, name: string) => {
-        console.log("selected");
         this.stopPropagation;
         this.dataDoc[name] = val;
         this._paramsValues[index] = val;
@@ -231,11 +230,22 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
 
     @action
     toggleCollapse = (num: number) => {
-        console.log("hello");
         if (this._paramsCollapsed[num]) {
             this._paramsCollapsed[num] = false;
         } else {
             this._paramsCollapsed[num] = true;
+        }
+    }
+
+    @action
+    selectedBool = (val: boolean, index: number, name: string) => {
+        this.stopPropagation;
+        if (val) {
+            this._paramsValues[index] = "true";
+            this.dataDoc[name] = true;
+        } else {
+            this._paramsValues[index] = "false";
+            this.dataDoc[name] = false;
         }
     }
 
@@ -487,41 +497,32 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
                         <div className="scriptingBox-paramNames">
                             {parameter + ":" + this._paramsTypes[i] + " = "}
                         </div>
-                        <div className="scriptingBox-paramInputs"
-                            onFocus={this.onFocus}>
-                            <EditableView
-                                contents={this._paramsValues[i]}
-                                display={"block"}
-                                maxHeight={72}
-                                height={35}
-                                fontSize={14}
-                                GetValue={() => StrCast(this._paramsValues[i])}
-                                SetValue={action((value: string) => {
-                                    if (value !== "" && value !== " ") {
-                                        if (value.trim() === "true") {
-                                            console.log("hello");
-                                            this._errorMessage = "";
-                                            // does not set this
-                                            this.dataDoc[parameter] = true;
-                                            // sets this
-                                            this._paramsValues[i] = "true";
-                                            return true;
-                                        } else {
-                                            if (value.trim() === "false") {
-                                                this._errorMessage = "";
-                                                this.dataDoc[parameter] = false;
-                                                this._paramsValues[i] = "false";
-                                                return true;
-                                            } else {
-                                                this._errorMessage = "not a boolean";
-                                                return false;
-                                            }
-                                        }
-                                    } else {
-                                        return false;
-                                    }
-                                })}
-                            />
+                        <div className="scriptingBox-paramInputs">
+                            <div className="scriptingBox-viewBase">
+                                <div className="commandEntry-outerDiv">
+                                    <select
+                                        className="scriptingBox-viewPicker"
+                                        onPointerDown={this.stopPropagation}
+                                        onChange={(e: React.ChangeEvent) => this.viewChanged(e, i, parameter)}
+                                        value={this._paramsValues[i]}>
+                                        <option
+                                            className="scriptingBox-viewOption"
+                                            onPointerDown={(e: React.PointerEvent<HTMLOptionElement>) =>
+                                                this.selectedBool(true, i, parameter)}
+                                            value={"true"}>
+                                            true
+                                        </option>
+                                        <option
+                                            className="scriptingBox-viewOption"
+                                            onPointerDown={(e: React.PointerEvent<HTMLOptionElement>) =>
+                                                this.selectedBool(false, i, parameter)}
+                                            value={"false"}>
+                                            false
+                                        </option>
+
+                                    </select>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div> : null}
