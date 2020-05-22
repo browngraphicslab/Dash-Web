@@ -18,7 +18,7 @@ import { GestureUtils } from "../../../../pen-gestures/GestureUtils";
 import { aggregateBounds, intersectRect, returnOne, Utils, returnZero, returnFalse, numberRange } from "../../../../Utils";
 import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
 import { DocServer } from "../../../DocServer";
-import { Docs } from "../../../documents/Documents";
+import { Docs, DocUtils } from "../../../documents/Documents";
 import { DocumentManager } from "../../../util/DocumentManager";
 import { DragManager, dropActionType } from "../../../util/DragManager";
 import { HistoryUtil } from "../../../util/History";
@@ -191,6 +191,14 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         const [xp, yp] = xf.transformPoint(de.x, de.y);
         const [xpo, ypo] = xfo.transformPoint(de.x, de.y);
         const zsorted = this.childLayoutPairs.map(pair => pair.layout).slice().sort((doc1, doc2) => NumCast(doc1.zIndex) - NumCast(doc2.zIndex));
+        if (!this.isAnnotationOverlay && de.complete.linkDragData && de.complete.linkDragData.linkSourceDocument !== this.props.Document) {
+            const source = Docs.Create.TextDocument("", { _width: 200, _height: 75, x: xp, y: yp, title: "dropped annotation" });
+            this.props.addDocument(source);
+            (de.complete.linkDragData.linkDocument = DocUtils.MakeLink({ doc: source }, { doc: de.complete.linkDragData.linkSourceDocument },
+                "doc annotation")); // TODODO this is where in text links get passed
+            e.stopPropagation();
+            return true;
+        }
         if (super.onInternalDrop(e, de)) {
             if (de.complete.docDragData) {
                 if (de.complete.docDragData.droppedDocuments.length) {
