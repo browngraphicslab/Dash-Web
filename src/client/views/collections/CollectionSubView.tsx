@@ -332,7 +332,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                                 srcWeb = SelectionManager.SelectedDocuments()[0].props.Document;
                                 srcUrl = (srcWeb.data as WebField).url.href?.match(/http[s]?:\/\/[^/]*/)?.[0];
                             }
-                            let reg = new RegExp(Utils.prepend(""), "g");
+                            const reg = new RegExp(Utils.prepend(""), "g");
                             const modHtml = srcUrl ? html.replace(reg, srcUrl) : html;
                             const htmlDoc = Docs.Create.HtmlDocument(modHtml, { ...options, title: "-web page-", _width: 300, _height: 300 });
                             Doc.GetProto(htmlDoc)["data-text"] = text;
@@ -451,7 +451,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             if (generatedDocuments.length) {
                 const set = generatedDocuments.length > 1 && generatedDocuments.map(d => Doc.iconify(d));
                 if (set) {
-                    addDocument(Doc.pileup(generatedDocuments, options.x!, options.y!));
+                    addDocument(Doc.pileup(generatedDocuments, options.x!, options.y!)!);
                 } else {
                     generatedDocuments.forEach(addDocument);
                 }

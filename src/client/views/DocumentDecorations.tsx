@@ -291,6 +291,7 @@ export class DocumentDecorations extends React.Component<{}, { value: string }> 
         const unfreeze = () =>
             SelectionManager.SelectedDocuments().forEach(action((element: DocumentView) =>
                 ((element.rootDoc.type === DocumentType.RTF ||
+                    element.rootDoc.type === DocumentType.COMPARISON ||
                     (element.rootDoc.type === DocumentType.WEB && Doc.LayoutField(element.rootDoc) instanceof HtmlField))
                     && element.layoutDoc._nativeHeight) && element.toggleNativeDimensions()));
         switch (this._resizeHdlId) {

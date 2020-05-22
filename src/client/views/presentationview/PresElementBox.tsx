@@ -100,13 +100,13 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         e.stopPropagation();
         this.rootDoc.presProgressivize = !this.rootDoc.presProgressivize;
         const rootTarget = Cast(this.rootDoc.presentationTargetDoc, Doc, null);
+        const docs = DocListCast(rootTarget[Doc.LayoutFieldKey(rootTarget)]);
         if (this.rootDoc.presProgressivize && !rootTarget?.lastTimecode) {
-            const docs = DocListCast(rootTarget[Doc.LayoutFieldKey(rootTarget)]);
             rootTarget.currentTimecode = 0;
             CollectionFreeFormDocumentView.setupKeyframes(docs, docs.length, this.presBox);
-            docs.forEach((d, i) => numberRange(docs.length - i).forEach(f => Cast(d["opacity-indexed"], listSpec("number"), [])[f + i] = 1));
             rootTarget.lastTimecode = docs.length - 1;
         }
+        docs.forEach((d, i) => i && numberRange(i).forEach(f => Cast(d["opacity-indexed"], listSpec("number"), [])[f] = 0));
     }
 
     /**
@@ -216,7 +216,10 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
                     <strong className="presElementBox-name">
                         {`${this.indexInPres + 1}. ${this.targetDoc?.title}`}
                     </strong>
-                    <button className="presElementBox-closeIcon" onPointerDown={e => e.stopPropagation()} onClick={e => this.props.removeDocument?.(this.rootDoc)}>X</button>
+                    <button className="presElementBox-closeIcon" onPointerDown={e => e.stopPropagation()} onClick={e => {
+                        this.props.removeDocument?.(this.rootDoc);
+                        e.stopPropagation();
+                    }}>X</button>
                     <br />
                 </>}
                 <div className="presElementBox-buttons">

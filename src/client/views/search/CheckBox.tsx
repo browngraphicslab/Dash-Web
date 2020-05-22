@@ -2,7 +2,6 @@ import * as React from 'react';
 import { observer } from 'mobx-react';
 import { observable, action, runInAction, IReactionDisposer, reaction } from 'mobx';
 import "./CheckBox.scss";
-import * as anime from 'animejs';
 
 interface CheckBoxProps {
     originalStatus: boolean;

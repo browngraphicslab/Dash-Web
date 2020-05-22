@@ -1,6 +1,6 @@
 import React = require("react");
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
+import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import { Doc, DocListCast, DocCastAsync } from "../../../fields/Doc";
 import { InkTool } from "../../../fields/InkField";
@@ -15,8 +15,7 @@ import { InkingControl } from "../InkingControl";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./PresBox.scss";
 import { ViewBoxBaseComponent } from "../DocComponent";
-import { makeInterface, listSpec } from "../../../fields/Schema";
-import { List } from "../../../fields/List";
+import { makeInterface } from "../../../fields/Schema";
 import { Docs } from "../../documents/Documents";
 import { PrefetchProxy } from "../../../fields/Proxy";
 import { ScriptField } from "../../../fields/ScriptField";
@@ -213,7 +212,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             this.hideIfNotPresented(index);
             this.showAfterPresented(index);
         }
-    })
+    });
 
     //The function that starts or resets presentaton functionally, depending on status flag.
     startOrResetPres = () => {

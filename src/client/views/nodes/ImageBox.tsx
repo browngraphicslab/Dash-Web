@@ -19,7 +19,6 @@ import { CognitiveServices, Confidence, Service, Tag } from '../../cognitive_ser
 import { Docs } from '../../documents/Documents';
 import { Networking } from '../../Network';
 import { DragManager } from '../../util/DragManager';
-import { SelectionManager } from '../../util/SelectionManager';
 import { undoBatch } from '../../util/UndoManager';
 import { ContextMenu } from "../../views/ContextMenu";
 import { CollectionFreeFormView } from '../collections/collectionFreeForm/CollectionFreeFormView';
@@ -267,7 +266,11 @@ export class ImageBox extends ViewBoxAnnotatableComponent<FieldViewProps, ImageD
             if (!this.layoutDoc.isTemplateDoc || this.dataDoc !== this.layoutDoc) {
                 requestImageSize(imgPath).then(action((inquiredSize: any) => {
                     const rotation = NumCast(this.dataDoc[this.fieldKey + "-rotation"]) % 180;
-                    const rotatedNativeSize = rotation === 90 || rotation === 270 ? { height: inquiredSize.width, width: inquiredSize.height } : inquiredSize;
+                    const rotatedNativeSize = { width: inquiredSize.width, height: inquiredSize.height };
+                    if (inquiredSize.orientation === 6 || rotation === 90 || rotation === 270) {
+                        rotatedNativeSize.width = inquiredSize.height;
+                        rotatedNativeSize.height = inquiredSize.width;
+                    }
                     const rotatedAspect = rotatedNativeSize.height / rotatedNativeSize.width;
                     if (this.layoutDoc[WidthSym]() && (!cachedNativeSize.width || !cachedNativeSize.height || Math.abs(1 - docAspect / rotatedAspect) > 0.1)) {
                         this.layoutDoc._height = this.layoutDoc[WidthSym]() * rotatedAspect;

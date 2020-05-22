@@ -1,0 +1,87 @@
+.comparisonBox-interactive, .comparisonBox {
+    border-radius: inherit;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    z-index: 0;
+    pointer-events: none;
+
+    .clip-div {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        overflow: hidden;
+
+        .beforeBox-cont {
+            height: 100%;
+            overflow: hidden;
+        }
+    }
+
+    .slide-bar { 
+        position: absolute;
+        height: 100%;
+        width: 3px;
+        display: inline-block;
+        background: white;
+        cursor: ew-resize;
+        .slide-handle {
+            position: absolute;
+            display: none;
+            height: 20px;
+            width: 30px;
+            bottom: 0px;
+            left: -10.5px;
+            .left-handle, .right-handle{
+                width: 15px;
+            }
+        }
+    }
+
+    .afterBox-cont {
+        position: absolute;
+        top: 0;
+        right: 0;
+        height: 100%;
+        width: 100%;
+        overflow: hidden;
+    }
+
+    .clear-button {
+        position: absolute;
+        top: 3px;
+        opacity: 0.8;
+        pointer-events: all;
+        cursor: pointer;
+    }
+
+    .clear-button.before {
+        left: 3px;
+    }
+
+    .clear-button.after {
+        right: 3px;
+    }
+
+    .placeholder {
+        width: 50%;
+        height: 50%;
+        margin-top: 25%;
+        margin-left: 25%;
+
+        .upload-icon {
+            width: 100%;
+            height: 100%;
+            opacity: 0.5;
+        }
+    }
+}
+.comparisonBox-interactive {
+    pointer-events: unset;
+    .slide-bar {
+        .slide-handle { 
+            display: flex;
+        }
+    }
+}

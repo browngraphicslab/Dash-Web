@@ -48,6 +48,7 @@ import { ContextMenuProps } from "../views/ContextMenuItem";
 import { ContextMenu } from "../views/ContextMenu";
 import { LinkBox } from "../views/nodes/LinkBox";
 import { ScreenshotBox } from "../views/nodes/ScreenshotBox";
+import { ComparisonBox } from "../views/nodes/ComparisonBox";
 const path = require('path');
 
 export interface DocumentOptions {
@@ -109,10 +110,11 @@ export interface DocumentOptions {
     _backgroundColor?: string | ScriptField; // background color for each template layout doc ( overrides backgroundColor )
     color?: string; // foreground color data doc
     _color?: string;  // foreground color for each template layout doc (overrides color)
+    _clipWidth?: number; // percent transition from before to after in comparisonBox
     caption?: RichTextField;
     ignoreClick?: boolean;
     lockedPosition?: boolean; // lock the x,y coordinates of the document so that it can't be dragged
-    lockedTransform?: boolean; // lock the panx,pany and scale parameters of the document so that it be panned/zoomed
+    _lockedTransform?: boolean; // lock the panx,pany and scale parameters of the document so that it be panned/zoomed
     isAnnotating?: boolean; // whether we web document is annotation mode where links can't be clicked to allow annotations to be created
     opacity?: number;
     defaultBackgroundColor?: string;
@@ -296,6 +298,9 @@ export namespace Docs {
             }],
             [DocumentType.SCREENSHOT, {
                 layout: { view: ScreenshotBox, dataField: defaultDataKey },
+            }],
+            [DocumentType.COMPARISON, {
+                layout: { view: ComparisonBox, dataField: defaultDataKey },
             }],
         ]);
 
@@ -554,6 +559,10 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.SCREENSHOT), "", options);
         }
 
+        export function ComparisonDocument(options: DocumentOptions = { title: "Comparison Box" }) {
+            return InstanceFromProto(Prototypes.get(DocumentType.COMPARISON), "", { _clipWidth: 50, _backgroundColor: "gray", targetDropAction: "alias", ...options });
+        }
+
         export function AudioDocument(url: string, options: DocumentOptions = {}) {
             const instance = InstanceFromProto(Prototypes.get(DocumentType.AUDIO), new AudioField(new URL(url)), options);
             Doc.GetProto(instance).backgroundColor = ComputedField.MakeFunction("this._audioState === 'playing' ? 'green':'gray'");
@@ -635,7 +644,7 @@ export namespace Docs {
         }
 
         export function WebDocument(url: string, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.WEB), url ? new WebField(new URL(url)) : undefined, { _fitWidth: true, _chromeStatus: url ? "disabled" : "enabled", isAnnotating: true, lockedTransform: true, ...options });
+            return InstanceFromProto(Prototypes.get(DocumentType.WEB), url ? new WebField(new URL(url)) : undefined, { _fitWidth: true, _chromeStatus: url ? "disabled" : "enabled", isAnnotating: true, _lockedTransform: true, ...options });
         }
 
         export function HtmlDocument(html: string, options: DocumentOptions = {}) {
@@ -914,7 +923,7 @@ export namespace Docs {
                 layout = AudioBox.LayoutString;
             } else if (field instanceof InkField) {
                 const { selectedColor, selectedWidth, selectedTool } = InkingControl.Instance;
-                created = Docs.Create.InkDocument(selectedColor, selectedTool, Number(selectedWidth), (field).inkData, resolved);
+                created = Docs.Create.InkDocument(selectedColor, selectedTool, selectedWidth, (field).inkData, resolved);
                 layout = InkingStroke.LayoutString;
             } else if (field instanceof List && field[0] instanceof Doc) {
                 created = Docs.Create.StackingDocument(DocListCast(field), resolved);

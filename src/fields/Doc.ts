@@ -1028,28 +1028,32 @@ export namespace Doc {
         if (layoutKey && layoutKey !== "layout" && layoutKey !== "layout_icon") doc.deiconifyLayout = layoutKey.replace("layout_", "");
     }
 
-    export function pileup(selected: Doc[], x: number, y: number) {
-        const newCollection = Docs.Create.PileDocument(selected, { title: "pileup", x: x - 55, y: y - 55, _width: 110, _height: 100, _LODdisable: true });
+    export function pileup(docList: Doc[], x?: number, y?: number) {
         let w = 0, h = 0;
-        selected.forEach((d, i) => {
-            Doc.iconify(d);
-            w = Math.max(d[WidthSym](), w);
-            h = Math.max(d[HeightSym](), h);
+        runInAction(() => {
+            docList.forEach(d => {
+                Doc.iconify(d);
+                w = Math.max(d[WidthSym](), w);
+                h = Math.max(d[HeightSym](), h);
+            });
+            h = Math.max(h, w * 4 / 3); // converting to an icon does not update the height right away.  so this is a fallback hack to try to do something reasonable
+            docList.forEach((d, i) => {
+                d.x = Math.cos(Math.PI * 2 * i / docList.length) * 10 - w / 2;
+                d.y = Math.sin(Math.PI * 2 * i / docList.length) * 10 - h / 2;
+                d.displayTimecode = undefined;  // bcz: this should be automatic somehow.. along with any other properties that were logically associated with the original collection
+            });
         });
-        h = Math.max(h, w * 4 / 3); // converting to an icon does not update the height right away.  so this is a fallback hack to try to do something reasonable
-        selected.forEach((d, i) => {
-            d.x = Math.cos(Math.PI * 2 * i / selected.length) * 10 - w / 2;
-            d.y = Math.sin(Math.PI * 2 * i / selected.length) * 10 - h / 2;
-            d.displayTimecode = undefined;  // bcz: this should be automatic somehow.. along with any other properties that were logically associated with the original collection
-        });
-        newCollection.x = NumCast(newCollection.x) + NumCast(newCollection._width) / 2 - 55;
-        newCollection.y = NumCast(newCollection.y) + NumCast(newCollection._height) / 2 - 55;
-        newCollection._width = newCollection._height = 110;
-        //newCollection.borderRounding = "40px";
-        newCollection._jitterRotation = 10;
-        newCollection._backgroundColor = "gray";
-        newCollection._overflow = "visible";
-        return newCollection;
+        if (x !== undefined && y !== undefined) {
+            const newCollection = Docs.Create.PileDocument(docList, { title: "pileup", x: x - 55, y: y - 55, _width: 110, _height: 100, _LODdisable: true });
+            newCollection.x = NumCast(newCollection.x) + NumCast(newCollection._width) / 2 - 55;
+            newCollection.y = NumCast(newCollection.y) + NumCast(newCollection._height) / 2 - 55;
+            newCollection._width = newCollection._height = 110;
+            //newCollection.borderRounding = "40px";
+            newCollection._jitterRotation = 10;
+            newCollection._backgroundColor = "gray";
+            newCollection._overflow = "visible";
+            return newCollection;
+        }
     }
 
 

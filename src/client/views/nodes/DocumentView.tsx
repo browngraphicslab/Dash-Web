@@ -12,7 +12,6 @@ import { listSpec } from "../../../fields/Schema";
 import { SchemaHeaderField } from '../../../fields/SchemaHeaderField';
 import { ScriptField } from '../../../fields/ScriptField';
 import { BoolCast, Cast, NumCast, StrCast } from "../../../fields/Types";
-import { ImageField } from '../../../fields/URLField';
 import { TraceMobx } from '../../../fields/util';
 import { GestureUtils } from '../../../pen-gestures/GestureUtils';
 import { emptyFunction, OmitKeys, returnOne, returnTransparent, Utils, emptyPath } from "../../../Utils";
@@ -683,12 +682,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this.Document.lockedPosition = this.Document.lockedPosition ? undefined : true;
     }
 
-    @undoBatch
-    @action
-    toggleLockTransform = (): void => {
-        this.Document.lockedTransform = this.Document.lockedTransform ? undefined : true;
-    }
-
     @action
     onContextMenu = async (e: React.MouseEvent | Touch): Promise<void> => {
         // the touch onContextMenu is button 0, the pointer onContextMenu is button 2
@@ -751,7 +744,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         const moreItems: ContextMenuProps[] = more && "subitems" in more ? more.subitems : [];
         moreItems.push({ description: "Make View of Metadata Field", event: () => Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.DataDoc), icon: "concierge-bell" });
         moreItems.push({ description: `${this.Document._chromeStatus !== "disabled" ? "Hide" : "Show"} Chrome`, event: () => this.Document._chromeStatus = (this.Document._chromeStatus !== "disabled" ? "disabled" : "enabled"), icon: "project-diagram" });
-        moreItems.push({ description: this.Document.lockedTransform ? "Unlock Transform" : "Lock Transform", event: this.toggleLockTransform, icon: BoolCast(this.Document.lockedTransform) ? "unlock" : "lock" });
         moreItems.push({ description: this.Document.lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document.lockedPosition) ? "unlock" : "lock" });
 
         if (!ClientUtils.RELEASE) {
@@ -765,10 +757,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             moreItems.push({ description: "Write Back Link to Album", event: () => GooglePhotos.Transactions.AddTextEnrichment(this.props.Document), icon: "caret-square-right" });
         }
         moreItems.push({
-            description: "Download document", icon: "download", event: async () =>
-                console.log(JSON.parse(await rp.get(Utils.CorsProxy("http://localhost:8983/solr/dash/select"), {
+            description: "Download document", icon: "download", event: async () => {
+                const response = await rp.get(Utils.CorsProxy("http://localhost:8983/solr/dash/select"), {
                     qs: { q: 'world', fq: 'NOT baseProto_b:true AND NOT deleted:true', start: '0', rows: '100', hl: true, 'hl.fl': '*' }
-                })))
+                });
+                console.log(response ? JSON.parse(response) : undefined);
+            }
             // const a = document.createElement("a");
             // const url = Utils.prepend(`/downloadId/${this.props.Document[Id]}`);
             // a.href = url;
@@ -1117,6 +1111,16 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }), 400);
     });
 
+    renderLock() {
+        return (this.Document.isBackground !== undefined || this.isSelected(false)) &&
+            ((this.Document.type === DocumentType.COL && this.Document._viewType !== CollectionViewType.Pile) || this.Document.type === DocumentType.IMG) &&
+            this.props.renderDepth > 0 && this.props.PanelWidth() > 0 ?
+            <div className="documentView-lock" onClick={() => this.toggleBackground(true)}>
+                <FontAwesomeIcon icon={this.Document.isBackground ? "unlock" : "lock"} style={{ color: this.Document.isBackground ? "red" : undefined }} size="lg" />
+            </div>
+            : (null);
+    }
+
     render() {
         if (!(this.props.Document instanceof Doc)) return (null);
         const backgroundColor = Doc.UserDoc().renderStyle === "comic" ? undefined : StrCast(this.layoutDoc._backgroundColor) || StrCast(this.layoutDoc.backgroundColor) || StrCast(this.Document.backgroundColor) || this.props.backgroundColor?.(this.Document);
@@ -1167,11 +1171,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 <div className="documentView-contentBlocker" />
             </> :
                 this.innards}
-            {(this.Document.isBackground !== undefined || this.isSelected(false)) && (this.Document.type === DocumentType.COL || this.Document.type === DocumentType.IMG) && this.props.renderDepth > 0 && this.props.PanelWidth() > 0 ?
-                <div className="documentView-lock" onClick={() => this.toggleBackground(true)}>
-                    <FontAwesomeIcon icon={this.Document.isBackground ? "unlock" : "lock"} style={{ color: this.Document.isBackground ? "red" : undefined }} size="lg" />
-                </div>
-                : (null)}
+            {this.renderLock()}
         </div>;
         { this._showKPQuery ? <KeyphraseQueryView keyphrases={this._queries}></KeyphraseQueryView> : undefined; }
     }
