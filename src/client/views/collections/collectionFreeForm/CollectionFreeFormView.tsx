@@ -1363,7 +1363,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             {!this.Document._LODdisable && !this.props.active() && !this.props.isAnnotationOverlay && !this.props.annotationsKey && this.props.renderDepth > 0 ?
                 this.placeholder : this.marqueeView}
             <CollectionFreeFormOverlayView elements={this.elementFunc} />
-            {this.isAnnotationOverlay || !this.props.isSelected() ? (null) :
+            {this.isAnnotationOverlay || !this.props.isSelected() || this.props.Document._viewType === CollectionViewType.Pile ? (null) :
                 <>
                     <div key="back" className="backKeyframe" onClick={this.prevKeyframe}>
                         <FontAwesomeIcon icon={"caret-left"} size={"lg"} />
