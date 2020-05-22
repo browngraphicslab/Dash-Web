@@ -451,7 +451,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             if (generatedDocuments.length) {
                 const set = generatedDocuments.length > 1 && generatedDocuments.map(d => Doc.iconify(d));
                 if (set) {
-                    addDocument(Doc.pileup(generatedDocuments, options.x!, options.y!));
+                    addDocument(Doc.pileup(generatedDocuments, options.x!, options.y!)!);
                 } else {
                     generatedDocuments.forEach(addDocument);
                 }
