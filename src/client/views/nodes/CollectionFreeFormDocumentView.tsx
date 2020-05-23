@@ -77,6 +77,8 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
     }
 
     public static setValues(timecode: number, d: Doc, x?: number, y?: number, opacity?: number) {
+        Cast(d["x-indexed"], listSpec("number"), [])[Math.max(0, timecode - 1)] = x as any as number;
+        Cast(d["y-indexed"], listSpec("number"), null)[Math.max(0, timecode - 1)] = y as any as number;
         Cast(d["x-indexed"], listSpec("number"), [])[timecode] = x as any as number;
         Cast(d["y-indexed"], listSpec("number"), null)[timecode] = y as any as number;
         Cast(d["opacity-indexed"], listSpec("number"), null)[timecode] = opacity as any as number;
@@ -99,16 +101,18 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
         setTimeout(() => docs.forEach(doc => doc.transition = undefined), 1010);
     }
 
-    public static setupKeyframes(docs: Doc[], timecode: number, collection: Doc) {
+    public static setupKeyframes(docs: Doc[], timecode: number, progressivize: boolean = false) {
         docs.forEach((doc, i) => {
+            const curTimecode = progressivize ? i : timecode;
             const xlist = new List<number>(numberRange(timecode + 1).map(i => undefined) as any as number[]);
             const ylist = new List<number>(numberRange(timecode + 1).map(i => undefined) as any as number[]);
-            xlist[Math.max(i - 1)] = xlist[timecode + 1] = NumCast(doc.x);
-            ylist[Math.max(i - 1)] = ylist[timecode + 1] = NumCast(doc.y);
+            const olist = new List<number>(numberRange(timecode + 1).map(t => progressivize && t < i ? 0 : 1));
+            xlist[Math.max(curTimecode - 1, 0)] = xlist[curTimecode] = NumCast(doc.x);
+            ylist[Math.max(curTimecode - 1, 0)] = ylist[curTimecode] = NumCast(doc.y);
             doc["x-indexed"] = xlist;
             doc["y-indexed"] = ylist;
-            doc["opacity-indexed"] = new List<number>(numberRange(timecode).map(i => 1));
-            doc.displayTimecode = ComputedField.MakeFunction("collection ? collection.currentTimecode : 0", {}, { collection });
+            doc["opacity-indexed"] = olist;
+            doc.displayTimecode = ComputedField.MakeFunction("self.context ? (self.context.currentTimecode||0) : 0");
             doc.x = ComputedField.MakeInterpolated("x", "displayTimecode");
             doc.y = ComputedField.MakeInterpolated("y", "displayTimecode");
             doc.opacity = ComputedField.MakeInterpolated("opacity", "displayTimecode");

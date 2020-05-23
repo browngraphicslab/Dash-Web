@@ -334,9 +334,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             _LODdisable: true,
             title: "a nested collection",
         });
-        // const dataExtensionField = Doc.CreateDocumentExtensionForField(newCollection, "data");
-        // dataExtensionField.ink = inkData ? new InkField(this.marqueeInkSelect(inkData)) : undefined;
-        // this.marqueeInkDelete(inkData);
+        selected.forEach(d => d.context = newCollection);
         this.hideMarquee();
         return newCollection;
     }

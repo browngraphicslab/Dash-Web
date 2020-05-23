@@ -126,21 +126,39 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         FormattedTextBox.SelectOnLoad = newBox[Id];// track the new text box so we can give it a prop that tells it to focus itself when it's displayed
         this.addDocument(newBox);
     }
-    addDocument = (newBox: Doc | Doc[]) => {
-        if (this.Document.currentTimecode !== undefined && !this.props.isAnnotationOverlay) {
-            CollectionFreeFormDocumentView.setupKeyframes((newBox instanceof Doc) ? [newBox] : newBox, this.Document.currentTimecode, this.props.Document);
-        }
-
+    addDocument = action((newBox: Doc | Doc[]) => {
+        let retVal = false;
         if (newBox instanceof Doc) {
-            const added = this.props.addDocument(newBox);
-            added && this.bringToFront(newBox);
-            added && this.updateCluster(newBox);
-            return added;
+            retVal = this.props.addDocument(newBox);
+            retVal && this.bringToFront(newBox);
+            retVal && this.updateCluster(newBox);
         } else {
-            return this.props.addDocument(newBox);
+            retVal = this.props.addDocument(newBox);
             // bcz: deal with clusters
         }
-    }
+        if (retVal) {
+            const newBoxes = (newBox instanceof Doc) ? [newBox] : newBox;
+            for (let i = 0; i < newBoxes.length; i++) {
+                const newBox = newBoxes[i];
+                if (newBox.displayTimecode !== undefined) {
+                    const x = newBox.x;
+                    const y = newBox.y;
+                    delete newBox["x-indexed"];
+                    delete newBox["y-indexed"];
+                    delete newBox["opacity-indexed"];
+                    delete newBox.x;
+                    delete newBox.y;
+                    delete newBox.displayTimecode;
+                    newBox.x = x;
+                    newBox.y = y;
+                }
+            }
+            if (this.Document.currentTimecode !== undefined && !this.props.isAnnotationOverlay) {
+                CollectionFreeFormDocumentView.setupKeyframes(newBoxes, this.Document.currentTimecode);
+            }
+        }
+        return retVal;
+    })
 
     @undoBatch
     @action
@@ -148,7 +166,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         const currentTimecode = this.Document.currentTimecode;
         if (currentTimecode === undefined) {
             this.Document.currentTimecode = 0;
-            CollectionFreeFormDocumentView.setupKeyframes(this.childDocs, 0, this.props.Document);
+            CollectionFreeFormDocumentView.setupKeyframes(this.childDocs, 0);
         }
         CollectionFreeFormDocumentView.updateKeyframe(this.childDocs, currentTimecode || 0);
         this.Document.currentTimecode = Math.max(0, (currentTimecode || 0) + 1);
@@ -160,7 +178,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         const currentTimecode = this.Document.currentTimecode;
         if (currentTimecode === undefined) {
             this.Document.currentTimecode = 0;
-            CollectionFreeFormDocumentView.setupKeyframes(this.childDocs, 0, this.props.Document);
+            CollectionFreeFormDocumentView.setupKeyframes(this.childDocs, 0);
         }
         CollectionFreeFormDocumentView.gotoKeyframe(this.childDocs.slice());
         this.Document.currentTimecode = Math.max(0, (currentTimecode || 0) - 1);
@@ -992,7 +1010,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         const { z, color, zIndex } = params.pair.layout;
         return {
             x: NumCast(x), y: NumCast(y), z: Cast(z, "number"), color: StrCast(color), zIndex: Cast(zIndex, "number"),
-            transition: StrCast(layoutDoc.transition), opacity: Cast(opacity, "number", null),
+            transition: StrCast(layoutDoc.transition), opacity: this.Document.editing ? 1 : Cast(opacity, "number", null),
             width: Cast(layoutDoc._width, "number"), height: Cast(layoutDoc._height, "number"), pair: params.pair, replica: ""
         };
     }
@@ -1376,8 +1394,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                     <div key="back" className="backKeyframe" onClick={this.prevKeyframe}>
                         <FontAwesomeIcon icon={"caret-left"} size={"lg"} />
                     </div>
-                    <div key="num" className="numKeyframe" >
-                        {NumCast(this.props.Document.currentTimecode)}
+                    <div key="num" className="numKeyframe" style={{ backgroundColor: this.Document.editing ? "#759c75" : "#c56565" }} onClick={action(() => this.Document.editing = !this.Document.editing)} >
+                        {NumCast(this.Document.currentTimecode)}
                     </div>
                     <div key="fwd" className="fwdKeyframe" onClick={this.nextKeyframe}>
                         <FontAwesomeIcon icon={"caret-right"} size={"lg"} />

@@ -101,12 +101,11 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         this.rootDoc.presProgressivize = !this.rootDoc.presProgressivize;
         const rootTarget = Cast(this.rootDoc.presentationTargetDoc, Doc, null);
         const docs = DocListCast(rootTarget[Doc.LayoutFieldKey(rootTarget)]);
-        if (this.rootDoc.presProgressivize && !rootTarget?.lastTimecode) {
+        if (this.rootDoc.presProgressivize) {
             rootTarget.currentTimecode = 0;
-            CollectionFreeFormDocumentView.setupKeyframes(docs, docs.length, this.presBox);
+            CollectionFreeFormDocumentView.setupKeyframes(docs, docs.length, true);
             rootTarget.lastTimecode = docs.length - 1;
         }
-        docs.forEach((d, i) => i && numberRange(i).forEach(f => Cast(d["opacity-indexed"], listSpec("number"), [])[f] = 0));
     }
 
     /**
