@@ -32,7 +32,7 @@ import { SSL } from './apis/google/CredentialsLoader';
 export type RouteSetter = (server: RouteManager) => void;
 export let disconnect: Function;
 
-export let resolvedPorts: { server: number, socket: number };
+export let resolvedPorts: { server: number, socket: number } = { server: 1050, socket: 4321 };
 
 export default async function InitializeServer(routeSetter: RouteSetter) {
     const app = buildWithMiddleware(express());
@@ -58,18 +58,16 @@ export default async function InitializeServer(routeSetter: RouteSetter) {
 
     let server: HttpServer | HttpsServer;
     const { serverPort } = process.env;
-    resolvedPorts.server = isRelease && serverPort ? Number(serverPort) : 1050;
+    isRelease && serverPort && (resolvedPorts.server = Number(serverPort));
     await new Promise<void>(resolve => server = isRelease ?
         createServer(SSL.Credentials, app).listen(resolvedPorts.server, resolve) :
-        app.listen(resolvedPorts, resolve)
+        app.listen(resolvedPorts.server, resolve)
     );
     logPort("server", resolvedPorts.server);
 
     // initialize the web socket (bidirectional communication: if a user changes
     // a field on one client, that change must be broadcast to all other clients)
-    resolvedPorts.socket = await WebSocket.initialize(isRelease, app);
-
-    app.get("/resolvedPorts", (_req, res) => res.send(resolvedPorts));
+    await WebSocket.initialize(isRelease, app);
 
     disconnect = async () => new Promise<Error>(resolve => server.close(resolve));
     return isRelease;

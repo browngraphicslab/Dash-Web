@@ -5,7 +5,7 @@ import * as path from 'path';
 import { Database } from './database';
 import { DashUploadUtils } from './DashUploadUtils';
 import RouteSubscriber from './RouteSubscriber';
-import initializeServer from './server_Initialization';
+import initializeServer, { resolvedPorts } from './server_Initialization';
 import RouteManager, { Method, _success, _permission_denied, _error, _invalid, PublicHandler } from './RouteManager';
 import * as qs from 'query-string';
 import UtilManager from './ApiManagers/UtilManager';
@@ -95,6 +95,11 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
         secureHandler: ({ res }) => res.send(true)
     });
 
+    addSupervisedRoute({
+        method: Method.GET,
+        subscription: "/resolvedPorts",
+        secureHandler: ({ res }) => res.send(resolvedPorts)
+    });
 
     const serve: PublicHandler = ({ req, res }) => {
         const detector = new mobileDetect(req.headers['user-agent'] || "");

@@ -2,7 +2,7 @@
 import io from "socket.io-client";
 import {
     resolvedPorts
-} from "../../../server/server_Initialization";
+} from "../Main";
 
 var socket;
 var isChannelReady = false;

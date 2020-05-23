@@ -16,6 +16,7 @@ import executeImport from "../scraping/buxton/final/BuxtonImporter";
 import { DocumentsCollection } from "./IDatabase";
 import { createServer, Server } from "https";
 import * as express from "express";
+import { resolvedPorts } from './server_Initialization';
 
 export namespace WebSocket {
 
@@ -23,21 +24,21 @@ export namespace WebSocket {
     const clients: { [key: string]: Client } = {};
     export const socketMap = new Map<SocketIO.Socket, string>();
     export let disconnect: Function;
-    const defaultPort = 4321;
 
     export async function initialize(isRelease: boolean, app: express.Express) {
         let io: sio.Server;
-        let resolved: number;
         if (isRelease) {
             const { socketPort } = process.env;
-            resolved = socketPort ? Number(socketPort) : defaultPort;
+            if (socketPort) {
+                resolvedPorts.socket = Number(socketPort);
+            }
             let socketEndpoint: Server;
-            await new Promise<void>(resolve => socketEndpoint = createServer(SSL.Credentials, app).listen(resolved, resolve));
+            await new Promise<void>(resolve => socketEndpoint = createServer(SSL.Credentials, app).listen(resolvedPorts.socket, resolve));
             io = sio(socketEndpoint!, SSL.Credentials as any);
         } else {
-            io = sio().listen(resolved = defaultPort);
+            io = sio().listen(resolvedPorts.socket);
         }
-        logPort("websocket", resolved);
+        logPort("websocket", resolvedPorts.socket);
         console.log();
 
         io.on("connection", function (socket: Socket) {
@@ -137,8 +138,6 @@ export namespace WebSocket {
                 socket.disconnect(true);
             };
         });
-
-        return resolved;
     }
 
     function processGesturePoints(socket: Socket, content: GestureContent) {
