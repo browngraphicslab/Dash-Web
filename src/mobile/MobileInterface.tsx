@@ -36,6 +36,7 @@ import SettingsManager from '../client/util/SettingsManager';
 import { Uploader } from "./ImageUpload";
 import { Upload } from '../server/SharedMediaTypes';
 import { createTypePredicateNodeWithModifier } from 'typescript';
+import { AudioBox } from '../client/views/nodes/AudioBox';
 
 library.add(faLongArrowAltLeft);
 library.add(faHome);
@@ -59,6 +60,7 @@ export class MobileInterface extends React.Component {
     private _child: Doc | null = null;
     private _parents: Array<Doc> = [];
     private _menu: Doc = this.mainDoc;
+    private _open: boolean = false;
     private _library: Doc = Cast(this.userDoc.myWorkspaces, Doc) as Doc;
 
     constructor(props: Readonly<{}>) {
@@ -233,12 +235,10 @@ export class MobileInterface extends React.Component {
         return pathname;
     }
 
-    openLibrary = () => {
-        this._parents.push(this._activeDoc);
-        this._activeDoc = this._menu;
-        this.switchCurrentView((userDoc: Doc) => this._menu);
-        this._child = null;
-        console.log("hi!");
+    openLibrary() {
+        this._activeDoc = this.mainDoc;
+        this.switchCurrentView((userDoc: Doc) => this.mainDoc);
+        this._child = this._library;
     }
 
     renderDefaultContent = () => {
@@ -299,9 +299,6 @@ export class MobileInterface extends React.Component {
                             </div>
                             <div className="item" key="settings" onClick={() => SettingsManager.Instance.open()}>
                                 Settings
-                            </div>
-                            <div className="item" key="home" onClick={this.returnHome}>
-                                Home (click the house)
                             </div>
                         </div>
                     </div>
