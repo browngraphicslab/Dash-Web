@@ -1,11 +1,11 @@
 .collectionCarouselView-outer {
     background: white;
     height: 100%;
-    perspective: 30em;
+    perspective: 40em;
 
-    .collectionCarouselView-image {
+    .collectionCarouselView-center {
         position: absolute;
-        height: 100%;
+        height: 80%;
         width: 50%;
         top: 0;
         left: 0;
@@ -23,7 +23,7 @@
         width: 25%;
         left: 0;
         top: 25%;
-        transform: rotateY(-20deg)
+        transform: rotateY(-20deg);
     }
 
     .collectionCarouselView-next {
@@ -32,6 +32,6 @@
         width: 25%;
         right: 0;
         top: 25%;
-        transform: rotateY(20deg)
+        transform: rotateY(20deg);
     }
 }

@@ -38,8 +38,9 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
         );
     }
 
-    mainPanelWidth = () => this.props.PanelWidth() * 0.6;
-    sidePanelWidth = () => this.props.PanelWidth() * 0.3;
+    mainPanelWidth = () => this.props.PanelWidth() * 0.5;
+    mainPanelHeight = () => this.props.PanelHeight() * 0.8;
+    sidePanelWidth = () => this.props.PanelWidth() * 0.25;
     sidePanelHeight = () => this.props.PanelHeight() * 0.5;
     @computed get content() {
         const index = NumCast(this.layoutDoc._itemIndex);
@@ -47,6 +48,26 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
         const nextIndex = (index + 1 + this.childLayoutPairs.length) % this.childLayoutPairs.length;
         return !(this.childLayoutPairs?.[index]?.layout instanceof Doc) ? (null) :
             <>
+                <div className="collectionCarouselView-center">
+                    <ContentFittingDocumentView {...this.props}
+                        onDoubleClick={ScriptCast(this.layoutDoc.onChildDoubleClick)}
+                        onClick={ScriptField.MakeScript(
+                            "child._showCaption = 'caption'",
+                            { child: Doc.name },
+                            { child: this.childLayoutPairs[index].layout }
+                        )}
+                        renderDepth={this.props.renderDepth + 1}
+                        LayoutTemplate={this.props.ChildLayoutTemplate}
+                        LayoutTemplateString={this.props.ChildLayoutString}
+                        Document={this.childLayoutPairs[index].layout}
+                        DataDoc={this.childLayoutPairs[index].data}
+                        PanelWidth={this.mainPanelWidth}
+                        PanelHeight={this.mainPanelHeight}
+                        ScreenToLocalTransform={this.props.ScreenToLocalTransform}
+                        bringToFront={returnFalse}
+                        parentActive={this.props.active}
+                    />
+                </div>
                 <div className="collectionCarouselView-prev">
                     <ContentFittingDocumentView {...this.props}
                         onDoubleClick={ScriptCast(this.layoutDoc.onChildDoubleClick)}
@@ -74,26 +95,6 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
                         DataDoc={this.childLayoutPairs[nextIndex].data}
                         PanelWidth={this.sidePanelWidth}
                         PanelHeight={this.sidePanelHeight}
-                        ScreenToLocalTransform={this.props.ScreenToLocalTransform}
-                        bringToFront={returnFalse}
-                        parentActive={this.props.active}
-                    />
-                </div>
-                <div className="collectionCarouselView-image" key="image">
-                    <ContentFittingDocumentView {...this.props}
-                        onDoubleClick={ScriptCast(this.layoutDoc.onChildDoubleClick)}
-                        onClick={ScriptField.MakeScript(
-                            "child._showCaption = 'caption'",
-                            { child: Doc.name },
-                            { child: this.childLayoutPairs[index].layout }
-                        )}
-                        renderDepth={this.props.renderDepth + 1}
-                        LayoutTemplate={this.props.ChildLayoutTemplate}
-                        LayoutTemplateString={this.props.ChildLayoutString}
-                        Document={this.childLayoutPairs[index].layout}
-                        DataDoc={this.childLayoutPairs[index].data}
-                        PanelWidth={this.mainPanelWidth}
-                        PanelHeight={this.props.PanelHeight}
                         ScreenToLocalTransform={this.props.ScreenToLocalTransform}
                         bringToFront={returnFalse}
                         parentActive={this.props.active}
