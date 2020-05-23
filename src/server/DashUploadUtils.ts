@@ -15,6 +15,7 @@ const parse = require('pdf-parse');
 import { Directory, serverPathToFile, clientPathToFile, pathToDirectory } from './ApiManagers/UploadManager';
 import { red } from 'colors';
 import { Stream } from 'stream';
+import { resolvedPorts } from './server_Initialization';
 const requestImageSize = require("../client/util/request-image-size");
 
 export enum SizeSuffix {
@@ -184,7 +185,7 @@ export namespace DashUploadUtils {
             if (error !== null) {
                 return error;
             }
-            source = `http://localhost:1050${clientPathToFile(Directory.images, resolved)}`;
+            source = `http://localhost:${resolvedPorts.server}${clientPathToFile(Directory.images, resolved)}`;
         }
         let resolvedUrl: string;
         /**
@@ -194,14 +195,14 @@ export namespace DashUploadUtils {
          * basename subtree (i.e. /images/<some_guid>.<ext>) and put it on the end of the server's url.
          * 
          * This can always be localhost, regardless of whether this is on the server or not, since we (the server, not the client)
-         * will be the ones making the request, and from the perspective of dash-release or dash-web, localhost:1050 refers to the same thing
-         * as the full dash-release.eastus.cloudapp.azure.com:1050.
+         * will be the ones making the request, and from the perspective of dash-release or dash-web, localhost:<port> refers to the same thing
+         * as the full dash-release.eastus.cloudapp.azure.com:<port>.
          */
         const matches = isLocal().exec(source);
         if (matches === null) {
             resolvedUrl = source;
         } else {
-            resolvedUrl = `http://localhost:1050/${matches[1].split("\\").join("/")}`;
+            resolvedUrl = `http://localhost:${resolvedPorts.server}/${matches[1].split("\\").join("/")}`;
         }
         // See header comments: not all image files have exif data (I believe only JPG is the only format that can have it)
         const exifData = await parseExifData(resolvedUrl);

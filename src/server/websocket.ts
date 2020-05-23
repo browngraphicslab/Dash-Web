@@ -137,6 +137,8 @@ export namespace WebSocket {
                 socket.disconnect(true);
             };
         });
+
+        return resolved;
     }
 
     function processGesturePoints(socket: Socket, content: GestureContent) {

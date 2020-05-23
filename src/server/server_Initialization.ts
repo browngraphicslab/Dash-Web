@@ -20,8 +20,8 @@ import * as fs from 'fs';
 import * as request from 'request';
 import RouteSubscriber from './RouteSubscriber';
 import { publicDirectory } from '.';
-import { logPort, pathFromRoot, } from './ActionUtilities';
-import { blue, yellow, red } from 'colors';
+import { logPort } from './ActionUtilities';
+import { blue, yellow } from 'colors';
 import * as cors from "cors";
 import { createServer, Server as HttpsServer } from "https";
 import { Server as HttpServer } from "http";
@@ -31,6 +31,8 @@ import { SSL } from './apis/google/CredentialsLoader';
    from being exposed. */
 export type RouteSetter = (server: RouteManager) => void;
 export let disconnect: Function;
+
+export let resolvedPorts: { server: number, socket: number };
 
 export default async function InitializeServer(routeSetter: RouteSetter) {
     const app = buildWithMiddleware(express());
@@ -56,16 +58,18 @@ export default async function InitializeServer(routeSetter: RouteSetter) {
 
     let server: HttpServer | HttpsServer;
     const { serverPort } = process.env;
-    const resolved = isRelease && serverPort ? Number(serverPort) : 1050;
+    resolvedPorts.server = isRelease && serverPort ? Number(serverPort) : 1050;
     await new Promise<void>(resolve => server = isRelease ?
-        createServer(SSL.Credentials, app).listen(resolved, resolve) :
-        app.listen(resolved, resolve)
+        createServer(SSL.Credentials, app).listen(resolvedPorts.server, resolve) :
+        app.listen(resolvedPorts, resolve)
     );
-    logPort("server", resolved);
+    logPort("server", resolvedPorts.server);
 
     // initialize the web socket (bidirectional communication: if a user changes
     // a field on one client, that change must be broadcast to all other clients)
-    WebSocket.initialize(isRelease, app);
+    resolvedPorts.socket = await WebSocket.initialize(isRelease, app);
+
+    app.get("/resolvedPorts", (_req, res) => res.send(resolvedPorts));
 
     disconnect = async () => new Promise<Error>(resolve => server.close(resolve));
     return isRelease;
@@ -174,11 +178,11 @@ function registerRelativePath(server: express.Express) {
     server.use("*", (req, res) => {
         const relativeUrl = req.originalUrl;
         if (!res.headersSent && req.headers.referer?.includes("corsProxy")) { // a request for something by a proxied referrer means it must be a relative reference.  So construct a proxied absolute reference here.
-            const proxiedRefererUrl = decodeURIComponent(req.headers.referer); // (e.g., http://localhost:1050/corsProxy/https://en.wikipedia.org/wiki/Engelbart)
-            const dashServerUrl = proxiedRefererUrl.match(/.*corsProxy\//)![0]; // the dash server url (e.g.: http://localhost:1050/corsProxy/ )
+            const proxiedRefererUrl = decodeURIComponent(req.headers.referer); // (e.g., http://localhost:<port>/corsProxy/https://en.wikipedia.org/wiki/Engelbart)
+            const dashServerUrl = proxiedRefererUrl.match(/.*corsProxy\//)![0]; // the dash server url (e.g.: http://localhost:<port>/corsProxy/ )
             const actualReferUrl = proxiedRefererUrl.replace(dashServerUrl, ""); // the url of the referer without the proxy (e.g., : http:s//en.wikipedia.org/wiki/Engelbart)
             const absoluteTargetBaseUrl = actualReferUrl.match(/http[s]?:\/\/[^\/]*/)![0]; // the base of the original url (e.g.,  https://en.wikipedia.org)
-            const redirectedProxiedUrl = dashServerUrl + encodeURIComponent(absoluteTargetBaseUrl + relativeUrl); // the new proxied full url (e..g, http://localhost:1050/corsProxy/https://en.wikipedia.org/<somethingelse>)
+            const redirectedProxiedUrl = dashServerUrl + encodeURIComponent(absoluteTargetBaseUrl + relativeUrl); // the new proxied full url (e..g, http://localhost:<port>/corsProxy/https://en.wikipedia.org/<somethingelse>)
             res.redirect(redirectedProxiedUrl);
         } else if (relativeUrl.startsWith("/search")) { // detect search query and use default search engine
             res.redirect(req.headers.referer + "corsProxy/" + encodeURIComponent("http://www.google.com" + relativeUrl));
