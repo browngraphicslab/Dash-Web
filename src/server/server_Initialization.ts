@@ -33,6 +33,7 @@ export type RouteSetter = (server: RouteManager) => void;
 export let disconnect: Function;
 
 export let resolvedPorts: { server: number, socket: number } = { server: 1050, socket: 4321 };
+export let resolvedServerUrl: string;
 
 export default async function InitializeServer(routeSetter: RouteSetter) {
     const app = buildWithMiddleware(express());
@@ -57,13 +58,15 @@ export default async function InitializeServer(routeSetter: RouteSetter) {
     registerRelativePath(app);
 
     let server: HttpServer | HttpsServer;
-    const { serverPort } = process.env;
+    const { serverPort, serverName } = process.env;
     isRelease && serverPort && (resolvedPorts.server = Number(serverPort));
     await new Promise<void>(resolve => server = isRelease ?
         createServer(SSL.Credentials, app).listen(resolvedPorts.server, resolve) :
         app.listen(resolvedPorts.server, resolve)
     );
     logPort("server", resolvedPorts.server);
+
+    resolvedServerUrl = `${isRelease && serverName ? `https://${serverName}.com` : "http://localhost"}:${resolvedPorts.server}`;
 
     // initialize the web socket (bidirectional communication: if a user changes
     // a field on one client, that change must be broadcast to all other clients)

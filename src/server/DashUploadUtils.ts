@@ -17,6 +17,7 @@ import { red } from 'colors';
 import { Stream } from 'stream';
 import { resolvedPorts } from './server_Initialization';
 const requestImageSize = require("../client/util/request-image-size");
+import { resolvedServerUrl } from "./server_Initialization";
 
 export enum SizeSuffix {
     Small = "_s",
@@ -185,7 +186,7 @@ export namespace DashUploadUtils {
             if (error !== null) {
                 return error;
             }
-            source = `http://localhost:${resolvedPorts.server}${clientPathToFile(Directory.images, resolved)}`;
+            source = `${resolvedServerUrl}${clientPathToFile(Directory.images, resolved)}`;
         }
         let resolvedUrl: string;
         /**
@@ -202,7 +203,7 @@ export namespace DashUploadUtils {
         if (matches === null) {
             resolvedUrl = source;
         } else {
-            resolvedUrl = `http://localhost:${resolvedPorts.server}/${matches[1].split("\\").join("/")}`;
+            resolvedUrl = `${resolvedServerUrl}/${matches[1].split("\\").join("/")}`;
         }
         // See header comments: not all image files have exif data (I believe only JPG is the only format that can have it)
         const exifData = await parseExifData(resolvedUrl);
