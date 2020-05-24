@@ -4,7 +4,7 @@ import * as React from "react";
 import { documentSchema } from "../../../fields/documentSchemas";
 import { createSchema, makeInterface, listSpec } from "../../../fields/Schema";
 import { ScriptField, ComputedField } from "../../../fields/ScriptField";
-import { StrCast, ScriptCast, Cast } from "../../../fields/Types";
+import { StrCast, ScriptCast, Cast, NumCast } from "../../../fields/Types";
 import { InteractionUtils } from "../../util/InteractionUtils";
 import { CompileScript, ScriptSucccess, ScriptParam } from "../../util/Scripting";
 import { ViewBoxAnnotatableComponent } from "../DocComponent";
@@ -15,6 +15,10 @@ import { OverlayView } from "../OverlayView";
 import { DocumentIconContainer, DocumentIcon } from "./DocumentIcon";
 import { List } from "../../../fields/List";
 import { DragManager } from "../../util/DragManager";
+import { ContextMenuProps } from "../ContextMenuItem";
+import { copy } from "typescript-collections/dist/lib/arrays";
+import { Doc, WidthSym } from "../../../fields/Doc";
+import { ContextMenu } from "../ContextMenu";
 
 const ScriptingSchema = createSchema({});
 type ScriptingDocument = makeInterface<[typeof ScriptingSchema, typeof documentSchema]>;
@@ -33,10 +37,10 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
 
     @observable private _errorMessage: string = "";
     @observable private _applied: boolean = false;
-    @observable private _paramsNames: string[] = [];
-    @observable private _paramsTypes: string[] = [];
-    @observable private _paramsValues: string[] = [];
-    @observable private _paramsCollapsed: boolean[] = [];
+    // @observable private _paramsNames: string[] = [];
+    // @observable private _paramsTypes: string[] = [];
+    // @observable private _paramsValues: string[] = [];
+    // @observable private _paramsCollapsed: boolean[] = [];
 
     protected createDashEventsTarget = (ele: HTMLDivElement, dropFunc: (e: Event, de: DragManager.DropEvent) => void) => { //used for stacking and masonry view
         if (ele) {
@@ -49,9 +53,35 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     @computed get compileParams() { return Cast(this.dataDoc[this.props.fieldKey + "-params"], listSpec("string"), Cast(this.layoutDoc[this.props.fieldKey + "-params"], listSpec("string"), [])); }
     set rawScript(value) { this.dataDoc[this.props.fieldKey + "-rawScript"] = value; }
 
-    stopPropagation = (e: React.SyntheticEvent) => e.stopPropagation();
+    @computed get _paramsNames() { return Cast(this.dataDoc[this.props.fieldKey + "-paramsNames"], listSpec("string"), Cast(this.layoutDoc[this.props.fieldKey + "-paramsNames"], listSpec("string"), [])); }
+    @computed get _paramsTypes() { return Cast(this.dataDoc[this.props.fieldKey + "-paramsTypes"], listSpec("string"), Cast(this.layoutDoc[this.props.fieldKey + "-paramsTypes"], listSpec("string"), [])); }
+    @computed get _paramsValues() { return Cast(this.dataDoc[this.props.fieldKey + "-paramsValues"], listSpec("string"), Cast(this.layoutDoc[this.props.fieldKey + "-paramsValues"], listSpec("string"), [])); }
+    @computed get _paramsCollapsed() { return Cast(this.dataDoc[this.props.fieldKey + "-paramsCollapsed"], listSpec("boolean"), Cast(this.layoutDoc[this.props.fieldKey + "-paramsCollapsed"], listSpec("boolean"), [])); }
 
     set compileParams(value) { this.dataDoc[this.props.fieldKey + "-params"] = value; }
+
+    set _paramsNames(value: string[]) {
+        for (const param of this.compileParams) {
+            value.push(param.split(":")[0].trim());
+        }
+    }
+    set _paramsTypes(value: string[]) {
+        for (const param of this.compileParams) {
+            value.push(param.split(":")[1].trim());
+        }
+    }
+    set _paramsValues(value: string[]) {
+        for (const param of this.compileParams) {
+            value.push("undefined");
+        }
+    }
+    set _paramsCollapsed(value: boolean[]) {
+        for (const param of this.compileParams) {
+            value.push(true);
+        }
+    }
+
+    stopPropagation = (e: React.SyntheticEvent) => e.stopPropagation();
 
     @action
     componentDidMount() {
@@ -248,6 +278,20 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
             this.dataDoc[name] = false;
         }
     }
+
+    onCopy = () => {
+        const copy = Doc.MakeCopy(this.rootDoc, true);
+        copy.x = Number(this.dataDoc._width) + Number(this.dataDoc.x);
+        this.props.addDocument?.(copy);
+    }
+
+    specificContextMenu = (e: React.MouseEvent): void => {
+        const existingMore = ContextMenu.Instance.findByDescription("More...");
+        const mores: ContextMenuProps[] = existingMore && "subitems" in existingMore ? existingMore.subitems : [];
+        mores.push({ description: "Create a Copy", event: this.onCopy, icon: "copy" });
+        !existingMore && ContextMenu.Instance.addItem({ description: "More...", subitems: mores, icon: "hand-point-right" });
+    }
+
 
 
     render() {
@@ -460,7 +504,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
                     </div>
                 </div> : null}
 
-                {this._paramsTypes[i].split("|")[1] ? <div>
+                {this._paramsTypes[i]?.split("|")[1] ? <div>
                     <div className="scriptingBox-wrapper">
                         <div className="scriptingBox-paramNames">
                             {parameter + ":" + this._paramsTypes[i] + " = "}
@@ -594,28 +638,31 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
 
 
         return (
-            <div className="scriptingBox-outerDiv"
+            <div className={`scriptingBox`} onContextMenu={this.specificContextMenu}>
 
-                onWheel={e => this.props.isSelected(true) && e.stopPropagation()}>
+                <div className="scriptingBox-outerDiv"
 
-                {!!!this._applied ? <div style={{ height: "100%" }}>
-                    {scriptingInputs}
-                </div> : null}
+                    onWheel={e => this.props.isSelected(true) && e.stopPropagation()}>
 
-                {this._applied ? <div style={{ height: "100%" }}>
-                    {paramsInputs}
-                </div> : null}
+                    {!!!this._applied ? <div style={{ height: "100%" }}>
+                        {scriptingInputs}
+                    </div> : null}
 
-                {this.rootDoc.layout === "layout" ? <div></div> : (null)}
+                    {this._applied ? <div style={{ height: "100%" }}>
+                        {paramsInputs}
+                    </div> : null}
 
-                {!!!this._applied ? <div>
-                    {scriptingTools}
-                </div> : null}
+                    {this.rootDoc.layout === "layout" ? <div></div> : (null)}
 
-                {this._applied ? <div>
-                    {paramsTools}
-                </div> : null}
+                    {!!!this._applied ? <div>
+                        {scriptingTools}
+                    </div> : null}
 
+                    {this._applied ? <div>
+                        {paramsTools}
+                    </div> : null}
+
+                </div>
             </div>
         );
     }
