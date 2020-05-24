@@ -1,11 +1,11 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
 import {
-    faTrashAlt, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
+    faTasks, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
     faTerminal, faToggleOn, faFile as fileSolid, faExternalLinkAlt, faLocationArrow, faSearch, faFileDownload, faStop, faCalculator, faWindowMaximize, faAddressCard,
     faQuestionCircle, faArrowLeft, faArrowRight, faArrowDown, faArrowUp, faBolt, faBullseye, faCaretUp, faCat, faCheck, faChevronRight, faClipboard, faClone, faCloudUploadAlt,
     faCommentAlt, faCompressArrowsAlt, faCut, faEllipsisV, faEraser, faExclamation, faFileAlt, faFileAudio, faFilePdf, faFilm, faFilter, faFont, faGlobeAsia, faHighlighter,
     faLongArrowAltRight, faMicrophone, faMousePointer, faMusic, faObjectGroup, faPause, faPen, faPenNib, faPhone, faPlay, faPortrait, faRedoAlt, faStamp, faStickyNote,
-    faThumbtack, faTree, faTv, faUndoAlt, faVideo
+    faThumbtack, faTree, faTv, faUndoAlt, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, reaction, runInAction } from 'mobx';
@@ -50,7 +50,6 @@ import PDFMenu from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
 import { ScriptField } from '../../fields/ScriptField';
 import { TimelineMenu } from './animationtimeline/TimelineMenu';
-import { DragManager } from '../util/DragManager';
 import { SnappingManager } from '../util/SnappingManager';
 
 @observer
@@ -66,7 +65,7 @@ export class MainView extends React.Component {
     @observable private _panelHeight: number = 0;
     @observable private _flyoutTranslate: boolean = true;
     @observable public flyoutWidth: number = 250;
-    private get darkScheme() { return BoolCast(Cast(this.userDoc.activeWorkspace, Doc, null)?.darkScheme); }
+    private get darkScheme() { return BoolCast(Cast(this.userDoc?.activeWorkspace, Doc, null)?.darkScheme); }
 
     @computed private get userDoc() { return Doc.UserDoc(); }
     @computed private get mainContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeWorkspace, Doc)) : CurrentUserUtils.GuestWorkspace; }
@@ -114,77 +113,12 @@ export class MainView extends React.Component {
             }
         }
 
-        library.add(faTrashAlt);
-        library.add(faAngleRight);
-        library.add(faBell);
-        library.add(faTrash);
-        library.add(faCamera);
-        library.add(faExpand);
-        library.add(faCaretDown);
-        library.add(faCaretRight);
-        library.add(faCaretSquareDown);
-        library.add(faCaretSquareRight);
-        library.add(faArrowsAltH);
-        library.add(faPlus, faMinus);
-        library.add(faTerminal);
-        library.add(faToggleOn);
-        library.add(faLocationArrow);
-        library.add(faSearch);
-        library.add(fileSolid);
-        library.add(faFileDownload);
-        library.add(faStop);
-        library.add(faCalculator);
-        library.add(faWindowMaximize);
-        library.add(faFileAlt);
-        library.add(faAddressCard);
-        library.add(faQuestionCircle);
-        library.add(faStickyNote);
-        library.add(faFont);
-        library.add(faExclamation);
-        library.add(faPortrait);
-        library.add(faCat);
-        library.add(faFilePdf);
-        library.add(faObjectGroup);
-        library.add(faTv);
-        library.add(faGlobeAsia);
-        library.add(faUndoAlt);
-        library.add(faRedoAlt);
-        library.add(faMousePointer);
-        library.add(faPen);
-        library.add(faHighlighter);
-        library.add(faEraser);
-        library.add(faFileAudio);
-        library.add(faPenNib);
-        library.add(faMicrophone);
-        library.add(faFilm);
-        library.add(faMusic);
-        library.add(faTree);
-        library.add(faPlay);
-        library.add(faCompressArrowsAlt);
-        library.add(faPause);
-        library.add(faClone);
-        library.add(faCut);
-        library.add(faCommentAlt);
-        library.add(faThumbtack);
-        library.add(faLongArrowAltRight);
-        library.add(faCheck);
-        library.add(faCaretUp);
-        library.add(faFilter);
-        library.add(faBullseye);
-        library.add(faArrowLeft);
-        library.add(faArrowRight);
-        library.add(faArrowDown);
-        library.add(faArrowUp);
-        library.add(faCloudUploadAlt);
-        library.add(faBolt);
-        library.add(faVideo);
-        library.add(faChevronRight);
-        library.add(faEllipsisV);
-        library.add(faMusic);
-        library.add(faPhone);
-        library.add(faClipboard);
-        library.add(faStamp);
-        library.add(faExternalLinkAlt);
+        library.add(faTasks, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
+            faTerminal, faToggleOn, faExternalLinkAlt, faLocationArrow, faSearch, faFileDownload, faStop, faCalculator, faWindowMaximize, faAddressCard, fileSolid,
+            faQuestionCircle, faArrowLeft, faArrowRight, faArrowDown, faArrowUp, faBolt, faBullseye, faCaretUp, faCat, faCheck, faChevronRight, faClipboard, faClone, faCloudUploadAlt,
+            faCommentAlt, faCompressArrowsAlt, faCut, faEllipsisV, faEraser, faExclamation, faFileAlt, faFileAudio, faFilePdf, faFilm, faFilter, faFont, faGlobeAsia, faHighlighter,
+            faLongArrowAltRight, faMicrophone, faMousePointer, faMusic, faObjectGroup, faPause, faPen, faPenNib, faPhone, faPlay, faPortrait, faRedoAlt, faStamp, faStickyNote, faTrashAlt, faAngleRight, faBell,
+            faThumbtack, faTree, faTv, faUndoAlt, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye);
         this.initEventListeners();
         this.initAuthenticationRouters();
     }
@@ -204,8 +138,8 @@ export class MainView extends React.Component {
     globalPointerUp = () => this.isPointerDown = false;
 
     initEventListeners = () => {
-        window.addEventListener("drop", (e) => e.preventDefault(), false); // drop event handler
-        window.addEventListener("dragover", (e) => e.preventDefault(), false); // drag event handler
+        window.addEventListener("drop", (e) => { e.preventDefault(); }, false); // drop event handler
+        window.addEventListener("dragover", (e) => { e.preventDefault(); }, false); // drag event handler
         // click interactions for the context menu
         document.addEventListener("pointerdown", this.globalPointerDown);
         document.addEventListener("pointerup", this.globalPointerUp);
@@ -252,15 +186,17 @@ export class MainView extends React.Component {
             _LODdisable: true
         };
         const freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
-        const mainDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600, path: [Doc.UserDoc().myCatalog as Doc] }], { title: `Workspace ${workspaceCount}` }, id, "row");
+        const workspaceDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600, path: [Doc.UserDoc().myCatalog as Doc] }], { title: `Workspace ${workspaceCount}` }, id, "row");
 
         const toggleTheme = ScriptField.MakeScript(`self.darkScheme = !self.darkScheme`);
-        mainDoc.contextMenuScripts = new List<ScriptField>([toggleTheme!]);
-        mainDoc.contextMenuLabels = new List<string>(["Toggle Theme Colors"]);
+        const toggleComic = ScriptField.MakeScript(`toggleComicMode()`);
+        const cloneWorkspace = ScriptField.MakeScript(`cloneWorkspace()`);
+        workspaceDoc.contextMenuScripts = new List<ScriptField>([toggleTheme!, toggleComic!, cloneWorkspace!]);
+        workspaceDoc.contextMenuLabels = new List<string>(["Toggle Theme Colors", "Toggle Comic Mode", "New Workspace Layout"]);
 
-        Doc.AddDocToList(workspaces, "data", mainDoc);
+        Doc.AddDocToList(workspaces, "data", workspaceDoc);
         // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
-        setTimeout(() => this.openWorkspace(mainDoc), 0);
+        setTimeout(() => this.openWorkspace(workspaceDoc), 0);
     }
 
     @action
@@ -307,7 +243,6 @@ export class MainView extends React.Component {
     onDrop = (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log("Drop");
     }
 
     @action
@@ -374,7 +309,9 @@ export class MainView extends React.Component {
         const width = this.flyoutWidth;
         return <Measure offset onResize={this.onResize}>
             {({ measureRef }) =>
-                <div ref={measureRef} className="mainContent-div" onDrop={this.onDrop} style={{ width: `calc(100% - ${width}px)` }}>
+                <div ref={measureRef} className="mainContent-div" onDragEnter={e => {
+                    console.log("ENTERING");
+                }} onDrop={this.onDrop} style={{ width: `calc(100% - ${width}px)` }}>
                     {!mainContainer ? (null) : this.mainDocView}
                 </div>
             }
@@ -628,3 +565,11 @@ export class MainView extends React.Component {
     }
 }
 Scripting.addGlobal(function freezeSidebar() { MainView.expandFlyout(); });
+Scripting.addGlobal(function toggleComicMode() { Doc.UserDoc().fontFamily = "Comic Sans MS"; Doc.UserDoc().renderStyle = Doc.UserDoc().renderStyle === "comic" ? undefined : "comic"; });
+Scripting.addGlobal(function cloneWorkspace() {
+    const copiedWorkspace = Doc.MakeCopy(Cast(Doc.UserDoc().activeWorkspace, Doc, null), true);
+    const workspaces = Cast(Doc.UserDoc().myWorkspaces, Doc, null);
+    Doc.AddDocToList(workspaces, "data", copiedWorkspace);
+    // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
+    setTimeout(() => MainView.Instance.openWorkspace(copiedWorkspace), 0);
+});

@@ -1,5 +1,8 @@
 'use strict';
 import io from "socket.io-client";
+import {
+    resolvedPorts
+} from "../Main";
 
 var socket;
 var isChannelReady = false;
@@ -29,7 +32,7 @@ export function initialize(roomName, handlerUI) {
 
     room = roomName;
 
-    socket = io.connect(`${window.location.protocol}//${window.location.hostname}:${4321}`);
+    socket = io.connect(`${window.location.protocol}//${window.location.hostname}:${resolvedPorts.socket}`);
 
     if (room !== '') {
         socket.emit('create or join', room);

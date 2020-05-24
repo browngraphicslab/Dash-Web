@@ -10,6 +10,7 @@ import { Database } from './database';
 import { getForgot, getLogin, getLogout, getReset, getSignup, postForgot, postLogin, postReset, postSignup } from './authentication/AuthenticationManager';
 const MongoStore = require('connect-mongo')(session);
 import RouteManager from './RouteManager';
+import { WebSocket } from './websocket';
 import * as webpack from 'webpack';
 const config = require('../../webpack.config');
 const compiler = webpack(config);
@@ -19,14 +20,20 @@ import * as fs from 'fs';
 import * as request from 'request';
 import RouteSubscriber from './RouteSubscriber';
 import { publicDirectory } from '.';
-import { logPort, } from './ActionUtilities';
+import { logPort } from './ActionUtilities';
 import { blue, yellow } from 'colors';
 import * as cors from "cors";
+import { createServer, Server as HttpsServer } from "https";
+import { Server as HttpServer } from "http";
+import { SSL } from './apis/google/CredentialsLoader';
 
 /* RouteSetter is a wrapper around the server that prevents the server
    from being exposed. */
 export type RouteSetter = (server: RouteManager) => void;
 export let disconnect: Function;
+
+export let resolvedPorts: { server: number, socket: number } = { server: 1050, socket: 4321 };
+export let resolvedServerUrl: string;
 
 export default async function InitializeServer(routeSetter: RouteSetter) {
     const app = buildWithMiddleware(express());
@@ -45,16 +52,27 @@ export default async function InitializeServer(routeSetter: RouteSetter) {
 
     const isRelease = determineEnvironment();
 
+    isRelease && !SSL.Loaded && SSL.exit();
+
     routeSetter(new RouteManager(app, isRelease));
     registerRelativePath(app);
 
-    const serverPort = isRelease ? Number(process.env.serverPort) : 1050;
-    const server = app.listen(serverPort, () => {
-        logPort("server", serverPort);
-        console.log();
-    });
-    disconnect = async () => new Promise<Error>(resolve => server.close(resolve));
+    let server: HttpServer | HttpsServer;
+    const { serverPort, serverName } = process.env;
+    isRelease && serverPort && (resolvedPorts.server = Number(serverPort));
+    await new Promise<void>(resolve => server = isRelease ?
+        createServer(SSL.Credentials, app).listen(resolvedPorts.server, resolve) :
+        app.listen(resolvedPorts.server, resolve)
+    );
+    logPort("server", resolvedPorts.server);
 
+    resolvedServerUrl = `${isRelease && serverName ? `https://${serverName}.com` : "http://localhost"}:${resolvedPorts.server}`;
+
+    // initialize the web socket (bidirectional communication: if a user changes
+    // a field on one client, that change must be broadcast to all other clients)
+    await WebSocket.initialize(isRelease, app);
+
+    disconnect = async () => new Promise<Error>(resolve => server.close(resolve));
     return isRelease;
 }
 
@@ -122,7 +140,7 @@ function registerAuthenticationRoutes(server: express.Express) {
 
 function registerCorsProxy(server: express.Express) {
     const headerCharRegex = /[^\t\x20-\x7e\x80-\xff]/;
-    server.use("/corsProxy", (req, res) => {
+    server.use("/corsProxy", async (req, res) => {
 
         const requrl = decodeURIComponent(req.url.substring(1));
         const referer = req.headers.referer ? decodeURIComponent(req.headers.referer) : "";
@@ -131,8 +149,15 @@ function registerCorsProxy(server: express.Express) {
         // then we redirect again to the cors referer and just add the relative path.
         if (!requrl.startsWith("http") && req.originalUrl.startsWith("/corsProxy") && referer?.includes("corsProxy")) {
             res.redirect(referer + (referer.endsWith("/") ? "" : "/") + requrl);
-        }
-        else {
+        } else {
+            try {
+                await new Promise<void>((resolve, reject) => {
+                    request(requrl).on("response", resolve).on("error", reject);
+                });
+            } catch {
+                console.log(`Malformed CORS url: ${requrl}`);
+                return res.send();
+            }
             req.pipe(request(requrl)).on("response", res => {
                 const headers = Object.keys(res.headers);
                 headers.forEach(headerName => {
@@ -145,7 +170,7 @@ function registerCorsProxy(server: express.Express) {
                         }
                     }
                 });
-            }).pipe(res);
+            }).on("error", () => console.log(`Malformed CORS url: ${requrl}`)).pipe(res);
         }
     });
 }
@@ -154,11 +179,11 @@ function registerRelativePath(server: express.Express) {
     server.use("*", (req, res) => {
         const relativeUrl = req.originalUrl;
         if (!res.headersSent && req.headers.referer?.includes("corsProxy")) { // a request for something by a proxied referrer means it must be a relative reference.  So construct a proxied absolute reference here.
-            const proxiedRefererUrl = decodeURIComponent(req.headers.referer); // (e.g., http://localhost:1050/corsProxy/https://en.wikipedia.org/wiki/Engelbart)
-            const dashServerUrl = proxiedRefererUrl.match(/.*corsProxy\//)![0]; // the dash server url (e.g.: http://localhost:1050/corsProxy/ )
+            const proxiedRefererUrl = decodeURIComponent(req.headers.referer); // (e.g., http://localhost:<port>/corsProxy/https://en.wikipedia.org/wiki/Engelbart)
+            const dashServerUrl = proxiedRefererUrl.match(/.*corsProxy\//)![0]; // the dash server url (e.g.: http://localhost:<port>/corsProxy/ )
             const actualReferUrl = proxiedRefererUrl.replace(dashServerUrl, ""); // the url of the referer without the proxy (e.g., : http:s//en.wikipedia.org/wiki/Engelbart)
             const absoluteTargetBaseUrl = actualReferUrl.match(/http[s]?:\/\/[^\/]*/)![0]; // the base of the original url (e.g.,  https://en.wikipedia.org)
-            const redirectedProxiedUrl = dashServerUrl + encodeURIComponent(absoluteTargetBaseUrl + relativeUrl); // the new proxied full url (e..g, http://localhost:1050/corsProxy/https://en.wikipedia.org/<somethingelse>)
+            const redirectedProxiedUrl = dashServerUrl + encodeURIComponent(absoluteTargetBaseUrl + relativeUrl); // the new proxied full url (e..g, http://localhost:<port>/corsProxy/https://en.wikipedia.org/<somethingelse>)
             res.redirect(redirectedProxiedUrl);
         } else if (relativeUrl.startsWith("/search")) { // detect search query and use default search engine
             res.redirect(req.headers.referer + "corsProxy/" + encodeURIComponent("http://www.google.com" + relativeUrl));

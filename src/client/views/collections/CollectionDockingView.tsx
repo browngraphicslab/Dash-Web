@@ -1,5 +1,3 @@
-import { library } from '@fortawesome/fontawesome-svg-core';
-import { faFile } from '@fortawesome/free-solid-svg-icons';
 import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-dark-theme.css';
 import { action, computed, Lambda, observable, reaction, runInAction, trace } from "mobx";
@@ -31,7 +29,6 @@ import { DockingViewButtonSelector } from './ParentDocumentSelector';
 import React = require("react");
 import { CollectionViewType } from './CollectionView';
 import { SnappingManager } from '../../util/SnappingManager';
-library.add(faFile);
 const _global = (window /* browser */ || global /* node */) as any;
 
 @observer

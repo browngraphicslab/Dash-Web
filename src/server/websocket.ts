@@ -1,18 +1,22 @@
+import * as fs from 'fs';
+import { logPort } from './ActionUtilities';
 import { Utils } from "../Utils";
 import { MessageStore, Transferable, Types, Diff, YoutubeQueryInput, YoutubeQueryTypes, GestureContent, MobileInkOverlayContent, UpdateMobileInkOverlayPositionContent, MobileDocumentUploadContent, RoomMessage } from "./Message";
 import { Client } from "./Client";
 import { Socket } from "socket.io";
 import { Database } from "./database";
 import { Search } from "./Search";
-import * as io from 'socket.io';
+import * as sio from 'socket.io';
 import YoutubeApi from "./apis/youtube/youtubeApiSample";
-import { GoogleCredentialsLoader } from "./apis/google/CredentialsLoader";
-import { logPort } from "./ActionUtilities";
+import { GoogleCredentialsLoader, SSL } from "./apis/google/CredentialsLoader";
 import { timeMap } from "./ApiManagers/UserManager";
 import { green } from "colors";
 import { networkInterfaces } from "os";
 import executeImport from "../scraping/buxton/final/BuxtonImporter";
 import { DocumentsCollection } from "./IDatabase";
+import { createServer, Server } from "https";
+import * as express from "express";
+import { resolvedPorts } from './server_Initialization';
 
 export namespace WebSocket {
 
@@ -21,11 +25,24 @@ export namespace WebSocket {
     export const socketMap = new Map<SocketIO.Socket, string>();
     export let disconnect: Function;
 
-    export function initialize(isRelease: boolean) {
-        const endpoint = io();
-        endpoint.on("connection", function (socket: Socket) {
-            _socket = socket;
+    export async function initialize(isRelease: boolean, app: express.Express) {
+        let io: sio.Server;
+        if (isRelease) {
+            const { socketPort } = process.env;
+            if (socketPort) {
+                resolvedPorts.socket = Number(socketPort);
+            }
+            let socketEndpoint: Server;
+            await new Promise<void>(resolve => socketEndpoint = createServer(SSL.Credentials, app).listen(resolvedPorts.socket, resolve));
+            io = sio(socketEndpoint!, SSL.Credentials as any);
+        } else {
+            io = sio().listen(resolvedPorts.socket);
+        }
+        logPort("websocket", resolvedPorts.socket);
+        console.log();
 
+        io.on("connection", function (socket: Socket) {
+            _socket = socket;
             socket.use((_packet, next) => {
                 const userEmail = socketMap.get(socket);
                 if (userEmail) {
@@ -121,10 +138,6 @@ export namespace WebSocket {
                 socket.disconnect(true);
             };
         });
-
-        const socketPort = isRelease ? Number(process.env.socketPort) : 4321;
-        endpoint.listen(socketPort);
-        logPort("websocket", socketPort);
     }
 
     function processGesturePoints(socket: Socket, content: GestureContent) {
