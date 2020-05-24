@@ -13,6 +13,7 @@ export const documentSchema = createSchema({
 
     // "Location" properties in a very general sense
     currentFrame: "number",     // current frame of a frame based collection (e.g., a progressive slide)
+    lastFrame: "number",        // last frame of a frame based collection (e.g., a progressive slide)
     activeFrame: "number",      // the active frame of a frame based animated document 
     urrentTimecode: "number",   // current play back time of a temporal document (video / audio)
     displayTimecode: "number",  // the time that a document should be displayed (e.g., time an annotation should be displayed on a video)

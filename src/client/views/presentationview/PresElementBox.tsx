@@ -104,7 +104,7 @@ export class PresElementBox extends ViewBoxBaseComponent<FieldViewProps, PresDoc
         if (this.rootDoc.presProgressivize) {
             rootTarget.currentFrame = 0;
             CollectionFreeFormDocumentView.setupKeyframes(docs, docs.length, true);
-            rootTarget.lastTimecode = docs.length - 1;
+            rootTarget.lastFrame = docs.length - 1;
         }
     }
 

@@ -171,7 +171,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         }
         CollectionFreeFormDocumentView.updateKeyframe(this.childDocs, currentFrame || 0);
         this.Document.currentFrame = Math.max(0, (currentFrame || 0) + 1);
-        this.Document.lastTimecode = Math.max(NumCast(this.Document.currentFrame), NumCast(this.Document.lastTimecode));
+        this.Document.lastFrame = Math.max(NumCast(this.Document.currentFrame), NumCast(this.Document.lastFrame));
     }
     @undoBatch
     @action
