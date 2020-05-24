@@ -8,7 +8,7 @@ import * as ReactDOM from "react-dom";
 import * as rp from 'request-promise';
 import { CurrentUserUtils } from '../server/authentication/models/current_user_utils';
 import { FieldValue, Cast, StrCast } from '../new_fields/Types';
-import { Doc, DocListCast } from '../new_fields/Doc';
+import { Doc, DocListCast, Opt } from '../new_fields/Doc';
 import { Docs } from '../client/documents/Documents';
 import { CollectionView } from '../client/views/collections/CollectionView';
 import { DocumentView } from '../client/views/nodes/DocumentView';
@@ -25,7 +25,7 @@ import { DocumentDecorations } from '../client/views/DocumentDecorations';
 import { PreviewCursor } from '../client/views/PreviewCursor';
 import { RadialMenu } from '../client/views/nodes/RadialMenu';
 import { Id } from '../new_fields/FieldSymbols';
-import { WebField } from "../new_fields/URLField";
+import { WebField, nullAudio } from "../new_fields/URLField";
 import { FieldResult } from "../new_fields/Doc";
 import { AssignAllExtensions } from '../extensions/General/Extensions';
 import { listSpec } from '../new_fields/Schema';
@@ -37,6 +37,7 @@ import { Uploader } from "./ImageUpload";
 import { Upload } from '../server/SharedMediaTypes';
 import { createTypePredicateNodeWithModifier } from 'typescript';
 import { AudioBox } from '../client/views/nodes/AudioBox';
+import { List } from '../new_fields/List';
 
 library.add(faLongArrowAltLeft);
 library.add(faHome);
@@ -294,7 +295,7 @@ export class MobileInterface extends React.Component {
                             <div className="item" key="audio" onClick={this.recordAudio}>
                                 Record Audio
                             </div>
-                            <div className="item" key="presentation">
+                            <div className="item" key="presentation" onClick={this.openDefaultPresentation}>
                                 Presentation
                             </div>
                             <div className="item" key="settings" onClick={() => SettingsManager.Instance.open()}>
@@ -341,10 +342,35 @@ export class MobileInterface extends React.Component {
         }
     }
 
-    recordAudio = () => {
+    recordAudio = async () => {
         // upload to server with known URL 
-        const audioDoc = Docs.Create.AudioDocument;
-        // this._activeDoc = audioDoc;
+
+        const audioDoc = Cast(Docs.Create.AudioDocument(nullAudio, { _width: 200, _height: 100, title: "mobile audio" }), Doc) as Doc;
+        if (audioDoc) {
+            console.log("audioClicked: " + audioDoc.title);
+            this._activeDoc = audioDoc;
+            this.switchCurrentView((userDoc: Doc) => audioDoc);
+            this.toggleSidebar();
+        }
+        const audioRightSidebar = Cast(Doc.UserDoc().rightSidebarCollection, Doc) as Doc;
+        if (audioRightSidebar) {
+            console.log(audioRightSidebar.title);
+            const data = Cast(audioRightSidebar.data, listSpec(Doc));
+            if (data) {
+                data.push(audioDoc);
+            }
+        }
+    }
+
+    openDefaultPresentation = () => {
+        const presentation = Cast(Doc.UserDoc().activePresentation, Doc) as Doc;
+
+        if (presentation) {
+            console.log("presentation clicked: " + presentation.title);
+            this._activeDoc = presentation;
+            this.switchCurrentView((userDoc: Doc) => presentation);
+            this.toggleSidebar();
+        }
     }
 
     // mobileHome = () => {

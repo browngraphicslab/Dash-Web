@@ -69,12 +69,6 @@ export class Uploader extends React.Component<ImageUploadProps> {
                             const data = await Cast(pending.data, listSpec(Doc));
                             if (data) {
                                 data.push(doc);
-                                if (doc) {
-                                    const docList = DocListCast(this.props.Document.data);
-                                    console.log("Before: " + docList);
-                                    docList.push(doc);
-                                    console.log("New: " + docList);
-                                }
                             } else {
                                 pending.data = new List([doc]);
                             }
@@ -83,10 +77,6 @@ export class Uploader extends React.Component<ImageUploadProps> {
                         }
 
                     });
-
-                    // console.log(window.location.origin + file[0])
-
-                    //imgPrev.setAttribute("src", window.location.origin + files[0].name)
                 }
             }
         } catch (error) {
