@@ -60,9 +60,9 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         this.updateCurrentPresentation();
         const presTargetDoc = Cast(this.childDocs[this.itemIndex].presentationTargetDoc, Doc, null);
         const lastFrame = Cast(presTargetDoc.lastTimecode, "number", null);
-        const curFrame = NumCast(presTargetDoc.currentTimecode);
+        const curFrame = NumCast(presTargetDoc.currentFrame);
         if (lastFrame !== undefined && curFrame < lastFrame) {
-            presTargetDoc.currentTimecode = curFrame + 1;
+            presTargetDoc.currentFrame = curFrame + 1;
         }
         else if (this.childDocs[this.itemIndex + 1] !== undefined) {
             let nextSelected = this.itemIndex + 1;
@@ -200,7 +200,7 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
             this.rootDoc._itemIndex = index;
             const presTargetDoc = Cast(this.childDocs[this.itemIndex].presentationTargetDoc, Doc, null);
             if (presTargetDoc.lastTimecode !== undefined) {
-                presTargetDoc.currentTimecode = 0;
+                presTargetDoc.currentFrame = 0;
             }
 
             if (!this.layoutDoc.presStatus) {

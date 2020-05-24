@@ -139,10 +139,7 @@ export class MainView extends React.Component {
 
     initEventListeners = () => {
         window.addEventListener("drop", (e) => { e.preventDefault(); }, false); // drop event handler
-        window.addEventListener("dragover", (e) => {
-            console.log("MDRAG");
-            e.preventDefault();
-        }, false); // drag event handler
+        window.addEventListener("dragover", (e) => { e.preventDefault(); }, false); // drag event handler
         // click interactions for the context menu
         document.addEventListener("pointerdown", this.globalPointerDown);
         document.addEventListener("pointerup", this.globalPointerUp);
@@ -246,7 +243,6 @@ export class MainView extends React.Component {
     onDrop = (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log("Drop");
     }
 
     @action

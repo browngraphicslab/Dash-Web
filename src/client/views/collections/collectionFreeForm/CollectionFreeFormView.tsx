@@ -56,6 +56,7 @@ export const panZoomSchema = createSchema({
     scale: "number",
     currentTimecode: "number",
     displayTimecode: "number",
+    currentFrame: "number",
     arrangeScript: ScriptField,
     arrangeInit: ScriptField,
     useClusters: "boolean",
@@ -140,7 +141,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             const newBoxes = (newBox instanceof Doc) ? [newBox] : newBox;
             for (let i = 0; i < newBoxes.length; i++) {
                 const newBox = newBoxes[i];
-                if (newBox.displayTimecode !== undefined) {
+                if (newBox.activeFrame !== undefined) {
                     const x = newBox.x;
                     const y = newBox.y;
                     delete newBox["x-indexed"];
@@ -148,13 +149,13 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                     delete newBox["opacity-indexed"];
                     delete newBox.x;
                     delete newBox.y;
-                    delete newBox.displayTimecode;
+                    delete newBox.activeFrame;
                     newBox.x = x;
                     newBox.y = y;
                 }
             }
-            if (this.Document.currentTimecode !== undefined && !this.props.isAnnotationOverlay) {
-                CollectionFreeFormDocumentView.setupKeyframes(newBoxes, this.Document.currentTimecode);
+            if (this.Document.currentFrame !== undefined && !this.props.isAnnotationOverlay) {
+                CollectionFreeFormDocumentView.setupKeyframes(newBoxes, this.Document.currentFrame);
             }
         }
         return retVal;
@@ -163,25 +164,25 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
     @undoBatch
     @action
     nextKeyframe = (): void => {
-        const currentTimecode = this.Document.currentTimecode;
-        if (currentTimecode === undefined) {
-            this.Document.currentTimecode = 0;
+        const currentFrame = this.Document.currentFrame;
+        if (currentFrame === undefined) {
+            this.Document.currentFrame = 0;
             CollectionFreeFormDocumentView.setupKeyframes(this.childDocs, 0);
         }
-        CollectionFreeFormDocumentView.updateKeyframe(this.childDocs, currentTimecode || 0);
-        this.Document.currentTimecode = Math.max(0, (currentTimecode || 0) + 1);
-        this.Document.lastTimecode = Math.max(NumCast(this.Document.currentTimecode), NumCast(this.Document.lastTimecode));
+        CollectionFreeFormDocumentView.updateKeyframe(this.childDocs, currentFrame || 0);
+        this.Document.currentFrame = Math.max(0, (currentFrame || 0) + 1);
+        this.Document.lastTimecode = Math.max(NumCast(this.Document.currentFrame), NumCast(this.Document.lastTimecode));
     }
     @undoBatch
     @action
     prevKeyframe = (): void => {
-        const currentTimecode = this.Document.currentTimecode;
-        if (currentTimecode === undefined) {
-            this.Document.currentTimecode = 0;
+        const currentFrame = this.Document.currentFrame;
+        if (currentFrame === undefined) {
+            this.Document.currentFrame = 0;
             CollectionFreeFormDocumentView.setupKeyframes(this.childDocs, 0);
         }
         CollectionFreeFormDocumentView.gotoKeyframe(this.childDocs.slice());
-        this.Document.currentTimecode = Math.max(0, (currentTimecode || 0) - 1);
+        this.Document.currentFrame = Math.max(0, (currentFrame || 0) - 1);
     }
 
     private selectDocuments = (docs: Doc[]) => {
@@ -232,9 +233,9 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                         for (let i = 0; i < droppedDocs.length; i++) {
                             const d = droppedDocs[i];
                             const layoutDoc = Doc.Layout(d);
-                            if (this.Document.currentTimecode !== undefined && !this.props.isAnnotationOverlay) {
-                                const vals = CollectionFreeFormDocumentView.getValues(d, NumCast(d.displayTimecode, 1000));
-                                CollectionFreeFormDocumentView.setValues(this.Document.currentTimecode, d, x + vals.x - dropX, y + vals.y - dropY, vals.opacity);
+                            if (this.Document.currentFrame !== undefined && !this.props.isAnnotationOverlay) {
+                                const vals = CollectionFreeFormDocumentView.getValues(d, NumCast(d.activeFrame, 1000));
+                                CollectionFreeFormDocumentView.setValues(this.Document.currentFrame, d, x + vals.x - dropX, y + vals.y - dropY, vals.opacity);
                             } else {
                                 d.x = x + NumCast(d.x) - dropX;
                                 d.y = y + NumCast(d.y) - dropY;
@@ -1005,8 +1006,8 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             return { x: 0, y: 0, transition: "transform 1s", ...result, pair: params.pair, replica: "" };
         }
         const layoutDoc = Doc.Layout(params.pair.layout);
-        const { x, y, opacity } = this.Document.currentTimecode === undefined ? params.pair.layout :
-            CollectionFreeFormDocumentView.getValues(params.pair.layout, this.Document.currentTimecode || 0);
+        const { x, y, opacity } = this.Document.currentFrame === undefined ? params.pair.layout :
+            CollectionFreeFormDocumentView.getValues(params.pair.layout, this.Document.currentFrame || 0);
         const { z, color, zIndex } = params.pair.layout;
         return {
             x: NumCast(x), y: NumCast(y), z: Cast(z, "number"), color: StrCast(color), zIndex: Cast(zIndex, "number"),
@@ -1395,7 +1396,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                         <FontAwesomeIcon icon={"caret-left"} size={"lg"} />
                     </div>
                     <div key="num" className="numKeyframe" style={{ backgroundColor: this.Document.editing ? "#759c75" : "#c56565" }} onClick={action(() => this.Document.editing = !this.Document.editing)} >
-                        {NumCast(this.Document.currentTimecode)}
+                        {NumCast(this.Document.currentFrame)}
                     </div>
                     <div key="fwd" className="fwdKeyframe" onClick={this.nextKeyframe}>
                         <FontAwesomeIcon icon={"caret-right"} size={"lg"} />
