@@ -112,12 +112,13 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
         />;
     }
 
-    //@action
+
     /**
      * Saves the layouts received from the Grid to the Document.
      * @param layouts `Layout[]`
      */
-    set layout(layouts: Layout[]) {
+    @undoBatch
+    setLayout(layouts: Layout[]) {
 
         console.log("setting layout in CollectionGridView");
         console.log(layouts?.[0].w);
@@ -197,6 +198,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
     /**
      * Checks whether a new node has been added to the grid and updates the Document accordingly.
      */
+    @undoBatch
     checkUpdate() {
         const previousLength = (this.props.Document.gridLayouts as List<Doc>)?.length;
         if (this.childLayoutPairs.length > previousLength) {
@@ -216,16 +218,18 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
 
         this.checkUpdate();
 
-        const contents: JSX.Element[] = this.contents;
-        const layout: Layout[] = this.toLayoutList(DocListCast(this.props.Document.gridLayouts));
+        const docList: Doc[] = DocListCast(this.props.Document.gridLayouts);
 
-        if (layout.length === 0) {
-            console.log("layouts not loaded");
-        }
-        else {
-            console.log("rendering with this");
-            console.log(layout[0].w);
-        }
+        const contents: JSX.Element[] = this.contents;
+        const layout: Layout[] = this.toLayoutList(docList);
+
+        // if (layout.length === 0) {
+        //     console.log("layouts not loaded");
+        // }
+        // else {
+        //     console.log("rendering with this");
+        //     console.log(layout[0].w);
+        // }
 
 
         return (
@@ -235,15 +239,15 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
                     marginTop: NumCast(this.props.Document._yMargin), marginBottom: NumCast(this.props.Document._yMargin)
                 }}
                 ref={this.createDashEventsTarget}
-                onPointerDown={(e: React.PointerEvent) => e.stopPropagation()}
+            //onPointerDown={(e: React.PointerEvent) => e.stopPropagation()}
             >
                 <Grid
                     width={this.props.PanelWidth()}
                     nodeList={contents}
                     layout={layout}
-                    gridView={this}
                     numCols={this.props.Document.numCols as number}
                     rowHeight={this.props.Document.rowHeight as number}
+                    setLayout={(layout: Layout[]) => this.setLayout(layout)}
                 />
             </div>
         );

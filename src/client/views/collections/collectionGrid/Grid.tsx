@@ -15,26 +15,28 @@ interface GridProps {
     width: number;
     nodeList: JSX.Element[] | null;
     layout: Layout[];
-    gridView: CollectionGridView;
     numCols: number;
     rowHeight: number;
+    setLayout: Function;
 }
 
 /**
  * Wrapper around the actual GridLayout of `react-grid-layout`.
  */
 @observer
-export default class Grid extends React.Component<GridProps, GridLayout.ResponsiveProps> {
+export default class Grid extends React.Component<GridProps> {
 
     /**
      * If there has been a change in layout, calls a method in CollectionGridView to set the layouts on the Document.
      * @param layout `Layout[]`
      */
     onLayoutChange(layout: Layout[]) {
-        this.props.gridView.layout = layout;
+        console.log("setting in grid component" + layout[0].w);
+        this.props.setLayout(layout);
     }
 
     render() {
+        console.log("In grid layout prop received value= " + this.props.layout?.[0]?.w);
         return (
             <GridLayout className="layout"
                 layout={this.props.layout}
