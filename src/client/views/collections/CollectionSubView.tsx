@@ -218,7 +218,8 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             ScriptCast(this.props.Document.dropConverter)?.script.run({ dragData: docDragData });
             if (docDragData) {
                 let added = false;
-                if (docDragData.dropAction || docDragData.userDropAction) {
+                const dropaction = docDragData.dropAction || docDragData.userDropAction;
+                if (dropaction && dropaction !== "move") {
                     added = this.addDocument(docDragData.droppedDocuments);
                 } else if (docDragData.moveDocument) {
                     const movedDocs = docDragData.droppedDocuments.filter((d, i) => docDragData.draggedDocuments[i] === d);
@@ -451,7 +452,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             if (generatedDocuments.length) {
                 const set = generatedDocuments.length > 1 && generatedDocuments.map(d => Doc.iconify(d));
                 if (set) {
-                    addDocument(Doc.pileup(generatedDocuments, options.x!, options.y!));
+                    addDocument(Doc.pileup(generatedDocuments, options.x!, options.y!)!);
                 } else {
                     generatedDocuments.forEach(addDocument);
                 }

@@ -12,7 +12,10 @@ export const documentSchema = createSchema({
     links: listSpec(Doc),       // computed (readonly) list of links associated with this document
 
     // "Location" properties in a very general sense
-    currentTimecode: "number",  // current play back time of a temporal document (video / audio)
+    currentFrame: "number",     // current frame of a frame based collection (e.g., a progressive slide)
+    lastFrame: "number",        // last frame of a frame based collection (e.g., a progressive slide)
+    activeFrame: "number",      // the active frame of a frame based animated document 
+    urrentTimecode: "number",   // current play back time of a temporal document (video / audio)
     displayTimecode: "number",  // the time that a document should be displayed (e.g., time an annotation should be displayed on a video)
     inOverlay: "boolean",       // whether the document is rendered in an OverlayView which handles selection/dragging differently
     x: "number",                // x coordinate when in a freeform view 
@@ -77,7 +80,7 @@ export const documentSchema = createSchema({
     isBackground: "boolean",    // whether document is a background element and ignores input events (can only select with marquee)
     lockedPosition: "boolean",  // whether the document can be moved (dragged)
     _lockedTransform: "boolean",// whether a freeformview can pan/zoom
-    
+
     // drag drop properties
     dragFactory: Doc,           // the document that serves as the "template" for the onDragStart script.  ie, to drag out copies of the dragFactory document.
     dropAction: "string",       // override specifying what should happen when this document is dropped (can be "alias", "copy", "move")

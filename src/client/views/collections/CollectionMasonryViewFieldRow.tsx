@@ -240,13 +240,15 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
             toggle: this.toggleVisibility,
             color: this.color
         };
+        const showChrome = (chromeStatus !== 'view-mode' && chromeStatus !== 'disabled');
+        const stackPad = showChrome ? `0px ${this.props.parent.xMargin}px` : `${this.props.parent.yMargin}px ${this.props.parent.xMargin}px 0px ${this.props.parent.xMargin}px `;
         return this.collapsed ? (null) :
             <div style={{ position: "relative" }}>
-                {(chromeStatus !== 'view-mode' && chromeStatus !== 'disabled') ?
+                {showChrome ?
                     <div className="collectionStackingView-addDocumentButton"
                         style={{
-                            width: style.columnWidth / style.numGroupColumns,
-                            padding: NumCast(this.props.parent.layoutDoc._yPadding)
+                            //width: style.columnWidth / style.numGroupColumns,
+                            padding: `${NumCast(this.props.parent.layoutDoc._yPadding, this.props.parent.yMargin)}px 0px 0px 0px`
                         }}>
                         <EditableView {...newEditableViewProps} />
                     </div> : null
@@ -254,7 +256,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
                 <div className={`collectionStackingView-masonryGrid`}
                     ref={this._contRef}
                     style={{
-                        padding: `${this.props.parent.yMargin}px ${this.props.parent.xMargin}px`,
+                        padding: stackPad,
                         width: this.props.parent.NodeWidth,
                         gridGap: this.props.parent.gridGap,
                         gridTemplateColumns: numberRange(rows).reduce((list: string, i: any) => list + ` ${this.props.parent.columnWidth}px`, ""),
