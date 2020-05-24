@@ -223,3 +223,18 @@ body {
     left: 5%;
     background-color: lightpink;
 }
+
+.pinButton {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    font-size: 90px;
+    text-align: center;
+    left: 50%;
+    transform: translate(-50%, 0);
+    border-style: solid;
+    border-radius: 50px;
+    border-width: medium;
+    background-color: pink;
+    z-index: 100;
+}

@@ -38,6 +38,7 @@ import { Upload } from '../server/SharedMediaTypes';
 import { createTypePredicateNodeWithModifier } from 'typescript';
 import { AudioBox } from '../client/views/nodes/AudioBox';
 import { List } from '../new_fields/List';
+import { DockedFrameRenderer } from '../client/views/collections/CollectionDockingView';
 
 library.add(faLongArrowAltLeft);
 library.add(faHome);
@@ -168,7 +169,7 @@ export class MobileInterface extends React.Component {
         if (this.mainContainer) {
             const backgroundColor = () => "white";
             return (
-                <div style={{ position: "relative", top: '200px', height: `calc(100% - 250px)`, width: "80%", overflow: "hidden", left: "10%" }}>
+                <div style={{ position: "relative", top: '200px', height: `calc(100% - 250px)`, width: "100%", overflow: "hidden" }}>
                     <DocumentView
                         Document={this.mainContainer}
                         DataDoc={undefined}
@@ -342,6 +343,27 @@ export class MobileInterface extends React.Component {
         }
     }
 
+    pinToPresentation = () => {
+        // Only making button available if it is an image
+        if (this._activeDoc.type === "image") {
+            const isPinned = this._activeDoc && Doc.isDocPinned(this._activeDoc);
+            return <div className="pinButton"
+                title={Doc.isDocPinned(this._activeDoc) ? "Unpin from presentation" : "Pin to presentation"}
+                style={{ backgroundColor: isPinned ? "black" : "white", color: isPinned ? "white" : "black" }}
+                onClick={e => {
+                    if (isPinned) {
+                        DockedFrameRenderer.UnpinDoc(this._activeDoc);
+                    }
+                    else {
+                        DockedFrameRenderer.PinDoc(this._activeDoc);
+                    }
+                }}>
+                <FontAwesomeIcon className="documentdecorations-icon" size="sm" icon="map-pin"
+                />
+            </div>;
+        }
+    }
+
     recordAudio = async () => {
         // upload to server with known URL 
 
@@ -506,6 +528,7 @@ export class MobileInterface extends React.Component {
                 {/* <GestureOverlay> */}
                 <SettingsManager />
                 {this.displayWorkspaces()}
+                {this.pinToPresentation()}
                 {/* </GestureOverlay> */}
                 {/* <DictationOverlay />
                 <SharingManager />
