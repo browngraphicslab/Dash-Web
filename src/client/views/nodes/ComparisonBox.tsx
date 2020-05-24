@@ -105,7 +105,8 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
                     {displayBox("before", 0, 5)}
                 </div>
 
-                <div className="slide-bar" style={{ left: `calc(${clipWidth} - 0.5px)` }}>
+                <div className="slide-bar" style={{ left: `calc(${clipWidth} - 0.5px)` }}
+                    onPointerDown={e => this.registerSliding(e, this.props.PanelWidth() / 2)} /* if clicked, return slide-bar to center */ >
                     <div className="slide-handle" />
                 </div>
             </div >);
