@@ -74,8 +74,8 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
         const clearButton = (which: string) => {
             return <div className={`clear-button ${which}`} onPointerDown={e => e.stopPropagation()} onClick={e => this.clearDoc(e, `${which}Doc`)}>
                 <FontAwesomeIcon className={`clear-button ${which}`} icon={"times"} size="sm" />
-            </div>
-        }
+            </div>;
+        };
         const displayDoc = (which: string) => {
             const whichDoc = Cast(this.dataDoc[`${which}Doc`], Doc, null);
             return whichDoc ? <>
@@ -84,15 +84,15 @@ export class ComparisonBox extends ViewBoxAnnotatableComponent<FieldViewProps, C
             </> :  // placeholder image if doc is missing
                 <div className="placeholder">
                     <FontAwesomeIcon className="upload-icon" icon={"cloud-upload-alt"} size="lg" />
-                </div>
-        }
+                </div>;
+        };
         const displayBox = (which: string, index: number, cover: number) => {
             return <div className={`${which}Box-cont`} key={which} style={{ width: this.props.PanelWidth() }}
                 onPointerDown={e => this.registerSliding(e, cover)}
                 ref={ele => this.createDropTarget(ele, `${which}Doc`, index)} >
                 {displayDoc(which)}
             </div>;
-        }
+        };
 
         return (
             <div className={`comparisonBox${this.active() || SnappingManager.GetIsDragging() ? "-interactive" : ""}`}>

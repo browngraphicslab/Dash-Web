@@ -869,7 +869,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             }
             const marks = [...node.marks];
             const linkIndex = marks.findIndex(mark => mark.type.name === "link");
-            const link = view.state.schema.mark(view.state.schema.marks.link, { href: `http://localhost:1050/doc/${linkId}`, location: "onRight", title: title, docref: true });
+            const link = view.state.schema.mark(view.state.schema.marks.link, { href: Utils.prepend(`/doc/${linkId}`), location: "onRight", title: title, docref: true });
             marks.splice(linkIndex === -1 ? 0 : linkIndex, 1, link);
             return node.mark(marks);
         }
