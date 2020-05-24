@@ -334,9 +334,7 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
             _LODdisable: true,
             title: "a nested collection",
         });
-        // const dataExtensionField = Doc.CreateDocumentExtensionForField(newCollection, "data");
-        // dataExtensionField.ink = inkData ? new InkField(this.marqueeInkSelect(inkData)) : undefined;
-        // this.marqueeInkDelete(inkData);
+        selected.forEach(d => d.context = newCollection);
         this.hideMarquee();
         return newCollection;
     }
@@ -347,8 +345,8 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         SelectionManager.DeselectAll();
         selected.forEach(d => this.props.removeDocument(d));
         const newCollection = Doc.pileup(selected, this.Bounds.left + this.Bounds.width / 2, this.Bounds.top + this.Bounds.height / 2);
-        this.props.addDocument(newCollection);
-        this.props.selectDocuments([newCollection], []);
+        this.props.addDocument(newCollection!);
+        this.props.selectDocuments([newCollection!], []);
         MarqueeOptionsMenu.Instance.fadeOut(true);
         this.hideMarquee();
     }

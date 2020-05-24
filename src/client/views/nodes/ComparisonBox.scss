@@ -2,7 +2,6 @@
     border-radius: inherit;
     width: 100%;
     height: 100%;
-    background-color: grey;
     position: absolute;
     z-index: 0;
     pointer-events: none;
@@ -17,7 +16,6 @@
         .beforeBox-cont {
             height: 100%;
             overflow: hidden;
-            background-color: rgb(240, 240, 240);
         }
     }
 
@@ -26,7 +24,7 @@
         height: 100%;
         width: 3px;
         display: inline-block;
-        background: gray;
+        background: white;
         cursor: ew-resize;
         .slide-handle {
             position: absolute;
@@ -48,7 +46,6 @@
         height: 100%;
         width: 100%;
         overflow: hidden;
-        background-color: lightgray;
     }
 
     .clear-button {

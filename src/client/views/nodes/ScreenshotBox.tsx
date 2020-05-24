@@ -6,7 +6,7 @@ import { action, computed, IReactionDisposer, observable, runInAction } from "mo
 import { observer } from "mobx-react";
 import * as rp from 'request-promise';
 import { documentSchema } from "../../../fields/documentSchemas";
-import { makeInterface } from "../../../fields/Schema";
+import { makeInterface, listSpec } from "../../../fields/Schema";
 import { Cast, NumCast } from "../../../fields/Types";
 import { VideoField } from "../../../fields/URLField";
 import { emptyFunction, returnFalse, returnOne, Utils, returnZero } from "../../../Utils";
@@ -18,6 +18,8 @@ import { ViewBoxBaseComponent } from "../DocComponent";
 import { InkingControl } from "../InkingControl";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./ScreenshotBox.scss";
+import { Doc, WidthSym, HeightSym } from "../../../fields/Doc";
+import { OverlayView } from "../OverlayView";
 const path = require('path');
 
 type ScreenshotDocument = makeInterface<[typeof documentSchema]>;
@@ -72,7 +74,14 @@ export class ScreenshotBox extends ViewBoxBaseComponent<FieldViewProps, Screensh
                             x: NumCast(this.layoutDoc.x) + width, y: NumCast(this.layoutDoc.y),
                             _width: 150, _height: height / width * 150, title: "--screenshot--"
                         });
-                        this.props.addDocument?.(imageSummary);
+                        if (!this.props.addDocument || this.props.addDocument === returnFalse) {
+                            const spt = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
+                            imageSummary.x = spt[0];
+                            imageSummary.y = spt[1];
+                            Cast(Cast(Doc.UserDoc().myOverlayDocuments, Doc, null)?.data, listSpec(Doc), []).push(imageSummary);
+                        } else {
+                            this.props.addDocument?.(imageSummary);
+                        }
                     }
                 }, 500);
             });

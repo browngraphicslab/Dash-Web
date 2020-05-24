@@ -110,6 +110,7 @@ export interface DocumentOptions {
     _backgroundColor?: string | ScriptField; // background color for each template layout doc ( overrides backgroundColor )
     color?: string; // foreground color data doc
     _color?: string;  // foreground color for each template layout doc (overrides color)
+    _clipWidth?: number; // percent transition from before to after in comparisonBox
     caption?: RichTextField;
     ignoreClick?: boolean;
     lockedPosition?: boolean; // lock the x,y coordinates of the document so that it can't be dragged
@@ -125,6 +126,9 @@ export interface DocumentOptions {
     curPage?: number;
     currentTimecode?: number; // the current timecode of a time-based document (e.g., current time of a video)  value is in seconds
     displayTimecode?: number; // the time that a document should be displayed (e.g., time an annotation should be displayed on a video)
+    currentFrame?: number; // the current frame of a frame-based collection (e.g., progressive slide)
+    lastFrame?: number; // the last frame of a frame-based collection (e.g., progressive slide)
+    activeFrame?: number; // the active frame of a document in a frame base collection
     borderRounding?: string;
     boxShadow?: string;
     dontRegisterChildViews?: boolean;
@@ -559,7 +563,7 @@ export namespace Docs {
         }
 
         export function ComparisonDocument(options: DocumentOptions = { title: "Comparison Box" }) {
-            return InstanceFromProto(Prototypes.get(DocumentType.COMPARISON), "", { targetDropAction: "alias", ...options });
+            return InstanceFromProto(Prototypes.get(DocumentType.COMPARISON), "", { _clipWidth: 50, _backgroundColor: "gray", targetDropAction: "alias", ...options });
         }
 
         export function AudioDocument(url: string, options: DocumentOptions = {}) {
