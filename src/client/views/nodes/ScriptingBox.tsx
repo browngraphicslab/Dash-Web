@@ -49,37 +49,21 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         }
     }
 
-    @computed get rawScript() { return StrCast(this.dataDoc[this.props.fieldKey + "-rawScript"], StrCast(this.layoutDoc[this.props.fieldKey + "-rawScript"])); }
-    @computed get compileParams() { return Cast(this.dataDoc[this.props.fieldKey + "-params"], listSpec("string"), Cast(this.layoutDoc[this.props.fieldKey + "-params"], listSpec("string"), [])); }
+    @computed get rawScript() { return StrCast(this.dataDoc[this.props.fieldKey + "-rawScript"], ""); }
+    @computed get compileParams() { return Cast(this.dataDoc[this.props.fieldKey + "-params"], listSpec("string"), []); }
     set rawScript(value) { this.dataDoc[this.props.fieldKey + "-rawScript"] = value; }
 
-    @computed get _paramsNames() { return Cast(this.dataDoc[this.props.fieldKey + "-paramsNames"], listSpec("string"), Cast(this.layoutDoc[this.props.fieldKey + "-paramsNames"], listSpec("string"), [])); }
-    @computed get _paramsTypes() { return Cast(this.dataDoc[this.props.fieldKey + "-paramsTypes"], listSpec("string"), Cast(this.layoutDoc[this.props.fieldKey + "-paramsTypes"], listSpec("string"), [])); }
-    @computed get _paramsValues() { return Cast(this.dataDoc[this.props.fieldKey + "-paramsValues"], listSpec("string"), Cast(this.layoutDoc[this.props.fieldKey + "-paramsValues"], listSpec("string"), [])); }
-    @computed get _paramsCollapsed() { return Cast(this.dataDoc[this.props.fieldKey + "-paramsCollapsed"], listSpec("boolean"), Cast(this.layoutDoc[this.props.fieldKey + "-paramsCollapsed"], listSpec("boolean"), [])); }
+    @computed get _paramsNames() { return Cast(this.dataDoc[this.props.fieldKey + "-paramsNames"], listSpec("string"), null); }
+    @computed get _paramsTypes() { return Cast(this.dataDoc[this.props.fieldKey + "-paramsTypes"], listSpec("string"), null); }
+    @computed get _paramsValues() { return Cast(this.dataDoc[this.props.fieldKey + "-paramsValues"], listSpec("string"), null); }
+    @computed get _paramsCollapsed() { return Cast(this.dataDoc[this.props.fieldKey + "-paramsCollapsed"], listSpec("boolean"), null); }
 
     set compileParams(value) { this.dataDoc[this.props.fieldKey + "-params"] = value; }
 
-    set _paramsNames(value: string[]) {
-        for (const param of this.compileParams) {
-            value.push(param.split(":")[0].trim());
-        }
-    }
-    set _paramsTypes(value: string[]) {
-        for (const param of this.compileParams) {
-            value.push(param.split(":")[1].trim());
-        }
-    }
-    set _paramsValues(value: string[]) {
-        for (const param of this.compileParams) {
-            value.push("undefined");
-        }
-    }
-    set _paramsCollapsed(value: boolean[]) {
-        for (const param of this.compileParams) {
-            value.push(true);
-        }
-    }
+    set _paramsNames(value: string[]) { this.dataDoc[this.props.fieldKey + "-paramsNames"] = new List<string>(value) }
+    set _paramsTypes(value: string[]) { this.dataDoc[this.props.fieldKey + "-paramsTypes"] = new List<string>(value) }
+    set _paramsValues(value: string[]) { this.dataDoc[this.props.fieldKey + "-paramsValues"] = new List<string>(value) }
+    set _paramsCollapsed(value: boolean[]) { this.dataDoc[this.props.fieldKey + "-paramsCollapsed"] = new List<boolean>(value) }
 
     stopPropagation = (e: React.SyntheticEvent) => e.stopPropagation();
 
@@ -281,7 +265,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
 
     onCopy = () => {
         const copy = Doc.MakeCopy(this.rootDoc, true);
-        copy.x = Number(this.dataDoc._width) + Number(this.dataDoc.x);
+        copy.x = NumCast(this.dataDoc._width) + NumCast(this.dataDoc.x);
         this.props.addDocument?.(copy);
     }
 
@@ -311,7 +295,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
                             || parameter[1].split("|")[1] || parameter[1].trim() === "number"
                             || parameter[1].trim() === "boolean") {
 
-                            if (!!!this._paramsNames.includes(parameter[0].trim()) &&
+                            if (!this._paramsNames?.includes(parameter[0].trim()) &&
                                 this.dataDoc[parameter[0].trim()] === undefined) {
 
                                 this._errorMessage = "";
@@ -319,6 +303,10 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
                                 const par = this.compileParams;
                                 this.compileParams = new List<string>(value.split(";").filter(s => s !== " "));
                                 this.compileParams.push.apply(this.compileParams, par);
+                                if (this._paramsNames === undefined) this._paramsNames = [];
+                                if (this._paramsTypes === undefined) this._paramsTypes = [];
+                                if (this._paramsValues === undefined) this._paramsValues = [];
+                                if (this._paramsCollapsed === undefined) this._paramsCollapsed = [];
                                 this._paramsNames.push(parameter[0].trim());
                                 this._paramsTypes.push(parameter[1].trim());
                                 this._paramsValues.push("undefined");
@@ -395,7 +383,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         );
 
 
-        const settingParams = this._paramsNames.map((parameter: string, i: number) =>
+        const settingParams = !this._paramsNames ? (null) : this._paramsNames.map((parameter: string, i: number) =>
             <div className="scriptingBox-pborder"
                 background-color="white"
                 onKeyPress={e => e.key === "Enter" && this._overlayDisposer?.()}
@@ -644,7 +632,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
 
                     onWheel={e => this.props.isSelected(true) && e.stopPropagation()}>
 
-                    {!!!this._applied ? <div style={{ height: "100%" }}>
+                    {!this._applied ? <div style={{ height: "100%" }}>
                         {scriptingInputs}
                     </div> : null}
 
@@ -654,7 +642,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
 
                     {this.rootDoc.layout === "layout" ? <div></div> : (null)}
 
-                    {!!!this._applied ? <div>
+                    {!this._applied ? <div>
                         {scriptingTools}
                     </div> : null}
 
