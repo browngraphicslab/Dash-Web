@@ -96,6 +96,7 @@ export interface DocumentViewProps {
     dontRegisterView?: boolean;
     layoutKey?: string;
     radialMenu?: String[];
+    display?: string;
 }
 
 @observer

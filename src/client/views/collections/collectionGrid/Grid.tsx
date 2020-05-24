@@ -20,9 +20,16 @@ interface GridProps {
     rowHeight: number;
 }
 
+/**
+ * Wrapper around the actual GridLayout of `react-grid-layout`.
+ */
 @observer
 export default class Grid extends React.Component<GridProps, GridLayout.ResponsiveProps> {
 
+    /**
+     * If there has been a change in layout, calls a method in CollectionGridView to set the layouts on the Document.
+     * @param layout `Layout[]`
+     */
     onLayoutChange(layout: Layout[]) {
         this.props.gridView.layout = layout;
     }
@@ -36,6 +43,7 @@ export default class Grid extends React.Component<GridProps, GridLayout.Responsi
                 width={this.props.width}
                 compactType={null}
                 isDroppable={true}
+                margin={[10, 10]}
                 onLayoutChange={layout => this.onLayoutChange(layout)}
             >
                 {this.props.nodeList}

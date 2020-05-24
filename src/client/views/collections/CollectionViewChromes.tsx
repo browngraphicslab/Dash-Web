@@ -2,7 +2,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import * as React from "react";
-import { Doc, DocListCast } from "../../../fields/Doc";
+import { Doc, DocListCast, HeightSym } from "../../../fields/Doc";
 import { Id } from "../../../fields/FieldSymbols";
 import { List } from "../../../fields/List";
 import { listSpec } from "../../../fields/Schema";
@@ -15,6 +15,8 @@ import { COLLECTION_BORDER_WIDTH } from "../globalCssVariables.scss";
 import { CollectionViewType } from "./CollectionView";
 import { CollectionView } from "./CollectionView";
 import "./CollectionViewChromes.scss";
+import { CollectionGridView } from "./collectionGrid/CollectionGridView";
+import HeightLabel from "./collectionMulticolumn/MultirowHeightLabel";
 const datepicker = require('js-datepicker');
 
 interface CollectionViewChromeProps {
@@ -205,6 +207,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
             case CollectionViewType.Schema: return (<CollectionSchemaViewChrome key="collchrome" PanelWidth={this.props.PanelWidth} CollectionView={this.props.CollectionView} type={this.props.type} />);
             case CollectionViewType.Tree: return (<CollectionTreeViewChrome key="collchrome" PanelWidth={this.props.PanelWidth} CollectionView={this.props.CollectionView} type={this.props.type} />);
             case CollectionViewType.Masonry: return (<CollectionStackingViewChrome key="collchrome" PanelWidth={this.props.PanelWidth} CollectionView={this.props.CollectionView} type={this.props.type} />);
+            case CollectionViewType.Grid: return (<CollectionGridViewChrome key="collchrome" PanelWidth={this.props.PanelWidth} CollectionView={this.props.CollectionView} type={this.props.type} />);
             default: return null;
         }
     }
@@ -504,3 +507,55 @@ export class CollectionTreeViewChrome extends React.Component<CollectionViewChro
     }
 }
 
+/**
+ * Chrome for grid view.
+ */
+@observer
+export class CollectionGridViewChrome extends React.Component<CollectionViewChromeProps> {
+
+    /**
+     * Sets the value of `numCols` on the grid's Document to the value entered.
+     */
+    @action
+    onNumColsEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter" || e.key === "Tab") {
+            if (this.props.CollectionView.props.Document.numCols as number !== e.currentTarget.valueAsNumber) {
+                this.props.CollectionView.props.Document.numCols = e.currentTarget.valueAsNumber;
+                //this.props.CollectionView.forceUpdate(); // to be used if CollectionGridView is not an observer
+            }
+
+        }
+    }
+
+    /**
+     * Sets the value of `rowHeight` on the grid's Document to the value entered.
+     */
+    @action
+    onRowHeightEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter" || e.key === "Tab") {
+            if (this.props.CollectionView.props.Document.rowHeight as number !== e.currentTarget.valueAsNumber) {
+                this.props.CollectionView.props.Document.rowHeight = e.currentTarget.valueAsNumber;
+                //this.props.CollectionView.forceUpdate();
+            }
+        }
+    }
+
+    render() {
+        return (
+            <div className="collectionTreeViewChrome-cont">
+                <span className={"search-icon"}>
+                    <span className="icon-background">
+                        <FontAwesomeIcon icon="columns" size="1x" />
+                    </span>
+                    <input className="collectionGridViewChrome-entryBox" type="number" placeholder={this.props.CollectionView.props.Document.numCols as string} onKeyDown={this.onNumColsEnter} autoFocus />
+                </span>
+                <span className={"search-icon"}>
+                    <span className="icon-background">
+                        <FontAwesomeIcon icon="text-height" size="1x" />
+                    </span>
+                    <input className="collectionGridViewChrome-entryBox" type="number" placeholder={this.props.CollectionView.props.Document.rowHeight as string} onKeyDown={this.onRowHeightEnter} />
+                </span>
+            </div>
+        );
+    }
+}

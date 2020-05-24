@@ -3,7 +3,7 @@
 
 .collectionViewChrome-cont {
     position: absolute;
-    width:100%;
+    width: 100%;
     opacity: 0.9;
     z-index: 9001;
     transition: top .5s;
@@ -33,7 +33,7 @@
                 outline-color: black;
             }
 
-            .collectionViewBaseChrome-button{
+            .collectionViewBaseChrome-button {
                 font-size: 75%;
                 text-transform: uppercase;
                 letter-spacing: 2px;
@@ -44,6 +44,7 @@
                 padding: 12px 10px 11px 10px;
                 margin-left: 10px;
             }
+
             .collectionViewBaseChrome-cmdPicker {
                 margin-left: 3px;
                 margin-right: 0px;
@@ -51,14 +52,16 @@
                 border: none;
                 color: grey;
             }
+
             .commandEntry-outerDiv {
                 pointer-events: all;
                 background-color: gray;
                 display: flex;
                 flex-direction: row;
+
                 .commandEntry-drop {
-                    color:white;
-                    width:25px;
+                    color: white;
+                    width: 25px;
                     margin-top: auto;
                     margin-bottom: auto;
                 }
@@ -72,15 +75,17 @@
                 pointer-events: all;
                 // margin-top: 10px;
             }
+
             .collectionViewBaseChrome-template,
             .collectionViewBaseChrome-viewModes {
                 display: grid;
                 background: rgb(238, 238, 238);
-                color:grey;
-                margin-top:auto;
-                margin-bottom:auto;
+                color: grey;
+                margin-top: auto;
+                margin-bottom: auto;
                 margin-left: 5px;
             }
+
             .collectionViewBaseChrome-viewModes {
                 margin-left: 25px;
             }
@@ -88,7 +93,7 @@
             .collectionViewBaseChrome-viewSpecs {
                 margin-left: 5px;
                 display: grid;
-                
+
                 .collectionViewBaseChrome-filterIcon {
                     position: relative;
                     display: flex;
@@ -202,7 +207,7 @@
             .collectionStackingViewChrome-pivotField,
             .collectionTreeViewChrome-pivotField {
                 color: white;
-                width:100%;
+                width: 100%;
                 min-width: 100px;
                 text-align: center;
                 background: rgb(238, 238, 238);
@@ -231,6 +236,10 @@
         .collectionStackingViewChrome-pivotField:hover,
         .collectionTreeViewChrome-pivotField:hover {
             cursor: text;
+        }
+
+        .collectionGridViewChrome-entryBox {
+            width: 50%;
         }
     }
 }
@@ -292,8 +301,9 @@
     flex-direction: column;
     height: 40px;
 }
+
 .commandEntry-inputArea {
-    display:flex;
+    display: flex;
     flex-direction: row;
     width: 150px;
     margin: auto auto auto auto;
