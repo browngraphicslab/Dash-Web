@@ -60,10 +60,10 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
 
     set compileParams(value) { this.dataDoc[this.props.fieldKey + "-params"] = value; }
 
-    set _paramsNames(value: string[]) { this.dataDoc[this.props.fieldKey + "-paramsNames"] = new List<string>(value) }
-    set _paramsTypes(value: string[]) { this.dataDoc[this.props.fieldKey + "-paramsTypes"] = new List<string>(value) }
-    set _paramsValues(value: string[]) { this.dataDoc[this.props.fieldKey + "-paramsValues"] = new List<string>(value) }
-    set _paramsCollapsed(value: boolean[]) { this.dataDoc[this.props.fieldKey + "-paramsCollapsed"] = new List<boolean>(value) }
+    set _paramsNames(value: string[]) { this.dataDoc[this.props.fieldKey + "-paramsNames"] = new List<string>(value); }
+    set _paramsTypes(value: string[]) { this.dataDoc[this.props.fieldKey + "-paramsTypes"] = new List<string>(value); }
+    set _paramsValues(value: string[]) { this.dataDoc[this.props.fieldKey + "-paramsValues"] = new List<string>(value); }
+    set _paramsCollapsed(value: boolean[]) { this.dataDoc[this.props.fieldKey + "-paramsCollapsed"] = new List<boolean>(value); }
 
     stopPropagation = (e: React.SyntheticEvent) => e.stopPropagation();
 
@@ -116,7 +116,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
             editable: true,
             transformer: DocumentIconContainer.getTransformer(),
             params,
-            typecheck: true
+            typecheck: false
         });
         this._errorMessage = "";
         if (result.compiled) {
@@ -179,7 +179,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
             editable: true,
             transformer: DocumentIconContainer.getTransformer(),
             params,
-            typecheck: true
+            typecheck: false
         });
         this._errorMessage = "";
         if (result.compiled) {
