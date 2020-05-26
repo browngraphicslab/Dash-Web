@@ -34,6 +34,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     @observable private _errorMessage: string = "";
     @observable private _applied: boolean = false;
 
+    // vars included in fields that store parameters types and names and the script itself
     @computed get paramsNames() { return this.compileParams.map(p => p.split(":")[0].trim()); }
     @computed get paramsTypes() { return this.compileParams.map(p => p.split(":")[1].trim()); }
     @computed get rawScript() { return StrCast(this.dataDoc[this.props.fieldKey + "-rawScript"], ""); }
@@ -55,6 +56,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         }
     }
 
+    // only included in buttons, transforms scripting UI to a button
     @action
     onFinish = () => {
         this.rootDoc.layoutKey = "layout";
@@ -63,11 +65,13 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         this.dataDoc.documentText = this.rawScript;
     }
 
+    // displays error message
     @action
     onError = (error: any) => {
         this._errorMessage = error?.map((entry: any) => entry.messageText).join("  ") || "";
     }
 
+    // checks if the script compiles using CompileScript method and inputting params
     @action
     onCompile = () => {
         const params: ScriptParam = {};
@@ -84,14 +88,17 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         this.onError(result.compiled ? undefined : result.errors);
     }
 
+    // checks if the script compiles and then runs the script
     @action
     onRun = () => {
         this.onCompile();
         const bindings: { [name: string]: any } = {};
         this.paramsNames.forEach(key => bindings[key] = this.dataDoc[key]);
+        // binds vars so user doesnt have to refer to everything as self.<var>
         ScriptCast(this.dataDoc.data, null)?.script.run({ self: this.rootDoc, this: this.layoutDoc, ...bindings }, this.onError);
     }
 
+    // checks if the script compiles and switches to applied UI
     @action
     onApply = () => {
         this.onCompile();
@@ -103,17 +110,20 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         this._applied = false;
     }
 
+    // overlays document numbers (ex. d32) over all documents when clicked on
     onFocus = () => {
         this._overlayDisposer?.();
         this._overlayDisposer = OverlayView.Instance.addElement(<DocumentIconContainer />, { x: 0, y: 0 });
     }
 
+    // sets field of the corresponding field key (param name) to be dropped document
     @action
     onDrop = (e: Event, de: DragManager.DropEvent, fieldKey: string) => {
         this.dataDoc[fieldKey] = de.complete.docDragData?.droppedDocuments[0];
         e.stopPropagation();
     }
 
+    // deletes a param from all areas in which it is stored 
     @action
     onDelete = (num: number) => {
         this.dataDoc[this.paramsNames[num]] = undefined;
@@ -121,18 +131,21 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         return true;
     }
 
+    // sets field of the param name to the selected value in drop down box
     @action
     viewChanged = (e: React.ChangeEvent, name: string) => {
         //@ts-ignore
         this.dataDoc[name] = e.target.selectedOptions[0].value;
     }
 
+    // creates a copy of the script document
     onCopy = () => {
         const copy = Doc.MakeCopy(this.rootDoc, true);
         copy.x = NumCast(this.dataDoc.x) + NumCast(this.dataDoc._width);
         this.props.addDocument?.(copy);
     }
 
+    // adds option to create a copy to the context menu
     specificContextMenu = (e: React.MouseEvent): void => {
         const existingOptions = ContextMenu.Instance.findByDescription("Options...");
         const options = existingOptions && "subitems" in existingOptions ? existingOptions.subitems : [];
@@ -144,12 +157,13 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         return !this._errorMessage ? (null) : <div className="scriptingBox-errorMessage"> {this._errorMessage} </div>;
     }
 
+    // rendering when a doc's value can be set in applied UI
     renderDoc(parameter: string) {
         return <div className="scriptingBox-paramInputs" onFocus={this.onFocus} onBlur={e => this._overlayDisposer?.()}
             ref={ele => ele && this.createDashEventsTarget(ele, (e, de) => this.onDrop(e, de, parameter))} >
             <EditableView display={"block"} maxHeight={72} height={35} fontSize={14}
-                contents={this.dataDoc[parameter]?.title ?? ""}
-                GetValue={() => this.dataDoc[parameter]?.title ?? ""}
+                contents={this.dataDoc[parameter]?.title ?? "undefined"}
+                GetValue={() => this.dataDoc[parameter]?.title ?? "undefined"}
                 SetValue={action((value: string) => {
                     const script = CompileScript(value, {
                         addReturn: true,
@@ -169,6 +183,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         </div>;
     }
 
+    // rendering when a string's value can be set in applied UI
     renderString(parameter: string) {
         return <div className="scriptingBox-paramInputs">
             <EditableView display={"block"} maxHeight={72} height={35} fontSize={14}
@@ -186,6 +201,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         </div>;
     }
 
+    // rendering when a number's value can be set in applied UI
     renderNumber(parameter: string) {
         return <div className="scriptingBox-paramInputs">
             <EditableView display={"block"} maxHeight={72} height={35} fontSize={14}
@@ -206,6 +222,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         </div>;
     }
 
+    // rendering when an enum's value can be set in applied UI (drop down box)
     renderEnum(parameter: string, types: string[]) {
         return <div className="scriptingBox-paramInputs">
             <div className="scriptingBox-viewBase">
@@ -224,6 +241,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         </div>;
     }
 
+    // rendering when a boolean's value can be set in applied UI (drop down box)
     renderBoolean(parameter: string) {
         return <div className="scriptingBox-paramInputs">
             <div className="scriptingBox-viewBase">
@@ -240,6 +258,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         </div>;
     }
 
+    // setting a parameter (checking type and name before it is added)
     compileParam(value: string, whichParam?: number) {
         if (value.includes(":")) {
             const ptype = value.split(":")[1].trim();
@@ -264,7 +283,10 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         return false;
     }
 
+    // inputs for scripting div (script box, params box, and params column)
     renderScriptingInputs() {
+
+        // params box on bottom
         const parameterInput = <div className="scriptingBox-params">
             <EditableView display={"block"} maxHeight={72} height={35} fontSize={22}
                 contents={""}
@@ -273,6 +295,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
             />
         </div>;
 
+        // main scripting input box
         const scriptingInputText = <textarea onFocus={this.onFocus} onBlur={e => this._overlayDisposer?.()}
             onChange={e => this.rawScript = e.target.value}
             placeholder="write your script here"
@@ -280,11 +303,12 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
             style={{ width: this.compileParams.length > 0 ? "70%" : "100%", resize: "none", height: "100%" }}
         />;
 
+        // params column on right side (list)
         const definedParameters = !this.compileParams.length ? (null) :
             <div className="scriptingBox-plist" style={{ width: "30%" }}>
                 {this.compileParams.map((parameter, i) =>
                     <div className="scriptingBox-pborder" onKeyPress={e => e.key === "Enter" && this._overlayDisposer?.()} >
-                        <EditableView display={"block"} maxHeight={72} height={35} fontSize={12}
+                        <EditableView display={"block"} maxHeight={72} height={35} fontSize={12} background-color={"beige"}
                             contents={parameter}
                             GetValue={() => parameter}
                             SetValue={value => value && value !== " " ? this.compileParam(value, i) : this.onDelete(i)}
@@ -303,6 +327,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         </div>;
     }
 
+    // toolbar (with compile and apply buttons) for scripting UI
     renderScriptingTools() {
         const buttonStyle = "scriptingBox-button" + (this.rootDoc.layoutKey === "layout_onClick" ? "third" : "");
         return <div className="scriptingBox-toolbar">
@@ -313,6 +338,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         </div>;
     }
 
+    // inputs UI for params which allows you to set values for each displayed in a list
     renderParamsInputs() {
         return <div className="scriptingBox-inputDiv" onPointerDown={e => this.props.isSelected(true) && e.stopPropagation()} >
             {!this.compileParams.length || !this.paramsNames ? (null) :
@@ -332,6 +358,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         </div>;
     }
 
+    // toolbar (with edit and run buttons and error message) for params UI
     renderParamsTools() {
         const buttonStyle = "scriptingBox-button" + (this.rootDoc.layoutKey === "layout_onClick" ? "third" : "");
         return <div className="scriptingBox-toolbar">
@@ -343,6 +370,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         </div>;
     }
 
+    // renders script UI if _applied = false and params UI if _applied = true
     render() {
         return (
             <div className={`scriptingBox`} onContextMenu={this.specificContextMenu}>

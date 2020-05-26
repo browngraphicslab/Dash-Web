@@ -44,7 +44,7 @@
                 overflow-y: scroll;
 
                 .scriptingBox-pborder {
-                    background-color: white;
+                    background-color: rgb(241, 239, 235);
                 }
 
                 .scriptingBox-viewBase {
@@ -101,7 +101,7 @@
         }
 
         .scripting-params {
-            background: "beige";
+            background: rgb(241, 239, 235);
         }
     }
 
@@ -113,8 +113,9 @@
             width: 50%;
             resize: auto;
         }
+
         .scriptingBox-button-third {
-            width:33%;
+            width: 33%;
         }
     }
 }
