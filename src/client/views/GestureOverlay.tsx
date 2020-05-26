@@ -651,6 +651,19 @@ export default class GestureOverlay extends Touchable {
                         case GestureUtils.Gestures.Line:
                             actionPerformed = this.handleLineGesture();
                             break;
+                        case GestureUtils.Gestures.Triangle:
+                            this.makePolygon("triangle");
+                            break;
+                        case GestureUtils.Gestures.Circle:
+                            this.makePolygon("circle");
+                            break;
+                        case GestureUtils.Gestures.Rectangle:
+                            this.makePolygon("rectangle");
+                            break;
+                        // case GestureUtils.Gestures.Arrow:
+                        //     console.log("arrow");
+                        //     this._points = [];
+                        //     break;
                         case GestureUtils.Gestures.Scribble:
                             console.log("scribble");
                             break;
@@ -669,6 +682,49 @@ export default class GestureOverlay extends Touchable {
         }
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
+    }
+    //resets this._points into a polygon
+    makePolygon = (shape: string) => {
+        const xs = this._points.map(p => p.X);
+        const ys = this._points.map(p => p.Y);
+        const right = Math.max(...xs);
+        const left = Math.min(...xs);
+        const bottom = Math.max(...ys);
+        const top = Math.min(...ys);
+        this._points = [];
+        switch (shape) {
+            case "rectangle":
+                this._points.push({ X: left, Y: top });
+                this._points.push({ X: right, Y: top });
+                this._points.push({ X: right, Y: bottom });
+                this._points.push({ X: left, Y: bottom });
+                this._points.push({ X: left, Y: top });
+                break;
+
+            case "triangle":
+                this._points.push({ X: left, Y: bottom });
+                this._points.push({ X: right, Y: bottom });
+                this._points.push({ X: (right + left) / 2, Y: top });
+                this._points.push({ X: left, Y: bottom });
+                break;
+            case "circle":
+                const centerX = (right + left) / 2;
+                const centerY = (bottom + top) / 2;
+                const radius = bottom - centerY;
+                for (var y = top; y < bottom; y++) {
+                    const x = Math.sqrt(Math.pow(radius, 2) - (Math.pow((y - centerY), 2))) + centerX;
+                    this._points.push({ X: x, Y: y });
+                }
+                for (var y = bottom; y > top; y--) {
+                    const x = Math.sqrt(Math.pow(radius, 2) - (Math.pow((y - centerY), 2))) + centerX;
+                    const newX = centerX - (x - centerX);
+                    this._points.push({ X: newX, Y: y });
+                }
+                this._points.push({ X: Math.sqrt(Math.pow(radius, 2) - (Math.pow((top - centerY), 2))) + centerX, Y: top });
+                break;
+
+
+        }
     }
 
     dispatchGesture = (gesture: "box" | "line" | "startbracket" | "endbracket" | "stroke" | "scribble" | "text", stroke?: InkData, data?: any) => {
