@@ -14,6 +14,7 @@ import { RichTextField } from '../fields/RichTextField';
 import { DateField } from '../fields/DateField';
 import { ScriptField } from '../fields/ScriptField';
 import CursorField from '../fields/CursorField';
+import { resolvedPorts } from '../client/views/Main';
 
 DateField;
 URLField;
@@ -182,7 +183,7 @@ class Viewer extends React.Component {
 }
 
 (async function () {
-    await DocServer.init(window.location.protocol, window.location.hostname, 4321, "viewer");
+    await DocServer.init(window.location.protocol, window.location.hostname, resolvedPorts.socket, "viewer");
     ReactDOM.render((
         <div style={{ position: "absolute", width: "100%", height: "100%" }}>
             <Viewer />

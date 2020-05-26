@@ -11,7 +11,7 @@ import "./CollectionCarouselView.scss";
 import { CollectionSubView } from './CollectionSubView';
 import { faCaretLeft, faCaretRight } from '@fortawesome/free-solid-svg-icons';
 import { Doc } from '../../../fields/Doc';
-import { FormattedTextBox } from '../nodes/FormattedTextBox';
+import { FormattedTextBox } from '../nodes/formattedText/FormattedTextBox';
 import { ContextMenu } from '../ContextMenu';
 import { ObjectField } from '../../../fields/ObjectField';
 

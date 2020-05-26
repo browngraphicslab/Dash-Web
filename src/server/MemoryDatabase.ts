@@ -1,4 +1,4 @@
-import { IDatabase, DocumentsCollection, NewDocumentsCollection } from './IDatabase';
+import { IDatabase, DocumentsCollection } from './IDatabase';
 import { Transferable } from './Message';
 import * as mongodb from 'mongodb';
 
@@ -13,6 +13,10 @@ export class MemoryDatabase implements IDatabase {
         } else {
             return this.db[collectionName] = {};
         }
+    }
+
+    public getCollectionNames() {
+        return Promise.resolve(Object.keys(this.db));
     }
 
     public update(id: string, value: any, callback: (err: mongodb.MongoError, res: mongodb.UpdateWriteOpResult) => void, _upsert?: boolean, collectionName = DocumentsCollection): Promise<void> {
@@ -41,7 +45,7 @@ export class MemoryDatabase implements IDatabase {
         return Promise.resolve(undefined);
     }
 
-    public updateMany(query: any, update: any, collectionName = NewDocumentsCollection): Promise<mongodb.WriteOpResult> {
+    public updateMany(query: any, update: any, collectionName = DocumentsCollection): Promise<mongodb.WriteOpResult> {
         throw new Error("Can't updateMany a MemoryDatabase");
     }
 
@@ -58,8 +62,15 @@ export class MemoryDatabase implements IDatabase {
         return Promise.resolve({} as any);
     }
 
-    public deleteAll(collectionName = DocumentsCollection, _persist = true): Promise<any> {
-        delete this.db[collectionName];
+    public async dropSchema(...schemaNames: string[]): Promise<any> {
+        const existing = await this.getCollectionNames();
+        let valid: string[];
+        if (schemaNames.length) {
+            valid = schemaNames.filter(collection => existing.includes(collection));
+        } else {
+            valid = existing;
+        }
+        valid.forEach(schemaName => delete this.db[schemaName]);
         return Promise.resolve();
     }
 
@@ -69,14 +80,14 @@ export class MemoryDatabase implements IDatabase {
         return Promise.resolve();
     }
 
-    public getDocument(id: string, fn: (result?: Transferable) => void, collectionName = NewDocumentsCollection): void {
+    public getDocument(id: string, fn: (result?: Transferable) => void, collectionName = DocumentsCollection): void {
         fn(this.getCollection(collectionName)[id]);
     }
     public getDocuments(ids: string[], fn: (result: Transferable[]) => void, collectionName = DocumentsCollection): void {
         fn(ids.map(id => this.getCollection(collectionName)[id]));
     }
 
-    public async visit(ids: string[], fn: (result: any) => string[] | Promise<string[]>, collectionName = NewDocumentsCollection): Promise<void> {
+    public async visit(ids: string[], fn: (result: any) => string[] | Promise<string[]>, collectionName = DocumentsCollection): Promise<void> {
         const visited = new Set<string>();
         while (ids.length) {
             const count = Math.min(ids.length, 1000);

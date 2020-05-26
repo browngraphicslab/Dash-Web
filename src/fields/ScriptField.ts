@@ -1,10 +1,10 @@
 import { ObjectField } from "./ObjectField";
-import { CompiledScript, CompileScript, scriptingGlobal, ScriptOptions } from "../client/util/Scripting";
+import { CompiledScript, CompileScript, scriptingGlobal, ScriptOptions, CompileError, CompileResult, Scripting } from "../client/util/Scripting";
 import { Copy, ToScriptString, ToString, Parent, SelfProxy } from "./FieldSymbols";
 import { serializable, createSimpleSchema, map, primitive, object, deserialize, PropSchema, custom, SKIP } from "serializr";
 import { Deserializable, autoObject } from "../client/util/SerializationHelper";
 import { Doc, Field } from "./Doc";
-import { Plugins } from "./util";
+import { Plugins, setter } from "./util";
 import { computedFn } from "mobx-utils";
 import { ProxyField } from "./Proxy";
 import { Cast } from "./Types";
@@ -59,18 +59,20 @@ async function deserializeScript(script: ScriptField) {
 export class ScriptField extends ObjectField {
     @serializable(object(scriptSchema))
     readonly script: CompiledScript;
+    @serializable(object(scriptSchema))
+    readonly setterscript: CompiledScript | undefined;
 
     @serializable(autoObject())
     private captures?: ProxyField<Doc>;
 
-    constructor(script: CompiledScript) {
+    constructor(script: CompiledScript, setterscript?: CompiledScript) {
         super();
 
-        if (script && script.options.capturedVariables) {
+        if (script?.options.capturedVariables) {
             const doc = Doc.assign(new Doc, script.options.capturedVariables);
             this.captures = new ProxyField(doc);
         }
-
+        this.setterscript = setterscript;
         this.script = script;
     }
 
@@ -96,10 +98,10 @@ export class ScriptField extends ObjectField {
     //     }
 
     [Copy](): ObjectField {
-        return new ScriptField(this.script);
+        return new ScriptField(this.script, this.setterscript);
     }
     toString() {
-        return `${this.script.originalScript}`;
+        return `${this.script.originalScript} + ${this.setterscript?.originalScript}`;
     }
 
     [ToScriptString]() {
@@ -136,6 +138,12 @@ export class ComputedField extends ScriptField {
     //TODO maybe add an observable cache based on what is passed in for doc, considering there shouldn't really be that many possible values for doc
     value = computedFn((doc: Doc) => this._valueOutsideReaction(doc));
     _valueOutsideReaction = (doc: Doc) => this._lastComputedResult = this.script.run({ this: doc, self: Cast(doc.rootDocument, Doc, null) || doc, _last_: this._lastComputedResult }, console.log).result;
+
+
+    [Copy](): ObjectField {
+        return new ComputedField(this.script, this.setterscript);
+    }
+
     public static MakeScript(script: string, params: object = {}) {
         const compiled = ScriptField.CompileScript(script, params, false);
         return compiled.compiled ? new ComputedField(compiled) : undefined;
@@ -144,7 +152,16 @@ export class ComputedField extends ScriptField {
         const compiled = ScriptField.CompileScript(script, params, true, capturedVariables);
         return compiled.compiled ? new ComputedField(compiled) : undefined;
     }
+    public static MakeInterpolated(fieldKey: string, interpolatorKey: string) {
+        const getField = ScriptField.CompileScript(`getIndexVal(self['${fieldKey}-indexed'], self.${interpolatorKey})`, {}, true, {});
+        const setField = ScriptField.CompileScript(`(self['${fieldKey}-indexed'])[self.${interpolatorKey}] = value`, { value: "any" }, true, {});
+        return getField.compiled && setField.compiled ? new ComputedField(getField, setField) : undefined;
+    }
 }
+
+Scripting.addGlobal(function getIndexVal(list: any[], index: number) {
+    return list.reduce((p, x, i) => (i <= index && x !== undefined) || p === undefined ? x : p, undefined as any);
+});
 
 export namespace ComputedField {
     let useComputed = true;

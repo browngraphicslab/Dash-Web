@@ -2,21 +2,20 @@ import { Mark, ResolvedPos } from "prosemirror-model";
 import { EditorState, Plugin } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import * as ReactDOM from 'react-dom';
-import { Doc, DocCastAsync } from "../../../fields/Doc";
-import { Cast, FieldValue, NumCast } from "../../../fields/Types";
-import { emptyFunction, returnEmptyString, returnFalse, Utils, emptyPath } from "../../../Utils";
-import { DocServer } from "../../DocServer";
-import { DocumentManager } from "../../util/DocumentManager";
-import { schema } from "../../util/RichTextSchema";
-import { Transform } from "../../util/Transform";
-import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
+import { Doc, DocCastAsync } from "../../../../fields/Doc";
+import { Cast, FieldValue, NumCast } from "../../../../fields/Types";
+import { emptyFunction, returnEmptyString, returnFalse, Utils, emptyPath, returnZero, returnOne } from "../../../../Utils";
+import { DocServer } from "../../../DocServer";
+import { DocumentManager } from "../../../util/DocumentManager";
+import { schema } from "./schema_rts";
+import { Transform } from "../../../util/Transform";
+import { ContentFittingDocumentView } from "../ContentFittingDocumentView";
 import { FormattedTextBox } from "./FormattedTextBox";
 import './FormattedTextBoxComment.scss';
 import React = require("react");
-import { Docs } from "../../documents/Documents";
+import { Docs } from "../../../documents/Documents";
 import wiki from "wikijs";
-import { DocumentType } from "../../documents/DocumentTypes";
-import { DocumentView } from "./DocumentView";
+import { DocumentType } from "../../../documents/DocumentTypes";
 
 export let formattedTextBoxCommentPlugin = new Plugin({
     view(editorView) { return new FormattedTextBoxComment(editorView); }
@@ -88,12 +87,11 @@ export class FormattedTextBoxComment {
                     if (FormattedTextBoxComment.linkDoc.type !== DocumentType.LINK) {
                         textBox.props.addDocTab(FormattedTextBoxComment.linkDoc, e.ctrlKey ? "inTab" : "onRight");
                     } else {
-                        DocumentView._focusHack = [];
                         DocumentManager.Instance.FollowLink(FormattedTextBoxComment.linkDoc, textBox.props.Document,
                             (doc: Doc, followLinkLocation: string) => textBox.props.addDocTab(doc, e.ctrlKey ? "inTab" : followLinkLocation));
                     }
                 } else if (textBox && (FormattedTextBoxComment.tooltipText as any).href) {
-                    textBox.props.addDocTab(Docs.Create.WebDocument((FormattedTextBoxComment.tooltipText as any).href, { title: (FormattedTextBoxComment.tooltipText as any).href, _width: 200, _height: 400 }), "onRight");
+                    textBox.props.addDocTab(Docs.Create.WebDocument((FormattedTextBoxComment.tooltipText as any).href, { title: (FormattedTextBoxComment.tooltipText as any).href, _width: 200, _height: 400, UseCors: true }), "onRight");
                 }
                 keep && textBox && FormattedTextBoxComment.start !== undefined && textBox.adoptAnnotation(
                     FormattedTextBoxComment.start, FormattedTextBoxComment.end, FormattedTextBoxComment.mark);
@@ -194,21 +192,27 @@ export class FormattedTextBoxComment {
                                     fitToBox={true}
                                     moveDocument={returnFalse}
                                     rootSelected={returnFalse}
-                                    getTransform={Transform.Identity}
-                                    active={returnFalse}
+                                    ScreenToLocalTransform={Transform.Identity}
+                                    parentActive={returnFalse}
                                     addDocument={returnFalse}
                                     removeDocument={returnFalse}
                                     addDocTab={returnFalse}
                                     pinToPres={returnFalse}
                                     dontRegisterView={true}
+                                    ContainingCollectionDoc={undefined}
+                                    ContainingCollectionView={undefined}
                                     renderDepth={1}
                                     PanelWidth={() => Math.min(350, NumCast(target._width, 350))}
                                     PanelHeight={() => Math.min(250, NumCast(target._height, 250))}
                                     focus={emptyFunction}
                                     whenActiveChanged={returnFalse}
+                                    bringToFront={returnFalse}
+                                    ContentScaling={returnOne}
+                                    NativeWidth={returnZero}
+                                    NativeHeight={returnZero}
                                 />, FormattedTextBoxComment.tooltipText);
-                                FormattedTextBoxComment.tooltip.style.width = NumCast(target.width) ? `${NumCast(target.width)}` : "100%";
-                                FormattedTextBoxComment.tooltip.style.height = NumCast(target.height) ? `${NumCast(target.height)}` : "100%";
+                                FormattedTextBoxComment.tooltip.style.width = NumCast(target._width) ? `${NumCast(target._width)}` : "100%";
+                                FormattedTextBoxComment.tooltip.style.height = NumCast(target._height) ? `${NumCast(target._height)}` : "100%";
                             }
                             // let ext = (target && target.type !== DocumentType.PDFANNO && Doc.fieldExtensionDoc(target, "data")) || target; // try guessing that the target doc's data is in the 'data' field.  probably need an 'overviewLayout' and then just display the target Document ....
                             // let text = ext && StrCast(ext.text);

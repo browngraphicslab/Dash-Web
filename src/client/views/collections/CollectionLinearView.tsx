@@ -64,7 +64,7 @@ export class CollectionLinearView extends CollectionSubView(LinearDocument) {
     protected createDashEventsTarget = (ele: HTMLDivElement) => { //used for stacking and masonry view
         this._dropDisposer && this._dropDisposer();
         if (ele) {
-            this._dropDisposer = DragManager.MakeDropTarget(ele, this.onInternalDrop.bind(this));
+            this._dropDisposer = DragManager.MakeDropTarget(ele, this.onInternalDrop.bind(this), this.layoutDoc);
         }
     }
 

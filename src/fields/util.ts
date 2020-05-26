@@ -7,6 +7,8 @@ import { ObjectField } from "./ObjectField";
 import { action, trace } from "mobx";
 import { Parent, OnUpdate, Update, Id, SelfProxy, Self } from "./FieldSymbols";
 import { DocServer } from "../client/DocServer";
+import { ComputedField } from "./ScriptField";
+import { ScriptCast } from "./Types";
 
 function _readOnlySetter(): never {
     throw new Error("Documents can't be modified in read-only mode");
@@ -113,6 +115,9 @@ export function setter(target: any, in_prop: string | symbol | number, value: an
             target.__LAYOUT__[prop] = value;
             return true;
         }
+    }
+    if (target.__fields[prop] instanceof ComputedField && target.__fields[prop].setterscript && value !== undefined && !(value instanceof ComputedField)) {
+        return ScriptCast(target.__fields[prop])?.setterscript?.run({ self: target[SelfProxy], this: target[SelfProxy], value }).success ? true : false;
     }
     return _setter(target, prop, value, receiver);
 }

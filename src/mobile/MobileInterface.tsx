@@ -6,7 +6,7 @@ import { action, computed, observable } from 'mobx';
 import { observer } from 'mobx-react';
 import * as ReactDOM from "react-dom";
 import * as rp from 'request-promise';
-import { CurrentUserUtils } from '../server/authentication/models/current_user_utils';
+import { CurrentUserUtils } from '../client/util/CurrentUserUtils';
 import { FieldValue, Cast, StrCast } from '../fields/Types';
 import { Doc, DocListCast, Opt } from '../fields/Doc';
 import { Docs } from '../client/documents/Documents';
@@ -30,7 +30,7 @@ import { FieldResult } from "../fields/Doc";
 import { AssignAllExtensions } from '../extensions/General/Extensions';
 import { listSpec } from '../fields/Schema';
 import { DocumentManager } from '../client/util/DocumentManager';
-import RichTextMenu from '../client/util/RichTextMenu';
+import RichTextMenu from '../client/views/nodes/formattedText/RichTextMenu';
 import { MainView } from '../client/views/MainView';
 import SettingsManager from '../client/util/SettingsManager';
 import { Uploader } from "./ImageUpload";
@@ -50,7 +50,7 @@ export class MobileInterface extends React.Component {
     @computed private get mainContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeMobile, Doc)) : CurrentUserUtils.GuestMobile; }
     @computed private get activeContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeMobile, Doc)) : CurrentUserUtils.GuestMobile; }
     // @observable private currentView: "main" | "ink" | "upload" = "main";
-    @observable private mainDoc: any = CurrentUserUtils.setupMobileMenu(this.userDoc);
+    @observable private mainDoc: any = CurrentUserUtils.setupMobileDoc(this.userDoc);
     @observable private renderView?: () => JSX.Element;
 
     public _activeDoc: Doc = this.mainDoc;

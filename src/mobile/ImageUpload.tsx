@@ -13,10 +13,14 @@ import { observable } from 'mobx';
 import { Utils } from '../Utils';
 import { Networking } from '../client/Network';
 import { MobileDocumentUploadContent } from '../server/Message';
+import { MobileInterface } from './MobileInterface';
+import { CurrentUserUtils } from '../client/util/CurrentUserUtils';
+import { resolvedPorts } from '../client/views/Main';
 
 export interface ImageUploadProps {
     Document: Doc;
 }
+
 
 // const onPointerDown = (e: React.TouchEvent) => {
 //     let imgInput = document.getElementById("input_image_file");
@@ -100,4 +104,25 @@ export class Uploader extends React.Component<ImageUploadProps> {
 }
 
 
-// DocServer.init(window.location.protocol, window.location.hostname, 4321, "image upload");
+// DocServer.init(window.location.protocol, window.location.hostname, resolvedPorts.socket, "image upload");
+(async () => {
+    const info = await CurrentUserUtils.loadCurrentUser();
+    DocServer.init(window.location.protocol, window.location.hostname, resolvedPorts.socket, info.email + "mobile");
+    await Docs.Prototypes.initialize();
+    if (info.id !== "__guest__") {
+        // a guest will not have an id registered
+        await CurrentUserUtils.loadUserDocument(info);
+    }
+    document.getElementById('root')!.addEventListener('wheel', event => {
+        if (event.ctrlKey) {
+            event.preventDefault();
+        }
+    }, true);
+    ReactDOM.render((
+        // <Uploader />
+        <MobileInterface />
+    ),
+        document.getElementById('root')
+    );
+}
+)();

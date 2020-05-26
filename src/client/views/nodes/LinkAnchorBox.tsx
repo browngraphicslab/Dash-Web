@@ -4,7 +4,7 @@ import { Doc, DocListCast } from "../../../fields/Doc";
 import { documentSchema } from "../../../fields/documentSchemas";
 import { makeInterface } from "../../../fields/Schema";
 import { Cast, NumCast, StrCast } from "../../../fields/Types";
-import { Utils, setupMoveUpEvents } from '../../../Utils';
+import { Utils, setupMoveUpEvents, emptyFunction } from '../../../Utils';
 import { DocumentManager } from "../../util/DocumentManager";
 import { DragManager } from "../../util/DragManager";
 import { ViewBoxBaseComponent } from "../DocComponent";
@@ -17,7 +17,6 @@ import { LinkEditor } from "../linking/LinkEditor";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { SelectionManager } from "../../util/SelectionManager";
 import { TraceMobx } from "../../../fields/util";
-import { DocumentView } from "./DocumentView";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
@@ -40,7 +39,7 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
     @observable _forceOpen = false;
 
     onPointerDown = (e: React.PointerEvent) => {
-        setupMoveUpEvents(this, e, this.onPointerMove, () => { }, this.onClick);
+        setupMoveUpEvents(this, e, this.onPointerMove, emptyFunction, emptyFunction, false);
     }
     onPointerMove = action((e: PointerEvent, down: number[], delta: number[]) => {
         const cdiv = this._ref && this._ref.current && this._ref.current.parentElement;
@@ -63,9 +62,7 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
         return false;
     });
     @action
-    onClick = (e: PointerEvent) => {
-        this._doubleTap = (Date.now() - this._lastTap < 300 && e.button === 0);
-        this._lastTap = Date.now();
+    onClick = (e: React.MouseEvent) => {
         if ((e.button === 2 || e.ctrlKey || !this.layoutDoc.isLinkButton)) {
             this.props.select(false);
         }
@@ -75,14 +72,16 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
             anchorContainerDoc && this.props.bringToFront(anchorContainerDoc, false);
             if (anchorContainerDoc && !this.layoutDoc.onClick && !this._isOpen) {
                 this._timeout = setTimeout(action(() => {
-                    DocumentView._focusHack = [];
-                    DocumentManager.Instance.FollowLink(this.rootDoc, anchorContainerDoc, document => this.props.addDocTab(document, StrCast(this.layoutDoc.linkOpenLocation, "inTab")), false);
+                    DocumentManager.Instance.FollowLink(this.rootDoc, anchorContainerDoc, document => this.props.addDocTab(document, StrCast(this.layoutDoc.linkOpenLocation, e.altKey ? "inTab" : "onRight")), false);
                     this._editing = false;
                 }), 300 - (Date.now() - this._lastTap));
             }
         } else {
             this._timeout && clearTimeout(this._timeout);
             this._timeout = undefined;
+            this._doubleTap = false;
+            this.openLinkEditor(e);
+            e.stopPropagation();
         }
     }
 
@@ -107,8 +106,9 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
         funcs.push({ description: "Open Link Target on Right", event: () => this.openLinkTargetOnRight(e), icon: "eye" });
         funcs.push({ description: "Open Link on Right", event: () => this.openLinkDocOnRight(e), icon: "eye" });
         funcs.push({ description: "Open Link Editor", event: () => this.openLinkEditor(e), icon: "eye" });
+        funcs.push({ description: "Toggle Always Show Link", event: () => this.props.Document.linkDisplay = !this.props.Document.linkDisplay, icon: "eye" });
 
-        ContextMenu.Instance.addItem({ description: "Link Funcs...", subitems: funcs, icon: "asterisk" });
+        ContextMenu.Instance.addItem({ description: "Options...", subitems: funcs, icon: "asterisk" });
     }
 
     render() {
@@ -130,7 +130,7 @@ export class LinkAnchorBox extends ViewBoxBaseComponent<FieldViewProps, LinkAnch
             </div>
         );
         const small = this.props.PanelWidth() <= 1;
-        return <div className={`linkAnchorBox-cont${small ? "-small" : ""}`} onPointerDown={this.onPointerDown} title={targetTitle} onContextMenu={this.specificContextMenu}
+        return <div className={`linkAnchorBox-cont${small ? "-small" : ""}`} onPointerDown={this.onPointerDown} onClick={this.onClick} title={targetTitle} onContextMenu={this.specificContextMenu}
             ref={this._ref} style={{
                 background: c,
                 left: !small ? `calc(${x}% - 7.5px)` : undefined,

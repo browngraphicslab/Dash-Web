@@ -1,5 +1,3 @@
-import { library } from '@fortawesome/fontawesome-svg-core';
-import { faEdit } from '@fortawesome/free-regular-svg-icons';
 import { action } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
@@ -15,9 +13,6 @@ import { ContextMenuProps } from '../ContextMenuItem';
 import { ViewBoxBaseComponent } from '../DocComponent';
 import { FieldView, FieldViewProps } from './FieldView';
 import './LabelBox.scss';
-
-
-library.add(faEdit as any);
 
 const LabelSchema = createSchema({});
 

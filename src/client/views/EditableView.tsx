@@ -46,7 +46,6 @@ export interface EditableProps {
     menuCallback?: (x: number, y: number) => void;
     showMenuOnLoad?: boolean;
     HeadingObject?: SchemaHeaderField | undefined;
-    HeadingsHack?: number;
     toggle?: () => void;
     color?: string | undefined;
 }
@@ -60,7 +59,6 @@ export interface EditableProps {
 export class EditableView extends React.Component<EditableProps> {
     public static loadId = "";
     @observable _editing: boolean = false;
-    @observable _headingsHack: number = 1;
 
     constructor(props: EditableProps) {
         super(props);

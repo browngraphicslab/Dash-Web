@@ -5,12 +5,12 @@ import { Schema } from "prosemirror-model";
 import { liftListItem, sinkListItem } from "./prosemirrorPatches.js";
 import { splitListItem, wrapInList, } from "prosemirror-schema-list";
 import { EditorState, Transaction, TextSelection } from "prosemirror-state";
-import { SelectionManager } from "./SelectionManager";
-import { Docs } from "../documents/Documents";
-import { NumCast, BoolCast, Cast } from "../../fields/Types";
-import { Doc } from "../../fields/Doc";
-import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
-import { Id } from "../../fields/FieldSymbols";
+import { SelectionManager } from "../../../util/SelectionManager";
+import { Docs } from "../../../documents/Documents";
+import { NumCast, BoolCast, Cast, StrCast } from "../../../../fields/Types";
+import { Doc } from "../../../../fields/Doc";
+import { FormattedTextBox } from "./FormattedTextBox";
+import { Id } from "../../../../fields/FieldSymbols";
 
 const mac = typeof navigator !== "undefined" ? /Mac/.test(navigator.platform) : false;
 
@@ -153,10 +153,13 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, props: any
         const layoutDoc = props.Document;
         const originalDoc = layoutDoc.rootDocument || layoutDoc;
         if (originalDoc instanceof Doc) {
-            const newDoc = Docs.Create.TextDocument("", {
-                title: "", layout: Cast(originalDoc.layout, Doc, null) || FormattedTextBox.DefaultLayout, _singleLine: BoolCast(originalDoc._singleLine),
-                x: NumCast(originalDoc.x), y: NumCast(originalDoc.y) + NumCast(originalDoc._height) + 10, _width: NumCast(layoutDoc._width), _height: NumCast(layoutDoc._height)
-            });
+            const layoutKey = StrCast(originalDoc.layoutKey);
+            const newDoc = Doc.MakeCopy(originalDoc, true);
+            newDoc.y = NumCast(originalDoc.y) + NumCast(originalDoc._height) + 10;
+            if (layoutKey !== "layout" && originalDoc[layoutKey] instanceof Doc) {
+                newDoc[layoutKey] = originalDoc[layoutKey];
+            }
+            Doc.GetProto(newDoc).text = undefined;
             FormattedTextBox.SelectOnLoad = newDoc[Id];
             props.addDocument(newDoc);
         }
@@ -171,10 +174,13 @@ export default function buildKeymap<S extends Schema<any>>(schema: S, props: any
         const layoutDoc = props.Document;
         const originalDoc = layoutDoc.rootDocument || layoutDoc;
         if (force || props.Document._singleLine) {
-            const newDoc = Docs.Create.TextDocument("", {
-                title: "", layout: Cast(originalDoc.layout, Doc, null) || FormattedTextBox.DefaultLayout, _singleLine: BoolCast(originalDoc._singleLine),
-                x: NumCast(originalDoc.x) + NumCast(originalDoc._width) + 10, y: NumCast(originalDoc.y), _width: NumCast(layoutDoc._width), _height: NumCast(layoutDoc._height)
-            });
+            const layoutKey = StrCast(originalDoc.layoutKey);
+            const newDoc = Doc.MakeCopy(originalDoc, true);
+            newDoc.x = NumCast(originalDoc.x) + NumCast(originalDoc._width) + 10;
+            if (layoutKey !== "layout" && originalDoc[layoutKey] instanceof Doc) {
+                newDoc[layoutKey] = originalDoc[layoutKey];
+            }
+            Doc.GetProto(newDoc).text = undefined;
             FormattedTextBox.SelectOnLoad = newDoc[Id];
             props.addDocument(newDoc);
             return true;

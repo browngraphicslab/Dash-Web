@@ -3,12 +3,12 @@ import { ColorState } from 'react-color';
 import { Doc } from "../../fields/Doc";
 import { InkTool } from "../../fields/InkField";
 import { FieldValue, NumCast, StrCast } from "../../fields/Types";
-import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
+import { CurrentUserUtils } from "../util/CurrentUserUtils";
 import { Scripting } from "../util/Scripting";
 import { SelectionManager } from "../util/SelectionManager";
 import { undoBatch } from "../util/UndoManager";
 import GestureOverlay from "./GestureOverlay";
-import { FormattedTextBox } from "./nodes/FormattedTextBox";
+import { FormattedTextBox } from "./nodes/formattedText/FormattedTextBox";
 
 export class InkingControl {
     @observable static Instance: InkingControl;

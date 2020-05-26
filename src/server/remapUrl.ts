@@ -1,6 +1,5 @@
 import { Database } from "./database";
-import { Search } from "./Search";
-import * as path from 'path';
+import { resolvedPorts } from "./server_Initialization";
 
 //npx ts-node src/server/remapUrl.ts
 
@@ -36,7 +35,7 @@ async function update() {
                 if (url.href.includes("localhost") && url.href.includes("Bill")) {
                     dynfield = true;
 
-                    update.$set = { ["fields." + key + ".url"]: `${url.protocol}//dash-web.eastus2.cloudapp.azure.com:1050${url.pathname}` };
+                    update.$set = { ["fields." + key + ".url"]: `${url.protocol}//dash-web.eastus2.cloudapp.azure.com:${resolvedPorts.server}${url.pathname}` };
                 }
             }
         }
@@ -50,7 +49,7 @@ async function update() {
         return new Promise(res => Database.Instance.update(doc[0], doc[1], () => {
             console.log("wrote " + JSON.stringify(doc[1]));
             res();
-        }, false, "newDocuments"));
+        }, false));
     }));
     console.log("Done");
     // await Promise.all(updates.map(update => {

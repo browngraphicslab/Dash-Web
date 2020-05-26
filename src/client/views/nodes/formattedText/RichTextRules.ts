@@ -1,16 +1,17 @@
 import { ellipsis, emDash, InputRule, smartQuotes, textblockTypeInputRule } from "prosemirror-inputrules";
 import { NodeSelection, TextSelection } from "prosemirror-state";
-import { DataSym, Doc } from "../../fields/Doc";
-import { Id } from "../../fields/FieldSymbols";
-import { ComputedField } from "../../fields/ScriptField";
-import { Cast, NumCast } from "../../fields/Types";
-import { returnFalse, Utils } from "../../Utils";
-import { DocServer } from "../DocServer";
-import { Docs, DocUtils } from "../documents/Documents";
-import { FormattedTextBox } from "../views/nodes/FormattedTextBox";
+import { DataSym, Doc } from "../../../../fields/Doc";
+import { Id } from "../../../../fields/FieldSymbols";
+import { ComputedField } from "../../../../fields/ScriptField";
+import { Cast, NumCast } from "../../../../fields/Types";
+import { returnFalse, Utils } from "../../../../Utils";
+import { DocServer } from "../../../DocServer";
+import { Docs, DocUtils } from "../../../documents/Documents";
+import { FormattedTextBox } from "./FormattedTextBox";
 import { wrappingInputRule } from "./prosemirrorPatches";
 import RichTextMenu from "./RichTextMenu";
-import { schema } from "./RichTextSchema";
+import { schema } from "./schema_rts";
+import { List } from "../../../../fields/List";
 
 export class RichTextRules {
     public Document: Doc;
@@ -64,11 +65,12 @@ export class RichTextRules {
 
             // create an inline view of a tag stored under the '#' field
             new InputRule(
-                new RegExp(/#([a-zA-Z_\-]+[a-zA-Z_\-0-9]*)\s$/),
+                new RegExp(/#([a-zA-Z_\-]+[a-zA-Z_;\-0-9]*)\s$/),
                 (state, match, start, end) => {
                     const tag = match[1];
                     if (!tag) return state.tr;
-                    this.Document[DataSym]["#"] = tag;
+                    const multiple = tag.split(";");
+                    this.Document[DataSym]["#"] = multiple.length > 1 ? new List(multiple) : tag;
                     const fieldView = state.schema.nodes.dashField.create({ fieldKey: "#" });
                     return state.tr.deleteRange(start, end).insert(start, fieldView);
                 }),
@@ -92,7 +94,7 @@ export class RichTextRules {
 
             // create a text display of a metadata field on this or another document, or create a hyperlink portal to another document [[ <fieldKey> : <Doc>]]   // [[:Doc]] => hyperlink   [[fieldKey]] => show field   [[fieldKey:Doc]] => show field of doc
             new InputRule(
-                new RegExp(/\[\[([a-zA-Z_@\? \-0-9]*)(=[a-zA-Z_@\? \-0-9]*)?(:[a-zA-Z_@\? \-0-9]+)?\]\]$/),
+                new RegExp(/\[\[([a-zA-Z_@\? \-0-9]*)(=[a-zA-Z_@\? /\-0-9]*)?(:[a-zA-Z_@\? \-0-9]+)?\]\]$/),
                 (state, match, start, end) => {
                     const fieldKey = match[1];
                     const docid = match[3]?.substring(1);
@@ -110,7 +112,7 @@ export class RichTextRules {
                         return state.tr;
                     }
                     if (value !== "" && value !== undefined) {
-                        const num = value.match(/^[0-9.]/);
+                        const num = value.match(/^[0-9.]$/);
                         this.Document[DataSym][fieldKey] = value === "true" ? true : value === "false" ? false : (num ? Number(value) : value);
                     }
                     const fieldView = state.schema.nodes.dashField.create({ fieldKey, docid });
@@ -118,7 +120,7 @@ export class RichTextRules {
                 }),
             // create an inline view of a document {{ <layoutKey> : <Doc> }}  // {{:Doc}} => show default view of document   {{<layout>}} => show layout for this doc   {{<layout> : Doc}} => show layout for another doc
             new InputRule(
-                new RegExp(/\{\{([a-zA-Z_ \-0-9]*)(\([a-zA-Z0-9…._\-]*\))?(:[a-zA-Z_ \-0-9]+)?\}\}$/),
+                new RegExp(/\{\{([a-zA-Z_ \-0-9]*)(\([a-zA-Z0-9…._/\-]*\))?(:[a-zA-Z_ \-0-9]+)?\}\}$/),
                 (state, match, start, end) => {
                     const fieldKey = match[1] || "";
                     const fieldParam = match[2]?.replace("…", "...") || "";
@@ -143,7 +145,7 @@ export class RichTextRules {
                     textDoc.inlineTextCount = numInlines + 1;
                     const inlineFieldKey = "inline" + numInlines; // which field on the text document this annotation will write to
                     const inlineLayoutKey = "layout_" + inlineFieldKey; // the field holding the layout string that will render the inline annotation
-                    const textDocInline = Docs.Create.TextDocument("", { layoutKey: inlineLayoutKey, _width: 75, _height: 35, annotationOn: textDoc, _autoHeight: true, fontSize: 9, title: "inline comment" });
+                    const textDocInline = Docs.Create.TextDocument("", { layoutKey: inlineLayoutKey, _width: 75, _height: 35, annotationOn: textDoc, _autoHeight: true, _fontSize: 9, title: "inline comment" });
                     textDocInline.title = inlineFieldKey; // give the annotation its own title
                     textDocInline.customTitle = true; // And make sure that it's 'custom' so that editing text doesn't change the title of the containing doc
                     textDocInline.isTemplateForField = inlineFieldKey; // this is needed in case the containing text doc is converted to a template at some point

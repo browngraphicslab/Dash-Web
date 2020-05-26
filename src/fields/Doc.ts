@@ -6,7 +6,7 @@ import { DocumentType } from "../client/documents/DocumentTypes";
 import { Scripting, scriptingGlobal } from "../client/util/Scripting";
 import { afterDocDeserialize, autoObject, Deserializable, SerializationHelper } from "../client/util/SerializationHelper";
 import { UndoManager } from "../client/util/UndoManager";
-import { intersectRect } from "../Utils";
+import { intersectRect, Utils } from "../Utils";
 import { HandleUpdate, Id, OnUpdate, Parent, Self, SelfProxy, ToScriptString, ToString, Update, Copy } from "./FieldSymbols";
 import { List } from "./List";
 import { ObjectField } from "./ObjectField";
@@ -14,10 +14,12 @@ import { PrefetchProxy, ProxyField } from "./Proxy";
 import { FieldId, RefField } from "./RefField";
 import { RichTextField } from "./RichTextField";
 import { listSpec } from "./Schema";
-import { ComputedField } from "./ScriptField";
+import { ComputedField, ScriptField } from "./ScriptField";
 import { Cast, FieldValue, NumCast, StrCast, ToConstructor, ScriptCast } from "./Types";
 import { deleteProperty, getField, getter, makeEditable, makeReadOnly, setter, updateFunction } from "./util";
-import { Docs } from "../client/documents/Documents";
+import { Docs, DocumentOptions } from "../client/documents/Documents";
+import { PdfField, VideoField, AudioField, ImageField } from "./URLField";
+import { LinkManager } from "../client/util/LinkManager";
 
 export namespace Field {
     export function toKeyValueString(doc: Doc, key: string): string {
@@ -182,7 +184,7 @@ export class Doc extends RefField {
             let renderFieldKey: any;
             const layoutField = templateLayoutDoc[StrCast(templateLayoutDoc.layoutKey, "layout")];
             if (typeof layoutField === "string") {
-                renderFieldKey = layoutField.split("'")[1];
+                renderFieldKey = layoutField.split("fieldKey={'")[1].split("'")[0];//layoutField.split("'")[1];
             } else {
                 return Cast(layoutField, Doc, null);
             }
@@ -253,6 +255,7 @@ export namespace Doc {
     //         return Cast(field, ctor);
     //     });
     // }
+
     export function RunCachedUpdate(doc: Doc, field: string) {
         const update = doc[CachedUpdates][field];
         if (update) {
@@ -289,6 +292,9 @@ export namespace Doc {
     }
     export function IsPrototype(doc: Doc) {
         return GetT(doc, "isPrototype", "boolean", true);
+    }
+    export function IsBaseProto(doc: Doc) {
+        return GetT(doc, "baseProto", "boolean", true);
     }
     export async function SetInPlace(doc: Doc, key: string, value: Field | undefined, defaultProto: boolean) {
         const hasProto = doc.proto instanceof Doc;
@@ -461,6 +467,7 @@ export namespace Doc {
         return (layoutDoc.isTemplateForField || layoutDoc.isTemplateDoc) && dataDoc && layoutDoc !== dataDoc;
     }
 
+    const _pendingMap: Map<string, boolean> = new Map();
     //
     // Returns an expanded template layout for a target data document if there is a template relationship
     // between the two. If so, the layoutDoc is expanded into a new document that inherits the properties 
@@ -486,13 +493,16 @@ export namespace Doc {
         const layoutFielddKey = Doc.LayoutFieldKey(templateLayoutDoc);
         const expandedLayoutFieldKey = (templateField || layoutFielddKey) + "-layout[" + templateLayoutDoc[Id] + (args ? `(${args})` : "") + "]";
         let expandedTemplateLayout = targetDoc?.[expandedLayoutFieldKey];
+
         if (templateLayoutDoc.resolvedDataDoc instanceof Promise) {
             expandedTemplateLayout = undefined;
+            _pendingMap.set(targetDoc[Id] + expandedLayoutFieldKey, true);
         }
-        else if (expandedTemplateLayout === undefined) {
-            if (templateLayoutDoc.resolvedDataDoc === Doc.GetProto(targetDoc) && templateLayoutDoc.PARAMS === StrCast(targetDoc.PARAMS)) {
+        else if (expandedTemplateLayout === undefined && !_pendingMap.get(targetDoc[Id] + expandedLayoutFieldKey + args)) {
+            if (templateLayoutDoc.resolvedDataDoc === (targetDoc.rootDocument || Doc.GetProto(targetDoc)) && templateLayoutDoc.PARAMS === StrCast(targetDoc.PARAMS)) {
                 expandedTemplateLayout = templateLayoutDoc; // reuse an existing template layout if its for the same document with the same params
             } else {
+                _pendingMap.set(targetDoc[Id] + expandedLayoutFieldKey + args, true);
                 templateLayoutDoc.resolvedDataDoc && (templateLayoutDoc = Cast(templateLayoutDoc.proto, Doc, null) || templateLayoutDoc); // if the template has already been applied (ie, a nested template), then use the template's prototype
                 setTimeout(action(() => {
                     if (!targetDoc[expandedLayoutFieldKey]) {
@@ -507,6 +517,7 @@ export namespace Doc {
                         if (dataDoc[templateField] === undefined && templateLayoutDoc[templateField] instanceof List) {
                             dataDoc[templateField] = ComputedField.MakeFunction(`ObjectField.MakeCopy(templateLayoutDoc["${templateField}"] as List)`, { templateLayoutDoc: Doc.name }, { templateLayoutDoc });
                         }
+                        _pendingMap.delete(targetDoc[Id] + expandedLayoutFieldKey + args);
                     }
                 }), 0);
             }
@@ -563,7 +574,7 @@ export namespace Doc {
                 if (field instanceof RefField) {
                     copy[key] = field;
                 } else if (cfield instanceof ComputedField) {
-                    copy[key] = ComputedField.MakeFunction(cfield.script.originalScript);
+                    copy[key] = cfield[Copy]();// ComputedField.MakeFunction(cfield.script.originalScript);
                 } else if (field instanceof ObjectField) {
                     copy[key] = doc[key] instanceof Doc ?
                         key.includes("layout[") ? Doc.MakeCopy(doc[key] as Doc, false) : doc[key] : // reference documents except copy documents that are expanded teplate fields 
@@ -579,32 +590,64 @@ export namespace Doc {
         return copy;
     }
 
-    export function MakeClone(doc: Doc, cloneProto: boolean = true): Doc {
+    export function MakeClone(doc: Doc): Doc {
+        const cloneMap = new Map<string, Doc>();
+        const rtfMap: { copy: Doc, key: string, field: RichTextField }[] = [];
+        const copy = Doc.makeClone(doc, cloneMap, rtfMap);
+        rtfMap.map(({ copy, key, field }) => {
+            const replacer = (match: any, attr: string, id: string, offset: any, string: any) => {
+                const mapped = cloneMap.get(id);
+                return attr + "\"" + (mapped ? mapped[Id] : id) + "\"";
+            };
+            const replacer2 = (match: any, href: string, id: string, offset: any, string: any) => {
+                const mapped = cloneMap.get(id);
+                return href + (mapped ? mapped[Id] : id);
+            };
+            const regex = `(${Utils.prepend("/doc/")})([^"]*)`;
+            const re = new RegExp(regex, "g");
+            copy[key] = new RichTextField(field.Data.replace(/("docid":|"targetId":|"linkId":)"([^"]+)"/g, replacer).replace(re, replacer2), field.Text);
+        });
+        return copy;
+    }
+
+    export function makeClone(doc: Doc, cloneMap: Map<string, Doc>, rtfs: { copy: Doc, key: string, field: RichTextField }[]): Doc {
+        if (Doc.IsBaseProto(doc)) return doc;
+        if (cloneMap.get(doc[Id])) return cloneMap.get(doc[Id])!;
         const copy = new Doc(undefined, true);
+        cloneMap.set(doc[Id], copy);
+        if (LinkManager.Instance.getAllLinks().includes(doc) && LinkManager.Instance.getAllLinks().indexOf(copy) === -1) LinkManager.Instance.addLink(copy);
         const exclude = Cast(doc.excludeFields, listSpec("string"), []);
         Object.keys(doc).forEach(key => {
             if (exclude.includes(key)) return;
             const cfield = ComputedField.WithoutComputed(() => FieldValue(doc[key]));
             const field = ProxyField.WithoutProxy(() => doc[key]);
-            if (key === "proto" && cloneProto) {
+            const copyObjectField = (field: ObjectField) => {
+                const list = Cast(doc[key], listSpec(Doc));
+                if (list !== undefined && !(list instanceof Promise)) {
+                    copy[key] = new List<Doc>(list.filter(d => d instanceof Doc).map(d => Doc.makeClone(d as Doc, cloneMap, rtfs)));
+                } else if (doc[key] instanceof Doc) {
+                    copy[key] = key.includes("layout[") ? undefined : Doc.makeClone(doc[key] as Doc, cloneMap, rtfs); // reference documents except copy documents that are expanded teplate fields 
+                } else {
+                    copy[key] = ObjectField.MakeCopy(field);
+                    if (field instanceof RichTextField) {
+                        if (field.Data.includes('"docid":') || field.Data.includes('"targetId":') || field.Data.includes('"linkId":')) {
+                            rtfs.push({ copy, key, field });
+                        }
+                    }
+                }
+            };
+            if (key === "proto") {
                 if (doc[key] instanceof Doc) {
-                    copy[key] = Doc.MakeClone(doc[key]!, false);
+                    copy[key] = Doc.makeClone(doc[key]!, cloneMap, rtfs);
                 }
             } else {
                 if (field instanceof RefField) {
                     copy[key] = field;
                 } else if (cfield instanceof ComputedField) {
                     copy[key] = ComputedField.MakeFunction(cfield.script.originalScript);
+                    (key === "links" && field instanceof ObjectField) && copyObjectField(field);
                 } else if (field instanceof ObjectField) {
-                    const list = Cast(doc[key], listSpec(Doc));
-                    if (list !== undefined && !(list instanceof Promise)) {
-                        copy[key] = new List<Doc>(list.filter(d => d instanceof Doc).map(d => Doc.MakeCopy(d as Doc, false)));
-                    } else {
-                        copy[key] = doc[key] instanceof Doc ?
-                            key.includes("layout[") ?
-                                Doc.MakeCopy(doc[key] as Doc, false) : doc[key] : // reference documents except copy documents that are expanded teplate fields 
-                            ObjectField.MakeCopy(field);
-                    }
+                    copyObjectField(field);
                 } else if (field instanceof Promise) {
                     debugger; //This shouldn't happend...
                 } else {
@@ -614,6 +657,7 @@ export namespace Doc {
         });
         Doc.SetInPlace(copy, "title", "CLONE: " + doc.title, true);
         copy.cloneOf = doc;
+        cloneMap.set(doc[Id], copy);
         return copy;
     }
 
@@ -770,7 +814,7 @@ export namespace Doc {
 
 
     export function LinkOtherAnchor(linkDoc: Doc, anchorDoc: Doc) { return Doc.AreProtosEqual(anchorDoc, Cast(linkDoc.anchor1, Doc) as Doc) ? Cast(linkDoc.anchor2, Doc) as Doc : Cast(linkDoc.anchor1, Doc) as Doc; }
-    export function LinkEndpoint(linkDoc: Doc, anchorDoc: Doc) { return Doc.AreProtosEqual(anchorDoc, Cast(linkDoc.anchor1, Doc) as Doc) ? "layout_key1" : "layout_key2"; }
+    export function LinkEndpoint(linkDoc: Doc, anchorDoc: Doc) { return Doc.AreProtosEqual(anchorDoc, Cast(linkDoc.anchor1, Doc) as Doc) ? "1" : "2"; }
 
     export function linkFollowUnhighlight() {
         Doc.UnhighlightAll();
@@ -891,17 +935,26 @@ export namespace Doc {
             }
         }
     }
-
-    export function freezeNativeDimensions(layoutDoc: Doc, width: number, height: number): void {
-        layoutDoc._autoHeight = false;
-        if (!layoutDoc._nativeWidth) {
-            layoutDoc._nativeWidth = NumCast(layoutDoc._width, width);
-            layoutDoc._nativeHeight = NumCast(layoutDoc._height, height);
-        }
-    }
     export function assignDocToField(doc: Doc, field: string, id: string) {
         DocServer.GetRefField(id).then(layout => layout instanceof Doc && (doc[field] = layout));
         return id;
+    }
+
+    export function toggleNativeDimensions(layoutDoc: Doc, contentScale: number, panelWidth: number, panelHeight: number) {
+        runInAction(() => {
+            if (layoutDoc._nativeWidth || layoutDoc._nativeHeight) {
+                layoutDoc.scale = NumCast(layoutDoc.scale, 1) * contentScale;
+                layoutDoc._nativeWidth = undefined;
+                layoutDoc._nativeHeight = undefined;
+            }
+            else {
+                layoutDoc._autoHeight = false;
+                if (!layoutDoc._nativeWidth) {
+                    layoutDoc._nativeWidth = NumCast(layoutDoc._width, panelWidth);
+                    layoutDoc._nativeHeight = NumCast(layoutDoc._height, panelHeight);
+                }
+            }
+        });
     }
 
     export function isDocPinned(doc: Doc) {
@@ -911,6 +964,96 @@ export namespace Doc {
             return DocListCast(curPres.data).findIndex((val) => Doc.AreProtosEqual(val, doc)) !== -1;
         }
         return false;
+    }
+
+    // applies a custom template to a document.  the template is identified by it's short name (e.g, slideView not layout_slideView)
+    export function makeCustomViewClicked(doc: Doc, creator: Opt<(documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc>, templateSignature: string = "custom", docLayoutTemplate?: Doc) {
+        const batch = UndoManager.StartBatch("makeCustomViewClicked");
+        runInAction(() => {
+            doc.layoutKey = "layout_" + templateSignature;
+            if (doc[doc.layoutKey] === undefined) {
+                createCustomView(doc, creator, templateSignature, docLayoutTemplate);
+            }
+        });
+        batch.end();
+    }
+    export function findTemplate(templateName: string, type: string, signature: string) {
+        let docLayoutTemplate: Opt<Doc>;
+        const iconViews = DocListCast(Cast(Doc.UserDoc()["template-icons"], Doc, null)?.data);
+        const templBtns = DocListCast(Cast(Doc.UserDoc()["template-buttons"], Doc, null)?.data);
+        const noteTypes = DocListCast(Cast(Doc.UserDoc()["template-notes"], Doc, null)?.data);
+        const clickFuncs = DocListCast(Cast(Doc.UserDoc().clickFuncs, Doc, null)?.data);
+        const allTemplates = iconViews.concat(templBtns).concat(noteTypes).concat(clickFuncs).map(btnDoc => (btnDoc.dragFactory as Doc) || btnDoc).filter(doc => doc.isTemplateDoc);
+        // bcz: this is hacky -- want to have different templates be applied depending on the "type" of a document.  but type is not reliable and there could be other types of template searches so this should be generalized
+        // first try to find a template that matches the specific document type (<typeName>_<templateName>).  otherwise, fallback to a general match on <templateName>
+        !docLayoutTemplate && allTemplates.forEach(tempDoc => StrCast(tempDoc.title) === templateName + "_" + type && (docLayoutTemplate = tempDoc));
+        !docLayoutTemplate && allTemplates.forEach(tempDoc => StrCast(tempDoc.title) === templateName && (docLayoutTemplate = tempDoc));
+        return docLayoutTemplate;
+    }
+    export function createCustomView(doc: Doc, creator: Opt<(documents: Array<Doc>, options: DocumentOptions, id?: string) => Doc>, templateSignature: string = "custom", docLayoutTemplate?: Doc) {
+        const templateName = templateSignature.replace(/\(.*\)/, "");
+        docLayoutTemplate = docLayoutTemplate || findTemplate(templateName, StrCast(doc.type), templateSignature);
+
+        const customName = "layout_" + templateSignature;
+        const _width = NumCast(doc._width);
+        const _height = NumCast(doc._height);
+        const options = { title: "data", backgroundColor: StrCast(doc.backgroundColor), _autoHeight: true, _width, x: -_width / 2, y: - _height / 2, _showSidebar: false };
+
+        let fieldTemplate: Opt<Doc>;
+        if (doc.data instanceof RichTextField || typeof (doc.data) === "string") {
+            fieldTemplate = Docs.Create.TextDocument("", options);
+        } else if (doc.data instanceof PdfField) {
+            fieldTemplate = Docs.Create.PdfDocument("http://www.msn.com", options);
+        } else if (doc.data instanceof VideoField) {
+            fieldTemplate = Docs.Create.VideoDocument("http://www.cs.brown.edu", options);
+        } else if (doc.data instanceof AudioField) {
+            fieldTemplate = Docs.Create.AudioDocument("http://www.cs.brown.edu", options);
+        } else if (doc.data instanceof ImageField) {
+            fieldTemplate = Docs.Create.ImageDocument("http://www.cs.brown.edu", options);
+        }
+        const docTemplate = docLayoutTemplate || creator?.(fieldTemplate ? [fieldTemplate] : [], { title: customName + "(" + doc.title + ")", isTemplateDoc: true, _width: _width + 20, _height: Math.max(100, _height + 45) });
+
+        fieldTemplate && Doc.MakeMetadataFieldTemplate(fieldTemplate, docTemplate ? Doc.GetProto(docTemplate) : docTemplate);
+        docTemplate && Doc.ApplyTemplateTo(docTemplate, doc, customName, undefined);
+    }
+    export function makeCustomView(doc: Doc, custom: boolean, layout: string) {
+        Doc.setNativeView(doc);
+        if (custom) {
+            makeCustomViewClicked(doc, Docs.Create.StackingDocument, layout, undefined);
+        }
+    }
+    export function iconify(doc: Doc) {
+        const layoutKey = Cast(doc.layoutKey, "string", null);
+        Doc.makeCustomViewClicked(doc, Docs.Create.StackingDocument, "icon", undefined);
+        if (layoutKey && layoutKey !== "layout" && layoutKey !== "layout_icon") doc.deiconifyLayout = layoutKey.replace("layout_", "");
+    }
+
+    export function pileup(docList: Doc[], x?: number, y?: number) {
+        let w = 0, h = 0;
+        runInAction(() => {
+            docList.forEach(d => {
+                Doc.iconify(d);
+                w = Math.max(d[WidthSym](), w);
+                h = Math.max(d[HeightSym](), h);
+            });
+            h = Math.max(h, w * 4 / 3); // converting to an icon does not update the height right away.  so this is a fallback hack to try to do something reasonable
+            docList.forEach((d, i) => {
+                d.x = Math.cos(Math.PI * 2 * i / docList.length) * 10 - w / 2;
+                d.y = Math.sin(Math.PI * 2 * i / docList.length) * 10 - h / 2;
+                d.displayTimecode = undefined;  // bcz: this should be automatic somehow.. along with any other properties that were logically associated with the original collection
+            });
+        });
+        if (x !== undefined && y !== undefined) {
+            const newCollection = Docs.Create.PileDocument(docList, { title: "pileup", x: x - 55, y: y - 55, _width: 110, _height: 100, _LODdisable: true });
+            newCollection.x = NumCast(newCollection.x) + NumCast(newCollection._width) / 2 - 55;
+            newCollection.y = NumCast(newCollection.y) + NumCast(newCollection._height) / 2 - 55;
+            newCollection._width = newCollection._height = 110;
+            //newCollection.borderRounding = "40px";
+            newCollection._jitterRotation = 10;
+            newCollection._backgroundColor = "gray";
+            newCollection._overflow = "visible";
+            return newCollection;
+        }
     }
 
 

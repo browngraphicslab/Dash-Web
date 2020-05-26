@@ -1,5 +1,12 @@
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { faTerminal, faWindowMaximize, faAddressCard, faQuestionCircle, faArrowDown, faArrowUp, faBolt, faBullseye, faCaretUp, faCat, faCheck, faChevronRight, faClipboard, faClone, faCloudUploadAlt, faCommentAlt, faCompressArrowsAlt, faCut, faEllipsisV, faEraser, faExclamation, faFileAlt, faFileAudio, faFilePdf, faFilm, faFilter, faFont, faGlobeAsia, faHighlighter, faLongArrowAltRight, faMicrophone, faMousePointer, faMusic, faObjectGroup, faPause, faPen, faPenNib, faPhone, faPlay, faPortrait, faRedoAlt, faStamp, faStickyNote, faThumbtack, faTree, faTv, faUndoAlt, faVideo } from '@fortawesome/free-solid-svg-icons';
+import {
+    faTasks, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
+    faTerminal, faToggleOn, faFile as fileSolid, faExternalLinkAlt, faLocationArrow, faSearch, faFileDownload, faStop, faCalculator, faWindowMaximize, faAddressCard,
+    faQuestionCircle, faArrowLeft, faArrowRight, faArrowDown, faArrowUp, faBolt, faBullseye, faCaretUp, faCat, faCheck, faChevronRight, faClipboard, faClone, faCloudUploadAlt,
+    faCommentAlt, faCompressArrowsAlt, faCut, faEllipsisV, faEraser, faExclamation, faFileAlt, faFileAudio, faFilePdf, faFilm, faFilter, faFont, faGlobeAsia, faHighlighter,
+    faLongArrowAltRight, faMicrophone, faMousePointer, faMusic, faObjectGroup, faPause, faPen, faPenNib, faPhone, faPlay, faPortrait, faRedoAlt, faStamp, faStickyNote,
+    faThumbtack, faTree, faTv, faUndoAlt, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye
+} from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, configure, observable, reaction, runInAction } from 'mobx';
 import { observer } from 'mobx-react';
@@ -12,14 +19,14 @@ import { List } from '../../fields/List';
 import { listSpec } from '../../fields/Schema';
 import { BoolCast, Cast, FieldValue, StrCast } from '../../fields/Types';
 import { TraceMobx } from '../../fields/util';
-import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
+import { CurrentUserUtils } from '../util/CurrentUserUtils';
 import { emptyFunction, emptyPath, returnFalse, returnOne, returnZero, returnTrue, Utils } from '../../Utils';
 import GoogleAuthenticationManager from '../apis/GoogleAuthenticationManager';
 import { DocServer } from '../DocServer';
 import { Docs, DocumentOptions } from '../documents/Documents';
 import { DocumentType } from '../documents/DocumentTypes';
 import { HistoryUtil } from '../util/History';
-import RichTextMenu from '../util/RichTextMenu';
+import RichTextMenu from './nodes/formattedText/RichTextMenu';
 import { Scripting } from '../util/Scripting';
 import SettingsManager from '../util/SettingsManager';
 import SharingManager from '../util/SharingManager';
@@ -42,6 +49,8 @@ import { OverlayView } from './OverlayView';
 import PDFMenu from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
 import { ScriptField } from '../../fields/ScriptField';
+import { TimelineMenu } from './animationtimeline/TimelineMenu';
+import { SnappingManager } from '../util/SnappingManager';
 
 @observer
 export class MainView extends React.Component {
@@ -56,7 +65,7 @@ export class MainView extends React.Component {
     @observable private _panelHeight: number = 0;
     @observable private _flyoutTranslate: boolean = true;
     @observable public flyoutWidth: number = 250;
-    private get darkScheme() { return BoolCast(Cast(this.userDoc.activeWorkspace, Doc, null)?.darkScheme); }
+    private get darkScheme() { return BoolCast(Cast(this.userDoc?.activeWorkspace, Doc, null)?.darkScheme); }
 
     @computed private get userDoc() { return Doc.UserDoc(); }
     @computed private get mainContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeWorkspace, Doc)) : CurrentUserUtils.GuestWorkspace; }
@@ -73,12 +82,14 @@ export class MainView extends React.Component {
         firstScriptTag.parentNode!.insertBefore(tag, firstScriptTag);
         window.removeEventListener("keydown", KeyManager.Instance.handle);
         window.addEventListener("keydown", KeyManager.Instance.handle);
+        window.addEventListener("paste", KeyManager.Instance.paste as any);
     }
 
     componentWillUnMount() {
         window.removeEventListener("keydown", KeyManager.Instance.handle);
         window.removeEventListener("pointerdown", this.globalPointerDown);
         window.removeEventListener("pointerup", this.globalPointerUp);
+        window.removeEventListener("paste", KeyManager.Instance.paste as any);
     }
 
     constructor(props: Readonly<{}>) {
@@ -102,55 +113,12 @@ export class MainView extends React.Component {
             }
         }
 
-        library.add(faTerminal);
-        library.add(faWindowMaximize);
-        library.add(faFileAlt);
-        library.add(faAddressCard);
-        library.add(faQuestionCircle);
-        library.add(faStickyNote);
-        library.add(faFont);
-        library.add(faExclamation);
-        library.add(faPortrait);
-        library.add(faCat);
-        library.add(faFilePdf);
-        library.add(faObjectGroup);
-        library.add(faTv);
-        library.add(faGlobeAsia);
-        library.add(faUndoAlt);
-        library.add(faRedoAlt);
-        library.add(faMousePointer);
-        library.add(faPen);
-        library.add(faHighlighter);
-        library.add(faEraser);
-        library.add(faFileAudio);
-        library.add(faPenNib);
-        library.add(faMicrophone);
-        library.add(faFilm);
-        library.add(faMusic);
-        library.add(faTree);
-        library.add(faPlay);
-        library.add(faCompressArrowsAlt);
-        library.add(faPause);
-        library.add(faClone);
-        library.add(faCut);
-        library.add(faCommentAlt);
-        library.add(faThumbtack);
-        library.add(faLongArrowAltRight);
-        library.add(faCheck);
-        library.add(faCaretUp);
-        library.add(faFilter);
-        library.add(faBullseye);
-        library.add(faArrowDown);
-        library.add(faArrowUp);
-        library.add(faCloudUploadAlt);
-        library.add(faBolt);
-        library.add(faVideo);
-        library.add(faChevronRight);
-        library.add(faEllipsisV);
-        library.add(faMusic);
-        library.add(faPhone);
-        library.add(faClipboard);
-        library.add(faStamp);
+        library.add(faTasks, faEdit, faTrashAlt, faPalette, faAngleRight, faBell, faTrash, faCamera, faExpand, faCaretDown, faCaretLeft, faCaretRight, faCaretSquareDown, faCaretSquareRight, faArrowsAltH, faPlus, faMinus,
+            faTerminal, faToggleOn, faExternalLinkAlt, faLocationArrow, faSearch, faFileDownload, faStop, faCalculator, faWindowMaximize, faAddressCard, fileSolid,
+            faQuestionCircle, faArrowLeft, faArrowRight, faArrowDown, faArrowUp, faBolt, faBullseye, faCaretUp, faCat, faCheck, faChevronRight, faClipboard, faClone, faCloudUploadAlt,
+            faCommentAlt, faCompressArrowsAlt, faCut, faEllipsisV, faEraser, faExclamation, faFileAlt, faFileAudio, faFilePdf, faFilm, faFilter, faFont, faGlobeAsia, faHighlighter,
+            faLongArrowAltRight, faMicrophone, faMousePointer, faMusic, faObjectGroup, faPause, faPen, faPenNib, faPhone, faPlay, faPortrait, faRedoAlt, faStamp, faStickyNote, faTrashAlt, faAngleRight, faBell,
+            faThumbtack, faTree, faTv, faUndoAlt, faVideo, faAsterisk, faBrain, faImage, faPaintBrush, faTimes, faEye);
         this.initEventListeners();
         this.initAuthenticationRouters();
     }
@@ -162,13 +130,16 @@ export class MainView extends React.Component {
         if (targets && targets.length && targets[0].className.toString().indexOf("contextMenu") === -1) {
             ContextMenu.Instance.closeMenu();
         }
+        if (targets && (targets.length && targets[0].className.toString() !== "timeline-menu-desc" && targets[0].className.toString() !== "timeline-menu-item" && targets[0].className.toString() !== "timeline-menu-input")) {
+            TimelineMenu.Instance.closeMenu();
+        }
     });
 
     globalPointerUp = () => this.isPointerDown = false;
 
     initEventListeners = () => {
-        window.addEventListener("drop", (e) => e.preventDefault(), false); // drop event handler
-        window.addEventListener("dragover", (e) => e.preventDefault(), false); // drag event handler
+        window.addEventListener("drop", (e) => { e.preventDefault(); }, false); // drop event handler
+        window.addEventListener("dragover", (e) => { e.preventDefault(); }, false); // drag event handler
         // click interactions for the context menu
         document.addEventListener("pointerdown", this.globalPointerDown);
         document.addEventListener("pointerup", this.globalPointerUp);
@@ -212,18 +183,20 @@ export class MainView extends React.Component {
             _width: this._panelWidth * .7,
             _height: this._panelHeight,
             title: "Collection " + workspaceCount,
+            _LODdisable: true
         };
         const freeformDoc = CurrentUserUtils.GuestTarget || Docs.Create.FreeformDocument([], freeformOptions);
-        Doc.AddDocToList(Doc.GetProto(Doc.UserDoc().myDocuments as Doc), "data", freeformDoc);
-        const mainDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600, path: [Doc.UserDoc().myDocuments as Doc] }], { title: `Workspace ${workspaceCount}` }, id, "row");
+        const workspaceDoc = Docs.Create.StandardCollectionDockingDocument([{ doc: freeformDoc, initialWidth: 600, path: [Doc.UserDoc().myCatalog as Doc] }], { title: `Workspace ${workspaceCount}` }, id, "row");
 
         const toggleTheme = ScriptField.MakeScript(`self.darkScheme = !self.darkScheme`);
-        mainDoc.contextMenuScripts = new List<ScriptField>([toggleTheme!]);
-        mainDoc.contextMenuLabels = new List<string>(["Toggle Theme Colors"]);
+        const toggleComic = ScriptField.MakeScript(`toggleComicMode()`);
+        const cloneWorkspace = ScriptField.MakeScript(`cloneWorkspace()`);
+        workspaceDoc.contextMenuScripts = new List<ScriptField>([toggleTheme!, toggleComic!, cloneWorkspace!]);
+        workspaceDoc.contextMenuLabels = new List<string>(["Toggle Theme Colors", "Toggle Comic Mode", "New Workspace Layout"]);
 
-        Doc.AddDocToList(workspaces, "data", mainDoc);
+        Doc.AddDocToList(workspaces, "data", workspaceDoc);
         // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
-        setTimeout(() => this.openWorkspace(mainDoc), 0);
+        setTimeout(() => this.openWorkspace(workspaceDoc), 0);
     }
 
     @action
@@ -270,7 +243,6 @@ export class MainView extends React.Component {
     onDrop = (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log("Drop");
     }
 
     @action
@@ -284,7 +256,7 @@ export class MainView extends React.Component {
 
     defaultBackgroundColors = (doc: Doc) => {
         if (this.darkScheme) {
-            switch (doc.type) {
+            switch (doc?.type) {
                 case DocumentType.RTF || DocumentType.LABEL || DocumentType.BUTTON: return "#2d2d2d";
                 case DocumentType.LINK:
                 case DocumentType.COL: {
@@ -293,7 +265,7 @@ export class MainView extends React.Component {
                 default: return "black";
             }
         } else {
-            switch (doc.type) {
+            switch (doc?.type) {
                 case DocumentType.RTF: return "#f1efeb";
                 case DocumentType.BUTTON:
                 case DocumentType.LABEL: return "lightgray";
@@ -337,7 +309,9 @@ export class MainView extends React.Component {
         const width = this.flyoutWidth;
         return <Measure offset onResize={this.onResize}>
             {({ measureRef }) =>
-                <div ref={measureRef} className="mainContent-div" onDrop={this.onDrop} style={{ width: `calc(100% - ${width}px)` }}>
+                <div ref={measureRef} className="mainContent-div" onDragEnter={e => {
+                    console.log("ENTERING");
+                }} onDrop={this.onDrop} style={{ width: `calc(100% - ${width}px)` }}>
                     {!mainContainer ? (null) : this.mainDocView}
                 </div>
             }
@@ -456,10 +430,7 @@ export class MainView extends React.Component {
                     ContainingCollectionView={undefined}
                     ContainingCollectionDoc={undefined} />
                 <button className="mainView-settings" key="settings" onClick={() => SettingsManager.Instance.open()}>
-                    Settings
-                </button>
-                <button className="mainView-logout" key="logout" onClick={() => window.location.assign(Utils.prepend("/logout"))}>
-                    {CurrentUserUtils.GuestWorkspace ? "Exit" : "Log Out"}
+                    <FontAwesomeIcon icon="cog" size="lg" />
                 </button>
             </div>
             {this.docButtons}
@@ -504,9 +475,9 @@ export class MainView extends React.Component {
         return !this._flyoutTranslate ? (<div className="mainView-expandFlyoutButton" title="Re-attach sidebar" onPointerDown={MainView.expandFlyout}><FontAwesomeIcon icon="chevron-right" color="grey" size="lg" /></div>) : (null);
     }
 
-    addButtonDoc = (doc: Doc) => Doc.AddDocToList(Doc.UserDoc().dockedBtns as Doc, "data", doc);
-    remButtonDoc = (doc: Doc) => Doc.RemoveDocFromList(Doc.UserDoc().dockedBtns as Doc, "data", doc);
-    moveButtonDoc = (doc: Doc, targetCollection: Doc | undefined, addDocument: (document: Doc) => boolean) => this.remButtonDoc(doc) && addDocument(doc);
+    addButtonDoc = (doc: Doc | Doc[]) => (doc instanceof Doc ? [doc] : doc).reduce((flg: boolean, doc) => flg && Doc.AddDocToList(Doc.UserDoc().dockedBtns as Doc, "data", doc), true);
+    remButtonDoc = (doc: Doc | Doc[]) => (doc instanceof Doc ? [doc] : doc).reduce((flg: boolean, doc) => flg && Doc.RemoveDocFromList(Doc.UserDoc().dockedBtns as Doc, "data", doc), true);
+    moveButtonDoc = (doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (document: Doc | Doc[]) => boolean) => this.remButtonDoc(doc) && addDocument(doc);
 
     buttonBarXf = () => {
         if (!this._docBtnRef.current) return Transform.Identity();
@@ -562,6 +533,15 @@ export class MainView extends React.Component {
         return this._mainViewRef;
     }
 
+    @computed get snapLines() {
+        return <div className="mainView-snapLines">
+            <svg style={{ width: "100%", height: "100%" }}>
+                {/* {SnappingManager.horizSnapLines().map(l => <line x1="0" y1={l} x2="2000" y2={l} stroke="black" opacity={0.3} strokeWidth={0.5} strokeDasharray={"1 1"} />)}
+                {SnappingManager.vertSnapLines().map(l => <line y1="0" x1={l} y2="2000" x2={l} stroke="black" opacity={0.3} strokeWidth={0.5} strokeDasharray={"1 1"} />)} */}
+            </svg>
+        </div>;
+    }
+
     render() {
         return (<div className={"mainView-container" + (this.darkScheme ? "-dark" : "")} ref={this._mainViewRef}>
             <DictationOverlay />
@@ -579,7 +559,17 @@ export class MainView extends React.Component {
             <MarqueeOptionsMenu />
             <RichTextMenu />
             <OverlayView />
+            <TimelineMenu />
+            {this.snapLines}
         </div >);
     }
 }
 Scripting.addGlobal(function freezeSidebar() { MainView.expandFlyout(); });
+Scripting.addGlobal(function toggleComicMode() { Doc.UserDoc().fontFamily = "Comic Sans MS"; Doc.UserDoc().renderStyle = Doc.UserDoc().renderStyle === "comic" ? undefined : "comic"; });
+Scripting.addGlobal(function cloneWorkspace() {
+    const copiedWorkspace = Doc.MakeCopy(Cast(Doc.UserDoc().activeWorkspace, Doc, null), true);
+    const workspaces = Cast(Doc.UserDoc().myWorkspaces, Doc, null);
+    Doc.AddDocToList(workspaces, "data", copiedWorkspace);
+    // bcz: strangely, we need a timeout to prevent exceptions/issues initializing GoldenLayout (the rendering engine for Main Container)
+    setTimeout(() => MainView.Instance.openWorkspace(copiedWorkspace), 0);
+});

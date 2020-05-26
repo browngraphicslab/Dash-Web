@@ -1,14 +1,19 @@
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
 import * as React from "react";
-import { Doc, DocListCast } from "../../fields/Doc";
+import { Doc, DocListCast, Opt } from "../../fields/Doc";
 import { Id } from "../../fields/FieldSymbols";
-import { NumCast } from "../../fields/Types";
-import { emptyFunction, emptyPath, returnEmptyString, returnFalse, returnOne, returnTrue, returnZero, Utils } from "../../Utils";
+import { NumCast, Cast } from "../../fields/Types";
+import { emptyFunction, emptyPath, returnEmptyString, returnFalse, returnOne, returnTrue, returnZero, Utils, setupMoveUpEvents } from "../../Utils";
 import { Transform } from "../util/Transform";
 import { CollectionFreeFormLinksView } from "./collections/collectionFreeForm/CollectionFreeFormLinksView";
 import { DocumentView } from "./nodes/DocumentView";
 import './OverlayView.scss';
+import { Scripting } from "../util/Scripting";
+import { ScriptingRepl } from './ScriptingRepl';
+import { DragManager } from "../util/DragManager";
+import { listSpec } from "../../fields/Schema";
+import { List } from "../../fields/List";
 
 export type OverlayDisposer = () => void;
 
@@ -137,46 +142,51 @@ export class OverlayView extends React.Component {
         return remove;
     }
 
+
     @computed get overlayDocs() {
         const userDocOverlays = Doc.UserDoc().myOverlayDocuments;
         if (!userDocOverlays) {
-            return (null);
+            return null;
         }
         return userDocOverlays instanceof Doc && DocListCast(userDocOverlays.data).map(d => {
             setTimeout(() => d.inOverlay = true, 0);
             let offsetx = 0, offsety = 0;
-            const onPointerMove = action((e: PointerEvent) => {
+            const dref = React.createRef<HTMLDivElement>();
+            const onPointerMove = action((e: PointerEvent, down: number[]) => {
                 if (e.buttons === 1) {
                     d.x = e.clientX + offsetx;
                     d.y = e.clientY + offsety;
-                    e.stopPropagation();
-                    e.preventDefault();
                 }
-            });
-            const onPointerUp = action((e: PointerEvent) => {
-                document.removeEventListener("pointermove", onPointerMove);
-                document.removeEventListener("pointerup", onPointerUp);
-                e.stopPropagation();
-                e.preventDefault();
+                if (e.metaKey) {
+                    const dragData = new DragManager.DocumentDragData([d]);
+                    d.removeDropProperties = new List<string>(["inOverlay"]);
+                    dragData.offset = [-offsetx, -offsety];
+                    dragData.dropAction = "move";
+                    dragData.removeDocument = (doc: Doc | Doc[]) => {
+                        const docs = (doc instanceof Doc) ? [doc] : doc;
+                        docs.forEach(d => Doc.RemoveDocFromList(Cast(Doc.UserDoc().myOverlayDocuments, Doc, null), "data", d));
+                        return true;
+                    };
+                    dragData.moveDocument = (doc: Doc | Doc[], targetCollection: Doc | undefined, addDocument: (doc: Doc | Doc[]) => boolean): boolean => {
+                        return dragData.removeDocument!(doc) ? addDocument(doc) : false;
+                    };
+                    DragManager.StartDocumentDrag([dref.current!], dragData, down[0], down[1]);
+                    return true;
+                }
+                return false;
             });
 
             const onPointerDown = (e: React.PointerEvent) => {
+                setupMoveUpEvents(this, e, onPointerMove, emptyFunction, emptyFunction);
                 offsetx = NumCast(d.x) - e.clientX;
                 offsety = NumCast(d.y) - e.clientY;
-                e.stopPropagation();
-                e.preventDefault();
-                document.addEventListener("pointermove", onPointerMove);
-                document.addEventListener("pointerup", onPointerUp);
             };
-            return <div className="overlayView-doc" key={d[Id]} onPointerDown={onPointerDown} style={{ transform: `translate(${d.x}px, ${d.y}px)` }}>
+            return <div className="overlayView-doc" ref={dref} key={d[Id]} onPointerDown={onPointerDown} style={{ width: NumCast(d._width), height: NumCast(d._height), transform: `translate(${d.x}px, ${d.y}px)` }}>
                 <DocumentView
                     Document={d}
                     LibraryPath={emptyPath}
                     ChromeHeight={returnZero}
                     rootSelected={returnTrue}
-                    // isSelected={returnFalse}
-                    // select={emptyFunction}
-                    // layoutKey={"layout"}
                     bringToFront={emptyFunction}
                     addDocument={undefined}
                     removeDocument={undefined}
@@ -211,3 +221,7 @@ export class OverlayView extends React.Component {
         );
     }
 }
+// bcz: ugh ... want to be able to pass ScriptingRepl as tag argument, but that doesn't seem to work.. runtime error
+Scripting.addGlobal(function addOverlayWindow(type: string, options: OverlayElementOptions) {
+    OverlayView.Instance.addWindow(<ScriptingRepl />, options);
+});
