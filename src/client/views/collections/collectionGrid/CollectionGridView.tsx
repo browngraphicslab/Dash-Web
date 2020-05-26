@@ -49,18 +49,18 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
                     if (!gridLayouts.find((gridLayout: Doc) => StrCast(gridLayout.i) === targetId)) {
                         const layoutDoc: Doc = new Doc();
                         layoutDoc.i = targetId;
-                        layoutDoc.x = 2 * (previousLength % 5);
-                        layoutDoc.y = 2 * Math.floor(previousLength / 5);
                         layoutDoc.w = 2;
                         layoutDoc.h = 2;
+                        this.findNextLayout(layoutDoc, previousLength);
                         Doc.AddDocToList(this.props.Document, "gridLayouts", layoutDoc);
                     }
                 });
             } else {
                 // for each document that was removed, remove its corresponding grid layout document
                 oldValue.forEach(({ layout }) => {
-                    if (!newValue.find(({ layout: preserved }) => preserved[Id] === layout[Id])) {
-                        const gridLayoutDoc = gridLayouts.find((gridLayout: Doc) => StrCast(gridLayout.i) === layout[Id]);
+                    const targetId = layout[Id];
+                    if (!newValue.find(({ layout: preserved }) => preserved[Id] === targetId)) {
+                        const gridLayoutDoc = gridLayouts.find((gridLayout: Doc) => StrCast(gridLayout.i) === targetId);
                         gridLayoutDoc && Doc.RemoveDocFromList(this.props.Document, "gridLayouts", gridLayoutDoc);
                     }
                 });
@@ -70,6 +70,23 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
 
     componentWillUnmount() {
         this.changeListenerDisposer && this.changeListenerDisposer();
+    }
+
+    /**
+     * Establishes the x and y properties of the @param layoutDoc, currently
+     * using the @param previousLength for the computations.
+     * 
+     * However, this could also be more of a first fit algorithm, iterating through
+     * this.toLayoutList(DocListCast(this.props.Document.gridLayouts)) and finding the
+     * first gap in the layout structure that suits the width and height. It would be
+     * easiest to see that a column is free (for a given row, if two documents' x are separated
+     * by a value greater than the ratio width of the document you're trying to insert),
+     * but you would then have to ensure that the next row at that column has a y at least
+     * as big as the ratio height of the document you're trying to insert.  
+     */
+    private findNextLayout(layoutDoc: Doc, previousLength: number) {
+        layoutDoc.x = 2 * (previousLength % 5);
+        layoutDoc.y = 2 * Math.floor(previousLength / 5);
     }
 
     /**
