@@ -49,8 +49,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
                     if (!gridLayouts.find((gridLayout: Doc) => StrCast(gridLayout.i) === targetId)) {
                         const layoutDoc: Doc = new Doc();
                         layoutDoc.i = targetId;
-                        layoutDoc.w = 2;
-                        layoutDoc.h = 2;
+                        layoutDoc.w = layoutDoc.h = 2;
                         this.findNextLayout(layoutDoc, previousLength);
                         Doc.AddDocToList(this.props.Document, "gridLayouts", layoutDoc);
                     }
@@ -85,7 +84,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
      * as big as the ratio height of the document you're trying to insert.  
      */
     private findNextLayout(layoutDoc: Doc, previousLength: number) {
-        layoutDoc.x = 2 * (previousLength % 5);
+        layoutDoc.x = 2 * (previousLength % 5); // does this assume that there are 5 columns?
         layoutDoc.y = 2 * Math.floor(previousLength / 5);
     }
 
