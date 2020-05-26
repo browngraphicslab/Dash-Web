@@ -6,12 +6,12 @@ import { observer } from 'mobx-react';
 import "normalize.css";
 import * as React from 'react';
 import Measure from 'react-measure';
-import { Doc, DocListCast, Field, Opt } from '../../new_fields/Doc';
-import { Id } from '../../new_fields/FieldSymbols';
-import { List } from '../../new_fields/List';
-import { listSpec } from '../../new_fields/Schema';
-import { BoolCast, Cast, FieldValue, StrCast } from '../../new_fields/Types';
-import { TraceMobx } from '../../new_fields/util';
+import { Doc, DocListCast, Field, Opt } from '../../fields/Doc';
+import { Id } from '../../fields/FieldSymbols';
+import { List } from '../../fields/List';
+import { listSpec } from '../../fields/Schema';
+import { BoolCast, Cast, FieldValue, StrCast } from '../../fields/Types';
+import { TraceMobx } from '../../fields/util';
 import { CurrentUserUtils } from '../../server/authentication/models/current_user_utils';
 import { emptyFunction, emptyPath, returnFalse, returnOne, returnZero, returnTrue, Utils } from '../../Utils';
 import GoogleAuthenticationManager from '../apis/GoogleAuthenticationManager';
@@ -41,7 +41,7 @@ import { RadialMenu } from './nodes/RadialMenu';
 import { OverlayView } from './OverlayView';
 import PDFMenu from './pdf/PDFMenu';
 import { PreviewCursor } from './PreviewCursor';
-import { ScriptField } from '../../new_fields/ScriptField';
+import { ScriptField } from '../../fields/ScriptField';
 
 @observer
 export class MainView extends React.Component {

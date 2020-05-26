@@ -1,10 +1,10 @@
 import { GoogleApiWrapper, Map as GeoMap, MapProps, Marker } from "google-maps-react";
 import { observer } from "mobx-react";
-import { Doc, Opt, DocListCast, FieldResult, Field } from "../../../new_fields/Doc";
-import { documentSchema } from "../../../new_fields/documentSchemas";
-import { Id } from "../../../new_fields/FieldSymbols";
-import { makeInterface } from "../../../new_fields/Schema";
-import { Cast, NumCast, ScriptCast, StrCast } from "../../../new_fields/Types";
+import { Doc, Opt, DocListCast, FieldResult, Field } from "../../../fields/Doc";
+import { documentSchema } from "../../../fields/documentSchemas";
+import { Id } from "../../../fields/FieldSymbols";
+import { makeInterface } from "../../../fields/Schema";
+import { Cast, NumCast, ScriptCast, StrCast } from "../../../fields/Types";
 import "./CollectionMapView.scss";
 import { CollectionSubView } from "./CollectionSubView";
 import React = require("react");

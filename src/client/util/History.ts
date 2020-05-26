@@ -1,4 +1,4 @@
-import { Doc } from "../../new_fields/Doc";
+import { Doc } from "../../fields/Doc";
 import { DocServer } from "../DocServer";
 import { MainView } from "../views/MainView";
 import * as qs from 'query-string';

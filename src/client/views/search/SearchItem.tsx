@@ -4,9 +4,9 @@ import { faCaretUp, faChartBar, faFile, faFilePdf, faFilm, faFingerprint, faGlob
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc } from "../../../new_fields/Doc";
-import { Id } from "../../../new_fields/FieldSymbols";
-import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
+import { Doc } from "../../../fields/Doc";
+import { Id } from "../../../fields/FieldSymbols";
+import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { emptyFunction, emptyPath, returnFalse, Utils, returnTrue } from "../../../Utils";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { DocumentManager } from "../../util/DocumentManager";

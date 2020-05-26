@@ -1,6 +1,6 @@
 import * as mongodb from 'mongodb';
 import { Transferable } from './Message';
-import { Opt } from '../new_fields/Doc';
+import { Opt } from '../fields/Doc';
 import { Utils, emptyFunction } from '../Utils';
 import { Credentials } from 'google-auth-library';
 import { GoogleApiServerUtils } from './apis/google/GoogleApiServerUtils';

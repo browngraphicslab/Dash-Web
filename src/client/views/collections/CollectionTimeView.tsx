@@ -1,11 +1,11 @@
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, Opt, DocCastAsync } from "../../../new_fields/Doc";
-import { List } from "../../../new_fields/List";
-import { ObjectField } from "../../../new_fields/ObjectField";
-import { RichTextField } from "../../../new_fields/RichTextField";
-import { ComputedField, ScriptField } from "../../../new_fields/ScriptField";
-import { NumCast, StrCast, BoolCast, Cast } from "../../../new_fields/Types";
+import { Doc, Opt, DocCastAsync } from "../../../fields/Doc";
+import { List } from "../../../fields/List";
+import { ObjectField } from "../../../fields/ObjectField";
+import { RichTextField } from "../../../fields/RichTextField";
+import { ComputedField, ScriptField } from "../../../fields/ScriptField";
+import { NumCast, StrCast, BoolCast, Cast } from "../../../fields/Types";
 import { emptyFunction, returnFalse, setupMoveUpEvents } from "../../../Utils";
 import { Scripting } from "../../util/Scripting";
 import { ContextMenu } from "../ContextMenu";

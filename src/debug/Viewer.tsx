@@ -3,17 +3,17 @@ import "normalize.css";
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { observer } from 'mobx-react';
-import { Doc, Field, FieldResult, Opt } from '../new_fields/Doc';
+import { Doc, Field, FieldResult, Opt } from '../fields/Doc';
 import { DocServer } from '../client/DocServer';
-import { Id } from '../new_fields/FieldSymbols';
-import { List } from '../new_fields/List';
-import { URLField } from '../new_fields/URLField';
+import { Id } from '../fields/FieldSymbols';
+import { List } from '../fields/List';
+import { URLField } from '../fields/URLField';
 import { EditableView } from '../client/views/EditableView';
 import { CompileScript } from '../client/util/Scripting';
-import { RichTextField } from '../new_fields/RichTextField';
-import { DateField } from '../new_fields/DateField';
-import { ScriptField } from '../new_fields/ScriptField';
-import CursorField from '../new_fields/CursorField';
+import { RichTextField } from '../fields/RichTextField';
+import { DateField } from '../fields/DateField';
+import { ScriptField } from '../fields/ScriptField';
+import CursorField from '../fields/CursorField';
 
 DateField;
 URLField;
@@ -96,7 +96,7 @@ class DocumentViewer extends React.Component<{ field: Doc }> {
             content = (
                 <div>
                     Document ({this.props.field[Id]})
-                <div style={{ paddingLeft: "25px" }}>
+                    <div style={{ paddingLeft: "25px" }}>
                         {fields}
                     </div>
                 </div>

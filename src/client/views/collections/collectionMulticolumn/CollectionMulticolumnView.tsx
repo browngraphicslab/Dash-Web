@@ -1,10 +1,10 @@
 import { action, computed } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from "react";
-import { Doc } from '../../../../new_fields/Doc';
-import { documentSchema } from '../../../../new_fields/documentSchemas';
-import { makeInterface } from '../../../../new_fields/Schema';
-import { BoolCast, NumCast, ScriptCast, StrCast, Cast } from '../../../../new_fields/Types';
+import { Doc } from '../../../../fields/Doc';
+import { documentSchema } from '../../../../fields/documentSchemas';
+import { makeInterface } from '../../../../fields/Schema';
+import { BoolCast, NumCast, ScriptCast, StrCast, Cast } from '../../../../fields/Types';
 import { DragManager } from '../../../util/DragManager';
 import { Transform } from '../../../util/Transform';
 import { undoBatch } from '../../../util/UndoManager';
@@ -13,7 +13,7 @@ import { CollectionSubView } from '../CollectionSubView';
 import "./collectionMulticolumnView.scss";
 import ResizeBar from './MulticolumnResizer';
 import WidthLabel from './MulticolumnWidthLabel';
-import { List } from '../../../../new_fields/List';
+import { List } from '../../../../fields/List';
 import { returnZero } from '../../../../Utils';
 
 type MulticolumnDocument = makeInterface<[typeof documentSchema]>;

@@ -4,11 +4,11 @@ import { faArrowDown, faArrowUp, faFile as fileSolid, faFileDownload, faLocation
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, IReactionDisposer, reaction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DataSym } from "../../../new_fields/Doc";
-import { documentSchema } from '../../../new_fields/documentSchemas';
-import { Id } from "../../../new_fields/FieldSymbols";
-import { createSchema, makeInterface } from '../../../new_fields/Schema';
-import { Cast, NumCast } from "../../../new_fields/Types";
+import { Doc, DataSym } from "../../../fields/Doc";
+import { documentSchema } from '../../../fields/documentSchemas';
+import { Id } from "../../../fields/FieldSymbols";
+import { createSchema, makeInterface } from '../../../fields/Schema';
+import { Cast, NumCast } from "../../../fields/Types";
 import { emptyFunction, emptyPath, returnFalse, returnTrue } from "../../../Utils";
 import { Transform } from "../../util/Transform";
 import { CollectionViewType } from '../collections/CollectionView';

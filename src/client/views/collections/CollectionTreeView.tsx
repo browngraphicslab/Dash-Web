@@ -3,12 +3,12 @@ import { faAngleRight, faArrowsAltH, faBell, faCamera, faCaretDown, faCaretRight
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, runInAction, untracked } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, Field, HeightSym, WidthSym, DataSym, Opt } from '../../../new_fields/Doc';
-import { Id } from '../../../new_fields/FieldSymbols';
-import { List } from '../../../new_fields/List';
-import { Document, listSpec } from '../../../new_fields/Schema';
-import { ComputedField, ScriptField } from '../../../new_fields/ScriptField';
-import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from '../../../new_fields/Types';
+import { Doc, DocListCast, Field, HeightSym, WidthSym, DataSym, Opt } from '../../../fields/Doc';
+import { Id } from '../../../fields/FieldSymbols';
+import { List } from '../../../fields/List';
+import { Document, listSpec } from '../../../fields/Schema';
+import { ComputedField, ScriptField } from '../../../fields/ScriptField';
+import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from '../../../fields/Types';
 import { emptyFunction, emptyPath, returnFalse, Utils, returnOne, returnZero, returnTransparent, returnTrue, simulateMouseClick } from '../../../Utils';
 import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentType } from "../../documents/DocumentTypes";
@@ -32,7 +32,7 @@ import { CollectionSubView, SubCollectionViewProps } from "./CollectionSubView";
 import "./CollectionTreeView.scss";
 import React = require("react");
 import { CollectionViewType, CollectionView } from './CollectionView';
-import { RichTextField } from '../../../new_fields/RichTextField';
+import { RichTextField } from '../../../fields/RichTextField';
 import { DocumentView } from '../nodes/DocumentView';
 
 

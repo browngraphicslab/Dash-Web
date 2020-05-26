@@ -1,10 +1,10 @@
 import { observer } from 'mobx-react';
-import { makeInterface } from '../../../../new_fields/Schema';
-import { documentSchema } from '../../../../new_fields/documentSchemas';
+import { makeInterface } from '../../../../fields/Schema';
+import { documentSchema } from '../../../../fields/documentSchemas';
 import { CollectionSubView, SubCollectionViewProps } from '../CollectionSubView';
 import * as React from "react";
-import { Doc } from '../../../../new_fields/Doc';
-import { NumCast, StrCast, BoolCast, ScriptCast } from '../../../../new_fields/Types';
+import { Doc } from '../../../../fields/Doc';
+import { NumCast, StrCast, BoolCast, ScriptCast } from '../../../../fields/Types';
 import { ContentFittingDocumentView } from '../../nodes/ContentFittingDocumentView';
 import { Utils, returnZero } from '../../../../Utils';
 import "./collectionMultirowView.scss";
@@ -14,7 +14,7 @@ import HeightLabel from './MultirowHeightLabel';
 import ResizeBar from './MultirowResizer';
 import { undoBatch } from '../../../util/UndoManager';
 import { DragManager } from '../../../util/DragManager';
-import { List } from '../../../../new_fields/List';
+import { List } from '../../../../fields/List';
 
 type MultirowDocument = makeInterface<[typeof documentSchema]>;
 const MultirowDocument = makeInterface(documentSchema);

@@ -3,7 +3,7 @@ import { CompiledScript, CompileScript, scriptingGlobal, ScriptOptions } from ".
 import { Copy, ToScriptString, ToString, Parent, SelfProxy } from "./FieldSymbols";
 import { serializable, createSimpleSchema, map, primitive, object, deserialize, PropSchema, custom, SKIP } from "serializr";
 import { Deserializable, autoObject } from "../client/util/SerializationHelper";
-import { Doc, Field } from "../new_fields/Doc";
+import { Doc, Field } from "./Doc";
 import { Plugins } from "./util";
 import { computedFn } from "mobx-utils";
 import { ProxyField } from "./Proxy";

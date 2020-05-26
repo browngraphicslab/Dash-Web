@@ -1,11 +1,11 @@
 import { action, computed, IReactionDisposer, reaction } from "mobx";
-import CursorField from "../../../new_fields/CursorField";
-import { Doc, DocListCast, Opt, WidthSym, HeightSym } from "../../../new_fields/Doc";
-import { Id } from "../../../new_fields/FieldSymbols";
-import { List } from "../../../new_fields/List";
-import { listSpec } from "../../../new_fields/Schema";
-import { ScriptField } from "../../../new_fields/ScriptField";
-import { Cast, StrCast } from "../../../new_fields/Types";
+import CursorField from "../../../fields/CursorField";
+import { Doc, DocListCast, Opt, WidthSym, HeightSym } from "../../../fields/Doc";
+import { Id } from "../../../fields/FieldSymbols";
+import { List } from "../../../fields/List";
+import { listSpec } from "../../../fields/Schema";
+import { ScriptField } from "../../../fields/ScriptField";
+import { Cast, StrCast } from "../../../fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { Utils } from "../../../Utils";
 import { DocServer } from "../../DocServer";

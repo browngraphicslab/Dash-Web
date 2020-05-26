@@ -3,10 +3,10 @@ import { faCaretUp, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faT
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DataSym, Field } from "../../new_fields/Doc";
-import { PositionDocument } from '../../new_fields/documentSchemas';
-import { ScriptField } from '../../new_fields/ScriptField';
-import { Cast, StrCast, NumCast } from "../../new_fields/Types";
+import { Doc, DataSym, Field } from "../../fields/Doc";
+import { PositionDocument } from '../../fields/documentSchemas';
+import { ScriptField } from '../../fields/ScriptField';
+import { Cast, StrCast, NumCast } from "../../fields/Types";
 import { Utils, setupMoveUpEvents, emptyFunction, returnFalse, simulateMouseClick } from "../../Utils";
 import { DocUtils } from "../documents/Documents";
 import { DocumentType } from '../documents/DocumentTypes';
@@ -17,7 +17,7 @@ import { DocumentButtonBar } from './DocumentButtonBar';
 import './DocumentDecorations.scss';
 import { DocumentView } from "./nodes/DocumentView";
 import React = require("react");
-import { Id } from '../../new_fields/FieldSymbols';
+import { Id } from '../../fields/FieldSymbols';
 import e = require('express');
 
 library.add(faCaretUp);

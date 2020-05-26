@@ -1,12 +1,12 @@
 import * as React from "react";
 import './ParentDocumentSelector.scss';
-import { Doc } from "../../../new_fields/Doc";
+import { Doc } from "../../../fields/Doc";
 import { observer } from "mobx-react";
 import { observable, action, runInAction, trace, computed } from "mobx";
-import { Id } from "../../../new_fields/FieldSymbols";
+import { Id } from "../../../fields/FieldSymbols";
 import { SearchUtil } from "../../util/SearchUtil";
 import { CollectionDockingView } from "./CollectionDockingView";
-import { NumCast, StrCast } from "../../../new_fields/Types";
+import { NumCast, StrCast } from "../../../fields/Types";
 import { CollectionViewType } from "./CollectionView";
 import { DocumentButtonBar } from "../DocumentButtonBar";
 import { DocumentManager } from "../../util/DocumentManager";

@@ -1,9 +1,9 @@
 import React = require("react");
 import { observer } from "mobx-react";
 import { SketchPicker } from 'react-color';
-import { documentSchema } from "../../../new_fields/documentSchemas";
-import { makeInterface } from "../../../new_fields/Schema";
-import { StrCast } from "../../../new_fields/Types";
+import { documentSchema } from "../../../fields/documentSchemas";
+import { makeInterface } from "../../../fields/Schema";
+import { StrCast } from "../../../fields/Types";
 import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
 import { SelectionManager } from "../../util/SelectionManager";
 import { ViewBoxBaseComponent } from "../DocComponent";

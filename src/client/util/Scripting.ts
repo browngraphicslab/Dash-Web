@@ -9,7 +9,7 @@ export { ts };
 
 // @ts-ignore
 import * as typescriptlib from '!!raw-loader!./type_decls.d';
-import { Doc, Field } from '../../new_fields/Doc';
+import { Doc, Field } from '../../fields/Doc';
 
 export interface ScriptSucccess {
     success: true;

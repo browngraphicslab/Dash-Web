@@ -4,13 +4,13 @@ import { CollectionDockingView } from "./collections/CollectionDockingView";
 import { MainView } from "./MainView";
 import { DragManager } from "../util/DragManager";
 import { action, runInAction } from "mobx";
-import { Doc } from "../../new_fields/Doc";
+import { Doc } from "../../fields/Doc";
 import { DictationManager } from "../util/DictationManager";
 import SharingManager from "../util/SharingManager";
-import { Cast, PromiseValue, NumCast } from "../../new_fields/Types";
-import { ScriptField } from "../../new_fields/ScriptField";
+import { Cast, PromiseValue, NumCast } from "../../fields/Types";
+import { ScriptField } from "../../fields/ScriptField";
 import { InkingControl } from "./InkingControl";
-import { InkTool } from "../../new_fields/InkField";
+import { InkTool } from "../../fields/InkField";
 import { DocumentView } from "./nodes/DocumentView";
 
 const modifiers = ["control", "meta", "shift", "alt"];

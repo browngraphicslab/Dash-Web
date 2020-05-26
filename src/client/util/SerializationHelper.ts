@@ -1,5 +1,5 @@
 import { PropSchema, serialize, deserialize, custom, setDefaultModelSchema, getDefaultModelSchema } from "serializr";
-import { Field } from "../../new_fields/Doc";
+import { Field } from "../../fields/Doc";
 import { ClientUtils } from "./ClientUtils";
 
 let serializing = 0;

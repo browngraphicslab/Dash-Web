@@ -1,12 +1,12 @@
 import { DragManager } from "./DragManager";
-import { Doc, DocListCast, Opt } from "../../new_fields/Doc";
+import { Doc, DocListCast, Opt } from "../../fields/Doc";
 import { DocumentType } from "../documents/DocumentTypes";
-import { ObjectField } from "../../new_fields/ObjectField";
-import { StrCast } from "../../new_fields/Types";
+import { ObjectField } from "../../fields/ObjectField";
+import { StrCast } from "../../fields/Types";
 import { Docs } from "../documents/Documents";
-import { ScriptField, ComputedField } from "../../new_fields/ScriptField";
-import { RichTextField } from "../../new_fields/RichTextField";
-import { ImageField } from "../../new_fields/URLField";
+import { ScriptField, ComputedField } from "../../fields/ScriptField";
+import { RichTextField } from "../../fields/RichTextField";
+import { ImageField } from "../../fields/URLField";
 
 // 
 // converts 'doc' into a template that can be used to render other documents.

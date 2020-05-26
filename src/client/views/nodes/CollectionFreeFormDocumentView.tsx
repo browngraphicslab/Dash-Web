@@ -1,15 +1,15 @@
 import anime from "animejs";
 import { computed, IReactionDisposer, observable, reaction, trace } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, HeightSym, WidthSym } from "../../../new_fields/Doc";
-import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
+import { Doc, HeightSym, WidthSym } from "../../../fields/Doc";
+import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { Transform } from "../../util/Transform";
 import { DocComponent } from "../DocComponent";
 import "./CollectionFreeFormDocumentView.scss";
 import { DocumentView, DocumentViewProps } from "./DocumentView";
 import React = require("react");
-import { PositionDocument } from "../../../new_fields/documentSchemas";
-import { TraceMobx } from "../../../new_fields/util";
+import { PositionDocument } from "../../../fields/documentSchemas";
+import { TraceMobx } from "../../../fields/util";
 import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
 
 export interface CollectionFreeFormDocumentViewProps extends DocumentViewProps {

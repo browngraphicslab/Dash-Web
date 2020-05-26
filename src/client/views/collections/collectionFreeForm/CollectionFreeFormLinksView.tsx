@@ -1,7 +1,7 @@
 import { computed } from "mobx";
 import { observer } from "mobx-react";
-import { Doc } from "../../../../new_fields/Doc";
-import { Id } from "../../../../new_fields/FieldSymbols";
+import { Doc } from "../../../../fields/Doc";
+import { Id } from "../../../../fields/FieldSymbols";
 import { DocumentManager } from "../../../util/DocumentManager";
 import { DocumentView } from "../../nodes/DocumentView";
 import "./CollectionFreeFormLinksView.scss";

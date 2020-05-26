@@ -1,11 +1,11 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { IReactionDisposer, reaction, computed } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, Field } from "../../../new_fields/Doc";
-import { documentSchema } from "../../../new_fields/documentSchemas";
-import { makeInterface } from "../../../new_fields/Schema";
-import { ComputedField } from "../../../new_fields/ScriptField";
-import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
+import { Doc, Field } from "../../../fields/Doc";
+import { documentSchema } from "../../../fields/documentSchemas";
+import { makeInterface } from "../../../fields/Schema";
+import { ComputedField } from "../../../fields/ScriptField";
+import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { emptyPath } from "../../../Utils";
 import { ContextMenu } from "../ContextMenu";
 import { ContextMenuProps } from "../ContextMenuItem";
@@ -14,7 +14,7 @@ import { ContentFittingDocumentView } from "./ContentFittingDocumentView";
 import "./DocumentBox.scss";
 import { FieldView, FieldViewProps } from "./FieldView";
 import React = require("react");
-import { TraceMobx } from "../../../new_fields/util";
+import { TraceMobx } from "../../../fields/util";
 import { DocumentView } from "./DocumentView";
 import { Docs } from "../../documents/Documents";
 

@@ -1,10 +1,10 @@
-import { Doc, Opt, DataSym } from '../../new_fields/Doc';
+import { Doc, Opt, DataSym } from '../../fields/Doc';
 import { Touchable } from './Touchable';
 import { computed, action, observable } from 'mobx';
-import { Cast } from '../../new_fields/Types';
-import { listSpec } from '../../new_fields/Schema';
+import { Cast } from '../../fields/Types';
+import { listSpec } from '../../fields/Schema';
 import { InkingControl } from './InkingControl';
-import { InkTool } from '../../new_fields/InkField';
+import { InkTool } from '../../fields/InkField';
 import { InteractionUtils } from '../util/InteractionUtils';
 
 

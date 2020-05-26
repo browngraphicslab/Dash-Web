@@ -1,10 +1,10 @@
 import * as OpenSocket from 'socket.io-client';
 import { MessageStore, YoutubeQueryTypes, GestureContent, MobileInkOverlayContent, UpdateMobileInkOverlayPositionContent, MobileDocumentUploadContent } from "./../server/Message";
-import { Opt, Doc } from '../new_fields/Doc';
+import { Opt, Doc } from '../fields/Doc';
 import { Utils, emptyFunction } from '../Utils';
 import { SerializationHelper } from './util/SerializationHelper';
-import { RefField } from '../new_fields/RefField';
-import { Id, HandleUpdate } from '../new_fields/FieldSymbols';
+import { RefField } from '../fields/RefField';
+import { Id, HandleUpdate } from '../fields/FieldSymbols';
 import GestureOverlay from './views/GestureOverlay';
 import MobileInkOverlay from '../mobile/MobileInkOverlay';
 

@@ -1,11 +1,11 @@
 import { Utils } from "../../../Utils";
-import { ImageField } from "../../../new_fields/URLField";
-import { Cast, StrCast } from "../../../new_fields/Types";
-import { Doc, Opt, DocListCastAsync } from "../../../new_fields/Doc";
-import { Id } from "../../../new_fields/FieldSymbols";
+import { ImageField } from "../../../fields/URLField";
+import { Cast, StrCast } from "../../../fields/Types";
+import { Doc, Opt, DocListCastAsync } from "../../../fields/Doc";
+import { Id } from "../../../fields/FieldSymbols";
 import Photos = require('googlephotos');
-import { RichTextField } from "../../../new_fields/RichTextField";
-import { RichTextUtils } from "../../../new_fields/RichTextUtils";
+import { RichTextField } from "../../../fields/RichTextField";
+import { RichTextUtils } from "../../../fields/RichTextUtils";
 import { EditorState } from "prosemirror-state";
 import { FormattedTextBox } from "../../views/nodes/FormattedTextBox";
 import { Docs, DocumentOptions } from "../../documents/Documents";

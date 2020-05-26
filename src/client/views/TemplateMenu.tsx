@@ -6,13 +6,13 @@ import './TemplateMenu.scss';
 import { DocumentView } from "./nodes/DocumentView";
 import { Template } from "./Templates";
 import React = require("react");
-import { Doc, DocListCast } from "../../new_fields/Doc";
+import { Doc, DocListCast } from "../../fields/Doc";
 import { Docs, } from "../documents/Documents";
-import { StrCast, Cast } from "../../new_fields/Types";
+import { StrCast, Cast } from "../../fields/Types";
 import { CollectionTreeView } from "./collections/CollectionTreeView";
 import { returnTrue, emptyFunction, returnFalse, returnOne, emptyPath, returnZero } from "../../Utils";
 import { Transform } from "../util/Transform";
-import { ScriptField, ComputedField } from "../../new_fields/ScriptField";
+import { ScriptField, ComputedField } from "../../fields/ScriptField";
 import { Scripting } from "../util/Scripting";
 
 @observer

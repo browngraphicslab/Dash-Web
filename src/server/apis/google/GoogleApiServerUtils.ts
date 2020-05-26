@@ -1,6 +1,6 @@
 import { google } from "googleapis";
 import { OAuth2Client, Credentials, OAuth2ClientOptions } from "google-auth-library";
-import { Opt } from "../../../new_fields/Doc";
+import { Opt } from "../../../fields/Doc";
 import { GaxiosResponse } from "gaxios";
 import request = require('request-promise');
 import * as qs from 'query-string';

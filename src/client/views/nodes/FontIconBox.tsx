@@ -1,14 +1,14 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { observer } from 'mobx-react';
 import * as React from 'react';
-import { createSchema, makeInterface } from '../../../new_fields/Schema';
+import { createSchema, makeInterface } from '../../../fields/Schema';
 import { DocComponent } from '../DocComponent';
 import './FontIconBox.scss';
 import { FieldView, FieldViewProps } from './FieldView';
-import { StrCast, Cast } from '../../../new_fields/Types';
+import { StrCast, Cast } from '../../../fields/Types';
 import { Utils } from "../../../Utils";
 import { runInAction, observable, reaction, IReactionDisposer } from 'mobx';
-import { Doc } from '../../../new_fields/Doc';
+import { Doc } from '../../../fields/Doc';
 import { ContextMenu } from '../ContextMenu';
 const FontIconSchema = createSchema({
     icon: "string"

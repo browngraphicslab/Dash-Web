@@ -1,7 +1,7 @@
 import React = require('react');
 import { observer } from "mobx-react";
 import { observable } from 'mobx';
-import { Doc } from '../new_fields/Doc';
+import { Doc } from '../fields/Doc';
 
 interface IProps {
     open: boolean;

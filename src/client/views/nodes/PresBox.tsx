@@ -4,11 +4,11 @@ import { faArrowLeft, faArrowRight, faEdit, faMinus, faPlay, faPlus, faStop, faH
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, IReactionDisposer, observable, reaction, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, DocCastAsync } from "../../../new_fields/Doc";
-import { InkTool } from "../../../new_fields/InkField";
-import { BoolCast, Cast, FieldValue, NumCast, StrCast } from "../../../new_fields/Types";
+import { Doc, DocListCast, DocCastAsync } from "../../../fields/Doc";
+import { InkTool } from "../../../fields/InkField";
+import { BoolCast, Cast, FieldValue, NumCast, StrCast } from "../../../fields/Types";
 import { returnFalse } from "../../../Utils";
-import { documentSchema } from "../../../new_fields/documentSchemas";
+import { documentSchema } from "../../../fields/documentSchemas";
 import { DocumentManager } from "../../util/DocumentManager";
 import { undoBatch } from "../../util/UndoManager";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
@@ -17,7 +17,7 @@ import { InkingControl } from "../InkingControl";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./PresBox.scss";
 import { ViewBoxBaseComponent } from "../DocComponent";
-import { makeInterface } from "../../../new_fields/Schema";
+import { makeInterface } from "../../../fields/Schema";
 
 library.add(faArrowLeft);
 library.add(faArrowRight);

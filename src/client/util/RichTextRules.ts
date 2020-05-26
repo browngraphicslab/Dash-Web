@@ -1,9 +1,9 @@
 import { ellipsis, emDash, InputRule, smartQuotes, textblockTypeInputRule } from "prosemirror-inputrules";
 import { NodeSelection, TextSelection } from "prosemirror-state";
-import { DataSym, Doc } from "../../new_fields/Doc";
-import { Id } from "../../new_fields/FieldSymbols";
-import { ComputedField } from "../../new_fields/ScriptField";
-import { Cast, NumCast } from "../../new_fields/Types";
+import { DataSym, Doc } from "../../fields/Doc";
+import { Id } from "../../fields/FieldSymbols";
+import { ComputedField } from "../../fields/ScriptField";
+import { Cast, NumCast } from "../../fields/Types";
 import { returnFalse, Utils } from "../../Utils";
 import { DocServer } from "../DocServer";
 import { Docs, DocUtils } from "../documents/Documents";

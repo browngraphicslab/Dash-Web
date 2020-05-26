@@ -4,7 +4,7 @@ import "normalize.css";
 import * as React from 'react';
 import "./PreviewCursor.scss";
 import { Docs } from '../documents/Documents';
-import { Doc } from '../../new_fields/Doc';
+import { Doc } from '../../fields/Doc';
 import { Transform } from "../util/Transform";
 
 @observer

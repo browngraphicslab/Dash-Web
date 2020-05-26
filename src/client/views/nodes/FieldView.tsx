@@ -1,11 +1,11 @@
 import React = require("react");
 import { computed } from "mobx";
 import { observer } from "mobx-react";
-import { DateField } from "../../../new_fields/DateField";
-import { Doc, FieldResult, Opt, Field } from "../../../new_fields/Doc";
-import { List } from "../../../new_fields/List";
-import { ScriptField } from "../../../new_fields/ScriptField";
-import { AudioField, VideoField } from "../../../new_fields/URLField";
+import { DateField } from "../../../fields/DateField";
+import { Doc, FieldResult, Opt, Field } from "../../../fields/Doc";
+import { List } from "../../../fields/List";
+import { ScriptField } from "../../../fields/ScriptField";
+import { AudioField, VideoField } from "../../../fields/URLField";
 import { Transform } from "../../util/Transform";
 import { CollectionView } from "../collections/CollectionView";
 import { AudioBox } from "./AudioBox";

@@ -5,12 +5,12 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, IReactionDisposer, observable, reaction, runInAction, untracked } from "mobx";
 import { observer } from "mobx-react";
 import * as rp from 'request-promise';
-import { Doc } from "../../../new_fields/Doc";
-import { InkTool } from "../../../new_fields/InkField";
-import { createSchema, makeInterface } from "../../../new_fields/Schema";
-import { ScriptField } from "../../../new_fields/ScriptField";
-import { Cast, StrCast } from "../../../new_fields/Types";
-import { VideoField } from "../../../new_fields/URLField";
+import { Doc } from "../../../fields/Doc";
+import { InkTool } from "../../../fields/InkField";
+import { createSchema, makeInterface } from "../../../fields/Schema";
+import { ScriptField } from "../../../fields/ScriptField";
+import { Cast, StrCast } from "../../../fields/Types";
+import { VideoField } from "../../../fields/URLField";
 import { Utils, emptyFunction, returnOne, returnZero } from "../../../Utils";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
@@ -21,7 +21,7 @@ import { DocumentDecorations } from "../DocumentDecorations";
 import { InkingControl } from "../InkingControl";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./VideoBox.scss";
-import { documentSchema, positionSchema } from "../../../new_fields/documentSchemas";
+import { documentSchema, positionSchema } from "../../../fields/documentSchemas";
 const path = require('path');
 
 export const timeSchema = createSchema({

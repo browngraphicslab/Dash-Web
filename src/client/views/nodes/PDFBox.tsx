@@ -3,11 +3,11 @@ import { action, observable, runInAction, reaction, IReactionDisposer, trace, un
 import { observer } from "mobx-react";
 import * as Pdfjs from "pdfjs-dist";
 import "pdfjs-dist/web/pdf_viewer.css";
-import { Opt, WidthSym, Doc, HeightSym } from "../../../new_fields/Doc";
-import { makeInterface } from "../../../new_fields/Schema";
-import { ScriptField } from '../../../new_fields/ScriptField';
-import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
-import { PdfField, URLField } from "../../../new_fields/URLField";
+import { Opt, WidthSym, Doc, HeightSym } from "../../../fields/Doc";
+import { makeInterface } from "../../../fields/Schema";
+import { ScriptField } from '../../../fields/ScriptField';
+import { Cast, NumCast, StrCast } from "../../../fields/Types";
+import { PdfField, URLField } from "../../../fields/URLField";
 import { Utils } from '../../../Utils';
 import { undoBatch } from '../../util/UndoManager';
 import { panZoomSchema } from '../collections/collectionFreeForm/CollectionFreeFormView';
@@ -20,7 +20,7 @@ import { pageSchema } from "./ImageBox";
 import { KeyCodes } from '../../util/KeyCodes';
 import "./PDFBox.scss";
 import React = require("react");
-import { documentSchema } from '../../../new_fields/documentSchemas';
+import { documentSchema } from '../../../fields/documentSchemas';
 
 type PdfDocument = makeInterface<[typeof documentSchema, typeof panZoomSchema, typeof pageSchema]>;
 const PdfDocument = makeInterface(documentSchema, panZoomSchema, pageSchema);

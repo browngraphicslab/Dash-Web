@@ -3,8 +3,8 @@ import { faArrowRight, faChevronDown, faChevronUp, faEdit, faEye, faTimes } from
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, observable } from 'mobx';
 import { observer } from "mobx-react";
-import { Doc } from '../../../new_fields/Doc';
-import { Cast, StrCast } from '../../../new_fields/Types';
+import { Doc } from '../../../fields/Doc';
+import { Cast, StrCast } from '../../../fields/Types';
 import { DragManager } from '../../util/DragManager';
 import { LinkManager } from '../../util/LinkManager';
 import { ContextMenu } from '../ContextMenu';

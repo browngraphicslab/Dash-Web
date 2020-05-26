@@ -1,10 +1,10 @@
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast, DataSym, WidthSym, HeightSym } from "../../../../new_fields/Doc";
-import { InkField, InkData } from "../../../../new_fields/InkField";
-import { List } from "../../../../new_fields/List";
-import { SchemaHeaderField } from "../../../../new_fields/SchemaHeaderField";
-import { Cast, NumCast, FieldValue, StrCast } from "../../../../new_fields/Types";
+import { Doc, DocListCast, DataSym, WidthSym, HeightSym } from "../../../../fields/Doc";
+import { InkField, InkData } from "../../../../fields/InkField";
+import { List } from "../../../../fields/List";
+import { SchemaHeaderField } from "../../../../fields/SchemaHeaderField";
+import { Cast, NumCast, FieldValue, StrCast } from "../../../../fields/Types";
 import { Utils } from "../../../../Utils";
 import { Docs, DocUtils } from "../../../documents/Documents";
 import { SelectionManager } from "../../../util/SelectionManager";
@@ -17,7 +17,7 @@ import MarqueeOptionsMenu from "./MarqueeOptionsMenu";
 import "./MarqueeView.scss";
 import React = require("react");
 import { CognitiveServices } from "../../../cognitive_services/CognitiveServices";
-import { RichTextField } from "../../../../new_fields/RichTextField";
+import { RichTextField } from "../../../../fields/RichTextField";
 import { CollectionView } from "../CollectionView";
 import { FormattedTextBox } from "../../nodes/FormattedTextBox";
 

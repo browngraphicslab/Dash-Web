@@ -3,9 +3,9 @@ import { faArrowAltCircleDown, faPhotoVideo, faArrowAltCircleUp, faCheckCircle, 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast } from "../../new_fields/Doc";
-import { RichTextField } from '../../new_fields/RichTextField';
-import { NumCast, StrCast } from "../../new_fields/Types";
+import { Doc, DocListCast } from "../../fields/Doc";
+import { RichTextField } from '../../fields/RichTextField';
+import { NumCast, StrCast } from "../../fields/Types";
 import { emptyFunction } from "../../Utils";
 import { Pulls, Pushes } from '../apis/google_docs/GoogleApiClientUtils';
 import { UndoManager } from "../util/UndoManager";

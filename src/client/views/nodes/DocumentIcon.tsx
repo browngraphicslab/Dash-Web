@@ -3,7 +3,7 @@ import * as React from "react";
 import { DocumentView } from "./DocumentView";
 import { DocumentManager } from "../../util/DocumentManager";
 import { Transformer, Scripting, ts } from "../../util/Scripting";
-import { Field } from "../../../new_fields/Doc";
+import { Field } from "../../../fields/Doc";
 
 @observer
 export class DocumentIcon extends React.Component<{ view: DocumentView, index: number }> {
