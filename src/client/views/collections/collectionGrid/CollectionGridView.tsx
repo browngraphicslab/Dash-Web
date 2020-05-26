@@ -35,14 +35,15 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
         }
         this.changeListenerDisposer = computed(() => this.childLayoutPairs).observe(({ oldValue, newValue }) => {
             if (!oldValue) {
+                // on page's initial load
                 return;
             }
-            console.log(`Reaction fired! ${oldValue.length} => ${newValue.length}`);
             const gridLayouts = DocListCast(this.props.Document.gridLayouts);
             const previousLength = oldValue.length;
             const currentLength = newValue.length;
 
             if (currentLength > previousLength) {
+                // for each document that was added, add a corresponding grid layout document
                 newValue.forEach(({ layout }) => {
                     const targetId = layout[Id];
                     if (!gridLayouts.find((gridLayout: Doc) => StrCast(gridLayout.i) === targetId)) {
@@ -56,6 +57,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
                     }
                 });
             } else {
+                // for each document that was removed, remove its corresponding grid layout document
                 oldValue.forEach(({ layout }) => {
                     if (!newValue.find(({ layout: preserved }) => preserved[Id] === layout[Id])) {
                         const gridLayoutDoc = gridLayouts.find((gridLayout: Doc) => StrCast(gridLayout.i) === layout[Id]);
@@ -133,6 +135,8 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
      */
     @undoBatch
     setLayout(layouts: Layout[]) {
+        // for every child in the collection, check to see if there's a corresponding grid layout document and
+        // updated layout object. If both exist, which they should, update the grid layout document from the updated object 
         this.childLayoutPairs.forEach(({ layout: doc }) => {
             let update: Opt<Layout>;
             const targetId = doc[Id];
@@ -193,14 +197,18 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
         }));
     }
 
+    /**
+     * DocListCast only includes *resolved* documents, i.e. filters out promises. So even if we have a nonzero
+     * number of documents in either of these Dash lists on the document, the DocListCast version may evaluate to empty
+     * if the corresponding documents are all promises, waiting to be fetched from the server. If we don't return early
+     * in the event that promises are encountered, we might feed inaccurate data to the grid since the corresponding gridLayout
+     * documents are unresolved (or the grid may misinterpret an empty array) which has the unfortunate byproduct of triggering
+     * the setLayout event, which makes these unintended changes permanent by writing them to the likely now resolved documents.
+     */
     render() {
         const layoutDocList: Doc[] = DocListCast(this.props.Document.gridLayouts);
         const childDocumentViews: JSX.Element[] = this.contents;
-        if (!(childDocumentViews.length && layoutDocList.length)) {
-            return null;
-        }
-
-        return (
+        return !(childDocumentViews.length && layoutDocList.length) ? null : (
             <div className="collectionGridView_contents"
                 style={{
                     marginLeft: NumCast(this.props.Document._xMargin), marginRight: NumCast(this.props.Document._xMargin),
