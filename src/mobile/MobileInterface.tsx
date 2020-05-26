@@ -366,7 +366,7 @@ export class MobileInterface extends React.Component {
 
     recordAudio = async () => {
         // upload to server with known URL 
-
+        this._parents.push(this._activeDoc);
         const audioDoc = Cast(Docs.Create.AudioDocument(nullAudio, { _width: 200, _height: 100, title: "mobile audio" }), Doc) as Doc;
         if (audioDoc) {
             console.log("audioClicked: " + audioDoc.title);
@@ -385,6 +385,7 @@ export class MobileInterface extends React.Component {
     }
 
     openDefaultPresentation = () => {
+        this._parents.push(this._activeDoc);
         const presentation = Cast(Doc.UserDoc().activePresentation, Doc) as Doc;
 
         if (presentation) {
