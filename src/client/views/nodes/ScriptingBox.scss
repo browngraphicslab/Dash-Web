@@ -9,7 +9,7 @@
     .scriptingBox-inputDiv {
         display: flex;
         flex-direction: column;
-        height: calc(100% - 30px);
+        height: 100%;
         table-layout: fixed;
 
         overflow-y: hidden;
@@ -42,6 +42,10 @@
                 resize: none;
                 padding: 2px;
                 overflow-y: scroll;
+
+                .scriptingBox-pborder {
+                    background-color: white;
+                }
 
                 .scriptingBox-viewBase {
                     display: flex;
@@ -108,7 +112,9 @@
         .scriptingBox-button {
             width: 50%;
             resize: auto;
-
+        }
+        .scriptingBox-button-third {
+            width:33%;
         }
     }
 }
