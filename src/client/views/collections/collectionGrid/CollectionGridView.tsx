@@ -63,11 +63,13 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
      * documents before the target. 
      */
     private lookupIndividualTransform = (doc: Doc) => {
-
-        const yTranslation = (this.props.Document.rowHeight as number) * (doc.y as number) + 10 * (doc.y as number);
-        return this.props.ScreenToLocalTransform().translate(-this.props.PanelWidth() / (this.props.Document.numCols as number) * (doc.x as number), -yTranslation);
+        const yTranslation = this.rowHeightPlusGap * NumCast(doc.y) + 10;
+        const xTranslation = this.colWidthPlusGap * NumCast(doc.x) + 10;
+        return this.props.ScreenToLocalTransform().translate(-xTranslation, -yTranslation);
     }
 
+    @computed get colWidthPlusGap() { return (this.props.PanelWidth() - 10) / NumCast(this.props.Document.numCols); }
+    @computed get rowHeightPlusGap() { return NumCast(this.props.Document.rowHeight) + 10; }
 
     @computed get onChildClickHandler() { return ScriptCast(this.Document.onChildClick); }
 
@@ -75,13 +77,13 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
      * Sets the width of the decorating box.
      * @param Doc doc
      */
-    @observable private width = (doc: Doc) => doc.w as number * this.props.PanelWidth() / (this.props.Document.numCols as number);
+    @observable private width = (doc: Doc) => NumCast(doc.w) * this.colWidthPlusGap - 10;
 
     /**
      * Sets the height of the decorating box.
      * @param doc `Doc`
      */
-    @observable private height = (doc: Doc) => doc.h as number * (this.props.Document.rowHeight as number);
+    @observable private height = (doc: Doc) => NumCast(doc.h) * this.rowHeightPlusGap - 10;
 
     addDocTab = (doc: Doc, where: string) => {
         if (where === "inPlace" && this.layoutDoc.isInPlaceContainer) {
@@ -92,25 +94,25 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
     }
 
     getDisplayDoc(layout: Doc, dxf: () => Transform, width: () => number, height: () => number) {
-        return <ContentFittingDocumentView
-            {...this.props}
-            Document={layout}
-            DataDoc={layout.resolvedDataDoc as Doc}
-            NativeHeight={returnZero}
-            NativeWidth={returnZero}
-            addDocTab={this.addDocTab}
-            fitToBox={BoolCast(this.props.Document._freezeChildDimensions)}
-            FreezeDimensions={BoolCast(this.props.Document._freezeChildDimensions)}
-            backgroundColor={this.props.backgroundColor}
-            ContainingCollectionDoc={this.props.Document}
-            PanelWidth={width}
-            PanelHeight={height}
-            ScreenToLocalTransform={dxf}
-            onClick={this.onChildClickHandler}
-            renderDepth={this.props.renderDepth + 1}
-            parentActive={this.props.active}
-            display={"contents"}
-        />;
+        return <div style={{ display: "flex" }}>
+            <ContentFittingDocumentView
+                {...this.props}
+                Document={layout}
+                DataDoc={layout.resolvedDataDoc as Doc}
+                NativeHeight={returnZero}
+                NativeWidth={returnZero}
+                addDocTab={this.addDocTab}
+                backgroundColor={this.props.backgroundColor}
+                ContainingCollectionDoc={this.props.Document}
+                PanelWidth={width}
+                PanelHeight={height}
+                ScreenToLocalTransform={dxf}
+                onClick={this.onChildClickHandler}
+                renderDepth={this.props.renderDepth + 1}
+                parentActive={this.props.active}
+                display={"contents"}
+            />
+        </div>;
     }
 
 
@@ -238,7 +240,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
                 style={{
                     marginLeft: NumCast(this.props.Document._xMargin), marginRight: NumCast(this.props.Document._xMargin),
                     marginTop: NumCast(this.props.Document._yMargin), marginBottom: NumCast(this.props.Document._yMargin),
-                    pointerEvents: !this.props.isSelected() && !SnappingManager.GetIsDragging() ? "none" : undefined
+                    pointerEvents: !this.props.isSelected() && !this.props.ContainingCollectionView?._isChildActive && !SnappingManager.GetIsDragging() ? "none" : undefined
                 }}
                 ref={this.createDashEventsTarget}
                 onPointerDown={e => e.stopPropagation()}
