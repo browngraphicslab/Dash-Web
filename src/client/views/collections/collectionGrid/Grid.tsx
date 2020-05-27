@@ -54,6 +54,7 @@ export default class Grid extends React.Component<GridProps> {
                 isDroppable={true}
                 margin={[10, 10]}
                 onLayoutChange={this.onLayoutChange}
+                preventCollision={true}
             >
                 {this.props.nodeList}
             </GridLayout >

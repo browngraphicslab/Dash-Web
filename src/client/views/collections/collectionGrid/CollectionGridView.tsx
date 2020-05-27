@@ -14,6 +14,7 @@ import { returnZero } from '../../../../Utils';
 import Grid, { Layout } from "./Grid";
 import { Id } from '../../../../fields/FieldSymbols';
 import { observer } from 'mobx-react';
+import "./CollectionGridView.scss";
 
 type GridSchema = makeInterface<[typeof documentSchema]>;
 const GridSchema = makeInterface(documentSchema);
@@ -64,16 +65,24 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
      */
     private lookupIndividualTransform = (doc: Doc) => {
 
-        const yTranslation = document.getElementById(doc.i as string)?.getBoundingClientRect().top;
-        const xTranslation = document.getElementById(doc.i as string)?.getBoundingClientRect().left;// - 250;
+        // const yTranslation = document.getElementById(doc.i as string)?.getBoundingClientRect().top;
+        // const xTranslation = document.getElementById(doc.i as string)?.getBoundingClientRect().left;// - 250;
 
         //console.log(xTranslation);
 
+        //console.log(`width: ${doc.w} height: ${doc.h} x: ${doc.x} y:${doc.y}`);
+
+        const xTranslation = doc.x as number * this.props.PanelWidth() / (this.props.Document.numCols as number) + 10;
+        const yTranslation = doc.y as number * (this.props.Document.rowHeight as number + 10) + 10;
+
         if (xTranslation === undefined || yTranslation === undefined) {
+            console.log("undefined babey");
             return Transform.Identity();
         }
 
-        return this.props.ScreenToLocalTransform().translate(-xTranslation, -yTranslation);
+        console.log(`xtrans: ${xTranslation}  ytrans:${yTranslation}`);
+
+        return this.props.ScreenToLocalTransform().translate(-xTranslation, -yTranslation);//.translate(-NumCast(this.props.Document._xMargin), -NumCast(this.props.Document._yMargin));
 
     }
 
@@ -85,25 +94,23 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
      * @param Doc doc
      */
     private width = (doc: Doc) => {
-        // const left = document.getElementById(doc.i as string)?.getBoundingClientRect().left;
-        // const right = document.getElementById(doc.i as string)?.getBoundingClientRect().right;
-        // //console.log(left - right);
-        // return Math.abs(right - left);
-        return doc.w as number * (this.props.PanelWidth() - (this.props.Document.numCols as number - 1) * 10) / (this.props.Document.numCols as number);
+
+        // return document.getElementById(doc.i as string)?.getBoundingClientRect().width;
+        const xTranslation = doc.w as number * (this.props.PanelWidth() - 10 * (this.props.Document.numCols as number + 1)) / (this.props.Document.numCols as number);
+        return (this.props.PanelWidth() - 10 * (this.props.Document.numCols as number + 1)) / (this.props.Document.numCols as number) *
+            (this.props.Document.flexGrid as boolean ? doc.w as number : 2) + 10 * (doc.w as number - 1);// doc.w or 2
     }
     /**
      * Sets the height of the decorating box.
      * @param doc `Doc`
      */
     private height = (doc: Doc) => {
+        //console.log(document.getElementById(doc.i as string)?.getBoundingClientRect());
 
-        // const top = document.getElementById(doc.i as string)?.getBoundingClientRect().top;
-        // const bottom = document.getElementById(doc.i as string)?.getBoundingClientRect().bottom;
-        // //console.log(Math.abs(top - bottom));
-        // return Math.abs(top - bottom);
-
-
-        return (doc.h as number) * (this.props.Document.rowHeight as number);
+        // return document.getElementById(doc.i as string)?.getBoundingClientRect().height;
+        return this.props.Document.rowHeight as number *
+            (this.props.Document.flexGrid as boolean ? doc.h as number : 2) +
+            10 * (doc.h as number - 1);// + 10;
     }
 
     addDocTab = (doc: Doc, where: string) => {
@@ -303,7 +310,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
 
 
         return (
-            <div className="collectionGridView_contents"
+            <div className="collectionGridView-contents"
                 style={{
                     marginLeft: NumCast(this.props.Document._xMargin), marginRight: NumCast(this.props.Document._xMargin),
                     marginTop: NumCast(this.props.Document._yMargin), marginBottom: NumCast(this.props.Document._yMargin)

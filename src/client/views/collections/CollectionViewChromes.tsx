@@ -557,9 +557,9 @@ export class CollectionGridViewChrome extends React.Component<CollectionViewChro
                     </span>
                     <input className="collectionGridViewChrome-entryBox" type="number" placeholder={this.props.CollectionView.props.Document.rowHeight as string} onKeyDown={this.onRowHeightEnter} />
                 </span>
-                <span>
+                <span className={"search-icon"}>
                     <span className="icon-background">
-                        <FontAwesomeIcon icon="arrows-alt" size="1x" />
+                        <FontAwesomeIcon icon="arrow-up" size="1x" />
                     </span>
                     <input type="checkbox" onChange={this.onCheck} defaultChecked={this.props.CollectionView.props.Document.flexGrid as boolean} />
                     <label>Flexible Grid</label>
