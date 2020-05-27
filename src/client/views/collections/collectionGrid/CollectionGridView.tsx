@@ -240,7 +240,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
                 style={{
                     marginLeft: NumCast(this.props.Document._xMargin), marginRight: NumCast(this.props.Document._xMargin),
                     marginTop: NumCast(this.props.Document._yMargin), marginBottom: NumCast(this.props.Document._yMargin),
-                    pointerEvents: !this.props.isSelected() && !this.props.ContainingCollectionView?._isChildActive && !SnappingManager.GetIsDragging() ? "none" : undefined
+                    pointerEvents: !this.props.isSelected() && this.props.renderDepth !== 0 && !this.props.ContainingCollectionView?._isChildActive && !SnappingManager.GetIsDragging() ? "none" : undefined
                 }}
                 ref={this.createDashEventsTarget}
                 onPointerDown={e => e.stopPropagation()}
@@ -249,6 +249,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
                     width={this.props.PanelWidth()}
                     nodeList={contents}
                     layout={layout}
+                    transformScale={this.props.ScreenToLocalTransform().Scale}
                     numCols={this.props.Document.numCols as number}
                     rowHeight={this.props.Document.rowHeight as number}
                     setLayout={(layout: Layout[]) => this.setLayout(layout)}

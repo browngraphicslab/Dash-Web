@@ -18,6 +18,7 @@ interface GridProps {
     numCols: number;
     rowHeight: number;
     setLayout: Function;
+    transformScale: number;
 }
 
 /**
@@ -35,6 +36,7 @@ export default class Grid extends React.Component<GridProps> {
         this.props.setLayout(layout);
     }
 
+    Scale = 2
     render() {
         console.log("In grid layout prop received value= " + this.props.layout?.[0]?.w);
         return (
@@ -45,6 +47,7 @@ export default class Grid extends React.Component<GridProps> {
                 width={this.props.width}
                 compactType={null}
                 isDroppable={true}
+                useCSSTransforms={true}
                 margin={[10, 10]}
                 onLayoutChange={layout => this.onLayoutChange(layout)}
             >
