@@ -11,9 +11,10 @@ import { CollectionSubView } from './CollectionSubView';
 import { Doc } from '../../../fields/Doc';
 import { ContextMenu } from '../ContextMenu';
 import { ObjectField } from '../../../fields/ObjectField';
-import { returnFalse } from '../../../Utils';
+import { returnFalse, Utils } from '../../../Utils';
 import { ScriptField } from '../../../fields/ScriptField';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { Id } from '../../../fields/FieldSymbols';
 
 type Carousel3DDocument = makeInterface<[typeof documentSchema, typeof collectionSchema]>;
 const Carousel3DDocument = makeInterface(documentSchema, collectionSchema);
@@ -31,14 +32,10 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
         }
     }
 
-    mainPanelWidth = () => this.props.PanelWidth() * 0.5;
-    mainPanelHeight = () => this.props.PanelHeight() * 0.9;
-    sidePanelWidth = () => this.props.PanelWidth() * 0.25;
-    sidePanelHeight = () => this.props.PanelHeight() * 0.5;
-
+    panelWidth = () => this.props.PanelWidth() / 3;
+    panelHeight = () => this.props.PanelHeight() * 0.6;
     @computed get content() {
         const currentIndex = NumCast(this.layoutDoc._itemIndex);
-
 
         const displayDoc = (childPair: { layout: Doc, data: Doc }, width: () => number, height: () => number) => {
             const showCaptionScript = ScriptField.MakeScript(
@@ -70,20 +67,14 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
         };
 
         return (
-            this.childLayoutPairs.map((child, index) => {
-                if (index === currentIndex) {
-                    return (
-                        <div key={index} className={`collectionCarouselView-item ${index}`}
-                            style={{ opacity: '1' }}>
-                            {displayDoc(child, this.mainPanelWidth, this.mainPanelHeight)}
-                        </div>);
-                } else {
-                    return (
-                        <div key={index} className={`collectionCarouselView-item ${index}`}
-                            style={{ opacity: '0.5', userSelect: 'none' }}>
-                            {displayDoc(child, this.sidePanelWidth, this.sidePanelHeight)}
-                        </div>);
-                }
+            this.childLayoutPairs.map((childPair, index) => {
+                return (
+                    <div key={childPair.layout[Id]} className={`collectionCarouselView-item ${index}`}
+                        style={index === currentIndex ?
+                            { opacity: '1', transform: 'scale(1.3)' } :
+                            { opacity: '0.5', transform: 'scale(0.6)', userSelect: 'none' }}>
+                        {displayDoc(childPair, this.panelWidth, this.panelHeight)}
+                    </div>);
             }));
     }
 
@@ -143,18 +134,17 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
 
     @computed get dots() {
         return (this.childLayoutPairs.map((_child, index) => {
-            return <div key={index} className={`dot${index === NumCast(this.layoutDoc._itemIndex) ? "-active" : ""}`}
+            return <div key={Utils.GenerateGuid()} className={`dot${index === NumCast(this.layoutDoc._itemIndex) ? "-active" : ""}`}
                 onClick={() => this.layoutDoc._itemIndex = index} />;
         }));
     }
 
     render() {
         const index = NumCast(this.layoutDoc._itemIndex);
-        const offset = (index - 1) * (this.mainPanelWidth() - this.sidePanelWidth()) / this.childLayoutPairs.length;
         const translateX = (1 - index) / this.childLayoutPairs.length * 100;
 
         return <div className="collectionCarouselView-outer" onClick={this.onClick} onPointerDown={this.onPointerDown} ref={this.createDashEventsTarget} onContextMenu={this.onContextMenu}>
-            <div className="carousel-wrapper" style={{ transform: `translateX(calc(${translateX}% + ${offset}px)` }}>
+            <div className="carousel-wrapper" style={{ transform: `translateX(calc(${translateX}%` }}>
                 {this.content}
             </div>
             {this.props.Document._chromeStatus !== "replaced" ? this.buttons : (null)}
