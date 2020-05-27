@@ -94,25 +94,22 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
     }
 
     getDisplayDoc(layout: Doc, dxf: () => Transform, width: () => number, height: () => number) {
-        return <div style={{ display: "flex" }}>
-            <ContentFittingDocumentView
-                {...this.props}
-                Document={layout}
-                DataDoc={layout.resolvedDataDoc as Doc}
-                NativeHeight={returnZero}
-                NativeWidth={returnZero}
-                addDocTab={this.addDocTab}
-                backgroundColor={this.props.backgroundColor}
-                ContainingCollectionDoc={this.props.Document}
-                PanelWidth={width}
-                PanelHeight={height}
-                ScreenToLocalTransform={dxf}
-                onClick={this.onChildClickHandler}
-                renderDepth={this.props.renderDepth + 1}
-                parentActive={this.props.active}
-                display={"contents"}
-            />
-        </div>;
+        return <ContentFittingDocumentView
+            {...this.props}
+            Document={layout}
+            DataDoc={layout.resolvedDataDoc as Doc}
+            NativeHeight={returnZero}
+            NativeWidth={returnZero}
+            addDocTab={this.addDocTab}
+            backgroundColor={this.props.backgroundColor}
+            ContainingCollectionDoc={this.props.Document}
+            PanelWidth={width}
+            PanelHeight={height}
+            ScreenToLocalTransform={dxf}
+            onClick={this.onChildClickHandler}
+            renderDepth={this.props.renderDepth + 1}
+            parentActive={this.props.active}
+        />;
     }
 
 
@@ -243,7 +240,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
                     pointerEvents: !this.props.isSelected() && this.props.renderDepth !== 0 && !this.props.ContainingCollectionView?._isChildActive && !SnappingManager.GetIsDragging() ? "none" : undefined
                 }}
                 ref={this.createDashEventsTarget}
-                onPointerDown={e => e.stopPropagation()}
+                onPointerDown={e => { ((e.target as any)?.className.includes("react-resizable-handle")) && e.stopPropagation(); }}
             >
                 <Grid
                     width={this.props.PanelWidth()}
