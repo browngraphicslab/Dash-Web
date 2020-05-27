@@ -34,15 +34,15 @@ import { makeTemplate } from '../../../util/DropConverter';
 import buildKeymap from "./ProsemirrorExampleTransfer";
 import RichTextMenu from './RichTextMenu';
 import { RichTextRules } from "./RichTextRules";
-import { DashDocCommentView, DashDocView, FootnoteView, ImageResizeView, OrderedListView, SummaryView } from "./RichTextSchema";
-// import { DashDocCommentView, DashDocView, DashFieldView, FootnoteView, SummaryView } from "./RichTextSchema";
-// import { OrderedListView } from "./RichTextSchema";
-// import { ImageResizeView } from "./ImageResizeView";
-// import { DashDocCommentView } from "./DashDocCommentView";
-// import { FootnoteView } from "./FootnoteView";
-// import { SummaryView } from "./SummaryView";
-// import { DashDocView } from "./DashDocView";
+
+import { DashDocView } from "./DashDocView";
+// import { DashDocView } from "./RichTextSchema";
+
+import { DashDocCommentView } from "./DashDocCommentView";
 import { DashFieldView } from "./DashFieldView";
+import { SummaryView } from "./SummaryView";
+import { OrderedListView } from "./OrderedListView";
+import { FootnoteView } from "./FootnoteView";
 
 import { schema } from "./schema_rts";
 import { SelectionManager } from "../../../util/SelectionManager";
@@ -894,18 +894,9 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
                 },
                 dispatchTransaction: this.dispatchTransaction,
                 nodeViews: {
-                    dashComment(node, view, getPos) { return new DashDocCommentView(node, view, getPos); },
+                    dashComment(node, view, getPos) { console.log("rendering dashComment"); return new DashDocCommentView(node, view, getPos); },
                     dashField(node, view, getPos) { return new DashFieldView(node, view, getPos, self); },
                     dashDoc(node, view, getPos) { return new DashDocView(node, view, getPos, self); },
-                    // dashDoc(node, view, getPos) { return new DashDocView({ node, view, getPos, self }); },
-
-                    // image(node, view, getPos) {
-                    //     //const addDocTab = this.props.addDocTab;
-                    //     return new ImageResizeView({ node, view, getPos, addDocTab: this.props.addDocTab });
-                    // },
-                    // // WAS : 
-                    // //image(node, view, getPos) { return new ImageResizeView(node, view, getPos, this.props.addDocTab); },
-
                     summary(node, view, getPos) { return new SummaryView(node, view, getPos); },
                     ordered_list(node, view, getPos) { return new OrderedListView(); },
                     footnote(node, view, getPos) { return new FootnoteView(node, view, getPos); }
