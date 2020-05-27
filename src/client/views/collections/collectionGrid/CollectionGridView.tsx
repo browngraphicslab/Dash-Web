@@ -240,7 +240,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
                     pointerEvents: !this.props.isSelected() && this.props.renderDepth !== 0 && !this.props.ContainingCollectionView?._isChildActive && !SnappingManager.GetIsDragging() ? "none" : undefined
                 }}
                 ref={this.createDashEventsTarget}
-                onPointerDown={e => { ((e.target as any)?.className.includes("react-resizable-handle")) && e.stopPropagation(); }}
+                onPointerDown={e => { ((e.target as any)?.className.includes("react-resizable-handle")) && e.stopPropagation(); }} // the grid doesn't stopPropagation when its widgets are hit, so we need to otherwise the outer documents will respond
             >
                 <Grid
                     width={this.props.PanelWidth()}
