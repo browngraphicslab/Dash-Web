@@ -13,6 +13,7 @@ import { ContextMenu } from '../ContextMenu';
 import { ObjectField } from '../../../fields/ObjectField';
 import { returnFalse } from '../../../Utils';
 import { ScriptField } from '../../../fields/ScriptField';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 type Carousel3DDocument = makeInterface<[typeof documentSchema, typeof collectionSchema]>;
 const Carousel3DDocument = makeInterface(documentSchema, collectionSchema);
@@ -30,32 +31,36 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
         }
     }
 
-    @computed get changeIndexScript() {
-        return ScriptField.MakeScript(
-            "collectionLayoutDoc._itemIndex = collectionLayoutDoc[fieldKey].indexOf(self)",
-            { fieldKey: String.name, collectionLayoutDoc: Doc.name },
-            { fieldKey: this.props.fieldKey, collectionLayoutDoc: this.layoutDoc }
-        );
-    }
-
     mainPanelWidth = () => this.props.PanelWidth() * 0.5;
-    mainPanelHeight = () => this.props.PanelHeight() * 0.8;
+    mainPanelHeight = () => this.props.PanelHeight() * 0.9;
     sidePanelWidth = () => this.props.PanelWidth() * 0.25;
     sidePanelHeight = () => this.props.PanelHeight() * 0.5;
-    @computed get content() {
-        const centerIndex = NumCast(this.layoutDoc._itemIndex);
-        const prevIndex = (centerIndex - 1 + this.childLayoutPairs.length) % this.childLayoutPairs.length;
-        const nextIndex = (centerIndex + 1 + this.childLayoutPairs.length) % this.childLayoutPairs.length;
 
-        const displayDoc = (index: number, onClickAction: ScriptField | undefined, width: () => number, height: () => number) => {
+    @computed get content() {
+        const currentIndex = NumCast(this.layoutDoc._itemIndex);
+
+
+        const displayDoc = (childPair: { layout: Doc, data: Doc }, width: () => number, height: () => number) => {
+            const showCaptionScript = ScriptField.MakeScript(
+                "child._showCaption = 'caption'",
+                { child: Doc.name },
+                { child: childPair.layout }
+            );
+
+            // const changeIndexScript = ScriptField.MakeScript(
+            //     "collectionLayoutDoc._itemIndex = collectionLayoutDoc[fieldKey].indexOf(self)",
+            //     { fieldKey: String.name, collectionLayoutDoc: Doc.name },
+            //     { fieldKey: this.props.fieldKey, collectionLayoutDoc: this.layoutDoc }
+            // );
+
             return <ContentFittingDocumentView {...this.props}
                 onDoubleClick={ScriptCast(this.layoutDoc.onChildDoubleClick)}
-                onClick={onClickAction}
+                onClick={showCaptionScript}
                 renderDepth={this.props.renderDepth + 1}
                 LayoutTemplate={this.props.ChildLayoutTemplate}
                 LayoutTemplateString={this.props.ChildLayoutString}
-                Document={this.childLayoutPairs[index].layout}
-                DataDoc={this.childLayoutPairs[index].data}
+                Document={childPair.layout}
+                DataDoc={childPair.data}
                 PanelWidth={width}
                 PanelHeight={height}
                 ScreenToLocalTransform={this.props.ScreenToLocalTransform}
@@ -64,30 +69,31 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
             />;
         };
 
-        const showCaptionScript = ScriptField.MakeScript(
-            "child._showCaption = 'caption'",
-            { child: Doc.name },
-            { child: this.childLayoutPairs[centerIndex].layout }
-        );
+        return (
+            this.childLayoutPairs.map((child, index) => {
+                if (index === currentIndex) {
+                    return (
+                        <div key={index} className={`collectionCarouselView-item ${index}`}
+                            style={{ opacity: '1' }}>
+                            {displayDoc(child, this.mainPanelWidth, this.mainPanelHeight)}
+                        </div>);
+                } else {
+                    return (
+                        <div key={index} className={`collectionCarouselView-item ${index}`}
+                            style={{ opacity: '0.5', userSelect: 'none' }}>
+                            {displayDoc(child, this.sidePanelWidth, this.sidePanelHeight)}
+                        </div>);
+                }
+            }));
+    }
 
-        const changeIndexScript = ScriptField.MakeScript(
-            "collectionLayoutDoc._itemIndex = collectionLayoutDoc[fieldKey].indexOf(self)",
-            { fieldKey: String.name, collectionLayoutDoc: Doc.name },
-            { fieldKey: this.props.fieldKey, collectionLayoutDoc: this.layoutDoc }
-        );
-
-        return !(this.childLayoutPairs?.[centerIndex]?.layout instanceof Doc) ? (null) :
-            <>
-                <div className="collectionCarouselView-center">
-                    {displayDoc(centerIndex, showCaptionScript, this.mainPanelWidth, this.mainPanelHeight)}
-                </div>
-                <div className="collectionCarouselView-prev">
-                    {displayDoc(prevIndex, changeIndexScript, this.sidePanelWidth, this.sidePanelHeight)}
-                </div>
-                <div className="collectionCarouselView-next">
-                    {displayDoc(nextIndex, changeIndexScript, this.sidePanelWidth, this.sidePanelHeight)}
-                </div>
-            </>;
+    advance = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        this.layoutDoc._itemIndex = (NumCast(this.layoutDoc._itemIndex) + 1) % this.childLayoutPairs.length;
+    }
+    goback = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        this.layoutDoc._itemIndex = (NumCast(this.layoutDoc._itemIndex) - 1 + this.childLayoutPairs.length) % this.childLayoutPairs.length;
     }
 
     onContextMenu = (e: React.MouseEvent): void => {
@@ -124,9 +130,27 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
         }
     }
 
+    @computed get buttons() {
+        return <>
+            <div key="back" className="carouselView-back" style={{ background: `${StrCast(this.props.Document.backgroundColor)}` }} onClick={this.goback}>
+                <FontAwesomeIcon icon={"caret-left"} size={"2x"} />
+            </div>
+            <div key="fwd" className="carouselView-fwd" style={{ background: `${StrCast(this.props.Document.backgroundColor)}` }} onClick={this.advance}>
+                <FontAwesomeIcon icon={"caret-right"} size={"2x"} />
+            </div>
+        </>;
+    }
+
     render() {
+        const index = NumCast(this.layoutDoc._itemIndex);
+        const offset = (index - 1) * (this.mainPanelWidth() - this.sidePanelWidth()) / this.childLayoutPairs.length;
+        const translateX = (1 - index) / this.childLayoutPairs.length * 100;
+
         return <div className="collectionCarouselView-outer" onClick={this.onClick} onPointerDown={this.onPointerDown} ref={this.createDashEventsTarget} onContextMenu={this.onContextMenu}>
-            {this.content}
+            <div className="carousel-wrapper" style={{ transform: `translateX(calc(${translateX}% + ${offset}px)` }}>
+                {this.content}
+            </div>
+            {this.props.Document._chromeStatus !== "replaced" ? this.buttons : (null)}
         </div>;
     }
 }
