@@ -19,3 +19,26 @@
         transition: width 0.5s linear;
     }
 }
+
+.dot-bar {
+    display: flex;
+    position: absolute;
+    justify-content: center;
+    bottom: 5%;
+    width: 100%;
+
+    .dot,
+    .dot-active {
+        height: 15px;
+        width: 15px;
+        border-radius: 50%;
+        margin: 3px;
+        display: inline-block;
+        background-color: lightgrey;
+        cursor: pointer;
+    }
+
+    .dot-active {
+        background-color: grey;
+    }
+}

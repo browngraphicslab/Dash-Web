@@ -141,6 +141,13 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
         </>;
     }
 
+    @computed get dots() {
+        return (this.childLayoutPairs.map((_child, index) => {
+            return <div key={index} className={`dot${index === NumCast(this.layoutDoc._itemIndex) ? "-active" : ""}`}
+                onClick={() => this.layoutDoc._itemIndex = index} />;
+        }));
+    }
+
     render() {
         const index = NumCast(this.layoutDoc._itemIndex);
         const offset = (index - 1) * (this.mainPanelWidth() - this.sidePanelWidth()) / this.childLayoutPairs.length;
@@ -151,6 +158,9 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
                 {this.content}
             </div>
             {this.props.Document._chromeStatus !== "replaced" ? this.buttons : (null)}
+            <div className="dot-bar">
+                {this.dots}
+            </div>
         </div>;
     }
 }
