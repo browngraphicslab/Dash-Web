@@ -15,6 +15,7 @@ import { returnZero } from '../../../../Utils';
 import Grid, { Layout } from "./Grid";
 import { Id } from '../../../../fields/FieldSymbols';
 import { observer } from 'mobx-react';
+import { SnappingManager } from '../../../util/SnappingManager';
 
 
 type GridSchema = makeInterface<[typeof documentSchema]>;
@@ -236,10 +237,11 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
             <div className="collectionGridView_contents"
                 style={{
                     marginLeft: NumCast(this.props.Document._xMargin), marginRight: NumCast(this.props.Document._xMargin),
-                    marginTop: NumCast(this.props.Document._yMargin), marginBottom: NumCast(this.props.Document._yMargin)
+                    marginTop: NumCast(this.props.Document._yMargin), marginBottom: NumCast(this.props.Document._yMargin),
+                    pointerEvents: !this.props.isSelected() && !SnappingManager.GetIsDragging() ? "none" : undefined
                 }}
                 ref={this.createDashEventsTarget}
-            //onPointerDown={(e: React.PointerEvent) => e.stopPropagation()}
+                onPointerDown={e => e.stopPropagation()}
             >
                 <Grid
                     width={this.props.PanelWidth()}
