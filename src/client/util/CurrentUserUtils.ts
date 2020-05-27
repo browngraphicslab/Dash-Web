@@ -444,6 +444,10 @@ export class CurrentUserUtils {
         });
     }
 
+    static setupMobileMenu(userDoc: Doc) {
+        return CurrentUserUtils.setupWorkspaces(userDoc);
+    }
+
     static setupMobileInkingDoc(userDoc: Doc) {
         return Docs.Create.FreeformDocument([], { title: "Mobile Inking", backgroundColor: "white" });
     }
