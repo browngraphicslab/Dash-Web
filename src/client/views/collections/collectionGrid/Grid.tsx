@@ -18,6 +18,7 @@ interface GridProps {
     rowHeight: number;
     setLayout: Function;
     flex: boolean;
+    scale: number;
 }
 
 /**
@@ -55,6 +56,7 @@ export default class Grid extends React.Component<GridProps> {
                 margin={[10, 10]}
                 onLayoutChange={this.onLayoutChange}
                 preventCollision={true}
+                transformScale={this.props.scale}
             >
                 {this.props.nodeList}
             </GridLayout >

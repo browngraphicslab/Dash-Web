@@ -318,6 +318,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
                 ref={this.createDashEventsTarget}
             //onPointerDown={(e: React.PointerEvent) => e.stopPropagation()}
             >
+                DIV HERE with ref to access scroll of and adjust in getting position
                 <Grid
                     width={this.props.PanelWidth()}
                     nodeList={contents}
@@ -326,6 +327,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
                     rowHeight={this.props.Document.rowHeight as number}
                     setLayout={this.setLayout}
                     flex={this.props.Document.flexGrid as boolean}
+                    scale={1 / this.props.ScreenToLocalTransform().Scale}
                 />
             </div>
         );
