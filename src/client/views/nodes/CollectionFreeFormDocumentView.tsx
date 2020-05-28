@@ -96,12 +96,12 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             opacityindexed?.length <= timecode + 1 && opacityindexed.push(undefined as any as number);
             doc.transition = "all 1s";
         });
-        setTimeout(() => docs.forEach(doc => doc.transition = undefined), 1010);
+        setTimeout(() => docs.forEach(doc => doc.transition = "inherit"), 1010);
     }
 
     public static gotoKeyframe(docs: Doc[]) {
         docs.forEach(doc => doc.transition = "all 1s");
-        setTimeout(() => docs.forEach(doc => doc.transition = undefined), 1010);
+        setTimeout(() => docs.forEach(doc => doc.transition = "inherit"), 1010);
     }
 
     public static setupKeyframes(docs: Doc[], timecode: number, progressivize: boolean = false) {
@@ -119,6 +119,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             doc.x = ComputedField.MakeInterpolated("x", "activeFrame");
             doc.y = ComputedField.MakeInterpolated("y", "activeFrame");
             doc.opacity = ComputedField.MakeInterpolated("opacity", "activeFrame");
+            doc.transition = "inherit";
         });
     }
 

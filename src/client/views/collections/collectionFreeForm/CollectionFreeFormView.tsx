@@ -1350,8 +1350,14 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             getContainerTransform={this.getContainerTransform}
             getTransform={this.getTransform}
             isAnnotationOverlay={this.isAnnotationOverlay}>
-            <CollectionFreeFormViewPannableContents centeringShiftX={this.centeringShiftX} centeringShiftY={this.centeringShiftY} shifted={!this.nativeHeight && !this.isAnnotationOverlay}
-                easing={this.easing} viewDefDivClick={this.props.viewDefDivClick} zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
+            <CollectionFreeFormViewPannableContents
+                centeringShiftX={this.centeringShiftX}
+                centeringShiftY={this.centeringShiftY}
+                shifted={!this.nativeHeight && !this.isAnnotationOverlay}
+                easing={this.easing}
+                transition={Cast(this.layoutDoc.transition, "string", null)}
+                viewDefDivClick={this.props.viewDefDivClick}
+                zoomScaling={this.zoomScaling} panX={this.panX} panY={this.panY}>
                 {this.children}
             </CollectionFreeFormViewPannableContents>
             {this._timelineVisible ? <Timeline ref={this._timelineRef} {...this.props} /> : (null)}
@@ -1445,6 +1451,7 @@ interface CollectionFreeFormViewPannableContentsProps {
     viewDefDivClick?: ScriptField;
     children: () => JSX.Element[];
     shifted: boolean;
+    transition?: string;
 }
 
 @observer
@@ -1459,7 +1466,8 @@ class CollectionFreeFormViewPannableContents extends React.Component<CollectionF
         return <div className={freeformclass}
             style={{
                 width: this.props.shifted ? 0 : undefined, height: this.props.shifted ? 0 : undefined,
-                transform: `translate(${cenx}px, ${ceny}px) scale(${zoom}) translate(${panx}px, ${pany}px)`
+                transform: `translate(${cenx}px, ${ceny}px) scale(${zoom}) translate(${panx}px, ${pany}px)`,
+                transition: this.props.transition
             }}>
             {this.props.children()}
         </div>;
