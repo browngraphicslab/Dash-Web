@@ -37,15 +37,11 @@ export default class Grid extends React.Component<GridProps> {
      * @param layout `Layout[]`
      */
     onLayoutChange(layout: Layout[]) {
-        console.log("setting in grid component" + layout[0]?.w);
-        // if (this.props.flex) {
         this.props.setLayout(layout);
-        // }
     }
 
-    Scale = 2
     render() {
-        console.log("In grid layout prop received value= " + this.props.layout?.[0]?.w);
+        console.log(this.props.scale);
         return (
             <GridLayout className="layout"
                 layout={this.props.layout}
@@ -57,8 +53,10 @@ export default class Grid extends React.Component<GridProps> {
                 useCSSTransforms={true}
                 margin={[10, 10]}
                 onLayoutChange={this.onLayoutChange}
-                preventCollision={true}
-                transformScale={this.props.scale}
+                preventCollision={false} // change this to true later
+                transformScale={0.8} // 1.2/scale
+                style={{ height: "100%", overflowY: "scroll" }}
+            // draggableHandle={".documentDecorations-resizer"}
             >
                 {this.props.nodeList}
             </GridLayout >

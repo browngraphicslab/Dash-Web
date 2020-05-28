@@ -281,7 +281,6 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
         //     console.log(layout[0].w);
         // }
 
-
         return (
             <div className="collectionGridView-contents"
                 style={{
@@ -297,12 +296,11 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
                     width={this.props.PanelWidth()}
                     nodeList={contents}
                     layout={layout}
-                    transformScale={this.props.ScreenToLocalTransform().Scale}
                     numCols={this.props.Document.numCols as number}
                     rowHeight={this.props.Document.rowHeight as number}
                     setLayout={this.setLayout}
                     flex={this.props.Document.flexGrid as boolean}
-                    scale={1 / this.props.ScreenToLocalTransform().Scale}
+                    scale={this.props.ScreenToLocalTransform().Scale}
                 />
             </div>
         );
