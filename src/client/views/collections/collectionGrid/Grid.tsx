@@ -7,7 +7,6 @@ import "../../../../../node_modules/react-resizable/css/styles.css";
 
 import * as GridLayout from 'react-grid-layout';
 import { Layout } from 'react-grid-layout';
-import { CollectionGridView } from './CollectionGridView';
 export { Layout } from 'react-grid-layout';
 
 
@@ -19,6 +18,7 @@ interface GridProps {
     rowHeight: number;
     setLayout: Function;
     transformScale: number;
+    childrenDraggable: boolean;
 }
 
 /**
@@ -32,13 +32,10 @@ export default class Grid extends React.Component<GridProps> {
      * @param layout `Layout[]`
      */
     onLayoutChange(layout: Layout[]) {
-        console.log("setting in grid component" + layout[0].w);
         this.props.setLayout(layout);
     }
 
-    Scale = 2
     render() {
-        console.log("In grid layout prop received value= " + this.props.layout?.[0]?.w);
         return (
             <GridLayout className="layout"
                 layout={this.props.layout}
@@ -47,6 +44,7 @@ export default class Grid extends React.Component<GridProps> {
                 width={this.props.width}
                 compactType={null}
                 isDroppable={true}
+                isDraggable={this.props.childrenDraggable}
                 useCSSTransforms={true}
                 margin={[10, 10]}
                 onLayoutChange={layout => this.onLayoutChange(layout)}
