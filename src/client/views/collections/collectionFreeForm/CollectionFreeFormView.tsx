@@ -76,6 +76,7 @@ const PanZoomDocument = makeInterface(panZoomSchema, collectionSchema, documentS
 export type collectionFreeformViewProps = {
     forceScaling?: boolean; // whether to force scaling of content (needed by ImageBox)
     viewDefDivClick?: ScriptField;
+    childPointerEvents?: boolean;
 };
 
 @observer
@@ -1124,10 +1125,9 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
                     replica={entry[1].replica}
                     dataProvider={this.childDataProvider}
                     sizeProvider={this.childSizeProvider}
-                    pointerEvents={
-                        this.backgroundActive ?
-                            true :
-                            (this.props.viewDefDivClick || (engine === "pass" && !this.props.isSelected(true))) ? false : undefined}
+                    pointerEvents={this.backgroundActive || this.props.childPointerEvents ?
+                        true :
+                        (this.props.viewDefDivClick || (engine === "pass" && !this.props.isSelected(true))) ? false : undefined}
                     jitterRotation={NumCast(this.props.Document._jitterRotation) || ((Doc.UserDoc().renderStyle === "comic" ? 10 : 0))}
                     //fitToBox={this.props.fitToBox || BoolCast(this.props.freezeChildDimensions)} // bcz: check this
                     fitToBox={BoolCast(this.props.freezeChildDimensions)} // bcz: check this
