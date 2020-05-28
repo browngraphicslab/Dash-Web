@@ -43,7 +43,7 @@ export namespace Utils {
     }
 
     /**
-     * A convenience method. Prepends the full path (i.e. http://localhost:1050) to the
+     * A convenience method. Prepends the full path (i.e. http://localhost:<port>) to the
      * requested extension
      * @param extension the specified sub-path to append to the window origin
      */

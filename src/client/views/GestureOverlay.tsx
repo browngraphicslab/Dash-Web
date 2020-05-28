@@ -38,6 +38,8 @@ import { SelectionManager } from "../util/SelectionManager";
 export default class GestureOverlay extends Touchable {
     static Instance: GestureOverlay;
 
+    @observable private _timer: timeoutId | undefined;
+
     @observable public SavedColor?: string;
     @observable public SavedWidth?: string;
     @observable public Tool: ToolglassTools = ToolglassTools.None;
@@ -77,7 +79,7 @@ export default class GestureOverlay extends Touchable {
 
     componentDidMount = () => {
         this._thumbDoc = FieldValue(Cast(CurrentUserUtils.setupThumbDoc(CurrentUserUtils.UserDocument), Doc));
-        this._inkToTextDoc = FieldValue(Cast(this._thumbDoc?.inkToTextDoc, Doc));
+        this._inkToTextDoc = FieldValue(Cast(this._thumbDoc ?.inkToTextDoc, Doc));
     }
 
     /**
@@ -147,7 +149,7 @@ export default class GestureOverlay extends Touchable {
         // if there are fewer than five touch events, handle as a touch event
         if (nts.nt.length < 5) {
             const target = document.elementFromPoint(te.changedTouches.item(0).clientX, te.changedTouches.item(0).clientY);
-            target?.dispatchEvent(
+            target ?.dispatchEvent(
                 new CustomEvent<InteractionUtils.MultiTouchEvent<React.TouchEvent>>("dashOnTouchStart",
                     {
                         bubbles: true,
@@ -168,7 +170,7 @@ export default class GestureOverlay extends Touchable {
                     const target = document.elementFromPoint(te.changedTouches.item(0).clientX, te.changedTouches.item(0).clientY);
                     const pt: any = te.touches[te.touches.length - 1];
                     if (nts.nt.length === 1 && pt.radiusX > 1 && pt.radiusY > 1) {
-                        target?.dispatchEvent(
+                        target ?.dispatchEvent(
                             new CustomEvent<InteractionUtils.MultiTouchEvent<React.TouchEvent>>("dashOnTouchHoldStart",
                                 {
                                     bubbles: true,
@@ -277,7 +279,7 @@ export default class GestureOverlay extends Touchable {
             if (pt.radiusX > 1 && pt.radiusY > 1) {
                 for (let j = 0; j < e.targetTouches.length; j++) {
                     const tPt = e.targetTouches.item(j);
-                    if (tPt?.screenX === pt?.screenX && tPt?.screenY === pt?.screenY) {
+                    if (tPt ?.screenX === pt ?.screenX && tPt ?.screenY === pt ?.screenY) {
                         if (pt && this.prevPoints.has(pt.identifier)) {
                             fingers.push(pt);
                         }
@@ -302,10 +304,10 @@ export default class GestureOverlay extends Touchable {
         else {
             console.log("not hand");
         }
-        this.pointerIdentifier = pointer?.identifier;
+        this.pointerIdentifier = pointer ?.identifier;
 
         runInAction(() => {
-            this._pointerY = pointer?.clientY;
+            this._pointerY = pointer ?.clientY;
             if (thumb.identifier === this.thumbIdentifier) {
                 this._thumbX = thumb.clientX;
                 this._thumbY = thumb.clientY;
@@ -314,7 +316,7 @@ export default class GestureOverlay extends Touchable {
             }
         });
 
-        this.thumbIdentifier = thumb?.identifier;
+        this.thumbIdentifier = thumb ?.identifier;
         this._hands.set(thumb.identifier, fingers);
         const others = fingers.filter(f => f !== thumb);
         const minX = Math.min(...others.map(f => f.clientX));
@@ -351,7 +353,7 @@ export default class GestureOverlay extends Touchable {
             if (pt.radiusX > 1 && pt.radiusY > 1) {
                 for (let j = 0; j < e.targetTouches.length; j++) {
                     const tPt = e.targetTouches.item(j);
-                    if (tPt?.screenX === pt?.screenX && tPt?.screenY === pt?.screenY) {
+                    if (tPt ?.screenX === pt ?.screenX && tPt ?.screenY === pt ?.screenY) {
                         if (pt && this.prevPoints.has(pt.identifier)) {
                             this._hands.forEach(hand => hand.some(f => {
                                 if (f.identifier === pt.identifier) {
@@ -365,7 +367,7 @@ export default class GestureOverlay extends Touchable {
         }
         // update hand trackers
         const thumb = fingers.reduce((a, v) => a.clientY > v.clientY ? a : v, fingers[0]);
-        if (thumb?.identifier && thumb?.identifier === this.thumbIdentifier) {
+        if (thumb ?.identifier && thumb ?.identifier === this.thumbIdentifier) {
             this._hands.set(thumb.identifier, fingers);
         }
 
@@ -409,7 +411,7 @@ export default class GestureOverlay extends Touchable {
 
             // this chunk of code is for handling the ink to text toolglass
             let scriptWorked = false;
-            if (NumCast(this._inkToTextDoc?.selectedIndex) > -1) {
+            if (NumCast(this._inkToTextDoc ?.selectedIndex) > -1) {
                 // if there is a text option selected, activate it
                 const selectedButton = this._possibilities[this._selectedIndex];
                 if (selectedButton) {
@@ -499,7 +501,10 @@ export default class GestureOverlay extends Touchable {
 
     @action
     onPointerDown = (e: React.PointerEvent) => {
+
+
         if (InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || (InkingControl.Instance.selectedTool === InkTool.Highlighter || InkingControl.Instance.selectedTool === InkTool.Pen)) {
+
             this._points.push({ X: e.clientX, Y: e.clientY });
             e.stopPropagation();
             e.preventDefault();
@@ -512,12 +517,29 @@ export default class GestureOverlay extends Touchable {
     }
 
     @action
+    time = () => {
+        //if held for more than 1.5 seconds, turns to bezier curve
+        if (this._points.length > 1) {
+            this._points.push({ X: this._points[0].X, Y: this._points[0].Y });
+            this.dispatchGesture(GestureUtils.Gestures.Stroke);
+            this._points = [];
+            document.removeEventListener("pointermove", this.onPointerMove);
+            document.removeEventListener("pointerup", this.onPointerUp);
+        }
+
+    }
+    @action
     onPointerMove = (e: PointerEvent) => {
         if (InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || (InkingControl.Instance.selectedTool === InkTool.Highlighter || InkingControl.Instance.selectedTool === InkTool.Pen)) {
             this._points.push({ X: e.clientX, Y: e.clientY });
             e.stopPropagation();
             e.preventDefault();
 
+            //if ink, start timer to detect hold
+            if (InkingControl.Instance.selectedTool === InkTool.Pen && this._points.length > 1) {
+                clearTimeout(this._timer);
+                this._timer = setTimeout(() => { this.time(); }, 1500);
+            }
 
             if (this._points.length > 1) {
                 const B = this.svgBounds;
@@ -571,8 +593,8 @@ export default class GestureOverlay extends Touchable {
                     callbackFn: callback
                 }
             });
-        target1?.dispatchEvent(ge);
-        target2?.dispatchEvent(ge);
+        target1 ?.dispatchEvent(ge);
+        target2 ?.dispatchEvent(ge);
         return actionPerformed;
     }
 
@@ -608,10 +630,10 @@ export default class GestureOverlay extends Touchable {
                             const wordResults = results.filter((r: any) => r.category === "line");
                             const possibilities: string[] = [];
                             for (const wR of wordResults) {
-                                if (wR?.recognizedText) {
-                                    possibilities.push(wR?.recognizedText);
+                                if (wR ?.recognizedText) {
+                                    possibilities.push(wR ?.recognizedText);
                                 }
-                                possibilities.push(...wR?.alternates?.map((a: any) => a.recognizedString));
+                                possibilities.push(...wR ?.alternates ?.map((a: any) => a.recognizedString));
                             }
                             const r = Math.max(this.svgBounds.right, ...this._strokes.map(s => this.getBounds(s).right));
                             const l = Math.min(this.svgBounds.left, ...this._strokes.map(s => this.getBounds(s).left));
@@ -675,6 +697,9 @@ export default class GestureOverlay extends Touchable {
 
                 // if no gesture (or if the gesture was unsuccessful), "dry" the stroke into an ink document
                 if (!actionPerformed) {
+
+                    //editted here
+                    // this._points.push({ X: this._points[0].X, Y: this._points[0].Y });
                     this.dispatchGesture(GestureUtils.Gestures.Stroke);
                     this._points = [];
                 }
@@ -729,7 +754,7 @@ export default class GestureOverlay extends Touchable {
 
     dispatchGesture = (gesture: "box" | "line" | "startbracket" | "endbracket" | "stroke" | "scribble" | "text", stroke?: InkData, data?: any) => {
         const target = document.elementFromPoint((stroke ?? this._points)[0].X, (stroke ?? this._points)[0].Y);
-        target?.dispatchEvent(
+        target ?.dispatchEvent(
             new CustomEvent<GestureUtils.GestureEvent>("dashOnGesture",
                 {
                     bubbles: true,

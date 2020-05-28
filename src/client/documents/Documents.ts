@@ -126,6 +126,9 @@ export interface DocumentOptions {
     curPage?: number;
     currentTimecode?: number; // the current timecode of a time-based document (e.g., current time of a video)  value is in seconds
     displayTimecode?: number; // the time that a document should be displayed (e.g., time an annotation should be displayed on a video)
+    currentFrame?: number; // the current frame of a frame-based collection (e.g., progressive slide)
+    lastFrame?: number; // the last frame of a frame-based collection (e.g., progressive slide)
+    activeFrame?: number; // the active frame of a document in a frame base collection
     borderRounding?: string;
     boxShadow?: string;
     dontRegisterChildViews?: boolean;

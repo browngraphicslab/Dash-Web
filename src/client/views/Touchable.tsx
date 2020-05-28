@@ -109,6 +109,9 @@ export abstract class Touchable<T = {}> extends React.Component<T> {
 
     @action
     protected onTouchEnd = (e: Event, me: InteractionUtils.MultiTouchEvent<TouchEvent>): void => {
+
+        //testing
+        console.log("testing");
         // console.log(InteractionUtils.GetMyTargetTouches(e, this.prevPoints).length + " up");
         // remove all the touches associated with the event
         const te = me.touchEvent;

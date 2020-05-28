@@ -371,6 +371,7 @@ export class CollectionStackingViewChrome extends React.Component<CollectionView
         this.suggestions = [];
     }
 
+    @action
     setValue = (value: string) => {
         this.props.CollectionView.props.Document._pivotField = value;
         return true;

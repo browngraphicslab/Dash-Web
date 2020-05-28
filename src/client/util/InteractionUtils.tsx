@@ -1,5 +1,5 @@
 import React = require("react");
-
+import * as beziercurve from 'bezier-curve';
 export namespace InteractionUtils {
     export const MOUSETYPE = "mouse";
     export const TOUCHTYPE = "touch";
@@ -73,7 +73,7 @@ export namespace InteractionUtils {
         for (const pt of mte.touches) {
             if (!ignorePen || ((pt as any).radiusX > 1 && (pt as any).radiusY > 1)) {
                 for (const tPt of mte.targetTouches) {
-                    if (tPt?.screenX === pt?.screenX && tPt?.screenY === pt?.screenY) {
+                    if (tPt ?.screenX === pt ?.screenX && tPt ?.screenY === pt ?.screenY) {
                         if (pt && prevPoints.has(pt.identifier)) {
                             myTouches.push(pt);
                         }
@@ -88,7 +88,35 @@ export namespace InteractionUtils {
     }
 
     export function CreatePolyline(points: { X: number, Y: number }[], left: number, top: number, color: string, width: string) {
-        const pts = points.reduce((acc: string, pt: { X: number, Y: number }) => acc + `${pt.X - left},${pt.Y - top} `, "");
+        //if bezier
+        if (points.length > 1 && points[points.length - 1].X === points[0].X && points[points.length - 1].Y === points[0].Y) {
+            const newPoints: number[][] = [];
+            const newPts: { X: number; Y: number; }[] = [];
+            //pick key points
+            for (var i = 0; i < points.length - 1; i++) {
+                if (
+                    (i === 0 || i === points.length - 2) ||
+                    (points[i - 1].X >= points[i].X && points[i + 1].X > points[i].X) ||
+                    (points[i - 1].X <= points[i].X && points[i + 1].X < points[i].X) ||
+                    (points[i - 1].Y >= points[i].Y && points[i + 1].Y > points[i].Y) ||
+                    (points[i - 1].Y <= points[i].Y && points[i + 1].Y < points[i].Y)) {
+                    newPoints.push([points[i].X, points[i].Y]);
+                }
+            }
+            //run bezier
+            for (var t = 0; t < 1; t += 0.01) {
+                const point = (beziercurve(t, newPoints));
+                newPts.push({ X: point[0], Y: point[1] });
+            }
+            //reduce points
+            var pts = newPts.reduce((acc: string, pt: { X: number, Y: number }) => acc + `${pt.X - left},${pt.Y - top} `, "");
+
+            //normal line
+        } else {
+            pts = points.reduce((acc: string, pt: { X: number, Y: number }) => acc + `${pt.X - left},${pt.Y - top} `, "");
+
+        }
+
         return (
             <polyline
                 points={pts}

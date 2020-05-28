@@ -309,9 +309,9 @@ export class SearchBox extends React.Component<SearchProps> {
         const baseExpr = "NOT baseProto_b:true";
         const includeDeleted = this.getDataStatus() ? "" : " NOT deleted_b:true";
         const includeIcons = this.getDataStatus() ? "" : " NOT type_t:fonticonbox";
-        const typeExpr = !types ? "" : ` (${types.map(type => `({!join from=id to=proto_i}type_t:"${type}" AND NOT type_t:*) OR type_t:"${type}"`).join(" ")})`;
+        // const typeExpr = !types ? "" : ` (${types.map(type => `({!join from=id to=proto_i}type_t:"${type}" AND NOT type_t:*) OR type_t:"${type}"`).join(" ")})`; // this line was causing issues for me, check solr logging -syip2
         // fq: type_t:collection OR {!join from=id to=proto_i}type_t:collection   q:text_t:hello
-        const query = [baseExpr, includeDeleted, includeIcons, typeExpr].join(" AND ").replace(/AND $/, "");
+        const query = [baseExpr, includeDeleted, includeIcons].join(" AND ").replace(/AND $/, "");
         return query;
     }
 
