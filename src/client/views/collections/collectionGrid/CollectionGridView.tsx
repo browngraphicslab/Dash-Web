@@ -15,6 +15,8 @@ import Grid, { Layout } from "./Grid";
 import { Id } from '../../../../fields/FieldSymbols';
 import { observer } from 'mobx-react';
 import "./CollectionGridView.scss";
+import { SnappingManager } from '../../../util/SnappingManager';
+
 
 type GridSchema = makeInterface<[typeof documentSchema]>;
 const GridSchema = makeInterface(documentSchema);
@@ -64,28 +66,13 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
      * documents before the target. 
      */
     private lookupIndividualTransform = (doc: Doc) => {
-
-        // const yTranslation = document.getElementById(doc.i as string)?.getBoundingClientRect().top;
-        // const xTranslation = document.getElementById(doc.i as string)?.getBoundingClientRect().left;// - 250;
-
-        //console.log(xTranslation);
-
-        //console.log(`width: ${doc.w} height: ${doc.h} x: ${doc.x} y:${doc.y}`);
-
-        const xTranslation = doc.x as number * this.props.PanelWidth() / (this.props.Document.numCols as number) + 10;
-        const yTranslation = doc.y as number * (this.props.Document.rowHeight as number + 10) + 10;
-
-        if (xTranslation === undefined || yTranslation === undefined) {
-            console.log("undefined babey");
-            return Transform.Identity();
-        }
-
-        console.log(`xtrans: ${xTranslation}  ytrans:${yTranslation}`);
-
-        return this.props.ScreenToLocalTransform().translate(-xTranslation, -yTranslation);//.translate(-NumCast(this.props.Document._xMargin), -NumCast(this.props.Document._yMargin));
-
+        const yTranslation = this.rowHeightPlusGap * NumCast(doc.y) + 10;
+        const xTranslation = this.colWidthPlusGap * NumCast(doc.x) + 10;
+        return this.props.ScreenToLocalTransform().translate(-xTranslation, -yTranslation);
     }
 
+    @computed get colWidthPlusGap() { return (this.props.PanelWidth() - 10) / NumCast(this.props.Document.numCols); }
+    @computed get rowHeightPlusGap() { return NumCast(this.props.Document.rowHeight) + 10; }
 
     @computed get onChildClickHandler() { return ScriptCast(this.Document.onChildClick); }
 
@@ -93,25 +80,13 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
      * Sets the width of the decorating box.
      * @param Doc doc
      */
-    private width = (doc: Doc) => {
+    @observable private width = (doc: Doc) => NumCast(doc.w) * this.colWidthPlusGap - 10;
 
-        // return document.getElementById(doc.i as string)?.getBoundingClientRect().width;
-        const xTranslation = doc.w as number * (this.props.PanelWidth() - 10 * (this.props.Document.numCols as number + 1)) / (this.props.Document.numCols as number);
-        return (this.props.PanelWidth() - 10 * (this.props.Document.numCols as number + 1)) / (this.props.Document.numCols as number) *
-            (this.props.Document.flexGrid as boolean ? doc.w as number : 2) + 10 * (doc.w as number - 1);// doc.w or 2
-    }
     /**
      * Sets the height of the decorating box.
      * @param doc `Doc`
      */
-    private height = (doc: Doc) => {
-        //console.log(document.getElementById(doc.i as string)?.getBoundingClientRect());
-
-        // return document.getElementById(doc.i as string)?.getBoundingClientRect().height;
-        return this.props.Document.rowHeight as number *
-            (this.props.Document.flexGrid as boolean ? doc.h as number : 2) +
-            10 * (doc.h as number - 1);// + 10;
-    }
+    @observable private height = (doc: Doc) => NumCast(doc.h) * this.rowHeightPlusGap - 10;
 
     addDocTab = (doc: Doc, where: string) => {
         if (where === "inPlace" && this.layoutDoc.isInPlaceContainer) {
@@ -130,8 +105,6 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
             NativeHeight={returnZero}
             NativeWidth={returnZero}
             addDocTab={this.addDocTab}
-            fitToBox={BoolCast(this.props.Document._freezeChildDimensions)}
-            FreezeDimensions={BoolCast(this.props.Document._freezeChildDimensions)}
             backgroundColor={this.props.backgroundColor}
             ContainingCollectionDoc={this.props.Document}
             PanelWidth={width}
@@ -313,16 +286,18 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
             <div className="collectionGridView-contents"
                 style={{
                     marginLeft: NumCast(this.props.Document._xMargin), marginRight: NumCast(this.props.Document._xMargin),
-                    marginTop: NumCast(this.props.Document._yMargin), marginBottom: NumCast(this.props.Document._yMargin)
+                    marginTop: NumCast(this.props.Document._yMargin), marginBottom: NumCast(this.props.Document._yMargin),
+                    pointerEvents: !this.props.isSelected() && this.props.renderDepth !== 0 && !this.props.ContainingCollectionView?._isChildActive && !SnappingManager.GetIsDragging() ? "none" : undefined
                 }}
                 ref={this.createDashEventsTarget}
-            //onPointerDown={(e: React.PointerEvent) => e.stopPropagation()}
+                onPointerDown={e => { ((e.target as any)?.className.includes("react-resizable-handle")) && e.stopPropagation(); }} // the grid doesn't stopPropagation when its widgets are hit, so we need to otherwise the outer documents will respond
             >
                 DIV HERE with ref to access scroll of and adjust in getting position
                 <Grid
                     width={this.props.PanelWidth()}
                     nodeList={contents}
                     layout={layout}
+                    transformScale={this.props.ScreenToLocalTransform().Scale}
                     numCols={this.props.Document.numCols as number}
                     rowHeight={this.props.Document.rowHeight as number}
                     setLayout={this.setLayout}

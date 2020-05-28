@@ -43,6 +43,7 @@ export default class Grid extends React.Component<GridProps> {
         // }
     }
 
+    Scale = 2
     render() {
         console.log("In grid layout prop received value= " + this.props.layout?.[0]?.w);
         return (
@@ -53,6 +54,7 @@ export default class Grid extends React.Component<GridProps> {
                 width={this.props.width}
                 compactType={null}
                 isDroppable={true}
+                useCSSTransforms={true}
                 margin={[10, 10]}
                 onLayoutChange={this.onLayoutChange}
                 preventCollision={true}

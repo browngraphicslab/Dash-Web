@@ -92,7 +92,7 @@ export interface CollectionRenderProps {
 export class CollectionView extends Touchable<FieldViewProps & CollectionViewCustomProps> {
     public static LayoutString(fieldStr: string) { return FieldView.LayoutString(CollectionView, fieldStr); }
 
-    private _isChildActive = false;   //TODO should this be observable?
+    _isChildActive = false;   //TODO should this be observable?
     get _isLightboxOpen() { return BoolCast(this.props.Document.isLightboxOpen); }
     set _isLightboxOpen(value) { this.props.Document.isLightboxOpen = value; }
     @observable private _curLightboxImg = 0;
