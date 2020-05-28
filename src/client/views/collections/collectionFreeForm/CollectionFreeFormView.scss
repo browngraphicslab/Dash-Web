@@ -51,12 +51,21 @@
     }
     .backKeyframe {
         right:45;
+        svg {
+            display:block;
+            margin:auto;
+        }
     }
     .numKeyframe {
         right:25;
+        text-align:center;
     }
     .fwdKeyframe {
         right:5;
+        svg {
+            display:block;
+            margin:auto;
+        }
     }
 
     .collectionfreeformview-placeholder {
