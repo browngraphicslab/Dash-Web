@@ -12,9 +12,7 @@ import { Transform } from "../../util/Transform";
 import { TimelineMenu } from "./TimelineMenu";
 import { Docs } from "../../documents/Documents";
 import { CollectionDockingView } from "../collections/CollectionDockingView";
-import { undoBatch, UndoManager } from "../../util/UndoManager";
 import { emptyPath } from "../../../Utils";
-
 
 
 /**
@@ -100,16 +98,11 @@ export namespace KeyframeFunc {
     export const convertPixelTime = (pos: number, unit: "mili" | "sec" | "min" | "hr", dir: "pixel" | "time", tickSpacing: number, tickIncrement: number) => {
         const time = dir === "pixel" ? (pos * tickSpacing) / tickIncrement : (pos / tickSpacing) * tickIncrement;
         switch (unit) {
-            case "mili":
-                return time;
-            case "sec":
-                return dir === "pixel" ? time / 1000 : time * 1000;
-            case "min":
-                return dir === "pixel" ? time / 60000 : time * 60000;
-            case "hr":
-                return dir === "pixel" ? time / 3600000 : time * 3600000;
-            default:
-                return time;
+            case "mili": return time;
+            case "sec": return dir === "pixel" ? time / 1000 : time * 1000;
+            case "min": return dir === "pixel" ? time / 60000 : time * 60000;
+            case "hr": return dir === "pixel" ? time / 3600000 : time * 3600000;
+            default: return time;
         }
     };
 }
@@ -333,31 +326,28 @@ export class Keyframe extends React.Component<IProps> {
      */
     @action
     makeKeyframeMenu = (kf: Doc, e: MouseEvent) => {
-        TimelineMenu.Instance.addItem("button", "Show Data", () => {
-            runInAction(() => {
+        TimelineMenu.Instance.addItem("button", "Toggle Fade Only", () => {
+            kf.type = kf.type === KeyframeFunc.KeyframeType.fade ? KeyframeFunc.KeyframeType.default : KeyframeFunc.KeyframeType.fade;
+        }),
+            TimelineMenu.Instance.addItem("button", "Show Data", action(() => {
                 const kvp = Docs.Create.KVPDocument(kf, { _width: 300, _height: 300 });
                 CollectionDockingView.AddRightSplit(kvp, emptyPath);
-            });
-        }),
-            TimelineMenu.Instance.addItem("button", "Delete", () => {
-                runInAction(() => {
-                    (this.regiondata.keyframes as List<Doc>).splice(this.keyframes.indexOf(kf), 1);
-                    this.forceUpdate();
-                });
-            }),
-            TimelineMenu.Instance.addItem("input", "Move", (val) => {
-                runInAction(() => {
-                    let cannotMove: boolean = false;
-                    const kfIndex: number = this.keyframes.indexOf(kf);
-                    if (val < 0 || (val < NumCast(this.keyframes[kfIndex - 1].time) || val > NumCast(this.keyframes[kfIndex + 1].time))) {
-                        cannotMove = true;
-                    }
-                    if (!cannotMove) {
-                        this.keyframes[kfIndex].time = parseInt(val, 10);
-                        this.keyframes[1].time = this.regiondata.position + this.regiondata.fadeIn;
-                    }
-                });
-            });
+            })),
+            TimelineMenu.Instance.addItem("button", "Delete", action(() => {
+                (this.regiondata.keyframes as List<Doc>).splice(this.keyframes.indexOf(kf), 1);
+                this.forceUpdate();
+            })),
+            TimelineMenu.Instance.addItem("input", "Move", action((val) => {
+                let cannotMove: boolean = false;
+                const kfIndex: number = this.keyframes.indexOf(kf);
+                if (val < 0 || (val < NumCast(this.keyframes[kfIndex - 1].time) || val > NumCast(this.keyframes[kfIndex + 1].time))) {
+                    cannotMove = true;
+                }
+                if (!cannotMove) {
+                    this.keyframes[kfIndex].time = parseInt(val, 10);
+                    this.keyframes[1].time = this.regiondata.position + this.regiondata.fadeIn;
+                }
+            }));
         TimelineMenu.Instance.addMenu("Keyframe");
         TimelineMenu.Instance.openMenu(e.clientX, e.clientY);
     }
