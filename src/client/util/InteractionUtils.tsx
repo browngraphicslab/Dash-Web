@@ -1,5 +1,6 @@
 import React = require("react");
-
+import * as beziercurve from 'bezier-curve';
+import * as fitCurve from 'fit-curve';
 export namespace InteractionUtils {
     export const MOUSETYPE = "mouse";
     export const TOUCHTYPE = "touch";
@@ -87,8 +88,28 @@ export namespace InteractionUtils {
         return myTouches;
     }
 
-    export function CreatePolyline(points: { X: number, Y: number }[], left: number, top: number, color: string, width: string) {
-        const pts = points.reduce((acc: string, pt: { X: number, Y: number }) => acc + `${pt.X - left},${pt.Y - top} `, "");
+    export function CreatePolyline(points: { X: number, Y: number }[], left: number, top: number, color: string, width: string, bezier: string) {
+        //if bezier
+        if (points.length > 1 && points[points.length - 1].X === points[0].X && points[points.length - 1].Y === points[0].Y) {
+
+            const newPoints: number[][] = [];
+            const newPts: { X: number; Y: number; }[] = [];
+            for (var i = 0; i < points.length - 1; i++) {
+                newPoints.push([points[i].X, points[i].Y]);
+            }
+            const bezierCurves = fitCurve(newPoints, parseInt(bezier));
+            for (var i = 0; i < bezierCurves.length; i++) {
+                for (var t = 0; t < 1; t += 0.01) {
+                    const point = beziercurve(t, bezierCurves[i]);
+                    newPts.push({ X: point[0], Y: point[1] });
+                }
+            }
+            var pts = newPts.reduce((acc: string, pt: { X: number, Y: number }) => acc + `${pt.X - left},${pt.Y - top} `, "");
+        } else {
+            pts = points.reduce((acc: string, pt: { X: number, Y: number }) => acc + `${pt.X - left},${pt.Y - top} `, "");
+        }
+
+
         return (
             <polyline
                 points={pts}

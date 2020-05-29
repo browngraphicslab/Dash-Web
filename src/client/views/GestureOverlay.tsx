@@ -38,6 +38,8 @@ import { SelectionManager } from "../util/SelectionManager";
 export default class GestureOverlay extends Touchable {
     static Instance: GestureOverlay;
 
+    @observable private _timer: timeoutId | undefined;
+
     @observable public SavedColor?: string;
     @observable public SavedWidth?: string;
     @observable public Tool: ToolglassTools = ToolglassTools.None;
@@ -499,7 +501,10 @@ export default class GestureOverlay extends Touchable {
 
     @action
     onPointerDown = (e: React.PointerEvent) => {
+
+
         if (InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || (InkingControl.Instance.selectedTool === InkTool.Highlighter || InkingControl.Instance.selectedTool === InkTool.Pen)) {
+
             this._points.push({ X: e.clientX, Y: e.clientY });
             e.stopPropagation();
             e.preventDefault();
@@ -511,6 +516,18 @@ export default class GestureOverlay extends Touchable {
         }
     }
 
+    // @action
+    // time = () => {
+    //     //if held for more than 1 seconds, turns to bezier curve
+    //     if (this._points.length > 1) {
+    //         this._points.push({ X: this._points[0].X, Y: this._points[0].Y });
+    //         this.dispatchGesture(GestureUtils.Gestures.Stroke);
+    //         this._points = [];
+    //         document.removeEventListener("pointermove", this.onPointerMove);
+    //         document.removeEventListener("pointerup", this.onPointerUp);
+    //     }
+
+    // }
     @action
     onPointerMove = (e: PointerEvent) => {
         if (InteractionUtils.IsType(e, InteractionUtils.PENTYPE) || (InkingControl.Instance.selectedTool === InkTool.Highlighter || InkingControl.Instance.selectedTool === InkTool.Pen)) {
@@ -518,6 +535,11 @@ export default class GestureOverlay extends Touchable {
             e.stopPropagation();
             e.preventDefault();
 
+            //if ink, start timer to detect hold
+            // if (InkingControl.Instance.selectedTool === InkTool.Pen && this._points.length > 1) {
+            //     clearTimeout(this._timer);
+            //     this._timer = setTimeout(() => { this.time(); }, 700);
+            // }
 
             if (this._points.length > 1) {
                 const B = this.svgBounds;
@@ -581,6 +603,8 @@ export default class GestureOverlay extends Touchable {
         if (this._points.length > 1) {
             const B = this.svgBounds;
             const points = this._points.map(p => ({ X: p.X - B.left, Y: p.Y - B.top }));
+            this._points.push({ X: this._points[0].X, Y: this._points[0].Y });
+
 
             if (MobileInterface.Instance && MobileInterface.Instance.drawingInk) {
                 const { selectedColor, selectedWidth } = InkingControl.Instance;
@@ -675,6 +699,9 @@ export default class GestureOverlay extends Touchable {
 
                 // if no gesture (or if the gesture was unsuccessful), "dry" the stroke into an ink document
                 if (!actionPerformed) {
+
+                    //editted here
+                    // this._points.push({ X: this._points[0].X, Y: this._points[0].Y });
                     this.dispatchGesture(GestureUtils.Gestures.Stroke);
                     this._points = [];
                 }
@@ -766,11 +793,11 @@ export default class GestureOverlay extends Touchable {
             [this._strokes.map(l => {
                 const b = this.getBounds(l);
                 return <svg key={b.left} width={b.width} height={b.height} style={{ transform: `translate(${b.left}px, ${b.top}px)`, pointerEvents: "none", position: "absolute", zIndex: 30000, overflow: "visible" }}>
-                    {InteractionUtils.CreatePolyline(l, b.left, b.top, InkingControl.Instance.selectedColor, InkingControl.Instance.selectedWidth)}
+                    {InteractionUtils.CreatePolyline(l, b.left, b.top, InkingControl.Instance.selectedColor, InkingControl.Instance.selectedWidth, InkingControl.Instance.selectedBezier)}
                 </svg>;
             }),
             this._points.length <= 1 ? (null) : <svg width={B.width} height={B.height} style={{ transform: `translate(${B.left}px, ${B.top}px)`, pointerEvents: "none", position: "absolute", zIndex: 30000, overflow: "visible" }}>
-                {InteractionUtils.CreatePolyline(this._points, B.left, B.top, InkingControl.Instance.selectedColor, InkingControl.Instance.selectedWidth)}
+                {InteractionUtils.CreatePolyline(this._points, B.left, B.top, InkingControl.Instance.selectedColor, InkingControl.Instance.selectedWidth, InkingControl.Instance.selectedBezier)}
             </svg>]
         ];
     }

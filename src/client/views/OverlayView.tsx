@@ -77,6 +77,7 @@ export class OverlayWindow extends React.Component<OverlayWindowProps> {
     onPointerUp = (e: PointerEvent) => {
         document.removeEventListener("pointermove", this.onPointerMove);
         document.removeEventListener("pointerup", this.onPointerUp);
+
     }
 
     onResizerPointerUp = (e: PointerEvent) => {

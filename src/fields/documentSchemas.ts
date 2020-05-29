@@ -60,6 +60,8 @@ export const documentSchema = createSchema({
     letterSpacing: "string",
     opacity: "number",          // opacity of document
     strokeWidth: "number",
+    strokeBezier: "number",
+
     textTransform: "string",
     treeViewOpen: "boolean",    //  flag denoting whether the documents sub-tree (contents) is visible or hidden
     treeViewExpandedView: "string", // name of field whose contents are being displayed as the document's subtree
@@ -77,7 +79,7 @@ export const documentSchema = createSchema({
     isBackground: "boolean",    // whether document is a background element and ignores input events (can only select with marquee)
     lockedPosition: "boolean",  // whether the document can be moved (dragged)
     _lockedTransform: "boolean",// whether a freeformview can pan/zoom
-    
+
     // drag drop properties
     dragFactory: Doc,           // the document that serves as the "template" for the onDragStart script.  ie, to drag out copies of the dragFactory document.
     dropAction: "string",       // override specifying what should happen when this document is dropped (can be "alias", "copy", "move")
