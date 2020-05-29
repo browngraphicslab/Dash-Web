@@ -116,7 +116,7 @@ export function setter(target: any, in_prop: string | symbol | number, value: an
             return true;
         }
     }
-    if (target.__fields[prop] instanceof ComputedField && target.__fields[prop].setterscript) {
+    if (target.__fields[prop] instanceof ComputedField && target.__fields[prop].setterscript && value !== undefined && !(value instanceof ComputedField)) {
         return ScriptCast(target.__fields[prop])?.setterscript?.run({ self: target[SelfProxy], this: target[SelfProxy], value }).success ? true : false;
     }
     return _setter(target, prop, value, receiver);

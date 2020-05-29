@@ -99,9 +99,9 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
                     <div className="keyValuePair-td-key-container">
                         <button style={hover} className="keyValuePair-td-key-delete" onClick={undoBatch(() => {
                             if (Object.keys(props.Document).indexOf(props.fieldKey) !== -1) {
-                                props.Document[props.fieldKey] = undefined;
+                                delete props.Document[props.fieldKey];
                             }
-                            else props.Document.proto![props.fieldKey] = undefined;
+                            else delete props.Document.proto![props.fieldKey];
                         })}>
                             X
                         </button>

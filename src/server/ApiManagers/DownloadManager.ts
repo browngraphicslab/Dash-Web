@@ -246,7 +246,7 @@ async function writeHierarchyRecursive(file: Archiver.Archiver, hierarchy: Hiera
         if (typeof result === "string") {
             let path: string;
             let matches: RegExpExecArray | null;
-            if ((matches = /\:1050\/files\/images\/(upload\_[\da-z]{32}.*)/g.exec(result)) !== null) {
+            if ((matches = /\:\d+\/files\/images\/(upload\_[\da-z]{32}.*)/g.exec(result)) !== null) {
                 // image already exists on our server
                 path = serverPathToFile(Directory.images, matches[1]);
             } else {

@@ -1,44 +1,36 @@
 import React = require("react");
-import { Touchable } from "./Touchable";
+import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import "./GestureOverlay.scss";
-import { computed, observable, action, runInAction, IReactionDisposer, reaction, flow, trace } from "mobx";
-import { GestureUtils } from "../../pen-gestures/GestureUtils";
-import { InteractionUtils } from "../util/InteractionUtils";
-import { InkingControl } from "./InkingControl";
-import { InkTool, InkData } from "../../fields/InkField";
 import { Doc } from "../../fields/Doc";
-import { LinkManager } from "../util/LinkManager";
-import { DocUtils, Docs } from "../documents/Documents";
-import { undoBatch } from "../util/UndoManager";
-import { Scripting } from "../util/Scripting";
-import { FieldValue, Cast, NumCast, BoolCast } from "../../fields/Types";
-import { CurrentUserUtils } from "../util/CurrentUserUtils";
-import HorizontalPalette from "./Palette";
-import { Utils, emptyPath, emptyFunction, returnFalse, returnOne, returnEmptyString, returnTrue, numberRange, returnZero } from "../../Utils";
-import { DocumentView } from "./nodes/DocumentView";
-import { Transform } from "../util/Transform";
-import { DocumentContentsView } from "./nodes/DocumentContentsView";
+import { InkData, InkTool } from "../../fields/InkField";
+import { Cast, FieldValue, NumCast } from "../../fields/Types";
+import MobileInkOverlay from "../../mobile/MobileInkOverlay";
+import MobileInterface from "../../mobile/MobileInterface";
+import { GestureUtils } from "../../pen-gestures/GestureUtils";
+import { MobileInkOverlayContent } from "../../server/Message";
+import { emptyFunction, emptyPath, returnEmptyString, returnFalse, returnOne, returnTrue, returnZero } from "../../Utils";
 import { CognitiveServices } from "../cognitive_services/CognitiveServices";
 import { DocServer } from "../DocServer";
-import htmlToImage from "html-to-image";
-import { ScriptField } from "../../fields/ScriptField";
-import { listSpec } from "../../fields/Schema";
-import { List } from "../../fields/List";
-import { CollectionViewType } from "./collections/CollectionView";
-import TouchScrollableMenu, { TouchScrollableMenuItem } from "./TouchScrollableMenu";
-import MobileInterface from "../../mobile/MobileInterface";
-import { MobileInkOverlayContent } from "../../server/Message";
-import MobileInkOverlay from "../../mobile/MobileInkOverlay";
+import { DocUtils } from "../documents/Documents";
+import { CurrentUserUtils } from "../util/CurrentUserUtils";
+import { InteractionUtils } from "../util/InteractionUtils";
+import { LinkManager } from "../util/LinkManager";
+import { Scripting } from "../util/Scripting";
+import { Transform } from "../util/Transform";
+import "./GestureOverlay.scss";
+import { InkingControl } from "./InkingControl";
+import { DocumentView } from "./nodes/DocumentView";
 import { RadialMenu } from "./nodes/RadialMenu";
-import { SelectionManager } from "../util/SelectionManager";
+import HorizontalPalette from "./Palette";
+import { Touchable } from "./Touchable";
+import TouchScrollableMenu, { TouchScrollableMenuItem } from "./TouchScrollableMenu";
 
 
 @observer
 export default class GestureOverlay extends Touchable {
     static Instance: GestureOverlay;
 
-    @observable private _timer: timeoutId | undefined;
+    // @observable private _timer: timeoutId | undefined;
 
     @observable public SavedColor?: string;
     @observable public SavedWidth?: string;
