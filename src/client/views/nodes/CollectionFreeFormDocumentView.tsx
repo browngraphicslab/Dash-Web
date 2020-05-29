@@ -154,6 +154,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 width: this.width,
                 height: this.height,
                 zIndex: this.ZInd,
+                mixBlendMode: StrCast(this.layoutDoc.mixBlendMode) as any,
                 display: this.ZInd === -99 ? "none" : undefined,
                 pointerEvents: this.props.Document.isBackground || this.Opacity === 0 ? "none" : this.props.pointerEvents ? "all" : undefined
             }} >
