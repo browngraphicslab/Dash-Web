@@ -15,6 +15,8 @@ export class InkingControl {
     @computed private get _selectedTool(): InkTool { return FieldValue(NumCast(Doc.UserDoc().inkTool)) ?? InkTool.None; }
     @computed private get _selectedColor(): string { return CurrentUserUtils.ActivePen ? FieldValue(StrCast(CurrentUserUtils.ActivePen.backgroundColor)) ?? "rgb(0, 0, 0)" : "rgb(0, 0, 0)"; }
     @computed private get _selectedWidth(): string { return FieldValue(StrCast(Doc.UserDoc().inkWidth)) ?? "2"; }
+    @computed private get _selectedBezier(): string { return FieldValue(StrCast(Doc.UserDoc().inkBezier)) ?? "2"; }
+
     @observable public _open: boolean = false;
 
     constructor() {
@@ -62,6 +64,14 @@ export class InkingControl {
         }
     }
 
+    @action
+    switchBezier = (bezier: string): void => {
+        // this._selectedWidth = width;
+        if (!isNaN(parseInt(bezier))) {
+            Doc.UserDoc().inkBezier = bezier;
+        }
+    }
+
     @computed
     get selectedTool() {
         return this._selectedTool;
@@ -81,6 +91,11 @@ export class InkingControl {
     @computed
     get selectedWidth() {
         return this._selectedWidth;
+    }
+
+    @computed
+    get selectedBezier() {
+        return this._selectedBezier;
     }
 
 }

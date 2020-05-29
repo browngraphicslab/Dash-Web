@@ -30,6 +30,10 @@ export class ColorBox extends ViewBoxBaseComponent<FieldViewProps, ColorDocument
             <div style={{ display: "grid", gridTemplateColumns: "20% 80%", paddingTop: "10px" }}>
                 <div>{InkingControl.Instance.selectedWidth ?? 2}</div>
                 <input type="range" value={InkingControl.Instance.selectedWidth ?? 2} defaultValue={2} min={1} max={100} onChange={(e: React.ChangeEvent<HTMLInputElement>) => InkingControl.Instance.switchWidth(e.target.value)} />
+                <div>{InkingControl.Instance.selectedBezier ?? 2}</div>
+                <input type="range" value={InkingControl.Instance.selectedBezier ?? 2} defaultValue={2} min={0} max={300} onChange={(e: React.ChangeEvent<HTMLInputElement>) => InkingControl.Instance.switchBezier(e.target.value)} />
+                <br />
+                <br />
             </div>
         </div>;
     }

@@ -25,13 +25,13 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
     public static LayoutString(fieldStr: string) { return FieldView.LayoutString(InkingStroke, fieldStr); }
 
     private analyzeStrokes = () => {
-        const data: InkData = Cast(this.dataDoc[this.fieldKey], InkField) ?.inkData ?? [];
+        const data: InkData = Cast(this.dataDoc[this.fieldKey], InkField)?.inkData ?? [];
         CognitiveServices.Inking.Appliers.ConcatenateHandwriting(this.dataDoc, ["inkAnalysis", "handwriting"], [data]);
     }
 
     render() {
         TraceMobx();
-        const data: InkData = Cast(this.dataDoc[this.fieldKey], InkField) ?.inkData ?? [];
+        const data: InkData = Cast(this.dataDoc[this.fieldKey], InkField)?.inkData ?? [];
         const xs = data.map(p => p.X);
         const ys = data.map(p => p.Y);
         const left = Math.min(...xs);
@@ -40,7 +40,9 @@ export class InkingStroke extends ViewBoxBaseComponent<FieldViewProps, InkDocume
         const bottom = Math.max(...ys);
         const points = InteractionUtils.CreatePolyline(data, left, top,
             StrCast(this.layoutDoc.color, InkingControl.Instance.selectedColor),
-            StrCast(this.layoutDoc.strokeWidth, InkingControl.Instance.selectedWidth));
+            StrCast(this.layoutDoc.strokeWidth, InkingControl.Instance.selectedWidth),
+            StrCast(this.layoutDoc.strokeBezier, InkingControl.Instance.selectedBezier));
+
         const width = right - left;
         const height = bottom - top;
         const scaleX = this.props.PanelWidth() / width;

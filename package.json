@@ -145,6 +145,7 @@
         "express-validator": "^5.3.1",
         "expressjs": "^1.0.1",
         "find-in-files": "^0.5.0",
+        "fit-curve": "^0.1.7",
         "flexlayout-react": "^0.3.3",
         "formidable": "^1.2.1",
         "golden-layout": "^1.5.9",

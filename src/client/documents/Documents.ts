@@ -159,6 +159,7 @@ export interface DocumentOptions {
     targetContainer?: Doc; // document whose proto will be set to 'panel' as the result of a onClick click script
     searchFileTypes?: List<string>; // file types allowed in a search query
     strokeWidth?: number;
+
     treeViewPreventOpen?: boolean; // ignores the treeViewOpen Doc flag which allows a treeViewItem's expand/collapse state to be independent of other views of the same document in the tree view
     treeViewHideTitle?: boolean; // whether to hide the title of a tree view
     treeViewHideHeaderFields?: boolean; // whether to hide the drop down options for tree view items.
@@ -616,12 +617,13 @@ export namespace Docs {
             return doc;
         }
 
-        export function InkDocument(color: string, tool: number, strokeWidth: string, points: { X: number, Y: number }[], options: DocumentOptions = {}) {
+        export function InkDocument(color: string, tool: number, strokeWidth: string, strokeBezier: string, points: { X: number, Y: number }[], options: DocumentOptions = {}) {
             const I = new Doc();
             I.type = DocumentType.INK;
             I.layout = InkingStroke.LayoutString("data");
             I.color = color;
             I.strokeWidth = strokeWidth;
+            I.strokeBezier = strokeBezier;
             I.tool = tool;
             I.title = "ink";
             I.x = options.x;
@@ -922,8 +924,8 @@ export namespace Docs {
                 created = Docs.Create.AudioDocument((field).url.href, resolved);
                 layout = AudioBox.LayoutString;
             } else if (field instanceof InkField) {
-                const { selectedColor, selectedWidth, selectedTool } = InkingControl.Instance;
-                created = Docs.Create.InkDocument(selectedColor, selectedTool, selectedWidth, (field).inkData, resolved);
+                const { selectedColor, selectedWidth, selectedTool, selectedBezier } = InkingControl.Instance;
+                created = Docs.Create.InkDocument(selectedColor, selectedTool, selectedWidth, selectedBezier, (field).inkData, resolved);
                 layout = InkingStroke.LayoutString;
             } else if (field instanceof List && field[0] instanceof Doc) {
                 created = Docs.Create.StackingDocument(DocListCast(field), resolved);
