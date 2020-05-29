@@ -748,7 +748,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                 Document.childLayoutTemplate = heroView;
                 Document.childClickedOpenTemplateView = new PrefetchProxy(detailView);
                 Document._viewType = CollectionViewType.Time;
-                Document._forceActive = true;
+                Document.forceActive = true;
                 Document._pivotField = "company";
                 Document.childDropAction = "alias";
             }
