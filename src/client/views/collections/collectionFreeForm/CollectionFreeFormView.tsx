@@ -1,7 +1,7 @@
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faEye, faEyeSlash } from "@fortawesome/free-regular-svg-icons";
 import { faBraille, faChalkboard, faCompass, faCompressArrowsAlt, faExpandArrowsAlt, faFileUpload, faPaintBrush, faTable, faUpload } from "@fortawesome/free-solid-svg-icons";
-import { action, computed, IReactionDisposer, observable, ObservableMap, reaction, runInAction, _allowStateChangesInsideComputed } from "mobx";
+import { action, computed, IReactionDisposer, observable, ObservableMap, reaction, runInAction, _allowStateChangesInsideComputed, trace } from "mobx";
 import { observer } from "mobx-react";
 import { computedFn } from "mobx-utils";
 import { Doc, HeightSym, Opt, WidthSym, DocListCast } from "../../../../fields/Doc";
@@ -118,12 +118,28 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             this.props.PanelWidth() / (this.contentBounds.r - this.contentBounds.x)) :
         this.Document.scale || 1)
 
-    private centeringShiftX = () => !this.isAnnotationOverlay ? this.props.PanelWidth() / 2 / this.parentScaling / this.contentScaling : 0;  // shift so pan position is at center of window for non-overlay collections
-    private centeringShiftY = () => !this.isAnnotationOverlay ? this.props.PanelHeight() / 2 / this.parentScaling / this.contentScaling : 0;// shift so pan position is at center of window for non-overlay collections
-    private getTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.borderWidth + 1, -this.borderWidth + 1).translate(-this.centeringShiftX(), -this.centeringShiftY()).transform(this.getLocalTransform());
-    private getTransformOverlay = (): Transform => this.props.ScreenToLocalTransform().translate(-this.borderWidth + 1, -this.borderWidth + 1);
-    private getContainerTransform = (): Transform => this.props.ScreenToLocalTransform().translate(-this.borderWidth, -this.borderWidth);
-    private getLocalTransform = (): Transform => Transform.Identity().scale(1 / this.zoomScaling()).translate(this.panX(), this.panY());
+    @computed get cachedCenteringShiftX(): number {
+        return !this.isAnnotationOverlay ? this.props.PanelWidth() / 2 / this.parentScaling / this.contentScaling : 0;  // shift so pan position is at center of window for non-overlay collections
+    }
+    @computed get cachedCenteringShiftY(): number {
+        return !this.isAnnotationOverlay ? this.props.PanelHeight() / 2 / this.parentScaling / this.contentScaling : 0;// shift so pan position is at center of window for non-overlay collections
+    }
+    @computed get cachedGetLocalTransform(): Transform {
+        return Transform.Identity().scale(1 / this.zoomScaling()).translate(this.panX(), this.panY());
+    }
+    @computed get cachedGetContainerTransform(): Transform {
+        return this.props.ScreenToLocalTransform().translate(-this.borderWidth, -this.borderWidth);
+    }
+    @computed get cachedGetTransform(): Transform {
+        return this.getTransformOverlay().translate(- this.cachedCenteringShiftX, - this.cachedCenteringShiftY).transform(this.cachedGetLocalTransform);
+    }
+
+    private centeringShiftX = () => this.cachedCenteringShiftX;
+    private centeringShiftY = () => this.cachedCenteringShiftY;
+    private getTransform = () => this.cachedGetTransform.copy();
+    private getLocalTransform = () => this.cachedGetLocalTransform.copy();
+    private getContainerTransform = () => this.cachedGetContainerTransform.copy();
+    private getTransformOverlay = () => this.getContainerTransform().translate(1, 1);
     private addLiveTextBox = (newBox: Doc) => {
         FormattedTextBox.SelectOnLoad = newBox[Id];// track the new text box so we can give it a prop that tells it to focus itself when it's displayed
         this.addDocument(newBox);
@@ -161,30 +177,6 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         }
         return retVal;
     })
-
-    @undoBatch
-    @action
-    nextKeyframe = (): void => {
-        const currentFrame = this.Document.currentFrame;
-        if (currentFrame === undefined) {
-            this.Document.currentFrame = 0;
-            CollectionFreeFormDocumentView.setupKeyframes(this.childDocs, 0);
-        }
-        CollectionFreeFormDocumentView.updateKeyframe(this.childDocs, currentFrame || 0);
-        this.Document.currentFrame = Math.max(0, (currentFrame || 0) + 1);
-        this.Document.lastFrame = Math.max(NumCast(this.Document.currentFrame), NumCast(this.Document.lastFrame));
-    }
-    @undoBatch
-    @action
-    prevKeyframe = (): void => {
-        const currentFrame = this.Document.currentFrame;
-        if (currentFrame === undefined) {
-            this.Document.currentFrame = 0;
-            CollectionFreeFormDocumentView.setupKeyframes(this.childDocs, 0);
-        }
-        CollectionFreeFormDocumentView.gotoKeyframe(this.childDocs.slice());
-        this.Document.currentFrame = Math.max(0, (currentFrame || 0) - 1);
-    }
 
     private selectDocuments = (docs: Doc[]) => {
         SelectionManager.DeselectAll();
@@ -1219,6 +1211,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         const optionItems: ContextMenuProps[] = options && "subitems" in options ? options.subitems : [];
 
         optionItems.push({ description: "reset view", event: () => { this.props.Document._panX = this.props.Document._panY = 0; this.props.Document.scale = 1; }, icon: "compress-arrows-alt" });
+        optionItems.push({ description: "toggle snap line display", event: () => Doc.UserDoc().showSnapLines = !Doc.UserDoc().showSnapLines, icon: "compress-arrows-alt" });
         optionItems.push({ description: "Reset default note style", event: () => Doc.UserDoc().defaultTextLayout = undefined, icon: "eye" });
         optionItems.push({ description: (!this.layoutDoc._nativeWidth || !this.layoutDoc._nativeHeight ? "Freeze" : "Unfreeze") + " Aspect", event: this.toggleNativeDimensions, icon: "snowflake" });
         optionItems.push({ description: `${this.fitToContent ? "Unset" : "Set"} Fit To Container`, event: () => this.Document._fitToBox = !this.fitToContent, icon: !this.fitToContent ? "expand-arrows-alt" : "compress-arrows-alt" });
@@ -1397,18 +1390,7 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
             {!this.Document._LODdisable && !this.props.active() && !this.props.isAnnotationOverlay && !this.props.annotationsKey && this.props.renderDepth > 0 ?
                 this.placeholder : this.marqueeView}
             <CollectionFreeFormOverlayView elements={this.elementFunc} />
-            {this.isAnnotationOverlay || !this.props.isSelected() || this.props.Document._viewType === CollectionViewType.Pile ? (null) :
-                <>
-                    <div key="back" className="backKeyframe" onClick={this.prevKeyframe}>
-                        <FontAwesomeIcon icon={"caret-left"} size={"lg"} />
-                    </div>
-                    <div key="num" className="numKeyframe" style={{ backgroundColor: this.Document.editing ? "#759c75" : "#c56565" }} onClick={action(() => this.Document.editing = !this.Document.editing)} >
-                        {NumCast(this.Document.currentFrame)}
-                    </div>
-                    <div key="fwd" className="fwdKeyframe" onClick={this.nextKeyframe}>
-                        <FontAwesomeIcon icon={"caret-right"} size={"lg"} />
-                    </div>
-                </>}
+
             <div className={"pullpane-indicator"}
                 style={{
                     display: this._pullDirection ? "block" : "none",

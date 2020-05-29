@@ -965,9 +965,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         return this.isSelected(outsideReaction) || (this.props.Document.rootDocument && this.props.rootSelected?.(outsideReaction)) || false;
     }
     childScaling = () => (this.layoutDoc._fitWidth ? this.props.PanelWidth() / this.nativeWidth : this.props.ContentScaling());
-    panelWidth = () => this.props.PanelWidth();
-    panelHeight = () => this.props.PanelHeight();
-    screenToLocalTransform = () => this.props.ScreenToLocalTransform();
     @computed get contents() {
         TraceMobx();
         return (<>
@@ -988,10 +985,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 addDocument={this.props.addDocument}
                 removeDocument={this.props.removeDocument}
                 moveDocument={this.props.moveDocument}
-                ScreenToLocalTransform={this.screenToLocalTransform}
+                ScreenToLocalTransform={this.props.ScreenToLocalTransform}
                 renderDepth={this.props.renderDepth}
-                PanelWidth={this.panelWidth}
-                PanelHeight={this.panelHeight}
+                PanelWidth={this.props.PanelWidth}
+                PanelHeight={this.props.PanelHeight}
                 ignoreAutoHeight={this.props.ignoreAutoHeight}
                 focus={this.props.focus}
                 parentActive={this.props.parentActive}

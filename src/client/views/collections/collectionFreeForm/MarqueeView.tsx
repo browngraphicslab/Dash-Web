@@ -357,10 +357,14 @@ export class MarqueeView extends React.Component<SubCollectionViewProps & Marque
         const selected = this.marqueeSelect(false);
         if (e instanceof KeyboardEvent ? e.key === "c" : true) {
             selected.map(action(d => {
-                //this.props.removeDocument(d);
-                d.x = NumCast(d.x) - bounds.left - bounds.width / 2;
-                d.y = NumCast(d.y) - bounds.top - bounds.height / 2;
-                d.displayTimecode = undefined;  // bcz: this should be automatic somehow.. along with any other properties that were logically associated with the original collection
+                const dx = NumCast(d.x);
+                const dy = NumCast(d.y);
+                delete d.x;
+                delete d.y;
+                delete d.activeFrame;
+                delete d.displayTimecode;  // bcz: this should be automatic somehow.. along with any other properties that were logically associated with the original collection
+                d.x = dx - bounds.left - bounds.width / 2;
+                d.y = dy - bounds.top - bounds.height / 2;
                 return d;
             }));
             this.props.removeDocument(selected);

@@ -23,7 +23,7 @@ export class CollectionPileView extends CollectionSubView(doc => doc) {
     @observable _childClickedScript: Opt<ScriptField>;
     componentDidMount() {
         if (this.layoutEngine() !== "pass" && this.layoutEngine() !== "starburst") {
-            this.Document._layoutEngine = "pass";
+            this.Document._pileLayoutEngine = "pass";
         }
         this._originalChrome = StrCast(this.layoutDoc._chromeStatus);
         this.layoutDoc._chromeStatus = "disabled";
@@ -34,7 +34,7 @@ export class CollectionPileView extends CollectionSubView(doc => doc) {
         this.layoutDoc._chromeStatus = this._originalChrome;
     }
 
-    layoutEngine = () => StrCast(this.Document._layoutEngine);
+    layoutEngine = () => StrCast(this.Document._pileLayoutEngine);
 
     @computed get contents() {
         return <div className="collectionPileView-innards" style={{ pointerEvents: this.layoutEngine() === "starburst" ? undefined : "none" }} >
@@ -53,7 +53,7 @@ export class CollectionPileView extends CollectionSubView(doc => doc) {
             Doc.pileup(this.childDocs);
             this.layoutDoc._panX = 0;
             this.layoutDoc._panY = -10;
-            this.props.Document._layoutEngine = 'pass';
+            this.props.Document._pileLayoutEngine = 'pass';
         } else {
             const defaultSize = 25;
             this.layoutDoc._overflow = 'visible';
@@ -67,7 +67,7 @@ export class CollectionPileView extends CollectionSubView(doc => doc) {
             }
             this.layoutDoc._panX = this.layoutDoc._panY = 0;
             this.layoutDoc._width = this.layoutDoc._height = defaultSize;
-            this.props.Document._layoutEngine = 'starburst';
+            this.props.Document._pileLayoutEngine = 'starburst';
         }
     });
 
