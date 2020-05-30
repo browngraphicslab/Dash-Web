@@ -1,6 +1,6 @@
 import { computed } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, Opt, Field } from "../../../fields/Doc";
+import { Doc, Opt, Field, AclSym, AclPrivate } from "../../../fields/Doc";
 import { Cast, StrCast, NumCast } from "../../../fields/Types";
 import { OmitKeys, Without, emptyPath } from "../../../Utils";
 import DirectoryImportBox from "../../util/Import & Export/DirectoryImportBox";
@@ -185,7 +185,7 @@ export class DocumentContentsView extends React.Component<DocumentViewProps & {
         const bindings = this.CreateBindings(onClick, onInput);
         //  layoutFrame = splits.length > 1 ? splits[0] + splits[1].replace(/{([^{}]|(?R))*}/, replacer4) : ""; // might have been more elegant if javascript supported recursive patterns
 
-        return (this.props.renderDepth > 12 || !layoutFrame || !this.layoutDoc) ? (null) :
+        return (this.props.renderDepth > 12 || !layoutFrame || !this.layoutDoc || this.layoutDoc[AclSym] === AclPrivate) ? (null) :
             <ObserverJsxParser
                 key={42}
                 blacklistedAttrs={[]}
