@@ -49,12 +49,25 @@ export function isCompileError(toBeDetermined: CompileResult): toBeDetermined is
 export namespace Scripting {
     export function addGlobal(global: { name: string }): void;
     export function addGlobal(name: string, global: any): void;
-    export function addGlobal(nameOrGlobal: any, global?: any) {
-        let n: string;
+
+    export function addGlobal(global: { name: string }, decription?: string, params?: any): void;
+
+    export function addGlobal(nameOrGlobal: any, global?: any, params?: any) {
+        let n: any;
         let obj: any;
-        if (global !== undefined && typeof nameOrGlobal === "string") {
-            n = nameOrGlobal;
-            obj = global;
+
+        if (global !== undefined) {
+            if (typeof nameOrGlobal === "string") {
+                n = nameOrGlobal;
+                obj = global;
+            } else {
+                n = nameOrGlobal.name;
+                obj = [nameOrGlobal];
+                obj.push(global);
+                if (params) {
+                    obj.push(params);
+                }
+            }
         } else if (nameOrGlobal && typeof nameOrGlobal.name === "string") {
             n = nameOrGlobal.name;
             obj = nameOrGlobal;
@@ -86,6 +99,10 @@ export namespace Scripting {
 
     export function getGlobals() {
         return Object.keys(scriptingGlobals);
+    }
+
+    export function getGlobalObj() {
+        return _scriptingGlobals;
     }
 }
 

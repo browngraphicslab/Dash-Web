@@ -10,7 +10,7 @@ import { Cast, NumCast, ScriptCast, StrCast } from "../../../fields/Types";
 import { returnEmptyString } from "../../../Utils";
 import { DragManager } from "../../util/DragManager";
 import { InteractionUtils } from "../../util/InteractionUtils";
-import { CompileScript, ScriptParam } from "../../util/Scripting";
+import { CompileScript, ScriptParam, Scripting } from "../../util/Scripting";
 import { ContextMenu } from "../ContextMenu";
 import { ViewBoxAnnotatableComponent } from "../DocComponent";
 import { EditableView } from "../EditableView";
@@ -18,6 +18,8 @@ import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import { OverlayView } from "../OverlayView";
 import { DocumentIconContainer } from "./DocumentIcon";
 import "./ScriptingBox.scss";
+import Autosuggest from "react-autosuggest";
+import { emptyFunction } from '../../../Utils';
 
 const ScriptingSchema = createSchema({});
 type ScriptingDocument = makeInterface<[typeof ScriptingSchema, typeof documentSchema]>;
@@ -33,6 +35,11 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
 
     @observable private _errorMessage: string = "";
     @observable private _applied: boolean = false;
+    @observable private _suggested: boolean = false;
+    @observable private _scriptKeys: any = Scripting.getGlobals();
+    @observable private _scriptingGlobals: any = Scripting.getGlobalObj();
+    @observable private _currWord: string = "";
+    @observable private _suggestions: any[] = [];
 
     // vars included in fields that store parameters types and names and the script itself
     @computed get paramsNames() { return this.compileParams.map(p => p.split(":")[0].trim()); }
@@ -283,6 +290,27 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         return false;
     }
 
+    getSuggestionValue = (suggestion: string) => suggestion;
+
+    renderSuggestion = (suggestion: string) => {
+        return (null);
+    }
+
+    @action
+    handleKeyPress(e: React.ChangeEvent<HTMLTextAreaElement>) {
+
+        this.rawScript = e.target.value;
+        this._currWord = e.target.value.split(" ")[e.target.value.split(" ").length - 1];
+        this._suggestions = [];
+
+        this._scriptKeys.forEach((element: string | string[]) => {
+            if (element.indexOf(this._currWord) >= 0) {
+                this._suggestions.push(element);
+            }
+        });
+        console.log(this._suggestions);
+    }
+
     // inputs for scripting div (script box, params box, and params column)
     renderScriptingInputs() {
 
@@ -296,12 +324,22 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         </div>;
 
         // main scripting input box
-        const scriptingInputText = <textarea onFocus={this.onFocus} onBlur={e => this._overlayDisposer?.()}
-            onChange={e => this.rawScript = e.target.value}
-            placeholder="write your script here"
-            value={this.rawScript}
-            style={{ width: this.compileParams.length > 0 ? "70%" : "100%", resize: "none", height: "100%" }}
-        />;
+        const scriptingInputText =
+            // <Autosuggest
+            //     inputProps={{ value: this.rawScript, onChange: this.handleKeyPress }}
+            //     getSuggestionValue={this.getSuggestionValue}
+            //     suggestions={this._suggestions}
+            //     //alwaysRenderSuggestions={false}
+            //     renderSuggestion={this.renderSuggestion}
+            //     onSuggestionsFetchRequested={emptyFunction}
+            //     onSuggestionsClearRequested={emptyFunction}
+            // />;
+            <textarea onFocus={this.onFocus} onBlur={e => this._overlayDisposer?.()}
+                onChange={e => this.handleKeyPress(e)}
+                placeholder="write your script here"
+                value={this.rawScript}
+                style={{ width: this.compileParams.length > 0 ? "70%" : "100%", resize: "none", height: "100%" }}
+            />;
 
         // params column on right side (list)
         const definedParameters = !this.compileParams.length ? (null) :
