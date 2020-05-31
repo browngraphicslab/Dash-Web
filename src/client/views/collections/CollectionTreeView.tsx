@@ -733,7 +733,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                         const caption = (d.captions as any)[i];
                         if (caption) {
                             Doc.GetProto(img).caption = caption;
-                            Doc.GetProto(img).doubleClickView = (pdfContent = StrCast(img.additionalMedia_pdfs)) ? PdfDocument(pdfContent) : fallback;
+                            Doc.GetProto(img).doubleClickView = (pdfContent = StrCast(img.additionalMedia_pdfs)) ? PdfDocument(pdfContent, { title: pdfContent }) : fallback;
                         }
                     });
                     Doc.GetProto(d).type = "buxton";

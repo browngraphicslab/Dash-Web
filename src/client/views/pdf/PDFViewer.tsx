@@ -34,6 +34,7 @@ import React = require("react");
 import { SnappingManager } from "../../util/SnappingManager";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 const pdfjsLib = require("pdfjs-dist");
+import { Networking } from "../../Network";
 
 export const pageSchema = createSchema({
     curPage: "number",
@@ -129,8 +130,17 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         // change the address to be the file address of the PNG version of each page
         // file address of the pdf
         const { url: { href } } = Cast(this.dataDoc[this.props.fieldKey], PdfField)!;
-        const addr = Utils.prepend(`/thumbnail${this.props.url.substring("files/pdfs/".length, this.props.url.length - ".pdf".length)}-${(this.Document.curPage || 1)}.png`);
-        this._coverPath = href.startsWith(window.location.origin) ? JSON.parse(await rp.get(addr)) : { width: 100, height: 100, path: "" };
+        const { url: relative } = this.props;
+        const pathComponents = relative.split("/pdfs/")[1].split("/");
+        const coreFilename = pathComponents.pop()!.split(".")[0];
+        const params: any = {
+            coreFilename,
+            pageNum: this.Document.curPage || 1,
+        };
+        if (pathComponents.length) {
+            params.subtree = `${pathComponents.join("/")}/`;
+        }
+        this._coverPath = href.startsWith(window.location.origin) ? await Networking.PostToServer("/thumbnail", params) : { width: 100, height: 100, path: "" };
         runInAction(() => this._showWaiting = this._showCover = true);
         this.props.startupLive && this.setupPdfJsViewer();
         this._searchReactionDisposer = reaction(() => this.Document.searchMatch, search => {
