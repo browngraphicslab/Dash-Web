@@ -7,7 +7,7 @@ import { observer } from 'mobx-react';
 import * as ReactDOM from "react-dom";
 import * as rp from 'request-promise';
 import { CurrentUserUtils } from '../client/util/CurrentUserUtils';
-import { FieldValue, Cast, StrCast } from '../fields/Types';
+import { FieldValue, Cast, StrCast, BoolCast } from '../fields/Types';
 import { Doc, DocListCast, Opt } from '../fields/Doc';
 import { Docs } from '../client/documents/Documents';
 import { CollectionView } from '../client/views/collections/CollectionView';
@@ -34,20 +34,21 @@ import RichTextMenu from '../client/views/nodes/formattedText/RichTextMenu';
 import { MainView } from '../client/views/MainView';
 import SettingsManager from '../client/util/SettingsManager';
 import { Uploader } from "./ImageUpload";
-import { Upload } from '../server/SharedMediaTypes';
 import { createTypePredicateNodeWithModifier } from 'typescript';
 import { AudioBox } from '../client/views/nodes/AudioBox';
 import { List } from '../fields/List';
+import { ScriptField, ComputedField } from '../fields/ScriptField';
 
 library.add(faLongArrowAltLeft);
 library.add(faHome);
 
 @observer
-export class MobileInterface extends React.Component {
+export default class MobileInterface extends React.Component {
     @observable static Instance: MobileInterface;
     @computed private get userDoc() { return Doc.UserDoc(); }
     @computed private get mainContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeMobile, Doc)) : CurrentUserUtils.GuestMobile; }
     @computed private get activeContainer() { return this.userDoc ? FieldValue(Cast(this.userDoc.activeMobile, Doc)) : CurrentUserUtils.GuestMobile; }
+    private get darkScheme() { return BoolCast(Cast(this.userDoc?.activeWorkspace, Doc, null)?.darkScheme); }
     // @observable private currentView: "main" | "ink" | "upload" = "main";
     @observable private mainDoc: any = CurrentUserUtils.setupMobileMenu(this.userDoc);
     @observable private renderView?: () => JSX.Element;
@@ -301,6 +302,9 @@ export class MobileInterface extends React.Component {
                             <div className="item" key="settings" onClick={() => SettingsManager.Instance.open()}>
                                 Settings
                             </div>
+                            <div className="item" key="ink" onClick={() => CurrentUserUtils.setupDockedButtons(this._activeDoc)}>
+                                Ink
+                            </div>
                         </div>
                     </div>
                     <div>
@@ -333,6 +337,9 @@ export class MobileInterface extends React.Component {
                         <div>
                             {buttons}
                         </div>
+                        <div className="item" key="ink" onClick={() => CurrentUserUtils.setupDockedButtons(this.userDoc)}>
+                            Ink
+                            </div>
                         <div className="item" key="home" onClick={this.returnHome}>
                             Home
                         </div>
@@ -493,6 +500,7 @@ export class MobileInterface extends React.Component {
         e.stopPropagation();
     }
 
+
     render() {
         // const content = this.currentView === "main" ? this.mainContent :
         //     this.currentView === "ink" ? this.inkContent :
@@ -505,19 +513,19 @@ export class MobileInterface extends React.Component {
                 </GestureOverlay> */}
                 {/* <GestureOverlay> */}
                 <SettingsManager />
-                {this.displayWorkspaces()}
+                <GestureOverlay>
+                    {this.displayWorkspaces()}
+                    {this.renderDefaultContent()}
+                </GestureOverlay>
                 {/* </GestureOverlay> */}
                 {/* <DictationOverlay />
                 <SharingManager />
                 <GoogleAuthenticationManager /> */}
                 {/* <DocumentDecorations /> */}
-                <div>
-                    {this.renderDefaultContent()}
-                </div>
                 {/* <PreviewCursor /> */}
                 {/* <ContextMenu /> */}
-                {/* <RadialMenu />
-                <RichTextMenu /> */}
+                <RadialMenu />
+                {/* <RichTextMenu /> */}
                 {/* <PDFMenu />
                 <MarqueeOptionsMenu />
                 <OverlayView /> */}

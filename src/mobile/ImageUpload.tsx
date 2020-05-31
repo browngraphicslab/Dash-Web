@@ -12,7 +12,6 @@ import { observer } from 'mobx-react';
 import { observable } from 'mobx';
 import { Utils } from '../Utils';
 import { Networking } from '../client/Network';
-import { MobileDocumentUploadContent } from '../server/Message';
 
 export interface ImageUploadProps {
     Document: Doc;
