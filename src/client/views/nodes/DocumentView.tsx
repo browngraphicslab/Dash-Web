@@ -742,16 +742,16 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
         const more = cm.findByDescription("More...");
         const moreItems: ContextMenuProps[] = more && "subitems" in more ? more.subitems : [];
-        moreItems.push({ description: "Make Add Only", event: () => this.layoutDoc.ACL = this.dataDoc.ACL = "addOnly", icon: "concierge-bell" });
-        moreItems.push({ description: "Make Read Only", event: () => this.layoutDoc.ACL = this.dataDoc.ACL = "readOnly", icon: "concierge-bell" });
-        moreItems.push({ description: "Make Private", event: () => this.layoutDoc[AclSym] = this.dataDoc[AclSym] = "noAccess", icon: "concierge-bell" });
+        moreItems.push({ description: "Make Add Only", event: () => this.dataDoc.ACL = this.layoutDoc.ACL = "addOnly", icon: "concierge-bell" });
+        moreItems.push({ description: "Make Read Only", event: () => this.dataDoc.ACL = this.layoutDoc.ACL = "readOnly", icon: "concierge-bell" });
+        moreItems.push({ description: "Make Private", event: () => this.dataDoc.ACL = this.layoutDoc.ACL = "noAccess", icon: "concierge-bell" });
         moreItems.push({ description: "Make View of Metadata Field", event: () => Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.DataDoc), icon: "concierge-bell" });
         moreItems.push({ description: `${this.Document._chromeStatus !== "disabled" ? "Hide" : "Show"} Chrome`, event: () => this.Document._chromeStatus = (this.Document._chromeStatus !== "disabled" ? "disabled" : "enabled"), icon: "project-diagram" });
         moreItems.push({ description: this.Document.lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document.lockedPosition) ? "unlock" : "lock" });
 
         if (!ClientUtils.RELEASE) {
             // let copies: ContextMenuProps[] = [];
-            moreItems.push({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document[Id]), icon: "fingerprint" });
+            moreItems.push({ description: "Copy ID", event: () => Utils.CopyText(Utils.prepend("/doc/" + this.props.Document[Id])), icon: "fingerprint" });
             // cm.addItem({ description: "Copy...", subitems: copies, icon: "copy" });
         }
         if (Cast(Doc.GetProto(this.props.Document).data, listSpec(Doc))) {
