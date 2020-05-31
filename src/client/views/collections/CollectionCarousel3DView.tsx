@@ -78,13 +78,51 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
             }));
     }
 
-    advance = (e: React.MouseEvent) => {
+    handleArrowClick = (e: React.MouseEvent, direction: number) => {
         e.stopPropagation();
-        this.layoutDoc._itemIndex = (NumCast(this.layoutDoc._itemIndex) + 1) % this.childLayoutPairs.length;
+        this.rotate(direction);
     }
-    goback = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        this.layoutDoc._itemIndex = (NumCast(this.layoutDoc._itemIndex) - 1 + this.childLayoutPairs.length) % this.childLayoutPairs.length;
+
+    rotate = (direction: number) => {
+        this.layoutDoc._itemIndex = (NumCast(this.layoutDoc._itemIndex) + direction + this.childLayoutPairs.length) % this.childLayoutPairs.length;
+    }
+
+    timer?: NodeJS.Timeout;
+    interval?: NodeJS.Timeout;
+    onPress = (e: React.PointerEvent, direction: number) => {
+        e.stopPropagation;
+        document.removeEventListener("pointerup", this.onRelease);
+        document.addEventListener("pointerup", this.onRelease);
+
+        this.timer = setTimeout(() => {
+            this.startScroll(direction);
+        }, 1500);
+    }
+
+    onRelease = () => {
+        if (this.timer) {
+            clearTimeout(this.timer);
+            this.timer = undefined;
+        }
+        this.stopScroll();
+    }
+
+    startScroll = (direction: number) => {
+        this.interval = setInterval(() => {
+            this.rotate(direction);
+        }, 500);
+    }
+
+    stopScroll = () => {
+        if (this.timer) {
+            clearTimeout(this.timer);
+            this.timer = undefined;
+        }
+
+        if (this.interval) {
+            clearInterval(this.interval);
+            this.interval = undefined;
+        }
     }
 
     onContextMenu = (e: React.MouseEvent): void => {
@@ -123,10 +161,14 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
 
     @computed get buttons() {
         return <>
-            <div key="back" className="carouselView-back" style={{ background: `${StrCast(this.props.Document.backgroundColor)}` }} onClick={this.goback}>
+            <div key="back" className="carouselView-back" style={{ background: `${StrCast(this.props.Document.backgroundColor)}` }}
+                onClick={(e) => this.handleArrowClick(e, -1)}
+                onPointerDown={(e) => this.onPress(e, -1)}>
                 <FontAwesomeIcon icon={"caret-left"} size={"2x"} />
             </div>
-            <div key="fwd" className="carouselView-fwd" style={{ background: `${StrCast(this.props.Document.backgroundColor)}` }} onClick={this.advance}>
+            <div key="fwd" className="carouselView-fwd" style={{ background: `${StrCast(this.props.Document.backgroundColor)}` }}
+                onClick={(e) => this.handleArrowClick(e, 1)}
+                onPointerDown={(e) => this.onPress(e, 1)}>
                 <FontAwesomeIcon icon={"caret-right"} size={"2x"} />
             </div>
         </>;

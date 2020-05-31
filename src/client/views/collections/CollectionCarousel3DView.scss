@@ -9,11 +9,11 @@
     position: absolute;
     top: 15%;
     align-items: center;
-    transition: transform 0.5s cubic-bezier(0.455, 0.03, 0.515, 0.955);
+    transition: transform 0.3s cubic-bezier(0.455, 0.03, 0.515, 0.955);
 
     .collectionCarouselView-item {
         flex: 1;
-        transition: opacity 0.5s linear, transform 0.5s cubic-bezier(0.455, 0.03, 0.515, 0.955);
+        transition: opacity 0.3s linear, transform 0.5s cubic-bezier(0.455, 0.03, 0.515, 0.955);
     }
 }
 
