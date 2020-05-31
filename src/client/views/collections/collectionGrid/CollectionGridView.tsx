@@ -34,23 +34,17 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
             this.props.Document.gridLayouts = new List<Doc>();
         }
         this.changeListenerDisposer = computed(() => this.childLayoutPairs).observe(({ oldValue, newValue }) => {
-            if (!oldValue) {
-                // on page's initial load
-                return;
-            }
             const gridLayouts = DocListCast(this.props.Document.gridLayouts);
-            const previousLength = oldValue.length;
-            const currentLength = newValue.length;
 
-            if (currentLength > previousLength) {
+            if (!oldValue || newValue.length > oldValue.length) {
                 // for each document that was added, add a corresponding grid layout document
-                newValue.forEach(({ layout }) => {
+                newValue.forEach(({ layout }, i) => {
                     const targetId = layout[Id];
                     if (!gridLayouts.find((gridLayout: Doc) => StrCast(gridLayout.i) === targetId)) {
                         const layoutDoc: Doc = new Doc();
                         layoutDoc.i = targetId;
                         layoutDoc.w = layoutDoc.h = 2;
-                        this.findNextLayout(layoutDoc, previousLength);
+                        this.findNextLayout(layoutDoc, i);
                         Doc.AddDocToList(this.props.Document, "gridLayouts", layoutDoc);
                     }
                 });
@@ -177,7 +171,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
         const { childLayoutPairs } = this;
         const collector: JSX.Element[] = [];
         const docList: Doc[] = DocListCast(this.props.Document.gridLayouts);
-        if (!docList.length) {
+        if (!docList.length || docList.length !== childLayoutPairs.length) {
             return [];
         }
 
@@ -224,7 +218,10 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
     render() {
         const layoutDocList: Doc[] = DocListCast(this.props.Document.gridLayouts);
         const childDocumentViews: JSX.Element[] = this.contents;
-        return !(childDocumentViews.length && layoutDocList.length) ? null : (
+        if (!(childDocumentViews.length && layoutDocList.length)) {
+            return null;
+        }
+        return (
             <div className="collectionGridView_contents"
                 style={{
                     marginLeft: NumCast(this.props.Document._xMargin), marginRight: NumCast(this.props.Document._xMargin),
