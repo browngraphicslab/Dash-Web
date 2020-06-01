@@ -341,6 +341,38 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         return (this._suggestions);
     }
 
+    textarea: any;
+    @computed get renderScriptingBox() {
+
+        return <ReactTextareaAutocomplete
+            onFocus={this.onFocus}
+            onBlur={() => this._overlayDisposer?.()}
+            onChange={e => this.rawScript = e.target.value}
+            value={this.rawScript}
+            placeholder="write your script here"
+            className="ScriptingBox-textarea"
+            style={{ width: this.compileParams.length > 0 ? "70%" : "100%", resize: "none", height: "100%" }}
+            movePopupAsYouType={true}
+            loadingComponent={() => <span>Loading</span>}
+            ref={(rta: any) => { this.rta = rta; }}
+            //innerRef={textarea => { this.rawScript = textarea.value; }}
+
+            minChar={0}
+
+            // ISSUE IS HEERE, doesn't display entity in a menu, prints hello for reach item in the list
+            trigger={{
+                " ": {
+                    dataProvider: (token: any) => this.handleToken(token),
+                    component: ({ entity: value }) => <div>{value}</div>,
+                    //afterWhitespace: true,
+                    output: (item: any) => item,
+                }
+            }}
+
+            onCaretPositionChange={(number: any) => null} //this.handleKeyPress(number)}
+        />;
+    }
+
     // inputs for scripting div (script box, params box, and params column)
     renderScriptingInputs() {
 
@@ -361,39 +393,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         //         style={{ width: this.compileParams.length > 0 ? "70%" : "100%", resize: "none", height: "100%" }}
         //     />;
 
-        // main scripting input box
-        const scriptingInputText =
 
-            <ReactTextareaAutocomplete
-                onFocus={this.onFocus} onBlur={() => this._overlayDisposer?.()}
-                onChange={e => this.rawScript = e.target.value}
-                value={this.rawScript}
-                placeholder="write your script here"
-                className="ScriptingBox-textarea"
-                style={{ width: this.compileParams.length > 0 ? "70%" : "100%", resize: "none", height: "100%" }}
-                movePopupAsYouType={true}
-                loadingComponent={() => <span>Loading</span>}
-                ref={rta => { this.rta = rta; }}
-                //innerRef={textarea => { this.rawScript = textarea.value; }}
-
-                minChar={0}
-
-
-                // ISSUE IS HEERE, doesn't display entity in a menu, prints hello for reach item in the list
-                trigger={{
-                    " ": {
-                        dataProvider: (token) => {
-                            return this.handleToken(token).map((value: string) => ({ value }));
-                        },
-                        component: ({ entity: { value } }) => <div>{value}</div>,
-                        //afterWhitespace: true,
-                        output: (item) => this.rawScript += item,
-                    }
-                }}
-
-
-                onCaretPositionChange={(number) => null} //this.handleKeyPress(number)}
-            />;
 
         // params column on right side (list)
         const definedParameters = !this.compileParams.length ? (null) :
@@ -411,7 +411,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
 
         return <div className="scriptingBox-inputDiv" onPointerDown={e => this.props.isSelected() && e.stopPropagation()} >
             <div className="scriptingBox-wrapper">
-                {scriptingInputText}
+                {this.renderScriptingBox}
                 {definedParameters}
             </div>
             {parameterInput}
