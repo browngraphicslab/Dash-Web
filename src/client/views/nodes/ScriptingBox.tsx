@@ -18,8 +18,10 @@ import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import { OverlayView } from "../OverlayView";
 import { DocumentIconContainer } from "./DocumentIcon";
 import "./ScriptingBox.scss";
-import Autosuggest from "react-autosuggest";
-import { emptyFunction } from '../../../Utils';
+
+import ReactTextareaAutocomplete from "@webscopeio/react-textarea-autocomplete";
+import "@webscopeio/react-textarea-autocomplete/style.css";
+
 
 const ScriptingSchema = createSchema({});
 type ScriptingDocument = makeInterface<[typeof ScriptingSchema, typeof documentSchema]>;
@@ -30,16 +32,15 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
 
     private dropDisposer?: DragManager.DragDropDisposer;
     protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer | undefined;
+    rta: any;
     public static LayoutString(fieldStr: string) { return FieldView.LayoutString(ScriptingBox, fieldStr); }
     private _overlayDisposer?: () => void;
 
     @observable private _errorMessage: string = "";
     @observable private _applied: boolean = false;
-    @observable private _suggested: boolean = false;
     @observable private _scriptKeys: any = Scripting.getGlobals();
-    @observable private _scriptingGlobals: any = Scripting.getGlobalObj();
     @observable private _currWord: string = "";
-    @observable private _suggestions: any[] = [];
+    @observable private _suggestions: string[] = [];
 
     // vars included in fields that store parameters types and names and the script itself
     @computed get paramsNames() { return this.compileParams.map(p => p.split(":")[0].trim()); }
@@ -153,7 +154,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     }
 
     // adds option to create a copy to the context menu
-    specificContextMenu = (e: React.MouseEvent): void => {
+    specificContextMenu = (): void => {
         const existingOptions = ContextMenu.Instance.findByDescription("Options...");
         const options = existingOptions && "subitems" in existingOptions ? existingOptions.subitems : [];
         options.push({ description: "Create a Copy", event: this.onCopy, icon: "copy" });
@@ -166,7 +167,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
 
     // rendering when a doc's value can be set in applied UI
     renderDoc(parameter: string) {
-        return <div className="scriptingBox-paramInputs" onFocus={this.onFocus} onBlur={e => this._overlayDisposer?.()}
+        return <div className="scriptingBox-paramInputs" onFocus={this.onFocus} onBlur={() => this._overlayDisposer?.()}
             ref={ele => ele && this.createDashEventsTarget(ele, (e, de) => this.onDrop(e, de, parameter))} >
             <EditableView display={"block"} maxHeight={72} height={35} fontSize={14}
                 contents={this.dataDoc[parameter]?.title ?? "undefined"}
@@ -290,25 +291,54 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         return false;
     }
 
-    getSuggestionValue = (suggestion: string) => suggestion;
 
-    renderSuggestion = (suggestion: string) => {
-        return (null);
+    // @action
+    // handleKeyPress(e: React.ChangeEvent<HTMLTextAreaElement>) {
+
+    //     this.rawScript = e.target.value;
+    //     this._currWord = e.target.value.split(" ")[e.target.value.split(" ").length - 1];
+    //     this._suggestions = [];
+
+    //     this._scriptKeys.forEach((element: string | string[]) => {
+    //         if (element.indexOf(this._currWord) >= 0) {
+    //             this._suggestions.push(element);
+    //         }
+    //     });
+    //     console.log(this._suggestions);
+    // }
+
+    @action
+    handleKeyPress(num: number) {
+
+        const scriptString = this.rawScript.slice(0, num);
+
+        this._currWord = scriptString.split(" ")[scriptString.split(" ").length - 1];
+        this._suggestions = [];
+
+        this._scriptKeys.forEach((element: string) => {
+            if (element.indexOf(this._currWord) >= 0) {
+                this._suggestions.push(StrCast(element));
+            }
+        });
+
+        console.log(this._suggestions);
+        return (this._suggestions);
     }
 
     @action
-    handleKeyPress(e: React.ChangeEvent<HTMLTextAreaElement>) {
+    handleToken(str: string) {
 
-        this.rawScript = e.target.value;
-        this._currWord = e.target.value.split(" ")[e.target.value.split(" ").length - 1];
+        this._currWord = str;
         this._suggestions = [];
 
-        this._scriptKeys.forEach((element: string | string[]) => {
+        this._scriptKeys.forEach((element: string) => {
             if (element.indexOf(this._currWord) >= 0) {
-                this._suggestions.push(element);
+                this._suggestions.push(StrCast(element));
             }
         });
+
         console.log(this._suggestions);
+        return (this._suggestions);
     }
 
     // inputs for scripting div (script box, params box, and params column)
@@ -323,22 +353,46 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
             />
         </div>;
 
+        // const scriptText =
+        //     <textarea onFocus={this.onFocus} onBlur={e => this._overlayDisposer?.()}
+        //         onChange={e => this.rawScript = e.target.value}
+        //         placeholder="write your script here"
+        //         value={this.rawScript}
+        //         style={{ width: this.compileParams.length > 0 ? "70%" : "100%", resize: "none", height: "100%" }}
+        //     />;
+
         // main scripting input box
         const scriptingInputText =
-            // <Autosuggest
-            //     inputProps={{ value: this.rawScript, onChange: this.handleKeyPress }}
-            //     getSuggestionValue={this.getSuggestionValue}
-            //     suggestions={this._suggestions}
-            //     //alwaysRenderSuggestions={false}
-            //     renderSuggestion={this.renderSuggestion}
-            //     onSuggestionsFetchRequested={emptyFunction}
-            //     onSuggestionsClearRequested={emptyFunction}
-            // />;
-            <textarea onFocus={this.onFocus} onBlur={e => this._overlayDisposer?.()}
-                onChange={e => this.handleKeyPress(e)}
-                placeholder="write your script here"
+
+            <ReactTextareaAutocomplete
+                onFocus={this.onFocus} onBlur={() => this._overlayDisposer?.()}
+                onChange={e => this.rawScript = e.target.value}
                 value={this.rawScript}
+                placeholder="write your script here"
+                className="ScriptingBox-textarea"
                 style={{ width: this.compileParams.length > 0 ? "70%" : "100%", resize: "none", height: "100%" }}
+                movePopupAsYouType={true}
+                loadingComponent={() => <span>Loading</span>}
+                ref={rta => { this.rta = rta; }}
+                //innerRef={textarea => { this.rawScript = textarea.value; }}
+
+                minChar={0}
+
+
+                // ISSUE IS HEERE, doesn't display entity in a menu, prints hello for reach item in the list
+                trigger={{
+                    " ": {
+                        dataProvider: (token) => {
+                            return this.handleToken(token).map((value: string) => ({ value }));
+                        },
+                        component: ({ entity: { value } }) => <div>{value}</div>,
+                        //afterWhitespace: true,
+                        output: (item) => this.rawScript += item,
+                    }
+                }}
+
+
+                onCaretPositionChange={(number) => null} //this.handleKeyPress(number)}
             />;
 
         // params column on right side (list)
