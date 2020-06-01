@@ -17,8 +17,8 @@ interface GridProps {
     numCols: number;
     rowHeight: number;
     setLayout: Function;
-    flex: boolean;
-    scale: number;
+    transformScale: number;
+    childrenDraggable: boolean;
 }
 
 /**
@@ -43,7 +43,7 @@ export default class Grid extends React.Component<GridProps> {
     }
 
     render() {
-        console.log(this.props.scale);
+        console.log(this.props.transformScale);
         return (
             <GridLayout className="layout"
                 layout={this.props.layout}
@@ -52,12 +52,12 @@ export default class Grid extends React.Component<GridProps> {
                 width={this.props.width}
                 compactType={null}
                 isDroppable={true}
+                isDraggable={this.props.childrenDraggable}
                 // useCSSTransforms={true}
                 margin={[10, 10]}
                 onLayoutChange={this.onLayoutChange}
                 preventCollision={false} // change this to true later
-                // transformScale={2} // 1.2/scale
-                onDrop={({ x, y, e }) => { console.log("Grid -> render -> x, y, e", x, y, e) }}
+            // transformScale={2} // 1.2/scale
             >
                 {this.props.nodeList}
             </GridLayout >

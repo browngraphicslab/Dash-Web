@@ -286,6 +286,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
         //     console.log(layout[0].w);
         // }
 
+        console.log(this.props.Document.title + " " + this.props.isSelected() + " " + (!this.props.isSelected() && this.props.renderDepth !== 0 && !this.props.ContainingCollectionView?._isChildActive && !SnappingManager.GetIsDragging() ? "none" : undefined));
         return (
             <div className="collectionGridView-contents"
                 style={{
@@ -294,7 +295,16 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
                     pointerEvents: !this.props.isSelected() && this.props.renderDepth !== 0 && !this.props.ContainingCollectionView?._isChildActive && !SnappingManager.GetIsDragging() ? "none" : undefined
                 }}
                 ref={this.createDashEventsTarget}
-                onPointerDown={e => { ((e.target as any)?.className.includes("react-resizable-handle")) && e.stopPropagation(); }} // the grid doesn't stopPropagation when its widgets are hit, so we need to otherwise the outer documents will respond
+                onPointerDown={e => {
+                    if (this.props.active(true)) {
+                        if (this.props.isSelected(true)) {
+                            e.stopPropagation();
+                        }
+                    }
+                    if (this.props.isSelected(true)) {
+                        !((e.target as any)?.className.includes("react-resizable-handle")) && e.preventDefault();
+                    }
+                }} // the grid doesn't stopPropagation when its widgets are hit, so we need to otherwise the outer documents will respond
             >
                 <div className="collectionGridView-gridContainer"
                     ref={this.containerRef}
@@ -304,11 +314,11 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
                         width={this.props.PanelWidth()}
                         nodeList={contents}
                         layout={layout}
+                        childrenDraggable={this.props.isSelected() ? true : false}
                         numCols={this.props.Document.numCols as number}
                         rowHeight={this.props.Document.rowHeight as number}
                         setLayout={this.setLayout}
-                        flex={this.props.Document.flexGrid as boolean}
-                        scale={this.props.ScreenToLocalTransform().Scale}
+                        transformScale={this.props.ScreenToLocalTransform().Scale}
                     />
                 </div>
             </div>
