@@ -1,9 +1,9 @@
-import { computed, observable, action } from 'mobx';
+import { computed, observable, Lambda, action } from 'mobx';
 import * as React from "react";
-import { Doc, DocListCast } from '../../../../fields/Doc';
+import { Doc, DocListCast, Opt } from '../../../../fields/Doc';
 import { documentSchema } from '../../../../fields/documentSchemas';
 import { makeInterface } from '../../../../fields/Schema';
-import { BoolCast, NumCast, ScriptCast } from '../../../../fields/Types';
+import { BoolCast, NumCast, ScriptCast, StrCast } from '../../../../fields/Types';
 import { Transform } from '../../../util/Transform';
 import { undoBatch } from '../../../util/UndoManager';
 import { ContentFittingDocumentView } from '../../nodes/ContentFittingDocumentView';
@@ -25,12 +25,13 @@ const GridSchema = makeInterface(documentSchema);
 export class CollectionGridView extends CollectionSubView(GridSchema) {
     private containerRef: React.RefObject<HTMLDivElement>;
     @observable private _scroll: number = 0;
+    private changeListenerDisposer: Opt<Lambda>;
 
     constructor(props: Readonly<SubCollectionViewProps>) {
         super(props);
 
-        this.props.Document.numCols = this.props.Document.numCols ? this.props.Document.numCols : 10;
-        this.props.Document.rowHeight = this.props.Document.rowHeight ? this.props.Document.rowHeight : 100;
+        this.props.Document.numCols = NumCast(this.props.Document.numCols, 10);
+        this.props.Document.rowHeight = NumCast(this.props.Document.rowHeight, 100);
         this.props.Document.flexGrid = (this.props.Document.flexGrid !== undefined) ? this.props.Document.flexGrid : true;
 
         this.setLayout = this.setLayout.bind(this);
@@ -40,27 +41,56 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
     }
 
     componentDidMount() {
-        if (!(this.props.Document.gridLayouts as List<Doc>)?.length) {
-
-            console.log("no layouts stored on doc");
-
+        if (!this.props.Document.gridLayouts) {
             this.props.Document.gridLayouts = new List<Doc>();
-
-            for (let i = 0; i < this.childLayoutPairs.length; i++) {
-
-                const layoutDoc: Doc = new Doc();
-                layoutDoc.i = this.childLayoutPairs[i].layout[Id];
-                layoutDoc.x = 2 * (i % Math.floor(this.props.Document.numCols as number / 2));
-                layoutDoc.y = 2 * Math.floor(i / Math.floor(this.props.Document.numCols as number / 2));
-                layoutDoc.w = 2;
-                layoutDoc.h = 2;
-
-                (this.props.Document.gridLayouts as List<Doc>).push(layoutDoc);
-
-                // use childlayoutpairs length instead 
-            }
-
         }
+        this.changeListenerDisposer = computed(() => this.childLayoutPairs).observe(({ oldValue, newValue }) => {
+            const gridLayouts = DocListCast(this.props.Document.gridLayouts);
+
+            if (!oldValue || newValue.length > oldValue.length) {
+                // for each document that was added, add a corresponding grid layout document
+                newValue.forEach(({ layout }, i) => {
+                    const targetId = layout[Id];
+                    if (!gridLayouts.find((gridLayout: Doc) => StrCast(gridLayout.i) === targetId)) {
+                        const layoutDoc: Doc = new Doc();
+                        layoutDoc.i = targetId;
+                        layoutDoc.w = layoutDoc.h = 2;
+                        this.findNextLayout(layoutDoc, i);
+                        Doc.AddDocToList(this.props.Document, "gridLayouts", layoutDoc);
+                    }
+                });
+            } else {
+                // for each document that was removed, remove its corresponding grid layout document
+                oldValue.forEach(({ layout }) => {
+                    const targetId = layout[Id];
+                    if (!newValue.find(({ layout: preserved }) => preserved[Id] === targetId)) {
+                        const gridLayoutDoc = gridLayouts.find((gridLayout: Doc) => StrCast(gridLayout.i) === targetId);
+                        gridLayoutDoc && Doc.RemoveDocFromList(this.props.Document, "gridLayouts", gridLayoutDoc);
+                    }
+                });
+            }
+        }, true);
+    }
+
+    componentWillUnmount() {
+        this.changeListenerDisposer && this.changeListenerDisposer();
+    }
+
+    /**
+     * Establishes the x and y properties of the @param layoutDoc, currently
+     * using the @param previousLength for the computations.
+     * 
+     * However, this could also be more of a first fit algorithm, iterating through
+     * this.toLayoutList(DocListCast(this.props.Document.gridLayouts)) and finding the
+     * first gap in the layout structure that suits the width and height. It would be
+     * easiest to see that a column is free (for a given row, if two documents' x are separated
+     * by a value greater than the ratio width of the document you're trying to insert),
+     * but you would then have to ensure that the next row at that column has a y at least
+     * as big as the ratio height of the document you're trying to insert.  
+     */
+    private findNextLayout(layoutDoc: Doc, previousLength: number) {
+        layoutDoc.x = 2 * (previousLength % 5); // does this assume that there are 5 columns?
+        layoutDoc.y = 2 * Math.floor(previousLength / 5);
     }
 
     /**
@@ -159,24 +189,19 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
      */
     @undoBatch
     setLayout(layouts: Layout[]) {
-
-        if (this.props.Document.flexGrid) {
-
-            const docList: Doc[] = [];
-            for (const layout of layouts) {
-
-                const layoutDoc = new Doc();
-                layoutDoc.i = layout.i;
-                layoutDoc.x = layout.x;
-                layoutDoc.y = layout.y;
-                layoutDoc.w = layout.w;
-                layoutDoc.h = layout.h;
-
-                docList.push(layoutDoc);
+        // for every child in the collection, check to see if there's a corresponding grid layout document and
+        // updated layout object. If both exist, which they should, update the grid layout document from the updated object 
+        this.childLayoutPairs.forEach(({ layout: doc }) => {
+            let update: Opt<Layout>;
+            const targetId = doc[Id];
+            const gridLayout = DocListCast(this.props.Document.gridLayouts).find(gridLayout => StrCast(gridLayout.i) === targetId);
+            if (gridLayout && (update = layouts.find(layout => layout.i === targetId))) {
+                gridLayout.x = update.x;
+                gridLayout.y = update.y;
+                gridLayout.w = update.w;
+                gridLayout.h = update.h;
             }
-
-            this.props.Document.gridLayouts = new List<Doc>(docList);
-        }
+        });
     }
 
     /**
@@ -187,27 +212,20 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
     private get contents(): JSX.Element[] {
         const { childLayoutPairs } = this;
         const collector: JSX.Element[] = [];
-        //const layoutArray: Layout[] = [];
-
         const docList: Doc[] = DocListCast(this.props.Document.gridLayouts);
-
-        const previousLength = docList.length;
-        // layoutArray.push(...this.layout);
-
-        if (!previousLength) {
-            // console.log("early return");
+        if (!docList.length || docList.length !== childLayoutPairs.length) {
             return [];
         }
 
         for (let i = 0; i < childLayoutPairs.length; i++) {
             const { layout } = childLayoutPairs[i];
-            const dxf = () => this.lookupIndividualTransform(docList[i]);
-            const width = () => this.width(docList[i]);
-            const height = () => this.height(docList[i]);
+            const gridLayout = docList[i];
+            const dxf = () => this.lookupIndividualTransform(gridLayout);
+            const width = () => this.width(gridLayout);
+            const height = () => this.height(gridLayout);
             collector.push(
                 <div className={"document-wrapper"}
-                    key={docList?.[i].i as string}
-                    id={docList?.[i].i as string}
+                    key={gridLayout.i as string}
                 >
                     {this.getDisplayDoc(layout, dxf, width, height)}
                 </div>
@@ -223,69 +241,41 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
      */
     toLayoutList(docLayoutList: Doc[]): Layout[] {
 
-        const layouts: Layout[] = [];
-
         if (this.props.Document.flexGrid) {
-            for (const layout of docLayoutList) {
-                layouts.push(
-                    { i: layout.i as string, x: layout.x as number, y: layout.y as number, w: layout.w as number, h: layout.h as number, static: !(this.props.Document.flexGrid as boolean) }
-                );
-            }
+            return docLayoutList.map(({ i, x, y, w, h }) => ({
+                i: i as string,
+                x: x as number,
+                y: y as number,
+                w: w as number,
+                h: h as number
+            }));
         }
         else {
-            for (let i = 0; i < docLayoutList.length; i++) {
-                layouts.push(
-                    { i: docLayoutList[i].i as string, x: 2 * (i % Math.floor(this.props.Document.numCols as number / 2)), y: 2 * Math.floor(i / Math.floor(this.props.Document.numCols as number / 2)), w: 2, h: 2, static: true }
-                );
-            }
+            return docLayoutList.map(({ i }, index) => ({
+                i: i as string,
+                x: 2 * (index % Math.floor(this.props.Document.numCols as number / 2)),
+                y: 2 * Math.floor(index / Math.floor(this.props.Document.numCols as number / 2)),
+                w: 2,
+                h: 2,
+                static: true
+            }));
         }
-        return layouts;
     }
 
     /**
-     * Checks whether a new node has been added to the grid and updates the Document accordingly.
+     * DocListCast only includes *resolved* documents, i.e. filters out promises. So even if we have a nonzero
+     * number of documents in either of these Dash lists on the document, the DocListCast version may evaluate to empty
+     * if the corresponding documents are all promises, waiting to be fetched from the server. If we don't return early
+     * in the event that promises are encountered, we might feed inaccurate data to the grid since the corresponding gridLayout
+     * documents are unresolved (or the grid may misinterpret an empty array) which has the unfortunate byproduct of triggering
+     * the setLayout event, which makes these unintended changes permanent by writing them to the likely now resolved documents.
      */
-    @undoBatch
-    checkUpdate() {
-        const previousLength = (this.props.Document.gridLayouts as List<Doc>)?.length;
-        if (this.childLayoutPairs.length > previousLength) {
-            console.log("adding doc");
-            const layoutDoc: Doc = new Doc();
-            layoutDoc.i = this.childLayoutPairs[this.childLayoutPairs.length - 1].layout[Id];
-            layoutDoc.x = 2 * (previousLength % Math.floor(this.props.Document.numCols as number / 2));
-            layoutDoc.y = 2 * Math.floor(previousLength / Math.floor(this.props.Document.numCols as number / 2));
-            layoutDoc.w = 2;
-            layoutDoc.h = 2;
-
-            (this.props.Document.gridLayouts as List<Doc>).push(layoutDoc);
+    render() {
+        const layoutDocList: Doc[] = DocListCast(this.props.Document.gridLayouts);
+        const childDocumentViews: JSX.Element[] = this.contents;
+        if (!(childDocumentViews.length && layoutDocList.length)) {
+            return null;
         }
-    }
-
-    render(): JSX.Element {
-
-        this.checkUpdate();
-
-        //console.log("here first?");
-
-        const docList: Doc[] = DocListCast(this.props.Document.gridLayouts);
-
-        //console.log("doclist length:::" + docList.length);
-        const contents: JSX.Element[] = this.contents;
-        const layout: Layout[] = this.toLayoutList(docList);
-
-        // for (const doc of docList) {
-        //     console.log(doc.i);
-        // }
-
-        // if (layout.length === 0) {
-        //     console.log("layouts not loaded");
-        // }
-        // else {
-        //     console.log("rendering with this");
-        //     console.log(layout[0].w);
-        // }
-
-        console.log(this.props.Document.title + " " + this.props.isSelected() + " " + (!this.props.isSelected() && this.props.renderDepth !== 0 && !this.props.ContainingCollectionView?._isChildActive && !SnappingManager.GetIsDragging() ? "none" : undefined));
         return (
             <div className="collectionGridView-contents"
                 style={{
@@ -311,12 +301,13 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
                 >
                     <Grid
                         width={this.props.PanelWidth()}
-                        nodeList={contents}
-                        layout={layout}
+                        nodeList={childDocumentViews}
+                        layout={this.toLayoutList(layoutDocList)}
                         childrenDraggable={this.props.isSelected() ? true : false}
                         numCols={this.props.Document.numCols as number}
                         rowHeight={this.props.Document.rowHeight as number}
                         setLayout={this.setLayout}
+                        //setLayout={(layout: Layout[]) => this.setLayout(layout)}
                         transformScale={this.props.ScreenToLocalTransform().Scale}
                     />
                 </div>
