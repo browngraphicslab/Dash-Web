@@ -51,6 +51,8 @@ import { PreviewCursor } from './PreviewCursor';
 import { ScriptField } from '../../fields/ScriptField';
 import { TimelineMenu } from './animationtimeline/TimelineMenu';
 import { SnappingManager } from '../util/SnappingManager';
+import { FormattedTextBox } from './nodes/formattedText/FormattedTextBox';
+import { DocumentManager } from '../util/DocumentManager';
 
 @observer
 export class MainView extends React.Component {
@@ -83,6 +85,14 @@ export class MainView extends React.Component {
         window.removeEventListener("keydown", KeyManager.Instance.handle);
         window.addEventListener("keydown", KeyManager.Instance.handle);
         window.addEventListener("paste", KeyManager.Instance.paste as any);
+        document.addEventListener("dash", (e: any) => {  // event used by chrome plugin to tell Dash which document to focus on 
+            const id = FormattedTextBox.GetDocFromUrl(e.detail);
+            DocServer.GetRefField(id).then(doc => {
+                if (doc instanceof Doc) {
+                    DocumentManager.Instance.jumpToDocument(doc, false, undefined);
+                }
+            });
+        });
     }
 
     componentWillUnMount() {
@@ -534,10 +544,10 @@ export class MainView extends React.Component {
     }
 
     @computed get snapLines() {
-        return <div className="mainView-snapLines">
+        return !Doc.UserDoc().showSnapLines ? (null) : <div className="mainView-snapLines">
             <svg style={{ width: "100%", height: "100%" }}>
-                {/* {SnappingManager.horizSnapLines().map(l => <line x1="0" y1={l} x2="2000" y2={l} stroke="black" opacity={0.3} strokeWidth={0.5} strokeDasharray={"1 1"} />)}
-                {SnappingManager.vertSnapLines().map(l => <line y1="0" x1={l} y2="2000" x2={l} stroke="black" opacity={0.3} strokeWidth={0.5} strokeDasharray={"1 1"} />)} */}
+                {SnappingManager.horizSnapLines().map(l => <line x1="0" y1={l} x2="2000" y2={l} stroke="black" opacity={0.3} strokeWidth={0.5} strokeDasharray={"1 1"} />)}
+                {SnappingManager.vertSnapLines().map(l => <line y1="0" x1={l} y2="2000" x2={l} stroke="black" opacity={0.3} strokeWidth={0.5} strokeDasharray={"1 1"} />)}
             </svg>
         </div>;
     }
