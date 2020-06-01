@@ -38,17 +38,61 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
 
     @observable private _errorMessage: string = "";
     @observable private _applied: boolean = false;
+    @observable private _hovered: boolean = false;
     @observable private _scriptKeys: any = Scripting.getGlobals();
+    @observable private _scriptGlobals: any = Scripting.getGlobalObj();
     @observable private _currWord: string = "";
     @observable private _suggestions: string[] = [];
 
     // vars included in fields that store parameters types and names and the script itself
-    @computed get paramsNames() { return this.compileParams.map(p => p.split(":")[0].trim()); }
-    @computed get paramsTypes() { return this.compileParams.map(p => p.split(":")[1].trim()); }
-    @computed get rawScript() { return StrCast(this.dataDoc[this.props.fieldKey + "-rawScript"], ""); }
-    @computed get compileParams() { return Cast(this.dataDoc[this.props.fieldKey + "-params"], listSpec("string"), []); }
+    @computed({ keepAlive: true }) get paramsNames() { return this.compileParams.map(p => p.split(":")[0].trim()); }
+    @computed({ keepAlive: true }) get paramsTypes() { return this.compileParams.map(p => p.split(":")[1].trim()); }
+    @computed({ keepAlive: true }) get rawScript() { return StrCast(this.dataDoc[this.props.fieldKey + "-rawScript"], ""); }
+    @computed({ keepAlive: true }) get compileParams() { return Cast(this.dataDoc[this.props.fieldKey + "-params"], listSpec("string"), []); }
     set rawScript(value) { this.dataDoc[this.props.fieldKey + "-rawScript"] = value; }
     set compileParams(value) { this.dataDoc[this.props.fieldKey + "-params"] = new List<string>(value); }
+
+    // WORK ON THIS
+    // in: global, description, params
+    @computed get _descriptions() {
+        const descrip: string[] = [];
+        let value = "";
+        this._scriptKeys.forEach((element: any) => {
+            const result = this._scriptGlobals[element];
+            if (typeof result === "object") {
+                const d = result[1];
+                if (d !== undefined) {
+                    value = d;
+                } else {
+                    value = "";
+                }
+            } else {
+                value = "";
+            }
+            descrip.push(value);
+        });
+        return descrip;
+    }
+
+    @computed get _scriptParams() {
+        const params: string[] = [];
+        let value = "";
+        this._scriptKeys.forEach((element: any) => {
+            const result = this._scriptGlobals[element];
+            if (typeof result === "object") {
+                const p = result[2];
+                if (p !== undefined) {
+                    value = StrCast(p);
+                } else {
+                    value = "";
+                }
+            } else {
+                value = "";
+            }
+            params.push(value);
+        });
+        return params;
+    }
 
     @action
     componentDidMount() {
@@ -307,23 +351,23 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     //     console.log(this._suggestions);
     // }
 
-    @action
-    handleKeyPress(num: number) {
+    // @action
+    // handleKeyPress(num: number) {
 
-        const scriptString = this.rawScript.slice(0, num);
+    //     const scriptString = this.rawScript.slice(0, num);
 
-        this._currWord = scriptString.split(" ")[scriptString.split(" ").length - 1];
-        this._suggestions = [];
+    //     this._currWord = scriptString.split(" ")[scriptString.split(" ").length - 1];
+    //     this._suggestions = [];
 
-        this._scriptKeys.forEach((element: string) => {
-            if (element.indexOf(this._currWord) >= 0) {
-                this._suggestions.push(StrCast(element));
-            }
-        });
+    //     this._scriptKeys.forEach((element: string) => {
+    //         if (element.indexOf(this._currWord) >= 0) {
+    //             this._suggestions.push(StrCast(element));
+    //         }
+    //     });
 
-        console.log(this._suggestions);
-        return (this._suggestions);
-    }
+    //     console.log(this._suggestions);
+    //     return (this._suggestions);
+    // }
 
     @action
     handleToken(str: string) {
@@ -332,7 +376,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         this._suggestions = [];
 
         this._scriptKeys.forEach((element: string) => {
-            if (element.indexOf(this._currWord) >= 0) {
+            if (element.toLowerCase().indexOf(this._currWord.toLowerCase()) >= 0) {
                 this._suggestions.push(StrCast(element));
             }
         });
@@ -341,8 +385,68 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         return (this._suggestions);
     }
 
+    @action
+    handleFunc(pos: number) {
+        const scriptString = this.rawScript.slice(0, pos - 1);
+        this._currWord = scriptString.split(" ")[scriptString.split(" ").length - 1];
+        this._suggestions = [];
+
+        const index = this._scriptKeys.indexOf(this._currWord);
+        const params = StrCast(this._scriptParams[index]);
+
+        this._suggestions.push(params);
+
+        console.log(this._suggestions);
+
+        return (this._suggestions);
+    }
+
+
+    getDescription(value: string) {
+        const index = this._scriptKeys.indexOf(value);
+        const descrip = this._descriptions[index];
+        let display = "";
+        if (descrip !== undefined) {
+            if (descrip.length > 0) {
+                display = descrip;
+            }
+        }
+        return display;
+    }
+
+    getParams(value: string) {
+        const index = this._scriptKeys.indexOf(value);
+        const descrip = this._scriptParams[index];
+        let display = "";
+        if (descrip !== undefined) {
+            if (descrip.length > 0) {
+                display = descrip;
+            }
+        }
+        return display;
+    }
+
+    setHovered(bool: boolean) {
+        this._hovered = bool;
+    }
+
+    returnParam(item: string) {
+        const params = item.split(",");
+        let value = "";
+        let first = true;
+        params.forEach((element) => {
+            if (first) {
+                value = element.split(":")[0].trim();
+                first = false;
+            } else {
+                value = value + ", " + element.split(":")[0].trim();
+            }
+        });
+        return value;
+    }
+
     textarea: any;
-    @computed get renderScriptingBox() {
+    @computed({ keepAlive: true }) get renderScriptingBox() {
 
         return <ReactTextareaAutocomplete
             onFocus={this.onFocus}
@@ -354,19 +458,35 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
             style={{ width: this.compileParams.length > 0 ? "70%" : "100%", resize: "none", height: "100%" }}
             movePopupAsYouType={true}
             loadingComponent={() => <span>Loading</span>}
-            ref={(rta: any) => { this.rta = rta; }}
+
+            ref={(rta) => { this.rta = rta; }}
             //innerRef={textarea => { this.rawScript = textarea.value; }}
 
             minChar={0}
 
-            // ISSUE IS HEERE, doesn't display entity in a menu, prints hello for reach item in the list
             trigger={{
                 " ": {
                     dataProvider: (token: any) => this.handleToken(token),
+                    component: ({ entity: value }) =>
+                        <div><div
+                            style={{ fontSize: "14px" }}
+                            onMouseEnter={() => this.setHovered(true)}
+                            onMouseLeave={() => this.setHovered(false)}>
+                            {value}
+                        </div>
+                            {this._hovered ? <div style={{ fontSize: "10px" }}>{this.getDescription(value)}</div> : (null)}
+                            {this._hovered ? <div style={{ fontSize: "10px" }}>{this.getParams(value)}</div> : (null)}
+                        </div>
+                    ,
+                    output: (item: any, trigger) => trigger + item.trim(),
+                },
+
+                "(": {
+                    dataProvider: (token: any) => this.handleFunc(this.rta.getCaretPosition()),
                     component: ({ entity: value }) => <div>{value}</div>,
-                    //afterWhitespace: true,
-                    output: (item: any) => item,
+                    output: (item: any) => "(" + this.returnParam(item) + ")",
                 }
+
             }}
 
             onCaretPositionChange={(number: any) => null} //this.handleKeyPress(number)}
@@ -374,7 +494,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     }
 
     // inputs for scripting div (script box, params box, and params column)
-    renderScriptingInputs() {
+    @computed({ keepAlive: true }) get renderScriptingInputs() {
 
         // params box on bottom
         const parameterInput = <div className="scriptingBox-params">
@@ -467,7 +587,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         return (
             <div className={`scriptingBox`} onContextMenu={this.specificContextMenu}>
                 <div className="scriptingBox-outerDiv" onWheel={e => this.props.isSelected(true) && e.stopPropagation()}>
-                    {!this._applied ? this.renderScriptingInputs() : this.renderParamsInputs()}
+                    {!this._applied ? this.renderScriptingInputs : this.renderParamsInputs()}
                     {!this._applied ? this.renderScriptingTools() : this.renderParamsTools()}
                 </div>
             </div>

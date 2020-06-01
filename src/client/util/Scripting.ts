@@ -49,7 +49,6 @@ export function isCompileError(toBeDetermined: CompileResult): toBeDetermined is
 export namespace Scripting {
     export function addGlobal(global: { name: string }): void;
     export function addGlobal(name: string, global: any): void;
-
     export function addGlobal(global: { name: string }, decription?: string, params?: any): void;
 
     export function addGlobal(nameOrGlobal: any, global?: any, params?: any) {
