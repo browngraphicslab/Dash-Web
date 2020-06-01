@@ -155,7 +155,7 @@ export class ComputedField extends ScriptField {
     public static MakeInterpolated(fieldKey: string, interpolatorKey: string) {
         const getField = ScriptField.CompileScript(`getIndexVal(self['${fieldKey}-indexed'], self.${interpolatorKey})`, {}, true, {});
         const setField = ScriptField.CompileScript(`(self['${fieldKey}-indexed'])[self.${interpolatorKey}] = value`, { value: "any" }, true, {});
-        return getField.compiled && setField.compiled ? new ComputedField(getField, setField) : undefined;
+        return getField.compiled ? new ComputedField(getField, setField?.compiled ? setField : undefined) : undefined;
     }
 }
 

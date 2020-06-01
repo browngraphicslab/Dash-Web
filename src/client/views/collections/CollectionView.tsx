@@ -8,7 +8,7 @@ import * as React from 'react';
 import Lightbox from 'react-image-lightbox-with-rotate';
 import 'react-image-lightbox-with-rotate/style.css'; // This only needs to be imported once in your app
 import { DateField } from '../../../fields/DateField';
-import { DataSym, Doc, DocListCast, Field, Opt } from '../../../fields/Doc';
+import { DataSym, Doc, DocListCast, Field, Opt, AclSym, AclAddonly, AclReadonly } from '../../../fields/Doc';
 import { List } from '../../../fields/List';
 import { BoolCast, Cast, NumCast, StrCast, ScriptCast } from '../../../fields/Types';
 import { ImageField } from '../../../fields/URLField';
@@ -128,10 +128,16 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         const docList = DocListCast(targetDataDoc[this.props.fieldKey]);
         const added = docs.filter(d => !docList.includes(d));
         if (added.length) {
-            added.map(doc => doc.context = this.props.Document);
-            added.map(add => Doc.AddDocToList(Cast(Doc.UserDoc().myCatalog, Doc, null), "data", add));
-            targetDataDoc[this.props.fieldKey] = new List<Doc>([...docList, ...added]);
-            targetDataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
+            if (this.dataDoc[AclSym] === AclReadonly) {
+                return false;
+            } else if (this.dataDoc[AclSym] === AclAddonly) {
+                added.map(doc => Doc.AddDocToList(targetDataDoc, this.props.fieldKey, doc));
+            } else {
+                added.map(doc => doc.context = this.props.Document);
+                added.map(add => Doc.AddDocToList(Cast(Doc.UserDoc().myCatalog, Doc, null), "data", add));
+                targetDataDoc[this.props.fieldKey] = new List<Doc>([...docList, ...added]);
+                targetDataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
+            }
         }
         return true;
     }

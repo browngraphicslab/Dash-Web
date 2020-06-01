@@ -93,13 +93,40 @@ export const WidthSym = Symbol("Width");
 export const HeightSym = Symbol("Height");
 export const DataSym = Symbol("Data");
 export const LayoutSym = Symbol("Layout");
+export const AclSym = Symbol("Acl");
+export const AclPrivate = Symbol("AclNoAccess");
+export const AclReadonly = Symbol("AclReadOnly");
+export const AclAddonly = Symbol("AclAddonly");
 export const UpdatingFromServer = Symbol("UpdatingFromServer");
 const CachedUpdates = Symbol("Cached updates");
 
 
 function fetchProto(doc: Doc) {
+    if (doc.author !== Doc.CurrentUserEmail) {
+        if (doc.ACL === "noAccess") {
+            doc[AclSym] = AclPrivate;
+            return undefined;
+        } else if (doc.ACL === "readOnly") {
+            doc[AclSym] = AclReadonly;
+        } else if (doc.ACL === "addOnly") {
+            doc[AclSym] = AclAddonly;
+        }
+    }
+
     const proto = doc.proto;
     if (proto instanceof Promise) {
+        proto.then(proto => {
+            if (proto.author !== Doc.CurrentUserEmail) {
+                if (proto.ACL === "noAccess") {
+                    proto[AclSym] = doc[AclSym] = AclPrivate;
+                    return undefined;
+                } else if (proto.ACL === "readOnly") {
+                    proto[AclSym] = doc[AclSym] = AclReadonly;
+                } else if (proto.ACL === "addOnly") {
+                    proto[AclSym] = doc[AclSym] = AclAddonly;
+                }
+            }
+        });
         return proto;
     }
 }
@@ -113,10 +140,10 @@ export class Doc extends RefField {
             set: setter,
             get: getter,
             // getPrototypeOf: (target) => Cast(target[SelfProxy].proto, Doc) || null, // TODO this might be able to replace the proto logic in getter
-            has: (target, key) => key in target.__fields,
+            has: (target, key) => target[AclSym] !== AclPrivate && key in target.__fields,
             ownKeys: target => {
                 const obj = {} as any;
-                Object.assign(obj, target.___fields);
+                (target[AclSym] !== AclPrivate) && Object.assign(obj, target.___fields);
                 runInAction(() => obj.__LAYOUT__ = target.__LAYOUT__);
                 return Object.keys(obj);
             },
@@ -170,8 +197,11 @@ export class Doc extends RefField {
 
     private [Self] = this;
     private [SelfProxy]: any;
+    public [AclSym]: any = undefined;
     public [WidthSym] = () => NumCast(this[SelfProxy]._width);
     public [HeightSym] = () => NumCast(this[SelfProxy]._height);
+    public [ToScriptString]() { return `DOC-"${this[Self][Id]}"-`; }
+    public [ToString]() { return `Doc(${this[AclSym] === AclPrivate ? "-inaccessible-" : this.title})`; }
     public get [LayoutSym]() { return this[SelfProxy].__LAYOUT__; }
     public get [DataSym]() {
         const self = this[SelfProxy];
@@ -193,8 +223,6 @@ export class Doc extends RefField {
         return undefined;
     }
 
-    [ToScriptString]() { return `DOC-"${this[Self][Id]}"-`; }
-    [ToString]() { return `Doc(${this.title})`; }
 
     private [CachedUpdates]: { [key: string]: () => void | Promise<any> } = {};
     public static CurrentUserEmail: string = "";
@@ -794,6 +822,7 @@ export namespace Doc {
     }
     // don't bother memoizing (caching) the result if called from a non-reactive context. (plus this avoids a warning message)
     export function IsBrushedDegreeUnmemoized(doc: Doc) {
+        if (!doc || doc[AclSym] === AclPrivate || Doc.GetProto(doc)[AclSym] === AclPrivate) return 0;
         return brushManager.BrushedDoc.has(doc) ? 2 : brushManager.BrushedDoc.has(Doc.GetProto(doc)) ? 1 : 0;
     }
     export function IsBrushedDegree(doc: Doc) {
@@ -802,11 +831,13 @@ export namespace Doc {
         })(doc);
     }
     export function BrushDoc(doc: Doc) {
+        if (!doc || doc[AclSym] === AclPrivate || Doc.GetProto(doc)[AclSym] === AclPrivate) return doc;
         brushManager.BrushedDoc.set(doc, true);
         brushManager.BrushedDoc.set(Doc.GetProto(doc), true);
         return doc;
     }
     export function UnBrushDoc(doc: Doc) {
+        if (!doc || doc[AclSym] === AclPrivate || Doc.GetProto(doc)[AclSym] === AclPrivate) return doc;
         brushManager.BrushedDoc.delete(doc);
         brushManager.BrushedDoc.delete(Doc.GetProto(doc));
         return doc;
@@ -836,6 +867,7 @@ export namespace Doc {
     }
     const highlightManager = new HighlightBrush();
     export function IsHighlighted(doc: Doc) {
+        if (!doc || doc[AclSym] === AclPrivate || Doc.GetProto(doc)[AclSym] === AclPrivate) return false;
         return highlightManager.HighlightedDoc.get(doc) || highlightManager.HighlightedDoc.get(Doc.GetProto(doc));
     }
     export function HighlightDoc(doc: Doc, dataAndDisplayDocs = true) {

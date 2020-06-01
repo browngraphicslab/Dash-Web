@@ -8,10 +8,12 @@
     z-index: 9001;
     transition: top .5s;
     background: lightgrey;
+    transform-origin: top left;
 
     .collectionViewChrome {
         display: flex;
-        padding-bottom: 10px;
+        padding-bottom: 1px;
+        height: 32px;
         border-bottom: .5px solid rgb(180, 180, 180);
         overflow: hidden;
 
@@ -21,12 +23,12 @@
             .collectionViewBaseChrome-viewPicker {
                 font-size: 75%;
                 //text-transform: uppercase;
-                letter-spacing: 2px;
+                //letter-spacing: 2px;
                 background: rgb(238, 238, 238);
                 color: grey;
                 outline-color: black;
                 border: none;
-                padding: 12px 10px 11px 10px;
+                //padding: 12px 10px 11px 10px;
             }
 
             .collectionViewBaseChrome-viewPicker:active {
@@ -48,6 +50,7 @@
             .collectionViewBaseChrome-cmdPicker {
                 margin-left: 3px;
                 margin-right: 0px;
+                font-size: 75%;
                 background: rgb(238, 238, 238);
                 border: none;
                 color: grey;
@@ -58,6 +61,7 @@
                 background-color: gray;
                 display: flex;
                 flex-direction: row;
+                height: 30px;
 
                 .commandEntry-drop {
                     color: white;
@@ -100,8 +104,8 @@
                     margin: auto;
                     background: gray;
                     color: white;
-                    width: 40px;
-                    height: 40px;
+                    width: 30px;
+                    height: 30px;
                     align-items: center;
                     justify-content: center;
                 }
@@ -218,8 +222,7 @@
             .collectionTreeViewChrome-pivotField-label {
                 vertical-align: center;
                 padding-left: 10px;
-                padding-top: 10px;
-                padding-bottom: 10px;
+                margin: auto;
             }
 
             .collectionStackingViewChrome-pivotField,
@@ -227,14 +230,15 @@
                 color: white;
                 width: 100%;
                 min-width: 100px;
-                text-align: center;
+                display: flex;
+                align-items: center;
                 background: rgb(238, 238, 238);
 
                 .editable-view-input,
                 input,
                 .editableView-container-editing-oneLine,
                 .editableView-container-editing {
-                    padding: 12px 10px 11px 10px;
+                    margin: auto;
                     border: 0px;
                     color: grey;
                     text-align: center;
@@ -256,6 +260,52 @@
             cursor: text;
         }
 
+    }
+}
+
+.collectionFreeFormViewChrome-cont {
+    width: 60px;
+    display: flex;
+    position: relative;
+    align-items: center;
+
+    .fwdKeyframe,
+    .numKeyframe,
+    .backKeyframe {
+        cursor: pointer;
+        position: absolute;
+        width: 20;
+        height: 30;
+        bottom: 0;
+        background: gray;
+        display: flex;
+        align-items: center;
+        color: white;
+    }
+
+    .backKeyframe {
+        left: 0;
+
+        svg {
+            display: block;
+            margin: auto;
+        }
+    }
+
+    .numKeyframe {
+        left: 20;
+        display: flex;
+        flex-direction: column;
+        padding: 5px;
+    }
+
+    .fwdKeyframe {
+        left: 40;
+
+        svg {
+            display: block;
+            margin: auto;
+        }
     }
 }
 

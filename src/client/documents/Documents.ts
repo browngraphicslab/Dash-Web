@@ -432,17 +432,28 @@ export namespace Docs {
                     parentProto.data = new List<Doc>();
                 }
                 if (device) {
-                    const { __images } = device;
+                    const { title, __images, additionalMedia } = device;
                     delete device.__images;
+                    delete device.additionalMedia;
                     const { ImageDocument, StackingDocument } = Docs.Create;
                     const constructed = __images.map(({ url, nativeWidth, nativeHeight }) => ({ url: Utils.prepend(url), nativeWidth, nativeHeight }));
-                    const deviceImages = constructed.map(({ url, nativeWidth, nativeHeight }, i) => ImageDocument(url, {
-                        title: `image${i}.${extname(url)}`,
-                        _nativeWidth: nativeWidth,
-                        _nativeHeight: nativeHeight
-                    }));
+                    const deviceImages = constructed.map(({ url, nativeWidth, nativeHeight }, i) => {
+                        const imageDoc = ImageDocument(url, {
+                            title: `image${i}.${extname(url)}`,
+                            _nativeWidth: nativeWidth,
+                            _nativeHeight: nativeHeight
+                        });
+                        const media = additionalMedia[i];
+                        if (media) {
+                            for (const key of Object.keys(media)) {
+                                imageDoc[`additionalMedia_${key}`] = Utils.prepend(`/files/${key}/buxton/${media[key]}`);
+                            }
+                        }
+                        return imageDoc;
+                    });
                     // the main document we create
-                    const doc = StackingDocument(deviceImages, { title: device.title, _LODdisable: true, hero: new ImageField(constructed[0].url) });
+                    const doc = StackingDocument(deviceImages, { title, _LODdisable: true, hero: new ImageField(constructed[0].url) });
+                    doc.nameAliases = new List<string>([title.toLowerCase()]);
                     // add the parsed attributes to this main document
                     Docs.Get.FromJson({ data: device, appendToExisting: { targetDoc: Doc.GetProto(doc) } });
                     Doc.AddDocToList(parentProto, "data", doc);
