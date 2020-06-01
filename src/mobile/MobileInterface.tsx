@@ -64,6 +64,7 @@ export default class MobileInterface extends React.Component {
     private _menu: Doc = this.mainDoc;
     private _open: boolean = false;
     private _library: Doc = Cast(this.userDoc.myWorkspaces, Doc) as Doc;
+    private _ink: boolean = false;
 
     constructor(props: Readonly<{}>) {
         super(props);
@@ -90,14 +91,13 @@ export default class MobileInterface extends React.Component {
     }
 
     onSwitchInking = () => {
-        InkingControl.Instance.switchTool(InkTool.Pen);
-        MobileInterface.Instance.drawingInk = true;
+        if (!this._ink) {
+            InkingControl.Instance.switchTool(InkTool.Pen);
+            MobileInterface.Instance.drawingInk = true;
 
-        DocServer.Mobile.dispatchOverlayTrigger({
-            enableOverlay: true,
-            width: window.innerWidth,
-            height: window.innerHeight
-        });
+        } else {
+            MobileInterface.Instance.drawingInk = false;
+        }
     }
 
     onSwitchUpload = async () => {
@@ -215,24 +215,33 @@ export default class MobileInterface extends React.Component {
             this.switchCurrentView((userDoc: Doc) => doc);
             this._child = doc;
         }
-
-        // let sidebar = document.getElementById("sidebar") as HTMLElement;
-        // sidebar.classList.toggle('active');
     }
 
     createPathname = () => {
-        let pathname = "";
+        let pathname = "workspaces";
         this._parents.map((doc: Doc, index: any) => {
             if (doc === this.mainDoc) {
-                pathname = pathname + doc.title;
+                pathname = pathname;
+            } else if (doc.title === "mobile audio" || doc.title === "Presentation") {
+                pathname = pathname
+            } else if (doc.type !== "collection") {
+                pathname = pathname
             } else {
                 pathname = pathname + " > " + doc.title;
             }
         });
         if (this._activeDoc === this.mainDoc) {
-            pathname = pathname + this._activeDoc.title;
+            pathname = pathname;
         } else {
             pathname = pathname + " > " + this._activeDoc.title;
+        }
+
+        if (this._activeDoc.title === "mobile audio") {
+            pathname = this._activeDoc.title;
+        }
+
+        if (this._activeDoc.title === "Presentation") {
+            pathname = this._activeDoc.title;
         }
         return pathname;
     }
@@ -302,7 +311,7 @@ export default class MobileInterface extends React.Component {
                             <div className="item" key="settings" onClick={() => SettingsManager.Instance.open()}>
                                 Settings
                             </div>
-                            <div className="item" key="ink" onClick={() => CurrentUserUtils.setupDockedButtons(this._activeDoc)}>
+                            <div className="item" key="ink" onClick={() => this.onSwitchInking()}>
                                 Ink
                             </div>
                         </div>
@@ -351,7 +360,7 @@ export default class MobileInterface extends React.Component {
 
     recordAudio = async () => {
         // upload to server with known URL 
-
+        this._parents.push(this._activeDoc);
         const audioDoc = Cast(Docs.Create.AudioDocument(nullAudio, { _width: 200, _height: 100, title: "mobile audio" }), Doc) as Doc;
         if (audioDoc) {
             console.log("audioClicked: " + audioDoc.title);
@@ -370,6 +379,7 @@ export default class MobileInterface extends React.Component {
     }
 
     openDefaultPresentation = () => {
+        this._parents.push(this._activeDoc);
         const presentation = Cast(Doc.UserDoc().activePresentation, Doc) as Doc;
 
         if (presentation) {
@@ -515,8 +525,8 @@ export default class MobileInterface extends React.Component {
                 <SettingsManager />
                 <GestureOverlay>
                     {this.displayWorkspaces()}
-                    {this.renderDefaultContent()}
                 </GestureOverlay>
+                {this.renderDefaultContent()}
                 {/* </GestureOverlay> */}
                 {/* <DictationOverlay />
                 <SharingManager />
