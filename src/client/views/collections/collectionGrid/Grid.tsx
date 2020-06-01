@@ -19,6 +19,7 @@ interface GridProps {
     setLayout: Function;
     transformScale: number;
     childrenDraggable: boolean;
+    // flex: boolean;
 }
 
 /**
@@ -49,12 +50,15 @@ export default class Grid extends React.Component<GridProps> {
                 width={this.props.width}
                 compactType={null}
                 isDroppable={true}
+                // isDraggable={this.props.flex}
+                // isResizable={this.props.flex}
                 // isDraggable={this.props.childrenDraggable}
-                // useCSSTransforms={true}
+                useCSSTransforms={true}
                 margin={[10, 10]}
                 onLayoutChange={this.onLayoutChange}
                 preventCollision={false} // change this to true later
-            // transformScale={2} // 1.2/scale
+                // transformScale={2} // 1.2/scale
+                style={{ zIndex: 5 }}
             >
                 {this.props.nodeList}
             </GridLayout >

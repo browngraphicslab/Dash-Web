@@ -598,7 +598,6 @@ export class CollectionGridViewChrome extends React.Component<CollectionViewChro
     /**
      * Sets whether the grid is flexible or not on the grid's Document.
      */
-    @undoBatch
     toggleFlex = () => {
         this.props.CollectionView.props.Document.flexGrid = !this.props.CollectionView.props.Document.flexGrid;
     }
