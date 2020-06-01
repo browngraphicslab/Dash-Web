@@ -36,30 +36,17 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
     panelHeight = () => this.props.PanelHeight() * 0.6;
     @computed get content() {
         const currentIndex = NumCast(this.layoutDoc._itemIndex);
-
-        const displayDoc = (childPair: { layout: Doc, data: Doc }, width: () => number, height: () => number) => {
-            const showCaptionScript = ScriptField.MakeScript(
-                "child._showCaption = 'caption'",
-                { child: Doc.name },
-                { child: childPair.layout }
-            );
-
-            // const changeIndexScript = ScriptField.MakeScript(
-            //     "collectionLayoutDoc._itemIndex = collectionLayoutDoc[fieldKey].indexOf(self)",
-            //     { fieldKey: String.name, collectionLayoutDoc: Doc.name },
-            //     { fieldKey: this.props.fieldKey, collectionLayoutDoc: this.layoutDoc }
-            // );
-
+        const displayDoc = (childPair: { layout: Doc, data: Doc }, onClickScript: ScriptField | undefined) => {
             return <ContentFittingDocumentView {...this.props}
                 onDoubleClick={ScriptCast(this.layoutDoc.onChildDoubleClick)}
-                onClick={showCaptionScript}
+                onClick={onClickScript}
                 renderDepth={this.props.renderDepth + 1}
                 LayoutTemplate={this.props.ChildLayoutTemplate}
                 LayoutTemplateString={this.props.ChildLayoutString}
                 Document={childPair.layout}
                 DataDoc={childPair.data}
-                PanelWidth={width}
-                PanelHeight={height}
+                PanelWidth={this.panelWidth}
+                PanelHeight={this.panelHeight}
                 ScreenToLocalTransform={this.props.ScreenToLocalTransform}
                 bringToFront={returnFalse}
                 parentActive={this.props.active}
@@ -68,22 +55,28 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
 
         return (
             this.childLayoutPairs.map((childPair, index) => {
+                const showCaptionScript = ScriptField.MakeScript(
+                    "child._showCaption = 'caption'",
+                    { child: Doc.name },
+                    { child: childPair.layout }
+                );
+
                 return (
                     <div key={childPair.layout[Id]} className={`collectionCarouselView-item ${index}`}
                         style={index === currentIndex ?
                             { opacity: '1', transform: 'scale(1.3)' } :
                             { opacity: '0.5', transform: 'scale(0.6)', userSelect: 'none' }}>
-                        {displayDoc(childPair, this.panelWidth, this.panelHeight)}
+                        {displayDoc(childPair, index === currentIndex ? showCaptionScript : undefined)}
                     </div>);
             }));
     }
 
     handleArrowClick = (e: React.MouseEvent, direction: number) => {
         e.stopPropagation();
-        this.rotate(direction);
+        this.changeSlide(direction);
     }
 
-    rotate = (direction: number) => {
+    changeSlide = (direction: number) => {
         this.layoutDoc._itemIndex = (NumCast(this.layoutDoc._itemIndex) + direction + this.childLayoutPairs.length) % this.childLayoutPairs.length;
     }
 
@@ -91,25 +84,17 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
     interval?: NodeJS.Timeout;
     onPress = (e: React.PointerEvent, direction: number) => {
         e.stopPropagation;
-        document.removeEventListener("pointerup", this.onRelease);
-        document.addEventListener("pointerup", this.onRelease);
+        document.removeEventListener("pointerup", this.stopScroll);
+        document.addEventListener("pointerup", this.stopScroll);
 
         this.timer = setTimeout(() => {
             this.startScroll(direction);
         }, 1500);
     }
 
-    onRelease = () => {
-        if (this.timer) {
-            clearTimeout(this.timer);
-            this.timer = undefined;
-        }
-        this.stopScroll();
-    }
-
     startScroll = (direction: number) => {
         this.interval = setInterval(() => {
-            this.rotate(direction);
+            this.changeSlide(direction);
         }, 500);
     }
 
