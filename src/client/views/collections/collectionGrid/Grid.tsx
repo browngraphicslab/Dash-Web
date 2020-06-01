@@ -26,12 +26,9 @@ interface GridProps {
  */
 @observer
 export default class Grid extends React.Component<GridProps> {
-    gridRef: React.RefObject<HTMLDivElement>;
 
     constructor(props: Readonly<GridProps>) {
         super(props);
-        this.gridRef = React.createRef();
-
         this.onLayoutChange = this.onLayoutChange.bind(this);
     }
     /**
@@ -52,7 +49,7 @@ export default class Grid extends React.Component<GridProps> {
                 width={this.props.width}
                 compactType={null}
                 isDroppable={true}
-                isDraggable={this.props.childrenDraggable}
+                // isDraggable={this.props.childrenDraggable}
                 // useCSSTransforms={true}
                 margin={[10, 10]}
                 onLayoutChange={this.onLayoutChange}

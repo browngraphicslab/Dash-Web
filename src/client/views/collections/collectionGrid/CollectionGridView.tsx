@@ -71,7 +71,6 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
      */
     private lookupIndividualTransform = (doc: Doc) => {
         const yTranslation = this.rowHeightPlusGap * NumCast(doc.y) + 10 - this._scroll;
-        console.log("CollectionGridView -> privatelookupIndividualTransform -> this.containerRef.current!.scrollTop", this.containerRef.current!.scrollTop)
         const xTranslation = this.colWidthPlusGap * NumCast(doc.x) + 10;
         return this.props.ScreenToLocalTransform().translate(-xTranslation, -yTranslation);
     }

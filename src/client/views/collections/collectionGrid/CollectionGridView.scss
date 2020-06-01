@@ -4,7 +4,19 @@
     width: 100%;
     height: 100%;
     flex-direction: column;
+
 }
+
+// .documentDecorations-container .documentDecorations-resizer {
+//     pointer-events: none;
+// }
+
+// #documentDecorations-bottomRightResizer,
+// #documentDecorations-bottomLeftResizer,
+// #documentDecorations-topRightResizer,
+// #documentDecorations-topLeftResizer {
+//     visibility: collapse;
+// }
 
 .collectionGridView-contents .collectionGridView-gridContainer {
     height: 100%;
@@ -12,17 +24,7 @@
     background-color: white;
 }
 
-.documentDecorations-container .documentDecorations-resizer {
-    pointer-events: none;
 
-}
-
-#documentDecorations-bottomRightResizer,
-#documentDecorations-bottomLeftResizer,
-#documentDecorations-topRightResizer,
-#documentDecorations-topLeftResizer {
-    visibility: collapse;
-}
 
 /* Chrome, Safari, Edge, Opera */
 input::-webkit-outer-spin-button,
