@@ -130,6 +130,7 @@
         "bootstrap": "^4.4.1",
         "canvas": "^2.5.0",
         "child_process": "^1.0.2",
+        "chrome": "^0.1.0",
         "class-transformer": "^0.2.0",
         "color": "^3.1.2",
         "colors": "^1.4.0",

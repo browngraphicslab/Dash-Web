@@ -126,13 +126,13 @@ export class DocumentManager {
         finished?.();
     }
     public jumpToDocument = async (
-        targetDoc: Doc,
-        willZoom: boolean,
-        createViewFunc = DocumentManager.addRightSplit,
-        docContext?: Doc,
-        linkId?: string,
-        closeContextIfNotFound: boolean = false,
-        originatingDoc: Opt<Doc> = undefined,
+        targetDoc: Doc,        // document to display
+        willZoom: boolean,     // whether to zoom doc to take up most of screen
+        createViewFunc = DocumentManager.addRightSplit, // how to create a view of the doc if it doesn't exist
+        docContext?: Doc,  // context to load that should contain the target
+        linkId?: string,   // link that's being followed
+        closeContextIfNotFound: boolean = false, // after opening a context where the document should be, this determines whether the context should be closed if the Doc isn't actually there
+        originatingDoc: Opt<Doc> = undefined, // doc that initiated the display of the target odoc
         finished?: () => void
     ): Promise<void> => {
         const getFirstDocView = DocumentManager.Instance.getFirstDocumentView;
