@@ -26,9 +26,11 @@ interface GridProps {
  */
 @observer
 export default class Grid extends React.Component<GridProps> {
+    gridRef: React.RefObject<HTMLDivElement>;
 
     constructor(props: Readonly<GridProps>) {
         super(props);
+        this.gridRef = React.createRef();
 
         this.onLayoutChange = this.onLayoutChange.bind(this);
     }
@@ -50,13 +52,12 @@ export default class Grid extends React.Component<GridProps> {
                 width={this.props.width}
                 compactType={null}
                 isDroppable={true}
-                useCSSTransforms={true}
+                // useCSSTransforms={true}
                 margin={[10, 10]}
                 onLayoutChange={this.onLayoutChange}
                 preventCollision={false} // change this to true later
-                transformScale={0.8} // 1.2/scale
-                style={{ height: "100%", overflowY: "scroll" }}
-            // draggableHandle={".documentDecorations-resizer"}
+                // transformScale={2} // 1.2/scale
+                onDrop={({ x, y, e }) => { console.log("Grid -> render -> x, y, e", x, y, e) }}
             >
                 {this.props.nodeList}
             </GridLayout >

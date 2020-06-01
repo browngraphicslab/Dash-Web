@@ -164,12 +164,30 @@
             }
         }
 
-
         .collectionStackingViewChrome-cont,
         .collectionTreeViewChrome-cont {
             display: flex;
             justify-content: space-between;
         }
+
+        .collectionGridViewChrome-cont {
+            display: flex;
+            margin-left: 10;
+
+            .grid-control {
+                align-self: center;
+                width: 30%;
+
+                .grid-icon {
+                    margin-right: 5px;
+                }
+            }
+
+            .collectionGridViewChrome-entryBox {
+                width: 50%;
+            }
+        }
+
 
         .collectionStackingViewChrome-sort,
         .collectionTreeViewChrome-sort {
@@ -238,9 +256,6 @@
             cursor: text;
         }
 
-        .collectionGridViewChrome-entryBox {
-            width: 50%;
-        }
     }
 }
 

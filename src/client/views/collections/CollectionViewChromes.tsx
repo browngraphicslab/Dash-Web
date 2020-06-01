@@ -15,8 +15,6 @@ import { COLLECTION_BORDER_WIDTH } from "../globalCssVariables.scss";
 import { CollectionViewType } from "./CollectionView";
 import { CollectionView } from "./CollectionView";
 import "./CollectionViewChromes.scss";
-import { CollectionGridView } from "./collectionGrid/CollectionGridView";
-import HeightLabel from "./collectionMulticolumn/MultirowHeightLabel";
 const datepicker = require('js-datepicker');
 
 interface CollectionViewChromeProps {
@@ -516,10 +514,10 @@ export class CollectionGridViewChrome extends React.Component<CollectionViewChro
     /**
      * Sets the value of `numCols` on the grid's Document to the value entered.
      */
-    @action
+    @undoBatch
     onNumColsEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === "Enter" || e.key === "Tab") {
-            if (this.props.CollectionView.props.Document.numCols as number !== e.currentTarget.valueAsNumber) {
+            if (e.currentTarget.valueAsNumber > 0 && this.props.CollectionView.props.Document.numCols as number !== e.currentTarget.valueAsNumber) {
                 this.props.CollectionView.props.Document.numCols = e.currentTarget.valueAsNumber;
                 //this.props.CollectionView.forceUpdate(); // to be used if CollectionGridView is not an observer
             }
@@ -530,39 +528,44 @@ export class CollectionGridViewChrome extends React.Component<CollectionViewChro
     /**
      * Sets the value of `rowHeight` on the grid's Document to the value entered.
      */
-    @action
+    @undoBatch
     onRowHeightEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === "Enter" || e.key === "Tab") {
-            if (this.props.CollectionView.props.Document.rowHeight as number !== e.currentTarget.valueAsNumber) {
+            if (e.currentTarget.valueAsNumber > 0 && this.props.CollectionView.props.Document.rowHeight as number !== e.currentTarget.valueAsNumber) {
                 this.props.CollectionView.props.Document.rowHeight = e.currentTarget.valueAsNumber;
-                //this.props.CollectionView.forceUpdate();
             }
         }
     }
 
-    onCheck = (event: React.ChangeEvent<HTMLInputElement>) => this.props.CollectionView.props.Document.flexGrid = event.target.checked;
+    /**
+     * Sets whether the grid is flexible or not on the grid's Document.
+     */
+    @undoBatch
+    toggleFlex = () => {
+        this.props.CollectionView.props.Document.flexGrid = !this.props.CollectionView.props.Document.flexGrid;
+    }
 
     render() {
         return (
-            <div className="collectionTreeViewChrome-cont">
-                <span className={"search-icon"}>
-                    <span className="icon-background">
+            <div className="collectionGridViewChrome-cont">
+                <span className={"grid-control"}>
+                    <span className="grid-icon">
                         <FontAwesomeIcon icon="columns" size="1x" />
                     </span>
-                    <input className="collectionGridViewChrome-entryBox" type="number" placeholder={this.props.CollectionView.props.Document.numCols as string} onKeyDown={this.onNumColsEnter} autoFocus />
+                    <input className="collectionGridViewChrome-entryBox" type="number" placeholder={this.props.CollectionView.props.Document.numCols as string} onKeyDown={this.onNumColsEnter} onClick={(e: React.MouseEvent<HTMLInputElement, MouseEvent>) => e.currentTarget.focus()} />
                 </span>
-                <span className={"search-icon"}>
-                    <span className="icon-background">
+                <span className={"grid-control"}>
+                    <span className="grid-icon">
                         <FontAwesomeIcon icon="text-height" size="1x" />
                     </span>
-                    <input className="collectionGridViewChrome-entryBox" type="number" placeholder={this.props.CollectionView.props.Document.rowHeight as string} onKeyDown={this.onRowHeightEnter} />
+                    <input className="collectionGridViewChrome-entryBox" type="number" placeholder={this.props.CollectionView.props.Document.rowHeight as string} onKeyDown={this.onRowHeightEnter} onClick={(e: React.MouseEvent<HTMLInputElement, MouseEvent>) => e.currentTarget.focus()} />
                 </span>
-                <span className={"search-icon"}>
-                    <span className="icon-background">
+                <span className={"grid-control"}>
+                    <input style={{ marginRight: 5 }} type="checkbox" onClick={this.toggleFlex} defaultChecked={this.props.CollectionView.props.Document.flexGrid as boolean} />
+                    <span className="grid-icon">
                         <FontAwesomeIcon icon="arrow-up" size="1x" />
                     </span>
-                    <input type="checkbox" onChange={this.onCheck} defaultChecked={this.props.CollectionView.props.Document.flexGrid as boolean} />
-                    <label>Flexible Grid</label>
+                    <label>Flexible</label>
                 </span>
             </div>
         );

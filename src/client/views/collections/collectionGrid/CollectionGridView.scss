@@ -1,14 +1,4 @@
-// .react-grid-layout.layout {
-//     // max-height: 100%;// min-height: 100%;
-//     overflow-y: auto;
-// }
-
-// .collectionView {//     background-color: white;
-//     overflow-y: scroll;
-// }
-
-
-.collectionGridView_contents {
+.collectionGridView-contents {
     display: flex;
     overflow: hidden;
     width: 100%;
@@ -16,13 +6,32 @@
     flex-direction: column;
 }
 
-.collectionGridView_contents .document-wrapper {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
+.collectionGridView-contents .collectionGridView-gridContainer {
     height: 100%;
+    overflow-y: auto;
+    background-color: white;
 }
 
-.react-grid-layout.layout {
-    height: 100%
+.documentDecorations-container .documentDecorations-resizer {
+    pointer-events: none;
+
+}
+
+#documentDecorations-bottomRightResizer,
+#documentDecorations-bottomLeftResizer,
+#documentDecorations-topRightResizer,
+#documentDecorations-topLeftResizer {
+    visibility: collapse;
+}
+
+/* Chrome, Safari, Edge, Opera */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* Firefox */
+input[type=number] {
+    -moz-appearance: textfield;
 }

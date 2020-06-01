@@ -1,4 +1,4 @@
-import { computed, observable } from 'mobx';
+import { computed, observable, action } from 'mobx';
 import * as React from "react";
 import { Doc, DocListCast } from '../../../../fields/Doc';
 import { documentSchema } from '../../../../fields/documentSchemas';
@@ -23,6 +23,8 @@ const GridSchema = makeInterface(documentSchema);
 
 @observer
 export class CollectionGridView extends CollectionSubView(GridSchema) {
+    private containerRef: React.RefObject<HTMLDivElement>;
+    @observable private _scroll: number = 0;
 
     constructor(props: Readonly<SubCollectionViewProps>) {
         super(props);
@@ -33,6 +35,8 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
 
         this.setLayout = this.setLayout.bind(this);
         this.deleteInContext = this.deleteInContext.bind(this);
+
+        this.containerRef = React.createRef();
     }
 
     componentDidMount() {
@@ -66,7 +70,8 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
      * documents before the target. 
      */
     private lookupIndividualTransform = (doc: Doc) => {
-        const yTranslation = this.rowHeightPlusGap * NumCast(doc.y) + 10;
+        const yTranslation = this.rowHeightPlusGap * NumCast(doc.y) + 10 - this._scroll;
+        console.log("CollectionGridView -> privatelookupIndividualTransform -> this.containerRef.current!.scrollTop", this.containerRef.current!.scrollTop)
         const xTranslation = this.colWidthPlusGap * NumCast(doc.x) + 10;
         return this.props.ScreenToLocalTransform().translate(-xTranslation, -yTranslation);
     }
@@ -113,7 +118,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
             onClick={this.onChildClickHandler}
             renderDepth={this.props.renderDepth + 1}
             parentActive={this.props.active}
-            display={"contents"}
+            display={"contents"} // this causes an issue- this is the reason the decorations box is weird with images and web boxes
             removeDocument={this.deleteInContext}
         />;
     }
@@ -291,17 +296,21 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
                 ref={this.createDashEventsTarget}
                 onPointerDown={e => { ((e.target as any)?.className.includes("react-resizable-handle")) && e.stopPropagation(); }} // the grid doesn't stopPropagation when its widgets are hit, so we need to otherwise the outer documents will respond
             >
-                DIV HERE with ref to access scroll of and adjust in getting position
-                <Grid
-                    width={this.props.PanelWidth()}
-                    nodeList={contents}
-                    layout={layout}
-                    numCols={this.props.Document.numCols as number}
-                    rowHeight={this.props.Document.rowHeight as number}
-                    setLayout={this.setLayout}
-                    flex={this.props.Document.flexGrid as boolean}
-                    scale={this.props.ScreenToLocalTransform().Scale}
-                />
+                <div className="collectionGridView-gridContainer"
+                    ref={this.containerRef}
+                    onScroll={action((e: React.UIEvent<HTMLDivElement>) => this._scroll = e.currentTarget.scrollTop)}
+                >
+                    <Grid
+                        width={this.props.PanelWidth()}
+                        nodeList={contents}
+                        layout={layout}
+                        numCols={this.props.Document.numCols as number}
+                        rowHeight={this.props.Document.rowHeight as number}
+                        setLayout={this.setLayout}
+                        flex={this.props.Document.flexGrid as boolean}
+                        scale={this.props.ScreenToLocalTransform().Scale}
+                    />
+                </div>
             </div>
         );
     }
