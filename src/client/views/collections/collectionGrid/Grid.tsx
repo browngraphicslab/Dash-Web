@@ -13,13 +13,12 @@ export { Layout } from 'react-grid-layout';
 interface GridProps {
     width: number;
     nodeList: JSX.Element[] | null;
-    layout: Layout[];
+    layout: Layout[] | undefined;
     numCols: number;
     rowHeight: number;
     setLayout: Function;
     transformScale: number;
     childrenDraggable: boolean;
-    // flex: boolean;
 }
 
 /**
@@ -37,6 +36,7 @@ export default class Grid extends React.Component<GridProps> {
      * @param layout `Layout[]`
      */
     onLayoutChange(layout: Layout[]) {
+        console.log("layout changed");
         this.props.setLayout(layout);
     }
 
@@ -50,8 +50,6 @@ export default class Grid extends React.Component<GridProps> {
                 width={this.props.width}
                 compactType={null}
                 isDroppable={true}
-                // isDraggable={this.props.flex}
-                // isResizable={this.props.flex}
                 // isDraggable={this.props.childrenDraggable}
                 useCSSTransforms={true}
                 margin={[10, 10]}

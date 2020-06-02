@@ -5,7 +5,74 @@
     height: 100%;
     flex-direction: column;
 
+    .collectionGridView-gridContainer {
+        height: 100%;
+        overflow-y: auto;
+        background-color: white;
+    }
+
+    .collectionGridView-addDocumentButton {
+        display: flex;
+        overflow: hidden;
+        margin: auto;
+        width: 90%;
+        cursor: text;
+
+        font-size: 75%;
+        letter-spacing: 2px;
+
+        .editableView-input {
+            outline-color: black;
+            letter-spacing: 2px;
+            color: grey;
+            border: 0px;
+            padding: 12px 10px 11px 10px;
+        }
+
+        .editableView-container-editing,
+        .editableView-container-editing-oneLine {
+            min-height: 20px;
+            display: flex;
+            align-items: center;
+            flex-direction: row;
+            height: auto;
+
+            color: grey;
+            padding: 10px;
+            width: 100%;
+
+            span::before,
+            span::after {
+                content: "";
+                width: 50%;
+                position: relative;
+                display: inline-block;
+            }
+
+            span::before {
+                margin-right: 10px;
+            }
+
+            span::after {
+                margin-left: 10px;
+            }
+
+            span {
+                position: relative;
+                text-align: center;
+                white-space: nowrap;
+                overflow: visible;
+                display: flex;
+                color: gray;
+                align-items: center;
+            }
+        }
+
+
+    }
+
 }
+
 
 // .documentDecorations-container .documentDecorations-resizer {
 //     pointer-events: none;
@@ -18,13 +85,7 @@
 //     visibility: collapse;
 // }
 
-.collectionGridView-contents .collectionGridView-gridContainer {
-    height: 100%;
-    overflow-y: auto;
-    background-color: white;
-}
-
-
+// .collectionGridView-contents
 
 /* Chrome, Safari, Edge, Opera */
 input::-webkit-outer-spin-button,

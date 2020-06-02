@@ -1,9 +1,9 @@
 import { computed, observable, Lambda, action } from 'mobx';
 import * as React from "react";
-import { Doc, DocListCast, Opt } from '../../../../fields/Doc';
+import { Doc, Opt } from '../../../../fields/Doc';
 import { documentSchema } from '../../../../fields/documentSchemas';
 import { makeInterface } from '../../../../fields/Schema';
-import { BoolCast, NumCast, ScriptCast, StrCast } from '../../../../fields/Types';
+import { BoolCast, NumCast, ScriptCast } from '../../../../fields/Types';
 import { Transform } from '../../../util/Transform';
 import { undoBatch } from '../../../util/UndoManager';
 import { ContentFittingDocumentView } from '../../nodes/ContentFittingDocumentView';
@@ -14,8 +14,10 @@ import { returnZero } from '../../../../Utils';
 import Grid, { Layout } from "./Grid";
 import { Id } from '../../../../fields/FieldSymbols';
 import { observer } from 'mobx-react';
-import "./CollectionGridView.scss";
 import { SnappingManager } from '../../../util/SnappingManager';
+import "./CollectionGridView.scss";
+import { Docs } from '../../../documents/Documents';
+import { EditableView, EditableProps } from '../../EditableView';
 
 
 type GridSchema = makeInterface<[typeof documentSchema]>;
@@ -27,10 +29,6 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
     @observable private _scroll: number = 0;
     private changeListenerDisposer: Opt<Lambda>;
 
-    // private undoChangeListenerDisposer: Opt<Lambda>;
-
-    // @observable private _layouts: Layout[] = [];
-
     constructor(props: Readonly<SubCollectionViewProps>) {
         super(props);
 
@@ -39,24 +37,22 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
         this.props.Document.flexGrid = BoolCast(this.props.Document.flexGrid, true);
 
         this.setLayout = this.setLayout.bind(this);
+        // this.addTextDoc = this.addTextDoc.bind(this);
 
         this.containerRef = React.createRef();
     }
 
     componentDidMount() {
 
-        // this.undoChangeListenerDisposer = computed(() => this.props.Document.gridLayoutString).observe(({ newValue }) => {
-        //     action(() => this._layouts = JSON.parse(newValue as string))();
-        // });
-
         this.changeListenerDisposer = computed(() => this.childLayoutPairs).observe(({ oldValue, newValue }) => {
 
+            const layouts: Layout[] = this.parsedLayoutList;
             if (!oldValue || newValue.length > oldValue.length) {
-                const layouts: Layout[] = this.parsedLayoutList;
                 // for each document that was added, add a corresponding grid layout document
                 newValue.forEach(({ layout }, i) => {
                     const targetId = layout[Id];
                     if (!layouts.find((gridLayout: Layout) => gridLayout.i === targetId)) {
+                        console.log("pushing")
                         layouts.push({
                             i: targetId,
                             w: 2,
@@ -66,26 +62,24 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
                         });
                     }
                 });
-                this.props.Document.gridLayoutString = JSON.stringify(layouts);
             } else {
-                const layouts: Layout[] = this.parsedLayoutList;
                 // for each document that was removed, remove its corresponding grid layout document
                 oldValue.forEach(({ layout }) => {
                     const targetId = layout[Id];
                     if (!newValue.find(({ layout: preserved }) => preserved[Id] === targetId)) {
                         const index = layouts.findIndex((gridLayout: Layout) => gridLayout.i === targetId);
-                        index !== -1 && action(() => layouts.splice(index, 1))();
+                        index !== -1 && layouts.splice(index, 1);
                     }
                 });
-                this.props.Document.gridLayoutString = JSON.stringify(layouts);
             }
 
+            this.unStringifiedLayoutList = layouts;
+            // this.props.Document.gridLayoutString = JSON.stringify(layouts);
         }, true);
     }
 
     componentWillUnmount() {
         this.changeListenerDisposer && this.changeListenerDisposer();
-        this.undoChangeListenerDisposer && this.undoChangeListenerDisposer();
     }
 
     /**
@@ -125,8 +119,9 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
 
     @computed get onChildClickHandler() { return ScriptCast(this.Document.onChildClick); }
 
-    @computed get parsedLayoutList() { return this.props.Document.gridLayoutString ? JSON.parse(this.props.Document.gridLayoutString as string) : []; }
-    @undoBatch @action set unStringifiedLayoutList(layouts: Layout[]) { this.props.Document.gridLayoutString = JSON.stringify(layouts); }
+    get parsedLayoutList() { return this.props.Document.gridLayoutString ? JSON.parse(this.props.Document.gridLayoutString as string) : []; }
+    set unStringifiedLayoutList(layouts: Layout[]) { this.props.Document.gridLayoutString = JSON.stringify(layouts); }
+
 
     /**
      * Sets the width of the decorating box.
@@ -149,7 +144,6 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
     }
 
     getDisplayDoc(layout: Doc, dxf: () => Transform, width: () => number, height: () => number) {
-        console.log(layout[Id]);
         return <ContentFittingDocumentView
             {...this.props}
             Document={layout}
@@ -192,7 +186,8 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
             }
         });
 
-        this.props.Document.gridLayoutString = JSON.stringify(layouts);
+        // this.props.Document.gridLayoutString = JSON.stringify(layouts);
+        this.unStringifiedLayoutList = layouts;
     }
 
     /**
@@ -204,7 +199,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
         const { childLayoutPairs } = this;
         const collector: JSX.Element[] = [];
         const layouts: Layout[] = this.parsedLayoutList;
-        if (!layouts || !layouts.length || layouts.length !== childLayoutPairs.length) {
+        if (!layouts.length || layouts.length !== childLayoutPairs.length) {
             return [];
         }
 
@@ -232,18 +227,9 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
      */
     get layoutList(): Layout[] {
         const layouts: Layout[] = this.parsedLayoutList;
-        if (this.props.Document.flexGrid) {
-            return layouts.map(({ i, x, y, w, h }) => ({
-                i: i,
-                x: x,
-                y: y,
-                w: w,
-                h: h,
-                static: false
-            }));
-        }
-        else {
-            return layouts.map(({ i }, index) => ({
+
+        return this.props.Document.flexGrid ?
+            layouts : layouts.map(({ i }, index) => ({
                 i: i,
                 x: 2 * (index % Math.floor(this.props.Document.numCols as number / 2)),
                 y: 2 * Math.floor(index / Math.floor(this.props.Document.numCols as number / 2)),
@@ -251,8 +237,9 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
                 h: 2,
                 static: true
             }));
-        }
     }
+
+    @undoBatch @action addTextDocument = (value: string) => this.props.addDocument(Docs.Create.TextDocument(value, { title: value }));
 
     /**
      * DocListCast only includes *resolved* documents, i.e. filters out promises. So even if we have a nonzero
@@ -263,11 +250,18 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
      * the setLayout event, which makes these unintended changes permanent by writing them to the likely now resolved documents.
      */
     render() {
+
+        const newEditableViewProps: EditableProps = {
+            GetValue: () => "",
+            SetValue: this.addTextDocument,
+            contents: "+ NEW",
+        };
+
         const childDocumentViews: JSX.Element[] = this.contents;
-        const layouts: Layout[] = this.parsedLayoutList;
-        if (!childDocumentViews.length || !layouts.length) {
-            return null;
-        }
+        const chromeStatus = this.props.Document._chromeStatus;
+        const showChrome = (chromeStatus !== 'view-mode' && chromeStatus !== 'disabled');
+
+
         return (
             <div className="collectionGridView-contents"
                 style={{
@@ -287,15 +281,19 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
                     }
                 }} // the grid doesn't stopPropagation when its widgets are hit, so we need to otherwise the outer documents will respond
             >
+                {showChrome ?
+                    <div className="collectionGridView-addDocumentButton">
+                        <EditableView {...newEditableViewProps} />
+                    </div> : null
+                }
                 <div className="collectionGridView-gridContainer"
                     ref={this.containerRef}
                     onScroll={action((e: React.UIEvent<HTMLDivElement>) => this._scroll = e.currentTarget.scrollTop)}
                 >
-                    {/* {console.log(this.toLayoutList(layoutDocList))} */}
                     <Grid
                         width={this.props.PanelWidth()}
-                        nodeList={childDocumentViews}
-                        layout={this.layoutList}
+                        nodeList={childDocumentViews.length ? childDocumentViews : null}
+                        layout={childDocumentViews.length ? this.layoutList : undefined}
                         childrenDraggable={this.props.isSelected() ? true : false}
                         numCols={this.props.Document.numCols as number}
                         rowHeight={this.props.Document.rowHeight as number}
@@ -305,7 +303,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
                     // flex={this.props.Document.flexGrid as boolean}
                     />
                 </div>
-            </div>
+            </div >
         );
     }
 }
