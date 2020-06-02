@@ -485,6 +485,22 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
                     dataProvider: (token: any) => this.handleFunc(this.rta.getCaretPosition()),
                     component: ({ entity: value }) => <div>{value}</div>,
                     output: (item: any) => "(" + this.returnParam(item) + ")",
+                },
+
+                ".": {
+                    dataProvider: (token: any) => this.handleToken(token),
+                    component: ({ entity: value }) =>
+                        <div><div
+                            style={{ fontSize: "14px" }}
+                            onMouseEnter={() => this.setHovered(true)}
+                            onMouseLeave={() => this.setHovered(false)}>
+                            {value}
+                        </div>
+                            {this._hovered ? <div style={{ fontSize: "10px" }}>{this.getDescription(value)}</div> : (null)}
+                            {this._hovered ? <div style={{ fontSize: "10px" }}>{this.getParams(value)}</div> : (null)}
+                        </div>
+                    ,
+                    output: (item: any, trigger) => trigger + item.trim(),
                 }
 
             }}
