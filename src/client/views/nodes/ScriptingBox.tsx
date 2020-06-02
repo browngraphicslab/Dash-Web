@@ -1,4 +1,4 @@
-import { action, computed, observable } from "mobx";
+import { action, computed, observable, trace } from "mobx";
 import { observer } from "mobx-react";
 import * as React from "react";
 import { Doc } from "../../../fields/Doc";
@@ -32,7 +32,6 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
 
     private dropDisposer?: DragManager.DragDropDisposer;
     protected multiTouchDisposer?: InteractionUtils.MultiTouchEventDisposer | undefined;
-    rta: any;
     public static LayoutString(fieldStr: string) { return FieldView.LayoutString(ScriptingBox, fieldStr); }
     private _overlayDisposer?: () => void;
 
@@ -93,6 +92,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         });
         return params;
     }
+
 
     @action
     componentDidMount() {
@@ -164,8 +164,8 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
 
     // overlays document numbers (ex. d32) over all documents when clicked on
     onFocus = () => {
-        this._overlayDisposer?.();
-        this._overlayDisposer = OverlayView.Instance.addElement(<DocumentIconContainer />, { x: 0, y: 0 });
+        // this._overlayDisposer?.();
+        // this._overlayDisposer = OverlayView.Instance.addElement(<DocumentIconContainer />, { x: 0, y: 0 });
     }
 
     // sets field of the corresponding field key (param name) to be dropped document
@@ -387,7 +387,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
 
     @action
     handleFunc(pos: number) {
-        const scriptString = this.rawScript.slice(0, pos - 1);
+        const scriptString = this.rawScript.slice(0, pos - 2);
         this._currWord = scriptString.split(" ")[scriptString.split(" ").length - 1];
         this._suggestions = [];
 
@@ -445,68 +445,50 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         return value;
     }
 
+    caretPos = 0;
     textarea: any;
     @computed({ keepAlive: true }) get renderScriptingBox() {
+        trace();
+        return <div style={{ width: this.compileParams.length > 0 ? "70%" : "100%" }}>
+            <ReactTextareaAutocomplete className="ScriptingBox-textarea" style={{ resize: "none", height: "100%" }}
+                minChar={0}
+                placeholder="write your script here"
+                onFocus={this.onFocus}
+                onBlur={() => this._overlayDisposer?.()}
+                onChange={e => this.rawScript = e.target.value}
+                value={this.rawScript}
+                movePopupAsYouType={true}
+                loadingComponent={() => <span>Loading</span>}
 
-        return <ReactTextareaAutocomplete
-            onFocus={this.onFocus}
-            onBlur={() => this._overlayDisposer?.()}
-            onChange={e => this.rawScript = e.target.value}
-            value={this.rawScript}
-            placeholder="write your script here"
-            className="ScriptingBox-textarea"
-            style={{ width: this.compileParams.length > 0 ? "70%" : "100%", resize: "none", height: "100%" }}
-            movePopupAsYouType={true}
-            loadingComponent={() => <span>Loading</span>}
+                trigger={{
+                    "(": {
+                        dataProvider: (token: any) => this.handleFunc(this.caretPos),
+                        component: ({ entity: value }) => <div>{value}</div>,
+                        output: (item: any) => "(" + this.returnParam(item) + ")",
+                    },
+                    " ": {
+                        dataProvider: (token: any) => this.handleToken(token),
+                        component: ({ entity: value }) =>
+                            <div>
+                                <div style={{ fontSize: "14px" }}
+                                    onMouseEnter={() => this.setHovered(true)}
+                                    onMouseLeave={() => this.setHovered(false)}>
+                                    {value}
+                                </div>
+                                {!this._hovered ? (null) :
+                                    <>
+                                        <div key="desc" style={{ fontSize: "10px" }}>{this.getDescription(value)}</div>
+                                        <div key="params" style={{ fontSize: "10px" }}>{this.getParams(value)}</div>
+                                    </>
+                                }
+                            </div>,
+                        output: (item: any, trigger) => trigger + item.trim(),
+                    }
+                }}
 
-            ref={(rta) => { this.rta = rta; }}
-            //innerRef={textarea => { this.rawScript = textarea.value; }}
-
-            minChar={0}
-
-            trigger={{
-                " ": {
-                    dataProvider: (token: any) => this.handleToken(token),
-                    component: ({ entity: value }) =>
-                        <div><div
-                            style={{ fontSize: "14px" }}
-                            onMouseEnter={() => this.setHovered(true)}
-                            onMouseLeave={() => this.setHovered(false)}>
-                            {value}
-                        </div>
-                            {this._hovered ? <div style={{ fontSize: "10px" }}>{this.getDescription(value)}</div> : (null)}
-                            {this._hovered ? <div style={{ fontSize: "10px" }}>{this.getParams(value)}</div> : (null)}
-                        </div>
-                    ,
-                    output: (item: any, trigger) => trigger + item.trim(),
-                },
-
-                "(": {
-                    dataProvider: (token: any) => this.handleFunc(this.rta.getCaretPosition()),
-                    component: ({ entity: value }) => <div>{value}</div>,
-                    output: (item: any) => "(" + this.returnParam(item) + ")",
-                },
-
-                ".": {
-                    dataProvider: (token: any) => this.handleToken(token),
-                    component: ({ entity: value }) =>
-                        <div><div
-                            style={{ fontSize: "14px" }}
-                            onMouseEnter={() => this.setHovered(true)}
-                            onMouseLeave={() => this.setHovered(false)}>
-                            {value}
-                        </div>
-                            {this._hovered ? <div style={{ fontSize: "10px" }}>{this.getDescription(value)}</div> : (null)}
-                            {this._hovered ? <div style={{ fontSize: "10px" }}>{this.getParams(value)}</div> : (null)}
-                        </div>
-                    ,
-                    output: (item: any, trigger) => trigger + item.trim(),
-                }
-
-            }}
-
-            onCaretPositionChange={(number: any) => null} //this.handleKeyPress(number)}
-        />;
+                onCaretPositionChange={(number: any) => this.caretPos = number}
+            />
+        </div>;
     }
 
     // inputs for scripting div (script box, params box, and params column)
