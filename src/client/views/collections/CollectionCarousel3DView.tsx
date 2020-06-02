@@ -36,10 +36,14 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
     panelHeight = () => this.props.PanelHeight() * 0.6;
     @computed get content() {
         const currentIndex = NumCast(this.layoutDoc._itemIndex);
-        const displayDoc = (childPair: { layout: Doc, data: Doc }, onClickScript: ScriptField | undefined) => {
+        const displayDoc = (childPair: { layout: Doc, data: Doc }) => {
             return <ContentFittingDocumentView {...this.props}
                 onDoubleClick={ScriptCast(this.layoutDoc.onChildDoubleClick)}
-                onClick={onClickScript}
+                onClick={ScriptField.MakeScript(
+                    "child._showCaption = 'caption'",
+                    { child: Doc.name },
+                    { child: childPair.layout }
+                )}
                 renderDepth={this.props.renderDepth + 1}
                 LayoutTemplate={this.props.ChildLayoutTemplate}
                 LayoutTemplateString={this.props.ChildLayoutString}
@@ -55,57 +59,54 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
 
         return (
             this.childLayoutPairs.map((childPair, index) => {
-                const showCaptionScript = ScriptField.MakeScript(
-                    "child._showCaption = 'caption'",
-                    { child: Doc.name },
-                    { child: childPair.layout }
-                );
-
                 return (
-                    <div key={childPair.layout[Id]} className={`collectionCarouselView-item ${index}`}
+                    <div key={childPair.layout[Id]}
+                        className={`collectionCarouselView-item${index === currentIndex ? "-active" : ""} ${index}`}
                         style={index === currentIndex ?
                             { opacity: '1', transform: 'scale(1.3)' } :
                             { opacity: '0.5', transform: 'scale(0.6)', userSelect: 'none' }}>
-                        {displayDoc(childPair, index === currentIndex ? showCaptionScript : undefined)}
+                        {displayDoc(childPair)}
                     </div>);
             }));
-    }
-
-    handleArrowClick = (e: React.MouseEvent, direction: number) => {
-        e.stopPropagation();
-        this.changeSlide(direction);
     }
 
     changeSlide = (direction: number) => {
         this.layoutDoc._itemIndex = (NumCast(this.layoutDoc._itemIndex) + direction + this.childLayoutPairs.length) % this.childLayoutPairs.length;
     }
 
-    timer?: NodeJS.Timeout;
-    interval?: NodeJS.Timeout;
-    onPress = (e: React.PointerEvent, direction: number) => {
+    timer?: number;
+    interval?: number;
+    onArrowDown = (e: React.PointerEvent, direction: number) => {
         e.stopPropagation;
-        document.removeEventListener("pointerup", this.stopScroll);
-        document.addEventListener("pointerup", this.stopScroll);
+        document.removeEventListener("pointerup", () => this.onArrowRelease(direction));
+        document.addEventListener("pointerup", () => this.onArrowRelease(direction));
 
-        this.timer = setTimeout(() => {
+        this.layoutDoc.startScrollTimeout = 1500;
+        this.timer = window.setTimeout(() => { // if arrow is held down long enough, activate automatic scrolling
+            window.clearTimeout(this.timer);
+            this.timer = undefined;
             this.startScroll(direction);
-        }, 1500);
+        }, this.layoutDoc.startScrollTimeout);
     }
 
     startScroll = (direction: number) => {
-        this.interval = setInterval(() => {
+        this.layoutDoc.scrollInterval = 500;
+        this.interval = window.setInterval(() => {
             this.changeSlide(direction);
-        }, 500);
+        }, this.layoutDoc.scrollInterval);
     }
 
-    stopScroll = () => {
+    onArrowRelease = (direction: number) => {
+        document.removeEventListener("pointerup", () => this.onArrowRelease(direction));
+
         if (this.timer) {
-            clearTimeout(this.timer);
+            this.changeSlide(direction); // if click wasn't long enough to activate autoscroll, only advance/go back 1 slide
+            window.clearTimeout(this.timer);
             this.timer = undefined;
         }
 
         if (this.interval) {
-            clearInterval(this.interval);
+            window.clearInterval(this.interval); // stop scrolling
             this.interval = undefined;
         }
     }
@@ -147,13 +148,11 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
     @computed get buttons() {
         return <>
             <div key="back" className="carouselView-back" style={{ background: `${StrCast(this.props.Document.backgroundColor)}` }}
-                onClick={(e) => this.handleArrowClick(e, -1)}
-                onPointerDown={(e) => this.onPress(e, -1)}>
+                onPointerDown={(e) => this.onArrowDown(e, -1)}>
                 <FontAwesomeIcon icon={"caret-left"} size={"2x"} />
             </div>
             <div key="fwd" className="carouselView-fwd" style={{ background: `${StrCast(this.props.Document.backgroundColor)}` }}
-                onClick={(e) => this.handleArrowClick(e, 1)}
-                onPointerDown={(e) => this.onPress(e, 1)}>
+                onPointerDown={(e) => this.onArrowDown(e, 1)}>
                 <FontAwesomeIcon icon={"caret-right"} size={"2x"} />
             </div>
         </>;
