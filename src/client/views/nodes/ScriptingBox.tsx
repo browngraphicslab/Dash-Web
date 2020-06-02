@@ -38,6 +38,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     @observable private _errorMessage: string = "";
     @observable private _applied: boolean = false;
     @observable private _hovered: boolean = false;
+    @observable private _spaced: boolean = false;
     @observable private _scriptKeys: any = Scripting.getGlobals();
     @observable private _scriptGlobals: any = Scripting.getGlobalObj();
     @observable private _currWord: string = "";
@@ -451,7 +452,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         trace();
         return <div style={{ width: this.compileParams.length > 0 ? "70%" : "100%" }}>
             <ReactTextareaAutocomplete className="ScriptingBox-textarea" style={{ resize: "none", height: "100%" }}
-                minChar={0}
+                minChar={1}
                 placeholder="write your script here"
                 onFocus={this.onFocus}
                 onBlur={() => this._overlayDisposer?.()}
@@ -483,10 +484,49 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
                                 }
                             </div>,
                         output: (item: any, trigger) => trigger + item.trim(),
+                    },
+                    ".": {
+                        dataProvider: (token: any) => this.handleToken(token),
+                        component: ({ entity: value }) =>
+                            <div>
+                                <div style={{ fontSize: "14px" }}
+                                    onMouseEnter={() => this.setHovered(true)}
+                                    onMouseLeave={() => this.setHovered(false)}>
+                                    {value}
+                                </div>
+                                {!this._hovered ? (null) :
+                                    <>
+                                        <div key="desc" style={{ fontSize: "10px" }}>{this.getDescription(value)}</div>
+                                        <div key="params" style={{ fontSize: "10px" }}>{this.getParams(value)}</div>
+                                    </>
+                                }
+                            </div>,
+                        output: (item: any, trigger) => {
+                            this._spaced = true;
+                            return trigger + item.trim();
+                        },
                     }
                 }}
 
-                onCaretPositionChange={(number: any) => this.caretPos = number}
+                onCaretPositionChange={(number: any) => {
+                    this.caretPos = number;
+                    if (this.caretPos === 0) {
+                        this.rawScript = " " + this.rawScript;
+                    } else if (this._spaced) {
+                        this._spaced = false;
+                        if (this.rawScript[this.rawScript.length - 1] === " ") {
+                            this.rawScript = this.rawScript.slice(0, this.rawScript.length - 1);
+                        }
+                    }
+                }}
+
+            // onClick={() => this.rawScript = this.rawScript[this.rawScript.length - 1]}
+
+            // onKeyPress={e => {
+            //     if (e.key === "Enter" || e.key === "Tab") {
+            //         this.rawScript = this.rawScript[this.rawScript.length - 1];
+            //     }
+            // }}
             />
         </div>;
     }
