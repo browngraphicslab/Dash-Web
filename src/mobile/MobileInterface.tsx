@@ -119,14 +119,6 @@ export default class MobileInterface extends React.Component {
         this.toggleSidebar();
     }
 
-    getInkStatus = () => {
-        if (this._ink) {
-            return "ink off";
-        } else {
-            return "ink on";
-        }
-    }
-
     onSwitchUpload = async () => {
         let width = 300;
         let height = 300;
@@ -166,6 +158,14 @@ export default class MobileInterface extends React.Component {
             header.textContent = String(this._activeDoc.title);
         } else {
             header.textContent = "menu";
+        }
+
+        // for updating ink button
+        let ink = document.getElementById("ink") as HTMLElement;
+        if (this._ink) {
+            ink.textContent = "ink off";
+        } else {
+            ink.textContent = "ink on";
         }
     }
 
@@ -310,7 +310,7 @@ export default class MobileInterface extends React.Component {
                 <div>
                     <div className="navbar">
                         <div className="header" id="header">MENU</div>
-                        <FontAwesomeIcon className="home" icon="home" onClick={this.returnHome} />
+
                         <div className="toggle-btn" id="menuButton" onClick={this.toggleSidebar}>
                             <span></span>
                             <span></span>
@@ -323,6 +323,7 @@ export default class MobileInterface extends React.Component {
                         </div>
                     </div>
                     <div className="sidebar" id="sidebar">
+                        <FontAwesomeIcon className="home" icon="home" onClick={this.returnHome} />
                         <div>
                             {buttons}
                             {/* <div className="item" key="library" onClick={this.openLibrary}>
@@ -338,7 +339,7 @@ export default class MobileInterface extends React.Component {
                             <div className="item" key="settings" onClick={() => SettingsManager.Instance.open()}>
                                 Settings
                             </div>
-                            <div className="item" key="ink" onClick={() => this.onSwitchInking()}>
+                            <div className="ink" key="ink" id="ink" onClick={() => this.onSwitchInking()}>
                                 Ink
                             </div>
                         </div>
@@ -353,8 +354,10 @@ export default class MobileInterface extends React.Component {
             return (
                 <div>
                     <div className="navbar">
-                        <div className="header" id="header">menu</div>
-                        <FontAwesomeIcon className="home" icon="home" onClick={this.returnHome} />
+                        <div className="header" id="header">
+                            menu
+                        </div>
+
                         <div className="toggle-btn" id="menuButton" onClick={this.toggleSidebar}>
                             <span></span>
                             <span></span>
@@ -367,14 +370,15 @@ export default class MobileInterface extends React.Component {
                         </div>
                     </div>
                     <div className="sidebar" id="sidebar">
+                        <FontAwesomeIcon className="home" icon="home" onClick={this.returnHome} />
                         <div className="back" onClick={this.back}>
                             &#8592;
                         </div>
                         <div>
                             {buttons}
                         </div>
-                        <div className="item" key="ink" onClick={() => this.onSwitchInking()}>
-                            {this.getInkStatus()}
+                        <div className="item" key="ink" id="ink" onClick={() => this.onSwitchInking()}>
+                            ink
                         </div>
                         <div className="item" key="home" onClick={this.returnHome}>
                             Home
@@ -542,9 +546,9 @@ export default class MobileInterface extends React.Component {
     render() {
         // const content = this.currentView === "main" ? this.mainContent :
         //     this.currentView === "ink" ? this.inkContent :
-        //         this.currentView === "upload" ? this.uploadContent : <></>;
+        //         this.currentView === "upload" ? this.uploadContent : <></>;onDragOver={this.onDragOver}
         return (
-            <div className="mobileInterface-container" onDragOver={this.onDragOver}>
+            <div className="mobileInterface-container" >
                 {/* <DocumentDecorations />
                 <GestureOverlay>
                     {this.renderView ? this.renderView() : this.renderDefaultContent()}
@@ -553,8 +557,9 @@ export default class MobileInterface extends React.Component {
                 <SettingsManager />
                 <GestureOverlay>
                     {this.displayWorkspaces()}
+                    {this.renderDefaultContent()}
                 </GestureOverlay>
-                {this.renderDefaultContent()}
+
                 {/* </GestureOverlay> */}
                 {/* <DictationOverlay />
                 <SharingManager />

@@ -80,16 +80,16 @@ body {
 .navbar .toggle-btn.active span:nth-child(3) {
     top: 50%;
 }
-.navbar .home {
-    position: absolute;
-    top: -135px;
-    right: 80px;
-    font-size: 40;
-    user-select: none;
-    text-transform: uppercase;
-    font-family: Arial, Helvetica, sans-serif;
-    z-index: 200;
-}
+// .navbar .home {
+//     position: relative;
+//     right: 5px;
+//     transform: translate(50%, -50%);
+//     font-size: 40;
+//     user-select: none;
+//     text-transform: uppercase;
+//     font-family: Arial, Helvetica, sans-serif;
+//     z-index: 200;
+// }
 
 .sidebar {
     position: absolute;
@@ -102,8 +102,9 @@ body {
     background-color: whitesmoke;
     transition: all 400ms ease 50ms;
     padding: 20px;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
+    // overflow-y: auto;
+    // -webkit-overflow-scrolling: touch;
+    
     // border-right: 5px solid black;
 }
 
@@ -118,6 +119,24 @@ body {
     font-size: 35px;
     text-transform: uppercase;
     color: black;
+    
+}
+
+.sidebar .ink {
+    width: 100%;
+    padding: 13px 12px;
+    border-bottom: 1px solid rgba(200, 200, 200, 0.7);
+    font-family: Arial, Helvetica, sans-serif;
+    font-style: normal;
+    font-weight: normal;
+    user-select: none;
+    font-size: 35px;
+    text-transform: uppercase;
+    color: black;
+}
+
+.sidebar .ink:focus {
+    outline: 1px solid blue;
 }
 
 .sidebar .home {
