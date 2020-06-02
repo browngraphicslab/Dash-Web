@@ -210,7 +210,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
             const width = () => this.width(gridLayout);
             const height = () => this.height(gridLayout);
             collector.push(
-                <div className={"document-wrapper"}
+                <div className={this.props.Document.flexGrid ? "document-wrapper" : "document-wrapper static"}
                     key={gridLayout.i}
                 >
                     {this.getDisplayDoc(layout, dxf, width, height)}
