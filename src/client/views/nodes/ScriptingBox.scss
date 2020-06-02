@@ -6,6 +6,17 @@
     background-color: rgb(241, 239, 235);
     padding: 10px;
 
+    .boxed {
+        border: 1px solid black;
+        background-color: rgb(212, 198, 179);
+        width: auto;
+        height: auto;
+        font-size: 12px;
+        position: absolute;
+        z-index: 100;
+        padding: 5px;
+    }
+
     .scriptingBox-inputDiv {
         display: flex;
         flex-direction: column;
@@ -88,7 +99,7 @@
                 .rta__entity:hover {
                     cursor: pointer;
                 }
-                
+
                 .rta__entity>* {
                     padding-left: 4px;
                     padding-right: 4px;

@@ -43,6 +43,11 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     @observable private _scriptGlobals: any = Scripting.getGlobalObj();
     @observable private _currWord: string = "";
     @observable private _suggestions: string[] = [];
+    @observable private _paramSuggestion: boolean = false;
+    @observable private _scriptSuggestedParams: string = "";
+
+    @observable private _suggestionBoxX: number = 0;
+    @observable private _suggestionBoxY: number = 0;
 
     // vars included in fields that store parameters types and names and the script itself
     @computed({ keepAlive: true }) get paramsNames() { return this.compileParams.map(p => p.split(":")[0].trim()); }
@@ -446,9 +451,74 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         return value;
     }
 
+    getSuggestedParams(pos: number) {
+        const firstScript = this.rawScript.slice(0, pos);
+        const indexP = firstScript.lastIndexOf(".");
+        const indexS = firstScript.lastIndexOf(" ");
+        let func = "";
+        if (indexP > indexS) {
+            func = firstScript.slice(indexP + 1, firstScript.length + 1);
+        } else {
+            func = firstScript.slice(indexS + 1, firstScript.length + 1);
+        }
+
+        console.log(func);
+
+        const indexF = this._scriptKeys.indexOf(func);
+
+        return this._scriptParams[indexF];
+    }
+
+    @action
+    keyHandler(e: any, pos: number) {
+        console.log(e.key);
+        if (e.key === "(") {
+            console.log("hello");
+            const getCaretCoordinates = require('textarea-caret');
+
+            let top = 0;
+            let left = 0;
+            document.querySelector('textarea')?.addEventListener('input', function () {
+                const caret = getCaretCoordinates(this, this.selectionEnd);
+                console.log('(top, left, height) = (%s, %s, %s)', caret.top, caret.left, caret.height);
+                top = caret.top;
+                left = caret.left;
+            });
+            this._suggestionBoxX = left;
+            this._suggestionBoxY = top;
+
+            this._scriptSuggestedParams = this.getSuggestedParams(pos);
+
+            if (this._scriptSuggestedParams !== undefined && this._scriptSuggestedParams.length > 0) {
+                this._paramSuggestion = true;
+            }
+        } else if (e.key === ")") {
+            this._paramSuggestion = false;
+        }
+    }
+
+    @action
+    handlePosChange(number: any) {
+        this.caretPos = number;
+        if (this.caretPos === 0) {
+            this.rawScript = " " + this.rawScript;
+        } else if (this._spaced) {
+            this._spaced = false;
+            if (this.rawScript[this.caretPos - 1] === " ") {
+                this.rawScript = this.rawScript.slice(0, this.caretPos - 1) +
+                    this.rawScript.slice(this.caretPos, this.rawScript.length);
+            }
+        }
+
+        // if (this.rawScript[this.rawScript.length - 1] !== "(") {
+        //     this._paramSuggestion = false;
+        // }
+    }
+
     caretPos = 0;
     textarea: any;
     @computed({ keepAlive: true }) get renderScriptingBox() {
+
         trace();
         return <div style={{ width: this.compileParams.length > 0 ? "70%" : "100%" }}>
             <ReactTextareaAutocomplete className="ScriptingBox-textarea" style={{ resize: "none", height: "100%" }}
@@ -462,11 +532,6 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
                 loadingComponent={() => <span>Loading</span>}
 
                 trigger={{
-                    "(": {
-                        dataProvider: (token: any) => this.handleFunc(this.caretPos),
-                        component: ({ entity: value }) => <div>{value}</div>,
-                        output: (item: any) => "(" + this.returnParam(item) + ")",
-                    },
                     " ": {
                         dataProvider: (token: any) => this.handleToken(token),
                         component: ({ entity: value }) =>
@@ -483,7 +548,10 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
                                     </>
                                 }
                             </div>,
-                        output: (item: any, trigger) => trigger + item.trim(),
+                        output: (item: any, trigger) => {
+                            this._spaced = true;
+                            return trigger + item.trim();
+                        },
                     },
                     ".": {
                         dataProvider: (token: any) => this.handleToken(token),
@@ -508,25 +576,9 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
                     }
                 }}
 
-                onCaretPositionChange={(number: any) => {
-                    this.caretPos = number;
-                    if (this.caretPos === 0) {
-                        this.rawScript = " " + this.rawScript;
-                    } else if (this._spaced) {
-                        this._spaced = false;
-                        if (this.rawScript[this.rawScript.length - 1] === " ") {
-                            this.rawScript = this.rawScript.slice(0, this.rawScript.length - 1);
-                        }
-                    }
-                }}
+                onKeyPress={(e) => this.keyHandler(e, this.caretPos)}
 
-            // onClick={() => this.rawScript = this.rawScript[this.rawScript.length - 1]}
-
-            // onKeyPress={e => {
-            //     if (e.key === "Enter" || e.key === "Tab") {
-            //         this.rawScript = this.rawScript[this.rawScript.length - 1];
-            //     }
-            // }}
+                onCaretPositionChange={(number: any) => this.handlePosChange(number)}
             />
         </div>;
     }
@@ -625,6 +677,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         return (
             <div className={`scriptingBox`} onContextMenu={this.specificContextMenu}>
                 <div className="scriptingBox-outerDiv" onWheel={e => this.props.isSelected(true) && e.stopPropagation()}>
+                    {this._paramSuggestion ? <div className="boxed" style={{ left: this._suggestionBoxX + 20, top: this._suggestionBoxY - 15 }}> {this._scriptSuggestedParams} </div> : null}
                     {!this._applied ? this.renderScriptingInputs : this.renderParamsInputs()}
                     {!this._applied ? this.renderScriptingTools() : this.renderParamsTools()}
                 </div>
