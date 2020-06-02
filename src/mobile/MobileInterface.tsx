@@ -81,6 +81,8 @@ export default class MobileInterface extends React.Component {
         }
         InkingControl.Instance.switchTool(InkTool.None)
         MobileInterface.Instance.drawingInk = false;
+        InkingControl.Instance.updateSelectedColor("rgb(0, 0, 0)");
+        InkingControl.Instance.switchWidth("2");
     }
 
     @action
@@ -99,21 +101,10 @@ export default class MobileInterface extends React.Component {
             MobileInterface.Instance.drawingInk = true;
             this._ink = true;
 
-            DocServer.Mobile.dispatchOverlayTrigger({
-                enableOverlay: true,
-                width: window.innerWidth,
-                height: window.innerHeight
-            });
         } else {
             InkingControl.Instance.switchTool(InkTool.None)
             MobileInterface.Instance.drawingInk = false;
             this._ink = false;
-
-            DocServer.Mobile.dispatchOverlayTrigger({
-                enableOverlay: false,
-                width: window.innerWidth,
-                height: window.innerHeight
-            });
         }
 
         this.toggleSidebar();
@@ -183,6 +174,7 @@ export default class MobileInterface extends React.Component {
         if (doc) {
             this._activeDoc = doc;
         }
+        this._ink = false;
     }
 
     returnHome = () => {
@@ -282,18 +274,7 @@ export default class MobileInterface extends React.Component {
     renderDefaultContent = () => {
         const workspaces = Cast(this.userDoc.myWorkspaces, Doc) as Doc;
         let buttons = DocListCast(workspaces.data).map((doc: Doc, index: any) => {
-            return (
-                <div
-                    className="item"
-                    key={index}
-                    onClick={() => this.handleClick(doc)}>{doc.title}
-                    <div className="type">{doc.type}</div>
-                    <FontAwesomeIcon className="right" icon="angle-right" size="lg" />
-                </div>);
-        });
-
-        if (this._child) {
-            buttons = DocListCast(this._child.data).map((doc: Doc, index: any) => {
+            if (doc.type !== "ink") {
                 return (
                     <div
                         className="item"
@@ -302,6 +283,21 @@ export default class MobileInterface extends React.Component {
                         <div className="type">{doc.type}</div>
                         <FontAwesomeIcon className="right" icon="angle-right" size="lg" />
                     </div>);
+            }
+        });
+
+        if (this._child) {
+            buttons = DocListCast(this._child.data).map((doc: Doc, index: any) => {
+                if (doc.type !== "ink") {
+                    return (
+                        <div
+                            className="item"
+                            key={index}
+                            onClick={() => this.handleClick(doc)}>{doc.title}
+                            <div className="type">{doc.type}</div>
+                            <FontAwesomeIcon className="right" icon="angle-right" size="lg" />
+                        </div>);
+                }
             });
         }
 
@@ -340,7 +336,7 @@ export default class MobileInterface extends React.Component {
                                 Settings
                             </div>
                             <div className="ink" key="ink" id="ink" onClick={() => this.onSwitchInking()}>
-                                Ink
+                                Ink On
                             </div>
                         </div>
                     </div>
@@ -378,7 +374,7 @@ export default class MobileInterface extends React.Component {
                             {buttons}
                         </div>
                         <div className="item" key="ink" id="ink" onClick={() => this.onSwitchInking()}>
-                            ink
+                            ink on
                         </div>
                         <div className="item" key="home" onClick={this.returnHome}>
                             Home
