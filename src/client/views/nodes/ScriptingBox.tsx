@@ -1,4 +1,4 @@
-import { action, computed, observable, trace } from "mobx";
+import { action, computed, observable, trace, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import * as React from "react";
 import { Doc } from "../../../fields/Doc";
@@ -476,16 +476,17 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
             console.log("hello");
             const getCaretCoordinates = require('textarea-caret');
 
-            let top = 0;
-            let left = 0;
+            const This = this;
             document.querySelector('textarea')?.addEventListener('input', function () {
                 const caret = getCaretCoordinates(this, this.selectionEnd);
                 console.log('(top, left, height) = (%s, %s, %s)', caret.top, caret.left, caret.height);
-                top = caret.top;
-                left = caret.left;
+                let top = caret.top;
+                let left = caret.left;
+                runInAction(() => {
+                    This._suggestionBoxX = left;
+                    This._suggestionBoxY = top;
+                });
             });
-            this._suggestionBoxX = left;
-            this._suggestionBoxY = top;
 
             this._scriptSuggestedParams = this.getSuggestedParams(pos);
 
