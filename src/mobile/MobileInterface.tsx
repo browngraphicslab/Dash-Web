@@ -69,6 +69,7 @@ export default class MobileInterface extends React.Component {
     constructor(props: Readonly<{}>) {
         super(props);
         MobileInterface.Instance = this;
+
     }
 
     @action
@@ -78,6 +79,8 @@ export default class MobileInterface extends React.Component {
         if (this.userDoc && !this.mainContainer) {
             this.userDoc.activeMobile = this.mainDoc;
         }
+        InkingControl.Instance.switchTool(InkTool.None)
+        MobileInterface.Instance.drawingInk = false;
     }
 
     @action
@@ -94,9 +97,33 @@ export default class MobileInterface extends React.Component {
         if (!this._ink) {
             InkingControl.Instance.switchTool(InkTool.Pen);
             MobileInterface.Instance.drawingInk = true;
+            this._ink = true;
 
+            DocServer.Mobile.dispatchOverlayTrigger({
+                enableOverlay: true,
+                width: window.innerWidth,
+                height: window.innerHeight
+            });
         } else {
+            InkingControl.Instance.switchTool(InkTool.None)
             MobileInterface.Instance.drawingInk = false;
+            this._ink = false;
+
+            DocServer.Mobile.dispatchOverlayTrigger({
+                enableOverlay: false,
+                width: window.innerWidth,
+                height: window.innerHeight
+            });
+        }
+
+        this.toggleSidebar();
+    }
+
+    getInkStatus = () => {
+        if (this._ink) {
+            return "ink off";
+        } else {
+            return "ink on";
         }
     }
 
@@ -144,7 +171,7 @@ export default class MobileInterface extends React.Component {
 
     back = () => {
         let doc = Cast(this._parents.pop(), Doc) as Doc;
-        if (doc == Cast(this._menu, Doc) as Doc) {
+        if (doc === Cast(this._menu, Doc) as Doc) {
             this._child = null;
             this.userDoc.activeMobile = this.mainDoc;
         } else {
@@ -223,9 +250,9 @@ export default class MobileInterface extends React.Component {
             if (doc === this.mainDoc) {
                 pathname = pathname;
             } else if (doc.title === "mobile audio" || doc.title === "Presentation") {
-                pathname = pathname
+                pathname = pathname;
             } else if (doc.type !== "collection") {
-                pathname = pathname
+                pathname = pathname;
             } else {
                 pathname = pathname + " > " + doc.title;
             }
@@ -283,6 +310,7 @@ export default class MobileInterface extends React.Component {
                 <div>
                     <div className="navbar">
                         <div className="header" id="header">MENU</div>
+                        <FontAwesomeIcon className="home" icon="home" onClick={this.returnHome} />
                         <div className="toggle-btn" id="menuButton" onClick={this.toggleSidebar}>
                             <span></span>
                             <span></span>
@@ -296,7 +324,6 @@ export default class MobileInterface extends React.Component {
                     </div>
                     <div className="sidebar" id="sidebar">
                         <div>
-                            <FontAwesomeIcon className="home" icon="home" onClick={this.returnHome} />
                             {buttons}
                             {/* <div className="item" key="library" onClick={this.openLibrary}>
                                 Library
@@ -327,6 +354,7 @@ export default class MobileInterface extends React.Component {
                 <div>
                     <div className="navbar">
                         <div className="header" id="header">menu</div>
+                        <FontAwesomeIcon className="home" icon="home" onClick={this.returnHome} />
                         <div className="toggle-btn" id="menuButton" onClick={this.toggleSidebar}>
                             <span></span>
                             <span></span>
@@ -339,16 +367,15 @@ export default class MobileInterface extends React.Component {
                         </div>
                     </div>
                     <div className="sidebar" id="sidebar">
-                        <FontAwesomeIcon className="home" icon="home" onClick={this.returnHome} />
                         <div className="back" onClick={this.back}>
                             &#8592;
                         </div>
                         <div>
                             {buttons}
                         </div>
-                        <div className="item" key="ink" onClick={() => CurrentUserUtils.setupDockedButtons(this.userDoc)}>
-                            Ink
-                            </div>
+                        <div className="item" key="ink" onClick={() => this.onSwitchInking()}>
+                            {this.getInkStatus()}
+                        </div>
                         <div className="item" key="home" onClick={this.returnHome}>
                             Home
                         </div>
@@ -362,6 +389,7 @@ export default class MobileInterface extends React.Component {
         // upload to server with known URL 
         this._parents.push(this._activeDoc);
         const audioDoc = Cast(Docs.Create.AudioDocument(nullAudio, { _width: 200, _height: 100, title: "mobile audio" }), Doc) as Doc;
+        console.log(audioDoc.data);
         if (audioDoc) {
             console.log("audioClicked: " + audioDoc.title);
             this._activeDoc = audioDoc;
@@ -369,7 +397,7 @@ export default class MobileInterface extends React.Component {
             this.toggleSidebar();
         }
         const audioRightSidebar = Cast(Doc.UserDoc().rightSidebarCollection, Doc) as Doc;
-        if (audioRightSidebar) {
+        if (audioDoc.data) {
             console.log(audioRightSidebar.title);
             const data = Cast(audioRightSidebar.data, listSpec(Doc));
             if (data) {
