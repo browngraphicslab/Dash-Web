@@ -7,54 +7,54 @@ import { createCanvas } from "canvas";
 const imageSize = require("probe-image-size");
 import * as express from "express";
 import * as path from "path";
-import { Directory, serverPathToFile, clientPathToFile } from "./UploadManager";
+import { Directory, serverPathToFile, clientPathToFile, pathToDirectory } from "./UploadManager";
 import { red } from "colors";
+import { resolve } from "path";
 
 export default class PDFManager extends ApiManager {
 
     protected initialize(register: Registration): void {
 
         register({
-            method: Method.GET,
-            subscription: new RouteSubscriber("thumbnail").add("filename"),
-            secureHandler: ({ req, res }) => getOrCreateThumbnail(req.params.filename, res)
+            method: Method.POST,
+            subscription: new RouteSubscriber("thumbnail"),
+            secureHandler: async ({ req, res }) => {
+                const { coreFilename, pageNum, subtree } = req.body;
+                return getOrCreateThumbnail(coreFilename, pageNum, res, subtree);
+            }
         });
 
     }
 
 }
 
-async function getOrCreateThumbnail(thumbnailName: string, res: express.Response): Promise<void> {
-    const noExtension = thumbnailName.substring(0, thumbnailName.length - ".png".length);
-    const pageString = noExtension.split('-')[1];
-    const pageNumber = parseInt(pageString);
+async function getOrCreateThumbnail(coreFilename: string, pageNum: number, res: express.Response, subtree?: string): Promise<void> {
+    const resolved = `${coreFilename}-${pageNum}.png`;
     return new Promise<void>(async resolve => {
-        const path = serverPathToFile(Directory.pdf_thumbnails, thumbnailName);
+        const path = serverPathToFile(Directory.pdf_thumbnails, resolved);
         if (existsSync(path)) {
             const existingThumbnail = createReadStream(path);
             const { err, viewport } = await new Promise<any>(resolve => {
                 imageSize(existingThumbnail, (err: any, viewport: any) => resolve({ err, viewport }));
             });
             if (err) {
-                console.log(red(`In PDF thumbnail response, unable to determine dimensions of ${thumbnailName}:`));
+                console.log(red(`In PDF thumbnail response, unable to determine dimensions of ${resolved}:`));
                 console.log(err);
                 return;
             }
-            dispatchThumbnail(res, viewport, thumbnailName);
+            dispatchThumbnail(res, viewport, resolved);
         } else {
-            const offset = thumbnailName.length - pageString.length - 5;
-            const name = thumbnailName.substring(0, offset) + ".pdf";
-            const path = serverPathToFile(Directory.pdfs, name);
-            await CreateThumbnail(path, pageNumber, res);
+            await CreateThumbnail(coreFilename, pageNum, res, subtree);
         }
         resolve();
     });
 }
 
-async function CreateThumbnail(file: string, pageNumber: number, res: express.Response) {
-    const documentProxy = await Pdfjs.getDocument(file).promise;
+async function CreateThumbnail(coreFilename: string, pageNum: number, res: express.Response, subtree?: string) {
+    const sourcePath = resolve(pathToDirectory(Directory.pdfs), `${subtree ?? ""}${coreFilename}.pdf`);
+    const documentProxy = await Pdfjs.getDocument(sourcePath).promise;
     const factory = new NodeCanvasFactory();
-    const page = await documentProxy.getPage(pageNumber);
+    const page = await documentProxy.getPage(pageNum);
     const viewport = page.getViewport(1 as any);
     const { canvas, context } = factory.create(viewport.width, viewport.height);
     const renderContext = {
@@ -64,14 +64,13 @@ async function CreateThumbnail(file: string, pageNumber: number, res: express.Re
     };
     await page.render(renderContext).promise;
     const pngStream = canvas.createPNGStream();
-    const filenames = path.basename(file).split(".");
-    const thumbnailName = `${filenames[0]}-${pageNumber}.png`;
-    const pngFile = serverPathToFile(Directory.pdf_thumbnails, thumbnailName);
+    const resolved = `${coreFilename}-${pageNum}.png`;
+    const pngFile = serverPathToFile(Directory.pdf_thumbnails, resolved);
     const out = createWriteStream(pngFile);
     pngStream.pipe(out);
     return new Promise<void>((resolve, reject) => {
         out.on("finish", () => {
-            dispatchThumbnail(res, viewport, thumbnailName);
+            dispatchThumbnail(res, viewport, resolved);
             resolve();
         });
         out.on("error", error => {

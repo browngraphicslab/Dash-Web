@@ -96,12 +96,12 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             opacityindexed?.length <= timecode + 1 && opacityindexed.push(undefined as any as number);
             doc.transition = "all 1s";
         });
-        setTimeout(() => docs.forEach(doc => doc.transition = undefined), 1010);
+        setTimeout(() => docs.forEach(doc => doc.transition = "inherit"), 1010);
     }
 
     public static gotoKeyframe(docs: Doc[]) {
         docs.forEach(doc => doc.transition = "all 1s");
-        setTimeout(() => docs.forEach(doc => doc.transition = undefined), 1010);
+        setTimeout(() => docs.forEach(doc => doc.transition = "inherit"), 1010);
     }
 
     public static setupKeyframes(docs: Doc[], timecode: number, progressivize: boolean = false) {
@@ -119,6 +119,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
             doc.x = ComputedField.MakeInterpolated("x", "activeFrame");
             doc.y = ComputedField.MakeInterpolated("y", "activeFrame");
             doc.opacity = ComputedField.MakeInterpolated("opacity", "activeFrame");
+            doc.transition = "inherit";
         });
     }
 
@@ -153,6 +154,7 @@ export class CollectionFreeFormDocumentView extends DocComponent<CollectionFreeF
                 width: this.width,
                 height: this.height,
                 zIndex: this.ZInd,
+                mixBlendMode: StrCast(this.layoutDoc.mixBlendMode) as any,
                 display: this.ZInd === -99 ? "none" : undefined,
                 pointerEvents: this.props.Document.isBackground || this.Opacity === 0 ? "none" : this.props.pointerEvents ? "all" : undefined
             }} >

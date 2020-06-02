@@ -29,6 +29,7 @@
 
     .page {
         position: relative;
+        border: unset;
     }
     .pdfViewer-text-selected {
         .textLayer{
@@ -56,6 +57,9 @@
         left: 0px;
         display: inline-block;
         width:100%;
+    }
+    .pdfViewer-overlay {
+        pointer-events: none;
     }
     
     .pdfViewer-annotationLayer {

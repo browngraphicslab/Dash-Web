@@ -31,8 +31,10 @@ import Annotation from "./Annotation";
 import PDFMenu from "./PDFMenu";
 import "./PDFViewer.scss";
 import React = require("react");
+import { SnappingManager } from "../../util/SnappingManager";
 const PDFJSViewer = require("pdfjs-dist/web/pdf_viewer");
 const pdfjsLib = require("pdfjs-dist");
+import { Networking } from "../../Network";
 
 export const pageSchema = createSchema({
     curPage: "number",
@@ -128,8 +130,17 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
         // change the address to be the file address of the PNG version of each page
         // file address of the pdf
         const { url: { href } } = Cast(this.dataDoc[this.props.fieldKey], PdfField)!;
-        const addr = Utils.prepend(`/thumbnail${this.props.url.substring("files/pdfs/".length, this.props.url.length - ".pdf".length)}-${(this.Document.curPage || 1)}.png`);
-        this._coverPath = href.startsWith(window.location.origin) ? JSON.parse(await rp.get(addr)) : { width: 100, height: 100, path: "" };
+        const { url: relative } = this.props;
+        const pathComponents = relative.split("/pdfs/")[1].split("/");
+        const coreFilename = pathComponents.pop()!.split(".")[0];
+        const params: any = {
+            coreFilename,
+            pageNum: this.Document.curPage || 1,
+        };
+        if (pathComponents.length) {
+            params.subtree = `${pathComponents.join("/")}/`;
+        }
+        this._coverPath = href.startsWith(window.location.origin) ? await Networking.PostToServer("/thumbnail", params) : { width: 100, height: 100, path: "" };
         runInAction(() => this._showWaiting = this._showCover = true);
         this.props.startupLive && this.setupPdfJsViewer();
         this._searchReactionDisposer = reaction(() => this.Document.searchMatch, search => {
@@ -641,7 +652,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
     panelWidth = () => (this.Document.scrollHeight || this.Document._nativeHeight || 0);
     panelHeight = () => this._pageSizes.length && this._pageSizes[0] ? this._pageSizes[0].width : (this.Document._nativeWidth || 0);
     @computed get overlayLayer() {
-        return <div className={`pdfViewer-overlay${InkingControl.Instance.selectedTool !== InkTool.None ? "-inking" : ""}`} id="overlay"
+        return <div className={`pdfViewer-overlay${InkingControl.Instance.selectedTool !== InkTool.None || SnappingManager.GetIsDragging() ? "-inking" : ""}`} id="overlay"
             style={{ transform: `scale(${this._zoomed})` }}>
             <CollectionFreeFormView {...this.props}
                 LibraryPath={this.props.ContainingCollectionView?.props.LibraryPath ?? emptyPath}
@@ -661,6 +672,7 @@ export class PDFViewer extends ViewBoxAnnotatableComponent<IViewerProps, PdfDocu
                 ContentScaling={this.contentZoom}
                 bringToFront={emptyFunction}
                 whenActiveChanged={this.whenActiveChanged}
+                childPointerEvents={true}
                 removeDocument={this.removeDocument}
                 moveDocument={this.moveDocument}
                 addDocument={this.addDocument}

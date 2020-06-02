@@ -193,7 +193,7 @@ export class CollectionStackingView extends CollectionSubView(StackingDocument) 
 
     getDisplayDoc(doc: Doc, dataDoc: Doc | undefined, dxf: () => Transform, width: () => number) {
         const height = () => this.getDocHeight(doc);
-        const opacity = () => this.Document.currentTimecode === undefined ? this.props.childOpacity?.() : CollectionFreeFormDocumentView.getValues(doc, this.Document.currentTimecode || 0)?.opacity;
+        const opacity = () => this.Document.currentFrame === undefined ? this.props.childOpacity?.() : CollectionFreeFormDocumentView.getValues(doc, NumCast(this.Document.currentFrame))?.opacity;
         return <ContentFittingDocumentView
             Document={doc}
             DataDoc={dataDoc || (doc[DataSym] !== doc && doc[DataSym])}

@@ -7,11 +7,13 @@
 .collectionStackingView {
     display: flex;
 }
+
 .collectionStackingMasonry-cont {
-    position:relative;
-    height:100%;
-    width:100%;
+    position: relative;
+    height: 100%;
+    width: 100%;
 }
+
 .collectionStackingView,
 .collectionMasonryView {
     height: 100%;
@@ -22,12 +24,17 @@
     overflow-x: hidden;
     flex-wrap: wrap;
     transition: top .5s;
+
     >div {
         position: relative;
         display: block;
     }
+
     .collectionStackingViewFieldColumn {
-        height:max-content;
+        height: max-content;
+    }
+    .collectionStackingViewFieldColumnDragging {
+        height:100%;
     }
 
     .collectionSchemaView-previewDoc {
@@ -129,27 +136,34 @@
             background: red;
         }
     }
+
     .collectionStackingView-miniHeader {
         width: 100%;
+
         .editableView-container-editing-oneLine {
             min-height: 20px;
             display: flex;
             align-items: center;
             flex-direction: row;
         }
-        span::before , span::after{
+
+        span::before,
+        span::after {
             content: "";
             width: 50%;
             border-top: dashed gray 1px;
             position: relative;
             display: inline-block;
         }
+
         span::before {
             margin-right: 10px;
         }
-        span::after{
+
+        span::after {
             margin-left: 10px;
         }
+
         span {
             position: relative;
             text-align: center;
@@ -157,10 +171,11 @@
             overflow: visible;
             width: 100%;
             display: flex;
-            color:gray;
+            color: gray;
             align-items: center;
         }
     }
+
     .collectionStackingView-sectionHeader {
         text-align: center;
         margin: auto;
@@ -277,7 +292,7 @@
                     height: 20px;
                     border-radius: 10px;
                     margin: 3px;
-                    width:max-content;
+                    width: max-content;
 
                     &.active {
                         color: red;
@@ -294,15 +309,18 @@
             display: none;
         }
     }
+
     .collectionStackingView-sectionHeader:hover {
         .collectionStackingView-sectionColor {
-            display:unset;
+            display: unset;
         }
+
         .collectionStackingView-sectionOptions {
-            display:unset;
+            display: unset;
         }
+
         .collectionStackingView-sectionDelete {
-            display:unset;
+            display: unset;
         }
     }
 

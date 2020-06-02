@@ -62,6 +62,8 @@ export class PresBox extends ViewBoxBaseComponent<FieldViewProps, PresBoxSchema>
         const lastFrame = Cast(presTargetDoc.lastFrame, "number", null);
         const curFrame = NumCast(presTargetDoc.currentFrame);
         if (lastFrame !== undefined && curFrame < lastFrame) {
+            presTargetDoc.transition = "all 1s";
+            setTimeout(() => presTargetDoc.transition = undefined, 1010);
             presTargetDoc.currentFrame = curFrame + 1;
         }
         else if (this.childDocs[this.itemIndex + 1] !== undefined) {
