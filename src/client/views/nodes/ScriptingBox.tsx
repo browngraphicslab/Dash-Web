@@ -491,10 +491,25 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
             this._scriptSuggestedParams = this.getSuggestedParams(pos);
 
             if (this._scriptSuggestedParams !== undefined && this._scriptSuggestedParams.length > 0) {
-                this._paramSuggestion = true;
+                if (this.rawScript[pos - 2] !== "(") {
+                    console.log("suggestion params");
+                    this._paramSuggestion = true;
+                }
             }
         } else if (e.key === ")") {
             this._paramSuggestion = false;
+        } else {
+            console.log(this.rawScript.split("(").length - 1);
+            console.log(this.rawScript.split(")").length - 1);
+            if (this.rawScript.split("(").length - 1 <= this.rawScript.split(")").length - 1) {
+                console.log("removed params");
+                this._paramSuggestion = false;
+            } else {
+                if (e.key === "Backspace") {
+                    console.log("removed params");
+                    this._paramSuggestion = false;
+                }
+            }
         }
     }
 
@@ -542,12 +557,12 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
                                     onMouseLeave={() => this.setHovered(false)}>
                                     {value}
                                 </div>
-                                {!this._hovered ? (null) :
-                                    <>
-                                        <div key="desc" style={{ fontSize: "10px" }}>{this.getDescription(value)}</div>
-                                        <div key="params" style={{ fontSize: "10px" }}>{this.getParams(value)}</div>
-                                    </>
-                                }
+                                {/* {!this._hovered ? (null) :
+                                    <> */}
+                                <div key="desc" style={{ fontSize: "10px" }}>{this.getDescription(value)}</div>
+                                <div key="params" style={{ fontSize: "10px" }}>{this.getParams(value)}</div>
+                                {/* </>
+                                } */}
                             </div>,
                         output: (item: any, trigger) => {
                             this._spaced = true;
@@ -563,12 +578,12 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
                                     onMouseLeave={() => this.setHovered(false)}>
                                     {value}
                                 </div>
-                                {!this._hovered ? (null) :
-                                    <>
-                                        <div key="desc" style={{ fontSize: "10px" }}>{this.getDescription(value)}</div>
-                                        <div key="params" style={{ fontSize: "10px" }}>{this.getParams(value)}</div>
-                                    </>
-                                }
+                                {/* {!this._hovered ? (null) :
+                                    <> */}
+                                <div key="desc" style={{ fontSize: "10px" }}>{this.getDescription(value)}</div>
+                                <div key="params" style={{ fontSize: "10px" }}>{this.getParams(value)}</div>
+                                {/* </>
+                                } */}
                             </div>,
                         output: (item: any, trigger) => {
                             this._spaced = true;
@@ -577,7 +592,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
                     }
                 }}
 
-                onKeyPress={(e) => this.keyHandler(e, this.caretPos)}
+                onKeyDown={(e) => this.keyHandler(e, this.caretPos)}
 
                 onCaretPositionChange={(number: any) => this.handlePosChange(number)}
             />
