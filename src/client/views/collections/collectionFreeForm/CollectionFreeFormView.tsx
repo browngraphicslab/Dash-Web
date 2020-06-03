@@ -46,7 +46,6 @@ import React = require("react");
 import { CollectionViewType } from "../CollectionView";
 import { Timeline } from "../../animationtimeline/Timeline";
 import { SnappingManager } from "../../../util/SnappingManager";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 library.add(faEye as any, faTable, faPaintBrush, faExpandArrowsAlt, faCompressArrowsAlt, faCompass, faUpload, faBraille, faChalkboard, faFileUpload);
 
@@ -188,79 +187,76 @@ export class CollectionFreeFormView extends CollectionSubView<PanZoomDocument, P
         return this.childLayoutPairs.filter(pair => this.isCurrent(pair.layout)).map(pair => pair.layout);
     }
 
-    @action
-    onExternalDrop = (e: React.DragEvent): Promise<void> => {
-        const pt = this.getTransform().transformPoint(e.pageX, e.pageY);
-        return super.onExternalDrop(e, { x: pt[0], y: pt[1] });
+    onExternalDrop = (e: React.DragEvent) => {
+        return (pt => super.onExternalDrop(e, { x: pt[0], y: pt[1] }))(this.getTransform().transformPoint(e.pageX, e.pageY));
     }
 
     @undoBatch
     @action
+    internalDocDrop(e: Event, de: DragManager.DropEvent, docDragData: DragManager.DocumentDragData, xp: number, yp: number) {
+        if (!super.onInternalDrop(e, de)) return false;
+        const [xpo, ypo] = this.getTransformOverlay().transformPoint(de.x, de.y);
+        const z = NumCast(docDragData.droppedDocuments[0].z);
+        const x = (z ? xpo : xp) - docDragData.offset[0];
+        const y = (z ? ypo : yp) - docDragData.offset[1];
+        const zsorted = this.childLayoutPairs.map(pair => pair.layout).slice().sort((doc1, doc2) => NumCast(doc1.zIndex) - NumCast(doc2.zIndex));
+        zsorted.forEach((doc, index) => doc.zIndex = index + 1);
+        const dropPos = [NumCast(docDragData.droppedDocuments[0].x), NumCast(docDragData.droppedDocuments[0].y)];
+        for (let i = 0; i < docDragData.droppedDocuments.length; i++) {
+            const d = docDragData.droppedDocuments[i];
+            const layoutDoc = Doc.Layout(d);
+            if (this.Document.currentFrame !== undefined && !this.props.isAnnotationOverlay) {
+                const vals = CollectionFreeFormDocumentView.getValues(d, NumCast(d.activeFrame, 1000));
+                CollectionFreeFormDocumentView.setValues(this.Document.currentFrame, d, x + vals.x - dropPos[0], y + vals.y - dropPos[1], vals.opacity);
+            } else {
+                d.x = x + NumCast(d.x) - dropPos[0];
+                d.y = y + NumCast(d.y) - dropPos[1];
+            }
+            const nd = [NumCast(layoutDoc._nativeWidth), NumCast(layoutDoc._nativeHeight)];
+            layoutDoc._width = NumCast(layoutDoc._width, 300);
+            layoutDoc._height = NumCast(layoutDoc._height, nd[0] && nd[1] ? nd[1] / nd[0] * NumCast(layoutDoc._width) : 300);
+            d.isBackground === undefined && (d.zIndex = zsorted.length + 1 + i); // bringToFront
+        }
+
+        (docDragData.droppedDocuments.length === 1 || de.shiftKey) && this.updateClusterDocs(docDragData.droppedDocuments);
+        return true;
+    }
+
+    @undoBatch
+    @action
+    internalPdfAnnoDrop(e: Event, annoDragData: DragManager.PdfAnnoDragData, xp: number, yp: number) {
+        const dragDoc = annoDragData.dropDocument;
+        const dropPos = [NumCast(dragDoc.x), NumCast(dragDoc.y)];
+        dragDoc.x = xp - annoDragData.offset[0] + (NumCast(dragDoc.x) - dropPos[0]);
+        dragDoc.y = yp - annoDragData.offset[1] + (NumCast(dragDoc.y) - dropPos[1]);
+        annoDragData.targetContext = this.props.Document; // dropped a PDF annotation, so we need to set the targetContext on the dragData which the PDF view uses at the end of the drop operation
+        this.bringToFront(dragDoc);
+        return true;
+    }
+
+    @undoBatch
+    @action
+    internalLinkDrop(e: Event, de: DragManager.DropEvent, linkDragData: DragManager.LinkDragData, xp: number, yp: number) {
+        if (linkDragData.linkSourceDocument === this.props.Document) return false;
+        const source = Docs.Create.TextDocument("", { _width: 200, _height: 75, x: xp, y: yp, title: "dropped annotation" });
+        this.props.addDocument(source);
+        linkDragData.linkDocument = DocUtils.MakeLink({ doc: source }, { doc: linkDragData.linkSourceDocument }, "doc annotation"); // TODODO this is where in text links get passed
+        e.stopPropagation();
+        return true;
+    }
+
+    @action
     onInternalDrop = (e: Event, de: DragManager.DropEvent) => {
         // if (this.props.Document.isBackground) return false;
-        const xf = this.getTransform();
-        const xfo = this.getTransformOverlay();
-        const [xp, yp] = xf.transformPoint(de.x, de.y);
-        const [xpo, ypo] = xfo.transformPoint(de.x, de.y);
-        const zsorted = this.childLayoutPairs.map(pair => pair.layout).slice().sort((doc1, doc2) => NumCast(doc1.zIndex) - NumCast(doc2.zIndex));
-        if (!this.isAnnotationOverlay && de.complete.linkDragData && de.complete.linkDragData.linkSourceDocument !== this.props.Document) {
-            const source = Docs.Create.TextDocument("", { _width: 200, _height: 75, x: xp, y: yp, title: "dropped annotation" });
-            this.props.addDocument(source);
-            (de.complete.linkDragData.linkDocument = DocUtils.MakeLink({ doc: source }, { doc: de.complete.linkDragData.linkSourceDocument },
-                "doc annotation")); // TODODO this is where in text links get passed
-            e.stopPropagation();
+        const [xp, yp] = this.getTransform().transformPoint(de.x, de.y);
+        if (this.isAnnotationOverlay !== true && de.complete.linkDragData)
+            return this.internalLinkDrop(e, de, de.complete.linkDragData, xp, yp);
+        if (de.complete.annoDragData?.dropDocument && super.onInternalDrop(e, de))
+            return this.internalPdfAnnoDrop(e, de.complete.annoDragData, xp, yp);
+        if (de.complete.docDragData?.droppedDocuments.length && this.internalDocDrop(e, de, de.complete.docDragData, xp, yp)) {
             return true;
-        }
-        if (super.onInternalDrop(e, de)) {
-            if (de.complete.docDragData) {
-                if (de.complete.docDragData.droppedDocuments.length) {
-                    const firstDoc = de.complete.docDragData.droppedDocuments[0];
-                    const z = NumCast(firstDoc.z);
-                    const x = (z ? xpo : xp) - de.complete.docDragData.offset[0];
-                    const y = (z ? ypo : yp) - de.complete.docDragData.offset[1];
-                    const dropX = NumCast(firstDoc.x);
-                    const dropY = NumCast(firstDoc.y);
-                    const droppedDocs = de.complete.docDragData.droppedDocuments;
-                    runInAction(() => {
-                        zsorted.forEach((doc, index) => doc.zIndex = index + 1);
-                        for (let i = 0; i < droppedDocs.length; i++) {
-                            const d = droppedDocs[i];
-                            const layoutDoc = Doc.Layout(d);
-                            if (this.Document.currentFrame !== undefined && !this.props.isAnnotationOverlay) {
-                                const vals = CollectionFreeFormDocumentView.getValues(d, NumCast(d.activeFrame, 1000));
-                                CollectionFreeFormDocumentView.setValues(this.Document.currentFrame, d, x + vals.x - dropX, y + vals.y - dropY, vals.opacity);
-                            } else {
-                                d.x = x + NumCast(d.x) - dropX;
-                                d.y = y + NumCast(d.y) - dropY;
-                            }
-                            if (!NumCast(layoutDoc._width)) {
-                                layoutDoc._width = 300;
-                            }
-                            if (!NumCast(layoutDoc._height)) {
-                                const nw = NumCast(layoutDoc._nativeWidth);
-                                const nh = NumCast(layoutDoc._nativeHeight);
-                                layoutDoc._height = nw && nh ? nh / nw * NumCast(layoutDoc._width) : 300;
-                            }
-                            d.isBackground === undefined && (d.zIndex = zsorted.length + 1 + i); // bringToFront
-                        }
-                    });
-
-                    (de.complete.docDragData.droppedDocuments.length === 1 || de.shiftKey) && this.updateClusterDocs(de.complete.docDragData.droppedDocuments);
-                }
-            }
-            else if (de.complete.annoDragData) {
-                if (de.complete.annoDragData.dropDocument) {
-                    const dragDoc = de.complete.annoDragData.dropDocument;
-                    const x = xp - de.complete.annoDragData.offset[0];
-                    const y = yp - de.complete.annoDragData.offset[1];
-                    const dropX = NumCast(dragDoc.x);
-                    const dropY = NumCast(dragDoc.y);
-                    dragDoc.x = x + NumCast(dragDoc.x) - dropX;
-                    dragDoc.y = y + NumCast(dragDoc.y) - dropY;
-                    de.complete.annoDragData.targetContext = this.props.Document; // dropped a PDF annotation, so we need to set the targetContext on the dragData which the PDF view uses at the end of the drop operation
-                    this.bringToFront(dragDoc);
-                }
-            }
+        } else {
+            UndoManager.Undo();
         }
         return false;
     }
