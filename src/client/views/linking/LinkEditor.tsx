@@ -3,8 +3,8 @@ import { faArrowLeft, faCog, faEllipsisV, faExchangeAlt, faPlus, faTable, faTime
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, observable } from "mobx";
 import { observer } from "mobx-react";
-import { Doc } from "../../../new_fields/Doc";
-import { StrCast } from "../../../new_fields/Types";
+import { Doc } from "../../../fields/Doc";
+import { StrCast } from "../../../fields/Types";
 import { Utils } from "../../../Utils";
 import { LinkManager } from "../../util/LinkManager";
 import './LinkEditor.scss';
@@ -298,7 +298,7 @@ export class LinkEditor extends React.Component<LinkEditorProps> {
             <div className="linkEditor">
                 {this.props.hideback ? (null) : <button className="linkEditor-back" onPointerDown={() => this.props.showLinks()}><FontAwesomeIcon icon="arrow-left" size="sm" /></button>}
                 <div className="linkEditor-info">
-                    <p className="linkEditor-linkedTo">editing link to: <b>{destination.proto!.title}</b></p>
+                    <p className="linkEditor-linkedTo">editing link to: <b>{destination.proto?.title ?? destination.title ?? "untitled"}</b></p>
                     <button className="linkEditor-button" onPointerDown={() => this.deleteLink()} title="Delete link"><FontAwesomeIcon icon="trash" size="sm" /></button>
                 </div>
                 {groups.length > 0 ? groups : <div className="linkEditor-group">There are currently no relationships associated with this link.</div>}

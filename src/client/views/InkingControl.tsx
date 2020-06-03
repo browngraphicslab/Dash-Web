@@ -1,9 +1,9 @@
 import { action, computed, observable } from "mobx";
 import { ColorState } from 'react-color';
-import { Doc } from "../../new_fields/Doc";
-import { InkTool } from "../../new_fields/InkField";
-import { FieldValue, NumCast, StrCast } from "../../new_fields/Types";
-import { CurrentUserUtils } from "../../server/authentication/models/current_user_utils";
+import { Doc } from "../../fields/Doc";
+import { InkTool } from "../../fields/InkField";
+import { FieldValue, NumCast, StrCast } from "../../fields/Types";
+import { CurrentUserUtils } from "../util/CurrentUserUtils";
 import { Scripting } from "../util/Scripting";
 import { SelectionManager } from "../util/SelectionManager";
 import { undoBatch } from "../util/UndoManager";
@@ -13,8 +13,8 @@ import { FormattedTextBox } from "./nodes/formattedText/FormattedTextBox";
 export class InkingControl {
     @observable static Instance: InkingControl;
     @computed private get _selectedTool(): InkTool { return FieldValue(NumCast(Doc.UserDoc().inkTool)) ?? InkTool.None; }
-    @computed private get _selectedColor(): string { return GestureOverlay.Instance.Color ?? FieldValue(StrCast(Doc.UserDoc().inkColor)) ?? "rgb(244, 67, 54)"; }
-    @computed private get _selectedWidth(): string { return GestureOverlay.Instance.Width?.toString() ?? FieldValue(StrCast(Doc.UserDoc().inkWidth)) ?? "5"; }
+    @computed private get _selectedColor(): string { return CurrentUserUtils.ActivePen ? FieldValue(StrCast(CurrentUserUtils.ActivePen.backgroundColor)) ?? "rgb(0, 0, 0)" : "rgb(0, 0, 0)"; }
+    @computed private get _selectedWidth(): string { return FieldValue(StrCast(Doc.UserDoc().inkWidth)) ?? "2"; }
     @observable public _open: boolean = false;
 
     constructor() {
@@ -35,7 +35,8 @@ export class InkingControl {
     @undoBatch
     switchColor = action((color: ColorState): void => {
         Doc.UserDoc().backgroundColor = color.hex.startsWith("#") ?
-            color.hex + (color.rgb.a !== undefined ? this.decimalToHexString(Math.round(color.rgb.a * 255)) : "ff") : color.hex;
+            color.hex + (color.rgb.a ? this.decimalToHexString(Math.round(color.rgb.a * 255)) : "ff") : color.hex;
+        CurrentUserUtils.ActivePen && (CurrentUserUtils.ActivePen.backgroundColor = color.hex);
 
         if (InkingControl.Instance.selectedTool === InkTool.None) {
             const selected = SelectionManager.SelectedDocuments();
@@ -51,14 +52,14 @@ export class InkingControl {
                     }
                 }
             });
-        } else {
-            CurrentUserUtils.ActivePen && (CurrentUserUtils.ActivePen.backgroundColor = this._selectedColor);
         }
     });
     @action
     switchWidth = (width: string): void => {
         // this._selectedWidth = width;
-        Doc.UserDoc().inkWidth = width;
+        if (!isNaN(parseInt(width))) {
+            Doc.UserDoc().inkWidth = width;
+        }
     }
 
     @computed

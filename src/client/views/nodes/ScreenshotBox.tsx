@@ -5,10 +5,10 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, IReactionDisposer, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import * as rp from 'request-promise';
-import { documentSchema } from "../../../new_fields/documentSchemas";
-import { makeInterface } from "../../../new_fields/Schema";
-import { Cast, NumCast } from "../../../new_fields/Types";
-import { VideoField } from "../../../new_fields/URLField";
+import { documentSchema } from "../../../fields/documentSchemas";
+import { makeInterface, listSpec } from "../../../fields/Schema";
+import { Cast, NumCast } from "../../../fields/Types";
+import { VideoField } from "../../../fields/URLField";
 import { emptyFunction, returnFalse, returnOne, Utils, returnZero } from "../../../Utils";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { CollectionFreeFormView } from "../collections/collectionFreeForm/CollectionFreeFormView";
@@ -18,6 +18,8 @@ import { ViewBoxBaseComponent } from "../DocComponent";
 import { InkingControl } from "../InkingControl";
 import { FieldView, FieldViewProps } from './FieldView';
 import "./ScreenshotBox.scss";
+import { Doc, WidthSym, HeightSym } from "../../../fields/Doc";
+import { OverlayView } from "../OverlayView";
 const path = require('path');
 
 type ScreenshotDocument = makeInterface<[typeof documentSchema]>;
@@ -72,7 +74,14 @@ export class ScreenshotBox extends ViewBoxBaseComponent<FieldViewProps, Screensh
                             x: NumCast(this.layoutDoc.x) + width, y: NumCast(this.layoutDoc.y),
                             _width: 150, _height: height / width * 150, title: "--screenshot--"
                         });
-                        this.props.addDocument?.(imageSummary);
+                        if (!this.props.addDocument || this.props.addDocument === returnFalse) {
+                            const spt = this.props.ScreenToLocalTransform().inverse().transformPoint(0, 0);
+                            imageSummary.x = spt[0];
+                            imageSummary.y = spt[1];
+                            Cast(Cast(Doc.UserDoc().myOverlayDocuments, Doc, null)?.data, listSpec(Doc), []).push(imageSummary);
+                        } else {
+                            this.props.addDocument?.(imageSummary);
+                        }
                     }
                 }, 500);
             });

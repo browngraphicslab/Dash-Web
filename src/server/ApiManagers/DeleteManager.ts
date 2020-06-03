@@ -1,6 +1,6 @@
 import ApiManager, { Registration } from "./ApiManager";
 import { Method, _permission_denied } from "../RouteManager";
-import { WebSocket } from "../Websocket/Websocket";
+import { WebSocket } from "../websocket";
 import { Database } from "../database";
 import rimraf = require("rimraf");
 import { filesDirectory } from "..";
@@ -14,24 +14,20 @@ export default class DeleteManager extends ApiManager {
 
         register({
             method: Method.GET,
+            requireAdminInRelease: true,
             subscription: new RouteSubscriber("delete").add("target?"),
-            secureHandler: async ({ req, res, isRelease }) => {
-                if (isRelease) {
-                    return _permission_denied(res, "Cannot perform a delete operation outside of the development environment!");
-                }
-
+            secureHandler: async ({ req, res }) => {
                 const { target } = req.params;
-                const { doDelete } = WebSocket;
 
                 if (!target) {
-                    await doDelete();
+                    await WebSocket.doDelete();
                 } else {
                     let all = false;
                     switch (target) {
                         case "all":
                             all = true;
                         case "database":
-                            await doDelete(false);
+                            await WebSocket.doDelete(false);
                             if (!all) break;
                         case "files":
                             rimraf.sync(filesDirectory);

@@ -1,6 +1,6 @@
 import * as mongodb from 'mongodb';
 import { Transferable } from './Message';
-import { Opt } from '../new_fields/Doc';
+import { Opt } from '../fields/Doc';
 import { Utils, emptyFunction } from '../Utils';
 import { Credentials } from 'google-auth-library';
 import { GoogleApiServerUtils } from './apis/google/GoogleApiServerUtils';
@@ -293,13 +293,26 @@ export namespace Database {
 
     export const Instance = getDatabase();
 
+    /**
+     * Provides definitions and apis for working with
+     * portions of the database not dedicated to storing documents
+     * or Dash-internal user data.
+     */
     export namespace Auxiliary {
 
+        /**
+         * All the auxiliary MongoDB collections (schemas)
+         */
         export enum AuxiliaryCollections {
             GooglePhotosUploadHistory = "uploadedFromGooglePhotos",
-            GoogleAuthentication = "googleAuthentication"
+            GoogleAccess = "googleAuthentication"
         }
 
+        /**
+         * Searches for the @param query in the specified @param collection,
+         * and returns at most the first @param cap results. If @param removeId is true,
+         * as it is by default, each object will be stripped of its database id.
+         */
         const SanitizedCappedQuery = async (query: { [key: string]: any }, collection: string, cap: number, removeId = true) => {
             const cursor = await Instance.query(query, undefined, collection);
             const results = await cursor.toArray();
@@ -310,44 +323,30 @@ export namespace Database {
             }) : slice;
         };
 
+        /**
+         * Searches for the @param query in the specified @param collection,
+         * and returns at most the first result. If @param removeId is true,
+         * as it is by default, each object will be stripped of its database id. 
+         * Worth the special case since it converts the Array return type to a single
+         * object of the specified type.
+         */
         const SanitizedSingletonQuery = async <T>(query: { [key: string]: any }, collection: string, removeId = true): Promise<Opt<T>> => {
             const results = await SanitizedCappedQuery(query, collection, 1, removeId);
             return results.length ? results[0] : undefined;
         };
 
+        /**
+         * Checks to see if an image with the given @param contentSize 
+         * already exists in the aux database, i.e. has already been downloaded from Google Photos.
+         */
         export const QueryUploadHistory = async (contentSize: number) => {
             return SanitizedSingletonQuery<Upload.ImageInformation>({ contentSize }, AuxiliaryCollections.GooglePhotosUploadHistory);
         };
 
-        export namespace GoogleAuthenticationToken {
-
-            type StoredCredentials = GoogleApiServerUtils.EnrichedCredentials & { _id: string };
-
-            export const Fetch = async (userId: string, removeId = true): Promise<Opt<StoredCredentials>> => {
-                return SanitizedSingletonQuery<StoredCredentials>({ userId }, AuxiliaryCollections.GoogleAuthentication, removeId);
-            };
-
-            export const Write = async (userId: string, enrichedCredentials: GoogleApiServerUtils.EnrichedCredentials) => {
-                return Instance.insert({ userId, canAccess: [], ...enrichedCredentials }, AuxiliaryCollections.GoogleAuthentication);
-            };
-
-            export const Update = async (userId: string, access_token: string, expiry_date: number) => {
-                const entry = await Fetch(userId, false);
-                if (entry) {
-                    const parameters = { $set: { access_token, expiry_date } };
-                    return Instance.update(entry._id, parameters, emptyFunction, true, AuxiliaryCollections.GoogleAuthentication);
-                }
-            };
-
-            export const Revoke = async (userId: string) => {
-                const entry = await Fetch(userId, false);
-                if (entry) {
-                    Instance.delete({ _id: entry._id }, AuxiliaryCollections.GoogleAuthentication);
-                }
-            };
-
-        }
-
+        /**
+         * Records the uploading of the image with the given @param information,
+         * using the given content size as a seed for the database id.
+         */
         export const LogUpload = async (information: Upload.ImageInformation) => {
             const bundle = {
                 _id: Utils.GenerateDeterministicGuid(String(information.contentSize)),
@@ -355,6 +354,57 @@ export namespace Database {
             };
             return Instance.insert(bundle, AuxiliaryCollections.GooglePhotosUploadHistory);
         };
+
+        /**
+         * Manages the storage, retrieval and updating of the access token that
+         * facilitates interactions with all their APIs for a given account.
+         */
+        export namespace GoogleAccessToken {
+
+            /**
+             * Format stored in database.
+             */
+            type StoredCredentials = GoogleApiServerUtils.EnrichedCredentials & { _id: string };
+
+            /**
+             * Retrieves the credentials associaed with @param userId
+             * and optionally removes their database id according to @param removeId. 
+             */
+            export const Fetch = async (userId: string, removeId = true): Promise<Opt<StoredCredentials>> => {
+                return SanitizedSingletonQuery<StoredCredentials>({ userId }, AuxiliaryCollections.GoogleAccess, removeId);
+            };
+
+            /**
+             * Writes the @param enrichedCredentials to the database, associated
+             * with @param userId for later retrieval and updating. 
+             */
+            export const Write = async (userId: string, enrichedCredentials: GoogleApiServerUtils.EnrichedCredentials) => {
+                return Instance.insert({ userId, canAccess: [], ...enrichedCredentials }, AuxiliaryCollections.GoogleAccess);
+            };
+
+            /**
+             * Updates the @param access_token and @param expiry_date fields
+             * in the stored credentials associated with @param userId.
+             */
+            export const Update = async (userId: string, access_token: string, expiry_date: number) => {
+                const entry = await Fetch(userId, false);
+                if (entry) {
+                    const parameters = { $set: { access_token, expiry_date } };
+                    return Instance.update(entry._id, parameters, emptyFunction, true, AuxiliaryCollections.GoogleAccess);
+                }
+            };
+
+            /**
+             * Revokes the credentials associated with @param userId. 
+             */
+            export const Revoke = async (userId: string) => {
+                const entry = await Fetch(userId, false);
+                if (entry) {
+                    Instance.delete({ _id: entry._id }, AuxiliaryCollections.GoogleAccess);
+                }
+            };
+
+        }
 
     }
 

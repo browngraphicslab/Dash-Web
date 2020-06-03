@@ -32,6 +32,7 @@ export enum DocumentType {
     YOUTUBE = "youtube",        // youtube directory (view of you tube search results)
     DOCHOLDER = "docholder",    // nested document (view of a document)
     SEARCHITEM= "searchitem",
+    COMPARISON = "comparison",   // before/after view with slider (view of 2 images)
 
     LINKDB = "linkdb",          // database of links  ??? why do we have this
     RECOMMENDATION = "recommendation", // view of a recommendation

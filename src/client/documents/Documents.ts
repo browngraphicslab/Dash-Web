@@ -9,14 +9,14 @@ import { ScriptingBox } from "../views/nodes/ScriptingBox";
 import { VideoBox } from "../views/nodes/VideoBox";
 import { WebBox } from "../views/nodes/WebBox";
 import { OmitKeys, JSONUtils, Utils } from "../../Utils";
-import { Field, Doc, Opt, DocListCastAsync, FieldResult, DocListCast } from "../../new_fields/Doc";
-import { ImageField, VideoField, AudioField, PdfField, WebField, YoutubeField } from "../../new_fields/URLField";
-import { HtmlField } from "../../new_fields/HtmlField";
-import { List } from "../../new_fields/List";
-import { Cast, NumCast, StrCast } from "../../new_fields/Types";
+import { Field, Doc, Opt, DocListCastAsync, FieldResult, DocListCast } from "../../fields/Doc";
+import { ImageField, VideoField, AudioField, PdfField, WebField, YoutubeField } from "../../fields/URLField";
+import { HtmlField } from "../../fields/HtmlField";
+import { List } from "../../fields/List";
+import { Cast, NumCast, StrCast } from "../../fields/Types";
 import { DocServer } from "../DocServer";
 import { dropActionType } from "../util/DragManager";
-import { DateField } from "../../new_fields/DateField";
+import { DateField } from "../../fields/DateField";
 import { YoutubeBox } from "../apis/youtube/YoutubeBox";
 import { CollectionDockingView } from "../views/collections/CollectionDockingView";
 import { LinkManager } from "../util/LinkManager";
@@ -26,10 +26,10 @@ import { Scripting } from "../util/Scripting";
 import { LabelBox } from "../views/nodes/LabelBox";
 import { SliderBox } from "../views/nodes/SliderBox";
 import { FontIconBox } from "../views/nodes/FontIconBox";
-import { SchemaHeaderField } from "../../new_fields/SchemaHeaderField";
+import { SchemaHeaderField } from "../../fields/SchemaHeaderField";
 import { PresBox } from "../views/nodes/PresBox";
-import { ComputedField, ScriptField } from "../../new_fields/ScriptField";
-import { ProxyField } from "../../new_fields/Proxy";
+import { ComputedField, ScriptField } from "../../fields/ScriptField";
+import { ProxyField } from "../../fields/Proxy";
 import { DocumentType } from "./DocumentTypes";
 import { RecommendationsBox } from "../views/RecommendationsBox";
 import { filterData} from "../views/search/SearchBox";
@@ -44,15 +44,16 @@ import { ColorBox } from "../views/nodes/ColorBox";
 import { LinkAnchorBox } from "../views/nodes/LinkAnchorBox";
 import { DocHolderBox } from "../views/nodes/DocHolderBox";
 import { InkingStroke } from "../views/InkingStroke";
-import { InkField } from "../../new_fields/InkField";
+import { InkField } from "../../fields/InkField";
 import { InkingControl } from "../views/InkingControl";
-import { RichTextField } from "../../new_fields/RichTextField";
+import { RichTextField } from "../../fields/RichTextField";
 import { extname } from "path";
 import { MessageStore } from "../../server/Message";
 import { ContextMenuProps } from "../views/ContextMenuItem";
 import { ContextMenu } from "../views/ContextMenu";
 import { LinkBox } from "../views/nodes/LinkBox";
 import { ScreenshotBox } from "../views/nodes/ScreenshotBox";
+import { ComparisonBox } from "../views/nodes/ComparisonBox";
 const path = require('path');
 
 export interface DocumentOptions {
@@ -114,10 +115,11 @@ export interface DocumentOptions {
     _backgroundColor?: string | ScriptField; // background color for each template layout doc ( overrides backgroundColor )
     color?: string; // foreground color data doc
     _color?: string;  // foreground color for each template layout doc (overrides color)
+    _clipWidth?: number; // percent transition from before to after in comparisonBox
     caption?: RichTextField;
     ignoreClick?: boolean;
     lockedPosition?: boolean; // lock the x,y coordinates of the document so that it can't be dragged
-    lockedTransform?: boolean; // lock the panx,pany and scale parameters of the document so that it be panned/zoomed
+    _lockedTransform?: boolean; // lock the panx,pany and scale parameters of the document so that it be panned/zoomed
     isAnnotating?: boolean; // whether we web document is annotation mode where links can't be clicked to allow annotations to be created
     opacity?: number;
     defaultBackgroundColor?: string;
@@ -129,6 +131,9 @@ export interface DocumentOptions {
     curPage?: number;
     currentTimecode?: number; // the current timecode of a time-based document (e.g., current time of a video)  value is in seconds
     displayTimecode?: number; // the time that a document should be displayed (e.g., time an annotation should be displayed on a video)
+    currentFrame?: number; // the current frame of a frame-based collection (e.g., progressive slide)
+    lastFrame?: number; // the last frame of a frame-based collection (e.g., progressive slide)
+    activeFrame?: number; // the active frame of a document in a frame base collection
     borderRounding?: string;
     boxShadow?: string;
     dontRegisterChildViews?: boolean;
@@ -307,6 +312,9 @@ export namespace Docs {
             [DocumentType.SCREENSHOT, {
                 layout: { view: ScreenshotBox, dataField: defaultDataKey },
             }],
+            [DocumentType.COMPARISON, {
+                layout: { view: ComparisonBox, dataField: defaultDataKey },
+            }],
         ]);
 
         // All document prototypes are initialized with at least these values
@@ -434,17 +442,28 @@ export namespace Docs {
                     parentProto.data = new List<Doc>();
                 }
                 if (device) {
-                    const { __images } = device;
+                    const { title, __images, additionalMedia } = device;
                     delete device.__images;
+                    delete device.additionalMedia;
                     const { ImageDocument, StackingDocument } = Docs.Create;
                     const constructed = __images.map(({ url, nativeWidth, nativeHeight }) => ({ url: Utils.prepend(url), nativeWidth, nativeHeight }));
-                    const deviceImages = constructed.map(({ url, nativeWidth, nativeHeight }, i) => ImageDocument(url, {
-                        title: `image${i}.${extname(url)}`,
-                        _nativeWidth: nativeWidth,
-                        _nativeHeight: nativeHeight
-                    }));
+                    const deviceImages = constructed.map(({ url, nativeWidth, nativeHeight }, i) => {
+                        const imageDoc = ImageDocument(url, {
+                            title: `image${i}.${extname(url)}`,
+                            _nativeWidth: nativeWidth,
+                            _nativeHeight: nativeHeight
+                        });
+                        const media = additionalMedia[i];
+                        if (media) {
+                            for (const key of Object.keys(media)) {
+                                imageDoc[`additionalMedia_${key}`] = Utils.prepend(`/files/${key}/buxton/${media[key]}`);
+                            }
+                        }
+                        return imageDoc;
+                    });
                     // the main document we create
-                    const doc = StackingDocument(deviceImages, { title: device.title, _LODdisable: true, hero: new ImageField(constructed[0].url) });
+                    const doc = StackingDocument(deviceImages, { title, _LODdisable: true, hero: new ImageField(constructed[0].url) });
+                    doc.nameAliases = new List<string>([title.toLowerCase()]);
                     // add the parsed attributes to this main document
                     Docs.Get.FromJson({ data: device, appendToExisting: { targetDoc: Doc.GetProto(doc) } });
                     Doc.AddDocToList(parentProto, "data", doc);
@@ -505,6 +524,7 @@ export namespace Docs {
             const dataDoc = MakeDataDelegate(proto, protoProps, data, fieldKey);
             const viewDoc = Doc.MakeDelegate(dataDoc, delegId);
 
+            viewDoc.author = Doc.CurrentUserEmail;
             viewDoc.type !== DocumentType.LINK && DocUtils.MakeLinkToActiveAudio(viewDoc);
 
             return Doc.assign(viewDoc, delegateProps, true);
@@ -564,6 +584,10 @@ export namespace Docs {
             return InstanceFromProto(Prototypes.get(DocumentType.SCREENSHOT), "", options);
         }
 
+        export function ComparisonDocument(options: DocumentOptions = { title: "Comparison Box" }) {
+            return InstanceFromProto(Prototypes.get(DocumentType.COMPARISON), "", { _clipWidth: 50, _backgroundColor: "gray", targetDropAction: "alias", ...options });
+        }
+
         export function AudioDocument(url: string, options: DocumentOptions = {}) {
             const instance = InstanceFromProto(Prototypes.get(DocumentType.AUDIO), new AudioField(new URL(url)), options);
             Doc.GetProto(instance).backgroundColor = ComputedField.MakeFunction("this._audioState === 'playing' ? 'green':'gray'");
@@ -617,7 +641,7 @@ export namespace Docs {
             return doc;
         }
 
-        export function InkDocument(color: string, tool: number, strokeWidth: number, points: { X: number, Y: number }[], options: DocumentOptions = {}) {
+        export function InkDocument(color: string, tool: number, strokeWidth: string, points: { X: number, Y: number }[], options: DocumentOptions = {}) {
             const I = new Doc();
             I.type = DocumentType.INK;
             I.layout = InkingStroke.LayoutString("data");
@@ -645,7 +669,7 @@ export namespace Docs {
         }
 
         export function WebDocument(url: string, options: DocumentOptions = {}) {
-            return InstanceFromProto(Prototypes.get(DocumentType.WEB), url ? new WebField(new URL(url)) : undefined, { _fitWidth: true, _chromeStatus: url ? "disabled" : "enabled", isAnnotating: true, lockedTransform: true, ...options });
+            return InstanceFromProto(Prototypes.get(DocumentType.WEB), url ? new WebField(new URL(url)) : undefined, { _fitWidth: true, _chromeStatus: url ? "disabled" : "enabled", isAnnotating: true, _lockedTransform: true, ...options });
         }
 
         export function HtmlDocument(html: string, options: DocumentOptions = {}) {
@@ -928,7 +952,7 @@ export namespace Docs {
                 layout = AudioBox.LayoutString;
             } else if (field instanceof InkField) {
                 const { selectedColor, selectedWidth, selectedTool } = InkingControl.Instance;
-                created = Docs.Create.InkDocument(selectedColor, selectedTool, Number(selectedWidth), (field).inkData, resolved);
+                created = Docs.Create.InkDocument(selectedColor, selectedTool, selectedWidth, (field).inkData, resolved);
                 layout = InkingStroke.LayoutString;
             } else if (field instanceof List && field[0] instanceof Doc) {
                 created = Docs.Create.StackingDocument(DocListCast(field), resolved);

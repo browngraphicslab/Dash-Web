@@ -4,11 +4,11 @@ import "normalize.css";
 import * as React from 'react';
 import "./PreviewCursor.scss";
 import { Docs } from '../documents/Documents';
-import { Doc } from '../../new_fields/Doc';
+import { Doc } from '../../fields/Doc';
 import { Transform } from "../util/Transform";
 import { DocServer } from '../DocServer';
 import { undoBatch } from '../util/UndoManager';
-import { NumCast } from '../../new_fields/Types';
+import { NumCast } from '../../fields/Types';
 
 @observer
 export class PreviewCursor extends React.Component<{}> {
@@ -59,12 +59,15 @@ export class PreviewCursor extends React.Component<{}> {
                     const pty = Number(strs[1].substring(0, strs[1].length - 1));
                     let count = 1;
                     const list: Doc[] = [];
+
+                    let first: Doc | undefined;
                     docids.map((did, i) => i && DocServer.GetRefField(did).then(doc => {
                         count++;
                         if (doc instanceof Doc) {
+                            i === 1 && (first = doc);
                             const alias = Doc.MakeClone(doc);
-                            const deltaX = NumCast(doc.x) - ptx;
-                            const deltaY = NumCast(doc.y) - pty;
+                            const deltaX = NumCast(doc.x) - NumCast(first!.x) - ptx;
+                            const deltaY = NumCast(doc.y) - NumCast(first!.y) - pty;
                             alias.x = newPoint[0] + deltaX;
                             alias.y = newPoint[1] + deltaY;
                             list.push(alias);

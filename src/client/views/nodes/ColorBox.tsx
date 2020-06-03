@@ -1,10 +1,10 @@
 import React = require("react");
 import { observer } from "mobx-react";
 import { SketchPicker } from 'react-color';
-import { documentSchema } from "../../../new_fields/documentSchemas";
-import { makeInterface } from "../../../new_fields/Schema";
-import { StrCast } from "../../../new_fields/Types";
-import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
+import { documentSchema } from "../../../fields/documentSchemas";
+import { makeInterface } from "../../../fields/Schema";
+import { StrCast } from "../../../fields/Types";
+import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 import { SelectionManager } from "../../util/SelectionManager";
 import { ViewBoxBaseComponent } from "../DocComponent";
 import { InkingControl } from "../InkingControl";
@@ -27,6 +27,10 @@ export class ColorBox extends ViewBoxBaseComponent<FieldViewProps, ColorDocument
             <SketchPicker onChange={InkingControl.Instance.switchColor} presetColors={['#D0021B', '#F5A623', '#F8E71C', '#8B572A', '#7ED321', '#417505', '#9013FE', '#4A90E2', '#50E3C2', '#B8E986', '#000000', '#4A4A4A', '#9B9B9B', '#FFFFFF', '#f1efeb', 'transparent']}
                 color={StrCast(CurrentUserUtils.ActivePen ? CurrentUserUtils.ActivePen.backgroundColor : undefined,
                     StrCast(selDoc?._backgroundColor, StrCast(selDoc?.backgroundColor, "black")))} />
+            <div style={{ display: "grid", gridTemplateColumns: "20% 80%", paddingTop: "10px" }}>
+                <div>{InkingControl.Instance.selectedWidth ?? 2}</div>
+                <input type="range" value={InkingControl.Instance.selectedWidth ?? 2} defaultValue={2} min={1} max={100} onChange={(e: React.ChangeEvent<HTMLInputElement>) => InkingControl.Instance.switchWidth(e.target.value)} />
+            </div>
         </div>;
     }
 } 

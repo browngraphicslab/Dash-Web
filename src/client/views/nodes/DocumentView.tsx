@@ -4,16 +4,15 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
 import * as rp from "request-promise";
-import { Doc, DocListCast, HeightSym, Opt, WidthSym, DataSym } from "../../../new_fields/Doc";
-import { Document } from '../../../new_fields/documentSchemas';
-import { Id } from '../../../new_fields/FieldSymbols';
-import { InkTool } from '../../../new_fields/InkField';
-import { listSpec } from "../../../new_fields/Schema";
-import { SchemaHeaderField } from '../../../new_fields/SchemaHeaderField';
-import { ScriptField } from '../../../new_fields/ScriptField';
-import { BoolCast, Cast, NumCast, StrCast } from "../../../new_fields/Types";
-import { ImageField } from '../../../new_fields/URLField';
-import { TraceMobx } from '../../../new_fields/util';
+import { Doc, DocListCast, HeightSym, Opt, WidthSym, DataSym, AclSym, AclReadonly, AclPrivate } from "../../../fields/Doc";
+import { Document } from '../../../fields/documentSchemas';
+import { Id } from '../../../fields/FieldSymbols';
+import { InkTool } from '../../../fields/InkField';
+import { listSpec } from "../../../fields/Schema";
+import { SchemaHeaderField } from '../../../fields/SchemaHeaderField';
+import { ScriptField } from '../../../fields/ScriptField';
+import { BoolCast, Cast, NumCast, StrCast } from "../../../fields/Types";
+import { TraceMobx } from '../../../fields/util';
 import { GestureUtils } from '../../../pen-gestures/GestureUtils';
 import { emptyFunction, OmitKeys, returnOne, returnTransparent, Utils, emptyPath } from "../../../Utils";
 import { GooglePhotos } from '../../apis/google_docs/GooglePhotosClientUtils';
@@ -45,6 +44,7 @@ import "./DocumentView.scss";
 import { LinkAnchorBox } from './LinkAnchorBox';
 import { RadialMenu } from './RadialMenu';
 import React = require("react");
+import { undo } from 'prosemirror-history';
 
 library.add(fa.faEdit, fa.faTrash, fa.faShare, fa.faDownload, fa.faExpandArrowsAlt, fa.faCompressArrowsAlt, fa.faLayerGroup, fa.faExternalLinkAlt, fa.faAlignCenter, fa.faCaretSquareRight,
     fa.faSquare, fa.faConciergeBell, fa.faWindowRestore, fa.faFolder, fa.faMapPin, fa.faLink, fa.faFingerprint, fa.faCrosshairs, fa.faDesktop, fa.faUnlock, fa.faLock, fa.faLaptopCode, fa.faMale,
@@ -92,6 +92,7 @@ export interface DocumentViewProps {
     pinToPres: (document: Doc) => void;
     backgroundHalo?: () => boolean;
     backgroundColor?: (doc: Doc) => string | undefined;
+    opacity?: () => number | undefined;
     ChromeHeight?: () => number;
     dontRegisterView?: boolean;
     layoutKey?: string;
@@ -684,8 +685,13 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
     @undoBatch
     @action
-    toggleLockTransform = (): void => {
-        this.Document.lockedTransform = this.Document.lockedTransform ? undefined : true;
+    setAcl = (acl: "readOnly" | "addOnly" | "ownerOnly") => {
+        this.layoutDoc.ACL = this.dataDoc.ACL = acl;
+        DocListCast(this.dataDoc[Doc.LayoutFieldKey(this.dataDoc)]).map(d => {
+            if (d.author === Doc.CurrentUserEmail) d.ACL = acl;
+            const data = d[DataSym];
+            if (data && data.author === Doc.CurrentUserEmail) data.ACL = acl;
+        });
     }
 
     @action
@@ -748,14 +754,16 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
         const more = cm.findByDescription("More...");
         const moreItems: ContextMenuProps[] = more && "subitems" in more ? more.subitems : [];
+        moreItems.push({ description: "Make Add Only", event: () => this.setAcl("addOnly"), icon: "concierge-bell" });
+        moreItems.push({ description: "Make Read Only", event: () => this.setAcl("readOnly"), icon: "concierge-bell" });
+        moreItems.push({ description: "Make Private", event: () => this.setAcl("ownerOnly"), icon: "concierge-bell" });
         moreItems.push({ description: "Make View of Metadata Field", event: () => Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.DataDoc), icon: "concierge-bell" });
         moreItems.push({ description: `${this.Document._chromeStatus !== "disabled" ? "Hide" : "Show"} Chrome`, event: () => this.Document._chromeStatus = (this.Document._chromeStatus !== "disabled" ? "disabled" : "enabled"), icon: "project-diagram" });
-        moreItems.push({ description: this.Document.lockedTransform ? "Unlock Transform" : "Lock Transform", event: this.toggleLockTransform, icon: BoolCast(this.Document.lockedTransform) ? "unlock" : "lock" });
         moreItems.push({ description: this.Document.lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document.lockedPosition) ? "unlock" : "lock" });
 
         if (!ClientUtils.RELEASE) {
             // let copies: ContextMenuProps[] = [];
-            moreItems.push({ description: "Copy ID", event: () => Utils.CopyText(this.props.Document[Id]), icon: "fingerprint" });
+            moreItems.push({ description: "Copy ID", event: () => Utils.CopyText(Utils.prepend("/doc/" + this.props.Document[Id])), icon: "fingerprint" });
             // cm.addItem({ description: "Copy...", subitems: copies, icon: "copy" });
         }
         if (Cast(Doc.GetProto(this.props.Document).data, listSpec(Doc))) {
@@ -764,10 +772,12 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
             moreItems.push({ description: "Write Back Link to Album", event: () => GooglePhotos.Transactions.AddTextEnrichment(this.props.Document), icon: "caret-square-right" });
         }
         moreItems.push({
-            description: "Download document", icon: "download", event: async () =>
-                console.log(JSON.parse(await rp.get(Utils.CorsProxy("http://localhost:8983/solr/dash/select"), {
+            description: "Download document", icon: "download", event: async () => {
+                const response = await rp.get(Utils.CorsProxy("http://localhost:8983/solr/dash/select"), {
                     qs: { q: 'world', fq: 'NOT baseProto_b:true AND NOT deleted:true', start: '0', rows: '100', hl: true, 'hl.fl': '*' }
-                })))
+                });
+                console.log(response ? JSON.parse(response) : undefined);
+            }
             // const a = document.createElement("a");
             // const url = Utils.prepend(`/downloadId/${this.props.Document[Id]}`);
             // a.href = url;
@@ -970,9 +980,6 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         return this.isSelected(outsideReaction) || (this.props.Document.rootDocument && this.props.rootSelected?.(outsideReaction)) || false;
     }
     childScaling = () => (this.layoutDoc._fitWidth ? this.props.PanelWidth() / this.nativeWidth : this.props.ContentScaling());
-    panelWidth = () => this.props.PanelWidth();
-    panelHeight = () => this.props.PanelHeight();
-    screenToLocalTransform = () => this.props.ScreenToLocalTransform();
     @computed get contents() {
         TraceMobx();
         return (<>
@@ -993,10 +1000,10 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 addDocument={this.props.addDocument}
                 removeDocument={this.props.removeDocument}
                 moveDocument={this.props.moveDocument}
-                ScreenToLocalTransform={this.screenToLocalTransform}
+                ScreenToLocalTransform={this.props.ScreenToLocalTransform}
                 renderDepth={this.props.renderDepth}
-                PanelWidth={this.panelWidth}
-                PanelHeight={this.panelHeight}
+                PanelWidth={this.props.PanelWidth}
+                PanelHeight={this.props.PanelHeight}
                 ignoreAutoHeight={this.props.ignoreAutoHeight}
                 focus={this.props.focus}
                 parentActive={this.props.parentActive}
@@ -1116,9 +1123,22 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         }), 400);
     });
 
+    renderLock() {
+        return (this.Document.isBackground !== undefined || this.isSelected(false)) &&
+            ((this.Document.type === DocumentType.COL && this.Document._viewType !== CollectionViewType.Pile) || this.Document.type === DocumentType.IMG) &&
+            this.props.renderDepth > 0 && this.props.PanelWidth() > 0 ?
+            <div className="documentView-lock" onClick={() => this.toggleBackground(true)}>
+                <FontAwesomeIcon icon={this.Document.isBackground ? "unlock" : "lock"} style={{ color: this.Document.isBackground ? "red" : undefined }} size="lg" />
+            </div>
+            : (null);
+    }
+
     render() {
+        if (this.props.Document[AclSym] && this.props.Document[AclSym] === AclPrivate) return (null);
         if (!(this.props.Document instanceof Doc)) return (null);
-        const backgroundColor = StrCast(this.layoutDoc._backgroundColor) || StrCast(this.layoutDoc.backgroundColor) || StrCast(this.Document.backgroundColor) || this.props.backgroundColor?.(this.Document);
+        const backgroundColor = Doc.UserDoc().renderStyle === "comic" ? undefined : StrCast(this.layoutDoc._backgroundColor) || StrCast(this.layoutDoc.backgroundColor) || StrCast(this.Document.backgroundColor) || this.props.backgroundColor?.(this.Document);
+        const opacity = Cast(this.layoutDoc._opacity, "number", Cast(this.layoutDoc.opacity, "number", Cast(this.Document.opacity, "number", null)));
+        const finalOpacity = this.props.opacity ? this.props.opacity() : opacity;
         const finalColor = this.layoutDoc.type === DocumentType.FONTICON || this.layoutDoc._viewType === CollectionViewType.Linear ? undefined : backgroundColor;
         const fullDegree = Doc.isBrushedHighlightedDegree(this.props.Document);
         const borderRounding = this.layoutDoc.borderRounding;
@@ -1155,7 +1175,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 border: this.layoutDoc.border ? StrCast(this.layoutDoc.border) : highlighting && borderRounding ? `${highlightStyles[fullDegree]} ${highlightColors[fullDegree]} ${localScale}px` : undefined,
                 boxShadow: this.props.Document.isTemplateForField ? "black 0.2vw 0.2vw 0.8vw" : undefined,
                 background: finalColor,
-                opacity: this.Document.opacity,
+                opacity: finalOpacity,
                 fontFamily: StrCast(this.Document._fontFamily, "inherit"),
                 fontSize: Cast(this.Document._fontSize, "number", null)
             }}>
@@ -1164,9 +1184,7 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
                 <div className="documentView-contentBlocker" />
             </> :
                 this.innards}
-            {(this.Document.isBackground !== undefined || this.isSelected(false)) && this.props.renderDepth > 0 && this.props.PanelWidth() > 0 ?
-                <div className="documentView-lock" onClick={() => this.toggleBackground(true)}> <FontAwesomeIcon icon={this.Document.isBackground ? "unlock" : "lock"} size="lg" /> </div>
-                : (null)}
+            {this.renderLock()}
         </div>;
         { this._showKPQuery ? <KeyphraseQueryView keyphrases={this._queries}></KeyphraseQueryView> : undefined; }
     }

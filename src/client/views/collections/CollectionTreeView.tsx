@@ -1,13 +1,13 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { action, computed, observable } from "mobx";
 import { observer } from "mobx-react";
-import { DataSym, Doc, DocListCast, Field, HeightSym, Opt, WidthSym } from '../../../new_fields/Doc';
-import { Id } from '../../../new_fields/FieldSymbols';
-import { List } from '../../../new_fields/List';
-import { PrefetchProxy } from '../../../new_fields/Proxy';
-import { Document, listSpec } from '../../../new_fields/Schema';
-import { ComputedField, ScriptField } from '../../../new_fields/ScriptField';
-import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from '../../../new_fields/Types';
+import { DataSym, Doc, DocListCast, Field, HeightSym, Opt, WidthSym } from '../../../fields/Doc';
+import { Id } from '../../../fields/FieldSymbols';
+import { List } from '../../../fields/List';
+import { PrefetchProxy } from '../../../fields/Proxy';
+import { Document, listSpec } from '../../../fields/Schema';
+import { ComputedField, ScriptField } from '../../../fields/ScriptField';
+import { BoolCast, Cast, NumCast, ScriptCast, StrCast } from '../../../fields/Types';
 import { emptyFunction, emptyPath, returnFalse, returnOne, returnTrue, returnZero, simulateMouseClick, Utils } from '../../../Utils';
 import { Docs, DocUtils } from '../../documents/Documents';
 import { DocumentType } from "../../documents/DocumentTypes";
@@ -32,7 +32,7 @@ import "./CollectionTreeView.scss";
 import { CollectionViewType } from './CollectionView';
 import React = require("react");
 import { makeTemplate } from '../../util/DropConverter';
-import { TraceMobx } from '../../../new_fields/util';
+import { TraceMobx } from '../../../fields/util';
 
 export interface TreeViewProps {
     document: Doc;
@@ -717,7 +717,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
         }
         ContextMenu.Instance.addItem({
             description: "Buxton Layout", icon: "eye", event: () => {
-                const { ImageDocument } = Docs.Create;
+                const { ImageDocument, PdfDocument } = Docs.Create;
                 const { Document } = this.props;
                 const fallbackImg = "http://www.cs.brown.edu/~bcz/face.gif";
                 const detailView = Cast(Cast(Doc.UserDoc()["template-button-detail"], Doc, null)?.dragFactory, Doc, null);
@@ -726,13 +726,14 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                 heroView._showTitle = "title";
                 heroView._showTitleHover = "titlehover";
 
-                const doubleClickView = ImageDocument("http://cs.brown.edu/~bcz/face.gif", { _width: 400 });  // replace with desired double click target
+                const fallback = ImageDocument("http://cs.brown.edu/~bcz/face.gif", { _width: 400 });  // replace with desired double click target
+                let pdfContent: string;
                 DocListCast(this.dataDoc[this.props.fieldKey]).map(d => {
                     DocListCast(d.data).map((img, i) => {
                         const caption = (d.captions as any)[i];
                         if (caption) {
                             Doc.GetProto(img).caption = caption;
-                            Doc.GetProto(img).doubleClickView = doubleClickView;
+                            Doc.GetProto(img).doubleClickView = (pdfContent = StrCast(img.additionalMedia_pdfs)) ? PdfDocument(pdfContent, { title: pdfContent }) : fallback;
                         }
                     });
                     Doc.GetProto(d).type = "buxton";
@@ -748,7 +749,7 @@ export class CollectionTreeView extends CollectionSubView<Document, Partial<coll
                 Document.childLayoutTemplate = heroView;
                 Document.childClickedOpenTemplateView = new PrefetchProxy(detailView);
                 Document._viewType = CollectionViewType.Time;
-                Document._forceActive = true;
+                Document.forceActive = true;
                 Document._pivotField = "company";
                 Document.childDropAction = "alias";
             }

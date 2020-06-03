@@ -4,13 +4,13 @@ import { faPalette } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast } from "../../../new_fields/Doc";
-import { RichTextField } from "../../../new_fields/RichTextField";
-import { PastelSchemaPalette, SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
-import { ScriptField } from "../../../new_fields/ScriptField";
-import { NumCast, StrCast, Cast } from "../../../new_fields/Types";
-import { ImageField } from "../../../new_fields/URLField";
-import { TraceMobx } from "../../../new_fields/util";
+import { Doc, DocListCast } from "../../../fields/Doc";
+import { RichTextField } from "../../../fields/RichTextField";
+import { PastelSchemaPalette, SchemaHeaderField } from "../../../fields/SchemaHeaderField";
+import { ScriptField } from "../../../fields/ScriptField";
+import { NumCast, StrCast, Cast } from "../../../fields/Types";
+import { ImageField } from "../../../fields/URLField";
+import { TraceMobx } from "../../../fields/util";
 import { Docs, DocUtils } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
 import { Transform } from "../../util/Transform";
@@ -21,7 +21,7 @@ import { EditableView } from "../EditableView";
 import { CollectionStackingView } from "./CollectionStackingView";
 import { setupMoveUpEvents, emptyFunction } from "../../../Utils";
 import "./CollectionStackingView.scss";
-import { listSpec } from "../../../new_fields/Schema";
+import { listSpec } from "../../../fields/Schema";
 import { SnappingManager } from "../../util/SnappingManager";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
@@ -352,7 +352,7 @@ export class CollectionStackingViewFieldColumn extends React.Component<CSVFieldC
         for (let i = 0; i < cols; i++) templatecols += `${style.columnWidth / style.numGroupColumns}px `;
         const chromeStatus = this.props.parent.props.Document._chromeStatus;
         return (
-            <div className="collectionStackingViewFieldColumn" key={heading}
+            <div className={"collectionStackingViewFieldColumn" + (SnappingManager.GetIsDragging() ? "Dragging" : "")} key={heading}
                 style={{
                     width: `${100 / ((uniqueHeadings.length + ((chromeStatus !== 'view-mode' && chromeStatus !== 'disabled') ? 1 : 0)) || 1)}%`,
                     height: undefined, // DraggingManager.GetIsDragging() ? "100%" : undefined,

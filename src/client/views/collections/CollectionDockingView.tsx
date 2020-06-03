@@ -1,5 +1,3 @@
-import { library } from '@fortawesome/fontawesome-svg-core';
-import { faFile } from '@fortawesome/free-solid-svg-icons';
 import 'golden-layout/src/css/goldenlayout-base.css';
 import 'golden-layout/src/css/goldenlayout-dark-theme.css';
 import { action, computed, Lambda, observable, reaction, runInAction, trace } from "mobx";
@@ -7,13 +5,13 @@ import { observer } from "mobx-react";
 import * as ReactDOM from 'react-dom';
 import Measure from "react-measure";
 import * as GoldenLayout from "../../../client/goldenLayout";
-import { DateField } from '../../../new_fields/DateField';
-import { Doc, DocListCast, Field, Opt, DataSym } from "../../../new_fields/Doc";
-import { Id } from '../../../new_fields/FieldSymbols';
-import { List } from '../../../new_fields/List';
-import { FieldId } from "../../../new_fields/RefField";
-import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
-import { TraceMobx } from '../../../new_fields/util';
+import { DateField } from '../../../fields/DateField';
+import { Doc, DocListCast, Field, Opt, DataSym } from "../../../fields/Doc";
+import { Id } from '../../../fields/FieldSymbols';
+import { List } from '../../../fields/List';
+import { FieldId } from "../../../fields/RefField";
+import { Cast, NumCast, StrCast } from "../../../fields/Types";
+import { TraceMobx } from '../../../fields/util';
 import { emptyFunction, returnOne, returnTrue, Utils, returnZero } from "../../../Utils";
 import { DocServer } from "../../DocServer";
 import { Docs } from '../../documents/Documents';
@@ -31,7 +29,6 @@ import { DockingViewButtonSelector } from './ParentDocumentSelector';
 import React = require("react");
 import { CollectionViewType } from './CollectionView';
 import { SnappingManager } from '../../util/SnappingManager';
-library.add(faFile);
 const _global = (window /* browser */ || global /* node */) as any;
 
 @observer
@@ -196,15 +193,16 @@ export class CollectionDockingView extends React.Component<SubCollectionViewProp
         if (!CollectionDockingView.Instance) return undefined;
         const instance = CollectionDockingView.Instance;
         const replaceTab = (doc: Doc, child: any): Opt<Doc> => {
-            for (let i = 0; i < child.contentItems.length; i++) {
-                if (child.contentItems[i].isRow || child.contentItems[i].isColumn || child.contentItems[i].isStack) {
-                    const val = replaceTab(doc, child.contentItems[i]);
+            for (const contentItem of child.contentItems) {
+                const { config, isStack, isRow, isColumn } = contentItem;
+                if (isRow || isColumn || isStack) {
+                    const val = replaceTab(doc, contentItem);
                     if (val) return val;
-                } else if (child.contentItems[i].config.component === "DocumentFrameRenderer" &&
-                    child.contentItems[i].config.props.documentId === doc[Id]) {
+                } else if (config.component === "DocumentFrameRenderer" &&
+                    config.props.documentId === doc[Id]) {
                     const alias = Doc.MakeAlias(doc);
-                    child.contentItems[i].config.props.documentId = alias[Id];
-                    child.contentItems[i].config.title = alias.title;
+                    config.props.documentId = alias[Id];
+                    config.title = alias.title;
                     instance.stateChanged();
                     return alias;
                 }

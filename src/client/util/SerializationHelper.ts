@@ -1,5 +1,5 @@
 import { PropSchema, serialize, deserialize, custom, setDefaultModelSchema, getDefaultModelSchema } from "serializr";
-import { Field } from "../../new_fields/Doc";
+import { Field } from "../../fields/Doc";
 import { ClientUtils } from "./ClientUtils";
 
 let serializing = 0;
@@ -91,7 +91,7 @@ export function Deserializable(constructor: { new(...args: any[]): any } | strin
     if (typeof constructor === "string") {
         return Object.assign((ctor: { new(...args: any[]): any }) => {
             addToMap(constructor, ctor);
-        }, { withFields: (fields: string[]) => Deserializable.withFields(fields, name, afterDeserialize) });
+        }, { withFields: (fields: string[]) => Deserializable.withFields(fields, constructor, afterDeserialize) });
     }
     addToMap(constructor.name, constructor);
 }

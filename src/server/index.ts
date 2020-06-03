@@ -5,15 +5,14 @@ import * as path from 'path';
 import { Database } from './database';
 import { DashUploadUtils } from './DashUploadUtils';
 import RouteSubscriber from './RouteSubscriber';
-import initializeServer from './server_Initialization';
+import initializeServer, { resolvedPorts } from './server_Initialization';
 import RouteManager, { Method, _success, _permission_denied, _error, _invalid, PublicHandler } from './RouteManager';
 import * as qs from 'query-string';
 import UtilManager from './ApiManagers/UtilManager';
 import { SearchManager } from './ApiManagers/SearchManager';
 import UserManager from './ApiManagers/UserManager';
-import { WebSocket } from './Websocket/Websocket';
 import DownloadManager from './ApiManagers/DownloadManager';
-import { GoogleCredentialsLoader } from './credentials/CredentialsLoader';
+import { GoogleCredentialsLoader, SSL } from './apis/google/CredentialsLoader';
 import DeleteManager from "./ApiManagers/DeleteManager";
 import PDFManager from "./ApiManagers/PDFManager";
 import UploadManager from "./ApiManagers/UploadManager";
@@ -25,8 +24,8 @@ import { yellow } from "colors";
 import { DashSessionAgent } from "./DashSession/DashSessionAgent";
 import SessionManager from "./ApiManagers/SessionManager";
 import { AppliedSessionAgent } from "./DashSession/Session/agents/applied_session_agent";
-import { Utils } from "../Utils";
 
+export const AdminPriviliges: Map<string, boolean> = new Map();
 export const onWindows = process.platform === "win32";
 export let sessionAgent: AppliedSessionAgent;
 export const publicDirectory = path.resolve(__dirname, "public");
@@ -42,6 +41,7 @@ async function preliminaryFunctions() {
     await DashUploadUtils.buildFileDirectories();
     await Logger.initialize();
     await GoogleCredentialsLoader.loadCredentials();
+    SSL.loadCredentials();
     GoogleApiServerUtils.processProjectCredentials();
     if (process.env.DB !== "MEM") {
         await log_execution({
@@ -95,12 +95,53 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
         secureHandler: ({ res }) => res.send(true)
     });
 
+    addSupervisedRoute({
+        method: Method.GET,
+        subscription: "/resolvedPorts",
+        secureHandler: ({ res }) => res.send(resolvedPorts)
+    });
 
     const serve: PublicHandler = ({ req, res }) => {
         const detector = new mobileDetect(req.headers['user-agent'] || "");
         const filename = detector.mobile() !== null ? 'mobile/image.html' : 'index.html';
         res.sendFile(path.join(__dirname, '../../deploy/' + filename));
     };
+
+    /**
+     * Serves a simple password input box for any 
+     */
+    addSupervisedRoute({
+        method: Method.GET,
+        subscription: new RouteSubscriber("admin").add("previous_target"),
+        secureHandler: ({ res, isRelease }) => {
+            const { PASSWORD } = process.env;
+            if (!(isRelease && PASSWORD)) {
+                return res.redirect("/home");
+            }
+            res.render("admin.pug", { title: "Enter Administrator Password" });
+        }
+    });
+
+    addSupervisedRoute({
+        method: Method.POST,
+        subscription: new RouteSubscriber("admin").add("previous_target"),
+        secureHandler: async ({ req, res, isRelease, user: { id } }) => {
+            const { PASSWORD } = process.env;
+            if (!(isRelease && PASSWORD)) {
+                return res.redirect("/home");
+            }
+            const { password } = req.body;
+            const { previous_target } = req.params;
+            let redirect: string;
+            if (password === PASSWORD) {
+                AdminPriviliges.set(id, true);
+                redirect = `/${previous_target.replace(":", "/")}`;
+            } else {
+                redirect = `/admin/${previous_target}`;
+            }
+            res.redirect(redirect);
+        }
+    });
 
     addSupervisedRoute({
         method: Method.GET,
@@ -122,10 +163,6 @@ function routeSetter({ isRelease, addSupervisedRoute, logRegistrationOutcome }: 
     });
 
     logRegistrationOutcome();
-
-    // initialize the web socket (bidirectional communication: if a user changes
-    // a field on one client, that change must be broadcast to all other clients)
-    WebSocket.start(isRelease);
 }
 
 
@@ -150,9 +187,9 @@ export async function launchServer() {
  * log the output of the server process, so it's not ideal for development.
  * So, the 'else' clause is exactly what we've always run when executing npm start.
  */
-if (process.env.RELEASE) {
-    (sessionAgent = new DashSessionAgent()).launch();
-} else {
-    (Database.Instance as Database.Database).doConnect();
-    launchServer();
-}
+// if (process.env.RELEASE) {
+//     (sessionAgent = new DashSessionAgent()).launch();
+// } else {
+(Database.Instance as Database.Database).doConnect();
+launchServer();
+// }

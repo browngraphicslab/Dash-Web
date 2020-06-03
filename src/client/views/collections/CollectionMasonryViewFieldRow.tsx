@@ -1,13 +1,11 @@
 import React = require("react");
-import { library } from '@fortawesome/fontawesome-svg-core';
-import { faPalette } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc } from "../../../new_fields/Doc";
-import { PastelSchemaPalette, SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
-import { ScriptField } from "../../../new_fields/ScriptField";
-import { StrCast, NumCast } from "../../../new_fields/Types";
+import { Doc } from "../../../fields/Doc";
+import { PastelSchemaPalette, SchemaHeaderField } from "../../../fields/SchemaHeaderField";
+import { ScriptField } from "../../../fields/ScriptField";
+import { StrCast, NumCast } from "../../../fields/Types";
 import { numberRange, setupMoveUpEvents, emptyFunction } from "../../../Utils";
 import { Docs } from "../../documents/Documents";
 import { DragManager } from "../../util/DragManager";
@@ -21,8 +19,6 @@ import { SnappingManager } from "../../util/SnappingManager";
 const higflyout = require("@hig/flyout");
 export const { anchorPoints } = higflyout;
 export const Flyout = higflyout.default;
-
-library.add(faPalette);
 
 interface CMVFieldRowProps {
     rows: () => number;
@@ -244,13 +240,15 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
             toggle: this.toggleVisibility,
             color: this.color
         };
+        const showChrome = (chromeStatus !== 'view-mode' && chromeStatus !== 'disabled');
+        const stackPad = showChrome ? `0px ${this.props.parent.xMargin}px` : `${this.props.parent.yMargin}px ${this.props.parent.xMargin}px 0px ${this.props.parent.xMargin}px `;
         return this.collapsed ? (null) :
             <div style={{ position: "relative" }}>
-                {(chromeStatus !== 'view-mode' && chromeStatus !== 'disabled') ?
+                {showChrome ?
                     <div className="collectionStackingView-addDocumentButton"
                         style={{
-                            width: style.columnWidth / style.numGroupColumns,
-                            padding: NumCast(this.props.parent.layoutDoc._yPadding)
+                            //width: style.columnWidth / style.numGroupColumns,
+                            padding: `${NumCast(this.props.parent.layoutDoc._yPadding, this.props.parent.yMargin)}px 0px 0px 0px`
                         }}>
                         <EditableView {...newEditableViewProps} />
                     </div> : null
@@ -258,7 +256,7 @@ export class CollectionMasonryViewFieldRow extends React.Component<CMVFieldRowPr
                 <div className={`collectionStackingView-masonryGrid`}
                     ref={this._contRef}
                     style={{
-                        padding: `${this.props.parent.yMargin}px ${this.props.parent.xMargin}px`,
+                        padding: stackPad,
                         width: this.props.parent.NodeWidth,
                         gridGap: this.props.parent.gridGap,
                         gridTemplateColumns: numberRange(rows).reduce((list: string, i: any) => list + ` ${this.props.parent.columnWidth}px`, ""),

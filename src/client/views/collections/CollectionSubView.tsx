@@ -1,19 +1,19 @@
 import { action, computed, IReactionDisposer, reaction } from "mobx";
 import { basename } from 'path';
-import CursorField from "../../../new_fields/CursorField";
-import { Doc, Opt } from "../../../new_fields/Doc";
-import { Id } from "../../../new_fields/FieldSymbols";
-import { List } from "../../../new_fields/List";
-import { listSpec } from "../../../new_fields/Schema";
-import { ScriptField } from "../../../new_fields/ScriptField";
-import { Cast, ScriptCast } from "../../../new_fields/Types";
+import CursorField from "../../../fields/CursorField";
+import { Doc, Opt } from "../../../fields/Doc";
+import { Id } from "../../../fields/FieldSymbols";
+import { List } from "../../../fields/List";
+import { listSpec } from "../../../fields/Schema";
+import { ScriptField } from "../../../fields/ScriptField";
+import { Cast, ScriptCast, NumCast } from "../../../fields/Types";
 import { GestureUtils } from "../../../pen-gestures/GestureUtils";
-import { CurrentUserUtils } from "../../../server/authentication/models/current_user_utils";
+import { CurrentUserUtils } from "../../util/CurrentUserUtils";
 import { Upload } from "../../../server/SharedMediaTypes";
 import { Utils } from "../../../Utils";
 import { GooglePhotos } from "../../apis/google_docs/GooglePhotosClientUtils";
 import { DocServer } from "../../DocServer";
-import { Docs, DocumentOptions } from "../../documents/Documents";
+import { Docs, DocumentOptions, DocUtils } from "../../documents/Documents";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { Networking } from "../../Network";
 import { DragManager, dropActionType } from "../../util/DragManager";
@@ -25,6 +25,8 @@ import { FieldViewProps } from "../nodes/FieldView";
 import { FormattedTextBox, GoogleRef } from "../nodes/formattedText/FormattedTextBox";
 import { CollectionView } from "./CollectionView";
 import React = require("react");
+import { SelectionManager } from "../../util/SelectionManager";
+import { WebField } from "../../../fields/URLField";
 
 export interface CollectionViewProps extends FieldViewProps {
     addDocument: (document: Doc | Doc[]) => boolean;
@@ -44,6 +46,7 @@ export interface SubCollectionViewProps extends CollectionViewProps {
     CollectionView: Opt<CollectionView>;
     children?: never | (() => JSX.Element[]) | React.ReactNode;
     ChildLayoutTemplate?: () => Doc;
+    childOpacity?: () => number;
     ChildLayoutString?: string;
     childClickScript?: ScriptField;
     childDoubleClickScript?: ScriptField;
@@ -206,6 +209,8 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             }
         }
 
+        addDocument = (doc: Doc | Doc[]) => this.props.addDocument(doc);
+
         @undoBatch
         @action
         protected onInternalDrop(e: Event, de: DragManager.DropEvent): boolean {
@@ -213,22 +218,23 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             ScriptCast(this.props.Document.dropConverter)?.script.run({ dragData: docDragData });
             if (docDragData) {
                 let added = false;
-                if (docDragData.dropAction || docDragData.userDropAction) {
-                    added = this.props.addDocument(docDragData.droppedDocuments);
+                const dropaction = docDragData.dropAction || docDragData.userDropAction;
+                if (dropaction && dropaction !== "move") {
+                    added = this.addDocument(docDragData.droppedDocuments);
                 } else if (docDragData.moveDocument) {
                     const movedDocs = docDragData.droppedDocuments.filter((d, i) => docDragData.draggedDocuments[i] === d);
                     const addedDocs = docDragData.droppedDocuments.filter((d, i) => docDragData.draggedDocuments[i] !== d);
-                    const res = addedDocs.length ? this.props.addDocument(addedDocs) : true;
-                    added = movedDocs.length ? docDragData.moveDocument(movedDocs, this.props.Document, this.props.addDocument) : res;
+                    const res = addedDocs.length ? this.addDocument(addedDocs) : true;
+                    added = movedDocs.length ? docDragData.moveDocument(movedDocs, this.props.Document, this.addDocument) : res;
                 } else {
-                    added = this.props.addDocument(docDragData.droppedDocuments);
+                    added = this.addDocument(docDragData.droppedDocuments);
                 }
                 e.stopPropagation();
                 return added;
             }
             else if (de.complete.annoDragData) {
                 e.stopPropagation();
-                return this.props.addDocument(de.complete.annoDragData.dropDocument);
+                return this.addDocument(de.complete.annoDragData.dropDocument);
             }
             return false;
         }
@@ -265,7 +271,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
 
             e.stopPropagation();
             e.preventDefault();
-            const { addDocument } = this.props;
+            const { addDocument } = this;
             if (!addDocument) {
                 alert("this.props.addDocument does not exist. Aborting drop operation.");
                 return;
@@ -321,9 +327,30 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
                                 }
                             });
                         } else {
-                            const htmlDoc = Docs.Create.HtmlDocument(html, { ...options, title: "-web page-", _width: 300, _height: 300 });
+                            let srcUrl: string | undefined;
+                            let srcWeb: Doc | undefined;
+                            if (SelectionManager.SelectedDocuments().length) {
+                                srcWeb = SelectionManager.SelectedDocuments()[0].props.Document;
+                                srcUrl = (srcWeb.data as WebField).url.href?.match(/http[s]?:\/\/[^/]*/)?.[0];
+                            }
+                            const reg = new RegExp(Utils.prepend(""), "g");
+                            const modHtml = srcUrl ? html.replace(reg, srcUrl) : html;
+                            const htmlDoc = Docs.Create.HtmlDocument(modHtml, { ...options, title: "-web page-", _width: 300, _height: 300 });
                             Doc.GetProto(htmlDoc)["data-text"] = text;
                             this.props.addDocument(htmlDoc);
+                            if (srcWeb) {
+                                const focusNode = (SelectionManager.SelectedDocuments()[0].ContentDiv?.getElementsByTagName("iframe")[0].contentDocument?.getSelection()?.focusNode as any);
+                                if (focusNode) {
+                                    const rect = "getBoundingClientRect" in focusNode ? focusNode.getBoundingClientRect() : focusNode?.parentElement.getBoundingClientRect();
+                                    const x = (rect?.x || 0);
+                                    const y = NumCast(srcWeb.scrollTop) + (rect?.y || 0);
+                                    const anchor = Docs.Create.FreeformDocument([], { _LODdisable: true, _backgroundColor: "transparent", _width: 25, _height: 25, x, y, annotationOn: srcWeb });
+                                    anchor.context = srcWeb;
+                                    const key = Doc.LayoutFieldKey(srcWeb);
+                                    Doc.AddDocToList(srcWeb, key + "-annotations", anchor);
+                                    DocUtils.MakeLink({ doc: htmlDoc }, { doc: anchor });
+                                }
+                            }
                         }
                         return;
                     }
@@ -332,7 +359,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
 
             if (text) {
                 if (text.includes("www.youtube.com/watch")) {
-                    const url = text.replace("youtube.com/watch?v=", "youtube.com/embed/");
+                    const url = text.replace("youtube.com/watch?v=", "youtube.com/embed/").split("&")[0];
                     addDocument(Docs.Create.VideoDocument(url, {
                         ...options,
                         title: url,
@@ -425,7 +452,7 @@ export function CollectionSubView<T, X>(schemaCtor: (doc: Doc) => T, moreProps?:
             if (generatedDocuments.length) {
                 const set = generatedDocuments.length > 1 && generatedDocuments.map(d => Doc.iconify(d));
                 if (set) {
-                    addDocument(Doc.pileup(generatedDocuments, options.x!, options.y!));
+                    addDocument(Doc.pileup(generatedDocuments, options.x!, options.y!)!);
                 } else {
                     generatedDocuments.forEach(addDocument);
                 }

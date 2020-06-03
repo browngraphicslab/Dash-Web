@@ -5,9 +5,9 @@ import { action, computed, observable, runInAction, IReactionDisposer, reaction 
 import { observer } from 'mobx-react';
 import * as React from 'react';
 import * as rp from 'request-promise';
-import { Doc } from '../../../new_fields/Doc';
-import { Id } from '../../../new_fields/FieldSymbols';
-import { Cast, NumCast, StrCast } from '../../../new_fields/Types';
+import { Doc } from '../../../fields/Doc';
+import { Id } from '../../../fields/FieldSymbols';
+import { Cast, NumCast, StrCast } from '../../../fields/Types';
 import { Utils, returnTrue, emptyFunction, returnFalse, emptyPath, returnOne, returnEmptyString } from '../../../Utils';
 import { Docs, DocumentOptions } from '../../documents/Documents';
 import { SetupDrag, DragManager } from '../../util/DragManager';
@@ -21,20 +21,21 @@ import { DocumentView } from '../nodes/DocumentView';
 import { SelectionManager } from '../../util/SelectionManager';
 import { FilterQuery } from 'mongodb';
 import { CollectionLinearView } from '../collections/CollectionLinearView';
-import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
+import { CurrentUserUtils } from  '../../util/CurrentUserUtils';
+
 import { CollectionDockingView } from '../collections/CollectionDockingView';
-import { ScriptField } from '../../../new_fields/ScriptField';
-import { PrefetchProxy } from '../../../new_fields/Proxy';
-import { List } from '../../../new_fields/List';
+import { ScriptField } from '../../../fields/ScriptField';
+import { PrefetchProxy } from '../../../fields/Proxy';
+import { List } from '../../../fields/List';
 import { faSearch, faFilePdf, faFilm, faImage, faObjectGroup, faStickyNote, faMusic, faLink, faChartBar, faGlobeAsia, faBan, faVideo, faCaretDown } from '@fortawesome/free-solid-svg-icons';
 import { Transform } from '../../util/Transform';
 import { MainView } from "../MainView";
 import { Scripting } from '../../util/Scripting';
 import { CollectionView, CollectionViewType } from '../collections/CollectionView';
 import { ViewBoxBaseComponent } from "../DocComponent";
-import { documentSchema } from "../../../new_fields/documentSchemas";
-import { makeInterface, createSchema } from '../../../new_fields/Schema';
-import { listSpec } from '../../../new_fields/Schema';
+import { documentSchema } from "../../../fields/documentSchemas";
+import { makeInterface, createSchema } from '../../../fields/Schema';
+import { listSpec } from '../../../fields/Schema';
 
 
 library.add(faTimes);

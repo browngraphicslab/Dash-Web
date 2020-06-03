@@ -3,10 +3,11 @@ import * as ReactDOM from 'react-dom';
 import { observer } from 'mobx-react';
 import { observable, computed } from 'mobx';
 import { CompileScript } from '../client/util/Scripting';
-import { makeInterface } from '../new_fields/Schema';
-import { ObjectField } from '../new_fields/ObjectField';
-import { RefField } from '../new_fields/RefField';
+import { makeInterface } from '../fields/Schema';
+import { ObjectField } from '../fields/ObjectField';
+import { RefField } from '../fields/RefField';
 import { DocServer } from '../client/DocServer';
+import { resolvedPorts } from '../client/views/Main';
 
 @observer
 class Repl extends React.Component {
@@ -61,6 +62,6 @@ class Repl extends React.Component {
 }
 
 (async function () {
-    DocServer.init(window.location.protocol, window.location.hostname, 4321, "repl");
+    DocServer.init(window.location.protocol, window.location.hostname, resolvedPorts.socket, "repl");
     ReactDOM.render(<Repl />, document.getElementById("root"));
 })();

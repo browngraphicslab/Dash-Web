@@ -1,9 +1,9 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action } from "mobx";
 import { observer } from "mobx-react";
-import { Doc } from "../../../new_fields/Doc";
-import { Id } from "../../../new_fields/FieldSymbols";
-import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
+import { Doc } from "../../../fields/Doc";
+import { Id } from "../../../fields/FieldSymbols";
+import { SchemaHeaderField } from "../../../fields/SchemaHeaderField";
 import { Docs } from "../../documents/Documents";
 import { DragManager, SetupDrag } from "../../util/DragManager";
 import { LinkManager } from "../../util/LinkManager";

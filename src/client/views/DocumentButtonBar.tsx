@@ -3,9 +3,9 @@ import { faArrowAltCircleDown, faPhotoVideo, faArrowAltCircleUp, faArrowAltCircl
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocListCast } from "../../new_fields/Doc";
-import { RichTextField } from '../../new_fields/RichTextField';
-import { NumCast, StrCast, Cast } from "../../new_fields/Types";
+import { Doc, DocListCast } from "../../fields/Doc";
+import { RichTextField } from '../../fields/RichTextField';
+import { NumCast, StrCast, Cast } from "../../fields/Types";
 import { emptyFunction, setupMoveUpEvents } from "../../Utils";
 import { Pulls, Pushes } from '../apis/google_docs/GoogleApiClientUtils';
 import { UndoManager } from "../util/UndoManager";
@@ -121,7 +121,7 @@ export class DocumentButtonBar extends React.Component<{ views: () => (DocumentV
                 dragComplete: dropEv => {
                     const linkDoc = dropEv.linkDragData?.linkDocument as Doc; // equivalent to !dropEve.aborted since linkDocument is only assigned on a completed drop
                     if (this.view0 && linkDoc) {
-                        Doc.GetProto(linkDoc).linkRelationship = "hyperlink";
+                        !linkDoc.linkRelationship && (Doc.GetProto(linkDoc).linkRelationship = "hyperlink");
 
                         // we want to allow specific views to handle the link creation in their own way (e.g., rich text makes text hyperlinks)
                         // the dragged view can regiser a linkDropCallback to be notified that the link was made and to update their data structures

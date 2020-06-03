@@ -2,18 +2,17 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { observable, computed } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
-import { documentSchema, collectionSchema } from '../../../new_fields/documentSchemas';
-import { makeInterface } from '../../../new_fields/Schema';
-import { NumCast, StrCast, ScriptCast, Cast } from '../../../new_fields/Types';
+import { documentSchema, collectionSchema } from '../../../fields/documentSchemas';
+import { makeInterface } from '../../../fields/Schema';
+import { NumCast, StrCast, ScriptCast, Cast } from '../../../fields/Types';
 import { DragManager } from '../../util/DragManager';
 import { ContentFittingDocumentView } from '../nodes/ContentFittingDocumentView';
 import "./CollectionCarouselView.scss";
 import { CollectionSubView } from './CollectionSubView';
-import { faCaretLeft, faCaretRight } from '@fortawesome/free-solid-svg-icons';
-import { Doc } from '../../../new_fields/Doc';
+import { Doc } from '../../../fields/Doc';
 import { FormattedTextBox } from '../nodes/formattedText/FormattedTextBox';
 import { ContextMenu } from '../ContextMenu';
-import { ObjectField } from '../../../new_fields/ObjectField';
+import { ObjectField } from '../../../fields/ObjectField';
 import { returnFalse } from '../../../Utils';
 
 type CarouselDocument = makeInterface<[typeof documentSchema, typeof collectionSchema]>;
@@ -76,10 +75,10 @@ export class CollectionCarouselView extends CollectionSubView(CarouselDocument) 
     @computed get buttons() {
         return <>
             <div key="back" className="carouselView-back" style={{ background: `${StrCast(this.props.Document.backgroundColor)}` }} onClick={this.goback}>
-                <FontAwesomeIcon icon={faCaretLeft} size={"2x"} />
+                <FontAwesomeIcon icon={"caret-left"} size={"2x"} />
             </div>
             <div key="fwd" className="carouselView-fwd" style={{ background: `${StrCast(this.props.Document.backgroundColor)}` }} onClick={this.advance}>
-                <FontAwesomeIcon icon={faCaretRight} size={"2x"} />
+                <FontAwesomeIcon icon={"caret-right"} size={"2x"} />
             </div>
         </>;
     }

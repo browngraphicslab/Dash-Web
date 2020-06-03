@@ -4,9 +4,9 @@ import { faCaretUp, faChartBar, faFile, faFilePdf, faFilm, faFingerprint, faGlob
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { action, computed, observable, runInAction } from "mobx";
 import { observer } from "mobx-react";
-import { Doc, DocCastAsync } from "../../../new_fields/Doc";
-import { Id } from "../../../new_fields/FieldSymbols";
-import { Cast, NumCast, StrCast } from "../../../new_fields/Types";
+import { Doc, DocCastAsync } from "../../../fields/Doc";
+import { Id } from "../../../fields/FieldSymbols";
+import { Cast, NumCast, StrCast } from "../../../fields/Types";
 import { emptyFunction, emptyPath, returnFalse, Utils, returnTrue, returnOne, returnZero } from "../../../Utils";
 import { DocumentType } from "../../documents/DocumentTypes";
 import { DocumentManager } from "../../util/DocumentManager";
@@ -24,11 +24,11 @@ import "./SearchItem.scss";
 import "./SelectorContextMenu.scss";
 import { FieldViewProps, FieldView } from "../nodes/FieldView";
 import { ViewBoxBaseComponent } from "../DocComponent";
-import { makeInterface, createSchema } from "../../../new_fields/Schema";
-import { documentSchema } from "../../../new_fields/documentSchemas";
-import { PrefetchProxy } from "../../../new_fields/Proxy";
+import { makeInterface, createSchema } from "../../../fields/Schema";
+import { documentSchema } from "../../../fields/documentSchemas";
+import { PrefetchProxy } from "../../../fields/Proxy";
 import { Docs } from "../../documents/Documents";
-import { ScriptField } from "../../../new_fields/ScriptField";
+import { ScriptField } from "../../../fields/ScriptField";
 import { CollectionStackingView } from "../collections/CollectionStackingView";
 
 export interface SearchItemProps {

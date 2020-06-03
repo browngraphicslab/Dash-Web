@@ -1,5 +1,5 @@
 import { observer } from "mobx-react";
-import { Doc } from "../../../../new_fields/Doc";
+import { Doc } from "../../../../fields/Doc";
 import { Utils } from '../../../../Utils';
 import { DocumentView } from "../../nodes/DocumentView";
 import "./CollectionFreeFormLinkView.scss";
@@ -7,8 +7,8 @@ import React = require("react");
 import v5 = require("uuid/v5");
 import { DocumentType } from "../../../documents/DocumentTypes";
 import { observable, action, reaction, IReactionDisposer } from "mobx";
-import { StrCast, Cast } from "../../../../new_fields/Types";
-import { Id } from "../../../../new_fields/FieldSymbols";
+import { StrCast, Cast } from "../../../../fields/Types";
+import { Id } from "../../../../fields/FieldSymbols";
 import { SnappingManager } from "../../../util/SnappingManager";
 
 export interface CollectionFreeFormLinkViewProps {

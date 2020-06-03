@@ -7,12 +7,12 @@ import { observer } from "mobx-react";
 import * as React from 'react';
 import Lightbox from 'react-image-lightbox-with-rotate';
 import 'react-image-lightbox-with-rotate/style.css'; // This only needs to be imported once in your app
-import { DateField } from '../../../new_fields/DateField';
-import { DataSym, Doc, DocListCast, Field, Opt } from '../../../new_fields/Doc';
-import { List } from '../../../new_fields/List';
-import { BoolCast, Cast, NumCast, StrCast, ScriptCast } from '../../../new_fields/Types';
-import { ImageField } from '../../../new_fields/URLField';
-import { TraceMobx } from '../../../new_fields/util';
+import { DateField } from '../../../fields/DateField';
+import { DataSym, Doc, DocListCast, Field, Opt, AclSym, AclAddonly, AclReadonly } from '../../../fields/Doc';
+import { List } from '../../../fields/List';
+import { BoolCast, Cast, NumCast, StrCast, ScriptCast } from '../../../fields/Types';
+import { ImageField } from '../../../fields/URLField';
+import { TraceMobx } from '../../../fields/util';
 import { Utils, setupMoveUpEvents, returnFalse, returnZero, emptyPath, emptyFunction, returnOne } from '../../../Utils';
 import { DocumentType } from '../../documents/DocumentTypes';
 import { ImageUtils } from '../../util/Import & Export/ImageUtils';
@@ -35,13 +35,13 @@ import { CollectionTimeView } from './CollectionTimeView';
 import { CollectionTreeView } from "./CollectionTreeView";
 import './CollectionView.scss';
 import { CollectionViewBaseChrome } from './CollectionViewChromes';
-import { CurrentUserUtils } from '../../../server/authentication/models/current_user_utils';
-import { Id } from '../../../new_fields/FieldSymbols';
-import { listSpec } from '../../../new_fields/Schema';
+import { CurrentUserUtils } from '../../util/CurrentUserUtils';
+import { Id } from '../../../fields/FieldSymbols';
+import { listSpec } from '../../../fields/Schema';
 import { Docs } from '../../documents/Documents';
-import { ScriptField, ComputedField } from '../../../new_fields/ScriptField';
+import { ScriptField, ComputedField } from '../../../fields/ScriptField';
 import { InteractionUtils } from '../../util/InteractionUtils';
-import { ObjectField } from '../../../new_fields/ObjectField';
+import { ObjectField } from '../../../fields/ObjectField';
 import CollectionMapView from './CollectionMapView';
 import { CollectionPileView } from './CollectionPileView';
 const higflyout = require("@hig/flyout");
@@ -69,9 +69,10 @@ export enum CollectionViewType {
     Pile = "pileup"
 }
 export interface CollectionViewCustomProps {
-    filterAddDocument: (doc: Doc | Doc[]) => boolean;  // allows a document that renders a Collection view to filter or modify any documents added to the collection (see PresBox for an example)
+    filterAddDocument?: (doc: Doc | Doc[]) => boolean;  // allows a document that renders a Collection view to filter or modify any documents added to the collection (see PresBox for an example)
     childLayoutTemplate?: () => Opt<Doc>;  // specify a layout Doc template to use for children of the collection
     childLayoutString?: string;  // specify a layout string to use for children of the collection
+    childOpacity?: () => number;
 }
 
 export interface CollectionRenderProps {
@@ -117,20 +118,24 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
 
     @action.bound
     addDocument = (doc: Doc | Doc[]): boolean => {
-        if (doc instanceof Doc) {
-            if (this.props.filterAddDocument?.(doc) === false) {
-                return false;
-            }
+        if (this.props.filterAddDocument?.(doc) === false) {
+            return false;
         }
         const docs = doc instanceof Doc ? [doc] : doc;
         const targetDataDoc = this.props.Document[DataSym];
         const docList = DocListCast(targetDataDoc[this.props.fieldKey]);
         const added = docs.filter(d => !docList.includes(d));
         if (added.length) {
-            added.map(doc => doc.context = this.props.Document);
-            added.map(add => Doc.AddDocToList(Cast(Doc.UserDoc().myCatalog, Doc, null), "data", add));
-            targetDataDoc[this.props.fieldKey] = new List<Doc>([...docList, ...added]);
-            targetDataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
+            if (this.dataDoc[AclSym] === AclReadonly) {
+                return false;
+            } else if (this.dataDoc[AclSym] === AclAddonly) {
+                added.map(doc => Doc.AddDocToList(targetDataDoc, this.props.fieldKey, doc));
+            } else {
+                added.map(doc => doc.context = this.props.Document);
+                added.map(add => Doc.AddDocToList(Cast(Doc.UserDoc().myCatalog, Doc, null), "data", add));
+                targetDataDoc[this.props.fieldKey] = new List<Doc>([...docList, ...added]);
+                targetDataDoc[this.props.fieldKey + "-lastModified"] = new DateField(new Date(Date.now()));
+            }
         }
         return true;
     }
@@ -494,7 +499,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
         return (<div className={"collectionView"}
             style={{
                 pointerEvents: this.props.Document.isBackground ? "none" : undefined,
-                boxShadow: this.props.Document.isBackground || this.collectionViewType === CollectionViewType.Linear ? undefined :
+                boxShadow: Doc.UserDoc().renderStyle === "comic" || this.props.Document.isBackground || this.collectionViewType === CollectionViewType.Linear ? undefined :
                     `${Cast(Doc.UserDoc().activeWorkspace, Doc, null)?.darkScheme ? "rgb(30, 32, 31)" : "#9c9396"} ${StrCast(this.props.Document.boxShadow, "0.2vw 0.2vw 0.8vw")}`
             }}
             onContextMenu={this.onContextMenu}>

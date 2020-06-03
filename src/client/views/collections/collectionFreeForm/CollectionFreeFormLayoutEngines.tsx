@@ -1,15 +1,15 @@
-import { Doc, Field, FieldResult, WidthSym, HeightSym } from "../../../../new_fields/Doc";
-import { NumCast, StrCast, Cast } from "../../../../new_fields/Types";
+import { Doc, Field, FieldResult, WidthSym, HeightSym } from "../../../../fields/Doc";
+import { NumCast, StrCast, Cast } from "../../../../fields/Types";
 import { ScriptBox } from "../../ScriptBox";
 import { CompileScript } from "../../../util/Scripting";
-import { ScriptField } from "../../../../new_fields/ScriptField";
+import { ScriptField } from "../../../../fields/ScriptField";
 import { OverlayView, OverlayElementOptions } from "../../OverlayView";
 import { emptyFunction, aggregateBounds } from "../../../../Utils";
 import React = require("react");
-import { Id, ToString } from "../../../../new_fields/FieldSymbols";
-import { ObjectField } from "../../../../new_fields/ObjectField";
-import { RefField } from "../../../../new_fields/RefField";
-import { listSpec } from "../../../../new_fields/Schema";
+import { Id, ToString } from "../../../../fields/FieldSymbols";
+import { ObjectField } from "../../../../fields/ObjectField";
+import { RefField } from "../../../../fields/RefField";
+import { listSpec } from "../../../../fields/Schema";
 
 export interface ViewDefBounds {
     type: string;
@@ -25,6 +25,7 @@ export interface ViewDefBounds {
     fontSize?: number;
     highlight?: boolean;
     color?: string;
+    opacity?: number;
     replica?: string;
     pair?: { layout: Doc, data?: Doc };
 }
@@ -37,6 +38,7 @@ export interface PoolData {
     width?: number;
     height?: number;
     color?: string;
+    opacity?: number;
     transition?: string;
     highlight?: boolean;
     replica: string;
@@ -416,7 +418,7 @@ function normalizeResults(
                 height: newPosRaw.height! * scale,
                 pair: ele[1].pair
             };
-            poolData.set(newPos.pair.layout[Id] + (newPos.replica || ""), { transition: "transform 1s", ...newPos });
+            poolData.set(newPos.pair.layout[Id] + (newPos.replica || ""), { transition: "all 1s", ...newPos });
         }
     });
 

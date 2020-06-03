@@ -1,4 +1,4 @@
-import { readdirSync, writeFile, mkdirSync } from "fs";
+import { readdirSync, writeFile, mkdirSync, createReadStream, createWriteStream, existsSync, statSync } from "fs";
 import * as path from "path";
 import { red, cyan, yellow } from "colors";
 import { Utils } from "../../../Utils";
@@ -9,6 +9,7 @@ const createImageSizeStream = require("image-size-stream");
 import { parseXml } from "libxmljs";
 import { strictEqual } from "assert";
 import { Readable, PassThrough } from "stream";
+import { Directory, serverPathToFile, pathToDirectory } from "../../../server/ApiManagers/UploadManager";
 
 /**
  * This is an arbitrary bundle of data that gets populated
@@ -18,8 +19,7 @@ interface DocumentContents {
     body: string;
     imageData: ImageData[];
     hyperlinks: string[];
-    captions: string[];
-    embeddedFileNames: string[];
+    tableData: TableData[];
     longDescription: string;
 }
 
@@ -40,6 +40,7 @@ export interface DeviceDocument {
     secondaryKey: string;
     attribute: string;
     __images: ImageData[];
+    additionalMedia: ({ [type: string]: string } | undefined)[];
     hyperlinks: string[];
     captions: string[]; // from the table column
     embeddedFileNames: string[]; // from the table column
@@ -255,6 +256,8 @@ const FormatMap = new Map<keyof DeviceDocument, ValueFormatDefinition<any>>([
 ]);
 
 const sourceDir = path.resolve(__dirname, "source"); // where the Word documents are assumed to be stored
+const assetDir = path.resolve(__dirname, "assets"); // where any additional media content like pdfs will be stored. Each subdirectory of this
+// must follow the enum Directory.<type> naming scheme
 const outDir = path.resolve(__dirname, "json"); // where the JSON output of these device documents will be written
 const imageDir = path.resolve(__dirname, "../../../server/public/files/images/buxton"); // where, in the server, these images will be written
 const successOut = "buxton.json"; // the JSON list representing properly formatted documents
@@ -277,15 +280,42 @@ export default async function executeImport(emitter: ResultCallback, terminator:
             rimraf.sync(dir);
             mkdirSync(dir);
         });
+        await transferAssets();
         return parseFiles(wordDocuments, emitter, terminator);
     } catch (e) {
         const message = [
             "Unable to find a source directory.",
-            "Please ensure that the following directory exists and is populated with Word documents:",
-            `${sourceDir}`
+            "Please ensure that the following directory exists:",
+            `${e.message}`
         ].join('\n');
         console.log(red(message));
         return { error: message };
+    }
+}
+
+/**
+ * Builds a mirrored directory structure of all media / asset files
+ * within the server's public directory.
+ */
+async function transferAssets() {
+    for (const assetType of readdirSync(assetDir)) {
+        const subroot = path.resolve(assetDir, assetType);
+        if (!statSync(subroot).isDirectory()) {
+            continue;
+        }
+        const outputSubroot = serverPathToFile(assetType as Directory, "buxton");
+        if (existsSync(outputSubroot)) {
+            continue;
+        } else {
+            mkdirSync(outputSubroot);
+        }
+        for (const fileName of readdirSync(subroot)) {
+            const readStream = createReadStream(path.resolve(subroot, fileName));
+            const writeStream = createWriteStream(path.resolve(outputSubroot, fileName));
+            await new Promise<void>(resolve => {
+                readStream.pipe(writeStream).on("close", resolve);
+            });
+        }
     }
 }
 
@@ -356,6 +386,16 @@ const xPaths = {
     hyperlinks: '//*[name()="Relationship" and contains(@Type, "hyperlink")]'
 };
 
+interface TableData {
+    fileName: string;
+    caption: string;
+    additionalMedia?: { [type: string]: string };
+}
+
+const SuffixDirectoryMap = new Map<string, Directory>([
+    ["p", Directory.pdfs]
+]);
+
 /**
  * The meat of the script, images and text content are extracted here
  * @param pathToDocument the path to the document relative to the root of the zip
@@ -370,8 +410,7 @@ async function extractFileContents(pathToDocument: string): Promise<DocumentCont
     // get plain text
     const body = document.root()?.text() ?? "No body found. Check the import script's XML parser.";
     const captions: string[] = [];
-    const embeddedFileNames: string[] = [];
-
+    const tableData: TableData[] = [];
     // preserve paragraph formatting and line breaks that would otherwise get lost in the plain text parsing
     // of the XML hierarchy
     const paragraphs = document.find(xPaths.paragraphs).map(node => Utilities.correctSentences(node.text()).transformed!);
@@ -382,7 +421,7 @@ async function extractFileContents(pathToDocument: string): Promise<DocumentCont
     // extract captions from the table cells
     const tableRowsFlattened = document.find(xPaths.tableCells).map(node => node.text().trim());
     const { length } = tableRowsFlattened;
-    const numCols = 3;
+    const numCols = 4;
     strictEqual(length > numCols, true, "No captions written."); // first row has the headers, not content
     strictEqual(length % numCols === 0, true, "Improper caption formatting.");
 
@@ -392,8 +431,14 @@ async function extractFileContents(pathToDocument: string): Promise<DocumentCont
     // have been added or reordered since this was written, but follow the same appraoch)
     for (let i = numCols; i < tableRowsFlattened.length; i += numCols) {
         const row = tableRowsFlattened.slice(i, i + numCols);
-        embeddedFileNames.push(row[1]);
-        captions.push(row[2]);
+        const entry: TableData = { fileName: row[1], caption: row[2] };
+        const key = SuffixDirectoryMap.get(row[3].toLowerCase());
+        if (key) {
+            const media: any = {};
+            media[key] = `${entry.fileName.split(".")[0]}.pdf`;
+            entry.additionalMedia = media;
+        }
+        tableData.push(entry);
     }
 
     // extract all hyperlinks embedded in the document
@@ -409,7 +454,7 @@ async function extractFileContents(pathToDocument: string): Promise<DocumentCont
     // cleanup
     zip.close();
 
-    return { body, longDescription, imageData, captions, embeddedFileNames, hyperlinks };
+    return { body, longDescription, imageData, tableData, hyperlinks };
 }
 
 // zip relative path from root expression / filter used to isolate only media assets
@@ -451,9 +496,21 @@ async function writeImages(zip: any): Promise<ImageData[]> {
         });
 
         // if it's not an icon, by this rough heuristic, i.e. is it not square
-        if (Math.abs(width - height) > 10) {
-            valid.push({ width, height, type, mediaPath });
+        const number = Number(/image(\d+)/.exec(mediaPath)![1]);
+        if (number > 5 || width - height > 10) {
+            valid.push({ width, height, type, mediaPath, number });
         }
+    }
+
+    valid.sort((a, b) => a.number - b.number);
+
+    const [{ width: first_w, height: first_h }, { width: second_w, height: second_h }] = valid;
+    if (Math.abs(first_w / second_w - first_h / second_h) < 0.01) {
+        const first_size = first_w * first_h;
+        const second_size = second_w * second_h;
+        const target = first_size >= second_size ? 1 : 0;
+        valid.splice(target, 1);
+        console.log(`Heuristically removed image with size ${target ? second_size : first_size}`);
     }
 
     // for each valid image, output the _o, _l, _m, and _s files
@@ -480,11 +537,12 @@ async function writeImages(zip: any): Promise<ImageData[]> {
  * @param contents the data already computed / parsed by extractFileContents
  */
 function analyze(fileName: string, contents: DocumentContents): AnalysisResult {
-    const { body, imageData, captions, hyperlinks, embeddedFileNames, longDescription } = contents;
+    const { body, imageData, hyperlinks, tableData, longDescription } = contents;
     const device: any = {
         hyperlinks,
-        captions,
-        embeddedFileNames,
+        captions: tableData.map(({ caption }) => caption),
+        embeddedFileNames: tableData.map(({ fileName }) => fileName),
+        additionalMedia: tableData.map(({ additionalMedia }) => additionalMedia),
         longDescription,
         __images: imageData
     };

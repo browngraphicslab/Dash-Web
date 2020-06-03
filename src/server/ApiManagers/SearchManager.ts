@@ -193,11 +193,8 @@ export namespace SolrManager {
         if (val === null || val === undefined) {
             return;
         }
-        console.log(val);
         const type = val.__type || typeof val;
-        console.log(type);
         let suffix = suffixMap[type];
-        console.log(suffix);
         if (!suffix) {
             return;
         }

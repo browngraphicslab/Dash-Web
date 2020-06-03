@@ -4,19 +4,16 @@ import { Docs } from '../client/documents/Documents';
 import "./ImageUpload.scss";
 import React = require('react');
 import { DocServer } from '../client/DocServer';
-import { Opt, Doc } from '../new_fields/Doc';
-import { Cast } from '../new_fields/Types';
-import { listSpec } from '../new_fields/Schema';
-import { List } from '../new_fields/List';
+import { Opt, Doc } from '../fields/Doc';
+import { Cast } from '../fields/Types';
+import { listSpec } from '../fields/Schema';
+import { List } from '../fields/List';
 import { observer } from 'mobx-react';
 import { observable } from 'mobx';
 import { Utils } from '../Utils';
 import MobileInterface from './MobileInterface';
-import { CurrentUserUtils } from '../server/authentication/models/current_user_utils';
-import { Scripting } from '../client/util/Scripting';
-
-
-
+import { CurrentUserUtils } from '../client/util/CurrentUserUtils';
+import { resolvedPorts } from '../client/views/Main';
 
 // const onPointerDown = (e: React.TouchEvent) => {
 //     let imgInput = document.getElementById("input_image_file");
@@ -107,10 +104,10 @@ class Uploader extends React.Component {
 }
 
 
-// DocServer.init(window.location.protocol, window.location.hostname, 4321, "image upload");
+// DocServer.init(window.location.protocol, window.location.hostname, resolvedPorts.socket, "image upload");
 (async () => {
     const info = await CurrentUserUtils.loadCurrentUser();
-    DocServer.init(window.location.protocol, window.location.hostname, 4321, info.email + "mobile");
+    DocServer.init(window.location.protocol, window.location.hostname, resolvedPorts.socket, info.email + "mobile");
     await Docs.Prototypes.initialize();
     if (info.id !== "__guest__") {
         // a guest will not have an id registered

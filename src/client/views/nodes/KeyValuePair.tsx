@@ -1,6 +1,6 @@
 import { action, observable } from 'mobx';
 import { observer } from "mobx-react";
-import { Doc, Field, Opt } from '../../../new_fields/Doc';
+import { Doc, Field, Opt } from '../../../fields/Doc';
 import { emptyFunction, returnFalse, returnOne, returnZero } from '../../../Utils';
 import { Docs } from '../../documents/Documents';
 import { Transform } from '../../util/Transform';
@@ -99,9 +99,9 @@ export class KeyValuePair extends React.Component<KeyValuePairProps> {
                     <div className="keyValuePair-td-key-container">
                         <button style={hover} className="keyValuePair-td-key-delete" onClick={undoBatch(() => {
                             if (Object.keys(props.Document).indexOf(props.fieldKey) !== -1) {
-                                props.Document[props.fieldKey] = undefined;
+                                delete props.Document[props.fieldKey];
                             }
-                            else props.Document.proto![props.fieldKey] = undefined;
+                            else delete props.Document.proto![props.fieldKey];
                         })}>
                             X
                         </button>

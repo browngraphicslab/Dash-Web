@@ -93,13 +93,44 @@ export const WidthSym = Symbol("Width");
 export const HeightSym = Symbol("Height");
 export const DataSym = Symbol("Data");
 export const LayoutSym = Symbol("Layout");
+export const AclSym = Symbol("Acl");
+export const AclPrivate = Symbol("AclOwnerOnly");
+export const AclReadonly = Symbol("AclReadOnly");
+export const AclAddonly = Symbol("AclAddonly");
 export const UpdatingFromServer = Symbol("UpdatingFromServer");
 const CachedUpdates = Symbol("Cached updates");
 
 
 function fetchProto(doc: Doc) {
+    if (doc.author !== Doc.CurrentUserEmail) {
+        const acl = Doc.Get(doc, "ACL", true);
+        switch (acl) {
+            case "ownerOnly":
+                doc[AclSym] = AclPrivate;
+                return undefined;
+            case "readOnly":
+                doc[AclSym] = AclReadonly;
+                break;
+            case "addOnly":
+                doc[AclSym] = AclAddonly;
+                break;
+        }
+    }
+
     const proto = doc.proto;
     if (proto instanceof Promise) {
+        proto.then(proto => {
+            if (proto.author !== Doc.CurrentUserEmail) {
+                if (proto.ACL === "ownerOnly") {
+                    proto[AclSym] = doc[AclSym] = AclPrivate;
+                    return undefined;
+                } else if (proto.ACL === "readOnly") {
+                    proto[AclSym] = doc[AclSym] = AclReadonly;
+                } else if (proto.ACL === "addOnly") {
+                    proto[AclSym] = doc[AclSym] = AclAddonly;
+                }
+            }
+        });
         return proto;
     }
 }
@@ -113,10 +144,10 @@ export class Doc extends RefField {
             set: setter,
             get: getter,
             // getPrototypeOf: (target) => Cast(target[SelfProxy].proto, Doc) || null, // TODO this might be able to replace the proto logic in getter
-            has: (target, key) => key in target.__fields,
+            has: (target, key) => target[AclSym] !== AclPrivate && key in target.__fields,
             ownKeys: target => {
                 const obj = {} as any;
-                Object.assign(obj, target.___fields);
+                (target[AclSym] !== AclPrivate) && Object.assign(obj, target.___fields);
                 runInAction(() => obj.__LAYOUT__ = target.__LAYOUT__);
                 return Object.keys(obj);
             },
@@ -170,8 +201,11 @@ export class Doc extends RefField {
 
     private [Self] = this;
     private [SelfProxy]: any;
+    public [AclSym]: any = undefined;
     public [WidthSym] = () => NumCast(this[SelfProxy]._width);
     public [HeightSym] = () => NumCast(this[SelfProxy]._height);
+    public [ToScriptString]() { return `DOC-"${this[Self][Id]}"-`; }
+    public [ToString]() { return `Doc(${this[AclSym] === AclPrivate ? "-inaccessible-" : this.title})`; }
     public get [LayoutSym]() { return this[SelfProxy].__LAYOUT__; }
     public get [DataSym]() {
         const self = this[SelfProxy];
@@ -193,8 +227,6 @@ export class Doc extends RefField {
         return undefined;
     }
 
-    [ToScriptString]() { return `DOC-"${this[Self][Id]}"-`; }
-    [ToString]() { return `Doc(${this.title})`; }
 
     private [CachedUpdates]: { [key: string]: () => void | Promise<any> } = {};
     public static CurrentUserEmail: string = "";
@@ -456,6 +488,7 @@ export namespace Doc {
         }
         alias.aliasOf = doc;
         alias.title = ComputedField.MakeFunction(`renameAlias(this, ${Doc.GetProto(doc).aliasNumber = NumCast(Doc.GetProto(doc).aliasNumber) + 1})`);
+        alias.author = Doc.CurrentUserEmail;
         return alias;
     }
 
@@ -574,7 +607,7 @@ export namespace Doc {
                 if (field instanceof RefField) {
                     copy[key] = field;
                 } else if (cfield instanceof ComputedField) {
-                    copy[key] = ComputedField.MakeFunction(cfield.script.originalScript);
+                    copy[key] = cfield[Copy]();// ComputedField.MakeFunction(cfield.script.originalScript);
                 } else if (field instanceof ObjectField) {
                     copy[key] = doc[key] instanceof Doc ?
                         key.includes("layout[") ? Doc.MakeCopy(doc[key] as Doc, false) : doc[key] : // reference documents except copy documents that are expanded teplate fields 
@@ -586,7 +619,7 @@ export namespace Doc {
                 }
             }
         });
-
+        copy["author"] = Doc.CurrentUserEmail;
         return copy;
     }
 
@@ -794,6 +827,7 @@ export namespace Doc {
     }
     // don't bother memoizing (caching) the result if called from a non-reactive context. (plus this avoids a warning message)
     export function IsBrushedDegreeUnmemoized(doc: Doc) {
+        if (!doc || doc[AclSym] === AclPrivate || Doc.GetProto(doc)[AclSym] === AclPrivate) return 0;
         return brushManager.BrushedDoc.has(doc) ? 2 : brushManager.BrushedDoc.has(Doc.GetProto(doc)) ? 1 : 0;
     }
     export function IsBrushedDegree(doc: Doc) {
@@ -802,11 +836,13 @@ export namespace Doc {
         })(doc);
     }
     export function BrushDoc(doc: Doc) {
+        if (!doc || doc[AclSym] === AclPrivate || Doc.GetProto(doc)[AclSym] === AclPrivate) return doc;
         brushManager.BrushedDoc.set(doc, true);
         brushManager.BrushedDoc.set(Doc.GetProto(doc), true);
         return doc;
     }
     export function UnBrushDoc(doc: Doc) {
+        if (!doc || doc[AclSym] === AclPrivate || Doc.GetProto(doc)[AclSym] === AclPrivate) return doc;
         brushManager.BrushedDoc.delete(doc);
         brushManager.BrushedDoc.delete(Doc.GetProto(doc));
         return doc;
@@ -836,6 +872,7 @@ export namespace Doc {
     }
     const highlightManager = new HighlightBrush();
     export function IsHighlighted(doc: Doc) {
+        if (!doc || doc[AclSym] === AclPrivate || Doc.GetProto(doc)[AclSym] === AclPrivate) return false;
         return highlightManager.HighlightedDoc.get(doc) || highlightManager.HighlightedDoc.get(Doc.GetProto(doc));
     }
     export function HighlightDoc(doc: Doc, dataAndDisplayDocs = true) {
@@ -1028,28 +1065,32 @@ export namespace Doc {
         if (layoutKey && layoutKey !== "layout" && layoutKey !== "layout_icon") doc.deiconifyLayout = layoutKey.replace("layout_", "");
     }
 
-    export function pileup(selected: Doc[], x: number, y: number) {
-        const newCollection = Docs.Create.PileDocument(selected, { title: "pileup", x: x - 55, y: y - 55, _width: 110, _height: 100, _LODdisable: true });
+    export function pileup(docList: Doc[], x?: number, y?: number) {
         let w = 0, h = 0;
-        selected.forEach((d, i) => {
-            Doc.iconify(d);
-            w = Math.max(d[WidthSym](), w);
-            h = Math.max(d[HeightSym](), h);
+        runInAction(() => {
+            docList.forEach(d => {
+                Doc.iconify(d);
+                w = Math.max(d[WidthSym](), w);
+                h = Math.max(d[HeightSym](), h);
+            });
+            h = Math.max(h, w * 4 / 3); // converting to an icon does not update the height right away.  so this is a fallback hack to try to do something reasonable
+            docList.forEach((d, i) => {
+                d.x = Math.cos(Math.PI * 2 * i / docList.length) * 10 - w / 2;
+                d.y = Math.sin(Math.PI * 2 * i / docList.length) * 10 - h / 2;
+                d.displayTimecode = undefined;  // bcz: this should be automatic somehow.. along with any other properties that were logically associated with the original collection
+            });
         });
-        h = Math.max(h, w * 4 / 3); // converting to an icon does not update the height right away.  so this is a fallback hack to try to do something reasonable
-        selected.forEach((d, i) => {
-            d.x = Math.cos(Math.PI * 2 * i / selected.length) * 10 - w / 2;
-            d.y = Math.sin(Math.PI * 2 * i / selected.length) * 10 - h / 2;
-            d.displayTimecode = undefined;  // bcz: this should be automatic somehow.. along with any other properties that were logically associated with the original collection
-        });
-        newCollection.x = NumCast(newCollection.x) + NumCast(newCollection._width) / 2 - 55;
-        newCollection.y = NumCast(newCollection.y) + NumCast(newCollection._height) / 2 - 55;
-        newCollection._width = newCollection._height = 110;
-        //newCollection.borderRounding = "40px";
-        newCollection._jitterRotation = 10;
-        newCollection._backgroundColor = "gray";
-        newCollection._overflow = "visible";
-        return newCollection;
+        if (x !== undefined && y !== undefined) {
+            const newCollection = Docs.Create.PileDocument(docList, { title: "pileup", x: x - 55, y: y - 55, _width: 110, _height: 100, _LODdisable: true });
+            newCollection.x = NumCast(newCollection.x) + NumCast(newCollection._width) / 2 - 55;
+            newCollection.y = NumCast(newCollection.y) + NumCast(newCollection._height) / 2 - 55;
+            newCollection._width = newCollection._height = 110;
+            //newCollection.borderRounding = "40px";
+            newCollection._jitterRotation = 10;
+            newCollection._backgroundColor = "gray";
+            newCollection._overflow = "visible";
+            return newCollection;
+        }
     }
 
 

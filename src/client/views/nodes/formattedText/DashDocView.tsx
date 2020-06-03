@@ -1,10 +1,10 @@
 import { IReactionDisposer, reaction } from "mobx";
 import { NodeSelection } from "prosemirror-state";
-import { Doc, HeightSym, WidthSym } from "../../../../new_fields/Doc";
-import { Id } from "../../../../new_fields/FieldSymbols";
-import { ObjectField } from "../../../../new_fields/ObjectField";
-import { ComputedField } from "../../../../new_fields/ScriptField";
-import { BoolCast, Cast, NumCast, StrCast } from "../../../../new_fields/Types";
+import { Doc, HeightSym, WidthSym } from "../../../../fields/Doc";
+import { Id } from "../../../../fields/FieldSymbols";
+import { ObjectField } from "../../../../fields/ObjectField";
+import { ComputedField } from "../../../../fields/ScriptField";
+import { BoolCast, Cast, NumCast, StrCast } from "../../../../fields/Types";
 import { emptyFunction, returnEmptyString, returnFalse, Utils, returnZero } from "../../../../Utils";
 import { DocServer } from "../../../DocServer";
 import { Docs } from "../../../documents/Documents";

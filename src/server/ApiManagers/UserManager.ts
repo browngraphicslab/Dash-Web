@@ -3,7 +3,7 @@ import { Method } from "../RouteManager";
 import { Database } from "../database";
 import { msToTime } from "../ActionUtilities";
 import * as bcrypt from "bcrypt-nodejs";
-import { Opt } from "../../new_fields/Doc";
+import { Opt } from "../../fields/Doc";
 
 export const timeMap: { [id: string]: number } = {};
 interface ActivityUnit {

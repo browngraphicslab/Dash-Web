@@ -1,11 +1,11 @@
 import { google } from "googleapis";
 import { OAuth2Client, Credentials, OAuth2ClientOptions } from "google-auth-library";
-import { Opt } from "../../../new_fields/Doc";
+import { Opt } from "../../../fields/Doc";
 import { GaxiosResponse } from "gaxios";
 import request = require('request-promise');
-import * as qs from 'query-string';
+import * as qs from "query-string";
 import { Database } from "../../database";
-import { GoogleCredentialsLoader } from "../../credentials/CredentialsLoader";
+import { GoogleCredentialsLoader } from "./CredentialsLoader";
 
 /**
  * Scopes give Google users fine granularity of control
@@ -224,7 +224,7 @@ export namespace GoogleApiServerUtils {
             });
         });
         const enriched = injectUserInfo(credentials);
-        await Database.Auxiliary.GoogleAuthenticationToken.Write(userId, enriched);
+        await Database.Auxiliary.GoogleAccessToken.Write(userId, enriched);
         return enriched;
     }
 
@@ -280,7 +280,7 @@ export namespace GoogleApiServerUtils {
      * and a flag indicating whether or not they were refreshed during retrieval
      */
     export async function retrieveCredentials(userId: string): Promise<{ credentials: Opt<EnrichedCredentials>, refreshed: boolean }> {
-        let credentials = await Database.Auxiliary.GoogleAuthenticationToken.Fetch(userId);
+        let credentials = await Database.Auxiliary.GoogleAccessToken.Fetch(userId);
         let refreshed = false;
         if (!credentials) {
             return { credentials: undefined, refreshed };
@@ -318,7 +318,7 @@ export namespace GoogleApiServerUtils {
         });
         // expires_in is in seconds, but we're building the new expiry date in milliseconds
         const expiry_date = new Date().getTime() + (expires_in * 1000);
-        await Database.Auxiliary.GoogleAuthenticationToken.Update(userId, access_token, expiry_date);
+        await Database.Auxiliary.GoogleAccessToken.Update(userId, access_token, expiry_date);
         // update the relevant properties
         credentials.access_token = access_token;
         credentials.expiry_date = expiry_date;

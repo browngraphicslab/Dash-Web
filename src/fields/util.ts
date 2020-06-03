@@ -1,5 +1,5 @@
 import { UndoManager } from "../client/util/UndoManager";
-import { Doc, Field, FieldResult, UpdatingFromServer, LayoutSym } from "./Doc";
+import { Doc, Field, FieldResult, UpdatingFromServer, LayoutSym, AclSym, AclPrivate } from "./Doc";
 import { SerializationHelper } from "../client/util/SerializationHelper";
 import { ProxyField, PrefetchProxy } from "./Proxy";
 import { RefField } from "./RefField";
@@ -7,6 +7,8 @@ import { ObjectField } from "./ObjectField";
 import { action, trace } from "mobx";
 import { Parent, OnUpdate, Update, Id, SelfProxy, Self } from "./FieldSymbols";
 import { DocServer } from "../client/DocServer";
+import { ComputedField } from "./ScriptField";
+import { ScriptCast } from "./Types";
 
 function _readOnlySetter(): never {
     throw new Error("Documents can't be modified in read-only mode");
@@ -104,6 +106,7 @@ const layoutProps = ["panX", "panY", "width", "height", "nativeWidth", "nativeHe
     "LODdisable", "chromeStatus", "viewType", "gridGap", "xMargin", "yMargin", "autoHeight"];
 export function setter(target: any, in_prop: string | symbol | number, value: any, receiver: any): boolean {
     let prop = in_prop;
+    if (target[AclSym]) return true;
     if (typeof prop === "string" && prop !== "__id" && prop !== "__fields" && (prop.startsWith("_") || layoutProps.includes(prop))) {
         if (!prop.startsWith("_")) {
             console.log(prop + " is deprecated - switch to _" + prop);
@@ -114,11 +117,16 @@ export function setter(target: any, in_prop: string | symbol | number, value: an
             return true;
         }
     }
+    if (target.__fields[prop] instanceof ComputedField && target.__fields[prop].setterscript && value !== undefined && !(value instanceof ComputedField)) {
+        return ScriptCast(target.__fields[prop])?.setterscript?.run({ self: target[SelfProxy], this: target[SelfProxy], value }).success ? true : false;
+    }
     return _setter(target, prop, value, receiver);
 }
 
 export function getter(target: any, in_prop: string | symbol | number, receiver: any): any {
     let prop = in_prop;
+    if (in_prop === AclSym) return target[AclSym];
+    if (target[AclSym] === AclPrivate) return undefined;
     if (prop === LayoutSym) {
         return target.__LAYOUT__;
     }
@@ -143,6 +151,9 @@ export function getter(target: any, in_prop: string | symbol | number, receiver:
 
 function getFieldImpl(target: any, prop: string | number, receiver: any, ignoreProto: boolean = false): any {
     receiver = receiver || target[SelfProxy];
+    if (target === undefined) {
+        console.log("");
+    }
     let field = target.__fields[prop];
     for (const plugin of getterPlugins) {
         const res = plugin(receiver, prop, field);
@@ -155,7 +166,7 @@ function getFieldImpl(target: any, prop: string | number, receiver: any, ignoreP
     }
     if (field === undefined && !ignoreProto && prop !== "proto") {
         const proto = getFieldImpl(target, "proto", receiver, true);//TODO tfs: instead of receiver we could use target[SelfProxy]... I don't which semantics we want or if it really matters
-        if (proto instanceof Doc) {
+        if (proto instanceof Doc && proto[AclSym] !== AclPrivate) {
             return getFieldImpl(proto[Self], prop, receiver, ignoreProto);
         }
         return undefined;

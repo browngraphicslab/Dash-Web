@@ -2,16 +2,17 @@ import { expect } from 'chai';
 import 'mocha';
 const { JSDOM } = require('jsdom');
 const dom = new JSDOM("", {
-    url: "http://localhost:1050"
+    url: `http://localhost:${resolvedPorts.server}`
 });
 (global as any).window = dom.window;
 
 
 import { autorun, reaction } from "mobx";
-import { Doc } from '../src/new_fields/Doc';
-import { Cast } from '../src/new_fields/Types';
-import { createSchema, makeInterface, defaultSpec } from '../src/new_fields/Schema';
-import { ImageField } from '../src/new_fields/URLField';
+import { Doc } from '../src/fields/Doc';
+import { Cast } from '../src/fields/Types';
+import { createSchema, makeInterface, defaultSpec } from '../src/fields/Schema';
+import { ImageField } from '../src/fields/URLField';
+import { resolvedPorts } from '../src/client/views/Main';
 describe("Document", () => {
     it('should hold fields', () => {
         const key = "Test";

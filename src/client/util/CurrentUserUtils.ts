@@ -1,27 +1,27 @@
-import { action, computed, observable, reaction } from "mobx";
+import { computed, observable, reaction } from "mobx";
 import * as rp from 'request-promise';
-import { Utils } from "../../../Utils";
-import { DocServer } from "../../../client/DocServer";
-import { Docs, DocumentOptions } from "../../../client/documents/Documents";
-import { UndoManager } from "../../../client/util/UndoManager";
-import { Doc, DocListCast, DocListCastAsync } from "../../../new_fields/Doc";
-import { List } from "../../../new_fields/List";
-import { listSpec } from "../../../new_fields/Schema";
-import { ScriptField, ComputedField } from "../../../new_fields/ScriptField";
-import { Cast, PromiseValue, StrCast, NumCast } from "../../../new_fields/Types";
-import { nullAudio, ImageField } from "../../../new_fields/URLField";
-import { DragManager } from "../../../client/util/DragManager";
-import { InkingControl } from "../../../client/views/InkingControl";
-import { Scripting, CompileScript } from "../../../client/util/Scripting";
-import { CollectionViewType } from "../../../client/views/collections/CollectionView";
-import { makeTemplate } from "../../../client/util/DropConverter";
-import { RichTextField } from "../../../new_fields/RichTextField";
-import { PrefetchProxy } from "../../../new_fields/Proxy";
-import { FormattedTextBox } from "../../../client/views/nodes/formattedText/FormattedTextBox";
-import { MainView } from "../../../client/views/MainView";
-import { DocumentType } from "../../../client/documents/DocumentTypes";
-import { SchemaHeaderField } from "../../../new_fields/SchemaHeaderField";
-import { DimUnit } from "../../../client/views/collections/collectionMulticolumn/CollectionMulticolumnView";
+import { Utils } from "../../Utils";
+import { DocServer } from "../DocServer";
+import { Docs, DocumentOptions } from "../documents/Documents";
+import { UndoManager } from "./UndoManager";
+import { Doc, DocListCast, DocListCastAsync } from "../../fields/Doc";
+import { List } from "../../fields/List";
+import { listSpec } from "../../fields/Schema";
+import { ScriptField, ComputedField } from "../../fields/ScriptField";
+import { Cast, PromiseValue, StrCast, NumCast } from "../../fields/Types";
+import { nullAudio } from "../../fields/URLField";
+import { DragManager } from "./DragManager";
+import { InkingControl } from "../views/InkingControl";
+import { Scripting } from "./Scripting";
+import { CollectionViewType } from "../views/collections/CollectionView";
+import { makeTemplate } from "./DropConverter";
+import { RichTextField } from "../../fields/RichTextField";
+import { PrefetchProxy } from "../../fields/Proxy";
+import { FormattedTextBox } from "../views/nodes/formattedText/FormattedTextBox";
+import { MainView } from "../views/MainView";
+import { DocumentType } from "../documents/DocumentTypes";
+import { SchemaHeaderField } from "../../fields/SchemaHeaderField";
+import { DimUnit } from "../views/collections/collectionMulticolumn/CollectionMulticolumnView";
 
 export class CurrentUserUtils {
     private static curr_id: string;
@@ -75,8 +75,10 @@ export class CurrentUserUtils {
         if (doc["template-button-description"] === undefined) {
             const descriptionTemplate = Docs.Create.TextDocument(" ", { title: "header", _height: 100 }, "header"); // text needs to be a space to allow templateText to be created
             Doc.GetProto(descriptionTemplate).layout =
-                "<div><FormattedTextBox {...props} height='{this._headerHeight||75}px' background='{this._headerColor||`orange`}' fieldKey={'header'}/>" +
-                "<FormattedTextBox {...props} height='calc(100% - {this._headerHeight||75}px)' fieldKey={'text'}/></div>";
+                "<div>" +
+                "    <FormattedTextBox {...props} height='{this._headerHeight||75}px' background='{this._headerColor||`orange`}' fieldKey={'header'}/>" +
+                "    <FormattedTextBox {...props} position='absolute' top='{(this._headerHeight||75)*scale}px' height='calc({100/scale}% - {this._headerHeight||75}px)' fieldKey={'text'}/>" +
+                "</div>";
             descriptionTemplate.isTemplateDoc = makeTemplate(descriptionTemplate, true, "descriptionView");
 
             doc["template-button-description"] = CurrentUserUtils.ficon({
@@ -315,9 +317,10 @@ export class CurrentUserUtils {
                 { _width: 250, _height: 250, title: "container" });
         }
         if (doc.emptyWebpage === undefined) {
-            doc.emptyWebpage = Docs.Create.WebDocument("", { title: "New Webpage", _width: 600, UseCors: true });
+            doc.emptyWebpage = Docs.Create.WebDocument("", { title: "New Webpage", _nativeWidth: 850, _nativeHeight: 962, _width: 600, UseCors: true });
         }
         return [
+            { title: "Drag a comparison box", label: "Comp", icon: "columns", ignoreClick: true, drag: 'Docs.Create.ComparisonDocument()' },
             { title: "Drag a collection", label: "Col", icon: "folder", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyCollection as Doc },
             { title: "Drag a web page", label: "Web", icon: "globe-asia", click: 'openOnRight(getCopy(this.dragFactory, true))', drag: 'getCopy(this.dragFactory, true)', dragFactory: doc.emptyWebpage as Doc },
             { title: "Drag a cat image", label: "Img", icon: "cat", ignoreClick: true, drag: 'Docs.Create.ImageDocument("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/1200px-Cat03.jpg", { _width: 250, _nativeWidth:250, title: "an image of a cat" })' },
@@ -610,7 +613,7 @@ export class CurrentUserUtils {
     static setupDockedButtons(doc: Doc) {
         if (doc["dockedBtn-pen"] === undefined) {
             doc["dockedBtn-pen"] = CurrentUserUtils.ficon({
-                onClick: ScriptField.MakeScript("activatePen(this.activePen.inkPen = sameDocs(this.activePen.inkPen, this) ? undefined : this,2, this.backgroundColor)"),
+                onClick: ScriptField.MakeScript("activatePen(this.activePen.inkPen = sameDocs(this.activePen.inkPen, this) ? undefined : this, this.inkWidth, this.backgroundColor)"),
                 author: "systemTemplates", title: "ink mode", icon: "pen-nib", ischecked: ComputedField.MakeFunction(`sameDocs(this.activePen.inkPen,  this)`), activePen: doc
             });
         }
@@ -694,7 +697,7 @@ export class CurrentUserUtils {
         new InkingControl();
         doc.title = Doc.CurrentUserEmail;
         doc.activePen = doc;
-        doc.inkColor = StrCast(doc.backgroundColor, "");
+        doc.inkColor = StrCast(doc.backgroundColor, "rgb(0, 0, 0)");
         doc.fontSize = NumCast(doc.fontSize, 12);
         doc["constants-snapThreshold"] = NumCast(doc["constants-snapThreshold"], 10); // 
         doc["constants-dragThreshold"] = NumCast(doc["constants-dragThreshold"], 4); // 

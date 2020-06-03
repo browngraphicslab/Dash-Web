@@ -1,12 +1,12 @@
 import * as request from "request-promise";
-import { Doc, Field } from "../../new_fields/Doc";
-import { Cast } from "../../new_fields/Types";
+import { Doc, Field } from "../../fields/Doc";
+import { Cast } from "../../fields/Types";
 import { Docs } from "../documents/Documents";
 import { Utils } from "../../Utils";
-import { InkData } from "../../new_fields/InkField";
+import { InkData } from "../../fields/InkField";
 import { UndoManager } from "../util/UndoManager";
 import requestPromise = require("request-promise");
-import { List } from "../../new_fields/List";
+import { List } from "../../fields/List";
 import { ClientRecommender } from "../ClientRecommender";
 
 type APIManager<D> = { converter: BodyConverter<D>, requester: RequestExecutor };
@@ -45,9 +45,13 @@ export enum Confidence {
 export namespace CognitiveServices {
 
     const ExecuteQuery = async <D>(service: Service, manager: APIManager<D>, data: D): Promise<any> => {
-        const apiKey = process.env[service.toUpperCase()];
+        let apiKey = process.env[service.toUpperCase()];
+        // A HACK FOR A DEMO VIDEO - syip2
+        if (service === "handwriting") {
+            apiKey = "61088486d76c4b12ba578775a5f55422";
+        }
         if (!apiKey) {
-            console.log(`No API key found for ${service}: ensure index.ts has access to a .env file in your root directory.`);
+            console.log(`No API key found for ${service}: ensure youe root directory has .env file with _CLIENT_${service.toUpperCase()}.`);
             return undefined;
         }
 
