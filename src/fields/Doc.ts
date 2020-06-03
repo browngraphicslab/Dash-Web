@@ -94,7 +94,7 @@ export const HeightSym = Symbol("Height");
 export const DataSym = Symbol("Data");
 export const LayoutSym = Symbol("Layout");
 export const AclSym = Symbol("Acl");
-export const AclPrivate = Symbol("AclNoAccess");
+export const AclPrivate = Symbol("AclOwnerOnly");
 export const AclReadonly = Symbol("AclReadOnly");
 export const AclAddonly = Symbol("AclAddonly");
 export const UpdatingFromServer = Symbol("UpdatingFromServer");
@@ -103,13 +103,17 @@ const CachedUpdates = Symbol("Cached updates");
 
 function fetchProto(doc: Doc) {
     if (doc.author !== Doc.CurrentUserEmail) {
-        if (doc.ACL === "noAccess") {
-            doc[AclSym] = AclPrivate;
-            return undefined;
-        } else if (doc.ACL === "readOnly") {
-            doc[AclSym] = AclReadonly;
-        } else if (doc.ACL === "addOnly") {
-            doc[AclSym] = AclAddonly;
+        const acl = Doc.Get(doc, "ACL", true);
+        switch (acl) {
+            case "ownerOnly":
+                doc[AclSym] = AclPrivate;
+                return undefined;
+            case "readOnly":
+                doc[AclSym] = AclReadonly;
+                break;
+            case "addOnly":
+                doc[AclSym] = AclAddonly;
+                break;
         }
     }
 
@@ -117,7 +121,7 @@ function fetchProto(doc: Doc) {
     if (proto instanceof Promise) {
         proto.then(proto => {
             if (proto.author !== Doc.CurrentUserEmail) {
-                if (proto.ACL === "noAccess") {
+                if (proto.ACL === "ownerOnly") {
                     proto[AclSym] = doc[AclSym] = AclPrivate;
                     return undefined;
                 } else if (proto.ACL === "readOnly") {
@@ -484,6 +488,7 @@ export namespace Doc {
         }
         alias.aliasOf = doc;
         alias.title = ComputedField.MakeFunction(`renameAlias(this, ${Doc.GetProto(doc).aliasNumber = NumCast(Doc.GetProto(doc).aliasNumber) + 1})`);
+        alias.author = Doc.CurrentUserEmail;
         return alias;
     }
 
@@ -614,7 +619,7 @@ export namespace Doc {
                 }
             }
         });
-
+        copy["author"] = Doc.CurrentUserEmail;
         return copy;
     }
 
