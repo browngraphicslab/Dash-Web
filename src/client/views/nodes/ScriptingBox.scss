@@ -15,6 +15,8 @@
         position: absolute;
         z-index: 100;
         padding: 5px;
+        white-space: nowrap;
+        overflow: hidden;
     }
 
     .scriptingBox-inputDiv {
@@ -51,12 +53,11 @@
 
                 .rta {
                     position: relative;
-                    font-size: 12px;
                     width: 100%;
                     height: 100%;
                     margin-bottom: 60px !important;
                     overflow-y: scroll;
-                    font-size: 9px;
+                    overflow-x: hidden;
                 }
 
                 .rta__textarea {
@@ -75,7 +76,6 @@
                     margin-top: 0;
                     margin-bottom: 1em;
                     max-height: 100px;
-                    overflow-y: auto;
                 }
 
                 .rta__list {
@@ -87,6 +87,7 @@
                     box-shadow: 0 0 5px rgba(27, 31, 35, 0.1);
                     list-style: none;
                     overflow-y: scroll;
+                    overflow-x: hidden;
                 }
 
                 .rta__entity {

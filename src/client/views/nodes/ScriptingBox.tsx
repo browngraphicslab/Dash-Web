@@ -44,10 +44,13 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     @observable private _currWord: string = "";
     @observable private _suggestions: string[] = [];
     @observable private _paramSuggestion: boolean = false;
-    @observable private _scriptSuggestedParams: string = "";
+    @observable private _scriptSuggestedParams: any = "";
 
     @observable private _suggestionBoxX: number = 0;
     @observable private _suggestionBoxY: number = 0;
+
+    @observable private _suggestionRef: any = React.createRef();
+    @observable private _scriptTextRef: any = React.createRef();
 
     // vars included in fields that store parameters types and names and the script itself
     @computed({ keepAlive: true }) get paramsNames() { return this.compileParams.map(p => p.split(":")[0].trim()); }
@@ -470,25 +473,40 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     }
 
     @action
+    suggestionPos() {
+        const getCaretCoordinates = require('textarea-caret');
+        const This = this;
+        document.querySelector('textarea')?.addEventListener('input', function () {
+            const caret = getCaretCoordinates(this, this.selectionEnd);
+            console.log('(top, left, height) = (%s, %s, %s)', caret.top, caret.left, caret.height);
+            let top = caret.top;
+            let left = caret.left;
+
+            const x = This.dataDoc.x;
+            const suggestionWidth = This._suggestionRef.current.offsetWidth;
+            const scriptWidth = This._scriptTextRef.current.offsetWidth;
+            if ((left + suggestionWidth) > (x + scriptWidth)) {
+                const diff = (left + suggestionWidth) - (x + scriptWidth);
+                left = left - diff;
+            }
+
+            runInAction(() => {
+                This._suggestionBoxX = left;
+                This._suggestionBoxY = top;
+            });
+        });
+    }
+
+    @action
     keyHandler(e: any, pos: number) {
         console.log(e.key);
         if (e.key === "(") {
             console.log("hello");
-            const getCaretCoordinates = require('textarea-caret');
-
-            const This = this;
-            document.querySelector('textarea')?.addEventListener('input', function () {
-                const caret = getCaretCoordinates(this, this.selectionEnd);
-                console.log('(top, left, height) = (%s, %s, %s)', caret.top, caret.left, caret.height);
-                let top = caret.top;
-                let left = caret.left;
-                runInAction(() => {
-                    This._suggestionBoxX = left;
-                    This._suggestionBoxY = top;
-                });
-            });
+            this.suggestionPos();
 
             this._scriptSuggestedParams = this.getSuggestedParams(pos);
+
+            //this._scriptSuggestedParams = <div> </div>;
 
             if (this._scriptSuggestedParams !== undefined && this._scriptSuggestedParams.length > 0) {
                 if (this.rawScript[pos - 2] !== "(") {
@@ -536,7 +554,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     @computed({ keepAlive: true }) get renderScriptingBox() {
 
         trace();
-        return <div style={{ width: this.compileParams.length > 0 ? "70%" : "100%" }}>
+        return <div style={{ width: this.compileParams.length > 0 ? "70%" : "100%" }} ref={this._scriptTextRef}>
             <ReactTextareaAutocomplete className="ScriptingBox-textarea" style={{ resize: "none", height: "100%" }}
                 minChar={1}
                 placeholder="write your script here"
@@ -691,9 +709,11 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     // renders script UI if _applied = false and params UI if _applied = true
     render() {
         return (
-            <div className={`scriptingBox`} onContextMenu={this.specificContextMenu}>
-                <div className="scriptingBox-outerDiv" onWheel={e => this.props.isSelected(true) && e.stopPropagation()}>
-                    {this._paramSuggestion ? <div className="boxed" style={{ left: this._suggestionBoxX + 20, top: this._suggestionBoxY - 15 }}> {this._scriptSuggestedParams} </div> : null}
+            <div className={`scriptingBox`} onContextMenu={this.specificContextMenu}
+                onPointerUp={this.suggestionPos}>
+                <div className="scriptingBox-outerDiv"
+                    onWheel={e => this.props.isSelected(true) && e.stopPropagation()}>
+                    {this._paramSuggestion ? <div className="boxed" ref={this._suggestionRef} style={{ left: this._suggestionBoxX + 20, top: this._suggestionBoxY - 15, display: "inline" }}> {this._scriptSuggestedParams} </div> : null}
                     {!this._applied ? this.renderScriptingInputs : this.renderParamsInputs()}
                     {!this._applied ? this.renderScriptingTools() : this.renderParamsTools()}
                 </div>

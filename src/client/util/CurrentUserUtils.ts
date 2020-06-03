@@ -736,7 +736,9 @@ export class CurrentUserUtils {
     }
 }
 
-Scripting.addGlobal("setupMobileInkingDoc", function setupMobileInkingDoc(userDoc: Doc) { return CurrentUserUtils.setupMobileInkingDoc(userDoc); });
+Scripting.addGlobal(function setupMobileInkingDoc(userDoc: Doc) { return CurrentUserUtils.setupMobileInkingDoc(userDoc); },
+    "initializes the Mobile inking document", "{ userDoc: Doc }");
 Scripting.addGlobal(function setupMobileUploadDoc(userDoc: Doc) { return CurrentUserUtils.setupMobileUploadDoc(userDoc); },
     "initializes the Mobile upload document", "{ userDoc: Doc }");
-Scripting.addGlobal(function createNewWorkspace() { return MainView.Instance.createNewWorkspace(); });
+Scripting.addGlobal(function createNewWorkspace() { return MainView.Instance.createNewWorkspace(); },
+    "creates a new workspace when called");
