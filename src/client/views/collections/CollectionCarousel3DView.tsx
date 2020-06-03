@@ -71,22 +71,9 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
     }
 
     changeSlide = (direction: number) => {
+        console.log("old", NumCast(this.layoutDoc._itemIndex), direction);
         this.layoutDoc._itemIndex = (NumCast(this.layoutDoc._itemIndex) + direction + this.childLayoutPairs.length) % this.childLayoutPairs.length;
-    }
-
-    timer?: number;
-    interval?: number;
-    onArrowDown = (e: React.PointerEvent, direction: number) => {
-        e.stopPropagation;
-        document.removeEventListener("pointerup", () => this.onArrowRelease(direction));
-        document.addEventListener("pointerup", () => this.onArrowRelease(direction));
-
-        this.layoutDoc.startScrollTimeout = 1500;
-        this.timer = window.setTimeout(() => { // if arrow is held down long enough, activate automatic scrolling
-            window.clearTimeout(this.timer);
-            this.timer = undefined;
-            this.startScroll(direction);
-        }, this.layoutDoc.startScrollTimeout);
+        console.log("new", NumCast(this.layoutDoc._itemIndex));
     }
 
     startScroll = (direction: number) => {
@@ -96,9 +83,27 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
         }, this.layoutDoc.scrollInterval);
     }
 
-    onArrowRelease = (direction: number) => {
-        document.removeEventListener("pointerup", () => this.onArrowRelease(direction));
+    timer?: number;
+    interval?: number;
+    onArrowDown = (e: React.PointerEvent, direction: number) => {
+        console.log("onArrowDown", direction);
+        e.stopPropagation;
 
+        const listener = () => { // is able to pass in the direction parameter and then correctly remove the listener
+            this.onArrowRelease(direction);
+            document.removeEventListener("pointerup", listener);
+        };
+        document.addEventListener("pointerup", listener);
+
+        this.layoutDoc.startScrollTimeout = 1500;
+        this.timer = window.setTimeout(() => { // if arrow is held down long enough, activate automatic scrolling
+            window.clearTimeout(this.timer);
+            this.timer = undefined;
+            this.startScroll(direction);
+        }, this.layoutDoc.startScrollTimeout);
+    }
+
+    onArrowRelease = (direction: number) => {
         if (this.timer) {
             this.changeSlide(direction); // if click wasn't long enough to activate autoscroll, only advance/go back 1 slide
             window.clearTimeout(this.timer);
