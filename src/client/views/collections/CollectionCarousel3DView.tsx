@@ -21,6 +21,10 @@ const Carousel3DDocument = makeInterface(documentSchema, collectionSchema);
 
 @observer
 export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocument) {
+    @computed get scrollSpeed() {
+        return this.layoutDoc._autoScrollSpeed ? NumCast(this.layoutDoc._autoScrollSpeed) : 1000; //default scroll speed
+    }
+
     private _dropDisposer?: DragManager.DragDropDisposer;
 
     componentWillUnmount() { this._dropDisposer?.(); }
@@ -74,43 +78,32 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
         this.layoutDoc._itemIndex = (NumCast(this.layoutDoc._itemIndex) + direction + this.childLayoutPairs.length) % this.childLayoutPairs.length;
     }
 
-    startScroll = (direction: number) => {
-        this.layoutDoc.scrollInterval = 500;
+    onArrowClick = (e: React.MouseEvent, direction: number) => {
+        e.stopPropagation();
+        this.changeSlide(direction);
+    }
+
+    interval?: number;
+    startAutoScroll = (direction: number) => {
         this.interval = window.setInterval(() => {
             this.changeSlide(direction);
-        }, this.layoutDoc.scrollInterval);
+        }, this.scrollSpeed);
     }
 
-    timer?: number;
-    interval?: number;
-    onArrowDown = (e: React.PointerEvent, direction: number) => {
-        e.stopPropagation;
-
-        const listener = () => { // is able to pass in the direction parameter and then correctly remove the listener
-            this.onArrowRelease(direction);
-            document.removeEventListener("pointerup", listener);
-        };
-        document.addEventListener("pointerup", listener);
-
-        this.layoutDoc.startScrollTimeout = 500;
-        this.timer = window.setTimeout(() => { // if arrow is held down long enough, activate automatic scrolling
-            window.clearTimeout(this.timer);
-            this.timer = undefined;
-            this.startScroll(direction);
-        }, this.layoutDoc.startScrollTimeout);
+    stopAutoScroll = () => {
+        window.clearInterval(this.interval);
+        this.interval = undefined;
     }
 
-    onArrowRelease = (direction: number) => {
-        if (this.timer) {
-            this.changeSlide(direction); // if click wasn't long enough to activate autoscroll, only advance/go back 1 slide
-            window.clearTimeout(this.timer);
-            this.timer = undefined;
-        }
+    toggleAutoScroll = (direction: number) => {
+        this.layoutDoc.autoScrollOn = this.layoutDoc.autoScrollOn ? false : true;
+        this.layoutDoc.autoScrollOn ? this.startAutoScroll(direction) : this.stopAutoScroll();
+    }
 
-        if (this.interval) {
-            window.clearInterval(this.interval); // stop scrolling
-            this.interval = undefined;
-        }
+    showAutoScrollButton = (direction: string) => {
+        // keep pause button visible while autoscroll is on, and don't show the other side's autoscroll button
+        !this.layoutDoc.autoScrollOn && (this.layoutDoc.showScrollButton = direction);
+
     }
 
     onContextMenu = (e: React.MouseEvent): void => {
@@ -148,14 +141,35 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
     }
 
     @computed get buttons() {
-        return <>
-            <div key="back" className="carouselView-back" style={{ background: `${StrCast(this.props.Document.backgroundColor)}` }}
-                onPointerDown={(e) => this.onArrowDown(e, -1)}>
-                <FontAwesomeIcon icon={"caret-left"} size={"2x"} />
+        if (!this.props.active()) return null;
+        return <div className="arrow-buttons" onMouseLeave={() => this.showAutoScrollButton("none")}>
+            <div key="back" className="carousel3DView-back" style={{ background: `${StrCast(this.props.Document.backgroundColor)}` }}
+                onClick={(e) => this.onArrowClick(e, -1)}
+                onMouseEnter={() => this.showAutoScrollButton("back")}>
+                <FontAwesomeIcon icon={"angle-left"} size={"2x"} />
             </div>
-            <div key="fwd" className="carouselView-fwd" style={{ background: `${StrCast(this.props.Document.backgroundColor)}` }}
-                onPointerDown={(e) => this.onArrowDown(e, 1)}>
-                <FontAwesomeIcon icon={"caret-right"} size={"2x"} />
+            <div key="fwd" className="carousel3DView-fwd" style={{ background: `${StrCast(this.props.Document.backgroundColor)}` }}
+                onClick={(e) => this.onArrowClick(e, 1)}
+                onMouseEnter={() => this.showAutoScrollButton("fwd")}>
+                <FontAwesomeIcon icon={"angle-right"} size={"2x"} />
+            </div>
+            {this.autoScrollButton}
+        </div>;
+    }
+
+    @computed get autoScrollButton() {
+        const direction = this.layoutDoc.showScrollButton;
+        if (direction !== "back" && direction !== "fwd") return null;
+
+        const offset = (direction === "back") ? -1 : 1;
+        return <>
+            <div className={`carousel3DView-${direction}-scroll`} style={{ background: `${StrCast(this.props.Document.backgroundColor)}` }}
+                onClick={() => this.toggleAutoScroll(offset)}>
+                {this.layoutDoc.autoScrollOn ?
+                    <FontAwesomeIcon icon={"pause"} size={"1x"} /> :
+                    direction === "back" ?
+                        <FontAwesomeIcon icon={"angle-double-left"} size={"1x"} /> :
+                        <FontAwesomeIcon icon={"angle-double-right"} size={"1x"} />}
             </div>
         </>;
     }

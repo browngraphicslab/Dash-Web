@@ -64,7 +64,7 @@ export enum CollectionViewType {
     Multirow = "multirow",
     Time = "time",
     Carousel = "carousel",
-    Carousel3D = "3D carousel",
+    Carousel3D = "3D Carousel",
     Linear = "linear",
     Staff = "staff",
     Map = "map",

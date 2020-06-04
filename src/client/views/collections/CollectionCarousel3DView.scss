@@ -1,4 +1,4 @@
-.collectionCarouselView-outer {
+.collectionCarousel3DView-outer {
     height: 100%;
     position: relative;
     background-color: white;
@@ -11,14 +11,14 @@
     align-items: center;
     transition: transform 0.3s cubic-bezier(0.455, 0.03, 0.515, 0.955);
 
-    .collectionCarouselView-item,
-    .collectionCarouselView-item-active {
+    .collectionCarousel3DView-item,
+    .collectionCarousel3DView-item-active {
         flex: 1;
         transition: opacity 0.3s linear, transform 0.5s cubic-bezier(0.455, 0.03, 0.515, 0.955);
         pointer-events: none;
     }
 
-    .collectionCarouselView-item-active {
+    .collectionCarousel3DView-item-active {
         pointer-events: unset;
     }
 }
@@ -46,7 +46,44 @@
     }
 }
 
-.carouselView-back,
-.carouselView-forward {
+.carousel3DView-back,
+.carousel3DView-fwd,
+.carousel3DView-back-scroll,
+.carousel3DView-fwd-scroll {
+    position: absolute;
+    display: flex;
+    width: 30;
+    height: 30;
+    align-items: center;
+    border-radius: 5px;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.46);
     cursor: pointer;
+}
+
+.carousel3DView-fwd {
+    top: 50%;
+    right: 0;
+}
+
+.carousel3DView-back {
+    top: 50%;
+    left: 0;
+}
+
+.carousel3DView-fwd-scroll {
+    top: calc(50% - 30px);
+    right: 0;
+}
+
+.carousel3DView-back-scroll {
+    top: calc(50% - 30px);
+    left: 0;
+}
+
+.carousel3DView-back:hover,
+.carousel3DView-fwd:hover,
+.carousel3DView-back-scroll:hover,
+.carousel3DView-fwd-scroll:hover {
+    background: lightgray;
 }
