@@ -44,6 +44,7 @@ import "./DocumentView.scss";
 import { LinkAnchorBox } from './LinkAnchorBox';
 import { RadialMenu } from './RadialMenu';
 import React = require("react");
+import { undo } from 'prosemirror-history';
 
 library.add(fa.faEdit, fa.faTrash, fa.faShare, fa.faDownload, fa.faExpandArrowsAlt, fa.faCompressArrowsAlt, fa.faLayerGroup, fa.faExternalLinkAlt, fa.faAlignCenter, fa.faCaretSquareRight,
     fa.faSquare, fa.faConciergeBell, fa.faWindowRestore, fa.faFolder, fa.faMapPin, fa.faLink, fa.faFingerprint, fa.faCrosshairs, fa.faDesktop, fa.faUnlock, fa.faLock, fa.faLaptopCode, fa.faMale,
@@ -684,6 +685,17 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
         this.Document.lockedPosition = this.Document.lockedPosition ? undefined : true;
     }
 
+    @undoBatch
+    @action
+    setAcl = (acl: "readOnly" | "addOnly" | "ownerOnly") => {
+        this.layoutDoc.ACL = this.dataDoc.ACL = acl;
+        DocListCast(this.dataDoc[Doc.LayoutFieldKey(this.dataDoc)]).map(d => {
+            if (d.author === Doc.CurrentUserEmail) d.ACL = acl;
+            const data = d[DataSym];
+            if (data && data.author === Doc.CurrentUserEmail) data.ACL = acl;
+        });
+    }
+
     @action
     onContextMenu = async (e: React.MouseEvent | Touch): Promise<void> => {
         // the touch onContextMenu is button 0, the pointer onContextMenu is button 2
@@ -744,9 +756,9 @@ export class DocumentView extends DocComponent<DocumentViewProps, Document>(Docu
 
         const more = cm.findByDescription("More...");
         const moreItems: ContextMenuProps[] = more && "subitems" in more ? more.subitems : [];
-        moreItems.push({ description: "Make Add Only", event: () => this.dataDoc.ACL = this.layoutDoc.ACL = "addOnly", icon: "concierge-bell" });
-        moreItems.push({ description: "Make Read Only", event: () => this.dataDoc.ACL = this.layoutDoc.ACL = "readOnly", icon: "concierge-bell" });
-        moreItems.push({ description: "Make Private", event: () => this.dataDoc.ACL = this.layoutDoc.ACL = "noAccess", icon: "concierge-bell" });
+        moreItems.push({ description: "Make Add Only", event: () => this.setAcl("addOnly"), icon: "concierge-bell" });
+        moreItems.push({ description: "Make Read Only", event: () => this.setAcl("readOnly"), icon: "concierge-bell" });
+        moreItems.push({ description: "Make Private", event: () => this.setAcl("ownerOnly"), icon: "concierge-bell" });
         moreItems.push({ description: "Make View of Metadata Field", event: () => Doc.MakeMetadataFieldTemplate(this.props.Document, this.props.DataDoc), icon: "concierge-bell" });
         moreItems.push({ description: `${this.Document._chromeStatus !== "disabled" ? "Hide" : "Show"} Chrome`, event: () => this.Document._chromeStatus = (this.Document._chromeStatus !== "disabled" ? "disabled" : "enabled"), icon: "project-diagram" });
         moreItems.push({ description: this.Document.lockedPosition ? "Unlock Position" : "Lock Position", event: this.toggleLockPosition, icon: BoolCast(this.Document.lockedPosition) ? "unlock" : "lock" });

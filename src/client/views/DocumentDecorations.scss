@@ -152,6 +152,11 @@ $linkGap : 3px;
         text-align: center;
         display: flex;    
         border-bottom: solid 1px;
+        margin-left:10px;
+        width: calc(100% - 10px);
+    }
+    .focus-visible {
+        margin-left:0px;
     }
     .publishBox {
         width: 20px;
