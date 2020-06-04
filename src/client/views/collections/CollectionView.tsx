@@ -264,7 +264,7 @@ export class CollectionView extends Touchable<FieldViewProps & CollectionViewCus
             subItems.push({ description: "Carousel", event: () => this.props.Document._viewType = CollectionViewType.Carousel, icon: "columns" });
             subItems.push({ description: "Pivot/Time", event: () => this.props.Document._viewType = CollectionViewType.Time, icon: "columns" });
             subItems.push({ description: "Map", event: () => this.props.Document._viewType = CollectionViewType.Map, icon: "globe-americas" });
-            subItems.push({ description: "Grid", event: () => this.props.Document._viewType = CollectionViewType.Grid, icon: "rainbow" });
+            subItems.push({ description: "Grid", event: () => this.props.Document._viewType = CollectionViewType.Grid, icon: "th-list" });
             switch (this.props.Document._viewType) {
                 case CollectionViewType.Freeform: {
                     subItems.push({ description: "Custom", icon: "fingerprint", event: AddCustomFreeFormLayout(this.props.Document, this.props.fieldKey) });

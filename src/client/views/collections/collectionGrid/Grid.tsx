@@ -19,6 +19,7 @@ interface GridProps {
     setLayout: Function;
     transformScale: number;
     childrenDraggable: boolean;
+    // deletePlaceholder: Function;
 }
 
 /**
@@ -27,9 +28,12 @@ interface GridProps {
 @observer
 export default class Grid extends React.Component<GridProps> {
 
+    // private dragging: boolean = false;
+
     constructor(props: Readonly<GridProps>) {
         super(props);
         this.onLayoutChange = this.onLayoutChange.bind(this);
+        // this.onDrag = this.onDrag.bind(this);
     }
     /**
      * If there has been a change in layout, calls a method in CollectionGridView to set the layouts on the Document.
@@ -39,8 +43,20 @@ export default class Grid extends React.Component<GridProps> {
         this.props.setLayout(layout);
     }
 
+    // onDrag(layout: Layout[],
+    //     oldItem: Layout,
+    //     newItem: Layout,
+    //     placeholder: Layout,
+    //     event: MouseEvent,
+    //     element: HTMLElement) {
+    //     this.props.deletePlaceholder(placeholder, event);
+    //     console.log("Grid -> event", event.clientX)
+
+    // }
+
     render() {
         console.log(this.props.transformScale);
+
         return (
             <GridLayout className="layout"
                 layout={this.props.layout}
@@ -54,7 +70,7 @@ export default class Grid extends React.Component<GridProps> {
                 useCSSTransforms={true}
                 onLayoutChange={this.onLayoutChange}
                 preventCollision={true}
-                transformScale={this.props.transformScale}
+                transformScale={this.props.transformScale} // still doesn't work :(
                 style={{ zIndex: 5 }}
             >
                 {this.props.nodeList}
