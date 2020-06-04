@@ -202,6 +202,7 @@ export class CollectionViewBaseChrome extends React.Component<CollectionViewChro
             case CollectionViewType.Schema: return (<CollectionSchemaViewChrome key="collchrome" PanelWidth={this.props.PanelWidth} CollectionView={this.props.CollectionView} type={this.props.type} />);
             case CollectionViewType.Tree: return (<CollectionTreeViewChrome key="collchrome" PanelWidth={this.props.PanelWidth} CollectionView={this.props.CollectionView} type={this.props.type} />);
             case CollectionViewType.Masonry: return (<CollectionStackingViewChrome key="collchrome" PanelWidth={this.props.PanelWidth} CollectionView={this.props.CollectionView} type={this.props.type} />);
+            case CollectionViewType.Carousel3D: return (<Collection3DCarouselViewChrome key="collchrome" PanelWidth={this.props.PanelWidth} CollectionView={this.props.CollectionView} type={this.props.type} />);
             default: return null;
         }
     }
@@ -563,3 +564,38 @@ export class CollectionTreeViewChrome extends React.Component<CollectionViewChro
     }
 }
 
+@observer
+export class Collection3DCarouselViewChrome extends React.Component<CollectionViewChromeProps> {
+    @computed get scrollSpeed() {
+        return this.props.CollectionView.props.Document._autoScrollSpeed;
+    }
+
+    @action
+    setValue = (value: string) => {
+        const numValue = Number(StrCast(value));
+        if (numValue > 0) {
+            this.props.CollectionView.props.Document._autoScrollSpeed = numValue;
+            return true;
+        }
+        return false;
+    }
+
+    render() {
+        return (
+            <div className="collection3DCarouselViewChrome-cont">
+                <div className="collection3DCarouselViewChrome-scrollSpeed-cont">
+                    <div className="collectionStackingViewChrome-scrollSpeed-label">
+                        AUTOSCROLL SPEED:
+                    </div>
+                    <div className="collection3DCarouselViewChrome-scrollSpeed">
+                        <EditableView
+                            GetValue={() => StrCast(this.scrollSpeed)}
+                            oneLine
+                            SetValue={this.setValue}
+                            contents={this.scrollSpeed ? this.scrollSpeed : 1000} />
+                    </div>
+                </div>
+            </div>
+        );
+    }
+}
