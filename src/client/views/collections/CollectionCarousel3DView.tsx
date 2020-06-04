@@ -61,7 +61,7 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
             this.childLayoutPairs.map((childPair, index) => {
                 return (
                     <div key={childPair.layout[Id]}
-                        className={`collectionCarouselView-item${index === currentIndex ? "-active" : ""} ${index}`}
+                        className={`collectionCarousel3DView-item${index === currentIndex ? "-active" : ""} ${index}`}
                         style={index === currentIndex ?
                             { opacity: '1', transform: 'scale(1.3)' } :
                             { opacity: '0.5', transform: 'scale(0.6)', userSelect: 'none' }}>
@@ -71,9 +71,7 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
     }
 
     changeSlide = (direction: number) => {
-        console.log("old", NumCast(this.layoutDoc._itemIndex), direction);
         this.layoutDoc._itemIndex = (NumCast(this.layoutDoc._itemIndex) + direction + this.childLayoutPairs.length) % this.childLayoutPairs.length;
-        console.log("new", NumCast(this.layoutDoc._itemIndex));
     }
 
     startScroll = (direction: number) => {
@@ -86,7 +84,6 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
     timer?: number;
     interval?: number;
     onArrowDown = (e: React.PointerEvent, direction: number) => {
-        console.log("onArrowDown", direction);
         e.stopPropagation;
 
         const listener = () => { // is able to pass in the direction parameter and then correctly remove the listener
@@ -95,7 +92,7 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
         };
         document.addEventListener("pointerup", listener);
 
-        this.layoutDoc.startScrollTimeout = 1500;
+        this.layoutDoc.startScrollTimeout = 500;
         this.timer = window.setTimeout(() => { // if arrow is held down long enough, activate automatic scrolling
             window.clearTimeout(this.timer);
             this.timer = undefined;
@@ -174,7 +171,7 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
         const index = NumCast(this.layoutDoc._itemIndex);
         const translateX = (1 - index) / this.childLayoutPairs.length * 100;
 
-        return <div className="collectionCarouselView-outer" onClick={this.onClick} onPointerDown={this.onPointerDown} ref={this.createDashEventsTarget} onContextMenu={this.onContextMenu}>
+        return <div className="collectionCarousel3DView-outer" onClick={this.onClick} onPointerDown={this.onPointerDown} ref={this.createDashEventsTarget} onContextMenu={this.onContextMenu}>
             <div className="carousel-wrapper" style={{ transform: `translateX(calc(${translateX}%` }}>
                 {this.content}
             </div>
