@@ -95,6 +95,8 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     public inputRef = React.createRef<HTMLInputElement>();
 
     private _isSearch: ("search" | "placeholder" | undefined)[] = [];
+    private _isSorted: ("sorted" | "placeholder" | undefined)[] = [];
+
     private _numTotalResults = -1;
     private _endIndex = -1;
 
@@ -104,7 +106,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     private _curRequest?: Promise<any> = undefined;
     public static LayoutString(fieldKey: string) { return FieldView.LayoutString(SearchBox, fieldKey); }
 
-
+    private new_buckets: { [characterName: string]: number} = {};
     //if true, any keywords can be used. if false, all keywords are required.
     //this also serves as an indicator if the word status filter is applied
     @observable private _basicWordStatus: boolean = false;
@@ -359,32 +361,36 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         console.log(StrCast(this.layoutDoc._searchString));
         this.dataDoc[this.fieldKey] = new List<Doc>([]);
         this.buckets=[];
+        this.new_buckets={};
         const query = StrCast(this.layoutDoc._searchString);
         this.getFinalQuery(query);
         this._results = [];
         this._resultsSet.clear();
         this._isSearch = [];
+        this._isSorted=[];
         this._visibleElements = [];
         this._visibleDocuments = [];
         console.log(query);
         if (query !== "") {
-            console.log("yes")
             this._endIndex = 12;
             this._maxSearchIndex = 0;
             this._numTotalResults = -1;
-            console.log("yesss");
             await this.getResults(query);
             runInAction(() => {
                 this._resultsOpen = true;
                 this._searchbarOpen = true;
                 this._openNoResults = true;
                 this.resultsScrolled();
+
             });
         }
     }
     
     @action private makebuckets(){
         console.log(this._numTotalResults);
+        this._results.forEach(element => {
+            
+        });
         while (this.buckets!.length <this._numTotalResults/3){
 
             let bucket = Docs.Create.StackingDocument([],{ _viewType:CollectionViewType.Stacking,title: `bucket` });
@@ -433,7 +439,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                     if (res.numFound !== this._numTotalResults && this._numTotalResults === -1) {
                         this._numTotalResults = res.numFound;
                     }
-
                     const highlighting = res.highlighting || {};
                     const highlightList = res.docs.map(doc => highlighting[doc[Id]]);
                     const lines = new Map<string, string[]>();
@@ -467,6 +472,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                 await this._curRequest;
             }
             this.resultsScrolled();
+
             res();
         });
         return this.lockPromise;
@@ -573,6 +579,8 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             this._visibleDocuments = Array<Doc>(this._numTotalResults === -1 ? 0 : this._numTotalResults);
             // indicates if things are placeholders 
             this._isSearch = Array<undefined>(this._numTotalResults === -1 ? 0 : this._numTotalResults);
+            this._isSorted = Array<undefined>(this._numTotalResults === -1 ? 0 : this._numTotalResults);
+
         }
 
 
@@ -582,6 +590,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             if (i < startIndex || i > endIndex) {
                 if (this._isSearch[i] !== "placeholder") {
                     this._isSearch[i] = "placeholder";
+                    this._isSorted[i]="placeholder";
                     this._visibleElements[i] = <div className="searchBox-placeholder" key={`searchBox-placeholder-${i}`}>Loading...</div>;
                 }
             }
@@ -594,6 +603,13 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                         if (i < this._results.length) result = this._results[i];
                         if (result) {
                             if (StrCast(result[0].type)!=="search"){
+
+                            if(this.new_buckets[StrCast(result[0].type)]===undefined){
+                                this.new_buckets[StrCast(result[0].type)]=1;
+                            }
+                            else { 
+                                this.new_buckets[StrCast(result[0].type)]=this.new_buckets[StrCast(result[0].type)]+1;
+                            }
                             const highlights = Array.from([...Array.from(new Set(result[1]).values())]);
                             
                             result[0].query=StrCast(this.layoutDoc._searchString);
@@ -604,7 +620,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                             this._visibleDocuments[i] = result[0];
                             //<SearchItem {...this.props} doc={result[0]} lines={result[2]} highlighting={highlights} />;
                             result[0].targetDoc=result[0];
-                            console.log(this.buckets!.length);
 
                             Doc.AddDocToList(this.buckets![Math.floor(i/3)], this.props.fieldKey, result[0]);
                             this._isSearch[i] = "search";
@@ -616,7 +631,12 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                         result = this._results[i];
                         if (result) {
                             if (StrCast(result[0].type)!=="search"){
-
+                            if(this.new_buckets[StrCast(result[0].type)]===undefined){
+                                this.new_buckets[StrCast(result[0].type)]=1;
+                            }
+                            else { 
+                                this.new_buckets[StrCast(result[0].type)]=this.new_buckets[StrCast(result[0].type)]+1;
+                            }
                             const highlights = Array.from([...Array.from(new Set(result[1]).values())]);
                             result[0].query=StrCast(this.layoutDoc._searchString);
                             result[0].lines=new List<string>(result[2]);
@@ -625,14 +645,19 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                             //this._visibleElements[i] = <SearchItem {...this.props} doc={result[0]} lines={result[2]} highlighting={highlights} />;
                             this._visibleDocuments[i]=result[0];
                             result[0].targetDoc=result[0];
-                            console.log(this.buckets!.length);
 
-                            Doc.AddDocToList(this.buckets![Math.floor(i/3)], this.props.fieldKey, result[0]);
+                            //Doc.AddDocToList(this.buckets![Math.floor(i/3)], this.props.fieldKey, result[0]);
                             this._isSearch[i] = "search";
                             }
                         }
                     }
                 }
+            }
+        }
+        for (let i = 0; i < this._numTotalResults; i++) {
+            if (this._isSearch[i] === "search" && this._isSorted[i]==="placeholder") {
+                console.log(this.new_buckets);
+                this._isSorted[i]="sorted"; 
             }
         }
         if (this._maxSearchIndex >= this._numTotalResults) {
