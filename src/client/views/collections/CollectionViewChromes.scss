@@ -181,9 +181,16 @@
             .grid-control {
                 align-self: center;
                 width: 30%;
+                display: flex;
+                flex-direction: row;
 
                 .grid-icon {
                     margin-right: 5px;
+                    align-self: center;
+                }
+
+                .flexLabel {
+                    margin-bottom: 0;
                 }
             }
 

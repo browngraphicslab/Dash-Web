@@ -3,7 +3,7 @@ import * as React from "react";
 import { Doc, Opt } from '../../../../fields/Doc';
 import { documentSchema } from '../../../../fields/documentSchemas';
 import { makeInterface } from '../../../../fields/Schema';
-import { BoolCast, NumCast, ScriptCast } from '../../../../fields/Types';
+import { BoolCast, NumCast, ScriptCast, StrCast } from '../../../../fields/Types';
 import { Transform } from '../../../util/Transform';
 import { undoBatch } from '../../../util/UndoManager';
 import { ContentFittingDocumentView } from '../../nodes/ContentFittingDocumentView';
@@ -15,9 +15,9 @@ import Grid, { Layout } from "./Grid";
 import { Id } from '../../../../fields/FieldSymbols';
 import { observer } from 'mobx-react';
 import { SnappingManager } from '../../../util/SnappingManager';
-import "./CollectionGridView.scss";
 import { Docs } from '../../../documents/Documents';
 import { EditableView, EditableProps } from '../../EditableView';
+import "./CollectionGridView.scss";
 
 
 type GridSchema = makeInterface<[typeof documentSchema]>;
@@ -37,28 +37,38 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
         this.props.Document.flexGrid = BoolCast(this.props.Document.flexGrid, true);
 
         this.setLayout = this.setLayout.bind(this);
-        // this.addTextDoc = this.addTextDoc.bind(this);
+        this.onSliderChange = this.onSliderChange.bind(this);
 
         this.containerRef = React.createRef();
     }
 
     componentDidMount() {
-
         this.changeListenerDisposer = computed(() => this.childLayoutPairs).observe(({ oldValue, newValue }) => {
 
             const layouts: Layout[] = this.parsedLayoutList;
+
+            // if grid view has been opened and then exited and a document has been deleted
+            // this deletes the layout of that document from the layouts list
+            if (!oldValue) {
+                layouts.forEach(({ i }, index) => {
+                    const targetId = i;
+                    if (!newValue.find(({ layout: preserved }) => preserved[Id] === targetId)) {
+                        layouts.splice(index, 1);
+                    }
+                });
+            }
+
             if (!oldValue || newValue.length > oldValue.length) {
                 // for each document that was added, add a corresponding grid layout document
                 newValue.forEach(({ layout }, i) => {
                     const targetId = layout[Id];
                     if (!layouts.find((gridLayout: Layout) => gridLayout.i === targetId)) {
-                        console.log("pushing")
                         layouts.push({
                             i: targetId,
                             w: 2,
                             h: 2,
-                            x: 2 * (i % Math.floor(this.props.Document.numCols as number / 2)),
-                            y: 2 * Math.floor(i / Math.floor(this.props.Document.numCols as number / 2))
+                            x: 2 * (i % Math.floor(NumCast(this.props.Document.numCols) / 2)),
+                            y: 2 * Math.floor(i / Math.floor(NumCast(this.props.Document.numCols) / 2))
                         });
                     }
                 });
@@ -72,31 +82,12 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
                     }
                 });
             }
-
             this.unStringifiedLayoutList = layouts;
-            // this.props.Document.gridLayoutString = JSON.stringify(layouts);
         }, true);
     }
 
     componentWillUnmount() {
         this.changeListenerDisposer && this.changeListenerDisposer();
-    }
-
-    /**
-     * Establishes the x and y properties of the @param layoutDoc, currently
-     * using the @param previousLength for the computations.
-     * 
-     * However, this could also be more of a first fit algorithm, iterating through
-     * this.toLayoutList(DocListCast(this.props.Document.gridLayouts)) and finding the
-     * first gap in the layout structure that suits the width and height. It would be
-     * easiest to see that a column is free (for a given row, if two documents' x are separated
-     * by a value greater than the ratio width of the document you're trying to insert),
-     * but you would then have to ensure that the next row at that column has a y at least
-     * as big as the ratio height of the document you're trying to insert.  
-     */
-    private findNextLayout(layoutDoc: Doc, previousLength: number) {
-        layoutDoc.x = 2 * (previousLength % Math.floor(this.props.Document.numCols as number / 2));
-        layoutDoc.y = 2 * Math.floor(previousLength / Math.floor(this.props.Document.numCols as number / 2));
     }
 
     /**
@@ -108,8 +99,8 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
     private lookupIndividualTransform = (layout: Layout) => {
 
         const index = this.childLayoutPairs.findIndex(({ layout: layoutDoc }) => layoutDoc[Id] === layout.i);
-        const yTranslation = (this.props.Document.flexGrid ? NumCast(layout.y) : 2 * Math.floor(index / Math.floor(this.props.Document.numCols as number / 2))) * this.rowHeightPlusGap + 10 - this._scroll;
-        const xTranslation = (this.props.Document.flexGrid ? NumCast(layout.x) : 2 * (index % Math.floor(this.props.Document.numCols as number / 2))) * this.colWidthPlusGap + 10;
+        const yTranslation = (this.props.Document.flexGrid ? NumCast(layout.y) : 2 * Math.floor(index / Math.floor(NumCast(this.props.Document.numCols) / 2))) * this.rowHeightPlusGap + 10 - this._scroll + 30; // 30 is the height of the add text doc bar
+        const xTranslation = (this.props.Document.flexGrid ? NumCast(layout.x) : 2 * (index % Math.floor(NumCast(this.props.Document.numCols) / 2))) * this.colWidthPlusGap + 10;
 
         return this.props.ScreenToLocalTransform().translate(-xTranslation, -yTranslation);
     }
@@ -119,7 +110,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
 
     @computed get onChildClickHandler() { return ScriptCast(this.Document.onChildClick); }
 
-    get parsedLayoutList() { return this.props.Document.gridLayoutString ? JSON.parse(this.props.Document.gridLayoutString as string) : []; }
+    get parsedLayoutList() { return this.props.Document.gridLayoutString ? JSON.parse(StrCast(this.props.Document.gridLayoutString)) : []; }
     set unStringifiedLayoutList(layouts: Layout[]) { this.props.Document.gridLayoutString = JSON.stringify(layouts); }
 
 
@@ -177,7 +168,6 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
             let update: Opt<Layout>;
             const targetId = doc[Id];
             const gridLayout = layouts.find(gridLayout => gridLayout.i === targetId);
-            // const gridLayout = DocListCast(this.props.Document.gridLayouts).find(gridLayout => StrCast(gridLayout.i) === targetId);
             if (this.props.Document.flexGrid && gridLayout && (update = layoutArray.find(layout => layout.i === targetId))) {
                 gridLayout.x = update.x;
                 gridLayout.y = update.y;
@@ -186,7 +176,6 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
             }
         });
 
-        // this.props.Document.gridLayoutString = JSON.stringify(layouts);
         this.unStringifiedLayoutList = layouts;
     }
 
@@ -210,7 +199,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
             const width = () => this.width(gridLayout);
             const height = () => this.height(gridLayout);
             collector.push(
-                <div className={this.props.Document.flexGrid ? "document-wrapper" : "document-wrapper static"}
+                <div className={this.props.Document.flexGrid && (this.props.isSelected() ? true : false) ? "document-wrapper" : "document-wrapper static"}
                     key={gridLayout.i}
                 >
                     {this.getDisplayDoc(layout, dxf, width, height)}
@@ -231,12 +220,16 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
         return this.props.Document.flexGrid ?
             layouts : layouts.map(({ i }, index) => ({
                 i: i,
-                x: 2 * (index % Math.floor(this.props.Document.numCols as number / 2)),
-                y: 2 * Math.floor(index / Math.floor(this.props.Document.numCols as number / 2)),
+                x: 2 * (index % Math.floor(NumCast(this.props.Document.numCols) / 2)),
+                y: 2 * Math.floor(index / Math.floor(NumCast(this.props.Document.numCols) / 2)),
                 w: 2,
                 h: 2,
                 static: true
             }));
+    }
+
+    onSliderChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        this.props.Document.rowHeight = event.currentTarget.valueAsNumber;
     }
 
     @undoBatch @action addTextDocument = (value: string) => this.props.addDocument(Docs.Create.TextDocument(value, { title: value }));
@@ -254,13 +247,12 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
         const newEditableViewProps: EditableProps = {
             GetValue: () => "",
             SetValue: this.addTextDocument,
-            contents: "+ NEW",
+            contents: "+ ADD TEXT DOCUMENT AT END",
         };
 
         const childDocumentViews: JSX.Element[] = this.contents;
         const chromeStatus = this.props.Document._chromeStatus;
         const showChrome = (chromeStatus !== 'view-mode' && chromeStatus !== 'disabled');
-
 
         return (
             <div className="collectionGridView-contents"
@@ -290,18 +282,18 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
                     ref={this.containerRef}
                     onScroll={action((e: React.UIEvent<HTMLDivElement>) => this._scroll = e.currentTarget.scrollTop)}
                 >
+                    <input className="rowHeightSlider" type="range" defaultValue={NumCast(this.props.Document.rowHeight)} onChange={this.onSliderChange} style={{ width: this.props.PanelHeight() - 40 }} min={1} max={this.props.PanelHeight() - 40} onPointerEnter={e => e.currentTarget.focus()} />
                     <Grid
                         width={this.props.PanelWidth()}
                         nodeList={childDocumentViews.length ? childDocumentViews : null}
                         layout={childDocumentViews.length ? this.layoutList : undefined}
                         childrenDraggable={this.props.isSelected() ? true : false}
-                        numCols={this.props.Document.numCols as number}
-                        rowHeight={this.props.Document.rowHeight as number}
+                        numCols={NumCast(this.props.Document.numCols)}
+                        rowHeight={NumCast(this.props.Document.rowHeight)}
                         setLayout={this.setLayout}
-                        //setLayout={(layout: Layout[]) => this.setLayout(layout)}
                         transformScale={this.props.ScreenToLocalTransform().Scale}
-                    // flex={this.props.Document.flexGrid as boolean}
                     />
+
                 </div>
             </div >
         );
