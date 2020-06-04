@@ -137,7 +137,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     }
     @observable setupButtons =false;
     componentDidMount = () => {
-        console.log(this.setupButtons);
         if (this.setupButtons==false){
             this.setupDocTypeButtons();
             this.setupKeyButtons();
@@ -149,7 +148,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             runInAction( () => {this._searchbarOpen = true});
         }
         if (this.rootDoc.searchQuery&& this.newAssign) {
-            console.log(this.rootDoc.searchQuery);
             const sq = this.rootDoc.searchQuery;
             runInAction(() => {
 
@@ -358,7 +356,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     @action
     submitSearch = async () => {
-        console.log(StrCast(this.layoutDoc._searchString));
         this.dataDoc[this.fieldKey] = new List<Doc>([]);
         this.buckets=[];
         this.new_buckets={};
@@ -370,7 +367,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         this._isSorted=[];
         this._visibleElements = [];
         this._visibleDocuments = [];
-        console.log(query);
         if (query !== "") {
             this._endIndex = 12;
             this._maxSearchIndex = 0;
@@ -387,7 +383,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     }
     
     @action private makebuckets(){
-        console.log(this._numTotalResults);
         this._results.forEach(element => {
             
         });
@@ -399,10 +394,66 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             bucket.bucketfield = "Default";
             bucket.isBucket=true;
             Doc.AddDocToList(this.dataDoc, this.props.fieldKey, bucket);
-            this.buckets!.push(bucket);
-            console.log(this.buckets!.length);
-            
+            this.buckets!.push(bucket);            
             }
+    }
+    @observable firststring: string = "";
+    @observable secondstring: string = "";
+
+    @observable bucketcount:number[]=[];
+
+    @action private makenewbuckets(){
+        let highcount=0;
+        let secondcount=0;
+        this.firststring="";
+        this.secondstring="";
+        this.buckets=[];
+        this.bucketcount=[];
+        this.dataDoc[this.fieldKey] = new List<Doc>([]);
+        for (var key in this.new_buckets){
+            if (this.new_buckets[key]>highcount){
+                secondcount===highcount;
+                this.secondstring=this.firststring;
+                highcount=this.new_buckets[key];
+                this.firststring= key;
+            }
+            else if (this.new_buckets[key]>secondcount){
+                secondcount=this.new_buckets[key];
+                this.secondstring= key;
+            }
+        }
+
+        let bucket = Docs.Create.StackingDocument([],{ _viewType:CollectionViewType.Stacking,title: `default bucket` });
+        bucket.targetDoc = bucket;      
+        bucket._viewType === CollectionViewType.Stacking;
+        bucket.bucketfield = "Default";
+        bucket.isBucket=true;
+        Doc.AddDocToList(this.dataDoc, this.props.fieldKey, bucket);
+        this.buckets!.push(bucket);
+        this.bucketcount[0]=0;
+        
+        if (this.firststring!==""){
+        let firstbucket = Docs.Create.StackingDocument([],{ _viewType:CollectionViewType.Stacking,title: this.firststring });
+        firstbucket.targetDoc = firstbucket;      
+        firstbucket._viewType === CollectionViewType.Stacking;
+        firstbucket.bucketfield = this.firststring;
+        firstbucket.isBucket=true;
+        Doc.AddDocToList(this.dataDoc, this.props.fieldKey, firstbucket);
+        this.buckets!.push(firstbucket);
+        this.bucketcount[1]=0;
+
+        }
+
+        if (this.secondstring!==""){
+        let secondbucket = Docs.Create.StackingDocument([],{ _viewType:CollectionViewType.Stacking,title: this.secondstring });
+        secondbucket.targetDoc = secondbucket;      
+        secondbucket._viewType === CollectionViewType.Stacking;
+        secondbucket.bucketfield = this.secondstring;
+        secondbucket.isBucket=true;
+        Doc.AddDocToList(this.dataDoc, this.props.fieldKey, secondbucket);
+        this.buckets!.push(secondbucket);
+        this.bucketcount[2]=0;
+        }
     }
 
     @observable buckets:Doc[]|undefined;
@@ -481,8 +532,9 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     collectionRef = React.createRef<HTMLSpanElement>();
     startDragCollection = async () => {
         const res = await this.getAllResults(this.getFinalQuery(StrCast(this.layoutDoc._searchString)));
-        const filtered = this.filterDocsByType(res.docs);
-        const docs = filtered.map(doc => {
+       // const filtered = this.filterDocsByType(res.docs);
+       const filtered = res.docs 
+       const docs = filtered.map(doc => {
             const isProto = Doc.GetT(doc, "isPrototype", "boolean", true);
             if (isProto) {
                 return Doc.MakeDelegate(doc);
@@ -621,7 +673,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                             //<SearchItem {...this.props} doc={result[0]} lines={result[2]} highlighting={highlights} />;
                             result[0].targetDoc=result[0];
 
-                            Doc.AddDocToList(this.buckets![Math.floor(i/3)], this.props.fieldKey, result[0]);
+                            //Doc.AddDocToList(this.buckets![Math.floor(i/3)], this.props.fieldKey, result[0]);
                             this._isSearch[i] = "search";
                         }
                         }
@@ -643,29 +695,52 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                             result[0].highlighting=highlights.join(", ");
 
                             //this._visibleElements[i] = <SearchItem {...this.props} doc={result[0]} lines={result[2]} highlighting={highlights} />;
+                            if(i<this._visibleDocuments.length){
                             this._visibleDocuments[i]=result[0];
                             result[0].targetDoc=result[0];
 
                             //Doc.AddDocToList(this.buckets![Math.floor(i/3)], this.props.fieldKey, result[0]);
                             this._isSearch[i] = "search";
                             }
+                            }
                         }
                     }
                 }
             }
         }
+        this.makenewbuckets();
         for (let i = 0; i < this._numTotalResults; i++) {
-            if (this._isSearch[i] === "search" && this._isSorted[i]==="placeholder") {
-                console.log(this.new_buckets);
+            console.log(this._isSearch[i],this._isSorted[i]);
+            if (this._isSearch[i] === "search" && (this._isSorted[i]===undefined ||this._isSorted[i]==="placeholder" )) {
+                let result = this._results[i];
+                if (StrCast(result[0].type)=== this.firststring && this.bucketcount[1]<3){
+                    Doc.AddDocToList(this.buckets![1], this.props.fieldKey, result[0]);
+                    this.bucketcount[1]+=1;
+                }
+                else if (StrCast(result[0].type)=== this.secondstring && this.bucketcount[1]<3){
+                    Doc.AddDocToList(this.buckets![2], this.props.fieldKey, result[0]);
+                    this.bucketcount[2]+=1;
+                }
+                else if (this.bucketcount[0]<3){
+                    Doc.AddDocToList(this.buckets![0], this.props.fieldKey, result[0]);
+                    this.bucketcount[0]+=1;
+
+                }
                 this._isSorted[i]="sorted"; 
             }
         }
+        if (this.bucketcount[0]===0){
+            Doc.RemoveDocFromList(this.dataDoc, this.props.fieldKey, this.buckets![0]);
+            }
+        
+
         if (this._maxSearchIndex >= this._numTotalResults) {
             this._visibleElements.length = this._results.length;
             this._visibleDocuments.length = this._results.length;
             this._isSearch.length = this._results.length;
         }
     }
+
 
     @computed
     get resFull() { return this._numTotalResults <= 8; }
@@ -681,7 +756,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
     @action.bound
     handleNodeChange = () => {
-        console.log("oi!");
         this._nodeStatus = !this._nodeStatus;
         if (this._nodeStatus) {
             this.expandSection(`node${this.props.Document[Id]}`);
@@ -754,7 +828,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     }
 
     expandSection(thing: string) {
-        console.log("expand");
         const element = document.getElementById(thing)!;
         // get the height of the element's inner content, regardless of its actual size
         const sectionHeight = element.scrollHeight;

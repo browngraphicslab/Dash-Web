@@ -38,13 +38,9 @@ export namespace SearchUtil {
     export async function Search(query: string, returnDocs: boolean, options: SearchParams = {}) {
         query = query || "*"; //If we just have a filter query, search for * as the query
         const rpquery = Utils.prepend("/dashsearch");
-        console.log(rpquery);
-        console.log(options);
         console.log({ qs: { ...options, q: query } });
         const gotten = await rp.get(rpquery, { qs: { ...options, q: query } });
-        console.log(gotten);
         const result: IdSearchResult = gotten.startsWith("<") ? { ids: [], docs: [], numFound: 0, lines: [] } : JSON.parse(gotten);
-        console.log(result);
         if (!returnDocs) {
             return result;
         }
