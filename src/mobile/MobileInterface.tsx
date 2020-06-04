@@ -202,7 +202,7 @@ export default class MobileInterface extends React.Component {
                             pinToPres={emptyFunction}
                             rootSelected={returnFalse}
                             removeDocument={undefined}
-                            onClick={undefined}
+                            onClick={ScriptField.MakeScript('this.uploadAudio()')}
                             ScreenToLocalTransform={Transform.Identity}
                             ContentScaling={returnOne}
                             NativeHeight={returnZero}
@@ -360,18 +360,13 @@ export default class MobileInterface extends React.Component {
                         <div className="back" onClick={this.back}>
                             &#8592;
                         </div>
-                        <div>
-                            {buttons}
-                        </div>
-                        <div
-                            className="item" key="audio"
-                            onClick={() => this.uploadAudio()}>Upload Audio
+                        <div className="item" key="audio" onClick={() => this.uploadAudio()}>
+                            Upload Audio
                         </div>
                         <div className="item" key="home" onClick={this.returnHome}>
                             Home
                         </div>
                     </div>
-
                 </div>);
         }
 
@@ -459,7 +454,7 @@ export default class MobileInterface extends React.Component {
         }
     }
 
-    recordAudio = async () => {
+    recordAudio = () => {
         // upload to server with known URL 
         if (this._activeDoc.title !== "mobile audio") {
             this._parents.push(this._activeDoc);
@@ -471,15 +466,6 @@ export default class MobileInterface extends React.Component {
             this._activeDoc = audioDoc;
             this.switchCurrentView((userDoc: Doc) => audioDoc);
             this.toggleSidebar();
-        }
-        const audioRightSidebar = Cast(Doc.UserDoc().rightSidebarCollection, Doc) as Doc;
-        this.audioState = await audioDoc.getProto;
-        if (this.audioState) {
-            console.log(this.audioState);
-            const data = Cast(audioRightSidebar.data, listSpec(Doc));
-            if (data) {
-                data.push(audioDoc);
-            }
         }
     }
 
