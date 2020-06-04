@@ -25,7 +25,6 @@
         height: 100%;
         table-layout: fixed;
 
-        overflow-y: hidden;
         white-space: nowrap;
 
         .scriptingBox-wrapper {
@@ -35,7 +34,6 @@
             display: flex;
             flex-direction: row;
             justify-content: center;
-            overflow-y: hidden;
 
             .scriptingBox-textArea {
                 flex: 70;
@@ -44,7 +42,6 @@
                 resize: none;
                 padding: 7px;
                 overflow-y: scroll;
-                overflow-x: hidden;
 
                 body {
                     font-family: Arial, Helvetica, sans-serif;
@@ -58,6 +55,7 @@
                     margin-bottom: 60px !important;
                     overflow-y: scroll;
                     overflow-x: hidden;
+                    overflow: hidden;
                 }
 
                 .rta__textarea {

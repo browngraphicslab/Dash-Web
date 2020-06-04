@@ -48,6 +48,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
 
     @observable private _suggestionBoxX: number = 0;
     @observable private _suggestionBoxY: number = 0;
+    @observable private _lastChar: string = "";
 
     @observable private _suggestionRef: any = React.createRef();
     @observable private _scriptTextRef: any = React.createRef();
@@ -519,15 +520,31 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         } else {
             console.log(this.rawScript.split("(").length - 1);
             console.log(this.rawScript.split(")").length - 1);
-            if (this.rawScript.split("(").length - 1 <= this.rawScript.split(")").length - 1) {
-                console.log("removed params");
-                this._paramSuggestion = false;
+            if (e.key === "Backspace") {
+                if (this._lastChar === "(") {
+                    console.log("removed params");
+                    this._paramSuggestion = false;
+                } else if (this._lastChar === ")") {
+                    if (this.rawScript.slice(0, this.rawScript.length - 1).split("(").length - 1 > this.rawScript.slice(0, this.rawScript.length - 1).split(")").length - 1) {
+                        if (this._scriptSuggestedParams.length > 0) {
+                            console.log("suggestion params");
+                            this._paramSuggestion = true;
+                        }
+                    }
+                }
             } else {
-                if (e.key === "Backspace") {
+                if (this.rawScript.split("(").length - 1 <= this.rawScript.split(")").length - 1) {
                     console.log("removed params");
                     this._paramSuggestion = false;
                 }
             }
+
+        }
+        if (e.key === "Backspace") {
+            this._lastChar = this.rawScript[this.rawScript.length - 2];
+            console.log("last char: " + this._lastChar);
+        } else {
+            this._lastChar = e.key;
         }
     }
 
