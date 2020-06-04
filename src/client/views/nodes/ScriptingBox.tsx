@@ -18,6 +18,7 @@ import { FieldView, FieldViewProps } from "../nodes/FieldView";
 import { OverlayView } from "../OverlayView";
 import { DocumentIconContainer } from "./DocumentIcon";
 import "./ScriptingBox.scss";
+const _global = (window /* browser */ || global /* node */) as any;
 
 import ReactTextareaAutocomplete from "@webscopeio/react-textarea-autocomplete";
 import "@webscopeio/react-textarea-autocomplete/style.css";
@@ -52,6 +53,9 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
 
     @observable private _suggestionRef: any = React.createRef();
     @observable private _scriptTextRef: any = React.createRef();
+
+    @observable private _panelWidth = 0;
+    @observable private _panelHeight = 0;
 
     // vars included in fields that store parameters types and names and the script itself
     @computed({ keepAlive: true }) get paramsNames() { return this.compileParams.map(p => p.split(":")[0].trim()); }
@@ -107,9 +111,25 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     @action
     componentDidMount() {
         this.rawScript = ScriptCast(this.dataDoc[this.props.fieldKey])?.script?.originalScript ?? this.rawScript;
+
+        const observer = new _global.ResizeObserver(action((entries: any) => {
+            for (const entry of entries) {
+                this._panelWidth = entry.contentRect.width;
+                this._panelHeight = entry.contentRect.height;
+                this.onActiveContentItemChanged();
+            }
+        }));
+        observer.observe(document.getElementsByClassName("scriptingBox")[0]);
     }
 
-    componentWillUnmount() { this._overlayDisposer?.(); }
+    componentWillUnmount() {
+        this._overlayDisposer?.();
+    }
+
+    @action.bound
+    private onActiveContentItemChanged() {
+        this.suggestionPos();
+    }
 
     protected createDashEventsTarget = (ele: HTMLDivElement, dropFunc: (e: Event, de: DragManager.DropEvent) => void) => { //used for stacking and masonry view
         if (ele) {
@@ -475,6 +495,9 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
 
     @action
     suggestionPos() {
+
+        console.log("suggestionPos");
+
         const getCaretCoordinates = require('textarea-caret');
         const This = this;
         document.querySelector('textarea')?.addEventListener('input', function () {
@@ -500,6 +523,9 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
 
     @action
     keyHandler(e: any, pos: number) {
+        if (this._lastChar === "Enter") {
+            this.rawScript = this.rawScript + " ";
+        }
         console.log(e.key);
         if (e.key === "(") {
             console.log("hello");
