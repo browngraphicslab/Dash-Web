@@ -52,6 +52,7 @@ export default class MobileInterface extends React.Component {
     // @observable private currentView: "main" | "ink" | "upload" = "main";
     @observable private mainDoc: any = CurrentUserUtils.setupMobileMenu(this.userDoc);
     @observable private renderView?: () => JSX.Element;
+    @observable private audioState: any;
 
     public _activeDoc: Doc = this.mainDoc;
 
@@ -153,10 +154,12 @@ export default class MobileInterface extends React.Component {
 
         // for updating ink button
         let ink = document.getElementById("ink") as HTMLElement;
-        if (this._ink) {
-            ink.textContent = "ink off";
-        } else {
-            ink.textContent = "ink on";
+        if (ink) {
+            if (this._ink) {
+                ink.textContent = "ink off";
+            } else {
+                ink.textContent = "ink on";
+            }
         }
     }
 
@@ -187,35 +190,67 @@ export default class MobileInterface extends React.Component {
     displayWorkspaces = () => {
         if (this.mainContainer) {
             const backgroundColor = () => "white";
-            return (
-                <div style={{ position: "relative", top: '200px', height: `calc(100% - 250px)`, width: "80%", overflow: "hidden", left: "10%" }}>
-                    <DocumentView
-                        Document={this.mainContainer}
-                        DataDoc={undefined}
-                        LibraryPath={emptyPath}
-                        addDocument={returnFalse}
-                        addDocTab={returnFalse}
-                        pinToPres={emptyFunction}
-                        rootSelected={returnFalse}
-                        removeDocument={undefined}
-                        onClick={undefined}
-                        ScreenToLocalTransform={Transform.Identity}
-                        ContentScaling={returnOne}
-                        NativeHeight={returnZero}
-                        NativeWidth={returnZero}
-                        PanelWidth={() => window.screen.width}
-                        PanelHeight={() => window.screen.height}
-                        renderDepth={0}
-                        focus={emptyFunction}
-                        backgroundColor={backgroundColor}
-                        parentActive={returnTrue}
-                        whenActiveChanged={emptyFunction}
-                        bringToFront={emptyFunction}
-                        ContainingCollectionView={undefined}
-                        ContainingCollectionDoc={undefined}
-                    />
-                </div>
-            );
+            if (this._activeDoc.title === "mobile audio") {
+                return (
+                    <div style={{ position: "relative", top: '600px', height: `calc(50% - 450px)`, width: "80%", overflow: "hidden", left: "10%", cursor: "pointer" }}>
+                        <DocumentView
+                            Document={this.mainContainer}
+                            DataDoc={undefined}
+                            LibraryPath={emptyPath}
+                            addDocument={returnFalse}
+                            addDocTab={returnFalse}
+                            pinToPres={emptyFunction}
+                            rootSelected={returnFalse}
+                            removeDocument={undefined}
+                            onClick={undefined}
+                            ScreenToLocalTransform={Transform.Identity}
+                            ContentScaling={returnOne}
+                            NativeHeight={returnZero}
+                            NativeWidth={returnZero}
+                            PanelWidth={() => window.screen.width}
+                            PanelHeight={() => window.screen.height}
+                            renderDepth={0}
+                            focus={emptyFunction}
+                            backgroundColor={backgroundColor}
+                            parentActive={returnTrue}
+                            whenActiveChanged={emptyFunction}
+                            bringToFront={emptyFunction}
+                            ContainingCollectionView={undefined}
+                            ContainingCollectionDoc={undefined}
+                        />
+                    </div>
+                );
+            } else {
+                return (
+                    <div style={{ position: "relative", top: '200px', height: `calc(100% - 250px)`, width: "80%", overflow: "hidden", left: "10%" }}>
+                        <DocumentView
+                            Document={this.mainContainer}
+                            DataDoc={undefined}
+                            LibraryPath={emptyPath}
+                            addDocument={returnFalse}
+                            addDocTab={returnFalse}
+                            pinToPres={emptyFunction}
+                            rootSelected={returnFalse}
+                            removeDocument={undefined}
+                            onClick={undefined}
+                            ScreenToLocalTransform={Transform.Identity}
+                            ContentScaling={returnOne}
+                            NativeHeight={returnZero}
+                            NativeWidth={returnZero}
+                            PanelWidth={() => window.screen.width}
+                            PanelHeight={() => window.screen.height}
+                            renderDepth={0}
+                            focus={emptyFunction}
+                            backgroundColor={backgroundColor}
+                            parentActive={returnTrue}
+                            whenActiveChanged={emptyFunction}
+                            bringToFront={emptyFunction}
+                            ContainingCollectionView={undefined}
+                            ContainingCollectionDoc={undefined}
+                        />
+                    </div>
+                );
+            }
         }
     }
 
@@ -299,6 +334,45 @@ export default class MobileInterface extends React.Component {
                         </div>);
                 }
             });
+        }
+
+        if (this._activeDoc.title === "mobile audio") {
+            return (
+                <div>
+                    <div className="navbar">
+                        <div className="header" id="header">
+                            menu
+                        </div>
+
+                        <div className="toggle-btn" id="menuButton" onClick={this.toggleSidebar}>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                    </div>
+                    <div className="pathbar">
+                        <div className="pathname">
+                            {this.createPathname()}
+                        </div>
+                    </div>
+                    <div className="sidebar" id="sidebar">
+                        <FontAwesomeIcon className="home" icon="home" onClick={this.returnHome} />
+                        <div className="back" onClick={this.back}>
+                            &#8592;
+                        </div>
+                        <div>
+                            {buttons}
+                        </div>
+                        <div
+                            className="item" key="audio"
+                            onClick={() => this.uploadAudio()}>Upload Audio
+                        </div>
+                        <div className="item" key="home" onClick={this.returnHome}>
+                            Home
+                        </div>
+                    </div>
+
+                </div>);
         }
 
         if (!this._child) {
@@ -387,9 +461,11 @@ export default class MobileInterface extends React.Component {
 
     recordAudio = async () => {
         // upload to server with known URL 
-        this._parents.push(this._activeDoc);
+        if (this._activeDoc.title !== "mobile audio") {
+            this._parents.push(this._activeDoc);
+        }
         const audioDoc = Cast(Docs.Create.AudioDocument(nullAudio, { _width: 200, _height: 100, title: "mobile audio" }), Doc) as Doc;
-        console.log(audioDoc.data);
+        console.log(audioDoc);
         if (audioDoc) {
             console.log("audioClicked: " + audioDoc.title);
             this._activeDoc = audioDoc;
@@ -397,8 +473,9 @@ export default class MobileInterface extends React.Component {
             this.toggleSidebar();
         }
         const audioRightSidebar = Cast(Doc.UserDoc().rightSidebarCollection, Doc) as Doc;
-        if (audioDoc.data) {
-            console.log(audioRightSidebar.title);
+        this.audioState = await audioDoc.getProto;
+        if (this.audioState) {
+            console.log(this.audioState);
             const data = Cast(audioRightSidebar.data, listSpec(Doc));
             if (data) {
                 data.push(audioDoc);
@@ -406,8 +483,22 @@ export default class MobileInterface extends React.Component {
         }
     }
 
+    uploadAudio = () => {
+        const audioRightSidebar = Cast(Doc.UserDoc().rightSidebarCollection, Doc) as Doc;
+        const audioDoc = this._activeDoc;
+        const data = Cast(audioRightSidebar.data, listSpec(Doc));
+        console.log(audioDoc.proto);
+        if (data) {
+            data.push(audioDoc);
+        }
+        this.recordAudio();
+    }
+
     openDefaultPresentation = () => {
-        this._parents.push(this._activeDoc);
+        if (this._activeDoc.title !== "Presentation") {
+            this._parents.push(this._activeDoc);
+        }
+
         const presentation = Cast(Doc.UserDoc().activePresentation, Doc) as Doc;
 
         if (presentation) {

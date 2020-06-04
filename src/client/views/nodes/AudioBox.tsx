@@ -179,6 +179,8 @@ export class AudioBox extends ViewBoxBaseComponent<FieldViewProps, AudioDocument
             this._recorder ? this.stopRecording() : this.recordAudioAnnotation();
             e.stopPropagation();
         }
+        //console.log("record");
+        //this._recorder ? this.stopRecording() : this.recordAudioAnnotation();
     }
 
     onPlay = (e: any) => {
