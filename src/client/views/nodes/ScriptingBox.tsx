@@ -54,9 +54,6 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     @observable private _suggestionRef: any = React.createRef();
     @observable private _scriptTextRef: any = React.createRef();
 
-    @observable private _panelWidth = 0;
-    @observable private _panelHeight = 0;
-
     @observable private _selection: any = 0;
     @observable private _selectionEnd: any = 0;
 
@@ -72,42 +69,40 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     // in: global, description, params
     @computed get _descriptions() {
         const descrip: string[] = [];
-        let value = "";
         this._scriptKeys.forEach((element: any) => {
             const result = this._scriptGlobals[element];
-            if (typeof result === "object") {
-                const d = result[1];
-                if (d !== undefined) {
-                    value = d;
-                } else {
-                    value = "";
-                }
-            } else {
-                value = "";
-            }
-            descrip.push(value);
+            descrip.push(this.getValue(result, true));
         });
         return descrip;
     }
 
     @computed get _scriptParams() {
         const params: string[] = [];
-        let value = "";
         this._scriptKeys.forEach((element: any) => {
             const result = this._scriptGlobals[element];
-            if (typeof result === "object") {
-                const p = result[2];
-                if (p !== undefined) {
-                    value = StrCast(p);
-                } else {
-                    value = "";
-                }
+            params.push(this.getValue(result, false));
+        });
+        return params;
+    }
+
+    getValue(result: any, descrip: boolean) {
+        let value = "";
+        if (typeof result === "object") {
+            let text = "";
+            if (descrip) {
+                text = result[1];
+            } else {
+                text = result[2];
+            }
+            if (text !== undefined) {
+                value = text;
             } else {
                 value = "";
             }
-            params.push(value);
-        });
-        return params;
+        } else {
+            value = "";
+        }
+        return value;
     }
 
 
@@ -116,31 +111,34 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         this.rawScript = ScriptCast(this.dataDoc[this.props.fieldKey])?.script?.originalScript ?? this.rawScript;
 
         const observer = new _global.ResizeObserver(action((entries: any) => {
-            for (const entry of entries) {
-                this._panelWidth = entry.contentRect.width;
-                this._panelHeight = entry.contentRect.height;
+            for (const { } of entries) {
 
                 const getCaretCoordinates = require('textarea-caret');
                 const caret = getCaretCoordinates(this._selection, this._selectionEnd);
-                console.log('(top, left, height) = (%s, %s, %s)', caret.top, caret.left, caret.height);
-                let top = caret.top;
-                let left = caret.left;
-
-                const x = this.dataDoc.x;
-                const suggestionWidth = this._suggestionRef.current.offsetWidth;
-                const scriptWidth = this._scriptTextRef.current.offsetWidth;
-                if ((left + suggestionWidth) > (x + scriptWidth)) {
-                    const diff = (left + suggestionWidth) - (x + scriptWidth);
-                    left = left - diff;
-                }
-
-                runInAction(() => {
-                    this._suggestionBoxX = left;
-                    this._suggestionBoxY = top;
-                });
+                this.resetSuggestionPos(caret);
             }
         }));
         observer.observe(document.getElementsByClassName("scriptingBox")[0]);
+    }
+
+    @action
+    resetSuggestionPos(caret: any) {
+        console.log('(top, left, height) = (%s, %s, %s)', caret.top, caret.left, caret.height);
+        let top = caret.top;
+        let left = caret.left;
+
+        const x = this.dataDoc.x;
+        const suggestionWidth = this._suggestionRef.current.offsetWidth;
+        const scriptWidth = this._scriptTextRef.current.offsetWidth;
+        if ((left + suggestionWidth) > (x + scriptWidth)) {
+            const diff = (left + suggestionWidth) - (x + scriptWidth);
+            left = left - diff;
+        }
+
+        runInAction(() => {
+            this._suggestionBoxX = left;
+            this._suggestionBoxY = top;
+        });
     }
 
     componentWillUnmount() {
@@ -381,53 +379,15 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         return false;
     }
 
-
-    // @action
-    // handleKeyPress(e: React.ChangeEvent<HTMLTextAreaElement>) {
-
-    //     this.rawScript = e.target.value;
-    //     this._currWord = e.target.value.split(" ")[e.target.value.split(" ").length - 1];
-    //     this._suggestions = [];
-
-    //     this._scriptKeys.forEach((element: string | string[]) => {
-    //         if (element.indexOf(this._currWord) >= 0) {
-    //             this._suggestions.push(element);
-    //         }
-    //     });
-    //     console.log(this._suggestions);
-    // }
-
-    // @action
-    // handleKeyPress(num: number) {
-
-    //     const scriptString = this.rawScript.slice(0, num);
-
-    //     this._currWord = scriptString.split(" ")[scriptString.split(" ").length - 1];
-    //     this._suggestions = [];
-
-    //     this._scriptKeys.forEach((element: string) => {
-    //         if (element.indexOf(this._currWord) >= 0) {
-    //             this._suggestions.push(StrCast(element));
-    //         }
-    //     });
-
-    //     console.log(this._suggestions);
-    //     return (this._suggestions);
-    // }
-
     @action
     handleToken(str: string) {
-
         this._currWord = str;
         this._suggestions = [];
-
         this._scriptKeys.forEach((element: string) => {
             if (element.toLowerCase().indexOf(this._currWord.toLowerCase()) >= 0) {
                 this._suggestions.push(StrCast(element));
             }
         });
-
-        console.log(this._suggestions);
         return (this._suggestions);
     }
 
@@ -436,14 +396,9 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         const scriptString = this.rawScript.slice(0, pos - 2);
         this._currWord = scriptString.split(" ")[scriptString.split(" ").length - 1];
         this._suggestions = [];
-
         const index = this._scriptKeys.indexOf(this._currWord);
         const params = StrCast(this._scriptParams[index]);
-
         this._suggestions.push(params);
-
-        console.log(this._suggestions);
-
         return (this._suggestions);
     }
 
@@ -501,42 +456,19 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         } else {
             func = firstScript.slice(indexS + 1, firstScript.length + 1);
         }
-
-        console.log(func);
-
         const indexF = this._scriptKeys.indexOf(func);
-
         return this._scriptParams[indexF];
     }
 
     @action
     suggestionPos() {
-
-        console.log("suggestionPos");
-
         const getCaretCoordinates = require('textarea-caret');
         const This = this;
         document.querySelector('textarea')?.addEventListener("input", function () {
             const caret = getCaretCoordinates(this, this.selectionEnd);
             This._selection = this;
             This._selectionEnd = this.selectionEnd;
-
-            console.log('(top, left, height) = (%s, %s, %s)', caret.top, caret.left, caret.height);
-            let top = caret.top;
-            let left = caret.left;
-
-            const x = This.dataDoc.x;
-            const suggestionWidth = This._suggestionRef.current.offsetWidth;
-            const scriptWidth = This._scriptTextRef.current.offsetWidth;
-            if ((left + suggestionWidth) > (x + scriptWidth)) {
-                const diff = (left + suggestionWidth) - (x + scriptWidth);
-                left = left - diff;
-            }
-
-            runInAction(() => {
-                This._suggestionBoxX = left;
-                This._suggestionBoxY = top;
-            });
+            This.resetSuggestionPos(caret);
         });
     }
 
@@ -547,43 +479,31 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         }
         console.log(e.key);
         if (e.key === "(") {
-            console.log("hello");
             this.suggestionPos();
-
             this._scriptSuggestedParams = this.getSuggestedParams(pos);
-
-            //this._scriptSuggestedParams = <div> </div>;
-
             if (this._scriptSuggestedParams !== undefined && this._scriptSuggestedParams.length > 0) {
                 if (this.rawScript[pos - 2] !== "(") {
-                    console.log("suggestion params");
                     this._paramSuggestion = true;
                 }
             }
         } else if (e.key === ")") {
             this._paramSuggestion = false;
         } else {
-            console.log(this.rawScript.split("(").length - 1);
-            console.log(this.rawScript.split(")").length - 1);
             if (e.key === "Backspace") {
                 if (this._lastChar === "(") {
-                    console.log("removed params");
                     this._paramSuggestion = false;
                 } else if (this._lastChar === ")") {
                     if (this.rawScript.slice(0, this.rawScript.length - 1).split("(").length - 1 > this.rawScript.slice(0, this.rawScript.length - 1).split(")").length - 1) {
                         if (this._scriptSuggestedParams.length > 0) {
-                            console.log("suggestion params");
                             this._paramSuggestion = true;
                         }
                     }
                 }
             } else {
                 if (this.rawScript.split("(").length - 1 <= this.rawScript.split(")").length - 1) {
-                    console.log("removed params");
                     this._paramSuggestion = false;
                 }
             }
-
         }
         if (e.key === "Backspace") {
             this._lastChar = this.rawScript[this.rawScript.length - 2];
@@ -605,10 +525,6 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
                     this.rawScript.slice(this.caretPos, this.rawScript.length);
             }
         }
-
-        // if (this.rawScript[this.rawScript.length - 1] !== "(") {
-        //     this._paramSuggestion = false;
-        // }
     }
 
     caretPos = 0;
@@ -630,20 +546,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
                 trigger={{
                     " ": {
                         dataProvider: (token: any) => this.handleToken(token),
-                        component: ({ entity: value }) =>
-                            <div>
-                                <div style={{ fontSize: "14px" }}
-                                    onMouseEnter={() => this.setHovered(true)}
-                                    onMouseLeave={() => this.setHovered(false)}>
-                                    {value}
-                                </div>
-                                {/* {!this._hovered ? (null) :
-                                    <> */}
-                                <div key="desc" style={{ fontSize: "10px" }}>{this.getDescription(value)}</div>
-                                <div key="params" style={{ fontSize: "10px" }}>{this.getParams(value)}</div>
-                                {/* </>
-                                } */}
-                            </div>,
+                        component: ({ entity: value }) => this.renderFuncListElement(value),
                         output: (item: any, trigger) => {
                             this._spaced = true;
                             return trigger + item.trim();
@@ -651,31 +554,28 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
                     },
                     ".": {
                         dataProvider: (token: any) => this.handleToken(token),
-                        component: ({ entity: value }) =>
-                            <div>
-                                <div style={{ fontSize: "14px" }}
-                                    onMouseEnter={() => this.setHovered(true)}
-                                    onMouseLeave={() => this.setHovered(false)}>
-                                    {value}
-                                </div>
-                                {/* {!this._hovered ? (null) :
-                                    <> */}
-                                <div key="desc" style={{ fontSize: "10px" }}>{this.getDescription(value)}</div>
-                                <div key="params" style={{ fontSize: "10px" }}>{this.getParams(value)}</div>
-                                {/* </>
-                                } */}
-                            </div>,
+                        component: ({ entity: value }) => this.renderFuncListElement(value),
                         output: (item: any, trigger) => {
                             this._spaced = true;
                             return trigger + item.trim();
                         },
                     }
                 }}
-
                 onKeyDown={(e) => this.keyHandler(e, this.caretPos)}
-
                 onCaretPositionChange={(number: any) => this.handlePosChange(number)}
             />
+        </div>;
+    }
+
+    renderFuncListElement(value: string) {
+        return <div>
+            <div style={{ fontSize: "14px" }}
+                onMouseEnter={() => this.setHovered(true)}
+                onMouseLeave={() => this.setHovered(false)}>
+                {value}
+            </div>
+            <div key="desc" style={{ fontSize: "10px" }}>{this.getDescription(value)}</div>
+            <div key="params" style={{ fontSize: "10px" }}>{this.getParams(value)}</div>
         </div>;
     }
 
@@ -690,16 +590,6 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
                 SetValue={value => value && value !== " " ? this.compileParam(value) : false}
             />
         </div>;
-
-        // const scriptText =
-        //     <textarea onFocus={this.onFocus} onBlur={e => this._overlayDisposer?.()}
-        //         onChange={e => this.rawScript = e.target.value}
-        //         placeholder="write your script here"
-        //         value={this.rawScript}
-        //         style={{ width: this.compileParams.length > 0 ? "70%" : "100%", resize: "none", height: "100%" }}
-        //     />;
-
-
 
         // params column on right side (list)
         const definedParameters = !this.compileParams.length ? (null) :
