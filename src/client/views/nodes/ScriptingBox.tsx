@@ -44,8 +44,6 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     @observable private _scriptGlobals: any = Scripting.getGlobalObj();
     @observable private _currWord: string = "";
     @observable private _suggestions: string[] = [];
-    @observable private _paramSuggestion: boolean = false;
-    @observable private _scriptSuggestedParams: any = "";
 
     @observable private _suggestionBoxX: number = 0;
     @observable private _suggestionBoxY: number = 0;
@@ -56,6 +54,10 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
 
     @observable private _selection: any = 0;
     @observable private _selectionEnd: any = 0;
+
+    @observable private _paramSuggestion: boolean = false;
+    @observable private _scriptSuggestedParams: any = "";
+    @observable private _scriptParamsText: any = "";
 
     // vars included in fields that store parameters types and names and the script itself
     @computed({ keepAlive: true }) get paramsNames() { return this.compileParams.map(p => p.split(":")[0].trim()); }
@@ -480,8 +482,11 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
         console.log(e.key);
         if (e.key === "(") {
             this.suggestionPos();
+
+            this._scriptParamsText = this.getSuggestedParams(pos);
             this._scriptSuggestedParams = this.getSuggestedParams(pos);
-            if (this._scriptSuggestedParams !== undefined && this._scriptSuggestedParams.length > 0) {
+
+            if (this._scriptParamsText !== undefined && this._scriptParamsText.length > 0) {
                 if (this.rawScript[pos - 2] !== "(") {
                     this._paramSuggestion = true;
                 }
@@ -494,7 +499,7 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
                     this._paramSuggestion = false;
                 } else if (this._lastChar === ")") {
                     if (this.rawScript.slice(0, this.rawScript.length - 1).split("(").length - 1 > this.rawScript.slice(0, this.rawScript.length - 1).split(")").length - 1) {
-                        if (this._scriptSuggestedParams.length > 0) {
+                        if (this._scriptParamsText.length > 0) {
                             this._paramSuggestion = true;
                         }
                     }
@@ -510,6 +515,30 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
             console.log("last char: " + this._lastChar);
         } else {
             this._lastChar = e.key;
+        }
+
+        if (this._paramSuggestion) {
+            const parameters = this._scriptParamsText.split(",");
+            const index = this.rawScript.lastIndexOf("(");
+            const enteredParams = this.rawScript.slice(index, this.rawScript.length);
+            const splitEntered = enteredParams.split(",");
+            const numEntered = splitEntered.length;
+
+
+            console.log("numEntered: " + numEntered);
+
+            let first = "";
+            let last = "";
+
+            parameters.forEach((element: string, i: number) => {
+                if (i < numEntered - 1) {
+                    first = first + element;
+                } else if (i > numEntered - 1) {
+                    last = last + element;
+                }
+            });
+
+            this._scriptSuggestedParams = <div> {first} <b>{parameters[numEntered - 1]}</b> {last} </div>;
         }
     }
 
