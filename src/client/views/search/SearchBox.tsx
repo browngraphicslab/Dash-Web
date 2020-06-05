@@ -382,21 +382,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         }
     }
     
-    @action private makebuckets(){
-        this._results.forEach(element => {
-            
-        });
-        while (this.buckets!.length <this._numTotalResults/3){
-
-            let bucket = Docs.Create.StackingDocument([],{ _viewType:CollectionViewType.Stacking,title: `bucket` });
-            bucket.targetDoc = bucket;      
-            bucket._viewType === CollectionViewType.Stacking;
-            bucket.bucketfield = "Default";
-            bucket.isBucket=true;
-            Doc.AddDocToList(this.dataDoc, this.props.fieldKey, bucket);
-            this.buckets!.push(bucket);            
-            }
-    }
     @observable firststring: string = "";
     @observable secondstring: string = "";
 
@@ -423,9 +408,11 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             }
         }
 
-        let bucket = Docs.Create.StackingDocument([],{ _viewType:CollectionViewType.Stacking,title: `default bucket` });
+        let bucket = Docs.Create.StackingDocument([],{ _viewType:CollectionViewType.Stacking,title: `default bucket`});
         bucket.targetDoc = bucket;      
         bucket._viewType === CollectionViewType.Stacking;
+        // targetawait Cast(bucket.targetDoc, Doc)!._height=185;
+        bucket._height=185;
         bucket.bucketfield = "Default";
         bucket.isBucket=true;
         Doc.AddDocToList(this.dataDoc, this.props.fieldKey, bucket);
@@ -434,6 +421,8 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         
         if (this.firststring!==""){
         let firstbucket = Docs.Create.StackingDocument([],{ _viewType:CollectionViewType.Stacking,title: this.firststring });
+        firstbucket._height=185;
+
         firstbucket.targetDoc = firstbucket;      
         firstbucket._viewType === CollectionViewType.Stacking;
         firstbucket.bucketfield = this.firststring;
@@ -446,6 +435,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
         if (this.secondstring!==""){
         let secondbucket = Docs.Create.StackingDocument([],{ _viewType:CollectionViewType.Stacking,title: this.secondstring });
+        secondbucket._height=185;
         secondbucket.targetDoc = secondbucket;      
         secondbucket._viewType === CollectionViewType.Stacking;
         secondbucket.bucketfield = this.secondstring;
@@ -485,7 +475,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         }
         this.lockPromise = new Promise(async res => {
             while (this._results.length <= this._endIndex && (this._numTotalResults === -1 || this._maxSearchIndex < this._numTotalResults)) {
-                this._curRequest = SearchUtil.Search(query, true, {fq: this.filterQuery, start: this._maxSearchIndex, rows: this.NumResults, hl: true, "hl.fl": "*", "facet":"on", "facet.field":"_height" }).then(action(async (res: SearchUtil.DocSearchResult) => {
+                this._curRequest = SearchUtil.Search(query, true, {fq: this.filterQuery, start: this._maxSearchIndex, rows: this.NumResults, hl: true, "hl.fl": "*",}).then(action(async (res: SearchUtil.DocSearchResult) => {
                     // happens at the beginning
                     if (res.numFound !== this._numTotalResults && this._numTotalResults === -1) {
                         this._numTotalResults = res.numFound;
@@ -604,7 +594,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     @action
     resultsScrolled = (e?: React.UIEvent<HTMLDivElement>) => {
         if (!this._resultsRef.current) return;
-        this.makebuckets();
 
         const scrollY = e ? e.currentTarget.scrollTop : this._resultsRef.current ? this._resultsRef.current.scrollTop : 0;
         const itemHght = 53;
@@ -666,7 +655,8 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                             
                             result[0].query=StrCast(this.layoutDoc._searchString);
                             //Make alias
-                            result[0].lines=new List<string>(result[2]);
+                            let lines = new List<string>(result[2]);
+                            result[0].lines=lines
                             result[0].highlighting=highlights.join(", ");
 
                             this._visibleDocuments[i] = result[0];
@@ -708,6 +698,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                 }
             }
         }
+        // if (this._numTotalResults>3){
         this.makenewbuckets();
         for (let i = 0; i < this._numTotalResults; i++) {
             console.log(this._isSearch[i],this._isSorted[i]);
@@ -729,10 +720,31 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                 this._isSorted[i]="sorted"; 
             }
         }
+        console.log(this.bucketcount[0]);
+        console.log(this.bucketcount[1]);
+        console.log(this.bucketcount[2]);
+        if (this.buckets![0]){
+        this.buckets![0]._height = this.bucketcount[0]*53 + 21;
+        }
+        if (this.buckets![1]){
+        this.buckets![1]._height = this.bucketcount[1]*53 + 21;
+        }
+        if (this.buckets![2]){  
+        this.buckets![2]._height = this.bucketcount[2]*53 + 21;
+        }
+
         if (this.bucketcount[0]===0){
             Doc.RemoveDocFromList(this.dataDoc, this.props.fieldKey, this.buckets![0]);
             }
-        
+        // }
+        // else {
+        //     for (let i = 0; i < this._numTotalResults; i++) {
+        //         if ((this._isSorted[i]===undefined ||this._isSorted[i]==="placeholder" )) {
+        //             let result = this._results[i];
+        //             Doc.AddDocToList(this.dataDoc, this.props.fieldKey, result[0]);
+        //         }
+        //     }
+        // }
 
         if (this._maxSearchIndex >= this._numTotalResults) {
             this._visibleElements.length = this._results.length;
@@ -789,8 +801,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
         }
     }
-
-   //layoutDoc 
 
     @computed
     get menuHeight() {

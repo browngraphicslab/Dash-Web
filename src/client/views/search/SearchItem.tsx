@@ -24,7 +24,7 @@ import "./SearchItem.scss";
 import "./SelectorContextMenu.scss";
 import { FieldViewProps, FieldView } from "../nodes/FieldView";
 import { ViewBoxBaseComponent } from "../DocComponent";
-import { makeInterface, createSchema } from "../../../fields/Schema";
+import { makeInterface, createSchema, listSpec } from "../../../fields/Schema";
 import { documentSchema } from "../../../fields/documentSchemas";
 import { PrefetchProxy } from "../../../fields/Proxy";
 import { Docs } from "../../documents/Documents";
@@ -356,7 +356,7 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
             this.props.Document._viewType=CollectionViewType.Stacking;  
             this.props.Document._chromeStatus='disabled';
 
-            this.props.Document._height=185;
+            this.props.Document._height=this.targetDoc._height;
 
             return <div>
             <div className="bucket-title">
@@ -384,9 +384,8 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
                 <div className="searchItem-body" onClick={this.onClick}>
                     <div className="searchItem-title-container">
                         <div className="searchItem-title">{StrCast(this.targetDoc.title)}</div>
-                        <div className="searchItem-highlighting">{StrCast(this.targetDoc.highlighting).length ? "Matched fields:" + StrCast(this.targetDoc.highlighting) : //this.props.lines.length ? this.props.lines[0] : 
-                        ""}</div>
-                        {/* {this.props.lines!.filter((m, i) => i).map((l, i) => <div id={i.toString()} className="searchItem-highlighting">`${l}`</div>)} */}
+                        <div className="searchItem-highlighting">{StrCast(this.targetDoc.highlighting).length ? "Matched fields:" + StrCast(this.targetDoc.highlighting) : Cast(this.targetDoc.lines, listSpec("string"))!.length ? Cast(this.targetDoc.lines, listSpec("string"))![0] : ""}</div>
+                        {Cast(this.targetDoc.lines, listSpec("string"))!.filter((m, i) => i).map((l, i) => <div id={i.toString()} className="searchItem-highlighting">{l}</div>)}
                     </div>
                 </div>
                 <div className="searchItem-info" style={{ width: this._useIcons ? "30px" : "100%" }}>
