@@ -859,5 +859,6 @@ export class DockedFrameRenderer extends React.Component<DockedFrameProps> {
             </div >);
     }
 }
-Scripting.addGlobal(function openOnRight(doc: any) { CollectionDockingView.AddRightSplit(doc); });
+Scripting.addGlobal(function openOnRight(doc: any) { CollectionDockingView.AddRightSplit(doc); },
+    "opens up the inputted document on the right side of the screen", "{ doc: any }");
 Scripting.addGlobal(function useRightSplit(doc: any, shiftKey?: boolean) { CollectionDockingView.UseRightSplit(doc, undefined, shiftKey); });
