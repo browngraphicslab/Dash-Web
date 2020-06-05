@@ -46,8 +46,7 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
                 onClick={ScriptField.MakeScript(
                     "child._showCaption = 'caption'",
                     { child: Doc.name },
-                    { child: childPair.layout }
-                )}
+                    { child: childPair.layout })}
                 renderDepth={this.props.renderDepth + 1}
                 LayoutTemplate={this.props.ChildLayoutTemplate}
                 LayoutTemplateString={this.props.ChildLayoutString}
@@ -61,17 +60,16 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
             />;
         };
 
-        return (
-            this.childLayoutPairs.map((childPair, index) => {
-                return (
-                    <div key={childPair.layout[Id]}
-                        className={`collectionCarousel3DView-item${index === currentIndex ? "-active" : ""} ${index}`}
-                        style={index === currentIndex ?
-                            { opacity: '1', transform: 'scale(1.3)' } :
-                            { opacity: '0.5', transform: 'scale(0.6)', userSelect: 'none' }}>
-                        {displayDoc(childPair)}
-                    </div>);
-            }));
+        return (this.childLayoutPairs.map((childPair, index) => {
+            return (
+                <div key={childPair.layout[Id]}
+                    className={`collectionCarousel3DView-item${index === currentIndex ? "-active" : ""} ${index}`}
+                    style={index === currentIndex ?
+                        { opacity: '1', transform: 'scale(1.3)' } :
+                        { opacity: '0.5', transform: 'scale(0.6)', userSelect: 'none' }}>
+                    {displayDoc(childPair)}
+                </div>);
+        }));
     }
 
     changeSlide = (direction: number) => {
@@ -81,6 +79,8 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
     onArrowClick = (e: React.MouseEvent, direction: number) => {
         e.stopPropagation();
         this.changeSlide(direction);
+        !this.layoutDoc.autoScrollOn && (this.layoutDoc.showScrollButton = (direction === 1) ? "fwd" : "back"); // while autoscroll is on, keep the other autoscroll button hidden
+        !this.layoutDoc.autoScrollOn && this.fadeScrollButton(); // keep pause button visible while autoscroll is on
     }
 
     interval?: number;
@@ -93,6 +93,7 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
     stopAutoScroll = () => {
         window.clearInterval(this.interval);
         this.interval = undefined;
+        this.fadeScrollButton();
     }
 
     toggleAutoScroll = (direction: number) => {
@@ -100,10 +101,10 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
         this.layoutDoc.autoScrollOn ? this.startAutoScroll(direction) : this.stopAutoScroll();
     }
 
-    showAutoScrollButton = (direction: string) => {
-        // keep pause button visible while autoscroll is on, and don't show the other side's autoscroll button
-        !this.layoutDoc.autoScrollOn && (this.layoutDoc.showScrollButton = direction);
-
+    fadeScrollButton = () => {
+        window.setTimeout(() => {
+            !this.layoutDoc.autoScrollOn && (this.layoutDoc.showScrollButton = "none"); //fade away after 1.5s if it's not clicked.
+        }, 1500);
     }
 
     onContextMenu = (e: React.MouseEvent): void => {
@@ -142,15 +143,15 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
 
     @computed get buttons() {
         if (!this.props.active()) return null;
-        return <div className="arrow-buttons" onMouseLeave={() => this.showAutoScrollButton("none")}>
+        return <div className="arrow-buttons" >
             <div key="back" className="carousel3DView-back" style={{ background: `${StrCast(this.props.Document.backgroundColor)}` }}
                 onClick={(e) => this.onArrowClick(e, -1)}
-                onMouseEnter={() => this.showAutoScrollButton("back")}>
+            >
                 <FontAwesomeIcon icon={"angle-left"} size={"2x"} />
             </div>
             <div key="fwd" className="carousel3DView-fwd" style={{ background: `${StrCast(this.props.Document.backgroundColor)}` }}
                 onClick={(e) => this.onArrowClick(e, 1)}
-                onMouseEnter={() => this.showAutoScrollButton("fwd")}>
+            >
                 <FontAwesomeIcon icon={"angle-right"} size={"2x"} />
             </div>
             {this.autoScrollButton}
@@ -158,18 +159,15 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
     }
 
     @computed get autoScrollButton() {
-        const direction = this.layoutDoc.showScrollButton;
-        if (direction !== "back" && direction !== "fwd") return null;
-
-        const offset = (direction === "back") ? -1 : 1;
+        const whichButton = this.layoutDoc.showScrollButton;
         return <>
-            <div className={`carousel3DView-${direction}-scroll`} style={{ background: `${StrCast(this.props.Document.backgroundColor)}` }}
-                onClick={() => this.toggleAutoScroll(offset)}>
-                {this.layoutDoc.autoScrollOn ?
-                    <FontAwesomeIcon icon={"pause"} size={"1x"} /> :
-                    direction === "back" ?
-                        <FontAwesomeIcon icon={"angle-double-left"} size={"1x"} /> :
-                        <FontAwesomeIcon icon={"angle-double-right"} size={"1x"} />}
+            <div className={`carousel3DView-back-scroll${whichButton === "back" ? "" : "-hidden"}`} style={{ background: `${StrCast(this.props.Document.backgroundColor)}` }}
+                onClick={() => this.toggleAutoScroll(-1)}>
+                {this.layoutDoc.autoScrollOn ? <FontAwesomeIcon icon={"pause"} size={"1x"} /> : <FontAwesomeIcon icon={"angle-double-left"} size={"1x"} />}
+            </div>
+            <div className={`carousel3DView-fwd-scroll${whichButton === "fwd" ? "" : "-hidden"}`} style={{ background: `${StrCast(this.props.Document.backgroundColor)}` }}
+                onClick={() => this.toggleAutoScroll(1)}>
+                {this.layoutDoc.autoScrollOn ? <FontAwesomeIcon icon={"pause"} size={"1x"} /> : <FontAwesomeIcon icon={"angle-double-right"} size={"1x"} />}
             </div>
         </>;
     }
