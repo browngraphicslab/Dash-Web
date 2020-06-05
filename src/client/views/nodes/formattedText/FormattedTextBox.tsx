@@ -721,7 +721,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
             },
             { fireImmediately: true }
         );
-        this._disposers.scroll = reaction(() => NumCast(this.layoutDoc.scrollPos),
+        this._disposers.scroll = reaction(() => NumCast(this.layoutDoc._scrollTop),
             pos => this._scrollRef.current && this._scrollRef.current.scrollTo({ top: pos }), { fireImmediately: true }
         );
 
@@ -1174,7 +1174,7 @@ export class FormattedTextBox extends ViewBoxAnnotatableComponent<(FieldViewProp
     }
 
     onscrolled = (ev: React.UIEvent) => {
-        this.layoutDoc.scrollPos = this._scrollRef.current!.scrollTop;
+        this.layoutDoc._scrollTop = this._scrollRef.current!.scrollTop;
     }
     @action
     tryUpdateHeight(limitHeight?: number) {
