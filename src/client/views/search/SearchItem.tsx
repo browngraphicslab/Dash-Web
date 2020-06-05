@@ -248,32 +248,32 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
         setTimeout(() => this.targetDoc!.searchMatch = true, 0);
     }
     highlightDoc = (e: React.PointerEvent) => {
-        // if (this.targetDoc!.type === DocumentType.LINK) {
-        //     if (this.targetDoc!.anchor1 && this.targetDoc!.anchor2) {
+        if (this.targetDoc!.type === DocumentType.LINK) {
+            if (this.targetDoc!.anchor1 && this.targetDoc!.anchor2) {
 
-        //         const doc1 = Cast(this.targetDoc!.anchor1, Doc, null);
-        //         const doc2 = Cast(this.targetDoc!.anchor2, Doc, null);
-        //         Doc.BrushDoc(doc1);
-        //         Doc.BrushDoc(doc2);
-        //     }
-        // } else {
-        //     Doc.BrushDoc(this.targetDoc!);
-        // }
+                const doc1 = Cast(this.targetDoc!.anchor1, Doc, null);
+                const doc2 = Cast(this.targetDoc!.anchor2, Doc, null);
+                Doc.BrushDoc(doc1);
+                Doc.BrushDoc(doc2);
+            }
+        } else {
+            Doc.BrushDoc(this.targetDoc!);
+        }
         e.stopPropagation();
     }
 
     unHighlightDoc = (e: React.PointerEvent) => {
-        // if (this.targetDoc!.type === DocumentType.LINK) {
-        //     if (this.targetDoc!.anchor1 && this.targetDoc!.anchor2) {
+        if (this.targetDoc!.type === DocumentType.LINK) {
+            if (this.targetDoc!.anchor1 && this.targetDoc!.anchor2) {
 
-        //         const doc1 = Cast(this.targetDoc!.anchor1, Doc, null);
-        //         const doc2 = Cast(this.targetDoc!.anchor2, Doc, null);
-        //         Doc.UnBrushDoc(doc1);
-        //         Doc.UnBrushDoc(doc2);
-        //     }
-        // } else {
-        //     Doc.UnBrushDoc(this.targetDoc!);
-        // }
+                const doc1 = Cast(this.targetDoc!.anchor1, Doc, null);
+                const doc2 = Cast(this.targetDoc!.anchor2, Doc, null);
+                Doc.UnBrushDoc(doc1);
+                Doc.UnBrushDoc(doc2);
+            }
+        } else {
+            Doc.UnBrushDoc(this.targetDoc!);
+        }
     }
 
     onContextMenu = (e: React.MouseEvent) => {
@@ -345,13 +345,13 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
     newsearch(){
        runInAction(()=>{
         SearchBox.Instance._searchString="";
-        SearchBox.Instance.submitSearch();
+        SearchBox.Instance.submitSearch(true);
        }) 
     }
 
     render() {
-        // const doc1 = Cast(this.targetDoc!.anchor1, Doc);
-        // const doc2 = Cast(this.targetDoc!.anchor2, Doc);
+        const doc1 = Cast(this.targetDoc!.anchor1, Doc);
+        const doc2 = Cast(this.targetDoc!.anchor2, Doc);
         if (this.targetDoc.isBucket === true){
             this.props.Document._viewType=CollectionViewType.Stacking;  
             this.props.Document._chromeStatus='disabled';
@@ -395,8 +395,8 @@ export class SearchItem extends ViewBoxBaseComponent<FieldViewProps, SearchSchem
                     </div>
                 </div>
                 <div className="searchItem-context" title="Drag as document">
-                    {/* {(doc1 instanceof Doc && doc2 instanceof Doc) && this.targetDoc!.type === DocumentType.LINK ? <LinkContextMenu doc1={doc1} doc2={doc2} /> :
-                        this.contextButton} */}
+                    {(doc1 instanceof Doc && doc2 instanceof Doc) && this.targetDoc!.type === DocumentType.LINK ? <LinkContextMenu doc1={doc1} doc2={doc2} /> :
+                        this.contextButton}
                 </div>
             </div>
         </div>;

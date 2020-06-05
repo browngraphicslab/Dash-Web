@@ -80,9 +80,8 @@ const SearchBoxDocument = makeInterface(documentSchema, searchSchema);
 @observer
 export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDocument>(SearchBoxDocument) {
 
-    // private get _searchString() { return this.rootDoc.searchQuery; }
-    // private set _searchString(value) { this.rootDoc.setSearchQuery(value); }
-    @observable _searchString: string ="";
+    @computed get _searchString() { return this.layoutDoc.searchQuery; }
+    @computed set _searchString(value) { this.layoutDoc.searchQuery=(value); }
     @observable private _resultsOpen: boolean = false;
     @observable private _searchbarOpen: boolean = false;
     @observable private _results: [Doc, string[], string[]][] = [];
@@ -355,7 +354,12 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
 
 
     @action
-    submitSearch = async () => {
+    submitSearch = async (reset?:boolean) => {
+        console.log("yes");
+        if (reset){
+            this.layoutDoc._searchString="";
+        }
+        console.log(this.layoutDoc._searchString);  
         this.dataDoc[this.fieldKey] = new List<Doc>([]);
         this.buckets=[];
         this.new_buckets={};
@@ -660,10 +664,8 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                             result[0].highlighting=highlights.join(", ");
 
                             this._visibleDocuments[i] = result[0];
-                            //<SearchItem {...this.props} doc={result[0]} lines={result[2]} highlighting={highlights} />;
                             result[0].targetDoc=result[0];
 
-                            //Doc.AddDocToList(this.buckets![Math.floor(i/3)], this.props.fieldKey, result[0]);
                             this._isSearch[i] = "search";
                         }
                         }
@@ -683,13 +685,9 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                             result[0].query=StrCast(this.layoutDoc._searchString);
                             result[0].lines=new List<string>(result[2]);
                             result[0].highlighting=highlights.join(", ");
-
-                            //this._visibleElements[i] = <SearchItem {...this.props} doc={result[0]} lines={result[2]} highlighting={highlights} />;
                             if(i<this._visibleDocuments.length){
                             this._visibleDocuments[i]=result[0];
                             result[0].targetDoc=result[0];
-
-                            //Doc.AddDocToList(this.buckets![Math.floor(i/3)], this.props.fieldKey, result[0]);
                             this._isSearch[i] = "search";
                             }
                             }
