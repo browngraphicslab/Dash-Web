@@ -57,6 +57,9 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
     @observable private _panelWidth = 0;
     @observable private _panelHeight = 0;
 
+    @observable private _selection: any = 0;
+    @observable private _selectionEnd: any = 0;
+
     // vars included in fields that store parameters types and names and the script itself
     @computed({ keepAlive: true }) get paramsNames() { return this.compileParams.map(p => p.split(":")[0].trim()); }
     @computed({ keepAlive: true }) get paramsTypes() { return this.compileParams.map(p => p.split(":")[1].trim()); }
@@ -116,7 +119,25 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
             for (const entry of entries) {
                 this._panelWidth = entry.contentRect.width;
                 this._panelHeight = entry.contentRect.height;
-                this.onActiveContentItemChanged();
+
+                const getCaretCoordinates = require('textarea-caret');
+                const caret = getCaretCoordinates(this._selection, this._selectionEnd);
+                console.log('(top, left, height) = (%s, %s, %s)', caret.top, caret.left, caret.height);
+                let top = caret.top;
+                let left = caret.left;
+
+                const x = this.dataDoc.x;
+                const suggestionWidth = this._suggestionRef.current.offsetWidth;
+                const scriptWidth = this._scriptTextRef.current.offsetWidth;
+                if ((left + suggestionWidth) > (x + scriptWidth)) {
+                    const diff = (left + suggestionWidth) - (x + scriptWidth);
+                    left = left - diff;
+                }
+
+                runInAction(() => {
+                    this._suggestionBoxX = left;
+                    this._suggestionBoxY = top;
+                });
             }
         }));
         observer.observe(document.getElementsByClassName("scriptingBox")[0]);
@@ -124,11 +145,6 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
 
     componentWillUnmount() {
         this._overlayDisposer?.();
-    }
-
-    @action.bound
-    private onActiveContentItemChanged() {
-        this.suggestionPos();
     }
 
     protected createDashEventsTarget = (ele: HTMLDivElement, dropFunc: (e: Event, de: DragManager.DropEvent) => void) => { //used for stacking and masonry view
@@ -500,8 +516,11 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
 
         const getCaretCoordinates = require('textarea-caret');
         const This = this;
-        document.querySelector('textarea')?.addEventListener('input', function () {
+        document.querySelector('textarea')?.addEventListener("input", function () {
             const caret = getCaretCoordinates(this, this.selectionEnd);
+            This._selection = this;
+            This._selectionEnd = this.selectionEnd;
+
             console.log('(top, left, height) = (%s, %s, %s)', caret.top, caret.left, caret.height);
             let top = caret.top;
             let left = caret.left;
