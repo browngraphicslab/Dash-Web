@@ -177,7 +177,6 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
             onClick={this.onChildClickHandler}
             renderDepth={this.props.renderDepth + 1}
             parentActive={this.props.active}
-            display={"contents"} // this causes an issue- this is the reason the decorations box is weird with images and web boxes
         />;
     }
 
@@ -304,7 +303,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
         return (
             <div className="collectionGridView-contents"
                 style={{
-                    pointerEvents: !this.props.isSelected() && this.props.renderDepth !== 0 && !this.props.ContainingCollectionView?._isChildActive && !SnappingManager.GetIsDragging() ? "none" : undefined
+                    pointerEvents: !this.props.active() && !SnappingManager.GetIsDragging() ? "none" : undefined
                 }}
                 // onContextMenu={() => ContextMenu.Instance.addItem({ description: "test", event: () => console.log("test"), icon: "rainbow" })}
                 ref={this.createDashEventsTarget}
@@ -329,7 +328,10 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
                 }
                 <div className="collectionGridView-gridContainer"
                     ref={this.containerRef}
-                    onScroll={action(e => this._scroll = e.currentTarget.scrollTop)}
+                    onScroll={action(e => {
+                        if (!this.props.isSelected()) e.currentTarget.scrollTop = this._scroll;
+                        else this._scroll = e.currentTarget.scrollTop;
+                    })}
                     onWheel={e => e.stopPropagation()}
                 >
                     <input className="rowHeightSlider" type="range" value={NumCast(this.props.Document.rowHeight)} onPointerDown={this.onSliderDown} onPointerUp={this.onSliderUp} onChange={this.onSliderChange} style={{ width: this.props.PanelHeight() - 40 }} min={1} max={this.props.PanelHeight() - 40} onClick={() => !this.sliderDragged && console.log("clicking") && (this.sliderDragged = false)} />
