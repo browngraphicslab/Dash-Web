@@ -20,6 +20,8 @@ interface GridProps {
     transformScale: number;
     childrenDraggable: boolean;
     // deletePlaceholder: Function;
+    preventCollision: boolean;
+    compactType: string;
 }
 
 /**
@@ -57,19 +59,21 @@ export default class Grid extends React.Component<GridProps> {
     render() {
         console.log(this.props.transformScale);
 
+        const compactType = this.props.compactType === "vertical" || this.props.compactType === "horizontal" ? this.props.compactType : null;
+
         return (
             <GridLayout className="layout"
                 layout={this.props.layout}
                 cols={this.props.numCols}
                 rowHeight={this.props.rowHeight}
                 width={this.props.width}
-                compactType={null}
+                compactType={compactType}
                 isDroppable={true}
                 isDraggable={this.props.childrenDraggable}
                 isResizable={this.props.childrenDraggable}
                 useCSSTransforms={true}
                 onLayoutChange={this.onLayoutChange}
-                preventCollision={true}
+                preventCollision={this.props.preventCollision}
                 transformScale={this.props.transformScale} // still doesn't work :(
                 style={{ zIndex: 5 }}
             >

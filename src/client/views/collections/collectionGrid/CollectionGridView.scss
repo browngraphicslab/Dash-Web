@@ -46,6 +46,14 @@
             background: darkgrey;
             opacity: 1;
         }
+
+        .rowHeightSlider::-moz-range-thumb {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: darkgrey;
+            opacity: 1;
+        }
     }
 
     .collectionGridView-addDocumentButton {

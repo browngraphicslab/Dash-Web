@@ -18,6 +18,7 @@ import { SnappingManager } from '../../../util/SnappingManager';
 import { Docs } from '../../../documents/Documents';
 import { EditableView, EditableProps } from '../../EditableView';
 import "./CollectionGridView.scss";
+import { ContextMenu } from '../../ContextMenu';
 
 
 type GridSchema = makeInterface<[typeof documentSchema]>;
@@ -29,6 +30,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
     @observable private _scroll: number = 0;
     private changeListenerDisposer: Opt<Lambda>;
     private rowHeight: number = 0;
+    private sliderDragged: boolean = false;
 
     constructor(props: Readonly<SubCollectionViewProps>) {
         super(props);
@@ -37,6 +39,9 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
         this.props.Document.rowHeight = NumCast(this.props.Document.rowHeight, 100);
         this.props.Document.flexGrid = BoolCast(this.props.Document.flexGrid, true);
 
+        this.props.Document.compactType = StrCast(this.props.Document.compactType, "vertical");
+        this.props.Document.preventCollision = BoolCast(this.props.Document.preventCollision, false);
+
         this.setLayout = this.setLayout.bind(this);
         this.onSliderChange = this.onSliderChange.bind(this);
         // this.deletePlaceholder = this.deletePlaceholder.bind(this);
@@ -44,6 +49,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
     }
 
     componentDidMount() {
+
         this.changeListenerDisposer = computed(() => this.childLayoutPairs).observe(({ oldValue, newValue }) => {
 
             const layouts: Layout[] = this.parsedLayoutList;
@@ -61,6 +67,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
 
             if (!oldValue || newValue.length > oldValue.length) {
                 // for each document that was added, add a corresponding grid layout document
+
                 newValue.forEach(({ layout }, i) => {
                     const targetId = layout[Id];
                     if (!layouts.find((gridLayout: Layout) => gridLayout.i === targetId)) {
@@ -89,7 +96,6 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
 
     componentWillUnmount() {
         this.changeListenerDisposer && this.changeListenerDisposer();
-        console.log("unmounted")
     }
 
     // deletePlaceholder(placeholder: Layout, e: MouseEvent) {
@@ -222,9 +228,10 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
             collector.push(
                 <div className={this.props.Document.flexGrid && (this.props.isSelected() ? true : false) ? "document-wrapper" : "document-wrapper static"}
                     key={gridLayout.i}
+                // onContextMenu={() => ContextMenu.Instance.addItem({ description: "test", event: () => console.log("test"), icon: "rainbow" })}
                 >
                     {this.getDisplayDoc(layout, dxf, width, height)}
-                </div>
+                </div >
             );
         }
 
@@ -237,9 +244,17 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
      */
     get layoutList(): Layout[] {
         const layouts: Layout[] = this.parsedLayoutList;
+        this.unStringifiedLayoutList = layouts;
 
         return this.props.Document.flexGrid ?
-            layouts : layouts.map(({ i }, index) => ({
+            layouts.map(({ i, x, y, w, h }) => ({
+                i: i,
+                x: x + w > NumCast(this.props.Document.numCols) ? 0 : x,
+                y: y,
+                w: w,
+                h: h
+            }))
+            : layouts.map(({ i }, index) => ({
                 i: i,
                 x: 2 * (index % Math.floor(NumCast(this.props.Document.numCols) / 2)),
                 y: 2 * Math.floor(index / Math.floor(NumCast(this.props.Document.numCols) / 2)),
@@ -250,7 +265,9 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
     }
 
     onSliderChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        NumCast(this.props.Document.rowHeight) !== event.currentTarget.valueAsNumber && (this.sliderDragged = true);
         this.props.Document.rowHeight = event.currentTarget.valueAsNumber;
+
     }
 
     onSliderDown = () => {
@@ -277,7 +294,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
         const newEditableViewProps: EditableProps = {
             GetValue: () => "",
             SetValue: this.addTextDocument,
-            contents: "+ ADD TEXT DOCUMENT AT END",
+            contents: "+ ADD TEXT DOCUMENT",
         };
 
         const childDocumentViews: JSX.Element[] = this.contents;
@@ -287,10 +304,9 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
         return (
             <div className="collectionGridView-contents"
                 style={{
-                    // marginLeft: NumCast(this.props.Document._xMargin), marginRight: NumCast(this.props.Document._xMargin),
-                    // marginTop: NumCast(this.props.Document._yMargin), marginBottom: NumCast(this.props.Document._yMargin),
                     pointerEvents: !this.props.isSelected() && this.props.renderDepth !== 0 && !this.props.ContainingCollectionView?._isChildActive && !SnappingManager.GetIsDragging() ? "none" : undefined
                 }}
+                // onContextMenu={() => ContextMenu.Instance.addItem({ description: "test", event: () => console.log("test"), icon: "rainbow" })}
                 ref={this.createDashEventsTarget}
                 onPointerDown={e => {
                     if (this.props.active(true)) {
@@ -301,7 +317,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
                     // is the following section needed? it prevents the slider from being easily used and I'm not sure what it's preventing
 
                     // if (this.props.isSelected(true)) {
-                    // !((e.target as any)?.className.includes("react-resizable-handle")) && e.preventDefault();
+                    //     !((e.target as any)?.className.includes("react-resizable-handle")) && e.preventDefault();
                     // }
 
                 }} // the grid doesn't stopPropagation when its widgets are hit, so we need to otherwise the outer documents will respond
@@ -316,7 +332,7 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
                     onScroll={action(e => this._scroll = e.currentTarget.scrollTop)}
                     onWheel={e => e.stopPropagation()}
                 >
-                    <input className="rowHeightSlider" type="range" value={NumCast(this.props.Document.rowHeight)} onPointerDown={this.onSliderDown} onPointerUp={this.onSliderUp} onChange={this.onSliderChange} style={{ width: this.props.PanelHeight() - 40 }} min={1} max={this.props.PanelHeight() - 40} onPointerEnter={e => e.currentTarget.focus()} />
+                    <input className="rowHeightSlider" type="range" value={NumCast(this.props.Document.rowHeight)} onPointerDown={this.onSliderDown} onPointerUp={this.onSliderUp} onChange={this.onSliderChange} style={{ width: this.props.PanelHeight() - 40 }} min={1} max={this.props.PanelHeight() - 40} onClick={() => !this.sliderDragged && console.log("clicking") && (this.sliderDragged = false)} />
                     <Grid
                         width={this.props.PanelWidth()}
                         nodeList={childDocumentViews.length ? childDocumentViews : null}
@@ -326,6 +342,9 @@ export class CollectionGridView extends CollectionSubView(GridSchema) {
                         rowHeight={NumCast(this.props.Document.rowHeight)}
                         setLayout={this.setLayout}
                         transformScale={this.props.ScreenToLocalTransform().Scale}
+                        compactType={StrCast(this.props.Document.compactType)}
+                        preventCollision={BoolCast(this.props.Document.preventCollision)}
+
                     // deletePlaceholder={this.deletePlaceholder}
                     />
 
