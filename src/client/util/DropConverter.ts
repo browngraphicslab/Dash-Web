@@ -77,4 +77,4 @@ export function convertDropDataToButtons(data: DragManager.DocumentDragData) {
     });
 }
 Scripting.addGlobal(function convertToButtons(dragData: any) { convertDropDataToButtons(dragData as DragManager.DocumentDragData); },
-    "converts the dropped data to buttons", "{ dragData: any }");
+    "converts the dropped data to buttons", "(dragData: any)");

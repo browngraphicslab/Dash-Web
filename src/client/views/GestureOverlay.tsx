@@ -818,4 +818,4 @@ Scripting.addGlobal(function resetPen() {
 }, "resets the pen tool");
 Scripting.addGlobal(function createText(text: any, x: any, y: any) {
     GestureOverlay.Instance.dispatchGesture("text", [{ X: x, Y: y }], text);
-}, "creates a text document with inputted text and coordinates", "{ text: any, x: any, y: any }");
+}, "creates a text document with inputted text and coordinates", "(text: any, x: any, y: any)");

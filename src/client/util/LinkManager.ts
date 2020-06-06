@@ -212,4 +212,4 @@ export class LinkManager {
 }
 
 Scripting.addGlobal(function links(doc: any) { return new List(LinkManager.Instance.getAllRelatedLinks(doc)); },
-    "creates a link to inputted document", "{ doc: any }");
+    "creates a link to inputted document", "(doc: any)");

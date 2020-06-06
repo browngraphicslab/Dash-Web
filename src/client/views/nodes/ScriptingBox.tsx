@@ -524,6 +524,11 @@ export class ScriptingBox extends ViewBoxAnnotatableComponent<FieldViewProps, Sc
             const splitEntered = enteredParams.split(",");
             const numEntered = splitEntered.length;
 
+            parameters.forEach((element: string, i: number) => {
+                if (i !== parameters.length - 1) {
+                    parameters[i] = element + ",";
+                }
+            });
 
             console.log("numEntered: " + numEntered);
 
