@@ -37,16 +37,7 @@ import { documentSchema } from "../../../fields/documentSchemas";
 import { makeInterface, createSchema } from '../../../fields/Schema';
 import { listSpec } from '../../../fields/Schema';
 
-
 library.add(faTimes);
-
-// export interface SearchProps {
-//     id: string;
-//     Document: Doc;
-//     sideBar?: Boolean;
-//     searchQuery?: string;
-//     filterQuery?: filterData;
-// }
 
 export const searchSchema = createSchema({
     id: "string",
@@ -56,8 +47,6 @@ export const searchSchema = createSchema({
 });
 
 //add back filterquery
-
-
 
 export enum Keys {
     TITLE = "title",
@@ -115,8 +104,13 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     @observable private newAssign: boolean = true;
 
     constructor(props: any) {
+        
         super(props);
         SearchBox.Instance = this;
+        Scripting.addGlobal(this.handleNodeChange);
+        Scripting.addGlobal(this.handleKeyChange);
+        Scripting.addGlobal(this.handleWordQueryChange);
+
         this.resultsScrolled = this.resultsScrolled.bind(this);
         this.rootDoc._viewType = CollectionViewType.Stacking;
 
@@ -210,10 +204,11 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     //this also serves as an indicator if the word status filter is applied
     @observable private _filterOpen: boolean = false;
     //if icons = all icons, then no icon filter is applied
-    get _icons() { return this.props.searchFileTypes; }
-    set _icons(value) {
-        this.props.setSearchFileTypes(value);
-    }
+    // get _icons() { return this.props.searchFileTypes; }
+    // set _icons(value) {
+    //     this.props.setSearchFileTypes(value);
+    // }
+    @observable _icons: string[] = this._allIcons;
     //if all of these are true, no key filter is applied
     @observable private _titleFieldStatus: boolean = true;
     @observable private _authorFieldStatus: boolean = true;
@@ -238,11 +233,11 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             query = query.replace(/\s+/g, ' ').trim();
         }
 
-        //if should be searched in a specific collection
-        // if (this._collectionStatus) {
-        //     query = this.addCollectionFilter(query);
-        //     query = query.replace(/\s+/g, ' ').trim();
-        // }
+        // if should be searched in a specific collection
+        if (this._collectionStatus) {
+            query = this.addCollectionFilter(query);
+            query = query.replace(/\s+/g, ' ').trim();
+        }
         return query;
     }
 
@@ -415,7 +410,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         let bucket = Docs.Create.StackingDocument([],{ _viewType:CollectionViewType.Stacking,title: `default bucket`});
         bucket.targetDoc = bucket;      
         bucket._viewType === CollectionViewType.Stacking;
-        // targetawait Cast(bucket.targetDoc, Doc)!._height=185;
         bucket._height=185;
         bucket.bucketfield = "Default";
         bucket.isBucket=true;
@@ -457,15 +451,14 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     }
 
     private get filterQuery() {
-        // const types = this.filterTypes;
-        // const baseExpr = "NOT baseProto_b:true";
-        // const includeDeleted = this.getDataStatus() ? "" : " NOT deleted_b:true";
-        // const includeIcons = this.getDataStatus() ? "" : " NOT type_t:fonticonbox";
+        const types = this.filterTypes;
+        const baseExpr = "NOT baseProto_b:true";
+        const includeDeleted = this.getDataStatus() ? "" : " NOT deleted_b:true";
+        const includeIcons = this.getDataStatus() ? "" : " NOT type_t:fonticonbox";
         // const typeExpr = !types ? "" : ` (${types.map(type => `({!join from=id to=proto_i}type_t:"${type}" AND NOT type_t:*) OR type_t:"${type}"`).join(" ")})`;
-        // // fq: type_t:collection OR {!join from=id to=proto_i}type_t:collection   q:text_t:hello
-        // const query = [baseExpr, includeDeleted, includeIcons, typeExpr].join(" AND ").replace(/AND $/, "");
-        // return query;
-        return "";
+        // fq: type_t:collection OR {!join from=id to=proto_i}type_t:collection   q:text_t:hello
+        const query = [baseExpr, includeDeleted, includeIcons].join(" AND ").replace(/AND $/, "");
+        return query;
         }
 
     getDataStatus() { return this._deletedDocsStatus; }
@@ -491,10 +484,8 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
                     const docs = await Promise.all(res.docs.map(async doc => (await Cast(doc.extendsDoc, Doc)) || doc));
                     const highlights: typeof res.highlighting = {};
                     docs.forEach((doc, index) => highlights[doc[Id]] = highlightList[index]);
-                    const filteredDocs = docs;
-                    //this.filterDocsByType(docs);
+                    const filteredDocs = this.filterDocsByType(docs);
                     runInAction(() => {
-                        //this._results.push(...filteredDocs);
                         filteredDocs.forEach(doc => {
                             const index = this._resultsSet.get(doc);
                             const highlight = highlights[doc[Id]];
@@ -526,8 +517,7 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     collectionRef = React.createRef<HTMLSpanElement>();
     startDragCollection = async () => {
         const res = await this.getAllResults(this.getFinalQuery(StrCast(this.layoutDoc._searchString)));
-       // const filtered = this.filterDocsByType(res.docs);
-       const filtered = res.docs 
+       const filtered = this.filterDocsByType(res.docs);
        const docs = filtered.map(doc => {
             const isProto = Doc.GetT(doc, "isPrototype", "boolean", true);
             if (isProto) {
@@ -1001,7 +991,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
         const ficon = (opts: DocumentOptions) => new PrefetchProxy(Docs.Create.FontIconDocument({ ...opts,  
         dropAction: "alias", removeDropProperties: new List<string>(["dropAction"]), _nativeWidth: 100, _nativeHeight: 100, _width: 100,
          _height: 100 })) as any as Doc;
-        //backgroundColor: "#121721",       
         doc.Music = ficon({ onClick: undefined, title: "mussic button", icon: "music" });
         doc.Col = ficon({ onClick: undefined, title: "col button", icon: "object-group" });
         doc.Hist = ficon({ onClick: undefined, title: "hist button", icon: "chart-bar" });
@@ -1050,9 +1039,9 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
             borderRounding: "16px", border:"1px solid grey", color:"white", hovercolor: "rgb(170, 170, 163)", letterSpacing: "2px",
             _fontSize: 7,
         }))as any as Doc;
-        doc.keywords=button({ title: "Keywords", onClick:ScriptField.MakeScript("handleNodeChange(this)")});
-        doc.keys=button({ title: "Keys", onClick:ScriptField.MakeScript(`this.handleNodeChange`)});
-        doc.nodes = button({ title: "Nodes", onClick:ScriptField.MakeScript("this.updateTitleStatus")});
+        doc.keywords=button({ title: "Keywords", onClick:ScriptField.MakeScript("handleWordQueryChange(self)")});
+        doc.keys=button({ title: "Keys", onClick:ScriptField.MakeScript(`handleKeyChange(self)`)});
+        doc.nodes = button({ title: "Nodes", onClick:ScriptField.MakeScript("handleNodeChange(self)")});
         let buttons = [doc.keywords as Doc, doc.keys as Doc, doc.nodes as Doc];
         const dragCreators = Docs.Create.MasonryDocument(buttons, {
             _width: 500, backgroundColor:"#121721", _autoHeight: true, columnWidth: 60, ignoreClick: true, lockedPosition: true, _chromeStatus: "disabled", title: "buttons",_yMargin: 5
@@ -1137,15 +1126,6 @@ export class SearchBox extends ViewBoxBaseComponent<FieldViewProps, SearchBoxDoc
     }
 }
 
-// Scripting.addGlobal(function handleNodeChange(doc: any) {
-//     console.log("oi");
-//     doc.handleNodeChange();
-    
-//     // const dv = DocumentManager.Instance.getD  ocumentView(doc);
-//     // if (dv?.props.Document.layoutKey === layoutKey) dv?.switchViews(otherKey !== "layout", otherKey.replace("layout_", ""));
-//     // else dv?.switchViews(true, layoutKey.replace("layout_", ""));
-// });
-
 Scripting.addGlobal(function lookupSearchBoxField(container: Doc, field: string, data: Doc) {
     // if (field === 'indexInPres') return DocListCast(container[StrCast(container.presentationFieldKey)]).indexOf(data);
     // if (field === 'presCollapsedHeight') return container._viewType === CollectionViewType.Stacking ? 50 : 46;
@@ -1154,3 +1134,4 @@ Scripting.addGlobal(function lookupSearchBoxField(container: Doc, field: string,
         if (field == "query") return container._searchString;
     return undefined;
 });
+
