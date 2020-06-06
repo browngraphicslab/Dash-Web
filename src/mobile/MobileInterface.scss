@@ -16,4 +16,13 @@
     height: 100%;
     position: relative;
     touch-action: none;
+    width: 100%;
+}
+
+.mobileInterface-background {
+    height: 100%;
+    width: 100%;
+    position: relative;
+    touch-action: none;
+    background-color: pink;
 }

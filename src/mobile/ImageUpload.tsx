@@ -4,16 +4,18 @@ import { Docs } from '../client/documents/Documents';
 import "./ImageUpload.scss";
 import React = require('react');
 import { DocServer } from '../client/DocServer';
-import { Opt, Doc } from '../fields/Doc';
-import { Cast } from '../fields/Types';
-import { listSpec } from '../fields/Schema';
-import { List } from '../fields/List';
 import { observer } from 'mobx-react';
 import { observable } from 'mobx';
 import { Utils } from '../Utils';
-import MobileInterface from './MobileInterface';
-import { CurrentUserUtils } from '../client/util/CurrentUserUtils';
-import { resolvedPorts } from '../client/views/Main';
+import { Networking } from '../client/Network';
+import { Doc, Opt } from '../fields/Doc';
+import { Cast } from '../fields/Types';
+import { listSpec } from '../fields/Schema';
+import { List } from '../fields/List';
+
+export interface ImageUploadProps {
+    Document: Doc;
+}
 
 // const onPointerDown = (e: React.TouchEvent) => {
 //     let imgInput = document.getElementById("input_image_file");
@@ -24,7 +26,7 @@ import { resolvedPorts } from '../client/views/Main';
 const inputRef = React.createRef<HTMLInputElement>();
 
 @observer
-class Uploader extends React.Component {
+export class Uploader extends React.Component<ImageUploadProps> {
     @observable error: string = "";
     @observable status: string = "";
 
@@ -39,20 +41,15 @@ class Uploader extends React.Component {
                 if (files && files.length !== 0) {
                     console.log(files[0]);
                     const name = files[0].name;
-                    const formData = new FormData();
-                    formData.append("file", files[0]);
-
-                    const upload = window.location.origin + "/uploadFormData";
+                    const res = await Networking.UploadFilesToServer(files[0]);
                     this.status = "uploading image";
-                    console.log("uploading image", formData);
-                    const res = await fetch(upload, {
-                        method: 'POST',
-                        body: formData
-                    });
                     this.status = "upload image, getting json";
-                    const json = await res.json();
-                    json.map(async (file: any) => {
-                        const path = window.location.origin + file;
+
+                    res.map(async ({ result }) => {
+                        if (result instanceof Error) {
+                            return;
+                        }
+                        const path = Utils.prepend(result.accessPaths.agnostic.client);
                         const doc = Docs.Create.ImageDocument(path, { _nativeWidth: 200, _width: 200, title: name });
 
                         this.status = "getting user document";
@@ -75,12 +72,10 @@ class Uploader extends React.Component {
                                 pending.data = new List([doc]);
                             }
                             this.status = "finished";
+                            console.log("hi");
                         }
+
                     });
-
-                    // console.log(window.location.origin + file[0])
-
-                    //imgPrev.setAttribute("src", window.location.origin + files[0].name)
                 }
             }
         } catch (error) {
@@ -91,12 +86,12 @@ class Uploader extends React.Component {
     render() {
         return (
             <div className="imgupload_cont">
-                <label htmlFor="input_image_file" className="upload_label">Choose an Image</label>
+                <label htmlFor="input_image_file" className="upload_label" onClick={this.onClick}>Upload Image</label>
                 <input type="file" accept="image/*" className="input_file" id="input_image_file" ref={inputRef}></input>
-                <button onClick={this.onClick} className="upload_button">Upload</button>
+                {/* <div onClick={this.onClick} className="upload_button">Upload</div> */}
                 <img id="img_preview" src=""></img>
-                <p>{this.status}</p>
-                <p>{this.error}</p>
+                {/* <p>{this.status}</p>
+                <p>{this.error}</p> */}
             </div>
         );
     }
@@ -104,25 +99,4 @@ class Uploader extends React.Component {
 }
 
 
-// DocServer.init(window.location.protocol, window.location.hostname, resolvedPorts.socket, "image upload");
-(async () => {
-    const info = await CurrentUserUtils.loadCurrentUser();
-    DocServer.init(window.location.protocol, window.location.hostname, resolvedPorts.socket, info.email + "mobile");
-    await Docs.Prototypes.initialize();
-    if (info.id !== "__guest__") {
-        // a guest will not have an id registered
-        await CurrentUserUtils.loadUserDocument(info);
-    }
-    document.getElementById('root')!.addEventListener('wheel', event => {
-        if (event.ctrlKey) {
-            event.preventDefault();
-        }
-    }, true);
-    ReactDOM.render((
-        // <Uploader />
-        <MobileInterface />
-    ),
-        document.getElementById('root')
-    );
-}
-)();
+// DocServer.init(window.location.protocol, window.location.hostname, 4321, "image upload");

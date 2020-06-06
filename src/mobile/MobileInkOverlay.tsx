@@ -4,11 +4,9 @@ import { MobileInkOverlayContent, GestureContent, UpdateMobileInkOverlayPosition
 import { observable, action } from "mobx";
 import { GestureUtils } from "../pen-gestures/GestureUtils";
 import "./MobileInkOverlay.scss";
-import { StrCast, Cast } from '../fields/Types';
 import { DragManager } from "../client/util/DragManager";
 import { DocServer } from '../client/DocServer';
-import { Doc, DocListCastAsync } from '../fields/Doc';
-import { listSpec } from '../fields/Schema';
+import { Doc } from '../fields/Doc';
 
 
 @observer
