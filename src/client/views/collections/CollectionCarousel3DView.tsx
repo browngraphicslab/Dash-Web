@@ -1,9 +1,9 @@
-import { observable, computed } from 'mobx';
+import { computed } from 'mobx';
 import { observer } from 'mobx-react';
 import * as React from 'react';
 import { documentSchema, collectionSchema } from '../../../fields/documentSchemas';
 import { makeInterface } from '../../../fields/Schema';
-import { NumCast, StrCast, ScriptCast, Cast } from '../../../fields/Types';
+import { NumCast, StrCast, ScriptCast } from '../../../fields/Types';
 import { DragManager } from '../../util/DragManager';
 import { ContentFittingDocumentView } from '../nodes/ContentFittingDocumentView';
 import "./CollectionCarousel3DView.scss";
@@ -86,6 +86,7 @@ export class CollectionCarousel3DView extends CollectionSubView(Carousel3DDocume
     interval?: number;
     startAutoScroll = (direction: number) => {
         this.interval = window.setInterval(() => {
+            console.log(this.interval, this.scrollSpeed);
             this.changeSlide(direction);
         }, this.scrollSpeed);
     }
